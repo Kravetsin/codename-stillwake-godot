@@ -27,8 +27,8 @@ room. Drawn only, never part of the world: each peer emits its own from what it 
   (`DebrisView`) — a wreck's hit (`HitBurst`, below), a break's sparks, dust, cloud, glint, ring and flash, and a
   broken piece's embers (`BreakView`); the crew (`HeroView.Struck`) — every tool's hit on the ground or a growth.
 - **Hits look as what they strike (0094)**, whatever the tool, as they sound (0093), thrown where the object is struck,
-  never at the tool: a wall's open face turned toward the hero who struck (else its closed face turned to it; a slope's
-  diagonal), at the point of it nearest the hero, kept 0.15 of the face off its corners; a growth's cell's middle drawn a
+  never at the tool: a wall's open face, of its four sides, turned toward the hero who struck (else its closed face turned to
+  it), at the point of it nearest the hero, kept 0.15 of the face off its corners; a growth's cell's middle drawn a
   quarter cell toward the hero; a wreck where a running drill's bit is on its box, else its side facing the nearest
   hero. Chips fall to the floor under the face, within six rows. One table by the natural wall's material and one by the
   growth's kind (`HitLooks.Ground`, `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone.

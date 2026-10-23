@@ -104,8 +104,6 @@ public class DoubledTests
         Assert.Equal([(2, "stalactite"), (4, "bush")], l.Flora);
     }
 
-    [Fact]
-    public void ASlopeDoesNotDouble() => Assert.Throws<FormatException>(() => Doubled("/#"));
 
     private static readonly char[] Chars = ['.', '.', '#', '-', 'v', 'x', 'D', '=', 'H', ' ', 'V', 'L'];
 

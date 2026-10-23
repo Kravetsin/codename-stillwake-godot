@@ -12,11 +12,6 @@ public sealed partial class BuildingModule
         .. new[] { "pipe", "valve" }.Select(kind => new Placement("conduit", kind)),
         .. Machines.All.Select(m => new Placement("machine", m.Kind)),
         .. Materials.All.Select(m => Placement.BackWall(m.Id)),
-        // Walls cut to every shape (0069), and a shape where none may be, refused.
-        .. Materials.All.SelectMany(m => Shape.Cut.Select(shape => Placement.Wall(m.Id) with { Shape = shape })),
-        new("structure", "floor", Shape: Shape.BottomLeft),
-        Placement.BackWall() with { Shape = Shape.TopRight },
-        new("machine", "crate", Shape: Shape.TopLeft),
     ];
     private static readonly string[] FuzzLayers = ["structure", "conduit", "machine", "back"];
 

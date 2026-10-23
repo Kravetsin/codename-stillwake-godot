@@ -210,7 +210,7 @@ public class RuinsTests
     /// <summary>
     /// Why the spires stamped on <paramref name="l"/> of ground <paramref name="g"/> break a rule, or null: each at least
     /// <c>RuinClear</c> columns from the middle, none overlapping another, every cell of it as its prefab draws it — alloy walls
-    /// whole, never cut to a slope or taken off as a spike, its plugs soil, its open cells backed with alloy — its growths in
+    /// whole, never taken off as a spike, its plugs soil, its open cells backed with alloy — its growths in
     /// place and nothing else grown in its box, anchored at the highest surface across it.
     /// </summary>
     private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, int[] surface)

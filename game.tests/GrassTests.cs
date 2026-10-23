@@ -5,28 +5,21 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Where moss grows on a planet (0079): on soil, whole or a floor slope, with the open sky straight above it; and every plant drawn.</summary>
+/// <summary>Where moss grows on a planet (0079): on soil with the open sky straight above it; and every plant drawn.</summary>
 public class GrassTests
 {
     private static readonly int Soil = Spec.Materials.Get("soil").Code, Stone = Spec.Materials.Get("stone").Code;
 
-    private static bool Grows(int material = -1, int shape = Shape.None, int above = Structure.Empty, int back = Back.None, int structure = Structure.Wall) =>
-        Grass.Grows(structure, material < 0 ? Soil : material, shape, above, back, Soil);
+    private static bool Grows(int material = -1, int above = Structure.Empty, int back = Back.None, int structure = Structure.Wall) =>
+        Grass.Grows(structure, material < 0 ? Soil : material, above, back, Soil);
 
     [Fact]
-    public void GrowsOnSoilWholeOrAFloorSlopeUnderTheOpenSky()
-    {
-        Assert.True(Grows());
-        Assert.True(Grows(shape: Shape.BottomRight));
-        Assert.True(Grows(shape: Shape.BottomLeft));
-    }
+    public void GrowsOnSoilUnderTheOpenSky() => Assert.True(Grows());
 
     [Fact]
-    public void NotOnStoneACeilingSlopeOrAnythingButAWall()
+    public void NotOnStoneOrAnythingButAWall()
     {
         Assert.False(Grows(material: Stone));
-        Assert.False(Grows(shape: Shape.TopLeft));
-        Assert.False(Grows(shape: Shape.TopRight));
         Assert.False(Grows(structure: Structure.Floor));
         Assert.False(Grows(structure: Structure.Empty));
     }
@@ -40,26 +33,24 @@ public class GrassTests
         Assert.False(Grows(above: Structure.Ladder));
     }
 
-    private static bool Edged(int material, bool natural = true, int shape = Shape.None, int above = Structure.Empty, int back = Back.None) =>
-        Grass.Edged(Structure.Wall, material, natural, shape, above, back, Soil);
+    private static bool Edged(int material, bool natural = true, int above = Structure.Empty, int back = Back.None) =>
+        Grass.Edged(Structure.Wall, material, natural, above, back, Soil);
 
     [Fact]
     public void RockShowsItsChipsUnderAnyOpenCellSoilItsMossOnlyUnderTheSky()
     {
         // A cave's floor: an empty cell above, its back wall behind.
         Assert.True(Edged(Stone, back: Back.Wall));
-        Assert.True(Edged(Stone, shape: Shape.BottomLeft));
         Assert.True(Edged(Soil));
         Assert.False(Edged(Soil, back: Back.Wall));
     }
 
     [Fact]
-    public void NoEdgeOnHullCeilingSlopesOrUnderAnything()
+    public void NoEdgeOnHullOrUnderAnything()
     {
         Assert.False(Edged(Stone, natural: false));
-        Assert.False(Edged(Stone, shape: Shape.TopLeft));
         Assert.False(Edged(Stone, above: Structure.Ladder));
-        Assert.False(Grass.Edged(Structure.Floor, Stone, true, Shape.None, Structure.Empty, Back.None, Soil));
+        Assert.False(Grass.Edged(Structure.Floor, Stone, true, Structure.Empty, Back.None, Soil));
     }
 
     [Fact]

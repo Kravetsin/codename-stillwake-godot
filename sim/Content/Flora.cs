@@ -96,8 +96,8 @@ public static class Flora
     /// this list's order among those of that anchor, it falls in: <c>Chances</c> by its planet type's depth band
     /// (<see cref="PlanetType.Bands"/>), scaled by the patch noise there (<see cref="PlanetType.PatchMost"/>), so they gather,
     /// and in a great hall by <see cref="PlanetType.Hall"/>. It needs
-    /// its <c>Tall</c> cells open and free, the cells <c>Wide</c> either side open over the same wall, whole walls
-    /// all, never a slope (Terraria's rule) — and none of its kind nearer than <c>Apart</c> cells along the row; one on
+    /// its <c>Tall</c> cells open and free, the cells <c>Wide</c> either side open over the same wall, walls
+    /// all (Terraria's rule) — and none of its kind nearer than <c>Apart</c> cells along the row; one on
     /// a floor or a ceiling, nothing of its anchor in the cell before it.
     /// </summary>
     /// <param name="Chances">In ten-thousandths of a slot, in each band, the coldest first.</param>

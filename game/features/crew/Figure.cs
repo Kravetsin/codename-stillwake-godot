@@ -100,6 +100,9 @@ public partial class Figure : Node2D
     private double _timeMs, _head;
     /// <summary>The lean, the landing and the air's timers, read from the motion (0090).</summary>
     private readonly Motion _motion = new();
+
+    /// <summary>The steps the controller makes whole a step, drawn eased up and down them (0106).</summary>
+    private readonly StepEase _steps = new(Rig.Cell, HeroMotion.StepMs);
     /// <summary>How long since passing out, and what picks the heap it ends in, new each time.</summary>
     private double _outMs, _outTilt;
     private int _slump;
@@ -523,7 +526,7 @@ public partial class Figure : Node2D
     {
         _timeMs += elapsedMs;
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
-        // way along counts, so a slope keeps the stride of the flat; on a ladder only the way up or down.
+        // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.
         if (_last is var (lx, ly))
             _travelled += (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit;
         _last = (hero.X, hero.Y);
@@ -535,6 +538,8 @@ public partial class Figure : Node2D
         _outMs += elapsedMs;
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
+        bool walking = pose is Pose.Stand or Pose.Walk or Pose.Run, walked = _wasPose is Pose.Stand or Pose.Walk or Pose.Run;
+        double lift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
         var cues = _motion.Step(hero, pose, elapsedMs);
         if (cues.Jumped) Boots(GroundSounds.JumpOf(Footing));
         if (cues.Landed is int fall)
@@ -589,7 +594,7 @@ public partial class Figure : Node2D
         double c = Math.Abs(Math.Cos(shown.Tilt)), s = Math.Abs(Math.Sin(shown.Tilt));
         // Lying down, the middle sinks as the body turns, so it comes to rest on the floor.
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
-        Position = OnPixels ?? new Vector2((float)feetX, (float)feetY);
+        Position = (OnPixels ?? new Vector2((float)feetX, (float)feetY)) + new Vector2(0, (float)lift);
         Scale = new Vector2(hero.Facing, 1);
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;

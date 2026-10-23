@@ -10,7 +10,7 @@ the suit colour picked (`PickColour`), a jetpack's thrust (`Thrust`) and a canis
 
 | File               | Holds                                                                                   | Godot |
 | ------------------ | --------------------------------------------------------------------------------------- | ----- |
-| `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship` (with its walls' shapes, 0069), `Point`; one `Step` at 60 a second, up and down slopes; the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
+| `Hero.cs`          | the controller (`hero.ts`): `Hero`, `HeroInput`, `Ship`, `Point`; one `Step` at 60 a second, up and down steps of a cell (0106); the jetpack's flight (`Flown`, `ThrustToward`, 0047) | no    |
 | `Rig.cs`           | the figure's joints and limbs in pixels, `EndOf` and `Reach` (`rig.ts`); the fist and an item held in it (`FistOf`, `HeldAt`, 0040) | no    |
 | `Pose.cs`          | `Pose`, `Limbs`, `PoseOf`, `LimbsOf`, the head's turn and facing (`pose.ts`, `lookOf`, `faceOf`); `Jumped` and `Landed`, when the boots are heard pushing off and coming down; the air's poses blended by the speed up or down (0090) | no    |
 | `Motion.cs`        | what the figure reads from the motion over time (0090): the lean of its acceleration, the landing's depth and length by the fall, the time since a jump and falling (`Momentum`); a landing's ring by the fall | no    |
@@ -86,7 +86,7 @@ player down and not the other, and a floor could be jumped up through but not dr
   thousandths to spare, but a step walks 240 and runs 440, so a walk used to pass over that window or land
   in it by where the hero happened to start, and tapping the keys only ever reached positions a step apart.
   Now a step taken standing stops at the first place on its way where the body fits over the run of cells it can
-  fall into (nothing solid, no floor, no ladder top; the body, wider than a cell, fits two, 0104), and the hero falls in. A hole is crossed by jumping
+  fall into (nothing solid, no floor, no ladder top; the body, wider than a cell, fits two, 0104), and the hero falls in; one no deeper than a step is walked down into (0106). A hole is crossed by jumping
   it, as a wider one is. Wider holes and ledges are fallen off where they were, at the same place.
 - **Down over a hole slides in** (`Hero.Slid`): standing with the body's middle over such a hole and
   nothing else pressed, down moves the hero up to a walk's step a frame toward where it fits, and it falls.
@@ -99,50 +99,29 @@ player down and not the other, and a floor could be jumped up through but not dr
   ladder grabs and climbs it as before, and a ladder that ends on a floor is climbed down onto it, not through
   (step off the ladder, then drop). There is no crouch. Others see it by the positions sent, as any fall.
 
-## Slopes (0069)
+## Steps (0106)
 
-The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-cell-has-a-shape.md)); the hero's
-`Ship` reads it beside the structure (`ShapeAt`, the grid's own), and the geometry is the sim's (`Shape.Solid`,
-`Shape.TopAt`, `Shape.BottomAt`, `Shape.ClosedSides`, integer thousandths).
+Every cell is whole: ground rises in steps, never slopes ([0106](../../../docs/decisions/0106-steps-replace-slopes.md),
+superseding 0069), and the hero walks up and down steps of one cell.
 
-- **Whole cells hold the whole box; a floor slope (◢ ◣) holds the middle of the feet** on its diagonal, and a
-  slope beside the middle holds the box at its point nearest the middle (so a hole at a ramp's top is walked onto
-  and caught as any, `Hero.Caught`). Mixed footing stands on the higher, but a corner no more than half a width
-  above the ground under the middle gives way to it (`Hero.Landing`): off a plateau down a slope the feet follow
-  the slope rather than hang on the corner and drop.
-- **Walking** (`Hero.Walk`) moves in parts that end as the box's leading edge reaches its column's last thousandth
-  or its middle crosses into another column; after each the feet step up onto ground no more than half a width
-  above them, the head permitting, and stick to ground that fell by no more than the part walked. The next column's
-  walls are judged with the feet lifted to where they are as the edge reaches it, so a ramp never cuts a step short.
-  Up and down a ramp the hero stays grounded every step at its speed on the flat, walking or running, with no jump
-  and no hop; `Figure` keeps the stride going from walking to running and back.
-- **The low ledge rule:** walking, a wall whose top is no more than half a width above the feet does not stop the
-  box. At 45° the leading edge meets the next column exactly half a width above the feet, so the equal case
-  passes (`≤`); with `<` every ramp would stop at its top. Whole cells only ever sit at whole rows, so on flat
-  ground nothing changes.
-- **A slope's closed sides** (◢'s right, ◣'s left, both bottoms) stop the box like a wall; through its open side
-  the box goes in and the feet climb. The box may overlap only its lowest half width — the uphill side of a slope,
-  a ledge being stepped onto; a step, climb, swim or pull that would end with more of it in anything, or the feet
-  in anything, is not made (`Hero.Clear`).
-- **Ceiling slopes** (◤ ◥, part 2 of 0069): the head follows the diagonal (`Shape.BottomAt`). Rising — a jump, a
-  ladder — the box's top stops where it first meets a ceiling slope's diagonal, in the row the head is in too
-  (`Hero.MoveY`); through a ceiling slope's open side (◤'s right, ◥'s left) the box goes in under it till the head
-  meets the diagonal, in a column it is in already too (`Hero.MoveX`), so the hero stands and walks under a bevelled
-  corner as far as the open half gives the head room. The head never overlaps the solid half: the lowest half width
-  is still the only band that may overlap anything. A ceiling slope's top is whole to the feet, and its closed sides
-  stop the box like a wall. No slide along the diagonal: a head that meets it stops, as under a flat ceiling.
-  **Swimming and pulled**, every shape is whole. **Down on a slope** does nothing; down through floors and the
-  hole catch work as before.
-- Tested in `SlopeTests`: a hill up and down grounded every step both ways, walking and running; mixed footing;
-  closed sides and a ceiling slope on the floor stopping the hero; climbing a slope from its open side; the hole at a
-  ramp's top from either side; a ladder at a ramp's foot; swimming into a slope; a jump into a ceiling slope from its
-  open side stopping at the diagonal; a corridor six high with bevelled top corners, walked into either way, and a
-  run of ◤ along a ceiling; and a property that, on random ships of walls, slopes, floors, ladders and doors,
-  whatever the keys, nothing above the box's lowest half width or the feet is ever in a wall's solid, whole or a
-  slope's half, nor a closed door.
-- `-- --hills` is a room of slopes to walk (`game/dev/HillsDemo.cs`), aired and lit, stacks lying on its slopes;
-  with `--autopilot` the hero walks it (`HeroAutopilot.HillsRun`). `-- --slopes` (`game/dev/SlopesDemo.cs`) has a
-  corridor three high with its far top corner cut; with `--autopilot` the hero walks in under it (`SlopesRun`).
+- **Walking** (`Hero.Walk`) moves in parts that end as the box's leading edge reaches its column's edge. When what
+  stops a part is ground no more than `Hero.StepUp` (1000, a cell) above the feet and the box fits raised there —
+  head room over where it is and where it goes (`Hero.StepOnto`) — the feet step up onto it. Under a ceiling too low
+  to rise into, the walk stops.
+- **Down a step:** after each part the feet follow ground up to `StepUp` lower without a fall, and a hole the body
+  fits that is no deeper than a step is walked down into rather than ending the walk (`Hero.Caught`). Two cells
+  down, the hero falls; two cells up stop it, and it jumps or mantles (the ledge assist, 0092).
+- **`Hero.Clear` is strict:** the whole box clear of walls and closed doors; a step, climb, swim or pull that would
+  end otherwise is not made. `Hero.Landing` is the highest ground under the box.
+- **Drawn as a ramp:** the controller makes a step whole in one of its steps; the figure (`Figure.cs`) eases up and
+  down it over `HeroMotion.StepMs` (100 ms a cell) by `game/shared/StepEase.cs`, never slower than it walks across,
+  so a stair reads as a ramp. Computed from positions, so every peer draws others the same.
+- Tested in `StepTests`: a walk steps up one cell but not two; not under a ceiling too low; down one without falling,
+  but off two it falls; a stair walked at full speed, walking and running, never airborne; and the ease.
+- `-- --hills` is a room of one-cell steps to walk (`game/dev/HillsDemo.cs`), aired and lit: a hill up three steps, a
+  valley two wide and one deep, a ladder by a five-step stair with a hole a cell wide at its top, a bump, a block two
+  high and a floating stair of blocks up to a floor, stacks dropped onto its steps; with `--autopilot` the hero walks
+  it (`HeroAutopilot.HillsRun`).
 
 ## The jump and the walk's feel (0089)
 
@@ -161,9 +140,9 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
   toward what the keys ask (`Hero.Paced`): `WalkAccel` 60 a step (full walk in 4), `RunAccel` 64 (full run in 7),
   `Stop` 60 with no key or turning (a walk stops in 4, a run in 8, a run let go of Shift slows to a walk in 4). In
   the air each is `AirControl` (650 thousandths) of it, rounded down: 39, 41, 39. Speed carries off a ledge, a jump,
-  the harpoon's pull and a swim into gravity; a door's push leaves none. Slopes are walked at whatever the speed:
-  `Walk` takes any step, so the parts that end at a column's last thousandth are as before (`SlopeTests` walk the
-  hill and the stairs from standing).
+  the harpoon's pull and a swim into gravity; a door's push leaves none. Steps are walked at whatever the speed:
+  `Walk` takes any step, so the parts that end at a column's edge are as before (`StepTests` walk the stair from
+  standing).
 - Others see a jump from the motion (`Poses.Jumped`) once it rises at a quarter of `Hero.Jump`, so a tap's halved
   rise is heard pushing off too. The script holds Space 40 steps after each press (`HeroAutopilot`), jumping full height.
 - Tested in `HeroFeelTests`: each timer to its last step and one past, a spent coyote jump, a tap under half a held
@@ -263,7 +242,7 @@ The grid's walls may be cut to a shape ([0069](../../../docs/decisions/0069-a-ce
 
 - The aim is outlined along the pictures of what E works, a screen pixel wide (`render/Outline.cs`), where
   the TypeScript boxed its cells two pixels of the world wide. A mark on a wall, back wall, floor, ladder,
-  pipe or door still outlines its cell, a wall cut to a shape its solid half (`render/ShapeMasks.cs`, 0069). Traced once per aim: a door or plan added beside the one aimed at
+  pipe or door still outlines its cell. Traced once per aim: a door or plan added beside the one aimed at
   shows in its outline when the pointer next moves to another cell.
 - The body's middle is `Height / 2` rounded down, 2625 above the feet at 8 px (0104); at 16 px 1312, where the TypeScript has 1312.5:
   positions stay whole numbers. A tether cut back to its limit no longer leaves a half thousandth.
@@ -558,8 +537,7 @@ Deliberately not handled:
 - **Digging** (0077): with the axe or a drill held and natural ground in the brush round the pointer, in reach
   (`Aiming.Reaches`, as plans are reached), the aim is a cell of it: "[Hold LMB] Dig", red with "Too hard" on bedrock or
   "Batteries flat". **The brush** (`Shared/Brush`) is `Builds.Brush` cells a side (2) round the cell corner nearest the
-  pointer, its whole square outlined (`Aim.Square`); Ctrl held is the precise mode, one cell, outlined as before (its
-  slope's half for a slope). The aim takes the pointer's own cell if it could be dug, else the first of the square that
+  pointer, its whole square outlined (`Aim.Square`); Ctrl held is the precise mode, one cell, outlined as before. The aim takes the pointer's own cell if it could be dug, else the first of the square that
   could. The axe's strike sends one `Dig` for each cell of the brush round its swing's point that the sim would take, in
   reach, ascending, each judged alone and taking full damage, but one a plant, so a tree falls as fast as before
   (`Aiming.DigsAt`); it bites, drawn stopped a moment as on a wreck. The drill sends the same at its pace (`DrillPace`),

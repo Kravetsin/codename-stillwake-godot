@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Crew;
+using Stillwake.Sim;
 using Xunit;
 using static Stillwake.Game.Features.Crew.Poses;
 using Look = Stillwake.Game.HeroMotion;
@@ -98,10 +99,14 @@ public class MotionTests
             }
     }
 
+    /// <summary>A room sixteen cells wide, its floor row 12's top, with a stair of steps a cell a column up from column 4 to three high and down again by column 12 (0106).</summary>
+    private static readonly Ship Stair = HeroTests.ShipFrom(Layout.Parse([.. Enumerable.Range(0, 14).Select(y => new string([.. Enumerable.Range(0, 16)
+        .Select(x => y == 0 || y >= 12 || x == 0 || x == 15 || y >= 12 - Math.Clamp(Math.Min(x - 3, 12 - x), 0, 3) ? '#' : '.')]))]));
+
     [Fact]
-    public void AWalkKeptOnAHillNeverLeans()
+    public void AWalkKeptOnAStairNeverLeans()
     {
-        var ship = SlopeTests.Flat(SlopeTests.Hill);
+        var ship = Stair;
         foreach (bool run in new[] { false, true })
         {
             var motion = new Motion();
@@ -113,7 +118,7 @@ public class MotionTests
                 if (next.X > 13 * Unit) break;
                 h = next;
                 motion.Step(h, PoseOf(h, false, false), Hero.StepMs);
-                // Past setting off, at its speed up the slope, over the top and down: as on the flat.
+                // Past setting off, at its speed up the stair, over the top and down: as on the flat.
                 if (i < 30) continue;
                 Assert.True(Math.Abs(motion.Now.Lean) < 0.01, $"leans {motion.Now.Lean} at {h}");
             }

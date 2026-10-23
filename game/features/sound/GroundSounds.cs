@@ -47,7 +47,7 @@ public static class GroundSounds
         if (Holds(plants, cell, "moss")) return Footing.Moss;
         if (material.Code != SoilCode) return Footing.Stone;
         int above = cell - grid.Width;
-        return above >= 0 && Grass.Grows(structure, material.Code, grid.ShapeAt(cell), grid.StructureAt(above), grid.BackLayer[above], SoilCode)
+        return above >= 0 && Grass.Grows(structure, material.Code, grid.StructureAt(above), grid.BackLayer[above], SoilCode)
             ? Footing.Grass
             : Footing.Soil;
     }

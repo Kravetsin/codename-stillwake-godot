@@ -227,7 +227,8 @@ public class BuildingDeliveryTests
     public void BlueprintsAreBuiltTwiceAsFastByTwoHeroesAndKeepTheWorkDoneWhenTheyStop()
     {
         var w = PlacePlan(Stocked(Open), At(1, 1), IronWall);
-        int half = IronWallTicks / 2;
+        // Short of done by a tick at least, whatever the wall's ticks, odd or even.
+        int half = (IronWallTicks - 1) / 2;
         for (int i = 0; i < half; i++) w.Do(new Work(1) { From = 0 }).Do(new Work(1) { From = 1 }).Run();
         Assert.Equal(2 * half, PlanOf(w, 1)!.Progress);
         w.Run(50);

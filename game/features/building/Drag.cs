@@ -41,19 +41,11 @@ public static class Drag
     }
 
     /// <summary>
-    /// The brush <paramref name="act"/> lays at each point of a drag, columns by rows, with a brush <paramref name="side"/> cells
-    /// across (<see cref="Brush"/>): walls and back walls the square; a ladder, a door and a hatch their piece (0104); a floor its
-    /// top row, one cell thick as a doubled map draws it; a pipe, a valve, a machine and a removal one cell, as a pipe run is one
-    /// cell thick and a footprint placed once.
+    /// What <paramref name="act"/> lays at each point of a drag, columns by rows: a ladder, a door and a hatch their piece (0104);
+    /// everything else one cell, a click one cell, as building has no brush (the dig's stays, <see cref="Brush"/>).
     /// </summary>
-    public static (int W, int H) StampOf(Act act, int side) => act switch
-    {
-        // A piece is its own size, a ladder's two by two, a door's two by six, however fine the brush (0104).
-        PlaceTool p when Spec.Builds.PieceOf(p.Placement.Kind) is { } piece => piece,
-        PlaceTool { Placement.Kind: "wall" or "backWall" } => (side, side),
-        PlaceTool { Placement.Kind: "floor" } => (side, 1),
-        _ => (1, 1),
-    };
+    public static (int W, int H) StampOf(Act act) =>
+        act is PlaceTool p && Spec.Builds.PieceOf(p.Placement.Kind) is { } piece ? piece : (1, 1);
 
     /// <summary>
     /// <paramref name="act"/> as a stroke from world point <paramref name="from"/> to <paramref name="to"/> places it: the door's
@@ -118,23 +110,20 @@ public static class Drag
     }
 
     /// <summary>
-    /// The cells a drag covers as <see cref="LineOf"/> lays them, but for a removal begun on a wall's or back wall's
-    /// blueprint, with nothing else planned there: that fills the rectangle between its corners as planning them does,
-    /// and takes off only those
-    /// (<see cref="Judge"/>).
+    /// The cells a drag covers as <see cref="LineOf"/> lays them, but for a removal the rectangle between its corners, as
+    /// planning walls fills one: every cell in it marked, or its plans cancelled (<see cref="Judge"/>), a piece once.
     /// </summary>
-    public static List<int> CellsOf(int width, Act act, Spot from, Spot to, BuildingModule building, (int W, int H)? stamp = null) =>
-        act is Remove && CancelsWalls(building, from.Y * width + from.X) ? RectangleOf(width, from, to) : LineOf(width, act, from, to, stamp);
+    public static List<int> CellsOf(int width, Act act, Spot from, Spot to, (int W, int H)? stamp = null) =>
+        act is Remove ? RectangleOf(width, from, to) : LineOf(width, act, from, to, stamp);
 
     /// <summary>
     /// The cells a stroke of <paramref name="act"/> from world point <paramref name="from"/> to <paramref name="to"/>, in cells,
-    /// covers with a brush <paramref name="side"/> cells across: its stamp (<see cref="StampOf"/>) round each end, laid as
-    /// <see cref="CellsOf"/> lays a drag.
+    /// covers: its stamp (<see cref="StampOf"/>) round each end, laid as <see cref="CellsOf"/> lays a drag.
     /// </summary>
-    public static List<int> StrokeOf(int width, int height, Act act, (double X, double Y) from, (double X, double Y) to, BuildingModule building, int side)
+    public static List<int> StrokeOf(int width, int height, Act act, (double X, double Y) from, (double X, double Y) to)
     {
-        var stamp = StampOf(act, side);
-        return CellsOf(width, act, StampAt(width, height, from, stamp), StampAt(width, height, to, stamp), building, stamp);
+        var stamp = StampOf(act);
+        return CellsOf(width, act, StampAt(width, height, from, stamp), StampAt(width, height, to, stamp), stamp);
     }
 
     /// <summary>Whether a removal begun at <paramref name="cell"/> cancels only walls' and back walls' blueprints: begun where nothing else is planned.</summary>
@@ -173,7 +162,8 @@ public static class Drag
     /// <summary>
     /// What <paramref name="act"/> would do in each of <paramref name="cells"/>, as the sim judges it now.
     /// Removing cancels plans if the drag begins on one, a mark included, and marks what is built in its
-    /// layers otherwise; begun where only walls and back walls are planned, it cancels only their blueprints.
+    /// layers otherwise, only the layer of the first thing under where it began; begun where only walls and back walls are
+    /// planned, it cancels only their blueprints.
     /// </summary>
     public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building)
     {
@@ -182,6 +172,9 @@ public static class Drag
         var marked = new HashSet<(string, int)>();
         bool cancels = cells.Count > 0 && building.PlansAt(cells[0]).Count > 0;
         bool walls = cancels && CancelsWalls(building, cells[0]);
+        // Begun on something built, only its layer is taken: begun on a back wall, back walls, those behind machines too.
+        IReadOnlyList<string>? layers = act is Remove r && !cancels && cells.Count > 0 && building.ClearAt(cells[0], r.Layers) is { } first
+            ? [first.Layer] : null;
         var verdicts = new List<Verdict>();
         foreach (int cell in cells)
         {
@@ -205,7 +198,7 @@ public static class Drag
                     }
                 case Remove remove:
                     {
-                        if (building.ClearAt(cell, remove.Layers) is not { } next)
+                        if (building.ClearAt(cell, layers ?? remove.Layers) is not { } next)
                         {
                             verdicts.Add(new Verdict(cell, "building.nothingThere", []));
                             break;

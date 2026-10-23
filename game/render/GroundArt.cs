@@ -1,11 +1,10 @@
 using Godot;
-using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
 
 /// <summary>
 /// The pictures of a planet's natural ground made here rather than drawn (0077, 0079): the edges of a cell by its open sides,
-/// in its material's lines (<see cref="GroundLooks"/>), and the cracks a dig leaves, cut to the cell's shape. Its walls, back
+/// in its material's lines (<see cref="GroundLooks"/>), and the cracks a dig leaves. Its walls, back
 /// walls, details and living edges are drawn, in <c>art/planet</c>. Every pixel is a hash of where it is: the same on every machine and run.
 /// </summary>
 public static class GroundArt
@@ -13,16 +12,11 @@ public static class GroundArt
     private const int Cell = ShipCamera.Cell;
 
     /// <summary>
-    /// The tops a living edge is drawn for (<c>art/planet/top_{material}</c>, 0082): whole, and the two floor slopes. Its pictures
-    /// are a cell wide and two tall, laid from the cell above; the sheet's top row drawn behind the heroes, its bottom row before them.
+    /// How many pictures of the living edge a top has (<c>art/planet/top_{material}</c>, 0082), its sheet's first columns, a cell
+    /// showing one by a hash of where it is: a cell wide and two tall, laid from the cell above; the sheet's top row drawn behind
+    /// the heroes, its bottom row before them. The sheet's last four columns, drawn for slopes, are no longer read (0106).
     /// </summary>
-    public static readonly int[] TopShapes = [Shape.None, Shape.BottomRight, Shape.BottomLeft];
-
-    /// <summary>How many pictures of the living edge a top of <paramref name="shape"/> has, a cell showing one by a hash of where it is.</summary>
-    public static int TopVariants(int shape) => shape == Shape.None ? 4 : 2;
-
-    /// <summary>The column of the sheet holding variant <paramref name="variant"/> of a top of <paramref name="shape"/>: four flat, two ◢, two ◣.</summary>
-    public static int TopColumn(int shape, int variant) => shape switch { Shape.BottomRight => 4 + variant, Shape.BottomLeft => 6 + variant, _ => variant };
+    public const int TopVariants = 4;
 
     /// <summary>
     /// The edges of a cell of <paramref name="material"/> on its sides <paramref name="open"/> (up 1, right 2, down 4, left 8),
@@ -47,17 +41,6 @@ public static class GroundArt
         return image;
     }
 
-    /// <summary>
-    /// The lines along the diagonal of a <paramref name="material"/> wall cut to <paramref name="shape"/>, from the diagonal in:
-    /// its outline, then a floor slope's two lit lines as a top's (0088), a ceiling slope's one.
-    /// </summary>
-    public static Color[] Diagonal(string material, int shape)
-    {
-        var look = GroundLooks.Of[material];
-        return Shape.IsFloor(shape)
-            ? [Colour(look.Outline), Colour(look.Lit, GroundLooks.RimTop), Colour(look.Lit, GroundLooks.RimUnder)]
-            : [Colour(look.Outline), Colour(look.Lit)];
-    }
 
     /// <summary>
     /// A natural back wall's <paramref name="picture"/> receding behind its ground (0088): paler, cooler and darker, by
@@ -81,17 +64,14 @@ public static class GroundArt
     }
 
     /// <summary>
-    /// The cracks a dug cell cut to <paramref name="shape"/> shows at <paramref name="stage"/>, 0 to 2 (0077): more lines,
-    /// longer, from a dent in its middle; on a slope only over its solid half (0079), its middle moved into it.
+    /// The cracks a dug cell shows at <paramref name="stage"/>, 0 to 2 (0077): more lines, longer, from a dent in its middle.
     /// </summary>
-    public static Image Crack(int stage, int shape = Shape.None)
+    public static Image Crack(int stage)
     {
         var image = Image.CreateEmpty(Cell, Cell, false, Image.Format.Rgba8);
         var dark = Color.Color8(18, 14, 12, 230);
         var lit = Color.Color8(255, 240, 220, 70);
-        // A slope's cracks start from the middle of its solid half, a quarter of a cell into it from the cell's middle.
-        int mx = Cell / 2 - 1 + shape switch { Shape.BottomRight or Shape.TopRight => 3, Shape.BottomLeft or Shape.TopLeft => -3, _ => 0 };
-        int my = Cell / 2 - 1 + shape switch { Shape.BottomRight or Shape.BottomLeft => 3, Shape.TopLeft or Shape.TopRight => -3, _ => 0 };
+        int mx = Cell / 2 - 1, my = Cell / 2 - 1;
         int lines = 3 + 2 * stage, steps = 5 + 2 * stage;
         for (int i = 0; i < lines; i++)
         {
@@ -112,7 +92,7 @@ public static class GroundArt
         for (int y = my - stage / 2; y <= my + 1 + stage / 2; y++)
             for (int x = mx - stage / 2; x <= mx + 1 + (stage + 1) / 2; x++)
                 image.SetPixel(x, y, dark);
-        return shape == Shape.None ? image : ShapeMasks.Cut(image, shape);
+        return image;
     }
 
     private static Color Colour((int R, int G, int B) c, double by = 1) =>

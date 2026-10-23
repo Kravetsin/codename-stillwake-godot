@@ -11,13 +11,13 @@ and `Work`.
 | ----------------- | ---------------------------------------------------------------------------------------------- | ----- |
 | `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
-| `Drag.cs`         | a drag's line of cells, laid with the brush, and what the card or removal would do in each (`drag.ts`) | no    |
+| `Drag.cs`         | a drag's line of cells, laid a stamp at a time, and what the card or removal would do in each (`drag.ts`) | no    |
 | `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
 | `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle, the screen of a rugged tablet: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
-| `DigView.cs`      | digging seen (0077): each crack in `Building.Cracks` drawn in three stages by its share of the wall's strength (`GroundArt.Crack`), on a slope only over its solid half, its middle in it (0079), and a break's chips in the material's colour (`GroundLooks`), dust and a slow cloud, all drawn behind the walls (`Luminous.Low`) so none crosses a shaft's; a friend's digs alike. A hit's own look is thrown by the crew where it strikes (0094, `features/effects`). It reads the short list each frame and redraws only when it changed | yes |
+| `DigView.cs`      | digging seen (0077): each crack in `Building.Cracks` drawn in three stages by its share of the wall's strength, one picture a stage (`GroundArt.Crack(stage)`, 0079), and a break's chips in the material's colour (`GroundLooks`), dust and a slow cloud, all drawn behind the walls (`Luminous.Low`) so none crosses a shaft's; a friend's digs alike. A hit's own look is thrown by the crew where it strikes (0094, `features/effects`). It reads the short list each frame and redraws only when it changed | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the
@@ -28,7 +28,7 @@ thumbnails, a card's at the art's 16 px whatever the cell (0104); `PlanCut`/`Bui
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
-`drag.test.ts` and `near-grid.test.ts` are ported one for one, walls planned cut to a shape tested in `PlanShapeTests`, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
+`drag.test.ts` and `near-grid.test.ts` are ported one for one, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
 ## Guarantees
@@ -39,16 +39,8 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 
 - One thing in hand (`Holding`): free, the plan, a card or the cable. The plan put away takes the card;
   the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
-- **R slopes walls** (0069, part 2). With a hull wall's card in hand — not a floor, ladder, door, back wall or
-  machine — R turns the shape walls are planned in: whole, ◢, ◣, ◤, ◥ and round again; Shift+R the other way
-  (`PlanHand.Shape`, `PlanHand.Turn`). The shape sticks, for every wall card, until turned again; what is sent is the
-  card's placement with it (`PlanHand.InHand`, `Tools.Shaped`), so a drag plans every cell of its line cut to it, even
-  turned mid-drag. Wall cards' thumbnails and the card in hand show the cut. The pipette picks a wall with its shape
-  (`Tools.ShapePicked`). The ghost, the plan, its dashes and its turning real as it is worked all follow the cut: a
-  cut wall's pictures are the atlas's own (`ShipTiles.PictureOf`, `ImageOf`), so `BlueprintArt`, `PlanShapes` and the
-  aim's outline read them as any picture. A wall planned or in hand runs on into a wall beside it only where that one's
-  facing side is whole (`Blueprint.WallLinksOf`), as the grid draws built walls, so its edges match. The structure
-  tab's hint names R. A wall's shape is changed by taking it apart and planning it again; there is no hammer.
+- **Walls are whole** (0106): a wall card has no shape to turn. A wall planned or in hand joins the walls beside it
+  like any placement that joins (`Blueprint.Joins`), as the grid draws built walls.
 - The open tab is the mode (`PlanHand.Tab`): Air shows the pipes overlay, Power the cables. The overlay
   shown is never kept — `Tools.OverlayShown` from the plan out, the tab and `Ui.AirOn` on each read — so
   with the menu closed it is air or nothing. The air itself is drawn whenever O wants it, under every tab, the
@@ -58,13 +50,10 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **A surface's build list** (0076): only the cards the kind of the hero's surface allows are shown
   (`Tools.Allowed`, by `Registry.Rules`; the cable as `cable`), nor picked by Q: on the test strip, the structure tab
   alone, without pipes, machines or cables. A plan for anything else the sim refuses `building.notHere`.
-- **A stroke is laid with the brush** (`Shared/Brush`, `Builds.Brush` cells a side, 2): at each point of a drag its
-  stamp (`Drag.StampOf`) round the cell corner nearest the pointer, so a stroke builds as much per area as one 16 px cell
-  did. Walls and back walls take the square; a floor a row as wide in the pointer's row, one cell thick as a doubled map lays
-  it; a pipe, a valve and a machine one cell, as a pipe run is one cell thick and a footprint is placed once; a removal one cell.
-  Each cell is its own `PlacePlan`, each stamp's ascending, none twice, each judged alone (`Drag.StrokeOf`). Ctrl held is the
-  precise mode: one cell, as before. The ghost in hand shows the stamp.
-- **Pieces are placed whole** (0104), Ctrl or not: a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
+- **Building has no brush**: a click places one cell, a drag many (walls and back walls a rectangle, a floor and a pipe a
+  line); a machine is placed once where the stroke began. Each cell is its own `PlacePlan`, ascending, none twice, each
+  judged alone (`Drag.StrokeOf`). Only digging keeps the 2×2 brush (`Shared/Brush`, Ctrl for one cell).
+- **Pieces are placed whole** (0104): a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
   two cells at a time; a door's 2×6 round the pointer where the stroke began, a hatch's 6×2 (`Drag.Oriented`) when the stroke
   runs further across than down. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
   there, as a machine is; a removal on any of its cells marks the whole piece.
@@ -72,10 +61,11 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
   drawn a row at a time; aslant, it is a room's worth. Middle drags cancel plans when begun on one,
-  else mark what is built in the tab's layers (Air: pipes, valves, machines). Begun where only walls' and back
+  else mark what is built in the tab's layers (Air: pipes, valves, machines) over their rectangle, only in the layer of the first
+  thing under where the drag began: begun on a back wall, back walls, those behind machines too, and no machine. Begun where only walls' and back
   walls' blueprints are planned, a middle drag takes them off over the same rectangle (`Drag.CellsOf`), and only
-  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it runs
-  along a line as before: a rectangle of marks on built walls was not asked for. Q picks the card under the
+  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
+  rectangle too, every thing in it marked or cancelled once, a piece or a machine once. Q picks the card under the
   pointer onto its tab, known cards only. A drag ends with the hand that began it.
 - The right button held on a plan is the hero's, whatever the hand holds (crew's `Aiming.UsesOf`): within
   its reach it works one tick per tick released, at most five a frame; the sim takes an item from the hero

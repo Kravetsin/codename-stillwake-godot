@@ -98,10 +98,10 @@ public static class Planting
 
     /// <summary>
     /// The row of pixels a drip falling from (<paramref name="x"/>, <paramref name="y"/>) lands on: the top of the first wall,
-    /// closed door or floor under it, down a slope's diagonal where it is cut to one, within <paramref name="rows"/> cells;
-    /// null for none, or for one under the drip's very tip, where there is no open cell for it to fall through.
+    /// closed door or floor under it, within <paramref name="rows"/> cells; null for none, or for one under the drip's very
+    /// tip, where there is no open cell for it to fall through.
     /// </summary>
-    public static double? DripFloor(Func<int, int> structureAt, Func<int, int> shapeAt, int width, int height, int cell, double x, double y, int rows)
+    public static double? DripFloor(Func<int, int> structureAt, int width, int height, int cell, double x, double y, int rows)
     {
         int cx = (int)Math.Floor(x / cell), cy = (int)Math.Floor(y / cell);
         if (cx < 0 || cx >= width || cy < 0) return null;
@@ -109,8 +109,7 @@ public static class Planting
         {
             int at = row * width + cx, structure = structureAt(at);
             if (structure is Structure.Empty or Structure.DoorOpen) continue;
-            int shape = structure == Structure.Wall ? shapeAt(at) : Shape.None;
-            double surface = row * cell + (double)Shape.TopAt(shape, (int)((x / cell - cx) * Shape.Unit)) * cell / Shape.Unit;
+            double surface = row * cell;
             return surface - y < 2 ? null : surface;
         }
         return null;

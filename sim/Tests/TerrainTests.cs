@@ -46,7 +46,7 @@ public class TerrainTests
         var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
         return Small.LavaRows > 0 && Small.BedrockRows > 0
             && sides.Concat(bedrock).All(c => Is(c.Item1, c.Item2, "bedrock")) && lava.All(c => Is(c.Item1, c.Item2, "lava"))
-            && inside.All(c => Math.Abs(l.Materials![c.Item2 * l.Width + c.Item1]) is var m && m != Code("bedrock") && m != Code("lava"));
+            && inside.All(c => l.Materials![c.Item2 * l.Width + c.Item1] is var m && m != Code("bedrock") && m != Code("lava"));
     });
 
     [Fact]
@@ -87,7 +87,7 @@ public class TerrainTests
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
             // Stone from there to the bedrock, open or not; nothing but sky above.
-            if (Enumerable.Range(top + soil, l.Height - Small.CoreRows - top - soil).Any(y => Math.Abs(l.Materials![y * l.Width + x]) != Code("stone"))) return false;
+            if (Enumerable.Range(top + soil, l.Height - Small.CoreRows - top - soil).Any(y => l.Materials![y * l.Width + x] != Code("stone"))) return false;
             // Above it, the sky, or a cave under an overhang of another column's: open, and of no material but in a cave.
             if (Enumerable.Range(0, top).Any(y => l.Rows[y][x] is not (' ' or 'S' or '.') || l.Rows[y][x] != '.' && l.Materials![y * l.Width + x] != 0)) return false;
         }
@@ -108,35 +108,37 @@ public class TerrainTests
     }
 
     /// <summary>The top of the ground in column <paramref name="x"/>: its first solid cell; stone where it was carved open to the sky.</summary>
-    private static int TopOf(Layout l, int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][x] is '#' or '/' or '\\');
+    private static int TopOf(Layout l, int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][x] == '#');
 
     /// <summary>How deep the soil runs in column <paramref name="x"/> from <paramref name="top"/> down.</summary>
     private static int SoilAt(Layout l, int x, int top) =>
-        Enumerable.Range(top, l.Height - top).TakeWhile(y => Math.Abs(l.Materials![y * l.Width + x]) == Code("soil")).Count();
+        Enumerable.Range(top, l.Height - top).TakeWhile(y => l.Materials![y * l.Width + x] == Code("soil")).Count();
 
+    /// <summary>A grown ground has no shapes (0106): every cell whole or open, every material one a wall or a back wall is made of.</summary>
     [Property(MaxTest = 60)]
-    public Property ASlopeIsAWallOpenAboveWithOneSideOpenAndRisesTowardTheOther() => Prop.ForAll(Seeds, seed =>
+    public Property AGrownGroundIsWholeCellsOnly() => Prop.ForAll(Seeds, seed =>
     {
-        var l = Terrain.Generate(BareType, seed);
-        bool Solid(int x, int y) => l.Rows[y][x] is '#' or '/' or '\\';
-        for (int y = 1; y < l.Height; y++)
-            for (int x = 1; x < l.Width - 1; x++)
-            {
-                char c = l.Rows[y][x];
-                if (!Solid(x, y) || l.Materials![y * l.Width + x] == Code("bedrock") || Solid(x, y - 1))
-                {
-                    if (c is '/' or '\\') return false;
-                    continue;
-                }
-                bool left = Solid(x - 1, y), right = Solid(x + 1, y);
-                char want = right && !left ? '/' : left && !right ? '\\' : '#';
-                if (c != want) return false;
-            }
-        return true;
+        var l = Terrain.Generate(PlanetTypes.Small, seed);
+        return l.Rows.All(r => r.All(c => c is ' ' or '.' or '#' or 'S')) && l.Materials!.All(code => code >= 0);
     });
 
+    [Fact]
+    public void TheHillsRiseACellAColumnAtMostAStairAHeroWalksOnlyTheRangesTerracesAreCliffs()
+    {
+        // The first planet's hills and bumps together are steeper than a cell a column in places; the range steps CliffStep.
+        foreach (uint seed in new uint[] { 1, 2 })
+        {
+            Terrain.Generate(PlanetTypes.First, seed, out _, out var surface);
+            for (int x = 1; x < surface.Length; x++)
+            {
+                int rise = Math.Abs(surface[x] - surface[x - 1]);
+                Assert.True(rise <= 1 || rise >= Planet.CliffStep - 1, $"seed {seed}: {rise} rows at column {x}");
+            }
+        }
+    }
+
     [Property(MaxTest = 60)]
-    public Property NoSpikeStandsUpAndASlopeUnderTheSkyHasNoBackWallWhereOneInACaveKeepsIt() => Prop.ForAll(Seeds, seed =>
+    public Property NoSpikeStandsUp() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(BareType, seed);
         static bool Open(char c) => c is ' ' or '.' or 'S';
@@ -144,11 +146,8 @@ public class TerrainTests
             for (int x = 1; x < l.Width - 1; x++)
             {
                 char c = l.Rows[y][x], above = l.Rows[y - 1][x];
-                int code = l.Materials![y * l.Width + x];
-                // No ◢◣ peak, and no post a cell wide standing in the open.
-                if (c == '/' && l.Rows[y][x + 1] == '\\') return false;
-                if (c == '#' && Open(above) && Open(l.Rows[y][x - 1]) && Open(l.Rows[y][x + 1]) && code != Code("bedrock")) return false;
-                if (c is '/' or '\\' && code < 0 != (above == ' ')) return false;
+                // No post a cell wide standing in the open.
+                if (c == '#' && Open(above) && Open(l.Rows[y][x - 1]) && Open(l.Rows[y][x + 1]) && l.Materials![y * l.Width + x] != Code("bedrock")) return false;
             }
         return true;
     });
@@ -173,7 +172,7 @@ public class TerrainTests
             for (int y = 0; y < l.Height; y++)
             {
                 char c = l.Rows[y][x];
-                if (c is '#' or '/' or '\\')
+                if (c == '#')
                 {
                     sky = false;
                     continue;
@@ -242,7 +241,7 @@ public class TerrainTests
         {
             var l = Terrain.Generate(PlanetTypes.First, seed);
             int w = l.Width, middle = w / 2;
-            int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] is '#' or '/' or '\\');
+            int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] == '#');
             // A chasm: a column open nine cells in ten from the land beside it down half a chasm's greatest depth.
             int LandBy(int x) => Math.Min(TopOf(x - 20), TopOf(x + 20));
             var chasms = Enumerable.Range(1, w - 2).Where(x => Enumerable.Range(LandBy(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
@@ -273,8 +272,7 @@ public class TerrainTests
         {
             int code = l.Materials![cell];
             Assert.Equal(code <= 0 ? null : Materials.All.Single(m => m.Code == code), grid.BackAt(cell));
-            if (l.At(cell) is '#' or '/' or '\\') Assert.Equal(Math.Abs(code), Materials.All.Single(m => m.Id == grid.WallAt(cell)!.Id).Code);
+            if (l.At(cell) == '#') Assert.Equal(code, Materials.All.Single(m => m.Id == grid.WallAt(cell)!.Id).Code);
         }
-        Assert.Contains(Enumerable.Range(0, l.Width * l.Height), c => grid.ShapeAt(c) == Shape.BottomRight);
     }
 }

@@ -4,14 +4,11 @@ Draws the ship's cells and machines in pixel art, a pixel of art a pixel of the 
 cell (TypeScript `features/grid` and `render/ship-art.ts`).
 
 - **Reads:** `IGridQueries` only — `AfterToggles` through `Predicted.Grid`, `ChangedSince`, `StructureLayer`, `MaterialLayer`, `ConduitLayer`, `BackLayer`,
-  `BackMaterialLayer`, `ShapeLayer`, `Machines`, `Version`, `Built`; the machine's `Plug` from `Content.Machines` for its socket.
+  `BackMaterialLayer`, `Machines`, `Version`, `Built`; the machine's `Plug` from `Content.Machines` for its socket.
 - **Draws:** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its
   picture, iron a panel with a grille in about one cell of seven), pipes reaching toward their
   neighbours, valves, walls cut from their material's picture, their edges on every side that faces no
-  wall's whole side; a wall cut to a shape (0069) drawn from the same picture, each cell cut by its mask at load
-  (`render/ShapeMasks.cs`, `ShipTiles.WallName`), its diagonal edged in the material's own edge colours and its
-  edges on its whole sides only (`ShipTiles.EdgeName`); the light reads it as a whole wall for now,
-  floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
+  wall (`ShipTiles.WallName`, `ShipTiles.EdgeName`; every wall whole, 0106), floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
   is a door's, every other a hatch's, joined as the sim's `Doorways` joins them, one straight run a doorway;
   pictures by `render/DoorShape.cs`, 0067),
   machines over their footprints; a sprite per power socket.
@@ -55,13 +52,13 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
 - **A planet's ground** (0077, 0079): soil, stone and bedrock walls and back walls are drawn in the "Stillwake" style,
   `art/planet/wall_*` and `back_*`, 8 × 4 cell tiles that repeat seamlessly, cut a cell at a time as scrap's; their edges
   are made at start (`render/GroundArt.cs`, lines in `Content/GroundLooks.cs`): a dark outline by the open sides and inside
-  it two lit lines on top, one on the other sides, a floor slope's diagonal lit as a top (0088). Slopes are cut from them as
-  from the hull's. The ruins' alloy (0085) is a natural material drawn the same way: `wall_alloy` plates of cool steel in
+  it two lit lines on top, one on the other sides (0088). The ruins' alloy (0085) is a natural material drawn the same way: `wall_alloy` plates of cool steel in
   courses with rivets and a few engraved glyphs, `back_alloy` the same darker, `top_alloy` metal grit, `detail_alloy` vents,
   glyphs and the makers' emblems; placeholders drawn by a script not kept, till the user picks on a page.
 - **Back walls recede** (0088): a natural back wall's picture is paled, cooled and darkened at load (`GroundArt.Recede`), and
   walls cast a soft three-tone shadow on it along their open edges (`render/GroundShadow.cs`, plain C#, tested): a tile a
-  three by three of walls round a cell, made once into a shared atlas (`render/ShadowTiles.cs`), drawn on its own layer over
+  three by three of walls round a cell (`GroundShadow.Of`, nine wall-or-not bools), made once into a shared atlas
+  (`render/ShadowTiles.cs`, keyed by a bit a cell), drawn on its own layer over
   the back walls, multiplying them. A changed cell redraws its corner neighbours' shadows too, which `Stale` leaves be. The
   hull's back walls are left as they were.
 - **Lava** (0087), the planet's core, as the cave concepts drew it: its tiles are drawn as any ground's (`art/planet/*_lava`,
@@ -73,9 +70,10 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   `LavaLooks.LightEvery` (3) cells of an open stretch from its first, out from the view's middle, at most `MostLights`,
   each breathing a little, fed to the light feature (`LightView.Lava`). Lava is never dug nor built, so the band is the
   ground's rows (`Ground.CoreRows`, `LavaRows`).
-- **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall, whole or a floor slope, under an
-  empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`art/planet/top_{material}`'s columns,
-  by a hash of its 16 px column), two 16 px cells tall, each cell the half of the column its own column's parity picks (0104), laid from
+- **Moss** (0079) on soil open to the sky (`Grass.cs`, plain C#, tested: a soil wall under an
+  empty cell with no back wall), a rule of drawing, never the sim's: one of four pictures a top (`GroundArt.TopVariants`,
+  `ShipTiles.TopName(material, variant, front, half)`: `art/planet/top_{material}`'s first four columns, by a hash of its
+  16 px column; its last four, drawn for slopes, are no longer read, 0106), two 16 px cells tall, each cell the half of the column its own column's parity picks (0104), laid from
   two cells above so its stems rise into them, over the edges. Its details lie by 16 px cells, cut into the cells they cover. Dug, built
   over or roofed, the soil is bare; its cell's drawing alone lays and clears it, so a change above or below redraws it.
 - **Drawn near the camera** (0079): the grid is drawn in 32 × 32 chunks, a row at a time (`ChunkReveal`): every chunk the

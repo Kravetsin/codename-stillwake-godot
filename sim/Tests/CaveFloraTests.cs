@@ -46,7 +46,7 @@ public class CaveFloraTests
                     break;
                 default:
                     int step = kind.On == Flora.Anchor.Floor ? -w : w;
-                    // On whole walls only, never a slope, and room either side.
+                    // On walls only, and room either side.
                     for (int dx = -kind.Wide; dx < kind.Across + kind.Wide; dx++)
                         if (At(cell - step + dx) != '#' || At(cell + dx) != '.') return $"{where}: nothing whole holds its column {dx}";
                     for (int dx = 0; dx < kind.Across; dx++)
@@ -168,19 +168,6 @@ public class CaveFloraTests
         Assert.Equal(["threadViolet"], Kinds(w));
     }
 
-    [Fact]
-    public void AGrowthOnAFloorOrUnderACeilingCutToASlopeGoesAsIfDug()
-    {
-        // A glowcap over a floor slope at (2, 3), a stalactite under a whole ceiling at (5, 0), a glowcap on a whole floor at (4, 3).
-        var layout = Layout.Parse("""
-            ########
-            #......#
-            #......#
-            ##/#####
-            """) with { Flora = [(1 * 8 + 5, "stalactite"), (2 * 8 + 2, "glowcapTeal"), (2 * 8 + 4, "glowcapViolet")] };
-        var w = new Scenario(layout).Run();
-        Assert.Equal(["stalactite", "glowcapViolet"], Kinds(w));
-    }
 
     [Fact]
     public void AHitOnStoneWithMossInItDigsTheStoneNotTheMoss()

@@ -66,18 +66,16 @@ public class PlantingTests
         Assert.Equal((47, 48, 1, 16), Planting.Strip(Faces.Right, 4, 6, Cell, 2, 2, 1, before: true, after: false));
     }
 
-    /// <summary>A column 1 wide: open, open, open, a floor slope ◢ at row 3, then a wall.</summary>
-    private static double? Drip(double y, int shape = Shape.BottomRight) =>
-        Planting.DripFloor(c => c < 3 ? Structure.Empty : Structure.Wall, c => c == 3 ? shape : Shape.None, 1, 5, Cell, Cell / 4.0, y, 20);
+    /// <summary>A column 1 wide: open, open, open, then walls from row 3.</summary>
+    private static double? Drip(double y) =>
+        Planting.DripFloor(c => c < 3 ? Structure.Empty : Structure.Wall, 1, 5, Cell, Cell / 4.0, y, 20);
 
     [Fact]
-    public void ADripLandsOnTheFirstSolidUnderItDownASlopesDiagonal()
+    public void ADripLandsOnTheFirstSolidUnderIt()
     {
-        // ◢ a quarter of a cell in from its left: its diagonal three quarters of the cell down.
-        Assert.Equal(3 * Cell + (Shape.Unit - 1 - 250) * Cell / (double)Shape.Unit, Drip(10));
-        Assert.Equal(3 * Cell, Drip(10, Shape.None));
+        Assert.Equal(3 * Cell, Drip(10));
         // Its tip on the floor already: nowhere to fall, no drip.
-        Assert.Null(Drip(3 * Cell - 1, Shape.None));
-        Assert.Null(Planting.DripFloor(_ => Structure.Empty, _ => Shape.None, 1, 5, Cell, Cell / 4.0, 10, 20));
+        Assert.Null(Drip(3 * Cell - 1));
+        Assert.Null(Planting.DripFloor(_ => Structure.Empty, 1, 5, Cell, Cell / 4.0, 10, 20));
     }
 }

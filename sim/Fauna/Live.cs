@@ -288,7 +288,7 @@ public sealed partial class FaunaModule
             // Flush against what it met, walking it keeps its way, its steering next tick jumping or turning; in the air it presses
             // on, so a leap carries it over once clear.
             if (Across(spec, ref x, ref y, c.VX, grounded, walks, out bool down) && !walks) c.VX = 0;
-            // Down a step as it walks, as up one: a slope's run of steps is walked, not fallen down.
+            // Down a step as it walks, as up one: a stair is walked, not fallen down.
             if (down) c.VY = 0;
             (c.X, c.Y) = (x, y);
         }
@@ -382,7 +382,7 @@ public sealed partial class FaunaModule
     }
 
     /// <summary>
-    /// What stops a creature: a wall (its shape whole: a slope is stood on at its top), a floor or a closed door, as for a stack, or
+    /// What stops a creature: a wall, a floor or a closed door, as for a stack, or
     /// past the grid's edge. A machine is not, as for a stack.
     /// </summary>
     private bool Solid(int x, int y) =>

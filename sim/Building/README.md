@@ -73,9 +73,6 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   - In creative mode a blueprint lacks nothing: it is worked as it is, taking nothing.
 - **Cancelling** a blueprint, however far it was built, lets exactly what was put in fall on the floor at
   it, dropped by whoever cancels (`IItemsOps.DropAt`); cancelling a mark drops nothing.
-- **A wall may be planned cut to a shape** (0069, part 2): the placement carries it (`Placement.Shape`), the grid
-  refuses one on anything but a wall (`grid.notShapeable`), and the wall is built cut to it. It costs, takes and gives
-  back what a whole wall of its material does. A wall's shape is changed by taking it apart and building it again.
 - What a thing costs and takes: its material's for a wall or a back wall (`Materials`: scrap for
   scrap, plates for iron), `Builds` and `Machines` otherwise.
 - Anyone may cancel or work on any plan.
@@ -105,15 +102,14 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   grass and every cave growth, which fall to any hit) fells it, its crack dropped, giving its kind's `Yields` to the
   sender (an acacia 10 planks, a bush a seed, a rock 2 rock; flowers and grass nothing). Felled any other way, its crack
   goes with it, so a wall built in its cell never takes it over. A plant whose ground is gone — no wall under its cell, dug, taken apart, a
-  meteor, or a wall cut to a slope there — or whose cell holds something now is felled in derivation, the tick it happens, looked at only when the grid's
+  meteor — or whose cell holds something now is felled in derivation, the tick it happens, looked at only when the grid's
   version moved. A felled plant never grows back; only `Felled` is saved, so a planet's save grows by a number a plant.
 - **What grows in a planet's caves** (0080): the caves' kinds of `Content.Flora.Cave`, grown with the ground too, each holding on
   to something (`Flora.Anchor`): on a floor, standing in the open cell over the wall and `Tall` cells up; from a ceiling,
   hanging in the open cell under the wall and `Tall` cells down; in the rock, lying in a stone wall's own cell beside a cave
   (moss, mica, veins, fossils, a geode, the heat's cracks). One in open cells falls to a hit on any of them, as a plant does; one
   in the rock is not hit itself — a `Dig` there digs the stone, as on any wall — and goes the tick the stone breaks. Any whose
-  hold is gone (`HoldOf`: the wall under it, over it, or its own), or one on a floor or a ceiling whose hold is cut to a
-  slope (they grow on whole walls only, never on slopes, as in Terraria), is felled in derivation; looked at only round the cells the
+  hold is gone (`HoldOf`: the wall under it, over it, or its own) is felled in derivation; looked at only round the cells the
   grid's log names since the last look (`ChangedSince`), all of them when it names none (a first look, a load). They are many —
   some thirty-eight thousand on the first planet — and their cells go in `Felled` like a plant's. Felled by a hit or by
   digging out their hold, they give fixed `Yields`: teal and hanging caps 2 biomass, violet caps a spore, ice crystals an
@@ -172,8 +168,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
   `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool)`, refused with `building.nothingToDig` (no natural wall nor plant there), `building.bedrock`,
   `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
-- **Fuzz:** every command, refused ones too: placements of every kind, walls cut to every shape and a shape on
-  what may have none, mostly within 32 cells of
+- **Fuzz:** every command, refused ones too: placements of every kind, mostly within 32 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so
   the build zone's edge is drawn too; marks mostly within what is built (TypeScript draws from the
   wreck as drawn, which in the big world of 0048 would miss the ship); cancels of ids that are and

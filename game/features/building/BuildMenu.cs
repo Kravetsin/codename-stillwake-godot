@@ -17,8 +17,7 @@ namespace Stillwake.Game.Features.Building;
 /// pointer, so a card is swapped for another at a click and the menu stays open. A plan costs nothing until it is
 /// worked, an item a part (0063), so a card the player carries too little for is as bright as any. It opens on the
 /// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc puts the plan
-/// away; with it away, the key that takes it out. Q picks the card under the pointer; R turns the shape a hull wall's
-/// card plans walls in, Shift+R back, every wall card's picture showing it (0069). Only what the world knows is
+/// away; with it away, the key that takes it out. Q picks the card under the pointer. Only what the world knows is
 /// shown (0024): a tab with nothing known, not at all, nor its mode. It is the screen of a rugged tablet (0073), which
 /// slides up from the bottom edge as the plan comes out and back down as it goes away.
 /// </summary>
@@ -261,9 +260,6 @@ public partial class BuildMenu : CanvasLayer
                 _hand.Toggle();
                 break;
             // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open it picks.
-            // With a hull wall's card in hand, R turns the shape walls are planned in, Shift+R back (0069).
-            case Key.R when _hand.PlanOut.Get() && _hand.Turn(key.ShiftPressed ? -1 : 1):
-                break;
             case Key.Q when _hand.PlanOut.Get():
                 _hand.PickWanted = true;
                 break;
@@ -323,7 +319,7 @@ public partial class BuildMenu : CanvasLayer
             _tabsShown = tabsKey;
             MakeTabs(tabs);
         }
-        string key = $"{tabsKey}|{shownTab?.Id}|{query}|{tool?.Id}|{_hand.Shape.Get()}|{_top}|{string.Join(",", _list.Select(t => t.Id))}|{_hovered?.Id}|{_hoveredTab}|{_search.HasFocus()}";
+        string key = $"{tabsKey}|{shownTab?.Id}|{query}|{tool?.Id}|{_top}|{string.Join(",", _list.Select(t => t.Id))}|{_hovered?.Id}|{_hoveredTab}|{_search.HasFocus()}";
         if (key != _shown)
         {
             _shown = key;
@@ -391,7 +387,6 @@ public partial class BuildMenu : CanvasLayer
             Tablet.PaintTab(box, on, id == _hoveredTab);
         }
         _slash.Visible = _search.Text == "" && !_search.HasFocus();
-        int shape = _hand.Shape.Get();
         for (int slot = 0; slot < _cards.Count; slot++)
         {
             var (box, picture) = _cards[slot];
@@ -402,15 +397,14 @@ public partial class BuildMenu : CanvasLayer
             var (x, y) = _at.SpotOf(_top, index);
             box.Position = new Vector2(x, y);
             box.AddThemeStyleboxOverride("panel", card == tool ? Held : SlotLooks.Of(SlotTint.Plain, card == _hovered, chosen: false));
-            // A wall's card shows the shape walls are planned in.
-            picture.Texture = ThumbOf(Tools.Shaped(card, shape)!);
+            picture.Texture = ThumbOf(card);
         }
         _none.Visible = query != "" && _list.Count == 0;
         Tablet.PlaceThumb(_bar.Thumb, _at.Thumb(_top, _list.Count));
         _heldPicture.Visible = _heldName.Visible = tool != null;
         if (tool != null)
         {
-            _heldPicture.Texture = ThumbOf(Tools.Shaped(tool, shape)!);
+            _heldPicture.Texture = ThumbOf(tool);
             _heldName.Text = tool.Label;
         }
         _hint.Text = shownTab != null ? En.T(Tools.HintOf(shownTab.Id)) : "";

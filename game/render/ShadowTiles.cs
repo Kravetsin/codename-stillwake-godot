@@ -50,18 +50,18 @@ public sealed class ShadowTiles
     public const int Source = 0;
 
     /// <summary>
-    /// The key of the walls in the three by three round a cell, row by row (<paramref name="around"/>: each one's shape, -1 for none):
-    /// three bits a cell.
+    /// The key of the walls in the three by three round a cell, row by row (<paramref name="around"/>: whether each holds one): a
+    /// bit a cell.
     /// </summary>
-    private static int KeyOf(ReadOnlySpan<int> around)
+    private static int KeyOf(ReadOnlySpan<bool> around)
     {
         int key = 0;
-        for (int i = 0; i < 9; i++) key |= (around[i] + 1) << (3 * i);
+        for (int i = 0; i < 9; i++) key |= (around[i] ? 1 : 0) << i;
         return key;
     }
 
     /// <summary>The tile of the shadow the walls <paramref name="around"/> a cell cast on it; null for none, or once every slot is taken.</summary>
-    public Vector2I? TileOf(ReadOnlySpan<int> around)
+    public Vector2I? TileOf(ReadOnlySpan<bool> around)
     {
         int key = KeyOf(around);
         if (_byWalls.TryGetValue(key, out var known)) return known;

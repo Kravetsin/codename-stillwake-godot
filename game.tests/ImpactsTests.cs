@@ -17,12 +17,12 @@ public class ImpactsTests
     private static readonly int Bite = Spec.Weapons.Drill.Damage, ArcBite = Sim.Items.Boost.Gain(Bite, Spec.Modules.Arc.Adds(Spec.Weapons.Drill.Item, Spec.Stat.Damage));
 
     /// <summary>
-    /// Row 1: soil, two soil walls side by side, stone, plaster, alloy, a floor slope ◢ of soil; row 2 soil underneath. Over row 1
+    /// Row 1: soil, two soil walls side by side, stone, plaster, alloy, soil; row 2 soil underneath. Over row 1
     /// a tuft, a rock and a tree standing on row 2 at the right.
     /// </summary>
     private static readonly Layout Ground = Layout.Parse("""
         ............
-        .##.#.#.#./.
+        .##.#.#.#.#.
         ############
         """).WithMaterials("""
         ............
@@ -161,19 +161,6 @@ public class ImpactsTests
         // A wall under the ground, every face closed: the one turned to the hero.
         var buried = Impacts.On(m.Grid, At(4, 2), 4.5, 0.5);
         Assert.Equal((4.5, 2.0, 0.0, -1.0), (buried.X, buried.Y, buried.Nx, buried.Ny));
-    }
-
-    [Fact]
-    public void ASlopeIsStruckOnItsDiagonalFromAbove()
-    {
-        var m = M;
-        var hit = Impacts.On(m.Grid, At(10, 1), 9.2, 0.5);
-        double d = Math.Sqrt(0.5);
-        Assert.Equal(-d, hit.Nx, 9);
-        Assert.Equal(-d, hit.Ny, 9);
-        // On the diagonal from (10, 2) to (11, 1).
-        Assert.Equal(12, hit.X + hit.Y, 9);
-        Assert.InRange(hit.X, 10, 11);
     }
 
     [Fact]

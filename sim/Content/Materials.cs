@@ -18,8 +18,8 @@ namespace Stillwake.Content;
 /// None for one never built, bedrock.
 /// </param>
 /// <param name="BuildTicks">
-/// Ticks of a hero's work to build one cell; 0 for one never built. A quarter of the 16 px cell's it was, rounded to the nearest,
-/// a half up (0104): a wall of the same area takes as long.
+/// Ticks of a hero's work to build one cell; 0 for one never built. Half the 16 px cell's it was, rounded to the nearest, a half up:
+/// a wall of the same area takes twice as long as at 16 px, so building is not instant (0104 had a quarter).
 /// </param>
 /// <param name="Natural">
 /// A planet's ground (0077): its walls dug by weapons, never marked to take apart; walls and back walls of it may be planned,
@@ -43,17 +43,17 @@ public static class Materials
 {
     public static readonly IReadOnlyList<Material> All =
     [
-        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 1)], BuildTicks: 3),
-        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 7),
+        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 1)], BuildTicks: 7),
+        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14),
         // A planet's ground (0077), leakier than any hull. Soil breaks in two swings of the axe, stone in six; a shovelful
         // of soil and a lump of rock, the asteroids' own, come out of it, and build it back.
-        new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 3, Natural: true),
-        new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 5, Natural: true),
+        new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 5, Natural: true),
+        new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 10, Natural: true),
         new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
         new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
         // The ruins' metal (0085): five times stone, six seconds of the drill, three with the arc fitted (0098); a scrap of it a cell.
-        new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 10, Natural: true),
+        new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
         new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
     ];

@@ -29,15 +29,14 @@ public static class BlueprintArt
     /// <summary>
     /// The pictures <paramref name="placement"/> is drawn with, as the ship draws it built: <paramref name="linked"/>
     /// are the sides a pipe reaches toward, a door joins another door on and a wall runs on into another wall: a wall is
-    /// edged on every other side, alone all round, a wall cut to a shape only on its whole sides (0069). A machine is one
-    /// picture from its corner.
+    /// edged on every other side, alone all round. A machine is one picture from its corner.
     /// </summary>
     public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) => placement.Kind switch
     {
-        "wall" => (~linked & AllSides & Shape.ClosedSides(placement.Shape)) is var open and > 0
-            ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true),
-                new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open, placement.Shape))]
-            : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!, placement.Shape), Cut: true)],
+        "wall" => (~linked & AllSides) is var open and > 0
+            ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!), Cut: true),
+                new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open))]
+            : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!), Cut: true)],
         // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
         "backWall" => [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
             ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
@@ -55,20 +54,20 @@ public static class BlueprintArt
     /// <summary>
     /// What <paramref name="placement"/> builds, as one picture: a build menu card's, at the art's 16 px (0104), as it was before
     /// the cell was halved. A pipe or a valve reaches both ways; a door is a door's piece alone, the shape it is known by; a
-    /// picture cut over the world gives its first 16 px; a wall cut to a shape shows the cut, at the cell's size.
+    /// picture cut over the world gives its first 16 px.
     /// </summary>
     public static Texture2D Thumbnail(Placement placement)
     {
         if (Thumbs.TryGetValue(placement, out var kept)) return kept;
         int linked = placement.Layer == "conduit" ? Left | Right : 0;
         var layers = new List<(Image Image, Vector2I At)>();
-        int side = placement.Shape == Shape.None ? ShipTiles.Drawn : Cell;
+        int side = ShipTiles.Drawn;
         var size = new Vector2I(side, side);
         IReadOnlyList<TilePiece> pieces = (placement.Kind is "door" or Builds.Hatch) ? [new(TileLayer.Doors, "door_closed_0")]
             : placement.Kind == "ladder" ? [new(TileLayer.Fixtures, "ladder")] : PiecesOf(placement, linked);
         foreach (var piece in pieces)
         {
-            var image = side == Cell ? ShipTiles.ImageOf(piece.Picture) : ShipTiles.DrawnImageOf(piece.Picture);
+            var image = ShipTiles.DrawnImageOf(piece.Picture);
             // A sheet gives its first 16 px; a 16 px picture cut over its cells, all of it (0104).
             if (piece.Cut && !ShipTiles.CutDrawn(piece.Picture)) image = image.GetRegion(new Rect2I(0, 0, side, side));
             // A valve's wheel sits in the middle of its cell, as the grid lays it.

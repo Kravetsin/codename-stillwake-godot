@@ -45,6 +45,7 @@
     <Compile Include="../game/Content/FaunaLooks.cs" Link="Game/Content/FaunaLooks.cs" />
     <Compile Include="../game/Content/FaunaArt.cs" Link="Game/Content/FaunaArt.cs" />
     <Compile Include="../game/features/grid/Grass.cs" Link="Game/Grid/Grass.cs" />
+    <Compile Include="../game/shared/StepEase.cs" Link="Game/Shared/StepEase.cs" />
     <Compile Include="../game/features/grid/ChunkReveal.cs" Link="Game/Grid/ChunkReveal.cs" />
     <Compile Include="../game/render/GroundDetails.cs" Link="Game/Render/GroundDetails.cs" />
     <Compile Include="../game/render/GroundShadow.cs" Link="Game/Render/GroundShadow.cs" />

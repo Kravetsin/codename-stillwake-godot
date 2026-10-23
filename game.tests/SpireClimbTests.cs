@@ -45,7 +45,7 @@ public class SpireClimbTests
     private static Ship OnPlanet(Layout layout)
     {
         var grid = new TestWorld(layout).M.Grid;
-        return new Ship(grid.Width, grid.Height, grid.StructureAt, _ => false, null, grid.ShapeAt,
+        return new Ship(grid.Width, grid.Height, grid.StructureAt, _ => false, null,
             PlanetTypes.First.Fall(Spec.Gravity), Spec.PlanetFallGravity);
     }
 

@@ -50,6 +50,12 @@ public static class Hero
     /// <summary>How far onto a ledge the assist puts the hero, across, the step its feet reach the top.</summary>
     public const int MantleAcross = 120;
 
+    /// <summary>
+    /// How high a walk steps up onto ground in its way, the head permitting, and how far down it follows ground without a fall:
+    /// a cell (0106), so a stair of cells is walked and a rise of two stops the hero, who jumps or mantles.
+    /// </summary>
+    public const int StepUp = 1000;
+
     /// <summary>Thousandths of <see cref="Jump"/> a jump off a ladder to one side rises with, rounded toward zero: a leap off, not up.</summary>
     public const int LadderJumpRise = 850;
 
