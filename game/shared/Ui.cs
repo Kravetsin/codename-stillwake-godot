@@ -49,8 +49,6 @@ public enum Holding
     Plan,
     /// <summary>A build card.</summary>
     Card,
-    /// <summary>The cable card.</summary>
-    Cable,
 }
 
 /// <summary>A line of a cost: how much there is of an item, toward how much is needed.</summary>

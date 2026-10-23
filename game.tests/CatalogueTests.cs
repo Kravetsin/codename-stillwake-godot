@@ -122,8 +122,8 @@ public class CatalogueTests
         var walls = Tools.Matching(Tools.All, " WALL ");
         Assert.Equal(Tools.All.Where(t => t.Label.Contains("wall", StringComparison.OrdinalIgnoreCase)), walls);
         Assert.Contains(walls, t => t.Id == "wallScrap");
-        // One card a material does both layers (0107).
-        Assert.DoesNotContain(walls, t => t.Id.StartsWith("backWall", StringComparison.Ordinal));
+        // A back wall has cards of its own (0108).
+        Assert.Contains(walls, t => t.Id == "backWallScrap");
         Assert.Equal(["generator", "burnerGenerator"], Tools.Matching(Tools.All, "generator").Select(t => t.Id));
         Assert.Empty(Tools.Matching(Tools.All, "no such thing"));
     }

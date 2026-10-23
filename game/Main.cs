@@ -50,7 +50,7 @@ namespace Stillwake.Game;
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc module in the drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--breathe</c> a canister breathed and the pod's air breathed again (<see cref="BreatheDemo"/>; <c>--breathe-air</c> only the air), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
-/// <c>--layer-demo plan|fade|axe|aim</c> plans back walls, fades the walls and swings the axe at a back wall by the right button (<see cref="LayerDemo"/>, 0107),
+/// <c>--layer-demo plan|remove|fade|axe|aim|strip</c> plans back walls, marks walls, fades the walls, swings the axe at a back wall and lays a cable with the stripper (<see cref="LayerDemo"/>, 0107, 0108),
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--tool-cards</c> the drill's card plain and fitted side by side (<see cref="ToolCardsDemo"/>), <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--snap FILE</c> saves the screen to FILE once the world is <c>--snap-at</c> seconds old and quits, <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
@@ -1101,7 +1101,7 @@ public partial class Main : Node2D, ITogether
         _ground?.Frame(client, Log);
         _faunaDemo?.Frame(client, Log);
         _shimmerDemo?.Frame(client, _m.Grid, Log);
-        _layerDemo?.Frame(client, _m.Grid, Log);
+        _layerDemo?.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
     }
 

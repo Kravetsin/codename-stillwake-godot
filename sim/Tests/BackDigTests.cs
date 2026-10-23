@@ -8,7 +8,7 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The right button's layer (0107): a weapon's hit on a back wall, built or grown, at its material's strength; and the
+/// The right button's layer (0107): a weapon's hit on a natural back wall at its material's strength, never a ship's (0108); and the
 /// screwdriver every hero comes aboard with, which builds what the menu plans.
 /// </summary>
 public class BackDigTests
@@ -72,28 +72,27 @@ public class BackDigTests
     }
 
     [Fact]
-    public void AShipsBackWallBreaksAtItsMaterialsStrengthIntoItsCostAndOpensTheRoomToSpace()
+    public void NeitherTheAxeNorTheDrillBreaksAShipsWallOrBackWallTheRoomStayingSealed()
     {
-        var w = new Scenario(Room);
+        var w = new Scenario(Room).GiveItems(0, (Drill, 1));
         int cell = w.M.Grid.Width * (w.M.Grid.Height / 2) + w.M.Grid.Width / 2;
+        foreach (var tool in (string[])[Axe, Drill])
+            for (int i = 0; i < 4; i++) w.Do(new Dig(cell, tool, Back: true)).Do(new Dig(0, tool)).Run();
+        Assert.All(Reasons(w), r => Assert.Equal("building.builtWall", r));
+        Assert.Equal(16, w.Refusals.Count);
+        Assert.Equal("building.builtWall", w.M.Building.DigProblem(0, cell, Axe, back: true));
+        Assert.Equal("scrap", w.M.Grid.BackAt(cell)?.Id);
+        Assert.NotNull(w.M.Grid.WallAt(0));
+        Assert.Empty(w.M.Building.Cracks);
         Assert.Empty(w.M.Rooms.All.Single().Openings);
-        var scrap = Materials.Get("scrap");
-        for (int i = 0; i < (scrap.Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage; i++) w.Do(new Dig(cell, Axe, Back: true)).Run();
-        Assert.Empty(w.Refusals);
-        Assert.Null(w.M.Grid.BackAt(cell));
-        Assert.Equal(1, Count(w, "scrap"));
-        w.Run();
-        Assert.Equal([cell], w.M.Rooms.All.Single().Openings);
     }
 
     [Fact]
     public void RefusesNoBackWallAsNothingToDigBedrockAsTooHardAndAFlatDrillAsTheWeaponSays()
     {
         var w = World();
-        w.Do(new Dig(At(2, 0), Axe, Back: true)).Run();
-        Assert.Empty(w.Refusals);
-        w.Do(new Dig(At(2, 0), Axe, Back: true)).Do(new Dig(-1, Axe, Back: true)).Do(new Dig(At(7, 2), Axe, Back: true)).Run();
-        Assert.Equal(["building.nothingToDig", "building.nothingToDig", "building.bedrock"], Reasons(w));
+        w.Do(new Dig(At(2, 0), Axe, Back: true)).Do(new Dig(-1, Axe, Back: true)).Do(new Dig(At(7, 2), Axe, Back: true)).Do(new Dig(At(2, 0), Axe)).Run();
+        Assert.Equal(["building.builtWall", "building.nothingToDig", "building.bedrock", "building.nothingToDig"], Reasons(w));
         Assert.Equal("building.bedrock", w.M.Building.DigProblem(0, At(7, 2), Axe, back: true));
         w.GiveItems(0, (Drill, 1)).Do(new Dig(At(2, 2), Drill, Back: true)).Run();
         Assert.Equal("items.flat", Reasons(w)[^1]);
@@ -102,14 +101,16 @@ public class BackDigTests
     }
 
     [Fact]
-    public void AHeroComesAboardWithTheScrewdriverOnceAndItsPlayerBuildsAPlanWithIt()
+    public void AHeroComesAboardWithTheScrewdriverAndTheStripperOnceAndItsPlayerBuildsAPlanWithIt()
     {
         var w = new Scenario(Room);
         int cell = w.M.Grid.Width * (w.M.Grid.Height / 2) + w.M.Grid.Width / 2;
         w.Do(new Enter(cell)).Run();
         Assert.Equal(new Stack(Screwdrivers.Basic.Item, 1), w.M.Items.Inventory(0)[0]);
+        Assert.Equal(new Stack(HandTools.Stripper, 1), w.M.Items.Inventory(0)[1]);
         w.Do(new Leave()).Run().Do(new Enter(cell)).Run();
         Assert.Equal(1, Count(w, Screwdrivers.Basic.Item));
+        Assert.Equal(1, Count(w, HandTools.Stripper));
 
         w.GiveItems(0, ("scrap", 5)).Do(new PlacePlan(cell + 1, Placement.Wall("scrap"))).Run();
         int plan = w.M.Building.Plans.Single().Id;

@@ -14,16 +14,16 @@ namespace Stillwake.Game.Features.Power;
 public readonly record struct SocketLight((double X, double Y) At, Light Light);
 
 /// <summary>
-/// The hands at work on cables on the power tab (features/power/mode.ts, 0021, 0030): with the cable in
-/// hand, a press on a node lays a cable from it, led on past its reach through supports at the anchors on
-/// its way; with no card, a press on a support, or on a cable's end at a machine, carries it; a release
-/// lays or moves there. A middle press near a cable cuts it. While dragging, each powered machine's socket is
+/// The hands at work on cables with the stripper (features/power/mode.ts, 0021, 0108): a press on a node
+/// lays a cable from it, led on past its reach through supports at the anchors on its way; with Ctrl, a
+/// press on a support, or on a cable's end at a machine, carries it; a release
+/// lays or moves there. A right press near a cable cuts it. While dragging, each powered machine's socket is
 /// lit by whether the cable reaches it, and the cable runs to the pointer in the colour of what the sim
 /// would say, its reason beside it. Plain C#: <c>PowerView</c> draws what it leaves in its properties.
 /// </summary>
 public sealed class PowerHands
 {
-    /// <summary>How near a middle press must be to a cable, in cells, to cut it.</summary>
+    /// <summary>How near a right press must be to a cable, in cells, to cut it.</summary>
     public const double CutReach = 0.7;
 
     private Grip? _grip;
@@ -50,7 +50,7 @@ public sealed class PowerHands
     /// <summary>Each powered machine's socket, lit while a cable is dragged.</summary>
     public IReadOnlyList<SocketLight> Sockets { get; private set; } = [];
 
-    /// <summary>The cable nearest <paramref name="at"/> within <see cref="CutReach"/>, if any: what a middle press there cuts.</summary>
+    /// <summary>The cable nearest <paramref name="at"/> within <see cref="CutReach"/>, if any: what a right press there cuts.</summary>
     public static Line? Nearest(IReadOnlyList<Line> lines, (double X, double Y) at)
     {
         (Line Line, double D)? best = null;
@@ -63,12 +63,12 @@ public sealed class PowerHands
     }
 
     /// <summary>
-    /// One frame: the buttons pressed since the last (the left one only with the cable or the plan in
-    /// hand), the middle presses meant for the cables, <paramref name="cuts"/>, the pointer, in cells, and
-    /// the cables as drawn, <paramref name="lines"/>. Commands go out through <paramref name="send"/> as
-    /// peer <paramref name="peer"/>.
+    /// One frame with the stripper held (0108): the buttons pressed since the last, the left laying from the node pressed,
+    /// or, with <paramref name="carry"/> (Ctrl) held at the press, carrying a peg or a plug; the right presses that cut,
+    /// <paramref name="cuts"/>; the pointer, in cells, and the cables as drawn, <paramref name="lines"/>. Commands go out
+    /// through <paramref name="send"/> as peer <paramref name="peer"/>.
     /// </summary>
-    public void Update(Holding holds, Buttons buttons, IReadOnlyList<ButtonEvent> cuts, (double X, double Y)? pointer, IReadOnlyList<Line> lines,
+    public void Update(bool carry, Buttons buttons, IReadOnlyList<ButtonEvent> cuts, (double X, double Y)? pointer, IReadOnlyList<Line> lines,
         IGridQueries grid, IPowerQueries power, int peer, Action<Command> send, double elapsedMs)
     {
         int width = grid.Width, height = grid.Height;
@@ -87,24 +87,19 @@ public sealed class PowerHands
             _rope = null;
         }
 
-        // A middle press cuts the nearest cable within reach.
+        // A right press cuts the nearest cable within reach.
         foreach (var button in cuts)
             if (button.Down && Nearest(lines, button.At) is { } cut) send(new Cut(cut.A, cut.B));
 
-        // The left button is the cable's, and the plan's with no card: it carries pegs and plugs.
-        // Another card's, or an empty hand's, is the building's.
-        bool wiring = holds is Holding.Cable or Holding.Plan;
-        if (!wiring) (_grip, _from, _rope) = (null, null, null);
-        foreach (var button in wiring ? buttons.TakeLeft() : [])
+        foreach (var button in buttons.TakeLeft())
         {
             int cell = CellAt(button.At);
             if (button.Down)
             {
                 int? node = cell < 0 ? null : power.NodeAt(cell);
-                // With the cable, laid from whatever node is pressed, a peg too; with no card, a peg or a
-                // plug is carried and nothing is laid.
+                // Laid from whatever node is pressed, a peg too; with Ctrl, a peg or a plug is carried and nothing is laid.
                 var held = Wiring.GripAt(button.At, lines, node, IsMachine);
-                _grip = holds == Holding.Cable
+                _grip = !carry
                     ? node is int n ? new LayGrip(n) : null
                     : held is LayGrip ? null : held;
                 _from = _grip?.Node;

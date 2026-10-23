@@ -218,15 +218,8 @@ public partial class BuildMenu : CanvasLayer
         }
     }
 
-    /// <summary>A card's picture: what it builds, as the ship draws it; the cable its plug.</summary>
-    public static Texture2D ThumbOf(Tool tool) => tool switch
-    {
-        // A material's card shows both its layers, its wall before its back wall (0107).
-        PlaceTool { Back: { } back } p => BlueprintArt.Layered(p.Placement, back),
-        PlaceTool p => BlueprintArt.Thumbnail(p.Placement),
-        RemoveTool => AsciiArt.Removal(),
-        _ => AsciiArt.Plug(),
-    };
+    /// <summary>A card's picture: what it builds, as the ship draws it.</summary>
+    public static Texture2D ThumbOf(Tool tool) => BlueprintArt.Thumbnail(((PlaceTool)tool).Placement);
 
     /// <summary>A card clicked: picked, or let go when it is the one in hand. The menu stays open.</summary>
     public void Pick(Tool tool) => _hand.Pick(tool);
@@ -299,8 +292,8 @@ public partial class BuildMenu : CanvasLayer
         }
         var tabs = Tools.Tabs
             .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
-            // The removal card is on every tab: a tab with nothing else known is not shown, nor counts it.
-            .Where(t => t.Tools.Any(c => c is not RemoveTool))
+            // A tab with nothing known is not shown.
+            .Where(t => t.Tools.Count > 0)
             .ToList();
         var shownTab = tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();
         // A tab the world shows nothing on is never the mode: the one shown instead is.
@@ -321,7 +314,7 @@ public partial class BuildMenu : CanvasLayer
         }
         _top = System.Math.Clamp(_top, 0, Catalogue.LastTop(_list.Count));
         FindHovered();
-        string tabsKey = string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count(c => c is not RemoveTool)}"));
+        string tabsKey = string.Join(",", tabs.Select(t => $"{t.Id}:{t.Tools.Count}"));
         if (tabsKey != _tabsShown)
         {
             _tabsShown = tabsKey;
@@ -361,7 +354,7 @@ public partial class BuildMenu : CanvasLayer
         float x = 0;
         foreach (var tab in tabs)
         {
-            string name = En.T($"build.tab.{tab.Id}"), count = tab.Tools.Count(c => c is not RemoveTool).ToString(System.Globalization.CultureInfo.InvariantCulture);
+            string name = En.T($"build.tab.{tab.Id}"), count = tab.Tools.Count.ToString(System.Globalization.CultureInfo.InvariantCulture);
             var box = Tablet.Tab(name, count, x);
             string id = tab.Id;
             box.GuiInput += e =>

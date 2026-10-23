@@ -7,6 +7,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Research;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
@@ -18,8 +19,6 @@ public class BuildingToolsTests
     private static string? What(Tool? tool) => tool switch
     {
         null => null,
-        CableTool => "cable",
-        RemoveTool r => $"remove:{r.Tab}",
         PlaceTool { Placement: var p } when p.Kind is "wall" or "backWall" => $"{p.Kind}:{p.Material}",
         PlaceTool { Placement: var p } => p.Kind,
         _ => null,
@@ -33,12 +32,11 @@ public class BuildingToolsTests
         var carded = Tools.Tabs.SelectMany(tab => tab.Tools.Select(What)).ToList();
         Assert.Equal(carded.Count, carded.Distinct().Count());
         Assert.All(Tools.Tabs, tab => Assert.NotEmpty(tab.Tools));
-        // A card a material but bedrock (0077, 0084), its wall and its back wall (0107); a removal card a tab.
+        // A card a material but bedrock (0077, 0084) for its wall, and one for its back wall (0108).
         var expected = Materials.All.Where(m => m.Built).Select(m => $"wall:{m.Id}")
-            .Concat(Tools.Tabs.Select(t => $"remove:{t.Id}"))
+            .Concat(Materials.All.Where(m => Blueprints.Has(Placement.BackWall(m.Id))).Select(m => $"backWall:{m.Id}"))
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind))
-            .Append("cable");
+            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
         Assert.Equal(expected.Order(StringComparer.Ordinal), carded.Order(StringComparer.Ordinal));
     }
 
@@ -54,11 +52,10 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void PricesEachCardAsTheSimDoesACableAtItsOwnCost()
+    public void PricesEachCardAsTheSimDoes()
     {
         var q = new TestWorld("#.#").M.Building;
         Assert.Equal(Builds.Get("door").Cost, Tools.CostOf(Card("door"), q.CostFor));
-        Assert.Equal(Content.Power.CableCost, Tools.CostOf(Card("cable"), q.CostFor));
     }
 
     [Fact]
@@ -71,7 +68,7 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void ShowsTheOpenTabsOverlayAndWithTheMenuClosedOnlyAirIfWanted()
+    public void ShowsTheOpenTabsOverlayAndWithTheMenuClosedTheStrippersCablesOrAirIfWanted()
     {
         foreach (bool airOn in new[] { false, true })
             foreach (var tab in Tools.Tabs.Select(t => t.Id))
@@ -79,8 +76,12 @@ public class BuildingToolsTests
                 string? air = airOn ? Tools.Air : null;
                 // Closed, whatever the tab: air or nothing.
                 Assert.Equal(air, Tools.OverlayShown(false, tab, airOn));
-                string? own = tab switch { "air" => Tools.Pipes, "power" => Tools.Power, _ => null };
+                Assert.Equal(air, Tools.OverlayShown(false, tab, airOn, "fireAxe"));
+                // The stripper held, the cables (0108); the plan out, the tab's whatever is held.
+                Assert.Equal(Tools.Power, Tools.OverlayShown(false, tab, airOn, HandTools.Stripper));
+                string? own = tab == "air" ? Tools.Pipes : null;
                 Assert.Equal(own ?? air, Tools.OverlayShown(true, tab, airOn));
+                Assert.Equal(own ?? air, Tools.OverlayShown(true, tab, airOn, HandTools.Stripper));
             }
     }
 
@@ -95,14 +96,17 @@ public class BuildingToolsTests
         plan.Tab.Set("air");
         Assert.Equal(Tools.Pipes, ui.OverlayOn);
         plan.Tab.Set("power");
-        Assert.Equal(Tools.Power, ui.OverlayOn);
+        Assert.Equal(Tools.Air, ui.OverlayOn);
         plan.PutPlanAway();
         Assert.Equal(Tools.Air, ui.OverlayOn);
+        ui.Wielded.Set(HandTools.Stripper);
+        Assert.Equal(Tools.Power, ui.OverlayOn);
+        ui.Wielded.Set(null);
         ui.AirOn.Set(false);
         Assert.Null(ui.OverlayOn);
         // B again opens on the tab it was closed on.
         plan.Toggle();
-        Assert.Equal(("power", Tools.Power), (plan.Tab.Get(), ui.OverlayOn));
+        Assert.Equal(("power", (string?)null), (plan.Tab.Get(), ui.OverlayOn));
     }
 
     [Fact]
@@ -126,11 +130,13 @@ public class BuildingToolsTests
     public void SaysWhatTheButtonsDoOnEveryTabInWords()
     {
         foreach (var tab in Tools.Tabs) Assert.True(En.Table.ContainsKey(Tools.HintOf(tab.Id)), tab.Id);
-        Assert.NotEqual(Tools.HintOf("power"), Tools.HintOf("structure"));
+        Assert.NotEqual(Tools.HintOf("air"), Tools.HintOf("structure"));
+        Assert.Equal("hint.back", Tools.HintOf("structure", Card("backWall:scrap")));
+        Assert.True(En.Table.ContainsKey("hint.back"));
     }
 
     [Fact]
-    public void HoldsThePlanWhileItIsOutACardOrNoneTheCableAsTheCable()
+    public void HoldsThePlanWhileItIsOutACardOrNone()
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
@@ -142,8 +148,6 @@ public class BuildingToolsTests
         Assert.Equal(Holding.Card, ui.Hand.Get());
         plan.Selected.Set(null);
         Assert.Equal((Holding.Plan, true), (ui.Hand.Get(), plan.PlanOut.Get()));
-        plan.Selected.Set(Card("cable"));
-        Assert.Equal(Holding.Cable, ui.Hand.Get());
         plan.PutPlanAway();
         Assert.Equal((Holding.Free, false, (Tool?)null), (ui.Hand.Get(), plan.PlanOut.Get(), plan.Selected.Get()));
     }
@@ -156,8 +160,6 @@ public class BuildingToolsTests
         plan.Toggle();
         plan.Pick(Card("lamp"));
         Assert.Equal((Holding.Card, true), (ui.Hand.Get(), plan.PlanOut.Get()));
-        plan.Pick(Card("cable"));
-        Assert.Equal(Holding.Cable, ui.Hand.Get());
     }
 
     [Fact]
@@ -188,97 +190,73 @@ public class BuildingToolsTests
         string[] rows = ["############", "#TTTT -....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"];
         var w = new TestWorld(Layout.Parse(rows, null, [((0, 0), (11, 0))]));
         string? Pick(int cell, string? overlay = null) =>
-            What(Tools.CardAt(cell, overlay, w.M.Grid, w.M.Building, w.M.Power, w.M.Research));
+            What(Tools.CardAt(cell, overlay, w.M.Grid, w.M.Building, w.M.Research));
         Assert.Equal($"wall:{w.M.Grid.WallAt(0)!.Id}", Pick(0));
         Assert.Equal("tank", Pick(14));
-        // A back wall's card is its material's (0107).
-        Assert.Equal("wall:scrap", Pick(18));
+        // A back wall's card is its own (0108).
+        Assert.Equal("backWall:scrap", Pick(18));
         Assert.Equal("pipe", Pick(18, "pipes"));
         Assert.Null(Pick(17, "pipes"));
         // A ladder's piece, two by two (0104), from 19.
         w.Step(new PlacePlan(19, new Placement("structure", "ladder")));
         Assert.Equal("ladder", Pick(32));
-        // Under the power overlay, the cable on a node a cable ends at; nothing on one with none.
-        Assert.Equal("cable", Pick(0, Tools.Power));
-        Assert.Null(Pick(24, Tools.Power));
     }
 
     [Fact]
-    public void ShowsAndPicksOnlyTheCardsTheWorldKnowsTheCableAlways()
+    public void ShowsAndPicksOnlyTheCardsTheWorldKnows()
     {
         // The tank and the wall of the scrap the hull is of, in a world knowing only its start.
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"])
             with
         { Known = Research.StartKnown });
         var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
-        Assert.Contains("cable", known);
         Assert.Contains("furnace", known);
         Assert.Contains("analyzer", known);
         Assert.Contains("crate", known);
         Assert.False(Tools.Known(Card("tank"), w.M.Research));
-        Assert.Null(Tools.CardAt(14, null, w.M.Grid, w.M.Building, w.M.Power, w.M.Research));
-        Assert.Equal("wall:scrap", What(Tools.CardAt(0, null, w.M.Grid, w.M.Building, w.M.Power, w.M.Research)));
+        Assert.Null(Tools.CardAt(14, null, w.M.Grid, w.M.Building, w.M.Research));
+        Assert.Equal("wall:scrap", What(Tools.CardAt(0, null, w.M.Grid, w.M.Building, w.M.Research)));
     }
 
     [Fact]
-    public void TheLeftButtonIsTheFrontLayerAndTheRightTheBackOnlyEverythingElseFrontOnly()
+    public void EveryCardPlansOnTheLeftAndMarksItsLayerOnTheRightABackWallsCardTheBackWallsOnly()
     {
-        // The hands: the right button alone is the back; both held, the front.
+        // The hands: the right button alone is the back; both held, the front (the axe's and the drill's).
         Assert.False(Layering.Back(left: true, right: false));
         Assert.True(Layering.Back(left: false, right: true));
         Assert.False(Layering.Back(left: true, right: true));
         Assert.False(Layering.Back(left: false, right: false));
-        // A material's card: its wall on the left, its back wall of the same material on the right.
-        foreach (var card in Tools.All.OfType<PlaceTool>().Where(c => c.Placement.Kind == "wall"))
+        foreach (var card in Tools.All.OfType<PlaceTool>())
         {
             Assert.Equal(card.Placement, Assert.IsType<PlaceTool>(Tools.ActOf(card, right: false, null)).Placement);
-            var back = Assert.IsType<PlaceTool>(Tools.ActOf(card, right: true, null));
-            Assert.Equal(Placement.BackWall(card.Placement.Material!), back.Placement);
+            bool back = card.Placement.Layer == "back";
+            Assert.Equal(back, Tools.IsBack(card));
+            Assert.Equal(back ? ["back"] : ["machine", "structure"], Assert.IsType<Remove>(Tools.ActOf(card, right: true, null)).Layers);
+            Assert.Equal(back ? ["back"] : ["conduit", "machine"], Assert.IsType<Remove>(Tools.ActOf(card, right: true, Tools.Pipes)).Layers);
         }
-        // Doors, ladders, floors, pipes and machines are front only: the right button does nothing with them; nor the cable.
-        foreach (var kind in (string[])["door", "ladder", "floor", "pipe", "tank", "furnace", "cable"])
-            Assert.Null(Tools.ActOf(Card(kind), right: true, null));
-        Assert.Equal("door", Assert.IsType<PlaceTool>(Tools.ActOf(Card("door"), right: false, null)).Placement.Kind);
-        Assert.Null(Tools.ActOf(Card("cable"), right: false, Tools.Power));
         Assert.Null(Tools.ActOf(null, right: false, null));
+        Assert.Null(Tools.ActOf(null, right: true, null));
+        // No removal card and no cable card: the stripper lays cables (0108).
+        Assert.Empty(Tools.Matching(Tools.All, "remove"));
+        Assert.DoesNotContain(Tools.Tabs.Single(t => t.Id == "power").Tools, t => t.Id == "cable");
+        Assert.Null(Tools.Tabs.Single(t => t.Id == "power").Overlay);
     }
 
     [Fact]
-    public void TheRemovalCardMarksTheTabsFrontLayersOnTheLeftAndTheBackWallsOnTheRight()
-    {
-        var removal = Tools.Tabs.Select(t => Assert.IsType<RemoveTool>(t.Tools[0])).ToList();
-        Assert.Equal(Tools.Tabs.Select(t => t.Id), removal.Select(r => r.Tab));
-        Assert.All(removal, r => Assert.Equal(Tools.TabOf(r), r.Tab));
-        var card = removal[0];
-        Assert.Equal(["machine", "structure"], Assert.IsType<Remove>(Tools.ActOf(card, right: false, null)).Layers);
-        Assert.Equal(["conduit", "machine"], Assert.IsType<Remove>(Tools.ActOf(card, right: false, Tools.Pipes)).Layers);
-        Assert.Equal(["back"], Assert.IsType<Remove>(Tools.ActOf(card, right: true, null)).Layers);
-        Assert.Equal(["back"], Assert.IsType<Remove>(Tools.ActOf(card, right: true, Tools.Pipes)).Layers);
-        // Free, known everywhere, and its own hint.
-        Assert.Empty(Tools.CostOf(card, _ => throw new InvalidOperationException("a removal places nothing")));
-        Assert.True(Tools.Allowed(card, Surfaces.TestStrip));
-        Assert.Equal("hint.remove", Tools.HintOf("structure", card));
-        Assert.Equal("hint.removePower", Tools.HintOf("power", removal[2]));
-        Assert.True(En.Table.ContainsKey("hint.remove") && En.Table.ContainsKey("hint.removePower"));
-        // Searched for, one of them.
-        Assert.Single(Tools.Matching(Tools.All, "remove"));
-    }
-
-    [Fact]
-    public void TheRemovalCardsLeftTakesTheFrontAndItsRightTheBackWallsBehindAMachineToo()
+    public void AFrontCardsRightTakesTheFrontAndABackWallCardsTheBackWallsBehindAMachineToo()
     {
         // A tank (4×4) on scrap back walls, a wall above it.
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"]));
-        var card = Tools.Tabs[0].Tools.OfType<RemoveTool>().Single();
-        Sim.Command[] Judged(bool right, int from, int to) =>
-            [.. Drag.Judge(Tools.ActOf(card, right, null)!, Drag.CellsOf(12, Tools.ActOf(card, right, null)!, new(from % 12, from / 12), new(to % 12, to / 12)),
+        Sim.Command[] Judged(Tool card, int from, int to) =>
+            [.. Drag.Judge(Tools.ActOf(card, true, null)!, Drag.CellsOf(12, Tools.ActOf(card, true, null)!, new(from % 12, from / 12), new(to % 12, to / 12)),
                 w.M.Building).SelectMany(v => v.Commands)];
-        // Begun on the tank, the left marks it once; the right, the back walls behind it, never the tank.
-        Assert.Equal([new Deconstruct(13, "machine")], Judged(right: false, 13, 14));
-        Assert.Equal([new Deconstruct(13, "back"), new Deconstruct(14, "back")], Judged(right: true, 13, 14));
-        // On a back-wall plan, only the right cancels it; the left begun there marks the front.
+        // Begun on the tank, a front card marks it once; a back wall's card the back walls behind it, never the tank.
+        Assert.Equal([new Deconstruct(13, "machine")], Judged(Card("wall:scrap"), 13, 14));
+        Assert.Equal([new Deconstruct(13, "machine")], Judged(Card("lamp"), 13, 14));
+        Assert.Equal([new Deconstruct(13, "back"), new Deconstruct(14, "back")], Judged(Card("backWall:scrap"), 13, 14));
+        // On a back-wall mark, only a back wall's card cancels it; a front card begun there marks the front.
         w.Step(new Deconstruct(13, "back"));
-        Assert.Empty(Judged(right: false, 13, 13).OfType<CancelPlan>());
-        Assert.Single(Judged(right: true, 13, 13).OfType<CancelPlan>());
+        Assert.Empty(Judged(Card("wall:iron"), 13, 13).OfType<CancelPlan>());
+        Assert.Single(Judged(Card("backWall:iron"), 13, 13).OfType<CancelPlan>());
     }
 }

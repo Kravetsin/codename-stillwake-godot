@@ -5,31 +5,18 @@ using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
-using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 
 namespace Stillwake.Game.Features.Building;
 
-/// <summary>What a drag does: a card's placement, or the removal card's (0030, 0107).</summary>
+/// <summary>What a drag does: a card's placement on the left button, or a removal on the right (0030, 0108).</summary>
 public abstract record Act;
 
-/// <summary>A card in hand: what the left button does in the world with it, and the right one in the back layer; <c>Id</c> names its text.</summary>
+/// <summary>A card in hand: what the left button plans in the world with it, the right marking its layer for removal; <c>Id</c> names its text.</summary>
 public abstract record Tool(string Id, string Label) : Act;
 
-/// <summary>
-/// A card that places <paramref name="Placement"/> along a drag of the left button; a material's card (0107) the back
-/// wall <paramref name="Back"/> of the same material along one of the right, which does nothing with any other card.
-/// </summary>
-public sealed record PlaceTool(string Id, Placement Placement, string Label, Placement? Back = null) : Tool(Id, Label);
-
-/// <summary>The cable card: laid by the power feature, from press to release.</summary>
-public sealed record CableTool(string Id, string Label) : Tool(Id, Label);
-
-/// <summary>
-/// The removal card (0107), one on each tab, <paramref name="Tab"/>'s: the left button marks or cancels in the tab's front
-/// layers, the right the back walls; on the power tab the left cuts the cable it is pressed near.
-/// </summary>
-public sealed record RemoveTool(string Id, string Label, string Tab) : Tool(Id, Label);
+/// <summary>A card that places <paramref name="Placement"/> along a drag of the left button, and marks its layer along one of the right (0108).</summary>
+public sealed record PlaceTool(string Id, Placement Placement, string Label) : Tool(Id, Label);
 
 /// <summary>A removal from <paramref name="Layers"/>, in the order they are taken.</summary>
 public sealed record Remove(IReadOnlyList<string> Layers) : Act;
@@ -74,32 +61,27 @@ public static class Tools
 
     /// <summary>
     /// A card for each material a blueprint builds a wall of (0077, 0084: no bedrock), its id and its text's key followed by
-    /// the material's name; its back wall on the right button (0107), when one is built of it too.
+    /// the material's name; then one for each it builds a back wall of (0108), alike.
     /// </summary>
-    private static IEnumerable<Tool> OfEveryMaterial() =>
-        Materials.All.Where(m => Blueprints.Has(Placement.Wall(m.Id))).Select(m => new PlaceTool(
-            "wall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..],
-            Placement.Wall(m.Id),
-            $"{En.T("tool.wall")}: {En.T($"material.{m.Id}")}",
-            Blueprints.Has(Placement.BackWall(m.Id)) ? Placement.BackWall(m.Id) : null));
+    private static IEnumerable<Tool> OfEveryMaterial(string kind, System.Func<string, Placement> placement) =>
+        Materials.All.Where(m => Blueprints.Has(placement(m.Id))).Select(m => new PlaceTool(
+            kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..],
+            placement(m.Id),
+            $"{En.T($"tool.{kind}")}: {En.T($"material.{m.Id}")}"));
 
-    /// <summary>The removal card of tab <paramref name="tab"/>: the first card on every tab.</summary>
-    private static RemoveTool Removal(string tab) => new("remove", En.T("tool.remove"), tab);
-
-    /// <summary>The build menu's tabs, in order, each with its cards: what the player builds, grouped by use, the removal card first.</summary>
+    /// <summary>The build menu's tabs, in order, each with its cards: what the player builds, grouped by use.</summary>
     public static readonly IReadOnlyList<Tab> Tabs =
     [
         new("structure",
         [
-            Removal("structure"),
-            .. OfEveryMaterial(),
+            .. OfEveryMaterial("wall", Placement.Wall),
+            .. OfEveryMaterial("backWall", Placement.BackWall),
             Place("floor", new Placement("structure", "floor")),
             Place("ladder", new Placement("structure", "ladder")),
             Place("door", new Placement("structure", "door")),
         ]),
         new("air",
         [
-            Removal("air"),
             Place("pipe", new Placement("conduit", "pipe")),
             Place("valve", new Placement("conduit", "valve")),
             Place("vent", new Placement("machine", "vent")),
@@ -108,18 +90,15 @@ public static class Tools
         ], Pipes),
         new("power",
         [
-            Removal("power"),
-            new CableTool("cable", En.T("tool.cable")),
             Place("solarPanel", new Placement("machine", "solarPanel")),
             Place("burnerGenerator", new Placement("machine", "burnerGenerator")),
             Place("lamp", new Placement("machine", "lamp")),
             Place("arcLamp", new Placement("machine", "arcLamp")),
             Place("charger", new Placement("machine", "charger")),
             Place("capacitorBank", new Placement("machine", "capacitorBank")),
-        ], Power),
+        ]),
         new("production",
         [
-            Removal("production"),
             Place("furnace", new Placement("machine", "furnace")),
             Place("analyzer", new Placement("machine", "analyzer")),
             Place("former", new Placement("machine", "former")),
@@ -128,78 +107,68 @@ public static class Tools
             Place("growCapsule", new Placement("machine", "growCapsule")),
             Place("arcBench", new Placement("machine", "arcBench")),
         ]),
-        new("storage", [Removal("storage"), Place("crate", new Placement("machine", "crate")), Place("droneBay", new Placement("machine", "droneBay"))]),
+        new("storage", [Place("crate", new Placement("machine", "crate")), Place("droneBay", new Placement("machine", "droneBay"))]),
     ];
 
     /// <summary>Every card, tab by tab.</summary>
     public static readonly IReadOnlyList<Tool> All = Tabs.SelectMany(t => t.Tools).ToArray();
 
-    /// <summary>The cable card.</summary>
-    public static readonly Tool Cable = All.OfType<CableTool>().Single();
-
-    /// <summary>What a card costs, by <paramref name="costFor"/> (the sim's own rule) for what it places; a cable its own.</summary>
+    /// <summary>What a card costs, by <paramref name="costFor"/> (the sim's own rule) for what it places.</summary>
     public static IReadOnlyList<(string Item, int Count)> CostOf(Tool tool, System.Func<Placement, IReadOnlyList<(string Item, int Count)>> costFor) =>
-        tool switch { PlaceTool p => costFor(p.Placement), CableTool => Content.Power.CableCost, _ => [] };
+        tool is PlaceTool p ? costFor(p.Placement) : [];
+
+    /// <summary>Whether <paramref name="tool"/> is a back wall's card: its right button marks back walls only, and the front fades while it aims (0108).</summary>
+    public static bool IsBack(Tool? tool) => tool is PlaceTool { Placement.Layer: "back" };
 
     /// <summary>
-    /// What a drag of <paramref name="tool"/> does (0107): the left button's in the front layer, the <paramref name="right"/>
-    /// button's in the back. A material's card places its wall or its back wall; the removal card takes from the front layers
-    /// <paramref name="overlay"/> shows (<see cref="FrontLayersFor"/>) or the back walls; every other card works the left only,
-    /// nothing on the right; the cable is the power feature's.
+    /// What a drag of <paramref name="tool"/> does (0108): the left button places what the card places; the
+    /// <paramref name="right"/> marks or cancels in the card's layer — back walls only for a back wall's card, those behind
+    /// machines too; for any other, the front layers <paramref name="overlay"/> shows (<see cref="FrontLayersFor"/>).
     /// </summary>
     public static Act? ActOf(Tool? tool, bool right, string? overlay) => tool switch
     {
-        PlaceTool { Back: { } back } p when right => p with { Placement = back, Back = null },
-        PlaceTool when right => null,
+        PlaceTool p when right => new Remove(IsBack(p) ? ["back"] : FrontLayersFor(overlay)),
         PlaceTool p => p,
-        RemoveTool => new Remove(right ? ["back"] : FrontLayersFor(overlay)),
         _ => null,
     };
 
     /// <summary>
-    /// The overlay that shows: the open tab's, if the menu is open and the tab has one; else air if the
-    /// player wants it; else none. With the menu closed, air or nothing.
+    /// The overlay that shows: the open tab's, if the menu is open and the tab has one; else the one the item
+    /// <paramref name="wielded"/> works in (the stripper's cables, 0108); else air if the player wants it; else none.
     /// </summary>
-    public static string? OverlayShown(bool planOut, string tab, bool airOn) =>
-        planOut && Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay is { } overlay ? overlay : airOn ? Air : null;
+    public static string? OverlayShown(bool planOut, string tab, bool airOn, string? wielded = null) =>
+        planOut ? Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay ?? (airOn ? Air : null)
+        : wielded == HandTools.Stripper ? Power
+        : airOn ? Air : null;
 
     /// <summary>The cards among <paramref name="cards"/> whose names hold <paramref name="query"/>, case ignored, in their order: the menu's search, across every tab.</summary>
     public static List<Tool> Matching(IEnumerable<Tool> cards, string query)
     {
         string words = query.Trim();
-        // One removal card is found, the first tab's: they are alike but for their tab.
-        return cards.Where(each => each.Label.Contains(words, System.StringComparison.OrdinalIgnoreCase) && each is not RemoveTool { Tab: not "structure" }).ToList();
+        return cards.Where(each => each.Label.Contains(words, System.StringComparison.OrdinalIgnoreCase)).ToList();
     }
 
     /// <summary>The tab a card is on.</summary>
     public static string TabOf(Tool tool) => Tabs.First(t => t.Tools.Contains(tool)).Id;
 
-    /// <summary>What the buttons do on a tab, an i18n key: the pipes' and the cables' tabs say their own; with the removal card in hand, its own.</summary>
-    public static string HintOf(string tab, Tool? held = null) => held is RemoveTool ? (tab == "power" ? "hint.removePower" : "hint.remove") : tab switch
-    {
-        "air" => "hint.air",
-        "power" => "hint.power",
-        "structure" => "hint.structure",
-        _ => "hint.build",
-    };
+    /// <summary>What the buttons do on a tab, an i18n key: the pipes' tab says its own; with a back wall's card in hand, its own.</summary>
+    public static string HintOf(string tab, Tool? held = null) => IsBack(held) ? "hint.back" : tab == "air" ? "hint.air" : "hint.build";
 
     /// <summary>
-    /// The layers the middle button removes from and Q picks in, under <paramref name="overlay"/>, in the
-    /// order they are taken: pipes, valves and the machines on them under the pipes overlay, else what the
-    /// ship is built of. Cables, under the power overlay, are the power feature's.
+    /// The layers Q picks in under <paramref name="overlay"/>, in the order they are taken: pipes, valves and the machines
+    /// on them under the pipes overlay, else what the ship is built of.
     /// </summary>
     public static IReadOnlyList<string> LayersFor(string? overlay) =>
         overlay == Pipes ? ["conduit", "machine"] : ["machine", "structure", "back"];
 
-    /// <summary>The layers the removal card's left button takes from under <paramref name="overlay"/>: <see cref="LayersFor"/> but the back walls, the right button's (0107).</summary>
+    /// <summary>The layers a front card's right button marks under <paramref name="overlay"/>: <see cref="LayersFor"/> but the back walls, a back wall card's (0108).</summary>
     public static IReadOnlyList<string> FrontLayersFor(string? overlay) => LayersFor(overlay).Where(l => l != "back").ToArray();
 
-    /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): the cable always, else its blueprint.</summary>
-    public static bool Known(Tool tool, IResearchQueries research) =>
-        tool is not PlaceTool p || research.Knows(p.Placement) || p.Back is { } back && research.Knows(back);
+    /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>
+    public static bool Known(Tool tool, IResearchQueries research) => tool is not PlaceTool p || research.Knows(p.Placement);
 
-    /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076): the cable as <c>cable</c>.</summary>
-    public static bool Allowed(Tool tool, Surfaces.Kind rules) => tool is RemoveTool || rules.Allows(tool is PlaceTool p ? p.Placement.Kind : "cable");
+    /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076).</summary>
+    public static bool Allowed(Tool tool, Surfaces.Kind rules) => tool is not PlaceTool p || rules.Allows(p.Placement.Kind);
 
     /// <summary>What is placed at <paramref name="cell"/> in <paramref name="layers"/>: a plan first, then what is built, in their order.</summary>
     private static Placement? PlacementAt(int cell, IReadOnlyList<string> layers, IGridQueries grid, BuildingModule building)
@@ -271,18 +240,14 @@ public static class Tools
     }
 
     /// <summary>
-    /// The pipette's card for <paramref name="cell"/> under <paramref name="overlay"/>: under the power
-    /// overlay the cable, on a node a cable ends at; else the card that places what is there, planned or
-    /// built, in <see cref="LayersFor"/>, if its blueprint is known.
+    /// The pipette's card for <paramref name="cell"/> under <paramref name="overlay"/>: the card that places
+    /// what is there, planned or built, in <see cref="LayersFor"/>, if its blueprint is known.
     /// </summary>
-    public static Tool? CardAt(int cell, string? overlay, IGridQueries grid, BuildingModule building, IPowerQueries power, IResearchQueries research)
+    public static Tool? CardAt(int cell, string? overlay, IGridQueries grid, BuildingModule building, IResearchQueries research)
     {
-        if (overlay == Power)
-            return power.NodeAt(cell) is int node && power.Cabled(node) ? Cable : null;
         if (PlacementAt(cell, LayersFor(overlay), grid, building) is not { } placed) return null;
-        // A back wall's card is its material's (0107).
         bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == Builds.BuiltAs(placed.Kind) && p.Material == placed.Material;
-        var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement) || each.Back is { } back && Places(back));
+        var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
         return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
     }

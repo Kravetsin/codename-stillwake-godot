@@ -38,32 +38,10 @@ public static class AsciiArt
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['y'] = none ? 0xe05555u : 0xf0b44cu });
 
 
-    /// <summary>A cable's plug, in a socket it is plugged into: the cable card's picture too.</summary>
+    /// <summary>A cable's plug, in a socket it is plugged into.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
-
-    /// <summary>The removal card's picture (0107): a square in a mark's red dashes, crossed, as what it marks is shown.</summary>
-    public static ImageTexture Removal() => Texture("removal",
-    [
-        "rr.rr.rr.rr.rr.r",
-        "r..............r",
-        "...............r",
-        "r..x........x...",
-        "r...x......x...r",
-        ".....x....x....r",
-        "r.....x..x......",
-        "r......xx......r",
-        "r......xx......r",
-        "......x..x.....r",
-        "r....x....x.....",
-        "r...x......x...r",
-        "...x........x..r",
-        "r...............",
-        "r..............r",
-        "r.rr.rr.rr.rr.rr",
-    ],
-        new Dictionary<char, uint> { ['r'] = 0xe04848, ['x'] = 0xf07070 });
 
     /// <summary>A book with a star on its cover: the Handbook's (0066), a placeholder till its picture is picked.</summary>
     public static ImageTexture Book() => Texture("book",

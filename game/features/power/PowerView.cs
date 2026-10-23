@@ -87,13 +87,9 @@ public partial class PowerView : Node2D
 
     private bool On => _ui.OverlayOn == Id;
 
-    /// <summary>Whether a middle press at <paramref name="at"/>, in cells, would cut a cable as they hang now.</summary>
-    public bool NearCable((double X, double Y) at) =>
-        PowerHands.Nearest(_ropes.Lines().Select(l => new Line(l.A, l.B, l.Points)).ToList(), at) != null;
-
     /// <summary>
     /// One frame: the cables brought up to the world at most every <see cref="RefreshMs"/> once it has run a
-    /// tick, the hands on them while the overlay is on, <paramref name="cuts"/> the middle presses that cut,
+    /// tick, the hands on them while the overlay is on, <paramref name="cuts"/> the right presses that cut,
     /// every rope moved on, brushed by <paramref name="bodies"/>.
     /// </summary>
     public void Frame(Client client, Registry m, Buttons buttons, IReadOnlyList<ButtonEvent> cuts, (double X, double Y)? pointer, IReadOnlyList<Body> bodies, double elapsedMs)
@@ -122,7 +118,7 @@ public partial class PowerView : Node2D
         else
         {
             var lines = _ropes.Lines().Select(l => new Line(l.A, l.B, l.Points)).ToList();
-            _hands.Update(_ui.Hand.Get(), buttons, cuts, pointer, lines, grid, m.Power, client.Id, client.Send, elapsedMs);
+            _hands.Update(Input.IsPhysicalKeyPressed(Key.Ctrl), buttons, cuts, pointer, lines, grid, m.Power, client.Id, client.Send, elapsedMs);
             if (_hands.Reason != null) _ui.Reason.Set(_hands.Reason);
             Tell(m, pointer);
         }

@@ -20,7 +20,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a
-    /// plan that is gone or a blueprint the hero has nothing for, a dig at hull, bedrock or nothing, or with a drill not running.
+    /// plan that is gone or a blueprint the hero has nothing for, a dig at a hull wall or back wall, bedrock or nothing, or with a drill not running.
     /// </summary>
     /// <summary>A standing plant drawn at random, drawn again up to three times while it lies in rock (0080).</summary>
     private Plant FuzzPlant(Func<int, int> below)

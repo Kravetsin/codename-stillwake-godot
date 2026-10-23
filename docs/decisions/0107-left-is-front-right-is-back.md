@@ -1,6 +1,6 @@
 # 0107 — Left is the front, right is the back; the menu plans, the hands build
 
-- Status: accepted; amends [0030](0030-the-build-tab-is-the-mode.md) (the right button works plans, the middle removes) and
+- Status: accepted; its cards, removal card and the weapons on a ship's back walls superseded by [0108](0108-left-plans-right-removes.md); amends [0030](0030-the-build-tab-is-the-mode.md) (the right button works plans, the middle removes) and
   [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) (only natural walls are dug)
 - Date: 2026-10-23
 - Design: agreed by both developers in chat; no design file
