@@ -43,9 +43,10 @@ public static class BlueprintArt
             : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)],
         // A 16 px picture over the cells of a character's, cut a cell at a time where it lies (0104).
         "floor" => [new(TileLayer.Fixtures, placement.Kind, Cut: true)],
-        // A piece whole from its top-left (0104), as a machine is: a ladder, or a door segment, planned shut.
+        // A piece whole from its top-left (0104), as a machine is: a ladder, a door or a hatch segment, shut. Plans and ghosts
+        // of doorways are drawn by their joins instead (PlanTiles.LayDoor); this is their silhouette.
         "ladder" => [new(TileLayer.Fixtures, ShipTiles.PieceName(placement.Kind))],
-        "door" => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
+        "door" or Builds.Hatch => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
         _ => [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))],
     };
 

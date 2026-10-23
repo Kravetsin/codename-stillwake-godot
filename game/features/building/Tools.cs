@@ -233,7 +233,8 @@ public static class Tools
                     Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
                     Structure.Floor => new Placement(layer, "floor"),
                     Structure.Ladder => new Placement(layer, "ladder"),
-                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
+                    // A doorway's piece one row tall is a hatch segment's (0104), its silhouette as it is drawn.
+                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, grid.PieceOf(cell) is var piece && piece[0] / grid.Width == piece[^1] / grid.Width ? Builds.Hatch : "door"),
                     _ => null,
                 };
             default:
@@ -253,6 +254,20 @@ public static class Tools
             planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
     }
 
+    /// <summary>Whether <paramref name="place"/> lays door cells: a door segment or a hatch segment (0104).</summary>
+    public static bool LaysDoor(Placement place) => place.Layer == "structure" && Builds.BuiltAs(place.Kind) == "door";
+
+    /// <summary>
+    /// The joins of a door cell (<see cref="Doorways.LinksOf"/>) over what is built and the door cells <paramref name="planned"/>
+    /// together: a plan or a ghost of a doorway joins as it will built, a lone segment a hatch, a run down a door (0104).
+    /// </summary>
+    public static System.Func<int, int> DoorLinks(IGridQueries grid, IReadOnlySet<int> planned)
+    {
+        int width = grid.Width, size = width * grid.Height;
+        int At(int c) => planned.Contains(c) ? Structure.DoorClosed : grid.StructureAt(c);
+        return c => Doorways.LinksOf(c, width, size, At);
+    }
+
     /// <summary>
     /// The pipette's card for <paramref name="cell"/>: the card that places what is there, planned or built, in
     /// <see cref="Layers"/>, if its blueprint is known.
@@ -260,7 +275,7 @@ public static class Tools
     public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
-        bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
+        bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == Builds.BuiltAs(placed.Kind) && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
         return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;

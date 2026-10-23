@@ -48,10 +48,13 @@ public partial class BuildMenu : CanvasLayer
     private readonly TextureRect _heldPicture = Picture(20);
     private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100), _hint = Tablet.Text("", Render.Style.Slate500, Tablet.HintSize);
     private readonly List<(Panel Box, TextureRect Picture, Label Count)> _cards = [];
-    /// <summary>Beside the tablet while the plan is out: the two layers' buttons stacked, the focused one lit (0110).</summary>
-    private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Stop };
-    private const int FocusWidth = FocusBox + 8, FocusHeight = 2 * (FocusBox + 4) + 4;
-    private const int FocusBox = 28;
+    /// <summary>
+    /// On the tablet's right edge while the plan is out: the two layers' keys stacked, wrist keys as the bag's sort key, mounted
+    /// on the frame as it is, the focused one lit (0110).
+    /// </summary>
+    private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly List<LayerKey> _layerKeys = [];
+    private const int KeyGap = 2, FocusHeight = 2 * WristLook.KeycapSide + KeyGap;
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
     private Catalogue _at;
@@ -105,17 +108,19 @@ public partial class BuildMenu : CanvasLayer
         _root.AddChild(_open);
         _focus.AnchorLeft = _focus.AnchorRight = 0.5f;
         _focus.AnchorTop = _focus.AnchorBottom = 1;
-        _focus.Draw += DrawFocus;
-        _focus.MouseExited += _focus.QueueRedraw;
-        _focus.GuiInput += e =>
+        foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
         {
-            if (e is InputEventMouseMotion) _focus.QueueRedraw();
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
-            if (FocusButtonAt(press.Position) is { } layer) _hand.FocusOn(layer);
-            _focus.AcceptEvent();
-        };
+            var key = new LayerKey(layer, () => _hand.FocusOn(layer)) { Position = new Vector2(0, (int)layer * (WristLook.KeycapSide + KeyGap)) };
+            _focus.AddChild(key);
+            _layerKeys.Add(key);
+        }
         _root.AddChild(_focus);
-        hand.Focus.Subscribe(_focus.QueueRedraw);
+        void Lit()
+        {
+            foreach (var key in _layerKeys) key.On = _layerKeys.IndexOf(key) == (int)_hand.Focus.Get();
+        }
+        hand.Focus.Subscribe(Lit);
+        Lit();
 
         SearchField();
         _slash = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -227,69 +232,17 @@ public partial class BuildMenu : CanvasLayer
     {
         _open.OffsetTop = -Slots.Margin - _at.Height + _drop;
         _open.OffsetBottom = -Slots.Margin + _drop;
-        // The layers' marker beside the tablet's right bezel, its foot at the dock's.
-        _focus.OffsetLeft = _at.Width - _at.Width / 2 + TabletLayout.ScreenLeft * TabletLayout.ArtScale + 8;
-        _focus.OffsetRight = _focus.OffsetLeft + FocusWidth;
-        _focus.OffsetBottom = -Slots.Margin + _drop;
-        _focus.OffsetTop = _focus.OffsetBottom - FocusHeight;
+        // The layers' keys on the tablet's right edge under its stylus, sticking out of the metal as the bag's sort key does
+        // from the display's: as far into it from its outer edge as that key is.
+        int metal = TabletLayout.RightMetal * TabletLayout.ArtScale;
+        int into = (WristPieces.Display.Window.Right - WristPieces.Pad) * WristPiece.Scale - WristLook.SideKeyOut;
+        _focus.OffsetLeft = _at.Width - _at.Width / 2 + metal - into;
+        _focus.OffsetRight = _focus.OffsetLeft + WristLook.KeycapSide;
+        _focus.OffsetTop = _open.OffsetTop + TabletLayout.StylusFoot * TabletLayout.ArtScale + KeyGap;
+        _focus.OffsetBottom = _focus.OffsetTop + FocusHeight;
     }
 
 
-    /// <summary>The button of layer <c>i</c> (<see cref="Focus"/>), top to bottom: the front, the back walls (0110).</summary>
-    private static Rect2 FocusButton(int i) => new(4, 4 + i * (FocusBox + 4), FocusBox, FocusBox);
-
-    private static Focus? FocusButtonAt(Vector2 at) =>
-        FocusButton(0).HasPoint(at) ? Focus.Front : FocusButton(1).HasPoint(at) ? Focus.Back : null;
-
-    /// <summary>The two layers' buttons stacked, no words, painted as the tablet's tabs are: the focused one lit sky.</summary>
-    private void DrawFocus()
-    {
-        var focus = _hand.Focus.Get();
-        var hovered = FocusButtonAt(_focus.GetLocalMousePosition());
-        foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
-        {
-            bool on = layer == focus, over = layer == hovered;
-            var box = FocusButton((int)layer);
-            _focus.DrawStyleBox(Render.Style.Box(on ? Render.Style.Sky700 : over ? Render.Style.Slate700 : Render.Style.Slate800,
-                on ? Render.Style.Sky700 : Render.Style.Slate800), box);
-            var ink = on ? Colors.White : over ? Render.Style.Slate100 : Render.Style.Slate300;
-            if (layer == Focus.Front) DrawFrontIcon(box.Grow(-4), ink);
-            else DrawBackIcon(box.Grow(-4), ink);
-        }
-    }
-
-    /// <summary>The front: a solid bright block before a faint grid.</summary>
-    private void DrawFrontIcon(Rect2 icon, Color ink)
-    {
-        var grid = ink with { A = 0.3f };
-        for (float d = 0; d <= icon.Size.X; d += 5)
-        {
-            _focus.DrawLine(icon.Position + new Vector2(d, 0), icon.Position + new Vector2(d, icon.Size.Y), grid);
-            _focus.DrawLine(icon.Position + new Vector2(0, d), icon.Position + new Vector2(icon.Size.X, d), grid);
-        }
-        var block = new Rect2(icon.Position + new Vector2(5, 5), new Vector2(10, 10));
-        _focus.DrawRect(block.Grow(1), Render.Style.Slate950);
-        _focus.DrawRect(block, ink);
-    }
-
-    /// <summary>The back: a dim hatched block behind a dotted outline where the front would stand.</summary>
-    private void DrawBackIcon(Rect2 icon, Color ink)
-    {
-        const float side = 12;
-        var dim = ink with { A = 0.55f };
-        var o = icon.Position + new Vector2(1, 1);
-        _focus.DrawRect(new Rect2(o, new Vector2(side, side)), dim, false, 1);
-        for (float k = 3; k < 2 * side; k += 3)
-            _focus.DrawLine(o + new Vector2(Mathf.Min(k, side), Mathf.Max(0, k - side)), o + new Vector2(Mathf.Max(0, k - side), Mathf.Min(k, side)), dim);
-        var front = icon.Position + new Vector2(7, 7);
-        for (float d = 0; d < side; d += 4)
-        {
-            _focus.DrawRect(new Rect2(front + new Vector2(d, 0), new Vector2(2, 1)), ink);
-            _focus.DrawRect(new Rect2(front + new Vector2(d, side - 1), new Vector2(2, 1)), ink);
-            _focus.DrawRect(new Rect2(front + new Vector2(0, d), new Vector2(1, 2)), ink);
-            _focus.DrawRect(new Rect2(front + new Vector2(side - 1, d), new Vector2(1, 2)), ink);
-        }
-    }
     /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
     public override void _Process(double delta)
     {

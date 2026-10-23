@@ -43,13 +43,22 @@ public static class Builds
     public const int Brush = 2;
 
     /// <summary>
+    /// A door segment laid flat (0104): as wide as one and a cell tall, as its art is, so a ladder meets it flush. Built as a
+    /// door segment is, of its blueprint and at its cost.
+    /// </summary>
+    public const string Hatch = "hatch";
+
+    /// <summary>The build a placement of <paramref name="kind"/> is: a hatch segment a door segment's; every other its own.</summary>
+    public static string BuiltAs(string kind) => kind == Hatch ? "door" : kind;
+
+    /// <summary>
     /// The cells across and down of a piece of <paramref name="kind"/>, placed and taken apart as one (0104): a ladder's 2×2, a
-    /// door segment's 2×2; null for what is placed a cell at a time.
+    /// door segment's 2×2, a hatch segment's 2×1; null for what is placed a cell at a time.
     /// </summary>
     public static (int Across, int Tall)? PieceOf(string kind)
     {
-        if (!ById.TryGetValue(kind, out var build) || build.Across * build.Tall == 1) return null;
-        return (build.Across, build.Tall);
+        if (!ById.TryGetValue(BuiltAs(kind), out var build) || build.Across * build.Tall == 1) return null;
+        return kind == Hatch ? (build.Across, 1) : (build.Across, build.Tall);
     }
 
     private static readonly Dictionary<string, Build> ById = All.ToDictionary(b => b.Id, StringComparer.Ordinal);

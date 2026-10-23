@@ -26,6 +26,12 @@ public static class TabletLayout
     /// </summary>
     public const int ArtScale = 2, ScreenLeft = 9, ScreenTop = 16, ArtAround = 26;
 
+    /// <summary>
+    /// In the art's pixels: how far its metal runs right of the screen, and how far below the screen's top the stylus clipped
+    /// beside it (tablet_stylus.png, from the frame's top) ends: where keys mounted on the right edge go (0110).
+    /// </summary>
+    public const int RightMetal = 7, StylusFoot = 78 - ScreenTop;
+
     /// <summary>Above the screen, the bezel's top edge: what the prompt for E keeps above.</summary>
     public const int BezelAbove = 8 * ArtScale;
 

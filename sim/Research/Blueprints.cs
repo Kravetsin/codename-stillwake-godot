@@ -10,7 +10,7 @@ public static class Blueprints
 {
     /// <summary>The blueprint <paramref name="placement"/> is built by, named as the build menu names its card (<c>wallIron</c>).</summary>
     public static string Of(Placement placement) =>
-        placement.Kind is "wall" or "backWall" ? placement.Kind + Titled(placement.Material ?? "") : placement.Kind;
+        placement.Kind is "wall" or "backWall" ? placement.Kind + Titled(placement.Material ?? "") : Content.Builds.BuiltAs(placement.Kind);
 
     private static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
 

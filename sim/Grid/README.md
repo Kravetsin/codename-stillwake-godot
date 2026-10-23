@@ -36,7 +36,7 @@ Every cell is whole: there are no slopes ([0106](../../docs/decisions/0106-steps
 0069). Ground rises in steps of whole cells, which heroes and creatures step up.
 
 Walls, floors, ladders and doors are one structure per cell. A ladder and a door segment are placed as pieces (0104), a
-ladder's 2×2, a door segment's 2×2 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
+ladder's 2×2, a door segment's 2×2, a hatch segment's 2×1 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
 filled at once. A machine needs every footprint cell free
 of structure and of other machines. A back wall needs only a free back slot: it stands behind anything, and in space.
 

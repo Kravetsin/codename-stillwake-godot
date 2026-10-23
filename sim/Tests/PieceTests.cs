@@ -111,6 +111,41 @@ public class PieceTests
         Assert.Equal((18, 9), (Count(w, "plate"), Count(w, "gear")));
     }
 
+    private static readonly Placement HatchSegment = new("structure", Builds.Hatch);
+
+    [Fact]
+    public void AHatchSegmentIsTwoByOneAsItsArtBuiltOfTheDoorsBlueprintAtItsCostAndGivenBackWhole()
+    {
+        var w = Stocked();
+        Assert.Equal((2, 1), Builds.PieceOf(Builds.Hatch));
+        Assert.Equal([At(5, 2), At(6, 2)], w.M.Grid.Footprint(Builds.Hatch, At(5, 2)));
+        w.Do(new PlacePlan(At(5, 2), HatchSegment)).Run();
+        var plan = Assert.Single(w.M.Building.Plans);
+        Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(plan.Id, w.M.Building.PlansAt(c).Single().Id));
+        Assert.Empty(w.M.Building.PlansAt(At(5, 3)));
+        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostOf(plan.Id));
+        Finish(w, plan.Id);
+        Assert.Empty(w.Refusals);
+        Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(5, 3)));
+        Assert.True(Doorways.IsHatch(Doorways.LinksOf(At(5, 2), Width, Width * 10, w.M.Grid.StructureAt)));
+        w.Do(new Deconstruct(At(6, 2), "structure")).Run();
+        var mark = Assert.Single(w.M.Building.Plans);
+        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.RefundOf(mark.Id));
+    }
+
+    [Fact]
+    public void ALadderIsPlacedFlushUnderAndOverABuiltHatch()
+    {
+        var w = Stocked();
+        w.Do(new Place(At(5, 4), HatchSegment)).Run();
+        Assert.Null(w.M.Building.Problem(At(5, 5), Ladder));
+        Assert.Null(w.M.Building.Problem(At(5, 2), Ladder));
+        w.Do(new PlacePlan(At(5, 5), Ladder)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Single(w.M.Building.Plans);
+    }
+
     [Fact]
     public void SegmentsRunDownAreADoorRunAcrossAHatchAndOneAloneAHatchTheHeroFitsThrough()
     {

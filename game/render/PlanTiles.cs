@@ -95,20 +95,35 @@ public partial class PlanTiles : Node2D
         foreach (var piece in BlueprintArt.PiecesOf(placement, linked))
         {
             var tile = piece.Cut ? _tiles.CutAt(piece.Picture, at.X, at.Y) : _tiles.At(piece.Picture);
-            if (cut is not { } line)
-            {
-                Put(piece.Layer, at, tile);
-                continue;
-            }
             // A tile covers its picture from the cell, whole cells of it: one cut from a picture over the world, one; a machine's
             // that rises over its footprint from the cells above (0099).
-            var size = (piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture)) * Cell;
-            var corner = at * Cell - new Vector2I(0, piece.Rise * Cell);
-            var (real, plan) = line.Split((corner.X, corner.Y, size.X, size.Y));
-            Region(plan, corner, tile, (rect, source) => _cutPieces[(int)piece.Layer].Add((rect, source)));
-            Region(real, corner, tile, (rect, source) => _built?.Add(piece.Layer, rect, source));
-            _cut[(int)piece.Layer].QueueRedraw();
+            LayTile(piece.Layer, at, tile, piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture), piece.Rise, cut);
         }
+    }
+
+    /// <summary>
+    /// Lays door cell <paramref name="cell"/> of a plan shut, its quarter of its doorway's picture by <paramref name="linksOf"/>,
+    /// as the grid draws built doors (<see cref="DoorShape"/>): planned segments join each other and what is built (0104).
+    /// </summary>
+    public void LayDoor(int cell, int width, System.Func<int, int> linksOf, PlanCut? cut = null)
+    {
+        var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(cell, width, linksOf), closed: true);
+        LayTile(TileLayer.Doors, new Vector2I(cell % width, cell / width), _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y), Vector2I.One, 0, cut);
+    }
+
+    private void LayTile(TileLayer layer, Vector2I at, Vector2I tile, Vector2I cells, int rise, PlanCut? cut)
+    {
+        if (cut is not { } line)
+        {
+            Put(layer, at, tile);
+            return;
+        }
+        var size = cells * Cell;
+        var corner = at * Cell - new Vector2I(0, rise * Cell);
+        var (real, plan) = line.Split((corner.X, corner.Y, size.X, size.Y));
+        Region(plan, corner, tile, (rect, source) => _cutPieces[(int)layer].Add((rect, source)));
+        Region(real, corner, tile, (rect, source) => _built?.Add(layer, rect, source));
+        _cut[(int)layer].QueueRedraw();
     }
 
     /// <summary>The atlas region under <paramref name="part"/> of the tile at <paramref name="tile"/> laid from pixel <paramref name="corner"/>, handed to <paramref name="to"/> with where it goes; nothing for an empty part.</summary>

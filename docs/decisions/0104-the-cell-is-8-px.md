@@ -32,19 +32,27 @@ grain of the hero's own body, and lets a later change replace slopes with steps.
 - **Pieces: a ladder and a door segment are built whole, the size and the price of a 16 px cell** (the user, after playing the
   8 px build: "shrinking these objects was a bad idea"). A ladder is a piece 2×2, a scrap and 7 ticks, as a 16 px ladder cell
   was; a door segment 2×2, two plates, a gear and 20 ticks, as a 16 px door cell was (`Builds`' `Across` and `Tall`,
-  `Builds.PieceOf`). Segments are laid by click or drag, a piece's length a step: a run down is a door, a run across a hatch,
-  a segment alone a hatch two cells wide, which the hero (1.9 cells) fits through. A run is one doorway: it opens, shuts, leaks,
-  lights and is drawn as one. (A door 2×6 and a hatch 6×2 built whole were tried first and dropped: a hatch was always huge.)
+  `Builds.PieceOf`). A hatch segment (`Builds.Hatch`) is a door segment laid flat, 2×1 as its art is, of the door's blueprint
+  and at its cost, so a ladder meets it flush and the hero climbs through it as through a drawn map's hatch (a 2×2 one left a
+  row empty under its picture, and the hero fell through that gap). The door's card lays hatch segments by a click or a
+  stroke across, along their row, and door segments along a stroke down as far as a second (`Drag.Oriented`); its ghost shows
+  which. A run down is a door, a run across a hatch, a segment alone a hatch two cells wide, which the hero (1.9 cells) fits
+  through. A run is one doorway: it opens, shuts, leaks, lights and is drawn as one, its plans and ghosts too, joined over
+  what is planned and built together (`Tools.DoorLinks`, `PlanTiles.LayDoor`). (A door 2×6 and a hatch 6×2 built whole were
+  tried first and dropped: a hatch was always huge.)
   One blueprint covers a piece's footprint (`IGridQueries.Footprint`), refused if any of its cells is taken; building it fills
   all of them. A mark on any of its cells takes the piece apart, kept at its first cell (`IGridQueries.PieceOf`): a ladder's or
   a door's two by two, its columns paired from the left end of its row's run and its rows from the top of its column's, the
-  rest of a doorway standing; it gives back its piece's cost for as many pieces as its cells make, each item rounded down, so a
-  drawn map's lone door (2×2) gives a segment's, and a ladder piece a meteor broke gives nothing.
-- **A doorway is two cells thick** (`Doorways.Thick`): a door cell in a run of more than two up and down stands in a door; every
-  other lies in a hatch; a cell joins the door cells above and below it and those either side that stand as it does, so a door's
-  two columns open and shut as one, a hatch's two rows too, and a hatch still stops beside a door (0067). The client draws
-  each 16 px door or hatch picture whole over two by two cells, by where a cell lies along its doorway and across it
-  (`DoorShape.SpotOf`, `TileOf`). A hero climbs through an open hatch as far as it is thick.
+  rest of a doorway standing; it gives back its piece's cost for as many pieces as its cells make, each item rounded down, a
+  piece in one row a hatch segment's, so a drawn map's lone door (2×2) and a hatch segment give a segment's, and a ladder
+  piece a meteor broke gives nothing.
+- **A doorway is two cells thick** (`Doorways.Thick`), a built hatch one: a door cell in a run of more than two up and down
+  stands in a door; every other lies in a hatch; a cell joins the door cells above and below it and those either side that
+  stand as it does, so a door's two columns open and shut as one, a drawn hatch's two rows too, and a hatch still stops
+  beside a door (0067). The client draws each 16 px door or hatch picture whole over two by two cells, by where a cell lies
+  along its doorway and across it (`DoorShape.SpotOf`, `TileOf`); the hatch's art fills the top cell, so a built hatch
+  shows all of it and a drawn one leaves its lower row the back wall's. A hero climbs through an open hatch as far as it is
+  thick.
 - **Maps are drawn a character a 16 px cell and doubled** (`Layout.Doubled()`): walls, back walls, machines, ladders and doors
   fill the 2×2 cells of their character, so a doubled doorway of three `D`s is a door of three segments, 2×6, standing in a hull two cells thick;
   a floor fills its block's top row; `S` its bottom-left; a conduit its

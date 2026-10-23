@@ -97,4 +97,19 @@ public class BrushTests
         Assert.Equal([14, 16], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (7.1, 1.9)));
         Assert.Equal([14], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (4.9, 1.9)));
     }
+
+    [Fact]
+    public void TheDoorsCardLaysHatchSegmentsByAClickOrAcrossAndDoorSegmentsDownAsFarAsASecond()
+    {
+        var hatch = Door with { Placement = new Placement("structure", Stillwake.Content.Builds.Hatch) };
+        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (4.9, 1.9)));
+        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (7.1, 2.4)));
+        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (4.9, 2.6)));
+        Assert.Equal(Door, Drag.Oriented(Door, (4.9, 1.9), (4.9, 4.1)));
+        Assert.Equal(Ladder, Drag.Oriented(Ladder, (4.9, 1.9), (7.1, 1.9)));
+        // A hatch segment is two by one, laid a piece's width a step along its row only.
+        Assert.Equal((2, 1), Drag.StampOf(hatch));
+        Assert.Equal([14, 16, 18], Drag.StrokeOf(W, H, hatch, (4.9, 1.9), (9.1, 1.9)));
+        Assert.Equal([14], Drag.StrokeOf(W, H, hatch, (4.9, 1.9), (4.9, 2.6)));
+    }
 }

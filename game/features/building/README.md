@@ -23,7 +23,7 @@ pointer; `Hands`: every view of this player's hands wired together, the building
 buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
 thumbnails, a card's at the art's 16 px whatever the cell (0104); `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
-`Blueprint`: how planned pipes and walls join their neighbours (a planned door, hatch or ladder is its piece whole, 0104), which the crew's aim
+`Blueprint`: how planned pipes and walls join their neighbours (a planned ladder is its piece whole; planned doorways join as built ones, over plans and what is built, `Tools.DoorLinks`, 0104), which the crew's aim
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
@@ -45,9 +45,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   right button, by click or drag, with a card or none, marks or cancels in the focused layer only (`Tools.RemovalIn`; back
   walls behind machines too): everything of that layer in the rectangle, each piece once; what else is under the drag's
   start decides nothing. The focused layer is drawn whole, the other at 35% (`Tools.AlphasOf` of `PlanHand.Shown`, set by
-  `Main` on the grid's layers and the machines' views), so the back wall behind a lifepod shows. Beside the tablet's right
-  bezel two stacked buttons, no words, painted as the tablet's tabs, the focused one lit: a bright block before a faint grid,
-  a dim hatched block behind a dotted outline. Away from the ship (`PlanHand.Aboard`)
+  `Main` on the grid's layers and the machines' views), so the back wall behind a lifepod shows. On the tablet's right edge under its stylus two stacked
+  keys (`LayerKey`), no words, wrist keys as the sort keys are, sticking out of the metal as the bag's does from the
+  display's, the focused one backlit: a bright block before a faint grid, a dim hatched block behind a dotted outline. Away from the ship (`PlanHand.Aboard`)
   nothing fades and the axe's and drill's fade round the pointer is off
   too (`PlanHand.SeesThrough`), so the ground never shows what is in it.
   The ghost before a press is the card's, the removal's while the right button is held. There is no removal card. No grid
@@ -76,9 +76,10 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   line); a machine is placed once where the stroke began. Each cell is its own `PlacePlan`, ascending, none twice, each
   judged alone (`Drag.StrokeOf`). Only digging keeps the 2×2 brush (`Shared/Brush`, Ctrl for one cell).
 - **Pieces are placed whole** (0104): a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
-  two cells at a time, and a door's 2×2 segments the same: a run down is a door, a run across a hatch, one alone a
-  hatch. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
-  there, as a machine is; a removal on any of its cells marks the whole piece.
+  two cells at a time, and the door's card the same (`Drag.Oriented`): a click or a stroke across lays 2×1 hatch
+  segments along their row, a stroke down as far as a second 2×2 door segments. Each is one `PlacePlan` at its top-left;
+  a ladder is drawn, ghosted and marked as its whole picture from there, as a machine is, a doorway's cells as built ones
+  join over what is planned and built (`PlanTiles.LayDoor`), so a lone segment or a run across looks a hatch, a run down a door; a removal on any of its cells marks the whole piece.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still

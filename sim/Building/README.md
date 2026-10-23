@@ -35,7 +35,8 @@ cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a 
   against the grid (`IGridQueries.PlacementProblem`, whose keys pass through unchanged), then against
   the other plans: in each cell, structure and machines share one solid slot, and a back wall has its
   own, as in the grid. A machine's blueprint covers its whole footprint, and a piece's (0104): a
-  ladder's 2×2, a door segment's 2×2; a run of segments down is a door, across a hatch, one alone a hatch.
+  ladder's 2×2, a door segment's 2×2, a hatch segment's 2×1 (`Builds.Hatch`, of the door's blueprint and cost); a run of
+  segments down is a door, across a hatch, one alone a hatch.
   Placing one costs nothing.
 - **No blueprint builds bedrock** (0077), front or back: refused `building.unknown`, creative mode or not
   (`Blueprints.Has`). Soil and stone walls and back walls (0084) are blueprints like any, known once soil or rock is analysed.
@@ -51,7 +52,7 @@ cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a 
   (0110): `IPowerOps.Unplug` leaves each on a peg at its plug's cell, and a machine built is `Plug`ged into a peg at its plug's. A machine's mark is kept at the machine's top-left, whichever of its cells was
   marked; a ladder's or a door's at the first cell of its piece (`IGridQueries.PieceOf`, 0104), and taking it apart takes the
   whole piece: a door's segment, a ladder's two by two; the rest of its doorway stands. It gives back its build's cost for as many pieces as its cells make, each
-  item rounded down: a segment, or a drawn map's lone door (2×2), two plates and a gear; a ladder piece a
+  item rounded down, a piece in one row a hatch segment's: a segment of either, or a drawn map's lone door (2×2), two plates and a gear; a ladder piece a
   meteor broke nothing. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
 - **`Work` is the left button held on a plan with the screwdriver in hand** (0107): one tick of one hero's work, sent
   `Screwdriver.Work` times a tick the player holds it on the plan within reach, the client's pace (the sim does not check the

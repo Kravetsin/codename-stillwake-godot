@@ -42,7 +42,7 @@ namespace Stillwake.Game;
 /// Dev arguments after <c>--</c>, played on the wreck as drawn (<see cref="Registry.WreckMap"/>) unless they say otherwise: <c>--world</c> a new
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
-/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings (<c>--segments</c> a door and a hatch of segments),
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings (<c>--segments</c> a door and a hatch of segments; <c>--hatches</c> a built hatch over a ladder and plans of doorways),
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of one-cell steps to walk (<see cref="HillsDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a step (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--store</c> a capacitor bank filling from a panel, then emptying into an arc smelter (<see cref="Features.Power.StoreDemo"/>), <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
@@ -195,6 +195,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--hills")) _layout = HillsDemo.Map;
         if (Has("--floor")) _layout = FloorDemo.Map;
         if (Has("--segments")) _layout = Autopilot.Segments;
+        if (Has("--hatches")) _layout = Autopilot.Hatches;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
@@ -1050,6 +1051,8 @@ public partial class Main : Node2D, ITogether
         var heard = client.TakeHeroes();
         _heroes += heard.Count;
         if (Has("--auto")) Auto(client, before);
+        if (Has("--hatches") && client.World.Tick != before)
+            foreach (var c in Autopilot.Plans(before, client.World.Tick, _m.Grid.Width)) client.Send(c);
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         // --toggle: the first doorway opened and shut on alternate ticks, so one is always in flight, as at a busy airlock.

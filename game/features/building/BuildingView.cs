@@ -111,6 +111,7 @@ public partial class BuildingView : Node2D
 
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
+            act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
             foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
                 foreach (var c in verdict.Commands)
@@ -183,12 +184,16 @@ public partial class BuildingView : Node2D
             }
         IEnumerable<Placement> PlannedAt(int c) => placed.TryGetValue(c, out var list) ? list : [];
         var shapes = new List<(Sim.Building.Plan Plan, Placement Shown, int At, int Linked)>();
+        var doorCells = plans.Where(p => p.Place is { } place && Tools.LaysDoor(place)).SelectMany(p => CellsOf(grid, p)).ToHashSet();
+        var doorLinks = Tools.DoorLinks(grid, doorCells);
         foreach (var p in plans)
         {
             if (p.Place is not { } place) continue;
             int linked = Tools.LinksOf(place, p.Cell, width, PlannedAt, grid);
             var cut = CutOf(grid, building, p, place);
-            _plans.Lay(place, p.Cell, width, linked, cut);
+            if (Tools.LaysDoor(place))
+                foreach (int c in CellsOf(grid, p)) _plans.LayDoor(c, width, doorLinks, cut);
+            else _plans.Lay(place, p.Cell, width, linked, cut);
             if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
         }
@@ -200,7 +205,7 @@ public partial class BuildingView : Node2D
             if (Tools.BuiltAt(at, layer, grid) is not { } built) continue;
             // Joined as the grid draws it, to what is built beside it, marked or not.
             int joined = Tools.LinksOf(built, at, width, _ => [], grid);
-            if (MarkCutOf(grid, building, p, built) is { } cut) _marked.Lay(built, at, width, joined, cut);
+            if (MarkCutOf(grid, building, p, built) is { } cut) LayBuilt(_marked, built, at, joined, grid, cut);
             shapes.Add((p, built, at, joined));
         }
         if (outlined != _outlined)
@@ -318,6 +323,18 @@ public partial class BuildingView : Node2D
         }
     }
 
+    /// <summary>What is built at <paramref name="at"/> as <paramref name="into"/>'s ghost: a doorway's piece by its joins as the grid draws it.</summary>
+    private static void LayBuilt(PlanTiles into, Placement built, int at, int joined, IGridQueries grid, PlanCut? cut = null)
+    {
+        if (!Tools.LaysDoor(built))
+        {
+            into.Lay(built, at, grid.Width, joined, cut);
+            return;
+        }
+        var links = Tools.DoorLinks(grid, new HashSet<int>());
+        foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, cut);
+    }
+
     /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
     private static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
         p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
@@ -420,6 +437,8 @@ public partial class BuildingView : Node2D
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
+        // The door's card lays hatch segments but along a stroke down (0104); the ghost shows which.
+        act = Drag.Oriented(act, _drag?.From ?? p, p);
         var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
         if (act is PlaceTool place)
         {
@@ -427,8 +446,19 @@ public partial class BuildingView : Node2D
             var cells = verdicts.Select(v => v.Cell).ToHashSet();
             IEnumerable<Placement> Beside(int c) =>
                 building.PlansAt(c).Select(o => o.Place).OfType<Placement>().Concat(cells.Contains(c) ? [place.Placement] : []);
+            // A doorway's ghost joins as it will built, a lone segment a hatch, a run down a door (0104).
+            var doorCells = Tools.LaysDoor(place.Placement)
+                ? building.Plans.Where(o => o.Place is { } other && Tools.LaysDoor(other)).SelectMany(o => CellsOf(grid, o))
+                    .Concat(verdicts.SelectMany(v => grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell])).ToHashSet()
+                : null;
+            var doorLinks = doorCells != null ? Tools.DoorLinks(grid, doorCells) : null;
             foreach (var v in verdicts)
-                (v.Problem != null ? _refused : _fits).Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
+            {
+                var into = v.Problem != null ? _refused : _fits;
+                if (doorLinks != null)
+                    foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell]) into.LayDoor(c, width, doorLinks);
+                else into.Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
+            }
         }
         else
         {
@@ -442,7 +472,7 @@ public partial class BuildingView : Node2D
                     : layer == "structure" && grid.PieceOf(cell) is { Count: > 1 } piece ? piece[0] : cell;
                 if (!seen.Add((layer, at)) || Tools.BuiltAt(at, layer, grid) is not { } built) return;
                 int joined = Tools.LinksOf(built, at, width, _ => [], grid);
-                if (takes) _taking.Lay(built, at, width, joined);
+                if (takes) LayBuilt(_taking, built, at, joined, grid);
                 int x = at % width, y = at / width;
                 string group = layer == "machine" ? $"machine{at}" : layer is "back" or "conduit" ? layer : built.Kind;
                 (takes ? taken : kept).Add((group, x * Cell, y * Cell, PlanShapes.RimOf(built, x, y, joined)));

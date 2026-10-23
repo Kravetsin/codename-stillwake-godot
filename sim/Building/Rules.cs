@@ -96,7 +96,7 @@ public sealed partial class BuildingModule
     private string? PlaceProblem(int cell, Placement place)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
-        if (!Rules.Allows(place.Kind)) return "building.notHere";
+        if (!Rules.Allows(Builds.BuiltAs(place.Kind))) return "building.notHere";
         if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;

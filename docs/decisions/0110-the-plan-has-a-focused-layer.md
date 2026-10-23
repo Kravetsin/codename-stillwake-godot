@@ -34,8 +34,9 @@ machines, doors, hatches, ladders, floors and the other pieces), and the back wa
 - The focused layer draws whole, the other at 35% everywhere in view (`Tools.AlphasOf`, the grid's tile layers and the
   machines' views), replacing the fade round the pointer while a back wall's card aimed. That fade stays for the axe and the
   drill digging back walls with the plan away.
-- Beside the tablet, two stacked buttons with no words, painted as the tablet's tabs (`Tablet.PaintTab`'s colours), the
-  focused one lit sky: the front a solid bright block before a faint grid, the back a dim hatched block behind a dotted
+- On the tablet's right edge under its stylus, two stacked keys with no words (`LayerKey`): wrist keys as the sort keys
+  are (`WristKey`, the crate header's square size), sticking out of the metal as the bag's sort key does from the display's,
+  the focused one backlit (the user: the painted buttons first tried read as recoloured, not as hardware): the front a solid bright block before a faint grid, the back a dim hatched block behind a dotted
   outline, drawn in code.
 - No grid is drawn while the plan is open: the ghost and the pointer's outline already show where a card snaps.
 - **Away from the ship** (`PlanHand.Aboard`, `PlanHand.Shown`) nothing fades, and the axe's and the drill's fade round the

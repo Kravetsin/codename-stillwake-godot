@@ -754,6 +754,49 @@ public class HeroTests
         Assert.Equal(5 * Block, stuck.Y - Spec.Height);
     }
 
+    /// <summary>A built hatch segment, two cells by one (0104), in a deck a cell thick, a ladder flush under it; a cell a character.</summary>
+    private static Layout BuiltHatch(char hatch) => Layout.Parse(
+    [
+        "############",
+        "#..........#",
+        "#..........#",
+        "#..........#",
+        "#..........#",
+        "#..........#",
+        "#..........#",
+        "#..........#",
+        $"####{hatch}{hatch}######",
+        "#...HH.....#",
+        "#...HH.....#",
+        "#...HH.....#",
+        "#...HH.....#",
+        "#...HH.....#",
+        "#...HH.....#",
+        "#...HH..S..#",
+        "############",
+    ]);
+
+    [Fact]
+    public void ABuiltHatchOverAFlushLadderIsClimbedThroughBothWaysAndStoodOnShut()
+    {
+        var open = Start(BuiltHatch('d'));
+        var atLadder = Until(open.Ship, open.Hero, Left, h => Column(h) == 2);
+        var above = Settle(open.Ship, atLadder.Step(Up, open.Ship), Up);
+        Assert.Equal((8 * Unit, false), (above.Y, above.Climbing));
+        // Down from on top of it the hero takes the ladder, never falls through.
+        var grabbed = above.Step(Down, open.Ship);
+        Assert.True(grabbed.Climbing);
+        var down = Settle(open.Ship, grabbed, Down);
+        Assert.Equal(16 * Unit, down.Y);
+
+        var closed = Start(BuiltHatch('D'));
+        var stuck = Settle(closed.Ship, atLadder.Step(Up, closed.Ship), Up);
+        Assert.True(stuck.Climbing);
+        Assert.Equal(9 * Unit, stuck.Y - Spec.Height);
+        var stood = Settle(closed.Ship, At(atLadder.X, 8 * Unit), Down);
+        Assert.Equal((8 * Unit, false), (stood.Y, stood.Climbing));
+    }
+
     // A hatch three wide in a deck, a ladder under its middle (0067).
     private static string HatchMap(char hatch) => $"""
         #######
