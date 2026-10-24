@@ -1,5 +1,18 @@
 # atmosphere (client): the ship's air
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `AirField.cs` | The air as the overlay draws it, cell by cell: how much of each cell's air shows, eased toward what the sim says so … |
+| `AirLook.cs` | How the air is drawn over the rooms, behind what stands in them, a pixel of the world at a time, with the overlay … |
+| `AirMotes.cs` | The air made visible without the overlay: sparse motes wandering in every cell holding air, blown out of a filling … |
+| `AirView.cs` | The ship's air. Without a word: every room losing oxygen into space lit red on the beat (each tank's sight glass is … |
+| `Explain.cs` | What the air overlay says of a room. |
+| `Streams.cs` | Where air streams out of a room: the middle of an opening, in cells, and the heading toward the space beside it, in … |
+| `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
+| `VentLight.cs` | Air escaping into space (0075), luminous: out of each opening a room vents through, a jet of fast pale streaks and … |
+
 Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` (`RoomsAir`, `AiredCells`,
 `OxygenIn`), `sim/Rooms` (`RoomOfCells`, `RoomAt`, `RoomById`), `sim/Grid` (`Built`, `MachinesOf`) and `sim/Crew` (`Heroes`).
 

@@ -1,5 +1,11 @@
 # Hazards
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Hazards.cs` | Meteors breaking the hull. |
+
 Meteors breaking the hull. For now struck by hand, from the dev panel, to try a breach and its
 repair: random meteors arrive with locations, rings around planets whose rocks hit hard enough to
 break some hulls and not others (see `docs/concept.md`). Ported from

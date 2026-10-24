@@ -1,5 +1,13 @@
 # Ruins (client)
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `HomesView.cs` | The arc makers' homes, seen (0091): each piece the sim keeps standing (`BuildingModule.Plants` of a kind in … |
+| `RelicSparks.cs` | A relic sparking (0096), the relic page's live emitter a step at a time: small arcs on twos from its cracks to its … |
+| `SpiresView.cs` | The spires alight round their relics (0096): each spire whose cradle the sim keeps standing … |
+
 The arc makers' homes, seen (ADR 0091). The pieces are Building's growths (`sim/Building/Flora.cs`, `Content.Ruins.Pieces`):
 stamped into the ground with it, felled by hits or with what holds them. This feature only draws them (`HomesView`).
 

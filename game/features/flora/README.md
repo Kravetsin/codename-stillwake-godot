@@ -1,5 +1,14 @@
 # Flora (client)
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `CaveTint.cs` | The stone's colour by depth band (0080): one band of colour a band of rows, multiplied over the ground drawn under … |
+| `CaveView.cs` | What grows in a planet's caves, seen (0080): each growth the sim keeps standing (`BuildingModule.Plants` of a cave … |
+| `FloraView.cs` | What grows on a planet's surface, seen (0079): each plant the sim keeps standing (`BuildingModule.Plants`) drawn as … |
+| `Planting.cs` | Where what grows on a planet is drawn against what holds it (0079, 0080), in pixels of the world, plain C# so it is … |
+
 What grows on a planet, seen: on its surface (0079) and in its caves (0080). The plants are Building's
 (`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature only
 draws them — the surface's in `FloraView`, the caves' in `CaveView` — and tints the caves' stone by depth (`CaveTint`).

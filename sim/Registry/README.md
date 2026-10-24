@@ -1,5 +1,12 @@
 # Registry
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Migrations.cs` | Old saves made loadable (0031): each step turns a save of one format into the next, the JSON of `World.Save` in and … |
+| `Registry.cs` | Every module of one world, wired: each takes what it depends on through its constructor, and `All` lists them in … |
+
 Every module of one world, wired through their constructors and listed in run order (`MODULES` in the
 TypeScript sim). A new module adds a property, its construction after its dependencies, and its place
 in `All`. Tests, the network and the game build worlds from a `new Registry()`: a world gets one of

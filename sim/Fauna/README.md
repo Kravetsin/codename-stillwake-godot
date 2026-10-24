@@ -1,5 +1,16 @@
 # Fauna
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Fauna.cs` | Creatures living on a planet's surface (0102): spawned out of sight round every hero by the habitats of its type … |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Jump.cs` | Jumping (0102): a walker that must turn first tries a leap over the wall or across the gap, its landing found by … |
+| `Live.cs` | The fauna's system (0102): each creature, in id order, kept or gone by where the heroes are, then its mode's clock … |
+| `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of every hero's view, where a habitat of the surface's type is. |
+| `State.cs` | The saved slice and its records: `Mode`, `Creature`, `FaunaState`. |
+
 Creatures living on a planet's surface ([0102](../../docs/decisions/0102-creatures-live-in-the-sim.md)): spawned out of
 sight round every hero by the habitats of the surface's planet type, walking and idling, struck by any weapon, knocked,
 flinching and fleeing, ramming a hero when cornered ([0103](../../docs/decisions/0103-a-ram-costs-the-suit-air.md)), dying

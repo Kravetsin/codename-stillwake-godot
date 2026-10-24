@@ -1,5 +1,13 @@
 # Crafting
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Crafting.cs` | Stations (0057): every crafting machine on one model, its work counted in thousandths of a tick at its speed times … |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `State.cs` | The saved slice and its records: `Entry`, `Smelt`, `CraftingState`. |
+
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every
 crafting machine on one model. A **queued** station (the lifepod's Fabricator, the Former, the circuit
 assembler) makes crafts

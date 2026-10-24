@@ -9,6 +9,16 @@ Until the port is done, work follows [`docs/plans/port.md`](docs/plans/port.md):
 first open one there. The TypeScript repo, `Kravetsin/codename-stillwake` (checked out beside this
 one as `../codename-stillwake`), is the specification: its module READMEs, its rules and its tests.
 
+## Finding things
+
+- Start at [`docs/map.md`](docs/map.md): domains, modules, key files, and how to compute a path from an id. Game
+  words (and the user's Russian ones) → code names: [`docs/glossary.md`](docs/glossary.md).
+- Read a README by the section you need (`grep -n '^##'` first), never whole; its `## Files` table comes first.
+- Read an ADR only when something links it; [`docs/decisions/index.md`](docs/decisions/index.md) has titles and status.
+- Run tests through `tools/test.ps1 [filter] [project]` (or `tools/test.sh`): failures, warnings and totals only.
+- A README holds current rules, invariants and its files, under 8 KB; history goes to ADRs. Trim one when a task
+  touches it. `DocsGuardTests` fails on a stale map, Files table or ADR index (`tools/adr-index.ps1` rewrites it).
+
 ## Stack
 
 Godot 4.7 (.NET build) · C# 12 on .NET 8 · plain C# assemblies for the simulation · Godot 2D

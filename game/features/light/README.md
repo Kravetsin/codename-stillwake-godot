@@ -1,5 +1,18 @@
 # Light (client)
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Crackle.cs` | The arc makers' arcs crackling (0091, the page's arc emitters, `Emits.Arc`): how often one strikes, and the arc it … |
+| `Flicker.cs` | How brightly a lamp short of power shines: at the share of power it gets, and short of all of it flickering, dark … |
+| `LampSparks.cs` | A lamp short of power, in light (0075), over its `Flicker`, whose timing and fades it keeps: each time it catches … |
+| `LightView.cs` | Light without a word (0019, 0029, 0070): a dark ship, the ambient light of `L.Ambient` in every corner, lit by its … |
+| `Lightmap.cs` | All the light of lamps, fires and glows, composed on the GPU each frame into two maps over the view (0029): `Main` … |
+| `Sources.cs` | What the lightmap's shader reads: the walls and doors light stops at, and each light it draws. |
+| `StarField.cs` | Starlight cell by cell (0019, 0070): the stars shine in every open cell with no back wall and everywhere past the … |
+| `Starlight.cs` | The starlight (`StarField`) as a texture of a texel a cell over what is built and a margin round it, handed to … |
+
 Light without a word (0019, 0029, 0070): a dim ship lit by its lamps, its fires, whatever glows,
 and by the stars, whole in open space and falling off within a few cells of a hole or an opening. Drawn only: nothing of it reaches the sim. Tuned at the 16 px cell: every reach and count of cells is twice what it was and every keep a cell its square root, so light falls off over the same pixels (0104); the shader walks up to 160 cells a line.
 Numbers from `game/Content/Light.cs`.

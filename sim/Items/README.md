@@ -1,5 +1,18 @@
 # Items
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Deliveries.cs` | Part of `ItemsModule`: how much of `item` machine `id` holds where a delivery of it goes (`Receiving`): its fuel slot for a fuel, its … |
+| `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged. |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Items.cs` | Every stack of items: inventories, what machines hold, the floor, creative mode. |
+| `Modules.cs` | Fits the module in `Module`, a slot of the sender's or of a machine, into machine `Machine` (0086): one of each … |
+| `Stacks.cs` | The rules on slots: giving, taking and moving. |
+| `State.cs` | The saved slice and its records: `Stack`, `Place`, `Target`, `Body`, `FloorStack`, … |
+| `ToolStats.cs` | What a tool works with (0098): its damage a hit, the ticks between its hits and what it draws a tick it runs … |
+
 Every stack of items: each hero's inventory, by its peer's id; what each machine holding items (a
 crate, a furnace, the analyzer) holds, by its machine id; the stacks lying on the floor; and creative
 mode, the world setting in which nothing is ever taken

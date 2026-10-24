@@ -1,5 +1,11 @@
 # Rooms
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Rooms.cs` | Rooms: the spaces air fills, closed by walls and closed doors. |
+
 Rooms: the spaces air fills, closed by walls and closed doors, found from the grid's structure. Each
 has a volume, the outer hull it leaks through, and the openings it vents through to space. Ported
 from `packages/sim/src/modules/rooms`; its rules hold here unchanged.

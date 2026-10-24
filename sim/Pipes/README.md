@@ -1,5 +1,13 @@
 # Pipes
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `PipeNetworks.cs` | How pipe networks are found from the spans, and how a map's drawn pipes become spans (0109). |
+| `Pipes.cs` | Pipes as spans (0109): straight pipes between machines' ports and joints, laid and taken away by hand with the … |
+
 Pipes as spans (ADR 0109): straight pipes between machines' ports and joints, laid and taken away by hand with the
 wrench, valves on joints, and the networks they join, along which air flows between the machines on them. Shaped as
 `power`'s cables are; the per-cell conduit layer of the grid is gone.

@@ -1,5 +1,30 @@
 # Net
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Net/BadNetwork.cs` | How bad to make a link, in ms: every message waits `Lag` plus up to `Jitter`. |
+| `Net/Channel.cs` | One end of a two-way link: sends `TOut`, receives `TIn`, in order. |
+| `Net/Client.cs` | A peer's view of the session: it sends commands and runs only the ticks the host released. |
+| `Net/Clock.cs` | Turns frame time into whole steps of `stepMs`: the host's ticks. |
+| `Net/Diff.cs` | Desync reports from two saves. |
+| `Net/Host.cs` | Orders the session: collects every peer's commands and releases them tick by tick. |
+| `Net/LocalSession.cs` | A host and its player's client in the same process, joined by a loopback: single-player, and the hosting side of co-op. |
+| `Net/Playout.cs` | When a joined peer runs the ticks its host released: each at the earliest it has been seen to arrive, plus a … |
+| `Net/Protocol.cs` | How messages are written on the wire: JSON, as the TypeScript build wrote them. |
+| `Net/RoundTrip.cs` | Times this peer's commands from sent to run by watching how many are in flight: each new one is stamped when first … |
+| `Net/Session.cs` | A session this machine plays in, and the time that drives it: its own, with the host that releases its ticks, or … |
+| `Tests/BadNetworkTests.cs` | apps/game/src/session/bad-network.test.ts, ported to channels: a link made bad on purpose, the local transport with … |
+| `Tests/Desync.cs` | The desync fuzz: a host and its clients in one process, random commands from every module's fuzz generator sent by … |
+| `Tests/DesyncTests.cs` | packages/net/src/desync.test.ts, ported. |
+| `Tests/Fixtures.cs` | A shared log: the order of its entries shows the order commands applied in. |
+| `Tests/HashesTests.cs` | packages/net/src/hashes.test.ts, ported. |
+| `Tests/JoinTests.cs` | packages/net/src/join.test.ts, ported. |
+| `Tests/PaceTests.cs` | How a session's time runs: apps/game/src/session/game.test.ts (a joined game), clock.test.ts and … |
+| `Tests/SessionTests.cs` | packages/net/src/session.test.ts, ported. |
+| `Tests/SurfaceStampTests.cs` | A command goes out stamped with the surface its sender is on (0076); sessions carry every surface. |
+
 How peers share one world ([0002](../docs/decisions/0002-coop-model.md)): a host orders every
 peer's commands tick by tick, every peer runs the same simulation on them, and what lives outside the
 simulation — heroes — is passed along beside it. Ported from `packages/net` and the session half of
