@@ -23,7 +23,7 @@ one from the other cannot be made right.
   separate doorways. A door never joins a hatch, so a hatch beside or under a door is a doorway of its own.
 - **A hatch is one 2×1 piece, a doorway of its own.** It does not stack or run: the cell beside it within its pair is
   its only join. Shut, it is a floor: it holds a hero, a stack or a creature from above and stops a body from below,
-  but it is no wall beside one, blocks no light and seals no room. Open, it is climbed through as a ladder is, but only
+  and, like a shut door, it seals its room and stops light (amended 2026-10-24: a hatch differs from a door only in being climbed through when open). Open, it is climbed through as a ladder is, but only
   where a ladder lies past it, so a hole beside a ladder is still a hole.
 - **The kind is stored, not guessed.** `Structure` gains `HatchClosed` and `HatchOpen` beside `DoorClosed` and
   `DoorOpen` (`sim/Grid/Grid.cs`). `Doorways` reads the codes: `IsDoor`, `IsHatch`, `IsDoorway`, `IsOpen`, `IsClosed`,
@@ -37,7 +37,7 @@ one from the other cannot be made right.
 - **Everything the client does reads the codes.** Drawing and its atlas (`DoorShape.SpotOf(..., hatch)`), the outline,
   the aim, hover, the lightmap, the sound and the slides all take the kind from the cell, not from the run. A hatch's
   pictures are always mask 0 (`hatch_closed_0`, `hatch_open_0`): adjacent hatches are separate doorways, so the old
-  `_2/_8/_10` pieces stay in the atlas unused. A closed hatch lets light through; only a closed door stops it.
+  `_2/_8/_10` pieces stay in the atlas unused. A closed hatch stops light across its row, as a wall does; a closed door's panel stops it where drawn.
 - **Maps and saves.** The map legend gains `h` and `o` (hatch shut and open) beside `D` and `d`; in a doubled map a
   hatch character fills the top row of its 2×2 block, as a floor does, so the hatch is one cell thick in the 8 px
   world. The save format is 29 and unreleased: the new codes need no migration.
@@ -59,6 +59,5 @@ one from the other cannot be made right.
 - A doubled map cannot draw a 2×1 hatch flush against a ladder a block below: the hatch fills the top row, leaving the
   deck's lower row empty, and a hero climbing up bridges that one cell with its body. A cell-scale map draws it flush.
 - The atlas keeps the old hatch mask pictures; nothing produces them.
-- The lightmap's shader still knows a closed hatch's panel byte, though no hatch writes one now.
 - Door kinds with rules of their own (an airlock, a blast door) still need a layer of their own; a door and a hatch
   do not, since their kind is their code.

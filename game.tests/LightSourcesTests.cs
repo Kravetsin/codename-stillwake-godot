@@ -26,8 +26,7 @@ public class LightSourcesTests
     [Fact]
     public void TellsAClosedDoorsPanelFromAClosedHatchsByTheDoorwaysShape()
     {
-        // A door two tall, shut over shut, beside a hatch two wide, all shut: a door stops light; a hatch is a floor and lets it
-        // through (0111).
+        // A door two tall, shut over shut, beside a hatch two wide, all shut: a door and a hatch both stop light (0111).
         int[] structure =
         [
             Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.Empty,
@@ -36,20 +35,20 @@ public class LightSourcesTests
         ];
         var cells = new byte[12];
         Sources.Occupy(c => structure[c], 4, structure.Length, new Box(0, 0, 3, 2), cells);
-        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
+        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Wall, Sources.Wall, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
 
     [Fact]
-    public void TellsADoorsFarColumnSoItsPanelStopsLightWhereItIsDrawnAndLetsAHatchThrough()
+    public void TellsADoorsFarColumnSoItsPanelStopsLightWhereItIsDrawnAndAHatchStopsItWhole()
     {
         // A door two wide and two tall beside a hatch two wide, all shut (0104, 0111): the door's near and far columns stop
-        // light where its panel is drawn; the hatch lies in the deck and lets light through.
+        // light where its panel is drawn; the hatch stops it across its whole row.
         const int D = Structure.DoorClosed, H = Structure.HatchClosed, E = Structure.Empty;
         int[] structure = [D, D, E, H, H, E, D, D, E, E, E, E];
         var cells = new byte[12];
         Sources.Occupy(c => structure[c], 6, structure.Length, new Box(0, 0, 5, 1), cells);
-        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells[..6]);
+        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Wall, Sources.Wall, Sources.Open }, cells[..6]);
         Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells[6..12]);
     }
     [Fact]

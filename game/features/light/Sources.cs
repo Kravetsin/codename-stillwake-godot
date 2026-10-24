@@ -49,7 +49,8 @@ public static class Sources
     {
         switch (structureAt(cell))
         {
-            case Structure.Wall:
+            // A hatch's panel fills its one row: shut, it stops light as a wall does (0111).
+            case Structure.Wall or Structure.HatchClosed:
                 return Wall;
             case Structure.DoorClosed:
                 {
@@ -72,7 +73,7 @@ public static class Sources
         int at = cy * width + cx;
         return structureAt(at) switch
         {
-            Structure.Wall or Structure.DoorClosed => true,
+            Structure.Wall or Structure.DoorClosed or Structure.HatchClosed => true,
             _ => false,
         };
     }

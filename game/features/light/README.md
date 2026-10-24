@@ -44,7 +44,7 @@ Numbers from `game/Content/Light.cs`.
   and those above and below it), and drops the texel if a wall or a closed door's panel stands
   between: shadows to the pixel. A door's panel is the columns of `door_closed_0`, read from the picture, in pixels of
   the doorway's two cells (0104): the occupancy tells a door's far
-  column (`Sources.DoorFar`), so the 16 px panel stops light where it is drawn. A hatch is a floor and lets light through (0111). The walls a texel is in are passed until the
+  column (`Sources.DoorFar`), so the 16 px panel stops light where it is drawn. A closed hatch stops light across its whole row (0111). The walls a texel is in are passed until the
   line comes out of them, so a wall is lit on the faces light reaches; in a door's cell only
   a texel on the panel itself passes it, along the doorway's cells till the line leaves the panel, so a door is
   lit whole and the back wall beside it stays dark to a light beyond it. A lamp (`Light.LampSize`) and a

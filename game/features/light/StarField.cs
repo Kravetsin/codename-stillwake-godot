@@ -245,7 +245,7 @@ public sealed class StarField
                 bool inside = gx >= 0 && gy >= 0 && gx < grid.Width && gy < grid.Height;
                 int cell = gy * grid.Width + gx;
                 if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
-                if (inside && structure[cell] is Structure.Wall or Structure.DoorClosed) kind[i] = Wall;
+                if (inside && structure[cell] is Structure.Wall or Structure.DoorClosed or Structure.HatchClosed) kind[i] = Wall;
                 // Its own cell's count, from the sums: whether the stars shine into it.
                 int c = (y + Sky + 1) * sw + x + Sky + 1;
                 if (sum[c] - sum[c - 1] - sum[c - sw] + sum[c - sw - 1] == 0) continue;
@@ -269,7 +269,7 @@ public sealed class StarField
     {
         if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
         int cell = gy * width + gx;
-        return back[cell] == Back.None && structure[cell] is not (Structure.Wall or Structure.DoorClosed);
+        return back[cell] == Back.None && structure[cell] is not (Structure.Wall or Structure.DoorClosed or Structure.HatchClosed);
     }
 
     private void Texel(byte[] bytes, int at, float light, byte kind)
