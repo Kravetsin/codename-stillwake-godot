@@ -14,7 +14,7 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
 - **Reads:** `BuildingModule.Plants` of a piece's kind, `PlantAt` (what a piece stands on, a chair's table), `Cracks` (hits),
   `Zaps(cell)` (whom the resonator zaps: the rule is the sim's); where each hero's body is, from `Main`.
 - **Pictures** (`art/homes/{kind}_{variant}`, `_glow`, `_dark`): exported from the concept page's own drawing code by
-  `tools/homes-art/export.js` (the page's `decor.js`, unchanged but for its require), which also writes `Content/HomesArt.cs` —
+  `tools/homes-art/export.js` (the page's `decor.js`, unchanged but for its require), which also writes `Content/logic/HomesArt.cs` —
   each piece's box in its picture, its lights and its live emitters — the plaster's tiles, the cloth's and the arc lamp's
   icons and the two placeholder sounds. Change the drawing code and export again; never edit what it writes. Two variants: the
   chair turned (it faces its table or desk), the banner in indigo (by its cell).

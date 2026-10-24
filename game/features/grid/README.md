@@ -4,11 +4,11 @@
 
 | File | Purpose |
 | --- | --- |
-| `ChunkReveal.cs` | Which of the grid's cells `GridView` has drawn, by chunks `Chunk` cells square drawn a row at a time, and which to … |
+| `logic/ChunkReveal.cs` | Which of the grid's cells `GridView` has drawn, by chunks `Chunk` cells square drawn a row at a time, and which to … |
 | `DoorLight.cs` | A doorway's slide in light (0075), one doorway at a time, from its leading cell: while the panel moves, a thin line … |
-| `DoorSlides.cs` | The door cells sliding open or shut, each taking `Seconds` from one end to the other; the cells of a doorway move … |
-| `DrawnLayers.cs` | The grid's six layers as `GridView` last drew them, this peer's toggles in flight made (0014), and the cells that … |
-| `Grass.cs` | Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of … |
+| `logic/DoorSlides.cs` | The door cells sliding open or shut, each taking `Seconds` from one end to the other; the cells of a doorway move … |
+| `logic/DrawnLayers.cs` | The grid's six layers as `GridView` last drew them, this peer's toggles in flight made (0014), and the cells that … |
+| `logic/Grass.cs` | Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of … |
 | `GridView.cs` | The ship in pixel art, a `TileMapLayer` per kind of picture: back walls behind … |
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
 
@@ -23,7 +23,7 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
 - **Draws** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its picture, iron a panel with
   a grille in about one 16 px cell of seven), walls cut from their material's picture with edges on every side facing no
   wall (`ShipTiles.WallName`, `EdgeName`; every wall whole, 0106), floors and ladders, doors and hatches (shut or slid; a
-  door's stacked segments one doorway, a hatch its own, joined as the sim's `Doorways`; `render/DoorShape.cs`, 0067,
+  door's stacked segments one doorway, a hatch its own, joined as the sim's `Doorways`; `render/logic/DoorShape.cs`, 0067,
   0111), machines over their footprints, a sprite per power socket.
 - **Heard** (0033): a door that moved, where it stands, once a doorway at its leading cell (`DoorShape.Leads`); a valve
   is the pipes' own (0109).
@@ -36,23 +36,23 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   opened, motes and a glint at the slot; shut, a faint ring on the floor, a glint at the seal, dust, a pressure door's
   vapour. Only the look (0071): the sim moved the door at once; air, rooms, feet and light follow the sim.
 - **Kept current** (0014, 0051): `GridView.Sync(shown)` runs whenever the grid as this peer shows it changes
-  (`game/shared/Predicted.cs`'s `Grid`): after a tick, and on the frame this peer sends a door or valve toggle, shown at
+  (`game/shared/logic/Predicted.cs`'s `Grid`): after a tick, and on the frame this peer sends a door or valve toggle, shown at
   once. It brings `DrawnLayers` up to the grid and redraws only changed cells and their four neighbours (a door cell's
   joins too); machines when the list changes. Nothing is rebuilt per frame.
 - **Costs the cells changed** (0051): when `Version` moved, the cells `ChangedSince` names are compared with what was
   drawn; machines only when the log names a machine's cell. A first drawing, or a log outrun, compares within what is
-  built now and was at the last look (`shared/BuiltRows.cs`). Cells a toggle in flight shows apart (`ShownGrid`) are
+  built now and was at the last look (`shared/logic/BuiltRows.cs`). Cells a toggle in flight shows apart (`ShownGrid`) are
   looked at every time. `BuiltBoundsTests` checks this against a whole-grid compare. Light follows the world, not
   toggles in flight.
 - **Pictures** (no ADR): every PNG of `game/art` cells use is packed at start into one atlas with one normal map
   (`render/ShipTiles.cs`), a layer one draw call. Walls, edges, doors, machines and sockets are lit with relief; back
   walls, pipes, floors and ladders flat (`render/Lit.cs`).
 - **A planet's ground** (0077, 0079, 0088): soil, stone and bedrock walls and back walls from `art/planet/wall_*` and
-  `back_*`, seamless tiles cut a cell at a time; edges made at start (`render/GroundArt.cs`, `Content/GroundLooks.cs`):
+  `back_*`, seamless tiles cut a cell at a time; edges made at start (`render/GroundArt.cs`, `Content/logic/GroundLooks.cs`):
   a dark outline by open sides, lit lines inside. The ruins' alloy (0085) is drawn the same way (`wall_alloy`,
   `back_alloy`, `top_alloy`, `detail_alloy`; placeholders till the user picks).
 - **Back walls recede** (0088): a natural back wall's picture is paled, cooled and darkened at load (`GroundArt.Recede`);
-  walls cast a soft three-tone shadow on it along open edges (`render/GroundShadow.cs`, `GroundShadow.Of` of the three by
+  walls cast a soft three-tone shadow on it along open edges (`render/logic/GroundShadow.cs`, `GroundShadow.Of` of the three by
   three round a cell; atlas `render/ShadowTiles.cs`), on its own layer, multiplying. A changed cell redraws its corner
   neighbours' shadows too. The hull's back walls are left as they are.
 - **Lava** (0087): its tiles drawn as any ground's (`art/planet/*_lava`, no living edge); over them `LavaView` draws the

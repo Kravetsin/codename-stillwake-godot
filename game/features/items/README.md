@@ -8,13 +8,13 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 
 | File | Holds | Godot |
 | --- | --- | --- |
-| `Click.cs` | the click rules, quick equip, shift across, sockets; every shift's `Flight` and where it landed | no |
-| `Hotbar.cs` | the row of nine and the wheel; each slot's digit and key | no |
-| `Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) | no |
-| `Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host | no |
-| `Lessons.cs` | an analyzer's panel: stage, progress, what the item goes into (0027) | no |
-| `Reach.cs` | `HeroSpot`; pick-ups | no |
-| `OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was | no |
+| `logic/Click.cs` | the click rules, quick equip, shift across, sockets; every shift's `Flight` and where it landed | no |
+| `logic/Hotbar.cs` | the row of nine and the wheel; each slot's digit and key | no |
+| `logic/Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) | no |
+| `logic/Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host | no |
+| `logic/Lessons.cs` | an analyzer's panel: stage, progress, what the item goes into (0027) | no |
+| `logic/Reach.cs` | `HeroSpot`; pick-ups | no |
+| `logic/OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was | no |
 | `PickUpFlights.cs` | a stack picked up flying home to the chest (0075) | yes |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) | yes |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) | yes |
@@ -34,8 +34,8 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `ItemsDemo.cs` | `-- --items`: a room with a crate, a furnace and an analyzer, for recordings | yes |
 
 The wrist computer's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`WristPieces`, `WristArt`,
-`WristScreen`, `WristKey`, `WristGauge`); charge on screen is `game/shared/Charges.cs`. Files without Godot are
-compiled into `game.tests/`.
+`WristScreen`, `WristKey`, `WristGauge`); charge on screen is `game/shared/logic/Charges.cs`. Files in `logic/` are Godot-free
+and tested in `game.tests/`.
 
 ## Guarantees
 

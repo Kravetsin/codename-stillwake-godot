@@ -2,55 +2,55 @@
 
 This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here against the
 ship's cells, and only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `Run`, `HitBy` and the hands'
-commands reach the sim. Other heroes come through the host beside the simulation.
+commands reach the sim. Other heroes come through the host.
 
 ## Files
 
 | File | Holds | Godot |
 | --- | --- | --- |
-| `Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; one `Step` at 60 a second; steps (0106); flight (0047) | no |
-| `Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) | no |
-| `Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) | no |
-| `Motion.cs` | lean and landing, read from motion (0090) | no |
-| `Aim.cs` | reach, the aim, what the hands send and the tools touch (0039, 0054, 0102) | no |
-| `AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) | no |
+| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; one `Step` at 60 a second; steps (0106); flight (0047) | no |
+| `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) | no |
+| `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) | no |
+| `logic/Motion.cs` | lean and landing, read from motion (0090) | no |
+| `logic/Aim.cs` | reach, the aim, what the hands send and the tools touch (0039, 0054, 0102) | no |
+| `logic/AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) | no |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) | yes |
-| `SwingArm.cs` | the front arm through swings; aiming the harpoon | no |
-| `HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) | no |
-| `TwoHand.cs` | the two-handed hold, as a rifle (0078) | no |
-| `HarpoonLine.cs` | the harpoon's line as drawn | no |
-| `Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not | no |
+| `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon | no |
+| `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) | no |
+| `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) | no |
+| `logic/HarpoonLine.cs` | the harpoon's line as drawn | no |
+| `logic/Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not | no |
 | `UsePrompt.cs` | the prompt at the bottom middle | yes |
-| `Tether.cs` | the tether as drawn, a reeled rope | no |
-| `DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) | no |
-| `Motor.cs` | the `Run` sent while the sim differs from what is wanted (0055) | no |
-| `Remote.cs` | `Seen`, `SentHero`, `RemoteHeroes`, `HeroSender` | no |
-| `RemoteRod.cs` | another hero's harpoon rod played out here (0065) | no |
-| `Suits.cs` | suit colours and shades | no |
+| `logic/Tether.cs` | the tether as drawn, a reeled rope | no |
+| `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) | no |
+| `logic/Motor.cs` | the `Run` sent while the sim differs from what is wanted (0055) | no |
+| `logic/Remote.cs` | `Seen`, `SentHero`, `RemoteHeroes`, `HeroSender` | no |
+| `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) | no |
+| `logic/Suits.cs` | suit colours and shades | no |
 | `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) | yes |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera | yes |
 | `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim | yes |
 | `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers | yes |
-| `CameraFollow.cs` | where the camera looks | no |
+| `logic/CameraFollow.cs` | where the camera looks | no |
 | `JetPlume.cs` | a jetpack's plume (0075) | yes |
 | `RodLight.cs` | the harpoon's light (0075) | yes |
 | `AimOutline.cs` | what the aim outline traces | yes |
 | `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) | no |
-| `Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` | no |
-| `Frost.cs` | the frost past the field (0050) | yes |
-| `Danger.cs` | what the suit gauge reads | no |
-| `AirCues.cs` | the moments air comes back (0081) | no |
-| `CanistersSeen.cs` | a friend's canister read off its suit (0081) | no |
+| `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` | no |
+| `Frost.cs` | the frost past the field, by `Report.Cold` (0050) | yes |
+| `logic/Danger.cs` | what the suit gauge reads | no |
+| `logic/AirCues.cs` | the moments air comes back (0081) | no |
+| `logic/CanistersSeen.cs` | a friend's canister read off its suit (0081) | no |
 | `AirSwirl.cs` | a canister's vortex, a breath, a ram's leak (0081, 0103) | yes |
 | `SuitGauge.cs` | the suit gauge under the hotbar (0058, 0074, 0081) | yes |
 | `SuitColours.cs` | the suit colour row in the game menu | yes |
-| `Markers.cs` | the markers' list and geometry | no |
+| `logic/Markers.cs` | the markers' list and geometry | no |
 | `MarkerLayer.cs` | edge arrows to home, own body and friends | yes |
-| `Bodies.cs` | bodies read from floor stacks' tags (0061) | no |
+| `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) | no |
 | `BodyView.cs` | each body drawn, its beacon (0061) | yes |
-| `Rams.cs` | a creature's ram as this client meets it (0103) | no |
+| `logic/Rams.cs` | a creature's ram as this client meets it (0103) | no |
 
-Files without Godot are compiled into `game.tests/`.
+`logic/` is Godot-free, tested in `game.tests/`.
 
 ## Guarantees
 
@@ -61,7 +61,7 @@ Files without Godot are compiled into `game.tests/`.
   nearest fit, carrying no speed (0089, `ShutOutTests`).
 - Doors are walked as this peer shows them, own toggles in flight made (0014). A press asks for the other state
   (`SetDoor`/`SetValve`, 0071).
-- **Holes and floors** (no ADR): a standing step stops where the body fits over a hole and falls in; a hole a step
+- **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a hole a step
   deep is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down. No crouch.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
@@ -71,7 +71,7 @@ Files without Godot are compiled into `game.tests/`.
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`.
-- **Camera** (no ADR; `Content/Camera.cs`): leads the way the hero last moved, never its facing; eases height; snaps
+- **Camera** (`Content/logic/Camera.cs`): leads the way the hero last moved, never its facing; eases height; snaps
   on a new place; on whole pixels.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
   `Thrust` is sent while own thrust differs from the sim's. The plume shows at once (0014).
@@ -79,8 +79,8 @@ Files without Godot are compiled into `game.tests/`.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` is sent when the sim's room or field side differs, and every
   `Crew.ReportEvery` ticks off its cell, none while out (0050). The host sends `Leave` for a closed link. The tether is
-  tied where the body's middle last was in the hull (0007, 0104). Frost shows by `Report.Cold` (0050).
-- **Markers** (no ADR; body 0061): home, own newest body and friends heard, at the screen's edge, clear of the HUD.
+  tied where the body's middle last was in the hull (0007, 0104).
+- **Markers** (bodies 0061): home, own newest body and friends heard, at the screen's edge, clear of the HUD.
 
 ## Others' heroes
 
@@ -103,7 +103,7 @@ Files without Godot are compiled into `game.tests/`.
 - **The drill** (0054, 0055, 0078): held as a rifle; left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks on wrecks its bit touches.
 - **Digging** (0077, 0093, 0094): with axe or drill, the brush (`Builds.Brush`, Ctrl for one cell) sends one `Dig` per
-  cell the sim would take; a strike is heard and seen on what it lands on.
+  cell the sim would take; a strike is heard and seen.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump short of a ledge by the foot's lift is mantled.
 

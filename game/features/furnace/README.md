@@ -42,7 +42,7 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
 | File             | Holds                                                         |
 | ---------------- | ------------------------------------------------------------- |
 | `FurnaceView.cs` | the layer: fires, flywheels, where embers come from and light |
-| `Flames.cs`      | how brightly a fire burns with each picture, cracks, and how its glow breathes toward it |
+| `logic/Flames.cs` | how brightly a fire burns with each picture, cracks, and how its glow breathes toward it |
 | `FurnaceDemo.cs` | the world of `--furnace`                                      |
 
 ## Art

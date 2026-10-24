@@ -57,11 +57,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `WorldsPanel.cs` | the worlds, Play, Delete, New world                                        | yes   |
 | `TogetherPage.cs` | host or join on the relay, the password kept                             | yes   |
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
-| `Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
+| `logic/Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint: which version a player runs, to tell a friend or a bug … | yes |
 
-`game/shared/Escape.cs` (what one press of Esc does) is plain C#, compiled again into `game.tests/`
-(`EscapeTests`).
+`game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`.
 
 ## Deliberately not handled
 

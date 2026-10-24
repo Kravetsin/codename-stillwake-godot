@@ -8,19 +8,19 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 
 | File | Purpose |
 | --- | --- |
-| `Tools.cs` | The tabs and cards from content's menu slots (0114), focus and removal, the overlay shown, search, hints, `CardAt` (the pipette), how a plan joins (`LinksOf`, `DoorLinks`). |
-| `PlanHand.cs` | The card in hand and the plan out, in step with `Ui.Hand` and `Ui.OverlayOn`; the focused layer. |
-| `Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
+| `logic/Tools.cs` | The tabs and cards from content's menu slots (0114), focus and removal, the overlay shown, search, hints, `CardAt` (the pipette), how a plan joins (`LinksOf`, `DoorLinks`). |
+| `logic/PlanHand.cs` | The card in hand and the plan out, in step with `Ui.Hand` and `Ui.OverlayOn`; the focused layer. |
+| `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
 | `BuildingView.cs` | Plans and marks drawn (ghosts, dashes, cuts), the tips, the buttons, the pipette, plan work. |
 | `BuildGlow.cs` | The light of work on plans (0075): sparks, glints, the molten spot, the cut's line, a finished plan's sweep. |
-| `Catalogue.cs` | The menu's fixed frame (0073): size by slot size, rows scrolled, card under the pointer, scrollbar. |
+| `logic/Catalogue.cs` | The menu's fixed frame (0073): size by slot size, rows scrolled, card under the pointer, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`. |
 | `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud, behind the walls. |
 | `LayerKey.cs` | A layer's key on the build tablet's right edge (0110). |
 
-Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/En.cs`,
+Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,
 `game/render/` (`Buttons`, `WorldButtons`, `BlueprintArt`, `PlanTiles`, `PlanCut`, `BuiltParts`, `Blueprint`,
-`PlanOutline`, `PlanShapes`, `MarchingDashes`, `Sketch`). Plain files are compiled again into `game.tests/`.
+`PlanOutline`, `PlanShapes`, `MarchingDashes`, `Sketch`). Files in `logic/` are Godot-free and tested in `game.tests/`.
 
 ## Rules
 

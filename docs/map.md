@@ -58,9 +58,9 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png`,
   `debris/<look>_<nn>.png`, `fauna/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`;
   `_glow`/`_lit` suffixes for light. Loaded by `PixelArt.Picture(name)` = `res://art/<name>.png`.
-- **i18n** (`game/i18n/En.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),
+- **i18n** (`game/i18n/logic/En.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),
   `material.<id>`, refusals `<moduleId>.<why>`, UI by area (`menu.`, `use.`, `handbook.`, `build.`). Read with `T(key)`.
 - **Tests**: `sim/Tests/<Module>Tests.cs` or `<Rule>Tests.cs`, helpers `<Module>Testing.cs`; client `game.tests/<Class>Tests.cs`
-  (the class compiled in by `Game.Tests.csproj`); `net/Tests/<Topic>Tests.cs`. Docs guard: `game.tests/DocsGuardTests.cs`.
-- **Dev args**: each listed with its doc in `game/dev/DevModes.cs` (`DevModesTests` keeps it exact); `grep -rn '"--<name>' game` for the wiring,
+  (Godot-free client code lives in its folder's `logic/`; `Game.Tests.csproj` compiles every `logic/` by glob); `net/Tests/<Topic>Tests.cs`. Docs guard: `game.tests/DocsGuardTests.cs`.
+- **Dev args**: each listed with its doc in `game/dev/logic/DevModes.cs` (`DevModesTests` keeps it exact); `grep -rn '"--<name>' game` for the wiring,
   `grep -rn '<c>-- --<name>' game` for its class. `game/Main.cs` keeps startup and the frame loop.

@@ -5,41 +5,41 @@
 | File | Purpose |
 | --- | --- |
 | `AsciiArt.cs` | Small pictures drawn as ASCII in code, made once under a key and kept. |
-| `Blueprint.cs` | How plans join the plans beside them when drawn. |
+| `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | What a placement looks like built: for plans, ghosts and build menu thumbnails. |
-| `Bolts.cs` | The electric arcs in the world (0075). |
+| `logic/Bolts.cs` | The electric arcs in the world (0075). |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
-| `Buttons.cs` | The mouse buttons as the world reads them: presses and releases since the last take. |
-| `CableShape.cs` | A cable as drawn: where it meets its nodes, how it hangs, where it goes through the hull. |
+| `logic/Buttons.cs` | The mouse buttons as the world reads them: presses and releases since the last take. |
+| `logic/CableShape.cs` | A cable as drawn: where it meets its nodes, how it hangs, where it goes through the hull. |
 | `Cracks.cs` | One damage filter for every piece of debris (0034), drawn by `Lit`'s shader. |
-| `DoorShape.cs` | One door, every shape (0067): a doorway's pictures by the joins of its cells. |
+| `logic/DoorShape.cs` | One door, every shape (0067): a doorway's pictures by the joins of its cells. |
 | `DriftLayer.cs` | A plane of the backdrop behind the ship, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
 | `Dust.cs` | Faint dust between the far wrecks and the ship. |
 | `FarWrecks.cs` | Wreckage far behind the ship, from the wrecks' own pictures. |
-| `Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
+| `logic/Flares.cs` | Glints, shock lines and flashes of the world's key moments (0075). |
 | `Glow.cs` | A point that lights what is round it a little while it is shown. |
 | `GroundArt.cs` | A planet's natural ground pictures made here rather than drawn (0077, 0079). |
-| `GroundDetails.cs` | Pictures laid over a planet's ground, a rule of drawing (0082). |
-| `GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
+| `logic/GroundDetails.cs` | Pictures laid over a planet's ground, a rule of drawing (0082). |
+| `logic/GroundShadow.cs` | The soft shadow walls cast on a natural back wall (0088). |
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
-| `HitBurst.cs` | A hit's look thrown where it lands (0094). |
-| `IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
-| `IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
+| `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
+| `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
+| `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `ItemIcons.cs` | Each item's 16 px picture and its white silhouette. |
 | `Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
-| `Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
+| `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
 | `Outline.cs` | A thin line round the silhouette of what is aimed at. |
 | `PixelArt.cs` | The ship's pictures from `game/art`, a pixel of art a pixel of the world. |
-| `PlanCut.cs` | Where a plan being built stops being a plan (0063). |
-| `PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |
+| `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
+| `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
 | `PlanTiles.cs` | The ship's tile layers again, for plans and ghosts. |
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
-| `Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
-| `Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
+| `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
+| `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
@@ -52,7 +52,7 @@
 | `WorldButtons.cs` | The mouse over the world: feeds `Buttons`, a press only when no panel took it. |
 
 The backdrop behind the ship, drawn by the client only: nothing of it reaches the sim. Numbers live in
-`game/Content/Backdrop.cs` and the files' constants. Everything else in `render/` is described where it is used (the
+`game/Content/logic/Backdrop.cs` and the files' constants. Everything else in `render/` is described where it is used (the
 features' READMEs) and in its own `///` summaries.
 
 ## Rules

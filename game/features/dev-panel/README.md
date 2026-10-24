@@ -28,7 +28,7 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
 | File          | Holds                                          | Godot |
 | ------------- | ---------------------------------------------- | ----- |
 | `DevPanel.cs` | the panel, its readouts, buttons and sound board | yes   |
-| `CueNames.cs` | what the sound board calls a cue               | no    |
+| `logic/CueNames.cs` | what the sound board calls a cue               | no    |
 
 ## Accepted limitations
 

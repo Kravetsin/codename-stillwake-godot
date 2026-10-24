@@ -74,7 +74,7 @@ set from the stamp. The host runs no world and never decodes them. `Client.Send`
 ## Heroes
 
 A client sends `hero` with a state net never reads (a string); the host passes it to every other peer stamped with the
-sender and keeps nothing (0002). The game draws the others (`game/features/crew/Remote.cs`).
+sender and keeps nothing (0002). The game draws the others (`game/features/crew/logic/Remote.cs`).
 
 ## Hash checks
 
@@ -101,7 +101,7 @@ sender and keeps nothing (0002). The game draws the others (`game/features/crew/
 ## Deliberately not handled
 
 - The folds of 0014 live in the game: features fold own commands in flight into what they show (`features/items`,
-  `game/shared/Predicted.cs`).
+  `game/shared/logic/Predicted.cs`).
 - Others hear of a peer leaving only through the farewell the game passes.
 - A host that loads a save leaves its joined peers behind.
 - No host migration, no anti-cheat: friends trust each other (0002).

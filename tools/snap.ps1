@@ -5,7 +5,7 @@ Builds the game and saves what it shows, so a check of the client needs no Godot
   tools/snap.ps1 out.png -At 8 -- --testbed --lit          # later
   tools/snap.ps1 run.png -Movie 3 -- --hills --autopilot   # 3 s recorded at 60 fps, every 12th frame on one sheet
 
-Everything after -- goes to the game (dev arguments: game/dev/DevModes.cs). The frame or sheet path is printed last.
+Everything after -- goes to the game (dev arguments: game/dev/logic/DevModes.cs). The frame or sheet path is printed last.
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0)][string]$Out,

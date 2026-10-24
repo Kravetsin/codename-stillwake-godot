@@ -17,7 +17,7 @@ The artifacts were found by the pages' titles among the published ones; no page 
 | [`movement`](movement) | [Движение героя Stillwake](https://claude.ai/artifact/F6x7njvfvVJLPZVxV7LKfz) | the hero's movement research: livelier, as responsive | `node build.js` from the folder, with the game's pictures copied into `art/` |
 | [`zero-g`](zero-g) | [Руки в невесомости](https://claude.ai/artifact/PHHDuwuvs9hokvf548c7mw) | the hands in zero gravity | as `movement`, whose `engine.js` and `render.js` it shares |
 | [`hero-redesign`](hero-redesign) | [Новый облик героя](https://claude.ai/artifact/SmAXrGwUdzqqTyzqys9FG3) | the hero's new look | `node tools/build.js` reads `game/art` and four screenshots (`shot-deck.png`, `shot-planet.png`, `cmp-real.png`, `cmp-mine.png`, not kept) |
-| [`arc-icon`](arc-icon) | [Значок дуги](https://claude.ai/artifact/M3Ua1GzFic9MpMqz4ptZdz) | the arc technology's icon, ported by hand into `game/Content/TechLooks.cs` and `game/render/TechCanvas.cs` | `node tools/build.js` fills `template.html` with `tools/icons.txt` and `tools/crops.txt` (not kept: game screenshots as base64) |
+| [`arc-icon`](arc-icon) | [Значок дуги](https://claude.ai/artifact/M3Ua1GzFic9MpMqz4ptZdz) | the arc technology's icon, ported by hand into `game/Content/logic/TechLooks.cs` and `game/render/TechCanvas.cs` | `node tools/build.js` fills `template.html` with `tools/icons.txt` and `tools/crops.txt` (not kept: game screenshots as base64) |
 
 The screenshot scripts (`shoot.cjs`, `dbg.cjs`) load Playwright from the old TypeScript repo's `node_modules`; point them
 at any Playwright to use them.

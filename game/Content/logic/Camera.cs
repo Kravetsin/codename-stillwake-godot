@@ -1,7 +1,7 @@
 namespace Stillwake.Game;
 
 /// <summary>
-/// How the camera follows this machine's hero (<c>features/crew/CameraFollow.cs</c>), as the movement review's
+/// How the camera follows this machine's hero (<c>features/crew/logic/CameraFollow.cs</c>), as the movement review's
 /// item 12 picked it and its playtest changed it. Across, it sits ahead of the hero the way it moves, by
 /// <see cref="LeadShare"/> of the screen's width at <see cref="LeadSpeed"/> or faster: the lead turns over
 /// <see cref="LeadTurnMs"/> and eases over <see cref="SmoothMs"/>, while the hero itself is followed exactly, so
