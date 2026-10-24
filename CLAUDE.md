@@ -172,7 +172,7 @@ in the sim.
 - Two developers, each with Claude: one task, one branch (`feat/...`, `fix/...`), one PR into `main`.
   `main` is protected: nothing lands without a PR and a green CI, no approval needed, so nobody waits
   on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
-  edits to the files every task touches (`game/Main.cs`, `game/i18n/En.cs`).
+  edits to the files every task touches (`game/Main.cs`, `game/dev/DevModes.cs`, `game/i18n/En.cs`).
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
   commit: the full `dotnet test Stillwake.sln` and `dotnet format` on the changed files only (`--include`, seconds
   instead of a whole-solution minute); CI fails on whitespace.

@@ -23,6 +23,9 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `ModuleSocket.cs` | a machine's socket for one module (0086) | yes |
 | `AnalyzerScreen.cs` | the analyzer's screen: dark, running lines, a check | yes |
 | `InventoryPanel.cs` | the hotbar, inventory, equipment and the open machine's frame; the stack in hand | yes |
+| `InventoryPanel.Machine.cs` | the open machine's body by kind and its readouts | yes |
+| `InventoryPanel.Sockets.cs` | module sockets: laid out, lent, fitted, tipped (0086) | yes |
+| `InventoryPanel.Input.cs` | keys, clicks, drags and drops; moves sent and flown; where it lies on screen | yes |
 | `EnergyBar.cs` | the energy tab at the gauge row's right end (0053, 0081) | yes |
 | `FloorLayer.cs` | stacks on the floor | yes |
 | `SlotFlights.cs` | a shifted stack flying to where it landed (0075) | yes |
