@@ -27,7 +27,7 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
   cell (`HomesLooks.Lit`). `--homes lit` and `--homes dark` light all or none of them, the page's two moods.
 - **Light:** each lit piece's lights where the page puts them, in their colour, the makers' arcs a fifth wider and three tenths
   stronger (the page's scenes), keep 0.72 a cell, 4 px wide; a pulse swells and sinks them, the broken lamp's sputter switches
-  them; at most `HomesLooks.MostLights` (40), the nearest the view's middle, to the light feature (`LightView.Homes`).
+  them; at most `HomesLooks.MostLights` (40), the nearest the view's middle, to the light feature (`ILightSource`).
 - **Live** (the page's emitters at its 24 ticks a second, only in view): arcs (`Bolts`, cyan), pulses with a soft bloom, the
   broken lamp's bursts, the mobile's four stars, the hologram's scanline and its jump, the desk's last pixel, the garland's
   twinkles, the live plant's spores, the hearth's embers, motes in the window's light and the cobweb's; banners, the tapestry,

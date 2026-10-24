@@ -19,6 +19,12 @@ public readonly record struct LightSource(
     double X, double Y, (float R, float G, float B) Colour, float Strength, int Reach, float Keep, float Most, float Size = 0,
     (double X, double Y)? Toward = null);
 
+/// <summary>A view whose lights the lightmap draws (<c>LightView.Shining</c>): its lights near the view this frame.</summary>
+public interface ILightSource
+{
+    IReadOnlyList<LightSource> Lights { get; }
+}
+
 /// <summary>What the lightmap's shader reads: the walls and doors light stops at, and each light it draws.</summary>
 public static class Sources
 {

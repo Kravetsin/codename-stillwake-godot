@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -18,7 +19,7 @@ namespace Stillwake.Game.Features.Flora;
 /// handed to the light feature (<see cref="Lights"/>). A plant felled is taken away in a fall of leaves. While glowing plants
 /// are in view, motes drift about them and in the open air over the ground, a few at a time, none made off the screen.
 /// </summary>
-public partial class FloraView : Node2D
+public partial class FloraView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell;
 
@@ -32,8 +33,10 @@ public partial class FloraView : Node2D
     private double _seconds, _moteDue;
     private int _count = -1;
 
-    /// <summary>The light of every glowing part of a plant near the view this frame, in pixels of the world.</summary>
-    public IReadOnlyList<(Vector2 At, Color Colour)> Lights => _lights;
+    private readonly List<LightSource> _sources = [];
+
+    /// <summary>The light of every glowing part of a plant near the view this frame, a small pool round each (0079).</summary>
+    public IReadOnlyList<LightSource> Lights => _sources;
 
     /// <summary>A plant felled heard where it stood, by its kind, whoever felled it (0093).</summary>
     private readonly Voices _falls = new(Game.Sound.World, voices: 3);
@@ -54,9 +57,14 @@ public partial class FloraView : Node2D
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();
         var near = view.Grow(Cell * FloraLooks.LightReach);
         _lights.Clear();
+        _sources.Clear();
         foreach (var (_, (_, picture, _, lights)) in _shown)
             if (lights.Length > 0 && near.Intersects(new Rect2(picture.Position, picture.Texture.GetSize())))
-                foreach (var light in lights) _lights.Add(light);
+                foreach (var (at, colour) in lights)
+                {
+                    _lights.Add((at, colour));
+                    _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
+                }
         Motes(view, delta);
         Game.Dev.FrameLog.End("flora", started);
     }

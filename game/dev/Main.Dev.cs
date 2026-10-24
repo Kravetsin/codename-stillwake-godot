@@ -88,7 +88,11 @@ public partial class Main
         if (_dev.Value("--sweep") is { } sweep)
             AddChild(new Dev.CameraSweep(_camera, () => _m != _ship ? new Vector2(_m.Crew.Spawn % _m.Grid.Width, _m.Crew.Spawn / _m.Grid.Width) : null, int.Parse(sweep)));
         if (Has("--measure"))
-            AddChild(new Dev.PerfReadout(() => $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={_caves?.Lights.Count} lava-lights={_lava?.Lights.Count} glints={_caves?.Glinting} caves={_caves?.TakeCostMs():F3}ms home-lights={_homes?.Lights.Count} homes={_homes?.TakeCostMs():F3}ms spire-lights={_spires?.Lights.Count} spires={_spires?.TakeCostMs():F3}ms"));
+            AddChild(new Dev.PerfReadout(() =>
+            {
+                var (caves, lava, homes, spires) = (View<Features.Flora.CaveView>(), View<Features.Grid.LavaView>(), View<Features.Ruins.HomesView>(), View<Features.Ruins.SpiresView>());
+                return $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={caves?.Lights.Count} lava-lights={lava?.Lights.Count} glints={caves?.Glinting} caves={caves?.TakeCostMs():F3}ms home-lights={homes?.Lights.Count} homes={homes?.TakeCostMs():F3}ms spire-lights={spires?.Lights.Count} spires={spires?.TakeCostMs():F3}ms";
+            }));
     }
 
     private static (int, int) Size(string? text, (int, int) or) => text?.Split('x') is [var w, var h] ? (int.Parse(w), int.Parse(h)) : or;

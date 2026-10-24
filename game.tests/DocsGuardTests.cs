@@ -93,61 +93,87 @@ public class DocsGuardTests
         return sim.Concat(features).Order(StringComparer.Ordinal);
     }
 
-    private sealed record Adr(string Number, string File, string Title, string Status);
+    /// <summary>One ADR: its id (<c>0081</c>, or a dated one's slug), its file, title and status line.</summary>
+    private sealed record Adr(string Id, string File, string Title, string Status);
 
-    private static readonly Regex Number = new(@"\b\d{4}\b");
+    /// <summary>
+    /// A numbered ADR's file (<c>0081-…</c>, the ones before dated names), and a dated one's (<c>2026-10-24-two-words.md</c>): a slug of
+    /// two words or more, so no plain word of a status line is taken for one.
+    /// </summary>
+    private static readonly Regex Numbered = new(@"^(\d{4})-(?!\d{2}-\d{2}-)"), Dated = new(@"^\d{4}-\d{2}-\d{2}-([a-z0-9]+(?:-[a-z0-9]+)+)\.md$");
 
-    private static IEnumerable<string> NumbersIn(string text) => Number.Matches(text).Select(m => m.Value);
+    /// <summary>The ids of <paramref name="known"/> that <paramref name="text"/> names, each as a whole word.</summary>
+    private static IEnumerable<string> IdsIn(string text, IEnumerable<string> known) =>
+        known.Where(id => Regex.IsMatch(text, $@"(?<![\w-]){Regex.Escape(id)}(?![\w-])"));
 
     /// <summary>
     /// The ADR index, from each ADR's title line and its <c>- Status:</c> line with its indented continuation: superseded by
-    /// what its own status names after "superseded" and by every later ADR whose status says it "supersedes" it.
+    /// what its own status names after "superseded" and by every later ADR whose status says it "supersedes" it. A numbered ADR
+    /// is titled <c># 0081 — Title</c>, a dated one <c># Title</c> and named by its slug; numbered ones come first, then by date.
     /// </summary>
     public static string AdrIndex(string decisions)
     {
-        var title = new Regex(@"^# (\d{4}) — (.+)$");
-        var adrs = Directory.EnumerateFiles(decisions, "*.md")
-            .Select(Path.GetFileName)
-            .Where(f => Regex.IsMatch(f!, @"^\d{4}-"))
-            .Order(StringComparer.Ordinal)
+        var numberedTitle = new Regex(@"^# (\d{4}) — (.+)$");
+        var files = Directory.EnumerateFiles(decisions, "*.md").Select(Path.GetFileName).OfType<string>().Order(StringComparer.Ordinal).ToList();
+        var stray = files.Where(f => f != "index.md" && !Numbered.IsMatch(f) && !Dated.IsMatch(f)).ToList();
+        if (stray.Count > 0) throw new InvalidOperationException($"not an ADR's name, NNNN-slug.md or YYYY-MM-DD-slug.md: {string.Join(", ", stray)}");
+        var adrFiles = files.Where(f => Numbered.IsMatch(f)).Concat(files.Where(f => Dated.IsMatch(f))).ToList();
+        string IdOf(string file) => Numbered.Match(file) is { Success: true } n ? n.Groups[1].Value : Dated.Match(file).Groups[1].Value;
+        var adrs = adrFiles
             .Select(f =>
             {
-                var head = File.ReadLines(Path.Combine(decisions, f!)).Take(15).ToList();
-                var t = title.Match(head[0]);
-                if (!t.Success) throw new InvalidOperationException($"{f}: the first line is not \"# NNNN — Title\"");
+                var head = File.ReadLines(Path.Combine(decisions, f)).Take(15).ToList();
+                string title;
+                if (Numbered.IsMatch(f))
+                {
+                    var t = numberedTitle.Match(head[0]);
+                    if (!t.Success || t.Groups[1].Value != IdOf(f)) throw new InvalidOperationException($"{f}: the first line is not \"# {IdOf(f)} — Title\"");
+                    title = t.Groups[2].Value;
+                }
+                else
+                {
+                    if (!head[0].StartsWith("# ", StringComparison.Ordinal) || numberedTitle.IsMatch(head[0]))
+                        throw new InvalidOperationException($"{f}: the first line is not \"# Title\", with no number");
+                    title = head[0][2..];
+                }
                 var at = head.FindIndex(l => l.StartsWith("- Status:", StringComparison.Ordinal));
                 if (at < 0) throw new InvalidOperationException($"{f}: no \"- Status:\" line in its first 15");
                 var status = string.Join(' ', head.Skip(at).Take(1 + head.Skip(at + 1).TakeWhile(l => l.StartsWith("  ")).Count())
                     .Select(l => l.Trim()))["- Status:".Length..].Trim();
                 // A link names the ADR it points to, whatever its text says.
-                status = Regex.Replace(status, @"\[[^\]]*\]\((\d{4})[^)]*\)", "$1");
+                status = Regex.Replace(status, @"\[[^\]]*\]\(([^)#]+\.md)[^)]*\)", m => adrFiles.Contains(m.Groups[1].Value) ? IdOf(m.Groups[1].Value) : m.Value);
                 status = Regex.Replace(status, @"\]\([^)]*\)", "").Replace("[", "");
-                return new Adr(t.Groups[1].Value, f!, t.Groups[2].Value.Trim(), status);
+                return new Adr(IdOf(f), f, title.Trim(), status);
             })
             .ToList();
+        var duplicate = adrs.GroupBy(a => a.Id).FirstOrDefault(g => g.Count() > 1);
+        if (duplicate != null) throw new InvalidOperationException($"two ADRs named {duplicate.Key}: {string.Join(", ", duplicate.Select(a => a.File))}");
 
-        var by = adrs.ToDictionary(a => a.Number, _ => new SortedSet<string>(StringComparer.Ordinal));
+        var ids = adrs.Select(a => a.Id).ToList();
+        var by = adrs.ToDictionary(a => a.Id, _ => new List<string>());
         foreach (var a in adrs)
         {
             var own = a.Status.IndexOf("superseded", StringComparison.OrdinalIgnoreCase);
             if (own >= 0)
                 foreach (var part in a.Status[own..].Split(';').Where(p => !p.Contains("supersedes") && !p.Contains("amend")))
-                    foreach (var n in NumbersIn(part).Where(n => by.ContainsKey(n) && n != a.Number)) by[a.Number].Add(n);
+                    foreach (var n in IdsIn(part, ids).Where(n => n != a.Id)) by[a.Id].Add(n);
             foreach (var part in a.Status.Split(';').Where(p => p.Contains("supersedes")))
-                foreach (var n in NumbersIn(part).Where(n => by.ContainsKey(n) && string.CompareOrdinal(n, a.Number) < 0))
-                    by[n].Add(a.Number);
+                foreach (var n in IdsIn(part, ids).Where(n => ids.IndexOf(n) < ids.IndexOf(a.Id)))
+                    by[n].Add(a.Id);
         }
 
         var md = new StringBuilder();
         md.Append("# Decisions\n\n");
         md.Append("Generated by `tools/adr-index.ps1` from each ADR's title and status lines; `DocsGuardTests` fails when it is\n");
-        md.Append("stale. Read an ADR only when a README, plan or this list points you to it.\n\n");
+        md.Append("stale. Read an ADR only when a README, plan or this list points you to it. A new ADR is\n");
+        md.Append("`YYYY-MM-DD-slug.md`, titled `# Title` and named by its slug; the numbered ones keep their numbers.\n\n");
         md.Append("| ADR | Title | Status | Superseded by |\n| --- | --- | --- | --- |\n");
         foreach (var a in adrs)
         {
             var word = Regex.Match(a.Status, @"^\w+").Value.ToLowerInvariant();
-            var after = by[a.Number].Count == 0 ? "" : string.Join(", ", by[a.Number]) + (word == "accepted" ? " (in part)" : "");
-            md.Append($"| [{a.Number}]({a.File}) | {a.Title.Replace("|", "\\|")} | {word} | {after} |\n");
+            var later = by[a.Id].Distinct().OrderBy(ids.IndexOf).ToList();
+            var after = later.Count == 0 ? "" : string.Join(", ", later) + (word == "accepted" ? " (in part)" : "");
+            md.Append($"| [{a.Id}]({a.File}) | {a.Title.Replace("|", "\\|")} | {word} | {after} |\n");
         }
         return md.ToString();
     }
@@ -230,6 +256,18 @@ public class DocsGuardTests
             Assert.NotEqual(before, after);
             Assert.Contains("| [0001](0001-doors.md) | Doors | accepted | 0002 (in part) |", after);
             Assert.Contains("| [0002](0002-hatches.md) | Hatches | accepted |  |", after);
+
+            // A dated ADR is named by its slug, after the numbered ones, and supersedes one by a link to it.
+            File.WriteAllText(Path.Combine(decisions, "2026-10-24-sliding-hatches.md"), "# Sliding hatches\n\n- Status: accepted; supersedes [0002](0002-hatches.md)\n");
+            var dated = AdrIndex(decisions);
+            Assert.Contains("| [0002](0002-hatches.md) | Hatches | accepted | sliding-hatches (in part) |", dated);
+            Assert.EndsWith("| [sliding-hatches](2026-10-24-sliding-hatches.md) | Sliding hatches | accepted |  |\n", dated);
+            // A dated one titled with a number, a one-word slug, and a name of neither form are refused.
+            File.WriteAllText(Path.Combine(decisions, "2026-10-25-tiles.md"), "# Tiles\n\n- Status: accepted\n");
+            Assert.Throws<InvalidOperationException>(() => AdrIndex(decisions));
+            File.Delete(Path.Combine(decisions, "2026-10-25-tiles.md"));
+            File.WriteAllText(Path.Combine(decisions, "2026-10-25-more-tiles.md"), "# 0003 — More tiles\n\n- Status: accepted\n");
+            Assert.Throws<InvalidOperationException>(() => AdrIndex(decisions));
         }
         finally
         {

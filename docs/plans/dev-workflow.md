@@ -19,6 +19,8 @@ READMEs.
 | #187 | Each feature's strings in its `logic/<Name>.En.cs`; `En.cs` builds `Table` from them | `En.cs` as a file every task edits |
 | #189 | CI formats in its own job beside build+test, a gate job keeps the required check's name; a pre-commit hook (`tools/hooks`) formats staged `.cs`; budget bounds are a desk's, ×5 in CI (`STILLWAKE_BUDGET_SLACK`) | a minute on CI's critical path, `style(...)` commits, budget bounds loosened by hand after red runs |
 | #190 | A dev demo is a scenario class with `[Dev("--name", …)]` in `game/dev/demos/`, found by reflection; `Main.Dev.cs` keeps only its tools; release builds drop the demos and CI builds one (`game/dev/demos/README.md`) | a new demo editing `DevModes.cs` and several spots of `Main.Dev.cs`; cheats in release builds |
+| #191 | The views of a surface are a list in draw order (`game/SurfaceViews.cs`), made and freed in one loop, a flag for those fading with the plan; a view giving light is an `ILightSource` that `LightView.Shining` gathers | a new view's field, free, make and fade lines in `Main.cs` and a `Func` in `LightView` |
+| #192 | New ADRs are `YYYY-MM-DD-two-words.md`, titled `# Title` and named by their slug, the numbered ones kept; the index accepts both and is `merge=union`; the first, for #185, amends 0031 | renumbering ADRs when two developers took the same next number |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
@@ -32,28 +34,7 @@ is touched half as often as `En.cs` was. It stays one catalogue.
 
 Before each task, check `git log` on its files: someone may have moved them since.
 
-### 1. World views by interface
-
-- Why: each per-surface view in `Main` is a field, a free and a creation in the surface rebuild. Many also
-  appear in the plan-fade list and in a `LightView` `Func` property. `LightView` grows a property per light
-  source feature.
-- What: `ISurfaceView { int Order; Node Make(SurfaceContext) }`, made and freed in one loop; marker interfaces
-  `ILightSource` (its lights) and `IFadesWithPlan`, which `LightView` and the fade gather from the views.
-- Read `Main.cs` first: the split may have changed where views are made.
-- Who: larger model for the interfaces and first two views, then Sonnet. Effort: medium.
-
-### 2. ADR names by date and slug
-
-- Why: eight renumberings in five days, from two developers taking the same next number. Each renaming
-  breaks `(0081)` references in code and READMEs.
-- What: new ADRs are `docs/decisions/YYYY-MM-DD-<slug>.md`, referred to by slug; numbered ones stay.
-  `DocsGuardTests.AdrIndex` and `tools/adr-index.ps1` accept both forms. Consider `merge=union` in
-  `.gitattributes` for append-only lists such as `docs/decisions/index.md`.
-- Open: whether #185 (unknown fields refused, no bump for added ones) gets an ADR amending 0031; it could be
-  the first in the new form.
-- Who: any model. Effort: small.
-
-### 3. Recipes: `/new-machine`, `/new-module`, `/new-demo`
+### 1. Recipes: `/new-machine`, `/new-module`, `/new-demo`
 
 - Why: the "add a thing" checklists live in people's heads. A recipe with a short checklist and the files to
   touch lets a smaller model do it right the first time.
@@ -63,7 +44,7 @@ Before each task, check `git log` on its files: someone may have moved them sinc
   on today's code. `/new-demo` starts from the checklist in `game/dev/demos/README.md`.
 - Who: larger model writes them; test each by having Sonnet add a throwaway machine with it. Effort: small–medium.
 
-### 4. Smaller items
+### 2. Smaller items
 
 - README 8 KB cap: `building` (8062 B) and `crew` (8046 B) are near it again. Trimming them has started to cut
   meaning to save bytes. Decide with both developers: raise the cap, or move tables elsewhere.
