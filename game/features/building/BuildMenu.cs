@@ -353,7 +353,7 @@ public partial class BuildMenu : CanvasLayer
             ? [new Tab(_ui.Wielded.Get()!, [.. _hand.ToolCards])]
             : Tools.Tabs
                 // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
-                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
+                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules) && Tools.Offered(each, m.Items.Creative)).ToList() })
                 // A tab with nothing known is not shown, but the ship's.
                 .Where(Tools.Shown)
                 .ToList();

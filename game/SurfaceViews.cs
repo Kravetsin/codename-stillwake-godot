@@ -46,6 +46,7 @@ public static class SurfaceViews
         new(c => new AnalyzerScreens(c.M.Grid, c.M.Research, c.M.Power), Fades: true),
         new(c => new Features.Power.ChargerLights(c.M.Grid, c.M.Items, c.M.Power), Fades: true),
         new(c => new Features.Power.StoreLights(c.M.Grid, c.M.Power), Fades: true),
+        new(c => new Features.Power.PlatformLamps(c.M.Grid, c.M.Power), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),

@@ -299,7 +299,7 @@ public class BuildingToolsTests
         // open cells behind walls; a cable along the top, from the hull's corner at 0 to 11.
         string[] rows = ["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"];
         var w = new TestWorld(Layout.Parse(rows, null, [((0, 0), (11, 0))]));
-        string? Pick(int cell) => What(Tools.CardAt(cell, w.M.Grid, w.M.Building, w.M.Research));
+        string? Pick(int cell) => What(Tools.CardAt(cell, w.M.Grid, w.M.Building, w.M.Research, w.M.Items.Creative));
         Assert.Equal($"wall:{w.M.Grid.WallAt(0)!.Id}", Pick(0));
         Assert.Equal("tank", Pick(14));
         // A back wall's card is its own (0108).
@@ -321,8 +321,8 @@ public class BuildingToolsTests
         Assert.Contains("analyzer", known);
         Assert.Contains("crate", known);
         Assert.False(Tools.Known(Card("tank"), w.M.Research));
-        Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research));
-        Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research)));
+        Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research, w.M.Items.Creative));
+        Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research, w.M.Items.Creative)));
     }
 
     [Fact]

@@ -121,3 +121,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
 | [0114](0114-build-menu-from-content.md) | The build menu is laid out from content | accepted |  |
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
+| [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces with a power lamp | accepted |  |

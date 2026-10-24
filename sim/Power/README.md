@@ -55,7 +55,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 
 ## API
 
-- **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Satisfaction(machineId)`,
+- **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Feeds(cell)`, a structure a cable
+  ends on with power enough: its network makes or stores some and covers its demand (a launch platform's lamp); `Satisfaction(machineId)`,
   0 off every network; `Draw(machineId)`, modules folded in (0086); `LayProblem(peer, a, b)` and
   `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100).

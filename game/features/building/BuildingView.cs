@@ -143,7 +143,7 @@ public partial class BuildingView : Node2D
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(at), grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(at), grid, building, m.Research, m.Items.Creative) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);

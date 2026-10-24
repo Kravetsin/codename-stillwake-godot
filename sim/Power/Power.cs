@@ -49,6 +49,11 @@ public interface IPowerQueries
     /// <summary>The share of its draw machine <paramref name="machineId"/> gets, in thousandths; 0 off every network.</summary>
     int Satisfaction(int machineId);
     /// <summary>
+    /// Whether a structure a cable ends on at <paramref name="cell"/> has power enough: its network has some to give, made or
+    /// stored, and covers all its machines draw. A launch platform's lamp, green; red uncabled, short, or on a network with none.
+    /// </summary>
+    bool Feeds(int cell);
+    /// <summary>
     /// What machine <paramref name="machineId"/> draws while it draws: its <c>Draws</c> × (1000 + its modules' draw) / 1000,
     /// rounded up, a cost (0086); 0 for one drawing none. What its panel's bolt says.
     /// </summary>
@@ -275,6 +280,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public int? NodeAt(int cell) => PowerNodes.NodeAt(_grid, cell);
     public PowerNetwork? NetworkOf(int node) => State.Networks.Find(n => n.Nodes.Contains(node));
     public int Satisfaction(int machineId) => State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
+
+    public bool Feeds(int cell) =>
+        NodeAt(cell) == cell && NetworkOf(cell) is { } n && (n.Supply > 0 || n.Stored > 0) && n.Satisfaction >= 1000;
     public int Draw(int machineId) => _grid.MachineById(machineId) is { } m ? DrawOf(m) : 0;
 
     public bool Charges(int machineId) =>

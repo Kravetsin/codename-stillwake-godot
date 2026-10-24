@@ -297,8 +297,24 @@ public partial class GridView : Node2D
             case StructureDraw.Door:
                 DrawDoor(cell);
                 break;
+            case StructureDraw.Joined:
+                {
+                    // Paired as a ladder is, its picture by whether its row runs on past the piece: pieces side by side one deck.
+                    // A cell's half shows only its own side's join, so redrawing a changed cell's neighbours keeps a run whole.
+                    int left = RunLeftOf(cell), start = cell - left % 2, code = _drawn.Structure[cell];
+                    int links = (InRowOf(cell, start - 1, code) ? JoinedLeft : 0) | (InRowOf(cell, start + 2, code) ? JoinedRight : 0);
+                    _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt(ShipTiles.JoinedName(spec.Tile!, links), left, y));
+                    break;
+                }
         }
     }
+
+    /// <summary>A joined piece's links, as a hatch's: another of its kind on the left, on the right.</summary>
+    private const int JoinedLeft = 8, JoinedRight = 2;
+
+    /// <summary>Whether <paramref name="other"/> lies in <paramref name="cell"/>'s row and holds <paramref name="code"/>, as drawn.</summary>
+    private bool InRowOf(int cell, int other, int code) =>
+        other >= 0 && other < _drawn.Structure.Length && other / _grid.Width == cell / _grid.Width && _drawn.Structure[other] == code;
 
     /// <summary>
     /// The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up

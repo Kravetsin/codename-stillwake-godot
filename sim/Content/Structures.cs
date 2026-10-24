@@ -3,7 +3,8 @@ namespace Stillwake.Content;
 /// <summary>Structure codes as stored in saves: never reuse or renumber one. Rules ask for a code's traits (<see cref="Structures"/>).</summary>
 public static class Structure
 {
-    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7, Grate = 8;
+    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7, Grate = 8,
+        Platform = 9;
 }
 
 /// <summary>What a structure does, a bit each (0112): the questions systems ask of a cell instead of naming its kind.</summary>
@@ -50,6 +51,11 @@ public enum StructureDraw
     Paired,
     /// <summary>A doorway's panel by its shape (<c>DoorShape</c>).</summary>
     Door,
+    /// <summary>
+    /// <see cref="StructureSpec.Tile"/> two cells wide as <see cref="Paired"/> is, its picture by whether its piece meets another of its
+    /// kind on the left and on the right (<c>Tile_0</c>, <c>_2</c>, <c>_8</c>, <c>_10</c>, a hatch's links): pieces side by side drawn one deck.
+    /// </summary>
+    Joined,
 }
 
 /// <summary>What a drag of a structure's card lays: a line of cells or pieces, or the rectangle round both ends.</summary>
@@ -108,6 +114,11 @@ public static class Structures
             Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door, Flat: true),
         // A test fixture (0112): what a plain new structure takes, this row alone. No build and no art yet; no map of the game draws it.
         new(Structure.Grate, '%', "grate: a deck stood on that air and light pass through", Trait.Supports, Flat: true),
+        // The launch platform (the drop pod's deck): stood on and sealed as a shut hatch is, pieces side by side one run with one lamp.
+        // It never opens in the grid; what it will drop is drawn.
+        new(Structure.Platform, '_', "launch platform: a deck in the floor, two cells a piece, joined side by side",
+            Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight, Build: Builds.Platform, Leak: Air.DoorLeak,
+            Draw: StructureDraw.Joined, Tile: "platform", Flat: true),
     ];
 
     /// <summary>What a hero builds of these (<see cref="Builds.All"/>): each build's cost, ticks and piece, by the id a spec names.</summary>
@@ -120,6 +131,8 @@ public static class Structures
         new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2, Menu: new(MenuTabs.Structure, 230)),
         // A hatch, a door segment laid flat (0104, 0111), its own doorway: two cells wide and one tall.
         new(Builds.Hatch, [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 1, Menu: new(MenuTabs.Structure, 240)),
+        // A launch platform's piece, a hatch's size: in creative mode only while the drop pod is to come.
+        new(Builds.Platform, [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 1, Menu: new(MenuTabs.Ship, 100), CreativeOnly: true),
     ];
 
     private static readonly Trait[] TraitsOf = Table.Select(s => s.Traits).ToArray();
