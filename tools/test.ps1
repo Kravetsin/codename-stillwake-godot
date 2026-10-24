@@ -1,6 +1,6 @@
 <#
-Runs the tests quietly: build errors, each failed test with its message and our stack lines, the docs guard's
-warnings, and a line of totals per test project.
+Runs the tests quietly: build errors, each failed test with its message and our stack lines, lines a test
+marks WARN, and a line of totals per test project.
 
   tools/test.ps1                          # every test in Stillwake.sln
   tools/test.ps1 Logistics                # tests whose full name contains "Logistics"

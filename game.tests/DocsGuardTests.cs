@@ -2,7 +2,6 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace Stillwake.Game.Tests;
 
@@ -10,7 +9,7 @@ namespace Stillwake.Game.Tests;
 /// The navigation docs kept true to the tree: <c>docs/map.md</c> names every module folder, every README lists its
 /// files, and <c>docs/decisions/index.md</c> is what <c>tools/adr-index.ps1</c> would write now.
 /// </summary>
-public class DocsGuardTests(ITestOutputHelper output)
+public class DocsGuardTests
 {
     /// <summary>Set to 1 by <c>tools/adr-index.ps1</c>: the index is written instead of checked.</summary>
     public const string WriteIndex = "STILLWAKE_WRITE_ADR_INDEX";
@@ -182,34 +181,16 @@ public class DocsGuardTests(ITestOutputHelper output)
             "docs/decisions/index.md is stale: run tools/adr-index.ps1");
     }
 
-    /// <summary>READMEs trimmed to their rules; each fails the guard once over 8 KB. Add one as it is trimmed.</summary>
-    public static readonly string[] Trimmed =
-    [
-        "game/features/crew/README.md", "game/features/items/README.md", "sim/Items/README.md",
-        "sim/Debris/README.md", "sim/Building/README.md", "sim/Crafting/README.md", "sim/Fauna/README.md",
-        "sim/Power/README.md", "game/features/building/README.md", "game/features/crafting/README.md",
-        "game/features/debris/README.md", "game/features/effects/README.md", "game/features/fauna/README.md",
-        "game/features/flora/README.md", "game/features/grid/README.md", "game/features/sound/README.md",
-        "game/render/README.md", "net/README.md",
-    ];
-
-    /// <summary>Warns, never fails, for a README not yet trimmed: it is trimmed the next time a task touches it.</summary>
+    /// <summary>Every README of the code, and of the tools' pipelines: its rules and files under 8 KB, history in ADRs.</summary>
     [Fact]
-    public void ReadmesOverEightKbAreListed()
+    public void EveryReadmeStaysUnderEightKb()
     {
-        var large = Readmes(Root)
-            .Select(r => (Name: Slashed(Path.GetRelativePath(Root, r)), Bytes: new FileInfo(r).Length))
-            .Where(r => r.Bytes > ReadmeMostBytes && !Trimmed.Contains(r.Name))
-            .OrderByDescending(r => r.Bytes)
-            .Select(r => $"WARN README over 8 KB: {r.Name} ({r.Bytes / 1024} KB)")
+        var tools = Directory.EnumerateFiles(At("tools"), "README.md", SearchOption.AllDirectories)
+            .Where(f => !Built(f) && !f.Contains("node_modules", StringComparison.Ordinal));
+        var large = Readmes(Root).Concat(tools)
+            .Where(r => new FileInfo(r).Length > ReadmeMostBytes)
+            .Select(r => $"{Slashed(Path.GetRelativePath(Root, r))} ({new FileInfo(r).Length} bytes)")
             .ToList();
-        foreach (var line in large) output.WriteLine(line);
-    }
-
-    [Fact]
-    public void TrimmedReadmesStayUnderEightKb()
-    {
-        var large = Trimmed.Where(n => new FileInfo(At(n.Split('/'))).Length > ReadmeMostBytes).ToList();
         Assert.True(large.Count == 0, "README over 8 KB; history goes to ADRs: " + string.Join(", ", large));
     }
 

@@ -16,6 +16,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - обшивка / hull **≠** → the ship's walls (`Structure.Wall`; "hull wall" in `tool.wallScrap.about`); item `hullPlate`, `hullSection` are salvage → Grid, Debris
 - слой / layer → `GridLayers` (`sim/Grid/ChangeLog.cs`), f/building `LayerKey`, `Placement` layer → Grid, Building
 - план / plan → `Plan`, `PlacePlan`, `CancelPlan`, `Work` (`sim/Building`); f/building `PlanHand`, `BuildMenu`; r/`PlanTiles`, `PlanOutline` → Building
+- меню строительства / build menu → f/building `BuildMenu`, `Tools.Tabs`; cards and order from content: `MenuSlot` on machine, build and material rows, `MenuTabs` (c/`Menu.cs`, 0114) → Building
 - планшет / tablet → `game/shared/Tablet.cs`, `TabletLayout`, `TabletMotion` (build menu and Handbook) → UI
 - кисть / brush → `game/shared/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
 - ступенька / step → step-up in f/crew `Hero` (`StepUp`, `StepOnto`), drawn by `game/shared/StepEase.cs` (0106) → Crew
