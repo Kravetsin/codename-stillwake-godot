@@ -103,6 +103,8 @@ the client shows what the sim decided. Panels read on a timer, never every frame
 screen speaks without words — colour, light, motion; text is on demand, in overlays and by the
 pointer.
 
+- A cell is 8 px (0104): the hero is about 5 cells tall and steps up one cell without a jump; there are
+  no slopes (0106).
 - Cells are drawn with `TileMapLayer`, never a node per cell; light occluders are merged per wall
   run. A node per cell costs CPU time with every light (0025).
 - Floats are fine in the client: only the sim must be deterministic.
@@ -132,7 +134,7 @@ catch the rest.
 
 ## Budgets
 
-On the reference world (256×128 cells, every layer filled) on a mid-range PC: 60 fps with the sim
+On the reference world (512×256 cells: the 256×128 drawing doubled to the 8 px cell, 0104; every layer filled) on a mid-range PC: 60 fps with the sim
 running, and a sim tick under 2 ms. Measure render time with Godot's own monitors
 (`RenderingServer.ViewportGetMeasuredRenderTimeCpu`) and the sim with a `Stopwatch` in a test, never
 in the sim.
@@ -140,7 +142,8 @@ in the sim.
 ## Tests
 
 - **Scenario tests** are the default: `new Scenario(map)` in `sim/Tests` builds a world from an ASCII
-  map (characters per `Data.Legend`), then `.Do(command)`, `.Run(ticks)` and assertions through the
+  map (characters per `Data.Legend`, drawn at the old 16 px scale and doubled to 8 px cells by default;
+  `cells: true` reads one character per cell, 0104), then `.Do(command)`, `.Run(ticks)` and assertions through the
   modules' queries and `.Refusals`. Every rule of a module and every refusal reason gets one. Port a
   module's TypeScript tests with it, one for one.
 - **Invariant tests** (FsCheck `[Property]`) for what must always hold; draw maps that reach every
