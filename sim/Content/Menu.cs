@@ -12,7 +12,10 @@ public sealed record MenuSlot(string Tab, int Order);
 /// </summary>
 public static class MenuTabs
 {
-    public const string Structure = "structure", Air = "air", Power = "power", Production = "production", Storage = "storage";
+    public const string Structure = "structure", Air = "air", Power = "power", Production = "production", Storage = "storage", Ship = "ship";
 
-    public static readonly IReadOnlyList<string> All = [Structure, Air, Power, Production, Storage];
+    public static readonly IReadOnlyList<string> All = [Structure, Air, Power, Production, Storage, Ship];
+
+    /// <summary>The tabs shown with no card known: the ship's, which has none yet.</summary>
+    public static readonly IReadOnlyList<string> ShownEmpty = [Ship];
 }
