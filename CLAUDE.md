@@ -163,7 +163,8 @@ in the sim.
   modules' queries and `.Refusals`. Every rule of a module and every refusal reason gets one. Port a
   module's TypeScript tests with it, one for one.
 - **Invariant tests** (FsCheck `[Property]`) for what must always hold; draw maps that reach every
-  limit, and prove the test bites by breaking the rule once and watching it fail.
+  limit, and prove the test bites by breaking the rule once and watching it fail. A random failure is a bug in
+  the code or the test: replay its seed (`[Property(Replay = "a,b")]`) and fix it, never loosen it.
 - **Generic suites** (`ModulesTests`) cover every registered module: save, load and play on, two
   worlds kept alike, and every module with commands drawing them in its `Fuzz` override (refused
   ones too). Do not copy them per module.
@@ -178,8 +179,8 @@ in the sim.
   on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
   edits to the files every task touches (`game/Main.cs`, `game/dev/logic/DevModes.cs`).
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
-  commit: the full `dotnet test Stillwake.sln` and `dotnet format` on the changed files only (`--include`, seconds
-  instead of a whole-solution minute); CI fails on whitespace.
+  commit: the full `dotnet test Stillwake.sln`. The pre-commit hook (`git config core.hooksPath tools/hooks`, once
+  per clone) formats the staged `.cs` files; CI fails on whitespace. Budget tests are strict on a desk: a miss is real.
 - Match the ritual to the size: a new mechanic gets its ADR, a test proven to bite and screenshots; a number
   change or a bug fix gets its test and a README line.
 - Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
