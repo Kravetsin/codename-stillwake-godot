@@ -97,7 +97,6 @@ public partial class Main : Node2D, ITogether
     private Features.Fauna.FaunaView _fauna = null!;
     private Hands _hands = null!;
     private PlanDemo? _demo;
-    private GroundDemo? _ground;
     private FaunaDemo? _faunaDemo;
     private ShimmerDemo? _shimmerDemo;
     private LayerDemo? _layerDemo;
@@ -130,7 +129,8 @@ public partial class Main : Node2D, ITogether
     {
         // A friend's log arrives without context: its first line says which build and system wrote it.
         GD.Print($"Stillwake {Build} on {OS.GetName()} {OS.GetVersion()}");
-        _dev = new Dev.DevArgs(OS.GetCmdlineUserArgs());
+        _dev = new Dev.DevArgs(OS.GetCmdlineUserArgs(), DevScenarios.Modes);
+        _scenarios = DevScenarios.Active(_dev);
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
         if (PoseSheetOnly()) return;
@@ -471,7 +471,7 @@ public partial class Main : Node2D, ITogether
             _bodies.Add(BodyOf(_hero.Current));
         }
         _demo?.Frame(client, _m.Grid, Log);
-        _ground?.Frame(client, Log);
+        foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
         _faunaDemo?.Frame(client, Log);
         _shimmerDemo?.Frame(client, _m.Grid, Log);
         _layerDemo?.Frame(client, _m, Log);

@@ -1,5 +1,6 @@
 // Main's dev arguments (DevModes): the maps, scripts, demos and worlds they start, and what they do each frame.
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Crafting;
@@ -20,6 +21,9 @@ public partial class Main
 {
     /// <summary>The arguments after <c>--</c> (<see cref="Dev.DevModes"/>).</summary>
     private Dev.DevArgs _dev = new([]);
+
+    /// <summary>The scenarios the arguments start (<see cref="Dev.DevScenarios"/>), in their order.</summary>
+    private List<Dev.DevScenario> _scenarios = [];
 
     private bool Has(string flag) => _dev.Has(flag);
 
@@ -60,13 +64,12 @@ public partial class Main
     private void AddDebrisDemos()
     {
         if (Has("--debris")) AddChild(new DebrisDemo(_debris, _hands.Ui));
-        if (Has("--wreck") || Has("--wrecks") || Has("--harpoon") || Has("--grapple"))
-            AddChild(new WreckDemo(_debris, _hands.Ui, all: Has("--wrecks"), harpoon: Has("--harpoon"), grapple: Has("--grapple")));
     }
 
-    /// <summary>The map a dev run plays, the last argument naming one winning: the wreck as drawn with none.</summary>
+    /// <summary>The map a dev run plays: a scenario's, else the last argument naming one; the wreck as drawn with none.</summary>
     private Layout DevLayout(Layout layout)
     {
+        if (_scenarios.Select(s => s.Map).FirstOrDefault(m => m != null) is { } map) return map;
         if (Has("--world") || Has("--fly") || Has("--asteroid") || Has("--sortie")) layout = Registry.Wreck;
         if (Has("--gym")) layout = HeroAutopilot.Gym;
         if (Has("--poses")) layout = HeroAutopilot.Hall;
@@ -78,29 +81,23 @@ public partial class Main
         if (Has("--hatches")) layout = Dev.Autopilot.Hatches;
         if (Has("--lone-hatch") || Has("--lone-hatch=open")) layout = Dev.Autopilot.LoneHatch(Has("--lone-hatch=open"));
         if (Has("--items") || Has("--menu-demo")) layout = ItemsDemo.Map;
-        if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) layout = Dev.Testbed.Map;
-        if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) layout = WreckDemo.Map;
-        if (Has("--grapple")) layout = WreckDemo.Hall;
         return layout;
     }
 
-    /// <summary>The script the hero is played by, the first argument naming one winning; none without.</summary>
+    /// <summary>The script the hero is played by: a scenario's, else the first argument naming one; none without.</summary>
     private HeroAutopilot? DevScript() =>
-        Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40)
+        _scenarios.Select(s => s.Script).FirstOrDefault(s => s != null) is { } script ? script
+        : Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40)
         : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun()
         : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun())
         : Has("--aside") ? HeroAutopilot.Aside()
-        : Has("--jetpack") ? HeroAutopilot.Jetpack()
-        : Has("--dust") ? HeroAutopilot.Dust()
         : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip"))
         : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly()
-        : Has("--ground=spire-climb") && Has("--autopilot") ? HeroAutopilot.SpireClimb()
         : !Has("--autopilot") ? null
         : Has("--gym") ? HeroAutopilot.GymRun()
         : Has("--lone-hatch=open") ? HeroAutopilot.LoneHatchRun()
         : Has("--hills") ? HeroAutopilot.HillsRun(Dev.HillsDemo.HighPlateau)
         : Has("--strip") ? HeroAutopilot.PlanetRun()
-        : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300"))
         : HeroAutopilot.Wreck();
 
     /// <summary>The poses demo beside the hero, and where a dev run starts it, the first argument naming a place winning.</summary>
@@ -110,9 +107,9 @@ public partial class Main
         // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
         if (_dev.Value("--edge") is { } edge)
             hero.Start = m => m.Grid.Height / 2 * m.Grid.Width + Math.Max(0, m.Grid.Zone.Left - Content.Field.Margin - int.Parse(edge));
+        else if (_scenarios.Select(s => s.Start).FirstOrDefault(s => s != null) is { } start) hero.Start = start;
         else if (Has("--fly") || Has("--asteroid")) hero.Start = FarDemo.StartOf;
         else if (Has("--sortie")) hero.Start = SortieDemo.StartOf;
-        else if (Has("--charge")) hero.Start = Dev.ChargeDemo.StartOf;
         else if (Has("--arc")) hero.Start = m => Dev.OpenDemo.StartOf(m, "smelter");
         else if (Has("--bench") && Opens == null) hero.Start = m => Dev.OpenDemo.StartOf(m, BenchLook.Kind);
         else if (Has("--die")) hero.Start = Dev.DieDemo.StartOf;
@@ -143,10 +140,20 @@ public partial class Main
     /// <summary>The demos made last, over every panel and menu they work, and the measuring ones.</summary>
     private void AddDevDemos(GameMenu menu, SuitColours suits, HandbookPage debrisPage, EffectsView effects)
     {
+        var context = new Dev.DevContext
+        {
+            Ui = _hands.Ui,
+            Hands = _hands,
+            Debris = _debris,
+            Items = _items,
+            Fabricator = _fabricator,
+            World = () => _session is Session s ? (s.Client, _m) : null,
+            M = () => _m,
+            Add = node => AddChild(node),
+        };
+        foreach (var scenario in _scenarios) scenario.Attach(context);
         if (Has("--menu-demo") && _items != null) AddChild(new MenuDemo(_items, menu, suits));
         if (Has("--handbook")) AddChild(new Dev.HandbookDemo(debrisPage));
-        if (Has("--jetpack") && _items != null) AddChild(new Dev.JetpackDemo(_items));
-        if (Has("--charge") && _items != null) AddChild(new Dev.ChargeDemo(_items, _hands.Ui, () => _m));
         if (Has("--arc") && _items != null) AddChild(new Dev.ArcDemo(_items, _hands.Ui, () => _m));
         if (Has("--bench") && Opens == null && _items != null) AddChild(new Dev.BenchDemo(_items, _hands.Ui, () => _m, () => _fabricator));
         if (ChargerRace is { } race)
@@ -166,7 +173,6 @@ public partial class Main
         if (Has("--sortie") && !Has("--manual")) AddChild(new SortieDemo(_debris, _hands.Ui, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fly")) AddChild(new FarDemo(_debris, () => _session is Session s ? (s.Client, _m) : null));
         if (Has("--pod")) AddChild(new PodDemo(_hands.Ui, () => _session is Session s ? (s.Client, _m) : null, () => _fabricator));
-        if (Has("--store")) AddChild(new Features.Power.StoreDemo(() => _session is Session s ? (s.Client, _m) : null));
         if (Has("--fx-bench")) AddChild(new Dev.FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new Dev.FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--allocs")) _allocs = new Dev.AllocationSampler();
@@ -191,21 +197,16 @@ public partial class Main
     {
         var modules = Modules();
         var layout = Has("--perf") ? PerfLayout() : _layout;
-        var world = Has("--gallery") ? Dev.DevWorlds.Gallery(modules)
+        var world = _scenarios.Select(s => s.Create(modules)).FirstOrDefault(w => w != null)
+            ?? (Has("--gallery") ? Dev.DevWorlds.Gallery(modules)
             : Has("--furnace") ? FurnaceDemo.Create(modules)
-            : Has("--store") ? Features.Power.StoreWorld.Create(modules)
-            : Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust") ? Dev.Testbed.Create(modules)
-            : World.Create(1, layout, modules);
+            : World.Create(1, layout, modules));
         if (Has("--items") || Has("--menu-demo")) world = ItemsDemo.Seed(world, Modules);
         if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
-        if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) world = WreckDemo.Seed(world, Modules, all: Has("--wrecks"), harpoon: Has("--harpoon"));
-        if (Has("--grapple")) world = WreckDemo.SeedGrapple(world, Modules);
         if (Has("--pod")) world = PodDemo.Seed(world, Modules);
         if (Has("--hills")) world = Dev.HillsDemo.Seed(world, Modules);
         if (Has("--floor")) world = Dev.FloorDemo.Seed(world, Modules);
         if (Has("--poses") || Arg("--layer-demo") != null) world = Dev.GroundDemo.Seed(world, Modules);
-        if (Has("--jetpack")) world = Dev.JetpackDemo.Seed(world, Modules);
-        if (Has("--charge")) world = Dev.ChargeDemo.Seed(world, Modules);
         if (Has("--arc")) world = Dev.ArcDemo.Seed(world, Modules);
         if (Has("--bench")) world = Dev.BenchDemo.Seed(world, Modules);
         if (ChargerRace is { } race) world = Dev.ChargerArcDemo.Seed(world, Modules, race == "arc");
@@ -221,18 +222,9 @@ public partial class Main
         string? kind = _dev.Value("--fauna");
         bool fauna = Has("--fauna") || kind != null;
         if (Has("--fauna-trace") || Has("--fauna-trace=frames")) (_fauna.Trace, _fauna.TraceFrames) = (Log, Has("--fauna-trace=frames"));
-        if (_dev.Value("--ground") is { } ground)
-        {
-            world = Dev.GroundDemo.Seed(world, Modules, ArcDrill);
-            _ground = new Dev.GroundDemo(ground) { TakeAt = Arg("--take-at") is { } take ? (int)(double.Parse(take, System.Globalization.CultureInfo.InvariantCulture) * World.TicksPerSecond) : null, Offset = int.Parse(Arg("--ground-offset") ?? "0") };
-            if (ground is "drill" or "poses") AddChild(new Dev.GroundHands(_ground) { Precise = Has("--precise") });
-            // With --arc-drill the fitted drill is the first slot and the axe the third (GroundDemo.Seed).
-            else if (Dev.GroundDemo.Hits(ground))
-                AddChild(new Dev.GroundHands(_ground, slot: Has("--axe") ? (ArcDrill != null ? Key.Key3 : Key.Key1) : ArcDrill != null ? Key.Key1 : Key.Key2) { Precise = Has("--precise") });
-            else if (Dev.GroundDemo.Caves(ground)) AddChild(new Dev.GroundHands(_ground, dig: false));
-        }
-        // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077).
-        else if (Has("--planet") || Has("--strip") && fauna) world = Dev.GroundDemo.Seed(world, Modules, ArcDrill);
+        foreach (var scenario in _scenarios) world = scenario.Seed(world, new Dev.DevSeed(Modules, _m));
+        // --planet: the hero carries the axe and the drill and wears the helmet lamp, to try the caves (0077); --ground seeds the same.
+        if (_dev.Value("--ground") == null && (Has("--planet") || Has("--strip") && fauna)) world = Dev.GroundDemo.Seed(world, Modules, ArcDrill);
         // --fauna, with --planet: creatures let out by the hero, hunted by script unless --manual (0102).
         if (fauna)
         {
@@ -240,7 +232,7 @@ public partial class Main
             _faunaDemo = new Dev.FaunaDemo(drill: Has("--fauna-drill"), course: Has("--fauna-course"), kind: kind, herd: Has("--fauna-herd"), ram: ram) { Kill = Has("--fauna-kill") };
             if (!Has("--manual")) AddChild(new Dev.FaunaHands(_faunaDemo, () => _hero?.Current, still: Has("--fauna-drill"), quick: Has("--fauna-course")));
         }
-        PlayDev(world, Has("--gallery") ? null : Has("--store") ? Features.Power.StoreWorld.Map : layout);
+        PlayDev(world, Has("--gallery") ? null : layout);
     }
 
     /// <summary>The title's Testbed button, in a debug build: the testbed played as <c>--testbed</c> plays it.</summary>
@@ -263,6 +255,7 @@ public partial class Main
             client.Send(new OpenSurface((Has("--strip") ? Content.Surfaces.TestStrip : Content.PlanetTypes.First).Id));
             client.Send(new Transfer(world.Surfaces.Count));
         }
+        foreach (var scenario in _scenarios) scenario.Started(client);
         ShowWorld();
         AimCamera(aimAt);
     }

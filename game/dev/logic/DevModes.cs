@@ -24,7 +24,8 @@ public sealed record DevMode(string Name, DevShape Shape, string Doc);
 /// Every argument the game takes after <c>--</c> (<c>godot --path game -- --testbed</c>), one entry each with what it does.
 /// With none the title shows; with any, the game plays on its own straight away, on the wreck as drawn
 /// (<c>Registry.WreckMap</c>) unless one says otherwise. Wired in <c>game/dev/Main.Dev.cs</c>, sessions in
-/// <c>game/Main.Sessions.cs</c>; <c>grep -rn '"--name' game</c> finds where one is read.
+/// <c>game/Main.Sessions.cs</c>; <c>grep -rn '"--name' game</c> finds where one is read. A scenario's own are on its class
+/// (<c>[Dev("--store", …)]</c> in <c>game/dev/demos/</c>), not here.
 /// </summary>
 public static class DevModes
 {
@@ -48,9 +49,7 @@ public static class DevModes
         new("--lit", DevShape.Flag, "every lamp at full power, to measure the light"),
         new("--dark", DevShape.Flag, "every lamp out, to see what glows"),
         new("--gallery", DevShape.Flag, "every picture"),
-        new("--testbed", DevShape.Flag, "a ready ship with every machine at work (Testbed)"),
         new("--furnace", DevShape.Flag, "a lit furnace in the wreck"),
-        new("--store", DevShape.Flag, "a capacitor bank filling from a panel, then emptying into an arc smelter (StoreDemo)"),
         new("--items", DevShape.Flag, "a room with a crate, a furnace and an analyzer, and a script working them (ItemsDemo)"),
         new("--planet", DevShape.Flag, "a planet grown from its seed, the hero beamed down with the axe, the drill and the helmet lamp (0077)"),
         new("--strip", DevShape.Flag, "the test strip (0076); with --autopilot played by a script (HeroAutopilot.PlanetRun)"),
@@ -72,8 +71,6 @@ public static class DevModes
         new("--fly", DevShape.Flag, "the hero flown far out (FarDemo)"),
         new("--far", DevShape.Equals, "with --fly, N pieces of the far field out round the start at once, to measure the view"),
         new("--bow", DevShape.Next, "with --fly, the start N columns ahead of the bow, in the stream (FarDemo.Bow)"),
-        new("--dust", DevShape.Flag, "the testbed's hero sprinting and jumping: its boots' dust and landings (HeroAutopilot.Dust, 0075)"),
-        new("--jetpack", DevShape.Flag, "the testbed's hero with a jetpack put on, flown out of the airlock (JetpackDemo)"),
         new("--die", DevShape.Flag, "a quick death to see the body it leaves (DieDemo, 0061)"),
         new("--breathe", DevShape.Flag, "a canister breathed and the pod's air breathed again (BreatheDemo)"),
         new("--breathe-air", DevShape.Flag, "the pod's air breathed only (BreatheDemo)"),
@@ -93,7 +90,6 @@ public static class DevModes
         new("--into", DevShape.Next, "with --marks, the slot"),
         new("--card", DevShape.Equals, "with --testbed, the plan out on that build card, its tooltip shown (CardDemo)"),
         new("--pick", DevShape.Flag, "with --card, the card in hand"),
-        new("--charge", DevShape.Flag, "the testbed's charger filling a battery (ChargeDemo)"),
         new("--charger", DevShape.Equals, "arc or plain: the testbed's charging station filling an empty accumulator, fitted or not (ChargerArcDemo)"),
         new("--shots", DevShape.Next, "with --charger, the screen saved to that folder at a few moments, then quits"),
         new("--arc", DevShape.Flag, "an arc smelter worked (ArcDemo)"),
@@ -109,15 +105,10 @@ public static class DevModes
         new("--shimmer-demo", DevShape.Flag, "with --testbed --near=furnace, aims at the furnace, plans, marks and welds over it (ShimmerDemo)"),
         // Debris and wrecks.
         new("--debris", DevShape.Flag, "the wreck with debris about, a crate caught with --autopilot (DebrisDemo)"),
-        new("--wreck", DevShape.Flag, "a hull section chopped with the fire axe (WreckDemo)"),
-        new("--wrecks", DevShape.Flag, "every kind of wreckage chopped in a row (WreckDemo)"),
-        new("--harpoon", DevShape.Flag, "a crate and a section shot and reeled in (WreckDemo)"),
-        new("--grapple", DevShape.Flag, "the hero pulled up to a hall's ceiling and its wall (WreckDemo)"),
         new("--asteroid", DevShape.Flag, "two asteroids drilled and chopped out in the band (AsteroidDemo)"),
         new("--sortie", DevShape.Flag, "the hero far out among one of each derelict and asteroid, an engine block drilled (SortieDemo)"),
         new("--arc-drill", DevShape.Flag, "with --asteroid, --planet or --ground, the drill in hand has the arc module fitted (0098)"),
         // The ground.
-        new("--ground", DevShape.Equals, "a planet's ground looked at: acacia, hit-soil|-stone|-alloy|-tree|-crystal, band0…3, hall, cave, shaft, sprint, spire-climb, drill, poses (GroundDemo)"),
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),
         new("--precise", DevShape.Flag, "with --ground, Ctrl held: one cell struck, not the brush (GroundHands)"),
         new("--take-at", DevShape.Next, "with --ground at a spire, the second its nearest relic is struck from (0096)"),
