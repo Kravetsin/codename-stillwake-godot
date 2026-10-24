@@ -182,7 +182,7 @@ public partial class GridView : Node2D
     {
         int links = DoorLinksOf(cell);
         if (!DoorShape.Leads(links)) return;
-        bool hatch = Doorways.IsHatch(_drawn.Structure[cell]), opening = Doorways.IsOpen(_drawn.Structure[cell]);
+        bool hatch = Doorways.Lies(_drawn.Structure[cell]), opening = Doorways.IsOpen(_drawn.Structure[cell]);
         int length = 1, step = hatch ? 1 : _grid.Width, ahead = hatch ? Doorways.Right : Doorways.Down;
         for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
         var corner = new Vector2(cell % _grid.Width, cell / _grid.Width) * Cell;
@@ -272,9 +272,10 @@ public partial class GridView : Node2D
             DrawShade(cell, blank);
         }
 
-        switch (_drawn.Structure[cell])
+        var spec = Structures.Of(_drawn.Structure[cell]);
+        switch (spec.Draw)
         {
-            case Structure.Wall:
+            case StructureDraw.Autotile:
                 {
                     var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
                     _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
@@ -286,14 +287,14 @@ public partial class GridView : Node2D
                     DrawTop(cell);
                     break;
                 }
-            case Structure.Floor:
-                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("floor", x, y));
+            case StructureDraw.Cut:
+                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt(spec.Tile!, x, y));
                 break;
-            case Structure.Ladder:
-                // The 16 px ladder over its two columns, paired from its row's left end as its pieces are (0104), not by where it lies.
-                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("ladder", LaddersLeftOf(cell), y));
+            case StructureDraw.Paired:
+                // The 16 px picture over its two columns, paired from its row's left end as its pieces are (0104), not by where it lies.
+                _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt(spec.Tile!, RunLeftOf(cell), y));
                 break;
-            case Structure.DoorClosed or Structure.DoorOpen or Structure.HatchClosed or Structure.HatchOpen:
+            case StructureDraw.Door:
                 DrawDoor(cell);
                 break;
         }
@@ -380,7 +381,7 @@ public partial class GridView : Node2D
     private void DrawDoor(int cell)
     {
         // Where the cell lies in its doorway, along it from the top or left end the panel slides into and across its thickness.
-        var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf, Doorways.IsHatch(_drawn.Structure[cell]));
+        var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf, Doorways.Lies(_drawn.Structure[cell]));
         // Eased (0075): slow off, quick through the middle, slow into its slot.
         var (picture, quarter) = _slides.OpenOf(cell) is double open
             ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * spot.Length * Cell))
@@ -390,11 +391,11 @@ public partial class GridView : Node2D
 
     private Func<int, int>? _doorLinksOf;
 
-    /// <summary>How many ladder cells run on left of <paramref name="cell"/> in its row, as drawn: its column's half of the ladder by their count's parity.</summary>
-    private int LaddersLeftOf(int cell)
+    /// <summary>How many cells of its own code run on left of <paramref name="cell"/> in its row, as drawn: its column's half of a paired picture by their count's parity.</summary>
+    private int RunLeftOf(int cell)
     {
-        int left = 0, x = cell % _grid.Width;
-        while (left < x && _drawn.Structure[cell - left - 1] == Structure.Ladder) left++;
+        int left = 0, x = cell % _grid.Width, code = _drawn.Structure[cell];
+        while (left < x && _drawn.Structure[cell - left - 1] == code) left++;
         return left;
     }
 

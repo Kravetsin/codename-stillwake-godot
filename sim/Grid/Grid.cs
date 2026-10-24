@@ -228,17 +228,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
                 // making power with no fire, is drawn under the stars, which it needs; a planet's sky has none (0077).
                 if (c != ' ' && (drawn == null || drawn[cell] > 0) && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = material; }
-                s.Structure[cell] = c switch
-                {
-                    '#' => Structure.Wall,
-                    '=' => Structure.Floor,
-                    'H' => Structure.Ladder,
-                    'D' => Structure.DoorClosed,
-                    'd' => Structure.DoorOpen,
-                    'h' => Structure.HatchClosed,
-                    'o' => Structure.HatchOpen,
-                    _ => Structure.Empty,
-                };
+                s.Structure[cell] = Structures.OfChar(c) ?? Structure.Empty;
                 if (Structures.Is(s.Structure[cell], Trait.Terrain)) s.Material[cell] = material;
             }
         foreach (var (kind, cell) in layout.Machines()) s.Machines.Add(new Machine(s.NextMachineId++, kind, cell));
@@ -424,19 +414,18 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         if (!InBounds(cell)) return [];
         int s = State.Structure[cell];
         if (s == Structure.Empty) return [];
-        bool door = Doorways.IsDoor(s), hatch = Doorways.IsHatch(s);
-        if (s != Structure.Ladder && !door && !hatch) return [cell];
-        // A ladder's piece, a door segment or a hatch piece (0104, 0111): columns paired from the left end of its row's run of the
-        // same, rows from the top of its column's; a hatch is one row.
+        var spec = Structures.Of(s);
+        if (spec.Build == null || Builds.PieceOf(spec.Build) is not var (across, tall)) return [cell];
+        // A piece (a ladder's, a door segment, a hatch, 0104, 0111): columns paired from the left end of its row's run of the same,
+        // rows from the top of its column's. A doorway's cells are the same open or shut.
         int w = State.Width, x = cell % w, y = cell / w;
         bool Same(int cx, int cy) => cx >= 0 && cy >= 0 && cx < w && cy < State.Height
-            && (door ? Doorways.IsDoor(State.Structure[cy * w + cx])
-                : hatch ? Doorways.IsHatch(State.Structure[cy * w + cx])
-                : State.Structure[cy * w + cx] == Structure.Ladder);
+            && (spec.Group != StructureGroup.None
+                ? Structures.Of(State.Structure[cy * w + cx]).Group == spec.Group
+                : State.Structure[cy * w + cx] == s);
         int left = 0, up = 0;
         while (Same(x - left - 1, y)) left++;
-        if (!hatch) while (Same(x, y - up - 1)) up++;
-        var (across, tall) = Builds.PieceOf(door ? "door" : hatch ? Builds.Hatch : "ladder") ?? (1, 1);
+        if (tall > 1) while (Same(x, y - up - 1)) up++;
         int x0 = x - left % across, y0 = y - up % tall;
         var cells = new List<int>(across * tall);
         for (int cy = y0; cy < y0 + tall; cy++)
@@ -518,7 +507,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!covers.All(InZone)) return "grid.outsideZone";
                 if (covers.Any(c => State.Structure[c] != Structure.Empty)) return "grid.occupied";
                 if (covers.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
-                if (p.Kind == "wall" && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
+                if (Structures.ByBuild(p.Kind)?.Has(Trait.Terrain) == true && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
                 return null;
             case "back":
                 if (State.Back[cell] != Back.None) return "grid.occupied";
@@ -545,14 +534,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         switch (p.Layer)
         {
             case "structure":
-                int code = p.Kind switch
-                {
-                    "wall" => Structure.Wall,
-                    "floor" => Structure.Floor,
-                    "ladder" => Structure.Ladder,
-                    Builds.Hatch => Structure.HatchClosed,
-                    _ => Structure.DoorClosed,
-                };
+                int code = Structures.Placed(p.Kind) ?? throw new InvalidOperationException($"grid.place: no structure {p.Kind}");
                 if (Builds.PieceOf(p.Kind) != null)
                 {
                     var piece = Footprint(p.Kind, cell)!;
@@ -561,7 +543,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     return;
                 }
                 Set(State.Structure, GridLayers.Structure, cell, code);
-                if (p.Kind == "wall") Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
+                if (Structures.Is(code, Trait.Terrain)) Set(State.Material, GridLayers.Material, cell, Materials.Get(p.Material!).Code);
                 return;
             case "back":
                 Set(State.Back, GridLayers.Back, cell, Back.Wall);

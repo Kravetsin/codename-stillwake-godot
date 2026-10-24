@@ -25,6 +25,9 @@ public static class Doorways
     /// <summary>Whether <paramref name="structure"/> is a hatch cell, shut or open.</summary>
     public static bool IsHatch(int structure) => Structures.Of(structure).Group == StructureGroup.Hatch;
 
+    /// <summary>Whether <paramref name="structure"/> is a doorway lying along its row, its panel sliding across it, as a hatch does (<see cref="Join.Row"/>).</summary>
+    public static bool Lies(int structure) => Structures.Of(structure).Join == Join.Row;
+
     /// <summary>Whether <paramref name="structure"/> is part of a door or a hatch.</summary>
     public static bool IsDoorway(int structure) => Structures.Of(structure).Group != StructureGroup.None;
 

@@ -95,7 +95,7 @@ public static class AimOutline
         {
             int c = next.Pop(), linked = LinksOf(c);
             // Its quarter of its 16 px piece's picture (0104).
-            var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(c, width, LinksOf, Doorways.IsHatch(StructureAt(c))), closed: Doorways.IsClosed(StructureAt(c)));
+            var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(c, width, LinksOf, Doorways.Lies(StructureAt(c))), closed: Doorways.IsClosed(StructureAt(c)));
             outline.Add(ShipTiles.PictureOf(picture), CornerOf(c, width), colour, new Rect2(quarter.X * Cell, quarter.Y * Cell, Cell, Cell));
             foreach (var (side, n) in (ReadOnlySpan<(int, int)>)[(Doorways.Up, c - width), (Doorways.Right, c + 1), (Doorways.Down, c + width), (Doorways.Left, c - 1)])
                 if ((linked & side) != 0 && seen.Add(n)) next.Push(n);

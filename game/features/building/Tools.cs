@@ -92,10 +92,7 @@ public static class Tools
         [
             .. OfEveryMaterial("wall", Placement.Wall),
             .. OfEveryMaterial("backWall", Placement.BackWall),
-            Place("floor", new Placement("structure", "floor")),
-            Place("ladder", new Placement("structure", "ladder")),
-            Place("door", new Placement("structure", "door")),
-            Place("hatch", new Placement("structure", Builds.Hatch)),
+            .. Builds.All.Select(b => Place(b.Id, new Placement("structure", b.Id))),
         ]),
         new("air",
         [
@@ -229,16 +226,9 @@ public static class Tools
             case "machine":
                 return grid.MachineAt(cell) is { } m ? new Placement(layer, m.Kind) : null;
             case "structure":
-                return grid.StructureAt(cell) switch
-                {
-                    Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
-                    Structure.Floor => new Placement(layer, "floor"),
-                    Structure.Ladder => new Placement(layer, "ladder"),
-                    // A doorway is a door's or a hatch's, by the code the grid stores (0104, 0111).
-                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
-                    Structure.HatchClosed or Structure.HatchOpen => new Placement(layer, Builds.Hatch),
-                    _ => null,
-                };
+                // What placed it, by the code the grid stores: a doorway a door's or a hatch's (0104, 0111, 0112).
+                if (grid.WallAt(cell) is { } wall) return Placement.Wall(wall.Id);
+                return Structures.Of(grid.StructureAt(cell)).Build is { } build ? new Placement(layer, build) : null;
             default:
                 return grid.BackAt(cell) is { } material ? Placement.BackWall(material.Id) : null;
         }
@@ -257,16 +247,10 @@ public static class Tools
     }
 
     /// <summary>Whether <paramref name="place"/> lays a doorway's cells: a door segment or a hatch (0104, 0111).</summary>
-    public static bool LaysDoor(Placement place) => place.Layer == "structure" && place.Kind is "door" or Builds.Hatch;
+    public static bool LaysDoor(Placement place) => place.Layer == "structure" && Doorways.IsDoorway(CodeOf(place.Kind));
 
     /// <summary>The structure code a placement of <paramref name="kind"/> is built as, as the grid stores it.</summary>
-    public static int CodeOf(string kind) => kind switch
-    {
-        "floor" => Structure.Floor,
-        "ladder" => Structure.Ladder,
-        Builds.Hatch => Structure.HatchClosed,
-        _ => Structure.DoorClosed,
-    };
+    public static int CodeOf(string kind) => Structures.Placed(kind) ?? Structure.Empty;
 
     /// <summary>
     /// The joins of a doorway cell (<see cref="Doorways.LinksOf"/>) over what is built and the doorway cells

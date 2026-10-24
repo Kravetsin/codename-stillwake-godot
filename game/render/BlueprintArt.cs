@@ -31,23 +31,28 @@ public static class BlueprintArt
     /// are the sides a pipe reaches toward, a door joins another door on and a wall runs on into another wall: a wall is
     /// edged on every other side, alone all round. A machine is one picture from its corner.
     /// </summary>
-    public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) => placement.Kind switch
+    public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) =>
+        placement.Kind == "backWall"
+            // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
+            ? [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
+                ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
+                : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)]
+            : Structures.ByBuild(placement.Kind) is { } spec
+                ? StructurePieces(spec, placement, linked)
+                : [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))];
+
+    private static IReadOnlyList<TilePiece> StructurePieces(StructureSpec spec, Placement placement, int linked) => spec.Draw switch
     {
-        "wall" => (~linked & AllSides) is var open and > 0
+        StructureDraw.Autotile => (~linked & AllSides) is var open and > 0
             ? [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!), Cut: true),
                 new(TileLayer.Edges, ShipTiles.EdgeName(placement.Material!, open))]
             : [new(TileLayer.Walls, ShipTiles.WallName(placement.Material!), Cut: true)],
-        // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
-        "backWall" => [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
-            ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
-            : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)],
         // A 16 px picture over the cells of a character's, cut a cell at a time where it lies (0104).
-        "floor" => [new(TileLayer.Fixtures, placement.Kind, Cut: true)],
+        StructureDraw.Cut => [new(TileLayer.Fixtures, spec.Tile!, Cut: true)],
         // A piece whole from its top-left (0104), as a machine is: a ladder, a door or a hatch segment, shut. Plans and ghosts
         // of doorways are drawn by their joins instead (PlanTiles.LayDoor); this is their silhouette.
-        "ladder" => [new(TileLayer.Fixtures, ShipTiles.PieceName(placement.Kind))],
-        "door" or Builds.Hatch => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
-        _ => [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))],
+        StructureDraw.Door => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
+        _ => [new(TileLayer.Fixtures, ShipTiles.PieceName(placement.Kind))],
     };
 
     /// <summary>
@@ -62,8 +67,11 @@ public static class BlueprintArt
         var layers = new List<(Image Image, Vector2I At)>();
         int side = ShipTiles.Drawn;
         var size = new Vector2I(side, side);
-        IReadOnlyList<TilePiece> pieces = placement.Kind == "door" ? [new(TileLayer.Doors, "door_closed_0")]
-            : placement.Kind == "ladder" ? [new(TileLayer.Fixtures, "ladder")] : PiecesOf(placement, linked);
+        // A piece a 16 px cell square is its own art; a door's, its doorway one segment long, shut.
+        var spec = Structures.ByBuild(placement.Kind);
+        IReadOnlyList<TilePiece> pieces = spec is { Draw: StructureDraw.Paired } ? [new(TileLayer.Fixtures, spec.Tile!)]
+            : spec is { Draw: StructureDraw.Door, Join: Join.Column } ? [new(TileLayer.Doors, DoorShape.Whole(false, 1)[0])]
+            : PiecesOf(placement, linked);
         foreach (var piece in pieces)
         {
             var image = ShipTiles.DrawnImageOf(piece.Picture);

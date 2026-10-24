@@ -194,7 +194,7 @@ public partial class BuildingView : Node2D
             int linked = Tools.LinksOf(place, p.Cell, width, PlannedAt, grid);
             var cut = CutOf(grid, building, p, place);
             if (Tools.LaysDoor(place))
-                foreach (int c in CellsOf(grid, p)) _plans.LayDoor(c, width, doorLinks, place.Kind == Stillwake.Content.Builds.Hatch, cut);
+                foreach (int c in CellsOf(grid, p)) _plans.LayDoor(c, width, doorLinks, Doorways.Lies(Tools.CodeOf(place.Kind)), cut);
             else _plans.Lay(place, p.Cell, width, linked, cut);
             if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
@@ -334,7 +334,7 @@ public partial class BuildingView : Node2D
             return;
         }
         var links = Tools.DoorLinks(grid, new Dictionary<int, int>());
-        foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, built.Kind == Stillwake.Content.Builds.Hatch, cut);
+        foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, Doorways.Lies(Tools.CodeOf(built.Kind)), cut);
     }
 
     /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
@@ -463,7 +463,7 @@ public partial class BuildingView : Node2D
                 var into = v.Problem != null ? _refused : _fits;
                 if (doorLinks != null)
                     foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell])
-                        into.LayDoor(c, width, doorLinks, place.Placement.Kind == Stillwake.Content.Builds.Hatch);
+                        into.LayDoor(c, width, doorLinks, Doorways.Lies(Tools.CodeOf(place.Placement.Kind)));
                 else into.Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
             }
         }

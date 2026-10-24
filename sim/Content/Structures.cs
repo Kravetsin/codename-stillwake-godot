@@ -32,8 +32,11 @@ public enum Trait
 /// <summary>Which doorways a structure is part of (0111): its cells open and shut, and join, with their own group's only.</summary>
 public enum StructureGroup { None, Door, Hatch }
 
-/// <summary>How a doorway's pieces join one another beyond the piece: a door's stacked segments are one doorway.</summary>
-public enum Join { None, Column }
+/// <summary>
+/// Which way a doorway runs, its panel sliding along it (0111): a door up a column, its segments stacked one above another joining
+/// into one doorway; a hatch along its row, a piece of its own.
+/// </summary>
+public enum Join { None, Row, Column }
 
 /// <summary>How the client draws a structure.</summary>
 public enum StructureDraw
@@ -98,12 +101,15 @@ public static class Structures
         // A hatch differs from a door only in being climbed when open (0111): shut, a floor that stops a body from below.
         new(Structure.HatchClosed, 'h', "hatch, closed: a doorway lying in a deck",
             Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight, Build: Builds.Hatch,
-            Leak: Air.DoorLeak, Toggle: Structure.HatchOpen, Group: StructureGroup.Hatch, Draw: StructureDraw.Door),
+            Leak: Air.DoorLeak, Toggle: Structure.HatchOpen, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door),
         new(Structure.HatchOpen, 'o', "hatch, open", Trait.Opening | Trait.Climbable, Build: Builds.Hatch,
-            Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Draw: StructureDraw.Door),
+            Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door),
     ];
 
     private static readonly Trait[] TraitsOf = Table.Select(s => s.Traits).ToArray();
+
+    /// <summary>The code each map character draws, -1 for none: a whole map is read a character at a time.</summary>
+    private static readonly int[] ByChar = Enumerable.Range(0, 128).Select(c => Array.FindIndex(Table, s => s.Char == (char)c)).ToArray();
 
     /// <summary>The spec of structure <paramref name="code"/>; throws for a code none has.</summary>
     public static StructureSpec Of(int code) => Table[code];
@@ -123,10 +129,8 @@ public static class Structures
     }
 
     /// <summary>The code map character <paramref name="c"/> draws, null for one that draws no structure.</summary>
-    public static int? OfChar(char c)
-    {
-        foreach (var s in Table)
-            if (s.Char == c) return s.Code;
-        return null;
-    }
+    public static int? OfChar(char c) => c < ByChar.Length && ByChar[c] >= 0 ? ByChar[c] : null;
+
+    /// <summary>The spec a build of <paramref name="build"/> places (<see cref="Placed"/>); null for one that places no structure.</summary>
+    public static StructureSpec? ByBuild(string build) => Placed(build) is int code ? Table[code] : null;
 }
