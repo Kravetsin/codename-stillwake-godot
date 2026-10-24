@@ -90,7 +90,7 @@ into space. Ported from `packages/sim/src/modules/atmosphere`; its rules hold he
   Generators' satisfaction and the tanks holding oxygen are read again on the first call after they
   may have changed: a canister loaded, a tank taken apart, or atmosphere's system starting a tick,
   with power found again in derivation and generators' new stores yet to come. A tank emptied since
-  stays read, at none, so it draws and counts as a missing one would. Vents, tanks and generators are walked by kind (`MachinesOf`). The aired
+  stays read, at none, so it draws and counts as a missing one would. Vents and air sources (tanks and generators, one id order) are walked by trait (`MachinesWith`, 0113); an air source that is no `Gas` store makes its air, the generator. The aired
   cells it counts are kept in step with every change of `Aired`. Every walk over cells covers all
   rooms at once (`IRoomsQueries.RoomOfCells`).
 - **`Aired` is edited in place** when a call changes up to 32 cells (a binary search each), and

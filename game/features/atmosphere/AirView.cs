@@ -67,8 +67,8 @@ public partial class AirView : Node2D
     private const double BreathsPerSecond = 1.6;
     private readonly Random _random = new();
     private readonly AudioStreamPlayer2D _hiss = Cues.Player2D(S.Hiss, S.World), _hum = Cues.Player2D(S.VentHum, S.World);
-    /// <summary>Half a vent's side, in cells: from its top-left cell to its middle.</summary>
-    private static readonly double VentHalf = Machines.Get("vent").Width / 2.0;
+    /// <summary>Where a vent of <paramref name="kind"/> has its middle, in cells from its top-left cell.</summary>
+    private static (double X, double Y) Middle(string kind) => (Machines.Get(kind).Width / 2.0, Machines.Get(kind).Height / 2.0);
     /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
     private List<Vector2> _blowing = [];
 
@@ -251,11 +251,11 @@ public partial class AirView : Node2D
             if (a.Status == RoomStatus.Venting && m.Rooms.RoomById(a.Room) is { } room) venting[a.Room] = room.Openings;
         _field.Survey(roomOf, m.Atmosphere.AiredCells, venting, m.Grid.Built);
         _fillingVents = m.Grid.Machines
-            .Where(x => Machines.Get(x.Kind).Vents && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
-            .Select(x => ((x.Cell % width + VentHalf) * Cell, (x.Cell / width + VentHalf) * Cell)).ToList();
+            .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
+            .Select(x => ((x.Cell % width + Middle(x.Kind).X) * Cell, (x.Cell / width + Middle(x.Kind).Y) * Cell)).ToList();
         _blowing = m.Grid.Machines
-            .Where(x => Machines.Get(x.Kind).Vents && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && (a.Oxygen > 0 || a.Made > 0))
-            .Select(x => new Vector2((float)((x.Cell % width + VentHalf) * Cell), (float)((x.Cell / width + VentHalf) * Cell))).ToList();
+            .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && (a.Oxygen > 0 || a.Made > 0))
+            .Select(x => new Vector2((float)((x.Cell % width + Middle(x.Kind).X) * Cell), (float)((x.Cell / width + Middle(x.Kind).Y) * Cell))).ToList();
         var pod = m.Grid.Machines.FirstOrDefault(x => Machines.Get(x.Kind).Fixed);
         _reach = null;
         var reach = new Vector4();

@@ -14,7 +14,7 @@ makes power while it burns ([0045](../../docs/decisions/0045-a-burner-generator-
 Ported from `packages/sim/src/modules/furnace`; its rules hold here, but a fire fed in time relights at
 once, and smelting has moved to `Crafting`.
 
-- **Depends on:** `Grid` (`IGridQueries`: which machines are furnaces and generators, `MachinesOf`,
+- **Depends on:** `Grid` (`IGridQueries`: which machines have a fire, `MachinesWith(Fire)` (0113): with inputs it smelts, else it makes power;
   and their cells), `Items` (`IItemsQueries`: their slots; `IItemsOps`: `Consume`, a fuel lit),
   `Atmosphere` (`IAtmosphereQueries`: `AiredAt`; `IAtmosphereOps`: `Breathe`, the air their fire
   breathes), `Power` (`IPowerOps`: `Rest`, a cold generator makes nothing; `IPowerQueries`: `Needed`, whether its

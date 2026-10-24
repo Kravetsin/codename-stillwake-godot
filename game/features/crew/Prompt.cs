@@ -28,22 +28,9 @@ public static class Prompts
             string action = plan?.Clear != null ? "use.takeApart" : "use.build";
             return new Prompt(action, work.Problem);
         }
-        // Named for what it opens: a furnace, a generator, an analyzer, the lifepod's Fabricator, else a crate.
+        // Named for what it opens, by its kind's own words (use.open.<kind>): a furnace, the lifepod's Fabricator; else a crate.
         if (aim.Crate is int opens)
-            return new Prompt(m.Grid.Machines.FirstOrDefault(x => x.Id == opens)?.Kind switch
-            {
-                "furnace" => "use.openFurnace",
-                "burnerGenerator" => "use.openGenerator",
-                "analyzer" => "use.openAnalyzer",
-                "charger" => "use.openCharger",
-                "lifepod" => "use.openFabricator",
-                "former" => "use.openFormer",
-                "smelter" => "use.openSmelter",
-                "assembler" => "use.openAssembler",
-                "growCapsule" => "use.openGrowCapsule",
-                "droneBay" => "use.openDroneBay",
-                _ => "use.openCrate",
-            }, null);
+            return new Prompt(m.Grid.MachineById(opens)?.Kind is { } kind && I18n.En.Table.ContainsKey($"use.open.{kind}") ? $"use.open.{kind}" : "use.openCrate", null);
         if (aim.Press is not { } press) return null;
         return press.Command switch
         {

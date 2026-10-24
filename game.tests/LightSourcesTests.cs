@@ -105,4 +105,14 @@ public class LightSourcesTests
         Assert.Equal((12.0, 6.0), (beam.X, beam.Y));
         Assert.Equal((9.0, 8.0), (glow.X, glow.Y));
     }
+
+    /// <summary>Every glowing machine lights as its looks say (0113), and only they: a new lamp is a row there and in the machines.</summary>
+    [Fact]
+    public void EveryGlowingMachineHasItsLightAndNoOtherDoes()
+    {
+        var glowing = Stillwake.Content.Machines.All.Where(m => m.Is(Stillwake.Content.MachineTrait.Glow)).Select(m => m.Kind);
+        Assert.Equal(glowing.Order(StringComparer.Ordinal), Light.Lamps.Keys.Order(StringComparer.Ordinal));
+        Assert.All(Light.Lamps.Values, l => Assert.True(l.Strength > 0 && l.Reach > 0 && l.Keep is > 0 and < 1));
+        Assert.Equal([ArcLampLooks.Kind], Light.Lamps.Where(l => l.Value.Glass).Select(l => l.Key));
+    }
 }

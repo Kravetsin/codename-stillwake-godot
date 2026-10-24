@@ -46,7 +46,7 @@ public partial class LogisticsView : Node2D
     private readonly LogisticsModule _logistics;
     private readonly Func<double> _progress;
     private readonly Func<int?> _openBay;
-    private readonly Func<(double X, double Y)?> _planning;
+    private readonly Func<(double X, double Y, string Kind)?> _planning;
     /// <summary>Docked drones, lit, over their bay; then what glows on the bay, unlit, over them.</summary>
     private readonly Node2D _docks = new() { ZIndex = Layers.Screens };
     private readonly Node2D _glowing = new() { ZIndex = Layers.Screens, Material = Unlit };
@@ -103,7 +103,7 @@ public partial class LogisticsView : Node2D
     /// <param name="progress">How far the world is between its last tick and the next, 0 to 1.</param>
     /// <param name="openBay">The bay whose frame is open, if one is.</param>
     /// <param name="planning">Where the pointer is, in cells, while a bay's card is in hand.</param>
-    public LogisticsView(IGridQueries grid, IItemsQueries items, IPowerQueries power, LogisticsModule logistics, Func<double> progress, Func<int?> openBay, Func<(double X, double Y)?> planning)
+    public LogisticsView(IGridQueries grid, IItemsQueries items, IPowerQueries power, LogisticsModule logistics, Func<double> progress, Func<int?> openBay, Func<(double X, double Y, string Kind)?> planning)
     {
         (_grid, _items, _power, _logistics, _progress, _openBay, _planning) = (grid, items, power, logistics, progress, openBay, planning);
         Lit.Set(_docks);
@@ -152,7 +152,7 @@ public partial class LogisticsView : Node2D
         _filled.Clear();
         _emptied.Clear();
         foreach (var shown in _bays.Values) shown.Seen = false;
-        foreach (var bay in _grid.MachinesOf(Tune.Bay))
+        foreach (var bay in _grid.MachinesWith(Content.MachineTrait.Zone))
         {
             bool known = _bays.TryGetValue(bay.Id, out var shown);
             shown ??= _bays[bay.Id] = new BayShown();
@@ -422,11 +422,11 @@ public partial class LogisticsView : Node2D
     {
         _outlined.Clear();
         if (_openBay() is int open && _logistics.ZoneOf(open) is { } zone) _outlined.Add(RectOf(zone));
-        if (_planning() is not { } pointer) return;
-        foreach (var bay in _grid.MachinesOf(Tune.Bay))
+        if (_planning() is not { } planned) return;
+        foreach (var bay in _grid.MachinesWith(Content.MachineTrait.Zone))
             if (bay.Id != _openBay() && _logistics.ZoneOf(bay.Id) is { } each) _outlined.Add(RectOf(each));
-        var spec = Content.Machines.Get(Tune.Bay);
-        int x = (int)Math.Floor(pointer.X), y = (int)Math.Floor(pointer.Y);
+        var spec = Content.Machines.Get(planned.Kind);
+        int x = (int)Math.Floor(planned.X), y = (int)Math.Floor(planned.Y);
         // Clipped at the grid's edge, as the sim clips a bay's.
         _outlined.Add(RectOf(new Box(Math.Max(0, x - Tune.Reach), Math.Max(0, y - Tune.Reach),
             Math.Min(_grid.Width - 1, x + spec.Width - 1 + Tune.Reach), Math.Min(_grid.Height - 1, y + spec.Height - 1 + Tune.Reach))));

@@ -1,3 +1,4 @@
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
@@ -12,7 +13,7 @@ public sealed record LoadCanister(int Tank) : Command;
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
 {
-    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to a tank or a generator: only then does it blow, air a room or hum.</summary>
+    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to an air source, a tank or a generator: only then does it blow, air a room or hum.</summary>
     bool Fed(int vent);
     /// <summary>The oxygen in tank or generator <paramref name="tank"/>; none for one never filled, or no tank at all.</summary>
     int OxygenIn(int tank);
@@ -168,7 +169,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         for (int i = 0; i < machines.Count; i++)
         {
             var (kind, top) = machines[i];
-            if (kind != "tank") continue;
+            if (!Content.Machines.Is(kind, MachineTrait.Gas)) continue;
             var spec = Content.Machines.Get(kind);
             int x = top % layout.Width, y = top / layout.Width;
             var cells = new List<int>();
@@ -199,7 +200,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// </summary>
     private List<int> VentCells()
     {
-        var machines = _grid.MachinesOf("vent");
+        var machines = _grid.MachinesWith(MachineTrait.Vents);
         var vents = new List<int>(machines.Count);
         foreach (var m in machines)
             if (Fed(m.Id)) vents.Add(m.Cell);
@@ -211,7 +212,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         foreach (int id in _pipes.NetworksOf(vent))
             if (_pipes.Network(id) is { } network)
                 foreach (int on in network.Machines)
-                    if (_grid.MachineById(on) is { } m && (Content.Machines.Get(m.Kind).Gas || m.Kind == "generator")) return true;
+                    if (_grid.MachineById(on) is { } m && Content.Machines.Is(m.Kind, MachineTrait.AirSource)) return true;
         return false;
     }
 
@@ -264,7 +265,10 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return _seen;
     }
 
-    private bool IsTank(int id) => _grid.MachineById(id) is { } m && Content.Machines.Get(m.Kind).Gas;
+    private bool IsTank(int id) => _grid.MachineById(id) is { } m && Content.Machines.Is(m.Kind, MachineTrait.Gas);
+
+    /// <summary>Whether air source <paramref name="source"/> makes its air on power rather than storing a canister's: one that is no gas store, the generator.</summary>
+    private static bool MakesAir(Machine source) => !Content.Machines.Is(source.Kind, MachineTrait.Gas);
 
     // Queries.
 

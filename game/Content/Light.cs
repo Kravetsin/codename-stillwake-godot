@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Stillwake.Game;
@@ -90,6 +91,20 @@ public static class Light
     public static readonly (float R, float G, float B) ArcLamp = (0.56f, 0.78f, 1f);
     public const float ArcLampKeep = 0.883f, ArcLampStrength = 1.3f;
     public const int ArcLampReach = 20;
+
+    /// <summary>
+    /// How a glowing machine (<c>MachineTrait.Glow</c>, 0113) lights, by its kind: its light's colour, strength at full power,
+    /// reach and keep; its halo's colour, as <c>0xRRGGBBAA</c>; and whether the arc makers' glass is drawn over it (<c>ArcLampLooks</c>).
+    /// </summary>
+    public sealed record LampLight((float R, float G, float B) Colour, float Strength, int Reach, float Keep, uint Halo, bool Glass = false);
+
+    /// <summary>Every glowing machine's light, by its kind.</summary>
+    public static readonly IReadOnlyDictionary<string, LampLight> Lamps = new Dictionary<string, LampLight>(System.StringComparer.Ordinal)
+    {
+        ["lamp"] = new(Lamp, 1, LampReach, LampKeep, 0xffd9a0ff),
+        // An arc makers' lamp (0091): their cold light, brighter and further.
+        ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
+    };
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.849f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.

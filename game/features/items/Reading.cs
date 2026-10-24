@@ -72,7 +72,7 @@ public sealed record Reading(
         if (spec.FuelSlot == slot) return SlotMark.Burns;
         if (Content.Stations.TryGet(kind, out var station) && station.Fed && slot < (spec.Inputs ?? 0))
             return station.Process == "grow" ? SlotMark.Grows : SlotMark.Smelts;
-        if (kind == Content.Logistics.Bay) return SlotMark.Docks;
+        if (spec.Is(Content.MachineTrait.Zone)) return SlotMark.Docks;
         if (spec.Charges) return SlotMark.Charges;
         return kind == "analyzer" && slot == 0 ? SlotMark.Unknown : SlotMark.None;
     }

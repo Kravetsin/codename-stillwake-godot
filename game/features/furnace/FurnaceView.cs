@@ -20,6 +20,8 @@ namespace Stillwake.Game.Features.Furnace;
 public partial class FurnaceView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
+    /// <summary>The machines whose fire is drawn here, as their pictures place it: each picture is its own.</summary>
+    private const string FurnaceKind = "furnace", GeneratorKind = "burnerGenerator";
     /// <summary>The fire's pictures, <c>art/fire_*.png</c>, shown in turn.</summary>
     private const int Frames = 3;
     /// <summary>
@@ -28,8 +30,8 @@ public partial class FurnaceView : Node2D
     /// </summary>
     public static Vector2? FireAt(string kind) => kind switch
     {
-        FurnaceModule.Smelter => new Vector2(14, 17),
-        FurnaceModule.Generator => new Vector2(4, 16),
+        FurnaceKind => new Vector2(14, 17),
+        GeneratorKind => new Vector2(4, 16),
         _ => null,
     };
     /// <summary>Where embers rise from, from the fire's top left: the top of the fire, give or take <see cref="EmbersSpread"/> either way.</summary>
@@ -179,7 +181,7 @@ public partial class FurnaceView : Node2D
         AddChild(sprite);
         AddChild(haze);
         var fire = new Fire(sprite, shimmer, haze) { Frame = m.Id };
-        if (m.Kind == FurnaceModule.Generator)
+        if (m.Kind == GeneratorKind)
         {
             // Over the machine's picture, lit as it is: the wheel at rest is drawn in the picture.
             fire.Wheel = new Sprite2D { Centered = false, ZIndex = Layers.Sockets };
@@ -220,8 +222,8 @@ public partial class FurnaceView : Node2D
     /// </summary>
     public static Vector2? LightAt(string kind) => kind switch
     {
-        FurnaceModule.Smelter => new Vector2(2 * Cell, 3 * Cell),
-        FurnaceModule.Generator => FireAt(kind) + new Vector2(5, 7),
+        FurnaceKind => new Vector2(2 * Cell, 3 * Cell),
+        GeneratorKind => FireAt(kind) + new Vector2(5, 7),
         _ => null,
     };
 }

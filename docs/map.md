@@ -8,7 +8,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 ## Domains
 
 **Ship building**
-- Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
+- Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries, `MachinesWith`; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); c/`Machines.cs` (`MachineSpec`, `MachineTrait`, 0113); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
 - Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`; c/`Builds.cs`
 - Rooms — sim/Rooms: `Rooms.cs` RoomsModule (rooms from walls and doors). Drawn: r/`ShipTiles.cs`, `BlueprintArt.cs`, `DoorShape.cs`
 
@@ -52,7 +52,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 ## Conventions
 
-- **Content by id**: `grep -rn '"<id>"' sim/Content`. Items `Items.cs`, machines `Machines.cs`, materials `Materials.cs`,
+- **Content by id**: `grep -rn '"<id>"' sim/Content`. Systems ask a machine's `MachineTrait` (0113) or a structure's `Trait` (0112), never its kind. Items `Items.cs`, machines `Machines.cs`, materials `Materials.cs`,
   creatures `Fauna.cs`, planet types `PlanetTypes.cs`, builds `Builds.cs`, recipes `Crafts.cs`, stations `Stations.cs`.
   ASCII map characters: `Legend.cs`. A content file is named after its module or catalogue.
 - **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png`,

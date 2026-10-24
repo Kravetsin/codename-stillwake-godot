@@ -59,7 +59,7 @@ public partial class TankLooks : Node2D
     private void Read()
     {
         _seen.Clear();
-        foreach (var m in _grid.MachinesOf("tank"))
+        foreach (var m in _grid.MachinesWith(Stillwake.Content.MachineTrait.Gas))
         {
             _seen.Add(m.Id);
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;

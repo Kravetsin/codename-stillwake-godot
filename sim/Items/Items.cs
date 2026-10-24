@@ -576,7 +576,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         if (c.Crate is not int id) return null;
         if (!IsCrate(id)) return "items.noCrate";
-        return Content.Machines.Get(_grid.MachineById(id)!.Kind).Container ? null : "items.notCrate";
+        return Content.Machines.Is(_grid.MachineById(id)!.Kind, Content.MachineTrait.Container) ? null : "items.notCrate";
     }
 
     private void ApplySort(Sort c) => SetSide(c.From, new Target(Crate: c.Crate), Sorted(SideOf(c.From, new Target(Crate: c.Crate)), c.Crate));

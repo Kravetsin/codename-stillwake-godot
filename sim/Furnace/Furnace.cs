@@ -32,9 +32,6 @@ public sealed class FurnaceState
 /// </summary>
 public sealed class FurnaceModule : Module<FurnaceState>
 {
-    /// <summary>The two machines with a fire.</summary>
-    public const string Smelter = "furnace", Generator = "burnerGenerator";
-
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
@@ -65,8 +62,9 @@ public sealed class FurnaceModule : Module<FurnaceState>
         System(Phase.Construction, () =>
         {
             RestCold();
-            foreach (var m in _grid.MachinesOf(Smelter))
-                if (Burning(m.Id)) _craftingOps.Heat(m.Id);
+            // A fire with inputs smelts them (a furnace), not one that makes power.
+            foreach (var m in _grid.MachinesWith(Content.MachineTrait.Fire))
+                if (Content.Machines.Get(m.Kind).Inputs > 0 && Burning(m.Id)) _craftingOps.Heat(m.Id);
         });
         System(Phase.Simulation, Burn);
     }
@@ -131,10 +129,11 @@ public sealed class FurnaceModule : Module<FurnaceState>
         return -1;
     }
 
-    /// <summary>Every generator rests while its fire is out: power counts no resting maker.</summary>
+    /// <summary>Every fire that makes power, a burner generator's, rests while it is out: power counts no resting maker.</summary>
     private void RestCold()
     {
-        foreach (var m in _grid.MachinesOf(Generator)) _powerOps.Rest(m.Id, !Burning(m.Id));
+        foreach (var m in _grid.MachinesWith(Content.MachineTrait.Fire))
+            if (Content.Machines.Get(m.Kind).Makes != null) _powerOps.Rest(m.Id, !Burning(m.Id));
     }
 
     private void Burn()
@@ -142,12 +141,9 @@ public sealed class FurnaceModule : Module<FurnaceState>
         var kept = new List<Fire>();
         var fires = State.Fires;
         int next = 0;
-        IReadOnlyList<Machine> smelters = _grid.MachinesOf(Smelter), generators = _grid.MachinesOf(Generator);
-        int s = 0, g = 0;
-        // Both kinds in one pass in id order, as their fires are kept.
-        while (s < smelters.Count || g < generators.Count)
+        // Every machine with a fire, in id order, as their fires are kept.
+        foreach (var m in _grid.MachinesWith(Content.MachineTrait.Fire))
         {
-            var m = g >= generators.Count || (s < smelters.Count && smelters[s].Id < generators[g].Id) ? smelters[s++] : generators[g++];
             while (next < fires.Count && fires[next].Machine < m.Id) next++;
             int fuel = Burn(m, next < fires.Count && fires[next].Machine == m.Id ? fires[next].Fuel : 0);
             if (fuel > 0) kept.Add(new Fire(m.Id, fuel));

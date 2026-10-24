@@ -22,10 +22,8 @@ namespace Stillwake.Game.Features.Light;
 public partial class LightView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
-    /// <summary>A lit lamp's warm glow, how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
-    private static readonly Color GlowColour = new(0xffd9a0ff), ArcGlowColour = new(0xb4dcffff);
-
-    private static Color GlowOf(Machine lamp) => lamp.Kind == ArcLampLooks.Kind ? ArcGlowColour : GlowColour;
+    /// <summary>A lit lamp's glow, its colour its <see cref="L.LampLight.Halo"/>: how far across it reaches, in cells, and how opaque at full light: a faint halo.</summary>
+    private static Color GlowOf(Machine lamp) => new(L.Lamps[lamp.Kind].Halo);
     private const float GlowCells = 3.5f, GlowAlpha = 0.4f;
     /// <summary>
     /// A burning fire's glow at its machine's mouth, how far across it reaches, in cells, and how opaque it
@@ -178,8 +176,9 @@ public partial class LightView : Node2D
     {
         foreach (var node in _lamps.GetChildren()) node.QueueFree();
         _shown.Clear();
-        foreach (var lamp in _machines.Where(m => Stillwake.Content.Machines.Get(m.Kind).Glow))
+        foreach (var lamp in _machines.Where(m => Stillwake.Content.Machines.Is(m.Kind, Stillwake.Content.MachineTrait.Glow)))
         {
+            bool glass = L.Lamps[lamp.Kind].Glass;
             // The middle of its picture, its footprint's (two by two cells, 0104).
             var spec = Stillwake.Content.Machines.Get(lamp.Kind);
             var at = new Vector2(lamp.Cell % _grid.Width + spec.Width / 2f, lamp.Cell / _grid.Width + spec.Height / 2f) * Cell;
@@ -190,11 +189,11 @@ public partial class LightView : Node2D
                 Modulate = GlowOf(lamp),
                 Scale = Vector2.One * GlowCells * Cell / PixelArt.Glow.GetWidth(),
                 // An arc lamp's halo under its glass, which is added after it in the same layer: it never washes the rings to white.
-                ZIndex = lamp.Kind == ArcLampLooks.Kind ? Layers.Screens : Layers.Glows,
+                ZIndex = glass ? Layers.Screens : Layers.Glows,
                 Material = GlowMaterial,
             };
             _lamps.AddChild(glow);
-            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), lamp.Kind == ArcLampLooks.Kind ? Glass(at) : null));
+            _shown.Add((lamp, at, glow, FloorUnder(lamp.Cell), glass ? Glass(at) : null));
         }
         _fires.Clear();
         foreach (var m in _machines)
@@ -254,10 +253,8 @@ public partial class LightView : Node2D
             if (share > 0 && share < 1) _sparks.Lamp(lamp.Id, at, shines, floor, delta * 1000);
             glow.Visible = shines > 0;
             glow.Modulate = GlowOf(lamp) with { A = shines * GlowAlpha };
-            // An arc makers' lamp (0091): their cold light, brighter and further.
-            _main.Add(lamp.Kind == "arcLamp"
-                ? new LightSource(at.X, at.Y, L.ArcLamp, shines * L.ArcLampStrength, L.ArcLampReach, L.ArcLampKeep, L.LampMost, L.LampSize)
-                : new LightSource(at.X, at.Y, L.Lamp, shines, L.LampReach, L.LampKeep, L.LampMost, L.LampSize));
+            var light = L.Lamps[lamp.Kind];
+            _main.Add(new LightSource(at.X, at.Y, light.Colour, shines * light.Strength, light.Reach, light.Keep, L.LampMost, L.LampSize));
         }
         _sparks.End();
         foreach (var (machine, at, glow) in _fires)

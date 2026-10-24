@@ -1,5 +1,3 @@
-using Tune = Stillwake.Content.Logistics;
-
 namespace Stillwake.Sim.Logistics;
 
 public sealed partial class LogisticsModule
@@ -12,7 +10,7 @@ public sealed partial class LogisticsModule
     {
         int Below(int n) => (int)rng.Below((ulong)n);
         var machines = _grid.Machines;
-        var bays = _grid.MachinesOf(Tune.Bay);
+        var bays = _grid.MachinesWith(Content.MachineTrait.Zone);
         int machine = Below(8) switch
         {
             0 => 1000 + Below(60),

@@ -41,7 +41,7 @@ public sealed partial class LogisticsModule
                 int at = mine;
                 while (at < _offers.Count && _offers[at].First.Item != stack.Item) at++;
                 if (at < _offers.Count) _offers[at] = _offers[at] with { Count = _offers[at].Count + stack.Count };
-                else _offers.Add(new Offer(m.Id, slot, stack, stack.Count, distance, !Machines.Get(m.Kind).Container));
+                else _offers.Add(new Offer(m.Id, slot, stack, stack.Count, distance, !Machines.Is(m.Kind, MachineTrait.Container)));
             }
             for (int i = _offers.Count - 1; i >= mine; i--)
             {
@@ -79,7 +79,7 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>The first slot drones take from at machine <paramref name="m"/>: a crate's first, a machine's first output; null for one with none.</summary>
-    private static int? FirstOffered(Machine m) => Machines.Get(m.Kind).Container ? 0 : OutputsOf(m);
+    private static int? FirstOffered(Machine m) => Machines.Is(m.Kind, MachineTrait.Container) ? 0 : OutputsOf(m);
 
     /// <summary>
     /// What drones on their way to machine <paramref name="m"/> will take of <paramref name="item"/>: at a crate, the sum
@@ -91,7 +91,7 @@ public sealed partial class LogisticsModule
         foreach (var d in State.Drones)
             if (d.Leg == Leg.Source && d.Source == m.Id && d.Item == item)
             {
-                if (!Machines.Get(m.Kind).Container) return int.MaxValue;
+                if (!Machines.Is(m.Kind, MachineTrait.Container)) return int.MaxValue;
                 sum += d.Count;
             }
         return sum;
@@ -158,7 +158,7 @@ public sealed partial class LogisticsModule
         int at = _grid.MachineById(from)!.Cell;
         var full = stack with { Count = Content.Items.Get(stack.Item).Stack };
         (int Crate, int Room, bool Holds, int Distance)? best = null;
-        foreach (var crate in _grid.MachinesOf("crate"))
+        foreach (var crate in _grid.MachinesWith(MachineTrait.Container))
         {
             if (!Served(crate.Id) || !InFlood(crate)) continue;
             int room = _items.RoomFor(crate.Id, full);

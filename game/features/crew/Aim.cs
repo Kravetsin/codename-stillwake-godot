@@ -505,7 +505,7 @@ public static class Aiming
     private static Use? PressOf(Registry m, int peer, int cell, ShownGrid? shown)
     {
         var grid = m.Grid;
-        if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Get(tank.Kind).Gas) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
+        if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
         if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), null);

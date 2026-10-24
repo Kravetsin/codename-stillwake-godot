@@ -952,8 +952,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_benches = benches);
         var ui = _hands.Ui;
         AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
-            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open) is { } bay && Stillwake.Content.Machines.Get(bay.Kind).Zone ? open : null,
-            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && Stillwake.Content.Machines.TryGet(kind, out var zoned) && zoned.Zone ? _hands.Mouse.Pointer() : null));
+            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open) is { } bay && Stillwake.Content.Machines.Is(bay.Kind, Stillwake.Content.MachineTrait.Zone) ? open : null,
+            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && Stillwake.Content.Machines.Is(kind, Stillwake.Content.MachineTrait.Zone) && _hands.Mouse.Pointer() is { } at ? (at.X, at.Y, kind) : null));
         var power = _m.Power;
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);

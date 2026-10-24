@@ -116,4 +116,5 @@ stale. Read an ADR only when a README, plan or this list points you to it.
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110 (in part) |
 | [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted |  |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
-| [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted |  |
+| [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
+| [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted |  |

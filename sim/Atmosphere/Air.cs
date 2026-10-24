@@ -76,16 +76,13 @@ public sealed partial class AtmosphereModule
     private Survey GatherAll()
     {
         var s = new Survey { Pipes = _pipes.Version, Rooms = _rooms.Version };
-        foreach (var m in _grid.MachinesOf("vent"))
+        foreach (var m in _grid.MachinesWith(MachineTrait.Vents))
             foreach (int port in _grid.PortsOf(m))
                 if (_pipes.NetworkAt(port) is int network) s.Vents.Add((m.Cell, network));
-        // Tanks and generators merged into one id order: draws take from both alike.
-        var tanks = _grid.MachinesOf("tank");
-        var generators = _grid.MachinesOf("generator");
-        for (int t = 0, g = 0; t < tanks.Count || g < generators.Count;)
+        // Tanks and generators, every air source, in one id order: draws take from both alike.
+        foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
         {
-            bool generator = t == tanks.Count || (g < generators.Count && generators[g].Id < tanks[t].Id);
-            var m = generator ? generators[g++] : tanks[t++];
+            bool generator = MakesAir(m);
             foreach (int port in _grid.PortsOf(m))
             {
                 if (_pipes.NetworkAt(port) is not int network) continue;
@@ -290,7 +287,7 @@ public sealed partial class AtmosphereModule
         var roomOf = _rooms.RoomOfCells;
         // Vents standing in each room, piped or not: the survey keeps only the piped ones.
         var standing = new HashSet<int>();
-        foreach (var m in _grid.MachinesOf("vent")) standing.Add(roomOf[m.Cell]);
+        foreach (var m in _grid.MachinesWith(MachineTrait.Vents)) standing.Add(roomOf[m.Cell]);
         var all = new List<RoomAir>(_rooms.All.Count);
         foreach (var room in _rooms.All)
         {
@@ -385,8 +382,9 @@ public sealed partial class AtmosphereModule
         // The tanks are in id order until the first one added below, which no later generator's id finds.
         int sorted = State.Tanks.Count, next = 0;
         bool added = false;
-        foreach (var m in _grid.MachinesOf("generator"))
+        foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
         {
+            if (!MakesAir(m)) continue;
             // The work kept and the generators are both in id order: one pass finds each generator's.
             while (next < was.Count && was[next].Generator < m.Id) next++;
             int part = (next < was.Count && was[next].Generator == m.Id ? was[next].Part : 0)

@@ -35,7 +35,7 @@ public partial class PodDemo(Ui ui, Func<(Client Client, Registry M)?> world, Fu
     {
         _frame++;
         if (world() is not var (client, m)) return;
-        var pod = m.Grid.Machines.FirstOrDefault(x => x.Kind == "lifepod");
+        var pod = m.Grid.Machines.FirstOrDefault(x => Content.Machines.Get(x.Kind).Fixed);
         if (pod == null) return;
         if (_frame == OpenAt) ui.OpenCrate.Set(pod.Id);
         if (_frame == AxeAt) Point("fireAxe");

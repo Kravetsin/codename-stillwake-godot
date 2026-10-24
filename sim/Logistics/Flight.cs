@@ -28,7 +28,7 @@ public sealed partial class LogisticsModule
     /// </summary>
     private void Look()
     {
-        foreach (var bay in _grid.MachinesOf(Tune.Bay))
+        foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
         {
             if ((State.Ticks + bay.Id) % BayOf(bay).LookEvery != 0) continue;
             int slot = ReadySlot(bay.Id);
@@ -96,7 +96,7 @@ public sealed partial class LogisticsModule
     /// </summary>
     private void Fly(Drone d)
     {
-        if (_grid.MachineById(d.Bay) is not { } bay || !Machines.Get(bay.Kind).Zone)
+        if (_grid.MachineById(d.Bay) is not { } bay || !Machines.Is(bay.Kind, MachineTrait.Zone))
         {
             Drop(d);
             return;

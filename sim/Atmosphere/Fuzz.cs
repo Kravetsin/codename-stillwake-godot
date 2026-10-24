@@ -10,7 +10,7 @@ public sealed partial class AtmosphereModule
     public override Command? Fuzz(Rng rng, int from)
     {
         var tanks = new List<int>();
-        foreach (var m in _grid.MachinesOf("tank")) tanks.Add(m.Id);
+        foreach (var m in _grid.MachinesWith(Content.MachineTrait.Gas)) tanks.Add(m.Id);
         int tank = tanks.Count > 0 && rng.Below(4) != 0 ? tanks[(int)rng.Below((uint)tanks.Count)] : (int)rng.Below(6);
         return new LoadCanister(tank) { From = from };
     }
