@@ -71,7 +71,7 @@ stale. Read an ADR only when a README, plan or this list points you to it.
 | [0064](0064-plans-and-marks-are-drawn-alike.md) | Plans and marks are drawn alike | accepted |  |
 | [0065](0065-friends-see-the-harpoon.md) | Friends see the harpoon | accepted |  |
 | [0066](0066-the-handbook.md) | The Handbook | accepted | 0083 (in part) |
-| [0067](0067-one-door-many-shapes.md) | One door, many shapes | accepted |  |
+| [0067](0067-one-door-many-shapes.md) | One door, many shapes | accepted | 0111 (in part) |
 | [0068](0068-the-harpoon-before-the-jetpack.md) | The harpoon before the jetpack | accepted |  |
 | [0069](0069-a-cell-has-a-shape.md) | A cell has a shape | superseded | 0106 |
 | [0070](0070-starlight-falls-off-where-it-comes-in.md) | Starlight falls off where it comes in | accepted |  |
@@ -115,3 +115,4 @@ stale. Read an ADR only when a README, plan or this list points you to it.
 | [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110 (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110 (in part) |
 | [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted |  |
+| [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
