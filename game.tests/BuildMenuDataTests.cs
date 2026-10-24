@@ -20,7 +20,16 @@ public class BuildMenuDataTests
             "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",
             "production: furnace analyzer former smelter assembler growCapsule arcBench",
             "storage: crate droneBay",
+            "ship: ",
         ], Tools.Tabs.Select(Ids));
+    }
+
+    [Fact]
+    public void ShowsTheShipsTabWithNoCardButNoOtherTabWithNone()
+    {
+        Assert.True(Tools.Shown(new Tab(MenuTabs.Ship, [])));
+        Assert.False(Tools.Shown(new Tab(MenuTabs.Storage, [])));
+        Assert.True(Tools.Shown(Tools.Tabs.Single(t => t.Id == MenuTabs.Storage)));
     }
 
     [Fact]

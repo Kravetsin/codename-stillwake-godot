@@ -379,8 +379,8 @@ public partial class BuildMenu : CanvasLayer
             : Tools.Tabs
                 // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
                 .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
-                // A tab with nothing known is not shown.
-                .Where(t => t.Tools.Count > 0)
+                // A tab with nothing known is not shown, but the ship's.
+                .Where(Tools.Shown)
                 .ToList();
         var shownTab = toolMenu ? tabs[0] : tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();
         // A tab the world shows nothing on is never the mode: the one shown instead is.

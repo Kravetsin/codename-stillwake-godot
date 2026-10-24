@@ -59,6 +59,7 @@ public static partial class En
         ["build.tab.power"] = "Power",
         ["build.tab.production"] = "Production",
         ["build.tab.storage"] = "Storage",
+        ["build.tab.ship"] = "Ship",
         ["tool.wallScrap.about"] = "A cheap hull wall. Leaks air a little.",
         ["tool.wallIron.about"] = "A strong hull wall. Leaks a fifth less than scrap.",
         ["tool.backWallScrap.about"] = "A cheap wall behind a room, leaking as a scrap wall does. Without one, the room is open to space.",
