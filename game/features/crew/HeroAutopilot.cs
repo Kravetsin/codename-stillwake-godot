@@ -428,6 +428,17 @@ public sealed class HeroAutopilot
     /// the hatch; back down, slid the rest of the way with Shift; a running jump over the pit, caught on its ladder mid-air;
     /// up it a little, and a leap off it to the side onto the floor beyond.
     /// </summary>
+    /// <summary><c>-- --lone-hatch=open --autopilot</c> (0112): under the open hatch up takes hold of it over the head and climbs out on top.</summary>
+    public static HeroAutopilot LoneHatchRun() => new(
+    [
+        Wait(30),
+        Walk(-1, h => Block(h) <= 6),
+        Wait(10),
+        Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
+        Wait(60),
+    ])
+    { _trace = true };
+
     public static HeroAutopilot LaddersRun()
     {
         var up = new HeroInput(0, -1, false);

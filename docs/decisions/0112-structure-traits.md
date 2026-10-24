@@ -39,6 +39,8 @@ structure, even a plain one, touched twelve to fifteen files, and each missed on
   the grid everything blocks. Code-only callers (the hero over toggles in flight, rooms over a layer, the client over what it
   drew) read `Structures.Of(code)` and `Structures.Is(code, trait)`.
 - **An open hatch is a ladder on its own.** Climbable, it is climbed and stood on whether or not a ladder lies past it.
+  Up takes hold of a ladder or an open hatch within `Hero.HoldReach` (a cell) over the head and climbs on into it, so a
+  hatch in a deck is climbed from the room under it; climbing down still lets go where the body leaves the ladder.
 - **Only the table names a kind.** `Doorways` and the door toggle read groups, joins and toggles; nothing outside
   `Structures.cs` (and tests) names a concrete code, which `StructureCodeGuardTests` enforces. `Structure.Empty`, the
   absence of a structure, is not a kind.

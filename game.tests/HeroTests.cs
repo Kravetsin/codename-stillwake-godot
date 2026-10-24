@@ -867,6 +867,32 @@ public class HeroTests
         Assert.Equal((8 * Block, false), (blocked.Y, blocked.Climbing));
     }
 
+    /// <summary>A hatch built in a deck a cell thick, no ladder; rooms six cells tall over and under it; a cell a character.</summary>
+    private static Layout DeckHatch(char hatch) => Layout.Parse(
+    [
+        "##########",
+        .. Enumerable.Repeat("#........#", 6),
+        $"####{hatch}{hatch}####",
+        .. Enumerable.Repeat("#........#", 6),
+        "##########",
+    ]);
+
+    [Fact]
+    public void UpUnderAnOpenHatchTakesHoldOfItOverTheHeadAndClimbsOutOnTop()
+    {
+        var open = ShipFrom(DeckHatch('o'));
+        // Standing under it, off its middle but under one of its cells: up reaches it (Hero.HoldReach), centres and climbs.
+        foreach (int x in new[] { 5000, 5500 })
+        {
+            var grabbed = At(x, 14 * Unit).Step(Up, open);
+            Assert.True(grabbed.Climbing);
+            Assert.Equal((5000, 7 * Unit, false), (Settle(open, grabbed, Up) is var h ? (h.X, h.Y, h.Climbing) : default));
+        }
+        // Shut, it is a floor: up does nothing under it.
+        var shut = ShipFrom(DeckHatch('h'));
+        Assert.False(At(5000, 14 * Unit).Step(Up, shut).Climbing);
+    }
+
     internal static readonly Layout Wreck = Registry.WreckMap;
     internal static readonly int Spawn = new TestWorld(Wreck).M.Crew.Spawn;
     /// <summary>Room B's torn edge, its last cell of hull's left side: a tether out of it is tied where the body's middle last was, a step's walk at most inside.</summary>

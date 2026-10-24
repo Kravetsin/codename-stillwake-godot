@@ -230,7 +230,7 @@ public readonly record struct Hero(
         // Up grabs a ladder walking, running or rising too, but not for a moment after letting go of one, so a jump off it
         // with up held goes on; down grabs one standing or falling, no side held (0092).
         bool grab = !hero.Climbing && !input.Jump &&
-            (input.Y < 0 && letGo > Spec.Regrab && TouchesLadder(ship, hero.X, hero.Y, false)
+            (input.Y < 0 && letGo > Spec.Regrab && TouchesLadder(ship, hero.X, hero.Y, false, overHead: true)
                 || input.Y > 0 && input.X == 0 && hero.Vy >= 0 && TouchesLadder(ship, hero.X, hero.Y, true));
         if (grab || hero.Climbing)
         {
@@ -522,7 +522,7 @@ public readonly record struct Hero(
         if (dir < 0 && after < before && Climbable(ship, column, before) && !Climbable(ship, column, after))
             return new Hero(x, before * Unit, 0, 0, false, facing);
         if (dir < 0 && onTop) return new Hero(x, y, 0, 0, false, facing);
-        bool on = TouchesLadder(ship, x, ny, false) || dir > 0 && ny == y && onTop;
+        bool on = TouchesLadder(ship, x, ny, false, overHead: dir < 0) || dir > 0 && ny == y && onTop;
         return new Hero(x, ny, 0, ny - y, on, facing);
     }
 
@@ -602,7 +602,7 @@ public readonly record struct Hero(
     {
         int column = CellOf(x), near = x - column * Unit < Unit / 2 ? column - 1 : column + 1;
         foreach (int beside in (ReadOnlySpan<int>)[near, 2 * column - near])
-            if (TouchesLadderIn(ship, beside, y, true)) return Math.Max(column, beside) * Unit;
+            if (TouchesLadderIn(ship, beside, y, true, overHead: true)) return Math.Max(column, beside) * Unit;
         return column * Unit + Unit / 2;
     }
 
@@ -625,14 +625,19 @@ public readonly record struct Hero(
     /// <summary>Whether a cell lets a hero fall into it from above: nothing in it blocks or holds.</summary>
     private static bool Open(Ship ship, int x, int y) => !Solid(ship, x, y) && !Holds(ship, x, y, false);
 
-    /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet.</summary>
-    private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet) => TouchesLadderIn(ship, CellOf(x), y, belowFeet);
+    /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet, or within reach over the head.</summary>
+    private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet, bool overHead = false) =>
+        TouchesLadderIn(ship, CellOf(x), y, belowFeet, overHead);
 
-    /// <summary>Whether <paramref name="column"/> holds a ladder beside a body with its feet at <paramref name="y"/>, or also just below them.</summary>
-    private static bool TouchesLadderIn(Ship ship, int column, int y, bool belowFeet)
+    /// <summary>
+    /// Whether <paramref name="column"/> holds a ladder beside a body with its feet at <paramref name="y"/>, or also just below them,
+    /// or <paramref name="overHead"/> within its reach over the head (<c>Hero.HoldReach</c>): up takes hold of an open hatch in the
+    /// deck above from under it and climbs on into it (0112); climbing down lets go where the body leaves the ladder.
+    /// </summary>
+    private static bool TouchesLadderIn(Ship ship, int column, int y, bool belowFeet, bool overHead = false)
     {
         int last = CellOf(belowFeet ? y : y - 1);
-        for (int row = CellOf(y - Spec.Height); row <= last; row++)
+        for (int row = CellOf(y - Spec.Height - (overHead ? Spec.HoldReach : 0)); row <= last; row++)
             if (Climbable(ship, column, row)) return true;
         return false;
     }

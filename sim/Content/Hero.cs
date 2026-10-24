@@ -17,6 +17,9 @@ public static class Hero
 {
     public const int Width = 1900;
     public const int Height = 5250;
+
+    /// <summary>How far over its head a hero takes hold of a ladder or an open hatch, in thousandths of a cell: an arm's reach (0112).</summary>
+    public const int HoldReach = 1000;
     public const int Walk = 240;
     public const int Run = 440;
 
