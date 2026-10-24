@@ -1,7 +1,7 @@
 // node tools/planet-art/fauna/export.js [artDir] [contentFile] — the creatures' looks the user picked on the loper page (ADR 0102):
 // every part of each picked design as an index map (R ramp 23-31, G tone 0-5, A painted) and its glow map into
 // <artDir>/fauna/<design>/, and their sizes, pivots, rig, pose numbers, eye and the palettes' ramps into the generated
-// game/Content/FaunaArt.cs, which the game recolours the maps by at load. Plain Node, no packages; deterministic.
+// game/Content/logic/FaunaArt.cs, which the game recolours the maps by at load. Plain Node, no packages; deterministic.
 const fs = require('fs'), path = require('path');
 const L = require('./loper-parts.js'), PNG = require('../png.js');
 const ROOT = path.join(__dirname, '..', '..', '..');

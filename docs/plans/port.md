@@ -31,7 +31,7 @@ Rng, layouts), `grid` and `rooms` with their tests, the wreck as content, a Godo
 
 Everything in `packages/content` as C# data in `sim/Content`: items, materials, builds, machines with
 costs, air, power, crew, hero, debris and loot, furnace, research, light. Its content tests ported.
-Light is drawn only and in floats, so it lives in `game/Content/Light.cs`; the tests link that file.
+Light is drawn only and in floats, so it lives in `game/Content/logic/Light.cs`; the tests link that file.
 
 ## G-04 — The sim modules ✅
 
@@ -53,7 +53,7 @@ desync fuzz across host and guest. A relay for playtests across networks (0012) 
 
 - **Built:** `net/` (its README) and `game/net/EnetLink.cs`; two Godot processes share the
   wreck, hashes checked, a drifted guest resynced, 355 ms round trip under `--lag=100 --jitter=60`.
-- **Built since:** the folds of 0014 — `grid.AfterToggles` with `game/shared/Predicted.cs`,
+- **Built since:** the folds of 0014 — `grid.AfterToggles` with `game/shared/logic/Predicted.cs`,
   `items.AfterMoves`, debris grabs — and heroes replicated, drawn by `features/crew` (`Remote.cs`).
 - **Built since:** co-op across networks through the TypeScript game's playtest relay (ADR 0012), which
   routes frames without reading them: `game/net/RelayLink.cs` speaks its `{ event, data }` frames over
@@ -87,7 +87,7 @@ dev panel.
 - **Effects built** (`features/effects`, `render/Particles.cs`): dust from steps and landings, sparks
   from work on plans, embers, air streaming out of venting rooms; sparks and embers light their
   surroundings (0019). The air overlay's forecast counts the heroes breathing.
-- **The UI half, built:** one i18n table (`game/i18n/En.cs`) and one thumbnail maker
+- **The UI half, built:** one i18n table (`game/i18n/logic/En.cs`) and one thumbnail maker
   (`BlueprintArt.Thumbnail`); the hero's hands as `aim.ts` had them, one aim for plans, crates, tanks,
   doors, valves and debris, with the prompt for E at the bottom of the screen (`features/crew`);
   ADR 0022's one hand between the hotbar and the plan (1–9, the wheel and Tab free it, Q waits for a
@@ -102,7 +102,7 @@ dev panel.
 
 - **Built:** the Windows export (`game/export_presets.cfg`, the .NET export templates of 4.7.2
   installed on this machine): `build/windows/Stillwake.exe` with its data folder, about 180 MB.
-- **Built:** saves as files (`game/platform/Saves.cs`, apps/desktop/src/saves.ts): the game menu's
+- **Built:** saves as files (`game/platform/logic/Saves.cs`, apps/desktop/src/saves.ts): the game menu's
   world and the last desync report in Godot's user folder, written aside and moved over.
 - **Left:** the parity playtest against the TypeScript build; Steam (GodotSteam) after.
 

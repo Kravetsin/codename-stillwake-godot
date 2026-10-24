@@ -4,8 +4,8 @@
 
 | File | Purpose |
 | --- | --- |
-| `Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
-| `OwnHits.cs` | Which pieces this peer's own hits ran on since the last frame, and with which weapon. |
+| `logic/Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
+| `logic/OwnHits.cs` | Which pieces this peer's own hits ran on since the last frame, and with which weapon. |
 | `DebrisView.cs` | The layer: pieces and the outline of the one aimed at. |
 | `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
 | `DebrisDemo.cs` | The world and the script of `--debris`. |
@@ -13,7 +13,7 @@
 | `AsteroidDemo.cs` | The world and the script of `--asteroid`. |
 | `SortieDemo.cs` | The world and the script of `--sortie`. |
 | `FarDemo.cs` | The big world and far field of `--fly` (`--manual` to fly it yourself), `--far=N`, `--edge=N`. |
-| `Finds.cs` | The Handbook's debris: loot slots revealed item by item, ranges, chances, tally, tips. |
+| `logic/Finds.cs` | The Handbook's debris: loot slots revealed item by item, ranges, chances, tally, tips. |
 | `HandbookPage.cs` | The Handbook's Debris section: the kinds' rows and the chosen kind's entry. |
 
 The debris drifting past the ship, drawn only: the sim (`sim/Debris`) spawns, moves and hands out what a catch gives.
@@ -79,8 +79,8 @@ leaves the script off), `--wreck`/`--wrecks` (chopping till it breaks), `--handb
 
 ## Tests
 
-`Fading.cs`, `OwnHits.cs`, `Finds.cs` and `Content/Handbook.cs` are compiled into `game.tests/` (`DebrisTests`,
-`HearingTests`, `AimTests`, `HandbookTests`: every kind that spawns in exactly one row).
+Tested in `game.tests/`: `DebrisTests`, `HearingTests`, `AimTests`, `HandbookTests` (every kind that spawns
+in exactly one row).
 
 ## Deliberately not handled
 

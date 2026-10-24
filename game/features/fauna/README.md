@@ -5,11 +5,11 @@
 | File | Purpose |
 | --- | --- |
 | `CreatureBody.cs` | One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's … |
-| `CreatureGait.cs` | How fast a creature's legs go (0102): plain C#, tested. |
-| `CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
+| `logic/CreatureGait.cs` | How fast a creature's legs go (0102): plain C#, tested. |
+| `logic/CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
 | `CreatureParts.cs` | The creatures' parts as pictures (0102): each index map of `art/fauna` recoloured once, at first use, by a palette … |
-| `CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
-| `CreatureVariety.cs` | How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. |
+| `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
+| `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. |
 | `FaunaView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Fauna`)
@@ -26,13 +26,13 @@ axe's blade and the drill's bit are tested against each creature's body as again
   that grows to the most ever on screen and never frees. A creature gone while drawn was killed: nothing despawns in view.
 - **Drawn between ticks** (0102): kept at the tick before and the last, drawn `Progress` of the way, a tick behind the
   sim. Upright where the sim stands it, no lean to the ground (0106), only the flinch's and flight's tilt
-  (`CreatureMotion.Tilt`). Its whole steps are eased by `game/shared/StepEase.cs` over `FaunaLooks.StepMs`, never slower
+  (`CreatureMotion.Tilt`). Its whole steps are eased by `game/shared/logic/StepEase.cs` over `FaunaLooks.StepMs`, never slower
   than it moves across, read from its positions so every peer draws it alike (0106). Faces the way it moves; still,
   toward a near hero, else the way it last moved.
 - **The body** (`CreatureBody`, 0102): the design its species' `Look` names. Parts in `art/fauna/<design>/` are index maps
   (R the ramp, G the tone) recoloured once at first use by the planet's palette (`CreatureParts`, `FaunaLooks.PaletteOf`),
   with a white copy for the flash and glow maps a tone up; painted by `tools/planet-art/fauna`, rig, pose, eye and
-  palettes generated into `Content/FaunaArt.cs`. A sprite a part in rig order, hung from its parent and turned about its
+  palettes generated into `Content/logic/FaunaArt.cs`. A sprite a part in rig order, hung from its parent and turned about its
   pivot (`CreaturePose`), at screen resolution, lit as the world (`Lit`), on `Layers.Creatures` under the heroes. Its eye
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light

@@ -120,6 +120,7 @@ pointer.
 - Cells are drawn with `TileMapLayer`, never a node per cell; light occluders are merged per wall
   run. A node per cell costs CPU time with every light (0025).
 - Floats are fine in the client: only the sim must be deterministic.
+- Godot-free client code goes into its folder's `logic/`; `game.tests` compiles every `logic/` by glob, so a new file needs no csproj edit.
 
 ## Co-op
 
@@ -172,7 +173,7 @@ in the sim.
 - Two developers, each with Claude: one task, one branch (`feat/...`, `fix/...`), one PR into `main`.
   `main` is protected: nothing lands without a PR and a green CI, no approval needed, so nobody waits
   on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
-  edits to the files every task touches (`game/Main.cs`, `game/dev/DevModes.cs`, `game/i18n/En.cs`).
+  edits to the files every task touches (`game/Main.cs`, `game/dev/logic/DevModes.cs`, `game/i18n/logic/En.cs`).
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
   commit: the full `dotnet test Stillwake.sln` and `dotnet format` on the changed files only (`--include`, seconds
   instead of a whole-solution minute); CI fails on whitespace.

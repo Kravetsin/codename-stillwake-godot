@@ -1,5 +1,5 @@
 'use strict';
-// ===== Stillwake hero, ported from game/features/crew/Hero.cs, Pose.cs, Rig.cs, Figure.cs =====
+// ===== Stillwake hero, ported from game/features/crew/logic/Hero.cs, Pose.cs, Rig.cs, Figure.cs =====
 // Units: thousandths of a cell; 60 controller steps a second; 16 px a cell.
 const U = 1000, HW = 475, HH = 2625, MID = 1312, STEP_MS = 1000 / 60, CELL = 16;
 const SPEC = { walk: 120, run: 220, climb: 180, jump: 420, g: 21, maxFall: 1200, swim: 30, jpAccel: 8, jpTop: 250, jpDrag: 4 };

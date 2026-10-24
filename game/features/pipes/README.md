@@ -4,8 +4,8 @@
 
 | File | Purpose |
 | --- | --- |
-| `Flow.cs` | Oxygen as the pipes overlay shows it flowing, along spans. |
-| `PipeHands.cs` | The hands at work on pipes with the wrench (0109): a left drag lays a span from the cell pressed to the cell let … |
+| `logic/Flow.cs` | Oxygen as the pipes overlay shows it flowing, along spans. |
+| `logic/PipeHands.cs` | The hands at work on pipes with the wrench (0109): a left drag lays a span from the cell pressed to the cell let … |
 | `PipesOverlay.cs` | Every pipe network brought out of the ship while the wrench is held: each network's spans over the ship, slim, in a … |
 | `PipesView.cs` | The pipes as they are built (0109): each span a straight pipe from the middle of one end's cell to the other's, at … |
 

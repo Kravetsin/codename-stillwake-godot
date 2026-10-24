@@ -223,7 +223,7 @@ ${IDS.map(variant).join('\n')}
 <section class="notes">
 <ol>
   <li><b>Файлы.</b> Выбранный набор из <code>tank-art/out/&lt;вариант&gt;/</code> копируется в <code>game/art/</code>: <code>machine_tank.png</code> заменяет нынешний (его по-прежнему рисует <code>GridView</code> на слое машин, освещённым), плюс <code>tank_fill_0..4.png</code> (B, C) или <code>tank_fill_0..5.png</code> (A). Godot сам создаст <code>.import</code>.</li>
-  <li><b>Откуда доля.</b> Тот же запрос, что сейчас у полоски: <code>m.Atmosphere.OxygenIn(tank.Id)</code> из 9000 (<code>Content.Air.TankCapacity</code>). Кадр — чистая функция, например <code>TankFill.Frame(int oxygen)</code> рядом с <code>game/shared/Charges.cs</code>, с тестом в <code>game.tests</code>:
+  <li><b>Откуда доля.</b> Тот же запрос, что сейчас у полоски: <code>m.Atmosphere.OxygenIn(tank.Id)</code> из 9000 (<code>Content.Air.TankCapacity</code>). Кадр — чистая функция, например <code>TankFill.Frame(int oxygen)</code> рядом с <code>game/shared/logic/Charges.cs</code>, с тестом в <code>game.tests</code>:
     <ul>
       <li>B и C (5 кадров, по баллону): <code>oxygen == 0 ? 0 : (oxygen + Air.Canister - 1) / Air.Canister</code> → 1…4. Все четыре шага ⇔ <code>oxygen &gt; 6750</code> ⇔ баллон не влезет (<code>atmosphere.tankFull</code>). Тест: 0→0, 1→1, 2250→1, 2251→2, 6750→3, 6751→4, 9000→4.</li>
       <li>A (6 кадров, по пятым): <code>oxygen == 0 ? 0 : (oxygen * 5 + Air.TankCapacity - 1) / Air.TankCapacity</code> → 1…5.</li>

@@ -4,12 +4,12 @@
 
 | File | Purpose |
 | --- | --- |
-| `AirField.cs` | The air as the overlay draws it, cell by cell: how much of each cell's air shows, eased toward what the sim says so … |
+| `logic/AirField.cs` | The air as the overlay draws it, cell by cell: how much of each cell's air shows, eased toward what the sim says so … |
 | `AirLook.cs` | How the air is drawn over the rooms, behind what stands in them, a pixel of the world at a time, with the overlay … |
-| `AirMotes.cs` | The air made visible without the overlay: sparse motes wandering in every cell holding air, blown out of a filling … |
+| `logic/AirMotes.cs` | The air made visible without the overlay: sparse motes wandering in every cell holding air, blown out of a filling … |
 | `AirView.cs` | The ship's air. Without a word: every room losing oxygen into space lit red on the beat (each tank's sight glass is … |
-| `Explain.cs` | What the air overlay says of a room. |
-| `Streams.cs` | Where air streams out of a room: the middle of an opening, in cells, and the heading toward the space beside it, in … |
+| `logic/Explain.cs` | What the air overlay says of a room. |
+| `logic/Streams.cs` | Where air streams out of a room: the middle of an opening, in cells, and the heading toward the space beside it, in … |
 | `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
 | `VentLight.cs` | Air escaping into space (0075), luminous: out of each opening a room vents through, a jet of fast pale streaks and … |
 
@@ -18,10 +18,10 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 
 | File         | Holds                                                                                   | Godot |
 | ------------ | --------------------------------------------------------------------------------------- | ----- |
-| `Explain.cs` | what the overlay says of a room, spans, and the rooms draining (`explain.ts`, `draining.ts`) | no    |
-| `Streams.cs` | `AirStream`: where air streams out of a venting room, which way, how thick (`streams.ts`) | no    |
-| `AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over what is built | no    |
-| `AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
+| `logic/Explain.cs` | what the overlay says of a room, spans, and the rooms draining (`explain.ts`, `draining.ts`) | no    |
+| `logic/Streams.cs` | `AirStream`: where air streams out of a venting room, which way, how thick (`streams.ts`) | no    |
+| `logic/AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over what is built | no    |
+| `logic/AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
 | `AirLook.cs` | the shader, with O: the rooms' air dithered, grey dots where there is none, the pod's ragged aura | yes   |
 | `AirView.cs` | venting rooms lit red on the beat and their air streaming out, the motes, fresh air from filling vents; with O the air overlay | yes   |
 | `VentLight.cs` | the breaches in light (0075): jets, condensation, shimmer, frost | yes |
@@ -57,7 +57,7 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   breathes a faint veil of fresh air now and then, drifting up and settling (`Luminous.FreshAir`, 1.6 a second).
 - Each tank shows its oxygen up a sight glass in its picture, without a word: `art/tank_fill_{0..5}.png`
   drawn unlit over `machine_tank.png`, frame 1 to 5 by fifths of `Air.TankCapacity` rounded up
-  (`shared/TankFill.cs`), so any oxygen shows the lowest step and only none shows the glass dark with
+  (`shared/logic/TankFill.cs`), so any oxygen shows the lowest step and only none shows the glass dark with
   a red lamp lit. Each frame lights the room a little (a `Glow`): pale blue from the glass, brighter the
   fuller, red from the lamp when empty. Read every 250 ms. Not animated: a tank changes slowly.
 - The forecast under the pointer counts the heroes awake in the room as breathing its air (`crew`).

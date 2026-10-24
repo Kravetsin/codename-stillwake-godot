@@ -9,19 +9,19 @@ Cables hanging between their nodes and their overlay, shown while the stripper i
 
 | File            | Holds                                                                                  | Godot |
 | --------------- | -------------------------------------------------------------------------------------- | ----- |
-| `Wiring.cs`     | what a press takes hold of (`GripAt`), supports on the way (`SupportOnWay`), `LightOf` (`wiring.ts`) | no    |
-| `CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
-| `PowerHands.cs` | the hands with the stripper (0108), its menu's one card the cable (0110; peg moving stays on Ctrl+drag): the left lays and leads on through supports, with Ctrl carries a peg or plug, a right press near a cable cuts (`mode.ts`) | no    |
+| `logic/Wiring.cs` | what a press takes hold of (`GripAt`), supports on the way (`SupportOnWay`), `LightOf` (`wiring.ts`) | no    |
+| `logic/CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
+| `logic/PowerHands.cs` | the hands with the stripper (0108), its menu's one card the cable (0110; peg moving stays on Ctrl+drag): the left lays and leads on through supports, with Ctrl carries a peg or plug, a right press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
 | `ChargerLights.cs` | each charging station's light and the battery in its bay (0053)                     | yes   |
 | `StoreLights.cs` | each capacitor bank's gauge, its spark and its light (0101)                          | yes   |
-| `StoreGauge.cs`  | how the gauge reads: segments lit by how full, the spark's way and place (tested)     | no    |
+| `logic/StoreGauge.cs` | how the gauge reads: segments lit by how full, the spark's way and place (tested)     | no    |
 | `StoreWorld.cs`, `StoreDemo.cs` | the world of `-- --store` and its script: a bank filling, then emptying into an arc smelter | `StoreDemo` |
 | `StoreDemo.cs` | for recordings (`-- --store`, 0101): plays `StoreWorld`, the bank filling while the smelter stands empty; at … | yes |
-| `StoreWorld.cs` | the world of `-- --store` (0101), plain C# so it is tested: an aired room with a capacitor bank holding `Holds` … | no |
+| `logic/StoreWorld.cs` | the world of `-- --store` (0101), plain C# so it is tested: an aired room with a capacitor bank holding `Holds` … | no |
 
-`game/render/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
-`game/render/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)
+`game/render/logic/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
+`game/render/logic/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)
 are shared. Ported tests: `cable.test.ts`, `ropes.test.ts`, `wiring.test.ts`; beyond them (`CableRopesTests`), a cable
 moving on every frame at 240 Hz, let go between two steps, and moved off a hull crossing.
 

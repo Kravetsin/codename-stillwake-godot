@@ -1,7 +1,7 @@
 # Glossary
 
 Game words → code. One line a term: Russian / English → identifiers → module (`sim/X`, `f/x` = `game/features/x`).
-**≠** marks a term whose code name differs from the game word. Ids are strings in `sim/Content`; names in `game/i18n/En.cs`
+**≠** marks a term whose code name differs from the game word. Ids are strings in `sim/Content`; names in `game/i18n/logic/En.cs`
 (`item.<id>`, `tool.<build>`). Where the code lives: [map.md](map.md).
 
 ## Ship and building
@@ -18,8 +18,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - план / plan → `Plan`, `PlacePlan`, `CancelPlan`, `Work` (`sim/Building`); f/building `PlanHand`, `BuildMenu`; r/`PlanTiles`, `PlanOutline` → Building
 - меню строительства / build menu → f/building `BuildMenu`, `Tools.Tabs`; cards and order from content: `MenuSlot` on machine, build and material rows, `MenuTabs` (c/`Menu.cs`, 0114) → Building
 - планшет / tablet → `game/shared/Tablet.cs`, `TabletLayout`, `TabletMotion` (build menu and Handbook) → UI
-- кисть / brush → `game/shared/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
-- ступенька / step → step-up in f/crew `Hero` (`StepUp`, `StepOnto`), drawn by `game/shared/StepEase.cs` (0106) → Crew
+- кисть / brush → `game/shared/logic/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
+- ступенька / step → step-up in f/crew `Hero` (`StepUp`, `StepOnto`), drawn by `game/shared/logic/StepEase.cs` (0106) → Crew
 - отвёртка / screwdriver → item `screwdriver`, `c/Screwdrivers.cs`; works plans → Building
 - комната / room → `Room`, `RoomsModule.RoomAt` → Rooms
 
@@ -83,8 +83,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 ## Game
 
-- сохранение / save → `World.Save()`, `World.Load` (sim/Core `Sim.cs`), `Migrations` (sim/Registry), `game/platform/Saves.cs`, `WorldIndex` → Core
+- сохранение / save → `World.Save()`, `World.Load` (sim/Core `Sim.cs`), `Migrations` (sim/Registry), `game/platform/logic/Saves.cs`, `WorldIndex` → Core
 - хост / host, co-op → net/Net `Host`, `Client`, `Session`; game/menu `Together`; `game/Main.Sessions.cs` → net
-- справочник / Handbook → f/handbook `HandbookPanel`, `game/Content/Handbook.cs` → UI
-- подсказка / tooltip → `game/shared/Tip.cs`, `PointerTip` → UI
-- дев-аргумент, демо / dev argument, demo → `-- --<name>`: one `DevMode` each in `game/dev/DevModes.cs`, wired in `game/dev/Main.Dev.cs` → Dev tools
+- справочник / Handbook → f/handbook `HandbookPanel`, `game/Content/logic/Handbook.cs` → UI
+- подсказка / tooltip → `game/shared/logic/Tip.cs`, `PointerTip` → UI
+- дев-аргумент, демо / dev argument, demo → `-- --<name>`: one `DevMode` each in `game/dev/logic/DevModes.cs`, wired in `game/dev/Main.Dev.cs` → Dev tools

@@ -5,17 +5,17 @@
 | File | Purpose |
 | --- | --- |
 | `Crackle.cs` | The arc makers' arcs crackling (0091, `Emits.Arc`). |
-| `Flicker.cs` | How brightly a lamp short of power shines, flickering. |
+| `logic/Flicker.cs` | How brightly a lamp short of power shines, flickering. |
 | `LampSparks.cs` | A lamp short of power, in light (0075): glints, sparks, arcs. |
 | `LightView.cs` | Gathers every light each frame for the lightmap (0019, 0029, 0070). |
 | `Lightmap.cs` | All light composed on the GPU each frame into two maps over the view (0029). |
-| `Sources.cs` | What the shader reads: walls and doors light stops at, and each light. |
-| `StarField.cs` | Starlight cell by cell (0019, 0070). |
+| `logic/Sources.cs` | What the shader reads: walls and doors light stops at, and each light. |
+| `logic/StarField.cs` | Starlight cell by cell (0019, 0070). |
 | `Starlight.cs` | The starlight as a texture of a texel a cell, for `render/Lit.cs`. |
 
 A dim ship lit by its lamps, fires, whatever glows, and the stars, whole in open space and falling off
 within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at the 8 px
-cell (0104); the shader walks up to 160 cells a line. Numbers: `game/Content/Light.cs`; `LightView` holds
+cell (0104); the shader walks up to 160 cells a line. Numbers: `game/Content/logic/Light.cs`; `LightView` holds
 the reaches of fire, particles, screens.
 
 - **Reads:** `IGridQueries` (walls and closed doors stop light, every wall whole, 0106; back walls,

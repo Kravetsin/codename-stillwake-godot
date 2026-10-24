@@ -15,7 +15,7 @@
   </ItemGroup>
   <!-- The client's light constants, plain C# with no Godot in them, for ContentTests. -->
   <ItemGroup>
-    <Compile Include="../../game/Content/Light.cs" Link="Game/Light.cs" />
+    <Compile Include="../../game/Content/logic/Light.cs" Link="Game/Light.cs" />
   </ItemGroup>
   <!-- Saves of every past format, for MigrationsTests. -->
   <ItemGroup>

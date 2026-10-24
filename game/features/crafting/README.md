@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Crafts.cs` | A recipe's fixed place and slot look, where a click on a short one goes, where a short item comes from, its block on the card, what a station is doing; Godot-free, compiled again into `game.tests/` (`CraftsTests`) |
+| `logic/Crafts.cs` | A recipe's fixed place and slot look, where a click on a short one goes, where a short item comes from, its block on the card, what a station is doing (`CraftsTests`) |
 | `FabricatorPanel.cs` | Any queued station's panel under the inventory, in the machine frame: header, bolt and screen; recipes left, inputs, queue and outputs right |
 | `FabricatorScreen.cs` | The panel's small screen: lines running while it works, READY idle, dark with no power |
 | `BenchView.cs` | The arc bench (0099): the tool clamped in its vise with its modules, the shard alight, a module going on as a burst of arcs |

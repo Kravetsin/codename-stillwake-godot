@@ -5,17 +5,17 @@
 | File | Purpose |
 | --- | --- |
 | `EffectsView.cs` | The layer: steps and draws every particle the features emit, glints, shock lines, arcs and shimmer. |
-| `Impacts.cs` | What a hit at a cell strikes and where on it (0094): the face toward the hero, its floor, a tool's share. |
+| `logic/Impacts.cs` | What a hit at a cell strikes and where on it (0094): the face toward the hero, its floor, a tool's share. |
 
 Particles without a word, in the luminous style (0075): what glows is light added over the world — streaks white-hot
 at the head, stretched along their curling path, fading as they cool, lighting the room a little; a one-frame glint
 and a faint shock line on key moments; heat shimmer behind hot things — and dust and smoke are matter, motes and
 wisps lit by the room. Drawn only, never part of the world: each peer emits its own from what it sees.
 
-Beside this folder: `render/Luminous.cs` (`Glimmer`, `Luminous` and its presets, `Glims.Shared`, `LuminousMath`),
-`render/Flares.cs` (`Glint`, `Shock`, `Flash`, `Trail`, `Bloom`), `render/Bolts.cs` (arcs), `render/SoftDots.cs`,
-`render/Strokes.cs` (every stroke in one multimesh), `render/Shimmer.cs`, `render/HitBurst.cs` (throws a `HitLook`
-or a share of it); `Content/Fx.cs` (the knobs, the lights' cap) and `Content/HitLooks.cs` (a hit's look by what it strikes).
+Beside this folder: `render/logic/Luminous.cs` (`Glimmer`, `Luminous` and its presets, `Glims.Shared`, `LuminousMath`),
+`render/logic/Flares.cs` (`Glint`, `Shock`, `Flash`, `Trail`, `Bloom`), `render/logic/Bolts.cs` (arcs), `render/SoftDots.cs`,
+`render/Strokes.cs` (every stroke in one multimesh), `render/Shimmer.cs`, `render/logic/HitBurst.cs` (throws a `HitLook`
+or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Content/logic/HitLooks.cs` (a hit's look by what it strikes).
 
 ## Rules
 

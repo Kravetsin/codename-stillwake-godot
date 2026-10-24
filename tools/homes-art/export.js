@@ -1,6 +1,6 @@
 // Exports the arc makers' homes (ADR 0091) from the concept page's own drawing code (decor.js, unchanged but for its require and exports):
 // each piece's picture, what of it glows, its dark look where its lamp may be out, its lights and its live emitters, into
-// game/art/homes and game/Content/HomesArt.cs; the plaster's wall and back wall into game/art/planet; the arc lamp aboard, from
+// game/art/homes and game/Content/logic/HomesArt.cs; the plaster's wall and back wall into game/art/planet; the arc lamp aboard, from
 // its icon; the music box's placeholder tine; the arc relic (0096, relic.js: the cradle and the niche as pieces, the lens, the
 // shard's icon, where their arcs play in Content/RelicArt.cs). Change the drawing code and run `node tools/homes-art/export.js`;
 // never edit what it writes.

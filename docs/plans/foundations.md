@@ -134,7 +134,7 @@ screen keeps what scrolls into view as it would have been.
 **Slice 0 — the client costs what is built ✅.** Nothing of the client walks the whole grid on a
 regular path any more. The grid view and the light look again only when the grid's `Version` moved,
 and then compare their copies only within what is built now and was at their last look
-(`game/shared/BuiltRows.cs`); the first drawing draws only cells with something in them. `AfterToggles`
+(`game/shared/logic/BuiltRows.cs`); the first drawing draws only cells with something in them. `AfterToggles`
 answers just the toggled cells, so a toggle in flight no longer copies two layers (16 MB on 2048×1024)
 a tick. Starlight is worked out over `Built` and 4 cells round it and the occupancy texture covers
 `Built`, both placed by their corner; past them every cell is open, which is what the edge shows. The

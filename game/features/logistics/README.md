@@ -7,21 +7,20 @@ It reads `LogisticsModule` (`Served`, `Servable`, `Reached`, `Drones`, `Low`, `Z
 wired by `Main`: the header of every machine frame (`InventoryPanel.Served`) and a queued station's
 (`FabricatorPanel.Served`), where drones have work. The bay's slots, charge bars and frame bolt are the items
 feature's. It follows the mockup "Drones Keep It Going" and the user's picks from "Drone Look Concepts": drone A,
-bay C (the perch), motion "lively". Numbers live in `game/Content/DroneLook.cs`.
+bay C (the perch), motion "lively". Numbers live in `game/Content/logic/DroneLook.cs`.
 
 ## Files
 
 | File               | Holds                                                                                         | Godot |
 | ------------------ | --------------------------------------------------------------------------------------------- | ----- |
-| `Served.cs`        | the badge's look and tooltip keys; own `SetServed` in flight (0014); a drone between ticks; bay slots filled or emptied; a clamp's grip | no |
-| `Hover.cs`         | a drone's drawn motion: spring, lean, face, bob, rotors, swinging cargo, lift, landing | no |
-| `Whir.cs`          | a drone's rotors heard: pitch and volume from its speed and id | no |
+| `logic/Served.cs`  | the badge's look and tooltip keys; own `SetServed` in flight (0014); a drone between ticks; bay slots filled or emptied; a clamp's grip | no |
+| `logic/Hover.cs`   | a drone's drawn motion: spring, lean, face, bob, rotors, swinging cargo, lift, landing | no |
+| `logic/Whir.cs`    | a drone's rotors heard: pitch and volume from its speed and id | no |
 | `ServedBadge.cs`   | a machine's drone badge, a wrist key in its frame's header (0081) | yes |
 | `LogisticsView.cs` | drones in flight and docked, pads, lamps, a bay's beacon and zone; drones heard | yes |
 | `DroneLight.cs`    | drones in light (0075): rotor discs and glints, floor dust under them, lamp trail, shimmer, landing puffs | yes |
 
-`Served.cs`, `Hover.cs` and `Whir.cs` are compiled into `game.tests/` (`ServedTests`, `HoverTests`,
-`DroneSoundTests`). The testbed (`-- --testbed`, `TestbedTests`) runs two drones from a powered bay through a closed
+Tests: `ServedTests`, `HoverTests`, `DroneSoundTests`. The testbed (`-- --testbed`, `TestbedTests`) runs two drones from a powered bay through a closed
 door keeping the furnace, Former and grow capsule going from a supply crate, the farm's crate switched off;
 `--open=droneBay` (`--open-at 130`) shows the bay's frame and zone, `--open=crate@2` a crossed badge,
 `--near=furnace` starts in that room, `--card=droneBay --pick` holds a bay's blueprint.
