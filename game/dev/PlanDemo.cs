@@ -15,8 +15,8 @@ namespace Stillwake.Game.Dev;
 /// A script for recordings of the plan and the power and air overlays (<c>-- --plan-demo</c>), frame by
 /// frame at 20 a second in the wreck: the menu with what is known and a card's tooltip; creative mode
 /// and every card; a wall dragged over the lamp, red where it may not go, and planned; the blueprint
-/// built by the screwdriver held on it; the stripper in hand, the lamp's cable carried by its plug to the
-/// wall with Ctrl and dropped, and a new cable laid from the lamp; the screwdriver back and the cables away; air, pipes over it on the air tab, and air back once the menu closes.
+/// built by the screwdriver held on it; the plan wiring (X), the lamp's cable carried by its plug to the
+/// wall with Ctrl and dropped, and a new cable laid from the lamp; the plan away and the cables with it; air, pipes over it on the air tab, and air back once the menu closes.
 /// </summary>
 public sealed class PlanDemo(Hands hands, Layout layout)
 {
@@ -108,10 +108,9 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 hands.Plan.Toggle();
                 break;
             case 80:
-                log("the plan away, the stripper (2) held: the cables overlay");
-                hands.Plan.PutPlanAway();
-                Key(Godot.Key.Key2, true);
-                Key(Godot.Key.Key2, false);
+                log("X: the plan wiring, the cables overlay");
+                Key(Godot.Key.X, true);
+                Key(Godot.Key.X, false);
                 _pointer = plug;
                 break;
             case 84:
@@ -139,9 +138,9 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 Release();
                 break;
             case 132:
-                log("the screwdriver (1) back in hand, the cables overlay away");
-                Key(Godot.Key.Key1, true);
-                Key(Godot.Key.Key1, false);
+                log("the plan building again and away, the cables overlay with it");
+                hands.Plan.SetMode(PlanMode.Build);
+                hands.Plan.PutPlanAway();
                 break;
             case 136:
                 log("O: air");

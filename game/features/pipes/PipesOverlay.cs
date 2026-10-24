@@ -11,11 +11,11 @@ using Stillwake.Sim.Pipes;
 namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
-/// Every pipe network brought out of the ship while the wrench is held (features/pipes/index.ts, 0109): each network's spans
+/// Every pipe network brought out of the ship while the plan is piping (features/pipes/index.ts, 0109): each network's spans
 /// over the ship, slim, in a colour of their own, so a player sees which tanks and generators reach which vents. Where
 /// oxygen comes into a network, from a tank holding some or a powered generator, dots run along its spans away from it; a
 /// network none comes into is faded and still. A valve shows its state in colour; a socket shows where each machine takes
-/// a pipe. The wrench's hands work here (<see cref="PipeHands"/>): the span being laid runs to the pointer, green where it
+/// a pipe. The piping's hands work here (<see cref="PipeHands"/>): the span being laid runs to the pointer, green where it
 /// may go, red where not, its length and cost by the pointer.
 /// </summary>
 public partial class PipesOverlay : Node2D
@@ -52,7 +52,7 @@ public partial class PipesOverlay : Node2D
     }
 
     /// <summary>
-    /// One frame while the overlay is on: the wrench's hands with the left buttons, <paramref name="valves"/> (the valve card) and the right
+    /// One frame while the overlay is on: the piping's hands with the left buttons, <paramref name="valves"/> (the valve card) and the right
     /// presses, <paramref name="cuts"/>; the networks read again at most every <see cref="RefreshMs"/>, the dots moved on.
     /// </summary>
     public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, bool valves, IReadOnlyList<ButtonEvent> cuts,
@@ -76,7 +76,7 @@ public partial class PipesOverlay : Node2D
         Read(m);
     }
 
-    /// <summary>Lets go of a span being laid: the wrench put away.</summary>
+    /// <summary>Lets go of a span being laid: piping left.</summary>
     public void Release() => _hands.Release();
 
     private void Read(Registry m)

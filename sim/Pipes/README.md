@@ -8,8 +8,8 @@
 | `PipeNetworks.cs` | How pipe networks are found from the spans, and how a map's drawn pipes become spans (0109). |
 | `Pipes.cs` | Pipes as spans (0109): straight pipes between machines' ports and joints, laid and taken away by hand with the … |
 
-Pipes as spans (ADR 0109): straight pipes between machines' ports and joints, laid and taken away by hand with the
-wrench, valves on joints, and the networks they join, along which air flows between the machines on them. Shaped as
+Pipes as spans (ADR 0109): straight pipes between machines' ports and joints, laid and taken away by hand from the
+plan, piping, valves on joints, and the networks they join, along which air flows between the machines on them. Shaped as
 `power`'s cables are; the per-cell conduit layer of the grid is gone.
 
 - **Depends on:** `grid` (`IGridQueries`: `Machines`, `PortsOf`, `MachineAt`, `Zone`, `ChangedSince`), `items`
@@ -48,7 +48,7 @@ wrench, valves on joints, and the networks they join, along which air flows betw
 
 - **Queries** (`IPipesQueries`): `NetworkAt(cell)`, `NetworksOf(machineId)`, `Network(id)`, `Networks`, `Version` as
   before; `Spans`, `Valves`, `ValveAt(cell)`; `LayProblem(peer, a, b)` and `ValveProblem(peer, cell, valve)` — why that
-  command would be refused, for the wrench's ghost; `AfterToggles(commands)` — whether each valve the `SetValve`s among
+  command would be refused, for the piping's ghost; `AfterToggles(commands)` — whether each valve the `SetValve`s among
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
 - **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,

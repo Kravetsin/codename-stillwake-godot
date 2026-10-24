@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The wrench's hands (0109): a left drag lays a span, a right press takes a span away; the valve card makes and takes valves (0110).</summary>
+/// <summary>The piping's hands (0109): a left drag lays a span, a right press takes a span away; the valve card makes and takes valves (0110).</summary>
 public class PipeHandsTests
 {
     // Drawn a cell a character, sixteen wide: a vent (2×2) at (0, 0), its port its top-left.

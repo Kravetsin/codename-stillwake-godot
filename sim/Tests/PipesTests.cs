@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Pipes as spans (0109): laid and cut with the wrench, joints and valves, the networks they join, and maps' pipes as spans.</summary>
+/// <summary>Pipes as spans (0109): laid and cut by hand, joints and valves, the networks they join, and maps' pipes as spans.</summary>
 public class PipesTests
 {
     /// <summary>Three vents, two cells square, their ports their top-left cells: (0, 0), (12, 4) and (0, 8); open cells between.</summary>

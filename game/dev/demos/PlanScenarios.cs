@@ -20,7 +20,7 @@ public sealed class PlanScenario : DevScenario
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m.Grid, log);
 }
 
-[Dev("--layer-demo", "plan|remove|fade|axe|aim|strip|pipe|valve: the plan's layers and hand tools by script (LayerDemo, 0107–0109)", Shape = DevShape.Next)]
+[Dev("--layer-demo", "plan|remove|fade|axe|aim|strip|pipe|valve: the plan's layers and modes by script (LayerDemo, 0107–0109)", Shape = DevShape.Next)]
 public sealed class LayerScenario : DevScenario
 {
     private LayerDemo? _demo;
