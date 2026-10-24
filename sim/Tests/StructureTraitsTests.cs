@@ -67,4 +67,20 @@ public class StructureTraitsTests
             Assert.False(g.Supports(outside) || g.Climbable(outside) || g.Seals(outside) || g.BlocksLight(outside));
         }
     }
+
+    /// <summary>Materials and machines say what they do too (0112): the rules that once named lava, soil, a crate or a bay read these.</summary>
+    [Fact]
+    public void MaterialsAndMachinesCarryTheirTraits()
+    {
+        Assert.Equal([Lava.Material], Materials.All.Where(m => m.Hurts).Select(m => m.Id));
+        Assert.Equal(["soil"], Materials.All.Where(m => m.Grows).Select(m => m.Id));
+        Assert.All(Materials.All, m => Assert.Equal(m.Natural, m.Footing != Tread.Deck));
+        Assert.Equal(["iron"], Materials.All.Where(m => m.Look == MaterialLook.Panels).Select(m => m.Id));
+        Assert.Equal(["crate"], Machines.All.Where(m => m.Container).Select(m => m.Kind));
+        Assert.Equal(["tank"], Machines.All.Where(m => m.Gas).Select(m => m.Kind));
+        Assert.Equal(["vent"], Machines.All.Where(m => m.Vents).Select(m => m.Kind));
+        Assert.Equal([Content.Logistics.Bay], Machines.All.Where(m => m.Zone).Select(m => m.Kind));
+        Assert.Equal(["lamp", "arcLamp"], Machines.All.Where(m => m.Glow).Select(m => m.Kind));
+        Assert.Single(Machines.All, m => m.Fixed);
+    }
 }

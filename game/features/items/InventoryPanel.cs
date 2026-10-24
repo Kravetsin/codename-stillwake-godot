@@ -1060,9 +1060,10 @@ public partial class InventoryPanel : CanvasLayer
         }
         if (reading.Kind == "charger" && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
         // A bay's bolt lit while it charges a drone docked in it.
-        if (reading.Kind == Content.Logistics.Bay && Crate is int bay) _frame?.Light(Charger?.Invoke(bay) == true);
-        if (reading.Kind is "smelter" or "growCapsule" && Crate is int fed) ShowFed(reading, fed);
-        if (_problem == null || reading.Kind is not ("furnace" or "burnerGenerator")) return;
+        var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
+        if (spec is { Zone: true } && Crate is int bay) _frame?.Light(Charger?.Invoke(bay) == true);
+        if (reading.Kind is string fedKind && Stillwake.Content.Stations.TryGet(fedKind, out var fedSpec) && fedSpec.Fed && spec?.FuelSlot == null && Crate is int fed) ShowFed(reading, fed);
+        if (_problem == null || spec?.FuelSlot == null) return;
         var at = Crate is int id ? Furnace?.Invoke(id) : null;
         bool burning = at?.Burning == true;
         // Too cold for its input: the mark cold blue, and why by the pointer rather than under the panel.

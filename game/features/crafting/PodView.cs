@@ -128,7 +128,7 @@ public partial class PodView : Node2D
         Vector2? maker = null;
         foreach (var m in _grid.Machines)
         {
-            if (m.Kind != "lifepod") continue;
+            if (!Stillwake.Content.Machines.Get(m.Kind).Fixed) continue;
             var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * Cell;
             var doing = Crafts.DoingOf(_crafting.Queue(m.Id), _crafting.Progress(m.Id));
             _pods.Add((corner, doing, _items.Crate(m.Id).Any(s => s != null)));

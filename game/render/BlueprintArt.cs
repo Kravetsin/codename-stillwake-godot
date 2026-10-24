@@ -34,9 +34,9 @@ public static class BlueprintArt
     public static IReadOnlyList<TilePiece> PiecesOf(Placement placement, int linked) =>
         placement.Kind == "backWall"
             // Scrap's and the ground's are tiles laid over the world, cut a cell at a time (0079); iron's a plain panel.
-            ? [placement.Material == "scrap" || Materials.Get(placement.Material!).Natural
-                ? new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)
-                : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)]
+            ? [Materials.Get(placement.Material!).Look == MaterialLook.Panels
+                ? new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)
+                : new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)]
             : Structures.ByBuild(placement.Kind) is { } spec
                 ? StructurePieces(spec, placement, linked)
                 : [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))];

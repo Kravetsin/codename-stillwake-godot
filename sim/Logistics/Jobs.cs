@@ -41,7 +41,7 @@ public sealed partial class LogisticsModule
                 int at = mine;
                 while (at < _offers.Count && _offers[at].First.Item != stack.Item) at++;
                 if (at < _offers.Count) _offers[at] = _offers[at] with { Count = _offers[at].Count + stack.Count };
-                else _offers.Add(new Offer(m.Id, slot, stack, stack.Count, distance, m.Kind != "crate"));
+                else _offers.Add(new Offer(m.Id, slot, stack, stack.Count, distance, !Machines.Get(m.Kind).Container));
             }
             for (int i = _offers.Count - 1; i >= mine; i--)
             {
@@ -79,7 +79,7 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>The first slot drones take from at machine <paramref name="m"/>: a crate's first, a machine's first output; null for one with none.</summary>
-    private static int? FirstOffered(Machine m) => m.Kind == "crate" ? 0 : OutputsOf(m);
+    private static int? FirstOffered(Machine m) => Machines.Get(m.Kind).Container ? 0 : OutputsOf(m);
 
     /// <summary>
     /// What drones on their way to machine <paramref name="m"/> will take of <paramref name="item"/>: at a crate, the sum
@@ -91,7 +91,7 @@ public sealed partial class LogisticsModule
         foreach (var d in State.Drones)
             if (d.Leg == Leg.Source && d.Source == m.Id && d.Item == item)
             {
-                if (m.Kind != "crate") return int.MaxValue;
+                if (!Machines.Get(m.Kind).Container) return int.MaxValue;
                 sum += d.Count;
             }
         return sum;

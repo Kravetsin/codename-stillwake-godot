@@ -96,7 +96,7 @@ public sealed partial class LogisticsModule
     /// </summary>
     private void Fly(Drone d)
     {
-        if (_grid.MachineById(d.Bay) is not { } bay || bay.Kind != Tune.Bay)
+        if (_grid.MachineById(d.Bay) is not { } bay || !Machines.Get(bay.Kind).Zone)
         {
             Drop(d);
             return;

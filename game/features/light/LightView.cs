@@ -178,7 +178,7 @@ public partial class LightView : Node2D
     {
         foreach (var node in _lamps.GetChildren()) node.QueueFree();
         _shown.Clear();
-        foreach (var lamp in _machines.Where(m => m.Kind is "lamp" or ArcLampLooks.Kind))
+        foreach (var lamp in _machines.Where(m => Stillwake.Content.Machines.Get(m.Kind).Glow))
         {
             // The middle of its picture, its footprint's (two by two cells, 0104).
             var spec = Stillwake.Content.Machines.Get(lamp.Kind);

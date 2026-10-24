@@ -227,19 +227,17 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     /// <summary>The map's first lifepod makes heroes at its hatch; a map without one wakes them at its first S.</summary>
     protected override CrewState Init(Layout layout)
     {
-        var pods = layout.Machines().Where(m => m.Kind == Pod).Select(m => m.Cell).ToList();
+        var pods = layout.Machines().Where(m => Content.Machines.Get(m.Kind).Fixed).Select(m => m.Cell).ToList();
         if (pods.Count == 0) return new() { Spawn = layout.CellsOf('S').DefaultIfEmpty(0).First() };
         var (x, y) = Content.Crew.PodHatch;
         return new() { Pod = pods[0], Spawn = pods[0] + y * layout.Width + x };
     }
 
-    private const string Pod = "lifepod";
-
     /// <summary>Whether <paramref name="cell"/> is within <c>Crew.PodReach</c> cells of every side of the pod, either way.</summary>
     public bool ByPod(int cell)
     {
-        if (State.Pod is not int pod || cell < 0) return false;
-        var spec = Content.Machines.Get(Pod);
+        if (State.Pod is not int pod || cell < 0 || _grid.MachineAt(pod) is not { } machine) return false;
+        var spec = Content.Machines.Get(machine.Kind);
         int width = _grid.Width;
         int x = cell % width, y = cell / width, left = pod % width, top = pod / width;
         int dx = Math.Max(0, Math.Max(left - x, x - (left + spec.Width - 1)));
@@ -266,8 +264,6 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         return (Content.Field.EdgeCost * depth * depth + 999_999) / 1_000_000;
     }
 
-    private static readonly int LavaCode = Content.Materials.Get(Content.Lava.Material).Code;
-
     /// <summary>
     /// Whether a hero reported at <paramref name="cell"/> touches lava: a wall of it there or up to <c>Lava.Reach</c> rows under
     /// it, where the feet of a hero standing on it are. Off the grid nothing burns.
@@ -277,7 +273,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         int width = _grid.Width, size = width * _grid.Height;
         if (cell < 0 || cell >= size) return false;
         for (int at = cell, i = 0; i <= Content.Lava.Reach && at < size; i++, at += width)
-            if (_grid.WallAt(at) is { } wall && wall.Code == LavaCode) return true;
+            if (_grid.WallAt(at) is { Hurts: true }) return true;
         return false;
     }
 

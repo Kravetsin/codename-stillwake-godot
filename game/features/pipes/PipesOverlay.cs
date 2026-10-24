@@ -88,7 +88,7 @@ public partial class PipesOverlay : Node2D
         // A tank holding oxygen feeds its pipes; a powered generator does, its store empty or not.
         bool Feeds(int id) => byId.TryGetValue(id, out var x) && (x.Kind == "generator"
             ? m.Power.Satisfaction(id) > 0
-            : x.Kind == "tank" && m.Atmosphere.OxygenIn(id) > 0);
+            : Stillwake.Content.Machines.Get(x.Kind).Gas && m.Atmosphere.OxygenIn(id) > 0);
         var colourOf = new Dictionary<int, Color>();
         _runs = [];
         var all = pipes.Spans.Select(s => (s.A, s.B)).ToList();

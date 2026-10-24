@@ -243,7 +243,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return _seen;
     }
 
-    private bool IsTank(int id) => _grid.MachineById(id)?.Kind == "tank";
+    private bool IsTank(int id) => _grid.MachineById(id) is { } m && Content.Machines.Get(m.Kind).Gas;
 
     // Queries.
 

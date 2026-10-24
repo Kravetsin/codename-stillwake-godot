@@ -951,8 +951,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_benches = benches);
         var ui = _hands.Ui;
         AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
-            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open)?.Kind == Content.Logistics.Bay ? open : null,
-            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && kind == Content.Logistics.Bay ? _hands.Mouse.Pointer() : null));
+            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open) is { } bay && Stillwake.Content.Machines.Get(bay.Kind).Zone ? open : null,
+            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && Stillwake.Content.Machines.TryGet(kind, out var zoned) && zoned.Zone ? _hands.Mouse.Pointer() : null));
         var power = _m.Power;
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
@@ -998,7 +998,7 @@ public partial class Main : Node2D, ITogether
     private void AimCamera(Layout? layout)
     {
         // Where the crew makes heroes: the pod's hatch, or the map's S; a map with neither is looked at whole.
-        bool made = layout != null && (layout.CellsOf('S').Any() || layout.Machines().Any(m => m.Kind == "lifepod"));
+        bool made = layout != null && (layout.CellsOf('S').Any() || layout.Machines().Any(m => Stillwake.Content.Machines.Get(m.Kind).Fixed));
         int start = made ? _m.Crew.Spawn : -1;
         if (Has("--perf")) _camera.Fit(new Rect2(0, 0, _m.Grid.Width, _m.Grid.Height));
         else if (start >= 0) _camera.Follow(new Vector2(start % _m.Grid.Width + 0.5f, start / _m.Grid.Width));

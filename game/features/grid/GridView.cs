@@ -300,8 +300,6 @@ public partial class GridView : Node2D
         }
     }
 
-    private static readonly int SoilCode = Materials.Get("soil").Code, LavaCode = Materials.Get(Stillwake.Content.Lava.Material).Code;
-
     /// <summary>
     /// The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up
     /// into it. Lava has none: its surface, its haze and its embers are the lava view's.
@@ -309,7 +307,7 @@ public partial class GridView : Node2D
     private void DrawTop(int cell)
     {
         int w = _grid.Width, above = cell - w, material = _drawn.Material[cell];
-        if (above < w || material == LavaCode || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), _drawn.Structure[above], _drawn.Back[above], SoilCode))
+        if (above < w || Materials.ByCode(material)?.Look == MaterialLook.Molten || !Grass.Edged(_drawn.Structure[cell], material, IsNatural(material), _drawn.Structure[above], _drawn.Back[above]))
             return;
         // Its 16 px column's variant, the half this cell's column is, laid from two cells over the ground (0104).
         int x = cell % w, half = x % Drawn;
@@ -464,7 +462,7 @@ public partial class GridView : Node2D
     {
         if (_backCuts.TryGetValue(code, out var cut)) return cut;
         string material = MaterialOf(code);
-        return _backCuts[code] = material == "scrap" ? "back_scrap" : Materials.Get(material).Natural ? ShipTiles.BackName(material) : null;
+        return _backCuts[code] = Materials.Get(material).Look == MaterialLook.Panels ? null : ShipTiles.BackName(material);
     }
 
     private (string Back, string? Front) TopNamesOf(int code, int variant, int half)

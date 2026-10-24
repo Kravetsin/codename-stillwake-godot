@@ -57,7 +57,12 @@ public sealed record MachineSpec(
     bool Fixed = false,
     bool Charges = false,
     StoreSpec? Store = null,
-    bool Tunes = false)
+    bool Tunes = false,
+    bool Container = false,
+    bool Gas = false,
+    bool Vents = false,
+    bool Zone = false,
+    bool Glow = false)
 {
     /// <summary>Whether it is a node cables end on: it makes power, draws it or stores it.</summary>
     public bool Powered => Makes != null || Draws != null || Store != null;
@@ -74,17 +79,17 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160),
+        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160, Gas: true),
         new("generator", 4, 4, [(0, 2)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5)),
         new("solarPanel", 6, 2, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14)),
-        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60),
-        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1)),
+        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60, Vents: true),
+        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Glow: true),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
-        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1)),
+        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Glow: true),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         new("analyzer", 4, 4, [], [("plate", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1),
-        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27),
+        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Container: true),
         // Its input, its fuel, then three outputs.
         new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel.
@@ -104,7 +109,7 @@ public static class Machines
         new("growCapsule", 4, 6, [], [("frame", 1), ("glass", 2), ("soil", 4), ("circuit", 1), ("wire", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
-        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true),
+        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Zone: true),
         new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
