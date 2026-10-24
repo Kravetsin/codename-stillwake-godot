@@ -46,8 +46,6 @@ public interface IPowerQueries
     int? NodeAt(int cell);
     /// <summary>The network node <paramref name="node"/> is on, if a cable ends there.</summary>
     PowerNetwork? NetworkOf(int node);
-    /// <summary>Whether a cable ends on node <paramref name="node"/>: a machine there is not taken apart.</summary>
-    bool Cabled(int node);
     /// <summary>The share of its draw machine <paramref name="machineId"/> gets, in thousandths; 0 off every network.</summary>
     int Satisfaction(int machineId);
     /// <summary>
@@ -87,6 +85,15 @@ public interface IPowerOps
 {
     /// <summary>Tells machine <paramref name="machineId"/> to rest, drawing or making nothing from the next derivation on, or to work again.</summary>
     void Rest(int machineId, bool resting);
+
+    /// <summary>
+    /// Machine <paramref name="machineId"/> is about to be taken apart (0110): every cable plugged into it stays, its end a peg
+    /// at the cell its plug is in.
+    /// </summary>
+    void Unplug(int machineId);
+
+    /// <summary>Machine <paramref name="machineId"/> was just built (0110): every cable ending on a peg at its plug's cell plugs into it.</summary>
+    void Plug(int machineId);
 }
 
 /// <summary>
@@ -267,7 +274,6 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public IReadOnlyList<PowerNetwork> Networks => State.Networks;
     public int? NodeAt(int cell) => PowerNodes.NodeAt(_grid, cell);
     public PowerNetwork? NetworkOf(int node) => State.Networks.Find(n => n.Nodes.Contains(node));
-    public bool Cabled(int node) => State.Cables.Exists(c => c.A == node || c.B == node);
     public int Satisfaction(int machineId) => State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
     public int Draw(int machineId) => _grid.MachineById(machineId) is { } m ? DrawOf(m) : 0;
 
@@ -290,6 +296,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     public string? LayProblem(int peer, int a, int b)
     {
+        // Cables are laid aboard only (0110): away from the ship the stripper does nothing.
+        if (Rules != Content.Surfaces.Ship) return "power.notAboard";
         var p = NodeAt(a);
         var q = NodeAt(b);
         if (p == null || q == null) return "power.noNode";
@@ -307,6 +315,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// </summary>
     public string? MoveProblem(int from, int to, Ends? cable = null)
     {
+        if (Rules != Content.Surfaces.Ship) return "power.notAboard";
         var taken = Moved(from, cable);
         if (taken.Count == 0) return "power.noCable";
         var target = NodeAt(to);
@@ -341,6 +350,38 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         if ((at >= 0) == resting) return;
         if (resting) State.Resting.Insert(~at, machineId);
         else State.Resting.RemoveAt(at);
+    }
+
+    public void Unplug(int machineId)
+    {
+        var m = _grid.MachineById(machineId)!;
+        Rehome(m.Cell, PlugCell(_grid, m));
+    }
+
+    public void Plug(int machineId)
+    {
+        var m = _grid.MachineById(machineId)!;
+        if (IsPowered(Spec(m))) Rehome(PlugCell(_grid, m), m.Cell);
+    }
+
+    /// <summary>
+    /// Every cable ending at node <paramref name="from"/> to end at <paramref name="to"/> instead, in the order they lie; one that
+    /// would then end where it starts or join a pair already joined stays where it was.
+    /// </summary>
+    private void Rehome(int from, int to)
+    {
+        if (from == to) return;
+        var joined = State.Cables.Select(c => (c.A, c.B)).ToHashSet();
+        for (int i = 0; i < State.Cables.Count; i++)
+        {
+            var cable = State.Cables[i];
+            if (cable.A != from && cable.B != from) continue;
+            int other = cable.A == from ? cable.B : cable.A;
+            var ends = Ordered(other, to);
+            if (other == to || !joined.Add(ends)) continue;
+            State.Cables[i] = new Cable(ends.A, ends.B, cable.Paid);
+        }
+        State.Cables.Sort(ByEnds);
     }
 
     // Commands.

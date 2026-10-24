@@ -29,7 +29,7 @@ public class PromptTests
     {
         var doors = new[] { false, true }.Select(open => Prompts.Of(M, Press(At(2, 1), new SetDoor(At(2, 1), open)))?.Action);
         Assert.Equal(["use.closeDoor", "use.openDoor"], doors);
-        var valves = new[] { false, true }.Select(open => Prompts.Of(M, Press(At(6, 1), new SetValve(At(6, 1), open)))?.Action);
+        var valves = new[] { false, true }.Select(open => Prompts.Of(M, Press(At(6, 1), new Sim.Pipes.SetValve(At(6, 1), open)))?.Action);
         Assert.Equal(["use.closeValve", "use.openValve"], valves);
         Assert.Equal(new Prompt("use.loadCanister", "items.notEnough"), Prompts.Of(M, Press(3, new LoadCanister(1), "items.notEnough")));
         Assert.Equal("use.catch", Prompts.Of(M, Press(3, new Grab(1)))?.Action);
@@ -40,7 +40,7 @@ public class PromptTests
     public void SaysWhetherHeldEBuildsOrTakesApart()
     {
         var planned = new TestWorld("#...#");
-        planned.Step(new PlacePlan(2, new Placement("conduit", "pipe")), new Deconstruct(0, "structure"));
+        planned.Step(new PlacePlan(2, new Placement("structure", "floor")), new Deconstruct(0, "structure"));
         static Aim Work(int plan) => new(0, true, Work: new WorkAim(plan, null));
         Assert.Equal(["use.build", "use.takeApart"], new[] { 1, 2 }.Select(plan => Prompts.Of(planned.M, Work(plan))?.Action));
     }

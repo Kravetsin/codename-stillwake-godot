@@ -2,6 +2,7 @@ using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
 using Xunit;
 using Air = Stillwake.Content.Air;
@@ -40,9 +41,9 @@ public class AtmosphereTests
     {
         public void PipeUp()
         {
-            foreach (int cell in AirTesting.Line(9, 1, 1, 1, 3))
-                W.Do(new Place(cell, new Placement("conduit", "pipe")));
-            W.Run();
+            // From the vent's port to the tank's, through a joint a valve may be made of.
+            var run = AirTesting.Line(9, 1, 1, 1, 3).ToArray();
+            W.GiveItems(0, ("tube", 3), ("gear", 1)).Pipe(run[0], At(1, 2), run[^1]).Run();
         }
     }
 
@@ -148,8 +149,7 @@ public class AtmosphereTests
         var s = SetUp();
         var w = s.W;
         s.PipeUp();
-        w.Do(new ClearAt(At(1, 2), "conduit"))
-            .Do(new Place(At(1, 2), new Placement("conduit", "valve")))
+        w.Do(new MakeValve(At(1, 2), true))
             .Do(new LoadCanister(s.Tank))
             .Run();
         Assert.Equal(RoomStatus.Filling, w.M.Atmosphere.StatusOf(s.Room));

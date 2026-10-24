@@ -16,8 +16,8 @@ namespace Stillwake.Game.Shared;
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
 /// for these features): the plan and its menu, cables, the pipes and air, the air overlay's chip, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
-/// buttons, but while the stripper is held, when the cables take them (0108). While a back wall's card aims, or the
-/// right button digs with no card, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
+/// buttons, but while the stripper is held, when the cables take them (0108), or the wrench, the pipes (0109), by the card of its menu (0110). With the plan away, while the
+/// right button digs, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
 /// </summary>
 public partial class Hands : Node2D
 {
@@ -29,7 +29,8 @@ public partial class Hands : Node2D
 
     private readonly BuildingView _building;
     private readonly PowerView _power;
-    private readonly PipesOverlay _pipes = new();
+    private readonly PipesOverlay _pipes;
+    private readonly PipesView _pipesBuilt = new();
     private readonly AirView _air;
     private readonly PointerTip _tip;
     private string? _overlayWas;
@@ -42,11 +43,12 @@ public partial class Hands : Node2D
         Plan = new PlanHand(Ui);
         _building = new BuildingView(Ui, Plan);
         _power = new PowerView(Ui);
+        _pipes = new PipesOverlay(Ui);
         _air = new AirView(Ui);
         Menu = new BuildMenu(Plan, Ui);
         _tip = new PointerTip(Ui);
         Overlays = new OverlayBar(Ui);
-        foreach (var node in (Node[])[Mouse, _air, _power, _pipes, _building, Menu, Overlays, _tip]) AddChild(node);
+        foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Overlays, _tip]) AddChild(node);
     }
 
     /// <summary>
@@ -67,19 +69,22 @@ public partial class Hands : Node2D
         string? overlay = Ui.OverlayOn;
         if (overlay != _overlayWas) Ui.WorldTip.Set(null);
         _overlayWas = overlay;
-        var tool = Plan.Selected.Get();
-        // The cables show only while the stripper is held (0108): then the buttons are the power feature's, the left laying,
-        // which it takes itself, the right cutting; else the card's.
-        bool wiring = overlay == PowerView.Id;
-        IReadOnlyList<ButtonEvent> cuts = wiring ? buttons.TakeRight() : [];
-        if (wiring) _building.Frame(client, m, [], [], false, pointer);
+        // The cables show only while the stripper is held (0108), the pipes while the wrench is (0109): then the buttons are
+        // that feature's, the left laying, the right taking away; else the card's.
+        bool wiring = overlay == PowerView.Id, piping = overlay == PipesOverlay.Id;
+        IReadOnlyList<ButtonEvent> cuts = wiring || piping ? buttons.TakeRight() : [];
+        IReadOnlyList<ButtonEvent> laid = piping ? buttons.TakeLeft() : [];
+        if (wiring || piping) _building.Frame(client, m, [], [], false, pointer);
         else _building.Frame(client, m, buttons.TakeLeft(), buttons.TakeRight(), buttons.HoldsRight, pointer);
-        // The front fades round the pointer while a back wall's card aims, or while the right button digs with no card.
-        bool seeThrough = Tools.IsBack(tool) || tool == null && !wiring && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight);
+        // With the plan put away, aboard, the front fades round the pointer while the right button digs back walls; the open plan fades by its focus.
+        // Never away from the ship (0110): the ground would show what is in it.
+        bool seeThrough = Plan.SeesThrough(!wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
         Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
-        _power.Frame(client, m, buttons, cuts, pointer, bodies, elapsedMs);
-        _pipes.Visible = overlay == PipesOverlay.Id;
-        if (_pipes.Visible) _pipes.Frame(client, m, elapsedMs);
+        _power.Frame(client, m, buttons, wiring ? cuts : [], pointer, bodies, elapsedMs);
+        _pipesBuilt.Frame(client, m);
+        _pipes.Visible = piping;
+        if (piping) _pipes.Frame(client, m, laid, Plan.ToolCard.Get() == Tools.Valve, cuts, pointer, elapsedMs);
+        else _pipes.Release();
         _air.Frame(client, m, pointer, elapsedMs);
         Menu.Frame(m);
         _tip.Frame(pointer);

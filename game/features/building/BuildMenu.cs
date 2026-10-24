@@ -5,6 +5,7 @@ using Stillwake.Game.I18n;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Placement = Stillwake.Sim.Grid.Placement;
 
 namespace Stillwake.Game.Features.Building;
 
@@ -46,7 +47,14 @@ public partial class BuildMenu : CanvasLayer
     private readonly HBoxContainer _foot = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly TextureRect _heldPicture = Picture(20);
     private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100), _hint = Tablet.Text("", Render.Style.Slate500, Tablet.HintSize);
-    private readonly List<(Panel Box, TextureRect Picture)> _cards = [];
+    private readonly List<(Panel Box, TextureRect Picture, Label Count)> _cards = [];
+    /// <summary>
+    /// On the tablet's right edge while the plan is out: the two layers' keys stacked, wrist keys as the bag's sort key, mounted
+    /// on the frame as it is, the focused one lit (0110).
+    /// </summary>
+    private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly List<LayerKey> _layerKeys = [];
+    private const int KeyGap = 2, FocusHeight = 2 * WristLook.KeycapSide + KeyGap;
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
     private Catalogue _at;
@@ -90,10 +98,29 @@ public partial class BuildMenu : CanvasLayer
         _grid.GuiInput += e =>
         {
             if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
-            if (_at.CardAt(press.Position.X, press.Position.Y, _top, _list.Count) is int i) Pick(_list[i]);
+            if (_at.CardAt(press.Position.X, press.Position.Y, _top, _list.Count) is int i)
+            {
+                if (_list[i] is HandCard card) _hand.PickToolCard(card);
+                else Pick(_list[i]);
+            }
             _grid.AcceptEvent();
         };
         _root.AddChild(_open);
+        _focus.AnchorLeft = _focus.AnchorRight = 0.5f;
+        _focus.AnchorTop = _focus.AnchorBottom = 1;
+        foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
+        {
+            var key = new LayerKey(layer, () => _hand.FocusOn(layer)) { Position = new Vector2(0, (int)layer * (WristLook.KeycapSide + KeyGap)) };
+            _focus.AddChild(key);
+            _layerKeys.Add(key);
+        }
+        _root.AddChild(_focus);
+        void Lit()
+        {
+            foreach (var key in _layerKeys) key.On = _layerKeys.IndexOf(key) == (int)_hand.Focus.Get();
+        }
+        hand.Focus.Subscribe(Lit);
+        Lit();
 
         SearchField();
         _slash = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -162,7 +189,7 @@ public partial class BuildMenu : CanvasLayer
         _bar.Track.Size = new Vector2(Catalogue.BarWidth, _at.GridHeight);
         _foot.Position = new Vector2(Catalogue.Pad, _at.FootTop);
         _foot.Size = new Vector2(_at.Width - 2 * Catalogue.Pad, Catalogue.FootHeight);
-        foreach (var (box, _) in _cards) box.QueueFree();
+        foreach (var (box, _, _) in _cards) box.QueueFree();
         _cards.Clear();
         int icon = _at.Icon;
         for (int i = 0; i < Catalogue.Columns * Catalogue.Rows; i++)
@@ -171,8 +198,12 @@ public partial class BuildMenu : CanvasLayer
             var picture = Picture(icon);
             picture.Position = new Vector2((_at.Card - icon) / 2, (_at.Card - icon) / 2);
             box.AddChild(picture);
+            // How many of its item the player carries, a hand tool's card's only (0110).
+            var count = Tablet.Text("", Render.Style.Slate100, Tablet.HintSize);
+            count.Position = new Vector2(3, _at.Card - 16);
+            box.AddChild(count);
             _grid.AddChild(box);
-            _cards.Add((box, picture));
+            _cards.Add((box, picture, count));
         }
         _tabsShown = _shown = "";
     }
@@ -201,12 +232,21 @@ public partial class BuildMenu : CanvasLayer
     {
         _open.OffsetTop = -Slots.Margin - _at.Height + _drop;
         _open.OffsetBottom = -Slots.Margin + _drop;
+        // The layers' keys on the tablet's right edge under its stylus, sticking out of the metal as the bag's sort key does
+        // from the display's: as far into it from its outer edge as that key is.
+        int metal = TabletLayout.RightMetal * TabletLayout.ArtScale;
+        int into = (WristPieces.Display.Window.Right - WristPieces.Pad) * WristPiece.Scale - WristLook.SideKeyOut;
+        _focus.OffsetLeft = _at.Width - _at.Width / 2 + metal - into;
+        _focus.OffsetRight = _focus.OffsetLeft + WristLook.KeycapSide;
+        _focus.OffsetTop = _open.OffsetTop + TabletLayout.StylusFoot * TabletLayout.ArtScale + KeyGap;
+        _focus.OffsetBottom = _focus.OffsetTop + FocusHeight;
     }
+
 
     /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
     public override void _Process(double delta)
     {
-        bool open = _hand.PlanOut.Get();
+        bool open = _hand.PlanOut.Get() || ToolMenu;
         if (!open && _search.HasFocus()) _search.ReleaseFocus();
         _open.Step(open, delta);
         _closed.Visible = !open && !_open.Shown;
@@ -219,7 +259,18 @@ public partial class BuildMenu : CanvasLayer
     }
 
     /// <summary>A card's picture: what it builds, as the ship draws it.</summary>
-    public static Texture2D ThumbOf(Tool tool) => BlueprintArt.Thumbnail(((PlaceTool)tool).Placement);
+    public static Texture2D ThumbOf(Tool tool) => tool switch
+    {
+        HandCard { Id: "valve" } => ShipTiles.PictureOf("valve_open"),
+        HandCard card => ItemIcons.Icon(card.Item),
+        _ => BlueprintArt.Thumbnail(((PlaceTool)tool).Placement),
+    };
+
+    /// <summary>Whether the menu shows a hand tool's cards (0110): the stripper or the wrench held, the plan away.</summary>
+    private bool ToolMenu => !_hand.PlanOut.Get() && _hand.ToolCards.Count > 0;
+
+    /// <summary>How many of <paramref name="item"/> this player carries, as last read.</summary>
+    private int Carried(string item) => _ui.Carried.Where(c => c.Item == item).Sum(c => c.Count);
 
     /// <summary>A card clicked: picked, or let go when it is the one in hand. The menu stays open.</summary>
     public void Pick(Tool tool) => _hand.Pick(tool);
@@ -248,6 +299,12 @@ public partial class BuildMenu : CanvasLayer
         // A press anywhere but the search field ends the typing; the press goes on to whatever it was for.
         if (e is InputEventMouseButton { Pressed: true } press && _search.HasFocus() && !_search.GetGlobalRect().HasPoint(press.Position))
             _search.ReleaseFocus();
+        // The middle button toggles the open plan's layer (0110), before the dev camera's pan can take it.
+        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } && _hand.PlanOut.Get())
+        {
+            _hand.ToggleFocus();
+            GetViewport().SetInputAsHandled();
+        }
     }
 
     public override void _UnhandledInput(InputEvent e)
@@ -279,7 +336,7 @@ public partial class BuildMenu : CanvasLayer
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
     public void Frame(Registry m)
     {
-        bool open = _hand.PlanOut.Get();
+        bool open = _hand.PlanOut.Get() || ToolMenu;
         // The bezel's top at its dock, wherever the tablet is in its slide.
         _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - TabletLayout.BezelAbove : null;
         if (!open)
@@ -290,15 +347,23 @@ public partial class BuildMenu : CanvasLayer
             if (_search.Text != "") _search.Text = "";
             return;
         }
-        var tabs = Tools.Tabs
-            .Select(t => t with { Tools = t.Tools.Where(each => Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
-            // A tab with nothing known is not shown.
-            .Where(t => t.Tools.Count > 0)
-            .ToList();
-        var shownTab = tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();
+        bool toolMenu = ToolMenu;
+        // A hand tool's menu is its cards alone, on one tab named for it, with no search (0110).
+        var tabs = toolMenu
+            ? [new Tab(_ui.Wielded.Get()!, [.. _hand.ToolCards])]
+            : Tools.Tabs
+                // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
+                .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
+                // A tab with nothing known is not shown.
+                .Where(t => t.Tools.Count > 0)
+                .ToList();
+        var shownTab = toolMenu ? tabs[0] : tabs.FirstOrDefault(t => t.Id == _hand.Tab.Get()) ?? tabs.FirstOrDefault();
         // A tab the world shows nothing on is never the mode: the one shown instead is.
-        if (shownTab != null && shownTab.Id != _hand.Tab.Get()) _hand.Tab.Set(shownTab.Id);
-        var tool = _hand.Selected.Get();
+        if (!toolMenu && shownTab != null && shownTab.Id != _hand.Tab.Get()) _hand.Tab.Set(shownTab.Id);
+        Tool? tool = toolMenu ? _hand.ToolCard.Get() : _hand.Selected.Get();
+        _search.Visible = !toolMenu;
+        if (toolMenu && _search.Text != "") _search.Text = "";
+        _focus.Visible = _hand.PlanOut.Get();
         string query = _search.Text.Trim();
         _list = query == "" ? [.. shownTab?.Tools ?? []] : Tools.Matching(tabs.SelectMany(t => t.Tools), query);
         if (_reveal)
@@ -320,7 +385,7 @@ public partial class BuildMenu : CanvasLayer
             _tabsShown = tabsKey;
             MakeTabs(tabs);
         }
-        string key = $"{tabsKey}|{shownTab?.Id}|{query}|{tool?.Id}|{_top}|{string.Join(",", _list.Select(t => t.Id))}|{_hovered?.Id}|{_hoveredTab}|{_search.HasFocus()}";
+        string key = $"{tabsKey}|{shownTab?.Id}|{query}|{tool?.Id}|{_top}|{string.Join(",", _list.Select(t => t.Id))}|{_hovered?.Id}|{_hoveredTab}|{_search.HasFocus()}|{string.Join(",", _list.OfType<HandCard>().Select(h => Carried(h.Item)))}";
         if (key != _shown)
         {
             _shown = key;
@@ -360,6 +425,8 @@ public partial class BuildMenu : CanvasLayer
             box.GuiInput += e =>
             {
                 if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+                // A hand tool's one tab is its menu: nothing to switch to.
+                if (ToolMenu) return;
                 // A tab clicked shows its own cards: the search ends.
                 _search.Text = "";
                 _hand.Tab.Set(id);
@@ -390,7 +457,7 @@ public partial class BuildMenu : CanvasLayer
         _slash.Visible = _search.Text == "" && !_search.HasFocus();
         for (int slot = 0; slot < _cards.Count; slot++)
         {
-            var (box, picture) = _cards[slot];
+            var (box, picture, count) = _cards[slot];
             int index = _top * Catalogue.Columns + slot;
             box.Visible = index < _list.Count;
             if (!box.Visible) continue;
@@ -399,6 +466,8 @@ public partial class BuildMenu : CanvasLayer
             box.Position = new Vector2(x, y);
             box.AddThemeStyleboxOverride("panel", card == tool ? Held : SlotLooks.Of(SlotTint.Plain, card == _hovered, chosen: false));
             picture.Texture = ThumbOf(card);
+            count.Visible = card is HandCard;
+            if (card is HandCard h) count.Text = Carried(h.Item).ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
         _none.Visible = query != "" && _list.Count == 0;
         Tablet.PlaceThumb(_bar.Thumb, _at.Thumb(_top, _list.Count));
@@ -408,7 +477,7 @@ public partial class BuildMenu : CanvasLayer
             _heldPicture.Texture = ThumbOf(tool);
             _heldName.Text = tool.Label;
         }
-        _hint.Text = shownTab != null ? En.T(Tools.HintOf(shownTab.Id, tool)) : "";
+        _hint.Text = shownTab != null ? En.T(Tools.HintOf(tool)) : "";
     }
 
     /// <summary>The card in hand: the selected slot's look, sky edged twice as thick.</summary>

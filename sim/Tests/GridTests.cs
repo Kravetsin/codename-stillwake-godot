@@ -59,19 +59,17 @@ public class GridTests
         Assert.Empty(w.Refusals);
     }
 
-    /// <summary>A door or valve already as asked is left alone, the grid's version too; a doorway open in part opens whole.</summary>
+    /// <summary>A door already as asked is left alone, the grid's version too; a doorway open in part opens whole.</summary>
     [Fact]
-    public void LeavesADoorOrValveAlreadyAsAskedAloneAndOpensAMixedDoorwayWhole()
+    public void LeavesADoorAlreadyAsAskedAloneAndOpensAMixedDoorwayWhole()
     {
-        var w = new Scenario("#D#v\n###x\n#d#.\n#D#.", cells: true);
+        var w = new Scenario("#D#.\n###.\n#d#.\n#D#.", cells: true);
         int before = w.M.Grid.Version;
-        w.Do(new SetDoor(1, false)).Do(new SetValve(3, true)).Do(new SetValve(7, false)).Run();
+        w.Do(new SetDoor(1, false)).Run();
         Assert.Equal(before, w.M.Grid.Version);
         Assert.Empty(w.Refusals);
         w.Do(new SetDoor(13, true)).Run();
         Assert.Equal((Structure.DoorOpen, Structure.DoorOpen), (w.M.Grid.StructureAt(9), w.M.Grid.StructureAt(13)));
-        w.Do(new SetValve(7, true)).Do(new SetValve(3, false)).Run();
-        Assert.Equal((Conduit.ValveClosed, Conduit.ValveOpen), (w.M.Grid.ConduitAt(3), w.M.Grid.ConduitAt(7)));
     }
 
     /// <summary>
@@ -157,18 +155,18 @@ public class GridTests
                 w.Do(kind switch
                 {
                     0 => new Place(cell, Placement.Wall()),
-                    1 => new Place(cell, new Placement("conduit", "pipe")),
+                    1 => new Place(cell, Placement.Wall("iron")),
                     2 => new Place(cell, Placement.BackWall()),
                     3 => new Place(cell, new Placement("machine", "vent")),
                     4 => new ClearAt(cell, "structure"),
-                    5 => new ClearAt(cell, "conduit"),
+                    5 => new ClearAt(cell, "structure"),
                     6 => new ClearAt(cell, "back"),
                     _ => new ClearAt(cell, "machine"),
                 }).Run();
                 if (i == t.reload) { w.Reload(); grid = w.M.Grid; }
                 var scanned = Box.None;
                 for (int c = 0; c < size; c++)
-                    if (grid.StructureAt(c) != Structure.Empty || grid.ConduitAt(c) != Conduit.None || grid.BackLayer[c] != Back.None || grid.MachineAt(c) != null)
+                    if (grid.StructureAt(c) != Structure.Empty || grid.BackLayer[c] != Back.None || grid.MachineAt(c) != null)
                         scanned = scanned.Union(new Box(c % grid.Width, c / grid.Width, c % grid.Width, c / grid.Width));
                 if (grid.Built != scanned) return false.Label($"edit {i}: the box is {grid.Built}, a scan finds {scanned}");
             }
@@ -221,17 +219,17 @@ public class GridTests
     private static Scenario Zoned(bool doubled = false) =>
         new(Layout.Parse(Enumerable.Repeat(new string(' ', 10), 6).ToArray()) with { Zone = SmallZone }, doubled: doubled);
 
-    private static readonly Placement[] EveryLayer = [Placement.Wall(), new("conduit", "pipe"), Placement.BackWall()];
+    private static readonly Placement[] EveryLayer = [Placement.Wall(), Placement.BackWall()];
 
     [Fact]
-    public void RefusesAWallAPipeOrABackWallJustOutsideTheZoneOnEverySideAndKeepsItsZoneAcrossALoad()
+    public void RefusesAWallOrABackWallJustOutsideTheZoneOnEverySideAndKeepsItsZoneAcrossALoad()
     {
         var w = Zoned();
         foreach (var (x, y) in new[] { (1, 2), (8, 2), (4, 0), (4, 5), (1, 0), (8, 5) })
             foreach (var p in EveryLayer)
                 w.Do(new Place(w.At(x, y), p));
         w.Run();
-        Assert.Equal(Enumerable.Repeat("grid.outsideZone", 18), w.Refusals.Select(r => r.Reason));
+        Assert.Equal(Enumerable.Repeat("grid.outsideZone", 12), w.Refusals.Select(r => r.Reason));
         Assert.Equal(Box.None, w.M.Grid.Built);
         w.Reload();
         Assert.Equal(SmallZone, w.M.Grid.Zone);
@@ -326,24 +324,21 @@ public class GridAfterTogglesTests
     [Fact]
     public void ShowTheLayersAsTheirCommandsWouldLeaveThemSkippingWhatTheyWouldRefuse()
     {
-        var w = new Scenario("#D#v\n#D#-", cells: true);
-        Command[] toggles = [new SetDoor(5, true), new SetValve(3, false), new SetDoor(0, true), new SetValve(7, true)];
-        var (structure, conduit) = w.M.Grid.AfterToggles(toggles);
-        int[] shownStructure = Over(w.M.Grid.StructureLayer, structure), shownConduit = Over(w.M.Grid.ConduitLayer, conduit);
+        var w = new Scenario("#D#.\n#D#.", cells: true);
+        Command[] toggles = [new SetDoor(5, true), new SetDoor(0, true)];
+        int[] shownStructure = Over(w.M.Grid.StructureLayer, w.M.Grid.AfterToggles(toggles));
         foreach (var t in toggles) w.Do(t);
         w.Run();
-        Assert.Equal(new[] { "grid.noDoor", "grid.noValve" }, w.Refusals.Select(r => r.Reason));
+        Assert.Equal(new[] { "grid.noDoor" }, w.Refusals.Select(r => r.Reason));
         Assert.Equal(w.M.Grid.StructureLayer.ToArray(), shownStructure);
-        Assert.Equal(w.M.Grid.ConduitLayer.ToArray(), shownConduit);
     }
 
     [Fact]
-    public void ListOnlyTheCellsTheToggledDoorwaysAndValvesCover()
+    public void ListOnlyTheCellsTheToggledDoorwaysCover()
     {
-        var w = new Scenario("#D#v\n#D#-\n#.#.", cells: true);
-        var (structure, conduit) = w.M.Grid.AfterToggles([new SetDoor(5, true), new SetValve(3, false), new SetDoor(0, true)]);
+        var w = new Scenario("#D#.\n#D#.\n#.#.", cells: true);
+        var structure = w.M.Grid.AfterToggles([new SetDoor(5, true), new SetDoor(0, true)]);
         Assert.Equal(new[] { 1, 5 }, structure.Keys.Order());
-        Assert.Equal(new[] { 3 }, conduit.Keys);
     }
 
     [Fact]
@@ -352,7 +347,7 @@ public class GridAfterTogglesTests
         var w = new Scenario("#d#\n#D#", cells: true);
         ulong hash = w.World.Hash();
         int[] live = w.M.Grid.StructureLayer.ToArray();
-        var (structure, _) = w.M.Grid.AfterToggles([new SetDoor(1, false), new SetDoor(4, true)]);
+        var structure = w.M.Grid.AfterToggles([new SetDoor(1, false), new SetDoor(4, true)]);
         // A mixed doorway: the first shuts it all, the second opens it all again.
         Assert.Equal(new[] { live[1], live[1] }, new[] { structure[1], structure[4] });
         Assert.Equal(hash, w.World.Hash());

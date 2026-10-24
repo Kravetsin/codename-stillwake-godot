@@ -43,11 +43,10 @@ public static class BlueprintArt
             : new(TileLayer.Back, $"back_{placement.Material}_plain", Cut: true)],
         // A 16 px picture over the cells of a character's, cut a cell at a time where it lies (0104).
         "floor" => [new(TileLayer.Fixtures, placement.Kind, Cut: true)],
-        // A piece whole from its top-left (0104), as a machine is: a ladder, or a door or a hatch, planned shut.
+        // A piece whole from its top-left (0104), as a machine is: a ladder, a door or a hatch segment, shut. Plans and ghosts
+        // of doorways are drawn by their joins instead (PlanTiles.LayDoor); this is their silhouette.
         "ladder" => [new(TileLayer.Fixtures, ShipTiles.PieceName(placement.Kind))],
         "door" or Builds.Hatch => [new(TileLayer.Doors, ShipTiles.PieceName(placement.Kind))],
-        "pipe" => [new(TileLayer.Pipes, $"pipe_{linked}")],
-        "valve" => [new(TileLayer.Pipes, $"pipe_{linked}"), new(TileLayer.Valves, "valve_open")],
         _ => [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))],
     };
 
@@ -63,7 +62,7 @@ public static class BlueprintArt
         var layers = new List<(Image Image, Vector2I At)>();
         int side = ShipTiles.Drawn;
         var size = new Vector2I(side, side);
-        IReadOnlyList<TilePiece> pieces = (placement.Kind is "door" or Builds.Hatch) ? [new(TileLayer.Doors, "door_closed_0")]
+        IReadOnlyList<TilePiece> pieces = placement.Kind == "door" ? [new(TileLayer.Doors, "door_closed_0")]
             : placement.Kind == "ladder" ? [new(TileLayer.Fixtures, "ladder")] : PiecesOf(placement, linked);
         foreach (var piece in pieces)
         {

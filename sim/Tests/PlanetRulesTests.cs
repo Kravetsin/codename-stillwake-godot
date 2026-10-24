@@ -182,13 +182,13 @@ public class PlanetRulesTests
     }
 
     [Fact]
-    public void ThePlanetsBuildListRefusesAMachineOrAPipeAndPlansALadderWhichIsBuilt()
+    public void ThePlanetsBuildListRefusesMachinesAndPlansALadderWhichIsBuilt()
     {
         var w = Down(("scrap", 5));
         var m = w.On(1);
         int cell = Feet(16, Ground - 1);
         w.Do(new PlacePlan(cell, new Placement("machine", "furnace")))
-            .Do(new PlacePlan(cell, new Placement("conduit", "pipe")))
+            .Do(new PlacePlan(cell, new Placement("machine", "vent")))
             .Run();
         Assert.Equal(["building.notHere", "building.notHere"], w.Refusals.Select(r => r.Reason));
         Assert.Equal("building.notHere", m.Building.Problem(cell, new Placement("machine", "vent")));

@@ -4,7 +4,7 @@ namespace Stillwake.Content;
 
 /// <summary>A machine: what it costs, its footprint, and what it does with power and items.</summary>
 /// <param name="Width">Footprint in cells, from the machine's top-left cell: twice what a map draws it, a character a 16 px cell (0104).</param>
-/// <param name="Ports">Where conduits connect, as offsets inside the footprint; none for a crate.</param>
+/// <param name="Ports">Where pipes connect, as offsets inside the footprint; none for a crate.</param>
 /// <param name="Cost">Whole units of items it takes from its builder, and gives back when taken apart.</param>
 /// <param name="BuildTicks">Ticks of a hero's work to build it.</param>
 /// <param name="Makes">

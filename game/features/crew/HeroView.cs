@@ -102,9 +102,9 @@ public partial class HeroView : Node2D
     private readonly List<(double X, double Y)> _tetherPoints = [];
     /// <summary>
     /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
-    /// cell's structure, conduit and machine, and the brush's square; traced again only when one of them changes.
+    /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
-    private (int Cell, int? Plan, bool Refused, int Structure, int Conduit, int? Machine, (int, int, int)? Square, bool Back)? _traced;
+    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, (int, int, int)? Square, bool Back)? _traced;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
@@ -336,7 +336,7 @@ public partial class HeroView : Node2D
         var grid = m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
-        var shown = Predicted.Grid(client, grid);
+        var shown = Predicted.Grid(client, grid, m.Pipes);
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
@@ -823,7 +823,7 @@ public partial class HeroView : Node2D
     {
         var grid = m.Grid;
         var traced = aim is { } a
-            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ConduitAt(grid, a.Cell), grid.MachineAt(a.Cell)?.Id, a.Square, back)
+            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ValveOpenAt(m.Pipes, a.Cell) switch { null => 0, true => 1, false => 2 }, grid.MachineAt(a.Cell)?.Id, a.Square, back)
             : ((int, int?, bool, int, int, int?, (int, int, int)?, bool)?)null;
         if (traced == _traced) return;
         _traced = traced;

@@ -30,13 +30,13 @@ public partial class GridView : Node2D
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = new();
     private readonly ShadowTiles _shadows = ShadowTiles.Shared;
-    private readonly TileMapLayer _back, _shade, _pipes, _valves, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
+    private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
     // A door or valve that moves is heard where it stands, by everyone near (0033).
     private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
-        _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2), _turns = Cues.Player2D(S.Valve, S.World, voices: 2);
+        _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2);
     private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
     private readonly DrawnLayers _drawn;
     private Machine[] _drawnMachines = [];
@@ -63,8 +63,6 @@ public partial class GridView : Node2D
             Material = ShadowTiles.Multiply,
         };
         AddChild(_shade);
-        _pipes = Layer(Layers.Pipes);
-        _valves = Layer(Layers.Valves);
         _walls = Layer(Layers.Walls, L.WallIn);
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
@@ -75,9 +73,17 @@ public partial class GridView : Node2D
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _shade, _pipes, _valves, _walls, _details, _edges, _fixtures, _doors];
+        _cellLayers = [_back, _shade, _walls, _details, _edges, _fixtures, _doors];
         AddChild(_sockets);
-        foreach (var player in (Node[])[_opens, _closes, _turns]) AddChild(player);
+        foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
+    }
+
+    /// <summary>The front and the back walls drawn as opaque as the open plan's focus has them (0110); all whole with the plan away.</summary>
+    public void Fade((float Front, float Back) alpha)
+    {
+        foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = new Color(1, 1, 1, alpha.Back);
+        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
     private TileMapLayer Layer(int z, float share = 1)
@@ -163,7 +169,7 @@ public partial class GridView : Node2D
     {
         int drawn = 0;
         for (int cell = y * _grid.Width + x0, end = cell + x1 - x0; cell < end; cell++)
-            if (_drawn.Structure[cell] != Structure.Empty || _drawn.Back[cell] != Back.None || _drawn.Conduit[cell] != Conduit.None)
+            if (_drawn.Structure[cell] != Structure.Empty || _drawn.Back[cell] != Back.None)
             {
                 DrawCell(cell, blank: true);
                 drawn++;
@@ -196,17 +202,15 @@ public partial class GridView : Node2D
     }
 
     /// <summary>
-    /// A door or a valve that moved, heard there: once a doorway, at the cell it leads from
+    /// A door that moved, heard there: once a doorway, at the cell it leads from
     /// (<see cref="DoorShape.Leads"/>), since the rest of it moved with it.
     /// </summary>
     private void Hear(DrawnLayers.Change change)
     {
-        int cell = change.Cell, w = _grid.Width, structure = _drawn.Structure[cell], conduit = _drawn.Conduit[cell];
+        int cell = change.Cell, w = _grid.Width, structure = _drawn.Structure[cell];
         var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
         if (IsDoor(structure) && IsDoor(change.Structure) && structure != change.Structure && DoorShape.Leads(DoorLinksOf(cell)))
             (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
-        if (conduit is Conduit.ValveClosed or Conduit.ValveOpen && change.Conduit is Conduit.ValveClosed or Conduit.ValveOpen && conduit != change.Conduit)
-            _turns.PlayAt(at);
     }
 
     private static bool IsDoor(int s) => Doorways.IsDoor(s);
@@ -219,7 +223,6 @@ public partial class GridView : Node2D
     private string MaterialOf(int code) => _materials.GetValueOrDefault(code, Materials.DefaultHull);
 
     // The pictures' names made once, not a string a cell: a big ship draws half a million cells as it loads.
-    private static readonly string[] PipeNames = Names("pipe_");
     private readonly Dictionary<int, (string Wall, string[] Edges)> _wallNames = new();
 
     private static string[] Names(string prefix) => Enumerable.Range(0, 16).Select(sides => $"{prefix}{sides}").ToArray();
@@ -267,18 +270,6 @@ public partial class GridView : Node2D
         {
             DrawBack(at, _drawn.BackMaterial[cell]);
             DrawShade(cell, blank);
-        }
-
-        int conduit = _drawn.Conduit[cell];
-        if (conduit != Conduit.None)
-        {
-            // A pipe reaches toward every neighbouring conduit, so runs read as lines.
-            int linked = SidesOf(cell, _drawn.Conduit, c => c != Conduit.None);
-            Put(_pipes, at, PipeNames[linked]);
-            if (conduit is Conduit.ValveOpen or Conduit.ValveClosed)
-            {
-                Put(_valves, at, conduit == Conduit.ValveOpen ? "valve_open" : "valve_closed");
-            }
         }
 
         switch (_drawn.Structure[cell])

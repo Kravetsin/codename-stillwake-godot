@@ -22,7 +22,7 @@ public static class Blueprints
     [
         .. Content.Materials.All.Where(m => m.Built).Select(m => Of(Placement.Wall(m.Id), m.Cost)),
         .. Content.Materials.All.Where(m => m.Built).Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
-        .. Content.Builds.All.Select(b => Of(new Placement(b.Id is "pipe" or "valve" ? "conduit" : "structure", b.Id), b.Cost)),
+        .. Content.Builds.All.Select(b => Of(new Placement("structure", b.Id), b.Cost)),
         .. Content.Machines.All.Where(m => !m.Fixed).Select(m => Of(new Placement("machine", m.Kind), m.Cost)),
     ];
 

@@ -6,6 +6,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Pipes;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
@@ -28,10 +29,9 @@ public class HazardsTests
     private static (Scenario W, int Tank, int Room) Aired()
     {
         var w = new Scenario(Room).Do(new Items.SetCreative(true));
-        // From the vent's port to the tank's, every cell of the run.
-        foreach (int cell in AirTesting.Line(9, 1, 1, 1, 3))
-            w.Do(new Place(cell, new Placement("conduit", cell == w.At(1, 2) ? "valve" : "pipe")));
-        w.Run();
+        // From the vent's port to the tank's through a valve.
+        var run = AirTesting.Line(9, 1, 1, 1, 3).ToArray();
+        w.Pipe(run[0], w.At(1, 2), run[^1]).Do(new MakeValve(w.At(1, 2), true)).Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
@@ -110,13 +110,13 @@ public class HazardsTests
     private static int RoomCell(int x, int y) => AirTesting.Cell(9, x, y);
 
     [Fact]
-    public void BreakThePipeRunningThroughTheWallToo()
+    public void LeaveAPipeRunningThroughTheWallWhole()
     {
-        var w = new Scenario(Room);
-        w.Do(new Place(w.At(0, 2), new Placement("conduit", "pipe"))).Run();
-        Assert.Equal(Conduit.Pipe, w.M.Grid.ConduitAt(w.At(0, 2)));
+        var w = new Scenario(Room).Do(new Items.SetCreative(true));
+        w.Pipe(w.At(0, 1), w.At(0, 3)).Run();
         w.Do(new MeteorHit(w.At(0, 2))).Run();
-        Assert.Equal(Conduit.None, w.M.Grid.ConduitAt(w.At(0, 2)));
+        Assert.Null(w.M.Grid.WallAt(w.At(0, 2)));
+        Assert.Single(w.M.Pipes.Spans);
     }
 
     [Fact]
@@ -129,17 +129,6 @@ public class HazardsTests
             .Run();
         Assert.Equal(new[] { "hazards.noWall", "hazards.noWall", "hazards.noWall" }, w.Refusals.Select(r => r.Reason));
         Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(1));
-    }
-
-    /// <summary>grid.test.ts "reads pipes and valves": the query the pipe test above reads.</summary>
-    [Fact]
-    public void GridReadsPipesAndValves()
-    {
-        var w = new Scenario("-vx.", cells: true);
-        Assert.Equal(new[] { Conduit.Pipe, Conduit.ValveOpen, Conduit.ValveClosed, Conduit.None },
-            Enumerable.Range(0, 4).Select(w.M.Grid.ConduitAt));
-        Assert.Equal(Conduit.None, w.M.Grid.ConduitAt(-1));
-        Assert.Equal(Conduit.None, w.M.Grid.ConduitAt(4));
     }
 
     private static readonly char[] Chars = [' ', '.', '#', '#', '#', '=', 'D', 'd', '-', 'v', 'x'];
@@ -163,7 +152,7 @@ public class HazardsTests
             var grid = w.M.Grid;
             int size = t.width * t.height;
             var structure = grid.StructureLayer.ToArray();
-            var conduit = Enumerable.Range(0, size).Select(grid.ConduitAt).ToArray();
+            var spans = w.M.Pipes.Spans.ToArray();
             var back = grid.BackLayer.ToArray();
             var machines = grid.Machines.ToArray();
             foreach (int cell in t.hits) w.Do(new MeteorHit(cell)).Run();
@@ -171,11 +160,10 @@ public class HazardsTests
             {
                 bool broken = structure[c] == Structure.Wall && t.hits.Contains(c);
                 if (grid.StructureAt(c) != (broken ? Structure.Empty : structure[c])) return false;
-                if (grid.ConduitAt(c) != (broken ? Conduit.None : conduit[c])) return false;
             }
             // Each wall breaks once, on its first hit; every other hit is refused.
             int refused = t.hits.Count - t.hits.Distinct().Count(c => c >= 0 && c < size && structure[c] == Structure.Wall);
-            return grid.BackLayer.SequenceEqual(back) && grid.Machines.SequenceEqual(machines)
+            return grid.BackLayer.SequenceEqual(back) && grid.Machines.SequenceEqual(machines) && w.M.Pipes.Spans.SequenceEqual(spans)
                 && w.Refusals.Count == refused && w.Refusals.All(r => r.Reason == "hazards.noWall");
         });
     }

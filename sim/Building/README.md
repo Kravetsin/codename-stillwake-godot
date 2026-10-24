@@ -1,14 +1,14 @@
 # Building
 
 Plans, and the work that turns them into the ship. A plan is a blueprint, which puts something in a
-cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a part as they go
+cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a part as they go
 (ADR 0063), or a mark on what a layer of a cell holds, taken out by heroes' work. Both complete through
 `Grid`'s operations, paid from and refunded to the inventories in `Items`. Ported from
 `packages/sim/src/modules/building`; its rules hold here but for the payment a part at a time.
 
 - **Depends on:** `Grid` (`IGridQueries`, `IGridOps`) and `Items` (`IItemsQueries`, `IItemsOps`; `WeaponProblem` for a dig); `Crew`
   (`ICrewQueries.Heroes`), so a wall does not finish on a hero, and `ICrewOps.Shock`, the resonator's zap (0091) and a relic's cradle's (0096);
-  `Power` (`IPowerQueries.Cabled`), to keep a cabled machine standing; `Research`
+  `Power` (`IPowerOps.Unplug`, `Plug`), to keep a machine's cables on a peg as it goes and plug them back in as it is built; `Research`
   (`IResearchQueries.Knows`), to refuse a blueprint not known (ADR 0024); `Crafting`
   (`ICraftingQueries.Queue`), to keep a station with crafts queued standing (0057).
 - **State** (`BuildingState`, members internal): `Plans` in the order they were made, each a `Plan`
@@ -33,9 +33,10 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   walls, back walls, floors, ladders and doors. Marks and work are not asked: nothing else can be built there.
 - A blueprint is checked against what is known first (`building.unknown`, but in creative mode), then
   against the grid (`IGridQueries.PlacementProblem`, whose keys pass through unchanged), then against
-  the other plans: in each cell, structure and machines share one solid slot, and a conduit and a
-  back wall each have their own, as in the grid. A machine's blueprint covers its whole footprint, and a piece's (0104): a
-  ladder's 2×2, a door's 2×6, a hatch's 6×2 (`Builds.Hatch`, built as a door is, of its blueprint and at its cost).
+  the other plans: in each cell, structure and machines share one solid slot, and a back wall has its
+  own, as in the grid. A machine's blueprint covers its whole footprint, and a piece's (0104): a
+  ladder's 2×2, a door segment's 2×2, a hatch segment's 2×1 (`Builds.Hatch`, of the door's blueprint and cost); a run of
+  segments down is a door, across a hatch, one alone a hatch.
   Placing one costs nothing.
 - **No blueprint builds bedrock** (0077), front or back: refused `building.unknown`, creative mode or not
   (`Blueprints.Has`). Soil and stone walls and back walls (0084) are blueprints like any, known once soil or rock is analysed.
@@ -47,12 +48,11 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
 - A mark needs something in that layer of that cell, and one thing takes one mark. A machine holding
   items (a crate, a furnace), a module fitted (`IItemsQueries.FittedTo`, 0086) or a station with crafts queued is marked
   only empty, refused with
-  `building.notEmpty`; a machine a cable
-  ends on, only with its cables cut, refused with `building.cabled`. Both are checked again when the
-  mark is worked. A machine's mark is kept at the machine's top-left, whichever of its cells was
+  `building.notEmpty`, checked again when the mark is worked. A machine cables end on comes apart with them plugged in
+  (0110): `IPowerOps.Unplug` leaves each on a peg at its plug's cell, and a machine built is `Plug`ged into a peg at its plug's. A machine's mark is kept at the machine's top-left, whichever of its cells was
   marked; a ladder's or a door's at the first cell of its piece (`IGridQueries.PieceOf`, 0104), and taking it apart takes the
-  whole piece: a doorway whole, a ladder's two by two. It gives back its build's cost for as many pieces as its cells make, each
-  item rounded down: two doors side by side give back two, a drawn map's lone door (2×2) a third of one, a ladder piece a
+  whole piece: a door's segment, a ladder's two by two; the rest of its doorway stands. It gives back its build's cost for as many pieces as its cells make, each
+  item rounded down, a piece in one row a hatch segment's: a segment of either, or a drawn map's lone door (2×2), two plates and a gear; a ladder piece a
   meteor broke nothing. A marked thing is still built, so the grid refuses a plan for that slot until it is gone.
 - **`Work` is the left button held on a plan with the screwdriver in hand** (0107): one tick of one hero's work, sent
   `Screwdriver.Work` times a tick the player holds it on the plan within reach, the client's pace (the sim does not check the
@@ -154,7 +154,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
 - **Queries:** `Plans` — live, read-only; `PlansAt(cell)` — every plan covering the cell;
   `Problem(cell, placement)` and `Problem(cell, layer)` — the refusal a `PlacePlan` or a
   `Deconstruct` would get, for the client's ghost; `ClearAt(cell, layers?)` — what a removal takes
-  from a cell next, of the layers given or all (a machine, then a conduit, then the structure, then
+  from a cell next, of the layers given or all (a machine, then the structure, then
   the back wall, passing over what is marked already; when all is marked, the top one) and where its
   mark is kept, as `(Layer, Cell)`, null for nothing there; `WorkProblem(planId, peer)` — the refusal
   that peer's `Work` would get; `Lacking(planId)` — what a blueprint still lacks of its cost, nothing in
@@ -171,9 +171,9 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   would get, leaving out whether an electric weapon runs, as the client asks before it sends.
 - **Commands:** `PlacePlan(Cell, Placement)`, refused with `building.fixed`, `building.notHere`, `building.unknown`,
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
-  `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
+  `building.fixed`, `building.planned` or `building.notEmpty`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
-  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool, Back)`, refused with `building.builtWall` (a ship's wall or back wall), `building.nothingToDig` (no wall nor plant there; no back wall, `Back`), `building.bedrock`,
+  or `building.notEmpty`; `Dig(Cell, Tool, Back)`, refused with `building.builtWall` (a ship's wall or back wall), `building.nothingToDig` (no wall nor plant there; no back wall, `Back`), `building.bedrock`,
   `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
 - **Fuzz:** every command, refused ones too: placements of every kind, mostly within 32 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so

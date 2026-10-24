@@ -61,7 +61,7 @@ public class GrownSaveTests
         w.Do(new Dig(under, "fireAxe")).Do(new Dig(under, "fireAxe")).Run();
         Assert.Null(m.Grid.WallAt(under));
         var edits = GridOf(w.World.Save(), 1)["edits"]!.AsArray().Select(n => (int)n!).ToArray();
-        Assert.Equal(6, edits.Length);
+        Assert.Equal(5, edits.Length);
         Assert.Equal(under, edits[0]);
         Assert.Equal(Structure.Empty, edits[1]);
         // The same wall built back, the hero stepped aside (0077: a wall does not finish on one): the cell is as it grew, and
@@ -125,15 +125,15 @@ public class GrownSaveTests
         var surface = w.World.Surfaces[1];
         var ground = new GridModule();
         ground.Create(Terrain.Generate(Content.PlanetTypes.Small, surface.Seed));
-        int[][] Layers(GridModule g) => [g.StructureLayer.ToArray(), g.MaterialLayer.ToArray(), g.ConduitLayer.ToArray(), g.BackLayer.ToArray(), g.BackMaterialLayer.ToArray()];
+        int[][] Layers(GridModule g) => [g.StructureLayer.ToArray(), g.MaterialLayer.ToArray(), g.BackLayer.ToArray(), g.BackMaterialLayer.ToArray()];
         var (now, grown) = (Layers(grid), Layers(ground));
-        var differ = Enumerable.Range(0, grid.Width * grid.Height).Where(c => Enumerable.Range(0, 5).Any(l => now[l][c] != grown[l][c])).ToList();
+        var differ = Enumerable.Range(0, grid.Width * grid.Height).Where(c => Enumerable.Range(0, 4).Any(l => now[l][c] != grown[l][c])).ToList();
         var edits = GridOf(w.World.Save(), 1)["edits"]!.AsArray().Select(n => (int)n!).ToArray();
-        var named = Enumerable.Range(0, edits.Length / 6).Select(i => edits[i * 6]).ToList();
+        var named = Enumerable.Range(0, edits.Length / 5).Select(i => edits[i * 5]).ToList();
         if (!named.SequenceEqual(differ)) return false;
         for (int i = 0; i < named.Count; i++)
-            for (int l = 0; l < 5; l++)
-                if (edits[i * 6 + 1 + l] != now[l][named[i]]) return false;
+            for (int l = 0; l < 4; l++)
+                if (edits[i * 5 + 1 + l] != now[l][named[i]]) return false;
         return true;
     }
 

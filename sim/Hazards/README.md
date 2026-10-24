@@ -10,7 +10,7 @@ break some hulls and not others (see `docs/concept.md`). Ported from
 
 ## Rules
 
-- `MeteorHit(cell)` breaks the wall at `cell`: its structure and the conduit through it are cleared,
+- `MeteorHit(cell)` breaks the wall at `cell`: its structure is cleared, the pipes through it left whole (0109),
   with no refund. The hole is an opening of its room: `atmosphere` vents it and drains its vents'
   networks until a valve cuts them off or a wall is built on it. A deconstruction mark on the broken
   wall is dropped by `building`.

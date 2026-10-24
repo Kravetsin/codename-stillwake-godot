@@ -24,8 +24,8 @@ public sealed class Builder : Module<Builder.Nothing>
     /// <summary>A builder for the world of <paramref name="m"/>, respecting its blueprints.</summary>
     public Builder(Registry m) : this(m.Grid, m.Grid, m.Building) { }
 
-    /// <summary>Structure and machines share one slot; a conduit and a back wall each have their own (building's rule).</summary>
-    private static string SlotOf(string layer) => layer is "conduit" or "back" ? layer : "solid";
+    /// <summary>Structure and machines share one slot; a back wall has its own (building's rule).</summary>
+    private static string SlotOf(string layer) => layer is "back" ? layer : "solid";
 
     /// <summary><c>building.planned</c> when a blueprint claims the slot of a cell <paramref name="c"/> would fill.</summary>
     private static string? Claimed(IGridQueries grid, BuildingModule? building, Place c)

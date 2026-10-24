@@ -110,7 +110,6 @@
     <Compile Include="../game/features/building/Tools.cs" Link="Game/Building/Tools.cs" />
     <Compile Include="../game/features/building/PlanHand.cs" Link="Game/Building/PlanHand.cs" />
     <Compile Include="../game/features/building/Drag.cs" Link="Game/Building/Drag.cs" />
-    <Compile Include="../game/features/building/NearGrid.cs" Link="Game/Building/NearGrid.cs" />
     <Compile Include="../game/features/building/Catalogue.cs" Link="Game/Building/Catalogue.cs" />
     <Compile Include="../game/shared/TabletMotion.cs" Link="Game/Shared/TabletMotion.cs" />
     <Compile Include="../game/shared/TabletLayout.cs" Link="Game/Shared/TabletLayout.cs" />
@@ -127,7 +126,7 @@
     <Compile Include="../game/features/power/StoreGauge.cs" Link="Game/Power/StoreGauge.cs" />
     <Compile Include="../game/features/power/StoreWorld.cs" Link="Game/Power/StoreWorld.cs" />
     <Compile Include="../game/features/pipes/Flow.cs" Link="Game/Pipes/Flow.cs" />
-    <Compile Include="../game/features/pipes/Valves.cs" Link="Game/Pipes/Valves.cs" />
+    <Compile Include="../game/features/pipes/PipeHands.cs" Link="Game/Pipes/PipeHands.cs" />
     <Compile Include="../game/features/atmosphere/Explain.cs" Link="Game/Atmosphere/Explain.cs" />
     <Compile Include="../game/features/atmosphere/Streams.cs" Link="Game/Atmosphere/Streams.cs" />
     <Compile Include="../game/features/atmosphere/AirField.cs" Link="Game/Atmosphere/AirField.cs" />

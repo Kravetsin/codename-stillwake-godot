@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><AssemblyName>Stillwake.Sim.Pipes</AssemblyName><RootNamespace>Stillwake.Sim.Pipes</RootNamespace></PropertyGroup>
-  <ItemGroup><ProjectReference Include="../Grid/Grid.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../Items/Items.csproj" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Stillwake.Sim.Tests" /></ItemGroup>
 </Project>

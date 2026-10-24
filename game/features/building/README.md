@@ -12,7 +12,6 @@ and `Work`.
 | `Tools.cs`        | the cards and tabs, `CostOf`, `OverlayFor`, `TabFor`, `LayersFor`, `Known`, the pipette's `CardAt` (`tools.ts`); how a plan joins what is beside it, `LinksOf`, `StubsOf` | no    |
 | `PlanHand.cs`     | the card in hand and the plan out, kept in step with `Ui.Hand` and `Ui.OverlayOn` (`tools.ts`'s stores) | no    |
 | `Drag.cs`         | a drag's line of cells, laid a stamp at a time, and what the card or removal would do in each (`drag.ts`) | no    |
-| `NearGrid.cs`     | the grid fading out around the pointer while a card is out (`near-grid.ts`)                    | no    |
 | `BuildingView.cs` | plans as ghosts in marching dashes along their silhouettes turning real as they are built, marks in red dashes turning into their red ghost as they are taken down, ghosts, the tips, the buttons, the pipette, plan work | yes |
 | `BuildGlow.cs`    | the light of work on plans (0075): spark bursts, glints, the molten spot with its smoke and shimmer, the cut's line, a finished plan's sweep | yes |
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
@@ -24,11 +23,11 @@ pointer; `Hands`: every view of this player's hands wired together, the building
 buttons; `PointerTip`), `game/i18n/En.cs` (the words), `game/render/` (`Buttons`/`WorldButtons`: the mouse
 as the world reads it; `BlueprintArt`/`PlanTiles`: the ship's own tiles for plans, ghosts and
 thumbnails, a card's at the art's 16 px whatever the cell (0104); `PlanCut`/`BuiltParts`: where a plan being built turns real, and its real share drawn lit;
-`Blueprint`: how planned pipes and walls join their neighbours (a planned door, hatch or ladder is its piece whole, 0104), which the crew's aim
+`Blueprint`: how planned pipes and walls join their neighbours (a planned ladder is its piece whole; planned doorways join as built ones, over plans and what is built, `Tools.DoorLinks`, 0104), which the crew's aim
 outline draws too; `PlanOutline`/`PlanShapes`/`MarchingDashes`: the dashes along the silhouettes of plans and marks; `Sketch`), and the
 tablet's slide and its screen coming on (`TabletMotion`, warm for 1.5 s after it is put away, 0073), by which the wrist
 computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`), both in `game/shared/`. The plain files are compiled again into `game.tests/`, where `tools.test.ts`,
-`drag.test.ts` and `near-grid.test.ts` are ported one for one, the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
+`drag.test.ts` is ported one for one; the grid round the pointer is gone (0110), the menu's frame in `CatalogueTests`, its slide and screen in `TabletMotionTests`; working a plan is the hero's hands
 (`features/crew`, `AimTests`).
 
 ## Guarantees
@@ -36,19 +35,37 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
 - **The cards follow the blueprints** (0077, 0084, 0108): a card for each material a blueprint builds a wall of
   (`Blueprints.Has`): soil and stone besides the hull's, no bedrock; then one for each it builds a back wall of. A natural back
   wall's plan shows the ground's own back tile.
-- **The left button plans, the right removes** (0108, `Tools.ActOf`): every card places what it places on the left; on the right
-  it marks or cancels in its layer, a back wall's card back walls only (those behind machines too), any other card the front
-  layers (`Tools.FrontLayersFor`). The ghost before a press is the card's, the removal's while the right button is held. While a
-  back wall's card aims the walls, edges and doors round the pointer fade (`Lit.SeeThrough`, from `Hands`), so the back wall
-  shows. There is no removal card and no cable card: the stripper lays cables (`features/power`). A tab with nothing known is not shown.
+- **The left button plans, the right removes in the focused layer** (0108, 0110, `Tools.ActOf`): every card places what it
+  places on the left. The open plan has a focus (`PlanHand.Focus`), one of two layers: the front (everything that cannot
+  stack in a cell: walls, machines, doors, hatches, ladders, floors and the other pieces) and the back walls. A card picked
+  sets it to its own (`Tools.FocusOf`); the middle button or a click on a layer's button turns it (`PlanHand.ToggleFocus`,
+  `PlanHand.FocusOn`), the card in hand kept for the layer left and the one kept for the layer reached brought back, so the
+  card in hand is always the focused layer's; the menu and its search show that layer's cards alone, and the left places
+  only them. The wheel is the hotbar's over the world and scrolls the cards over the tablet, as before. The
+  right button, by click or drag, with a card or none, marks or cancels in the focused layer only (`Tools.RemovalIn`; back
+  walls behind machines too): everything of that layer in the rectangle, each piece once; what else is under the drag's
+  start decides nothing. The focused layer is drawn whole, the other at 35% (`Tools.AlphasOf` of `PlanHand.Shown`, set by
+  `Main` on the grid's layers and the machines' views), so the back wall behind a lifepod shows. On the tablet's right edge under its stylus two stacked
+  keys (`LayerKey`), no words, wrist keys as the sort keys are, sticking out of the metal as the bag's does from the
+  display's, the focused one backlit: a bright block before a faint grid, a dim hatched block behind a dotted outline. Away from the ship (`PlanHand.Aboard`)
+  nothing fades and the axe's and drill's fade round the pointer is off
+  too (`PlanHand.SeesThrough`), so the ground never shows what is in it.
+  The ghost before a press is the card's, the removal's while the right button is held. There is no removal card. No grid
+  is drawn: the ghost and the pointer's outline show where a card snaps. A tab with nothing known is not shown.
+- **The hand tools' menus** (0110): holding the stripper or the wrench, the plan put away, the same tablet shows that
+  tool's cards alone (`Tools.CardsOf`) on one tab named for it, with no search: the stripper's cable, the wrench's pipe
+  and valve. Each card shows how many of its item the player carries and its cost in the tooltip; the card picked
+  (`PlanHand.ToolCard`, the first when the tool comes into the hand) decides what the left button lays. The tool put away
+  closes it. Away from the ship there is no such menu, and the two tools lay and cut nothing (`PlanHand.ToolCards`, the
+  overlay not shown); the sim refuses `power.notAboard` and `pipes.notAboard` too.
 
 - One thing in hand (`Holding`): free, the plan or a card. The plan put away takes the card;
-  the hand freed elsewhere (a hotbar slot, the wheel) puts the plan away.
+  the hand freed elsewhere (a hotbar slot by its number or the wheel) puts the plan away.
 - **Walls are whole** (0106): a wall card has no shape to turn. A wall planned or in hand joins the walls beside it
   like any placement that joins (`Blueprint.Joins`), as the grid draws built walls.
-- The open tab is the mode (`PlanHand.Tab`): Air shows the pipes overlay. The overlay
-  shown is never kept — `Tools.OverlayShown` from the plan out, the tab, the item wielded and `Ui.AirOn` on each read — so
-  with the menu closed it is the cables while the stripper is held (0108), else air or nothing. The air itself is drawn whenever O wants it, under every tab, the
+- The overlay shown is never kept — `Tools.OverlayShown` from the plan out, the tab, the item wielded and `Ui.AirOn` on
+  each read — so with the menu closed it is the cables while the stripper is held (0108), the pipes while the wrench is
+  (0109), else air or nothing; no tab has an overlay of its own now. The air itself is drawn whenever O wants it, under every tab, the
   tab's pipes or cables over it (0072); the overlay shown stays the tab's, for the buttons and the pointer's tip.
   The menu opens on the tab it closed on; a card picked opens
   its tab; another tab lets the card go; a tab with nothing known is never the tab.
@@ -59,18 +76,16 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   line); a machine is placed once where the stroke began. Each cell is its own `PlacePlan`, ascending, none twice, each
   judged alone (`Drag.StrokeOf`). Only digging keeps the 2×2 brush (`Shared/Brush`, Ctrl for one cell).
 - **Pieces are placed whole** (0104): a ladder's 2×2, laid along a drag a piece's length a step, so a shaft grows
-  two cells at a time; a door's 2×6 round the pointer where the stroke began, a hatch's 6×2 (`Drag.Oriented`) when the stroke
-  runs further across than down. Each is one `PlacePlan` at its top-left, drawn, ghosted and marked as its whole picture from
-  there, as a machine is; a removal on any of its cells marks the whole piece.
+  two cells at a time, and the door's card the same (`Drag.Oriented`): a click or a stroke across lays 2×1 hatch
+  segments along their row, a stroke down as far as a second 2×2 door segments. Each is one `PlacePlan` at its top-left;
+  a ladder is drawn, ghosted and marked as its whole picture from there, as a machine is, a doorway's cells as built ones
+  join over what is planned and built (`PlanTiles.LayDoor`), so a lone segment or a run across looks a hatch, a run down a door; a removal on any of its cells marks the whole piece.
 - Left drags place along a line (a machine where it began); walls and back walls fill the rectangle between
   the drag's corners, at most `Drag.MostAcross` (32) cells each way from where it began, as the preview judges
   and draws every cell each frame (a whole grid took 54 ms). Straight, a rectangle is a line, so a wall is still
-  drawn a row at a time; aslant, it is a room's worth. Right drags cancel plans in their layers when begun
-  on one, else mark what is built in their layers (a front card on Air: pipes, valves, machines) over their rectangle, only in the
-  layer of the first thing under where the drag began; a back wall card's back walls only, those behind machines too. Begun where only walls' and back
-  walls' blueprints are planned, a drag takes them off over the same rectangle (`Drag.CellsOf`), and only
-  them: a pipe or machine planned inside it stays. Begun on any other plan, a mark or what is built, it fills the
-  rectangle too, every thing in it marked or cancelled once, a piece or a machine once. Q picks the card under the
+  drawn a row at a time; aslant, it is a room's worth. Right drags work their rectangle (`Drag.CellsOf`) in the
+  focused layer alone (0110): begun on a plan of that layer, a mark included, they cancel its plans in it; else they
+  mark everything of that layer built in it, each piece or machine once. Q picks the card under the
   pointer onto its tab, known cards only, a back wall's its own. A drag ends with the card that began it.
 - **The menu only plans** (0107). Plans are built and marks taken apart by the hero's hands with the screwdriver from the
   hotbar, the menu put away: the left button held on one (crew's `Aiming.UsesOf`), within its reach, works
@@ -111,14 +126,9 @@ computer's screens come on too (0074), and a screen's soft light (`ScreenGlow`),
   menu's top is `Ui.MenuTop`, which the prompt for E keeps above.
 - A plan is a ghost of what it builds (`PlanTiles`): its own picture greyed and lifted 60% toward white,
   a little blue, at 88% opacity (back walls 65%, as they are behind; 70% and 45% before 0064), so what was planned — a wall's or back wall's material too, for the other players — stays
-  plain to see; unlit, so it reads in the dark, and giving no light. Pipes, doors and walls join what is
+  plain to see; unlit, so it reads in the dark, and giving no light. Doors and walls join what is
   planned and built beside them, as the grid draws them built, so a row of walls is one wall.
-- A planned pipe or valve, and one in hand, reaches toward every conduit beside it, built, planned or in
-  the same drag, as `GridView` joins built ones; a built pipe beside it gets a stub toward it in its look
-  (`Tools.StubsOf`), and a planned one beside a ghost the ghost's, so they meet with no half cell between.
-  Stubs are drawn with the plan, over the machines a built pipe runs behind. A stub is the pipe's arms toward
-  the plans only (`Blueprint.ArmsOf`), never its joint: a built pipe ending at a plan drawn whole as a ghost
-  looked unbuilt, so a run half built could not be told from one not begun.
+- Pipes are not planned: the wrench lays them as spans (0109, `features/pipes`).
 - Round each group of plans — walls, back walls, ladders, doors, floors, each machine on its own — dashes as
   wide as the aim's outline (a screen pixel at 1080 lines, whatever the zoom) march clockwise, 3 line widths on in
   5, 5 a second, along the group's silhouette (0064): a strip just outside the opaque pixels of its pictures,

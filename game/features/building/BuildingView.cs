@@ -34,7 +34,6 @@ public partial class BuildingView : Node2D
     /// <summary>The dashes round each group of plans and the badge on a planned machine.</summary>
     private static readonly Color Dashes = AsciiArt.Colour(0xc8f6ff, 0.95f), Badge = AsciiArt.Colour(0x6fe3ff), BadgeBack = AsciiArt.Colour(0x0b1a24);
     private static readonly Color Mark = AsciiArt.Colour(0xe05555), Fits = AsciiArt.Colour(0x7fe08a), Refused = AsciiArt.Colour(0xe05555);
-    private static readonly Color GridLine = AsciiArt.Colour(0x9fb4c8);
     /// <summary>A hole in a group smaller than a cell is part of its silhouette, not outlined: a ladder's rungs, a grille.</summary>
     private const int SmallestHole = Cell * Cell;
 
@@ -49,7 +48,7 @@ public partial class BuildingView : Node2D
     // The ghost in hand as a plan is drawn, but plainly green or red.
     private readonly PlanTiles _fits = new(tint: 0.45f) { ZIndex = Layers.PlanGhost, Modulate = Fits with { A = 0.8f } };
     private readonly PlanTiles _refused = new(tint: 0.45f) { ZIndex = Layers.PlanGhost, Modulate = Refused with { A = 0.8f } };
-    private readonly Sketch _badges = new(Layers.PlanMarks), _hands = new(Layers.PlanHands);
+    private readonly Sketch _badges = new(Layers.PlanMarks);
     /// <summary>The marching dashes round plans; round back walls, behind what is built; round marks, in red.</summary>
     private readonly MarchingDashes _outline = new(Layers.PlanMarks) { Modulate = Dashes }, _backOutline = new(Layers.PlanBacks) { Modulate = Dashes },
         _markOutline = new(Layers.PlanMarks) { Modulate = Mark with { A = 0.95f } },
@@ -61,10 +60,9 @@ public partial class BuildingView : Node2D
 
     private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
-    private List<Edge> _near = [];
     private int _width;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
-    private (Act Act, bool Right, (double X, double Y) From, Tool Card)? _drag;
+    private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
 
     /// <summary>Each plan's work done when last seen, and the sparks owed: work sparks only as it goes on.</summary>
     private Dictionary<int, int> _worked = [];
@@ -86,15 +84,14 @@ public partial class BuildingView : Node2D
         _ui = ui;
         _hand = hand;
         _plans = new(BackAlpha, backZ: Layers.PlanBacks, built: _built) { ZIndex = Layers.Plans, Modulate = Plan };
-        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _hands, _screwdriver, _glow]) AddChild(node);
+        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _screwdriver, _glow]) AddChild(node);
         _badges.Paint = PaintBadges;
-        _hands.Paint = PaintHands;
     }
 
     /// <summary>
     /// One frame: the plans brought up to the world, the presses since the last read the cables did not take, the
-    /// <paramref name="left"/> button's in the front layer and the <paramref name="right"/> one's in the back (0107), the
-    /// ghost drawn, of the back layer while only the right button is held (<paramref name="holdsRight"/>).
+    /// <paramref name="left"/> button's placing the card and the <paramref name="right"/> one's removing in the focused layer (0110), the
+    /// ghost drawn, the removal's while the right button is held (<paramref name="holdsRight"/>).
     /// </summary>
     public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, IReadOnlyList<ButtonEvent> right, bool holdsRight,
         (double X, double Y)? pointer)
@@ -131,8 +128,8 @@ public partial class BuildingView : Node2D
         {
             if (button.Down)
             {
-                // The first button down has the drag; another pressed meanwhile is let be. A front-only card's right does nothing.
-                if (_drag == null && tool != null && Tools.ActOf(tool, back, overlay) is { } act && Drag.OnGrid(width, height, button.At))
+                // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, card or none (0110).
+                if (_drag == null && _hand.PlanOut.Get() && Tools.ActOf(tool, back, _hand.Focus.Get()) is { } act && Drag.OnGrid(width, height, button.At))
                     _drag = (act, back, button.At, tool);
                 return;
             }
@@ -147,7 +144,7 @@ public partial class BuildingView : Node2D
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(at), overlay, grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(at), grid, building, m.Research) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
@@ -157,8 +154,7 @@ public partial class BuildingView : Node2D
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
-        Ghost(tool, pointer, onGrid, grid, building, Tools.ActOf(tool, Layering.Back(false, holdsRight), overlay));
-        _hands.QueueRedraw();
+        Ghost(tool, pointer, onGrid, grid, building, _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null);
     }
 
     /// <summary>
@@ -188,18 +184,19 @@ public partial class BuildingView : Node2D
             }
         IEnumerable<Placement> PlannedAt(int c) => placed.TryGetValue(c, out var list) ? list : [];
         var shapes = new List<(Sim.Building.Plan Plan, Placement Shown, int At, int Linked)>();
+        var doorCells = plans.Where(p => p.Place is { } place && Tools.LaysDoor(place)).SelectMany(p => CellsOf(grid, p)).ToHashSet();
+        var doorLinks = Tools.DoorLinks(grid, doorCells);
         foreach (var p in plans)
         {
             if (p.Place is not { } place) continue;
             int linked = Tools.LinksOf(place, p.Cell, width, PlannedAt, grid);
             var cut = CutOf(grid, building, p, place);
-            _plans.Lay(place, p.Cell, width, linked, cut);
+            if (Tools.LaysDoor(place))
+                foreach (int c in CellsOf(grid, p)) _plans.LayDoor(c, width, doorLinks, cut);
+            else _plans.Lay(place, p.Cell, width, linked, cut);
             if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
         }
-        // Built pipes reach toward planned ones beside them, drawn as plans.
-        var conduits = plans.Where(p => p.Place is { Layer: "conduit" }).Select(p => p.Cell).ToHashSet();
-        foreach (var (cell, sides) in Tools.StubsOf(conduits, width, c => grid.ConduitAt(c) != Conduit.None)) _plans.Stub(cell, width, sides);
         _marked.Begin();
         foreach (var p in plans)
         {
@@ -208,7 +205,7 @@ public partial class BuildingView : Node2D
             if (Tools.BuiltAt(at, layer, grid) is not { } built) continue;
             // Joined as the grid draws it, to what is built beside it, marked or not.
             int joined = Tools.LinksOf(built, at, width, _ => [], grid);
-            if (MarkCutOf(grid, building, p, built) is { } cut) _marked.Lay(built, at, width, joined, cut);
+            if (MarkCutOf(grid, building, p, built) is { } cut) LayBuilt(_marked, built, at, joined, grid, cut);
             shapes.Add((p, built, at, joined));
         }
         if (outlined != _outlined)
@@ -326,6 +323,18 @@ public partial class BuildingView : Node2D
         }
     }
 
+    /// <summary>What is built at <paramref name="at"/> as <paramref name="into"/>'s ghost: a doorway's piece by its joins as the grid draws it.</summary>
+    private static void LayBuilt(PlanTiles into, Placement built, int at, int joined, IGridQueries grid, PlanCut? cut = null)
+    {
+        if (!Tools.LaysDoor(built))
+        {
+            into.Lay(built, at, grid.Width, joined, cut);
+            return;
+        }
+        var links = Tools.DoorLinks(grid, new HashSet<int>());
+        foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, cut);
+    }
+
     /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
     private static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
         p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
@@ -424,13 +433,11 @@ public partial class BuildingView : Node2D
         List<(string, int, int, IReadOnlyList<Rim>)> cancelled, System.Text.StringBuilder takenKey)
     {
         int width = grid.Width, height = grid.Height;
-        _near = [];
         _ui.Reason.Set(null);
-        if (tool is PlaceTool && pointer is { } near) _near = NearGrid.Around(near, width, height);
-        // Before a press, what the button held would do: the front layer's, the back's with the right alone (0107).
+        // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        // The door's card lays a hatch along a stroke drawn across (0104).
+        // The door's card lays hatch segments but along a stroke down (0104); the ghost shows which.
         act = Drag.Oriented(act, _drag?.From ?? p, p);
         var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
         if (act is PlaceTool place)
@@ -439,22 +446,24 @@ public partial class BuildingView : Node2D
             var cells = verdicts.Select(v => v.Cell).ToHashSet();
             IEnumerable<Placement> Beside(int c) =>
                 building.PlansAt(c).Select(o => o.Place).OfType<Placement>().Concat(cells.Contains(c) ? [place.Placement] : []);
+            // A doorway's ghost joins as it will built, a lone segment a hatch, a run down a door (0104).
+            var doorCells = Tools.LaysDoor(place.Placement)
+                ? building.Plans.Where(o => o.Place is { } other && Tools.LaysDoor(other)).SelectMany(o => CellsOf(grid, o))
+                    .Concat(verdicts.SelectMany(v => grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell])).ToHashSet()
+                : null;
+            var doorLinks = doorCells != null ? Tools.DoorLinks(grid, doorCells) : null;
             foreach (var v in verdicts)
-                (v.Problem != null ? _refused : _fits).Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
-            // Built and planned pipes beside it reach toward it, in its colour.
-            bool Conduit(int c) => grid.ConduitAt(c) != Sim.Grid.Conduit.None || building.PlansAt(c).Any(o => o.Place is { Layer: "conduit" });
-            if (place.Placement.Layer == "conduit")
-                foreach (var refused in (bool[])[false, true])
-                {
-                    var those = verdicts.Where(v => v.Problem != null == refused).Select(v => v.Cell).ToHashSet();
-                    foreach (var (cell, sides) in Tools.StubsOf(those, width, Conduit)) (refused ? _refused : _fits).Stub(cell, width, sides);
-                }
+            {
+                var into = v.Problem != null ? _refused : _fits;
+                if (doorLinks != null)
+                    foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell]) into.LayDoor(c, width, doorLinks);
+                else into.Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
+            }
         }
         else
         {
             // What it would take, as its marks will look: each thing's red ghost and dashes round its silhouette.
-            // What it may not take (a crate not empty, a machine cabled), its silhouette dim, its reason by the pointer.
-            var layers = (act as Remove)?.Layers;
+            // What it may not take (a crate not empty), its silhouette dim, its reason by the pointer.
             var seen = new HashSet<(string, int)>();
             void Silhouette(string layer, int cell, bool takes)
             {
@@ -463,7 +472,7 @@ public partial class BuildingView : Node2D
                     : layer == "structure" && grid.PieceOf(cell) is { Count: > 1 } piece ? piece[0] : cell;
                 if (!seen.Add((layer, at)) || Tools.BuiltAt(at, layer, grid) is not { } built) return;
                 int joined = Tools.LinksOf(built, at, width, _ => [], grid);
-                if (takes) _taking.Lay(built, at, width, joined);
+                if (takes) LayBuilt(_taking, built, at, joined, grid);
                 int x = at % width, y = at / width;
                 string group = layer == "machine" ? $"machine{at}" : layer is "back" or "conduit" ? layer : built.Kind;
                 (takes ? taken : kept).Add((group, x * Cell, y * Cell, PlanShapes.RimOf(built, x, y, joined)));
@@ -487,17 +496,12 @@ public partial class BuildingView : Node2D
                 foreach (var c in v.Commands)
                     if (c is Sim.Building.Deconstruct d) Silhouette(d.Layer, d.Cell, takes: true);
                     else if (c is CancelPlan cancel) Cancelled(v.Cell, cancel.Id);
-                if (v.Problem != null && building.ClearAt(v.Cell, layers) is { } next) Silhouette(next.Layer, next.Cell, takes: false);
+                if (v.Problem != null && act is Remove remove)
+                    foreach (var (layer, at) in Drag.ThingsIn(remove, v.Cell, building)) Silhouette(layer, at, takes: false);
             }
         }
         // A removal's rectangle over open cells as well as things says nothing of the open ones while it takes something.
         bool takes = verdicts.Any(v => v.Commands.Count > 0);
         _ui.Reason.Set(verdicts.FirstOrDefault(v => v.Problem != null && !(takes && v.Problem == "building.nothingThere"))?.Problem);
-    }
-
-    private void PaintHands(Sketch g)
-    {
-        foreach (var e in _near)
-            g.DrawLine(new Vector2(e.X1, e.Y1) * Cell, new Vector2(e.X2, e.Y2) * Cell, GridLine with { A = (float)e.Alpha }, 1);
     }
 }

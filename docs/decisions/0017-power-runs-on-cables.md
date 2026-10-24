@@ -1,6 +1,6 @@
 # 0017 — Power runs on cables laid point to point
 
-- Status: accepted
+- Status: accepted; its refusal to take a cabled machine apart superseded by [0110](0110-the-plan-has-a-focused-layer.md)
 - Date: 2026-10-13
 
 ## Context

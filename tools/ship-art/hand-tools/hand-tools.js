@@ -1,9 +1,9 @@
-// The hand tools' 16 x 16 icons (0108), placeholders until art is picked: the wire stripper.
+// The hand tools' 16 x 16 icons (0108), placeholders until art is picked: the wire stripper (0108) and the pipe wrench (0109).
 // Writes PNGs with node's zlib, no dependencies. Usage: node hand-tools.js <items art dir>
 const fs = require("fs"), zlib = require("zlib"), path = require("path");
 const out = process.argv[2];
 
-const colours = { O: "#14171e", s: "#c9ced6", S: "#8a929e", r: "#d84a3a", R: "#8e2a22", y: "#f2c14e" };
+const colours = { O: "#14171e", s: "#c9ced6", S: "#8a929e", r: "#d84a3a", R: "#8e2a22", y: "#f2c14e", Y: "#9a6a14" };
 
 const icons = {
   stripper: [
@@ -22,6 +22,24 @@ const icons = {
     ".OrRO.......O...",
     ".OrO............",
     "..O.............",
+    "................",
+  ],
+  wrench: [
+    "................",
+    "..........OOO...",
+    ".........OsssO..",
+    "........OsSO.O..",
+    "........OsO.....",
+    ".......OsSO.....",
+    "......OsSO......",
+    ".....OsSO.......",
+    "....OyyO........",
+    "...OyYO.........",
+    "..OyYO..........",
+    ".OyYO...........",
+    ".OYO............",
+    "..O.............",
+    "................",
     "................",
   ],
 };

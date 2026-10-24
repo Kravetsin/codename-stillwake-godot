@@ -10,7 +10,7 @@ namespace Stillwake.Game.Tests;
 
 /// <summary>
 /// The client looks only within what is built (F-6 slice 0) and at the cells the grid's log names (0051):
-/// starlight, the drawn layers and the valves come out as they did over the whole grid, for ships anywhere
+/// starlight and the drawn layers come out as they did over the whole grid, for ships anywhere
 /// in worlds of space, edited inside, on the hull and out in space, with toggles in flight, past the log too.
 /// </summary>
 public class BuiltBoundsTests
@@ -19,10 +19,10 @@ public class BuiltBoundsTests
     [
         Placement.Wall(), Placement.Wall("iron"), Placement.BackWall(), Placement.BackWall("iron"),
         new("structure", "floor"), new("structure", "ladder"), new("structure", "door"),
-        new("conduit", "pipe"), new("conduit", "valve"), new("machine", "lamp"), new("machine", "tank"),
+        new("machine", "lamp"), new("machine", "tank"),
     ];
 
-    private static readonly string[] Layers = ["structure", "conduit", "back", "machine"];
+    private static readonly string[] Layers = ["structure", "back", "machine"];
 
     /// <summary>A world of space <paramref name="w"/>×<paramref name="h"/> with a ship of random cells in a box somewhere in it, maybe against an edge.</summary>
     private static Registry Ship(Random rng, int w, int h)
@@ -153,33 +153,6 @@ public class BuiltBoundsTests
         Assert.True(windowed > 50, $"{windowed} changes followed in a region wider than their window");
     }
 
-    /// <summary>The valves the pipes overlay marks, followed by the grid's log, are those a look over the whole grid finds.</summary>
-    [Fact]
-    public void ValvesFollowedByTheLogAreThoseOfAWholeLook()
-    {
-        var rng = new Random(4);
-        for (int world = 0; world < 40; world++)
-        {
-            int w = rng.Next(6, 40), h = rng.Next(6, 24);
-            var m = Ship(rng, w, h);
-            var valves = new Valves();
-            for (int step = 0; step < 30; step++)
-            {
-                if (rng.Next(3) != 0) Edit(m, rng);
-                if (world % 8 == 0 && step == 15) Outrun(m, rng);
-                var whole = Enumerable.Range(0, w * h).Where(c => m.Grid.ConduitAt(c) is Conduit.ValveOpen or Conduit.ValveClosed);
-                Assert.Equal(whole, valves.Of(m.Grid));
-            }
-            // Another world's grid is looked at whole, though it has had the version last seen of this one.
-            var other = Ship(rng, w, h);
-            int middle = other.Grid.Built.IsEmpty ? 0 : (other.Grid.Built.Top + other.Grid.Built.Height / 2) * w + other.Grid.Built.Left + other.Grid.Built.Width / 2;
-            while (other.Grid.Version <= m.Grid.Version)
-                if (other.Grid.BackLayer[middle] == Back.Wall) other.Grid.Clear(middle, "back");
-                else other.Grid.Place(middle, Placement.BackWall());
-            Assert.Equal(Enumerable.Range(0, w * h).Where(c => other.Grid.ConduitAt(c) is Conduit.ValveOpen or Conduit.ValveClosed), valves.Of(other.Grid));
-        }
-    }
-
     [Fact]
     public void DrawnLayersFindTheCellsAWholeCompareFindsWithTogglesInFlightAndPastTheLog()
     {
@@ -189,7 +162,7 @@ public class BuiltBoundsTests
             int w = rng.Next(6, 40), h = rng.Next(6, 24);
             var m = Ship(rng, w, h);
             var drawn = new DrawnLayers(w, h);
-            int[][] shown = [new int[w * h], new int[w * h], new int[w * h], new int[w * h], new int[w * h]];
+            int[][] shown = [new int[w * h], new int[w * h], new int[w * h], new int[w * h]];
             for (int step = 0; step < 40; step++)
             {
                 if (step > 0 && rng.Next(3) != 0) Edit(m, rng);
@@ -199,13 +172,13 @@ public class BuiltBoundsTests
                 int[][] now =
                 [
                     Shown(m.Grid.StructureLayer, view.Structure), m.Grid.MaterialLayer.ToArray(),
-                    Shown(m.Grid.ConduitLayer, view.Conduit), m.Grid.BackLayer.ToArray(), m.Grid.BackMaterialLayer.ToArray(),
+                    m.Grid.BackLayer.ToArray(), m.Grid.BackMaterialLayer.ToArray(),
                 ];
                 var expected = Enumerable.Range(0, w * h).Where(c => now.Where((layer, k) => layer[c] != shown[k][c]).Any())
-                    .Select(c => new DrawnLayers.Change(c, shown[0][c], shown[2][c])).ToList();
+                    .Select(c => new DrawnLayers.Change(c, shown[0][c])).ToList();
                 var changes = drawn.Follow(m.Grid, view);
                 Assert.Equal(expected, changes);
-                Assert.Equal(now, new[] { drawn.Structure, drawn.Material, drawn.Conduit, drawn.Back, drawn.BackMaterial });
+                Assert.Equal(now, new[] { drawn.Structure, drawn.Material, drawn.Back, drawn.BackMaterial });
                 shown = now;
             }
         }
@@ -215,7 +188,7 @@ public class BuiltBoundsTests
     public void DrawnLayersCallStaleEachChangedCellAndItsNeighboursOnTheGridOnce()
     {
         var drawn = new DrawnLayers(4, 3);
-        var stale = drawn.Stale([new DrawnLayers.Change(4, 0, 0), new DrawnLayers.Change(5, 0, 0), new DrawnLayers.Change(11, 0, 0)]);
+        var stale = drawn.Stale([new DrawnLayers.Change(4, 0), new DrawnLayers.Change(5, 0), new DrawnLayers.Change(11, 0)]);
         Assert.Equal(new[] { 0, 1, 4, 5, 6, 7, 8, 9, 10, 11 }, stale.Order());
     }
 
@@ -227,7 +200,7 @@ public class BuiltBoundsTests
         for (int y = 0; y < 7; y++)
             for (int x = 1; x < 3; x++)
                 if (y < 6 || x == 1) drawn.Structure[y * 4 + x] = Structure.DoorClosed;
-        var stale = drawn.Stale([new DrawnLayers.Change(6 * 4 + 1, Structure.Empty, Conduit.None)]);
+        var stale = drawn.Stale([new DrawnLayers.Change(6 * 4 + 1, Structure.Empty)]);
         Assert.Subset(stale.ToHashSet(), Enumerable.Range(0, 6).SelectMany(y => new[] { y * 4 + 1, y * 4 + 2 }).ToHashSet());
     }
 
@@ -241,20 +214,19 @@ public class BuiltBoundsTests
         Assert.Null(m.Grid.ChangedSince(version));
     }
 
-    /// <summary>Now and then some doors and valves toggled, as a peer's in flight; else nothing in flight.</summary>
+    /// <summary>Now and then some doors toggled, as a peer's in flight; else nothing in flight.</summary>
     private static ShownGrid InFlight(Registry m, Random rng, int step)
     {
         if (rng.Next(2) == 0) return new ShownGrid($"{step}", null, null);
         var cells = Enumerable.Range(0, m.Grid.Width * m.Grid.Height)
-            .Where(c => m.Grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen || m.Grid.ConduitAt(c) is Conduit.ValveOpen or Conduit.ValveClosed).ToList();
+            .Where(c => m.Grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen).ToList();
         var toggles = new List<Command>();
         for (int i = rng.Next(1, 4); i > 0 && cells.Count > 0; i--)
         {
             int cell = cells[rng.Next(cells.Count)];
-            toggles.Add(rng.Next(2) == 0 ? new SetDoor(cell, rng.Next(2) == 0) : new SetValve(cell, rng.Next(2) == 0));
+            toggles.Add(new SetDoor(cell, rng.Next(2) == 0));
         }
-        var (structure, conduit) = m.Grid.AfterToggles(toggles);
-        return new ShownGrid($"{step}:toggles", structure, conduit);
+        return new ShownGrid($"{step}:toggles", m.Grid.AfterToggles(toggles), null);
     }
 
     private static int[] Shown(ReadOnlySpan<int> layer, IReadOnlyDictionary<int, int>? cells)

@@ -12,12 +12,13 @@ namespace Stillwake.Sim;
 /// other slices — never a silent default, so a forgotten step fails loudly in <see cref="World.Load"/>.
 /// Only saves read from disk are upgraded: a guest's welcome and a resync come from this very build.
 /// Format 28 halved the cell (0104): no save before it migrates, its cells and lengths those of another
-/// scale and a planet's edits laid on a ground that now grows differently, so its steps went with it.
+/// scale and a planet's edits laid on a ground that now grows differently, so its steps went with it. Format 29 made pipes
+/// spans (0109): no save before it migrates either, nothing released having held one.
 /// </summary>
 public static class Migrations
 {
-    /// <summary>The oldest format a save may have and still load: the 8 px cell's first (0104).</summary>
-    public const int Oldest = 28;
+    /// <summary>The oldest format a save may have and still load: pipes as spans' first (0109).</summary>
+    public const int Oldest = 29;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
     public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];

@@ -1,6 +1,6 @@
 # 0108 — In the plan menu the left button plans and the right removes; the stripper lays cables
 
-- Status: accepted; supersedes the card and removal parts of [0107](0107-left-is-front-right-is-back.md) (its rule 2 for
+- Status: accepted; its right-button layer rule and back-wall fade superseded by [0110](0110-the-plan-has-a-focused-layer.md); supersedes the card and removal parts of [0107](0107-left-is-front-right-is-back.md) (its rule 2 for
   the menu, the removal card, the axe and drill on a ship's back walls); 0107's screwdriver stands
 - Date: 2026-10-23
 - Design: agreed by both developers in chat; no design file

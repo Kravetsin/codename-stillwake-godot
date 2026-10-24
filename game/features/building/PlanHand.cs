@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Linq;
 using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Building;
@@ -20,14 +22,53 @@ public sealed class PlanHand
     public Store<string> Tab { get; } = new(Tools.Tabs[0].Id);
 
 
+    /// <summary>The layer the open plan works in (0110): a card picked sets it to its own, the middle button or a layer's button turns it.</summary>
+    public Store<Focus> Focus { get; } = new(Building.Focus.Front);
+
+    /// <summary>Whether this player's hero is on the ship (0110): away from it the layers neither toggle nor fade, and the stripper and the wrench do nothing.</summary>
+    public Store<bool> Aboard { get; } = new(true);
+
+    /// <summary>The focus the world is drawn by: the open plan's aboard; none otherwise, so nothing fades and the ground hides what is in it.</summary>
+    public Focus? Shown => PlanOut.Get() && Aboard.Get() ? Focus.Get() : null;
+
+    /// <summary>Whether the front fades round the pointer as a hand <paramref name="digsBack"/>: with the plan away, aboard only (0110).</summary>
+    public bool SeesThrough(bool digsBack) => digsBack && !PlanOut.Get() && Aboard.Get();
+
+    /// <summary>The card of the hand tool held (0110): what the stripper or the wrench lays; its first when the tool comes into the hand.</summary>
+    public Store<HandCard?> ToolCard { get; } = new(null);
+
+    /// <summary>The cards of the menu the item wielded opens, none while the plan is out (a hand on the plan wields nothing) or away from the ship.</summary>
+    public IReadOnlyList<HandCard> ToolCards => Aboard.Get() ? Tools.CardsOf(_ui.Wielded.Get()) : [];
+
+    private readonly Ui _ui;
+
+    /// <summary>The card each layer had in hand when the focus left it, by <see cref="Building.Focus"/>; and the card in hand.</summary>
+    private readonly Tool?[] _kept = new Tool?[2];
+    private Tool? _held;
+
     /// <summary>Q pressed with the menu open: the building takes the card under the pointer at its next frame.</summary>
     public bool PickWanted { get; set; }
 
     public PlanHand(Ui ui)
     {
+        _ui = ui;
+        // A card of the other layer picked takes the focus there, the one in hand kept for coming back (0110).
+        Selected.Subscribe(() =>
+        {
+            if (Selected.Get() is { } tool && Tools.FocusOf(tool) != Focus.Get())
+            {
+                _kept[(int)Focus.Get()] = _held;
+                Focus.Set(Tools.FocusOf(tool));
+            }
+            _held = Selected.Get();
+        });
+        ui.Wielded.Subscribe(() => ToolCard.Set(ToolCards.Count > 0 ? ToolCards[0] : null));
+        Aboard.Subscribe(() => ToolCard.Set(ToolCards.Count > 0 ? ToolCards[0] : null));
         PlanOut.Subscribe(() =>
         {
-            if (!PlanOut.Get()) Selected.Set(null);
+            if (PlanOut.Get()) return;
+            Selected.Set(null);
+            System.Array.Clear(_kept);
         });
         Tab.Subscribe(() =>
         {
@@ -40,7 +81,7 @@ public sealed class PlanHand
         {
             if (ui.Hand.Get() == Shared.Holding.Free && Held() != Shared.Holding.Free) PutPlanAway();
         });
-        ui.OverlayShown = () => Tools.OverlayShown(PlanOut.Get(), Tab.Get(), ui.AirOn.Get(), ui.Wielded.Get());
+        ui.OverlayShown = () => Tools.OverlayShown(PlanOut.Get(), Tab.Get(), ui.AirOn.Get(), Aboard.Get() ? ui.Wielded.Get() : null);
     }
 
 
@@ -49,6 +90,30 @@ public sealed class PlanHand
 
     /// <summary>B: takes the plan out, or puts it away.</summary>
     public void Toggle() => PlanOut.Set(!PlanOut.Get());
+
+    /// <summary>The middle button with the plan out: the focus to the other layer.</summary>
+    public void ToggleFocus() => FocusOn(Tools.Toggled(Focus.Get()));
+
+    /// <summary>
+    /// A layer's button, or the middle button, with the plan out: the focus to <paramref name="focus"/>, the card in hand kept
+    /// for the layer it leaves and the one kept for <paramref name="focus"/> back in hand, so a card always is of the focused layer.
+    /// </summary>
+    public void FocusOn(Focus focus)
+    {
+        if (!PlanOut.Get() || focus == Focus.Get()) return;
+        _kept[(int)Focus.Get()] = Selected.Get();
+        var back = _kept[(int)focus];
+        _kept[(int)focus] = null;
+        Focus.Set(focus);
+        if (back != null) Tab.Set(Tools.TabOf(back));
+        Selected.Set(back);
+    }
+
+    /// <summary>A card of the hand tool's menu picked: what its left button lays from now on. A card it does not offer is let be.</summary>
+    public void PickToolCard(HandCard card)
+    {
+        if (ToolCards.Contains(card)) ToolCard.Set(card);
+    }
 
     /// <summary>A card into the hand, its own tab opened first; the same card again lets it go.</summary>
     public void Pick(Tool tool)

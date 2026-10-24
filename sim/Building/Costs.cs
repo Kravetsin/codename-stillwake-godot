@@ -20,7 +20,7 @@ internal static class Costs
     public static Build BuildOf(Placement placement) => placement.Layer switch
     {
         "structure" when placement.Kind == "wall" => Wall(Materials.Get(placement.Material!)),
-        "structure" or "conduit" => Builds.Get(Builds.BuiltAs(placement.Kind)),
+        "structure" => Builds.Get(Builds.BuiltAs(placement.Kind)),
         "machine" => Machine(placement.Kind),
         "back" => Wall(Materials.Get(placement.Material!)),
         _ => throw new ArgumentException($"building: no layer {placement.Layer}"),
@@ -38,14 +38,7 @@ internal static class Costs
                     Structure.Empty => null,
                     Structure.Floor => Builds.Get("floor"),
                     Structure.Ladder => Share(Builds.Get("ladder"), grid.PieceOf(cell).Count),
-                    _ => Share(Builds.Get("door"), grid.PieceOf(cell).Count),
-                };
-            case "conduit":
-                return grid.ConduitAt(cell) switch
-                {
-                    Conduit.None => null,
-                    Conduit.Pipe => Builds.Get("pipe"),
-                    _ => Builds.Get("valve"),
+                    _ => DoorPiece(grid, cell),
                 };
             case "machine":
                 return grid.MachineAt(cell) is { } m ? Machine(m.Kind) : null;
@@ -56,14 +49,23 @@ internal static class Costs
         }
     }
 
+    /// <summary>A door cell's piece: a hatch segment's whole when it lies in one row (0104), else its share of a door segment.</summary>
+    private static Build DoorPiece(IGridQueries grid, int cell)
+    {
+        var piece = grid.PieceOf(cell);
+        bool flat = piece[0] / grid.Width == piece[^1] / grid.Width;
+        return Share(Builds.Get("door"), piece.Count, flat ? Builds.PieceOf(Builds.Hatch) : null);
+    }
+
     /// <summary>
     /// A piece of <paramref name="cells"/> cells built as <paramref name="build"/>: its cost for as many of its pieces as those cells
-    /// make, each item rounded down, so a doorway of two doors gives back two and a ladder piece a meteor broke gives nothing;
+    /// make, each item rounded down, so a door segment gives back a whole one and a ladder piece a meteor broke gives nothing;
     /// its ticks to take apart the whole piece's (0104).
     /// </summary>
-    private static Build Share(Build build, int cells)
+    private static Build Share(Build build, int cells, (int Across, int Tall)? piece = null)
     {
-        int whole = build.Across * build.Tall;
+        var (across, tall) = piece ?? (build.Across, build.Tall);
+        int whole = across * tall;
         if (cells == whole) return build;
         var cost = build.Cost.Select(c => (c.Item, Count: c.Count * cells / whole)).Where(c => c.Count > 0).ToList();
         return build with { Cost = cost };

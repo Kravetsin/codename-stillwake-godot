@@ -7,6 +7,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using Xunit.Abstractions;
@@ -257,7 +258,6 @@ public class DesyncTests(ITestOutputHelper output)
         ]).Doubled();
         // The cell of the drawing's character at (x, y): its block's top-left, doubled (0104).
         static int Cell(int x, int y) => 2 * y * 26 + 2 * x;
-        var pipe = new Placement("conduit", "pipe");
         const int tank = 2;
         Covering(9, tried =>
         {
@@ -275,15 +275,9 @@ public class DesyncTests(ITestOutputHelper output)
                     if (tick <= 40) first.Send(new SetCreative(true));
                     if (tick < 40)
                     {
-                        // Each missing pipe planned, or its plan worked: the fuzz may cancel a plan meanwhile.
-                        // Down from the vent's port to the tank's, a cell wide.
-                        foreach (int at in Enumerable.Range(0, 5).Select(i => Cell(2, 2) + i * 26))
-                        {
-                            if (game.Module<GridModule>(first.World).ConduitAt(at) != Conduit.None) continue;
-                            var plan = game.Module<BuildingModule>(first.World).PlansAt(at)
-                                .FirstOrDefault(p => p.Place?.Layer == "conduit");
-                            first.Send(plan != null ? new Work(plan.Id) : new PlacePlan(at, pipe));
-                        }
+                        // The pipe laid again while missing, from the vent's port down to the tank's (0109): the fuzz may cut it meanwhile.
+                        int from = Cell(2, 2), to = Cell(2, 2) + 4 * 26;
+                        if (!game.Module<PipesModule>(first.World).Spans.Any(s => s.A == from && s.B == to)) first.Send(new LayPipe(from, to));
                     }
                     else if (tick == 40)
                     {

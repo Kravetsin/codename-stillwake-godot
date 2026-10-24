@@ -16,7 +16,6 @@ public class BrushTests
     private static readonly PlaceTool Floor = new("floor", new Placement("structure", "floor"), "floor");
     private static readonly PlaceTool Ladder = new("ladder", new Placement("structure", "ladder"), "ladder");
     private static readonly PlaceTool Door = new("door", new Placement("structure", "door"), "door");
-    private static readonly PlaceTool Hatch = Door with { Placement = new Placement("structure", Stillwake.Content.Builds.Hatch) };
     private static readonly PlaceTool Pipe = new("pipe", new Placement("conduit", "pipe"), "pipe");
     private static readonly PlaceTool Tank = new("tank", new Placement("machine", "tank"), "tank");
     private static readonly Remove Removal = new(["machine", "conduit", "structure", "back"]);
@@ -52,10 +51,9 @@ public class BrushTests
     [Fact]
     public void PiecesTakeTheirOwnSizeEverythingElseOneCell()
     {
-        // A ladder, a door and a hatch are pieces of their own size (0104); building has no brush.
+        // A ladder and a door segment are pieces of their own size (0104); building has no brush.
         Assert.Equal((2, 2), Drag.StampOf(Ladder));
-        Assert.Equal((2, 6), Drag.StampOf(Door));
-        Assert.Equal((6, 2), Drag.StampOf(Hatch));
+        Assert.Equal((2, 2), Drag.StampOf(Door));
         foreach (Act act in (Act[])[Wall, BackWall, Floor, Pipe, Tank, Removal]) Assert.Equal((1, 1), Drag.StampOf(act));
     }
 
@@ -86,20 +84,32 @@ public class BrushTests
     }
 
     [Fact]
-    public void AMachineADoorAndAPipeArePlacedWhereTheStrokeBeganOnce()
+    public void AMachineIsPlacedWhereTheStrokeBeganOnceAPipeAlongIt()
     {
         Assert.Equal([12], Drag.StrokeOf(W, H, Tank, (2.9, 1.9), (7.2, 1.4)));
-        // A door's piece round the pointer, kept on the grid: six tall from the top row.
-        Assert.Equal([2], Drag.StrokeOf(W, H, Door, (2.9, 1.9), (2.9, 3.4)));
         Assert.Equal([12, 13, 14], Drag.StrokeOf(W, H, Pipe, (2.9, 1.9), (4.1, 1.4)));
     }
 
     [Fact]
-    public void TheDoorsCardLaysAHatchAlongAStrokeDrawnAcross()
+    public void DoorSegmentsAreLaidAPieceAtATwoCellsAStepDownADoorAcrossAHatch()
     {
-        Assert.Equal(Hatch, Drag.Oriented(Door, (2.9, 1.9), (6.2, 2.4)));
-        Assert.Equal(Door, Drag.Oriented(Door, (2.9, 1.9), (3.2, 4.4)));
-        Assert.Equal(Door, Drag.Oriented(Door, (2.9, 1.9), (2.9, 1.9)));
-        Assert.Equal(Ladder, Drag.Oriented(Ladder, (2.9, 1.9), (6.2, 2.4)));
+        Assert.Equal([14, 34], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (4.9, 4.1)));
+        Assert.Equal([14, 16], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (7.1, 1.9)));
+        Assert.Equal([14], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (4.9, 1.9)));
+    }
+
+    [Fact]
+    public void TheDoorsCardLaysHatchSegmentsByAClickOrAcrossAndDoorSegmentsDownAsFarAsASecond()
+    {
+        var hatch = Door with { Placement = new Placement("structure", Stillwake.Content.Builds.Hatch) };
+        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (4.9, 1.9)));
+        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (7.1, 2.4)));
+        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (4.9, 2.6)));
+        Assert.Equal(Door, Drag.Oriented(Door, (4.9, 1.9), (4.9, 4.1)));
+        Assert.Equal(Ladder, Drag.Oriented(Ladder, (4.9, 1.9), (7.1, 1.9)));
+        // A hatch segment is two by one, laid a piece's width a step along its row only.
+        Assert.Equal((2, 1), Drag.StampOf(hatch));
+        Assert.Equal([14, 16, 18], Drag.StrokeOf(W, H, hatch, (4.9, 1.9), (9.1, 1.9)));
+        Assert.Equal([14], Drag.StrokeOf(W, H, hatch, (4.9, 1.9), (4.9, 2.6)));
     }
 }

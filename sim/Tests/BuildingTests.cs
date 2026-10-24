@@ -12,7 +12,6 @@ namespace Stillwake.Sim.Tests;
 public class BuildingTests
 {
     private static readonly Placement Wall = Placement.Wall("iron");
-    private static readonly Placement Pipe = new("conduit", "pipe");
     private static readonly Placement Tank = new("machine", "tank");
 
     /// <summary>Nine characters wide, doubled to 18 cells (0104).</summary>
@@ -50,13 +49,11 @@ public class BuildingTests
             new("structure", "floor"),
             new("structure", "ladder"),
             new("structure", "door"),
-            Pipe,
-            new("conduit", "valve"),
             new("machine", "vent"),
         ];
         var w = new Scenario(Open);
         for (int i = 0; i < placements.Length; i++)
-            w.Do(new PlacePlan(i < 7 ? At(1 + i, 1) : At(1, 2), placements[i]));
+            w.Do(new PlacePlan(i < 5 ? At(1 + i, 1) : At(1, 2), placements[i]));
         w.Do(new PlacePlan(At(3, 2), Tank)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal([.. placements, Tank], w.M.Building.Plans.Select(p => p.Place));
@@ -75,7 +72,7 @@ public class BuildingTests
     {
         var w = new Scenario(Open)
             .Do(new PlacePlan(At(0, 0), Wall))
-            .Do(new PlacePlan(-1, Pipe))
+            .Do(new PlacePlan(-1, new Placement("structure", "floor")))
             .Run();
         Assert.Equal(["grid.occupied", "grid.outOfBounds"], Reasons(w));
         Assert.Empty(w.M.Building.Plans);
@@ -131,22 +128,6 @@ public class BuildingTests
         Assert.Empty(w.M.Building.PlansAt(At(6, 1)));
     }
 
-    [Fact]
-    public void LetsAConduitBePlannedUnderAPlannedWallOrMachineButNotASecondConduit()
-    {
-        var w = new Scenario(Open)
-            .Do(new PlacePlan(At(1, 1), Wall))
-            .Do(new PlacePlan(At(1, 1), Pipe))
-            .Do(new PlacePlan(At(3, 1), Tank))
-            .Do(new PlacePlan(At(4, 2), Pipe))
-            .Do(new PlacePlan(At(4, 2), new Placement("conduit", "valve")))
-            .Run();
-        Assert.Equal(["building.planned"], Reasons(w));
-        Assert.Equal(
-            [Placed(1, At(1, 1), Wall), Placed(2, At(1, 1), Pipe), Placed(3, At(3, 1), Tank), Placed(4, At(4, 2), Pipe)],
-            PlansOf(w));
-    }
-
     /// <summary>
     /// Plans claim their slots, so only another plan's build could fill one, and a plan refuses that:
     /// the tests' instant builds, standing in for builds, claim nothing planned either. A lamp built at
@@ -163,11 +144,9 @@ public class BuildingTests
             .Run()
             .Do(new Place(At(1, 1), new Placement("machine", "lamp")))
             .Do(new Place(At(4, 2), Wall))
-            .Do(new Place(At(1, 1), Pipe))
             .Run();
         Assert.Equal(["building.planned", "building.planned"], Reasons(w));
         Assert.Empty(w.M.Grid.Machines);
-        Assert.Equal(Conduit.Pipe, w.M.Grid.ConduitAt(At(1, 1)));
         for (int i = 0; i < Builds.Get("floor").BuildTicks; i++) w.Do(new Work(1)).Run();
         Assert.Equal(Structure.Floor, w.M.Grid.StructureAt(At(1, 1)));
     }
@@ -221,10 +200,10 @@ public class BuildingTests
 
     // Deconstruction.
 
-    /// <summary>Seven wide, doubled to 14: a tank, a pipe, a floor and a ladder in a room.</summary>
+    /// <summary>Seven wide, doubled to 14: a tank, a floor and a ladder in a room.</summary>
     private const string Room = """
         #######
-        #TT.-.#
+        #TT...#
         #TT=H.#
         #######
         """;
@@ -236,20 +215,20 @@ public class BuildingTests
     {
         var w = new Scenario(Room)
             .Do(new Deconstruct(Cell(0, 0), "structure"))
-            .Do(new Deconstruct(Cell(4, 1), "conduit"))
+            .Do(new Deconstruct(Cell(4, 1), "back"))
             .Do(new Deconstruct(Cell(0, 0), "structure"))
             .Run();
         Assert.Equal(["building.planned"], Reasons(w));
-        Assert.Equal([Marked(1, Cell(0, 0), "structure"), Marked(2, Cell(4, 1), "conduit")], PlansOf(w));
+        Assert.Equal([Marked(1, Cell(0, 0), "structure"), Marked(2, Cell(4, 1), "back")], PlansOf(w));
     }
 
     [Fact]
     public void RefusesAMarkWhereThatLayerHoldsNothing()
     {
         var w = new Scenario(Room);
-        foreach (var layer in new[] { "structure", "conduit", "machine" }) w.Do(new Deconstruct(Cell(5, 1), layer));
+        foreach (var layer in new[] { "structure", "machine" }) w.Do(new Deconstruct(Cell(5, 1), layer));
         w.Do(new Deconstruct(-3, "structure")).Run();
-        Assert.Equal(Enumerable.Repeat("building.nothingThere", 4), Reasons(w));
+        Assert.Equal(Enumerable.Repeat("building.nothingThere", 3), Reasons(w));
     }
 
     [Fact]
@@ -288,39 +267,32 @@ public class BuildingTests
     }
 
     [Fact]
-    public void MarksEachLayerOfOneCellApartAPipeInAWallTakesTwoMarks()
+    public void MarksEachLayerOfOneCellApartAWallAndItsBackWallTakeTwoMarks()
     {
         var w = new Scenario(Room)
-            .Do(new Place(Cell(0, 0), Pipe))
-            .Run()
             .Do(new Deconstruct(Cell(0, 0), "structure"))
-            .Do(new Deconstruct(Cell(0, 0), "conduit"))
+            .Do(new Deconstruct(Cell(0, 0), "back"))
             .Run();
         Assert.Empty(w.Refusals);
         Assert.Equal([1, 2], Ids(w.M.Building.Plans));
     }
 
     [Fact]
-    public void TakesAMachineFirstThenAConduitTheStructureAndTheBackPassingOverTheMarked()
+    public void TakesAMachineFirstThenTheStructureAndTheBackPassingOverTheMarked()
     {
-        var w = new Scenario(Room)
-            .Do(new Place(Cell(1, 1), Pipe))
-            .Do(new Place(Cell(0, 1), Pipe))
-            .Run();
+        var w = new Scenario(Room);
         (string, int)? Next(int c) => w.M.Building.ClearAt(c);
-        // A tank with a pipe under it, at a cell of the tank that is not its corner.
+        // A tank, at a cell of the tank that is not its corner.
         Assert.Equal(("machine", Cell(1, 1)), Next(Cell(2, 2)));
         Assert.Equal(("machine", Cell(1, 1)), Next(Cell(1, 1)));
         w.Do(new Deconstruct(Cell(1, 1), "machine")).Run();
-        Assert.Equal(("conduit", Cell(1, 1)), Next(Cell(1, 1)));
-        // A pipe in a wall: the pipe, the wall, the wall behind, then the pipe again, already marked.
-        Assert.Equal(("conduit", Cell(0, 1)), Next(Cell(0, 1)));
-        w.Do(new Deconstruct(Cell(0, 1), "conduit")).Run();
+        Assert.Equal(("back", Cell(1, 1)), Next(Cell(1, 1)));
+        // A wall: the wall, the wall behind, then the wall again, already marked.
         Assert.Equal(("structure", Cell(0, 1)), Next(Cell(0, 1)));
         w.Do(new Deconstruct(Cell(0, 1), "structure")).Run();
         Assert.Equal(("back", Cell(0, 1)), Next(Cell(0, 1)));
         w.Do(new Deconstruct(Cell(0, 1), "back")).Run();
-        Assert.Equal(("conduit", Cell(0, 1)), Next(Cell(0, 1)));
+        Assert.Equal(("structure", Cell(0, 1)), Next(Cell(0, 1)));
         // An empty cell of the room has only the wall behind it.
         Assert.Equal(("back", Cell(5, 1)), Next(Cell(5, 1)));
         w.Do(new ClearAt(Cell(5, 1), "back")).Run();
@@ -330,17 +302,16 @@ public class BuildingTests
     [Fact]
     public void LooksOnlyInTheLayersAskedForInTheirOrder()
     {
-        var w = new Scenario(Room).Do(new Place(Cell(0, 1), Pipe)).Do(new Place(Cell(1, 1), Pipe)).Run();
+        var w = new Scenario(Room);
         (string, int)? Next(int c, params string[] layers) => w.M.Building.ClearAt(c, layers);
-        // A pipe in a wall, with the wall behind.
+        // A wall, with the wall behind.
         Assert.Equal(("structure", Cell(0, 1)), Next(Cell(0, 1), "structure", "back"));
-        Assert.Equal(("back", Cell(0, 1)), Next(Cell(0, 1), "back", "conduit"));
-        // The pipes overlay asks for a pipe before the machine on it: a full crate or a tank on a pipe
-        // does not stand in the way of taking the pipe.
-        Assert.Equal(("conduit", Cell(1, 1)), Next(Cell(1, 1), "conduit", "machine"));
-        Assert.Equal(("machine", Cell(1, 1)), Next(Cell(1, 1), "machine", "conduit"));
-        // A machine's cell, asked for its conduit only, has none.
-        Assert.Null(Next(Cell(2, 2), "conduit"));
+        Assert.Equal(("back", Cell(0, 1)), Next(Cell(0, 1), "back", "structure"));
+        // A tank before its back wall, or the back wall before it, as asked.
+        Assert.Equal(("machine", Cell(1, 1)), Next(Cell(1, 1), "machine", "back"));
+        Assert.Equal(("back", Cell(1, 1)), Next(Cell(1, 1), "back", "machine"));
+        // A machine's cell, asked for its structure only, has none.
+        Assert.Null(Next(Cell(2, 2), "structure"));
         w.Do(new Deconstruct(Cell(0, 1), "structure")).Run();
         Assert.Equal(("back", Cell(0, 1)), Next(Cell(0, 1), "structure", "back"));
     }
@@ -394,10 +365,10 @@ public class BuildingTests
     {
         var placement = Gen.Elements(
             Wall, new Placement("structure", "floor"), new Placement("structure", "door"),
-            Pipe, new Placement("conduit", "valve"), Tank, new Placement("machine", "vent"));
+            Tank, new Placement("machine", "vent"));
         var step = Gen.OneOf(
             from cell in Cells from p in placement select new Step(cell, p, null, 0),
-            from cell in Cells from layer in Gen.Elements("structure", "conduit", "machine") select new Step(cell, null, layer, 0),
+            from cell in Cells from layer in Gen.Elements("structure", "machine") select new Step(cell, null, layer, 0),
             from id in Gen.Frequency((2, Gen.Choose(0, 160)), (3, Gen.Choose(0, 8))) select new Step(0, null, null, id));
         var tick = from n in Gen.Choose(0, 4) from s in step.ArrayOf(n) select s;
         var ticks = from n in Gen.Choose(0, 40) from t in tick.ArrayOf(n) select t;
@@ -434,7 +405,7 @@ public class BuildingTests
                 claimed.Add(key);
                 continue;
             }
-            string slot = p.Place!.Layer == "conduit" ? "conduit" : "solid";
+            string slot = "solid";
             foreach (int c in FootprintOf(p))
             {
                 string key = $"{slot}:{c}";

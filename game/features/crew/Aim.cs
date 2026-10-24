@@ -506,9 +506,9 @@ public static class Aiming
         var grid = m.Grid;
         if (grid.MachineAt(cell) is { Kind: "tank" } tank) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
-        int conduit = shown?.ConduitAt(grid, cell) ?? grid.ConduitAt(cell);
+        bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
         if (structure is Structure.DoorClosed or Structure.DoorOpen) return new Use(new SetDoor(cell, structure == Structure.DoorClosed), null);
-        if (conduit is Conduit.ValveClosed or Conduit.ValveOpen) return new Use(new SetValve(cell, conduit == Conduit.ValveClosed), null);
+        if (valve is bool open) return new Use(new Sim.Pipes.SetValve(cell, !open), null);
         return null;
     }
 

@@ -20,9 +20,8 @@ public sealed class HazardsModule : Module<HazardsState>
         _grid = grid;
         Handles<MeteorHit>(c => grid.StructureAt(c.Cell) == Structure.Wall ? null : "hazards.noWall", c =>
         {
-            // The wall goes, and the pipe or valve running through it.
+            // The wall goes; pipes are spans, running through it untouched (0109).
             ops.Clear(c.Cell, "structure");
-            ops.Clear(c.Cell, "conduit");
         });
     }
 

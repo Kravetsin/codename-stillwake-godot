@@ -266,24 +266,19 @@ public sealed class ShipTiles
         return image;
     }
 
-    /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's, a door's or a hatch's.</summary>
+    /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's or a door segment's.</summary>
     public static string PieceName(string kind) => $"piece_{kind}";
 
-    /// <summary>A piece of <paramref name="kind"/> whole, shut if a door: its 16 px pictures side by side over its cells.</summary>
-    private static Image Whole(string kind)
+    /// <summary>
+    /// A piece of <paramref name="kind"/> whole, its 16 px picture: a ladder's, a door segment's shut, a door one segment long, or
+    /// a hatch segment's, a hatch one segment long, its one cell's height (0104).
+    /// </summary>
+    private static Image Whole(string kind) => kind switch
     {
-        if (kind == "ladder") return (Image)Art("ladder").Duplicate();
-        var (across, tall) = Builds.PieceOf(kind)!.Value;
-        bool hatch = kind == Builds.Hatch;
-        var parts = DoorShape.Whole(hatch, (hatch ? across : tall) / DoorShape.Per);
-        var whole = Image.CreateEmpty(across * Cell, tall * Cell, false, Image.Format.Rgba8);
-        for (int i = 0; i < parts.Count; i++)
-        {
-            var part = Art(parts[i]);
-            whole.BlitRect(part, new Rect2I(Vector2I.Zero, part.GetSize()), hatch ? new Vector2I(i * Drawn, 0) : new Vector2I(0, i * Drawn));
-        }
-        return whole;
-    }
+        "ladder" => (Image)Art("ladder").Duplicate(),
+        Builds.Hatch => Art(DoorShape.Whole(true, 1)[0]).GetRegion(new Rect2I(0, 0, Drawn, Cell)),
+        _ => (Image)Art(DoorShape.Whole(false, 1)[0]).Duplicate(),
+    };
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
     public static string BackName(string material) => $"back_{material}";

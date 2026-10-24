@@ -52,7 +52,7 @@ public static class Prompts
             Hit => new Prompt("use.chop", press.Problem),
             Dig d => new Prompt(d.Back ? "use.digBack" : "use.dig", press.Problem),
             SetDoor d => new Prompt(d.Open ? "use.openDoor" : "use.closeDoor", press.Problem),
-            SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
+            Sim.Pipes.SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
             _ => throw new InvalidOperationException($"No prompt for {press.Command.GetType().Name}"),
         };
     }

@@ -18,8 +18,24 @@ public abstract record Tool(string Id, string Label) : Act;
 /// <summary>A card that places <paramref name="Placement"/> along a drag of the left button, and marks its layer along one of the right (0108).</summary>
 public sealed record PlaceTool(string Id, Placement Placement, string Label) : Tool(Id, Label);
 
-/// <summary>A removal from <paramref name="Layers"/>, in the order they are taken.</summary>
+/// <summary>
+/// A card of a hand tool's menu (0110): what the stripper's or the wrench's left button lays, paid from the inventory as it
+/// is laid; <paramref name="Item"/> is the one whose count the card shows.
+/// </summary>
+public sealed record HandCard(string Id, string Label, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Label);
+
+/// <summary>
+/// A removal from <paramref name="Layers"/>, in the order they are taken (0110).
+/// </summary>
 public sealed record Remove(IReadOnlyList<string> Layers) : Act;
+
+/// <summary>The layer the open plan works in (0110): its right button removes there, the other drawn faded.</summary>
+public enum Focus
+{
+    /// <summary>What cannot stack in a cell: walls, machines, doors, hatches, ladders, floors and the other pieces.</summary>
+    Front,
+    Back,
+}
 
 /// <summary>A tab of the build menu, its cards, and the overlay it shows while open, if any: the tab is the mode (0030).</summary>
 public sealed record Tab(string Id, IReadOnlyList<Tool> Tools, string? Overlay = null);
@@ -82,12 +98,10 @@ public static class Tools
         ]),
         new("air",
         [
-            Place("pipe", new Placement("conduit", "pipe")),
-            Place("valve", new Placement("conduit", "valve")),
             Place("vent", new Placement("machine", "vent")),
             Place("tank", new Placement("machine", "tank")),
             Place("generator", new Placement("machine", "generator")),
-        ], Pipes),
+        ]),
         new("power",
         [
             Place("solarPanel", new Placement("machine", "solarPanel")),
@@ -115,30 +129,60 @@ public static class Tools
 
     /// <summary>What a card costs, by <paramref name="costFor"/> (the sim's own rule) for what it places.</summary>
     public static IReadOnlyList<(string Item, int Count)> CostOf(Tool tool, System.Func<Placement, IReadOnlyList<(string Item, int Count)>> costFor) =>
-        tool is PlaceTool p ? costFor(p.Placement) : [];
+        tool switch
+        {
+            PlaceTool p => costFor(p.Placement),
+            HandCard h => h.Cost,
+            _ => [],
+        };
 
-    /// <summary>Whether <paramref name="tool"/> is a back wall's card: its right button marks back walls only, and the front fades while it aims (0108).</summary>
-    public static bool IsBack(Tool? tool) => tool is PlaceTool { Placement.Layer: "back" };
+    /// <summary>The layer a card's placement is in (0110): a back wall's the back, every other the front.</summary>
+    public static Focus FocusOf(Tool tool) => tool is PlaceTool { Placement.Layer: "back" } ? Focus.Back : Focus.Front;
+
+    /// <summary>The layer the middle button turns to from <paramref name="focus"/>: the other one (0110).</summary>
+    public static Focus Toggled(Focus focus) => focus == Focus.Front ? Focus.Back : Focus.Front;
+
+    /// <summary>What the right button takes in <paramref name="focus"/>: back walls (those behind machines too), or all of the front.</summary>
+    public static Remove RemovalIn(Focus focus) => new(focus == Focus.Back ? ["back"] : FrontLayers);
 
     /// <summary>
-    /// What a drag of <paramref name="tool"/> does (0108): the left button places what the card places; the
-    /// <paramref name="right"/> marks or cancels in the card's layer — back walls only for a back wall's card, those behind
-    /// machines too; for any other, the front layers <paramref name="overlay"/> shows (<see cref="FrontLayersFor"/>).
+    /// What a drag in the open plan does (0110): the left button places what the card in hand places, if one is of the
+    /// <paramref name="focus"/>ed layer; the <paramref name="right"/> marks or cancels in that layer, a card in hand or not.
     /// </summary>
-    public static Act? ActOf(Tool? tool, bool right, string? overlay) => tool switch
+    public static Act? ActOf(Tool? tool, bool right, Focus focus) =>
+        right ? RemovalIn(focus) : tool is PlaceTool place && FocusOf(place) == focus ? place : null;
+
+    /// <summary>How opaque a layer out of focus is drawn while the plan is open (0110).</summary>
+    public const float Faded = 0.35f;
+
+    /// <summary>How opaque the front and the back walls are drawn: the focused layer whole, the other <see cref="Faded"/>; both whole with no focus.</summary>
+    public static (float Front, float Back) AlphasOf(Focus? focus) => focus switch
     {
-        PlaceTool p when right => new Remove(IsBack(p) ? ["back"] : FrontLayersFor(overlay)),
-        PlaceTool p => p,
-        _ => null,
+        Focus.Front => (1, Faded),
+        Focus.Back => (Faded, 1),
+        _ => (1, 1),
     };
+
+    /// <summary>The stripper's card (0110): a cable, a wire each.</summary>
+    public static readonly HandCard Cable = new("cable", En.T("tool.cable"), "wire", Content.Power.CableCost);
+
+    /// <summary>The wrench's cards (0110): a pipe, a tube per started <see cref="Piping.CellsPerItem"/> cells; a valve on a joint.</summary>
+    public static readonly HandCard Pipe = new("pipe", En.T("tool.pipe"), Piping.Item, [(Piping.Item, 1)]),
+        Valve = new("valve", En.T("tool.valve"), "gear", Piping.ValveCost);
+
+    /// <summary>The cards of the menu the item <paramref name="wielded"/> opens: the stripper's cable, the wrench's pipe and valve; none for any other.</summary>
+    public static IReadOnlyList<HandCard> CardsOf(string? wielded) =>
+        wielded == HandTools.Stripper ? [Cable] : wielded == HandTools.Wrench ? [Pipe, Valve] : [];
 
     /// <summary>
     /// The overlay that shows: the open tab's, if the menu is open and the tab has one; else the one the item
-    /// <paramref name="wielded"/> works in (the stripper's cables, 0108); else air if the player wants it; else none.
+    /// <paramref name="wielded"/> works in (the stripper's cables, 0108; the wrench's pipes, 0109); else air if the player wants
+    /// it; else none.
     /// </summary>
     public static string? OverlayShown(bool planOut, string tab, bool airOn, string? wielded = null) =>
         planOut ? Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay ?? (airOn ? Air : null)
         : wielded == HandTools.Stripper ? Power
+        : wielded == HandTools.Wrench ? Pipes
         : airOn ? Air : null;
 
     /// <summary>The cards among <paramref name="cards"/> whose names hold <paramref name="query"/>, case ignored, in their order: the menu's search, across every tab.</summary>
@@ -149,20 +193,16 @@ public static class Tools
     }
 
     /// <summary>The tab a card is on.</summary>
-    public static string TabOf(Tool tool) => Tabs.First(t => t.Tools.Contains(tool)).Id;
+    public static string TabOf(Tool tool) => Tabs.FirstOrDefault(t => t.Tools.Contains(tool))?.Id ?? "";
 
-    /// <summary>What the buttons do on a tab, an i18n key: the pipes' tab says its own; with a back wall's card in hand, its own.</summary>
-    public static string HintOf(string tab, Tool? held = null) => IsBack(held) ? "hint.back" : tab == "air" ? "hint.air" : "hint.build";
+    /// <summary>What the buttons do, an i18n key: a hand tool's card its own, the plan's the same on every tab.</summary>
+    public static string HintOf(Tool? held = null) => held is HandCard h ? $"hint.{h.Id}" : "hint.build";
 
-    /// <summary>
-    /// The layers Q picks in under <paramref name="overlay"/>, in the order they are taken: pipes, valves and the machines
-    /// on them under the pipes overlay, else what the ship is built of.
-    /// </summary>
-    public static IReadOnlyList<string> LayersFor(string? overlay) =>
-        overlay == Pipes ? ["conduit", "machine"] : ["machine", "structure", "back"];
+    /// <summary>The layers Q picks in, in the order they are taken: what the ship is built of.</summary>
+    public static readonly IReadOnlyList<string> Layers = ["machine", "structure", "back"];
 
-    /// <summary>The layers a front card's right button marks under <paramref name="overlay"/>: <see cref="LayersFor"/> but the back walls, a back wall card's (0108).</summary>
-    public static IReadOnlyList<string> FrontLayersFor(string? overlay) => LayersFor(overlay).Where(l => l != "back").ToArray();
+    /// <summary>The layers the right button marks in the front's focus: <see cref="Layers"/> but the back walls (0110).</summary>
+    public static readonly IReadOnlyList<string> FrontLayers = ["machine", "structure"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>
     public static bool Known(Tool tool, IResearchQueries research) => tool is not PlaceTool p || research.Knows(p.Placement);
@@ -187,17 +227,14 @@ public static class Tools
         {
             case "machine":
                 return grid.MachineAt(cell) is { } m ? new Placement(layer, m.Kind) : null;
-            case "conduit":
-                int c = grid.ConduitAt(cell);
-                return c != Conduit.None ? new Placement(layer, c == Conduit.Pipe ? "pipe" : "valve") : null;
             case "structure":
                 return grid.StructureAt(cell) switch
                 {
                     Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
                     Structure.Floor => new Placement(layer, "floor"),
                     Structure.Ladder => new Placement(layer, "ladder"),
-                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer,
-                        Doorways.IsHatch(Doorways.LinksOf(cell, grid.Width, grid.Width * grid.Height, grid.StructureAt)) ? Builds.Hatch : "door"),
+                    // A doorway's piece one row tall is a hatch segment's (0104), its silhouette as it is drawn.
+                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, grid.PieceOf(cell) is var piece && piece[0] / grid.Width == piece[^1] / grid.Width ? Builds.Hatch : "door"),
                     _ => null,
                 };
             default:
@@ -208,7 +245,7 @@ public static class Tools
     /// <summary>
     /// The sides of <paramref name="cell"/> that <paramref name="place"/>, planned or in hand there, joins when
     /// drawn: what is <paramref name="planned"/> beside it and what is built, as the grid would draw it built — a
-    /// pipe reaching every conduit, a wall running on into every wall, a door along its doorway's straight run.
+    /// wall running on into every wall, a door along its doorway's straight run.
     /// </summary>
     public static int LinksOf(Placement place, int cell, int width, System.Func<int, IEnumerable<Placement>> planned, IGridQueries grid)
     {
@@ -217,35 +254,27 @@ public static class Tools
             planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
     }
 
-
+    /// <summary>Whether <paramref name="place"/> lays door cells: a door segment or a hatch segment (0104).</summary>
+    public static bool LaysDoor(Placement place) => place.Layer == "structure" && Builds.BuiltAs(place.Kind) == "door";
 
     /// <summary>
-    /// The pipes and valves beside <paramref name="conduits"/>, the cells of planned ones or a ghost's, that
-    /// <paramref name="reach"/> them — built ones for a plan; built or planned for a ghost — each with the sides
-    /// toward them: drawn as the plan or ghost is, so they meet with no half cell between.
+    /// The joins of a door cell (<see cref="Doorways.LinksOf"/>) over what is built and the door cells <paramref name="planned"/>
+    /// together: a plan or a ghost of a doorway joins as it will built, a lone segment a hatch, a run down a door (0104).
     /// </summary>
-    public static List<(int Cell, int Sides)> StubsOf(IReadOnlySet<int> conduits, int width, System.Func<int, bool> reach)
+    public static System.Func<int, int> DoorLinks(IGridQueries grid, IReadOnlySet<int> planned)
     {
-        var stubs = new List<(int Cell, int Sides)>();
-        var seen = new HashSet<int>();
-        foreach (int c in conduits)
-            foreach (int n in (int[])[c - width, c + 1, c + width, c - 1])
-            {
-                if (conduits.Contains(n) || !seen.Add(n) || !reach(n)) continue;
-                // Measured from the cell reached, so a row's end never reaches round to the next row.
-                int sides = Render.Blueprint.LinksOf(n, width, conduits.Contains);
-                if (sides != 0) stubs.Add((n, sides));
-            }
-        return stubs;
+        int width = grid.Width, size = width * grid.Height;
+        int At(int c) => planned.Contains(c) ? Structure.DoorClosed : grid.StructureAt(c);
+        return c => Doorways.LinksOf(c, width, size, At);
     }
 
     /// <summary>
-    /// The pipette's card for <paramref name="cell"/> under <paramref name="overlay"/>: the card that places
-    /// what is there, planned or built, in <see cref="LayersFor"/>, if its blueprint is known.
+    /// The pipette's card for <paramref name="cell"/>: the card that places what is there, planned or built, in
+    /// <see cref="Layers"/>, if its blueprint is known.
     /// </summary>
-    public static Tool? CardAt(int cell, string? overlay, IGridQueries grid, BuildingModule building, IResearchQueries research)
+    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
     {
-        if (PlacementAt(cell, LayersFor(overlay), grid, building) is not { } placed) return null;
+        if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
         bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == Builds.BuiltAs(placed.Kind) && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.

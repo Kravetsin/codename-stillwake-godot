@@ -284,25 +284,6 @@ public class BuildingDeliveryTests
         Assert.Equal(2, Lying(w, "plate"));
     }
 
-    /// <summary>The conservation property's old counterexample: what was delivered into the hull comes out into the room, not into space.</summary>
-    [Fact]
-    public void BlueprintsCancelledInTheHullPushWhatWasDeliveredOutIntoTheRoomBesideIt()
-    {
-        var w = Stocked(Open).Do(new Deconstruct(At(0, 0), "structure")).Run();
-        Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
-        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(0, 0)));
-        PlacePlan(w, At(0, 4), new Placement("conduit", "pipe"));
-        Press(w, 2);
-        w.Do(new CancelPlan(2)).Run();
-        // Out of the hull's corner into the room's nearest cell, not up the hull to its open corner.
-        Assert.Equal(Below(At(1, 3)), Assert.Single(w.M.Items.Floor).Cell);
-        w.Run(1000 / Content.Floor.SpaceDrift);
-        var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("tube", CostIn(Builds.Get("pipe").Cost, "tube"), Below(At(1, 3))), (lying.Item, lying.Count, lying.Cell));
-        Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap"));
-        Assert.Equal(StockTube, Count(w, "tube") + Lying(w, "tube"));
-    }
-
     [Fact]
     public void BlueprintsAreWorkedInCreativeModeAsTheyAreAnOlderOneTooTakingNothing()
     {
@@ -400,19 +381,13 @@ public class BuildingDeliveryTests
     }
 
     [Fact]
-    public void TakesAMachineApartFromAnyCellOfItsMarkAndAPipeOutOfAWall()
+    public void TakesAMachineApartFromAnyCellOfItsMark()
     {
         var w = Stocked(Layout.Parse(["#########", "#TT.....#", "#TT.....#", "#########"]));
         w.Do(new Deconstruct(At(2, 2), "machine")).Run();
         Hold(w, 1, Costs.ApartTicks(Machines.Get("tank").BuildTicks));
         Assert.Empty(w.M.Grid.Machines);
         Assert.Equal(StockPlate + CostIn(Machines.Get("tank").Cost, "plate"), Count(w, "plate"));
-        PlacePlan(w, At(0, 1), new Placement("conduit", "pipe"));
-        Hold(w, 2, 1 + Builds.Get("pipe").BuildTicks);
-        w.Do(new Deconstruct(At(0, 1), "conduit")).Run();
-        Hold(w, 3, Costs.ApartTicks(Builds.Get("pipe").BuildTicks));
-        Assert.Equal(Conduit.None, w.M.Grid.ConduitAt(At(0, 1)));
-        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(At(0, 1)));
     }
 
     /// <summary>Beyond delivery.test.ts: the generic suites never deliver, as no fuzzed hero carries anything; a save holding deliveries plays on alike.</summary>
@@ -454,7 +429,6 @@ public class BuildingDeliveryTests
         {
             if (grid.WallAt(c) is { } wall) total += CostIn(wall.Cost, item);
             if (grid.StructureAt(c) is Structure.DoorClosed or Structure.DoorOpen) doorCells++;
-            if (grid.ConduitAt(c) == Conduit.Pipe) total += CostIn(Builds.Get("pipe").Cost, item);
         }
         // A door is a piece of twelve cells (0104); doors built side by side come apart as one doorway, giving back each.
         var door = Builds.Get("door");
@@ -492,14 +466,14 @@ public class BuildingDeliveryTests
     [Property(MaxTest = 60)]
     public Property ConservesItemsAcrossInventoriesTheFloorAndBlueprintsPayingNoMoreThanACostNorWorkingPastWhatIsPaid()
     {
-        var placement = Gen.Elements(IronWall, Placement.Wall("scrap"), Door, new Placement("conduit", "pipe"), Tank);
+        var placement = Gen.Elements(IronWall, Placement.Wall("scrap"), Door, Tank);
         // The hull's cells too: taken apart, it lets what lies about out into space.
         var cell = Gen.Choose(0, 179);
         var sender = Gen.Choose(0, 4);
         var id = Gen.Frequency((3, Gen.Choose(1, 5)), (2, Gen.Choose(1, 20)));
         var step = Gen.OneOf(
             from c in cell from p in placement select new Step(c, p, null, 0, 0, 0),
-            from c in cell from l in Gen.Elements("structure", "conduit", "machine") select new Step(c, null, l, 0, 0, 0),
+            from c in cell from l in Gen.Elements("structure", "machine") select new Step(c, null, l, 0, 0, 0),
             from i in id from f in sender select new Step(0, null, null, i, 0, f),
             // E comes in holds on one plan, so plans reach their end.
             from i in id

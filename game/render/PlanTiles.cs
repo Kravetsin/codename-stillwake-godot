@@ -95,20 +95,35 @@ public partial class PlanTiles : Node2D
         foreach (var piece in BlueprintArt.PiecesOf(placement, linked))
         {
             var tile = piece.Cut ? _tiles.CutAt(piece.Picture, at.X, at.Y) : _tiles.At(piece.Picture);
-            if (cut is not { } line)
-            {
-                Put(piece.Layer, at, tile);
-                continue;
-            }
             // A tile covers its picture from the cell, whole cells of it: one cut from a picture over the world, one; a machine's
             // that rises over its footprint from the cells above (0099).
-            var size = (piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture)) * Cell;
-            var corner = at * Cell - new Vector2I(0, piece.Rise * Cell);
-            var (real, plan) = line.Split((corner.X, corner.Y, size.X, size.Y));
-            Region(plan, corner, tile, (rect, source) => _cutPieces[(int)piece.Layer].Add((rect, source)));
-            Region(real, corner, tile, (rect, source) => _built?.Add(piece.Layer, rect, source));
-            _cut[(int)piece.Layer].QueueRedraw();
+            LayTile(piece.Layer, at, tile, piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture), piece.Rise, cut);
         }
+    }
+
+    /// <summary>
+    /// Lays door cell <paramref name="cell"/> of a plan shut, its quarter of its doorway's picture by <paramref name="linksOf"/>,
+    /// as the grid draws built doors (<see cref="DoorShape"/>): planned segments join each other and what is built (0104).
+    /// </summary>
+    public void LayDoor(int cell, int width, System.Func<int, int> linksOf, PlanCut? cut = null)
+    {
+        var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(cell, width, linksOf), closed: true);
+        LayTile(TileLayer.Doors, new Vector2I(cell % width, cell / width), _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y), Vector2I.One, 0, cut);
+    }
+
+    private void LayTile(TileLayer layer, Vector2I at, Vector2I tile, Vector2I cells, int rise, PlanCut? cut)
+    {
+        if (cut is not { } line)
+        {
+            Put(layer, at, tile);
+            return;
+        }
+        var size = cells * Cell;
+        var corner = at * Cell - new Vector2I(0, rise * Cell);
+        var (real, plan) = line.Split((corner.X, corner.Y, size.X, size.Y));
+        Region(plan, corner, tile, (rect, source) => _cutPieces[(int)layer].Add((rect, source)));
+        Region(real, corner, tile, (rect, source) => _built?.Add(layer, rect, source));
+        _cut[(int)layer].QueueRedraw();
     }
 
     /// <summary>The atlas region under <paramref name="part"/> of the tile at <paramref name="tile"/> laid from pixel <paramref name="corner"/>, handed to <paramref name="to"/> with where it goes; nothing for an empty part.</summary>
@@ -123,25 +138,6 @@ public partial class PlanTiles : Node2D
     {
         foreach (var (rect, source) in pieces) g.DrawTextureRectRegion(_tiles.Texture, rect, source);
     }
-
-    /// <summary>
-    /// A built pipe's reach toward the plans beside it, on the sides in <paramref name="sides"/>, drawn as
-    /// they are: the half cell between them is not left empty. Its arms only: its joint stays the grid's, built.
-    /// </summary>
-    public void Stub(int cell, int width, int sides)
-    {
-        var at = new Vector2I(cell % width, cell / width);
-        var tile = _tiles.At($"pipe_{sides}");
-        var pieces = _cutPieces[(int)TileLayer.Pipes];
-        foreach (var arm in Blueprint.ArmsOf(sides, Joint, Cell))
-            Region((at.X * Cell + arm.X, at.Y * Cell + arm.Y, arm.W, arm.H), at, tile, (rect, source) => pieces.Add((rect, source)));
-        _cut[(int)TileLayer.Pipes].QueueRedraw();
-    }
-
-    /// <summary>The joint in the middle of every pipe's picture: where a lone pipe is opaque.</summary>
-    private static (int X, int Y, int W, int H) Joint => _joint ??= JointOf(ShipTiles.ImageOf("pipe_0").GetUsedRect());
-    private static (int X, int Y, int W, int H)? _joint;
-    private static (int, int, int, int) JointOf(Rect2I r) => (r.Position.X, r.Position.Y, r.Size.X, r.Size.Y);
 
     private void Put(TileLayer layer, Vector2I at, Vector2I tile)
     {

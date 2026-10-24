@@ -42,7 +42,7 @@ namespace Stillwake.Game;
 /// Dev arguments after <c>--</c>, played on the wreck as drawn (<see cref="Registry.WreckMap"/>) unless they say otherwise: <c>--world</c> a new
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
-/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings,
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings (<c>--segments</c> a door and a hatch of segments; <c>--hatches</c> a built hatch over a ladder and plans of doorways),
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of one-cell steps to walk (<see cref="HillsDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a step (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--store</c> a capacitor bank filling from a panel, then emptying into an arc smelter (<see cref="Features.Power.StoreDemo"/>), <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
@@ -50,7 +50,7 @@ namespace Stillwake.Game;
 /// analyzer and a script working them, <c>--debris</c> the wreck with debris about, a crate caught with <c>--autopilot</c>,
 /// <c>--wreck</c> a hull section chopped with the fire axe (<see cref="WreckDemo"/>), <c>--wrecks</c> every kind of wreckage chopped in a row, <c>--harpoon</c> a crate and a section shot and reeled in, <c>--asteroid</c> two asteroids drilled and chopped out in the band (<see cref="AsteroidDemo"/>; <c>--manual</c> to play it by hand, <c>--arc-drill</c> with the arc module in the drill), <c>--sortie</c> the hero far out among one of each derelict and kind of asteroid, an engine block drilled (<see cref="SortieDemo"/>; <c>--manual</c> to try them by hand), <c>--grapple</c> the hero pulled up to a hall's ceiling and its wall, <c>--pod</c> the wreck's lifepod opened and crafting (<see cref="PodDemo"/>), <c>--plan-demo</c> plays the plan, cables and overlays by a script (<see cref="PlanDemo"/>), <c>--menu-demo</c>
 /// the items room's inventory and the game menu (<see cref="MenuDemo"/>), <c>--breathe</c> a canister breathed and the pod's air breathed again (<see cref="BreatheDemo"/>; <c>--breathe-air</c> only the air), <c>--handbook</c> the Handbook opened on a world that has found ten kinds (<see cref="HandbookDemo"/>),
-/// <c>--layer-demo plan|remove|fade|axe|aim|strip</c> plans back walls, marks walls, fades the walls, swings the axe at a back wall and lays a cable with the stripper (<see cref="LayerDemo"/>, 0107, 0108),
+/// <c>--layer-demo plan|remove|fade|axe|aim|strip|pipe|valve</c> plans back walls, marks walls, fades the walls, swings the axe at a back wall, lays a cable with the stripper and pipes with the wrench (<see cref="LayerDemo"/>, 0107–0109),
 /// <c>--shimmer-demo</c> with <c>--testbed --near=furnace</c> aims at the furnace, plans, marks and welds over it (<see cref="ShimmerDemo"/>),
 /// <c>--tool-cards</c> the drill's card plain and fitted side by side (<see cref="ToolCardsDemo"/>), <c>--fx-bench</c> a busy scene of luminous effects round the view's middle to measure (<see cref="FxBench"/>),
 /// <c>--snap FILE</c> saves the screen to FILE once the world is <c>--snap-at</c> seconds old and quits, <c>--measure</c> prints what frames cost and quits, <c>--frames</c> (or <c>--frames=vsync</c>) logs every frame
@@ -194,6 +194,8 @@ public partial class Main : Node2D, ITogether
         if (Has("--ledges")) _layout = HeroAutopilot.Ledges;
         if (Has("--hills")) _layout = HillsDemo.Map;
         if (Has("--floor")) _layout = FloorDemo.Map;
+        if (Has("--segments")) _layout = Autopilot.Segments;
+        if (Has("--hatches")) _layout = Autopilot.Hatches;
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
@@ -880,6 +882,7 @@ public partial class Main : Node2D, ITogether
     {
         int surface = client.World.SurfaceOf(client.Id);
         var here = surface == 0 ? _ship : Registry.On(client.World, surface);
+        _hands.Plan.Aboard.Set(surface == 0);
         if (here == _m) return;
         _m = here;
         // What its creatures' looks grow from, with their ids (0102): the same individuals on every peer.
@@ -1048,6 +1051,8 @@ public partial class Main : Node2D, ITogether
         var heard = client.TakeHeroes();
         _heroes += heard.Count;
         if (Has("--auto")) Auto(client, before);
+        if (Has("--hatches") && client.World.Tick != before)
+            foreach (var c in Autopilot.Plans(before, client.World.Tick, _m.Grid.Width)) client.Send(c);
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         // --toggle: the first doorway opened and shut on alternate ticks, so one is always in flight, as at a busy airlock.
@@ -1103,6 +1108,11 @@ public partial class Main : Node2D, ITogether
         _shimmerDemo?.Frame(client, _m.Grid, Log);
         _layerDemo?.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
+        // The open plan draws its focused layer whole and the other faded, aboard only (0110).
+        var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
+        _grid?.Fade(fade);
+        foreach (var view in (CanvasItem?[])[_screens, _chargers, _stores, _tanks, _pods, _stations, _benches, _furnace])
+            if (view != null) view.Modulate = new Color(1, 1, 1, fade.Front);
     }
 
     private readonly List<Body> _bodies = [];
@@ -1132,7 +1142,7 @@ public partial class Main : Node2D, ITogether
     /// <summary>The grid as this peer shows it, redrawn when that changes: a tick, or a door or valve toggle of its own sent (0014).</summary>
     private void SyncGrid(Client client)
     {
-        var shown = Predicted.Grid(client, _m.Grid);
+        var shown = Predicted.Grid(client, _m.Grid, _m.Pipes);
         if (shown.Key == _gridKey) return;
         _gridKey = shown.Key;
         Measure(() => _grid?.Sync(shown));
