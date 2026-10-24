@@ -21,6 +21,7 @@ READMEs.
 | #190 | A dev demo is a scenario class with `[Dev("--name", …)]` in `game/dev/demos/`, found by reflection; `Main.Dev.cs` keeps only its tools; release builds drop the demos and CI builds one (`game/dev/demos/README.md`) | a new demo editing `DevModes.cs` and several spots of `Main.Dev.cs`; cheats in release builds |
 | #191 | The views of a surface are a list in draw order (`game/SurfaceViews.cs`), made and freed in one loop, a flag for those fading with the plan; a view giving light is an `ILightSource` that `LightView.Shining` gathers | a new view's field, free, make and fade lines in `Main.cs` and a `Func` in `LightView` |
 | #192 | New ADRs are `YYYY-MM-DD-two-words.md`, titled `# Title` and named by their slug, the numbered ones kept; the index accepts both and is `merge=union`; the first, for #185, amends 0031 | renumbering ADRs when two developers took the same next number |
+| #193 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
@@ -34,17 +35,7 @@ is touched half as often as `En.cs` was. It stays one catalogue.
 
 Before each task, check `git log` on its files: someone may have moved them since.
 
-### 1. Recipes: `/new-machine`, `/new-module`, `/new-demo`
-
-- Why: the "add a thing" checklists live in people's heads. A recipe with a short checklist and the files to
-  touch lets a smaller model do it right the first time.
-- What: `.claude/commands/new-machine.md` (and the others): the steps, the files, and the checks before a PR.
-  Checks: README rows, no hand-written list to extend, the save rule (CLAUDE.md, Sim modules). Write each
-  recipe from a real recent example (the capacitor bank, `39f6ed5c`; the fauna module, `10c8ea1d`), re-walked
-  on today's code. `/new-demo` starts from the checklist in `game/dev/demos/README.md`.
-- Who: larger model writes them; test each by having Sonnet add a throwaway machine with it. Effort: small–medium.
-
-### 2. Smaller items
+### 1. Smaller items
 
 - README 8 KB cap: `building` (8062 B) and `crew` (8046 B) are near it again. Trimming them has started to cut
   meaning to save bytes. Decide with both developers: raise the cap, or move tables elsewhere.
