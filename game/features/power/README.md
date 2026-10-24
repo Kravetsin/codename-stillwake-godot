@@ -16,7 +16,7 @@ Cables hanging between their nodes and their overlay, shown while the stripper i
 | `ChargerLights.cs` | each charging station's light and the battery in its bay (0053)                     | yes   |
 | `StoreLights.cs` | each capacitor bank's gauge, its spark and its light (0101)                          | yes   |
 | `PlatformLamps.cs` | each launch platform's lamp in its right end post, green while its network has power enough, red not | yes   |
-| `logic/PlatformRuns.cs` | the launch platforms run by run and whether each lamp is green: any of its cells fed (`Power.Feeds`) | no    |
+| `logic/PlatformRuns.cs` | the launch platforms run by run, shut or open (`LandingModule.RunOf`), and whether each lamp is green: a cell fed (`Power.Feeds`) | no    |
 | `logic/StoreGauge.cs` | how the gauge reads: segments lit by how full, the spark's way and place (tested)     | no    |
 | `StoreWorld.cs`, `StoreDemo.cs` | the world of `-- --store` and its script: a bank filling, then emptying into an arc smelter | `StoreDemo` |
 | `StoreDemo.cs` | for recordings (`-- --store`, 0101): plays `StoreWorld`, the bank filling while the smelter stands empty; at … | yes |

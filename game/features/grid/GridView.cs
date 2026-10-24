@@ -109,7 +109,7 @@ public partial class GridView : Node2D
             foreach (var change in changes)
             {
                 Hear(change);
-                if (IsDoorway(change.Structure) && IsDoorway(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
+                if (Slides(change.Structure) && Slides(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
                     _slides.Moved(change.Cell, Doorways.IsOpen(_drawn.Structure[change.Cell]));
             }
             foreach (int cell in _drawn.Stale(changes))
@@ -140,7 +140,7 @@ public partial class GridView : Node2D
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
         {
-            if (!IsDoorway(_drawn.Structure[cell])) continue;
+            if (!Slides(_drawn.Structure[cell])) continue;
             DrawDoor(cell);
             Light(cell);
         }
@@ -214,6 +214,9 @@ public partial class GridView : Node2D
     }
 
     private static bool IsDoorway(int s) => Doorways.IsDoorway(s);
+
+    /// <summary>A doorway whose panel slides as it moves: a door's or a hatch's; a launch platform is drawn open or shut.</summary>
+    private static bool Slides(int s) => Structures.Of(s).Draw == StructureDraw.Door;
 
     /// <summary>The sides door cell <paramref name="cell"/> joins its doorway on, as drawn (<see cref="Doorways.LinksOf"/>).</summary>
     private int DoorLinksOf(int cell) => Doorways.LinksOf(cell, _grid.Width, _drawn.Structure.Length, _drawnAt ??= c => _drawn.Structure[c]);

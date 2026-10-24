@@ -28,7 +28,10 @@ public static class Doorways
     /// <summary>Whether <paramref name="structure"/> is a doorway lying along its row, its panel sliding across it, as a hatch does (<see cref="Join.Row"/>).</summary>
     public static bool Lies(int structure) => Structures.Of(structure).Join == Join.Row;
 
-    /// <summary>Whether <paramref name="structure"/> is part of a door or a hatch.</summary>
+    /// <summary>Whether <paramref name="structure"/> is a launch platform's cell, shut or open: a doorway opened with power alone (Landing).</summary>
+    public static bool IsPlatform(int structure) => Structures.Of(structure).Group == StructureGroup.Platform;
+
+    /// <summary>Whether <paramref name="structure"/> is part of a door, a hatch or a launch platform.</summary>
     public static bool IsDoorway(int structure) => Structures.Of(structure).Group != StructureGroup.None;
 
     /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands open.</summary>
@@ -58,6 +61,13 @@ public static class Doorways
             if (Same(cell + width)) links |= Down;
         }
         int x = cell % width, left = 0;
+        // A launch platform's run is one doorway, piece after piece: it opens whole (Landing).
+        if (spec.Join == Join.Run)
+        {
+            if (x > 0 && Same(cell - 1)) links |= Left;
+            if (x < width - 1 && Same(cell + 1)) links |= Right;
+            return links;
+        }
         while (left < x && Same(cell - left - 1)) left++;
         if (x < width - 1 && Same(cell + 1) && left % Thick == 0) links |= Right;
         if (x > 0 && Same(cell - 1) && left % Thick == 1) links |= Left;

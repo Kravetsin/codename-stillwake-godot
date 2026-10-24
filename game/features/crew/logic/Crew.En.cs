@@ -33,6 +33,8 @@ public static partial class En
         ["use.digBack"] = "[Hold RMB] Dig back wall",
         ["use.openDoor"] = "[E] Open door",
         ["use.closeDoor"] = "[E] Close door",
+        ["use.openPlatform"] = "[E] Open platform",
+        ["use.closePlatform"] = "[E] Close platform",
         ["use.openValve"] = "[E] Open valve",
         ["use.closeValve"] = "[E] Close valve",
     };

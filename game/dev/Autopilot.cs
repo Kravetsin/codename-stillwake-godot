@@ -110,7 +110,7 @@ public static class Autopilot
         var s = grid.StructureLayer;
         int w = grid.Width;
         for (int cell = 0; cell < s.Length; cell++)
-            if (Doorways.IsDoorway(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new SetDoor(cell, tick == 20));
+            if (Doorways.IsDoorway(s[cell]) && !Doorways.IsPlatform(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new SetDoor(cell, tick == 20));
         return toggles;
     }
 }

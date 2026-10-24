@@ -47,7 +47,7 @@ public class StructureTraitsTests
     [InlineData(Structure.DoorOpen, Trait.Opening)]
     [InlineData(Structure.HatchClosed, Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight)]
     [InlineData(Structure.HatchOpen, Trait.Opening | Trait.Climbable)]
-    [InlineData(Structure.Platform, Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight)]
+    [InlineData(Structure.PlatformClosed, Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight)]
     public void EachKindHasItsTraits(int code, Trait traits) => Assert.Equal(traits, Structures.Of(code).Traits);
 
     [Fact]

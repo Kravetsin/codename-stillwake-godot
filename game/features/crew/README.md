@@ -61,7 +61,7 @@ commands reach the sim. Other heroes come through the host.
   stays within `Hero.Tether` of its anchor (FsCheck). A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089, `ShutOutTests`).
 - Doors are walked as this peer shows them, own toggles in flight made (0014). A press asks for the other state
-  (`SetDoor`/`SetValve`, 0071).
+  (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
 - **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a hole a step
   deep is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down. No crouch.

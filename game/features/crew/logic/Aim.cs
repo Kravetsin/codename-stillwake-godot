@@ -8,6 +8,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Landing;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content;
 using Structures = Stillwake.Content.Structures;
@@ -508,6 +509,8 @@ public static class Aiming
         if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
+        // A platform opens only with power (Landing): E on a dark one says why, as on an empty canister.
+        if (Doorways.IsPlatform(structure)) return new Use(new SetPlatform(cell, Doorways.IsClosed(structure)), m.Landing.Problem(cell, Doorways.IsClosed(structure)));
         if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), null);
         if (valve is bool open) return new Use(new Sim.Pipes.SetValve(cell, !open), null);
         return null;

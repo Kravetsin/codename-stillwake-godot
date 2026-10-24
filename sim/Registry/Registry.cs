@@ -10,6 +10,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
+using Stillwake.Sim.Landing;
 using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Players;
@@ -43,6 +44,7 @@ public sealed class Registry
     public AtmosphereModule Atmosphere { get; }
     public CrewModule Crew { get; }
     public HazardsModule Hazards { get; }
+    public LandingModule Landing { get; }
     public DebrisModule Debris { get; }
     public FurnaceModule Furnace { get; }
     public LogisticsModule Logistics { get; }
@@ -83,7 +85,9 @@ public sealed class Registry
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
         Fauna = new FaunaModule(Grid, Crew, Crew, Items, Items);
-        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Fauna];
+        // The launch platform, opened with power; new to format 30, run and saved after the rest.
+        Landing = new LandingModule(Grid, Grid, Power);
+        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Fauna, Landing];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

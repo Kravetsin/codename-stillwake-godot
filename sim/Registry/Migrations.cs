@@ -21,7 +21,16 @@ public static class Migrations
     public const int Oldest = 29;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins];
+
+    /// <summary>29 to 30: the landing module (the launch platform) joins every surface, holding nothing yet.</summary>
+    private static JsonObject LandingJoins(JsonObject save)
+    {
+        save["slices"]!.AsObject()["landing"] = new JsonObject();
+        if (save["surfaces"] is JsonArray surfaces)
+            foreach (var surface in surfaces) surface!["slices"]!.AsObject()["landing"] = new JsonObject();
+        return save;
+    }
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();

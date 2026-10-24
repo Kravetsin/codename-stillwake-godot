@@ -4,7 +4,7 @@ namespace Stillwake.Content;
 public static class Structure
 {
     public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7, Grate = 8,
-        Platform = 9;
+        PlatformClosed = 9, PlatformOpen = 10;
 }
 
 /// <summary>What a structure does, a bit each (0112): the questions systems ask of a cell instead of naming its kind.</summary>
@@ -31,13 +31,14 @@ public enum Trait
 }
 
 /// <summary>Which doorways a structure is part of (0111): its cells open and shut, and join, with their own group's only.</summary>
-public enum StructureGroup { None, Door, Hatch }
+public enum StructureGroup { None, Door, Hatch, Platform }
 
 /// <summary>
 /// Which way a doorway runs, its panel sliding along it (0111): a door up a column, its segments stacked one above another joining
-/// into one doorway; a hatch along its row, a piece of its own.
+/// into one doorway; a hatch along its row, a piece of its own; a launch platform along its row as far as it runs, its pieces one
+/// doorway (<see cref="Run"/>).
 /// </summary>
-public enum Join { None, Row, Column }
+public enum Join { None, Row, Column, Run }
 
 /// <summary>How the client draws a structure.</summary>
 public enum StructureDraw
@@ -114,11 +115,14 @@ public static class Structures
             Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door, Flat: true),
         // A test fixture (0112): what a plain new structure takes, this row alone. No build and no art yet; no map of the game draws it.
         new(Structure.Grate, '%', "grate: a deck stood on that air and light pass through", Trait.Supports, Flat: true),
-        // The launch platform (the drop pod's deck): stood on and sealed as a shut hatch is, pieces side by side one run with one lamp.
-        // It never opens in the grid; what it will drop is drawn.
-        new(Structure.Platform, '_', "launch platform: a deck in the floor, two cells a piece, joined side by side",
+        // The launch platform (the drop pod's deck): shut, stood on and sealed as a shut hatch is; its pieces side by side are one
+        // doorway as far as the run goes, opened with power alone (Landing). Open, its deck parts and lets air and light through,
+        // but still holds what stands on it: nothing drops yet.
+        new(Structure.PlatformClosed, '_', "launch platform, shut: a deck in the floor, two cells a piece, joined side by side",
             Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight, Build: Builds.Platform, Leak: Air.DoorLeak,
-            Draw: StructureDraw.Joined, Tile: "platform", Flat: true),
+            Toggle: Structure.PlatformOpen, Group: StructureGroup.Platform, Join: Join.Run, Draw: StructureDraw.Joined, Tile: "platform", Flat: true),
+        new(Structure.PlatformOpen, '~', "launch platform, open", Trait.Supports | Trait.Opening, Build: Builds.Platform, Leak: Air.DoorLeak,
+            Toggle: Structure.PlatformClosed, Group: StructureGroup.Platform, Join: Join.Run, Draw: StructureDraw.Joined, Tile: "platform_open", Flat: true),
     ];
 
     /// <summary>What a hero builds of these (<see cref="Builds.All"/>): each build's cost, ticks and piece, by the id a spec names.</summary>

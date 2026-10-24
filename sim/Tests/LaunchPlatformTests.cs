@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Landing;
 using Xunit;
 using Pairs = System.Collections.Generic.IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>;
 
@@ -126,5 +127,79 @@ public class LaunchPlatformTests
         var dead = Cabled([((7, 4), (6, 3))]);
         Assert.Equal(1000, Assert.Single(dead.M.Power.Networks).Satisfaction);
         Assert.False(Lit(dead));
+    }
+
+    // Opening: the same room, a run of two pieces laid in its floor with space under it.
+
+    private static readonly string[] Deck =
+    [
+        "PPP             ",
+        "                ",
+        "################",
+        "#GG.GG.........#",
+        "#GGVGG.........#",
+        "#######__#######",
+        "                ",
+    ];
+
+    private static Scenario Decked(Pairs cables) => new(Layout.Parse(Deck, Under, cables), doubled: true);
+
+    private static readonly Pairs ToDeck = [((0, 0), (7, 5))];
+    private static int[] RunCells => [Char(7, 5), Char(7, 5) + 1, Char(8, 5), Char(8, 5) + 1];
+    private static int[] Codes(Scenario w) => RunCells.Select(w.M.Grid.StructureAt).ToArray();
+    private static readonly int Above = Char(9, 4);
+    private static Stillwake.Sim.Rooms.Room RoomAbove(Scenario w) => w.M.Rooms.RoomById(w.M.Rooms.RoomAt(Above)!.Value)!;
+
+    [Fact]
+    public void OpensAPoweredRunWholeItsRoomOpenToSpaceAndShutsItAgain()
+    {
+        var w = Decked(ToDeck);
+        Assert.Empty(RoomAbove(w).Openings);
+        // Opened from its last cell, the whole run opens, and its room vents through it.
+        w.Do(new SetPlatform(Char(8, 5) + 1, true)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.All(Codes(w), c => Assert.Equal(Structure.PlatformOpen, c));
+        Assert.NotEmpty(RoomAbove(w).Openings);
+        Assert.Equal(Stillwake.Sim.Atmosphere.RoomStatus.Venting, w.M.Atmosphere.StatusOf(RoomAbove(w).Id));
+        w.Do(new SetPlatform(Char(7, 5), false)).Run();
+        Assert.All(Codes(w), c => Assert.Equal(Structure.PlatformClosed, c));
+        Assert.Empty(RoomAbove(w).Openings);
+    }
+
+    [Fact]
+    public void KeepsWhatLiesOnTheDeckWhereItLayOnceTheRunIsOpen()
+    {
+        var w = Decked(ToDeck).GiveItems(0, ("plate", 3));
+        // Dropped on the deck's left piece, from the cell over it.
+        w.Do(new Stillwake.Sim.Items.Drop(new Stillwake.Sim.Items.Place(0), 3, Char(7, 5) - Wide, 0) { From = 0 }).Run(60);
+        var before = Assert.Single(w.M.Items.Floor);
+        w.Do(new SetPlatform(Char(7, 5), true)).Run(600);
+        Assert.Equal(Stillwake.Sim.Atmosphere.RoomStatus.Venting, w.M.Atmosphere.StatusOf(RoomAbove(w).Id));
+        var after = Assert.Single(w.M.Items.Floor);
+        Assert.Equal((before.Item, before.Count, before.X, before.Y), (after.Item, after.Count, after.X, after.Y));
+    }
+
+    [Fact]
+    public void RefusesToOpenAnUnpoweredRunOrWhatIsNoPlatformAndADoorCommandOnIt()
+    {
+        var w = Decked([]);
+        w.Do(new SetPlatform(Char(7, 5), true)).Do(new SetPlatform(Char(0, 5), true)).Do(new SetDoor(Char(7, 5), true)).Run();
+        Assert.Equal(["landing.unpowered", "landing.noPlatform", "grid.noDoor"], Reasons(w));
+        Assert.All(Codes(w), c => Assert.Equal(Structure.PlatformClosed, c));
+        // Shutting needs no power: a run left open on a network gone dark can still be shut.
+        Assert.Null(w.M.Landing.Problem(Char(7, 5), open: false));
+    }
+
+    [Fact]
+    public void StaysADeckToStandOnOpenLettingAirAndLightThrough()
+    {
+        var open = Structures.Of(Structure.PlatformOpen);
+        Assert.Equal(Trait.Supports | Trait.Opening, open.Traits);
+        Assert.Equal(Structure.PlatformClosed, open.Toggle);
+        Assert.Equal(Structure.PlatformClosed, Structures.Placed(Builds.Platform));
+        // Every cell of a run joins its neighbours along its row, so the doorway is the run, not a piece.
+        var w = Decked(ToDeck);
+        Assert.Equal(Doorways.Left | Doorways.Right, Doorways.LinksOf(Char(7, 5) + 1, Wide, Wide * 14, w.M.Grid.StructureAt));
+        Assert.Equal(Doorways.Left | Doorways.Right, Doorways.LinksOf(Char(8, 5), Wide, Wide * 14, w.M.Grid.StructureAt));
     }
 }
