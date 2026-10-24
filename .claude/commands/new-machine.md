@@ -1,0 +1,64 @@
+---
+description: Add a machine the player builds — its row of data, art, name, testbed spot and the checks before a PR.
+argument-hint: <kind> "<what it does>"
+---
+
+User arguments: `$ARGUMENTS` — the machine's kind (camelCase, `capacitorBank`) and what it does. Ask for either if
+missing, and stop.
+
+A machine whose behaviours already exist is **a row of data, its art and its name** (0113, 0114): no system names a
+kind, and the build menu is laid out from the row. Done when the steps below are, the full tests pass and a frame shows
+it. Walked last on `39f6ed5c` (the capacitor bank) and on today's code with a throwaway machine.
+
+## 0. Is it data, or a new mechanic?
+
+Read `MachineSpec`'s parameters at the top of `sim/Content/Machines.cs` and `MachineTrait` below it. If what it does is
+one of them (makes or draws power, stores it, holds slots, burns fuel, charges, fits tools, a trait such as `Zone`), it
+is data: go on. If not, it is a new mechanic: stop and start with `design-author` (CLAUDE.md, Workflow), not here.
+
+## 1. Its row — `sim/Content/Machines.cs`
+
+One line in `Machines.All`, beside the machines of its kind, with a comment above only for a non-obvious why:
+- `Width`, `Height` in cells (8 px each; a map character draws 2×2 cells).
+- `Cost`: whole units of real items (`ContentTests` checks); `BuildTicks`.
+- With `Makes`, `Draws` or `Store`: `Plug`, in pixels of its picture, inside it.
+- `Menu: new(MenuTabs.<Tab>, <order>)`: its card; order 10s apart, the card's place in its tab.
+- `Char`: a map character no other machine or structure takes (`grep -n "Char: '" sim/Content/Machines.cs`), and `Means`.
+
+Every number a designer may tune lives here or in `sim/Content`, never in a module.
+
+## 2. Its picture — `game/art/machine_<kind>.png`
+
+`Width × 8` by `Height × 8` pixels (more only with a rise, as the arc bench's vise: `ShipTiles.RiseOf`). The grid draws it
+by name, and a missing one throws on the first frame (`MachineArtTests`). After adding it:
+`godot --headless --path game --import` makes its `.import`; commit both. A painter script, if you wrote one, goes in
+`tools/ship-art/machines/` with its row in `tools/ship-art/README.md`.
+
+## 3. Its name — `game/features/building/logic/Building.En.cs`
+
+`["tool.<kind>"] = "Its name"` and `["tool.<kind>.about"] = "What it is for, in a sentence."`, beside the others.
+Player text only through these keys.
+
+## 4. Its spot on the testbed — `game/dev/logic/Testbed.cs`
+
+`TestbedTests.DrawsEveryKindOfMachine` wants every machine on the testbed. Put its `Char` in `Testbed.Map` on a floor,
+in a room, clear of the drone bay's zone, pipes and the airlock; it is tight, so look at the whole drawing first. Then
+`tools/test.sh Testbed game.tests`: the drones and the air must still hold. Mention it in the map's summary if it is
+wired (a cable in the list under the map).
+
+## 5. The menu's order — `game.tests/BuildMenuDataTests.cs`
+
+Two tests spell the menu out tab by tab; add its kind where its order puts it, in both.
+
+## 6. Words — `docs/glossary.md`
+
+A line for its game name (and the Russian word, if there is one) → `<kind>`, if a player will say it.
+
+## Checks before the PR
+
+- `tools/test.sh` whole: `ContentTests`, `MachineArtTests`, `TestbedTests`, `BuildMenuDataTests`, `BuildingToolsTests`
+  (its name and about), `MachineKindGuardTests` (nothing names its kind where a trait is meant).
+- A frame: `tools/snap.ps1 out.png -- --testbed --near=<kind>`; look at it.
+- No save change: machines are saved by kind. Only new saved state in a module follows the save rule (CLAUDE.md).
+- No hand-written list to extend beyond the ones above; if you found one, say so in the PR.
+- Commit `feat(<module>): <kind> …`, the module its behaviour belongs to (`power` for a store).
