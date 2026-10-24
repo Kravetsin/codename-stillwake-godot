@@ -11,9 +11,7 @@ namespace Stillwake.Content;
 /// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door segment's or a hatch's two; 1 for a cell.</param>
 /// <param name="Tall">Its piece's cells down: a ladder's or a door segment's two, a hatch's one; 1 for a cell.</param>
 /// <param name="Menu">Its card in the build menu (0114).</param>
-/// <param name="CreativeOnly">Planned in creative mode only, its card shown there alone: a launch platform while the drop pod is to come.</param>
-public sealed record Build(
-    string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1, MenuSlot? Menu = null, bool CreativeOnly = false);
+public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1, MenuSlot? Menu = null);
 
 /// <summary>
 /// What a hero builds besides walls and back walls, which cost their material (<see cref="Materials"/>),
@@ -64,7 +62,4 @@ public static class Builds
     public static Build Get(string id) => ById[id];
 
     public static bool TryGet(string id, [MaybeNullWhen(false)] out Build build) => ById.TryGetValue(id, out build);
-
-    /// <summary>Whether <paramref name="kind"/> is planned in creative mode only (<see cref="Build.CreativeOnly"/>); false for what is no build.</summary>
-    public static bool CreativeOnly(string kind) => ById.TryGetValue(kind, out var build) && build.CreativeOnly;
 }

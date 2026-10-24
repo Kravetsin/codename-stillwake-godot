@@ -131,8 +131,8 @@ public static class Structures
         new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2, Menu: new(MenuTabs.Structure, 230)),
         // A hatch, a door segment laid flat (0104, 0111), its own doorway: two cells wide and one tall.
         new(Builds.Hatch, [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 1, Menu: new(MenuTabs.Structure, 240)),
-        // A launch platform's piece, a hatch's size: in creative mode only while the drop pod is to come.
-        new(Builds.Platform, [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 1, Menu: new(MenuTabs.Ship, 100), CreativeOnly: true),
+        // A launch platform's piece, a hatch's size: its deck's drive and plates, glass for its lamp; the end of what space builds.
+        new(Builds.Platform, [("deckDrive", 1), ("plate", 2), ("glass", 1)], BuildTicks: 40, Across: 2, Tall: 1, Menu: new(MenuTabs.Ship, 100)),
     ];
 
     private static readonly Trait[] TraitsOf = Table.Select(s => s.Traits).ToArray();

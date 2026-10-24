@@ -141,6 +141,9 @@ public static class Items
         new("circuit", 20),
         // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
         new("solarCell", 20),
+        // Two circuits driving a rotor through a coil, made at the circuit assembler: what slides a launch platform's deck
+        // open, the last part built of what space gives (the drop pod's, to come).
+        new("deckDrive", 20),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on

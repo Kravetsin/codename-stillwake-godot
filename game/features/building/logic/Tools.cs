@@ -195,9 +195,6 @@ public static class Tools
     /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076).</summary>
     public static bool Allowed(Tool tool, Surfaces.Kind rules) => tool is not PlaceTool p || rules.Allows(p.Placement.Kind);
 
-    /// <summary>Whether <paramref name="tool"/> is offered: one planned in creative mode only (<c>Build.CreativeOnly</c>) in it alone.</summary>
-    public static bool Offered(Tool tool, bool creative) => tool is not PlaceTool p || creative || !Builds.CreativeOnly(p.Placement.Kind);
-
     /// <summary>What is placed at <paramref name="cell"/> in <paramref name="layers"/>: a plan first, then what is built, in their order.</summary>
     private static Placement? PlacementAt(int cell, IReadOnlyList<string> layers, IGridQueries grid, BuildingModule building)
     {
@@ -258,12 +255,12 @@ public static class Tools
     /// The pipette's card for <paramref name="cell"/>: the card that places what is there, planned or built, in
     /// <see cref="Layers"/>, if its blueprint is known.
     /// </summary>
-    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research, bool creative)
+    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
         bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
-        return card != null && Known(card, research) && Allowed(card, building.Rules) && Offered(card, creative) ? card : null;
+        return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
     }
 }

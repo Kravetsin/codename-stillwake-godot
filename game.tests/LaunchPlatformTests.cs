@@ -6,19 +6,13 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The launch platform in the client: its card in creative mode only, its runs and their lamps.</summary>
+/// <summary>The launch platform in the client: its card, its runs and their lamps.</summary>
 public class LaunchPlatformTests
 {
     private static readonly Tool Card = Tools.All.Single(t => t is PlaceTool { Placement.Kind: Builds.Platform });
 
     [Fact]
-    public void OffersThePlatformsCardOnTheShipTabInCreativeModeOnly()
-    {
-        Assert.Contains(Card, Tools.Tabs.Single(t => t.Id == MenuTabs.Ship).Tools);
-        Assert.False(Tools.Offered(Card, creative: false));
-        Assert.True(Tools.Offered(Card, creative: true));
-        Assert.All(Tools.All.Where(t => t != Card), t => Assert.True(Tools.Offered(t, creative: false)));
-    }
+    public void PutsThePlatformsCardOnTheShipTab() => Assert.Contains(Card, Tools.Tabs.Single(t => t.Id == MenuTabs.Ship).Tools);
 
     /// <summary>A panel in space above a room: a run of two pieces cabled to the panel, a piece alone uncabled.</summary>
     private static readonly string[] Rows =

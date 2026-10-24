@@ -13,8 +13,8 @@ the first slice: the platform alone, to build and to cable. Nothing opens yet.
 
 ## Decision
 
-- **A piece is a structure** (`Structure.Platform`, `_` in a map; build `launchPlatform`, 2 × 1 cells as a hatch is, one
-  scrap, seven ticks), stood on, sealed and lit as a shut hatch is (`Supports`, `BlocksFromBelow`, `Seals`, `BlocksLight`,
+- **A piece is a structure** (`Structure.Platform`, `_` in a map; build `launchPlatform`, 2 × 1 cells as a hatch is, forty
+  ticks), stood on, sealed and lit as a shut hatch is (`Supports`, `BlocksFromBelow`, `Seals`, `BlocksLight`,
   a door's leak). It is no doorway (`Group.None`): it never toggles, so no door rule touches it.
 - **Pieces side by side are one run** (`StructureRuns.RunOf`): the cells of its code along its row. The client draws each
   piece by whether its row runs on past it, left and right (`StructureDraw.Joined`, `platform_0/2/8/10.png`), so a run is
@@ -22,11 +22,15 @@ the first slice: the platform alone, to build and to cable. Nothing opens yet.
 - **Power gates it, nothing more.** A cable may end on any of its cells (`PowerNodes` anchors any structure). Its lamp is
   green while a cell of it is fed (`IPowerQueries.Feeds`: its network makes or stores power and covers all its demand),
   red otherwise; there is no amber. A network drawing nothing has full satisfaction, so `Feeds` asks for supply as well.
-- **Creative mode only, for now** (`Build.CreativeOnly`): its card shows on the Ship tab in creative mode alone, and a plan
-  outside it is refused `building.creativeOnly`. It costs a scrap all the same, for when it leaves creative mode.
+- **It is the last thing space builds.** A piece costs a deck drive, two plates and a glass. The deck drive (`deckDrive`, a
+  part) is made at the circuit assembler of two circuits, a rotor and a coil: what slides the deck open. So its blueprint
+  opens once the drive, plates and glass are analysed (0027), after the electric smelter and the circuit assembler, both
+  built with circuits; glass is its lamp's lens. Its card is on the Ship tab. (First built for creative mode only, a scrap a
+  piece; the user then asked for this cost and for it in every game.)
 
 ## Deliberately not handled
 
 - Opening, the pod, landers, launching and returning: the next slices, by the design.
 - A sim module for the platform: none yet, as nothing it holds is saved; `Landing` comes with the pod.
-- A plan made in creative mode and worked after it is switched off: it is worked and paid as any plan.
+- A run of many pieces costs a drive each: the pod needs two pieces, a lander one, and a run is built only as long as the
+  landers on it need.
