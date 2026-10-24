@@ -8,6 +8,7 @@ The game moved from TypeScript to Godot and C# ([0025](docs/decisions/0025-godot
 Until the port is done, work follows [`docs/plans/port.md`](docs/plans/port.md): the next task is the
 first open one there. The TypeScript repo, `Kravetsin/codename-stillwake` (checked out beside this
 one as `../codename-stillwake`), is the specification: its module READMEs, its rules and its tests.
+Work on the development loop itself (tooling, CI, structure) follows [`docs/plans/dev-workflow.md`](docs/plans/dev-workflow.md).
 
 ## Finding things
 
