@@ -1316,4 +1316,19 @@ public class ContentTests
         foreach (var (c, _) in Legend.Map)
             if (Legend.MachineOf(c) is { } kind) Assert.True(Machines.TryGet(kind, out _), kind);
     }
+
+    [Fact]
+    public void EveryMachineWithACharacterHasItsOwnAndSaysWhatItMeans()
+    {
+        var drawn = Machines.All.Where(m => m.Char != null).ToList();
+        Assert.All(Machines.All, m => Assert.Equal(m.Char != null, !string.IsNullOrWhiteSpace(m.Means)));
+        Assert.Equal(drawn.Count, drawn.Select(m => m.Char).Distinct().Count());
+        Assert.Equal(Legend.MapChars.Length, Legend.MapChars.Distinct().Count());
+        Assert.All(drawn, m =>
+        {
+            Assert.Equal(m.Kind, Legend.MachineOf(m.Char!.Value));
+            Assert.Contains((m.Char!.Value, m.Means!), Legend.Map);
+            Assert.Null(Structures.OfChar(m.Char!.Value));
+        });
+    }
 }

@@ -14,25 +14,7 @@ public static class Legend
         ('-', "pipe"),
         ('v', "valve, open"),
         ('x', "valve, closed"),
-        ('T', "oxygen tank: draw its whole footprint"),
-        ('G', "oxygen generator: draw its whole footprint"),
-        ('P', "solar panel: draw its whole footprint"),
-        ('F', "furnace: draw its whole footprint"),
-        ('B', "burner generator: draw its whole footprint"),
-        ('V', "vent"),
-        ('L', "lamp"),
-        ('J', "arc lamp: one of the arc makers' hung aboard (0091)"),
-        ('K', "crate: draw its whole footprint"),
-        ('A', "analyzer: draw its whole footprint"),
-        ('C', "charging station: draw its whole footprint"),
-        ('M', "former: draw its whole footprint"),
-        ('E', "electric smelter: draw its whole footprint"),
-        ('Y', "circuit assembler: draw its whole footprint"),
-        ('g', "grow capsule: draw its whole footprint"),
-        ('R', "drone bay: draw its whole footprint"),
-        ('Q', "capacitor bank: draw its whole footprint (0101)"),
-        ('W', "arc bench: draw its whole footprint (0099)"),
-        ('O', "lifepod: draw its whole footprint; heroes are made at its hatch"),
+        .. Machines.All.Where(m => m.Char != null).Select(m => (m.Char!.Value, m.Means!)),
         ('S', "where the hero wakes, on a map without a lifepod"),
     ];
 
@@ -75,28 +57,9 @@ public static class Legend
     /// <summary>Every character a map under a map may hold.</summary>
     public static readonly string UnderChars = string.Concat(Under.Select(e => e.Char));
 
-    /// <summary>Which machine a map character draws.</summary>
-    public static string? MachineOf(char c) => c switch
-    {
-        'T' => "tank",
-        'G' => "generator",
-        'P' => "solarPanel",
-        'F' => "furnace",
-        'B' => "burnerGenerator",
-        'V' => "vent",
-        'L' => "lamp",
-        'J' => "arcLamp",
-        'K' => "crate",
-        'A' => "analyzer",
-        'C' => "charger",
-        'M' => "former",
-        'E' => "smelter",
-        'Y' => "assembler",
-        'g' => "growCapsule",
-        'R' => "droneBay",
-        'Q' => "capacitorBank",
-        'W' => "arcBench",
-        'O' => "lifepod",
-        _ => null,
-    };
+    private static readonly Dictionary<char, string> MachineKinds =
+        Machines.All.Where(m => m.Char != null).ToDictionary(m => m.Char!.Value, m => m.Kind);
+
+    /// <summary>Which machine a map character draws; null for a character no machine has.</summary>
+    public static string? MachineOf(char c) => MachineKinds.GetValueOrDefault(c);
 }

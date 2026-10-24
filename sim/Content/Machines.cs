@@ -46,6 +46,8 @@ namespace Stillwake.Content;
 /// <paramref name="FuelSlot"/> implies.
 /// </param>
 /// <param name="Menu">Its card in the build menu (0114); none for one never built (the lifepod).</param>
+/// <param name="Char">Its character in an ASCII map (<see cref="Legend"/>): drawn over its whole footprint, a character a 16 px cell; null for none.</param>
+/// <param name="Means">What the map character means, for the legend; given with <paramref name="Char"/>.</param>
 public sealed record MachineSpec(
     string Kind,
     int Width,
@@ -64,7 +66,9 @@ public sealed record MachineSpec(
     StoreSpec? Store = null,
     bool Tunes = false,
     MachineTrait Has = MachineTrait.None,
-    MenuSlot? Menu = null)
+    MenuSlot? Menu = null,
+    char? Char = null,
+    string? Means = null)
 {
     /// <summary>Whether it is a node cables end on: it makes power, draws it or stores it.</summary>
     public bool Powered => Makes != null || Draws != null || Store != null;
@@ -114,41 +118,41 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20)),
-        new("generator", 4, 4, [(0, 2)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30)),
-        new("solarPanel", 6, 2, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10)),
-        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10)),
-        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30)),
+        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("generator", 4, 4, [(0, 2)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        new("solarPanel", 6, 2, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
+        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
+        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
-        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40)),
+        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
-        new("analyzer", 4, 4, [], [("plate", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1, Menu: new(MenuTabs.Production, 20)),
-        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10)),
+        new("analyzer", 4, 4, [], [("plate", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1, Menu: new(MenuTabs.Production, 20), Char: 'A', Means: "analyzer: draw its whole footprint"),
+        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
         // Its input, its fuel, then three outputs.
-        new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10)),
+        new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel.
-        new("burnerGenerator", 4, 4, [], [("frame", 1), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20)),
+        new("burnerGenerator", 4, 4, [], [("frame", 1), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
-        new("charger", 2, 4, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true, Menu: new(MenuTabs.Power, 50)),
+        new("charger", 2, 4, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
         // a minute at its most taken in fills it, two of a spare panel's. Basic infrastructure, not arc-gated; a bigger arc store may come later.
-        new("capacitorBank", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 2), ("circuit", 1)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60)),
+        new("capacitorBank", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 2), ("circuit", 1)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60), Char: 'Q', Means: "capacitor bank: draw its whole footprint (0101)"),
         // Presses and turns parts at full speed while it draws (Stations): two inputs, the most any craft of its needs, then three outputs. Rests idle.
-        new("former", 4, 4, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 6, Inputs: 3, Menu: new(MenuTabs.Production, 30)),
+        new("former", 4, 4, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 6, Inputs: 3, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
-        new("smelter", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40)),
+        new("smelter", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40), Char: 'E', Means: "electric smelter: draw its whole footprint"),
         // Assembles electronics at full speed while it draws (Stations): four inputs, a drone's, then three outputs. Rests idle.
-        new("assembler", 4, 4, [], [("frame", 1), ("rotor", 1), ("glass", 1), ("wire", 2), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50)),
+        new("assembler", 4, 4, [], [("frame", 1), ("rotor", 1), ("glass", 1), ("wire", 2), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
-        new("growCapsule", 4, 6, [], [("frame", 1), ("glass", 2), ("soil", 4), ("circuit", 1), ("wire", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60)),
+        new("growCapsule", 4, 6, [], [("frame", 1), ("glass", 2), ("soil", 4), ("circuit", 1), ("wire", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
-        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20)),
-        new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
+        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
+        new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
-        new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 1), ("plate", 2), ("gear", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70)),
+        new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 1), ("plate", 2), ("gear", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

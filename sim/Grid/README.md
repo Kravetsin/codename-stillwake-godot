@@ -58,7 +58,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 ## Maps
 
 A structure's map character is its spec's `Char` (`#` wall, `=` floor, `H` ladder, `D`/`d` door, `h`/`o` hatch, `%` the grate
-fixture); `-` pipe, `v`/`x` valve, machines by `Data.MachineOf`. A machine is drawn as its whole footprint. Every character
+fixture); `-` pipe, `v`/`x` valve, a machine by its spec's `Char`. A machine is drawn as its whole footprint. Every character
 but a space has a back wall of the default hull. Machines take ids by their top-left cells in reading order.
 
 Maps are drawn a character a 16 px cell and doubled (`Layout.Doubled()`): a character fills its 2×2 cells, a `Flat` structure
