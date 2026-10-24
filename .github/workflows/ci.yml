@@ -14,10 +14,11 @@ permissions:
   contents: read
 
 jobs:
-  check:
-    name: format, build, tests
+  # Beside the build and tests rather than before them: it takes about a minute of the run.
+  format:
+    name: format
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       # The runner also carries newer SDKs whose formatter disagrees with 8.0's; global.json picks ours.
@@ -27,6 +28,30 @@ jobs:
       - run: dotnet --version
       - run: dotnet restore Stillwake.sln
       - run: dotnet format Stillwake.sln --verify-no-changes --no-restore
+
+  check:
+    name: build, tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # The budget tests' bounds are a desk's; shared runners have been 3–7 times slower.
+      STILLWAKE_BUDGET_SLACK: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore Stillwake.sln
       # The game builds without the Godot editor: Godot.NET.Sdk comes from NuGet. Analyzers fail it.
       - run: dotnet build Stillwake.sln --no-restore
       - run: dotnet test Stillwake.sln --no-build
+
+  # The check main's protection requires, by this name: green only when both jobs are. A skipped required
+  # check counts as passed, so it runs always and fails on anything but success.
+  gate:
+    name: format, build, tests
+    needs: [format, check]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.format.result }}" = success && test "${{ needs.check.result }}" = success

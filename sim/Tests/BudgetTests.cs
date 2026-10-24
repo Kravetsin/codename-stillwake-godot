@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Xunit.Abstractions;
@@ -9,13 +10,23 @@ namespace Stillwake.Sim.Tests;
 /// <summary>
 /// A sim tick on the reference world (CLAUDE.md's budgets: 512×256, the 256×128 drawing doubled to the 8 px cells, 0104, every
 /// layer in use), timed with a
-/// Stopwatch here, never in the sim. The bound asserted is loose, for slow CI machines; the output
-/// says how far under 2 ms a tick stays. Timed alone, after the other tests: a CI runner's few cores
-/// shared with them made a 2 ms tick read as 10.
+/// Stopwatch here, never in the sim. The bounds asserted are a desk's, times <see cref="Slack"/> on CI's slower
+/// machines; the output says how far under a tick stays. Timed alone, after the other tests: a CI runner's few
+/// cores shared with them made a 2 ms tick read as 10.
 /// </summary>
 [Collection(nameof(BudgetTests))]
 public class BudgetTests(ITestOutputHelper output)
 {
+    /// <summary>
+    /// How many times slower than a desk the machine may be: <c>STILLWAKE_BUDGET_SLACK</c>, which CI sets for its
+    /// shared runners, or 1 on a desk, where the bounds are strict.
+    /// </summary>
+    internal static readonly double Slack =
+      double.TryParse(Environment.GetEnvironmentVariable("STILLWAKE_BUDGET_SLACK"), CultureInfo.InvariantCulture, out double s) && s >= 1 ? s : 1;
+
+    /// <summary>A bound of <paramref name="ms"/> on a desk, as this machine allows it.</summary>
+    private static double Within(double ms) => ms * Slack;
+
     /// <summary>
     /// apps/game/src/dev/perf-map.ts: an 8×8 tile repeated, every chunk holding every kind of cell; here
     /// each tile's tank also starts with a canister and is piped to its vent, so every room fills and leaks.
@@ -124,10 +135,10 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"planet {ground.Width}×{ground.Height}: grown in {grow:F1} ms mean; opened on a tick of {opening.Mean:F0} ms, the rooms' first flood {flood:F0} ms of it; {memory / (1024 * 1024)} MB held");
         output.WriteLine($"a save {planet} bytes more than the ship's alone, {dugSave} after a shaft of a hundred cells; loaded, ground grown again, in {load:F0} ms");
         output.WriteLine($"idle tick with a hero on it: {idle.Mean:F3} ms mean, {idle.Max:F3} ms max; digging: {digging.Mean:F3} ms mean, {digging.Max:F3} ms max");
-        // Loose for CI's shared runners, seen 3–7 times slower than a desk (132 ms here); the output says how far under.
-        Assert.True(grow < 1500, $"growing a planet took {grow:F1} ms");
+        // A desk grows one in about 700 ms.
+        Assert.True(grow < Within(1500), $"growing a planet took {grow:F1} ms");
         Assert.True(planet < 512 * 1024, $"a planet saves {planet} bytes");
-        Assert.True(idle.Mean < 2 && digging.Mean < 2, "a planet's tick is over its budget");
+        Assert.True(idle.Mean < Within(2) && digging.Mean < Within(2), "a planet's tick is over its budget");
     }
 
     /// <summary>
@@ -158,7 +169,7 @@ public class BudgetTests(ITestOutputHelper output)
             ? [new Fauna.Strike(m.Fauna.Creatures[t / 10 % m.Fauna.Creatures.Count].Id, Content.Weapons.Axe.Item)]
             : []);
         output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with {Content.Fauna.Max} creatures {living.Mean:F3} ms mean, {living.Max:F3} ms max");
-        Assert.True(living.Mean < 2, $"a planet's tick with its creatures took {living.Mean:F3} ms");
+        Assert.True(living.Mean < Within(2), $"a planet's tick with its creatures took {living.Mean:F3} ms");
     }
 
     /// <summary>
@@ -184,8 +195,7 @@ public class BudgetTests(ITestOutputHelper output)
         double hash = hashing.Elapsed.TotalMilliseconds;
         var sweep = Time(w.World, 20, _ => []);
         output.WriteLine($"{count} cracks: hit in one tick {hit:F1} ms (every insert at the head); {held / 1024} KB held; {saved / 1024} KB more in a save; a hash {hash:F1} ms; a tick sweeping them {sweep.Mean:F2} ms");
-        // CI's shared runners have taken 20 times a desk's 0.3 ms: an order of magnitude is what this catches.
-        Assert.True(sweep.Mean < 20, $"a sweep of {count} cracks took {sweep.Mean:F2} ms");
+        Assert.True(sweep.Mean < Within(2), $"a sweep of {count} cracks took {sweep.Mean:F2} ms");
     }
 
     /// <summary>The reference ship alone, and in the corner of a world of space: rooms are found again only around a door, so the space costs nothing.</summary>
@@ -214,7 +224,7 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"without atmosphere: {others.Mean:F3} ms mean, {othersToggling.Mean:F3} ms toggling a door");
         output.WriteLine($"tick: {still.Mean:F3} ms mean, {still.Max:F3} ms max");
         output.WriteLine($"tick toggling a door: {toggling.Mean:F3} ms mean, {toggling.Max:F3} ms max");
-        Assert.True(still.Mean < 20 && toggling.Mean < 20, "a tick is far over its budget");
+        Assert.True(still.Mean < Within(2) && toggling.Mean < Within(2), "a tick is over its budget");
     }
 
     /// <summary>
@@ -302,7 +312,7 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"the wreck's world, no hero out: {without.Mean:F3} ms mean, {without.Max:F3} ms max");
         output.WriteLine($"with {Out} pieces round them ({w.M.Debris.Pieces.Count} out after): {with.Mean:F3} ms mean, {with.Max:F3} ms max");
         Assert.True(w.M.Debris.Pieces.Count >= Out, "the pieces were let go");
-        Assert.True(with.Mean < 10, "a tick is far over its budget");
+        Assert.True(with.Mean < Within(2), "a tick is over its budget");
     }
 
     /// <summary>
@@ -330,7 +340,8 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"{w.M.Grid.Machines.Count} machines, {burning} of {furnaces.Count} furnaces burning, {analysing} analyzers at work");
         output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
         Assert.True(burning > 1000 && analysing > 1000, "the machines stand idle");
-        Assert.True(ticks.Mean < 10, "a tick is far over its budget");
+        // Two thousand machines, more than a world will hold: twice the budget, where a desk takes about 2 ms.
+        Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
     }
 
     /// <summary>
@@ -379,8 +390,8 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"{w.M.Grid.Machines.Count} machines, {w.M.Logistics.Drones.Count} drones flying, {flying / 600.0:F1} on average");
         output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
         Assert.True(flying > 600 * 8, "the drones stand docked");
-        // Generous for CI's shared runners, which can be five times slower than a desk.
-        Assert.True(ticks.Mean < 10, "a tick is far over its budget");
+        // A desk takes about 1.3 ms.
+        Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
     }
 }
 

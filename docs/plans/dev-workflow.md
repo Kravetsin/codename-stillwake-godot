@@ -17,6 +17,7 @@ READMEs.
 | #185 | `World.Load` refuses unknown fields (`UnmappedMemberHandling.Disallow`) | format bumps, identity steps and fixtures for added fields |
 | #186 | The asteroid property allows a start pushed past a hero's view | about half of the red CI runs |
 | #187 | Each feature's strings in its `logic/<Name>.En.cs`; `En.cs` builds `Table` from them | `En.cs` as a file every task edits |
+| #189 | CI formats in its own job beside build+test, a gate job keeps the required check's name; a pre-commit hook (`tools/hooks`) formats staged `.cs`; budget bounds are a desk's, ×5 in CI (`STILLWAKE_BUDGET_SLACK`) | a minute on CI's critical path, `style(...)` commits, budget bounds loosened by hand after red runs |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
@@ -30,20 +31,7 @@ is touched half as often as `En.cs` was. It stays one catalogue.
 
 Before each task, check `git log` on its files: someone may have moved them since.
 
-### 1. CI: format in parallel, a pre-commit format hook, timing tests with headroom
-
-- Why: format takes 55 s of a ~4–7 min run on the critical path, and whitespace fixes still cost `style(...)`
-  commits.
-- What: `.github/workflows/ci.yml` runs `dotnet format --verify-no-changes` as its own job beside build+test.
-  Add a hook that runs `dotnet format --include` on the staged `.cs` files: a git `pre-commit` (documented in
-  README) or a Claude `PostToolUse` hook in `.claude/settings.json`. Timing tests (`BudgetTests` and other
-  `Stopwatch` tests) get a ×3 limit in CI (an env var CI sets); strict limits run locally or on a schedule.
-  Do not make them non-blocking: nobody watches a check that cannot fail.
-- Note: a random property failure is a bug in the code or the test until shown otherwise. Replay it by its
-  seed (`[Property(Replay = "a,b")]`) and fix it, as #186 did. Never loosen it to make CI pass.
-- Who: any model. Effort: small.
-
-### 2. Dev scenarios as classes; demos out of release builds
+### 1. Dev scenarios as classes; demos out of release builds
 
 - Why: `game/dev/Main.Dev.cs` still holds ~100 `Has("--…")` checks. A new demo edits `DevModes.cs` and several
   spots in `Main.Dev.cs`: layout, world, seed, hero start, the demo node, frame hooks. Every demo ships in
@@ -69,7 +57,7 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 - Who: a larger model designs `DevScenario` and migrates 2–3 different demos as examples. Sonnet migrates the
   rest by example in batches, each checked by frames. Effort: medium.
 
-### 3. World views by interface
+### 2. World views by interface
 
 - Why: each per-surface view in `Main` is a field, a free and a creation in the surface rebuild. Many also
   appear in the plan-fade list and in a `LightView` `Func` property. `LightView` grows a property per light
@@ -79,7 +67,7 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 - Read `Main.cs` first: the split may have changed where views are made.
 - Who: larger model for the interfaces and first two views, then Sonnet. Effort: medium.
 
-### 4. ADR names by date and slug
+### 3. ADR names by date and slug
 
 - Why: eight renumberings in five days, from two developers taking the same next number. Each renaming
   breaks `(0081)` references in code and READMEs.
@@ -90,17 +78,17 @@ Before each task, check `git log` on its files: someone may have moved them sinc
   the first in the new form.
 - Who: any model. Effort: small.
 
-### 5. Recipes: `/new-machine`, `/new-module`, `/new-demo`
+### 4. Recipes: `/new-machine`, `/new-module`, `/new-demo`
 
 - Why: the "add a thing" checklists live in people's heads. A recipe with a short checklist and the files to
   touch lets a smaller model do it right the first time.
 - What: `.claude/commands/new-machine.md` (and the others): the steps, the files, and the checks before a PR.
   Checks: README rows, no hand-written list to extend, the save rule (CLAUDE.md, Sim modules). Write each
   recipe from a real recent example (the capacitor bank, `39f6ed5c`; the fauna module, `10c8ea1d`), re-walked
-  on today's code. `/new-demo` waits for task 2.
+  on today's code. `/new-demo` waits for task 1.
 - Who: larger model writes them; test each by having Sonnet add a throwaway machine with it. Effort: small–medium.
 
-### 6. Smaller items
+### 5. Smaller items
 
 - README 8 KB cap: `building` (8062 B) and `crew` (8046 B) are near it again. Trimming them has started to cut
   meaning to save bytes. Decide with both developers: raise the cap, or move tables elsewhere.
