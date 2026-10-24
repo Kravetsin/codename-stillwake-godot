@@ -12,6 +12,8 @@ public sealed record LoadCanister(int Tank) : Command;
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
 {
+    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to a tank or a generator: only then does it blow, air a room or hum.</summary>
+    bool Fed(int vent);
     /// <summary>The oxygen in tank or generator <paramref name="tank"/>; none for one never filled, or no tank at all.</summary>
     int OxygenIn(int tank);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
@@ -54,6 +56,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     private readonly Predicate<TankAir> _standing;
     /// <summary>Derived: the grid's version the tanks were last checked at; null for not yet.</summary>
     private int? _tanksCheckedAt;
+
+    /// <summary>Derived: the pipes' version the vents were last found at; a vent counts only while piped.</summary>
+    private int? _ventsPipes;
 
     /// <summary>Derived: each room's leak by room id, found for the rooms' version <see cref="_leaksFor"/>; null for none yet.</summary>
     private readonly Dictionary<int, int> _leaks = new();
@@ -113,6 +118,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _survey = null;
         _tanksCheckedAt = null;
         Reorder(VentCells());
+        _ventsPipes = _pipes.Version;
         State.OrderedVersion = _rooms.Version;
     }
 
@@ -122,10 +128,12 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// </summary>
     private void Follow()
     {
-        if (_grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
+        // Vents come and go with machines, and count only while piped: the grid's log or the pipes say when.
+        bool piping = _ventsPipes != _pipes.Version;
+        if (!piping && _grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
         var roomOf = _rooms.RoomOfCells;
-        // Vents move only with machines: the grid's log says when one came or went.
-        var vents = MachinesMoved(_grid.ChangedSince(State.OrderedGrid)) ? VentCells() : State.OrderedVents;
+        var vents = piping || MachinesMoved(_grid.ChangedSince(State.OrderedGrid)) ? VentCells() : State.OrderedVents;
+        _ventsPipes = _pipes.Version;
         int was = State.OrderedVersion;
         var found = _rooms.ChangedSince(was);
         List<int> changed;
@@ -185,13 +193,26 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return false;
     }
 
-    /// <summary>The cells of the vents, in machine id order: where each room's air lies around.</summary>
+    /// <summary>
+    /// The cells of the fed vents (<see cref="Fed"/>), in machine id order: where each room's air lies around. A vent
+    /// with nothing behind it blows nothing, so a room's air does not gather at it.
+    /// </summary>
     private List<int> VentCells()
     {
         var machines = _grid.MachinesOf("vent");
         var vents = new List<int>(machines.Count);
-        foreach (var m in machines) vents.Add(m.Cell);
+        foreach (var m in machines)
+            if (Fed(m.Id)) vents.Add(m.Cell);
         return vents;
+    }
+
+    public bool Fed(int vent)
+    {
+        foreach (int id in _pipes.NetworksOf(vent))
+            if (_pipes.Network(id) is { } network)
+                foreach (int on in network.Machines)
+                    if (_grid.MachineById(on) is { } m && (Content.Machines.Get(m.Kind).Gas || m.Kind == "generator")) return true;
+        return false;
     }
 
     /// <summary>Every room's order found again, as after a load.</summary>
