@@ -726,22 +726,8 @@ public readonly record struct Hero(
     /// <summary>Whether the cell at (<paramref name="x"/>, <paramref name="y"/>) has <paramref name="trait"/>; nothing past the grid's edge does.</summary>
     private static bool Has(Ship ship, int x, int y, Trait trait) => StructureAt(ship, x, y) is int s && Structures.Is(s, trait);
 
-    /// <summary>What a hero climbs (<see cref="Trait.Climbable"/>): a ladder, and an open hatch over one, climbed through as a ladder is.</summary>
-    private static bool Climbable(Ship ship, int x, int y) =>
-        StructureAt(ship, x, y) is int s && Structures.Is(s, Trait.Climbable)
-        && (!Doorways.IsDoorway(s) || LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1));
-
-    /// <summary>Whether a ladder lies <paramref name="dir"/> of the open hatch cell (x, y), past no more empty deck than a hatch is thick.</summary>
-    private static bool LadderPast(Ship ship, int x, int y, int dir)
-    {
-        for (int k = 1; k <= Doorways.Thick; k++)
-        {
-            if (StructureAt(ship, x, y + k * dir) is not int s) return false;
-            if (Structures.Is(s, Trait.Climbable) && !Doorways.IsDoorway(s)) return true;
-            if (s != Structure.Empty && !(Doorways.IsDoorway(s) && Structures.Is(s, Trait.Climbable))) return false;
-        }
-        return false;
-    }
+    /// <summary>What a hero climbs (<see cref="Trait.Climbable"/>): a ladder, and an open hatch, a ladder of its own (0112).</summary>
+    private static bool Climbable(Ship ship, int x, int y) => Has(ship, x, y, Trait.Climbable);
 
     /// <summary>What holds a hero up from below only: what supports (floors, shut hatches), and a climbable's top cell unless climbing.</summary>
     private static bool Holds(Ship ship, int x, int y, bool climbing) =>

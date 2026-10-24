@@ -24,7 +24,7 @@ one from the other cannot be made right.
 - **A hatch is one 2×1 piece, a doorway of its own.** It does not stack or run: the cell beside it within its pair is
   its only join. Shut, it is a floor: it holds a hero, a stack or a creature from above and stops a body from below,
   and, like a shut door, it seals its room and stops light (amended 2026-10-24: a hatch differs from a door only in being climbed through when open). Open, it is climbed through as a ladder is, but only
-  where a ladder lies past it, so a hole beside a ladder is still a hole.
+  where a ladder lies past it, so a hole beside a ladder is still a hole (amended by [0112](0112-structure-traits.md): an open hatch is a ladder of its own).
 - **The kind is stored, not guessed.** `Structure` gains `HatchClosed` and `HatchOpen` beside `DoorClosed` and
   `DoorOpen` (`sim/Grid/Grid.cs`). `Doorways` reads the codes: `IsDoor`, `IsHatch`, `IsDoorway`, `IsOpen`, `IsClosed`,
   and `LinksOf` joins a door cell up and down and the cell beside it within its segment, a hatch cell only the cell

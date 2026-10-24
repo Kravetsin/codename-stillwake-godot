@@ -584,9 +584,9 @@ Deliberately not handled:
   onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The limbs' cycle is 8 cells climbed,
   read from the hero's height (`HeroMotion.Ladder`): a hand over the other every 4 cells; a slide, read from `Vy`, raises the
   hands to the rails and throws `Luminous.RailSpark`s. A friend's hero shows all of it from `Climbing`, `X`, `Y` and `Vy`. The
-  hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. An open hatch over a ladder is
-  climbed through as the ladder is, its 2×1 piece (0111); a closed one is a floor, holding the hero from above and stopping it
-  from below. `-- --ladders --autopilot --lit`
+  hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. An open hatch is a ladder of
+  its own (`Trait.Climbable`, 0112), climbed through and stood on with or without a ladder past it; a closed one is a floor,
+  holding the hero from above and stopping it from below (`Trait.BlocksFromBelow`). `-- --ladders --autopilot --lit`
   records it (`HeroAutopilot.LaddersRun`; with `--strip`, the strip's shaft).
 - **Ledge assist** (0092): a jump (`Hero.Leaping`) pressed toward a whole wall whose top its feet are short of by no more than
   the drawn foot clears (`Hero.MantleReach`, from `Poses.FootLift`: 594 at the top, 556 rising, 72 falling fast), rising no
