@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><AssemblyName>Stillwake.Sim.Registry</AssemblyName><RootNamespace>Stillwake.Sim</RootNamespace></PropertyGroup>
+  <PropertyGroup><RootNamespace>Stillwake.Sim</RootNamespace></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Rooms/Rooms.csproj" />
     <ProjectReference Include="../Hazards/Hazards.csproj" />

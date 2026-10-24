@@ -212,7 +212,7 @@ allowed) for us and CI alike: another SDK's `dotnet format` indents differently,
 space`. Imperative, subject under 72 characters.
 - C#: PascalCase types and members, `_camelCase` private fields, file-scoped namespaces, one public type
   per file unless small records belong together. A module's assembly is `Stillwake.Sim.<Module>`, its
-  id the camelCase name (`lifeSupport`).
+  id the camelCase name (`lifeSupport`); `sim/Directory.Build.props` sets the names, so its csproj lists only references.
 
 ## Out of scope
 

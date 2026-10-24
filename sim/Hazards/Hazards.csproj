@@ -1,4 +1,3 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><AssemblyName>Stillwake.Sim.Hazards</AssemblyName><RootNamespace>Stillwake.Sim.Hazards</RootNamespace></PropertyGroup>
   <ItemGroup><ProjectReference Include="../Grid/Grid.csproj" /></ItemGroup>
 </Project>
