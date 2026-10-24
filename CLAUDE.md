@@ -175,7 +175,7 @@ in the sim.
 - Two developers, each with Claude: one task, one branch (`feat/...`, `fix/...`), one PR into `main`.
   `main` is protected: nothing lands without a PR and a green CI, no approval needed, so nobody waits
   on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
-  edits to the files every task touches (`game/Main.cs`, `game/dev/logic/DevModes.cs`, `game/i18n/logic/En.cs`).
+  edits to the files every task touches (`game/Main.cs`, `game/dev/logic/DevModes.cs`).
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
   commit: the full `dotnet test Stillwake.sln` and `dotnet format` on the changed files only (`--include`, seconds
   instead of a whole-solution minute); CI fails on whitespace.
@@ -207,8 +207,8 @@ allowed) for us and CI alike: another SDK's `dotnet format` indents differently,
 
 ## Conventions
 
-- English in code, comments, commits and docs. Player-facing text lives in one table of i18n keys,
-  shown through `T(key)`; refusal reasons use the sim's keys.
+- English in code, comments, commits and docs. Player-facing text is i18n keys shown through `T(key)`
+  (refusal reasons use the sim's keys): a feature's in its `logic/<Name>.En.cs`.
 - Comments only for a non-obvious why, at most two lines; `///` summaries on public members say what
   they are for. Longer reasoning goes to `docs/`.
 - Commits follow Conventional Commits with the module as scope: `feat(atmosphere): vent rooms open to

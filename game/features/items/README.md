@@ -6,32 +6,33 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 
 ## Files
 
-| File | Holds | Godot |
-| --- | --- | --- |
-| `logic/Click.cs` | the click rules, quick equip, shift across, sockets; every shift's `Flight` and where it landed | no |
-| `logic/Hotbar.cs` | the row of nine and the wheel; each slot's digit and key | no |
-| `logic/Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) | no |
-| `logic/Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host | no |
-| `logic/Lessons.cs` | an analyzer's panel: stage, progress, what the item goes into (0027) | no |
-| `logic/Reach.cs` | `HeroSpot`; pick-ups | no |
-| `logic/OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was | no |
-| `PickUpFlights.cs` | a stack picked up flying home to the chest (0075) | yes |
-| `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) | yes |
-| `SortSweep.cs` | a sort's light across the sorted grid (0081) | yes |
-| `SlotBox.cs` | one slot: icon, count, tint, digit, mark, badge, ghost | yes |
-| `AnalyzerPanel.cs` | an analyzer's panel | yes |
-| `ModuleSocket.cs` | a machine's socket for one module (0086) | yes |
-| `AnalyzerScreen.cs` | the analyzer's screen: dark, running lines, a check | yes |
-| `InventoryPanel.cs` | the hotbar, inventory, equipment and the open machine's frame; the stack in hand | yes |
-| `InventoryPanel.Machine.cs` | the open machine's body by kind and its readouts | yes |
-| `InventoryPanel.Sockets.cs` | module sockets: laid out, lent, fitted, tipped (0086) | yes |
-| `InventoryPanel.Input.cs` | keys, clicks, drags and drops; moves sent and flown; where it lies on screen | yes |
-| `EnergyBar.cs` | the energy tab at the gauge row's right end (0053, 0081) | yes |
-| `FloorLayer.cs` | stacks on the floor | yes |
-| `SlotFlights.cs` | a shifted stack flying to where it landed (0075) | yes |
-| `PickUpPopups.cs` | "Scrap (12)" rising over the hero's head (0075) | yes |
-| `ItemsView.cs` | the feature: pick-ups, the layers and the panel | yes |
-| `ItemsDemo.cs` | `-- --items`: a room with a crate, a furnace and an analyzer, for recordings | yes |
+| File | Holds |
+| --- | --- |
+| `logic/Click.cs` | the click rules, quick equip, shift across, sockets; every shift's `Flight` and where it landed |
+| `logic/Hotbar.cs` | the row of nine and the wheel; each slot's digit and key |
+| `logic/Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) |
+| `logic/Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host |
+| `logic/Lessons.cs` | an analyzer's panel: stage, progress, what the item goes into (0027) |
+| `logic/Reach.cs` | `HeroSpot`; pick-ups |
+| `logic/OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was |
+| `PickUpFlights.cs` | a stack picked up flying home to the chest (0075) |
+| `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
+| `SortSweep.cs` | a sort's light across the sorted grid (0081) |
+| `SlotBox.cs` | one slot: icon, count, tint, digit, mark, badge, ghost |
+| `AnalyzerPanel.cs` | an analyzer's panel |
+| `ModuleSocket.cs` | a machine's socket for one module (0086) |
+| `AnalyzerScreen.cs` | the analyzer's screen: dark, running lines, a check |
+| `InventoryPanel.cs` | the hotbar, inventory, equipment and the open machine's frame; the stack in hand |
+| `InventoryPanel.Machine.cs` | the open machine's body by kind and its readouts |
+| `InventoryPanel.Sockets.cs` | module sockets: laid out, lent, fitted, tipped (0086) |
+| `InventoryPanel.Input.cs` | keys, clicks, drags and drops; moves sent and flown; where it lies on screen |
+| `EnergyBar.cs` | the energy tab at the gauge row's right end (0053, 0081) |
+| `FloorLayer.cs` | stacks on the floor |
+| `SlotFlights.cs` | a shifted stack flying to where it landed (0075) |
+| `PickUpPopups.cs` | "Scrap (12)" rising over the hero's head (0075) |
+| `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
+| `ItemsDemo.cs` | `-- --items`: a room with a crate, a furnace and an analyzer, for recordings |
+| `logic/Items.En.cs` | Its player text (`En`) |
 
 The wrist computer's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`WristPieces`, `WristArt`,
 `WristScreen`, `WristKey`, `WristGauge`); charge on screen is `game/shared/logic/Charges.cs`. Files in `logic/` are Godot-free

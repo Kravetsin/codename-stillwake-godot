@@ -6,49 +6,50 @@ commands reach the sim. Other heroes come through the host.
 
 ## Files
 
-| File | Holds | Godot |
-| --- | --- | --- |
-| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; one `Step` at 60 a second; steps (0106); flight (0047) | no |
-| `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) | no |
-| `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) | no |
-| `logic/Motion.cs` | lean and landing, read from motion (0090) | no |
-| `logic/Aim.cs` | reach, the aim, what the hands send and the tools touch (0039, 0054, 0102) | no |
-| `logic/AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) | no |
-| `SwingSmear.cs` | the swipe of light of a downstroke (0075) | yes |
-| `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon | no |
-| `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) | no |
-| `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) | no |
-| `logic/HarpoonLine.cs` | the harpoon's line as drawn | no |
-| `logic/Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not | no |
-| `UsePrompt.cs` | the prompt at the bottom middle | yes |
-| `logic/Tether.cs` | the tether as drawn, a reeled rope | no |
-| `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) | no |
-| `logic/Motor.cs` | the `Run` sent while the sim differs from what is wanted (0055) | no |
-| `logic/Remote.cs` | `Seen`, `SentHero`, `RemoteHeroes`, `HeroSender` | no |
-| `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) | no |
-| `logic/Suits.cs` | suit colours and shades | no |
-| `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) | yes |
-| `HeroView.cs` | the layer: keys, steps, rams, the camera | yes |
-| `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim | yes |
-| `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers | yes |
-| `logic/CameraFollow.cs` | where the camera looks | no |
-| `JetPlume.cs` | a jetpack's plume (0075) | yes |
-| `RodLight.cs` | the harpoon's light (0075) | yes |
-| `AimOutline.cs` | what the aim outline traces | yes |
-| `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) | no |
-| `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` | no |
-| `Frost.cs` | the frost past the field, by `Report.Cold` (0050) | yes |
-| `logic/Danger.cs` | what the suit gauge reads | no |
-| `logic/AirCues.cs` | the moments air comes back (0081) | no |
-| `logic/CanistersSeen.cs` | a friend's canister read off its suit (0081) | no |
-| `AirSwirl.cs` | a canister's vortex, a breath, a ram's leak (0081, 0103) | yes |
-| `SuitGauge.cs` | the suit gauge under the hotbar (0058, 0074, 0081) | yes |
-| `SuitColours.cs` | the suit colour row in the game menu | yes |
-| `logic/Markers.cs` | the markers' list and geometry | no |
-| `MarkerLayer.cs` | edge arrows to home, own body and friends | yes |
-| `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) | no |
-| `BodyView.cs` | each body drawn, its beacon (0061) | yes |
-| `logic/Rams.cs` | a creature's ram as this client meets it (0103) | no |
+| File | Holds |
+| --- | --- |
+| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; one `Step` at 60 a second; steps (0106); flight (0047) |
+| `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) |
+| `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
+| `logic/Motion.cs` | lean and landing, read from motion (0090) |
+| `logic/Aim.cs` | reach, the aim, what the hands send and the tools touch (0039, 0054, 0102) |
+| `logic/AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) |
+| `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
+| `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
+| `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) |
+| `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) |
+| `logic/HarpoonLine.cs` | the harpoon's line as drawn |
+| `logic/Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not |
+| `UsePrompt.cs` | the prompt at the bottom middle |
+| `logic/Tether.cs` | the tether as drawn, a reeled rope |
+| `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) |
+| `logic/Motor.cs` | the `Run` sent while the sim differs from what is wanted (0055) |
+| `logic/Remote.cs` | `Seen`, `SentHero`, `RemoteHeroes`, `HeroSender` |
+| `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) |
+| `logic/Suits.cs` | suit colours and shades |
+| `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) |
+| `HeroView.cs` | the layer: keys, steps, rams, the camera |
+| `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim |
+| `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers |
+| `logic/CameraFollow.cs` | where the camera looks |
+| `JetPlume.cs` | a jetpack's plume (0075) |
+| `RodLight.cs` | the harpoon's light (0075) |
+| `AimOutline.cs` | what the aim outline traces |
+| `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
+| `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
+| `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
+| `logic/Danger.cs` | what the suit gauge reads |
+| `logic/AirCues.cs` | the moments air comes back (0081) |
+| `logic/CanistersSeen.cs` | a friend's canister read off its suit (0081) |
+| `AirSwirl.cs` | a canister's vortex, a breath, a ram's leak (0081, 0103) |
+| `SuitGauge.cs` | the suit gauge under the hotbar (0058, 0074, 0081) |
+| `SuitColours.cs` | the suit colour row in the game menu |
+| `logic/Markers.cs` | the markers' list and geometry |
+| `MarkerLayer.cs` | edge arrows to home, own body and friends |
+| `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) |
+| `BodyView.cs` | each body drawn, its beacon (0061) |
+| `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
+| `logic/Crew.En.cs` | Its player text (`En`) |
 
 `logic/` is Godot-free, tested in `game.tests/`.
 

@@ -59,6 +59,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
 | `logic/Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint: which version a player runs, to tell a friend or a bug … | yes |
+| `logic/Menu.En.cs` | Its player text (`En`) | no |
 
 `game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`.
 
