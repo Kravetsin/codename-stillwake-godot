@@ -3,7 +3,7 @@ namespace Stillwake.Content;
 /// <summary>Structure codes as stored in saves: never reuse or renumber one. Rules ask for a code's traits (<see cref="Structures"/>).</summary>
 public static class Structure
 {
-    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7;
+    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7, Grate = 8;
 }
 
 /// <summary>What a structure does, a bit each (0112): the questions systems ask of a cell instead of naming its kind.</summary>
@@ -106,6 +106,8 @@ public static class Structures
             Leak: Air.DoorLeak, Toggle: Structure.HatchOpen, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door, Flat: true),
         new(Structure.HatchOpen, 'o', "hatch, open", Trait.Opening | Trait.Climbable, Build: Builds.Hatch,
             Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door, Flat: true),
+        // A test fixture (0112): what a plain new structure takes, this row alone. No build and no art yet; no map of the game draws it.
+        new(Structure.Grate, '%', "grate: a deck stood on that air and light pass through", Trait.Supports, Flat: true),
     ];
 
     private static readonly Trait[] TraitsOf = Table.Select(s => s.Traits).ToArray();
