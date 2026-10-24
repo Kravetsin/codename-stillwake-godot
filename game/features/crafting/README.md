@@ -14,6 +14,7 @@
 | `StationSounds.cs` | A station heard at work where it stands (0059); told by `StationView` every frame |
 | `PodView.cs` | Over the pod's picture: its screen, its tray, its glass glowing while a hero is made |
 | `PodDemo.cs` | `-- --pod`: the wreck's pod opened and crafting, cards shown, for recordings |
+| `logic/Crafting.En.cs` | Its player text (`En`) |
 
 Making parts by machine only (0028), the client of `sim/Crafting`. It reads `Registry.Crafting` (`Queue`, `Progress`,
 `StationOf`), `IResearchQueries` (`Knows`), `IItemsQueries` (`Totals`, `Creative`, `Crate`, `AfterMoves`, `FittedTo`),

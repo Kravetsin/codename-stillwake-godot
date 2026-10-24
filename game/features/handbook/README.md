@@ -33,6 +33,7 @@ feature it speaks of. It is shown on the build menu's rugged tablet
 | File               | Holds                                                         | Godot |
 | ------------------ | ------------------------------------------------------------- | ----- |
 | `HandbookPanel.cs` | the tablet's screen: tabs, body, scrollbar, foot; J, Tab and E; `HandbookSection` | yes   |
+| `logic/Handbook.En.cs` | Its player text (`En`) | no |
 
 The book's picture is a placeholder drawn in code (`AsciiArt.Book`) till one is picked. Its layout is tested in
 `HandbookTests`.

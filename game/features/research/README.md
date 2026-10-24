@@ -12,6 +12,7 @@ many blueprints opening at once a list would cover the screen.
 | File                 | Holds                                                                     | Godot |
 | -------------------- | ------------------------------------------------------------------------- | ----- |
 | `AnalyzerScreens.cs` | each analyzer's screen, drawn over its picture                            | yes   |
+| `logic/Research.En.cs` | Its player text (`En`) | no |
 
 ## Guarantees
 
