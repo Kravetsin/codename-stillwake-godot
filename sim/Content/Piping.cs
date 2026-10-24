@@ -1,6 +1,6 @@
 namespace Stillwake.Content;
 
-/// <summary>Pipes as spans (0109): straight runs between machines' ports and joints, laid with the wrench.</summary>
+/// <summary>Pipes as spans (0109): straight runs between machines' ports and joints, laid from the plan, piping.</summary>
 public static class Piping
 {
     /// <summary>The longest span, in cells: its length rounded up (<c>PipesModule.LengthOf</c>).</summary>

@@ -10,14 +10,14 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// A script for the plan menu's buttons and the hand tools (0107, 0108), by the generator of the wreck's first room, the
+/// A script for the plan menu's buttons and its modes (0107, 0108), by the generator of the wreck's first room, the
 /// hero carrying the axe (<c>-- --layer-demo MODE</c>): <c>plan</c> the tablet out with the scrap back wall's card and back
 /// walls planned over open space by a left drag; <c>remove</c> the scrap wall's card marking the ceiling by a right drag;
 /// <c>focus</c> the plan out with the back walls focused by the middle button, the front faded, the pointer on the lifepod (0110);
 /// <c>axe</c> the axe swung by the right button at the room's back wall, refused as a ship's, and <c>aim</c> its aim just
-/// before; <c>strip</c> the stripper held, a cable laid from the generator to the wall, the cables' overlay showing; <c>pipe</c>
-/// the wrench held, a pipe laid aslant from the generator's port to a joint and a branch on from it, the pipes' overlay
-/// showing, its menu out and the first span hovered; <c>valve</c> the same with the branch's joint made a valve and shut, the wrench put away.
+/// before; <c>strip</c> the plan wiring (X), a cable laid from the generator to the wall, the cables' overlay showing; <c>pipe</c>
+/// the plan piping (C), a pipe laid aslant from the generator's port to a joint and a branch on from it, the pipes' overlay
+/// showing, its menu out and the first span hovered; <c>valve</c> the same with the branch's joint made a valve and shut, the plan put away.
 /// </summary>
 public sealed class LayerDemo(Hands hands, string mode)
 {
@@ -32,13 +32,12 @@ public sealed class LayerDemo(Hands hands, string mode)
 
     private static Tool Card(string id) => Tools.All.First(t => t.Id == id);
 
-    /// <summary>Picks the hotbar slot <paramref name="item"/> is in, as its digit key would.</summary>
-    private static void Wield(Registry m, int peer, string item)
+    /// <summary>Takes the plan out and presses <paramref name="key"/>, a mode's: Z, X or C.</summary>
+    private void Mode(Key key)
     {
-        int slot = m.Items.Inventory(peer).ToList().FindIndex(s => s?.Item == item);
-        if (slot < 0) return;
-        Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = Key.Key1 + slot, Pressed = true });
-        Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = Key.Key1 + slot, Pressed = false });
+        if (!hands.Plan.PlanOut.Get()) hands.Plan.Toggle();
+        Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Pressed = true });
+        Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Pressed = false });
     }
 
     /// <summary>A step of the script on world tick <c>client.World.Tick</c>; it says what it does to the log.</summary>
@@ -90,9 +89,9 @@ public sealed class LayerDemo(Hands hands, string mode)
                 Press(Buttons.Right);
                 break;
             case "pipe" or "valve" when tick == 10:
-                log("creative; the wrench held: the pipes show");
+                log("creative; B, C: the plan piping, the pipes show");
                 client.Send(new Sim.Items.SetCreative(true));
-                Wield(m, client.Id, Content.HandTools.Wrench);
+                Mode(Key.C);
                 break;
             case "pipe" or "valve" when tick == 20:
                 log("a pipe laid aslant from the generator's port to a joint on the back wall");
@@ -118,11 +117,11 @@ public sealed class LayerDemo(Hands hands, string mode)
                 _pointer = At(7.5, 1.5);
                 if (mode == "valve")
                 {
-                    log("the joint made a valve and shut; the wrench put away");
+                    log("the joint made a valve and shut; the plan put away");
                     int joint = (gy - 4) * w + gx + 5;
                     client.Send(new Sim.Pipes.MakeValve(joint, true));
                     client.Send(new Sim.Pipes.SetValve(joint, false));
-                    Wield(m, client.Id, Content.Weapons.Axe.Item);
+                    hands.Plan.PutPlanAway();
                 }
                 break;
             case "pipe" when tick == 60:
@@ -131,9 +130,9 @@ public sealed class LayerDemo(Hands hands, string mode)
                 Move(0);
                 break;
             case "strip" when tick == 10:
-                log("creative, so the cable is paid; the stripper held: the cables show");
+                log("creative, so the cable is paid; B, X: the plan wiring, the cables show");
                 client.Send(new Sim.Items.SetCreative(true));
-                Wield(m, client.Id, Content.HandTools.Stripper);
+                Mode(Key.X);
                 break;
             case "strip" when tick == 20:
                 log("a cable laid from the generator to the wall");

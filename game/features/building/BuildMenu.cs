@@ -20,7 +20,8 @@ namespace Stillwake.Game.Features.Building;
 /// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc puts the plan
 /// away; with it away, the key that takes it out. Q picks the card under the pointer. Only what the world knows is
 /// shown (0024): a tab with nothing known, not at all, nor its mode. It is the screen of a rugged tablet (0073), which
-/// slides up from the bottom edge as the plan comes out and back down as it goes away.
+/// slides up from the bottom edge as the plan comes out and back down as it goes away. On its left edge, aboard, the plan's
+/// modes' keys, Z, X and C: building, wiring, piping; wiring's and piping's menus are their cards alone (0110).
 /// </summary>
 public partial class BuildMenu : CanvasLayer
 {
@@ -53,8 +54,11 @@ public partial class BuildMenu : CanvasLayer
     /// on the frame as it is, the focused one lit (0110).
     /// </summary>
     private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly List<LayerKey> _layerKeys = [];
-    private const int KeyGap = 2, FocusHeight = 2 * WristLook.KeycapSide + KeyGap;
+    private readonly List<PlanKey> _layerKeys = [];
+    /// <summary>On the tablet's left edge while the plan is out aboard: the modes' keys stacked, Z, X and C, the mode's lit.</summary>
+    private readonly Control _modes = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly List<PlanKey> _modeKeys = [];
+    private const int KeyGap = 2, FocusHeight = 2 * WristLook.KeycapSide + KeyGap, ModesHeight = 3 * WristLook.KeycapSide + 2 * KeyGap;
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
     private Catalogue _at;
@@ -110,16 +114,29 @@ public partial class BuildMenu : CanvasLayer
         _focus.AnchorTop = _focus.AnchorBottom = 1;
         foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
         {
-            var key = new LayerKey(layer, () => _hand.FocusOn(layer)) { Position = new Vector2(0, (int)layer * (WristLook.KeycapSide + KeyGap)) };
+            var face = layer == Focus.Front ? KeyFace.Front : KeyFace.Back;
+            var key = new PlanKey(face, () => _hand.FocusOn(layer)) { Position = new Vector2(0, (int)layer * (WristLook.KeycapSide + KeyGap)) };
             _focus.AddChild(key);
             _layerKeys.Add(key);
         }
         _root.AddChild(_focus);
+        _modes.AnchorLeft = _modes.AnchorRight = 0.5f;
+        _modes.AnchorTop = _modes.AnchorBottom = 1;
+        foreach (var mode in Tools.Modes)
+        {
+            var face = mode switch { PlanMode.Wiring => KeyFace.Wiring, PlanMode.Piping => KeyFace.Piping, _ => KeyFace.Build };
+            var key = new PlanKey(face, () => _hand.SetMode(mode)) { Position = new Vector2(0, (int)mode * (WristLook.KeycapSide + KeyGap)) };
+            _modes.AddChild(key);
+            _modeKeys.Add(key);
+        }
+        _root.AddChild(_modes);
         void Lit()
         {
             foreach (var key in _layerKeys) key.On = _layerKeys.IndexOf(key) == (int)_hand.Focus.Get();
+            foreach (var key in _modeKeys) key.On = _modeKeys.IndexOf(key) == (int)_hand.Mode.Get();
         }
         hand.Focus.Subscribe(Lit);
+        hand.Mode.Subscribe(Lit);
         Lit();
 
         SearchField();
@@ -240,13 +257,18 @@ public partial class BuildMenu : CanvasLayer
         _focus.OffsetRight = _focus.OffsetLeft + WristLook.KeycapSide;
         _focus.OffsetTop = _open.OffsetTop + TabletLayout.StylusFoot * TabletLayout.ArtScale + KeyGap;
         _focus.OffsetBottom = _focus.OffsetTop + FocusHeight;
+        // The modes' keys mirror them on the left edge, from the screen's top: the metal left of the screen is ScreenLeft wide.
+        _modes.OffsetRight = -(_at.Width / 2) - TabletLayout.ScreenLeft * TabletLayout.ArtScale + into;
+        _modes.OffsetLeft = _modes.OffsetRight - WristLook.KeycapSide;
+        _modes.OffsetTop = _open.OffsetTop + Catalogue.Pad;
+        _modes.OffsetBottom = _modes.OffsetTop + ModesHeight;
     }
 
 
     /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
     public override void _Process(double delta)
     {
-        bool open = _hand.PlanOut.Get() || ToolMenu;
+        bool open = _hand.PlanOut.Get();
         if (!open && _search.HasFocus()) _search.ReleaseFocus();
         _open.Step(open, delta);
         _closed.Visible = !open && !_open.Shown;
@@ -266,8 +288,8 @@ public partial class BuildMenu : CanvasLayer
         _ => BlueprintArt.Thumbnail(((PlaceTool)tool).Placement),
     };
 
-    /// <summary>Whether the menu shows a hand tool's cards (0110): the stripper or the wrench held, the plan away.</summary>
-    private bool ToolMenu => !_hand.PlanOut.Get() && _hand.ToolCards.Count > 0;
+    /// <summary>Whether the menu shows the wiring's or the piping's cards (0110): the plan out in that mode, aboard.</summary>
+    private bool ToolMenu => _hand.ToolCards.Count > 0;
 
     /// <summary>How many of <paramref name="item"/> this player carries, as last read.</summary>
     private int Carried(string item) => _ui.Carried.Where(c => c.Item == item).Sum(c => c.Count);
@@ -300,7 +322,7 @@ public partial class BuildMenu : CanvasLayer
         if (e is InputEventMouseButton { Pressed: true } press && _search.HasFocus() && !_search.GetGlobalRect().HasPoint(press.Position))
             _search.ReleaseFocus();
         // The middle button toggles the open plan's layer (0110), before the dev camera's pan can take it.
-        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } && _hand.PlanOut.Get())
+        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Middle } && _hand.PlanOut.Get() && _hand.Builds)
         {
             _hand.ToggleFocus();
             GetViewport().SetInputAsHandled();
@@ -316,13 +338,16 @@ public partial class BuildMenu : CanvasLayer
             case Key.B:
                 _hand.Toggle();
                 break;
-            // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open it picks.
-            case Key.Q when _hand.PlanOut.Get():
+            // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
+            case Key.Q when _hand.PlanOut.Get() && _hand.Builds:
                 _hand.PickWanted = true;
                 break;
-            // / types in the search; while it is typed in, the field takes every key before it gets here, B and Q too.
-            case Key.Slash when _hand.PlanOut.Get():
+            // / types in the search; while it is typed in, the field takes every key before it gets here, B, Q and Z, X, C too.
+            case Key.Slash when _hand.PlanOut.Get() && _hand.Builds:
                 _search.GrabFocus();
+                break;
+            case Key.Z or Key.X or Key.C when _hand.PlanOut.Get():
+                _hand.SetMode(key.PhysicalKeycode == Key.Z ? PlanMode.Build : key.PhysicalKeycode == Key.X ? PlanMode.Wiring : PlanMode.Piping);
                 break;
             default:
                 return;
@@ -336,7 +361,7 @@ public partial class BuildMenu : CanvasLayer
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
     public void Frame(Registry m)
     {
-        bool open = _hand.PlanOut.Get() || ToolMenu;
+        bool open = _hand.PlanOut.Get();
         // The bezel's top at its dock, wherever the tablet is in its slide.
         _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - TabletLayout.BezelAbove : null;
         if (!open)
@@ -348,9 +373,9 @@ public partial class BuildMenu : CanvasLayer
             return;
         }
         bool toolMenu = ToolMenu;
-        // A hand tool's menu is its cards alone, on one tab named for it, with no search (0110).
+        // Wiring's or piping's menu is its cards alone, on one tab named for it, with no search (0110).
         var tabs = toolMenu
-            ? [new Tab(_ui.Wielded.Get()!, [.. _hand.ToolCards])]
+            ? [new Tab(_hand.ModeShown.ToString().ToLowerInvariant(), [.. _hand.ToolCards])]
             : Tools.Tabs
                 // The focused layer's cards alone (0110): the back walls' in the back, every other in the front.
                 .Select(t => t with { Tools = t.Tools.Where(each => Tools.FocusOf(each) == _hand.Focus.Get() && Tools.Known(each, m.Research) && Tools.Allowed(each, m.Rules)).ToList() })
@@ -363,7 +388,8 @@ public partial class BuildMenu : CanvasLayer
         Tool? tool = toolMenu ? _hand.ToolCard.Get() : _hand.Selected.Get();
         _search.Visible = !toolMenu;
         if (toolMenu && _search.Text != "") _search.Text = "";
-        _focus.Visible = _hand.PlanOut.Get();
+        _focus.Visible = !toolMenu;
+        _modes.Visible = _hand.Aboard.Get();
         string query = _search.Text.Trim();
         _list = query == "" ? [.. shownTab?.Tools ?? []] : Tools.Matching(tabs.SelectMany(t => t.Tools), query);
         if (_reveal)
@@ -425,7 +451,7 @@ public partial class BuildMenu : CanvasLayer
             box.GuiInput += e =>
             {
                 if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
-                // A hand tool's one tab is its menu: nothing to switch to.
+                // Wiring's or piping's one tab is its menu: nothing to switch to.
                 if (ToolMenu) return;
                 // A tab clicked shows its own cards: the search ends.
                 _search.Text = "";

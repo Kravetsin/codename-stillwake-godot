@@ -19,8 +19,8 @@ public abstract record Tool(string Id, string Label) : Act;
 public sealed record PlaceTool(string Id, Placement Placement, string Label) : Tool(Id, Label);
 
 /// <summary>
-/// A card of a hand tool's menu (0110): what the stripper's or the wrench's left button lays, paid from the inventory as it
-/// is laid; <paramref name="Item"/> is the one whose count the card shows.
+/// A card of the wiring's or the piping's menu (0110, plan modes): what the left button lays by hand, paid from the inventory
+/// as it is laid; <paramref name="Item"/> is the one whose count the card shows.
 /// </summary>
 public sealed record HandCard(string Id, string Label, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Label);
 
@@ -35,6 +35,14 @@ public enum Focus
     /// <summary>What cannot stack in a cell: walls, machines, doors, hatches, ladders, floors and the other pieces.</summary>
     Front,
     Back,
+}
+
+/// <summary>What the open plan works on (plan modes): what is built from plans, or cables or pipes laid at once from the inventory.</summary>
+public enum PlanMode
+{
+    Build,
+    Wiring,
+    Piping,
 }
 
 /// <summary>A tab of the build menu, its cards, and the overlay it shows while open, if any: the tab is the mode (0030).</summary>
@@ -145,26 +153,32 @@ public static class Tools
         _ => (1, 1),
     };
 
-    /// <summary>The stripper's card (0110): a cable, a wire each.</summary>
+    /// <summary>The wiring's card (0110): a cable, a wire each.</summary>
     public static readonly HandCard Cable = new("cable", En.T("tool.cable"), "wire", Content.Power.CableCost);
 
-    /// <summary>The wrench's cards (0110): a pipe, a tube per started <see cref="Piping.CellsPerItem"/> cells; a valve on a joint.</summary>
+    /// <summary>The piping's cards (0110): a pipe, a tube per started <see cref="Piping.CellsPerItem"/> cells; a valve on a joint.</summary>
     public static readonly HandCard Pipe = new("pipe", En.T("tool.pipe"), Piping.Item, [(Piping.Item, 1)]),
         Valve = new("valve", En.T("tool.valve"), "gear", Piping.ValveCost);
 
-    /// <summary>The cards of the menu the item <paramref name="wielded"/> opens: the stripper's cable, the wrench's pipe and valve; none for any other.</summary>
-    public static IReadOnlyList<HandCard> CardsOf(string? wielded) =>
-        wielded == HandTools.Stripper ? [Cable] : wielded == HandTools.Wrench ? [Pipe, Valve] : [];
+    /// <summary>The plan's modes in the order of their keys, Z, X and C.</summary>
+    public static readonly IReadOnlyList<PlanMode> Modes = [PlanMode.Build, PlanMode.Wiring, PlanMode.Piping];
+
+    /// <summary>The cards of <paramref name="mode"/>'s menu: the wiring's cable, the piping's pipe and valve; none for building, whose cards are the tabs'.</summary>
+    public static IReadOnlyList<HandCard> CardsOf(PlanMode mode) => mode switch
+    {
+        PlanMode.Wiring => [Cable],
+        PlanMode.Piping => [Pipe, Valve],
+        _ => [],
+    };
 
     /// <summary>
-    /// The overlay that shows: the open tab's, if the menu is open and the tab has one; else the one the item
-    /// <paramref name="wielded"/> works in (the stripper's cables, 0108; the wrench's pipes, 0109); else air if the player wants
-    /// it; else none.
+    /// The overlay that shows: with the plan out, the cables while wiring (0108) and the pipes while piping (0109), else the
+    /// open tab's if it has one; else air if the player wants it; else none.
     /// </summary>
-    public static string? OverlayShown(bool planOut, string tab, bool airOn, string? wielded = null) =>
-        planOut ? Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay ?? (airOn ? Air : null)
-        : wielded == HandTools.Stripper ? Power
-        : wielded == HandTools.Wrench ? Pipes
+    public static string? OverlayShown(bool planOut, PlanMode mode, string tab, bool airOn) =>
+        planOut && mode == PlanMode.Wiring ? Power
+        : planOut && mode == PlanMode.Piping ? Pipes
+        : planOut ? Tabs.FirstOrDefault(t => t.Id == tab)?.Overlay ?? (airOn ? Air : null)
         : airOn ? Air : null;
 
     /// <summary>The cards among <paramref name="cards"/> whose names hold <paramref name="query"/>, case ignored, in their order: the menu's search, across every tab.</summary>
@@ -177,7 +191,7 @@ public static class Tools
     /// <summary>The tab a card is on.</summary>
     public static string TabOf(Tool tool) => Tabs.FirstOrDefault(t => t.Tools.Contains(tool))?.Id ?? "";
 
-    /// <summary>What the buttons do, an i18n key: a hand tool's card its own, the plan's the same on every tab.</summary>
+    /// <summary>What the buttons do, an i18n key: a wiring or piping card its own, the plan's the same on every tab.</summary>
     public static string HintOf(Tool? held = null) => held is HandCard h ? $"hint.{h.Id}" : "hint.build";
 
     /// <summary>The layers Q picks in, in the order they are taken: what the ship is built of.</summary>

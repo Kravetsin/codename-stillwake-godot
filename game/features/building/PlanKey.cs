@@ -4,26 +4,30 @@ using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Building;
 
+/// <summary>What a <see cref="PlanKey"/>'s face shows: a layer (0110) or a mode of the plan.</summary>
+public enum KeyFace { Front, Back, Build, Wiring, Piping }
+
 /// <summary>
-/// A layer's key on the build tablet's right edge (0110): a wrist key as the sort keys are, the same housing and face, a
-/// crate header's square size, mounted on the frame as the bag's is on the display's; its face a schematic of its layer.
-/// The focused layer's is backlit, as a key that is on; the glyph lights sky under the pointer and white while held.
+/// A key on the build tablet's edge: a layer's on its right (0110), a mode's on its left (plan modes). A wrist key as the
+/// sort keys are, the same housing and face, a crate header's square size, mounted on the frame as the bag's is on the
+/// display's; its face a schematic of what it picks. The one picked is backlit, as a key that is on; the glyph lights sky
+/// under the pointer and white while held.
 /// </summary>
-public partial class LayerKey : WristKey
+public partial class PlanKey : WristKey
 {
     private static readonly Color Ink = new("8b98ad"), Hover = new("bae6fd"), Sky = new("38bdf8"), Held = new("7dd3fc");
 
-    private readonly Focus _layer;
+    private readonly KeyFace _face;
     private readonly Action _pressed;
     private bool _on;
 
-    public LayerKey(Focus layer, Action pressed) : base(new Vector2(WristLook.KeycapSide, WristLook.KeycapSide))
+    public PlanKey(KeyFace face, Action pressed) : base(new Vector2(WristLook.KeycapSide, WristLook.KeycapSide))
     {
-        _layer = layer;
+        _face = face;
         _pressed = pressed;
     }
 
-    /// <summary>Whether its layer is the focused one: its face backlit.</summary>
+    /// <summary>Whether what it picks is picked: its face backlit.</summary>
     public bool On
     {
         get => _on;
@@ -51,8 +55,14 @@ public partial class LayerKey : WristKey
         var icon = new Rect2(Mathf.Round(face.Position.X + (face.Size.X - side) / 2),
             Mathf.Round(face.Position.Y + (face.Size.Y - side) / 2) + (State == KeyState.Down ? 1 : 0), side, side);
         if (strength > 0) DrawRect(icon.Grow(1), glow with { A = 0.12f * strength });
-        if (_layer == Focus.Front) FrontIcon(icon, ink);
-        else BackIcon(icon, ink);
+        switch (_face)
+        {
+            case KeyFace.Front: FrontIcon(icon, ink); break;
+            case KeyFace.Back: BackIcon(icon, ink); break;
+            case KeyFace.Build: BuildIcon(icon, ink); break;
+            case KeyFace.Wiring: WiringIcon(icon, ink); break;
+            default: PipingIcon(icon, ink); break;
+        }
     }
 
     /// <summary>The front: a solid bright block before a faint grid.</summary>
@@ -88,5 +98,41 @@ public partial class LayerKey : WristKey
             DrawRect(new Rect2(front + new Vector2(0, d), new Vector2(1, 2)), ink);
             DrawRect(new Rect2(front + new Vector2(side - 1, d), new Vector2(1, 2)), ink);
         }
+    }
+
+    /// <summary>Building: a wall of bricks in three courses, each laid half a brick over the one under it.</summary>
+    private void BuildIcon(Rect2 icon, Color ink)
+    {
+        var o = icon.Position + new Vector2(0, 2);
+        for (int row = 0; row < 3; row++)
+        {
+            float y = o.Y + row * 4, shift = row % 2 == 0 ? 0 : -3;
+            for (float x = shift; x < icon.Size.X; x += 7)
+            {
+                float left = Mathf.Max(x, 0), right = Mathf.Min(x + 6, icon.Size.X);
+                DrawRect(new Rect2(o.X + left, y, right - left, 3), ink);
+            }
+        }
+    }
+
+    /// <summary>Wiring: a lightning bolt.</summary>
+    private void WiringIcon(Rect2 icon, Color ink)
+    {
+        var o = icon.Position;
+        DrawColoredPolygon(
+        [
+            o + new Vector2(8, 0), o + new Vector2(3, 8), o + new Vector2(7, 8), o + new Vector2(5, 14),
+            o + new Vector2(11, 5), o + new Vector2(7, 5), o + new Vector2(10, 0),
+        ], ink);
+    }
+
+    /// <summary>Piping: a pipe's elbow, a flange at each end.</summary>
+    private void PipingIcon(Rect2 icon, Color ink)
+    {
+        var o = icon.Position;
+        DrawRect(new Rect2(o + new Vector2(2, 3), new Vector2(4, 9)), ink);
+        DrawRect(new Rect2(o + new Vector2(2, 8), new Vector2(9, 4)), ink);
+        DrawRect(new Rect2(o + new Vector2(1, 1), new Vector2(6, 2)), ink);
+        DrawRect(new Rect2(o + new Vector2(11, 7), new Vector2(2, 6)), ink);
     }
 }
