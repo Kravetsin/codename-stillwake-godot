@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using Xunit;
 
 namespace Stillwake.Sim.Tests;
@@ -47,6 +48,22 @@ public class MigrationsTests
             for (int i = 0; i < 600; i++) world.Step([]);
             Assert.Equal(World.SaveFormat, Migrations.FormatOf(world.Save()));
         }
+    }
+
+    [Fact]
+    public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
+    {
+        var newer = JsonNode.Parse(Played())!.AsObject();
+        newer["slices"]!["power"]!["fromANewerBuild"] = 1;
+        var e = Assert.Throws<InvalidDataException>(() => World.Load(newer.ToJsonString(), new Registry().All));
+        Assert.Contains("power", e.Message);
+
+        // An older save of this format, from before power kept its stores (0101): it loads with none and plays on.
+        var older = JsonNode.Parse(Played())!.AsObject();
+        Assert.True(older["slices"]!["power"]!.AsObject().Remove("stores"));
+        var world = World.Load(older.ToJsonString(), new Registry().All);
+        for (int i = 0; i < 100; i++) world.Step([]);
+        Assert.Empty(JsonNode.Parse(world.Save())!["slices"]!["power"]!["stores"]!.AsArray());
     }
 
     [Fact]
