@@ -39,8 +39,7 @@ sealed class StoreScenario(DevArgs a) : DevScenario(a)
 | `World Seed(World, DevSeed)` | `Alone`'s seeds; `Host`'s with `Hosted` | each in turn; `DevSeed` has `Modules` and `M` |
 | `bool Hosted` | `Host` seeding debris, wrecks | seeds when hosting too |
 | `HeroAutopilot? Script` | `DevScript` | the first that gives one |
-| `Func<Registry,int>? Start` | `PlaceHero` | the first that gives one; after `--edge`, before `--open` and `--near` |
-| `bool Walked` (true) | `--perf`, `--gallery` | false from any: no hero, the camera by hand |
+| `Func<Registry,int>? Start` | `PlaceHero` | the first that gives one, after `--edge`; `--open` and `--near` are scenarios of `Order = 20`, so last |
 | `Attach(DevContext)` | `AddDebrisDemos`, `StartHandDemos`, `AddDevDemos`, `PosesDemo`, `ItemsView`'s demo | each in turn, once Main has made everything |
 | `Started(Client)` | `PlayDev`'s planet and strip | each in turn |
 | `Frame(Client, Registry, Action<string>)` | `ShowHands`' five demo calls, `BeamBack` | each in turn, every frame |
@@ -64,7 +63,7 @@ reflect over Godot code, so `DevModesTests` reads `[Dev("--…"` from the source
 names to the listed ones; a misspelt `Has("--hils")` still fails it.
 
 **Release builds.** Demo-only code is `**/*Demo.cs`, or under `game/dev/demos/` (scenarios, `GroundHands`,
-`FaunaHands`, `PoseSheet`, and whatever else only demos use). The csproj removes both under `ExportRelease`;
+`FaunaHands`, and whatever else only demos use). The csproj removes both under `ExportRelease`;
 Main names no demo type. CI builds `-c ExportRelease` as well, so a demo type named from kept code fails
 there and not at release. The title's Testbed button stays `OS.IsDebugBuild()`.
 
@@ -77,7 +76,9 @@ there and not at release. The title's Testbed button stays `OS.IsDebugBuild()`.
 - Measuring and view: `--frames`, `--measure`, `--allocs`, `--snap`, `--for`, `--sweep`, `--lit`, `--dark`,
   `--zoom`, `--view`, `--no-homes`, `--slots`. They stay in release builds: a friend's `--frames` log is how
   a slow machine is diagnosed.
-- `--pose-sheet` (makes nothing else) stays an early return in `_Ready`.
+- Worlds looked at, not played: `--perf` (also hosted), `--gallery`, `--world`; and `--aside`, for a co-op window.
+  A `Walked` hook for `--perf` and `--gallery` alone was cut.
+- `--pose-sheet` (makes nothing else) stays an early return in `_Ready`; `PoseSheet` stays in `game/dev/`.
 
 ## Deliberately not done
 
@@ -97,5 +98,7 @@ there and not at release. The title's Testbed button stays `OS.IsDebugBuild()`.
 1. Done: the framework (`game/dev/DevScenario.cs`, `DevScenarios.cs`), `--store`, the `--testbed` family,
    `--ground` and the `--wreck` family in `game/dev/demos/`; `Main` asks the scenarios first, then its old
    chains. Frames of the 9 flags and 6 testbed combinations match `main`'s.
-2. The rest in batches by kind (Sonnet, by these examples), each batch's frames compared.
+2. Done: the rest, by kind, in `game/dev/demos/` (`Hero`, `Machine`, `Plan`, `Debris`, `Planet` scenarios);
+   `Main.Dev.cs` keeps only what stays in Main, and `ItemsView` no longer makes `ItemsDemo`. Done here rather
+   than by Sonnet: every batch edits `Main.Dev.cs` and `DevModes.cs`, so batches could not run apart.
 3. The old chains gone, `ExportRelease` exclusion and its CI build, the `/new-demo` checklist in this file.

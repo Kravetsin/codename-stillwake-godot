@@ -96,10 +96,6 @@ public partial class Main : Node2D, ITogether
     private DebrisView _debris = null!;
     private Features.Fauna.FaunaView _fauna = null!;
     private Hands _hands = null!;
-    private PlanDemo? _demo;
-    private FaunaDemo? _faunaDemo;
-    private ShimmerDemo? _shimmerDemo;
-    private LayerDemo? _layerDemo;
     private FrameLog? _frameLog;
     private AllocationSampler? _allocs;
     private readonly Platform.GcPace _gcPace = new();
@@ -154,7 +150,6 @@ public partial class Main : Node2D, ITogether
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());
         AddChild(_debris);
-        AddDebrisDemos();
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
         AddChild(_fauna = new Features.Fauna.FaunaView(_hands.Ui));
@@ -165,8 +160,8 @@ public partial class Main : Node2D, ITogether
         {
             var script = DevScript();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
-            PlaceHero(_hero, script);
-            AddChild(_items = new ItemsView(_hands.Ui, demo: Has("--items")));
+            PlaceHero(_hero);
+            AddChild(_items = new ItemsView(_hands.Ui));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
             AddChild(_fabricator = new FabricatorPanel(_hands.Ui, peer => AsciiArt.Colour((uint)Suits.Of(_m.Players, peer))) { Lend = _items.Panel.Lend, LendSockets = _items.Panel.LendSockets, ShiftOut = _items.Panel.ShiftOut });
             // The drone badge is the logistics feature's, put in the items' and crafting panels' headers where drones have work (0062).
@@ -203,7 +198,6 @@ public partial class Main : Node2D, ITogether
         var effects = new EffectsView();
         AddChild(effects);
         AddChild(_hands);
-        StartHandDemos();
         var join = _dev.Given("--join");
         var hostAs = _dev.Given("--host");
         // Every way out saves first: the window's close as well.
@@ -416,7 +410,6 @@ public partial class Main : Node2D, ITogether
             // A determinism bug: the host has already mended the world, so the report is all that is left.
             _saves.Write(Saves.Desync, System.Text.Json.JsonSerializer.Serialize(report, Indented));
         }
-        BeamBack(client, before);
         Follow(client);
         Snap(client);
         _stars.Seconds = (client.World.Tick + session.Progress) / World.TicksPerSecond;
@@ -470,11 +463,7 @@ public partial class Main : Node2D, ITogether
             foreach (var other in _hero.Others) _bodies.Add(BodyOf(other.Hero));
             _bodies.Add(BodyOf(_hero.Current));
         }
-        _demo?.Frame(client, _m.Grid, Log);
         foreach (var scenario in _scenarios) scenario.Frame(client, _m, Log);
-        _faunaDemo?.Frame(client, Log);
-        _shimmerDemo?.Frame(client, _m.Grid, Log);
-        _layerDemo?.Frame(client, _m, Log);
         _hands.Frame(client, _m, _bodies, elapsedMs);
         // The open plan draws its focused layer whole and the other faded, aboard only (0110).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);

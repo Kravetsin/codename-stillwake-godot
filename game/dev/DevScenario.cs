@@ -5,6 +5,7 @@ using Stillwake.Game.Features.Crafting;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
 using Stillwake.Game.Features.Items;
+using Stillwake.Game.Menu;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
@@ -34,6 +35,9 @@ public abstract class DevScenario
     /// <summary>The arguments the game was started with, for the scenario's own and its modifiers.</summary>
     public DevArgs Args { get; internal set; } = null!;
 
+    /// <summary><c>--arc-drill</c>: the drill in hand has the arc module fitted (0098); null without.</summary>
+    protected string? ArcDrill => Args.Has("--arc-drill") ? Content.Modules.Arc.Item : null;
+
     /// <summary>The map played and the camera aimed at; the wreck as drawn with none.</summary>
     public virtual Layout? Map => null;
 
@@ -52,7 +56,10 @@ public abstract class DevScenario
     /// <summary>The cell the hero starts on.</summary>
     public virtual Func<Registry, int>? Start => null;
 
-    /// <summary>Its nodes, made once Main has made everything else; the order they are added in is their draw order.</summary>
+    /// <summary>
+    /// Its nodes and hand scripts, made once Main has made everything else and the session runs; the order they are added in
+    /// is their draw order.
+    /// </summary>
     public virtual void Attach(DevContext c) { }
 
     /// <summary>The commands sent as the session starts.</summary>
@@ -73,6 +80,14 @@ public sealed class DevContext
     public required DebrisView Debris { get; init; }
     public ItemsView? Items { get; init; }
     public FabricatorPanel? Fabricator { get; init; }
+    public required GameMenu Menu { get; init; }
+    public required SuitColours Suits { get; init; }
+    /// <summary>The Handbook's debris section.</summary>
+    public required HandbookPage DebrisPage { get; init; }
+    /// <summary>The map played.</summary>
+    public required Layout Layout { get; init; }
+    /// <summary>This player's hero where it stands now; none without one.</summary>
+    public required Func<Hero?> Hero { get; init; }
     /// <summary>The world played now, once a session runs.</summary>
     public required Func<(Client Client, Registry M)?> World { get; init; }
     /// <summary>The registry played now.</summary>

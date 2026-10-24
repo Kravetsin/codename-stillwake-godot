@@ -15,9 +15,6 @@ public sealed class GroundScenario : DevScenario
 
     private string Mode => Args.Value("--ground")!;
 
-    /// <summary><c>--arc-drill</c>: the drill in hand has the arc module fitted (0098).</summary>
-    private string? ArcDrill => Args.Has("--arc-drill") ? Content.Modules.Arc.Item : null;
-
     private GroundDemo Demo => _demo ??= new GroundDemo(Mode)
     {
         TakeAt = Args.Arg("--take-at") is { } take ? (int)(double.Parse(take, CultureInfo.InvariantCulture) * World.TicksPerSecond) : null,
