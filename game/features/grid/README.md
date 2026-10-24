@@ -60,7 +60,7 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   band unlit, one quad, a value-noise shader churning slowly; over open lava a warm haze and rising embers
   (`CaveLooks.Ember_`). Under rock its dark crust, cracks dimly glowing, from a row texture laid again when `Version`
   moves. It gives light where open above it: a lamp of `LavaLooks.Light` every `LavaLooks.LightEvery` cells of an open
-  stretch, out from the view's middle, at most `LavaLooks.MostLights` (`LightView.Lava`). Never dug nor built, so the band is the
+  stretch, out from the view's middle, at most `LavaLooks.MostLights` (its `Lights`). Never dug nor built, so the band is the
   ground's rows (`Ground.CoreRows`, `LavaRows`).
 - **Moss** (0079, 0082) on soil open to the sky (`Grass.cs`: a soil wall under an empty cell with no back wall), a rule
   of drawing, never the sim's: one of `GroundArt.TopVariants` pictures by a hash of its 16 px column

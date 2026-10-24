@@ -23,7 +23,7 @@ namespace Stillwake.Game.Features.Flora;
 /// chunks of 64 × 64 cells near the view, a canvas item each — tens of thousands of growths, no node apiece. Glints sparkle
 /// where a helmet's beam falls on mica, a vein or a crystal; spores, drips and embers drift from what is in view.
 /// </summary>
-public partial class CaveView : Node2D
+public partial class CaveView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell, Chunk = 64;
 
