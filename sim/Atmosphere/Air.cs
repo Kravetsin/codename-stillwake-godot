@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Atmosphere;
 

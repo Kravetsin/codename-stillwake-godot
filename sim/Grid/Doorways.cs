@@ -1,3 +1,6 @@
+using Structure = Stillwake.Content.Structure;
+
+
 namespace Stillwake.Sim.Grid;
 
 /// <summary>

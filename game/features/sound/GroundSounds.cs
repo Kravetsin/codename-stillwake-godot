@@ -7,6 +7,7 @@ using Footing = Stillwake.Game.Sound.Footing;
 using Material = Stillwake.Content.Material;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Sound;
 

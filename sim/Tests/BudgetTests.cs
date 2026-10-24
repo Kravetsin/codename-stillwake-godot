@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Xunit.Abstractions;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
 
@@ -148,7 +149,7 @@ public class BudgetTests(ITestOutputHelper output)
         for (int x = spawn % width - 100; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 100; x += body)
         {
             int y = row - 40;
-            while (y < row + 40 && Enumerable.Range(x, body).All(c => m.Grid.StructureAt((y + 1) * width + c) != Grid.Structure.Wall)) y++;
+            while (y < row + 40 && Enumerable.Range(x, body).All(c => m.Grid.StructureAt((y + 1) * width + c) != Stillwake.Content.Structure.Wall)) y++;
             w.Do(new Fauna.Release(Content.Fauna.Loper.Id, y * width + x)).Run();
         }
         w.Run(Content.Fauna.Beat * Content.Fauna.Max);

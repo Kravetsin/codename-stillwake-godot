@@ -1,6 +1,7 @@
 using System;
 using Stillwake.Sim.Grid;
 using Anchor = Stillwake.Content.Flora.Anchor;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Flora;
 

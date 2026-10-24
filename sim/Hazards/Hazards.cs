@@ -1,4 +1,5 @@
 using Stillwake.Sim.Grid;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Hazards;
 

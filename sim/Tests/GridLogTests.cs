@@ -5,6 +5,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
 

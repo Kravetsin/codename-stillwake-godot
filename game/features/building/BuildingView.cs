@@ -10,6 +10,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using S = Stillwake.Game.Sound;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Building;
 

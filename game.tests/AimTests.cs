@@ -10,6 +10,7 @@ using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
 using Xunit;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 

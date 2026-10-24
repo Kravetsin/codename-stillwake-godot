@@ -12,6 +12,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content.Hero;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -794,7 +795,7 @@ public partial class HeroView : Node2D
             {
                 int x = cx + dir * i;
                 if (x < 0 || x >= w || row < 0 || row >= grid.Height) break;
-                if (grid.StructureAt(row * w + x) is Sim.Grid.Structure.Wall or Sim.Grid.Structure.DoorClosed)
+                if (grid.StructureAt(row * w + x) is Structure.Wall or Structure.DoorClosed)
                     return (dir > 0 ? x * Hero.Unit - hero.X : hero.X - (x + 1) * Hero.Unit) * Rig.Cell / Hero.Unit;
             }
             return double.MaxValue;

@@ -2,6 +2,7 @@ using Stillwake.Game.Features.Crew;
 using Xunit;
 using static Stillwake.Game.Features.Crew.Poses;
 using Spec = Stillwake.Content.Hero;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 
@@ -32,7 +33,7 @@ public class PoseTests
     [Fact]
     public void JumpedOnlyLeavingTheDeckOrALadderRising()
     {
-        var ship = new Ship(20, 24, cell => cell / 20 == 20 && cell % 20 < 10 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
+        var ship = new Ship(20, 24, cell => cell / 20 == 20 && cell % 20 < 10 ? Structure.Floor : Structure.Empty, _ => false);
         var standing = new Hero(5000, 20000, 0, 0, false, 1);
         var jumped = standing.Step(new HeroInput(0, 0, true), ship);
         Assert.True(Jumped(Pose.Stand, PoseOf(jumped, false, false), jumped));
@@ -59,7 +60,7 @@ public class PoseTests
     [Fact]
     public void LandsOnceAJumpComesDownNotAtItsTop()
     {
-        var ship = new Ship(20, 24, cell => cell / 20 == 20 ? Stillwake.Sim.Grid.Structure.Floor : Stillwake.Sim.Grid.Structure.Empty, _ => false);
+        var ship = new Ship(20, 24, cell => cell / 20 == 20 ? Structure.Floor : Structure.Empty, _ => false);
         var hero = new Hero(5000, 20000, 0, 0, false, 1);
         Pose? was = PoseOf(hero, false, false);
         int fall = 0;

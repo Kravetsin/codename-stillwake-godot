@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
 using Stillwake.Sim.Grid;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Rooms;
 

@@ -6,6 +6,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Materials = Stillwake.Content.Materials;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
 

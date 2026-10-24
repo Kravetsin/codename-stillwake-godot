@@ -12,6 +12,7 @@ using Machines = Stillwake.Content.Machines;
 using Move = Stillwake.Sim.Items.Move;
 using ResearchSpec = Stillwake.Content.Research;
 using Slot = Stillwake.Sim.Items.Place;
+using Structure = Stillwake.Content.Structure;
 using WreckRows = Stillwake.Content.Wreck;
 
 namespace Stillwake.Sim.Tests;

@@ -6,6 +6,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Logistics;
 using Xunit;
+using Structure = Stillwake.Content.Structure;
 using Tune = Stillwake.Content.Logistics;
 
 namespace Stillwake.Sim.Tests;

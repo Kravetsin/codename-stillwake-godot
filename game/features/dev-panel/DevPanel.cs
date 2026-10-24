@@ -12,6 +12,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using S = Stillwake.Game.Sound;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Dev;
 

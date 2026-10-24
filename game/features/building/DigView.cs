@@ -6,6 +6,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Material = Stillwake.Content.Material;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Building;
 

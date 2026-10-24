@@ -6,6 +6,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Dev;
 

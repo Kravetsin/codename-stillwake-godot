@@ -26,6 +26,7 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using static Stillwake.Game.I18n.En;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game;
 

@@ -3,13 +3,6 @@ using Stillwake.Content;
 
 namespace Stillwake.Sim.Grid;
 
-/// <summary>Structure codes as stored in saves: never reuse or renumber one.</summary>
-public static class Structure
-{
-    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7;
-}
-
-
 /// <summary>Back wall codes as stored in saves.</summary>
 public static class Back
 {
@@ -88,6 +81,18 @@ public interface IGridQueries
     /// <summary>Each cell's back wall material code, 0 where there is no back wall.</summary>
     ReadOnlySpan<int> BackMaterialLayer { get; }
     int StructureAt(int cell);
+    /// <summary>Whether a body stops at <paramref name="cell"/> from every side (<see cref="Trait.Blocks"/>); past the grid, it does.</summary>
+    bool Blocks(int cell);
+    /// <summary>Whether <paramref name="cell"/> holds what stands on it from above (<see cref="Trait.Supports"/>).</summary>
+    bool Supports(int cell);
+    /// <summary>Whether a hero climbs <paramref name="cell"/> (<see cref="Trait.Climbable"/>).</summary>
+    bool Climbable(int cell);
+    /// <summary>Whether <paramref name="cell"/> is airtight (<see cref="Trait.Seals"/>).</summary>
+    bool Seals(int cell);
+    /// <summary>Whether <paramref name="cell"/> stops light (<see cref="Trait.BlocksLight"/>).</summary>
+    bool BlocksLight(int cell);
+    /// <summary>Whether <paramref name="cell"/> is stood on or stopped at: it blocks or supports; past the grid, it is.</summary>
+    bool Solid(int cell);
     /// <summary>What the wall at <paramref name="cell"/> is made of; null for no wall, or off the grid.</summary>
     Material? WallAt(int cell);
     /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
@@ -362,6 +367,15 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     private static readonly Machine[] NoMachines = [];
 
     public int StructureAt(int cell) => InBounds(cell) ? State.Structure[cell] : Structure.Empty;
+
+    public bool Blocks(int cell) => !InBounds(cell) || Structures.Is(State.Structure[cell], Trait.Blocks);
+    public bool Supports(int cell) => Has(cell, Trait.Supports);
+    public bool Climbable(int cell) => Has(cell, Trait.Climbable);
+    public bool Seals(int cell) => Has(cell, Trait.Seals);
+    public bool BlocksLight(int cell) => Has(cell, Trait.BlocksLight);
+    public bool Solid(int cell) => !InBounds(cell) || Structures.Solid(State.Structure[cell]);
+
+    private bool Has(int cell, Trait trait) => InBounds(cell) && Structures.Is(State.Structure[cell], trait);
 
     public Material? WallAt(int cell) =>
         InBounds(cell) && State.Structure[cell] == Structure.Wall ? MaterialOf(State.Material[cell]) : null;

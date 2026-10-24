@@ -9,6 +9,7 @@ using AroundHeroes = Stillwake.Content.AroundHeroes;
 using ByHull = Stillwake.Content.ByHull;
 using DebrisSpec = Stillwake.Content.Debris;
 using HalfBox = Stillwake.Content.HalfBox;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
 

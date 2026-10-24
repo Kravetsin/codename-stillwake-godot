@@ -1,5 +1,6 @@
 using Stillwake.Sim.Grid;
 using Xunit;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
 

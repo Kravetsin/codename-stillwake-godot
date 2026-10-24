@@ -9,6 +9,7 @@ using Stillwake.Sim.Rooms;
 using Xunit;
 using Air = Stillwake.Content.Air;
 using Materials = Stillwake.Content.Materials;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
 

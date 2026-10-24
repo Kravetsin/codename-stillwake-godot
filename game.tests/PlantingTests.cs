@@ -3,6 +3,7 @@ using Stillwake.Sim.Grid;
 using Xunit;
 using Anchor = Stillwake.Content.Flora.Anchor;
 using Faces = Stillwake.Game.Features.Flora.Planting.Faces;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 

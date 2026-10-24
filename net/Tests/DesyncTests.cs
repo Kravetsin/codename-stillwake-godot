@@ -11,6 +11,7 @@ using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using Xunit.Abstractions;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Net.Tests;
 

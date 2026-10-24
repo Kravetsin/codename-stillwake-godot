@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Sim;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -366,7 +367,7 @@ public sealed class HeroAutopilot
         int Top(int x)
         {
             for (int y = 0; y < grid.Height; y++)
-                if (grid.StructureAt(y * w + x) != Stillwake.Sim.Grid.Structure.Empty) return y;
+                if (grid.StructureAt(y * w + x) != Structure.Empty) return y;
             return grid.Height;
         }
         int best = 0, bestLength = 0, start = 0, last = Top(0);

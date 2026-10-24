@@ -11,6 +11,7 @@ using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Power;
 using L = Stillwake.Game.DroneLook;
 using S = Stillwake.Game.Sound;
+using Structure = Stillwake.Content.Structure;
 using Tune = Stillwake.Content.Logistics;
 
 namespace Stillwake.Game.Features.Logistics;

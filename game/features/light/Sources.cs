@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Light;
 

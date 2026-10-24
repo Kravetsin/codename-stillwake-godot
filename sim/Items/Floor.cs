@@ -1,5 +1,6 @@
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
+using Structure = Stillwake.Content.Structure;
 using Tune = Stillwake.Content.Floor;
 
 namespace Stillwake.Sim.Items;

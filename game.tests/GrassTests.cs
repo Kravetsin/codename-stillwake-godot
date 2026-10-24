@@ -2,6 +2,7 @@ using Stillwake.Game.Features.Grid;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 
