@@ -9,11 +9,12 @@
 | `logic/Motors.cs` | A motor heard as it runs (0059), apart from Godot: how fast it spins, from still (0) to full (1), linearly over its … |
 | `SoundView.cs` | The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass falling as it … |
 | `logic/Strikes.cs` | A train of one-shots heard while something works, apart from what it does (0054): the drill's strikes, a hammer … |
+| `logic/Sound.Sound.cs` | Its sound cues (`Sound`) |
 
 What is heard (0033), in space (0042), machines at work (0059), drones (0062) and a planet (0093). Presentation only:
 nothing in `sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
 
-Elsewhere: `game/Content/logic/Sound.cs` (cues and tunables); `game/default_bus_layout.tres` (Master → UI, Ambient, Music,
+Elsewhere: `game/Content/logic/Sound.cs` (types, buses, reaches, shared cues; a feature's own cues are in its `logic/<Name>.Sound.cs`); `game/default_bus_layout.tres` (Master → UI, Ambient, Music,
 Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Heard2D.cs`, `Voices.cs`; `game/audio/`
 (WAV one-shots, OGG loops; `CREDITS.md`: CC0 or marked placeholders).
 

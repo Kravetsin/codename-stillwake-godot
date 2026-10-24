@@ -19,6 +19,8 @@ Cables hanging between their nodes and their overlay, shown while the stripper i
 | `StoreWorld.cs`, `StoreDemo.cs` | the world of `-- --store` and its script: a bank filling, then emptying into an arc smelter | `StoreDemo` |
 | `StoreDemo.cs` | for recordings (`-- --store`, 0101): plays `StoreWorld`, the bank filling while the smelter stands empty; at … | yes |
 | `logic/StoreWorld.cs` | the world of `-- --store` (0101), plain C# so it is tested: an aired room with a capacitor bank holding `Holds` … | no |
+| `logic/Power.En.cs` | Its player text (`En`) | no |
+| `logic/Power.Sound.cs` | Its sound cues (`Sound`) | no |
 
 `game/render/logic/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
 `game/render/logic/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)

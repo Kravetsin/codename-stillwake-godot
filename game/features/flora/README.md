@@ -8,6 +8,7 @@
 | `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
 | `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
 | `logic/Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
+| `logic/Flora.Sound.cs` | Its sound cues (`Sound`) |
 
 What grows on a planet, seen: on its surface (0079) and in its caves (0080). The plants are Building's
 (`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature

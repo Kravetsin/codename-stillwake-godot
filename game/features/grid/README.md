@@ -11,6 +11,8 @@
 | `logic/Grass.cs` | Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of … |
 | `GridView.cs` | The ship in pixel art, a `TileMapLayer` per kind of picture: back walls behind … |
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
+| `logic/Grid.En.cs` | Its player text (`En`) |
+| `logic/Grid.Sound.cs` | Its sound cues (`Sound`) |
 
 Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the world, `Camera.Cell` (8) to a cell (0104).
 

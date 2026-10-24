@@ -17,6 +17,8 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `BuildMenu.cs` | The tablet menu: tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`. |
 | `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud, behind the walls. |
 | `LayerKey.cs` | A layer's key on the build tablet's right edge (0110). |
+| `logic/Building.En.cs` | Its player text (`En`) |
+| `logic/Building.Sound.cs` | Its sound cues (`Sound`) |
 
 Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,
 `game/render/` (`Buttons`, `WorldButtons`, `BlueprintArt`, `PlanTiles`, `PlanCut`, `BuiltParts`, `Blueprint`,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using Xunit;
 
@@ -56,6 +57,24 @@ public class SoundTests
                 Assert.True(File.Exists(Path.Combine(GameFolder(), file["res://".Length..])), $"{file} is missing");
             }
         }
+    }
+
+    /// <summary>The files of <c>Sound</c> are initialised in no defined order: a cue or a table made from another file's would hold null.</summary>
+    [Fact]
+    public void EveryCueAndEveryTableEntryIsMade()
+    {
+        const BindingFlags Statics = BindingFlags.Public | BindingFlags.Static;
+        var cues = typeof(Sound).GetFields(Statics).Where(f => f.FieldType == typeof(Sound.Cue)).Select(f => (f.Name, Value: f.GetValue(null)))
+            .Concat(typeof(Sound).GetProperties(Statics).Where(p => p.PropertyType == typeof(Sound.Cue)).Select(p => (p.Name, Value: p.GetValue(null))))
+            .ToList();
+        Assert.True(cues.Count > 60, "too few cues found by reflection");
+        Assert.All(cues, c => Assert.True(c.Value is not null, $"{c.Name} is null"));
+        Assert.All(Sound.Steps.Values, Assert.NotNull);
+        Assert.All(Sound.Ground.Values, s => { Assert.NotNull(s.Hit); Assert.NotNull(s.Break); });
+        Assert.All(Sound.Growths.Values, s => Assert.NotNull(s.Fall));
+        Assert.All(Sound.Creatures.Values, s => { Assert.NotNull(s.Hit); Assert.NotNull(s.Thump); Assert.NotNull(s.Death); });
+        Assert.Same(Sound.ToolReach, Sound.Chop.Heard);
+        Assert.Same(Sound.BreakReach, Sound.Break.Heard);
     }
 
     [Fact]

@@ -44,6 +44,8 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
 | `FurnaceView.cs` | the layer: fires, flywheels, where embers come from and light |
 | `logic/Flames.cs` | how brightly a fire burns with each picture, cracks, and how its glow breathes toward it |
 | `FurnaceDemo.cs` | the world of `--furnace`                                      |
+| `logic/Furnace.En.cs` | Its player text (`En`) |
+| `logic/Furnace.Sound.cs` | Its sound cues (`Sound`) |
 
 ## Art
 

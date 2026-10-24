@@ -11,6 +11,8 @@
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. |
 | `FaunaView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
+| `logic/Fauna.En.cs` | Its player text (`En`) |
+| `logic/Fauna.Sound.cs` | Its sound cues (`Sound`) |
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Fauna`)
 spawns, moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the
