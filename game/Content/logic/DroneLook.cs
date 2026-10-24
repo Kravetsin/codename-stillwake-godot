@@ -8,17 +8,20 @@ namespace Stillwake.Game;
 public static class DroneLook
 {
     /// <summary>
-    /// How a flying drone follows the sim (its "rig"): <paramref name="Lift"/> pixels over its cell's centre, or
-    /// <paramref name="LiftUnder"/> under a solid cell (not a door's own cells inside it); bobbing <paramref name="BobAmp"/> pixels every
+    /// How a flying drone follows the sim (its "rig"): <paramref name="Lift"/> pixels over its cell's centre, lower under a
+    /// ceiling so its body keeps <paramref name="Clear"/> pixels from it (0104: the body is taller than a cell); bobbing <paramref name="BobAmp"/> pixels every
     /// <paramref name="BobPeriod"/> seconds; leaning into its speed <paramref name="TiltCruise"/> degrees and into its
     /// acceleration up to <paramref name="TiltMax"/>; a spring of <paramref name="SpringHz"/> and
     /// <paramref name="Damping"/> on the sim's place and speed; its cargo swinging up to about <paramref name="Swing"/> degrees.
     /// </summary>
     public sealed record Motion(
-        double Lift, double LiftUnder, double BobAmp, double BobPeriod, double TiltMax, double TiltCruise, double SpringHz, double Damping, double Swing);
+        double Lift, double Clear, double BobAmp, double BobPeriod, double TiltMax, double TiltCruise, double SpringHz, double Damping, double Swing);
 
     /// <summary>The user's pick, "lively": it springs and leans more than the mockup's and swings its cargo wide.</summary>
-    public static readonly Motion Lively = new(Lift: 8, LiftUnder: 2, BobAmp: 1.5, BobPeriod: 1.1, TiltMax: 20, TiltCruise: 9, SpringHz: 3.2, Damping: 0.5, Swing: 28);
+    public static readonly Motion Lively = new(Lift: 4, Clear: 2, BobAmp: 1.5, BobPeriod: 1.1, TiltMax: 20, TiltCruise: 9, SpringHz: 3.2, Damping: 0.5, Swing: 28);
+
+    /// <summary>Over how many ticks a flying drone's drawn path is averaged (<c>Trail</c>): how wide it rounds a corner, and how far it runs behind the sim.</summary>
+    public const int TrailTicks = 3;
 
     /// <summary>A flying drone's pictures (<c>drone_fly_0..3</c>, its rotors' frames), its size and the body's middle the client moves.</summary>
     public const int FlyWidth = 18, FlyHeight = 12, AnchorX = 9, AnchorY = 6, RotorFrames = 4;

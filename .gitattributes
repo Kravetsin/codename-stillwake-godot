@@ -8,3 +8,6 @@
 *.wav binary
 *.woff2 binary
 *.cmd text eol=crlf
+
+# Appended rows from two branches both kept; DocsGuardTests catches an order the generator would not write.
+docs/decisions/index.md merge=union

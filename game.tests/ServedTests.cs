@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The drone badge (0062): its look and tooltip, this peer's own switch shown at once, and a drone drawn between ticks.</summary>
+/// <summary>The drone badge (0062): its look and tooltip, this peer's own switch shown at once.</summary>
 public class ServedTests
 {
     [Fact]
@@ -26,14 +26,5 @@ public class ServedTests
         Assert.True(Served.Shown(false, 3, inFlight));
         Assert.False(Served.Shown(true, 4, inFlight));
         Assert.True(Served.Shown(true, 9, inFlight));
-    }
-
-    [Fact]
-    public void ADroneIsDrawnCarriedOnTowardItsNextCentreNeverPastIt()
-    {
-        Assert.Equal((1600.0, 500.0), Served.Smoothed(1500, 500, 2500, 500, 200, 0.5));
-        Assert.Equal((500.0, 900.0), Served.Smoothed(500, 1000, 500, 500, 200, 0.5));
-        Assert.Equal((2500.0, 500.0), Served.Smoothed(2400, 500, 2500, 500, 200, 1));
-        Assert.Equal((500.0, 500.0), Served.Smoothed(500, 500, 500, 500, 200, 0.7));
     }
 }

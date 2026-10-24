@@ -34,7 +34,7 @@ suit elsewhere; passing out when the suit runs dry, made again at the pod.
   breath (`Clock / BreathEvery` divisible by n), in full, exertion included. Room or pod air works as aboard.
 - **Suit colours** (0076): `Crew.Colours`, kept by `Players`, so two heroes on two surfaces never wear one. A
   hero coming in wears the first unworn, or the least worn, first on a tie (`Players.Dress`); a peer's first
-  hero gets the kit, screwdriver and stripper (`IItemsOps.Kit`, 0107, 0108). `PickColour(Colour)` puts on a
+  hero gets the kit, the screwdriver (`IItemsOps.Kit`, 0107). `PickColour(Colour)` puts on a
   colour no other hero wears.
 - **Leave** (0055, 0076): the host sends it for a peer that left (`Host.Disconnect`); the hero goes, its colour
   freed, its tool stopped, its inventory kept for its seat. Off the ship the seat goes aboard (`ISurfaces.Send`).

@@ -68,21 +68,19 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void ShowsTheOpenTabsOverlayAndWithTheMenuClosedTheStrippersCablesOrAirIfWanted()
+    public void ShowsTheCablesWiringThePipesPipingAndOtherwiseAirIfWanted()
     {
         foreach (bool airOn in new[] { false, true })
             foreach (var tab in Tools.Tabs.Select(t => t.Id))
-            {
-                string? air = airOn ? Tools.Air : null;
-                // Closed, whatever the tab: air or nothing.
-                Assert.Equal(air, Tools.OverlayShown(false, tab, airOn));
-                Assert.Equal(air, Tools.OverlayShown(false, tab, airOn, "fireAxe"));
-                // The stripper held, the cables (0108), the wrench the pipes (0109); the plan out, air or nothing whatever is held.
-                Assert.Equal(Tools.Power, Tools.OverlayShown(false, tab, airOn, HandTools.Stripper));
-                Assert.Equal(Tools.Pipes, Tools.OverlayShown(false, tab, airOn, HandTools.Wrench));
-                Assert.Equal(air, Tools.OverlayShown(true, tab, airOn));
-                Assert.Equal(air, Tools.OverlayShown(true, tab, airOn, HandTools.Wrench));
-            }
+                foreach (var mode in Tools.Modes)
+                {
+                    string? air = airOn ? Tools.Air : null;
+                    // Closed, whatever the tab or mode: air or nothing.
+                    Assert.Equal(air, Tools.OverlayShown(false, mode, tab, airOn));
+                    // Out, wiring the cables (0108), piping the pipes (0109), building air or nothing.
+                    string? shown = mode == PlanMode.Wiring ? Tools.Power : mode == PlanMode.Piping ? Tools.Pipes : air;
+                    Assert.Equal(shown, Tools.OverlayShown(true, mode, tab, airOn));
+                }
     }
 
     [Fact]
@@ -97,13 +95,13 @@ public class BuildingToolsTests
         Assert.Equal(Tools.Air, ui.OverlayOn);
         plan.Tab.Set("power");
         Assert.Equal(Tools.Air, ui.OverlayOn);
+        plan.SetMode(PlanMode.Wiring);
+        Assert.Equal(Tools.Power, ui.OverlayOn);
+        plan.SetMode(PlanMode.Piping);
+        Assert.Equal(Tools.Pipes, ui.OverlayOn);
+        plan.SetMode(PlanMode.Build);
         plan.PutPlanAway();
         Assert.Equal(Tools.Air, ui.OverlayOn);
-        ui.Wielded.Set(HandTools.Stripper);
-        Assert.Equal(Tools.Power, ui.OverlayOn);
-        ui.Wielded.Set(HandTools.Wrench);
-        Assert.Equal(Tools.Pipes, ui.OverlayOn);
-        ui.Wielded.Set(null);
         ui.AirOn.Set(false);
         Assert.Null(ui.OverlayOn);
         // B again opens on the tab it was closed on.
@@ -131,23 +129,24 @@ public class BuildingToolsTests
     [Fact]
     public void SaysWhatTheButtonsDoForEveryCardInWords()
     {
-        foreach (var card in Tools.All.Concat<Tool>(Tools.CardsOf(HandTools.Stripper)).Concat(Tools.CardsOf(HandTools.Wrench)))
+        foreach (var card in Tools.All.Concat<Tool>(Tools.Modes.SelectMany(Tools.CardsOf)))
         {
             Assert.True(En.Table.ContainsKey(Tools.HintOf(card)), card.Id);
             Assert.True(En.Table.ContainsKey($"tool.{card.Id}.about"), card.Id);
         }
         Assert.Equal("hint.build", Tools.HintOf(null));
         Assert.Equal("hint.valve", Tools.HintOf(Tools.Valve));
-        foreach (var tool in (string[])[HandTools.Stripper, HandTools.Wrench]) Assert.True(En.Table.ContainsKey($"build.tab.{tool}"), tool);
+        // Wiring's and piping's one tab is named for its mode, as the menu names it.
+        foreach (var mode in (PlanMode[])[PlanMode.Wiring, PlanMode.Piping])
+            Assert.True(En.Table.ContainsKey($"build.tab.{mode.ToString().ToLowerInvariant()}"), mode.ToString());
     }
 
     [Fact]
-    public void TheStripperOffersACableAndTheWrenchAPipeAndAValveEachAtItsCost()
+    public void WiringOffersACableAndPipingAPipeAndAValveEachAtItsCost()
     {
-        Assert.Equal(["cable"], Tools.CardsOf(HandTools.Stripper).Select(c => c.Id));
-        Assert.Equal(["pipe", "valve"], Tools.CardsOf(HandTools.Wrench).Select(c => c.Id));
-        Assert.Empty(Tools.CardsOf(null));
-        Assert.Empty(Tools.CardsOf("axe"));
+        Assert.Equal(["cable"], Tools.CardsOf(PlanMode.Wiring).Select(c => c.Id));
+        Assert.Equal(["pipe", "valve"], Tools.CardsOf(PlanMode.Piping).Select(c => c.Id));
+        Assert.Empty(Tools.CardsOf(PlanMode.Build));
         Func<Placement, IReadOnlyList<(string Item, int Count)>> none = _ => [];
         Assert.Equal(Stillwake.Content.Power.CableCost, Tools.CostOf(Tools.Cable, none));
         Assert.Equal([(Piping.Item, 1)], Tools.CostOf(Tools.Pipe, none));
@@ -157,23 +156,51 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void TheHandToolsMenuFollowsTheToolInHandItsFirstCardPickedAndGoneWithIt()
+    public void TheModesMenuFollowsTheModeItsFirstCardPickedAndGoneWithThePlan()
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
-        Assert.Empty(plan.ToolCards);
-        ui.Wielded.Set(HandTools.Wrench);
-        Assert.Equal(Tools.Pipe, plan.ToolCard.Get());
+        // With the plan away there is no mode to pick.
+        plan.SetMode(PlanMode.Piping);
+        Assert.Equal((PlanMode.Build, 0), (plan.Mode.Get(), plan.ToolCards.Count));
+        plan.Toggle();
+        plan.SetMode(PlanMode.Piping);
+        Assert.Equal((Tools.Pipe, Holding.Plan), (plan.ToolCard.Get(), ui.Hand.Get()));
         plan.PickToolCard(Tools.Valve);
         Assert.Equal(Tools.Valve, plan.ToolCard.Get());
-        // A card another tool offers is not taken.
+        // A card another mode offers is not taken.
         plan.PickToolCard(Tools.Cable);
         Assert.Equal(Tools.Valve, plan.ToolCard.Get());
-        ui.Wielded.Set(HandTools.Stripper);
+        plan.SetMode(PlanMode.Wiring);
         Assert.Equal(Tools.Cable, plan.ToolCard.Get());
-        ui.Wielded.Set(null);
-        Assert.Null(plan.ToolCard.Get());
-        Assert.Empty(plan.ToolCards);
+        // Put away, the menu goes; B opens it in its mode again.
+        plan.PutPlanAway();
+        Assert.Equal((null, 0), (plan.ToolCard.Get(), plan.ToolCards.Count));
+        plan.Toggle();
+        Assert.Equal((PlanMode.Wiring, Tools.Cable), (plan.Mode.Get(), plan.ToolCard.Get()));
+    }
+
+    [Fact]
+    public void LeavingBuildingPutsTheCardInHandAsideAndComingBackTakesItUp()
+    {
+        var ui = new Ui();
+        var plan = new PlanHand(ui);
+        plan.Toggle();
+        plan.Pick(Card("lamp"));
+        plan.SetMode(PlanMode.Wiring);
+        // Wiring, the plan holds no card: no ghost, and the layers neither fade nor turn.
+        Assert.Equal(((Tool?)null, Holding.Plan, (Focus?)null), (plan.Selected.Get(), ui.Hand.Get(), plan.Shown));
+        plan.ToggleFocus();
+        Assert.Equal(Focus.Front, plan.Focus.Get());
+        plan.SetMode(PlanMode.Piping);
+        plan.SetMode(PlanMode.Build);
+        Assert.Equal(("lamp", Holding.Card, (Focus?)Focus.Front), (What(plan.Selected.Get()), ui.Hand.Get(), plan.Shown));
+        // Put away while wiring, the card is forgotten with the plan.
+        plan.SetMode(PlanMode.Wiring);
+        plan.PutPlanAway();
+        plan.Toggle();
+        plan.SetMode(PlanMode.Build);
+        Assert.Null(plan.Selected.Get());
     }
 
     [Fact]
@@ -216,20 +243,29 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void AwayFromTheShipNothingFadesAndTheHandToolsHaveNoMenu()
+    public void AwayFromTheShipNothingFadesAndThePlanOnlyBuilds()
     {
         var ui = new Ui();
         var plan = new PlanHand(ui);
         // Aboard, the axe's dig fades the front round the pointer with the plan away, not with it out.
         Assert.True(plan.SeesThrough(digsBack: true));
         Assert.False(plan.SeesThrough(digsBack: false));
-        ui.Wielded.Set(HandTools.Stripper);
+        plan.Toggle();
+        plan.Pick(Card("lamp"));
+        plan.SetMode(PlanMode.Wiring);
         Assert.Equal(Tools.Cable, plan.ToolCard.Get());
+        // Off the ship wiring builds: no cards of its own, the card put aside back in hand, and again aside aboard.
         plan.Aboard.Set(false);
-        Assert.Empty(plan.ToolCards);
-        Assert.Null(plan.ToolCard.Get());
+        Assert.Equal((PlanMode.Build, 0, (Tool?)null, "lamp"), (plan.ModeShown, plan.ToolCards.Count, (Tool?)plan.ToolCard.Get(), What(plan.Selected.Get())));
+        Assert.Null(ui.OverlayOn);
+        plan.SetMode(PlanMode.Piping);
+        Assert.Equal(PlanMode.Wiring, plan.Mode.Get());
+        plan.Aboard.Set(true);
+        Assert.Equal((Tools.Cable, (Tool?)null), (plan.ToolCard.Get(), plan.Selected.Get()));
+        plan.SetMode(PlanMode.Build);
+        plan.PutPlanAway();
+        plan.Aboard.Set(false);
         Assert.False(plan.SeesThrough(digsBack: true));
-        ui.Wielded.Set(null);
         plan.Toggle();
         plan.ToggleFocus();
         // The plan's layers turn away too; nothing fades.
@@ -288,7 +324,7 @@ public class BuildingToolsTests
     {
         Assert.Equal(["machine", "structure", "back"], Tools.Layers);
         Assert.Equal(["machine", "structure"], Tools.FrontLayers);
-        // No pipe card: the wrench lays pipes (0109).
+        // No pipe card on a tab: piping lays pipes (0109).
         Assert.DoesNotContain(Tools.All, t => t is PlaceTool { Placement.Layer: "conduit" });
     }
 
@@ -347,7 +383,7 @@ public class BuildingToolsTests
         // With no card in hand the right still removes: in the focused layer.
         Assert.Equal(["back"], Assert.IsType<Remove>(Tools.ActOf(null, true, Focus.Back)).Layers);
         Assert.Equal(Tools.FrontLayers, Tools.RemovalIn(Focus.Front).Layers);
-        // No removal card and no cable card: the stripper lays cables (0108).
+        // No removal card and no cable card on a tab: wiring lays cables (0108).
         Assert.Empty(Tools.Matching(Tools.All, "remove"));
         Assert.DoesNotContain(Tools.Tabs.Single(t => t.Id == "power").Tools, t => t.Id == "cable");
         Assert.Null(Tools.Tabs.Single(t => t.Id == "power").Overlay);

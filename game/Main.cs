@@ -60,20 +60,11 @@ public partial class Main : Node2D, ITogether
     private Registry _ship = null!;
     /// <summary>The registry the views draw: a load or a resync brings a new one.</summary>
     private Registry? _shown;
+    /// <summary>The views of the surface drawn (<see cref="SurfaceViews"/>), in draw order, and those of them that fade with the plan.</summary>
+    private readonly List<Node> _views = [];
+    private readonly List<CanvasItem> _faded = [];
     private GridView? _grid;
-    private Features.Building.DigView? _digs;
-    private Features.Flora.FloraView? _flora;
-    private Features.Flora.CaveView? _caves;
-    private Features.Ruins.HomesView? _homes;
-    private Features.Ruins.SpiresView? _spires;
-    private Features.Flora.CaveTint? _caveTint;
-    private Features.Grid.LavaView? _lava;
     private LightView? _light;
-    private FurnaceView? _furnace;
-    private AnalyzerScreens? _screens;
-    private Features.Power.ChargerLights? _chargers;
-    private Features.Power.StoreLights? _stores;
-    private Features.Atmosphere.TankLooks? _tanks;
     private ShipCamera _camera = null!;
     private Stars _stars = null!;
     private string _role = "alone";
@@ -89,10 +80,6 @@ public partial class Main : Node2D, ITogether
     private HeroView? _hero;
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
-    private PodView? _pods;
-    private StationView? _stations;
-    private BenchView? _benches;
-    private Features.Logistics.LogisticsView? _drones;
     private DebrisView _debris = null!;
     private Features.Fauna.FaunaView _fauna = null!;
     private Hands _hands = null!;
@@ -279,61 +266,22 @@ public partial class Main : Node2D, ITogether
     {
         if (_shown == _m) return;
         long made = System.Diagnostics.Stopwatch.GetTimestamp();
-        _grid?.QueueFree();
-        _digs?.QueueFree();
-        _flora?.QueueFree();
-        _caves?.QueueFree();
-        _homes?.QueueFree();
-        _homes = null;
-        _spires?.QueueFree();
-        _spires = null;
-        _caveTint?.QueueFree();
-        _lava?.QueueFree();
-        (_caves, _caveTint, _lava) = (null, null, null);
+        foreach (var view in _views) view.QueueFree();
+        _views.Clear();
+        _faded.Clear();
         _light?.QueueFree();
-        _furnace?.QueueFree();
-        _screens?.QueueFree();
-        _chargers?.QueueFree();
-        _stores?.QueueFree();
-        _tanks?.QueueFree();
-        _pods?.QueueFree();
-        _stations?.QueueFree();
-        _benches?.QueueFree();
-        _drones?.QueueFree();
-        AddChild(_grid = new GridView(_m.Grid));
-        AddChild(_digs = new Features.Building.DigView(_m.Grid, _m.Building));
-        var flora = new Features.Flora.FloraView(_m.Grid, _m.Building);
-        AddChild(_flora = flora);
-        // A planet's caves: their growth, and their stone tinted by depth (0080).
-        if (_m.Rules is Content.PlanetType planet)
+        var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
+            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null });
+        foreach (var each in SurfaceViews.All)
         {
-            var ground = planet.Ground;
-            AddChild(_caveTint = new Features.Flora.CaveTint(planet, PlanetLooks.Of[planet.Id]));
-            AddChild(_caves = new Features.Flora.CaveView(_m.Grid, _m.Building, planet, () => _hero?.HeadLamps() ?? []));
-            // The arc makers' homes in its ground (0091); --no-homes leaves them undrawn, to measure what they cost.
-            if (!Has("--no-homes")) AddChild(_homes = new Features.Ruins.HomesView(_m.Grid, _m.Building, HeroBodies) { Mood = Arg("--homes") switch { "lit" => true, "dark" => false, _ => null } });
-            // The spires alight round their relics, dark once taken (0096).
-            if (!Has("--no-homes")) AddChild(_spires = new Features.Ruins.SpiresView(_m.Grid, _m.Building, HeroBodies));
-            // Its core: lava under the caves, glowing.
-            AddChild(_lava = new Features.Grid.LavaView(_m.Grid, ground));
+            if (each.Make(context) is not { } view) continue;
+            AddChild(view);
+            _views.Add(view);
+            if (each.Fades) _faded.Add((CanvasItem)view);
         }
-        var (caves, lava, homes, spires) = (_caves, _lava, _homes, _spires);
-        AddChild(_screens = new AnalyzerScreens(_m.Grid, _m.Research, _m.Power));
-        AddChild(_chargers = new Features.Power.ChargerLights(_m.Grid, _m.Items, _m.Power));
-        AddChild(_stores = new Features.Power.StoreLights(_m.Grid, _m.Power));
-        AddChild(_tanks = new Features.Atmosphere.TankLooks(_m.Grid, _m.Atmosphere));
-        AddChild(_pods = new PodView(_m.Grid, _m.Crafting, _m.Items, _m.Crew));
-        AddChild(_stations = new StationView(_m.Grid, _m.Crafting, _m.Items));
-        var benches = new BenchView(_m.Grid, _m.Items);
-        AddChild(_benches = benches);
-        var ui = _hands.Ui;
-        AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
-            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open) is { } bay && Stillwake.Content.Machines.Is(bay.Kind, Stillwake.Content.MachineTrait.Zone) ? open : null,
-            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && Stillwake.Content.Machines.Is(kind, Stillwake.Content.MachineTrait.Zone) && _hands.Mouse.Pointer() is { } at ? (at.X, at.Y, kind) : null));
+        _grid = View<GridView>();
+        var fires = View<FurnaceView>()!;
         var power = _m.Power;
-        // The fires before the light: each frame a fire picks its picture, then its light follows it.
-        var fires = new FurnaceView(_m.Grid, _m.Furnace);
-        AddChild(_furnace = fires);
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
@@ -341,13 +289,8 @@ public partial class Main : Node2D, ITogether
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
-            Glows = () => flora.Lights,
-            Caves = () => caves?.Lights ?? [],
-            Lava = () => lava?.Lights ?? [],
-            Homes = () => homes?.Lights ?? [],
-            Spires = () => spires?.Lights ?? [],
-            Benches = () => benches.Lights,
-            Creatures = () => _fauna.Lights,
+            // The creatures live across surfaces: their view is made once, not with these.
+            Shining = [.. _views.OfType<ILightSource>(), _fauna],
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
@@ -468,8 +411,15 @@ public partial class Main : Node2D, ITogether
         // The open plan draws its focused layer whole and the other faded, aboard only (0110).
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
         _grid?.Fade(fade);
-        foreach (var view in (CanvasItem?[])[_screens, _chargers, _stores, _tanks, _pods, _stations, _benches, _furnace])
-            if (view != null) view.Modulate = new Color(1, 1, 1, fade.Front);
+        foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
+    }
+
+    /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>
+    private T? View<T>() where T : Node
+    {
+        foreach (var view in _views)
+            if (view is T found) return found;
+        return null;
     }
 
     private readonly List<Body> _bodies = [];

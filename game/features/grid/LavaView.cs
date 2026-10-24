@@ -18,7 +18,7 @@ namespace Stillwake.Game.Features.Grid;
 /// row texture, laid again when the grid changes. Where the open is over it, it gives light (<see cref="Lights"/>), looked for
 /// each frame along the view's columns only. Lava is never dug nor built, so the band is the ground's rows.
 /// </summary>
-public partial class LavaView : Node2D
+public partial class LavaView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell;
 

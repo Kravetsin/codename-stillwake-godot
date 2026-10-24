@@ -16,7 +16,7 @@ namespace Stillwake.Game.Shared;
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
 /// for these features): the plan and its menu, cables, the pipes and air, the air overlay's chip, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
-/// buttons, but while the stripper is held, when the cables take them (0108), or the wrench, the pipes (0109), by the card of its menu (0110). With the plan away, while the
+/// buttons, but while the plan is wiring, when the cables take them (0108), or piping, the pipes (0109), by the card of its menu (0110). With the plan away, while the
 /// right button digs, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
 /// </summary>
 public partial class Hands : Node2D
@@ -69,7 +69,7 @@ public partial class Hands : Node2D
         string? overlay = Ui.OverlayOn;
         if (overlay != _overlayWas) Ui.WorldTip.Set(null);
         _overlayWas = overlay;
-        // The cables show only while the stripper is held (0108), the pipes while the wrench is (0109): then the buttons are
+        // The cables show only while the plan is wiring (0108), the pipes while it is piping (0109): then the buttons are
         // that feature's, the left laying, the right taking away; else the card's.
         bool wiring = overlay == PowerView.Id, piping = overlay == PipesOverlay.Id;
         IReadOnlyList<ButtonEvent> cuts = wiring || piping ? buttons.TakeRight() : [];

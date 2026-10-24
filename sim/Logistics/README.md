@@ -11,11 +11,11 @@
 | `State.cs` | The saved slice and its records: `Leg`, `Drone`, `LogisticsState`. |
 
 Drones ([0062](../../docs/decisions/0062-drones-keep-machines-going.md)): with nothing set, a bay's drones keep the
-machines in its zone going: inputs refilled, queued stations fed, outputs carried to crates; they fly through air and
-doors, job after job, home with no work or low charge. A machine switched off is left alone. Rules are 0062's
+machines in its zone going: inputs refilled, queued stations fed, outputs carried to crates; they fly through air, doors
+and hatches, job after job, home with no work or low charge. A machine switched off is left alone. Rules are 0062's
 unless marked.
 
-- **Depends on:** `Grid` (machines, door cells), `Atmosphere` (`AiredAt`), `Items` (`Crate`, `HeldFor`, `RoomFor`,
+- **Depends on:** `Grid` (machines, doorway cells), `Atmosphere` (`AiredAt`), `Items` (`Crate`, `HeldFor`, `RoomFor`,
   `KeptAt`; `TakeFrom`, `PutIn`, `LayDown`), `Crafting` (`Queue`, `Progress`); stations from `Content`.
 - **State** (`LogisticsState`, all saved): `Off` — machines switched off, sorted; `Drones` — in flight, in id
   order (`Drone`: bay, `Stack` with charge, `X`/`Y` in thousandths of a cell, `Cell` last centred, `To`, `Leg`,
@@ -48,12 +48,13 @@ unless marked.
   its machine's width and height minus two, plus `Spare` cells (0104); its charge must hold that.
 - **A bay** (`droneBay`) looks when `(Ticks + id) % LookEvery == 0`, bays in id order, after drones fly. Its first
   slot holding a drone charged to `LaunchAt` floods its zone — cells within `Reach` of its footprint — breadth first
-  through passable cells (aired, or a door's, closed too), finds the job from the bay and launches if it affords it.
+  through passable cells (aired, or a doorway's, door or hatch, shut too), finds the job from the bay and launches if it affords it.
 - **Next:** a drone free in the air (delivered, its source found empty, source or target taken apart) floods from
   its cell and takes the job found if it affords it; with none it flies home; with one it cannot afford, home `Low`.
 - **Flight:** each tick a drone pays `Draw` or drops, then moves `Speed` thousandths of a cell, centre to centre.
   At each centre: not passable, it drops; in its goal (any machine cell) it arrives; else one breadth-first search
-  in its zone (up, left, right, down) finds its next step and distance home. No way home: drops. No way to the
+  in its zone finds its next step and distance home: of paths as short, the least under ceilings (a cell right under
+  one counts 2, a cell lower 1), then up, left, right, down. No way home: drops. No way to the
   goal: home with cargo. Charge under the way home plus `Spare`: home `Low`. A cell ahead turned impassable sends it
   back to the centre it left. A bay gone drops its drones.
 - **Arriving:** at its source it takes what its offered slots hold of the item now, up to its job, last slot first,
@@ -96,5 +97,5 @@ unless marked.
 - A machine's outputs of an item wait for the drone on its way, though another is free.
 - Stacks of one item holding other charge are not gathered: only single-item stacks hold charge.
 - `Off` keeps a machine taken apart: ids are never reused, and it is never read.
-- No drones in vacuum, opening doors, colliding or flying outside the hull; reach is fixed.
+- No drones in vacuum, opening doorways, colliding or flying outside the hull; reach is fixed.
 - A bay's zone is a square box, clipped at the grid's edge.

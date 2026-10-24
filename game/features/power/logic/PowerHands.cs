@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Power;
 public readonly record struct SocketLight((double X, double Y) At, Light Light);
 
 /// <summary>
-/// The hands at work on cables with the stripper (features/power/mode.ts, 0021, 0108): a press on a node
+/// The hands at work on cables, the plan wiring (features/power/mode.ts, 0021, 0108): a press on a node
 /// lays a cable from it, led on past its reach through supports at the anchors on its way; with Ctrl, a
 /// press on a support, or on a cable's end at a machine, carries it; a release
 /// lays or moves there. A right press near a cable cuts it. While dragging, each powered machine's socket is
@@ -63,7 +63,7 @@ public sealed class PowerHands
     }
 
     /// <summary>
-    /// One frame with the stripper held (0108): the buttons pressed since the last, the left laying from the node pressed,
+    /// One frame of the plan wiring (0108): the buttons pressed since the last, the left laying from the node pressed,
     /// or, with <paramref name="carry"/> (Ctrl) held at the press, carrying a peg or a plug; the right presses that cut,
     /// <paramref name="cuts"/>; the pointer, in cells, and the cables as drawn, <paramref name="lines"/>. Commands go out
     /// through <paramref name="send"/> as peer <paramref name="peer"/>.

@@ -46,7 +46,7 @@ the reaches of fire, particles, screens.
   cooling ember. Nothing flashes the room white.
 - **Arc lamp** (0091): cold `Light.ArcLamp`, a cyan glow. Its body (`machine_arcLamp`) is the grid's tile;
   shining, `LightView` lays `machine_arcLamp_lit` and `_glow` over it by `ArcLampLooks`; at full power its
-  arc crackles (`Crackle`). **Homes' lamps** (0091): `LightView.Homes`, from `HomesView`.
+  arc crackles (`Crackle`). **Homes' lamps** (0091): `HomesView.Lights`.
 - **Fire:** at `FurnaceView.LightAt`, as bright as `FurnaceView.BlazeOf` (past whole as a coal cracks,
   0075), plus a glow at the mouth. The furnace view runs first, so light follows the flames shown.
 - **Spots,** in order: `Flares` flashes (0075) at their own strength, keep, reach; arcs but fine ones, at
@@ -77,7 +77,7 @@ the reaches of fire, particles, screens.
   walls stop light.
 - **Daylight soaks into the ground** (0079): wall to wall downward it keeps `GroundSoak`, so the top cells
   under the sun are lit; sideways and up `WallDeep`, out into a cave `WallOut`: caves stay dark.
-- **Plants glow** (0079): glowing parts near the view (`FloraView.Lights`) are small lamps by
+- **Views give light** as `ILightSource` (`LightView.Shining`). **Plants glow** (0079): parts near the view are lamps by
   `FloraLooks`, at most `MostLights` a plant. **Caves glow** (0080): growths near the view
   (`CaveView.Lights`) are main map lamps by `CaveLooks`, at most `MostLights`, nearest the middle first.
 

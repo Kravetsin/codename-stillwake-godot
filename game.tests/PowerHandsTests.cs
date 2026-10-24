@@ -38,7 +38,7 @@ public class PowerHandsTests
     }
 
     [Fact]
-    public void TheStripperWithCtrlCarriesAPegAndLaysNothing()
+    public void WiringWithCtrlCarriesAPegAndLaysNothing()
     {
         var w = World();
         var sent = Drag(w, true, CableShape.EndOf(w.M.Grid, At(8, 2)), (12.5, 2.5));
@@ -47,7 +47,7 @@ public class PowerHandsTests
     }
 
     [Fact]
-    public void TheStripperLaysFromWhatIsPressedEvenOnAPeg()
+    public void WiringLaysFromWhatIsPressedEvenOnAPeg()
     {
         var w = World();
         w.Step(new SetCreative(true));
@@ -57,7 +57,7 @@ public class PowerHandsTests
     }
 
     [Fact]
-    public void TheStrippersRightPressCutsTheCableItIsNearAndNoneFurtherOff()
+    public void WiringsRightPressCutsTheCableItIsNearAndNoneFurtherOff()
     {
         var w = World();
         var lines = Lines(w.M.Grid, w.M.Power);

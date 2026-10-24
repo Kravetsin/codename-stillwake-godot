@@ -18,7 +18,7 @@ namespace Stillwake.Game.Features.Ruins;
 /// a few seconds first; found taken, after a load or by a friend joining, it is dark from the start. A hit on the cradle arcs into the
 /// hero that struck. The cradle's picture is the homes' view's, as any piece's; this draws what is round it and the empty cradle left.
 /// </summary>
-public partial class SpiresView : Node2D
+public partial class SpiresView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell;
     private const double StepSeconds = 1.0 / 24;

@@ -296,7 +296,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     public string? LayProblem(int peer, int a, int b)
     {
-        // Cables are laid aboard only (0110): away from the ship the stripper does nothing.
+        // Cables are laid aboard only (0110): away from the ship the plan only builds.
         if (Rules != Content.Surfaces.Ship) return "power.notAboard";
         var p = NodeAt(a);
         var q = NodeAt(b);

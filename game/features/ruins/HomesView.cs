@@ -21,7 +21,7 @@ namespace Stillwake.Game.Features.Ruins;
 /// resonator's arc leaps to a hero it zaps. A few hundred pieces on a planet: two canvas items for them all, drawn each frame
 /// for those in view.
 /// </summary>
-public partial class HomesView : Node2D
+public partial class HomesView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>The page's live layer steps at 24 a second: its emitters' rates and lives are in those ticks.</summary>

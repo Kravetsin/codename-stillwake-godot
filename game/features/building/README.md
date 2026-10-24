@@ -14,9 +14,9 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `BuildingView.cs` | Plans and marks drawn (ghosts, dashes, cuts), the tips, the buttons, the pipette, plan work. |
 | `BuildGlow.cs` | The light of work on plans (0075): sparks, glints, the molten spot, the cut's line, a finished plan's sweep. |
 | `logic/Catalogue.cs` | The menu's fixed frame (0073): size by slot size, rows scrolled, card under the pointer, scrollbar. |
-| `BuildMenu.cs` | The tablet menu: tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`. |
+| `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`, Z X C. |
 | `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud, behind the walls. |
-| `LayerKey.cs` | A layer's key on the build tablet's right edge (0110). |
+| `PlanKey.cs` | A layer's key on the build tablet's right edge (0110), a mode's on its left (plan-modes). |
 | `logic/Building.En.cs` | Its player text (`En`) |
 
 Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,
@@ -29,21 +29,21 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   elsewhere puts the plan away. A drag ends with the card that began it.
 - **The menu is content** (0114): a card is a row with a `MenuSlot` (machine, build, a material's wall and back wall),
   on its tab by `Order`; `MenuTabs.All` orders the tabs (`Tools.TabsOf`). Every built material has both (0077, 0084,
-  0108; no bedrock). A card not known is not shown, nor a tab with none known but those of `MenuTabs.ShownEmpty` (`Tools.Shown`): the ship's
-  tab, empty for now. Walls have no shape to
-  turn (0106). Pipes are not planned: the wrench lays them (0109).
+  0108; no bedrock). A card not known is not shown, nor a tab with none known. Walls have no shape to
+  turn (0106). Pipes are not planned: piping lays them (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (everything solid: walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
-  (`FocusOf`); the middle button or a `LayerKey` turns it, each layer keeping its card in hand. Menu and search show the
+  (`FocusOf`); the middle button or a layer's `PlanKey` turns it, each layer keeping its card in hand. Menu and search show the
   focused layer's cards. The right button, click or drag, with a card or none, marks or cancels in the focused layer
   only (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else marks everything of
   that layer built there, each piece or machine once. The other layer is drawn at 35% (`AlphasOf`). Away from the ship
   (`PlanHand.Aboard`) nothing fades and the tools' see-through is off (`SeesThrough`). No removal card; no grid drawn.
-- **Hand tools' menus** (0110): the stripper or wrench held with the plan away shows that tool's cards on one tab, no
-  search (`CardsOf`): cable; pipe and valve. The card picked (`ToolCard`) decides what the left lays. Away from the
-  ship there is no such menu (`ToolCards`); the sim refuses `power.notAboard`, `pipes.notAboard`.
-- **The overlay shown is never kept** (0072, 0108, 0109, `OverlayShown`): from the plan, tab, item wielded and
-  `Ui.AirOn` on each read. Air draws whenever O wants it, the tab's pipes or cables over it.
+- **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or keys on the left edge; kept
+  while the plan is away. Wiring and piping show their cards alone, no search, layers or Q (`CardsOf`); the card picked
+  (`ToolCard`) is what the left lays. Leaving building puts the card in hand aside till return. Off the ship the plan
+  only builds (`ModeShown`); the sim refuses `power.notAboard`, `pipes.notAboard`.
+- **The overlay shown is never kept** (0072, 0108, 0109, `OverlayShown`): from the plan, mode, tab and `Ui.AirOn` on
+  each read: wiring the cables, piping the pipes; else air whenever O wants it.
 - **A surface's build list** (0076, `Tools.Allowed`): only cards the hero's surface allows are shown or picked by Q.
 - **Placing** (0104, 0111, `Drag.StrokeOf`): a click places one cell; a drag places along a line, walls and back walls
   fill the rectangle within `Drag.MostAcross` of where it began (no ADR); a machine once where it began. Each cell is
