@@ -7,7 +7,7 @@
 | `Air.cs` | The rules of air: air stays where it is; vents air the first empty cell of their room's order (`Order`), and … |
 | `Atmosphere.cs` | Oxygen: what the ship's tanks and generators hold, and how it fills rooms, is used in them and vents into space … |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
-| `Order.cs` | The order of a room's cells: where its air lies, nearest its vents first. |
+| `Order.cs` | The order of a room's cells: where its air lies, nearest its fed vents first: a vent counts only while a pipe joins it to a tank or a generator (`Fed`). |
 | `State.cs` | The saved slice and its records: `RoomStatus`, `RoomAir`, `AtmosphereState`. |
 
 Oxygen: what the ship's tanks and generators hold, and how it fills rooms, is used in them and vents
