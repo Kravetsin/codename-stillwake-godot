@@ -69,7 +69,7 @@ set from the stamp. The host runs no world and never decodes them. `Client.Send`
 - `Client.Join(load, channel, build, joined, refused)` refuses another build (the assembly's informational version),
   loads the world and catches up on the ticks since.
 - `Host.Disconnect(id, farewell)` drops a peer: it is sent and checked no more, and `farewell`, an encoded command,
-  goes out in the next tick stamped with its id. The game passes `crew`'s `Leave` (`game/Main.cs`).
+  goes out in the next tick stamped with its id. The game passes `crew`'s `Leave` (`game/Main.Sessions.cs`).
 
 ## Heroes
 

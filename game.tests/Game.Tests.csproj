@@ -148,6 +148,8 @@
     <Compile Include="../game/features/furnace/Flames.cs" Link="Game/Furnace/Flames.cs" />
     <Compile Include="../game/dev/Testbed.cs" Link="Game/Dev/Testbed.cs" />
     <Compile Include="../game/dev/HillsDemo.cs" Link="Game/Dev/HillsDemo.cs" />
+    <Compile Include="../game/dev/DevArgs.cs" Link="Game/Dev/DevArgs.cs" />
+    <Compile Include="../game/dev/DevModes.cs" Link="Game/Dev/DevModes.cs" />
     <Compile Include="../game/Content/Sound.cs" Link="Game/Content/Sound.cs" />
     <Compile Include="../game/Content/DebrisLooks.cs" Link="Game/Content/DebrisLooks.cs" />
     <Compile Include="../game/Content/FloraLooks.cs" Link="Game/Content/FloraLooks.cs" />

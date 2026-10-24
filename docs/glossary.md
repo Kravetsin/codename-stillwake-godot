@@ -83,6 +83,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## Game
 
 - сохранение / save → `World.Save()`, `World.Load` (sim/Core `Sim.cs`), `Migrations` (sim/Registry), `game/platform/Saves.cs`, `WorldIndex` → Core
-- хост / host, co-op → net/Net `Host`, `Client`, `Session`; game/menu `Together` → net
+- хост / host, co-op → net/Net `Host`, `Client`, `Session`; game/menu `Together`; `game/Main.Sessions.cs` → net
 - справочник / Handbook → f/handbook `HandbookPanel`, `game/Content/Handbook.cs` → UI
 - подсказка / tooltip → `game/shared/Tip.cs`, `PointerTip` → UI
+- дев-аргумент, демо / dev argument, demo → `-- --<name>`: one `DevMode` each in `game/dev/DevModes.cs`, wired in `game/dev/Main.Dev.cs` → Dev tools

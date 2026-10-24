@@ -11,15 +11,15 @@ commands reach the sim. Other heroes come through the host beside the simulation
 | `Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; one `Step` at 60 a second; steps (0106); flight (0047) | no |
 | `Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) | no |
 | `Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) | no |
-| `Motion.cs` | what the figure reads from motion over time: lean, landing (0090) | no |
-| `Aim.cs` | reach, the aim, what the hands send; what the axe or drill touches (0039, 0054, 0102) | no |
+| `Motion.cs` | lean and landing, read from motion (0090) | no |
+| `Aim.cs` | reach, the aim, what the hands send and the tools touch (0039, 0054, 0102) | no |
 | `AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) | no |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) | yes |
-| `SwingArm.cs` | the front arm eased into, through and out of swings; aiming the harpoon | no |
+| `SwingArm.cs` | the front arm through swings; aiming the harpoon | no |
 | `HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) | no |
 | `TwoHand.cs` | the two-handed hold, as a rifle (0078) | no |
 | `HarpoonLine.cs` | the harpoon's line as drawn | no |
-| `Prompt.cs` | `Prompts.Of`: what E does at the aim, and why the sim would refuse | no |
+| `Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not | no |
 | `UsePrompt.cs` | the prompt at the bottom middle | yes |
 | `Tether.cs` | the tether as drawn, a reeled rope | no |
 | `DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) | no |
@@ -28,22 +28,24 @@ commands reach the sim. Other heroes come through the host beside the simulation
 | `RemoteRod.cs` | another hero's harpoon rod played out here (0065) | no |
 | `Suits.cs` | suit colours and shades | no |
 | `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) | yes |
-| `HeroView.cs` | the layer: keys, steps, others, tethers, hands, aim, camera | yes |
+| `HeroView.cs` | the layer: keys, steps, rams, the camera | yes |
+| `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim | yes |
+| `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers | yes |
 | `CameraFollow.cs` | where the camera looks | no |
 | `JetPlume.cs` | a jetpack's plume (0075) | yes |
 | `RodLight.cs` | the harpoon's light (0075) | yes |
 | `AimOutline.cs` | what the aim outline traces | yes |
-| `HeroAutopilot.cs` | scripted runs for recordings and demo maps (0089, 0090, 0092) | no |
+| `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) | no |
 | `Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` | no |
 | `Frost.cs` | the frost past the field (0050) | yes |
-| `Danger.cs` | what the suit gauge reads, room air included | no |
+| `Danger.cs` | what the suit gauge reads | no |
 | `AirCues.cs` | the moments air comes back (0081) | no |
 | `CanistersSeen.cs` | a friend's canister read off its suit (0081) | no |
-| `AirSwirl.cs` | air round a hero: a canister's vortex, a breath, a ram's leak (0081, 0103) | yes |
+| `AirSwirl.cs` | a canister's vortex, a breath, a ram's leak (0081, 0103) | yes |
 | `SuitGauge.cs` | the suit gauge under the hotbar (0058, 0074, 0081) | yes |
 | `SuitColours.cs` | the suit colour row in the game menu | yes |
 | `Markers.cs` | the markers' list and geometry | no |
-| `MarkerLayer.cs` | arrows at the screen's edge to home, own body and friends | yes |
+| `MarkerLayer.cs` | edge arrows to home, own body and friends | yes |
 | `Bodies.cs` | bodies read from floor stacks' tags (0061) | no |
 | `BodyView.cs` | each body drawn, its beacon (0061) | yes |
 | `Rams.cs` | a creature's ram as this client meets it (0103) | no |
@@ -69,8 +71,8 @@ Files without Godot are compiled into `game.tests/`.
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`.
-- **Camera** (no ADR; `Content/Camera.cs`): leads the way the hero last moved, never its facing; eases height after
-  the body; snaps on a new place; drawn on whole screen pixels.
+- **Camera** (no ADR; `Content/Camera.cs`): leads the way the hero last moved, never its facing; eases height; snaps
+  on a new place; on whole pixels.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
   `Thrust` is sent while own thrust differs from the sim's. The plume shows at once (0014).
 - **A canister** (0047, 0081): a right click sends `Refill` when the sim would take it and none is in flight.
@@ -93,7 +95,7 @@ Files without Godot are compiled into `game.tests/`.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the stripper
   lays cables; the axe or drill on the right digs back walls only (`building.builtWall` for a ship's).
 - **One aim** (`Aiming.AimAt`): a plan, a machine, tank, door or valve (E), a wreck under the pointer, else the nearest
-  small piece in space. Outlined green or red (`render/Outline.cs`); `UsePrompt` says why. With a plan in hand
+  small piece in space. Outlined green or red; `UsePrompt` says why. With a plan in hand
   (`Ui.Hand`, 0022) the hero holds the sheet and E does nothing.
 - **The axe** (0034, 0038-0040): left held swings; it strikes as the drawn edge crosses the line, one `Hit` per wreck
   touched in space; played through once begun. E never chops.
@@ -107,6 +109,6 @@ Files without Godot are compiled into `game.tests/`.
 
 ## Deliberately not handled
 
-- Friends are pointed at only while heard; markers the same way overlap; friends have no names.
+- Friends are pointed at only while heard; markers one way overlap; friends have no names.
 - A body of a peer who left is drawn in the first suit colour; a body's look is the hero's sprites.
 - Others' swings are not held on contact: a peer is not told which bit.
