@@ -109,7 +109,7 @@ public static class PlanetTypes
         ThinAir = 5,
         Sky = new Surfaces.Light(1000, 970, 900),
         Debris = false,
-        Builds = ["wall", "backWall", "floor", "ladder", "door"],
+        Builds = ["wall", "backWall", "floor", "ladder", "door", "hatch"],
         Soil = "soil",
         Stone = "stone",
         Bedrock = "bedrock",

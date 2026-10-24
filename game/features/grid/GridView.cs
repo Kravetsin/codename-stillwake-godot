@@ -109,8 +109,8 @@ public partial class GridView : Node2D
             foreach (var change in changes)
             {
                 Hear(change);
-                if (IsDoor(change.Structure) && IsDoor(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
-                    _slides.Moved(change.Cell, _drawn.Structure[change.Cell] == Structure.DoorOpen);
+                if (IsDoorway(change.Structure) && IsDoorway(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
+                    _slides.Moved(change.Cell, Doorways.IsOpen(_drawn.Structure[change.Cell]));
             }
             foreach (int cell in _drawn.Stale(changes))
                 if (_reveal.Drawn(cell)) DrawCell(cell, blank: false);
@@ -140,7 +140,7 @@ public partial class GridView : Node2D
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
         {
-            if (!IsDoor(_drawn.Structure[cell])) continue;
+            if (!IsDoorway(_drawn.Structure[cell])) continue;
             DrawDoor(cell);
             Light(cell);
         }
@@ -182,7 +182,7 @@ public partial class GridView : Node2D
     {
         int links = DoorLinksOf(cell);
         if (!DoorShape.Leads(links)) return;
-        bool hatch = Doorways.IsHatch(links), opening = _drawn.Structure[cell] == Structure.DoorOpen;
+        bool hatch = Doorways.IsHatch(_drawn.Structure[cell]), opening = Doorways.IsOpen(_drawn.Structure[cell]);
         int length = 1, step = hatch ? 1 : _grid.Width, ahead = hatch ? Doorways.Right : Doorways.Down;
         for (int c = cell; (DoorLinksOf(c) & ahead) != 0; c += step) length++;
         var corner = new Vector2(cell % _grid.Width, cell / _grid.Width) * Cell;
@@ -209,11 +209,11 @@ public partial class GridView : Node2D
     {
         int cell = change.Cell, w = _grid.Width, structure = _drawn.Structure[cell];
         var at = new Vector2((cell % w + 0.5f) * Cell, (cell / w + 0.5f) * Cell);
-        if (IsDoor(structure) && IsDoor(change.Structure) && structure != change.Structure && DoorShape.Leads(DoorLinksOf(cell)))
-            (structure == Structure.DoorOpen ? _opens : _closes).PlayAt(at);
+        if (IsDoorway(structure) && IsDoorway(change.Structure) && structure != change.Structure && DoorShape.Leads(DoorLinksOf(cell)))
+            (Doorways.IsOpen(structure) ? _opens : _closes).PlayAt(at);
     }
 
-    private static bool IsDoor(int s) => Doorways.IsDoor(s);
+    private static bool IsDoorway(int s) => Doorways.IsDoorway(s);
 
     /// <summary>The sides door cell <paramref name="cell"/> joins its doorway on, as drawn (<see cref="Doorways.LinksOf"/>).</summary>
     private int DoorLinksOf(int cell) => Doorways.LinksOf(cell, _grid.Width, _drawn.Structure.Length, _drawnAt ??= c => _drawn.Structure[c]);
@@ -293,7 +293,7 @@ public partial class GridView : Node2D
                 // The 16 px ladder over its two columns, paired from its row's left end as its pieces are (0104), not by where it lies.
                 _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt("ladder", LaddersLeftOf(cell), y));
                 break;
-            case Structure.DoorClosed or Structure.DoorOpen:
+            case Structure.DoorClosed or Structure.DoorOpen or Structure.HatchClosed or Structure.HatchOpen:
                 DrawDoor(cell);
                 break;
         }
@@ -380,11 +380,11 @@ public partial class GridView : Node2D
     private void DrawDoor(int cell)
     {
         // Where the cell lies in its doorway, along it from the top or left end the panel slides into and across its thickness.
-        var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf);
+        var spot = DoorShape.SpotOf(cell, _grid.Width, _doorLinksOf ??= DoorLinksOf, Doorways.IsHatch(_drawn.Structure[cell]));
         // Eased (0075): slow off, quick through the middle, slow into its slot.
         var (picture, quarter) = _slides.OpenOf(cell) is double open
             ? DoorShape.TileOf(spot, (int)Math.Round(DoorLight.Ease(open) * spot.Length * Cell))
-            : DoorShape.TileOf(spot, closed: _drawn.Structure[cell] == Structure.DoorClosed);
+            : DoorShape.TileOf(spot, closed: Doorways.IsClosed(_drawn.Structure[cell]));
         _doors.SetCell(CellOf(cell), ShipTiles.Source, _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y));
     }
 

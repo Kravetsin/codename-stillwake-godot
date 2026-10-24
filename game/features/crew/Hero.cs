@@ -188,7 +188,7 @@ public readonly record struct Hero(
         int left = int.MaxValue, right = int.MinValue, top = int.MaxValue, bottom = int.MinValue;
         for (int c = CellOf(hero.X - Half); c <= CellOf(hero.X + Half - 1); c++)
             for (int r = CellOf(hero.Y - Spec.Height); r <= CellOf(hero.Y - 1); r++)
-                if (StructureAt(ship, c, r) == Structure.DoorClosed)
+                if (StructureAt(ship, c, r) is int structure && Doorways.IsClosed(structure))
                     (left, right, top, bottom) = (Math.Min(left, c), Math.Max(right, c), Math.Min(top, r), Math.Max(bottom, r));
         if (left == int.MaxValue) return null;
         int x = hero.X, y = hero.Y, besideLeft = left * Unit - Half, besideRight = (right + 1) * Unit + Half;
@@ -514,7 +514,9 @@ public readonly record struct Hero(
         int column = CellOf(x);
         int before = CellOf(y - 1);
         int after = CellOf(ny - 1);
-        bool onTop = y % Unit == 0 && !Climbable(ship, column, before) && Climbable(ship, column, CellOf(y));
+        // An open hatch a cell over the ladder's top is still climbed through: the body bridges the gap, so the feet go on up.
+        bool onTop = y % Unit == 0 && !Climbable(ship, column, before) && Climbable(ship, column, CellOf(y))
+            && !TouchesLadder(ship, x, y, false);
         // The feet rose past the ladder's top, or stood on it already: the hero steps off and stands on it.
         if (dir < 0 && after < before && Climbable(ship, column, before) && !Climbable(ship, column, after))
             return new Hero(x, before * Unit, 0, 0, false, facing);
@@ -533,13 +535,14 @@ public readonly record struct Hero(
     {
         if (!hero.Climbing) return null;
         int column = CellOf(hero.X), feet = CellOf(hero.Y - 1);
+        int? ledge = null;
         for (int row = feet + 1; row >= feet - rows; row--)
         {
             if (!Climbable(ship, column, row) || Climbable(ship, column, row - 1)) continue;
             int top = row * Unit;
-            return top <= hero.Y && Clear(ship, LadderMiddle(ship, hero.X, hero.Y), top) ? hero.Y - top : null;
+            if (top <= hero.Y && Clear(ship, LadderMiddle(ship, hero.X, hero.Y), top)) ledge = hero.Y - top;
         }
-        return null;
+        return ledge;
     }
 
     private static bool Grounded(Ship ship, int x, int y) => MoveY(ship, x, y, 1, false) == y;
@@ -604,7 +607,7 @@ public readonly record struct Hero(
 
     /// <summary>
     /// Whether what holds up a hero standing at (<paramref name="x"/>, <paramref name="y"/>) is floors only,
-    /// which down drops through: no wall, closed door or ladder top under any part of the feet.
+    /// which down drops through: no wall, closed door, closed hatch or ladder top under any part of the feet.
     /// </summary>
     private static bool OnFloors(Ship ship, int x, int y)
     {
@@ -612,7 +615,7 @@ public readonly record struct Hero(
         bool floor = false;
         for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
         {
-            if (Solid(ship, c, row) || Climbable(ship, c, row)) return false;
+            if (Solid(ship, c, row) || Climbable(ship, c, row) || StructureAt(ship, c, row) == Structure.HatchClosed) return false;
             floor |= StructureAt(ship, c, row) == Structure.Floor;
         }
         return floor;
@@ -712,30 +715,35 @@ public readonly record struct Hero(
     private static int? StructureAt(Ship ship, int x, int y) =>
         x < 0 || y < 0 || x >= ship.Width || y >= ship.Height ? null : ship.StructureAt(y * ship.Width + x);
 
-    /// <summary>Walls, closed doors, and everything past the grid's edge.</summary>
+    /// <summary>
+    /// Walls, closed doors, closed hatches, and everything past the grid's edge: a closed hatch lies in the deck, holding a walk
+    /// from above and stopping a body from below, but it is no wall beside one.
+    /// </summary>
     private static bool Solid(Ship ship, int x, int y) =>
-        StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed;
+        StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed or Structure.HatchClosed;
 
-    /// <summary>Ladders, and an open door in line with one: a hatch the ladder climbs through, two cells thick (0104).</summary>
+    /// <summary>Ladders, and an open hatch over one: a doorway lying in a deck, climbed through as a ladder is.</summary>
     private static bool Climbable(Ship ship, int x, int y) => StructureAt(ship, x, y) switch
     {
         Structure.Ladder => true,
-        Structure.DoorOpen => LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1),
+        Structure.HatchOpen => LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1),
         _ => false,
     };
 
-    /// <summary>Whether a ladder lies <paramref name="dir"/> of the open door cell (x, y), past no more open door than a hatch is thick.</summary>
+    /// <summary>Whether a ladder lies <paramref name="dir"/> of the open hatch cell (x, y), past no more empty deck than a hatch is thick.</summary>
     private static bool LadderPast(Ship ship, int x, int y, int dir)
     {
         for (int k = 1; k <= Doorways.Thick; k++)
         {
             var s = StructureAt(ship, x, y + k * dir);
-            if (s != Structure.DoorOpen) return s == Structure.Ladder;
+            if (s == Structure.Ladder) return true;
+            if (s != Structure.Empty && s != Structure.HatchOpen) return false;
         }
         return false;
     }
 
-    /// <summary>What holds a hero up from below only: floors, and a ladder's top cell unless climbing.</summary>
+    /// <summary>What holds a hero up from below only: floors, closed hatches, and a ladder's or an open hatch's top cell unless climbing.</summary>
     private static bool Holds(Ship ship, int x, int y, bool climbing) =>
-        StructureAt(ship, x, y) == Structure.Floor || (!climbing && Climbable(ship, x, y) && !Climbable(ship, x, y - 1));
+        StructureAt(ship, x, y) is Structure.Floor or Structure.HatchClosed
+        || (!climbing && Climbable(ship, x, y) && !Climbable(ship, x, y - 1));
 }

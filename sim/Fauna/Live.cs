@@ -387,5 +387,5 @@ public sealed partial class FaunaModule
     /// </summary>
     private bool Solid(int x, int y) =>
         x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height
-        || _grid.StructureAt(y * _grid.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed;
+        || _grid.StructureAt(y * _grid.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
 }

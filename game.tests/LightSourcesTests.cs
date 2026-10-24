@@ -19,36 +19,38 @@ public class LightSourcesTests
         var cells = new byte[6];
         // Two rows four wide, the box from the second column on: row by row, what is built only.
         Sources.Occupy(c => structure[c], 4, structure.Length, new Box(1, 0, 3, 1), cells);
-        // The closed door alone is a hatch (0067).
-        Assert.Equal(new[] { Sources.Wall, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
+        // A lone door cell is a door, not a hatch (0111): shut, it stops light.
+        Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
     }
 
     [Fact]
     public void TellsAClosedDoorsPanelFromAClosedHatchsByTheDoorwaysShape()
     {
-        // A door three tall, shut over shut over open, beside a hatch two wide: a door stands in a run of more than two (0104).
+        // A door two tall, shut over shut, beside a hatch two wide, all shut: a door stops light; a hatch is a floor and lets it
+        // through (0111).
         int[] structure =
         [
             Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.Empty,
-            Structure.DoorClosed, Structure.Empty, Structure.DoorClosed, Structure.DoorClosed,
+            Structure.DoorClosed, Structure.Empty, Structure.HatchClosed, Structure.HatchClosed,
             Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty,
         ];
         var cells = new byte[12];
         Sources.Occupy(c => structure[c], 4, structure.Length, new Box(0, 0, 3, 2), cells);
-        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
+        Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
 
     [Fact]
-    public void TellsADoorwaysFarColumnAndRowSoItsPanelStopsLightWhereItIsDrawn()
+    public void TellsADoorsFarColumnSoItsPanelStopsLightWhereItIsDrawnAndLetsAHatchThrough()
     {
-        // A door two wide and three tall beside a hatch two tall and three wide (0104): each its near and its far half.
-        const int D = Structure.DoorClosed, E = Structure.Empty;
-        int[] structure = [D, D, E, D, D, D, D, D, E, D, D, D, D, D, E, E, E, E];
-        var cells = new byte[18];
-        Sources.Occupy(c => structure[c], 6, structure.Length, new Box(0, 0, 5, 2), cells);
-        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Hatch, Sources.Hatch, Sources.Hatch }, cells[..6]);
-        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.HatchFar, Sources.HatchFar, Sources.HatchFar }, cells[6..12]);
+        // A door two wide and two tall beside a hatch two wide, all shut (0104, 0111): the door's near and far columns stop
+        // light where its panel is drawn; the hatch lies in the deck and lets light through.
+        const int D = Structure.DoorClosed, H = Structure.HatchClosed, E = Structure.Empty;
+        int[] structure = [D, D, E, H, H, E, D, D, E, E, E, E];
+        var cells = new byte[12];
+        Sources.Occupy(c => structure[c], 6, structure.Length, new Box(0, 0, 5, 1), cells);
+        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells[..6]);
+        Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells[6..12]);
     }
     [Fact]
     public void DrawsALightWhoseReachTouchesTheViewThoughItStandsOffItAndNoneBeyond()

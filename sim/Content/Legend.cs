@@ -15,6 +15,8 @@ public static class Legend
         ('H', "ladder"),
         ('D', "door, closed"),
         ('d', "door, open"),
+        ('h', "hatch, closed: a doorway lying in a deck"),
+        ('o', "hatch, open"),
         ('-', "pipe"),
         ('v', "valve, open"),
         ('x', "valve, closed"),

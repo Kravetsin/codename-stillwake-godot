@@ -95,6 +95,7 @@ public static class Tools
             Place("floor", new Placement("structure", "floor")),
             Place("ladder", new Placement("structure", "ladder")),
             Place("door", new Placement("structure", "door")),
+            Place("hatch", new Placement("structure", Builds.Hatch)),
         ]),
         new("air",
         [
@@ -233,8 +234,9 @@ public static class Tools
                     Structure.Wall => Placement.Wall(grid.WallAt(cell)!.Id),
                     Structure.Floor => new Placement(layer, "floor"),
                     Structure.Ladder => new Placement(layer, "ladder"),
-                    // A doorway's piece one row tall is a hatch segment's (0104), its silhouette as it is drawn.
-                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, grid.PieceOf(cell) is var piece && piece[0] / grid.Width == piece[^1] / grid.Width ? Builds.Hatch : "door"),
+                    // A doorway is a door's or a hatch's, by the code the grid stores (0104, 0111).
+                    Structure.DoorClosed or Structure.DoorOpen => new Placement(layer, "door"),
+                    Structure.HatchClosed or Structure.HatchOpen => new Placement(layer, Builds.Hatch),
                     _ => null,
                 };
             default:
@@ -254,17 +256,27 @@ public static class Tools
             planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
     }
 
-    /// <summary>Whether <paramref name="place"/> lays door cells: a door segment or a hatch segment (0104).</summary>
-    public static bool LaysDoor(Placement place) => place.Layer == "structure" && Builds.BuiltAs(place.Kind) == "door";
+    /// <summary>Whether <paramref name="place"/> lays a doorway's cells: a door segment or a hatch (0104, 0111).</summary>
+    public static bool LaysDoor(Placement place) => place.Layer == "structure" && place.Kind is "door" or Builds.Hatch;
+
+    /// <summary>The structure code a placement of <paramref name="kind"/> is built as, as the grid stores it.</summary>
+    public static int CodeOf(string kind) => kind switch
+    {
+        "floor" => Structure.Floor,
+        "ladder" => Structure.Ladder,
+        Builds.Hatch => Structure.HatchClosed,
+        _ => Structure.DoorClosed,
+    };
 
     /// <summary>
-    /// The joins of a door cell (<see cref="Doorways.LinksOf"/>) over what is built and the door cells <paramref name="planned"/>
-    /// together: a plan or a ghost of a doorway joins as it will built, a lone segment a hatch, a run down a door (0104).
+    /// The joins of a doorway cell (<see cref="Doorways.LinksOf"/>) over what is built and the doorway cells
+    /// <paramref name="planned"/> together, each by the code it is planned as, so a planned door and a planned hatch keep
+    /// their kinds: a plan or a ghost of a doorway joins as it will be built (0104, 0111).
     /// </summary>
-    public static System.Func<int, int> DoorLinks(IGridQueries grid, IReadOnlySet<int> planned)
+    public static System.Func<int, int> DoorLinks(IGridQueries grid, IReadOnlyDictionary<int, int> planned)
     {
         int width = grid.Width, size = width * grid.Height;
-        int At(int c) => planned.Contains(c) ? Structure.DoorClosed : grid.StructureAt(c);
+        int At(int c) => planned.TryGetValue(c, out int code) ? code : grid.StructureAt(c);
         return c => Doorways.LinksOf(c, width, size, At);
     }
 
@@ -275,7 +287,7 @@ public static class Tools
     public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
-        bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == Builds.BuiltAs(placed.Kind) && p.Material == placed.Material;
+        bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
         return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;

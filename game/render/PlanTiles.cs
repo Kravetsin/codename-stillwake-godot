@@ -102,12 +102,13 @@ public partial class PlanTiles : Node2D
     }
 
     /// <summary>
-    /// Lays door cell <paramref name="cell"/> of a plan shut, its quarter of its doorway's picture by <paramref name="linksOf"/>,
-    /// as the grid draws built doors (<see cref="DoorShape"/>): planned segments join each other and what is built (0104).
+    /// Lays doorway cell <paramref name="cell"/> of a plan shut, its quarter of its doorway's picture by <paramref name="linksOf"/>,
+    /// a <paramref name="hatch"/> or a door, as the grid draws built doors (<see cref="DoorShape"/>): planned cells join each other
+    /// and what is built (0104, 0111).
     /// </summary>
-    public void LayDoor(int cell, int width, System.Func<int, int> linksOf, PlanCut? cut = null)
+    public void LayDoor(int cell, int width, System.Func<int, int> linksOf, bool hatch, PlanCut? cut = null)
     {
-        var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(cell, width, linksOf), closed: true);
+        var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(cell, width, linksOf, hatch), closed: true);
         LayTile(TileLayer.Doors, new Vector2I(cell % width, cell / width), _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y), Vector2I.One, 0, cut);
     }
 

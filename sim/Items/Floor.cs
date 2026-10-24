@@ -18,7 +18,7 @@ internal static class FloorRules
     /// a stack falls through it to the floor it stands on, where a hero finds it.
     /// </summary>
     private static bool Built(IGridQueries grid, int cell) =>
-        grid.StructureAt(cell) is Structure.Wall or Structure.Floor or Structure.DoorClosed;
+        grid.StructureAt(cell) is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
 
     /// <summary>Built, or past the grid's edge: what stops a stack inside the ship.</summary>
     private static bool Blocks(IGridQueries grid, int x, int y) =>

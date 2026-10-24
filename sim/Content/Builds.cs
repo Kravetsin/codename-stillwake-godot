@@ -8,8 +8,8 @@ namespace Stillwake.Content;
 /// parts, salvage or planks for what is built before there are any.
 /// </param>
 /// <param name="BuildTicks">Ticks of a hero's work to build it.</param>
-/// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door segment's two; 1 for a cell.</param>
-/// <param name="Tall">Its piece's cells down: a ladder's two, a door segment's two; 1 for a cell.</param>
+/// <param name="Across">Its piece's cells across, built and taken apart as one (0104): a ladder's two, a door segment's or a hatch's two; 1 for a cell.</param>
+/// <param name="Tall">Its piece's cells down: a ladder's or a door segment's two, a hatch's one; 1 for a cell.</param>
 public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, int Across = 1, int Tall = 1);
 
 /// <summary>
@@ -23,8 +23,10 @@ public static class Builds
         new("floor", [("scrap", 1)], BuildTicks: 7),
         // A piece the size of a 16 px ladder cell (0104), costing and taking what one did.
         new("ladder", [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 2),
-        // A door segment, a 16 px door cell (0104), costing and taking what one did; a run of them is one doorway.
+        // A door segment, a 16 px door cell (0104), costing and taking what one did; segments stacked are one doorway.
         new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2),
+        // A hatch, a door segment laid flat (0104, 0111), its own doorway: two cells wide and one tall.
+        new(Hatch, [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 1),
     ];
 
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>
@@ -43,22 +45,19 @@ public static class Builds
     public const int Brush = 2;
 
     /// <summary>
-    /// A door segment laid flat (0104): as wide as one and a cell tall, as its art is, so a ladder meets it flush. Built as a
-    /// door segment is, of its blueprint and at its cost.
+    /// A hatch (0104, 0111): as wide as a door segment and a cell tall, so a ladder meets it flush. Its own build, its own
+    /// blueprint, and a doorway of its own.
     /// </summary>
     public const string Hatch = "hatch";
 
-    /// <summary>The build a placement of <paramref name="kind"/> is: a hatch segment a door segment's; every other its own.</summary>
-    public static string BuiltAs(string kind) => kind == Hatch ? "door" : kind;
-
     /// <summary>
     /// The cells across and down of a piece of <paramref name="kind"/>, placed and taken apart as one (0104): a ladder's 2×2, a
-    /// door segment's 2×2, a hatch segment's 2×1; null for what is placed a cell at a time.
+    /// door segment's 2×2, a hatch's 2×1; null for what is placed a cell at a time.
     /// </summary>
     public static (int Across, int Tall)? PieceOf(string kind)
     {
-        if (!ById.TryGetValue(BuiltAs(kind), out var build) || build.Across * build.Tall == 1) return null;
-        return kind == Hatch ? (build.Across, 1) : (build.Across, build.Tall);
+        if (!ById.TryGetValue(kind, out var build) || build.Across * build.Tall == 1) return null;
+        return (build.Across, build.Tall);
     }
 
     private static readonly Dictionary<string, Build> ById = All.ToDictionary(b => b.Id, StringComparer.Ordinal);

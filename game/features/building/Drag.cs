@@ -47,19 +47,6 @@ public static class Drag
     public static (int W, int H) StampOf(Act act) =>
         act is PlaceTool p && Spec.Builds.PieceOf(p.Placement.Kind) is { } piece ? piece : (1, 1);
 
-    /// <summary>
-    /// <paramref name="act"/> as a stroke from world point <paramref name="from"/> to <paramref name="to"/> lays it: the door's
-    /// card door segments (2×2) along a stroke down as far as a second one, else hatch segments (2×1), a click one (0104);
-    /// every other card as it is.
-    /// </summary>
-    public static Act Oriented(Act act, (double X, double Y) from, (double X, double Y) to)
-    {
-        if (act is not PlaceTool { Placement.Kind: "door" } door) return act;
-        double down = Math.Abs(to.Y - from.Y);
-        bool standing = down > Math.Abs(to.X - from.X) && down >= Spec.Builds.PieceOf("door")!.Value.Tall;
-        return standing ? act : door with { Placement = door.Placement with { Kind = Spec.Builds.Hatch } };
-    }
-
     /// <summary>The top-left cell of <paramref name="stamp"/> round a world point, kept on the grid; a one-cell stamp is <see cref="SpotAt"/>.</summary>
     public static Spot StampAt(int width, int height, (double X, double Y) p, (int W, int H) stamp)
     {
@@ -77,12 +64,11 @@ public static class Drag
     {
         var (w, h) = stamp ?? (1, 1);
         if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
-        // Ladder pieces or door segments laid end to end along the drag, a piece's length a step (0104): a run of segments
-        // down is a door, one across a hatch. Their top-left cells only.
-        if (act is PlaceTool { Placement.Kind: "ladder" or "door" or Spec.Builds.Hatch } piece)
+        // Ladder pieces, door segments or hatches laid end to end along the drag, a piece's length a step (0104, 0111):
+        // a piece runs along its own longer axis, a square one along the drag's longer axis. Their top-left cells only.
+        if (act is PlaceTool { Placement.Kind: "ladder" or "door" or Spec.Builds.Hatch })
         {
-            // A hatch runs along its row only: a stroke down far enough is a door's (Oriented).
-            bool along = piece.Placement.Kind == Spec.Builds.Hatch || Math.Abs(to.X - from.X) > Math.Abs(to.Y - from.Y);
+            bool along = w > h || (w == h && Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y));
             int far = along ? to.X - from.X : to.Y - from.Y, size = along ? w : h;
             var pieces = new List<int>();
             for (int i = 0; i <= Math.Abs(far) / size; i++)

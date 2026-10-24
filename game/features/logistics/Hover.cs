@@ -122,8 +122,8 @@ public sealed class Hover
 
     private static bool IsDoor(int structure) => structure is Structure.DoorClosed or Structure.DoorOpen;
 
-    /// <summary>Whether a cell of <paramref name="structure"/> is solid over a drone: a wall, a floor or a closed door; none above the grid's top.</summary>
-    public static bool Solid(int structure) => structure is Structure.Wall or Structure.Floor or Structure.DoorClosed;
+    /// <summary>Whether a cell of <paramref name="structure"/> is solid over a drone: a wall, a floor, a closed door or a closed hatch; none above the grid's top.</summary>
+    public static bool Solid(int structure) => structure is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
 
     /// <summary>
     /// A landing <paramref name="t"/> seconds in: how far over its pad the drone is wanted, pixels, how fast its rotors

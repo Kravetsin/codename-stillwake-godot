@@ -162,9 +162,9 @@ public class LadderTests
     [Fact]
     public void ReadsNoLedgeUnderAClosedHatchNorOffALadder()
     {
-        var hatched = ShipOf(Shaft.Select((r, y) => y == 4 ? "###D###" : r).ToArray());
+        var hatched = ShipOf(Shaft.Select((r, y) => y == 4 ? "###h###" : r).ToArray());
         Assert.Null(Hero.LedgeAbove(hatched, At(Middle, 7 * Block + 1000, climbing: true)));
-        var opened = ShipOf(Shaft.Select((r, y) => y == 4 ? "###d###" : r).ToArray());
+        var opened = ShipOf(Shaft.Select((r, y) => y == 4 ? "###o###" : r).ToArray());
         Assert.Equal(3000 + Block, Hero.LedgeAbove(opened, At(Middle, 6 * Block + 1000, climbing: true)));
         Assert.Null(Hero.LedgeAbove(Aboard, At(Middle, 6 * Block + 1000)));
     }

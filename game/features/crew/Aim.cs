@@ -119,13 +119,13 @@ public static class Aiming
     }
 
     /// <summary>
-    /// Whether <paramref name="cell"/> holds the harpoon's rod (the grapple, 0044): a wall, a floor or a closed
-    /// door, as <paramref name="ship"/> shows them. Not a back wall, behind the hero's plane; not an open door
-    /// nor a ladder, which are passed through; nothing off the grid.
+    /// Whether <paramref name="cell"/> holds the harpoon's rod (the grapple, 0044): a wall, a floor, a closed
+    /// door or a closed hatch, as <paramref name="ship"/> shows them. Not a back wall, behind the hero's plane; not an
+    /// open door, an open hatch nor a ladder, which are passed through; nothing off the grid.
     /// </summary>
     public static bool Grips(Ship ship, int x, int y) =>
         x >= 0 && y >= 0 && x < ship.Width && y < ship.Height
-        && ship.StructureAt(y * ship.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed;
+        && ship.StructureAt(y * ship.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
 
     /// <summary>Whether the cell under <paramref name="at"/>, in thousandths of a cell, holds the rod (<see cref="Grips(Ship, int, int)"/>).</summary>
     public static bool Grips(Ship ship, (double X, double Y) at) =>
@@ -507,7 +507,7 @@ public static class Aiming
         if (grid.MachineAt(cell) is { Kind: "tank" } tank) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
-        if (structure is Structure.DoorClosed or Structure.DoorOpen) return new Use(new SetDoor(cell, structure == Structure.DoorClosed), null);
+        if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), null);
         if (valve is bool open) return new Use(new Sim.Pipes.SetValve(cell, !open), null);
         return null;
     }

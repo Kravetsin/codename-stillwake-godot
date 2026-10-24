@@ -21,8 +21,9 @@ public readonly record struct LightSource(
 public static class Sources
 {
     /// <summary>
-    /// How the shader tells a cell: open, a closed hatch (its panel across blocks), a closed door (its panel up and down blocks), a wall;
-    /// a doorway two cells thick (0104), its far column's or row's own, so its 16 px panel stops light where it is drawn.
+    /// How the shader tells a cell: open, a closed door (its panel up and down blocks), a wall; a doorway two cells thick (0104),
+    /// its far column's own, so its 16 px panel stops light where it is drawn. A hatch is a floor and lets light through (0111), so
+    /// no hatch byte is written; the shader still knows one.
     /// </summary>
     public const byte Open = 0, Hatch = 64, HatchFar = 96, Door = 128, DoorFar = 160, Wall = 255;
 
@@ -52,9 +53,8 @@ public static class Sources
                 return Wall;
             case Structure.DoorClosed:
                 {
-                    var spot = Render.DoorShape.SpotOf(cell, width, c => Doorways.LinksOf(c, width, size, structureAt));
-                    bool far = spot.Across % Doorways.Thick == 1;
-                    return spot.Hatch ? (far ? HatchFar : Hatch) : (far ? DoorFar : Door);
+                    var spot = Render.DoorShape.SpotOf(cell, width, c => Doorways.LinksOf(c, width, size, structureAt), hatch: false);
+                    return spot.Across % Doorways.Thick == 1 ? DoorFar : Door;
                 }
             default:
                 return Open;

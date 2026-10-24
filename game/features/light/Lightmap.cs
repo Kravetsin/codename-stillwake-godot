@@ -197,7 +197,8 @@ public partial class Lightmap : Node
 
     /// <summary>
     /// Where light stops, from the grid's structure a texel a cell over <paramref name="built"/>, what is
-    /// built: past it every cell is open. <paramref name="panels"/> the door panel's columns and the hatch panel's rows in pixels.
+    /// built: past it every cell is open. <paramref name="panels"/> the door panel's columns in pixels; a hatch lets light
+    /// through (0111).
     /// </summary>
     public void Occupy(Func<int, int> structureAt, int width, int size, Box built, Panels panels)
     {
@@ -232,7 +233,7 @@ public partial class Lightmap : Node
         Upload(box, panels);
     }
 
-    /// <summary>What of a closed doorway stops light, in pixels of its cell: a door's panel's columns, a hatch's panel's rows.</summary>
+    /// <summary>What of a closed doorway stops light, in pixels of its cell: a door's panel's columns, and a hatch's panel's rows, which no longer stop light (0111).</summary>
     public readonly record struct Panels((int From, int To) Door, (int From, int To) Hatch);
 
     private void Upload(Box built, Panels panels)

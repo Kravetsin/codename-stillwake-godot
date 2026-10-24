@@ -7,8 +7,9 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// Pieces (0104): a ladder two by two and a door segment two by two, each placed, paid, built and taken apart as one thing,
-/// the size and the price of the 16 px cell it was; a run of segments is one doorway, a door down and a hatch across.
+/// Pieces (0104, 0111): a ladder two by two, a door segment two by two and a hatch two by one, each placed, paid, built and
+/// taken apart as one thing, the size and the price of the 16 px cell it was; door segments stacked are one doorway, a hatch
+/// a doorway of its own.
 /// </summary>
 public class PieceTests
 {
@@ -114,11 +115,12 @@ public class PieceTests
     private static readonly Placement HatchSegment = new("structure", Builds.Hatch);
 
     [Fact]
-    public void AHatchSegmentIsTwoByOneAsItsArtBuiltOfTheDoorsBlueprintAtItsCostAndGivenBackWhole()
+    public void AHatchIsTwoByOneItsOwnBlueprintAtTheDoorsCostAndGivenBackWhole()
     {
         var w = Stocked();
         Assert.Equal((2, 1), Builds.PieceOf(Builds.Hatch));
         Assert.Equal([At(5, 2), At(6, 2)], w.M.Grid.Footprint(Builds.Hatch, At(5, 2)));
+        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostFor(HatchSegment));
         w.Do(new PlacePlan(At(5, 2), HatchSegment)).Run();
         var plan = Assert.Single(w.M.Building.Plans);
         Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(plan.Id, w.M.Building.PlansAt(c).Single().Id));
@@ -126,9 +128,10 @@ public class PieceTests
         Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostOf(plan.Id));
         Finish(w, plan.Id);
         Assert.Empty(w.Refusals);
-        Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(Structure.HatchClosed, w.M.Grid.StructureAt(c)));
         Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(5, 3)));
-        Assert.True(Doorways.IsHatch(Doorways.LinksOf(At(5, 2), Width, Width * 10, w.M.Grid.StructureAt)));
+        Assert.True(Doorways.IsHatch(w.M.Grid.StructureAt(At(5, 2))));
+        Assert.NotEqual(0, Doorways.LinksOf(At(5, 2), Width, Width * 10, w.M.Grid.StructureAt) & Doorways.Right);
         w.Do(new Deconstruct(At(6, 2), "structure")).Run();
         var mark = Assert.Single(w.M.Building.Plans);
         Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.RefundOf(mark.Id));
@@ -147,52 +150,61 @@ public class PieceTests
     }
 
     [Fact]
-    public void SegmentsRunDownAreADoorRunAcrossAHatchAndOneAloneAHatchTheHeroFitsThrough()
+    public void ADoorStaysADoorLaidAcrossAndAHatchIsItsOwnDoorway()
     {
         var w = Stocked();
-        w.Do(new Place(At(1, 1), Door)).Do(new Place(At(1, 3), Door)).Do(new Place(At(1, 5), Door))
-            .Do(new Place(At(5, 2), Door)).Do(new Place(At(7, 2), Door)).Do(new Place(At(5, 6), Door)).Run();
-        bool Hatch(int c) => Doorways.IsHatch(Doorways.LinksOf(c, Width, Width * 10, w.M.Grid.StructureAt));
-        Assert.All(Box(1, 1, 2, 6), c => Assert.False(Hatch(c)));
-        Assert.All(Box(5, 2, 4, 2).Concat(Box(5, 6, 2, 2)), c => Assert.True(Hatch(c)));
+        w.Do(new Place(At(1, 1), Door)).Do(new Place(At(3, 1), Door)).Do(new Place(At(5, 1), Door))
+            .Do(new Place(At(1, 4), HatchSegment)).Run();
+        bool Hatch(int c) => Doorways.IsHatch(w.M.Grid.StructureAt(c));
+        Assert.All(Box(1, 1, 4, 2).Concat(Box(5, 1, 2, 2)), c => Assert.False(Hatch(c)));
+        Assert.All(Box(1, 4, 2, 1), c => Assert.True(Hatch(c)));
         // A lone segment is two cells wide: the hero, 1.9 cells, fits through it.
         Assert.True(Stillwake.Content.Hero.Width < Builds.Get("door").Across * 1000);
     }
 
     [Fact]
-    public void ARunOfSegmentsOpensAndShutsWholeFromAnyOfItsCells()
+    public void ADoorsSegmentsOpenWholeStackedAndApartSideBySide()
     {
         var w = Stocked();
         w.Do(new Place(At(1, 1), Door)).Do(new Place(At(1, 3), Door)).Do(new Place(At(1, 5), Door))
-            .Do(new Place(At(5, 2), Door)).Do(new Place(At(7, 2), Door)).Run();
+            .Do(new Place(At(5, 2), Door)).Do(new Place(At(7, 2), Door)).Do(new Place(At(5, 6), HatchSegment)).Run();
         w.Do(new SetDoor(At(2, 6), true)).Run();
         Assert.All(Box(1, 1, 2, 6), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
-        Assert.All(Box(5, 2, 4, 2), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(5, 2, 2, 2).Concat(Box(7, 2, 2, 2)), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(5, 6, 2, 1), c => Assert.Equal(Structure.HatchClosed, w.M.Grid.StructureAt(c)));
+        // Side by side, each door opens alone.
         w.Do(new SetDoor(At(8, 3), true)).Run();
-        Assert.All(Box(5, 2, 4, 2), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(7, 2, 2, 2), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(5, 2, 2, 2), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
+        // A hatch opens alone too.
+        w.Do(new SetDoor(At(6, 6), true)).Run();
+        Assert.All(Box(5, 6, 2, 1), c => Assert.Equal(Structure.HatchOpen, w.M.Grid.StructureAt(c)));
+        Assert.All(Box(7, 2, 2, 2), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
         w.Do(new SetDoor(At(1, 1), false)).Run();
         Assert.All(Box(1, 1, 2, 6), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
         Assert.Empty(w.Refusals);
     }
 
     [Fact]
-    public void AHatchBesideADoorIsADoorwayOfItsOwn()
+    public void AHatchBesideOrUnderADoorIsADoorwayOfItsOwn()
     {
-        // A hatch run stops beside a door (0067): their cells touch, yet each opens alone.
         var w = new Scenario("""
-            ...DD.
-            ...DD.
-            DDDDD.
-            DDDDD.
-            ...DD.
-            ...DD.
+            #######
+            #hhDD.#
+            #..DD.#
+            #..hh.#
+            #######
             """, cells: true);
-        w.Do(new SetDoor(0 * 6 + 3, true)).Run();
-        var door = new[] { 3, 4, 9, 10, 15, 16, 21, 22, 27, 28, 33, 34 };
-        Assert.All(door, c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
-        Assert.All(new[] { 12, 13, 14, 18, 19, 20 }, c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
-        w.Do(new SetDoor(18, true)).Run();
-        Assert.All(new[] { 12, 13, 14, 18, 19, 20 }, c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        w.Do(new SetDoor(w.At(3, 1), true)).Run();
+        Assert.All([w.At(3, 1), w.At(4, 1), w.At(3, 2), w.At(4, 2)], c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        Assert.All([w.At(1, 1), w.At(2, 1), w.At(3, 3), w.At(4, 3)], c => Assert.Equal(Structure.HatchClosed, w.M.Grid.StructureAt(c)));
+        w.Do(new SetDoor(w.At(2, 1), true)).Run();
+        Assert.All([w.At(1, 1), w.At(2, 1)], c => Assert.Equal(Structure.HatchOpen, w.M.Grid.StructureAt(c)));
+        Assert.All([w.At(3, 1), w.At(4, 1), w.At(3, 2), w.At(4, 2)], c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
+        w.Do(new SetDoor(w.At(4, 3), true)).Run();
+        Assert.All([w.At(3, 3), w.At(4, 3)], c => Assert.Equal(Structure.HatchOpen, w.M.Grid.StructureAt(c)));
+        Assert.All([w.At(1, 1), w.At(2, 1)], c => Assert.Equal(Structure.HatchOpen, w.M.Grid.StructureAt(c)));
+        Assert.Empty(w.Refusals);
     }
 
     [Fact]

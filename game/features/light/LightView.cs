@@ -343,7 +343,7 @@ public partial class LightView : Node2D
     {
         int w = _grid.Width, x = cell % w, y = cell / w;
         for (int row = y + 1; row <= y + 20 && row < _grid.Height; row++)
-            if (_grid.StructureAt(row * w + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed) return row * Cell;
+            if (_grid.StructureAt(row * w + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed) return row * Cell;
         return (y + 14) * Cell;
     }
 
