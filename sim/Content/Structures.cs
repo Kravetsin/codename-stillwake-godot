@@ -64,6 +64,7 @@ public enum DragMode { Line, Area }
 /// <param name="Means">What the map character means, for the legend.</param>
 /// <param name="Toggle">The code it becomes when its doorway opens or shuts; its own for none.</param>
 /// <param name="Build">What places it, by id: <c>wall</c> for walls (costing their material), else one of <see cref="Builds"/>.</param>
+/// <param name="Flat">A deck one cell thick: a map drawn at 16 px lays it in its block's top row only (0104).</param>
 public sealed record StructureSpec(
     int Code,
     char? Char,
@@ -76,7 +77,8 @@ public sealed record StructureSpec(
     Join Join = Join.None,
     StructureDraw Draw = StructureDraw.None,
     string? Tile = null,
-    DragMode Drag = DragMode.Line)
+    DragMode Drag = DragMode.Line,
+    bool Flat = false)
 {
     public bool Has(Trait trait) => (Traits & trait) != 0;
 }
@@ -92,7 +94,7 @@ public static class Structures
         new(Structure.Wall, '#', "hull wall, of the default hull material",
             Trait.Blocks | Trait.Seals | Trait.BlocksLight | Trait.Terrain, Build: "wall", Draw: StructureDraw.Autotile, Drag: DragMode.Area),
         new(Structure.Floor, '=', "floor: a platform heroes stand on and climb through from below",
-            Trait.Supports, Build: "floor", Draw: StructureDraw.Cut, Tile: "floor"),
+            Trait.Supports, Build: "floor", Draw: StructureDraw.Cut, Tile: "floor", Flat: true),
         new(Structure.Ladder, 'H', "ladder", Trait.Climbable, Build: "ladder", Draw: StructureDraw.Paired, Tile: "ladder"),
         new(Structure.DoorClosed, 'D', "door, closed", Trait.Blocks | Trait.Seals | Trait.BlocksLight, Build: "door",
             Leak: Air.DoorLeak, Toggle: Structure.DoorOpen, Group: StructureGroup.Door, Join: Join.Column, Draw: StructureDraw.Door),
@@ -101,9 +103,9 @@ public static class Structures
         // A hatch differs from a door only in being climbed when open (0111): shut, a floor that stops a body from below.
         new(Structure.HatchClosed, 'h', "hatch, closed: a doorway lying in a deck",
             Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight, Build: Builds.Hatch,
-            Leak: Air.DoorLeak, Toggle: Structure.HatchOpen, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door),
+            Leak: Air.DoorLeak, Toggle: Structure.HatchOpen, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door, Flat: true),
         new(Structure.HatchOpen, 'o', "hatch, open", Trait.Opening | Trait.Climbable, Build: Builds.Hatch,
-            Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door),
+            Leak: Air.DoorLeak, Toggle: Structure.HatchClosed, Group: StructureGroup.Hatch, Join: Join.Row, Draw: StructureDraw.Door, Flat: true),
     ];
 
     private static readonly Trait[] TraitsOf = Table.Select(s => s.Traits).ToArray();
