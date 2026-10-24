@@ -595,6 +595,63 @@ public class LogisticsTests
         Assert.Equal(Chunks, w.M.Items.HeldFor(Furnace, "scrapChunk"));
     }
 
+    /// <summary>
+    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below.
+    /// Aired with the hatch open, then shut, the crate holding all but the three chunks the furnace holds.
+    /// </summary>
+    private static readonly string[] Decks =
+    [
+        "##############",
+        "#............#",
+        "#..........FF#",
+        "#..........FF#",
+        "######o#######",
+        "#............#",
+        "#RR....TT....#",
+        "#RR.KK.TTV...#",
+        "##############",
+    ];
+
+    private static (Scenario W, int Hatch, int Furnace) Decked()
+    {
+        var w = Aired(Decks, ["", "", "", "", "", "", "       o", "       ---"], drones: 1);
+        int hatch = w.At(6, 4), furnace = w.M.Grid.MachinesOf("furnace").Single().Id, crate = w.M.Grid.MachinesOf("crate").Single().Id;
+        w.Do(new SetDoor(hatch, false)).Run();
+        w.FillCrate(crate, ("scrapChunk", Chunks - 3)).Put(0, new Stack("scrapChunk", 3), crate: furnace);
+        return (w, hatch, furnace);
+    }
+
+    [Fact]
+    public void ADronePassesAClosedHatchAndTheHatchStaysClosed()
+    {
+        var (w, hatch, furnace) = Decked();
+        bool through = false;
+        for (int i = 0; i < 400; i++)
+        {
+            w.Run();
+            Assert.Equal(Structure.HatchClosed, w.M.Grid.StructureAt(hatch));
+            through |= w.M.Logistics.Drones.Any(d => d.Cell == hatch || d.Cell == hatch + 1);
+        }
+        Assert.True(through);
+        Assert.Equal(Chunks, w.M.Items.HeldFor(furnace, "scrapChunk"));
+    }
+
+    [Fact]
+    public void OfWaysAsShortADroneTakesTheOneKeepingOffTheCeilingAndClimbsAtTheHatch()
+    {
+        var (w, hatch, _) = Decked();
+        int width = w.M.Grid.Width, under = w.At(1, 5) / width;
+        for (int i = 0; i < 400; i++)
+        {
+            w.Run();
+            // The lower room's two rows under its ceiling: only in the hatch's columns, rising through them.
+            foreach (var d in w.M.Logistics.Drones)
+                if (d.Cell / width is int row && row >= under && row < under + 2)
+                    Assert.InRange(d.Cell % width, hatch % width, hatch % width + 1);
+        }
+        Assert.Equal(Chunks, w.M.Items.HeldFor(w.M.Grid.MachinesOf("furnace").Single().Id, "scrapChunk"));
+    }
+
     /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right.</summary>
     private static readonly string[] Wide =
     [

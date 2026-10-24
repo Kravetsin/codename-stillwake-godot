@@ -69,6 +69,7 @@ public partial class LogisticsView : Node2D
         /// <summary>The id it was first drawn as: its bob, its rotors and its tuning stay its own when another launch takes it over.</summary>
         public int Id { get; } = id;
         public Hover Hover { get; } = new(id);
+        public Trail Trail { get; } = new();
         public Heard2D Loop { get; } = loop;
         public Whir Whir;
         public int Bay;
@@ -199,6 +200,7 @@ public partial class LogisticsView : Node2D
             (string, int)? cargo = d.Cargo is { } c ? (c.Item, c.Count) : null;
             if (Served.Gripped(f.Cargo, cargo)) _grab.PlayAt(ToGlobal(At(f)));
             (f.Seen, f.Low, f.Cargo) = (true, LogisticsModule.Low(d), cargo);
+            f.Trail.See(d.X, d.Y, progress);
             if (f.Hold > 0 && _bays.TryGetValue(f.Bay, out var bay))
             {
                 f.Hold -= delta;
@@ -206,14 +208,13 @@ public partial class LogisticsView : Node2D
                 f.Hover.Step(delta, pad.X, pad.Y - 1, 0, 0, 1, Cruise, Look);
                 continue;
             }
-            int toX = d.To % width * (int)Unit + (int)Unit / 2, toY = d.To / width * (int)Unit + (int)Unit / 2;
-            var (x, y) = Served.Smoothed(d.X, d.Y, toX, toY, Tune.Speed, progress);
+            var (x, y) = f.Trail.At;
+            var (perX, perY) = f.Trail.PerTick;
             int cell = (int)(y / Unit) * width + (int)(x / Unit);
-            // Its picture reaches into the second cell up (0104): a ceiling there is over it too.
-            int? above = cell < width ? null : _grid.StructureAt(cell - width);
-            if (!Hover.Solid(above)) above = cell < 2 * width ? null : _grid.StructureAt(cell - 2 * width);
-            f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - Hover.Lift(_grid.StructureAt(cell), above, Look),
-                Math.Sign(toX - d.X) * Cruise, Math.Sign(toY - d.Y) * Cruise, 1, Cruise, Look);
+            // Lowered for a ceiling over where it is drawn or over the cell it flies to, so it dips before it gets there.
+            double lift = Math.Min(LiftAt(cell, perY != 0), LiftAt(d.To, d.To % width == d.Cell % width && d.To != d.Cell));
+            f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - f.Hover.EaseLift(lift, delta),
+                perX / Unit * Cell * World.TicksPerSecond, perY / Unit * Cell * World.TicksPerSecond, 1, Cruise, Look);
         }
         foreach (var f in _fliers.Values)
             if (!f.Seen && !f.Down && (f.Slot < 0 ? !Lands(f) : !Landing(f, delta))) f.Down = true;
@@ -231,6 +232,15 @@ public partial class LogisticsView : Node2D
     }
 
     private static Vector2 At(Flier f) => new((float)f.Hover.X, (float)f.Hover.Y);
+
+    /// <summary>How far over <paramref name="cell"/>'s centre a drone flies there (<see cref="Hover.Lift"/>), <paramref name="upOrDown"/> or across.</summary>
+    private double LiftAt(int cell, bool upOrDown)
+    {
+        int width = _grid.Width;
+        int? above = cell < width ? null : _grid.StructureAt(cell - width);
+        int? twoAbove = cell < 2 * width ? null : _grid.StructureAt(cell - 2 * width);
+        return Hover.Lift(_grid.StructureAt(cell), above, twoAbove, upOrDown, Look);
+    }
 
     /// <summary>A drone set down on or lifted off <paramref name="pad"/>, a pad's middle: heard there, a puff of dust and a ring.</summary>
     private void Thud(Vector2 pad)
