@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Xunit;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Net.Tests;
 

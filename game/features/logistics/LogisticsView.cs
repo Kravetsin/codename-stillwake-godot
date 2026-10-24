@@ -210,8 +210,8 @@ public partial class LogisticsView : Node2D
             var (x, y) = Served.Smoothed(d.X, d.Y, toX, toY, Tune.Speed, progress);
             int cell = (int)(y / Unit) * width + (int)(x / Unit);
             // Its picture reaches into the second cell up (0104): a ceiling there is over it too.
-            int above = cell < width ? Structure.Wall : _grid.StructureAt(cell - width);
-            if (!Hover.Solid(above)) above = cell < 2 * width ? Structure.Wall : _grid.StructureAt(cell - 2 * width);
+            int? above = cell < width ? null : _grid.StructureAt(cell - width);
+            if (!Hover.Solid(above)) above = cell < 2 * width ? null : _grid.StructureAt(cell - 2 * width);
             f.Hover.Step(delta, x / Unit * Cell, y / Unit * Cell - Hover.Lift(_grid.StructureAt(cell), above, Look),
                 Math.Sign(toX - d.X) * Cruise, Math.Sign(toY - d.Y) * Cruise, 1, Cruise, Look);
         }

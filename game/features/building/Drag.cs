@@ -66,7 +66,7 @@ public static class Drag
         if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
         // Ladder pieces, door segments or hatches laid end to end along the drag, a piece's length a step (0104, 0111):
         // a piece runs along its own longer axis, a square one along the drag's longer axis. Their top-left cells only.
-        if (act is PlaceTool { Placement.Kind: "ladder" or "door" or Spec.Builds.Hatch })
+        if (act is PlaceTool { Placement.Layer: "structure" } piece && Spec.Builds.PieceOf(piece.Placement.Kind) != null)
         {
             bool along = w > h || (w == h && Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y));
             int far = along ? to.X - from.X : to.Y - from.Y, size = along ? w : h;
@@ -78,7 +78,7 @@ public static class Drag
             }
             return pieces;
         }
-        if (act is PlaceTool { Placement.Kind: "wall" or "backWall" })
+        if (act is PlaceTool { Placement: var area } && (area.Layer == "back" || Spec.Structures.ByBuild(area.Kind)?.Drag == Spec.DragMode.Area))
         {
             // From the begun stamp's side away from the end to the end stamp's far side, so both stamps are inside.
             bool right = to.X >= from.X, down = to.Y >= from.Y;

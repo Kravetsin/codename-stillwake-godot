@@ -10,6 +10,7 @@ using DebrisSpec = Stillwake.Content.Debris;
 using HullBand = Stillwake.Content.HullBand;
 using Inventory = Stillwake.Content.Inventory;
 using Loot = Stillwake.Content.Loot;
+using Structure = Stillwake.Content.Structure;
 using Weapons = Stillwake.Content.Weapons;
 using WreckageSpec = Stillwake.Content.Wreckage;
 

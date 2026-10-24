@@ -79,7 +79,7 @@ public partial class FaunaHands(FaunaDemo demo, Func<Hero?> hero, bool still = f
         for (int i = 1; i < steps; i++)
         {
             int x = (int)((ax + (bx - ax) * i / steps) / Hero.Unit), y = (int)((ay + (by - ay) * i / steps) / Hero.Unit);
-            if (x >= 0 && y >= 0 && x < grid.Width && y < grid.Height && grid.StructureAt(y * grid.Width + x) == Sim.Grid.Structure.Wall) return false;
+            if (x >= 0 && y >= 0 && x < grid.Width && y < grid.Height && grid.WallAt(y * grid.Width + x) != null) return false;
         }
         return true;
     }

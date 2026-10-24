@@ -7,6 +7,7 @@ using Footing = Stillwake.Game.Sound.Footing;
 using Material = Stillwake.Content.Material;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Sound;
 
@@ -18,7 +19,6 @@ namespace Stillwake.Game.Features.Sound;
 public static class GroundSounds
 {
     private const int Unit = 1000, Half = Spec.Hero.Width / 2;
-    private static readonly int SoilCode = Spec.Materials.Get("soil").Code;
 
     /// <summary>
     /// What the boots of a hero with its feet at (<paramref name="x"/>, <paramref name="y"/>), thousandths of a cell, stand on: the
@@ -42,12 +42,12 @@ public static class GroundSounds
     {
         int structure = grid.StructureAt(cell);
         if (structure == Structure.Empty) return null;
-        if (structure != Structure.Wall || grid.WallAt(cell) is not { Natural: true } material) return Footing.Deck;
-        if (material.Id == "alloy") return Footing.Alloy;
+        if (grid.WallAt(cell) is not { } material || material.Footing == Spec.Tread.Deck) return Footing.Deck;
+        if (material.Footing == Spec.Tread.Alloy) return Footing.Alloy;
         if (Holds(plants, cell, "moss")) return Footing.Moss;
-        if (material.Code != SoilCode) return Footing.Stone;
+        if (material.Footing != Spec.Tread.Soil) return Footing.Stone;
         int above = cell - grid.Width;
-        return above >= 0 && Grass.Grows(structure, material.Code, grid.StructureAt(above), grid.BackLayer[above], SoilCode)
+        return above >= 0 && Grass.Grows(structure, material.Code, grid.StructureAt(above), grid.BackLayer[above])
             ? Footing.Grass
             : Footing.Soil;
     }

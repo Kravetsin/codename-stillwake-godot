@@ -5,154 +5,84 @@
 | File | Purpose |
 | --- | --- |
 | `ChangeLog.cs` | Every write to the grid's layers, oldest first, as the version it was made under, the cell, the layer and what the … |
-| `Doorways.cs` | The shape of doorways (0067, 0104): a doorway is one straight run of door cells, `Thick` cells thick. |
+| `Doorways.cs` | What a doorway is and how its cells join and toggle, from its structure spec (0111, 0112). |
 | `Grid.cs` | The ship's cells in layers. |
 | `Grown.cs` | What a save holds of a grown surface's grid (0077): its size and zone, its machines, and the cells changed since … |
 
-The ship as cells in ship-local coordinates: what is built in each cell, layer by layer. Everything
-else that stands on the ship — rooms, pipe networks, air — is read from here. Ported from
-`packages/sim/src/modules/grid`; its rules hold here unchanged.
+The ship as cells in ship-local coordinates, layer by layer; rooms, pipes and air are read from here. Depends on nothing.
 
-- **Depends on:** nothing.
-- **Size:** set by the starting map; the grid does not grow. A new world is `Content.World`, 2048×1024,
-  the wreck centred in it (`Layout.InWorld`, [0048](../../docs/decisions/0048-a-big-world-a-build-zone-inside-it.md)).
-- **Zone:** the box where anything may be built, saved with the grid: the map's `Layout.Zone`, the
-  world's middle 1024×512 for a new world, the whole grid for a map that sets none (tests, dev maps).
-- **Cells:** numbered row by row from the top-left, `cell = y * width + x`.
-- **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`,
-  `Back`, the materials of walls and back walls), `Zone` (a `Box`), `Machines` (in id order), `NextMachineId`.
-  Derived, rebuilt after a load and kept current by every machine placed or cleared: `Occupancy`, the
-  id of the machine covering each cell; `ById`, every machine by its id; `ByKind`, each kind's
-  machines in id order; `Version`; `Built`, the smallest box (`Box`, edges included) holding
-  every cell with anything in any layer or under a machine: grown by every placement, and moved in
-  past each edge line a removal leaves empty, so it stays tight; and `Log` (`ChangeLog.cs`), every
-  write to a layer or a machine's cells, as the version it was made under, the cell, the layer and
-  what the cell held before, empty after a load. A save
-  holds each layer as runs, `[value, count, …]` (`Runs` in Core), so empty space costs a save and
-  its hash nothing.
-- **Files:** `Grid.cs` — the module, its state, queries and operations; `ChangeLog.cs` — the log of
-  changed cells (0051).
+- **Size and zone:** the starting map's; the grid never grows. A new world is `Content.World`, 2048×1024, the wreck centred;
+  the zone (`Layout.Zone`, 0048) is where anything may be built, the whole grid for a map that sets none.
+- **Cells:** row by row from the top-left, `cell = y * width + x`. A cell is 8 px (0104); every cell is whole, no slopes (0106).
+- **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Material`, `Back`, `BackMaterial`),
+  `Zone`, `Machines` (id order), `NextMachineId`. Saved as runs (`Runs`), so empty space costs nothing. Derived, rebuilt after
+  a load: `Occupancy` (machine id per cell), `ById`, `ByKind`, `Version`, `Built` (the tight box of everything), `Log`.
 
 ## Layers
 
-| Layer     | Holds                                                                                     |
-| --------- | ----------------------------------------------------------------------------------------- |
-| structure | empty, hull wall (with a material), floor, ladder, door (open or closed), hatch (open or closed) |
-| machine   | machines from `Data.Machines`, each covering its footprint                                |
-| back      | none, back wall (with a material): the wall behind a cell, closing a room behind (0020)   |
+| Layer     | Holds |
+| --------- | ----- |
+| structure | a code of `Structure` (`sim/Content/Structures.cs`), a wall's with a material |
+| machine   | machines from `Data.Machines`, each covering its footprint |
+| back      | none, back wall (with a material): the wall behind a cell (0020) |
 
-Every cell is whole: there are no slopes ([0106](../../docs/decisions/0106-steps-replace-slopes.md), superseding
-0069). Ground rises in steps of whole cells, which heroes and creatures step up.
+**Structures are data (0112).** Each code has a `StructureSpec`: its `Trait`s (`Blocks`, `Supports`, `Climbable`, `Seals`,
+`BlocksLight`, `Terrain`, `Opening`, `BlocksFromBelow`), its leak, toggle, doorway group and join, build, map character and
+looks. Rules ask the traits, never the code; `StructureCodeGuardTests` fails on a concrete code outside the table.
 
-Walls, floors, ladders, doors and hatches are one structure per cell. A ladder, a door segment and a hatch piece are placed as
-pieces (0104), a ladder's or a door segment's 2×2, a hatch's 2×1 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
-filled at once. A machine needs every footprint cell free
-of structure and of other machines. A back wall needs only a free back slot: it stands behind anything, and in space.
+A ladder, a door segment and a hatch are pieces (0104): a 2×2, a 2×2, a 2×1 (`Builds.PieceOf`), every cell free, filled at
+once. A machine needs every footprint cell free of structure and machines; a back wall only a free back slot.
 
 ## API
 
-- **Queries** (`IGridQueries`): `Width`, `Height`; `Version` — bumped on every change to any layer or
-  machine, by a command or an operation, never saved and 0 again after a load: a module deriving from
-  the grid (`rooms`, `pipes`, `atmosphere`) looks again only when it moved; `ChangedSince(version)` —
-  the cells whose layers differ now from what they held at that version, ascending, each with the
-  `GridLayers` that do (`Structure`, `Material`, `Conduit`, `Back`, `BackMaterial`, `Machine` — the
-  machine covering the cell, by id): a cell changed and changed back is not named, and none while the
-  version is current. Null when the log no longer reaches back to the version, or it is not one this
-  grid has had (later than now; any version from before a load, which brings a new grid): the reader
-  then looks at the whole grid again, as on its first look (0051). Every reader of the grid follows
-  it — rooms, pipes, atmosphere; the client's tile view, light, starlight and pipes overlay — and
-  keeps the version it last saw, and the grid with it; `Built` — the box past which every cell is
-  empty space, never saved: `rooms` floods within it after a load, `rooms` walks space until it leaves
-  it, and a reader the log let go of looks again within it; `Zone` — the build zone, nothing placed
-  outside it; every layer as codes, a
-  cell each, live and read-only, as TypeScript's `layers()`: `StructureLayer`, `MaterialLayer` (a
-  wall's material, 0 for none), `BackLayer`, `BackMaterialLayer`; `StructureAt(cell)`,
-  `MachineAt(cell)`, `MachineById(id)` — null for none or one taken apart —, `Machines` — every
-  machine in id order —, `MachinesOf(kind)` — one kind's, in id order, for the systems that work one
-  kind (furnaces, analyzers, vents, tanks, generators) —, `PortsOf(machine)` — the cells where pipes meet it (`pipes`, 0109), from its
-  kind's port offsets —, `WallAt(cell)` and `BackAt(cell)` — the `Material` of the wall or back
-  wall there, null for none —, `GrownBack(cell)` — whether that back wall is a grown ground's own, unchanged since it
-  grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine or a piece of that
-  kind would cover from that top-left, null when it is neither or does not fit —, `PieceOf(cell)` — the cells of the piece the
-  structure there is part of, taken apart as one (0104), ascending: a ladder cell's or a door cell's two by two (its
-  columns paired from the left end of its row's run of the same, its rows from the top of its column's), a hatch cell's two by
-  one, any other structure its own cell, none for none —, `PlacementProblem(cell, placement)`,
-  `AfterToggles(commands)` — the structure codes of just the cells the `SetDoor`s among the commands
-  would change, each as it would apply and skipped where refused,
-  every other cell as the world has it: what a client shows of its own toggles before their tick runs
-  (0014). Not copies of the layers: those were 16 MB a tick on a 2048×1024 world while a toggle was in
-  flight.
-- **Operations** (`IGridOps`): `Place(cell, placement)` — the caller checks `PlacementProblem` first, a
-  problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
-  cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
-  changes it after.
-- **Commands:** `SetDoor(cell, open)` — opens or shuts the whole doorway, the door's stack of segments or the hatch's pair
-  `cell` is in (`Doorways`, 0067, 0111), every cell of it, a part-open one too; refused with `grid.noDoor`. It says the state its sender saw it should take, not a flip (0071): a door
-  already so is left alone, the grid's version too, so two peers opening one door at once leave it open.
-- **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
-  machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
-  `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`.
-- TypeScript's `codes()`
-  is the public `Structure`, `Conduit` and `Back` constants.
+- **Queries** (`IGridQueries`): `Width`, `Height`, `Zone`, `Built`; `Version`, bumped on every change, 0 after a load;
+  `ChangedSince(version)` — the cells and `GridLayers` that differ since then, ascending, or null when the log no longer
+  reaches back (the reader then looks at everything, 0051); the layers live and read-only (`StructureLayer`, `MaterialLayer`,
+  `BackLayer`, `BackMaterialLayer`); `StructureAt`, `WallAt` / `BackAt` (the `Material`, null for none), `GrownBack` (0084).
+- **Traits per cell:** `Blocks`, `Supports`, `Climbable`, `Seals`, `BlocksLight`, and `Solid` (blocks or supports); past
+  the grid everything blocks and is solid, nothing else. Code-only callers read `Structures.Is(code, trait)`.
+- **Machines:** `MachineAt`, `MachineById`, `Machines`, `MachinesOf(kind)` (id order), `PortsOf(machine)` (0109).
+- **Pieces:** `Footprint(kind, cell)` — what a machine or piece would cover from that top-left, null when it does not fit;
+  `PieceOf(cell)` — the cells taken apart with it: its build's piece, columns paired from its row's run of the same (a
+  doorway's group), rows from its column's top; any other structure its own cell.
+- `PlacementProblem(cell, placement)`; `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
+  client's own toggles in flight (0014); not a copy of the layer.
+- **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
+  `Clear(cell, layer)` (a whole machine). Only in commands or construction.
+- **Command:** `SetDoor(cell, open)` — sets the whole doorway the cell is in to the state its sender saw it should take
+  (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
+  `grid.noDoor`.
+- **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
+  `grid.noSuchMaterial`, `grid.noSuchMachine`.
 
 ## Maps
 
-`#` wall of `Data.DefaultHull`, `=` floor, `H` ladder, `D`/`d` door closed/open, `h`/`o` hatch closed/open, `-` pipe, `v`/`x`
-valve open/closed, machines by `Data.MachineOf`. The old slopes' `/` `\` `r` `7` are gone (0106): a map using them does
-not parse. A machine is drawn as its whole footprint; a map that
-draws part of one does not load. Every character but a space has a back wall of the default hull,
-hull walls included. A map's machines take ids 1, 2, … by their top-left cells in reading order.
+A structure's map character is its spec's `Char` (`#` wall, `=` floor, `H` ladder, `D`/`d` door, `h`/`o` hatch, `%` the grate
+fixture); `-` pipe, `v`/`x` valve, machines by `Data.MachineOf`. A machine is drawn as its whole footprint. Every character
+but a space has a back wall of the default hull. Machines take ids by their top-left cells in reading order.
 
-**A cell is 8 px** ([0104](../../docs/decisions/0104-the-cell-is-8-px.md)); maps are drawn a character a 16 px cell and doubled
-(`Layout.Doubled()`): a character's 2×2 cells all its wall, back wall, machine, ladder or door, so a doorway is two cells thick
-as its 16 px door was one; a floor or a hatch its top row; `S` its bottom-left; a conduit its top-left and the cells toward neighbouring conduits, one cell wide, meeting the
-doubled ports. The wreck, the test strip, the ruins' prefabs and test scenarios are doubled; a test
-of a rule per cell reads its map a character a cell.
+Maps are drawn a character a 16 px cell and doubled (`Layout.Doubled()`): a character fills its 2×2 cells, a `Flat` structure
+(floor, hatch) its top row only, `S` its bottom-left, a conduit its top-left toward its neighbours. A test of a rule per cell
+reads its map a character a cell. A map may carry its cells' materials (`Layout.Materials`, 0077): a grown planet's or a
+test's (`Legend.Materials`); code 0 is open sky with no back wall.
 
-A map may come with its cells' materials (`Layout.Materials`, 0077): a planet's ground grown from its seed
-(`Terrain`), or a test's material map (`Layout.WithMaterials`, `Legend.Materials`: `s` soil, `t` stone, `b` bedrock, `a` the ruins' alloy, 0085, `p` the homes' plaster, 0091).
-A wall and the back wall behind a cell are then of that cell's material; a code of 0 is open sky, with no back wall.
-No code is negative (0106).
-Natural materials (`Material.Natural`) are walls like any other to the grid: what digs them is building's (0077).
-
-**A grown grid saves its edits** (0077, `Grown.cs`): on a layout grown from a seed (`Layout.Grown`), the grid notes what each
-cell held as grown on its first write (derived: `_base`, never saved) and a save holds, in place of its layers, a
-`GrownGrid`: its size, zone, machines, next machine id and `edits`, the cells that differ now from the ground as grown,
-ascending, each `cell, structure, material, back, backMaterial` (four layers after the cell since 0109, pipes being spans). Loading, it is handed the ground grown
-again from the surface's seed and lays the edits on it. A cell changed and changed back is no edit, so every peer saves
-and hashes the same edits whatever its history (`GrownSaveTests`). A drawn map (the ship, the strip, tests) saves every
-layer as runs, as ever.
+**A grown grid saves its edits** (0077, `Grown.cs`): the cells that differ from the ground grown from the seed, ascending,
+`cell, structure, material, back, backMaterial`; loading lays them on the ground grown again. A drawn map saves every layer.
 
 ## Invariants
 
-- Machines never overlap, and stand only on cells without structure.
-- `Occupancy` names exactly the machine covering each cell.
-- Machine ids only grow; a removed machine's id is never reused. `Machines` is in id order, and
-  `ById` and `ByKind` hold exactly what a scan of it finds.
-- Every change to a layer or a machine bumps `Version`, and every write to a layer or to `Occupancy`
-  goes through one place that logs it (`Set`): nothing else writes them, so no change goes unlogged.
-- `ChangedSince(v)` names exactly the cells and layers that differ between the grid at `v` and now, for
-  every `v` the log still reaches; null for every other (`GridLogTests`, across logs trimmed to a write).
-- Nothing is placed outside `Zone`: `Built` lies within it, unless the map drew something outside.
-- `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
-  a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
-- Stored codes are part of the save format: never renumber them.
-- A doorway is a door or a hatch, `Doorways.Thick` (2) cells wide (0104, 0111), its shape derived, never stored (`Doorways`):
-  a door is built of 2×2 segments, and its segments stacked one above another are one doorway; a hatch is one 2×1 piece, a
-  doorway of its own. A door cell joins the door cells above and below it and the cell beside it within its segment; a hatch cell
-  joins only the cell beside it within its piece. A door never joins a hatch, so a hatch beside or under a door is a doorway of
-  its own. The client draws, hears and lights doorways by the same joins.
+- Machines never overlap and stand only on cells without structure; `Occupancy`, `ById` and `ByKind` match `Machines`.
+- Machine ids only grow and are never reused.
+- Every write goes through `Set`, which logs it and bumps `Version`; `ChangedSince(v)` names exactly what differs since `v`.
+- Nothing is placed outside `Zone`; `Built` is the tight box of everything after any change and any load.
+- Stored codes are the save format: never renumber them.
+- A doorway is a door or a hatch (0111), its shape derived (`Doorways`): a door cell joins the door cells above and below
+  (`Join.Column`) and the cell beside it within its segment; a hatch cell (`Join.Row`) only the cell beside it within its
+  piece. Groups never join one another. The client draws, hears and lights doorways by the same joins.
 
 ## Deliberately not handled
 
-- A grid that grows: its size is the map's. A world keeps the size it was made with when
-  `Content.World` changes.
-- Taking apart what stands outside the zone is allowed: only a map could put it there.
+- A grid that grows; taking apart what a map put outside the zone is allowed.
 - Machines need no floor under them.
-- Door kinds: one with rules of its own (an airlock, a blast door) would need a layer here (0067).
-- The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`), a ring: a door, a breach or a
-  hero's build writes a handful, so the sim's readers, which look every tick, and the client's, which
-  look every frame or a few times a second, never come near it. A tick that writes more (no player
-  can) leaves them to look at everything again, as after a load.
-- A version names a state of one grid only: a load starts versions over in a new grid, and a reader
-  keeping a version keeps the grid it read it from (the client's views are made anew with the world).
+- Door kinds with rules of their own (an airlock) would need a layer (0067).
+- The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`); a tick writing more makes readers look at everything.

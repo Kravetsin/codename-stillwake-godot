@@ -5,6 +5,7 @@ using Stillwake.Sim.Logistics;
 using Xunit;
 using Move = Stillwake.Sim.Items.Move;
 using Slot = Stillwake.Sim.Items.Place;
+using Structure = Stillwake.Content.Structure;
 using Tune = Stillwake.Content.Logistics;
 
 namespace Stillwake.Sim.Tests;

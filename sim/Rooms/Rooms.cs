@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text.Json.Serialization;
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Sim.Rooms;
@@ -149,7 +150,8 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         return -1;
     }
 
-    private static bool IsSolid(int structure) => structure is Structure.Wall or Structure.DoorClosed or Structure.HatchClosed;
+    /// <summary>Whether a room ends at <paramref name="structure"/>: it is airtight.</summary>
+    private static bool IsSolid(int structure) => Structures.Is(structure, Trait.Seals);
 
     /// <summary>
     /// Whether this surface's ground grew from a seed (0077): there an open cell under the sky, with no back wall, or before
@@ -219,7 +221,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             int x = c % width;
             bool across = x > 0 && x < width - 1 && solid[c - 1] && solid[c + 1];
             bool down = c >= width && c + width < size && solid[c - width] && solid[c + width];
-            opening[c] = Doorways.IsOpen(structure[Cell(c)]) || across || down;
+            opening[c] = Structures.Is(structure[Cell(c)], Trait.Opening) || across || down;
         }
         // On grown ground an open cell under the sky or before natural ground is outside, wherever it is (0077).
         var porous = new bool[size];
@@ -484,7 +486,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     {
         if (IsSolid(structure[c])) return false;
         if (Porous(c)) return true;
-        if (Doorways.IsOpen(structure[c])) return false;
+        if (Structures.Is(structure[c], Trait.Opening)) return false;
         int width = _grid.Width, size = structure.Length, x = c % width;
         bool across = x > 0 && x < width - 1 && IsSolid(structure[c - 1]) && IsSolid(structure[c + 1]);
         bool down = c >= width && c + width < size && IsSolid(structure[c - width]) && IsSolid(structure[c + width]);

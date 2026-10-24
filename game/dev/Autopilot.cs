@@ -46,6 +46,48 @@ public static class Autopilot
     ]) with
     { Known = [.. Stillwake.Content.Research.StartKnown, "door", "hatch", "ladder"] };
 
+    /// <summary>
+    /// <c>-- --lone-hatch</c> (0112): two rooms, one over the other, a hatch in the deck between them and no ladder, a cell a character;
+    /// a vent fed from a full tank airs the lower one, a
+    /// shut door walls its lamp off from it, so the lower left is lit only through the doorways. With <c>--doors</c> the hatch opens and joins the rooms; <c>--lone-hatch=open</c> draws it
+    /// open, for <c>--autopilot</c> to climb up through.
+    /// </summary>
+    public static Layout LoneHatch(bool open) => Layout.Parse(
+    [
+        "############################",
+        "#..LL..............LL......#",
+        "#..LL..............LL......#",
+        "#..........................#",
+        "#..........................#",
+        "#..........................#",
+        "#..........................#",
+        $"############{(open ? "oo" : "hh")}##############",
+        "#.................DD..LL...#",
+        "#.................DD..LL...#",
+        "#.......TTTT......DD.......#",
+        "#.......TTTT......DD.......#",
+        "#..VV...TTTT......DD.......#",
+        "#..VV...TTTT....S.DD.......#",
+        "############################",
+    ],
+    [
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "                            ",
+        "         ooo                ",
+        "         o                  ",
+        "   ------                   ",
+        "                            ",
+        "                            ",
+    ]);
+
     /// <summary>The plans <see cref="Hatches"/> shows, sent once as the world passes tick 2 (from <paramref name="before"/>).</summary>
     public static IReadOnlyList<Command> Plans(int before, int tick, int width)
     {

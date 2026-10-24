@@ -1,3 +1,7 @@
+
+
+using Stillwake.Content;
+
 namespace Stillwake.Sim.Grid;
 
 /// <summary>
@@ -16,33 +20,39 @@ public static class Doorways
     public const int Thick = 2;
 
     /// <summary>Whether <paramref name="structure"/> is a door cell, shut or open.</summary>
-    public static bool IsDoor(int structure) => structure is Structure.DoorClosed or Structure.DoorOpen;
+    public static bool IsDoor(int structure) => Structures.Of(structure).Group == StructureGroup.Door;
 
     /// <summary>Whether <paramref name="structure"/> is a hatch cell, shut or open.</summary>
-    public static bool IsHatch(int structure) => structure is Structure.HatchClosed or Structure.HatchOpen;
+    public static bool IsHatch(int structure) => Structures.Of(structure).Group == StructureGroup.Hatch;
+
+    /// <summary>Whether <paramref name="structure"/> is a doorway lying along its row, its panel sliding across it, as a hatch does (<see cref="Join.Row"/>).</summary>
+    public static bool Lies(int structure) => Structures.Of(structure).Join == Join.Row;
 
     /// <summary>Whether <paramref name="structure"/> is part of a door or a hatch.</summary>
-    public static bool IsDoorway(int structure) => IsDoor(structure) || IsHatch(structure);
+    public static bool IsDoorway(int structure) => Structures.Of(structure).Group != StructureGroup.None;
 
     /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands open.</summary>
-    public static bool IsOpen(int structure) => structure is Structure.DoorOpen or Structure.HatchOpen;
+    public static bool IsOpen(int structure) => IsDoorway(structure) && Structures.Is(structure, Trait.Opening);
 
     /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands shut.</summary>
-    public static bool IsClosed(int structure) => structure is Structure.DoorClosed or Structure.HatchClosed;
+    public static bool IsClosed(int structure) => IsDoorway(structure) && !Structures.Is(structure, Trait.Opening);
+
+    /// <summary>The code <paramref name="structure"/>, a doorway cell, takes <paramref name="open"/> or shut: its own, or its toggle.</summary>
+    public static int Toggled(int structure, bool open) =>
+        IsOpen(structure) == open ? structure : Structures.Of(structure).Toggle ?? structure;
 
     /// <summary>
     /// The sides <paramref name="cell"/>, a doorway cell, joins its doorway on, the structure of a grid <paramref name="width"/>
-    /// wide and <paramref name="size"/> cells read through <paramref name="structureAt"/>: a door cell its neighbours above and
-    /// below, a door's or a hatch's the cell beside it in its piece, paired from the left end of its row's run of the same kind.
+    /// wide and <paramref name="size"/> cells read through <paramref name="structureAt"/>: a door cell (joining in a column) its
+    /// neighbours above and below, a door's or a hatch's the cell beside it in its piece, paired from the left end of its row's run of the same kind.
     /// </summary>
     public static int LinksOf(int cell, int width, int size, Func<int, int> structureAt)
     {
-        int structure = structureAt(cell);
-        if (!IsDoorway(structure)) return 0;
-        bool door = IsDoor(structure);
-        bool Same(int c) => c >= 0 && c < size && (door ? IsDoor(structureAt(c)) : IsHatch(structureAt(c)));
+        var spec = Structures.Of(structureAt(cell));
+        if (spec.Group == StructureGroup.None) return 0;
+        bool Same(int c) => c >= 0 && c < size && Structures.Of(structureAt(c)).Group == spec.Group;
         int links = 0;
-        if (door)
+        if (spec.Join == Join.Column)
         {
             if (Same(cell - width)) links |= Up;
             if (Same(cell + width)) links |= Down;

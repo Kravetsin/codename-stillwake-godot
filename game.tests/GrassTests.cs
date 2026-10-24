@@ -2,6 +2,7 @@ using Stillwake.Game.Features.Grid;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 
@@ -11,7 +12,7 @@ public class GrassTests
     private static readonly int Soil = Spec.Materials.Get("soil").Code, Stone = Spec.Materials.Get("stone").Code;
 
     private static bool Grows(int material = -1, int above = Structure.Empty, int back = Back.None, int structure = Structure.Wall) =>
-        Grass.Grows(structure, material < 0 ? Soil : material, above, back, Soil);
+        Grass.Grows(structure, material < 0 ? Soil : material, above, back);
 
     [Fact]
     public void GrowsOnSoilUnderTheOpenSky() => Assert.True(Grows());
@@ -34,7 +35,7 @@ public class GrassTests
     }
 
     private static bool Edged(int material, bool natural = true, int above = Structure.Empty, int back = Back.None) =>
-        Grass.Edged(Structure.Wall, material, natural, above, back, Soil);
+        Grass.Edged(Structure.Wall, material, natural, above, back);
 
     [Fact]
     public void RockShowsItsChipsUnderAnyOpenCellSoilItsMossOnlyUnderTheSky()
@@ -50,7 +51,7 @@ public class GrassTests
     {
         Assert.False(Edged(Stone, natural: false));
         Assert.False(Edged(Stone, above: Structure.Ladder));
-        Assert.False(Grass.Edged(Structure.Floor, Stone, true, Structure.Empty, Back.None, Soil));
+        Assert.False(Grass.Edged(Structure.Floor, Stone, true, Structure.Empty, Back.None));
     }
 
     [Fact]

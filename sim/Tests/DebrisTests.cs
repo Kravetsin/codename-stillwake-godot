@@ -12,6 +12,7 @@ using Inventory = Stillwake.Content.Inventory;
 using ItemSpecs = Stillwake.Content.Items;
 using Loot = Stillwake.Content.Loot;
 using PickUp = Stillwake.Sim.Items.PickUp;
+using Structure = Stillwake.Content.Structure;
 using Weapons = Stillwake.Content.Weapons;
 using WreckageSpec = Stillwake.Content.Wreckage;
 

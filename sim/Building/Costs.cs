@@ -33,14 +33,8 @@ internal static class Costs
         {
             case "structure":
                 if (grid.WallAt(cell) is { } wall) return Wall(wall);
-                return grid.StructureAt(cell) switch
-                {
-                    Structure.Empty => null,
-                    Structure.Floor => Builds.Get("floor"),
-                    Structure.Ladder => Share(Builds.Get("ladder"), grid.PieceOf(cell).Count),
-                    var s when Doorways.IsHatch(s) => Share(Builds.Get(Builds.Hatch), grid.PieceOf(cell).Count),
-                    _ => Share(Builds.Get("door"), grid.PieceOf(cell).Count),
-                };
+                int structure = grid.StructureAt(cell);
+                return structure == Structure.Empty ? null : Share(Builds.Get(Structures.Of(structure).Build!), grid.PieceOf(cell).Count);
             case "machine":
                 return grid.MachineAt(cell) is { } m ? Machine(m.Kind) : null;
             case "back":

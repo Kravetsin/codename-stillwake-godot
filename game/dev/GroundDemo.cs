@@ -6,6 +6,7 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Dev;
 
@@ -213,7 +214,7 @@ public sealed class GroundDemo(string mode)
             return m.Grid.WallAt(cell) == null && m.Building.PlantAt(cell)?.Kind is { } kind && (what == "tree" ? kind == "acacia" : kind.StartsWith("crystal", StringComparison.Ordinal));
         if (m.Grid.WallAt(cell) is not { Natural: true } wall || wall.Id != what) return false;
         int w = m.Grid.Width;
-        return new[] { cell - w, cell + w, cell - 1, cell + 1 }.Any(c => c >= 0 && c < w * m.Grid.Height && m.Grid.StructureAt(c) == Sim.Grid.Structure.Empty);
+        return new[] { cell - w, cell + w, cell - 1, cell + 1 }.Any(c => c >= 0 && c < w * m.Grid.Height && m.Grid.StructureAt(c) == Structure.Empty);
     }
 
     /// <summary>The body's middle of a hero standing in <paramref name="cell"/>, in cells.</summary>
@@ -230,8 +231,8 @@ public sealed class GroundDemo(string mode)
     {
         var grid = m.Grid;
         int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w;
-        bool Open(int x, int y) => x > 0 && y > 0 && x < w - 1 && y < h - 1 && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
-        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.StructureAt((y + 1) * w + x) == Sim.Grid.Structure.Wall;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w - 1 && y < h - 1 && grid.StructureAt(y * w + x) == Structure.Empty;
+        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.WallAt((y + 1) * w + x) != null;
         for (int d = 0; d < Math.Min(w / 2, 600); d++)
             foreach (int x in d == 0 ? new[] { sx } : new[] { sx + d, sx - d })
                 for (int y = 2; y < h - 2 && x > 8 && x < w - 8; y++)
@@ -294,7 +295,7 @@ public sealed class GroundDemo(string mode)
 
 
     private static int TopOf(Registry m, int x) =>
-        Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Sim.Grid.Structure.Empty);
+        Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Structure.Empty);
 
     /// <summary>
     /// The open cell on the rim of the pit, chasm or cave mouth nearest the spawn: a column whose ground lies at least eight
@@ -304,7 +305,7 @@ public sealed class GroundDemo(string mode)
     {
         var grid = m.Grid;
         int w = grid.Width, sx = m.Crew.Spawn % w;
-        int Top(int x) => Enumerable.Range(0, grid.Height).First(y => grid.StructureAt(y * w + Math.Clamp(x, 1, w - 2)) != Sim.Grid.Structure.Empty);
+        int Top(int x) => Enumerable.Range(0, grid.Height).First(y => grid.StructureAt(y * w + Math.Clamp(x, 1, w - 2)) != Structure.Empty);
         return Enumerable.Range(0, w / 2 - 8).SelectMany(d => new[] { sx + d, sx - d })
             .Where(x => x > 8 && x < w - 8 && Top(x) >= Math.Max(Top(x - 4), Top(x + 4)) + 8)
             .Select(x => (int?)((Top(Top(x - 4) < Top(x + 4) ? x - 4 : x + 4) - 1) * w + (Top(x - 4) < Top(x + 4) ? x - 4 : x + 4)))
@@ -363,7 +364,7 @@ public sealed class GroundDemo(string mode)
         var weight = new Dictionary<int, int>();
         foreach (var p in m.Building.Plants)
             if (CaveLooks.Of.TryGetValue(p.Kind, out var look)) weight[p.Cell] = look.Light != null ? 3 : 1;
-        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Structure.Empty;
         (int Score, int Far, int Cell, double X, double Y) best = (0, int.MaxValue, -1, 0, 0);
         for (int y = 3; y < h - 4; y++)
         {
@@ -399,7 +400,7 @@ public sealed class GroundDemo(string mode)
     {
         var grid = m.Grid;
         int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w, top = h - ((Spec.PlanetType)m.Rules).Ground.CoreRows;
-        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < h && grid.StructureAt(y * w + x) == Structure.Empty;
         bool Lava(int x) => Open(x, top - 1);
         foreach (int x in Enumerable.Range(0, w).OrderBy(x => Math.Abs(x - sx)).Where(Lava))
             for (int d = 2; d <= 14; d++)
@@ -415,7 +416,7 @@ public sealed class GroundDemo(string mode)
     {
         var grid = m.Grid;
         int w = grid.Width, spawn = m.Crew.Spawn, sx = spawn % w, sy = spawn / w;
-        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < grid.Height && grid.StructureAt(y * w + x) == Sim.Grid.Structure.Empty;
+        bool Open(int x, int y) => x > 0 && y > 0 && x < w && y < grid.Height && grid.StructureAt(y * w + x) == Structure.Empty;
         return Enumerable.Range(sy + 20, grid.Height - sy - 24)
             .SelectMany(y => Enumerable.Range(-60, 121).Select(dx => (X: sx + dx, Y: y)))
             .Where(p => Open(p.X, p.Y) && Open(p.X, p.Y - 1) && Open(p.X, p.Y - 2) && !Open(p.X, p.Y + 1) && !Open(p.X + 1, p.Y - 1))

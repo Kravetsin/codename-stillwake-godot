@@ -1,6 +1,7 @@
 using System;
 using Stillwake.Sim.Grid;
 using Anchor = Stillwake.Content.Flora.Anchor;
+using Structures = Stillwake.Content.Structures;
 
 namespace Stillwake.Game.Features.Flora;
 
@@ -108,7 +109,7 @@ public static class Planting
         for (int row = cy; row < Math.Min(height, cy + rows); row++)
         {
             int at = row * width + cx, structure = structureAt(at);
-            if (structure is Structure.Empty or Structure.DoorOpen or Structure.HatchOpen) continue;
+            if (!Structures.Solid(structure)) continue;
             double surface = row * cell;
             return surface - y < 2 ? null : surface;
         }

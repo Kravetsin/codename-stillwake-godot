@@ -6,6 +6,7 @@ using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Xunit;
 using Spec = Stillwake.Content.Hero;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 
@@ -822,15 +823,74 @@ public class HeroTests
     }
 
     [Fact]
-    public void DownOnAnOpenHatchOverALadderClimbsDownAndBesideItTheHeroFalls()
+    public void DownOnAnOpenHatchClimbsDownThroughItOverTheLadderOrBesideIt()
     {
         var (ship, _) = Start(HatchMap('o'));
-        var top = At(7000, 4 * Block);
-        Assert.Equal(4 * Block, Settle(ship, top, Still).Y);
-        var grabbed = top.Step(Down, ship);
-        Assert.True(grabbed.Climbing);
-        Assert.Equal(8 * Block, Settle(ship, grabbed, Down).Y);
-        Assert.Equal(8 * Block, Settle(ship, At(5000, 4 * Block), Still).Y);
+        foreach (int x in new[] { 7000, 5000 })
+        {
+            // An open hatch is a ladder of its own (0112): stood on at rest, climbed down through.
+            var top = At(x, 4 * Block);
+            Assert.Equal((4 * Block, false), (Settle(ship, top, Still).Y, Settle(ship, top, Still).Climbing));
+            var grabbed = top.Step(Down, ship);
+            Assert.True(grabbed.Climbing);
+            Assert.Equal(8 * Block, Settle(ship, grabbed, Down).Y);
+        }
+    }
+
+    // A deck with a hatch and no ladder at all; the hero under it (0112).
+    private static string LoneHatch(char hatch) => $"""
+        ######
+        #....#
+        #....#
+        #....#
+        ##{hatch}###
+        #....#
+        #....#
+        #.S..#
+        ######
+        """;
+
+    [Fact]
+    public void AnOpenHatchIsClimbedUpThroughWithNoLadderAndAShutOneIsStoodOn()
+    {
+        var (open, hero) = Start(LoneHatch('o'));
+        // A jump brings its body into the hatch; up takes hold of it and climbs out on top.
+        var rising = hero.Step(Jump, open);
+        rising = Until(open, rising, Up with { JumpHeld = true }, h => h.Climbing);
+        var above = Settle(open, rising, Up);
+        Assert.Equal((4 * Block, false), (above.Y, above.Climbing));
+
+        var (shut, _) = Start(LoneHatch('h'));
+        var stood = Settle(shut, At(above.X, 4 * Block), Down);
+        Assert.Equal((4 * Block, false), (stood.Y, stood.Climbing));
+        var blocked = Settle(shut, hero.Step(Jump, shut), Up with { JumpHeld = true });
+        Assert.Equal((8 * Block, false), (blocked.Y, blocked.Climbing));
+    }
+
+    /// <summary>A hatch built in a deck a cell thick, no ladder; rooms six cells tall over and under it; a cell a character.</summary>
+    private static Layout DeckHatch(char hatch) => Layout.Parse(
+    [
+        "##########",
+        .. Enumerable.Repeat("#........#", 6),
+        $"####{hatch}{hatch}####",
+        .. Enumerable.Repeat("#........#", 6),
+        "##########",
+    ]);
+
+    [Fact]
+    public void UpUnderAnOpenHatchTakesHoldOfItOverTheHeadAndClimbsOutOnTop()
+    {
+        var open = ShipFrom(DeckHatch('o'));
+        // Standing under it, off its middle but under one of its cells: up reaches it (Hero.HoldReach), centres and climbs.
+        foreach (int x in new[] { 5000, 5500 })
+        {
+            var grabbed = At(x, 14 * Unit).Step(Up, open);
+            Assert.True(grabbed.Climbing);
+            Assert.Equal((5000, 7 * Unit, false), (Settle(open, grabbed, Up) is var h ? (h.X, h.Y, h.Climbing) : default));
+        }
+        // Shut, it is a floor: up does nothing under it.
+        var shut = ShipFrom(DeckHatch('h'));
+        Assert.False(At(5000, 14 * Unit).Step(Up, shut).Climbing);
     }
 
     internal static readonly Layout Wreck = Registry.WreckMap;

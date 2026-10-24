@@ -75,7 +75,7 @@ public sealed class ShipTiles
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
-        foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", "floor", "ladder"])
+        foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
         for (int linked = 0; linked < 16; linked++)
@@ -95,7 +95,7 @@ public sealed class ShipTiles
             pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
-        foreach (var kind in (string[])["door", Builds.Hatch, "ladder"])
+        foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
             pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
@@ -156,7 +156,11 @@ public sealed class ShipTiles
     }
 
     /// <summary>The 16 px pictures cut into the cells of what fills a character's cells (0104): a ladder, a floor, iron's back walls.</summary>
-    public static bool CutDrawn(string name) => name is "ladder" or "floor" or "back_iron_plain" or "back_iron_grille";
+    public static bool CutDrawn(string name) => name is "back_iron_plain" or "back_iron_grille" || StructureTiles.Contains(name);
+
+    /// <summary>The pictures structures are cut from over the world (<see cref="StructureDraw.Cut"/>, <see cref="StructureDraw.Paired"/>): a floor's, a ladder's.</summary>
+    private static string[] StructureTiles => _structureTiles ??= Structures.All.Select(s => s.Tile).OfType<string>().Distinct().ToArray();
+    private static string[]? _structureTiles;
 
     /// <summary>The source every tile is in.</summary>
     public const int Source = 0;
@@ -273,12 +277,13 @@ public sealed class ShipTiles
     /// A piece of <paramref name="kind"/> whole, its 16 px picture: a ladder's, a door segment's shut, a door one segment long, or
     /// a hatch segment's, a hatch one segment long, its one cell's height (0104).
     /// </summary>
-    private static Image Whole(string kind) => kind switch
+    private static Image Whole(string kind)
     {
-        "ladder" => (Image)Art("ladder").Duplicate(),
-        Builds.Hatch => Art(DoorShape.Whole(true, 1)[0]).GetRegion(new Rect2I(0, 0, Drawn, Cell)),
-        _ => (Image)Art(DoorShape.Whole(false, 1)[0]).Duplicate(),
-    };
+        var spec = Structures.ByBuild(kind)!;
+        if (spec.Draw != StructureDraw.Door) return (Image)Art(spec.Tile!).Duplicate();
+        var build = Builds.Get(kind);
+        return Art(DoorShape.Whole(spec.Join == Join.Row, 1)[0]).GetRegion(new Rect2I(0, 0, build.Across * Cell, build.Tall * Cell));
+    }
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
     public static string BackName(string material) => $"back_{material}";

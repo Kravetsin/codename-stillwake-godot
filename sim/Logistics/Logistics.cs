@@ -54,7 +54,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     /// Whether drones ever have work at machine <paramref name="machine"/>, served or not: a crate, a machine with outputs,
     /// one whose inputs or fuel they refill. Not a bay, the analyzer or the charging station: where the badge shows.
     /// </summary>
-    public bool Servable(int machine) => _grid.MachineById(machine) is { } m && (m.Kind == "crate" || Takes(m) || OutputsOf(m) != null);
+    public bool Servable(int machine) => _grid.MachineById(machine) is { } m && (Machines.Get(m.Kind).Container || Takes(m) || OutputsOf(m) != null);
 
     /// <summary>Whether the drones of some bay reach machine <paramref name="machine"/>: through air and doors inside its zone.</summary>
     public bool Reached(int machine)
@@ -93,7 +93,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     public static bool Low(Drone drone) => drone.Leg == Leg.Home && drone.Low;
 
     /// <summary>The zone of bay <paramref name="bay"/>, its edges included; null for no bay by that id.</summary>
-    public Box? ZoneOf(int bay) => _grid.MachineById(bay) is { } m && m.Kind == Tune.Bay ? ZoneBox(m) : null;
+    public Box? ZoneOf(int bay) => _grid.MachineById(bay) is { } m && Machines.Get(m.Kind).Zone ? ZoneBox(m) : null;
 
     // Commands.
 

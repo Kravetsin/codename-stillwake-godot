@@ -382,10 +382,10 @@ public sealed partial class FaunaModule
     }
 
     /// <summary>
-    /// What stops a creature: a wall, a floor or a closed door, as for a stack, or
+    /// What stops a creature: anything solid (a wall, a floor, a shut doorway), as for a stack, or
     /// past the grid's edge. A machine is not, as for a stack.
     /// </summary>
     private bool Solid(int x, int y) =>
         x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height
-        || _grid.StructureAt(y * _grid.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
+        || _grid.Solid(y * _grid.Width + x);
 }

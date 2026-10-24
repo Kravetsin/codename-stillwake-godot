@@ -25,8 +25,13 @@ namespace Stillwake.Content;
 /// A planet's ground (0077): its walls dug by weapons, never marked to take apart; walls and back walls of it may be planned,
 /// and a back wall a hero built is taken apart as any (0084), the ground's own never.
 /// </param>
+/// <param name="Hurts">A hero touching a wall of it burns (<see cref="Lava"/>).</param>
+/// <param name="Grows">Moss grows on a wall of it under the open sky (0079).</param>
+/// <param name="Footing">What boots on it sound like (0093).</param>
+/// <param name="Look">How it is drawn (<see cref="MaterialLook"/>).</param>
 public sealed record Material(
-    string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false)
+    string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,
+    bool Hurts = false, bool Grows = false, Tread Footing = Tread.Deck, MaterialLook Look = MaterialLook.Cut)
 {
     /// <summary>The <see cref="Strength"/> of a material nothing breaks.</summary>
     public const int Unbreakable = 0;
@@ -38,30 +43,51 @@ public sealed record Material(
     public bool Built => Cost.Count > 0;
 }
 
+/// <summary>What boots on a material sound like (0093): a deck's plates, rock, soil (grass or moss over it heard as such), the ruins' metal.</summary>
+public enum Tread { Deck, Stone, Soil, Alloy }
+
+/// <summary>How a material is drawn.</summary>
+public enum MaterialLook
+{
+    /// <summary>Its pictures cut over the world a cell at a time, its back wall too: scrap's, the ground's.</summary>
+    Cut,
+    /// <summary>Its back wall a panel a 16 px cell, now and then a grille: iron's.</summary>
+    Panels,
+    /// <summary>Cut, but its surface, haze and embers are the lava view's: it shows no living edge.</summary>
+    Molten,
+}
+
 /// <summary>Hull materials, weakest first, then the natural ones.</summary>
 public static class Materials
 {
     public static readonly IReadOnlyList<Material> All =
     [
         new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 1)], BuildTicks: 7),
-        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14),
+        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels),
         // A planet's ground (0077), leakier than any hull. Soil breaks in two swings of the axe, stone in six; a shovelful
         // of soil and a lump of rock, the asteroids' own, come out of it, and build it back.
-        new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 5, Natural: true),
-        new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 10, Natural: true),
-        new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
+        new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 5, Natural: true, Grows: true, Footing: Tread.Soil),
+        new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 10, Natural: true, Footing: Tread.Stone),
+        new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
-        new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
+        new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true,
+            Hurts: true, Footing: Tread.Stone, Look: MaterialLook.Molten),
         // The ruins' metal (0085): five times stone, six seconds of the drill, three with the arc fitted (0098); a scrap of it a cell.
-        new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true),
+        new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
-        new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true),
+        new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>
     public const string DefaultHull = "scrap";
 
     private static readonly Dictionary<string, Material> ById = All.ToDictionary(m => m.Id, StringComparer.Ordinal);
+
+    private static readonly Material?[] ByCodes = Enumerable.Range(0, All.Max(m => m.Code) + 1)
+        .Select(code => All.FirstOrDefault(m => m.Code == code)).ToArray();
+
+    /// <summary>The material stored as <paramref name="code"/>; null for a code none has.</summary>
+    public static Material? ByCode(int code) => code >= 0 && code < ByCodes.Length ? ByCodes[code] : null;
 
     /// <summary>The material by its id; throws for an id that is none.</summary>
     public static Material Get(string id) => ById[id];

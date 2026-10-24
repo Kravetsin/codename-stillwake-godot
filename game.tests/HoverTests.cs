@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Stillwake.Game.Features.Logistics;
 using Stillwake.Sim.Grid;
 using Xunit;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 

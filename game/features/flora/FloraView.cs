@@ -8,6 +8,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content.Flora;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Flora;
 
@@ -224,7 +225,7 @@ public partial class FloraView : Node2D
         for (int row = Math.Max(0, (int)(view.Position.Y / Cell)); row < Math.Min(_grid.Height, (int)(view.End.Y / Cell) + 1); row++)
         {
             int cell = row * w + column;
-            if (_grid.StructureAt(cell) != Structure.Empty) return _grid.StructureAt(cell) == Structure.Wall ? row * Cell : null;
+            if (_grid.StructureAt(cell) != Structure.Empty) return _grid.WallAt(cell) != null ? row * Cell : null;
             if (_grid.BackAt(cell) != null) return null;
         }
         return null;

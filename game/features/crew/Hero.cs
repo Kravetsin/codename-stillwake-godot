@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Pack = Stillwake.Content.Jetpack;
@@ -229,7 +230,7 @@ public readonly record struct Hero(
         // Up grabs a ladder walking, running or rising too, but not for a moment after letting go of one, so a jump off it
         // with up held goes on; down grabs one standing or falling, no side held (0092).
         bool grab = !hero.Climbing && !input.Jump &&
-            (input.Y < 0 && letGo > Spec.Regrab && TouchesLadder(ship, hero.X, hero.Y, false)
+            (input.Y < 0 && letGo > Spec.Regrab && TouchesLadder(ship, hero.X, hero.Y, false, overHead: true)
                 || input.Y > 0 && input.X == 0 && hero.Vy >= 0 && TouchesLadder(ship, hero.X, hero.Y, true));
         if (grab || hero.Climbing)
         {
@@ -521,7 +522,7 @@ public readonly record struct Hero(
         if (dir < 0 && after < before && Climbable(ship, column, before) && !Climbable(ship, column, after))
             return new Hero(x, before * Unit, 0, 0, false, facing);
         if (dir < 0 && onTop) return new Hero(x, y, 0, 0, false, facing);
-        bool on = TouchesLadder(ship, x, ny, false) || dir > 0 && ny == y && onTop;
+        bool on = TouchesLadder(ship, x, ny, false, overHead: dir < 0) || dir > 0 && ny == y && onTop;
         return new Hero(x, ny, 0, ny - y, on, facing);
     }
 
@@ -601,7 +602,7 @@ public readonly record struct Hero(
     {
         int column = CellOf(x), near = x - column * Unit < Unit / 2 ? column - 1 : column + 1;
         foreach (int beside in (ReadOnlySpan<int>)[near, 2 * column - near])
-            if (TouchesLadderIn(ship, beside, y, true)) return Math.Max(column, beside) * Unit;
+            if (TouchesLadderIn(ship, beside, y, true, overHead: true)) return Math.Max(column, beside) * Unit;
         return column * Unit + Unit / 2;
     }
 
@@ -615,8 +616,8 @@ public readonly record struct Hero(
         bool floor = false;
         for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
         {
-            if (Solid(ship, c, row) || Climbable(ship, c, row) || StructureAt(ship, c, row) == Structure.HatchClosed) return false;
-            floor |= StructureAt(ship, c, row) == Structure.Floor;
+            if (Solid(ship, c, row) || Climbable(ship, c, row)) return false;
+            floor |= Has(ship, c, row, Trait.Supports);
         }
         return floor;
     }
@@ -624,14 +625,19 @@ public readonly record struct Hero(
     /// <summary>Whether a cell lets a hero fall into it from above: nothing in it blocks or holds.</summary>
     private static bool Open(Ship ship, int x, int y) => !Solid(ship, x, y) && !Holds(ship, x, y, false);
 
-    /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet.</summary>
-    private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet) => TouchesLadderIn(ship, CellOf(x), y, belowFeet);
+    /// <summary>Whether the hero's column holds a ladder beside the body, or also just below the feet, or within reach over the head.</summary>
+    private static bool TouchesLadder(Ship ship, int x, int y, bool belowFeet, bool overHead = false) =>
+        TouchesLadderIn(ship, CellOf(x), y, belowFeet, overHead);
 
-    /// <summary>Whether <paramref name="column"/> holds a ladder beside a body with its feet at <paramref name="y"/>, or also just below them.</summary>
-    private static bool TouchesLadderIn(Ship ship, int column, int y, bool belowFeet)
+    /// <summary>
+    /// Whether <paramref name="column"/> holds a ladder beside a body with its feet at <paramref name="y"/>, or also just below them,
+    /// or <paramref name="overHead"/> within its reach over the head (<c>Hero.HoldReach</c>): up takes hold of an open hatch in the
+    /// deck above from under it and climbs on into it (0112); climbing down lets go where the body leaves the ladder.
+    /// </summary>
+    private static bool TouchesLadderIn(Ship ship, int column, int y, bool belowFeet, bool overHead = false)
     {
         int last = CellOf(belowFeet ? y : y - 1);
-        for (int row = CellOf(y - Spec.Height); row <= last; row++)
+        for (int row = CellOf(y - Spec.Height - (overHead ? Spec.HoldReach : 0)); row <= last; row++)
             if (Climbable(ship, column, row)) return true;
         return false;
     }
@@ -716,34 +722,20 @@ public readonly record struct Hero(
         x < 0 || y < 0 || x >= ship.Width || y >= ship.Height ? null : ship.StructureAt(y * ship.Width + x);
 
     /// <summary>
-    /// Walls, closed doors, closed hatches, and everything past the grid's edge: a closed hatch lies in the deck, holding a walk
-    /// from above and stopping a body from below, but it is no wall beside one.
+    /// What a body stops in (<see cref="Trait.Blocks"/>, <see cref="Trait.BlocksFromBelow"/>: walls, shut doors and hatches), and
+    /// everything past the grid's edge: a shut hatch lies in the deck, holding a walk from above and stopping a body from below.
     /// </summary>
     private static bool Solid(Ship ship, int x, int y) =>
-        StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed or Structure.HatchClosed;
+        StructureAt(ship, x, y) is not int s || Structures.Is(s, Trait.Blocks | Trait.BlocksFromBelow);
 
-    /// <summary>Ladders, and an open hatch over one: a doorway lying in a deck, climbed through as a ladder is.</summary>
-    private static bool Climbable(Ship ship, int x, int y) => StructureAt(ship, x, y) switch
-    {
-        Structure.Ladder => true,
-        Structure.HatchOpen => LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1),
-        _ => false,
-    };
+    /// <summary>Whether the cell at (<paramref name="x"/>, <paramref name="y"/>) has <paramref name="trait"/>; nothing past the grid's edge does.</summary>
+    private static bool Has(Ship ship, int x, int y, Trait trait) => StructureAt(ship, x, y) is int s && Structures.Is(s, trait);
 
-    /// <summary>Whether a ladder lies <paramref name="dir"/> of the open hatch cell (x, y), past no more empty deck than a hatch is thick.</summary>
-    private static bool LadderPast(Ship ship, int x, int y, int dir)
-    {
-        for (int k = 1; k <= Doorways.Thick; k++)
-        {
-            var s = StructureAt(ship, x, y + k * dir);
-            if (s == Structure.Ladder) return true;
-            if (s != Structure.Empty && s != Structure.HatchOpen) return false;
-        }
-        return false;
-    }
+    /// <summary>What a hero climbs (<see cref="Trait.Climbable"/>): a ladder, and an open hatch, a ladder of its own (0112).</summary>
+    private static bool Climbable(Ship ship, int x, int y) => Has(ship, x, y, Trait.Climbable);
 
-    /// <summary>What holds a hero up from below only: floors, closed hatches, and a ladder's or an open hatch's top cell unless climbing.</summary>
+    /// <summary>What holds a hero up from below only: what supports (floors, shut hatches), and a climbable's top cell unless climbing.</summary>
     private static bool Holds(Ship ship, int x, int y, bool climbing) =>
-        StructureAt(ship, x, y) is Structure.Floor or Structure.HatchClosed
+        Has(ship, x, y, Trait.Supports)
         || (!climbing && Climbable(ship, x, y) && !Climbable(ship, x, y - 1));
 }

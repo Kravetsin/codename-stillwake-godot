@@ -2,6 +2,7 @@ using Stillwake.Game.Features.Light;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Xunit;
+using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
 

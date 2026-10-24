@@ -18,16 +18,8 @@ public sealed record Build(string Id, IReadOnlyList<(string Item, int Count)> Co
 /// </summary>
 public static class Builds
 {
-    public static readonly IReadOnlyList<Build> All =
-    [
-        new("floor", [("scrap", 1)], BuildTicks: 7),
-        // A piece the size of a 16 px ladder cell (0104), costing and taking what one did.
-        new("ladder", [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 2),
-        // A door segment, a 16 px door cell (0104), costing and taking what one did; segments stacked are one doorway.
-        new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2),
-        // A hatch, a door segment laid flat (0104, 0111), its own doorway: two cells wide and one tall.
-        new(Hatch, [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 1),
-    ];
+    /// <summary>Every build, the structures' own, written beside their specs (<see cref="Structures.BuildRows"/>, 0112).</summary>
+    public static IReadOnlyList<Build> All => Structures.BuildRows;
 
     /// <summary>Taking a thing apart is this many times faster than building it; its ticks round up.</summary>
     public const int DeconstructSpeedup = 2;

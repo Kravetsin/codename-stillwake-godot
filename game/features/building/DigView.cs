@@ -113,7 +113,7 @@ public partial class DigView : Node2D
         int w = _grid.Width, cx = cell % w, cy = cell / w;
         double? floor = null;
         for (int row = cy + 1; row <= cy + 12 && row < _grid.Height; row++)
-            if (_grid.StructureAt(row * w + cx) is Structure.Wall or Structure.Floor)
+            if (_grid.Solid(row * w + cx))
             {
                 floor = row * Cell;
                 break;

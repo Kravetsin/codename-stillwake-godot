@@ -10,6 +10,9 @@ using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
+using Structure = Stillwake.Content.Structure;
+using Structures = Stillwake.Content.Structures;
+using Trait = Stillwake.Content.Trait;
 
 namespace Stillwake.Game.Features.Flora;
 
@@ -378,7 +381,7 @@ public partial class CaveView : Node2D
         {
             var p = from.Lerp(to, (float)i / steps);
             int cell = (int)(p.Y / Cell) * w + (int)(p.X / Cell);
-            if (cell != own && _grid.StructureAt(cell) is Structure.Wall or Structure.DoorClosed) return false;
+            if (cell != own && Structures.Is(_grid.StructureAt(cell), Trait.Blocks)) return false;
         }
         return true;
     }

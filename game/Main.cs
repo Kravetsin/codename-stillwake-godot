@@ -42,7 +42,7 @@ namespace Stillwake.Game;
 /// Dev arguments after <c>--</c>, played on the wreck as drawn (<see cref="Registry.WreckMap"/>) unless they say otherwise: <c>--world</c> a new
 /// world as the title makes one, the wreck in the middle of the big world, kept nowhere; <c>--perf</c> the reference world (<c>--lit</c> with every lamp lit; <c>--size WxH</c> a world that
 /// large, its tiles over <c>--built WxH</c> of it from the top-left, all of it by default), <c>--gallery</c> every picture,
-/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings (<c>--segments</c> a door and a hatch of segments; <c>--hatches</c> a built hatch over a ladder and plans of doorways),
+/// <c>--view X,Y,ZOOM</c> where the camera looks, <c>--doors</c> opens and shuts doors for recordings (<c>--segments</c> a door and a hatch of segments; <c>--hatches</c> a built hatch over a ladder and plans of doorways; <c>--lone-hatch</c> a hatch between two rooms with no ladder, <see cref="Autopilot.LoneHatch"/>),
 /// <c>--autopilot</c> plays the hero by a script, <c>--gym</c> a room with a ladder for it, <c>--ladders</c> a tall one up through a hatch beside a laddered pit, or with <c>--strip</c> the strip's shaft (<see cref="HeroAutopilot.LaddersRun"/>, 0092), <c>--ledges</c> a ledge a jump steps up onto and one it falls short of (0092), <c>--hills</c> ground of one-cell steps to walk (<see cref="HillsDemo"/>), <c>--floor</c> stacks falling through a machine onto a dark floor and a step (<see cref="FloorDemo"/>), <c>--aside</c> steps the hero
 /// off the spawn, so a window recording another peer's hero there sees it whole,
 /// <c>--furnace</c> a lit furnace in the wreck, <c>--store</c> a capacitor bank filling from a panel, then emptying into an arc smelter (<see cref="Features.Power.StoreDemo"/>), <c>--testbed</c> a ready ship with every machine at work (<see cref="Testbed"/>; with <c>--open=&lt;kind&gt;</c> the hero opens that machine, <c>crate@1</c> the second crate, after <c>--open-at SECONDS</c>, or with <c>--near=&lt;kind&gt;</c> only starts beside it, <see cref="OpenDemo"/>, and with <c>--marks &lt;item&gt; --into &lt;slot&gt;</c> that machine emptied and the item carried over its slot, <see cref="MarksDemo"/>; with <c>--card=&lt;id&gt;</c> the plan is out on that build card, its tooltip shown, or with <c>--pick</c> it in hand, <see cref="CardDemo"/>), <c>--jetpack</c> it with a
@@ -196,6 +196,7 @@ public partial class Main : Node2D, ITogether
         if (Has("--floor")) _layout = FloorDemo.Map;
         if (Has("--segments")) _layout = Autopilot.Segments;
         if (Has("--hatches")) _layout = Autopilot.Hatches;
+        if (Has("--lone-hatch") || Has("--lone-hatch=open")) _layout = Autopilot.LoneHatch(Has("--lone-hatch=open"));
         if (Has("--items") || Has("--menu-demo")) _layout = ItemsDemo.Map;
         if (Has("--testbed") || Has("--jetpack") || Has("--charge") || Has("--dust")) _layout = Testbed.Map;
         if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) _layout = WreckDemo.Map;
@@ -203,7 +204,7 @@ public partial class Main : Node2D, ITogether
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
         {
-            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : Has("--ground=spire-climb") && Has("--autopilot") ? HeroAutopilot.SpireClimb() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
+            var script = Has("--poses") ? HeroAutopilot.PosesRun(Has("--host") ? 900 : 40) : Has("--ledges") && Has("--autopilot") ? HeroAutopilot.LedgesRun() : Has("--ladders") && Has("--autopilot") ? (Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun()) : Has("--aside") ? HeroAutopilot.Aside() : Has("--jetpack") ? HeroAutopilot.Jetpack() : Has("--dust") ? HeroAutopilot.Dust() : Has("--feel") ? HeroAutopilot.Feel(Has("--hills"), Has("--strip")) : Has("--fly") && !Has("--manual") ? HeroAutopilot.Fly() : Has("--ground=spire-climb") && Has("--autopilot") ? HeroAutopilot.SpireClimb() : !Has("--autopilot") ? null : Has("--gym") ? HeroAutopilot.GymRun() : Has("--lone-hatch=open") ? HeroAutopilot.LoneHatchRun() : Has("--hills") ? HeroAutopilot.HillsRun(HillsDemo.HighPlateau) : Has("--strip") ? HeroAutopilot.PlanetRun() : Has("--ground=sprint") ? HeroAutopilot.Sprint(int.Parse(Arg("--sprint") ?? "300")) : HeroAutopilot.Wreck();
             AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
             if (Has("--poses")) AddChild(new PosesDemo(script!));
             // --edge=N: the hero starts N cells past the field's left line on the world's middle row, to see the cold (0050).
@@ -691,8 +692,8 @@ public partial class Main : Node2D, ITogether
             var root = JsonNode.Parse(save)!;
             var grid = root["slices"]!["grid"]!;
             var structure = Runs.Cells(grid["structure"]!);
-            int door = Array.IndexOf(structure, Structure.DoorClosed);
-            structure[door] = Structure.DoorOpen;
+            int door = Array.FindIndex(structure, s => Doorways.IsDoor(s) && Doorways.IsClosed(s));
+            structure[door] = Doorways.Toggled(structure[door], open: true);
             grid["structure"] = Runs.Node(structure);
             save = root.ToJsonString();
             Log($"cheated: door {door} open here only");
@@ -951,8 +952,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_benches = benches);
         var ui = _hands.Ui;
         AddChild(_drones = new Features.Logistics.LogisticsView(_m.Grid, _m.Items, _m.Power, _m.Logistics, () => (_session as Session)?.Progress ?? 0,
-            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open)?.Kind == Content.Logistics.Bay ? open : null,
-            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && kind == Content.Logistics.Bay ? _hands.Mouse.Pointer() : null));
+            () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && _m.Grid.MachineById(open) is { } bay && Stillwake.Content.Machines.Get(bay.Kind).Zone ? open : null,
+            () => ui.Hand.Get() == Holding.Card && _hands.Plan.Selected.Get() is Features.Building.PlaceTool { Placement.Kind: var kind } && Stillwake.Content.Machines.TryGet(kind, out var zoned) && zoned.Zone ? _hands.Mouse.Pointer() : null));
         var power = _m.Power;
         // The fires before the light: each frame a fire picks its picture, then its light follows it.
         var fires = new FurnaceView(_m.Grid, _m.Furnace);
@@ -998,7 +999,7 @@ public partial class Main : Node2D, ITogether
     private void AimCamera(Layout? layout)
     {
         // Where the crew makes heroes: the pod's hatch, or the map's S; a map with neither is looked at whole.
-        bool made = layout != null && (layout.CellsOf('S').Any() || layout.Machines().Any(m => m.Kind == "lifepod"));
+        bool made = layout != null && (layout.CellsOf('S').Any() || layout.Machines().Any(m => Stillwake.Content.Machines.Get(m.Kind).Fixed));
         int start = made ? _m.Crew.Spawn : -1;
         if (Has("--perf")) _camera.Fit(new Rect2(0, 0, _m.Grid.Width, _m.Grid.Height));
         else if (start >= 0) _camera.Follow(new Vector2(start % _m.Grid.Width + 0.5f, start / _m.Grid.Width));
@@ -1171,7 +1172,7 @@ public partial class Main : Node2D, ITogether
     {
         if (_doors.Count == 0)
             for (int cell = 0; cell < _m.Grid.Width * _m.Grid.Height; cell++)
-                if (_m.Grid.StructureAt(cell) == Structure.DoorClosed) _doors.Add(cell);
+                if (Doorways.IsDoor(_m.Grid.StructureAt(cell)) && Doorways.IsClosed(_m.Grid.StructureAt(cell))) _doors.Add(cell);
         int at = _start + 30;
         if (before < at && client.World.Tick >= at && _doors.Count > 1)
         {

@@ -79,7 +79,7 @@ public sealed class FurnaceModule : Module<FurnaceState>
         bool burning = Burning(id);
         var machine = _grid.MachineById(id);
         if (machine == null) return new Smelting(burning);
-        bool smelter = machine.Kind == Smelter;
+        bool smelter = Content.Machines.Get(machine.Kind).Inputs > 0;
         var input = smelter ? SlotItem(_items.Crate(id), 0) : null;
         // What a furnace does not smelt, a seed (0060), sits in its input as if it held nothing.
         int? work = input == null ? null : _crafting.WorkOf(id);
@@ -180,10 +180,11 @@ public sealed class FurnaceModule : Module<FurnaceState>
     private int Light(Machine m, int cell)
     {
         if (cell < 0 || FuelIn(m) is not int burns) return 0;
-        if (m.Kind == Smelter && !_crafting.CanSmelt(m.Id)) return 0;
+        var spec = Content.Machines.Get(m.Kind);
+        if (spec.Inputs > 0 && !_crafting.CanSmelt(m.Id)) return 0;
         // A generator burns only what its network would take: a fuel lit burns to its end, the next waits (0101).
-        if (m.Kind == Generator && !_power.Needed(m.Id)) return 0;
-        _itemsOps.Consume(m.Id, Content.Machines.Get(m.Kind).FuelSlot!.Value);
+        if (spec.Makes != null && !_power.Needed(m.Id)) return 0;
+        _itemsOps.Consume(m.Id, spec.FuelSlot!.Value);
         return burns;
     }
 }

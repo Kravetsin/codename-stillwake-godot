@@ -8,7 +8,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 ## Domains
 
 **Ship building**
-- Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Structure`, `Placement`, `SetDoor`; `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
+- Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
 - Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`; c/`Builds.cs`
 - Rooms — sim/Rooms: `Rooms.cs` RoomsModule (rooms from walls and doors). Drawn: r/`ShipTiles.cs`, `BlueprintArt.cs`, `DoorShape.cs`
 
