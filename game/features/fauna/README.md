@@ -65,7 +65,7 @@ axe's blade and the drill's bit are tested against each creature's body as again
 
 `-- --planet --fauna[=species|look]` lets six creatures out either side of the hero (`dev/FaunaDemo`, the sim's
 `Release`); `--ground=band1 --fauna=fluff --manual` in a cave. `--fauna-trace` logs strides and looks; `--fauna-herd` ten
-of a kind in a row; without `--manual` `dev/FaunaHands` hunts them with the axe, then the drill. `--fauna-drill` holds the
+of a kind in a row; without `--manual` `dev/demos/FaunaHands` hunts them with the axe, then the drill. `--fauna-drill` holds the
 drill on one loper; `--strip --fauna --fauna-course` puts a loper by the strip's walls and shaft for its leaps.
 
 ## Deliberately not handled

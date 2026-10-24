@@ -14,4 +14,8 @@
     <ProjectReference Include="../sim/Registry/Registry.csproj" />
     <ProjectReference Include="../net/Net/Net.csproj" />
   </ItemGroup>
+  <!-- Demos are cheats in effect: a release build has none (game/dev/demos/README.md). CI builds this too. -->
+  <ItemGroup Condition="'$(Configuration)' == 'ExportRelease'">
+    <Compile Remove="dev/demos/**;**/*Demo.cs" />
+  </ItemGroup>
 </Project>

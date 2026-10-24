@@ -30,3 +30,5 @@ jobs:
       # The game builds without the Godot editor: Godot.NET.Sdk comes from NuGet. Analyzers fail it.
       - run: dotnet build Stillwake.sln --no-restore
       - run: dotnet test Stillwake.sln --no-build
+      # The release build drops the demos (game/dev/demos, *Demo.cs): kept code naming one fails here, not at release.
+      - run: dotnet build game/Stillwake.Game.csproj -c ExportRelease --no-restore

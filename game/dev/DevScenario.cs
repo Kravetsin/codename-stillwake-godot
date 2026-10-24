@@ -27,7 +27,7 @@ public sealed class DevAttribute(string name, string doc) : Attribute
 }
 
 /// <summary>
-/// One dev scenario (docs/plans/dev-scenarios.md): what a run started with its <see cref="DevAttribute"/> plays, each hook
+/// One dev scenario (game/dev/demos/README.md): what a run started with its <see cref="DevAttribute"/> plays, each hook
 /// overridden where it differs from a plain run. Found by <see cref="DevScenarios"/>; Main names none.
 /// </summary>
 public abstract class DevScenario
