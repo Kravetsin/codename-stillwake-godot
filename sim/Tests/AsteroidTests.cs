@@ -370,6 +370,8 @@ public class AsteroidTests
         foreach (var zone in DebrisSpec.Zones)
             if (pieces.Count(p => p.Zone == zone.Id) is var n && n > zone.Max) return $"{n} pieces of {zone.Id} out";
         int width = w.M.Grid.Width, height = w.M.Grid.Height;
+        var heroes = w.M.Crew.Heroes.Where(h => h.Cell >= 0 && h.Cell < width * height).Select(h => (X: h.Cell % width, Y: h.Cell / width)).ToList();
+        bool Seen(int x, int y) => heroes.Any(h => Math.Abs(x - h.X) <= DebrisSpec.View.X && Math.Abs(y - h.Y) <= DebrisSpec.View.Y);
         foreach (var p in pieces)
         {
             if (p.Id <= last) continue;
@@ -382,7 +384,10 @@ public class AsteroidTests
             int row = p.Y / 1000;
             bool above = row >= top - Band.To && row <= top - Band.From, below = row >= bottom + Band.From && row <= bottom + Band.To;
             if (!above && !below) return $"asteroid {p.Id} in row {row}, the hull's rows {top} to {bottom}";
-            if (p.Start != Math.Min(width - 1, right + Band.Lead) * 1000 + 500 || p.End != Math.Max(0, left - Band.Lead) * 1000)
+            // On its lead, or farther right where no hero sees it start but at the grid's last column, as the stream's.
+            int lead = Math.Min(width - 1, right + Band.Lead), start = p.Start / 1000;
+            bool onLead = Seen(lead, row) && lead < width - 1 ? start > lead && (!Seen(start, row) || start == width - 1) : start == lead;
+            if (!onLead || p.Start % 1000 != 500 || p.End != Math.Max(0, left - Band.Lead) * 1000)
                 return $"asteroid {p.Id} not on its lead";
         }
         return null;
