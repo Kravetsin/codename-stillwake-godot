@@ -100,7 +100,8 @@ public sealed class RoomsModule : Module<RoomsState>
 - Derived state is marked `[JsonIgnore]` and rebuilt in `Rebuild()`; it is never saved or hashed, so
   it may hold anything. The module keeps it current while the world runs.
 - A saved field added with an initializer that means "none yet" needs no format bump. Removing or renaming one,
-  changing what it means, or adding a module bumps `World.SaveFormat` with its step in `Migrations`.
+  changing what it means, or adding a module bumps `World.SaveFormat` with its step in `Migrations`
+  ([added-save-fields-need-no-bump](docs/decisions/2026-10-24-added-save-fields-need-no-bump.md)).
 - Commands are records deriving from `Command`, validated when they apply, on their stamped tick. A
   refused command returns a reason, an i18n key `<moduleId>.<why>`, and leaves state untouched.
   Validate game rules, not payload shapes. Throwing is for broken invariants — our bugs.
@@ -187,8 +188,8 @@ in the sim.
 - Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
 - A non-trivial feature: `design-author` → `design-reviewer` → a plan in `docs/plans/` → `/review-plan`
   → implementation → `/review-implementation` → human review.
-- Docs: decisions in `docs/decisions/` (numbered; a changed decision gets a new ADR that supersedes the
-  old one), the game in `docs/concept.md`, plans in `docs/plans/` — deleted once done, after what stays
+- Docs: decisions in `docs/decisions/` (a new one `YYYY-MM-DD-two-words.md`, titled `# Title`, named by its slug, so
+  two developers never take the same number; a changed decision gets a new ADR that supersedes the old one), the game in `docs/concept.md`, plans in `docs/plans/` — deleted once done, after what stays
   true moves into an ADR, a module README or the concept.
 - Keep this file short. Detail about a module belongs in its README.
 
