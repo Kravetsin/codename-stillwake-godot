@@ -10,166 +10,82 @@
 | `SoundView.cs` | The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass falling as it … |
 | `Strikes.cs` | A train of one-shots heard while something works, apart from what it does (0054): the drill's strikes, a hammer … |
 
-The first sound pass (ADR 0033), what is heard in space (0042), machines heard at work (0059), drones (0062) and a planet (0093). Presentation only: nothing in
-`sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
+What is heard (0033), in space (0042), machines at work (0059), drones (0062) and a planet (0093). Presentation only:
+nothing in `sim/` or `net/` makes or knows of a sound; each peer plays what it sees.
 
-| File                           | Holds                                                                                          | Godot |
-| ------------------------------ | ---------------------------------------------------------------------------------------------- | ----- |
-| `game/Content/Sound.cs`        | every cue's files and volume, the bus names, the muffle's, the bed's and the alarm's tunables  | no    |
-| `game/default_bus_layout.tres` | the buses: Master → UI, Ambient, Music, Effects → World (a low-pass), Suit (a low-pass and a low shelf), Helmet | — |
-| `game/shared/Cues.cs`          | a cue's stream (a randomizer over its files, ±6% pitch, or a loop) and its players, at its tune | yes   |
-| `game/shared/ActSound.cs`      | an action's sound on Suit: the click aboard, the glove's thump floating; crew and items each hold one | yes   |
-| `game/shared/Heard2D.cs`       | a sound placed in the world, as loud as its distance from the screen's middle says              | yes   |
-| `Hearing.cs`                   | the buses at a share of the way into space (`Mix`), and the easing of a share                   | no    |
-| `Strikes.cs`                   | a train of one-shots at a rate, each its own pitch and volume (`StrikeTrain`); a loop's attack and release (`LoopEnvelope`); a one-shot in step with a picture (`FrameBeat`); one-shots at random moments (`RandomTrain`) | no    |
-| `Motors.cs`                    | a motor's spin and load, and from them its pitch scale and volume (`MotorSound`); a touch held on past a flicker (`TouchHold`) | no    |
-| `GroundSounds.cs`              | a planet heard (0093): what the boots stand on (`FootingOf`), and from `Sound`'s tables the step, push-off and landing by it, any tool's hit by the wall or growth it lands on (a drill's every Nth, quieter), a wall's break, a growth's fall. A ground hit is heard where it is seen, on the face of the cell turned toward the hero (`Impacts.On`); how it looks is the table beside `Sound`'s (`HitLooks`, 0094) | no    |
-| `game/shared/Voices.cs`        | players of whichever cues something plays, one a cue, made as first played: the boots, the ground's hits, breaks and falls | yes   |
-| `SoundView.cs`                 | the hearing: button clicks, the muffle while floating, the title's music and the bed of space   | yes   |
-| `game/audio/`                  | the files, one-shots as WAV and loops as OGG looped on import; `CREDITS.md`, CC0 or marked placeholders. Synthesised loops and pops are rendered offline from the audition's parameters (deterministic seeds; a loop's second of two periods kept, so it closes on itself; −23 dBFS RMS) | — |
+Elsewhere: `game/Content/Sound.cs` (cues and tunables); `game/default_bus_layout.tres` (Master → UI, Ambient, Music,
+Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Heard2D.cs`, `Voices.cs`; `game/audio/`
+(WAV one-shots, OGG loops; `CREDITS.md`: CC0 or marked placeholders).
 
-- **Owns:** the hearing. `Main` adds `SoundView` first, asking it whether this player's placed hero
-  floats out in space (`HeroView.Floats`). The title, a world with no hero yet and the dev worlds
-  never float. Nor does a planet (0076): its open air carries sound as a room's does.
-- **Floating (0042):** over `Sound.MuffleMs` the World bus's low-pass eases from `ClearHz` to
-  `MuffledHz` (in log space) as the bus fades out to silence; over the same time the Suit bus — what
-  the hero itself touches — dulls to a thud: its low-pass (24 dB an octave) falls to `SuitMuffledHz`
-  and its low shelf under `SuitLowsHz` rises to `SuitLowsGain`, and the bus rises `SuitFloatingDb` (6 dB, 0059), so
-  what the hero touches stands out of the bed. Nothing touched leaves the muffle, the jetpack neither (0059).
-  Helmet, the alarm's, is never touched.
-  The reverse back aboard. `Hearing.At` gives the settings, `SoundView` sets them.
-- **Reach:** a sound placed in the world carries as its cue's `Sound.Reach` says: full volume up to
-  `Full` cells from the middle of the screen (the hero), then fading as the square of what is left of
-  the way to `Silent`, where it stops. A vent hums loud only close by (3 → 10), doors and venting carry far
-  (6 → 24). Every station at work carries alike (`Sound.StationReach`, 2 → 10, 0059) and is about as loud as the
-  next: about −32 LUFS at its loudest 400 ms within 4 cells, under a step, a door or any tool. Godot's own fall-off has no
-  full-volume stretch, so `Heard2D` turns it off and sets the volume each frame; Godot still pans.
-- **Tool idle** (`Sound.ToolIdleDb`, −8 dB): the one volume of every tool sound made while it works nothing, the drill's
-  motor running free (`DrillWhir`) and the axe's swing (`Swing`). Their files are levelled alike, the whir's grains as a
-  train at their rate and each swing at −23.4 LUFS momentary, so turning this one value raises or lowers them together and
-  they stay matched; a new idle tool sound is levelled the same and played at it, never given a level of its own.
-- **Music** on the Music bus, each a loop at a share of its volume, stopped once silent: the title's
-  track (0035) faded in over `Sound.MusicFadeS` while the title is shown and out once it is gone; the
-  bed of space (`Sound.Space`, 0042) faded in over `SpaceInS` while the hero floats and out over
-  `SpaceOutS` back aboard, where the vents' hum takes over; 11 dB under the title's track (0059).
-- **Reset:** the `AudioServer` outlives `ReloadCurrentScene` (exit to title), so `SoundView._Ready`
-  sets the World and Suit buses clear again.
-- **Clicks:** every `BaseButton` in the tree, found once on `_Ready` and then by `SceneTree.NodeAdded`,
-  its `Pressed` connected once (a reparented button enters the tree again); and whatever asks through `Ui.Clicked`
-  (wired by `Main`, 0081): every inventory action and a canister breathed. `Sound.Click` on UI at −12 dB, its pitch
-  ±6 %, once a frame at most however many ask.
-- **Hooks elsewhere**, each feature owning its players as children, never in a static:
-  - `crew/Figure.cs` — boots on the hollow metal deck: a step at each half stride walking or running;
-    a jump's push-off (`Sound.Jump`) as the hero leaves the deck or a ladder rising at least half a
-    jump's speed (`Poses.Jumped`), so walking off an edge, falling, makes none; a landing coming down
-    from the air (`Poses.Landed`), not at a jump's top where the controller leaves a step without
-    speed. The landing is the steps' own files, 4 dB louder and at 0.85 of their pitch (`Cue.Tune`).
-    On a planet (0093) each by what the boots stand on (`Figure.Footing`, set by `HeroView` from
-    `GroundSounds.FootingOf`, kept from the last ground in the air): grass, moss (the grass step 4 dB quieter), soil, stone
-    (plaster too) and alloy each their step, a jump pushing off with it; on natural ground a soft landing under
-    `HeroMotion.Landing.Heavy` and a heavy one from it, `LandSoftestDb` quieter and higher at a light fall; on alloy its step
-    landing as the deck's (`Sound.LandAlloy`). All on World: this player's hero heard the same anywhere, the others' positional
-    (`AudioStreamPlayer2D`), their jumps read from their sent motion as their own peer's are; nothing
-    new goes over the wire.
-  - `crew/HeroView.cs` and `items/ItemsView.cs` — on Suit, through `ActSound`: the one soft action click
-    (`Sound.Act`) for a crate opened, a canister loaded, debris caught, an item picked up; while this
-    player's hero floats (`HeroView.Floats`, which the hearing reads too) the glove's low thump
-    (`Sound.ActInSpace`) in its place, dulled by the Suit muffle like all there is (0042).
-  - `crew/HeroView.cs` — this player's harpoon (0044), on Suit: the shot (`Sound.Shot`) as the rod
-    leaves; the rod biting where it struck, the frame it does, `Sound.Chop` on metal (a wreck or salvage)
-    or the action's thump (`ActSound`) on a crate or pod; the drum (`Sound.Drum`, a loop) from the click
-    that reels till the piece is in or the line comes free, never on a miss; and `Sound.Ready` as the
-    hero's cooldown ends with a harpoon in hand, the gun ready, not the rod back. No sound of the line
-    going taut. Others' harpoons (0065) on World where they are, at `Sound.ToolReach` (10 → 40 cells), as
-    their steps are, so silent while this hero floats: the shot at the gun, the bite where the rod sticks
-    (`Sound.Chop`, or `Sound.ActInSpace` on a crate or pod), the drum at the gun, one looped player a hero, while
-    it reels or pulls; no ready cue.
-  - `crew/HeroView.cs` — this player's drill (0054, 0059), on Suit at its bit: its motor whenever it spins
-    (`Sound.DrillWhir`), grains of a drill running free, never a looped recording: `DrillWhirGrainsPerSecond` (9) a
-    second times the motor's speed, each its pitch ±`DrillWhirPitch` (2%) about that speed (`StrikeTrain`), the speed and
-    volume from `MotorSound` with `Sound.DrillMotor`: spun up and down with the bit's picture (`HeldLook.SpinUpMs`, 120 and
-    700 ms), pitch 0.35 + 0.65·spin, full volume from two thirds of its spin, and on a piece 8% lower and 3 dB quieter,
-    eased in over 60 ms and out over 150 ms. While it runs with its bit on a piece the sim would let it hit, held on
-    `DrillTouchHoldS` (0.1 s) after the bit last was (`TouchHold`), so grazing an edge never breaks into bursts, the
-    motor is loaded. Its hits on a wreck sound as a wreck does, `Sound.Chop`, one each as it is sent, `DrillHitDb` quieter
-    (0093); the old pickaxe strikes are gone.
-    This player's axe (0068), on Suit, every swing, a wreck hit or nothing: `Sound.Swing`, a staff's whoosh, one of four,
-    its pitch ±8%, begun at `AxeSwing.WhooshMs` so its loudest moment (`Sound.SwingPeakS` into each file) falls in the
-    middle of the downstroke, some 20 ms before the blade crosses the line; muffled in space as the chop is. Others' swings are
-    silent, as their chops are. And this player's jetpack (0047), on Suit, muffled out in space
-    as all there is: `Sound.Thrust`, a loop, while it thrusts, played loud (+3 dB) so its hiss comes through the muffle
-    about 6 dB under the bed of space (0059),
-    risen over `ThrustAttackS` (40 ms) and fallen over `ThrustReleaseS` (140 ms), linear in amplitude
-    (`LoopEnvelope`), then stopped; and a canister breathed (`Sound.AirFill`, −6 dB), on the Helmet bus so floating never muffles its hiss away, a
-    friend's on World where it is; breathing room air again (`Sound.Inhale`), once, on Helmet too (0081). Others' drills and
-    jetpacks are silent.
-  - `power/ChargerLights.cs` — each charging station, on World where it stands: `Sound.ChargerHum`, a
-    positional loop faded in over `HumInS` while it charges and out over `HumOutS`, begun
-    somewhere along its 4 s; and `Sound.ChargeFull` once as a battery charging there comes full
-    (`Charges.CameFull`), not when one is put in full. The hum is a station's (0059).
-  - `logistics/LogisticsView.cs` — drones (0062), on World where they are, a station's reach, all quieter than a
-    station at work (−32 LUFS): each drone's rotors (`Sound.DroneWhir`, the audition's synth "Fan", −36 LUFS standing),
-    one positional loop a drone, begun somewhere along its 2 s, its motor (`MotorSound` with `Sound.DroneMotor`) spun up
-    over 0.5 s from 0.4 of its pitch as it lifts off and down over 0.7 s once it touches down or drops, its volume full
-    from two thirds of its spin. From the drone's drawn speed, 0 to 1 of a cruising drone's: its pitch 6% higher and its
-    volume 2 dB louder at full speed; a wobble of three slow sines (0.7, 1.9 and 4.3 Hz, shares 0.5, 0.3, 0.2, each
-    drone its own phases) sways its pitch ±12 cents and its volume ±0.5 dB; each drone is tuned within ±4% by its id,
-    so a few never hum in unison (`logistics/Whir.cs`). A thud (`Sound.DroneDock`, a soft impact and a latch 60 ms
-    after it, −33 LUFS) as a drone lifts off its pad and as it touches down on one, the same sound both ways, as the user
-    picked; a click (`Sound.DroneGrab`, a small plastic switch, −35 LUFS) as its clamp takes a stack and as it puts some
-    or all of it in (`Served.Gripped`). No warning for a low drone: its blinking amber lamp says it.
-  - `crafting/StationSounds.cs` — each station at work (0059), on World at its middle, told every frame by
-    `StationView` whether it works (`CraftingModule.Works`) and which step of its pictures it shows, each machine its
-    own players. The Former: `Sound.FormerStroke` once each time its pictures pass the one its head comes down on (the
-    third of four, every 0.44 s; `FrameBeat`, so a slow frame still strikes once), its pitch ±`FormerStrokePitch` (15%)
-    and volume ±`FormerStrokeVolumeDb` (1.5 dB); under it `Sound.FormerMotor`, a loop driven by `MotorSound` with
-    `Sound.FormerSpin`: spun up over 0.6 s from half its pitch, run down over 0.8 s after it stops, kicked 3% lower at
-    each stroke and back over 120 ms. The electric smelter: `Sound.SmelterHum`, a loop risen over `SmelterHumInS` and
-    fallen over `SmelterHumOutS` (`LoopEnvelope`), and its melt's pops (`Sound.SmelterCrackle`, six synthesised one-shots)
-    at random moments, `SmelterCracklesPerSecond` (2) on average (`RandomTrain`), each ±`SmelterCracklePitch` (10%) and
-    up to `SmelterCrackleLowDb` (10 dB) quieter. Loops begin somewhere along themselves. Each station as loud as the
-    next; the Former's stroke only 3 dB over its motor, so it never pounds.
-  - `grid/GridView.cs` — on World, where it stands: a door opening or closing (once, at its top cell)
-    and a valve turned, found as the drawing catches up with the grid, so anyone's are heard and this
-    player's own at once (0014).
-  - `furnace/FurnaceView.cs` — each burning furnace's or burner generator's crackle, a positional loop on its fire, a station's (0059), begun at
-    a random point so two fires never crackle in step.
-  - `crew/SuitGauge.cs` — on Helmet, the alarm every `Sound.AlarmEveryS` while the suit runs low; none
-    passed out.
-  - `building/BuildingView.cs` — the screwdriver's ratchet: one positional player, four voices, moved
-    to each plan as its work sparks.
-  - `debris/DebrisView.cs` — on Suit, where the wreck is: this player's own axe's chop (`Sound.Chop`,
-    0034) as the drawing sees the wreck's damage rise, and the break where a wreck its own hit broke
-    bursts. Own is told by `debris/OwnHits.cs`: a `Hit` of this peer's that has left `Client.InFlight`
-    since the last frame. Another hero's hit is silent: a wreck is only out in space (0042).
-  - On a planet (0093), all on World where it happens but this hero's own hits, on Suit:
-    `crew/HeroView.cs` — every tool's hit sounds as what it hits (`GroundSounds.HitAt`, one table for all): the axe's as its
-    blade strikes, this hero's and a friend's as its swing is played; the drill's at its hit pace as the dig goes out (a friend's
-    from what the client knows: the sim's `Items.Running` and its sent `Busy` bit), every hit (the drill's 10 a second),
-    `DrillHitDb` under the axe's, on 5 voices (6 for friends). The drill keeps its motor's whir. A hero touching lava hisses
-    (`Sound.LavaBurn`) at once and every `LavaBurnEveryS` while it burns. `building/DigView.cs` — a cracked wall broken out, by
-    its material (`Sound.Ground`). `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` — a growth felled, by its
-    kind (`Sound.Growths`; `Sound.Unheard` none); `CaveView` a drip where it splashes, at most one every `CaveDripLeastS` to
-    `CaveDripMostS`. `grid/LavaView.cs` — the rumble (`Sound.LavaBed`) at the open lava nearest the view's middle while any is
-    in its reach, and its bubbles (`Sound.LavaBubble`, `RandomTrain`) at open cells in it.
-  - `atmosphere/AirView.cs` — two looped positional players, each at its source nearest the middle
-    of the screen and stopped without one: the hiss at a venting stream, and the ship's hum at a vent
-    with oxygen behind it (its room's networks hold some or make some). The hum is the vents', not the
-    air's: a room aired by a pod alone, or the oxygen run out, is quiet.
+## Rules
+
+- **Owns** the hearing. `Main` adds `SoundView` first; it asks `HeroView.Floats` whether this player's hero floats in
+  space. The title, a world with no hero, the dev worlds and a planet (0076) never float.
+- **Floating** (0042): over `Sound.MuffleMs` the World bus's low-pass eases to `MuffledHz` as it fades to silence; the
+  Suit bus, what the hero touches, dulls to a thud (low-pass to `SuitMuffledHz`, low shelf up) and rises
+  `SuitFloatingDb` (0059). Helmet, the alarm's, is never touched. The reverse back aboard (`Hearing.At`).
+- **Reach** (0033, 0059): a placed sound is full up to its cue's `Reach.Full` cells from the screen's middle, then fades
+  as the square of the way left to `Silent`. Every station at work carries alike (`Sound.StationReach`) and about as
+  loud as the next. `Heard2D` turns Godot's fall-off off and sets the volume each frame; Godot still pans.
+- **Tool idle** (0068): every tool sound made while it works nothing (`DrillWhir`, `Swing`) plays at the one
+  `Sound.ToolIdleDb`; a new one is levelled alike, never given a level of its own.
+- **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows; the bed of
+  space (`Sound.Space`) while the hero floats, the vents' hum taking over aboard.
+- **Reset** (0033): the `AudioServer` outlives `ReloadCurrentScene`, so `SoundView._Ready` sets World and Suit clear.
+- **Clicks** (0033, 0081): every `BaseButton` in the tree (found on `_Ready`, then by `NodeAdded`, connected once) and
+  whatever asks through `Ui.Clicked` (inventory actions, a canister breathed): `Sound.Click` on UI, once a frame at most.
+- **Loops begin somewhere along themselves** (no ADR), so two never play in step.
+
+## Hooks elsewhere
+
+Each feature owns its players as children, never in a static.
+
+- `crew/Figure.cs` (0033, 0093): steps at each half stride; a push-off as the hero leaves the deck or a ladder rising
+  (`Poses.Jumped`), never walking off an edge; a landing from the air (`Poses.Landed`). On a planet by `Figure.Footing` (from `GroundSounds.FootingOf`, kept in the air), a soft or
+  heavy landing by `HeroMotion.Landing.Heavy`. On World; others' positional, their jumps read from their sent motion.
+- `crew/HeroView.cs`, `items/ItemsView.cs` (0033, 0042): on Suit through `ActSound`, the action click (`Sound.Act`)
+  for a crate opened, a canister loaded, debris caught, an item picked up; floating, the glove's thump (`ActInSpace`).
+- `crew/HeroView.cs`, harpoon (0044, 0065): own on Suit: the shot, the bite (`Chop` on metal, the action's thump on a
+  crate or pod), the drum loop while it reels (never on a miss), `Sound.Ready` as the cooldown ends with it in hand.
+  Others' on World at `Sound.ToolReach`, silent while this hero floats; no ready cue.
+- `crew/HeroView.cs`, drill (0054, 0059): on Suit, its whir as grains in a `StrikeTrain`, never a looped recording,
+  rate and pitch by `MotorSound` (`Sound.DrillMotor`), spun with the bit's picture; loaded on a piece the sim would let
+  it hit, held `DrillTouchHoldS` (`TouchHold`). Its hits on a wreck are `Chop`, `DrillHitDb` quieter (0093).
+- `crew/HeroView.cs`, axe (0068): `Sound.Swing` every swing, its peak mid downstroke. Jetpack (0047, 0059): `Sound.Thrust` loop on Suit while it thrusts (`LoopEnvelope`). A canister breathed
+  (`AirFill`) and room air again (`Inhale`) on Helmet (0081), a friend's on World. Others' swings, drills, jetpacks:
+  silent.
+- `power/ChargerLights.cs` (0059): `ChargerHum` while charging; `ChargeFull` once as a battery comes full there
+  (`Charges.CameFull`), not when put in full.
+- `logistics/LogisticsView.cs` (0062): each drone's rotors (`DroneWhir`, `MotorSound` with `DroneMotor`), tuned by id
+  (`logistics/Whir.cs`) so a few never hum in unison; `DroneDock` at lift-off and touch-down; `DroneGrab` as its clamp
+  takes or puts. No warning for a low drone: its amber lamp says it.
+- `crafting/StationSounds.cs` (0059): told each frame by `StationView` whether it works (`CraftingModule.Works`) and
+  its picture step. The Former: a stroke on the picture its head comes down on (`FrameBeat`), over its motor loop
+  (`FormerSpin`), never pounding. The smelter: its hum (`LoopEnvelope`) and pops at random moments (`RandomTrain`).
+- `grid/GridView.cs` (0014): a door opening or closing and a valve turned, found as the drawing catches up, so anyone's
+  are heard and this player's at once.
+- `furnace/FurnaceView.cs` (0059): each burning furnace's or generator's crackle loop on its fire.
+- `crew/SuitGauge.cs` (0033): on Helmet, the alarm while the suit runs low; none passed out.
+- `building/BuildingView.cs` (0033): the screwdriver's ratchet at each plan as its work sparks.
+- `debris/DebrisView.cs` (0034, 0042): on Suit, this player's own chop as the wreck's damage rises, and the break of a
+  wreck its own hit broke; own told by `debris/OwnHits.cs` (a `Hit` of this peer's that left `Client.InFlight`).
+  Another hero's hit is silent: a wreck is only in space.
+- On a planet (0093, 0094), on World but own hits on Suit: `crew/HeroView.cs` plays every tool's hit as what it hits
+  (`GroundSounds.HitAt`), heard on the face turned toward the hero (`Impacts.On`); the drill at its hit pace, a
+  friend's from `Items.Running` and its `Busy` bit; lava's hiss (`LavaBurn`). `building/DigView.cs` a wall broken, by
+  material. `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` a growth felled, by kind (`Sound.Unheard`
+  none); cave drips. `grid/LavaView.cs` the rumble at the nearest open lava and its bubbles.
+- `atmosphere/AirView.cs` (0033): the hiss at the nearest venting stream, the hum at the nearest vent with oxygen
+  behind it (the vents', not the air's).
 
 ## Deliberately not handled
 
-- Music in a world beyond the spacewalk; volume sliders (the bus names are their contract).
-- Reverb by room size, occlusion by walls, Doppler; one hiss however many breaches vent.
-- Silence by the room's air: only floating mutes the world (0033).
-- Other heroes' clicks, alarms and swings; swim, passing out, plans placed
-  and finished, the analyzer and the pod, the inventory and the hand-drawn controls (`SlotBox`,
-  hotbar): later passes.
-- A jump with its head against a ceiling at once has no speed to read and is silent; another's jump
-  heard more than ten steps into its rise (a send held up that long) is missed.
-- A loop still playing as the game quits is reported by Godot as leaked at exit; harmless.
-- The circuit assembler is silent till its audition. A station taken down mid-work stops at once, without running
-  down. The Former strikes from its first picture down, not once its motor is at speed as the audition did: the
-  stroke follows the head seen, and the head moves at once.
-- On a planet (0093): ladders, cave air and surface wind, as the user chose; a friend's drill's whir; rugs underfoot sound as the floor under them; the deck's landing keeps one loudness whatever the fall. A
-  wall broken without a crack first would be silent, but no weapon breaks one in a hit.
+- Music beyond the title and space; volume sliders (the bus names are their contract).
+- Reverb, occlusion, Doppler; one hiss however many breaches vent. Silence by the room's air (0033).
+- Other heroes' clicks, alarms and swings; swim, passing out, plans placed and finished, the analyzer, the pod, the
+  inventory and hand-drawn controls: later passes.
+- A jump with its head at a ceiling is silent; another's jump heard more than ten steps into its rise is missed.
+- The circuit assembler is silent till its audition. A station taken down mid-work stops at once. The Former strikes
+  from its first picture, not once its motor is at speed.
+- On a planet (0093): ladders, cave air and wind; a friend's drill's whir; rugs sound as the floor under them; the
+  deck's landing has one loudness. A wall broken without a crack first would be silent; no weapon does that.

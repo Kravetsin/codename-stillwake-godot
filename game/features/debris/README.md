@@ -1,138 +1,91 @@
 # debris (client)
 
-The debris drifting past the ship (`apps/game/src/features/debris/`, G-08). Drawn only: the sim
-(`sim/Debris`) spawns, moves and hands out what a catch gives. Catching is the hero's hands, aimed as
-everything else E works is (`features/crew`, `Aiming.AimAt`), which send `Grab`; breaking wreckage
-with a weapon, the fire axe or the drill, is the hands too, which send `Hit` (0034, 0054).
-
-- **Reads:** `DebrisModule.Pieces`; `Client.InFlight` — its own grabs (`Shared.Predicted.Grabbing`) and hits (`OwnHits`);
-  `Ui.AimedPiece` — the piece the crew's hands would catch or chop; `Ui.Heroes` — who most likely
-  struck a piece; `Session.Progress`.
-- **Only what the camera sees (0052):** a piece gets a picture only while its middle is within the
-  camera's view (`ShipCamera.View`) and 8 cells round it, and only those are drawn between ticks and
-  faded. Pictures come from two pools, a wreck's and a small piece's, that grow to the most ever on
-  screen and never free, 48 small and 32 wrecks made in `_Ready` so a cloud drifting in makes none;
-  every debris texture is loaded there too. Only wrecks take the cracking
-  material: a small piece is `Lit` plain, with no instance uniforms. A piece leaving the view goes back
-  to its pool; one gone from the world while drawn may burst, as below. With 300 pieces out round the
-  hero and some 35 drawn, the debris section costs 0.03 ms a frame on average (0.20 before) and
-  allocates nothing (`-- --fly --far=300 --frames`).
-- **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece
-  wears one of its kind's own pictures (`art/debris`, `Content/DebrisLooks`: 12 of scrap, 12 of hull, 8 crates, 4 pods, one picture of each wreck: a hull section, a machine block 48 × 32, a cargo container and a shield slab 64 × 32, a cable rack and a tank cluster 32 × 32, three of a soil clod 32 × 32 (a clod of earth with a sprout, roots trailing, one in the snapped corner of its teal tray, one with a strip of steel in it, 0060), six pictures of each of the asteroid's kinds, grey rock with craters, cracks and a cleaved face here and there, an asteroid 32 × 32, small 24 × 24, large 48 × 48 and ore-rich 40 × 40 in a darker, warmer rock with thick gold veins, nuggets and a glint (0056), and four of each derelict, an engine block 80 × 48 (its bell, gears, turbine and torn mount, in a darker steel), a cargo hold 96 × 48 (ribbed hull, a striped door, crates, planks and canisters in a tear) and a pod cluster 64 × 64 (lifepods on a torn frame, canisters, a circuit), drawn of what they break into (`DebrisLooks.Wrecks`, the box they are aimed at and struck by)), the one its id picks, so every peer sees it alike and pieces in a row differ; a pixel of art a pixel of the world; a kind with none is its item's picture (`ItemIcons`), 0.8 of a cell; lit by the stars and the lamps, between ticks
-  at `X − Speed × Progress`, or reeled by a harpoon its share of the way to its reel's point
-  (`Shared.PieceDrawn`, where the crew's rod sticks to it too), so it glides, tumbling a turn every 4 s each its own way, at full
-  strength from the first frame (it spawns out of sight; no fade since 0052); a wreck only rocks, 0.08 rad
-  either way every 7 s, so its picture stays where the aim tests it.
-- **Damage (0034):** one filter for every wreck, in the lit pictures' shader (`render/Cracks.cs`, taken
-  into `render/Lit.cs`): set per picture by instance uniforms, the share of hit points lost and the
-  piece's id, it draws pixel-art cracks on the picture's own pixels — dark as the outline, a lit pixel
-  under each — from a dent that widens, more and longer as the share grows, before the light falls on
-  them. A rise in `Damage` jolts the piece 3 px away from the nearest hero and turns it a little,
-  settling over 220 ms, and throws a wreck's hit back toward the hero where it was struck (0075, 0094, `HitLooks.Of[Impact.Wreck]`
-  thrown by `HitBurst`): a cross glint, 16 streak sparks, 14 motes of metal dust lit by the room, 3 dark chips tumbling and
-  glinting, a faint shock ring and a flash of light round it, its picture flaring warm (a `Modulate` past white before the
-  light falls on it) and dying away by 0.84 a 60 Hz frame. The axe's lands on the side facing the nearest hero; a hit
-  under a running drill's bit on the picture's box, within 4 px (`Ui.Bits`, this hero's and friends'), lands where the
-  bit is and throws that drill's share of it (a fifth for the drill's ten hits a second, a module in it or not; its glint and ring by that chance, its light flaring to the share's root), the picture flaring as much. If the hit was this player's own, the view nudges a pixel (`Nudged`, `ShipCamera.Nudge`) and it plays `Sound.Chop` there, but for the drill's hits (`OwnHits.ToolOn`), whose strikes the crew plays as it works, apart from them (on the Suit
-  bus, dulled while floating: wrecks are chopped in space, where only what the hero touches is heard, 0042). A wreck gone with hits in it before
-  the end of its path was broken (`Fading.Broken`, counting the ticks run since it was last seen, so one
-  drifting off its end only fades, a stall between frames or not; one broken past its end, kept there by a
-  hero's view (0052), fades too, its loot falling all the same): its picture cut into six wedges that fly apart tumbling, lit, their torn edges glowing orange and cooling over a second, each trailing embers for half a second, fading out (`BreakView`), with a big glint, 26 streak sparks curling every way, 44 motes of dust, a slow cloud of 10 wisps, a fast faint shock ring and a flash of light (more of it, up to twice, for a derelict's big picture), and
-  `Sound.Break` if its own hit broke it, louder and heard farther than a chop, on the Suit bus too. It takes the last chop's place:
-  the last hit removes the wreck on its tick, so its damage never rises in view and no chop plays for it. Every peer sees the
-  same, from the world; only the striker hears it. Own is a `Hit` of this peer's seen in flight one frame and gone the next (`OwnHits`), read after the hero sends this frame's hits, so none runs unseen. The stars behind it are
-  `render/Stars.cs`: a filtered tile placed once the camera has followed the hero, so they glide by
-  fractions of a pixel a frame as the TypeScript tile did, never holding still and jumping a pixel; far
-  wrecks and dust lie between them and the world (`render/README.md`).
-- **Aimed:** the piece the crew sets in `Ui.AimedPiece` — out in space, within reach (with the axe, the
-  first wreck its blade would touch, 0039; with the drill, the first its bit touches, 0054), the hand free —
-  is outlined along its own picture as it tumbles, a screen pixel wide whatever the zoom
-  (`render/Outline.cs`), green, or red while the sim would refuse the grab, fading with the piece; the
-  crew's prompt says "[E] Catch"; on a wreck, red with "Too big", or with the axe "[Hold LMB] Chop".
-- **Own grabs at once (0014):** a piece this peer has a grab in flight for is gone from its view and
-  passed over by the aim, so E cannot send it twice.
-- **Recording:** `-- --autopilot --debris` starts in the wreck with pieces already out
-  (`DebrisDemo.Seed`, put in through the save) and a cargo crate drifting to where the wreck's
-  autopilot leaves the hero outside the airlock; there the pointer goes to it and E catches it,
-  planks landing in the hotbar. With `--host` the demo is hosted, so a guest
-  sees the catch.
-- **Recording:** `-- --fly` (`FarDemo`, `HeroAutopilot.Fly`): the big world, the hero floating 60 rows
-  above what is built with a jetpack worn and canisters breathed when the suit runs low; it waits 25 s
-  while the far field spawns round it (0052), then flies right, up and back through it. `--far=N` puts N
-  far pieces out round the start through the save; with `--edge=N` it starts past the field instead.
-  Every 5 s it prints the pieces out and the pictures drawn and made.
-- **Recording:** `-- --harpoon` (`WreckDemo`): a harpoon in the third slot, a cargo crate and a hull
-  section out of reach; 3 chooses it, the crate is shot, reeled in with a second click and caught with E,
-  then, the gun ready again, the section is shot and reeled in to the gun (0044).
-- **Recording:** `-- --grapple --lit` (`WreckDemo.Hall`): a lit hall aboard, a harpoon in the first slot;
-  it is fired into the ceiling, the hero pulled up and hanging, D lets go; then the same into the far wall.
-- **Recording:** `-- --asteroid` (`AsteroidDemo`): the big world, the hero in the asteroid band above the hull
-  with a jetpack, the drill on the first slot, the axe on the second and one battery on the belt half full; two
-  asteroids held still either side of it, and a canister breathed when the suit runs half empty. The drill bores the right one till it breaks into rock (12 s),
-  then the left one till the belt is flat and the drill winds down, red "Batteries flat"; then the axe chops
-  that one till it breaks (0054). `--manual` leaves the script off.
-- **Recording:** `-- --sortie` (`SortieDemo`): the big world, the hero 280 rows above the hull, in the far field's
-  outermost tier, with a jetpack, the drill and the axe, ten canisters and two full batteries; one of each derelict
-  and of the asteroid's new kinds round it, still (0056). The drill bores the engine block till it breaks into its
-  loot (18 s). `--manual` leaves the script off, to try them by hand.
-- **Recording:** `-- --wreck` (`WreckDemo`): the hero floating in space, a fire axe in its second
-  slot, a hull section drifting up slowly and three more chopped a third, a half and four fifths of
-  the way; the pointer on it bare-handed (red), 2 chooses the axe, the left button held till it breaks,
-  then the hero swims through the loot. `-- --wrecks` lines up one of every kind instead, and the
-  hero swims to each in turn and chops it till it breaks, sweeping up the loot on its way.
-- **The Handbook's Debris section** (`HandbookPage`, 0066), shown on `features/handbook`'s tablet (0083): every kind
-  in rows by where to look (`Content/Handbook.DebrisRows`: salvage, wrecks, asteroids, derelicts), in slots 16 px
-  larger than an item slot (56 px, 72 at the large slot size; loot slots are item slots), laid out again when the
-  slot size changes (`HandbookScreen`), a kind
-  found in the first of its looks found (`DebrisLooks`, whole pixels up to ×3, a derelict scaled down), one not
-  found its first look black (`Modulate`), in a darker slot. At the tab strip's right (`Tally`) the looks found of all there are,
-  "23/81", and a green bar: every look is one to collect, and the kinds found already show in the rows; the tooltip says
-  both, "Kinds 10/18", "Looks 23/81". A click on a found kind shows its entry beside them (the first found, in the
-  rows' order, until one is chosen): the look shown big in a frame (whole pixels up to ×4), the first found until
-  another is clicked; under it a strip of every look of the kind, 24 px thumbnails, those not found black, the one
-  shown edged, a click on a found one showing it big, and "2/5" at its end (no strip, its height kept, for a kind
-  of one look); its name, a crack and its hit points (`Wreckage.HpOf`), or "Caught by hand"; and its loot slot by
-  slot (`Loot.Of`, or the kind itself with no loot): an item seen with its range in the corner ("8–12", none for
-  exactly one), one not yet a black silhouette; a pie in the top-left corner of a slot with a roll, its share one
-  in `OneIn`. Words only in the one tooltip (`Finds`): a kind's name, hit points, looks found and how many of its
-  items have not dropped yet, "???" and its row's "where to look" for one not found; a look's "Look 3 of 5", or
-  "???"; an item's name, range and chance ("1 in 4", "Always"), "???" with its chance for one not seen. With
-  nothing found, the entry says what to do. Reads `DebrisModule.Found` every 250 ms while shown and builds again
-  only when the record has changed (a load or a resync brings another world's). Which look a piece wears is the
-  sim's `Content.Looks.Of(kind, id)`, the one function the pieces are drawn by and the record is written by.
-- **Recording:** `-- --handbook` (`dev/HandbookDemo`): the wreck, ten kinds found through the save, some of their
-  looks (a supply pod with no seed out yet, a cargo container with no gear); J opens the Handbook, the container is
-  chosen, the pointer goes over its gear, its planks, a kind not found and the pod, the pod is chosen; then the
-  crate, a look of it not found pointed at, another found clicked big, the counter, the scrap chunk's twelve looks,
-  the wheel down and up over it (nothing to scroll while all fits); then Esc closes it and Esc opens the menu with its Handbook line.
 ## Files
 
-| File            | Holds                                                         | Godot |
-| --------------- | ------------------------------------------------------------- | ----- |
-| `Fading.cs`     | `Broken`                                                      | no    |
-| `OwnHits.cs`    | which pieces this peer's own hits ran on since the last frame, and with which weapon | no    |
-| `DebrisView.cs` | the layer: pieces and the outline of the one aimed at         | yes   |
-| `BreakView.cs`  | a broken wreck's pieces flying apart, their torn edges glowing (0075) | yes   |
-| `DebrisDemo.cs` | the world and the script of `--debris`                        | yes   |
-| `WreckDemo.cs`  | the world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple` | yes   |
-| `AsteroidDemo.cs` | the world and the script of `--asteroid`                    | yes   |
-| `SortieDemo.cs` | the world and the script of `--sortie`                      | yes   |
-| `FarDemo.cs`    | the big world, a jetpack worn and the far field of `--fly` (`--manual` to fly it yourself) and `--far=N` | yes   |
-| `Finds.cs`      | the Handbook's debris: loot slots revealed item by item, ranges, chances, tally, tips | no    |
-| `HandbookPage.cs` | the Handbook's Debris section: the kinds' rows and the chosen kind's entry  | yes   |
+| File | Purpose |
+| --- | --- |
+| `Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
+| `OwnHits.cs` | Which pieces this peer's own hits ran on since the last frame, and with which weapon. |
+| `DebrisView.cs` | The layer: pieces and the outline of the one aimed at. |
+| `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
+| `DebrisDemo.cs` | The world and the script of `--debris`. |
+| `WreckDemo.cs` | The world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple`. |
+| `AsteroidDemo.cs` | The world and the script of `--asteroid`. |
+| `SortieDemo.cs` | The world and the script of `--sortie`. |
+| `FarDemo.cs` | The big world and far field of `--fly` (`--manual` to fly it yourself), `--far=N`, `--edge=N`. |
+| `Finds.cs` | The Handbook's debris: loot slots revealed item by item, ranges, chances, tally, tips. |
+| `HandbookPage.cs` | The Handbook's Debris section: the kinds' rows and the chosen kind's entry. |
 
-`Fading.cs` and `OwnHits.cs` are compiled again into `game.tests/` (`OwnHits` tested in `HearingTests`), where `fade.test.ts` and the debris test of
-`predicted.test.ts` are ported (`DebrisTests`); the debris tests of `aim.test.ts` are in `AimTests`. `Finds.cs` and
-`Content/Handbook.cs` are too (`HandbookTests`: every kind that spawns in exactly one row).
+The debris drifting past the ship, drawn only: the sim (`sim/Debris`) spawns, moves and hands out what a catch gives.
+Catching is the hero's hands, aimed as everything E works is (`features/crew`, `Aiming.AimAt`), sending `Grab`;
+breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
+
+- **Reads:** `DebrisModule.Pieces` and `Found`; `Client.InFlight` (own grabs, `Shared.Predicted.Grabbing`, and hits,
+  `OwnHits`); `Ui.AimedPiece`; `Ui.Heroes`; `Ui.Bits`; `Session.Progress`.
+
+## Rules
+
+- **Only what the camera sees** (0052): a piece gets a picture only while its middle is within `ShipCamera.View` and
+  8 cells round it. Pictures come from two pools, wrecks' and small pieces', that grow to the most ever on screen and
+  never free, warmed in `_Ready` (`WarmSmall`, `WarmWrecks`) with every debris texture, so a cloud drifting in makes
+  none. Only wrecks take the cracking material; a small piece is `Lit` plain. A piece leaving the view goes back to its pool.
+- **Drawn** behind the back walls (`Layers.Debris`): it never collides with the hull (0006). Each piece wears one of
+  its kind's pictures (`Content/DebrisLooks`, `art/debris`), the one its id picks (`Content.Looks.Of(kind, id)`), so
+  every peer sees it alike (0066); a wreck's is drawn of what it breaks into and is the box it is aimed at and struck
+  by (`DebrisLooks.Wrecks`). A kind with none is its item's icon at 0.8 of a cell. Lit by the stars and lamps; drawn
+  between ticks at `X − Speed × Progress`, or reeled by a harpoon its share of the way (`Shared.PieceDrawn`, 0044).
+- **Motion** (no ADR): a small piece tumbles a turn every 4 s, each its own way; a wreck only rocks (`Rock`, `RockMs`),
+  so its picture stays where the aim tests it. Full strength from the first frame: it spawns out of sight (0052).
+- **Damage** (0034): one crack filter for every wreck in the lit shader (`render/Cracks.cs` in `render/Lit.cs`), set
+  per picture by instance uniforms (share of hit points lost, piece id): pixel-art cracks from a dent that widens as
+  the share grows, before the light falls on them.
+- **A hit** (a rise in `Damage`) jolts the piece away from the nearest hero, turning it a little and settling, and
+  throws `HitLooks.Of[Impact.Wreck]` by `HitBurst` where it was struck, the picture flaring warm (0075, 0094). The
+  axe's lands on the side facing the nearest hero; one under a running drill's bit (within 4 px of the box) lands at
+  the bit and throws that drill's share (0094).
+- **Own hits** (`OwnHits`: a `Hit` of this peer's in flight one frame and gone the next, read after this frame's hits
+  are sent): the view nudges (`ShipCamera.Nudge`) and `Sound.Chop` plays, but not for the drill, whose strikes the crew
+  plays; on the Suit bus, dulled while floating (0042).
+- **Broken** (`Fading.Broken`): a wreck gone with hits in it before the end of its path, counting ticks since last
+  seen, so one drifting off its end only fades, as does one broken past its end while a hero's view keeps it there
+  (0052), its loot falling all the same. It flies apart in six tumbling wedges with glowing torn edges and
+  embers (`BreakView`), with sparks, dust, a cloud, glint, ring and flash, more for a derelict (0075); `Sound.Break`
+  if its own hit broke it, louder and farther, on the Suit bus. It replaces the last chop: the last hit removes the
+  wreck on its tick, so its damage never rises in view. Every peer sees it; only the striker hears it.
+- **Aimed** (0039, 0054): the piece in `Ui.AimedPiece` (in space, within reach; the first wreck the axe's blade or the
+  drill's bit touches) is outlined along its picture a screen pixel wide (`render/Outline.cs`), green, or red while the
+  sim would refuse the grab. The crew's prompt says "[E] Catch", on a wreck "Too big" or with the axe "[Hold LMB] Chop".
+- **Own grabs at once** (0014): a piece with a grab of this peer's in flight is gone from its view and skipped by the
+  aim, so E cannot send it twice.
+
+## The Handbook's Debris section (0066, 0083)
+
+- `HandbookPage` on `features/handbook`'s tablet: every kind in rows by where to look (`Content/Handbook.DebrisRows`),
+  in slots 16 px larger than an item slot, laid out again when the slot size changes. A found kind shows its first
+  look found; one not found its first look black.
+- **Tally** at the tab strip's right: looks found of all there are, with a bar; its tooltip gives kinds and looks.
+- **Entry** of the chosen kind (the first found until one is clicked): the look big, a strip of every look (not found
+  black, a click shows a found one big, "2/5"; none for a one-look kind); name, hit points (`Wreckage.HpOf`) or
+  "Caught by hand"; loot slot by slot (`Loot.Of`): a seen item with its range, an unseen one a black silhouette, a pie
+  for a roll's chance (`OneIn`). With nothing found, the entry says what to do.
+- Words only in the one tooltip (`Finds`); "???" for what is not found or seen.
+- Reads `DebrisModule.Found` every 250 ms while shown and builds again only when it changed.
+
+## Recordings
+
+`--debris` (a crate caught by E at the airlock; `--host` for a guest to see it), `--fly` and `--far=N`/`--edge=N`
+(the far field, 0052), `--harpoon` and `--grapple --lit` (0044), `--asteroid` and `--sortie` (0054, 0056; `--manual`
+leaves the script off), `--wreck`/`--wrecks` (chopping till it breaks), `--handbook` (`dev/HandbookDemo`).
+
+## Tests
+
+`Fading.cs`, `OwnHits.cs`, `Finds.cs` and `Content/Handbook.cs` are compiled into `game.tests/` (`DebrisTests`,
+`HearingTests`, `AimTests`, `HandbookTests`: every kind that spawns in exactly one row).
 
 ## Deliberately not handled
 
-- Other peers' grabs in flight: a piece another player is catching stays until the host's tick says
-  so, as in TypeScript.
-- Own hits before their tick (0014): a chop jolts and is heard when the tick it is stamped for runs,
-  a round trip after the swing lands in the figure; the swing's pace hides most of it.
-- Which hero struck: the jolt and sparks face the nearest, which is the striker but for two heroes
-  chopping one wreck from both sides.
-- Off the view: a hit on a piece not drawn jolts nothing and a wreck broken there bursts unseen; a piece
-  coming into view shows its damage as it is. Pictures taken back from a pool draw over or under one
-  another in no set order, which overlapping pieces drifting by do not show.
+- Other peers' grabs in flight: a piece another player is catching stays until the host's tick says so.
+- Own hits before their tick (0014): a chop jolts and is heard a round trip after the swing; its pace hides it.
+- Which hero struck: the jolt faces the nearest, wrong only for two heroes chopping one wreck from both sides.
+- Off the view: a hit on a piece not drawn jolts nothing; a wreck broken there bursts unseen. Pooled pictures draw
+  over or under one another in no set order.

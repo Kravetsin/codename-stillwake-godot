@@ -186,7 +186,11 @@ public class DocsGuardTests(ITestOutputHelper output)
     public static readonly string[] Trimmed =
     [
         "game/features/crew/README.md", "game/features/items/README.md", "sim/Items/README.md",
-        "sim/Debris/README.md", "sim/Building/README.md",
+        "sim/Debris/README.md", "sim/Building/README.md", "sim/Crafting/README.md", "sim/Fauna/README.md",
+        "sim/Power/README.md", "game/features/building/README.md", "game/features/crafting/README.md",
+        "game/features/debris/README.md", "game/features/effects/README.md", "game/features/fauna/README.md",
+        "game/features/flora/README.md", "game/features/grid/README.md", "game/features/sound/README.md",
+        "game/render/README.md", "net/README.md",
     ];
 
     /// <summary>Warns, never fails, for a README not yet trimmed: it is trimmed the next time a task touches it.</summary>

@@ -4,101 +4,67 @@
 
 | File | Purpose |
 | --- | --- |
-| `CaveTint.cs` | The stone's colour by depth band (0080): one band of colour a band of rows, multiplied over the ground drawn under … |
-| `CaveView.cs` | What grows in a planet's caves, seen (0080): each growth the sim keeps standing (`BuildingModule.Plants` of a cave … |
-| `FloraView.cs` | What grows on a planet's surface, seen (0079): each plant the sim keeps standing (`BuildingModule.Plants`) drawn as … |
-| `Planting.cs` | Where what grows on a planet is drawn against what holds it (0079, 0080), in pixels of the world, plain C# so it is … |
+| `CaveTint.cs` | The stone's colour by depth band (0080), multiplied over the ground drawn under it. |
+| `CaveView.cs` | What grows in a planet's caves, seen (0080): chunks of growths, their glows, lights, glints and drift. |
+| `FloraView.cs` | What grows on a planet's surface, seen (0079): a sprite per plant standing, its glow, lights and motes. |
+| `Planting.cs` | Where what grows is drawn against what holds it (0079, 0080), in world pixels, plain C# so it is tested. |
 
 What grows on a planet, seen: on its surface (0079) and in its caves (0080). The plants are Building's
-(`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature only
-draws them — the surface's in `FloraView`, the caves' in `CaveView` — and tints the caves' stone by depth (`CaveTint`).
+(`sim/Building/Flora.cs`): grown from the seed with the ground, felled by a hit or with what holds them. This feature
+only draws them — the surface's in `FloraView`, the caves' in `CaveView` — and tints the caves' stone by depth (`CaveTint`).
 
-- **Reads:** `BuildingModule.Plants` (each `Plant(Cell, Kind)`, ascending, only ever fewer) and, for the motes,
+## Surface (0079)
+
+- **Reads:** `BuildingModule.Plants` (`Plant(Cell, Kind)`, ascending, only ever fewer) and, for the motes,
   `IGridQueries.StructureAt` and `BackAt` down the columns in view.
-- **Draws** (`FloraView.cs`): a `Sprite2D` per plant standing — a few hundred on the first planet, so no tile layer —
-  lit as the world is (`Lit`), at `Layers.Flora`, over the ground and its moss, behind the heroes. Its picture is
-  `art/planet/{kind}_{variant}`, the variant a hash of its cell, planted (`Planting.Picture`): its lowest drawn row
-  `FloraLooks.Of[kind].Sink` (1–2) pixels under the top of the soil it grows from, in the middle of its cell, the rows there
-  not drawn, so it stands in the ground, not on it, as Terraria's do. What of it glows
-  (`{kind}_{variant}_glow`: seed pods, berries, a bell, a rock's mica, a tuft's pale tip, each with its halo) is a second
-  sprite added over it unlit, at `Layers.Flora` too: behind the heroes, never over a hero standing in front of it.
-- **Pictures:** drawn in the "Stillwake" style, exported from the concept's own drawing code (the surface style
-  studies' panel 9): three acacias with hanging fronds and seed pods, two bushes of berries, two rocks, bells in teal,
-  violet and amber, three tufts.
-- **Light:** each glow picture's brightest six-pixel squares, at most `FloraLooks.MostLights` (3) a plant, are where it
-  lights from, in their colour (`Lights`, read by the light feature each frame for the plants near the view; light
-  README).
-- **Felled:** a plant gone from `Plants` since the last look is taken away in a fall of `FloraLooks.Fallen` leaves (a
-  rock's pebbles), matter falling as on a planet, behind the walls (`Luminous.Low`). Only the count is compared each
-  frame; the list is walked only when it changed.
-- **Motes** (0075's luminous toolkit): while a glowing plant is in view, `FloraLooks.MotesASecond` (7) fine soft dots
-  are made, at most `MostMotes` (40) alive: `NearShare` of them by a glowing part, in its colour, the rest pale gold over
-  the ground in the open air of a column in view (its first wall down, under no back wall). They drift up slowly,
-  curling, and fade over 3.5–7 s; they give no light. None is made off the screen, and none while no glowing plant is
-  in view.
+- **Draws** a `Sprite2D` per plant standing (a few hundred, so no tile layer), `Lit`, at `Layers.Flora`, over the
+  ground and its moss, behind the heroes. Its picture is `art/planet/{kind}_{variant}`, the variant a hash of its cell,
+  planted (`Planting.Picture`): its lowest drawn row `FloraLooks.Of[kind].Sink` pixels under the top of the soil, in
+  the middle of its cell, those rows not drawn, so it stands in the ground. What glows (`{kind}_{variant}_glow`) is a
+  second sprite added unlit at `Layers.Flora`, never over a hero in front of it.
+- **Light:** each glow picture's brightest six-pixel squares, at most `FloraLooks.MostLights` a plant, light in their
+  colour (`Lights`, read by the light feature for the plants near the view).
+- **Felled:** a plant gone from `Plants` falls away in `FloraLooks.Fallen` leaves (a rock's pebbles), matter behind the
+  walls (`Luminous.Low`). Only the count is compared each frame; the list is walked only when it changed (no ADR).
+- **Motes** (0075): while a glowing plant is in view, `FloraLooks.MotesASecond` soft dots, at most `MostMotes` alive:
+  `NearShare` by a glowing part in its colour, the rest pale gold in the open air of a column in view (its first wall
+  down, under no back wall). They drift up, curling, fade over 3.5–7 s and give no light; none off the screen.
+
+## Caves (0080)
+
+Light that changes with depth, glow moss and alien threads: cold blue near the surface, teal and violet in the middle,
+warm amber and red near the bottom.
+
+- **Reads:** `BuildingModule.Plants` of a cave kind (`Content.Flora.Cave`), `IGridQueries.StructureAt` and
+  `ChangedSince`, `Terrain.BandOf`, and where each helmet lamp shines (`HeroView.HeadLamps`).
+- **Draws** by chunks of 64 × 64 cells within a chunk of the view, let go past three: a chunk is two canvas
+  items, pictures `Lit` and glows added unlit, both at `Layers.Flora`, each from one atlas of every cave picture
+  (`art/caves`), so a chunk is a batch apiece; no node per growth.
+- **Planted:** a floor's growth as a surface plant, `CaveLooks` `Sink` pixels into the wall under it; a ceiling's
+  mirrored; one in the rock 24 × 24 round its cell. A picture is `{kind}_{variant}`; a stalactite's or stalagmite's
+  `{kind}_{band}_{variant}`, in its band's stone. Moss is one picture per open face of its stone (`top` tufts, `bottom`
+  strands, `left`/`right` a film), green in the cold band, teal deeper; a run of moss on one face joins into one strip
+  (`Planting.Strip`). No other kind tiles.
+- **Redrawn:** a felled growth's chunk (a glowing one puffing spores, a spike its pebbles); the chunks round a grid change.
+- **Pictures** are cut from the cave concept's drawing code by its export, glow blooms in `_glow`: change the code and
+  export again, never edit the pictures. The ruins' cache and the spire's lens (0085, 0096): the lens lit while its
+  relic stands, by the ruins' view.
+- **Light** (`CaveLooks`): each glowing growth's one light, from its glow's middle, in its colour, at its kind's
+  strength and reach: the only light in a cave. Always from the open (`Planting.Light`): `Planting.LightOff` off a
+  floor's or ceiling's face, one in the rock just past its open face nearest its glow; `CaveLooks.LightSize` wide, so
+  shadows are soft. Only those whose reach touches the view, nearest its middle first, at most `CaveLooks.MostLights`,
+  go to `LightView.Caves`. A glow picture fades to nothing over its last three pixels (`Atlas.Faded`).
+- **Glints:** mica, veins, crystals and geodes sparkle where a helmet's beam falls on them with nothing between,
+  as bright as the beam there. Mica draws nothing else.
+- **Drift** (0075): spores up from glowcaps; drips from one stalactite in `DripShare`, landing on the first solid
+  cell under its tip within `DripRows` and splashing (`Planting.DripFloor`), none with no open cell under it; faint
+  embers from heat cracks. `MotesASecond` from the sources in view, at most `MostMotes` alive, none off the screen.
+- **Tint** (`CaveTint.cs`): one colour per depth band, multiplied over all drawn under `Layers.Edges` in its rows, so
+  growths and light keep their colours; blended from each band's middle to the next, from `TintFrom` rows under the
+  surface's middle, by the planet type's look (`PlanetLooks`, 0095). A quad a band across the view.
 
 ## Deliberately not handled
 
 - Swaying, wind, seasons: the pictures stand still.
-- A plant's light is a small lamp's in daylight too, where it hardly shows; it is for the shade and the evening that
-  does not come yet.
-
-## Caves (0080)
-
-Direction C of the cave concept — light that changes with depth — with direction A's glow moss and alien threads in the
-garden: cold blue near the surface, teal and violet in the middle, warm amber and red near the bottom.
-
-- **Reads:** `BuildingModule.Plants` of a cave kind (`Content.Flora.Cave`), `IGridQueries.StructureAt` and
-  `ChangedSince`, `Terrain.BandOf` for a growth's band, and where each helmet lamp shines (`HeroView.HeadLamps`, as the light
-  takes it).
-- **Draws** (`CaveView.cs`) by chunks of 64 × 64 cells, those within a chunk of the view, let go past three: a chunk is two
-  canvas items, its pictures lit (`Lit`, at `Layers.Flora`, over the ground) and their glows added unlit (at `Layers.Flora` too, behind the heroes; the glints last of it),
-  each from one atlas packed at the first look of every cave picture (`art/caves`), so a chunk is a batch for each. Some
-  thirty-eight thousand growths on the first planet, no node apiece. A floor's growth is planted as a plant is, its lowest drawn row
-  `CaveLooks` `Sink` (2, a spike 1) pixels into the wall under it, those rows not drawn; a ceiling's mirrored, its top row
-  as far up into the wall over it (0080); one in
-  the rock is 24 × 24 round its cell. A picture is `{kind}_{variant}`, the variant a hash of the cell; a stalactite's and a
-  stalagmite's `{kind}_{band}_{variant}`, in its band's stone; moss one picture a face of its stone open now — `top` tufts,
-  `bottom` strands, `left`, `right` a film — green in the cold band (`mossGreen`), teal deeper. Along a run
-  of moss showing the same face its band is drawn the whole edge of each cell, stretched from a pixel of it
-  (`Planting.Strip`), so a run joins into one strip, its pieces' strands hanging from it; a lone piece keeps its own ends.
-  No other kind tiles: a floor's or a ceiling's growths stand a cell apart at least, veins two, and heat cracks' pieces
-  meet at their ends already. A felled growth's chunk is
-  drawn again, a glowing one puffing spores, a spike its pebbles; a grid change draws again the chunks round it, for moss.
-- **Pictures:** cut from the cave concept's own drawing code (`objects.js`: glowcaps, crystals, spikes, threads, roots,
-  hanging caps, its geode, ammonite and ribs, ore veins, heat cracks, moss) by the export beside it, as the surface's were:
-  each glowing pixel's bloom, tight, in `_glow`. Change the drawing code and export again; never edit the pictures.
-  The ruins' (0085): a spire's cache, an alloy capsule with a small teal lamp (`spireCache_0`), a placeholder drawn by a script
-  not kept; the spire's lens in its tip, its glass dark (`spireLamp_0`, exported from the relic page by `tools/homes-art`, 0096),
-  lit over it while its relic stands by the ruins' view.
-- **Light** (`CaveLooks`): each glowing growth's one light, every piece of a kind alike, from its glow's middle, in its colour —
-  teal, violet, ice-blue, amber, rose, ember, green near the surface — at its strength and keep out to its reach (16 cells for a
-  cap or a crystal, 10 for moss, 8 for roots): the only light in a cave, so a cluster lights the walls, the floor and a hero
-  round it. Always from the open (`Planting.Light`):
-  one on a floor or from a ceiling held `LightOff` (3 px) off its face, one in the rock from just past its open face nearest
-  its glow — a light in a wall lit only the rock round it, cut off along the face, and one on a face cast its shadow along
-  it in a hard line; and `CaveLooks.LightSize` (4 px) wide, so its shadows' edges are soft as a lamp's. Only those whose
-  reach touches the view, the nearest its middle first, at most `CaveLooks.MostLights` (384, over the 323 the densest view at the farthest zoom holds), go to the light
-  (`LightView.Caves`). Its glow picture fades to nothing over its last three pixels (`Atlas.Faded`): the export's blooms run
-  to their pictures' edges, a ceiling moss's whole, and drew each picture's box.
-- **Glints:** mica, veins, crystals and geodes sparkle where a helmet's beam falls on them, nothing between (walked a few
-  pixels at a time through the grid's walls): a white point and a cross of its colour, twinkling, as bright as the beam is
-  there. Mica draws nothing else.
-- **Drift** (0075's toolkit): spores up from glowcaps, drips from one stalactite in three —
-  each landing on the top of the first solid cell under its tip, within `DripRows` (60) cells, and splashing there
-  in three flecks (`Planting.DripFloor`); none from a tip with no open cell under it —, faint embers up from the heat's
-  cracks — `MotesASecond` (9) from the sources in view, at most `MostMotes` (48) alive, none off the screen.
-- **Tint** (`CaveTint.cs`): one band of colour per depth band, multiplied over all that is drawn under `Layers.Edges` in its
-  rows — walls, edges, back walls — and nothing over it, so the growths and the light keep their colours: cool blue-grey,
-  as it is, warmer, red-brown, blended from each band's middle to the next, from `TintFrom` (40) rows under the surface's
-  middle, all by its planet type's look (`PlanetLooks`, 0095). A quad a band across the view, drawn again when the view moves.
-- **Cost** (`--ground=hall --measure`, the first planet's lushest garden hall, RTX 4060 Ti, 1280 × 720): 804–827 fps at
-  zoom 1 against 868–875 with no cave growth drawn (render CPU 0.39 ms against 0.37, 82 draws against 75), 924 at zoom 2
-  against 965–980; the view 0.05–0.08 ms a frame, allocating nothing, 56 lights of it at zoom 1. Without the atlas it was
-  772 draws and 630 fps.
-
-### Deliberately not handled
-
-- Moss grows only on stone, not on soil; on whichever of its faces are open now, so digging beside it
-  shows more of it.
-- The light of a growth past the 56 nearest the view's middle is left out; in a hall seen whole some far ones go dark.
+- A plant's light is a small lamp's in daylight too, where it hardly shows (no ADR).
+- Moss grows only on stone, on whichever faces are open now, so digging beside it shows more of it.
