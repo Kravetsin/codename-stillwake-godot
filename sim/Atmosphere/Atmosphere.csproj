@@ -1,8 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup><AssemblyName>Stillwake.Sim.Atmosphere</AssemblyName><RootNamespace>Stillwake.Sim.Atmosphere</RootNamespace></PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="../Pipes/Pipes.csproj" />
     <ProjectReference Include="../Power/Power.csproj" />
   </ItemGroup>
-  <ItemGroup><InternalsVisibleTo Include="Stillwake.Sim.Tests" /></ItemGroup>
 </Project>
