@@ -21,4 +21,7 @@ Microsoft.DotNet.SDK.8` brings the newest) and Godot 4.7 (.NET build); the scrip
   (ADR 0012), each asking for a session name and the playtest password. By hand:
   `Stillwake.exe -- --relay --host=name` and `Stillwake.exe -- --relay --join=name`, the password in
   `STILLWAKE_PASSWORD` or `--password=...`; `--relay=ws://...` names another relay.
-- `dotnet test Stillwake.sln` — every test.
+- `dotnet test Stillwake.sln` — every test. The budget tests' bounds are a desk's; `STILLWAKE_BUDGET_SLACK=5`
+  multiplies them on a slower machine, as CI does.
+- `git config core.hooksPath tools/hooks` — once per clone: formats the staged `.cs` files before each commit,
+  so CI's whitespace check passes.

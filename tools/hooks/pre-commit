@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Formats the staged .cs files before a commit, so CI's whitespace check never fails on them.
+# Once per clone: git config core.hooksPath tools/hooks
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
+mapfile -t staged < <(git diff --cached --name-only --diff-filter=ACMR -- '*.cs')
+[ ${#staged[@]} -eq 0 ] && exit 0
+# A file with unstaged changes too is left alone: formatting it on disk and staging it would commit those changes.
+mapfile -t partial < <(git diff --name-only -- "${staged[@]}")
+whole=()
+for f in "${staged[@]}"; do
+  printf '%s\n' "${partial[@]}" | grep -qxF -- "$f" || whole+=("$f")
+done
+[ ${#partial[@]} -gt 0 ] && echo "pre-commit: not formatted, partly staged: ${partial[*]}" >&2
+[ ${#whole[@]} -eq 0 ] && exit 0
+dotnet format Stillwake.sln --include "${whole[@]}"
+git add -- "${whole[@]}"
