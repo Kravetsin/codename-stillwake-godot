@@ -1,5 +1,11 @@
 # Knowledge
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Knowledge.cs` | What the crew knows, wherever it learned it (0076): the blueprints and crafts the world was granted and the items … |
+
 What the crew knows, wherever it learned it ([0076](../../docs/decisions/0076-a-world-is-made-of-surfaces.md)): the
 blueprints and crafts the world was granted and the items analysed. A global: one per world, made by the ship's
 registry and shared by every surface's, saved second in the ship's `slices`. Records only: no commands, no systems.

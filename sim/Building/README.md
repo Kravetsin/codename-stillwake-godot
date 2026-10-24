@@ -1,5 +1,17 @@
 # Building
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Building.cs` | Plans, and the work that turns them into the ship: blueprints built and marks … |
+| `Costs.cs` | What things cost and take to build, from content, and what a blueprint still lacks. |
+| `Digging.cs` | A hit of weapon `Tool` on the natural wall at `Cell` (0077): sent as the axe strikes, or at the drill's pace while … |
+| `Flora.cs` | A plant or a stone on a planet's surface (0079), a growth of its caves (0080) or a piece of a ruin's home (0091) … |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Rules.cs` | Which plans may be made and worked. |
+| `State.cs` | The saved slice and its records: `Plan`, `Crack`, `BuildingState`. |
+
 Plans, and the work that turns them into the ship. A plan is a blueprint, which puts something in a
 cell (a wall, a ladder, a tank) as heroes work on it, paying its cost an item a part as they go
 (ADR 0063), or a mark on what a layer of a cell holds, taken out by heroes' work. Both complete through

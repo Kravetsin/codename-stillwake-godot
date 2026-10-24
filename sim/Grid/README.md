@@ -1,5 +1,14 @@
 # Grid
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `ChangeLog.cs` | Every write to the grid's layers, oldest first, as the version it was made under, the cell, the layer and what the … |
+| `Doorways.cs` | The shape of doorways (0067, 0104): a doorway is one straight run of door cells, `Thick` cells thick. |
+| `Grid.cs` | The ship's cells in layers. |
+| `Grown.cs` | What a save holds of a grown surface's grid (0077): its size and zone, its machines, and the cells changed since … |
+
 The ship as cells in ship-local coordinates: what is built in each cell, layer by layer. Everything
 else that stands on the ship — rooms, pipe networks, air — is read from here. Ported from
 `packages/sim/src/modules/grid`; its rules hold here unchanged.

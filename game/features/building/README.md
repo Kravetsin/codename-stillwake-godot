@@ -17,6 +17,7 @@ and `Work`.
 | `Catalogue.cs`    | the menu's fixed frame (0073): its size by the slot size, the rows scrolled, the card under the pointer, the scrollbar's thumb | no    |
 | `BuildMenu.cs`    | the menu shown while the plan is out, docked at the bottom middle, the screen of a rugged tablet: tabs with counts, the search, the cards, the card in hand and the hint, a card's words in the one tooltip; B, / (Esc: `game/menu`) | yes |
 | `DigView.cs`      | digging seen (0077): each crack in `Building.Cracks` drawn in three stages by its share of the wall's strength, one picture a stage (`GroundArt.Crack(stage)`, 0079), and a break's chips in the material's colour (`GroundLooks`), dust and a slow cloud, all drawn behind the walls (`Luminous.Low`) so none crosses a shaft's; a friend's digs alike. A hit's own look is thrown by the crew where it strikes (0094, `features/effects`). It reads the short list each frame and redraws only when it changed | yes |
+| `LayerKey.cs` | a layer's key on the build tablet's right edge (0110): a wrist key as the sort keys are, the same housing and face … | yes |
 
 Shared with the other features: `game/shared/` (`Ui`: the hand, the overlay on, the words by the
 pointer; `Hands`: every view of this player's hands wired together, the building first to take the

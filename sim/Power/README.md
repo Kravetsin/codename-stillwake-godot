@@ -1,5 +1,13 @@
 # Power
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Power.cs` | Electricity: cables between nodes, the networks they join, and what share of its users' draw each network can give … |
+| `PowerNodes.cs` | Nodes, spans and networks. |
+
 Electricity: cables laid point to point between nodes, the networks they join, and how much of what
 its users would draw each network can give (ADR 0017); cables move by hand (0021). Ported from
 `packages/sim/src/modules/power`; its rules hold here unchanged.

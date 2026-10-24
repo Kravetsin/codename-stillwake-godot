@@ -1,5 +1,15 @@
 # Logistics
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Flight.cs` | Part of `LogisticsModule`: a bay's numbers as it works now: its zone's reach, its drones' speed, how often it looks. |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Jobs.cs` | A job found: `Count` of `Item` from `Source` to `Target`. |
+| `Logistics.cs` | Drone logistics (0062): drones keep the machines in their bay's zone going with nothing set. |
+| `State.cs` | The saved slice and its records: `Leg`, `Drone`, `LogisticsState`. |
+
 Drones ([0062](../../docs/decisions/0062-drones-keep-machines-going.md)): with nothing set, the drones of a bay keep
 the machines in its zone going. An input holding an item is refilled with it, a queued station's head entry fed from
 its inputs gets what it needs, and what machines make goes to crates; drones fly through air and doors, take job after

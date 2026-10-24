@@ -1,5 +1,12 @@
 # effects (client): light and matter that fly
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `EffectsView.cs` | Every particle the features emit: the luminous ones of `Glims.Shared`, the glints, shock lines … |
+| `Impacts.cs` | Where a hit lands and what it strikes (0094), chosen from what the sim says is there, as `GroundSounds` chooses its … |
+
 Particles without a word, first ported from `apps/game/src/features/effects/` and `render/particles.ts`
 (G-08), now drawn in the luminous style (0075): what glows is light added over the world — thin streaks
 white-hot at the head, stretched by speed along their own curling path, fading by brightness as their colour

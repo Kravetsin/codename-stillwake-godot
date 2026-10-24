@@ -1,5 +1,11 @@
 # Furnace
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Furnace.cs` | Fire (ADR 0023): a furnace or a burner generator burns fuel and breathes its room's air; a furnace's fire heats it … |
+
 Fire ([0023](../../docs/decisions/0023-a-furnace-burns-fuel.md)): a furnace or a burner generator burns
 fuel and breathes its room's air. A furnace's fire heats it, so `Crafting` smelts the salvage in its input
 into what it yields, the way caught debris becomes materials (a fed station,

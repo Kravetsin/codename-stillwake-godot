@@ -17,6 +17,8 @@ Cables hanging between their nodes and their overlay, shown while the stripper i
 | `StoreLights.cs` | each capacitor bank's gauge, its spark and its light (0101)                          | yes   |
 | `StoreGauge.cs`  | how the gauge reads: segments lit by how full, the spark's way and place (tested)     | no    |
 | `StoreWorld.cs`, `StoreDemo.cs` | the world of `-- --store` and its script: a bank filling, then emptying into an arc smelter | `StoreDemo` |
+| `StoreDemo.cs` | for recordings (`-- --store`, 0101): plays `StoreWorld`, the bank filling while the smelter stands empty; at … | yes |
+| `StoreWorld.cs` | the world of `-- --store` (0101), plain C# so it is tested: an aired room with a capacitor bank holding `Holds` … | no |
 
 `game/render/CableShape.cs` (`render/cable.ts`: ends, hangs, pieces through the hull) and
 `game/render/Rope.cs` (the tether's rope, now also started from given points and brushed by bodies)

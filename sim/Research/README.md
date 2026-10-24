@@ -1,5 +1,13 @@
 # Research
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Analysable.cs` | The items an analyzer has anything to learn from: those in the cost of a blueprint or a craft not known from the … |
+| `Blueprints.cs` | What blueprints there are, their names and costs. |
+| `Research.cs` | Knowing blueprints and crafts (ADRs 0024, 0027): what the world was granted, the items analyzers have analysed, and … |
+
 Knowing blueprints and crafts ([0024](../../docs/decisions/0024-blueprints-are-learned-by-analysis.md),
 [0027](../../docs/decisions/0027-what-is-analysed-opens-what-is-made-of-it.md)): what the world was
 granted, the items analyzers have analysed, and what that opens. A blueprint not known cannot be

@@ -1,5 +1,17 @@
 # Grid (client)
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `ChunkReveal.cs` | Which of the grid's cells `GridView` has drawn, by chunks `Chunk` cells square drawn a row at a time, and which to … |
+| `DoorLight.cs` | A doorway's slide in light (0075), one doorway at a time, from its leading cell: while the panel moves, a thin line … |
+| `DoorSlides.cs` | The door cells sliding open or shut, each taking `Seconds` from one end to the other; the cells of a doorway move … |
+| `DrawnLayers.cs` | The grid's six layers as `GridView` last drew them, this peer's toggles in flight made (0014), and the cells that … |
+| `Grass.cs` | Where a planet's ground shows its living edge (0079, 0082), a rule of drawing, never the sim's: moss on a wall of … |
+| `GridView.cs` | The ship in pixel art, a `TileMapLayer` per kind of picture: back walls behind … |
+| `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
+
 Draws the ship's cells and machines in pixel art, a pixel of art a pixel of the world, sixteen to a
 cell (TypeScript `features/grid` and `render/ship-art.ts`).
 

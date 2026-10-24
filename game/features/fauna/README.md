@@ -1,5 +1,17 @@
 # fauna (client)
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `CreatureBody.cs` | One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's … |
+| `CreatureGait.cs` | How fast a creature's legs go (0102): plain C#, tested. |
+| `CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
+| `CreatureParts.cs` | The creatures' parts as pictures (0102): each index map of `art/fauna` recoloured once, at first use, by a palette … |
+| `CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
+| `CreatureVariety.cs` | How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. |
+| `FaunaView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
+
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Fauna`) spawns,
 moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the axe's blade and
 the drill's bit are tested against each creature's body as against a wreck's box, wherever the hero stands

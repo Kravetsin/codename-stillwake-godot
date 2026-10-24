@@ -1,5 +1,14 @@
 # Debris
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Debris.cs` | The pieces of debris drifting by, catching them, reeling them in and breaking wreckage with weapons, in zones by … |
+| `Drift.cs` | The debris module's system: pieces drift and are gone, and each zone of `Debris.Zones` spawns on its beat, the … |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `State.cs` | The saved slice and its records: `Piece`, `Reeling`, `Beat`, `FoundKind`, `DebrisState`. |
+
 The pieces of debris drifting by, in zones by the hull, in its asteroid band and round every hero,
 catching them, reeling them in by harpoon, and breaking wreckage and asteroids with any weapon
 ([0006](../../docs/decisions/0006-debris-in-the-simulation.md),

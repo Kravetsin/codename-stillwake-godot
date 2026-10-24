@@ -1,5 +1,13 @@
 # Crew
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Crew.cs` | Heroes inside the sim: where each one is, as its client says, and how it breathes — room air in a cell holding it … |
+| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `State.cs` | The saved slice and its records: `Hero`, `CrewState`. |
+
 Heroes inside the sim: where each one is, as its client says, and how it breathes — the lifepod's air
 beside it, room air in a cell holding it, the suit anywhere else, passing out when the suit runs dry,
 made again at the pod. Ported from `packages/sim/src/modules/crew`; the lifepod came with

@@ -1,5 +1,11 @@
 # Players
 
+## Files
+
+| File | Purpose |
+| --- | --- |
+| `Players.cs` | What is the player's rather than a surface's (0076): the suit colour each hero wears, so two heroes on two surfaces … |
+
 What is the player's rather than a surface's ([0076](../../docs/decisions/0076-a-world-is-made-of-surfaces.md)): the
 suit colour each hero wears, so two heroes on two surfaces never meet in one colour. A global: one per world, made by
 the ship's registry and shared by every surface's, saved first in the ship's `slices`. Records only: no commands, no
