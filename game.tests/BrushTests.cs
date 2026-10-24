@@ -16,6 +16,7 @@ public class BrushTests
     private static readonly PlaceTool Floor = new("floor", new Placement("structure", "floor"), "floor");
     private static readonly PlaceTool Ladder = new("ladder", new Placement("structure", "ladder"), "ladder");
     private static readonly PlaceTool Door = new("door", new Placement("structure", "door"), "door");
+    private static readonly PlaceTool Hatch = new("hatch", new Placement("structure", Stillwake.Content.Builds.Hatch), "hatch");
     private static readonly PlaceTool Pipe = new("pipe", new Placement("conduit", "pipe"), "pipe");
     private static readonly PlaceTool Tank = new("tank", new Placement("machine", "tank"), "tank");
     private static readonly Remove Removal = new(["machine", "conduit", "structure", "back"]);
@@ -99,17 +100,15 @@ public class BrushTests
     }
 
     [Fact]
-    public void TheDoorsCardLaysHatchSegmentsByAClickOrAcrossAndDoorSegmentsDownAsFarAsASecond()
+    public void TheHatchCardLaysHatchesAlongTheirRowAPieceAtAStep()
     {
-        var hatch = Door with { Placement = new Placement("structure", Stillwake.Content.Builds.Hatch) };
-        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (4.9, 1.9)));
-        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (7.1, 2.4)));
-        Assert.Equal(hatch, Drag.Oriented(Door, (4.9, 1.9), (4.9, 2.6)));
-        Assert.Equal(Door, Drag.Oriented(Door, (4.9, 1.9), (4.9, 4.1)));
-        Assert.Equal(Ladder, Drag.Oriented(Ladder, (4.9, 1.9), (7.1, 1.9)));
-        // A hatch segment is two by one, laid a piece's width a step along its row only.
-        Assert.Equal((2, 1), Drag.StampOf(hatch));
-        Assert.Equal([14, 16, 18], Drag.StrokeOf(W, H, hatch, (4.9, 1.9), (9.1, 1.9)));
-        Assert.Equal([14], Drag.StrokeOf(W, H, hatch, (4.9, 1.9), (4.9, 2.6)));
+        // A hatch is two by one, laid a piece's width a step along its row only (0104, 0111).
+        Assert.Equal((2, 1), Drag.StampOf(Hatch));
+        Assert.Equal([14, 16, 18], Drag.StrokeOf(W, H, Hatch, (4.9, 1.9), (9.1, 1.9)));
+        Assert.Equal([14], Drag.StrokeOf(W, H, Hatch, (4.9, 1.9), (4.9, 2.6)));
+        // A door segment is square: it runs along the longer axis of the drag, so a stroke down stacks segments.
+        Assert.Equal((2, 2), Drag.StampOf(Door));
+        Assert.Equal([14, 34], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (4.9, 4.1)));
+        Assert.Equal([14, 16], Drag.StrokeOf(W, H, Door, (4.9, 1.9), (7.1, 1.9)));
     }
 }

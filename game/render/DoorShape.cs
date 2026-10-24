@@ -27,16 +27,17 @@ public static class DoorShape
     /// </summary>
     public readonly record struct Spot(bool Hatch, int Along, int Length, int Across);
 
-    /// <summary>Where door cell <paramref name="cell"/> of a grid <paramref name="width"/> wide lies in its doorway, by <paramref name="linksOf"/> (<see cref="Doorways.LinksOf"/>).</summary>
-    public static Spot SpotOf(int cell, int width, Func<int, int> linksOf)
+    /// <summary>
+    /// Where door cell <paramref name="cell"/> of a grid <paramref name="width"/> wide lies in its doorway, a
+    /// <paramref name="hatch"/> or a door, by <paramref name="linksOf"/> (<see cref="Doorways.LinksOf"/>).
+    /// </summary>
+    public static Spot SpotOf(int cell, int width, Func<int, int> linksOf, bool hatch)
     {
-        bool hatch = Doorways.IsHatch(linksOf(cell));
         var (back, ahead, step) = hatch ? (Doorways.Left, Doorways.Right, 1) : (Doorways.Up, Doorways.Down, width);
-        var (side, sideStep) = hatch ? (Doorways.Up, width) : (Doorways.Left, 1);
         int along = 0, length = 1, across = 0;
         for (int c = cell; (linksOf(c) & back) != 0; c -= step) along++;
         for (int c = cell; (linksOf(c) & ahead) != 0; c += step) length++;
-        for (int c = cell; (linksOf(c) & side) != 0; c -= sideStep) across++;
+        if (!hatch) for (int c = cell; (linksOf(c) & Doorways.Left) != 0; c -= 1) across++;
         return new Spot(hatch, along, length + along, across);
     }
 

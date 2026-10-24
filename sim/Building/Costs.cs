@@ -20,7 +20,7 @@ internal static class Costs
     public static Build BuildOf(Placement placement) => placement.Layer switch
     {
         "structure" when placement.Kind == "wall" => Wall(Materials.Get(placement.Material!)),
-        "structure" => Builds.Get(Builds.BuiltAs(placement.Kind)),
+        "structure" => Builds.Get(placement.Kind),
         "machine" => Machine(placement.Kind),
         "back" => Wall(Materials.Get(placement.Material!)),
         _ => throw new ArgumentException($"building: no layer {placement.Layer}"),
@@ -38,7 +38,8 @@ internal static class Costs
                     Structure.Empty => null,
                     Structure.Floor => Builds.Get("floor"),
                     Structure.Ladder => Share(Builds.Get("ladder"), grid.PieceOf(cell).Count),
-                    _ => DoorPiece(grid, cell),
+                    var s when Doorways.IsHatch(s) => Share(Builds.Get(Builds.Hatch), grid.PieceOf(cell).Count),
+                    _ => Share(Builds.Get("door"), grid.PieceOf(cell).Count),
                 };
             case "machine":
                 return grid.MachineAt(cell) is { } m ? Machine(m.Kind) : null;
@@ -47,14 +48,6 @@ internal static class Costs
             default:
                 return null;
         }
-    }
-
-    /// <summary>A door cell's piece: a hatch segment's whole when it lies in one row (0104), else its share of a door segment.</summary>
-    private static Build DoorPiece(IGridQueries grid, int cell)
-    {
-        var piece = grid.PieceOf(cell);
-        bool flat = piece[0] / grid.Width == piece[^1] / grid.Width;
-        return Share(Builds.Get("door"), piece.Count, flat ? Builds.PieceOf(Builds.Hatch) : null);
     }
 
     /// <summary>

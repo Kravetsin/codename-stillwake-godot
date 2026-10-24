@@ -358,7 +358,7 @@ public sealed partial class AtmosphereModule
         {
             int structure = _grid.StructureAt(cell);
             if (structure == Structure.Wall) leak += _grid.WallAt(cell)!.Leak;
-            else if (structure is Structure.DoorClosed or Structure.DoorOpen) leak += Content.Air.DoorLeak;
+            else if (structure is Structure.DoorClosed or Structure.DoorOpen or Structure.HatchClosed or Structure.HatchOpen) leak += Content.Air.DoorLeak;
         }
         return leak;
     }

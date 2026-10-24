@@ -37,15 +37,15 @@ else that stands on the ship — rooms, pipe networks, air — is read from here
 
 | Layer     | Holds                                                                                     |
 | --------- | ----------------------------------------------------------------------------------------- |
-| structure | empty, hull wall (with a material), floor, ladder, door (open or closed)                  |
+| structure | empty, hull wall (with a material), floor, ladder, door (open or closed), hatch (open or closed) |
 | machine   | machines from `Data.Machines`, each covering its footprint                                |
 | back      | none, back wall (with a material): the wall behind a cell, closing a room behind (0020)   |
 
 Every cell is whole: there are no slopes ([0106](../../docs/decisions/0106-steps-replace-slopes.md), superseding
 0069). Ground rises in steps of whole cells, which heroes and creatures step up.
 
-Walls, floors, ladders and doors are one structure per cell. A ladder and a door segment are placed as pieces (0104), a
-ladder's 2×2, a door segment's 2×2, a hatch segment's 2×1 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
+Walls, floors, ladders, doors and hatches are one structure per cell. A ladder, a door segment and a hatch piece are placed as
+pieces (0104), a ladder's or a door segment's 2×2, a hatch's 2×1 (`Builds.PieceOf`), every cell of one free of structure and machines, all of them
 filled at once. A machine needs every footprint cell free
 of structure and of other machines. A back wall needs only a free back slot: it stands behind anything, and in space.
 
@@ -75,8 +75,8 @@ of structure and of other machines. A back wall needs only a free back slot: it 
   grew, false aboard, on drawn maps and for one a hero built (0084) —, `Footprint(kind, cell)` — the cells a machine or a piece of that
   kind would cover from that top-left, null when it is neither or does not fit —, `PieceOf(cell)` — the cells of the piece the
   structure there is part of, taken apart as one (0104), ascending: a ladder cell's or a door cell's two by two (its
-  columns paired from the left end of its row's run of the same, its rows from the top of its column's), any other structure its
-  own cell, none for none —, `PlacementProblem(cell, placement)`,
+  columns paired from the left end of its row's run of the same, its rows from the top of its column's), a hatch cell's two by
+  one, any other structure its own cell, none for none —, `PlacementProblem(cell, placement)`,
   `AfterToggles(commands)` — the structure codes of just the cells the `SetDoor`s among the commands
   would change, each as it would apply and skipped where refused,
   every other cell as the world has it: what a client shows of its own toggles before their tick runs
@@ -86,8 +86,8 @@ of structure and of other machines. A back wall needs only a free back slot: it 
   problem here throws; `Clear(cell, layer)` — for machines, removes the whole machine covering the
   cell. Only in commands or construction: modules reading the grid in derivation trust that nothing
   changes it after.
-- **Commands:** `SetDoor(cell, open)` — opens or shuts the whole doorway, the straight run of door cells
-  `cell` is in (`Doorways`, 0067), every cell of it, a part-open one too; refused with `grid.noDoor`. It says the state its sender saw it should take, not a flip (0071): a door
+- **Commands:** `SetDoor(cell, open)` — opens or shuts the whole doorway, the door's stack of segments or the hatch's pair
+  `cell` is in (`Doorways`, 0067, 0111), every cell of it, a part-open one too; refused with `grid.noDoor`. It says the state its sender saw it should take, not a flip (0071): a door
   already so is left alone, the grid's version too, so two peers opening one door at once leave it open.
 - **Refusals from `PlacementProblem`:** `grid.outOfBounds`, `grid.outsideZone` (the cell, or any cell of a
   machine's footprint, outside the zone), `grid.occupied`, `grid.machineInTheWay`,
@@ -97,7 +97,7 @@ of structure and of other machines. A back wall needs only a free back slot: it 
 
 ## Maps
 
-`#` wall of `Data.DefaultHull`, `=` floor, `H` ladder, `D`/`d` door closed/open, `-` pipe, `v`/`x`
+`#` wall of `Data.DefaultHull`, `=` floor, `H` ladder, `D`/`d` door closed/open, `h`/`o` hatch closed/open, `-` pipe, `v`/`x`
 valve open/closed, machines by `Data.MachineOf`. The old slopes' `/` `\` `r` `7` are gone (0106): a map using them does
 not parse. A machine is drawn as its whole footprint; a map that
 draws part of one does not load. Every character but a space has a back wall of the default hull,
@@ -105,8 +105,7 @@ hull walls included. A map's machines take ids 1, 2, … by their top-left cells
 
 **A cell is 8 px** ([0104](../../docs/decisions/0104-the-cell-is-8-px.md)); maps are drawn a character a 16 px cell and doubled
 (`Layout.Doubled()`): a character's 2×2 cells all its wall, back wall, machine, ladder or door, so a doorway is two cells thick
-as its 16 px door was one; a floor
-its top row; `S` its bottom-left; a conduit its top-left and the cells toward neighbouring conduits, one cell wide, meeting the
+as its 16 px door was one; a floor or a hatch its top row; `S` its bottom-left; a conduit its top-left and the cells toward neighbouring conduits, one cell wide, meeting the
 doubled ports. The wreck, the test strip, the ruins' prefabs and test scenarios are doubled; a test
 of a rule per cell reads its map a character a cell.
 
@@ -138,10 +137,11 @@ layer as runs, as ever.
 - `Built` is the smallest box holding every cell with a structure, conduit, back wall or machine, as
   a scan of them all finds it, after any change and after a load; `Box.None` when there is none.
 - Stored codes are part of the save format: never renumber them.
-- A doorway is one straight run, `Doorways.Thick` (2) cells thick (0104), its shape derived, never stored (`Doorways`, 0067): a
-  door cell in a run of more than two door cells up and down stands in a door; every other lies in a hatch. A cell joins the
-  door cells above and below it and those either side that stand as it does, so a door's two columns are one doorway, a
-  hatch's two rows another, and a hatch run stops beside a door. The client draws, hears and lights doorways by the same joins.
+- A doorway is a door or a hatch, `Doorways.Thick` (2) cells wide (0104, 0111), its shape derived, never stored (`Doorways`):
+  a door is built of 2×2 segments, and its segments stacked one above another are one doorway; a hatch is one 2×1 piece, a
+  doorway of its own. A door cell joins the door cells above and below it and the cell beside it within its segment; a hatch cell
+  joins only the cell beside it within its piece. A door never joins a hatch, so a hatch beside or under a door is a doorway of
+  its own. The client draws, hears and lights doorways by the same joins.
 
 ## Deliberately not handled
 

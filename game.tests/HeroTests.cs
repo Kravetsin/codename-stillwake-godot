@@ -741,17 +741,17 @@ public class HeroTests
             #.HS.#
             ######
             """;
-        var open = Start(Room('d'));
+        var open = Start(Room('o'));
         var atLadder = Until(open.Ship, open.Hero, Left, h => Column(h) == 2);
         var above = Settle(open.Ship, atLadder.Step(Up, open.Ship), Up);
         Assert.False(above.Climbing);
         Assert.Equal(4 * Block, above.Y);
 
-        var closed = Start(Room('D'));
+        var closed = Start(Room('h'));
         var stuck = Settle(closed.Ship, atLadder.Step(Up, closed.Ship), Up);
         Assert.True(stuck.Climbing);
-        // Its head under the hatch, two cells thick, its block whole (0104).
-        Assert.Equal(5 * Block, stuck.Y - Spec.Height);
+        // Its head under the hatch, a cell thick in the deck's top row, its block whole (0104).
+        Assert.Equal(9 * Unit, stuck.Y - Spec.Height);
     }
 
     /// <summary>A built hatch segment, two cells by one (0104), in a deck a cell thick, a ladder flush under it; a cell a character.</summary>
@@ -779,7 +779,7 @@ public class HeroTests
     [Fact]
     public void ABuiltHatchOverAFlushLadderIsClimbedThroughBothWaysAndStoodOnShut()
     {
-        var open = Start(BuiltHatch('d'));
+        var open = Start(BuiltHatch('o'));
         var atLadder = Until(open.Ship, open.Hero, Left, h => Column(h) == 2);
         var above = Settle(open.Ship, atLadder.Step(Up, open.Ship), Up);
         Assert.Equal((8 * Unit, false), (above.Y, above.Climbing));
@@ -789,7 +789,7 @@ public class HeroTests
         var down = Settle(open.Ship, grabbed, Down);
         Assert.Equal(16 * Unit, down.Y);
 
-        var closed = Start(BuiltHatch('D'));
+        var closed = Start(BuiltHatch('h'));
         var stuck = Settle(closed.Ship, atLadder.Step(Up, closed.Ship), Up);
         Assert.True(stuck.Climbing);
         Assert.Equal(9 * Unit, stuck.Y - Spec.Height);
@@ -797,7 +797,7 @@ public class HeroTests
         Assert.Equal((8 * Unit, false), (stood.Y, stood.Climbing));
     }
 
-    // A hatch three wide in a deck, a ladder under its middle (0067).
+    // A hatch three wide in a deck, a ladder under its middle (0067, 0111).
     private static string HatchMap(char hatch) => $"""
         #######
         #.....#
@@ -813,7 +813,7 @@ public class HeroTests
     [Fact]
     public void DownOnAClosedHatchDoesNothingOverTheLadderOrBesideIt()
     {
-        var (ship, _) = Start(HatchMap('D'));
+        var (ship, _) = Start(HatchMap('h'));
         foreach (int x in new[] { 5000, 7000, 9000 })
         {
             var stood = Settle(ship, At(x, 4 * Block), Down);
@@ -824,7 +824,7 @@ public class HeroTests
     [Fact]
     public void DownOnAnOpenHatchOverALadderClimbsDownAndBesideItTheHeroFalls()
     {
-        var (ship, _) = Start(HatchMap('d'));
+        var (ship, _) = Start(HatchMap('o'));
         var top = At(7000, 4 * Block);
         Assert.Equal(4 * Block, Settle(ship, top, Still).Y);
         var grabbed = top.Step(Down, ship);

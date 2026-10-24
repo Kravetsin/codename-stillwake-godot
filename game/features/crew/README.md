@@ -61,7 +61,7 @@ too); `AxeSwingTests`, `HarpoonTests`, `JetpackTests`, `MarkersTests`, `BodiesTe
 - Lengths and speeds are integer thousandths of a cell, the constants `Stillwake.Content.Hero`'s, the
   controller stepping every 1000/60 ms through `Stillwake.Net.Clock` whatever the frame rate; the
   hero is drawn between its last two steps.
-- A step never ends inside a wall, a closed door or past the grid's edge, and out in space the body's
+- A step never ends inside a wall, a closed door, a closed hatch or past the grid's edge, and out in space the body's
   middle never gets farther than `Hero.Tether` from where the tether is tied, with no jetpack worn (both
   FsCheck properties). The one way in is a door shut on the hero, by anyone: then each step, keys aside,
   pushes it `Hero.PushStep` (two cells, a 16 px one, in the 200 ms a door slides) toward the nearest place it fits beside
@@ -96,7 +96,7 @@ player down and not the other, and a floor could be jumped up through but not dr
 - **Down drops through floors** (`Hero.OnFloors`): standing on floors alone, down (S or the down arrow),
   walking or not, steps the feet a thousandth into the floor's row, and a row the feet are in is never
   landed on, so the hero falls through: no timer, nothing kept. Held, it drops through every floor it lands
-  on. A wall, closed door or ladder under any part of the feet holds it; jump wins over down; down by a
+  on. A wall, closed door, closed hatch or ladder under any part of the feet holds it; jump wins over down; down by a
   ladder grabs and climbs it as before, and a ladder that ends on a floor is climbed down onto it, not through
   (step off the ladder, then drop). There is no crouch. Others see it by the positions sent, as any fall.
 
@@ -112,7 +112,7 @@ superseding 0069), and the hero walks up and down steps of one cell.
 - **Down a step:** after each part the feet follow ground up to `StepUp` lower without a fall, and a hole the body
   fits that is no deeper than a step is walked down into rather than ending the walk (`Hero.Caught`). Two cells
   down, the hero falls; two cells up stop it, and it jumps or mantles (the ledge assist, 0092).
-- **`Hero.Clear` is strict:** the whole box clear of walls and closed doors; a step, climb, swim or pull that would
+- **`Hero.Clear` is strict:** the whole box clear of walls, closed doors and closed hatches; a step, climb, swim or pull that would
   end otherwise is not made. `Hero.Landing` is the highest ground under the box.
 - **Drawn as a ramp:** the controller makes a step whole in one of its steps; the figure (`Figure.cs`) eases up and
   down it over `HeroMotion.StepMs` (100 ms a cell) by `game/shared/StepEase.cs`, never slower than it walks across,
@@ -584,7 +584,9 @@ Deliberately not handled:
   onto `Hero.LedgeAbove`, hands on the ledge, the front foot stepping up (`Poses.PullUp`). The limbs' cycle is 8 cells climbed,
   read from the hero's height (`HeroMotion.Ladder`): a hand over the other every 4 cells; a slide, read from `Vy`, raises the
   hands to the rails and throws `Luminous.RailSpark`s. A friend's hero shows all of it from `Climbing`, `X`, `Y` and `Vy`. The
-  hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. `-- --ladders --autopilot --lit`
+  hands hold tools and the plan while climbing (`Poses.HoldsIn`), so a hero digs from a ladder. An open hatch over a ladder is
+  climbed through as the ladder is, its 2×1 piece (0111); a closed one is a floor, holding the hero from above and stopping it
+  from below. `-- --ladders --autopilot --lit`
   records it (`HeroAutopilot.LaddersRun`; with `--strip`, the strip's shaft).
 - **Ledge assist** (0092): a jump (`Hero.Leaping`) pressed toward a whole wall whose top its feet are short of by no more than
   the drawn foot clears (`Hero.MantleReach`, from `Poses.FootLift`: 594 at the top, 556 rising, 72 falling fast), rising no
