@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Features.Effects;
+using Stillwake.Game.Features.Light;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
@@ -19,7 +20,7 @@ namespace Stillwake.Game.Features.Fauna;
 /// it; a friend's shows as the sim's damage rises. One killed in view bursts into a puff. A creature still watches the hero
 /// nearest it. Only creatures within the camera's view and a margin are drawn, from a pool that never frees.
 /// </summary>
-public partial class FaunaView(Ui ui) : Node2D
+public partial class FaunaView(Ui ui) : Node2D, ILightSource
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = FaunaModule.Unit, Margin = 8;
@@ -84,9 +85,10 @@ public partial class FaunaView(Ui ui) : Node2D
     public (int Drawn, int Made) Bodies => (_shown.Count, _shown.Count + _pool.Count + _ghosts.Count);
 
     private readonly List<(Vector2 At, Color Colour)> _lights = [];
+    private readonly List<LightSource> _sources = [];
 
-    /// <summary>Where each glowing part of a creature drawn shines from this frame, in pixels of the world, and its colour: the light view's.</summary>
-    public IReadOnlyList<(Vector2 At, Color Colour)> Lights => _lights;
+    /// <summary>The light of each glowing part of a creature drawn this frame, faded as it dies: the light view's.</summary>
+    public IReadOnlyList<LightSource> Lights => _sources;
 
     public override void _Ready()
     {
@@ -163,6 +165,10 @@ public partial class FaunaView(Ui ui) : Node2D
         _lights.Clear();
         foreach (var one in _shown.Values) one.Body.Lights(_lights, one.Body.Transform, 1);
         foreach (var (body, leftMs) in _ghosts) body.Lights(_lights, body.Transform, (float)(leftMs / GhostMs));
+        _sources.Clear();
+        foreach (var (at, colour) in _lights)
+            _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), FaunaLooks.LightStrength * colour.A, FaunaLooks.LightReach,
+                FaunaLooks.LightKeep, 1));
         if (Trace != null) Traced(all);
     }
 

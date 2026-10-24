@@ -16,7 +16,7 @@ namespace Stillwake.Game.Features.Crafting;
 /// from the shard into the tool's first mount for a moment, its glow brighter and a soft flash, toned down so the bench is
 /// still seen. In pixels of the world.
 /// </summary>
-public partial class BenchView : Node2D
+public partial class BenchView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell;
 
@@ -47,7 +47,7 @@ public partial class BenchView : Node2D
 
     public BenchView(IGridQueries grid, IItemsQueries items) => (_grid, _items) = (grid, items);
 
-    /// <summary>The shards' light this frame, for the light feature (<c>LightView.Benches</c>).</summary>
+    /// <summary>The shards' light this frame, for the light feature (<c>ILightSource</c>).</summary>
     public IReadOnlyList<LightSource> Lights => _lights;
 
     /// <summary>The benches whose fit's burst plays now: what a recording checks.</summary>

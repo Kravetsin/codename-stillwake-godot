@@ -92,26 +92,11 @@ public partial class LightView : Node2D
     /// </summary>
     public Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps { get; set; } = () => [];
 
-    /// <summary>Where each glowing part of a plant near the view shines from this frame, in pixels of the world, and its colour (0079).</summary>
-    public Func<IReadOnlyList<(Vector2 At, Color Colour)>> Glows { get; set; } = () => [];
-
-    /// <summary>The light of the glowing growths in a planet's caves near the view this frame, each a small lamp of its own (0080).</summary>
-    public Func<IReadOnlyList<LightSource>> Caves { get; set; } = () => [];
-
-    /// <summary>The light of a planet's lava near the view this frame, where the open is over its surface (<c>LavaView</c>).</summary>
-    public Func<IReadOnlyList<LightSource>> Lava { get; set; } = () => [];
-
-    /// <summary>The light of the arc makers' lamps and hearths near the view this frame (0091: <c>HomesView</c>).</summary>
-    public Func<IReadOnlyList<LightSource>> Homes { get; set; } = () => [];
-
-    /// <summary>The light of the spires round their relics near the view this frame (0096: <c>SpiresView</c>).</summary>
-    public Func<IReadOnlyList<LightSource>> Spires { get; set; } = () => [];
-
-    /// <summary>The light of the arc benches' shards this frame (0099: <c>BenchView</c>).</summary>
-    public Func<IReadOnlyList<LightSource>> Benches { get; set; } = () => [];
-
-    /// <summary>Where each glowing part of a creature drawn shines from this frame and its colour (0102: <c>FaunaView</c>).</summary>
-    public Func<IReadOnlyList<(Vector2 At, Color Colour)>> Creatures { get; set; } = () => [];
+    /// <summary>
+    /// The views whose lights are drawn too, each frame's: plants' glowing parts, caves' growths, lava, homes, spires, benches'
+    /// shards, creatures (<see cref="ILightSource"/>).
+    /// </summary>
+    public IReadOnlyList<ILightSource> Shining { get; set; } = [];
 
     /// <summary>The lights drawn into the lightmap the last frame.</summary>
     public int LightCount => _lightmap.Drawn;
@@ -272,27 +257,11 @@ public partial class LightView : Node2D
             _main.Add(beam);
             _main.Add(glow);
         }
-        // A plant's glowing parts: a seed pod, a berry, a bell, a small pool of light round each.
-        foreach (var (at, colour) in Glows())
-            _main.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), 1, FloraLooks.LightReach, FloraLooks.LightKeep, 1));
-        // A creature's glowing parts: the fluff's spots and antennae, the tapir's pod, the sixleg's berries; faded as it dies.
-        var creatures = Creatures();
-        for (int i = 0; i < creatures.Count; i++)
+        for (int s = 0; s < Shining.Count; s++)
         {
-            var (at, colour) = creatures[i];
-            _main.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), FaunaLooks.LightStrength * colour.A, FaunaLooks.LightReach,
-                FaunaLooks.LightKeep, 1));
+            var lights = Shining[s].Lights;
+            for (int i = 0; i < lights.Count; i++) _main.Add(lights[i]);
         }
-        var caves = Caves();
-        for (int i = 0; i < caves.Count; i++) _main.Add(caves[i]);
-        var lava = Lava();
-        for (int i = 0; i < lava.Count; i++) _main.Add(lava[i]);
-        var homes = Homes();
-        for (int i = 0; i < homes.Count; i++) _main.Add(homes[i]);
-        var spires = Spires();
-        for (int i = 0; i < spires.Count; i++) _main.Add(spires[i]);
-        var benches = Benches();
-        for (int i = 0; i < benches.Count; i++) _main.Add(benches[i]);
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
         foreach (var f in Flares.Shared.Flashes)
         {

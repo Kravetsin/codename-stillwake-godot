@@ -123,6 +123,7 @@ pointer.
 - Cells are drawn with `TileMapLayer`, never a node per cell; light occluders are merged per wall
   run. A node per cell costs CPU time with every light (0025).
 - Floats are fine in the client: only the sim must be deterministic.
+- A view of the surface is a line in `game/SurfaceViews.cs`, in draw order; one giving light is an `ILightSource`.
 - Godot-free client code goes into its folder's `logic/`; `game.tests` compiles every `logic/` by glob, so a new file needs no csproj edit.
 
 ## Co-op

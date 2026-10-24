@@ -63,4 +63,4 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - **Tests**: `sim/Tests/<Module>Tests.cs` or `<Rule>Tests.cs`, helpers `<Module>Testing.cs`; client `game.tests/<Class>Tests.cs`
   (Godot-free client code lives in its folder's `logic/`; `Game.Tests.csproj` compiles every `logic/` by glob); `net/Tests/<Topic>Tests.cs`. Docs guard: `game.tests/DocsGuardTests.cs`.
 - **Dev args**: a demo's on its scenario class in `game/dev/demos/` (`[Dev("--name"`), every other in `game/dev/logic/DevModes.cs` (`DevModesTests` keeps both exact); `grep -rn '"--<name>' game` for the wiring,
-  `grep -rn '<c>-- --<name>' game` for its class. `game/Main.cs` keeps startup and the frame loop.
+  `grep -rn '<c>-- --<name>' game` for its class. `game/Main.cs` keeps startup and the frame loop; `game/SurfaceViews.cs` lists the views of a surface, in draw order.
