@@ -106,6 +106,9 @@ public static class Tools
     /// <summary>The build menu's tabs, in order, each with its cards: what the player builds, grouped by use (0114).</summary>
     public static readonly IReadOnlyList<Tab> Tabs = TabsOf(Materials.All, Builds.All, Machines.All);
 
+    /// <summary>Whether the menu shows a tab: one with a card left, or one of <see cref="MenuTabs.ShownEmpty"/>.</summary>
+    public static bool Shown(Tab tab) => tab.Tools.Count > 0 || MenuTabs.ShownEmpty.Contains(tab.Id);
+
     /// <summary>Every card, tab by tab.</summary>
     public static readonly IReadOnlyList<Tool> All = Tabs.SelectMany(t => t.Tools).ToArray();
 

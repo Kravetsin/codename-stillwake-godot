@@ -31,7 +31,7 @@ public class BuildingToolsTests
     {
         var carded = Tools.Tabs.SelectMany(tab => tab.Tools.Select(What)).ToList();
         Assert.Equal(carded.Count, carded.Distinct().Count());
-        Assert.All(Tools.Tabs, tab => Assert.NotEmpty(tab.Tools));
+        Assert.All(Tools.Tabs.Where(tab => !MenuTabs.ShownEmpty.Contains(tab.Id)), tab => Assert.NotEmpty(tab.Tools));
         // A card a material but bedrock (0077, 0084) for its wall, and one for its back wall (0108).
         var expected = Materials.All.Where(m => m.Built).Select(m => $"wall:{m.Id}")
             .Concat(Materials.All.Where(m => Blueprints.Has(Placement.BackWall(m.Id))).Select(m => $"backWall:{m.Id}"))
