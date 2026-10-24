@@ -149,7 +149,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         return -1;
     }
 
-    private static bool IsSolid(int structure) => structure is Structure.Wall or Structure.DoorClosed;
+    private static bool IsSolid(int structure) => structure is Structure.Wall or Structure.DoorClosed or Structure.HatchClosed;
 
     /// <summary>
     /// Whether this surface's ground grew from a seed (0077): there an open cell under the sky, with no back wall, or before
@@ -219,7 +219,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
             int x = c % width;
             bool across = x > 0 && x < width - 1 && solid[c - 1] && solid[c + 1];
             bool down = c >= width && c + width < size && solid[c - width] && solid[c + width];
-            opening[c] = structure[Cell(c)] == Structure.DoorOpen || across || down;
+            opening[c] = Doorways.IsOpen(structure[Cell(c)]) || across || down;
         }
         // On grown ground an open cell under the sky or before natural ground is outside, wherever it is (0077).
         var porous = new bool[size];
@@ -484,7 +484,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     {
         if (IsSolid(structure[c])) return false;
         if (Porous(c)) return true;
-        if (structure[c] == Structure.DoorOpen) return false;
+        if (Doorways.IsOpen(structure[c])) return false;
         int width = _grid.Width, size = structure.Length, x = c % width;
         bool across = x > 0 && x < width - 1 && IsSolid(structure[c - 1]) && IsSolid(structure[c + 1]);
         bool down = c >= width && c + width < size && IsSolid(structure[c - width]) && IsSolid(structure[c + width]);
