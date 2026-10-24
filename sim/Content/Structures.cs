@@ -113,13 +113,13 @@ public static class Structures
     /// <summary>What a hero builds of these (<see cref="Builds.All"/>): each build's cost, ticks and piece, by the id a spec names.</summary>
     public static readonly IReadOnlyList<Build> BuildRows =
     [
-        new("floor", [("scrap", 1)], BuildTicks: 7),
+        new("floor", [("scrap", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 210)),
         // A piece the size of a 16 px ladder cell (0104), costing and taking what one did.
-        new("ladder", [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 2),
+        new("ladder", [("scrap", 1)], BuildTicks: 7, Across: 2, Tall: 2, Menu: new(MenuTabs.Structure, 220)),
         // A door segment, a 16 px door cell (0104), costing and taking what one did; segments stacked are one doorway.
-        new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2),
+        new("door", [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 2, Menu: new(MenuTabs.Structure, 230)),
         // A hatch, a door segment laid flat (0104, 0111), its own doorway: two cells wide and one tall.
-        new(Builds.Hatch, [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 1),
+        new(Builds.Hatch, [("plate", 2), ("gear", 1)], BuildTicks: 20, Across: 2, Tall: 1, Menu: new(MenuTabs.Structure, 240)),
     ];
 
     private static readonly Trait[] TraitsOf = Table.Select(s => s.Traits).ToArray();

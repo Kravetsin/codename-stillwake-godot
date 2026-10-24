@@ -76,51 +76,35 @@ public static class Tools
         new(id, placement, label ?? En.T($"tool.{id}"));
 
     /// <summary>
-    /// A card for each material a blueprint builds a wall of (0077, 0084: no bedrock), its id and its text's key followed by
-    /// the material's name; then one for each it builds a back wall of (0108), alike.
+    /// A material's wall or back wall card (0077, 0084, 0108): its id and its text's key, <paramref name="kind"/>, followed by the
+    /// material's name.
     /// </summary>
-    private static IEnumerable<Tool> OfEveryMaterial(string kind, System.Func<string, Placement> placement) =>
-        Materials.All.Where(m => Blueprints.Has(placement(m.Id))).Select(m => new PlaceTool(
-            kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..],
-            placement(m.Id),
-            $"{En.T($"tool.{kind}")}: {En.T($"material.{m.Id}")}"));
+    private static PlaceTool OfMaterial(string kind, Material m, Placement placement) =>
+        new(kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..], placement, $"{En.T($"tool.{kind}")}: {En.T($"material.{m.Id}")}");
 
-    /// <summary>The build menu's tabs, in order, each with its cards: what the player builds, grouped by use.</summary>
-    public static readonly IReadOnlyList<Tab> Tabs =
-    [
-        new("structure",
-        [
-            .. OfEveryMaterial("wall", Placement.Wall),
-            .. OfEveryMaterial("backWall", Placement.BackWall),
-            .. Builds.All.Select(b => Place(b.Id, new Placement("structure", b.Id))),
-        ]),
-        new("air",
-        [
-            Place("vent", new Placement("machine", "vent")),
-            Place("tank", new Placement("machine", "tank")),
-            Place("generator", new Placement("machine", "generator")),
-        ]),
-        new("power",
-        [
-            Place("solarPanel", new Placement("machine", "solarPanel")),
-            Place("burnerGenerator", new Placement("machine", "burnerGenerator")),
-            Place("lamp", new Placement("machine", "lamp")),
-            Place("arcLamp", new Placement("machine", "arcLamp")),
-            Place("charger", new Placement("machine", "charger")),
-            Place("capacitorBank", new Placement("machine", "capacitorBank")),
-        ]),
-        new("production",
-        [
-            Place("furnace", new Placement("machine", "furnace")),
-            Place("analyzer", new Placement("machine", "analyzer")),
-            Place("former", new Placement("machine", "former")),
-            Place("smelter", new Placement("machine", "smelter")),
-            Place("assembler", new Placement("machine", "assembler")),
-            Place("growCapsule", new Placement("machine", "growCapsule")),
-            Place("arcBench", new Placement("machine", "arcBench")),
-        ]),
-        new("storage", [Place("crate", new Placement("machine", "crate")), Place("droneBay", new Placement("machine", "droneBay"))]),
-    ];
+    /// <summary>
+    /// The build menu's tabs from content (0114): <see cref="MenuTabs.All"/> in order, each with the cards whose
+    /// <see cref="MenuSlot"/> names it, by their order; ties keep walls, then back walls, builds and machines, each in its rows'
+    /// order. A row with no slot has no card.
+    /// </summary>
+    public static IReadOnlyList<Tab> TabsOf(IEnumerable<Material> materials, IEnumerable<Build> builds, IEnumerable<MachineSpec> machines)
+    {
+        var cards = new List<(MenuSlot Slot, Tool Card)>();
+        foreach (var m in materials)
+            if (m.Menu is { } slot) cards.Add((slot, OfMaterial("wall", m, Placement.Wall(m.Id))));
+        foreach (var m in materials)
+            if (m.BackMenu is { } slot) cards.Add((slot, OfMaterial("backWall", m, Placement.BackWall(m.Id))));
+        foreach (var b in builds)
+            if (b.Menu is { } slot) cards.Add((slot, Place(b.Id, new Placement("structure", b.Id))));
+        foreach (var m in machines)
+            if (m.Menu is { } slot) cards.Add((slot, Place(m.Kind, new Placement("machine", m.Kind))));
+        return MenuTabs.All
+            .Select(tab => new Tab(tab, cards.Where(c => c.Slot.Tab == tab).OrderBy(c => c.Slot.Order).Select(c => c.Card).ToArray()))
+            .ToArray();
+    }
+
+    /// <summary>The build menu's tabs, in order, each with its cards: what the player builds, grouped by use (0114).</summary>
+    public static readonly IReadOnlyList<Tab> Tabs = TabsOf(Materials.All, Builds.All, Machines.All);
 
     /// <summary>Every card, tab by tab.</summary>
     public static readonly IReadOnlyList<Tool> All = Tabs.SelectMany(t => t.Tools).ToArray();

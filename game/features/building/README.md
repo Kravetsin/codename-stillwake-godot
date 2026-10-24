@@ -8,7 +8,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 
 | File | Purpose |
 | --- | --- |
-| `Tools.cs` | The cards and tabs, focus and removal, the overlay shown, search, hints, `CardAt` (the pipette), how a plan joins (`LinksOf`, `DoorLinks`). |
+| `Tools.cs` | The tabs and cards from content's menu slots (0114), focus and removal, the overlay shown, search, hints, `CardAt` (the pipette), how a plan joins (`LinksOf`, `DoorLinks`). |
 | `PlanHand.cs` | The card in hand and the plan out, in step with `Ui.Hand` and `Ui.OverlayOn`; the focused layer. |
 | `Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
 | `BuildingView.cs` | Plans and marks drawn (ghosts, dashes, cuts), the tips, the buttons, the pipette, plan work. |
@@ -26,8 +26,9 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 
 - **One thing in hand** (0022, `Holding`): free, the plan or a card. The plan put away takes the card; the hand freed
   elsewhere puts the plan away. A drag ends with the card that began it.
-- **Cards follow the blueprints** (0077, 0084, 0108): a card per material a blueprint builds a wall of (soil and stone
-  too, no bedrock), then one per back wall. A tab with nothing known is not shown nor the tab. Walls have no shape to
+- **The menu is content** (0114): a card is a row with a `MenuSlot` (machine, build, a material's wall and back wall),
+  on its tab by `Order`; `MenuTabs.All` orders the tabs (`Tools.TabsOf`). Every built material has both (0077, 0084,
+  0108; no bedrock). A card not known is not shown, nor a tab with none known. Walls have no shape to
   turn (0106). Pipes are not planned: the wrench lays them (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (everything solid: walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
