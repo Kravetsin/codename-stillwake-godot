@@ -27,22 +27,22 @@ public class GridTests
         Assert.Null(w.M.Grid.BackAt(6));
     }
 
-    /// <summary>A hatch is a doorway lying in a deck (0067): opened or shut from any of its cells, it moves whole.</summary>
+    /// <summary>A hatch is a doorway lying in a deck (0111): its two cells open and shut together, and no other.</summary>
     [Fact]
-    public void OpensAndShutsAHatchThreeWideWholeFromAnyOfItsCells()
+    public void OpensAndShutsAHatchWholeFromEitherOfItsCells()
     {
         var w = new Scenario("""
             #######
             #.....#
-            ##DDD##
+            ##hh###
             #.....#
             #######
-            """);
-        int[] Hatch() => [.. Enumerable.Range(2, 3).Select(x => w.M.Grid.StructureAt(w.At(x, 2)))];
+            """, cells: true);
+        int[] Hatch() => [w.M.Grid.StructureAt(w.At(2, 2)), w.M.Grid.StructureAt(w.At(3, 2))];
         w.Do(new SetDoor(w.At(3, 2), true)).Run();
-        Assert.Equal(new[] { Structure.DoorOpen, Structure.DoorOpen, Structure.DoorOpen }, Hatch());
-        w.Do(new SetDoor(w.At(4, 2), false)).Run();
-        Assert.Equal(new[] { Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed }, Hatch());
+        Assert.Equal(new[] { Structure.HatchOpen, Structure.HatchOpen }, Hatch());
+        w.Do(new SetDoor(w.At(2, 2), false)).Run();
+        Assert.Equal(new[] { Structure.HatchClosed, Structure.HatchClosed }, Hatch());
     }
 
     /// <summary>Two peers who both saw a door shut open it in one tick, or one a round trip after the other: it stays open.</summary>
@@ -73,26 +73,31 @@ public class GridTests
     }
 
     /// <summary>
-    /// A doorway is one straight run (0067): where a door meets a hatch, the cell they share is the door's and the hatch
-    /// stops beside it, so each opens alone; a door and a hatch touching only at a corner never were one.
+    /// A door's two columns and the segments stacked over them are one doorway (0111); segments side by side are doors
+    /// of their own, paired from the left end of their run, and a door and a hatch never join.
     /// </summary>
     [Theory]
-    [InlineData("DDD.|..D.|..D.", 0, 0, "ddD.|..D.|..D.")]
-    [InlineData("DDD.|..D.|..D.", 2, 2, "DDd.|..d.|..d.")]
-    [InlineData("D..|DDD|D..", 1, 1, "D..|Ddd|D..")]
-    [InlineData("D..|DDD|D..", 0, 0, "d..|dDD|d..")]
-    [InlineData("DDDDD|..D..|..D..", 0, 0, "ddDDD|..D..|..D..")]
-    [InlineData("DDDDD|..D..|..D..", 2, 1, "DDdDD|..d..|..d..")]
-    [InlineData(".D.|DDD|.D.", 0, 1, ".D.|dDD|.D.")]
-    [InlineData(".D.|DDD|.D.", 1, 0, ".d.|DdD|.d.")]
-    [InlineData("D..|D..|.DD", 0, 0, "d..|d..|.DD")]
-    [InlineData("D..|D..|.DD", 1, 2, "D..|D..|.dd")]
+    [InlineData("DD|..", 0, 0, "dd|..")]
+    [InlineData("DD|DD|DD", 0, 0, "dd|dd|dd")]
+    [InlineData("DDDD|....", 0, 0, "ddDD|....")]
+    [InlineData("DDDD|....", 2, 0, "DDdd|....")]
+    [InlineData("DDD.|....", 2, 0, "DDd.|....")]
+    [InlineData("DD|hh", 0, 0, "dd|hh")]
+    [InlineData("hh|hh", 0, 0, "oo|hh")]
+    [InlineData("D.|.D", 0, 0, "d.|.D")]
     public void SetsOnlyTheStraightRunTheCellIsIn(string map, int x, int y, string after)
     {
         var w = new Scenario(map.Replace('|', '\n'), cells: true);
         w.Do(new SetDoor(w.At(x, y), true)).Run();
         int width = map.IndexOf('|');
-        string Shown(int c) => w.M.Grid.StructureAt(c) switch { Structure.DoorClosed => "D", Structure.DoorOpen => "d", _ => "." };
+        string Shown(int c) => w.M.Grid.StructureAt(c) switch
+        {
+            Structure.DoorClosed => "D",
+            Structure.DoorOpen => "d",
+            Structure.HatchClosed => "h",
+            Structure.HatchOpen => "o",
+            _ => ".",
+        };
         var rows = Enumerable.Range(0, after.Split('|').Length).Select(r => string.Concat(Enumerable.Range(0, width).Select(c => Shown(r * width + c))));
         Assert.Equal(after, string.Join("|", rows));
     }

@@ -108,7 +108,7 @@ public static class Planting
         for (int row = cy; row < Math.Min(height, cy + rows); row++)
         {
             int at = row * width + cx, structure = structureAt(at);
-            if (structure is Structure.Empty or Structure.DoorOpen) continue;
+            if (structure is Structure.Empty or Structure.DoorOpen or Structure.HatchOpen) continue;
             double surface = row * cell;
             return surface - y < 2 ? null : surface;
         }

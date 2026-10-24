@@ -122,8 +122,8 @@ public sealed class DrawnLayers
             Mark(c + w);
             if (x > 0) Mark(c - 1);
             if (x < w - 1) Mark(c + 1);
-            if (Doorways.IsDoor(change.Structure) == Doorways.IsDoor(Structure[c])) continue;
-            // Whether a cell stands in a door reads Thick cells up and down; and every cell of a doorway it joins is drawn by
+            if (Doorways.IsDoorway(change.Structure) == Doorways.IsDoorway(Structure[c])) continue;
+            // Whether a cell stands in a doorway reads cells up and down and along; and every cell of a doorway it joins is drawn by
             // where it lies along it (0104), so the doorways round it are drawn anew whole.
             for (int dy = -Doorways.Thick; dy <= Doorways.Thick; dy++)
                 for (int dx = -1; dx <= 1; dx++)
@@ -136,7 +136,7 @@ public sealed class DrawnLayers
 
         void Flood(int from)
         {
-            if (from < 0 || from >= size || !Doorways.IsDoor(Structure[from])) return;
+            if (from < 0 || from >= size || !Doorways.IsDoorway(Structure[from])) return;
             _todo.Push(from);
             while (_todo.Count > 0)
             {
@@ -144,7 +144,7 @@ public sealed class DrawnLayers
                 if (!_flooded.Add(at)) continue;
                 Mark(at);
                 foreach (int n in (ReadOnlySpan<int>)[at - w, at + w, ax > 0 ? at - 1 : -1, ax < w - 1 ? at + 1 : -1])
-                    if (n >= 0 && n < size && Doorways.IsDoor(Structure[n]) && !_flooded.Contains(n)) _todo.Push(n);
+                    if (n >= 0 && n < size && Doorways.IsDoorway(Structure[n]) && !_flooded.Contains(n)) _todo.Push(n);
             }
         }
     }

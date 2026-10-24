@@ -6,7 +6,7 @@ namespace Stillwake.Sim.Grid;
 /// <summary>Structure codes as stored in saves: never reuse or renumber one.</summary>
 public static class Structure
 {
-    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5;
+    public const int Empty = 0, Wall = 1, Floor = 2, Ladder = 3, DoorClosed = 4, DoorOpen = 5, HatchClosed = 6, HatchOpen = 7;
 }
 
 
@@ -152,9 +152,9 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         _structureAt = c => State.Structure[c];
         _now = ValueAt;
         // Already as asked, a door is left alone, the version too: nothing derived from the grid is redone.
-        Handles<SetDoor>(c => IsDoor(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
+        Handles<SetDoor>(c => IsDoorway(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
         {
-            int to = DoorCode(c.Open);
+            int to = DoorCode(c.Open, State.Structure[c.Cell]);
             var doorway = DoorwayOf(c.Cell, _structureAt);
             if (!Differs(State.Structure, doorway, to)) return;
             State.Version++;
@@ -230,6 +230,8 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     'H' => Structure.Ladder,
                     'D' => Structure.DoorClosed,
                     'd' => Structure.DoorOpen,
+                    'h' => Structure.HatchClosed,
+                    'o' => Structure.HatchOpen,
                     _ => Structure.Empty,
                 };
                 if (s.Structure[cell] == Structure.Wall) s.Material[cell] = material;
@@ -238,23 +240,23 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return s;
     }
 
-    /// <summary>A real door most of the time, any cell (off the grid too) otherwise, so refusals are drawn; opened or shut at random, so one already as asked is too.</summary>
+    /// <summary>A real door or hatch most of the time, any cell (off the grid too) otherwise, so refusals are drawn; opened or shut at random, so one already as asked is too.</summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         int size = State.Width * State.Height;
         int Pick(List<int> cells) =>
             cells.Count > 0 && rng.Below(4) != 0 ? cells[(int)rng.Below((uint)cells.Count)] : (int)rng.Below((uint)size + 2) - 1;
-        return new SetDoor(Pick(CellsWith(State.Structure, Structure.DoorClosed, Structure.DoorOpen)), rng.Below(2) == 0) { From = from };
+        return new SetDoor(Pick(CellsWith(State.Structure, Doorways.IsDoorway)), rng.Below(2) == 0) { From = from };
     }
 
-    /// <summary>The cells holding <paramref name="a"/> or <paramref name="b"/>, in reading order: within <see cref="Built"/>, where anything is.</summary>
-    private List<int> CellsWith(int[] codes, int a, int b)
+    /// <summary>The cells holding a structure <paramref name="holds"/>, in reading order: within <see cref="Built"/>, where anything is.</summary>
+    private List<int> CellsWith(int[] codes, Func<int, bool> holds)
     {
         var cells = new List<int>();
         var box = State.Built;
         for (int y = box.Top; y <= box.Bottom; y++)
             for (int c = y * State.Width + box.Left; c <= y * State.Width + box.Right; c++)
-                if (codes[c] == a || codes[c] == b) cells.Add(c);
+                if (holds(codes[c])) cells.Add(c);
         return cells;
     }
 
@@ -388,7 +390,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
     private bool InZone(int cell) => State.Zone.Contains(cell % State.Width, cell / State.Width);
-    private bool IsDoor(int[] structure, int cell) => InBounds(cell) && structure[cell] is Structure.DoorClosed or Structure.DoorOpen;
+    private bool IsDoorway(int[] structure, int cell) => InBounds(cell) && Doorways.IsDoorway(structure[cell]);
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
@@ -408,16 +410,19 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         if (!InBounds(cell)) return [];
         int s = State.Structure[cell];
         if (s == Structure.Empty) return [];
-        bool door = s is Structure.DoorClosed or Structure.DoorOpen;
-        if (s != Structure.Ladder && !door) return [cell];
-        // A ladder's piece or a door's segment (0104): columns paired from the left end of its row's run, rows from the top of its column's.
+        bool door = Doorways.IsDoor(s), hatch = Doorways.IsHatch(s);
+        if (s != Structure.Ladder && !door && !hatch) return [cell];
+        // A ladder's piece, a door segment or a hatch piece (0104, 0111): columns paired from the left end of its row's run of the
+        // same, rows from the top of its column's; a hatch is one row.
         int w = State.Width, x = cell % w, y = cell / w;
         bool Same(int cx, int cy) => cx >= 0 && cy >= 0 && cx < w && cy < State.Height
-            && (door ? IsDoor(State.Structure, cy * w + cx) : State.Structure[cy * w + cx] == Structure.Ladder);
+            && (door ? Doorways.IsDoor(State.Structure[cy * w + cx])
+                : hatch ? Doorways.IsHatch(State.Structure[cy * w + cx])
+                : State.Structure[cy * w + cx] == Structure.Ladder);
         int left = 0, up = 0;
         while (Same(x - left - 1, y)) left++;
-        while (Same(x, y - up - 1)) up++;
-        var (across, tall) = Builds.PieceOf(door ? "door" : "ladder") ?? (1, 1);
+        if (!hatch) while (Same(x, y - up - 1)) up++;
+        var (across, tall) = Builds.PieceOf(door ? "door" : hatch ? Builds.Hatch : "ladder") ?? (1, 1);
         int x0 = x - left % across, y0 = y - up % tall;
         var cells = new List<int>(across * tall);
         for (int cy = y0; cy < y0 + tall; cy++)
@@ -433,13 +438,19 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
         foreach (var t in toggles)
         {
-            if (t is SetDoor door && InBounds(door.Cell) && StructureAt(door.Cell) is Structure.DoorClosed or Structure.DoorOpen)
-                foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = DoorCode(door.Open);
+            if (t is SetDoor door && InBounds(door.Cell) && Doorways.IsDoorway(StructureAt(door.Cell)))
+            {
+                int to = DoorCode(door.Open, StructureAt(door.Cell));
+                foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = to;
+            }
         }
         return structure;
     }
 
-    private static int DoorCode(bool open) => open ? Structure.DoorOpen : Structure.DoorClosed;
+    /// <summary>The code <paramref name="structure"/> takes open or shut, a hatch staying a hatch and a door a door.</summary>
+    private static int DoorCode(bool open, int structure) => Doorways.IsHatch(structure)
+        ? open ? Structure.HatchOpen : Structure.HatchClosed
+        : open ? Structure.DoorOpen : Structure.DoorClosed;
 
     private static bool Differs(int[] layer, List<int> cells, int code)
     {
@@ -449,8 +460,8 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     }
 
     /// <summary>
-    /// The doorway <paramref name="cell"/> is in, the straight run of door cells it opens and shuts with
-    /// (<see cref="Doorways"/>), as <paramref name="codeAt"/> reads them. Scratch: good until the next call.
+    /// The doorway <paramref name="cell"/> is in, the door or hatch it opens and shuts with (<see cref="Doorways"/>), as
+    /// <paramref name="codeAt"/> reads it. Scratch: good until the next call.
     /// </summary>
     private List<int> DoorwayOf(int cell, Func<int, int> codeAt)
     {
@@ -479,7 +490,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     private void Visit(Func<int, int> codeAt, int cell)
     {
-        if (!InBounds(cell) || _inDoorway[cell] || codeAt(cell) is not (Structure.DoorClosed or Structure.DoorOpen)) return;
+        if (!InBounds(cell) || _inDoorway[cell] || !Doorways.IsDoorway(codeAt(cell))) return;
         _inDoorway[cell] = true;
         _doorway.Add(cell);
         _todo.Push(cell);
@@ -530,6 +541,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     "wall" => Structure.Wall,
                     "floor" => Structure.Floor,
                     "ladder" => Structure.Ladder,
+                    Builds.Hatch => Structure.HatchClosed,
                     _ => Structure.DoorClosed,
                 };
                 if (Builds.PieceOf(p.Kind) != null)

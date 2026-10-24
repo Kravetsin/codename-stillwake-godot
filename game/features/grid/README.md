@@ -7,9 +7,9 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   `BackMaterialLayer`, `Machines`, `Version`, `Built`; the machine's `Plug` from `Content.Machines` for its socket.
 - **Draws:** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its
   picture, iron a panel with a grille in about one cell of seven), walls cut from their material's picture, their edges on every side that faces no
-  wall (`ShipTiles.WallName`, `ShipTiles.EdgeName`; every wall whole, 0106), floors and ladders, doors and hatches (shut or slid open; a door cell joined to one above or below
-  is a door's, every other a hatch's, joined as the sim's `Doorways` joins them, one straight run a doorway;
-  pictures by `render/DoorShape.cs`, 0067),
+  wall (`ShipTiles.WallName`, `ShipTiles.EdgeName`; every wall whole, 0106), floors and ladders, doors and hatches (shut or slid open; a door's segments stacked are one doorway, a hatch a doorway of its own,
+  joined as the sim's `Doorways` joins them;
+  pictures by `render/DoorShape.cs`, 0067, 0111),
   machines over their footprints; a sprite per power socket.
 - **Heard:** a door that moved (a valve is the pipes' own, 0109), where it stands (0033); a doorway once, at its cell joined
   neither above nor to its left (`DoorShape.Leads`).
@@ -29,7 +29,7 @@ cell (TypeScript `features/grid` and `render/ship-art.ts`).
   (`game/shared/Predicted.cs`'s `Grid`, `predictedGrid` of `session/predicted.ts`): after a tick, and
   on the frame this peer sends a door or valve toggle, which shows at once, before its tick runs (0014). It
   brings what it drew (`DrawnLayers`, plain C#) up to the grid and redraws only the changed cells and
-  their four neighbours, a door cell come or gone its corners too (a hatch beside the cell above or below it
+  their four neighbours, a door cell come or gone its neighbours' joins too (a door above or below it
   joins anew); machines are redrawn when the list changes. Nothing is rebuilt per frame.
 - **Costs the cells changed, not the ship or the world** (F-7, 0051). When the grid's `Version` moved, the
   cells its log names since the last look (`ChangedSince`) are compared with what was drawn; machines

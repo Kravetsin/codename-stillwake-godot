@@ -111,7 +111,6 @@ public partial class BuildingView : Node2D
 
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
-            act = Drag.Oriented(act, from, to);
             var planned = new List<int>();
             foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
                 foreach (var c in verdict.Commands)
@@ -184,15 +183,18 @@ public partial class BuildingView : Node2D
             }
         IEnumerable<Placement> PlannedAt(int c) => placed.TryGetValue(c, out var list) ? list : [];
         var shapes = new List<(Sim.Building.Plan Plan, Placement Shown, int At, int Linked)>();
-        var doorCells = plans.Where(p => p.Place is { } place && Tools.LaysDoor(place)).SelectMany(p => CellsOf(grid, p)).ToHashSet();
-        var doorLinks = Tools.DoorLinks(grid, doorCells);
+        var doorCodes = new Dictionary<int, int>();
+        foreach (var p in plans)
+            if (p.Place is { } place && Tools.LaysDoor(place))
+                foreach (int c in CellsOf(grid, p)) doorCodes[c] = Tools.CodeOf(place.Kind);
+        var doorLinks = Tools.DoorLinks(grid, doorCodes);
         foreach (var p in plans)
         {
             if (p.Place is not { } place) continue;
             int linked = Tools.LinksOf(place, p.Cell, width, PlannedAt, grid);
             var cut = CutOf(grid, building, p, place);
             if (Tools.LaysDoor(place))
-                foreach (int c in CellsOf(grid, p)) _plans.LayDoor(c, width, doorLinks, cut);
+                foreach (int c in CellsOf(grid, p)) _plans.LayDoor(c, width, doorLinks, place.Kind == Stillwake.Content.Builds.Hatch, cut);
             else _plans.Lay(place, p.Cell, width, linked, cut);
             if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
@@ -331,8 +333,8 @@ public partial class BuildingView : Node2D
             into.Lay(built, at, grid.Width, joined, cut);
             return;
         }
-        var links = Tools.DoorLinks(grid, new HashSet<int>());
-        foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, cut);
+        var links = Tools.DoorLinks(grid, new Dictionary<int, int>());
+        foreach (int c in grid.PieceOf(at)) into.LayDoor(c, grid.Width, links, built.Kind == Stillwake.Content.Builds.Hatch, cut);
     }
 
     /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
@@ -437,8 +439,6 @@ public partial class BuildingView : Node2D
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        // The door's card lays hatch segments but along a stroke down (0104); the ghost shows which.
-        act = Drag.Oriented(act, _drag?.From ?? p, p);
         var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
         if (act is PlaceTool place)
         {
@@ -446,17 +446,24 @@ public partial class BuildingView : Node2D
             var cells = verdicts.Select(v => v.Cell).ToHashSet();
             IEnumerable<Placement> Beside(int c) =>
                 building.PlansAt(c).Select(o => o.Place).OfType<Placement>().Concat(cells.Contains(c) ? [place.Placement] : []);
-            // A doorway's ghost joins as it will built, a lone segment a hatch, a run down a door (0104).
-            var doorCells = Tools.LaysDoor(place.Placement)
-                ? building.Plans.Where(o => o.Place is { } other && Tools.LaysDoor(other)).SelectMany(o => CellsOf(grid, o))
-                    .Concat(verdicts.SelectMany(v => grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell])).ToHashSet()
-                : null;
-            var doorLinks = doorCells != null ? Tools.DoorLinks(grid, doorCells) : null;
+            // A doorway's ghost joins as it will be built, a door to doors and a hatch to hatches (0104, 0111).
+            Dictionary<int, int>? doorCodes = null;
+            if (Tools.LaysDoor(place.Placement))
+            {
+                doorCodes = new Dictionary<int, int>();
+                foreach (var o in building.Plans)
+                    if (o.Place is { } other && Tools.LaysDoor(other))
+                        foreach (int c in CellsOf(grid, o)) doorCodes[c] = Tools.CodeOf(other.Kind);
+                foreach (var v in verdicts)
+                    foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell]) doorCodes[c] = Tools.CodeOf(place.Placement.Kind);
+            }
+            var doorLinks = doorCodes != null ? Tools.DoorLinks(grid, doorCodes) : null;
             foreach (var v in verdicts)
             {
                 var into = v.Problem != null ? _refused : _fits;
                 if (doorLinks != null)
-                    foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell]) into.LayDoor(c, width, doorLinks);
+                    foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell])
+                        into.LayDoor(c, width, doorLinks, place.Placement.Kind == Stillwake.Content.Builds.Hatch);
                 else into.Lay(place.Placement, v.Cell, width, Tools.LinksOf(place.Placement, v.Cell, width, Beside, grid));
             }
         }

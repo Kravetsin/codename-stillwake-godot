@@ -106,6 +106,23 @@ public class RoomsTests
     }
 
     [Fact]
+    public void AShutHatchSealsTwoRoomsApartAndAnOpenOneJoinsThem()
+    {
+        var w = new Scenario("""
+            ........
+            .######.
+            .#....#.
+            .##hh##.
+            .#....#.
+            .######.
+            ........
+            """, cells: true);
+        Assert.Equal(new[] { (w.At(2, 2), 4), (w.At(2, 4), 4) }, Summary(w));
+        w.Do(new SetDoor(w.At(3, 3), true)).Run();
+        Assert.Equal(new[] { (w.At(2, 2), 10) }, Summary(w));
+    }
+
+    [Fact]
     public void KeepsARoomWithAHoleInItsWallARoomOpenToSpaceThroughThatCell()
     {
         var w = new Scenario("""

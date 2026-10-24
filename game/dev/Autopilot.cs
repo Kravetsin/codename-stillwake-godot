@@ -35,7 +35,7 @@ public static class Autopilot
         "#................................#",
         "#................................#",
         "#................................#",
-        "##############DD##################",
+        "##############hh##################",
         "#.............HH...LL............#",
         "#.............HH...LL............#",
         "#.............HH.................#",
@@ -44,7 +44,7 @@ public static class Autopilot
         "#.............HH....S............#",
         "##################################",
     ]) with
-    { Known = [.. Stillwake.Content.Research.StartKnown, "door", "ladder"] };
+    { Known = [.. Stillwake.Content.Research.StartKnown, "door", "hatch", "ladder"] };
 
     /// <summary>The plans <see cref="Hatches"/> shows, sent once as the world passes tick 2 (from <paramref name="before"/>).</summary>
     public static IReadOnlyList<Command> Plans(int before, int tick, int width)
@@ -68,7 +68,7 @@ public static class Autopilot
         var s = grid.StructureLayer;
         int w = grid.Width;
         for (int cell = 0; cell < s.Length; cell++)
-            if (Doorways.IsDoor(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new SetDoor(cell, tick == 20));
+            if (Doorways.IsDoorway(s[cell]) && DoorShape.Leads(Doorways.LinksOf(cell, w, s.Length, grid.StructureAt))) toggles.Add(new SetDoor(cell, tick == 20));
         return toggles;
     }
 }

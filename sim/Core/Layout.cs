@@ -154,7 +154,7 @@ public sealed record Layout(
                 char c = Rows[y][x];
                 // The block's cells: top-left, top-right, bottom-left, bottom-right.
                 char tl = c, tr = c, bl = c, br = c;
-                if (c == '=') (bl, br) = ('.', '.');
+                if (c is '=' or 'h' or 'o') (bl, br) = ('.', '.');
                 else if (c == 'S') (tl, tr, br) = ('.', '.', '.');
                 else if (IsConduit(c))
                 {
