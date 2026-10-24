@@ -16,6 +16,8 @@ one as `../codename-stillwake`), is the specification: its module READMEs, its r
 - Read a README by the section you need (`grep -n '^##'` first), never whole; its `## Files` table comes first.
 - Read an ADR only when something links it; [`docs/decisions/index.md`](docs/decisions/index.md) has titles and status.
 - Run tests through `tools/test.ps1 [filter] [project]` (or `tools/test.sh`): failures, warnings and totals only.
+- See the client with `tools/snap.ps1 <out.png> -- <game args>` (a frame) or `-Movie <seconds>` (a sheet of frames).
+- Briefing an agent: fill [`docs/agent-brief.md`](docs/agent-brief.md); every section, rules confirmed first.
 - A README holds current rules, invariants and its files, under 8 KB; history goes to ADRs. Trim one when a task
   touches it. `DocsGuardTests` fails on a stale map, Files table or ADR index (`tools/adr-index.ps1` rewrites it).
 
