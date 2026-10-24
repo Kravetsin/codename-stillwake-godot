@@ -34,7 +34,7 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
   blueprint and always known.
 - **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
   cost that needs analysis (below) is analysed. Nothing is held back: the solar panel opens as the rest do, once a frame, a solar
-  cell, wire and a circuit are analysed (0041, 0057). In creative mode everything is known.
+  cell, wire and a circuit are analysed (0041, 0057). In creative mode everything is known; `Blueprints.CreativeOnly` (the computer, the radar antenna) only there.
 - What is granted and analysed is kept by the world's `Knowledge` (0076), one for every surface: an item analysed on
   a planet opens what it opens aboard. Research, one a surface, keeps what each of its analyzers is doing and reads the
   rest; `IResearchQueries` is answered as before, so building and crafting ask it alone.

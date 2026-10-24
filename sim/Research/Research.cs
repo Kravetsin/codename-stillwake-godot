@@ -42,9 +42,9 @@ public sealed class ResearchState
 /// <summary>What any module may read of the research. Lists are live: a reader never writes them.</summary>
 public interface IResearchQueries
 {
-    /// <summary>Whether <paramref name="placement"/>'s blueprint is known: every one in creative mode.</summary>
+    /// <summary>Whether <paramref name="placement"/>'s blueprint is known: every one in creative mode, those of <see cref="Blueprints.CreativeOnly"/> in it alone.</summary>
     bool Knows(Placement placement);
-    /// <summary>Whether the blueprint or craft <paramref name="id"/> is known: every one in creative mode.</summary>
+    /// <summary>Whether the blueprint or craft <paramref name="id"/> is known: every one in creative mode, those of <see cref="Blueprints.CreativeOnly"/> in it alone.</summary>
     bool Knows(string id);
     /// <summary>The items analysed, by id, sorted ordinally.</summary>
     IReadOnlyList<string> Analysed { get; }
@@ -104,7 +104,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     public bool Knows(Placement placement) => Knows(Research.Blueprints.Of(placement));
 
     public bool Knows(string id) =>
-        _items.Creative || (CostOf.TryGetValue(id, out var cost) && Known(id, cost));
+        _items.Creative || (!Research.Blueprints.CreativeOnly.Contains(id) && CostOf.TryGetValue(id, out var cost) && Known(id, cost));
 
     public IReadOnlyList<string> Analysed => _knowledge.Analysed;
 
