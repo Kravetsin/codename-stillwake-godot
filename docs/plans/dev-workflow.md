@@ -18,6 +18,7 @@ READMEs.
 | #186 | The asteroid property allows a start pushed past a hero's view | about half of the red CI runs |
 | #187 | Each feature's strings in its `logic/<Name>.En.cs`; `En.cs` builds `Table` from them | `En.cs` as a file every task edits |
 | #189 | CI formats in its own job beside build+test, a gate job keeps the required check's name; a pre-commit hook (`tools/hooks`) formats staged `.cs`; budget bounds are a desk's, ×5 in CI (`STILLWAKE_BUDGET_SLACK`) | a minute on CI's critical path, `style(...)` commits, budget bounds loosened by hand after red runs |
+| #190 | A dev demo is a scenario class with `[Dev("--name", …)]` in `game/dev/demos/`, found by reflection; `Main.Dev.cs` keeps only its tools; release builds drop the demos and CI builds one (`game/dev/demos/README.md`) | a new demo editing `DevModes.cs` and several spots of `Main.Dev.cs`; cheats in release builds |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
@@ -31,33 +32,7 @@ is touched half as often as `En.cs` was. It stays one catalogue.
 
 Before each task, check `git log` on its files: someone may have moved them since.
 
-### 1. Dev scenarios as classes; demos out of release builds
-
-- Why: `game/dev/Main.Dev.cs` still holds ~100 `Has("--…")` checks. A new demo edits `DevModes.cs` and several
-  spots in `Main.Dev.cs`: layout, world, seed, hero start, the demo node, frame hooks. Every demo ships in
-  release builds, and they are cheats in effect.
-- What: one class per scenario, found by reflection (or a static list in one file if trimming ever matters):
-  ```csharp
-  [Dev("--store", "a capacitor bank filling from a panel, then emptying into an arc smelter")]
-  sealed class StoreScenario : DevScenario
-  {
-      public override Layout? Map => StoreWorld.Map;
-      public override World Create(Mods m) => StoreWorld.Create(m);
-      public override void Attach(DevContext c) => c.Add(new StoreDemo(c.Session));
-  }
-  ```
-  `DevModes` keeps the arguments that are not scenarios (`--host`, `--zoom`…) and lists scenarios from their
-  attributes, so `--help` and `DevModesTests` stay exact with no second list. Then main no longer names demo
-  types, and release builds can drop them (`<Compile Remove>` on a dev folder or suffix under the export
-  configuration). The title's Testbed button asks the registry.
-- Pitfalls: order matters today. The world chain picks the first matching flag (`--store` before `--testbed`),
-  and `AddChild` order is draw order (the furnace before the light). Make both explicit (`Order`) instead of
-  relying on discovery order. Few flags have tests, so check each migrated scenario by a frame before and after
-  (`tools/snap.ps1 out.png -- --<flag>`).
-- Who: a larger model designs `DevScenario` and migrates 2–3 different demos as examples. Sonnet migrates the
-  rest by example in batches, each checked by frames. Effort: medium.
-
-### 2. World views by interface
+### 1. World views by interface
 
 - Why: each per-surface view in `Main` is a field, a free and a creation in the surface rebuild. Many also
   appear in the plan-fade list and in a `LightView` `Func` property. `LightView` grows a property per light
@@ -67,7 +42,7 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 - Read `Main.cs` first: the split may have changed where views are made.
 - Who: larger model for the interfaces and first two views, then Sonnet. Effort: medium.
 
-### 3. ADR names by date and slug
+### 2. ADR names by date and slug
 
 - Why: eight renumberings in five days, from two developers taking the same next number. Each renaming
   breaks `(0081)` references in code and READMEs.
@@ -78,17 +53,17 @@ Before each task, check `git log` on its files: someone may have moved them sinc
   the first in the new form.
 - Who: any model. Effort: small.
 
-### 4. Recipes: `/new-machine`, `/new-module`, `/new-demo`
+### 3. Recipes: `/new-machine`, `/new-module`, `/new-demo`
 
 - Why: the "add a thing" checklists live in people's heads. A recipe with a short checklist and the files to
   touch lets a smaller model do it right the first time.
 - What: `.claude/commands/new-machine.md` (and the others): the steps, the files, and the checks before a PR.
   Checks: README rows, no hand-written list to extend, the save rule (CLAUDE.md, Sim modules). Write each
   recipe from a real recent example (the capacitor bank, `39f6ed5c`; the fauna module, `10c8ea1d`), re-walked
-  on today's code. `/new-demo` waits for task 1.
+  on today's code. `/new-demo` starts from the checklist in `game/dev/demos/README.md`.
 - Who: larger model writes them; test each by having Sonnet add a throwaway machine with it. Effort: small–medium.
 
-### 5. Smaller items
+### 4. Smaller items
 
 - README 8 KB cap: `building` (8062 B) and `crew` (8046 B) are near it again. Trimming them has started to cut
   meaning to save bytes. Decide with both developers: raise the cap, or move tables elsewhere.

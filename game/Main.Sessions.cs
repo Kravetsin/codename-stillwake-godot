@@ -38,9 +38,8 @@ public partial class Main
     {
         if (Has("--perf")) _layout = PerfLayout();
         var world = World.Create(1, _layout, Modules());
-        // The debris and wreck demos are played hosting too, so a guest sees a catch, or the host chop.
-        if (Has("--debris")) world = DebrisDemo.Seed(world, Modules);
-        if (Has("--wreck") || Has("--wrecks") || Has("--harpoon")) world = WreckDemo.Seed(world, Modules, all: Has("--wrecks"), harpoon: Has("--harpoon"));
+        // The debris and wreck scenarios are played hosting too, so a guest sees a catch, or the host chop.
+        foreach (var scenario in _scenarios.Where(s => s.Hosted)) world = scenario.Seed(world, new Dev.DevSeed(Modules, _m));
         _roster = Roster.Empty();
         var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);

@@ -48,7 +48,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Net and co-op** — net/Net: `Host.cs`, `Client.cs`, `Session.cs`, `Playout.cs`; net/Tests `Desync.cs`; game/net: `EnetLink.cs`, `RelayLink.cs`; game/`Main.Sessions.cs` (hosting, joining, worlds on disk, the title); sim/Core: `Sim.cs` World, `Module.cs` Command, `Rng.cs`; sim/Registry: `Registry.cs`, `Migrations.cs`; game/platform: `Saves.cs`
 
-**Dev tools** — game/dev: `DevModes.cs` (every `-- --arg`, its doc), `DevArgs.cs`, `Main.Dev.cs` (their wiring), `Testbed.cs`, `Autopilot.cs`, `*Demo.cs`; f/dev-panel: `DevPanel.cs`, `CueNames.cs`; sim/Analyzers (determinism rules); sim/Tests (`Scenario.cs`); `tools/` (art pipelines, node)
+**Dev tools** — game/dev: `DevModes.cs` (every `-- --arg`, its doc), `DevArgs.cs`, `Main.Dev.cs` (the tools that are not scenarios), `DevScenario.cs`, `DevScenarios.cs`, `Testbed.cs`, `Autopilot.cs`, `*Demo.cs`; game/dev/demos: a class per demo argument, `[Dev("--name", …)]` (its README: adding one); f/dev-panel: `DevPanel.cs`, `CueNames.cs`; sim/Analyzers (determinism rules); sim/Tests (`Scenario.cs`); `tools/` (art pipelines, node)
 
 ## Conventions
 
@@ -62,5 +62,5 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
   `material.<id>`, refusals `<moduleId>.<why>`, UI by area (`menu.`, `use.`, `handbook.`, `build.`). Read with `T(key)`.
 - **Tests**: `sim/Tests/<Module>Tests.cs` or `<Rule>Tests.cs`, helpers `<Module>Testing.cs`; client `game.tests/<Class>Tests.cs`
   (Godot-free client code lives in its folder's `logic/`; `Game.Tests.csproj` compiles every `logic/` by glob); `net/Tests/<Topic>Tests.cs`. Docs guard: `game.tests/DocsGuardTests.cs`.
-- **Dev args**: each listed with its doc in `game/dev/logic/DevModes.cs` (`DevModesTests` keeps it exact); `grep -rn '"--<name>' game` for the wiring,
+- **Dev args**: a demo's on its scenario class in `game/dev/demos/` (`[Dev("--name"`), every other in `game/dev/logic/DevModes.cs` (`DevModesTests` keeps both exact); `grep -rn '"--<name>' game` for the wiring,
   `grep -rn '<c>-- --<name>' game` for its class. `game/Main.cs` keeps startup and the frame loop.

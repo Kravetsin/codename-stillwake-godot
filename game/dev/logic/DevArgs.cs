@@ -5,11 +5,13 @@ using System.Linq;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// The arguments after <c>--</c> the game was started with, read by name; every name is one of <see cref="DevModes.All"/>, so
-/// a name read but never registered is our bug and throws.
+/// The arguments after <c>--</c> the game was started with, read by name; every name is one of <see cref="DevModes.All"/> or of
+/// <paramref name="scenarios"/> (the scenarios' own, <c>DevScenarios.Modes</c>), so a name read but never registered is our bug and throws.
 /// </summary>
-public sealed class DevArgs(string[] all)
+public sealed class DevArgs(string[] all, IReadOnlyList<DevMode>? scenarios = null)
 {
+    private readonly IReadOnlyList<DevMode> _scenarios = scenarios ?? [];
+
     /// <summary>Every argument as given.</summary>
     public string[] All { get; } = all;
 
@@ -48,8 +50,17 @@ public sealed class DevArgs(string[] all)
         return token == null ? null : token.Length > name.Length ? token[(name.Length + 1)..] : "";
     }
 
-    /// <summary>The arguments that are none of <see cref="DevModes.All"/>, or given in another shape than theirs.</summary>
-    public static List<string> Unknown(IReadOnlyList<string> args)
+    /// <summary>Whether <paramref name="mode"/> was given in its shape: bare, with a value, or both, as it is written.</summary>
+    public bool Gives(DevMode mode) => mode.Shape switch
+    {
+        DevShape.Flag => Has(mode.Name),
+        DevShape.Next => All.Contains(mode.Name),
+        DevShape.Equals => Value(mode.Name) != null,
+        _ => Given(mode.Name) != null,
+    };
+
+    /// <summary>The arguments that are none of <see cref="DevModes.All"/> or <paramref name="scenarios"/>, or given in another shape than theirs.</summary>
+    public static List<string> Unknown(IReadOnlyList<string> args, IReadOnlyList<DevMode>? scenarios = null)
     {
         var unknown = new List<string>();
         for (int i = 0; i < args.Count; i++)
@@ -57,7 +68,7 @@ public sealed class DevArgs(string[] all)
             string token = args[i];
             int equals = token.IndexOf('=');
             string name = equals < 0 ? token : token[..equals];
-            var mode = DevModes.Find(name);
+            var mode = Find(name, scenarios ?? []);
             bool fits = mode?.Shape switch
             {
                 DevShape.Flag => equals < 0,
@@ -72,10 +83,13 @@ public sealed class DevArgs(string[] all)
         return unknown;
     }
 
-    private static void Registered(string token)
+    private static DevMode? Find(string name, IReadOnlyList<DevMode> scenarios) =>
+        DevModes.Find(name) ?? scenarios.FirstOrDefault(m => m.Name == name);
+
+    private void Registered(string token)
     {
         int equals = token.IndexOf('=');
         string name = equals < 0 ? token : token[..equals];
-        if (DevModes.Find(name) == null) throw new InvalidOperationException($"{name} is not in DevModes.All");
+        if (Find(name, _scenarios) == null) throw new InvalidOperationException($"{name} is not in DevModes.All or a scenario's [Dev]");
     }
 }

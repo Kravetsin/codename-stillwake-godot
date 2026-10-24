@@ -45,6 +45,8 @@ jobs:
       # The game builds without the Godot editor: Godot.NET.Sdk comes from NuGet. Analyzers fail it.
       - run: dotnet build Stillwake.sln --no-restore
       - run: dotnet test Stillwake.sln --no-build
+      # The release build drops the demos (game/dev/demos, *Demo.cs): kept code naming one fails here, not at release.
+      - run: dotnet build game/Stillwake.Game.csproj -c ExportRelease --no-restore
 
   # The check main's protection requires, by this name: green only when both jobs are. A skipped required
   # check counts as passed, so it runs always and fails on anything but success.

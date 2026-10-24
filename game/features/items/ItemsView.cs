@@ -34,16 +34,10 @@ public partial class ItemsView : Node2D
     /// <summary>The hotbar, the inventory and the open crate.</summary>
     public InventoryPanel Panel { get; }
 
-    private readonly bool _demo;
     private bool _wasOut;
 
     /// <param name="ui">The hand, which the hotbar frees, and the crate open.</param>
-    /// <param name="demo">Plays <see cref="ItemsDemo"/>'s script, for recordings.</param>
-    public ItemsView(Ui ui, bool demo = false)
-    {
-        Panel = new InventoryPanel(ui);
-        _demo = demo;
-    }
+    public ItemsView(Ui ui) => Panel = new InventoryPanel(ui);
 
     public override void _Ready()
     {
@@ -56,10 +50,6 @@ public partial class ItemsView : Node2D
         overWorld.AddChild(_popups);
         AddChild(overWorld);
         AddChild(Panel);
-        if (!_demo) return;
-        var pointer = new CanvasLayer { Layer = ScreenLayers.Pointer };
-        pointer.AddChild(new ItemsDemo(this));
-        AddChild(pointer);
     }
 
     /// <summary>
