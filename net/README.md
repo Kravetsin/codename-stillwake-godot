@@ -10,128 +10,99 @@
 | `Net/Clock.cs` | Turns frame time into whole steps of `stepMs`: the host's ticks. |
 | `Net/Diff.cs` | Desync reports from two saves. |
 | `Net/Host.cs` | Orders the session: collects every peer's commands and releases them tick by tick. |
-| `Net/LocalSession.cs` | A host and its player's client in the same process, joined by a loopback: single-player, and the hosting side of co-op. |
-| `Net/Playout.cs` | When a joined peer runs the ticks its host released: each at the earliest it has been seen to arrive, plus a … |
-| `Net/Protocol.cs` | How messages are written on the wire: JSON, as the TypeScript build wrote them. |
-| `Net/RoundTrip.cs` | Times this peer's commands from sent to run by watching how many are in flight: each new one is stamped when first … |
-| `Net/Session.cs` | A session this machine plays in, and the time that drives it: its own, with the host that releases its ticks, or … |
-| `Tests/BadNetworkTests.cs` | apps/game/src/session/bad-network.test.ts, ported to channels: a link made bad on purpose, the local transport with … |
-| `Tests/Desync.cs` | The desync fuzz: a host and its clients in one process, random commands from every module's fuzz generator sent by … |
-| `Tests/DesyncTests.cs` | packages/net/src/desync.test.ts, ported. |
+| `Net/LocalSession.cs` | A host and its player's client in one process, joined by a loopback. |
+| `Net/Playout.cs` | When a joined peer runs the ticks its host released: the measured reserve (0015). |
+| `Net/Protocol.cs` | How messages are written on the wire: JSON. |
+| `Net/RoundTrip.cs` | Times this peer's commands from sent to run. |
+| `Net/Session.cs` | A session this machine plays in, and the time that drives it. |
+| `Tests/BadNetworkTests.cs` | A link made bad on purpose. |
+| `Tests/Desync.cs` | The desync fuzz: a host and its clients in one process on every module's fuzz generator. |
+| `Tests/DesyncTests.cs` | Runs the desync fuzz. |
 | `Tests/Fixtures.cs` | A shared log: the order of its entries shows the order commands applied in. |
-| `Tests/HashesTests.cs` | packages/net/src/hashes.test.ts, ported. |
-| `Tests/JoinTests.cs` | packages/net/src/join.test.ts, ported. |
-| `Tests/PaceTests.cs` | How a session's time runs: apps/game/src/session/game.test.ts (a joined game), clock.test.ts and … |
-| `Tests/SessionTests.cs` | packages/net/src/session.test.ts, ported. |
+| `Tests/HashesTests.cs` | Hash checks and resyncs. |
+| `Tests/JoinTests.cs` | Joining mid-session. |
+| `Tests/PaceTests.cs` | How a session's time runs: the clock and a joined game's playout. |
+| `Tests/SessionTests.cs` | The host and clients ordering commands. |
 | `Tests/SurfaceStampTests.cs` | A command goes out stamped with the surface its sender is on (0076); sessions carry every surface. |
 
-How peers share one world ([0002](../docs/decisions/0002-coop-model.md)): a host orders every
-peer's commands tick by tick, every peer runs the same simulation on them, and what lives outside the
-simulation — heroes — is passed along beside it. Ported from `packages/net` and the session half of
-`apps/game/src/session`; their rules hold here unchanged.
+How peers share one world (0002): a host orders every peer's commands tick by tick, every peer runs the same
+simulation on them, and what lives outside the simulation (heroes) is passed along beside it.
 
-- **Assembly:** `Stillwake.Net` (`net/Net`), plain C#, no Godot: it references the sim core only.
-  Its tests are `net/Tests`. The ENet transport lives in the game (`game/net/EnetLink.cs`).
-- **Files:** `Channel.cs` (the `IChannel` contract, the loopback, the inbox every channel keeps),
-  `Protocol.cs` (every message), `Host.cs`, `Client.cs` (and `Client.Join`), `LocalSession.cs` (a host
-  and its player's client), `Diff.cs` (desync reports), `Session.cs` (a session and the time that
-  drives it), `Playout.cs` (the measured reserve, 0015), `Clock.cs`, `RoundTrip.cs`, `BadNetwork.cs`.
+- **Assembly:** `Stillwake.Net` (`net/Net`), plain C#, no Godot: it references the sim core only. Its tests are
+  `net/Tests`. The transports live in the game (`game/net`: `EnetLink`, `RelayLink`).
 
 ## The protocol
 
-Messages are records, written as JSON (`Protocol.Json`) with a `kind`; the loopback copies through
-the same JSON, so in-process tests carry what the wire carries.
+Messages are records written as JSON (`Protocol.Json`) with a `kind`; the loopback copies through the same JSON, so
+in-process tests carry what the wire carries (no ADR).
 
-| To the host                 | To a peer                                         |
-| --------------------------- | ------------------------------------------------- |
+| To the host | To a peer |
+| --- | --- |
 | `command`: an encoded command | `tick`: the tick and its commands, each `Stamped` with its sender |
-| `hero`: this peer's hero state | `hero`: another peer's hero state, with its id   |
+| `hero`: this peer's hero state | `hero`: another peer's hero state, with its id |
 | `hash`: a tick and its hash | `welcome`: the peer's id, the host's build, a save |
-|                             | `resync`: the host player's world, saved          |
+| | `resync`: the host player's world, saved |
 
-Commands travel encoded by the sender's world (`World.Encode`), and are decoded by each peer's
-(`World.Decode`) with `From` set from the stamp. The host runs no world and never decodes them. `Client.Send`
-stamps each with the surface its peer is on (`Surface`, 0076), so one whose hero has moved on by its tick is refused.
+Commands travel encoded by the sender's world (`World.Encode`) and are decoded by each peer's (`World.Decode`), `From`
+set from the stamp. The host runs no world and never decodes them. `Client.Send` stamps each with its peer's surface
+(`Surface`, 0076), so one whose hero has moved on by its tick is refused.
 
 ## The session
 
-- **The host** runs no world. It stamps each command with its sender's id and releases it in the
-  next tick to every peer, in the order received. Peer ids count up from 0 and are never reused.
-  Peer 0 is the host player's own client: the world joiners start from and hashes are checked against.
-- **A client** runs only the ticks the host released, in order; a gap is a bug and throws. It sends
-  commands; it never changes its world any other way. `Queued` counts the ticks waiting, and
-  `Update(limit)` runs at most that many.
-- **A `Session`** drives one: on the host, a `Clock` turns frame time into released ticks (at most
-  250 ms of them after a stall); on a joined peer, `Playout` runs each tick at the earliest it has
-  been seen to arrive plus a reserve, the 95th percentile of lateness over five seconds plus 10 ms,
-  within 10–300 ms, eased at a tenth of the time passed, at most five ticks a frame (0015).
-- **Commands in flight:** `Client.InFlight` lists this peer's commands sent and not yet run. Each of
-  its own in a released tick is the oldest in flight; one that is not throws. The game shows them at
-  once on top of the world (0014); `RoundTrip` times them, sent to run. Those sent from a surface the peer has
-  left since (0076) are left out: they will be refused `world.elsewhere`, and their cells are another grid's.
-- **A channel** (`IChannel`) delivers in order, and keeps what arrives before a receiver is set until
-  one is (`Inbox`). Two carry it: the loopback, and ENet in the game.
+- **The host** (0002) runs no world. It stamps each command with its sender's id and releases it in the next tick to
+  every peer, in the order received. Peer ids count up from 0, never reused. Peer 0 is the host player's own client:
+  the world joiners start from and hashes are checked against.
+- **A client** runs only the ticks the host released, in order; a gap is a bug and throws. It changes its world only
+  by sending commands. `Queued` counts the ticks waiting; `Update(limit)` runs at most that many.
+- **A `Session`** drives one: on the host a `Clock` turns frame time into released ticks, at most 250 ms of them after
+  a stall (no ADR); on a joined peer `Playout` runs each tick at the earliest it has been seen to arrive plus a reserve,
+  eased toward its target, at most five ticks a frame (0015).
+- **Commands in flight** (0014): `Client.InFlight` lists this peer's commands sent and not yet run; each of its own in a
+  released tick is the oldest in flight, or it throws. The game shows them at once on top of the world; `RoundTrip`
+  times them. Those sent from a surface the peer has left (0076) are left out: they will be refused `world.elsewhere`.
+- **A channel** (`IChannel`) delivers in order and keeps what arrives before a receiver is set (`Inbox`) (no ADR).
 
 ## Joining mid-session
 
-- `Host.Admit(channel)` sends `welcome`: the peer's id, the host's build, and peer 0's world saved on
-  the tick the host releases next (`IWorldSource`, which first runs peer 0 up to that tick). Then the
-  peer gets every tick like the others; commands the host holds but has not released ride in the next.
-- `Client.Join(load, channel, build, joined, refused)` refuses another build, loads the world and
-  hands back a client that catches up on the ticks that came since. The game's build is its
-  assembly's informational version.
-- `Host.Disconnect(id, farewell)` drops a peer that left: it is sent nothing more and checked no more,
-  and `farewell`, an encoded command, goes out in the next tick stamped with its id.
+- `Host.Admit(channel)` sends `welcome`: the peer's id, the host's build, and peer 0's world saved on the tick the
+  host releases next (`IWorldSource` first runs peer 0 up to it). Commands held but not released ride in the next tick.
+- `Client.Join(load, channel, build, joined, refused)` refuses another build (the assembly's informational version),
+  loads the world and catches up on the ticks since.
+- `Host.Disconnect(id, farewell)` drops a peer: it is sent and checked no more, and `farewell`, an encoded command,
+  goes out in the next tick stamped with its id. The game passes `crew`'s `Leave` (`game/Main.cs`).
 
 ## Heroes
 
-A client sends `hero` with a state net never reads (a string); the host passes it to every other
-peer stamped with the sender, and keeps nothing. The game writes the hero there and draws the others
-(`game/features/crew/Remote.cs`).
+A client sends `hero` with a state net never reads (a string); the host passes it to every other peer stamped with the
+sender and keeps nothing (0002). The game draws the others (`game/features/crew/Remote.cs`).
 
 ## Hash checks
 
-- Every client sends `hash` after each `Protocol.HashEvery` (20) ticks, once its update is done: the
-  host may check it at once and save peer 0's world, which must not be halfway through its ticks. The
-  host checks the others against peer 0's, holding a report that comes first, and keeps peer 0's
-  last 30.
-- A host player alone hashes nothing (`Client.Hashing`, set by its session from `Host.Peers`):
-  there is no one to check against, and a hash costs milliseconds on a big world. Once a guest is
-  admitted it hashes again, from the ticks the guest will report.
-- A peer that differs gets `resync`: peer 0's world on the host's next tick. The client takes it in
-  order with the ticks, records a `DesyncReport` (each module that differs, up to ten paths in it,
-  and whether the rng drifted) — another surface's modules as `1:grid`, and `surfaces` or `where` when the surfaces or who
-  is on them differ —, and plays on from the host's world. Its older reports are not checked
-  again. `Session.Desyncs` keeps the reports; the game prints them.
+- Every client sends `hash` every `Protocol.HashEvery` ticks once its update is done, so the host may check it and
+  save peer 0's world at once. The host checks the others against peer 0's, holding a report that comes first, and
+  keeps peer 0's last 30 (no ADR).
+- A host player alone hashes nothing (`Client.Hashing`, from `Host.Peers`); once a guest is admitted it hashes again
+  from the ticks the guest will report (no ADR).
+- A peer that differs gets `resync`: peer 0's world on the host's next tick. The client takes it in order, records a
+  `DesyncReport` (each module that differs, up to ten paths, whether the rng drifted; another surface's modules as
+  `1:grid`; `surfaces` or `where` when surfaces or who is on them differ), and plays on from the host's world. Older
+  reports are not checked again; `Session.Desyncs` keeps them.
 
 ## Testing
 
-- `Desync.Fuzz` (`net/Tests/Desync.cs`) runs a host and three clients in one process on every
-  module's `Fuzz`, clients updating out of step and a few ticks at a time, hashes compared every 20
-  ticks; `joinAt` adds a client joining mid-run. Each command is drawn from the modules of its sender's surface, and one in
-  `worldEvery` (40) is the world's own, a strip opened or a hero moved (0076). A resync counts as a desync. A module with commands
-  and no generator fails it. It runs on the registry's wreck and on the test modules `board` and `drift`.
-- `BadNetwork` delays a channel both ways, `Lag` plus up to `Jitter` ms, in order; tests drive it on
-  their own `TestTiming`, the game on real timers with `--lag` and `--jitter`.
-- Two processes: `godot --headless --path game -- --host --auto --for=16` and
-  `godot --headless --path game -- --join --auto --for=12`; add `--cheat` to a joiner to have the host
-  resync it, `--lag=100 --jitter=60` for a link across the internet. Each prints its hash every 100
-  ticks, its desyncs and its round trip.
+- `Desync.Fuzz` runs a host and three clients on every module's `Fuzz`, updating out of step, hashes compared;
+  `joinAt` adds a mid-run joiner. Commands are drawn from the sender's surface's modules, one in `worldEvery` the
+  world's own (0076). A resync counts as a desync; a module with commands and no generator fails. It runs on the
+  registry's wreck and the test modules `board` and `drift`.
+- `BadNetwork` delays a channel both ways; tests drive it on `TestTiming`, the game on real timers (`--lag`,
+  `--jitter`). Two headless processes (`--host` / `--join`, `--auto`, `--cheat` to force a resync) print hashes,
+  desyncs and round trips.
 
 ## Deliberately not handled
 
-- **The folds of 0014 live in the game, not here.** Own commands in flight are folded into what a peer
-  shows by the features that show them: stacks by `features/items` (`Reading`); grabs, and doors and
-  valves over `grid.AfterToggles`, by `game/shared/Predicted.cs` (`Grabbing`, `Grid`), read by the
-  debris, the grid's drawing and the hero's walking, aim and prompt. `session/predicted.test.ts`
-  is ported with them (`ShownGridTests`, `DebrisTests`); its `pickingUp` with the items feature.
-- **The relay of 0012.** ENet connects peers directly on a LAN or a forwarded port; playtests across
-  networks wait for GodotSteam (G-09), whose relays cross NAT. Its routing and tests are not ported.
-- **Browser time:** the worker's beat (`time.ts`) and the build check (`update.ts`) served a page;
-  Godot keeps processing in a background window.
-- Others hear of a peer leaving only through the farewell the game passes: `crew`'s `Leave`, which
-  takes its hero out (`game/Main.cs`).
+- The folds of 0014 live in the game: features fold own commands in flight into what they show (`features/items`,
+  `game/shared/Predicted.cs`).
+- Others hear of a peer leaving only through the farewell the game passes.
 - A host that loads a save leaves its joined peers behind.
 - No host migration, no anti-cheat: friends trust each other (0002).
-- Large saves go in one reliable ENet packet; fine for the wreck, measured again with the reference
-  world.
+- A save goes in one message: fine for the wreck, measured again with the reference world.
