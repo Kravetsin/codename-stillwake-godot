@@ -21,7 +21,7 @@ READMEs.
 | #190 | A dev demo is a scenario class with `[Dev("--name", …)]` in `game/dev/demos/`, found by reflection; `Main.Dev.cs` keeps only its tools; release builds drop the demos and CI builds one (`game/dev/demos/README.md`) | a new demo editing `DevModes.cs` and several spots of `Main.Dev.cs`; cheats in release builds |
 | #191 | The views of a surface are a list in draw order (`game/SurfaceViews.cs`), made and freed in one loop, a flag for those fading with the plan; a view giving light is an `ILightSource` that `LightView.Shining` gathers | a new view's field, free, make and fade lines in `Main.cs` and a `Func` in `LightView` |
 | #192 | New ADRs are `YYYY-MM-DD-two-words.md`, titled `# Title` and named by their slug, the numbered ones kept; the index accepts both and is `merge=union`; the first, for #185, amends 0031 | renumbering ADRs when two developers took the same next number |
-| #193 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
+| #194 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
