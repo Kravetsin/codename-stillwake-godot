@@ -79,7 +79,9 @@ public class AirTests
     /// <summary>Whether the orders kept room by room are those found afresh for the whole ship, as after a load.</summary>
     private static bool FreshOrders(Scenario w)
     {
-        var vents = w.M.Grid.Machines.Where(m => m.Kind == "vent").Select(m => m.Cell).ToList();
+        // A vent counts only while a pipe reaches it.
+        var vents = w.M.Grid.Machines.Where(m => m.Kind == "vent" && w.M.Grid.PortsOf(m).Any(p => w.M.Pipes.NetworkAt(p) is int))
+            .Select(m => m.Cell).ToList();
         var fresh = Order.Rooms(w.M.Rooms.RoomOfCells, w.M.Grid.Width, w.M.Rooms.All, vents, new bool[w.M.Rooms.RoomOfCells.Length]);
         var kept = w.Air().Orders;
         if (fresh.Count != kept.Count) return false;
@@ -359,9 +361,10 @@ public class AirTests
         int joined = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
         Assert.Equal(left, joined);
         Assert.Equal(joined, w.M.Rooms.RoomAt(right));
-        // Unpiped, nothing fills and nothing moves: only the leak, due more often over 8 px cells (0104), takes the last aired.
+        // Unpiped, nothing fills and nothing moves: only the leak, due more often over 8 px cells (0104), takes some aired.
         int leaked = AirTesting.Leaked(Of(w, joined)!.Leak, clock, w.Air().Clock);
-        Assert.Equal(held.SkipLast(leaked), w.Air().Aired);
+        Assert.Equal(held.Count - leaked, w.Air().Aired.Count);
+        Assert.All(w.Air().Aired, c => Assert.Contains(c, held));
         Assert.Equal(RoomStatus.Vacuum, Status(w, joined));
     }
 
@@ -423,19 +426,26 @@ public class AirTests
     }
 
     [Fact]
-    public void LaysARoomOutAroundAVentBuiltInItAndFromItsMiddleWithNone()
+    public void LaysARoomOutFromItsMiddleBesideAVentNoPipeReachesAndAroundItOncePiped()
     {
         var w = new Scenario("#########\n#.......#\n#.......#\n#.......#\n#########");
         int room = w.M.Rooms.All[0].Id;
         Assert.Equal(At(4, 2), w.Air().Orders[room][0]);
         w.Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
+        // A vent no pipe reaches blows nothing: the room's air does not gather at it.
+        Assert.Equal(At(4, 2), w.Air().Orders[room][0]);
+        w.GiveItems(0, ("tube", 3)).Pipe(Port(w, At(1, 1)), At(6, 3)).Run();
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
+        Assert.True(FreshOrders(w));
     }
+
+    private static int Port(Scenario w, int cell) => w.M.Grid.PortsOf(w.M.Grid.MachineAt(cell)!).First();
 
     [Fact]
     public void LaysARoomOutAgainWhenItsVentsOnlyChangeOrderAVentRebuiltWhereItStood()
     {
         var w = new Scenario("#########\n#V.....V#\n#.......#\n#########");
+        w.GiveItems(0, ("tube", 3)).Pipe(Port(w, At(1, 1)), Port(w, At(7, 1))).Run();
         int room = w.M.Rooms.All[0].Id;
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
         // Taken apart and built again on one tick: the same cells, the vent now last in id order.

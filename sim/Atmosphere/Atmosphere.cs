@@ -55,6 +55,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// <summary>Derived: the grid's version the tanks were last checked at; null for not yet.</summary>
     private int? _tanksCheckedAt;
 
+    /// <summary>Derived: the pipes' version the vents were last found at; a vent counts only while piped.</summary>
+    private int? _ventsPipes;
+
     /// <summary>Derived: each room's leak by room id, found for the rooms' version <see cref="_leaksFor"/>; null for none yet.</summary>
     private readonly Dictionary<int, int> _leaks = new();
     private int? _leaksFor;
@@ -113,6 +116,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _survey = null;
         _tanksCheckedAt = null;
         Reorder(VentCells());
+        _ventsPipes = _pipes.Version;
         State.OrderedVersion = _rooms.Version;
     }
 
@@ -122,10 +126,12 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// </summary>
     private void Follow()
     {
-        if (_grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
+        // Vents come and go with machines, and count only while piped: the grid's log or the pipes say when.
+        bool piping = _ventsPipes != _pipes.Version;
+        if (!piping && _grid.Version == State.OrderedGrid && _rooms.Version == State.OrderedVersion) return;
         var roomOf = _rooms.RoomOfCells;
-        // Vents move only with machines: the grid's log says when one came or went.
-        var vents = MachinesMoved(_grid.ChangedSince(State.OrderedGrid)) ? VentCells() : State.OrderedVents;
+        var vents = piping || MachinesMoved(_grid.ChangedSince(State.OrderedGrid)) ? VentCells() : State.OrderedVents;
+        _ventsPipes = _pipes.Version;
         int was = State.OrderedVersion;
         var found = _rooms.ChangedSince(was);
         List<int> changed;
@@ -185,12 +191,16 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         return false;
     }
 
-    /// <summary>The cells of the vents, in machine id order: where each room's air lies around.</summary>
+    /// <summary>
+    /// The cells of the vents a pipe reaches, in machine id order: where each room's air lies around. A vent no
+    /// pipe reaches blows nothing, so a room's air does not gather at it.
+    /// </summary>
     private List<int> VentCells()
     {
         var machines = _grid.MachinesOf("vent");
         var vents = new List<int>(machines.Count);
-        foreach (var m in machines) vents.Add(m.Cell);
+        foreach (var m in machines)
+            if (_grid.PortsOf(m).Any(port => _pipes.NetworkAt(port) is int)) vents.Add(m.Cell);
         return vents;
     }
 
