@@ -12,6 +12,8 @@ public sealed record LoadCanister(int Tank) : Command;
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
 {
+    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to a tank or a generator: only then does it blow, air a room or hum.</summary>
+    bool Fed(int vent);
     /// <summary>The oxygen in tank or generator <paramref name="tank"/>; none for one never filled, or no tank at all.</summary>
     int OxygenIn(int tank);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
@@ -192,16 +194,25 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     }
 
     /// <summary>
-    /// The cells of the vents a pipe reaches, in machine id order: where each room's air lies around. A vent no
-    /// pipe reaches blows nothing, so a room's air does not gather at it.
+    /// The cells of the fed vents (<see cref="Fed"/>), in machine id order: where each room's air lies around. A vent
+    /// with nothing behind it blows nothing, so a room's air does not gather at it.
     /// </summary>
     private List<int> VentCells()
     {
         var machines = _grid.MachinesOf("vent");
         var vents = new List<int>(machines.Count);
         foreach (var m in machines)
-            if (_grid.PortsOf(m).Any(port => _pipes.NetworkAt(port) is int)) vents.Add(m.Cell);
+            if (Fed(m.Id)) vents.Add(m.Cell);
         return vents;
+    }
+
+    public bool Fed(int vent)
+    {
+        foreach (int id in _pipes.NetworksOf(vent))
+            if (_pipes.Network(id) is { } network)
+                foreach (int on in network.Machines)
+                    if (_grid.MachineById(on) is { } m && (Content.Machines.Get(m.Kind).Gas || m.Kind == "generator")) return true;
+        return false;
     }
 
     /// <summary>Every room's order found again, as after a load.</summary>

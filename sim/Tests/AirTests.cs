@@ -79,8 +79,8 @@ public class AirTests
     /// <summary>Whether the orders kept room by room are those found afresh for the whole ship, as after a load.</summary>
     private static bool FreshOrders(Scenario w)
     {
-        // A vent counts only while a pipe reaches it.
-        var vents = w.M.Grid.Machines.Where(m => m.Kind == "vent" && w.M.Grid.PortsOf(m).Any(p => w.M.Pipes.NetworkAt(p) is int))
+        // A vent counts only while fed.
+        var vents = w.M.Grid.Machines.Where(m => m.Kind == "vent" && w.M.Atmosphere.Fed(m.Id))
             .Select(m => m.Cell).ToList();
         var fresh = Order.Rooms(w.M.Rooms.RoomOfCells, w.M.Grid.Width, w.M.Rooms.All, vents, new bool[w.M.Rooms.RoomOfCells.Length]);
         var kept = w.Air().Orders;
@@ -426,15 +426,21 @@ public class AirTests
     }
 
     [Fact]
-    public void LaysARoomOutFromItsMiddleBesideAVentNoPipeReachesAndAroundItOncePiped()
+    public void LaysARoomOutFromItsMiddleBesideAVentWithNothingBehindItAndAroundItOnceFed()
     {
-        var w = new Scenario("#########\n#.......#\n#.......#\n#.......#\n#########");
+        var w = new Scenario("#########\n#.....TT#\n#.....TT#\n#.......#\n#########");
         int room = w.M.Rooms.All[0].Id;
-        Assert.Equal(At(4, 2), w.Air().Orders[room][0]);
+        int middle = w.Air().Orders[room][0];
         w.Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
-        // A vent no pipe reaches blows nothing: the room's air does not gather at it.
-        Assert.Equal(At(4, 2), w.Air().Orders[room][0]);
-        w.GiveItems(0, ("tube", 3)).Pipe(Port(w, At(1, 1)), At(6, 3)).Run();
+        int vent = w.M.Grid.MachineAt(At(1, 1))!.Id;
+        // A vent with nothing behind it blows nothing: the room's air does not gather at it, piped to nowhere or not.
+        Assert.Equal(middle, w.Air().Orders[room][0]);
+        Assert.False(w.M.Atmosphere.Fed(vent));
+        w.GiveItems(0, ("tube", 6)).Pipe(Port(w, At(1, 1)), At(3, 3)).Run();
+        Assert.Equal(middle, w.Air().Orders[room][0]);
+        Assert.False(w.M.Atmosphere.Fed(vent));
+        w.Pipe(At(3, 3), Port(w, At(6, 1))).Run();
+        Assert.True(w.M.Atmosphere.Fed(vent));
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
         Assert.True(FreshOrders(w));
     }
@@ -444,8 +450,8 @@ public class AirTests
     [Fact]
     public void LaysARoomOutAgainWhenItsVentsOnlyChangeOrderAVentRebuiltWhereItStood()
     {
-        var w = new Scenario("#########\n#V.....V#\n#.......#\n#########");
-        w.GiveItems(0, ("tube", 3)).Pipe(Port(w, At(1, 1)), Port(w, At(7, 1))).Run();
+        var w = new Scenario("#########\n#V.TT..V#\n#..TT...#\n#########");
+        w.GiveItems(0, ("tube", 6)).Pipe(Port(w, At(1, 1)), Port(w, At(3, 1)), Port(w, At(7, 1))).Run();
         int room = w.M.Rooms.All[0].Id;
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
         // Taken apart and built again on one tick: the same cells, the vent now last in id order.
