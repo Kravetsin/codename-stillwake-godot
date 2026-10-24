@@ -3,7 +3,6 @@ using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
-using Tune = Stillwake.Content.Logistics;
 
 namespace Stillwake.Sim.Logistics;
 
@@ -54,13 +53,13 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     /// Whether drones ever have work at machine <paramref name="machine"/>, served or not: a crate, a machine with outputs,
     /// one whose inputs or fuel they refill. Not a bay, the analyzer or the charging station: where the badge shows.
     /// </summary>
-    public bool Servable(int machine) => _grid.MachineById(machine) is { } m && (Machines.Get(m.Kind).Container || Takes(m) || OutputsOf(m) != null);
+    public bool Servable(int machine) => _grid.MachineById(machine) is { } m && (Machines.Is(m.Kind, MachineTrait.Container) || Takes(m) || OutputsOf(m) != null);
 
     /// <summary>Whether the drones of some bay reach machine <paramref name="machine"/>: through air and doors inside its zone.</summary>
     public bool Reached(int machine)
     {
         if (_grid.MachineById(machine) is not { } target) return false;
-        foreach (var bay in _grid.MachinesOf(Tune.Bay))
+        foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
             if (Flood(bay) && InFlood(target)) return true;
         return false;
     }
@@ -72,7 +71,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     public bool Supplied(int machine, string item)
     {
         if (_grid.MachineById(machine) is not { } target) return false;
-        foreach (var bay in _grid.MachinesOf(Tune.Bay))
+        foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
         {
             if (!Flood(bay) || !InFlood(target)) continue;
             foreach (var m in _grid.Machines)
@@ -93,14 +92,14 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     public static bool Low(Drone drone) => drone.Leg == Leg.Home && drone.Low;
 
     /// <summary>The zone of bay <paramref name="bay"/>, its edges included; null for no bay by that id.</summary>
-    public Box? ZoneOf(int bay) => _grid.MachineById(bay) is { } m && Machines.Get(m.Kind).Zone ? ZoneBox(m) : null;
+    public Box? ZoneOf(int bay) => _grid.MachineById(bay) is { } m && Machines.Is(m.Kind, MachineTrait.Zone) ? ZoneBox(m) : null;
 
     // Commands.
 
     private string? ServedProblem(SetServed c) => _grid.MachineById(c.Machine) switch
     {
         null => "logistics.noMachine",
-        { Kind: var kind } when kind == Tune.Bay => "logistics.bay",
+        { Kind: var kind } when Machines.Is(kind, MachineTrait.Zone) => "logistics.bay",
         _ => null,
     };
 

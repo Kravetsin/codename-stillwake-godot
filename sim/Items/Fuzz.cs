@@ -35,7 +35,7 @@ public sealed partial class ItemsModule
                 : (int)rng.Below((uint)size + 2) - 1;
         }
         int? Side() => rng.Below(2) == 0 ? null : AnyCrate();
-        int crateSlots = Machines.Get("crate").Slots ?? 0;
+        int crateSlots = Machines.All.First(m => m.Is(MachineTrait.Container)).Slots ?? 0;
 
         var at = Side();
         var src = at is int id

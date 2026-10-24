@@ -41,6 +41,10 @@ namespace Stillwake.Content;
 /// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
 /// paid by hand, and drones never touch it.
 /// </param>
+/// <param name="Has">
+/// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
+/// <paramref name="FuelSlot"/> implies.
+/// </param>
 public sealed record MachineSpec(
     string Kind,
     int Width,
@@ -58,14 +62,43 @@ public sealed record MachineSpec(
     bool Charges = false,
     StoreSpec? Store = null,
     bool Tunes = false,
-    bool Container = false,
-    bool Gas = false,
-    bool Vents = false,
-    bool Zone = false,
-    bool Glow = false)
+    MachineTrait Has = MachineTrait.None)
 {
     /// <summary>Whether it is a node cables end on: it makes power, draws it or stores it.</summary>
     public bool Powered => Makes != null || Draws != null || Store != null;
+
+    /// <summary>Its traits: those it <see cref="Has"/>, and <see cref="MachineTrait.Fire"/> with a <see cref="FuelSlot"/>.</summary>
+    public MachineTrait Traits => Has | (FuelSlot != null ? MachineTrait.Fire : MachineTrait.None);
+
+    /// <summary>Whether it has any of <paramref name="trait"/>.</summary>
+    public bool Is(MachineTrait trait) => (Traits & trait) != 0;
+}
+
+/// <summary>
+/// What a machine is to the systems that ask (0113): they read these, never its kind. A new machine whose behaviours
+/// exist is a row of <see cref="Machines.All"/>, its art and its name.
+/// </summary>
+[Flags]
+public enum MachineTrait
+{
+    None = 0,
+    /// <summary>Takes any item into any slot and serves it back: a crate. Drones store in it and take from it.</summary>
+    Container = 1,
+    /// <summary>Stores its network's oxygen, filled by a canister loaded into it: a tank.</summary>
+    Gas = 2,
+    /// <summary>
+    /// Feeds the pipes it stands on: a vent piped to it is fed, and blows, airs its room and hums. One that stores no
+    /// <see cref="Gas"/> makes its air on power: the generator.
+    /// </summary>
+    AirSource = 4,
+    /// <summary>Lets its network's air into the room it stands in.</summary>
+    Vents = 8,
+    /// <summary>Keeps the machines in its zone going with its drones: the drone bay (0062).</summary>
+    Zone = 16,
+    /// <summary>Gives light as it gets power, its colour and reach the client's lamp looks: lamps.</summary>
+    Glow = 32,
+    /// <summary>A fire burns in it, fuel from its <see cref="MachineSpec.FuelSlot"/> (0023): implied by that slot, never declared.</summary>
+    Fire = 64,
 }
 
 /// <summary>
@@ -79,17 +112,17 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160, Gas: true),
-        new("generator", 4, 4, [(0, 2)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5)),
+        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource),
+        new("generator", 4, 4, [(0, 2)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource),
         new("solarPanel", 6, 2, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14)),
-        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60, Vents: true),
-        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Glow: true),
+        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60, Has: MachineTrait.Vents),
+        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
-        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Glow: true),
+        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         new("analyzer", 4, 4, [], [("plate", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1),
-        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Container: true),
+        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container),
         // Its input, its fuel, then three outputs.
         new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel.
@@ -109,7 +142,7 @@ public static class Machines
         new("growCapsule", 4, 6, [], [("frame", 1), ("glass", 2), ("soil", 4), ("circuit", 1), ("wire", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
-        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Zone: true),
+        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone),
         new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
@@ -122,4 +155,7 @@ public static class Machines
     public static MachineSpec Get(string kind) => ByKind[kind];
 
     public static bool TryGet(string kind, [MaybeNullWhen(false)] out MachineSpec spec) => ByKind.TryGetValue(kind, out spec);
+
+    /// <summary>Whether a machine of <paramref name="kind"/> has any of <paramref name="trait"/>; false for a kind that is none.</summary>
+    public static bool Is(string kind, MachineTrait trait) => ByKind.TryGetValue(kind, out var spec) && spec.Is(trait);
 }

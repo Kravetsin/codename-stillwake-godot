@@ -2,7 +2,7 @@
 
 Drones ([0062](../../../docs/decisions/0062-drones-keep-machines-going.md)), the client of `sim/Logistics`.
 It reads `LogisticsModule` (`Served`, `Servable`, `Reached`, `Drones`, `Low`, `ZoneOf`), `IItemsQueries` (`Crate`),
-`IGridQueries` (`MachinesOf`, `MachineById`, `StructureAt`) and `IPowerQueries` (`NodeAt`, `NetworkOf`, `Charges`), and changes the sim only by sending `SetServed`. Its badge lives in
+`IGridQueries` (`MachinesWith(Zone)`: the bays, 0113; `MachineById`, `StructureAt`) and `IPowerQueries` (`NodeAt`, `NetworkOf`, `Charges`), and changes the sim only by sending `SetServed`. Its badge lives in
 other features' frames, wired by `Main`: in the header of every machine frame the items feature opens
 (`InventoryPanel.Served`) and of a queued station's (`FabricatorPanel.Served`), where drones have work. The bay's four
 slots, their charge bars and its frame's bolt are the items feature's. The mockup it follows: "Drones Keep It Going"; the look

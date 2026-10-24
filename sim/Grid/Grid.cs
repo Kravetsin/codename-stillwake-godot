@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Text.Json.Serialization;
 using Stillwake.Content;
 
@@ -41,6 +42,8 @@ public sealed class GridState
     [JsonIgnore] internal Dictionary<int, Machine> ById { get; set; } = new();
     /// <summary>Derived: the machines of each kind, in id order; only looked up.</summary>
     [JsonIgnore] internal Dictionary<string, List<Machine>> ByKind { get; set; } = new(StringComparer.Ordinal);
+    /// <summary>Derived: the machines with each trait, by the trait's bit, in id order; only looked up.</summary>
+    [JsonIgnore] internal List<Machine>[] ByTrait { get; set; } = GridModule.NoneByTrait();
     /// <summary>Derived: bumped on every change to a layer or a machine; 0 again after a load.</summary>
     [JsonIgnore] internal int Version { get; set; }
     /// <summary>Derived: the smallest box holding every cell with anything in it, kept tight by every change.</summary>
@@ -107,8 +110,10 @@ public interface IGridQueries
     Machine? MachineById(int id);
     /// <summary>Every machine, in id order.</summary>
     IReadOnlyList<Machine> Machines { get; }
-    /// <summary>The machines of <paramref name="kind"/>, in id order: what a system walks that works one kind.</summary>
+    /// <summary>The machines of <paramref name="kind"/>, in id order: what a system walks that works one kind's own rule.</summary>
     IReadOnlyList<Machine> MachinesOf(string kind);
+    /// <summary>The machines with <paramref name="trait"/>, one trait, in id order: what a system walks that works a trait (0113).</summary>
+    IReadOnlyList<Machine> MachinesWith(MachineTrait trait);
     /// <summary>The cells where pipes meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
     IReadOnlyList<int> PortsOf(Machine m);
     /// <summary>
@@ -260,6 +265,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         State.Occupancy = new int[State.Width * State.Height];
         State.ById = new Dictionary<int, Machine>(State.Machines.Count);
         State.ByKind = new Dictionary<string, List<Machine>>(StringComparer.Ordinal);
+        State.ByTrait = NoneByTrait();
         foreach (var m in State.Machines)
         {
             foreach (int c in Footprint(m.Kind, m.Cell) ?? [])
@@ -322,7 +328,16 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         State.ById.Add(m.Id, m);
         if (State.ByKind.TryGetValue(m.Kind, out var kind)) kind.Add(m);
         else State.ByKind[m.Kind] = [m];
+        var traits = Content.Machines.TryGet(m.Kind, out var spec) ? spec.Traits : MachineTrait.None;
+        for (int bit = 0; bit < TraitBits; bit++)
+            if (((int)traits & (1 << bit)) != 0) State.ByTrait[bit].Add(m);
     }
+
+    /// <summary>How many traits there are: <see cref="MachineTrait"/>'s flags are its first bits.</summary>
+    private static readonly int TraitBits = BitOperations.Log2((uint)Enum.GetValues<MachineTrait>().Max()) + 1;
+
+    /// <summary>A list for each trait, all empty: the machines by trait before any is listed.</summary>
+    internal static List<Machine>[] NoneByTrait() => [.. Enumerable.Range(0, TraitBits).Select(_ => new List<Machine>())];
 
     /// <summary>Where machine <paramref name="id"/> is in <paramref name="machines"/>, a list in id order; the complement of where it would go when absent.</summary>
     private static int IndexOf(List<Machine> machines, int id)
@@ -353,6 +368,12 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     public IReadOnlyList<Machine> MachinesOf(string kind) =>
         State.ByKind.TryGetValue(kind, out var machines) ? machines : NoMachines;
+
+    public IReadOnlyList<Machine> MachinesWith(MachineTrait trait)
+    {
+        if (!BitOperations.IsPow2((uint)trait)) throw new ArgumentException($"grid.machinesWith: {trait} is not one trait");
+        return State.ByTrait[BitOperations.Log2((uint)trait)];
+    }
 
     private static readonly Machine[] NoMachines = [];
 
@@ -579,6 +600,8 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 State.Machines.RemoveAt(IndexOf(State.Machines, removed.Id));
                 var kind = State.ByKind[removed.Kind];
                 kind.RemoveAt(IndexOf(kind, removed.Id));
+                foreach (var with in State.ByTrait)
+                    if (IndexOf(with, removed.Id) is int at and >= 0) with.RemoveAt(at);
                 var footprint = Footprint(removed.Kind, removed.Cell) ?? [];
                 foreach (int c in footprint) Set(State.Occupancy, GridLayers.Machine, c, 0);
                 Shrink(footprint);

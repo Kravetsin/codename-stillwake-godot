@@ -1,6 +1,6 @@
 # 0112 — Systems ask a structure's traits, not its kind
 
-- Status: accepted; amends [0111](0111-doors-and-hatches.md)'s open hatch, climbed only over a ladder
+- Status: accepted; amends [0111](0111-doors-and-hatches.md)'s open hatch, climbed only over a ladder; its machine traits as fields and its limitation that a system working one kind names it superseded by [0113](0113-machine-traits.md)
 - Date: 2026-10-24
 
 ## Context

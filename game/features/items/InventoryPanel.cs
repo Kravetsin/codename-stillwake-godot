@@ -548,23 +548,25 @@ public partial class InventoryPanel : CanvasLayer
         // A queued station (the lifepod's Fabricator, the Former) docks in the same place, the crafting feature's own panel.
         if (Content.Stations.TryGet(kind, out var station) && !station.Fed) return;
         var spec = MachineSpecs.Get(kind);
-        _frame = new MachineFrame(T($"tool.{kind}"), kind == "burnerGenerator" ? spec.Makes : spec.Draws)
+        // Its bolt the power it makes, or else what it draws.
+        _frame = new MachineFrame(T($"tool.{kind}"), spec.Makes ?? spec.Draws)
         {
             // As wide as the wrist's column, as the bag over it (0081).
             CustomMinimumSize = new Vector2(Slots.Column(_ui.Slot), 0),
         };
         // A crate sorts, its button in the header beside the drone badge (0008).
-        if (kind == "crate") _frame.Head.AddChild(_crateKey = Sorter(crate));
+        if (spec.Is(Content.MachineTrait.Container)) _frame.Head.AddChild(_crateKey = Sorter(crate));
         // Whether drones serve it, at the right of its header (0062).
         if (Served?.Invoke(crate) is { } served) _frame.Head.AddChild(served);
+        // Its body by what it is (0113): a fire smelting its inputs or making power, a fed station, a bay, a charging station.
         _frame.Add(kind switch
         {
-            "furnace" => FurnaceBody(crate),
-            "burnerGenerator" => GeneratorBody(crate),
-            "smelter" or "growCapsule" => FedBody(crate, kind),
             "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
-            "charger" => ChargerBody(crate),
-            _ when kind == Content.Logistics.Bay => BayBody(crate, spec),
+            _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
+            _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
+            _ when station is { Fed: true } => FedBody(crate, kind),
+            _ when spec.Is(Content.MachineTrait.Zone) => BayBody(crate, spec),
+            _ when spec.Charges => ChargerBody(crate),
             _ => _crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))),
         });
         // Its module sockets under its body, for a machine that takes any (0086).
@@ -581,15 +583,15 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>Its input over its fuel, as Minecraft lays them, the fire between them; then how far its work is and its outputs.</summary>
-    private Control FurnaceBody(int crate)
+    private Control FurnaceBody(int crate, Content.MachineSpec spec)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
-        int fuel = MachineSpecs.Get("furnace").FuelSlot!.Value;
+        int fuel = spec.FuelSlot!.Value;
         column.AddChild(Box(new Place(0, crate)));
         column.AddChild(_fire = HeatMark());
         column.AddChild(Box(new Place(fuel, crate)));
         var outputs = Style.Gap(new HBoxContainer { SizeFlagsVertical = Control.SizeFlags.ShrinkCenter }, Slots.Gap);
-        for (int i = fuel + 1; i < MachineSpecs.Get("furnace").Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
+        for (int i = fuel + 1; i < spec.Slots; i++) outputs.AddChild(Box(new Place(i, crate)));
         var line = Style.Gap(new HBoxContainer(), 8);
         line.AddChild(column);
         line.AddChild(_progress = Style.Bar(Style.Orange400, 56));
@@ -619,11 +621,11 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>Its fire over its fuel, as the furnace's; the power it makes is the frame's bolt, lit while it burns.</summary>
-    private Control GeneratorBody(int crate)
+    private Control GeneratorBody(int crate, Content.MachineSpec spec)
     {
         var column = Style.Gap(new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 4);
         column.AddChild(_fire = HeatMark());
-        column.AddChild(Box(new Place(MachineSpecs.Get("burnerGenerator").FuelSlot!.Value, crate)));
+        column.AddChild(Box(new Place(spec.FuelSlot!.Value, crate)));
         // In a row, as the furnace's: a column alone in the frame would stretch its slot across it.
         var line = new HBoxContainer();
         line.AddChild(column);
@@ -1058,10 +1060,11 @@ public partial class InventoryPanel : CanvasLayer
             _analyzer.Show(reading.Lessons);
             _frame?.Light(_analyzer.Works);
         }
-        if (reading.Kind == "charger" && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
-        // A bay's bolt lit while it charges a drone docked in it.
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
-        if (spec is { Zone: true } && Crate is int bay) _frame?.Light(Charger?.Invoke(bay) == true);
+        bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
+        if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
+        // A bay's bolt lit while it charges a drone docked in it.
+        if (zone && Crate is int bay) _frame?.Light(Charger?.Invoke(bay) == true);
         if (reading.Kind is string fedKind && Stillwake.Content.Stations.TryGet(fedKind, out var fedSpec) && fedSpec.Fed && spec?.FuelSlot == null && Crate is int fed) ShowFed(reading, fed);
         if (_problem == null || spec?.FuelSlot == null) return;
         var at = Crate is int id ? Furnace?.Invoke(id) : null;
