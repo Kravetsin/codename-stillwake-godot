@@ -182,17 +182,31 @@ public class DocsGuardTests(ITestOutputHelper output)
             "docs/decisions/index.md is stale: run tools/adr-index.ps1");
     }
 
-    /// <summary>Warns, never fails: a README over 8 KB is trimmed the next time a task touches it.</summary>
+    /// <summary>READMEs trimmed to their rules; each fails the guard once over 8 KB. Add one as it is trimmed.</summary>
+    public static readonly string[] Trimmed =
+    [
+        "game/features/crew/README.md", "game/features/items/README.md", "sim/Items/README.md",
+        "sim/Debris/README.md", "sim/Building/README.md",
+    ];
+
+    /// <summary>Warns, never fails, for a README not yet trimmed: it is trimmed the next time a task touches it.</summary>
     [Fact]
     public void ReadmesOverEightKbAreListed()
     {
         var large = Readmes(Root)
             .Select(r => (Name: Slashed(Path.GetRelativePath(Root, r)), Bytes: new FileInfo(r).Length))
-            .Where(r => r.Bytes > ReadmeMostBytes)
+            .Where(r => r.Bytes > ReadmeMostBytes && !Trimmed.Contains(r.Name))
             .OrderByDescending(r => r.Bytes)
             .Select(r => $"WARN README over 8 KB: {r.Name} ({r.Bytes / 1024} KB)")
             .ToList();
         foreach (var line in large) output.WriteLine(line);
+    }
+
+    [Fact]
+    public void TrimmedReadmesStayUnderEightKb()
+    {
+        var large = Trimmed.Where(n => new FileInfo(At(n.Split('/'))).Length > ReadmeMostBytes).ToList();
+        Assert.True(large.Count == 0, "README over 8 KB; history goes to ADRs: " + string.Join(", ", large));
     }
 
     [Fact]
