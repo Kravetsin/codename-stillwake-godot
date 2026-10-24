@@ -25,6 +25,7 @@ was redrawn later, and the painter is the source of the earlier look.
 | `screwdriver/screwdriver.js` | `hero_screwdriver`, `tool_screwdriver` | none | `node tools/ship-art/screwdriver/screwdriver.js <outDir>` | exact 2/2 |
 | `hand-tools/hand-tools.js` | `items/stripper` (0108), `items/wrench` (0109), placeholders | none | `node tools/ship-art/hand-tools/hand-tools.js <itemsDir>` | exact 2/2 |
 | `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `godot --headless --script tools/ship-art/jetpack/jetpack.gd -- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |
+| `computer/computer.gd` (Godot) | `machine_computer`, `computer_*`; `machine_radarAntenna`, `radarAntenna_*` | none | `godot --headless --script tools/ship-art/computer/computer.gd -- <artDir> [preview]` | exact 26/26 |
 | `debris-v1/gen.js` | `debris/` `crate_01-08`, `hull_01-12`, `pod_01-04`, `scrap_01-12` | none | `node tools/ship-art/debris-v1/gen.js [outDir]` | exact 36/36 |
 | `debris/gen.js` | `debris/` `asteroid_01-06`, `smallrock_01-06`, `bigrock_01-06`, `orerock_01-06`, `hold_01-04`, `pods_01-04`, `engine_01-04` (styles A, B) | `game/art/debris` | `node tools/ship-art/debris/gen.js [finalDir]` | exact 36/36 |
 | `wreck-section/section.js` | `debris/section_01`, `items/hullSection` | `debris-v1/gen.js` | `node tools/ship-art/wreck-section/section.js [outDir]` | exact 2/2 |
