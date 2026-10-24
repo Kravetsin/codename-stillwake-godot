@@ -7,7 +7,6 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Grid;
 
@@ -159,7 +158,7 @@ public partial class LavaView : Node2D
         {
             _version = _grid.Version;
             int row = (_top - 1) * _grid.Width;
-            for (int x = 0; x < _openCells.Length; x++) _openCells[x] = _grid.StructureAt(row + x) != Structure.Wall ? (byte)255 : (byte)0;
+            for (int x = 0; x < _openCells.Length; x++) _openCells[x] = _grid.WallAt(row + x) == null ? (byte)255 : (byte)0;
             _openTexture.Update(Image.CreateFromData(_openCells.Length, 1, false, Image.Format.L8, _openCells));
         }
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();

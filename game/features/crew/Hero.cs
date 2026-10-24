@@ -1,9 +1,9 @@
 using System;
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Pack = Stillwake.Content.Jetpack;
 using Spec = Stillwake.Content.Hero;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -616,8 +616,8 @@ public readonly record struct Hero(
         bool floor = false;
         for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
         {
-            if (Solid(ship, c, row) || Climbable(ship, c, row) || StructureAt(ship, c, row) == Structure.HatchClosed) return false;
-            floor |= StructureAt(ship, c, row) == Structure.Floor;
+            if (Solid(ship, c, row) || Climbable(ship, c, row)) return false;
+            floor |= Has(ship, c, row, Trait.Supports);
         }
         return floor;
     }
@@ -717,34 +717,34 @@ public readonly record struct Hero(
         x < 0 || y < 0 || x >= ship.Width || y >= ship.Height ? null : ship.StructureAt(y * ship.Width + x);
 
     /// <summary>
-    /// Walls, closed doors, closed hatches, and everything past the grid's edge: a closed hatch lies in the deck, holding a walk
-    /// from above and stopping a body from below, but it is no wall beside one.
+    /// What a body stops in (<see cref="Trait.Blocks"/>, <see cref="Trait.BlocksFromBelow"/>: walls, shut doors and hatches), and
+    /// everything past the grid's edge: a shut hatch lies in the deck, holding a walk from above and stopping a body from below.
     /// </summary>
     private static bool Solid(Ship ship, int x, int y) =>
-        StructureAt(ship, x, y) is null or Structure.Wall or Structure.DoorClosed or Structure.HatchClosed;
+        StructureAt(ship, x, y) is not int s || Structures.Is(s, Trait.Blocks | Trait.BlocksFromBelow);
 
-    /// <summary>Ladders, and an open hatch over one: a doorway lying in a deck, climbed through as a ladder is.</summary>
-    private static bool Climbable(Ship ship, int x, int y) => StructureAt(ship, x, y) switch
-    {
-        Structure.Ladder => true,
-        Structure.HatchOpen => LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1),
-        _ => false,
-    };
+    /// <summary>Whether the cell at (<paramref name="x"/>, <paramref name="y"/>) has <paramref name="trait"/>; nothing past the grid's edge does.</summary>
+    private static bool Has(Ship ship, int x, int y, Trait trait) => StructureAt(ship, x, y) is int s && Structures.Is(s, trait);
+
+    /// <summary>What a hero climbs (<see cref="Trait.Climbable"/>): a ladder, and an open hatch over one, climbed through as a ladder is.</summary>
+    private static bool Climbable(Ship ship, int x, int y) =>
+        StructureAt(ship, x, y) is int s && Structures.Is(s, Trait.Climbable)
+        && (!Doorways.IsDoorway(s) || LadderPast(ship, x, y, -1) || LadderPast(ship, x, y, 1));
 
     /// <summary>Whether a ladder lies <paramref name="dir"/> of the open hatch cell (x, y), past no more empty deck than a hatch is thick.</summary>
     private static bool LadderPast(Ship ship, int x, int y, int dir)
     {
         for (int k = 1; k <= Doorways.Thick; k++)
         {
-            var s = StructureAt(ship, x, y + k * dir);
-            if (s == Structure.Ladder) return true;
-            if (s != Structure.Empty && s != Structure.HatchOpen) return false;
+            if (StructureAt(ship, x, y + k * dir) is not int s) return false;
+            if (Structures.Is(s, Trait.Climbable) && !Doorways.IsDoorway(s)) return true;
+            if (s != Structure.Empty && !(Doorways.IsDoorway(s) && Structures.Is(s, Trait.Climbable))) return false;
         }
         return false;
     }
 
-    /// <summary>What holds a hero up from below only: floors, closed hatches, and a ladder's or an open hatch's top cell unless climbing.</summary>
+    /// <summary>What holds a hero up from below only: what supports (floors, shut hatches), and a climbable's top cell unless climbing.</summary>
     private static bool Holds(Ship ship, int x, int y, bool climbing) =>
-        StructureAt(ship, x, y) is Structure.Floor or Structure.HatchClosed
+        Has(ship, x, y, Trait.Supports)
         || (!climbing && Climbable(ship, x, y) && !Climbable(ship, x, y - 1));
 }

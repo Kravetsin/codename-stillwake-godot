@@ -232,7 +232,7 @@ public sealed class GroundDemo(string mode)
         var grid = m.Grid;
         int w = grid.Width, h = grid.Height, sx = m.Crew.Spawn % w;
         bool Open(int x, int y) => x > 0 && y > 0 && x < w - 1 && y < h - 1 && grid.StructureAt(y * w + x) == Structure.Empty;
-        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.StructureAt((y + 1) * w + x) == Structure.Wall;
+        bool Stands(int x, int y) => Open(x, y) && Open(x, y - 1) && Open(x, y - 2) && grid.WallAt((y + 1) * w + x) != null;
         for (int d = 0; d < Math.Min(w / 2, 600); d++)
             foreach (int x in d == 0 ? new[] { sx } : new[] { sx + d, sx - d })
                 for (int y = 2; y < h - 2 && x > 8 && x < w - 8; y++)

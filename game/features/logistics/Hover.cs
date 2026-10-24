@@ -1,7 +1,7 @@
 using System;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.DroneLook;
-using Structure = Stillwake.Content.Structure;
+using Structures = Stillwake.Content.Structures;
 
 namespace Stillwake.Game.Features.Logistics;
 
@@ -118,13 +118,11 @@ public sealed class Hover
     /// above: <c>LiftUnder</c> under a solid cell, so it never pokes into a ceiling, else <c>Lift</c>. Inside a door, the
     /// door's own cells above are no ceiling: it flies through at its height, and dips only under the wall over the door.
     /// </summary>
-    public static double Lift(int here, int above, L.Motion m) =>
-        Solid(above) && !(IsDoor(here) && IsDoor(above)) ? m.LiftUnder : m.Lift;
+    public static double Lift(int here, int? above, L.Motion m) =>
+        Solid(above) && !(Doorways.IsDoor(here) && above is int a && Doorways.IsDoor(a)) ? m.LiftUnder : m.Lift;
 
-    private static bool IsDoor(int structure) => structure is Structure.DoorClosed or Structure.DoorOpen;
-
-    /// <summary>Whether a cell of <paramref name="structure"/> is solid over a drone: a wall, a floor, a closed door or a closed hatch; none above the grid's top.</summary>
-    public static bool Solid(int structure) => structure is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
+    /// <summary>Whether a cell of <paramref name="structure"/> is solid over a drone (<see cref="Structures.Solid"/>); null, past the grid's top, is.</summary>
+    public static bool Solid(int? structure) => structure is not int s || Structures.Solid(s);
 
     /// <summary>
     /// A landing <paramref name="t"/> seconds in: how far over its pad the drone is wanted, pixels, how fast its rotors

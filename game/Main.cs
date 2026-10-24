@@ -26,7 +26,6 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using static Stillwake.Game.I18n.En;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game;
 
@@ -692,8 +691,8 @@ public partial class Main : Node2D, ITogether
             var root = JsonNode.Parse(save)!;
             var grid = root["slices"]!["grid"]!;
             var structure = Runs.Cells(grid["structure"]!);
-            int door = Array.IndexOf(structure, Structure.DoorClosed);
-            structure[door] = Structure.DoorOpen;
+            int door = Array.FindIndex(structure, s => Doorways.IsDoor(s) && Doorways.IsClosed(s));
+            structure[door] = Doorways.Toggled(structure[door], open: true);
             grid["structure"] = Runs.Node(structure);
             save = root.ToJsonString();
             Log($"cheated: door {door} open here only");
@@ -1172,7 +1171,7 @@ public partial class Main : Node2D, ITogether
     {
         if (_doors.Count == 0)
             for (int cell = 0; cell < _m.Grid.Width * _m.Grid.Height; cell++)
-                if (_m.Grid.StructureAt(cell) == Structure.DoorClosed) _doors.Add(cell);
+                if (Doorways.IsDoor(_m.Grid.StructureAt(cell)) && Doorways.IsClosed(_m.Grid.StructureAt(cell))) _doors.Add(cell);
         int at = _start + 30;
         if (before < at && client.World.Tick >= at && _doors.Count > 1)
         {

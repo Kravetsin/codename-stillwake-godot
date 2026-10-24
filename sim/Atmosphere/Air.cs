@@ -1,7 +1,7 @@
 using System.Runtime.InteropServices;
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Atmosphere;
 
@@ -351,15 +351,14 @@ public sealed partial class AtmosphereModule
         _leaksFor = _rooms.Version;
     }
 
-    /// <summary>What a room's hull leaks: each wall by its material, each door by <c>Air.DoorLeak</c>.</summary>
+    /// <summary>What a room's hull leaks: each wall by its material, anything else by its own <c>Leak</c> (a doorway's <c>Air.DoorLeak</c>).</summary>
     private int HullLeak(Room room)
     {
         int leak = 0;
         foreach (int cell in room.Hull)
         {
-            int structure = _grid.StructureAt(cell);
-            if (structure == Structure.Wall) leak += _grid.WallAt(cell)!.Leak;
-            else if (structure is Structure.DoorClosed or Structure.DoorOpen or Structure.HatchClosed or Structure.HatchOpen) leak += Content.Air.DoorLeak;
+            var spec = Structures.Of(_grid.StructureAt(cell));
+            leak += spec.Has(Trait.Terrain) ? _grid.WallAt(cell)!.Leak : spec.Leak;
         }
         return leak;
     }

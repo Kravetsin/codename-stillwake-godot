@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
-using Structure = Stillwake.Content.Structure;
+using Structures = Stillwake.Content.Structures;
+using Trait = Stillwake.Content.Trait;
 
 namespace Stillwake.Game.Features.Light;
 
@@ -48,19 +49,12 @@ public static class Sources
     /// <summary>What stops light in <paramref name="cell"/>: a closed door's panel by the doorway's shape (0067), a wall.</summary>
     public static byte Of(Func<int, int> structureAt, int width, int size, int cell)
     {
-        switch (structureAt(cell))
-        {
-            // A hatch's panel fills its one row: shut, it stops light as a wall does (0111).
-            case Structure.Wall or Structure.HatchClosed:
-                return Wall;
-            case Structure.DoorClosed:
-                {
-                    var spot = Render.DoorShape.SpotOf(cell, width, c => Doorways.LinksOf(c, width, size, structureAt), hatch: false);
-                    return spot.Across % Doorways.Thick == 1 ? DoorFar : Door;
-                }
-            default:
-                return Open;
-        }
+        int structure = structureAt(cell);
+        if (!Structures.Is(structure, Trait.BlocksLight)) return Open;
+        // A shut door's panel stops light where it is drawn; anything else that stops it, a shut hatch filling its row too (0111), as a wall does.
+        if (!Doorways.IsDoor(structure)) return Wall;
+        var spot = Render.DoorShape.SpotOf(cell, width, c => Doorways.LinksOf(c, width, size, structureAt), hatch: false);
+        return spot.Across % Doorways.Thick == 1 ? DoorFar : Door;
     }
 
     /// <summary>
@@ -72,11 +66,7 @@ public static class Sources
         int cx = (int)Math.Floor(x / cell), cy = (int)Math.Floor(y / cell);
         if (cx < 0 || cy < 0 || cx >= width || cy >= height) return false;
         int at = cy * width + cx;
-        return structureAt(at) switch
-        {
-            Structure.Wall or Structure.DoorClosed or Structure.HatchClosed => true,
-            _ => false,
-        };
+        return Structures.Is(structureAt(at), Trait.BlocksLight);
     }
 
     /// <summary>

@@ -10,7 +10,7 @@ using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content;
-using Structure = Stillwake.Content.Structure;
+using Structures = Stillwake.Content.Structures;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -126,7 +126,7 @@ public static class Aiming
     /// </summary>
     public static bool Grips(Ship ship, int x, int y) =>
         x >= 0 && y >= 0 && x < ship.Width && y < ship.Height
-        && ship.StructureAt(y * ship.Width + x) is Structure.Wall or Structure.Floor or Structure.DoorClosed or Structure.HatchClosed;
+        && Structures.Solid(ship.StructureAt(y * ship.Width + x));
 
     /// <summary>Whether the cell under <paramref name="at"/>, in thousandths of a cell, holds the rod (<see cref="Grips(Ship, int, int)"/>).</summary>
     public static bool Grips(Ship ship, (double X, double Y) at) =>

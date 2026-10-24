@@ -10,7 +10,6 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using S = Stillwake.Game.Sound;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Building;
 
@@ -243,13 +242,13 @@ public partial class BuildingView : Node2D
         }
     }
 
-    /// <summary>The top of the first wall or floor under <paramref name="at"/>, in pixels, within <see cref="FloorDepth"/> cells; none past it.</summary>
+    /// <summary>The top of the first solid cell under <paramref name="at"/>, in pixels, within <see cref="FloorDepth"/> cells; none past it.</summary>
     private static float? FloorUnder(IGridQueries grid, Vector2 at)
     {
         int x = (int)(at.X / Cell), y = (int)(at.Y / Cell);
         if (x < 0 || x >= grid.Width) return null;
         for (int row = y + 1; row <= y + FloorDepth && row < grid.Height; row++)
-            if (row >= 0 && grid.StructureAt(row * grid.Width + x) is Structure.Wall or Structure.Floor) return row * Cell;
+            if (row >= 0 && grid.Solid(row * grid.Width + x)) return row * Cell;
         return null;
     }
 

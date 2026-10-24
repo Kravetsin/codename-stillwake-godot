@@ -6,7 +6,6 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Material = Stillwake.Content.Material;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Building;
 
@@ -114,7 +113,7 @@ public partial class DigView : Node2D
         int w = _grid.Width, cx = cell % w, cy = cell / w;
         double? floor = null;
         for (int row = cy + 1; row <= cy + 12 && row < _grid.Height; row++)
-            if (_grid.StructureAt(row * w + cx) is Structure.Wall or Structure.Floor)
+            if (_grid.Solid(row * w + cx))
             {
                 floor = row * Cell;
                 break;

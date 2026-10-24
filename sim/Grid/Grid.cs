@@ -159,7 +159,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         // Already as asked, a door is left alone, the version too: nothing derived from the grid is redone.
         Handles<SetDoor>(c => IsDoorway(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
         {
-            int to = DoorCode(c.Open, State.Structure[c.Cell]);
+            int to = Doorways.Toggled(State.Structure[c.Cell], c.Open);
             var doorway = DoorwayOf(c.Cell, _structureAt);
             if (!Differs(State.Structure, doorway, to)) return;
             State.Version++;
@@ -239,7 +239,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                     'o' => Structure.HatchOpen,
                     _ => Structure.Empty,
                 };
-                if (s.Structure[cell] == Structure.Wall) s.Material[cell] = material;
+                if (Structures.Is(s.Structure[cell], Trait.Terrain)) s.Material[cell] = material;
             }
         foreach (var (kind, cell) in layout.Machines()) s.Machines.Add(new Machine(s.NextMachineId++, kind, cell));
         return s;
@@ -378,7 +378,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     private bool Has(int cell, Trait trait) => InBounds(cell) && Structures.Is(State.Structure[cell], trait);
 
     public Material? WallAt(int cell) =>
-        InBounds(cell) && State.Structure[cell] == Structure.Wall ? MaterialOf(State.Material[cell]) : null;
+        Has(cell, Trait.Terrain) ? MaterialOf(State.Material[cell]) : null;
 
     public Material? BackAt(int cell) =>
         InBounds(cell) && State.Back[cell] == Back.Wall ? MaterialOf(State.BackMaterial[cell]) : null;
@@ -454,17 +454,12 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         {
             if (t is SetDoor door && InBounds(door.Cell) && Doorways.IsDoorway(StructureAt(door.Cell)))
             {
-                int to = DoorCode(door.Open, StructureAt(door.Cell));
+                int to = Doorways.Toggled(StructureAt(door.Cell), door.Open);
                 foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = to;
             }
         }
         return structure;
     }
-
-    /// <summary>The code <paramref name="structure"/> takes open or shut, a hatch staying a hatch and a door a door.</summary>
-    private static int DoorCode(bool open, int structure) => Doorways.IsHatch(structure)
-        ? open ? Structure.HatchOpen : Structure.HatchClosed
-        : open ? Structure.DoorOpen : Structure.DoorClosed;
 
     private static bool Differs(int[] layer, List<int> cells, int code)
     {

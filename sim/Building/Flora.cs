@@ -227,7 +227,7 @@ public sealed partial class BuildingModule
     private bool Uprooted(Plant plant)
     {
         var on = Kinds[plant.Kind].On;
-        if (on == Flora.Anchor.Rock) return HoldsOf(plant).Any(cell => _grid.StructureAt(cell) != Structure.Wall);
+        if (on == Flora.Anchor.Rock) return HoldsOf(plant).Any(cell => _grid.WallAt(cell) == null);
         if (on == Flora.Anchor.Back)
         {
             if (_grid.BackAt(plant.Cell) == null) return true;
@@ -235,7 +235,7 @@ public sealed partial class BuildingModule
         else
             foreach (int hold in HoldsOf(plant))
             {
-                bool whole = _grid.StructureAt(hold) == Structure.Wall;
+                bool whole = _grid.WallAt(hold) != null;
                 bool onPiece = on == Flora.Anchor.Floor && _plantIn.TryGetValue(hold, out var under) && under != plant && Kinds[under.Kind].On == Flora.Anchor.Floor;
                 if (!whole && !onPiece) return true;
             }

@@ -1,5 +1,5 @@
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Hazards;
 
@@ -19,7 +19,7 @@ public sealed class HazardsModule : Module<HazardsState>
     public HazardsModule(IGridQueries grid, IGridOps ops)
     {
         _grid = grid;
-        Handles<MeteorHit>(c => grid.StructureAt(c.Cell) == Structure.Wall ? null : "hazards.noWall", c =>
+        Handles<MeteorHit>(c => grid.WallAt(c.Cell) != null ? null : "hazards.noWall", c =>
         {
             // The wall goes; pipes are spans, running through it untouched (0109).
             ops.Clear(c.Cell, "structure");
@@ -37,7 +37,7 @@ public sealed class HazardsModule : Module<HazardsState>
         if (rng.Below(64) != 0) return null;
         var structure = _grid.StructureLayer;
         var walls = new List<int>();
-        for (int c = 0; c < structure.Length; c++) if (structure[c] == Structure.Wall) walls.Add(c);
+        for (int c = 0; c < structure.Length; c++) if (Structures.Is(structure[c], Trait.Terrain)) walls.Add(c);
         int cell = rng.Below(3) != 0 && walls.Count > 0
             ? walls[(int)rng.Below((uint)walls.Count)]
             : (int)rng.Below((uint)structure.Length + 2) - 1;

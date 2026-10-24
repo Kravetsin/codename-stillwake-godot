@@ -2,7 +2,6 @@ using System;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Effects;
 
@@ -59,7 +58,7 @@ public static class Impacts
     {
         int w = grid.Width, cx = cell % w, cy = cell / w;
         double hx = fromX - cx, hy = fromY - cy;
-        if (grid.StructureAt(cell) != Structure.Wall)
+        if (grid.WallAt(cell) == null)
         {
             var (ux, uy) = Unit(hx - 0.5, hy - 0.5, 0, -1);
             return new HitPoint(cx + 0.5 + ux * HitLooks.PlantInset, cy + 0.5 + uy * HitLooks.PlantInset, ux, uy);
@@ -81,7 +80,7 @@ public static class Impacts
     }
 
     /// <summary>
-    /// The floor under <paramref name="point"/>, in cells: the top of the first wall or floor down its column from the open cell
+    /// The floor under <paramref name="point"/>, in cells: the top of the first solid cell down its column from the open cell
     /// just off its face, within <see cref="HitLooks.FloorRows"/>. None past them: chips fall on.
     /// </summary>
     public static double? FloorUnder(IGridQueries grid, HitPoint point)
@@ -92,8 +91,7 @@ public static class Impacts
         for (int r = Math.Max(0, row); r <= row + HitLooks.FloorRows && r < grid.Height; r++)
         {
             int cell = r * grid.Width + column;
-            int structure = grid.StructureAt(cell);
-            if (structure is not (Structure.Wall or Structure.Floor)) continue;
+            if (!grid.Solid(cell)) continue;
             if (r >= y - 1e-6) return r;
         }
         return null;
@@ -113,7 +111,7 @@ public static class Impacts
     {
         int x = cx + face.Dx, y = cy + face.Dy;
         if (x < 0 || y < 0 || x >= grid.Width || y >= grid.Height) return false;
-        return grid.StructureAt(y * grid.Width + x) != Structure.Wall;
+        return grid.WallAt(y * grid.Width + x) == null;
     }
 
     private static (double X, double Y) Unit(double x, double y, double fallbackX, double fallbackY)

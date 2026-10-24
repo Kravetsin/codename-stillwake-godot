@@ -240,7 +240,7 @@ public sealed partial class LogisticsModule
 
     /// <summary>Where a drone may be: a cell holding air, or a door's, open or closed; drones never open doors.</summary>
     private bool Passable(int cell) =>
-        _air.AiredAt(cell) || _grid.StructureAt(cell) is Structure.DoorClosed or Structure.DoorOpen;
+        _air.AiredAt(cell) || Doorways.IsDoor(_grid.StructureAt(cell));
 
     private (int X, int Y) Centre(int cell) => (cell % _grid.Width * Unit + Unit / 2, cell / _grid.Width * Unit + Unit / 2);
 

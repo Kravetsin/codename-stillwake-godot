@@ -12,7 +12,6 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using S = Stillwake.Game.Sound;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Dev;
 
@@ -154,7 +153,7 @@ public partial class DevPanel : CanvasLayer
         if (_session() is not Session s) return;
         var m = _modules();
         int width = m.Grid.Width, height = m.Grid.Height;
-        bool Wall(int x, int y) => x >= 0 && y >= 0 && x < width && y < height && m.Grid.StructureAt(y * width + x) == Structure.Wall;
+        bool Wall(int x, int y) => x >= 0 && y >= 0 && x < width && y < height && m.Grid.WallAt(y * width + x) != null;
         var hits = new List<(int Cell, int? Behind)>();
         foreach (var room in m.Rooms.All)
             foreach (int cell in room.Hull)

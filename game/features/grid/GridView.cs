@@ -237,7 +237,7 @@ public partial class GridView : Node2D
     }
 
     /// <summary>The sides of <paramref name="cell"/> a wall beside it closes.</summary>
-    private int WalledSides(int cell) => SidesOf(cell, _drawn.Structure, s => s == Structure.Wall);
+    private int WalledSides(int cell) => SidesOf(cell, _drawn.Structure, s => Structures.Is(s, Trait.Terrain));
 
     /// <summary>The sides of <paramref name="cell"/> whose neighbour passes <paramref name="isOne"/>; past the grid's edge none does.</summary>
     private int SidesOf(int cell, int[] layer, Func<int, bool> isOne)
@@ -360,7 +360,7 @@ public partial class GridView : Node2D
     {
         if (x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height) return -1;
         int cell = y * _grid.Width + x, material = _drawn.Material[cell];
-        return _drawn.Structure[cell] == Structure.Wall && IsNatural(material) ? material : -1;
+        return Structures.Is(_drawn.Structure[cell], Trait.Terrain) && IsNatural(material) ? material : -1;
     }
 
     /// <summary>The material of the whole ground over every cell of 16 px cell (<paramref name="x"/>, <paramref name="y"/>), the details' (0104); -1 for none.</summary>
@@ -426,13 +426,13 @@ public partial class GridView : Node2D
         int w = _grid.Width, x = cell % w, y = cell / w;
         var at = new Vector2I(x, y);
         Vector2I? tile = null;
-        bool covered = _drawn.Structure[cell] == Structure.Wall;
+        bool covered = Structures.Is(_drawn.Structure[cell], Trait.Terrain);
         if (!covered && _drawn.Back[cell] == Back.Wall && IsNatural(_drawn.BackMaterial[cell]))
         {
             for (int i = 0; i < 9; i++)
             {
                 int nx = x + i % 3 - 1, ny = y + i / 3 - 1;
-                _around[i] = nx >= 0 && ny >= 0 && nx < w && ny < _grid.Height && _drawn.Structure[ny * w + nx] == Structure.Wall;
+                _around[i] = nx >= 0 && ny >= 0 && nx < w && ny < _grid.Height && Structures.Is(_drawn.Structure[ny * w + nx], Trait.Terrain);
             }
             tile = _shadows.TileOf(_around);
         }

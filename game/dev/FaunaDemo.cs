@@ -6,7 +6,6 @@ using Stillwake.Sim;
 using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Dev;
 
@@ -94,7 +93,7 @@ public sealed class FaunaDemo(bool drill = false, bool course = false, string? k
             if (x < 1 || x + 2 >= w) continue;
             // From the hero's row in both its columns: up out of a hill, else down to the floor, so it stands on the ground under
             // the sky and on a cave's floor alike; over the higher of the two.
-            bool Solid(int column, int y) => m.Grid.StructureAt(y * w + column) == Structure.Wall;
+            bool Solid(int column, int y) => m.Grid.WallAt(y * w + column) != null;
             int Ground(int column)
             {
                 int y = y0;

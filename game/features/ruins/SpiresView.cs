@@ -8,7 +8,6 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content;
-using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Features.Ruins;
 
@@ -327,7 +326,7 @@ public partial class SpiresView : Node2D
         foreach (var r in s.Roots)
         {
             int x = (int)r.At.X / Cell, y = (int)r.At.Y / Cell;
-            if (x < 0 || y < 0 || x >= w || y >= h || _grid.StructureAt(y * w + x) != Structure.Wall) continue;
+            if (x < 0 || y < 0 || x >= w || y >= h || _grid.WallAt(y * w + x) == null) continue;
             on.DrawRect(new Rect2(r.At, Vector2.One), Rgb(r.Colour, r.Bright * burns));
         }
     }

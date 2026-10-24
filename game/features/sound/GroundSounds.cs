@@ -43,7 +43,7 @@ public static class GroundSounds
     {
         int structure = grid.StructureAt(cell);
         if (structure == Structure.Empty) return null;
-        if (structure != Structure.Wall || grid.WallAt(cell) is not { Natural: true } material) return Footing.Deck;
+        if (grid.WallAt(cell) is not { Natural: true } material) return Footing.Deck;
         if (material.Id == "alloy") return Footing.Alloy;
         if (Holds(plants, cell, "moss")) return Footing.Moss;
         if (material.Code != SoilCode) return Footing.Stone;

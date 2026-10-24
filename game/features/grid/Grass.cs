@@ -1,5 +1,7 @@
 using Stillwake.Sim.Grid;
 using Structure = Stillwake.Content.Structure;
+using Structures = Stillwake.Content.Structures;
+using Trait = Stillwake.Content.Trait;
 
 namespace Stillwake.Game.Features.Grid;
 
@@ -16,7 +18,7 @@ public static class Grass
     /// material code.
     /// </summary>
     public static bool Grows(int structure, int material, int aboveStructure, int aboveBack, int soil) =>
-        structure == Structure.Wall && material == soil && aboveStructure == Structure.Empty && aboveBack == Back.None;
+        Structures.Is(structure, Trait.Terrain) && material == soil && aboveStructure == Structure.Empty && aboveBack == Back.None;
 
     /// <summary>
     /// Whether a cell shows its ground's living edge: moss where it <see cref="Grows"/> on soil, chips on any other
@@ -25,7 +27,7 @@ public static class Grass
     public static bool Edged(int structure, int material, bool natural, int aboveStructure, int aboveBack, int soil) =>
         material == soil
             ? Grows(structure, material, aboveStructure, aboveBack, soil)
-            : natural && structure == Structure.Wall && aboveStructure == Structure.Empty;
+            : natural && Structures.Is(structure, Trait.Terrain) && aboveStructure == Structure.Empty;
 
     /// <summary>Which of a cell's variants of moss it shows, of <paramref name="variants"/>: the same for a cell every time, neighbours mostly apart.</summary>
     public static int VariantOf(int cell, int variants)
