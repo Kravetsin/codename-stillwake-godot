@@ -9,8 +9,8 @@ namespace Stillwake.Sim.Building;
 /// while it works, at a natural wall within the hero's reach. Its damage cracks the wall; the hit that reaches its
 /// strength breaks it out, the back wall behind staying, and gives the sender what it is made of and what grew on, in or
 /// from it. On a plant standing in an open cell (0079), it cracks the plant by its own cell, felling it at its strength.
-/// <c>Back</c> (0107, the right button) hits the back wall instead, any that breaks, a ship's too: its own crack, its
-/// material's strength, its cost to the sender, what hangs on it felled for them.
+/// <c>Back</c> (0107, the right button) hits the back wall instead, a natural one only (0108): its own crack, its material's
+/// strength, its cost to the sender, what hangs on it felled for them. A ship's walls are taken apart by mark alone.
 /// </summary>
 public sealed record Dig(int Cell, string Tool, bool Back = false) : Command;
 
@@ -27,21 +27,23 @@ public sealed partial class BuildingModule
     public string? DigProblem(int peer, int cell, string tool, bool back = false) => DigProblemOf(peer, cell, tool, back, running: false);
 
     /// <summary>
-    /// <c>building.nothingToDig</c> for no natural wall there (a hull wall is taken apart with a mark) nor a plant in an open
-    /// cell (0079), <c>building.bedrock</c>
+    /// <c>building.nothingToDig</c> for no wall there nor a plant in an open cell (0079), <c>building.builtWall</c> for a wall
+    /// of a ship's material, front or back, taken apart only by a mark and the screwdriver (0108), <c>building.bedrock</c>
     /// for one nothing breaks, then what the weapon says (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the
     /// command applies, not running. A tool that deals no damage is our bug: the client sends weapons only.
     /// </summary>
     private string? DigProblemOf(int peer, int cell, string tool, bool back, bool running)
     {
         if (Weapons.Of(tool) == null) throw new InvalidOperationException($"building.dig: {tool} deals no damage");
-        // A back wall (0107): any material, built or grown, breaks at its strength; bedrock and lava never.
+        // A back wall (0107): a natural one, built or grown, breaks at its strength; bedrock and lava never; a ship's not at all (0108).
         if (back)
         {
             if (_grid.BackAt(cell) is not { } behind) return "building.nothingToDig";
+            if (!behind.Natural) return "building.builtWall";
             return behind.Strength == Material.Unbreakable ? "building.bedrock" : _items.WeaponProblem(peer, tool, running);
         }
-        if (_grid.WallAt(cell) is not { Natural: true } wall)
+        if (_grid.WallAt(cell) is { Natural: false }) return "building.builtWall";
+        if (_grid.WallAt(cell) is not { } wall)
             return PlantAt(cell) != null && _grid.StructureAt(cell) == Structure.Empty ? _items.WeaponProblem(peer, tool, running) : "building.nothingToDig";
         if (!wall.Breaks) return "building.bedrock";
         return _items.WeaponProblem(peer, tool, running);

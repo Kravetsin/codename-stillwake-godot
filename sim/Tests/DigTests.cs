@@ -109,11 +109,11 @@ public class DigTests
     }
 
     [Fact]
-    public void RefusesBedrockTooHardAndAHullWallOrOpenGroundAsNothingToDig()
+    public void RefusesBedrockTooHardAHullWallAsBuiltAndOpenGroundAsNothingToDig()
     {
         var w = World();
         w.Do(new Dig(At(7, 2), Axe)).Do(new Dig(At(0, 2), Axe)).Do(new Dig(At(3, 0), Axe)).Do(new Dig(-1, Axe)).Run();
-        Assert.Equal(["building.bedrock", "building.nothingToDig", "building.nothingToDig", "building.nothingToDig"], Reasons(w));
+        Assert.Equal(["building.bedrock", "building.builtWall", "building.nothingToDig", "building.nothingToDig"], Reasons(w));
         Assert.Empty(w.M.Building.Cracks);
         Assert.Equal("bedrock", w.M.Grid.WallAt(At(7, 2))?.Id);
     }

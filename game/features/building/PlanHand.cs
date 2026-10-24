@@ -40,7 +40,7 @@ public sealed class PlanHand
         {
             if (ui.Hand.Get() == Shared.Holding.Free && Held() != Shared.Holding.Free) PutPlanAway();
         });
-        ui.OverlayShown = () => Tools.OverlayShown(PlanOut.Get(), Tab.Get(), ui.AirOn.Get());
+        ui.OverlayShown = () => Tools.OverlayShown(PlanOut.Get(), Tab.Get(), ui.AirOn.Get(), ui.Wielded.Get());
     }
 
 
@@ -64,7 +64,6 @@ public sealed class PlanHand
 
     private Holding Held() => Selected.Get() switch
     {
-        CableTool => Shared.Holding.Cable,
         not null => Shared.Holding.Card,
         null => PlanOut.Get() ? Shared.Holding.Plan : Shared.Holding.Free,
     };

@@ -90,17 +90,17 @@ cell (a wall, a pipe, a tank) as heroes work on it, paying its cost an item a pa
   only the wall: its back wall stays — drops its crack and gives what it is made of (its material's `Cost`: soil, rock)
   to the sender, then the `Yields` of every growth the wall held — the one in its own stone, the one standing on it, the
   one hanging from it — felled there and then, before derivation's sweep would fell them for nothing; what does not fit
-  falls where each was (`GiveOrDrop`). Refused `building.nothingToDig` with no natural
-  wall there (open ground, hull, off the grid), `building.bedrock` for one that never breaks, then as the weapon says
+  falls where each was (`GiveOrDrop`). Refused `building.builtWall` for a wall of a ship's material (not `Natural`: scrap,
+  iron; 0108), taken apart only by a mark; `building.nothingToDig` with no wall there (open ground, off the grid), `building.bedrock` for one that never breaks, then as the weapon says
   (`IItemsQueries.WeaponProblem`: `items.flat`, and `items.notRunning` for an electric one its hero does not run). Two
   digs on one cell in a tick apply in the host's order: the one that breaks it gets the yield, the next finds nothing.
   A crack whose wall or plant is gone (a meteor) is dropped in derivation. A tool that deals no damage is our bug and throws.
-- **`Dig(Cell, Tool, Back: true)` hits the back wall** (0107, the right button): any back wall, a ship's built one, a hero's soil
+- **`Dig(Cell, Tool, Back: true)` hits the back wall** (0107, the right button): a natural one (0108), a hero's soil
   or the ground's own, cracks by its material's `Strength` in a crack of its own (`Crack.Back`, kept after the front's of its cell,
   healed and swept alike, never saved when false) and at its strength is cleared, the wall in front staying, its material's `Cost`
   given to the sender, what hangs on it (`Flora.Anchor.Back`) felled for them. Refused `building.nothingToDig` with no back wall
-  (off the grid too), `building.bedrock` for one of a material nothing breaks (bedrock, lava), then as the weapon says. A ship's
-  back wall dug out opens its room to space, as one taken apart does.
+  (off the grid too), `building.builtWall` for a ship's (scrap, iron: a ship comes apart only by marks and the screwdriver),
+  `building.bedrock` for one of a material nothing breaks (bedrock, lava), then as the weapon says.
 - **What grows on a planet's surface** (0079): plants and stones (`Content.Flora`), grown from the seed with the ground
   (`Terrain`), each standing in its cell over the soil it grows from, `Across` columns (2 at the least, 0104) and `Tall` cells up
   from it; one in the rock a block of two by two walls. A `Dig` on any of those
@@ -173,7 +173,7 @@ A cost is `IReadOnlyList<(string Item, int Count)>`, as `Items` takes it.
   grid's keys or `building.planned`; `Deconstruct(Cell, Layer)`, refused with `building.nothingThere`,
   `building.fixed`, `building.planned`, `building.notEmpty` or `building.cabled`; `CancelPlan(Id)`, refused with
   `building.noPlan`; `Work(Plan)`, refused with `building.noPlan`, `items.notEnough`,
-  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool, Back)`, refused with `building.nothingToDig` (no natural wall nor plant there; no back wall, `Back`), `building.bedrock`,
+  `building.notEmpty` or `building.cabled`; `Dig(Cell, Tool, Back)`, refused with `building.builtWall` (a ship's wall or back wall), `building.nothingToDig` (no wall nor plant there; no back wall, `Back`), `building.bedrock`,
   `items.flat` or `items.notRunning`. A mark is refused `building.natural` besides.
 - **Fuzz:** every command, refused ones too: placements of every kind, mostly within 32 cells of
   what the grid has built, as players build, now and then at any cell of the grid or one off it, so

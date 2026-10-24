@@ -15,9 +15,8 @@ namespace Stillwake.Game.Dev;
 /// A script for recordings of the plan and the power and air overlays (<c>-- --plan-demo</c>), frame by
 /// frame at 20 a second in the wreck: the menu with what is known and a card's tooltip; creative mode
 /// and every card; a wall dragged over the lamp, red where it may not go, and planned; the blueprint
-/// built by holding the right button on it; the power tab, the lamp's cable carried by its plug to the
-/// wall and dropped, the cable card and a new cable laid from the lamp; the plan away and its overlay
-/// with it; air, pipes over it on the air tab, and air back once the menu closes.
+/// built by the screwdriver held on it; the stripper in hand, the lamp's cable carried by its plug to the
+/// wall with Ctrl and dropped, and a new cable laid from the lamp; the screwdriver back and the cables away; air, pipes over it on the air tab, and air back once the menu closes.
 /// </summary>
 public sealed class PlanDemo(Hands hands, Layout layout)
 {
@@ -39,6 +38,8 @@ public sealed class PlanDemo(Hands hands, Layout layout)
 
     private void Press(int held) => hands.Mouse.Buttons.OnPointer(true, held, _pointer!.Value);
     private void Release() => hands.Mouse.Buttons.OnPointer(false, 0, _pointer!.Value);
+
+    private static void Key(Godot.Key key, bool down) => Godot.Input.ParseInputEvent(new Godot.InputEventKey { PhysicalKeycode = key, Keycode = key, Pressed = down });
 
     /// <summary>The pointer moved from <paramref name="from"/> to <paramref name="to"/> over frames <paramref name="start"/> to <paramref name="end"/>.</summary>
     private void Glide(int start, int end, (double X, double Y) from, (double X, double Y) to)
@@ -107,23 +108,23 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 hands.Plan.Toggle();
                 break;
             case 80:
-                log("the power tab: the cables overlay");
-                hands.Menu.ShowTab("power");
+                log("the plan away, the stripper (2) held: the cables overlay");
+                hands.Plan.PutPlanAway();
+                Key(Godot.Key.Key2, true);
+                Key(Godot.Key.Key2, false);
                 _pointer = plug;
                 break;
             case 84:
-                log("the lamp's plug dragged with no card: its cable carried");
+                log("the lamp's plug dragged with Ctrl: its cable carried");
+                Key(Godot.Key.Ctrl, true);
                 Held = Buttons.Left;
                 Press(Held);
                 break;
             case 96:
                 Held = 0;
                 Release();
+                Key(Godot.Key.Ctrl, false);
                 log("let go on the wall: a peg there");
-                break;
-            case 100:
-                log("the cable card");
-                hands.Menu.Pick(Card("cable"));
                 break;
             case 106:
                 _pointer = Of(_lamp);
@@ -138,8 +139,9 @@ public sealed class PlanDemo(Hands hands, Layout layout)
                 Release();
                 break;
             case 132:
-                log("B: the plan away, and the cables overlay with it");
-                hands.Plan.Toggle();
+                log("the screwdriver (1) back in hand, the cables overlay away");
+                Key(Godot.Key.Key1, true);
+                Key(Godot.Key.Key1, false);
                 break;
             case 136:
                 log("O: air");

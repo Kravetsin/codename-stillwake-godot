@@ -412,8 +412,8 @@ Deliberately not handled:
 
 - **Left is the front, right the back** (0107, `Layering.Back`: the right alone). The screwdriver, first in the hotbar of every
   hero (`Inventory.Kit`), builds a plan and takes a mark apart with the left button held on it, `Screwdriver.Work` ticks a tick;
-  nothing else in hand works plans. The axe swung by the right button, and the drill run on it, dig the back walls under the brush
-  alone (`Dig.Back`, `Aiming.DigsAt(…, back)`), no wreck nor creature; the swing keeps the button it began with. The aim of a back
+  nothing else in hand works plans. The stripper, beside it, lays and cuts cables (0108, `features/power`). The axe swung by the right button, and the drill run
+  on it, dig the natural back walls under the brush alone, a ship's refused `building.builtWall` (0108) (`Dig.Back`, `Aiming.DigsAt(…, back)`), no wreck nor creature; the swing keeps the button it began with. The aim of a back
   dig is outlined dashed, a pixel inside (`Outline.Dashed`). A canister's right click still breathes it. A friend's swing is drawn
   on the front layer: which button began it is not sent.
 - One aim (`Aiming.AimAt`) for everything the hands work under the pointer: a plan in the cell (the
