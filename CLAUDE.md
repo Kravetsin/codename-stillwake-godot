@@ -98,6 +98,8 @@ public sealed class RoomsModule : Module<RoomsState>
   modules run in the order they are registered, every module after its dependencies.
 - Derived state is marked `[JsonIgnore]` and rebuilt in `Rebuild()`; it is never saved or hashed, so
   it may hold anything. The module keeps it current while the world runs.
+- A saved field added with an initializer that means "none yet" needs no format bump. Removing or renaming one,
+  changing what it means, or adding a module bumps `World.SaveFormat` with its step in `Migrations`.
 - Commands are records deriving from `Command`, validated when they apply, on their stamped tick. A
   refused command returns a reason, an i18n key `<moduleId>.<why>`, and leaves state untouched.
   Validate game rules, not payload shapes. Throwing is for broken invariants — our bugs.

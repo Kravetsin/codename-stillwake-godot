@@ -11,7 +11,11 @@ namespace Stillwake.Sim;
 /// </summary>
 public sealed class World
 {
-    /// <summary>Bumped whenever saved data changes shape; a save of another format is refused.</summary>
+    /// <summary>
+    /// Bumped, with its step in <c>Migrations</c>, when saved data is removed, renamed or changes meaning, or a module is
+    /// added; a save of another format is refused. A field added with its default needs no bump: an older build refuses
+    /// it as unknown (<see cref="Load"/>), this one reads an older save's lack of it as the default.
+    /// </summary>
     public const int SaveFormat = 29;
 
     /// <summary>How many ticks a second of game time holds: the host releases them at this pace.</summary>
@@ -108,7 +112,9 @@ public sealed class World
             throw new InvalidDataException($"A save of format {format} cannot be loaded by format {SaveFormat}.");
         var rng = new RngState { S = root.GetProperty("rng").GetUInt32() };
         var world = new World(modules, rng, root.GetProperty("tick").GetInt32());
-        Restore(root.GetProperty("slices"), modules, world.Json, null);
+        // A field this build does not know is a newer build's: refused, never dropped, so an added field needs no bump.
+        var json = new JsonSerializerOptions(world.Json) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
+        Restore(root.GetProperty("slices"), modules, json, null);
         if (root.TryGetProperty("surfaces", out var surfaces))
         {
             var ship = modules as IModules ?? throw new InvalidDataException("The save holds surfaces, and these modules cannot make any.");
@@ -120,7 +126,7 @@ public sealed class World
                 world._surfaces.Add(world.Attach(surface, more));
                 // A grown surface saves what changed since its ground grew: grown again here, from its seed (0077).
                 var ground = Content.Surfaces.Get(surface.Kind) is Content.PlanetType type ? Terrain.Generate(type, surface.Seed) : null;
-                Restore(saved.GetProperty("slices"), more, world.Json, ground);
+                Restore(saved.GetProperty("slices"), more, json, ground);
             }
             foreach (var at in root.GetProperty("where").EnumerateArray())
                 world._where[at.GetProperty("peer").GetInt32()] = at.GetProperty("surface").GetInt32();
@@ -136,7 +142,17 @@ public sealed class World
         var ids = modules.Select(m => m.Id).ToList();
         if (!names.SequenceEqual(ids))
             throw new InvalidDataException($"The save holds [{string.Join(", ", names)}], not [{string.Join(", ", ids)}].");
-        foreach (var m in modules) m.Restore(saved.GetProperty(m.Id), json, ground);
+        foreach (var m in modules)
+        {
+            try
+            {
+                m.Restore(saved.GetProperty(m.Id), json, ground);
+            }
+            catch (JsonException e)
+            {
+                throw new InvalidDataException($"The save's {m.Id} holds what this build cannot read, perhaps a newer build's: {e.Message}", e);
+            }
+        }
     }
 
     /// <summary>Applies the commands stamped for this tick, runs every phase on every surface, advances the tick.</summary>
