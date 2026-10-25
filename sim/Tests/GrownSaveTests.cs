@@ -59,7 +59,7 @@ public class GrownSaveTests
         var w = Down(Content.PlanetTypes.Small);
         var m = w.On(1);
         int spawn = m.Crew.Spawn, under = spawn + m.Grid.Width;
-        w.Do(new Dig(under, "fireAxe")).Do(new Dig(under, "fireAxe")).Run();
+        w.Do(HewTesting.Dig(w, under, "fireAxe", surface: 1)).Do(HewTesting.Dig(w, under, "fireAxe", surface: 1)).Run();
         Assert.Null(m.Grid.WallAt(under));
         var edits = GridOf(w.World.Save(), 1)["edits"]!.AsArray().Select(n => (int)n!).ToArray();
         Assert.Equal(5, edits.Length);
@@ -96,8 +96,8 @@ public class GrownSaveTests
                 var (x, y, what) = t.steps[i];
                 int cell = y * m.Grid.Width + x;
                 if (what >= builds.Length)
-                    w.Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe"))
-                        .Do(new Dig(cell, "fireAxe")).Do(new Dig(cell, "fireAxe")).Do(new Deconstruct(cell, "structure")).Do(new Deconstruct(cell, "back"));
+                    w.Do(HewTesting.Dig(w, cell, "fireAxe", surface: 1)).Do(HewTesting.Dig(w, cell, "fireAxe", surface: 1)).Do(HewTesting.Dig(w, cell, "fireAxe", surface: 1)).Do(HewTesting.Dig(w, cell, "fireAxe", surface: 1))
+                        .Do(HewTesting.Dig(w, cell, "fireAxe", surface: 1)).Do(HewTesting.Dig(w, cell, "fireAxe", surface: 1)).Do(new Deconstruct(cell, "structure")).Do(new Deconstruct(cell, "back"));
                 else
                 {
                     var place = builds[what].Split(':') switch

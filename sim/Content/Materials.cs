@@ -79,7 +79,7 @@ public static class Materials
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
         new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true,
             Hurts: true, Footing: Tread.Stone, Look: MaterialLook.Molten),
-        // The ruins' metal (0085): five times stone, six seconds of the drill, three with the arc fitted (0098); a scrap of it a cell.
+        // The ruins' metal (0085): five times stone, three seconds of the drill, one and a half with the arc fitted (0098); a scrap of it a cell.
         new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy, Menu: new(MenuTabs.Structure, 50), BackMenu: new(MenuTabs.Structure, 150)),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
         new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),

@@ -19,7 +19,7 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Draws every command, refused ones included: off the grid, on nothing, twice on one thing, E on a
-    /// plan that is gone or a blueprint the hero has nothing for, a dig at a hull wall or back wall, bedrock or nothing, or with a drill not running.
+    /// plan that is gone or a blueprint the hero has nothing for, a hit at a hull wall or back wall, bedrock or nothing, or with a drill not running.
     /// </summary>
     /// <summary>A standing plant drawn at random, drawn again up to three times while it lies in rock (0080).</summary>
     private Plant FuzzPlant(Func<int, int> below)
@@ -54,8 +54,11 @@ public sealed partial class BuildingModule
                     // mostly on a crack, so walls break within a run, or anywhere, mostly on the ground a planet is made of.
                     int cell = _plants.Count > 0 && Below(4) == 0 ? (FuzzPlant(Below) is var p && Below(2) == 0 ? p.Cell : HoldOf(p))
                         : State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
-                    // A quarter of digs hit the back wall (0107), ship and ground alike.
-                    return new Dig(cell, Weapons.All[Below(Weapons.All.Count)].Item, Back: Below(4) == 0) { From = from };
+                    // The hand anywhere in that cell, or just off the grid before it, aimed anywhere; a quarter of hits at the back
+                    // wall (0107), ship and ground alike.
+                    int x = cell >= 0 ? cell % _grid.Width * 1000 + Below(1000) : -1 - Below(1000);
+                    int y = cell >= 0 ? cell / _grid.Width * 1000 + Below(1000) : Below(1000);
+                    return new Hew(Weapons.All[Below(Weapons.All.Count)].Item, x, y, Below(Headings.Turn), Back: Below(4) == 0) { From = from };
                 }
             case 0:
                 return new PlacePlan(Cell(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };

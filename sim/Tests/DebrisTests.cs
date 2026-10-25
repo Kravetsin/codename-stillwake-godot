@@ -351,7 +351,7 @@ public class DebrisTests
         w.Run(DebrisSpec.Every + DebrisSpec.Jitter);
         var wreck = Pieces(w)[0];
         wreck.Item = "tankCluster";
-        for (int i = 0; i < WreckageSpec.HpOf("tankCluster")!.Value; i++) w.Do(new Hit(wreck.Id, Weapons.Axe.Item) { From = 2 });
+        for (int i = 0; i < WreckageSpec.HpOf("tankCluster")!.Value; i++) w.Do(HewTesting.Hit(w, wreck.Id, Weapons.Axe.Item) with { From = 2 });
         w.Run();
         Assert.NotEmpty(w.M.Items.Floor);
         Assert.Null(w.M.Debris.CaughtFrom(wreck.Id));
@@ -427,45 +427,45 @@ public class DebrisTests
 
     private static Scenario Hits(Scenario w, int times, int peer = 0, int piece = 1)
     {
-        for (int i = 0; i < times; i++) w.Do(new Hit(piece, Axe) { From = peer });
+        for (int i = 0; i < times; i++) w.Do(HewTesting.Hit(w, piece, Axe) with { From = peer });
         return w;
     }
 
     [Fact]
-    public void RefusesAHitOnAPieceGoneOrNeverThere()
+    public void RefusesAHitWhereNoWreckIsAsNothingToHit()
     {
         var w = Wrecked(0);
-        w.Do(new Hit(7, Axe)).Run();
-        w.Run(Width * 1000);
-        w.Do(new Hit(1, Axe)).Run();
-        Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
-    }
-
-    [Fact]
-    public void RefusesAHitUnlessBothTheHeroAndTheWrecksMiddleAreInSpace()
-    {
-        var w = Spawned();
-        Pieces(w)[0].Item = Wreck;
-        w.Do(new Hit(1, Axe) { From = 1 }).Run();
-        w.Do(new Enter(At(3, 4)) { From = 1 }).Do(new Hit(1, Axe) { From = 1 }).Run();
-        Assert.Equal(["debris.notOutside", "debris.notOutside"], Reasons(w));
-        // Its middle over the room: judged by that cell alone, however far it reaches out.
-        Until(w, 4).Do(new Enter(At(12, 1)) { From = 1 });
-        Assert.Equal("debris.notOutside", w.M.Debris.HitProblem(1, 1, Axe));
-        w.Do(new Hit(1, Axe) { From = 1 }).Run();
-        Assert.Equal("debris.notOutside", Reasons(w)[^1]);
+        // Aimed where no piece ever was, far from the wreck.
+        w.Do(HewTesting.Hit(w, 7, Axe)).Run();
+        Assert.Equal(["debris.nothingToHit"], Reasons(w));
         Assert.Equal(0, Pieces(w)[0].Damage);
     }
 
     [Fact]
-    public void RefusesAHitOnAPieceCaughtByHand()
+    public void RefusesAHitUnlessTheHeroIsInSpaceAndPassesAWreckWhoseMiddleIsNot()
+    {
+        var w = Spawned();
+        Pieces(w)[0].Item = Wreck;
+        w.Do(HewTesting.Hit(w, 1, Axe) with { From = 1 }).Run();
+        w.Do(new Enter(At(3, 4)) { From = 1 }).Do(HewTesting.Hit(w, 1, Axe) with { From = 1 }).Run();
+        Assert.Equal(["debris.notOutside", "debris.notOutside"], Reasons(w));
+        // Its middle over the room: judged by that cell alone, however far it reaches out, the fan passes it by.
+        Until(w, 4).Do(new Enter(At(12, 1)) { From = 2 }).Run();
+        Assert.Equal("debris.nothingToHit", HewTesting.HitProblem(w, 2, 1, Axe));
+        w.Do(HewTesting.Hit(w, 1, Axe) with { From = 2 }).Run();
+        Assert.Equal("debris.nothingToHit", Reasons(w)[^1]);
+        Assert.Equal(0, Pieces(w)[0].Damage);
+    }
+
+    [Fact]
+    public void PassesAPieceCaughtByHand()
     {
         var w = Spawned();
         Pieces(w)[0].Item = "scrapChunk";
         w.Do(new Enter(At(12, 1))).Run();
-        Assert.Equal("debris.notWreckage", w.M.Debris.HitProblem(0, 1, Axe));
-        w.Do(new Hit(1, Axe)).Run();
-        Assert.Equal(["debris.notWreckage"], Reasons(w));
+        Assert.Equal("debris.nothingToHit", HewTesting.HitProblem(w, 0, 1, Axe));
+        w.Do(HewTesting.Hit(w, 1, Axe)).Run();
+        Assert.Equal(["debris.nothingToHit"], Reasons(w));
         Assert.Equal(0, Pieces(w)[0].Damage);
     }
 
@@ -609,9 +609,9 @@ public class DebrisTests
         var w = Wrecked(1, 2);
         Hits(w, HitsToBreak - 1, peer: 1).Run();
         // Two heroes land the last blow on one tick: the host's order decides, and the second is too late.
-        w.Do(new Hit(1, Axe) { From = 2 }).Do(new Hit(1, Axe) { From = 1 }).Run();
-        w.Do(new Hit(1, Axe) { From = 2 }).Run();
-        Assert.Equal(["debris.gone", "debris.gone"], Reasons(w));
+        w.Do(HewTesting.Hit(w, 1, Axe) with { From = 2 }).Do(HewTesting.Hit(w, 1, Axe) with { From = 1 }).Run();
+        w.Do(HewTesting.Hit(w, 1, Axe) with { From = 2 }).Run();
+        Assert.Equal(["debris.nothingToHit", "debris.nothingToHit"], Reasons(w));
     }
 
     [Fact]
@@ -840,7 +840,7 @@ public class DebrisTests
                     case "chop":
                         // A wreck when one is out, else any piece; a few swings landing on one tick.
                         var wreck = pieces.FirstOrDefault(p => WreckageSpec.HpOf(p.Item) != null) ?? (pieces.Count > 0 ? pieces[Math.Abs(s.Cell) % pieces.Count] : null);
-                        for (int n = 0; n < s.Ticks % 4 + 1; n++) w.Do(new Hit(wreck?.Id ?? s.Cell % (last + 3), n % 2 == 0 ? Axe : Weapons.Drill.Item) { From = s.Peer });
+                        for (int n = 0; n < s.Ticks % 4 + 1; n++) w.Do(HewTesting.Hit(w, wreck?.Id ?? s.Cell % (last + 3), n % 2 == 0 ? Axe : Weapons.Drill.Item) with { From = s.Peer });
                         break;
                     case "reel":
                         int reel = pieces.Count > 0 && s.Cell % 3 != 0 ? pieces[Math.Abs(s.Cell) % pieces.Count].Id : s.Cell % (last + 3);

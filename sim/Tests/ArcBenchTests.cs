@@ -66,7 +66,7 @@ public class ArcBenchTests
         int into = Empty(w);
         w.Do(new Move(new Slot(0, Bench(w)), new Target(into), 1)).Run();
         Assert.Equal(new Stack(Drill, 1, Module: Arc), w.M.Items.Inventory(0)[into]);
-        Assert.Equal(2, w.M.Items.Damage(0, Drill));
+        Assert.Equal(4, w.M.Items.Damage(0, Drill));
 
         // Back on the bench and the module taken out into a slot named, then the drill plain again.
         Clamp(w);

@@ -71,7 +71,7 @@ public class NaturalBackWallTests
         var w = Down(known: [], items: ("fireAxe", 1));
         var m = w.On(1);
         int under = m.Crew.Spawn + m.Grid.Width, sky = m.Crew.Spawn - m.Grid.Width;
-        for (int i = 0; i < Soil.Strength && m.Grid.WallAt(under) != null; i++) w.Do(new Dig(under, "fireAxe")).Run();
+        for (int i = 0; i < Soil.Strength && m.Grid.WallAt(under) != null; i++) w.Do(HewTesting.Dig(w, under, "fireAxe", surface: 1)).Run();
         Assert.Null(m.Grid.WallAt(under));
         var ground = m.Grid.BackAt(under)!;
         Assert.True(ground.Natural);

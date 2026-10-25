@@ -52,7 +52,7 @@ public class PlanetYieldsTests
 
     private static Scenario DigOut(Scenario w, int cell)
     {
-        for (int i = 0; i < Hits; i++) w.Do(new Dig(cell, Axe)).Run();
+        for (int i = 0; i < Hits; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         Assert.Null(w.M.Grid.WallAt(cell));
         return w;
     }
@@ -93,7 +93,7 @@ public class PlanetYieldsTests
     public void AHitOnATealCapGivesBiomassOnAVioletOneSporesAndOnAStalagmiteNothing()
     {
         var w = Cave();
-        w.Do(new Dig(w.At(2, 2), Axe)).Do(new Dig(w.At(5, 2), Axe)).Do(new Dig(w.At(6, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(2, 2), Axe)).Do(HewTesting.Dig(w, w.At(5, 2), Axe)).Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal((2, 1), (Count(w, "biomass"), Count(w, "spore")));
         Assert.Equal(3, w.M.Items.Totals(0).Sum(t => t.Count));
@@ -105,7 +105,7 @@ public class PlanetYieldsTests
     public void WhatAFullInventoryCannotTakeFallsWhereTheGrowthWas()
     {
         var w = Cave().GiveItems(0, ("scrap", Content.Items.Get("scrap").Stack * Inventory.Slots));
-        w.Do(new Dig(w.At(2, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(2, 2), Axe)).Run();
         DigOut(w, w.At(7, 2));
         var floor = w.M.Items.Floor.Select(s => (s.Item, s.Count, s.Cell)).OrderBy(s => s.Item, StringComparer.Ordinal);
         Assert.Equal([("biomass", 2, Bottom(w, 2, 2)), ("copperOre", 1, w.At(7, 2))], floor);
@@ -119,7 +119,7 @@ public class PlanetYieldsTests
         Fell(w, w.At(4, 1));
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "seed")));
         // The rock's soil dug from under it: it goes to the digger too, whole, with the soil.
-        w.Do(new Dig(w.At(6, 2), Axe)).Do(new Dig(w.At(6, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Run();
         Assert.Equal((2, 1), (Count(w, "rock"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Plants);
         Assert.Empty(w.M.Building.Cracks);
@@ -143,7 +143,7 @@ public class PlanetYieldsTests
         while (w.M.Building.Plants.Count == count)
         {
             Assert.True(++hits <= 100, $"nothing at {cell} felled");
-            w.Do(new Dig(cell, Axe)).Run();
+            w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         }
         Assert.Empty(w.Refusals);
         return hits;
@@ -169,7 +169,7 @@ public class PlanetYieldsTests
     {
         var w = Meadow();
         int axe = Weapons.Axe.Damage;
-        w.Do(new Dig(w.At(1, 1), Axe)).Run().Do(new Dig(w.At(1, 0), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 1), Axe)).Run().Do(HewTesting.Dig(w, w.At(1, 0), Axe)).Run();
         // Cracked by its own cell, wherever it was hit; still standing, nothing given.
         Assert.Equal([new Crack(Bottom(w, 1, 1), 2 * axe, w.M.Building.Cracks[0].At)], w.M.Building.Cracks);
         Assert.Contains("acacia", w.M.Building.Plants.Select(p => p.Kind));
@@ -183,10 +183,10 @@ public class PlanetYieldsTests
     public void ATreeCrackedAndThenFelledByItsGroundLeavesNoCrackBehind()
     {
         var w = Meadow();
-        w.Do(new Dig(w.At(1, 0), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 0), Axe)).Run();
         Assert.Single(w.M.Building.Cracks);
         // Its soil dug out from under it: the tree goes whole to the digger, its crack with it.
-        w.Do(new Dig(w.At(1, 2), Axe)).Run().Do(new Dig(w.At(1, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 2), Axe)).Run().Do(HewTesting.Dig(w, w.At(1, 2), Axe)).Run();
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Cracks);
     }

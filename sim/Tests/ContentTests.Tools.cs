@@ -33,15 +33,16 @@ public partial class ContentTests
             Assert.Same(weapon, Weapons.Of(weapon.Item));
         }
         Assert.Null(Weapons.Of(Harpoon.Item));
-        // Damage a second is all that sets them apart (0054): the drill 10, the axe 4.
-        Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
+        // Damage a second on each thing struck and how much its fan strikes are all that set them apart (0054, the fan of rays):
+        // the drill 20, the axe 4, on a wall face of about four cells the axe's wave against one or two the drill's beam.
+        Assert.Equal(20, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
         // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
         Assert.Equal(3, draw);
         Assert.Equal(600, Charge.Battery / Charge.Scale / draw);
-        // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 300 ticks of a battery.
-        Assert.Equal((20, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
+        // The arc module in it (0098): twice the damage, 40 a second, for twice the draw, 300 ticks of a battery.
+        Assert.Equal((40, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
         Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
         Assert.Equal([("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Crafts.Get(Weapons.Drill.Item).Cost);
         Assert.Equal(160, Crafts.Get(Weapons.Drill.Item).Ticks);

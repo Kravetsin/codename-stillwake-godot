@@ -123,8 +123,9 @@ public class LavaTests
     public void LavaIsTooHardToDigAndStays()
     {
         var w = World();
-        w.Do(new Dig(At(3, 4), Content.Weapons.Axe.Item)).Run();
-        Assert.Equal(["building.bedrock"], w.Refusals.Select(r => r.Reason));
+        w.Do(HewTesting.Dig(w, At(3, 4), Content.Weapons.Axe.Item)).Run();
+        // It stops every ray unhurt, as bedrock does: the fan strikes nothing.
+        Assert.Equal(["building.nothingToDig"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(LavaSpec.Material, w.M.Grid.WallAt(At(3, 4))?.Id);
         Assert.Empty(w.M.Building.Cracks);
     }

@@ -48,10 +48,10 @@ public class RuinsTests
         var w = Chamber();
         int hits = Materials.Get("alloy").Strength / Weapons.Axe.Damage;
         Assert.Equal(30, hits);
-        for (int i = 0; i < hits - 1; i++) w.Do(new Dig(w.At(7, 4), Axe)).Run();
+        for (int i = 0; i < hits - 1; i++) w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Equal("alloy", w.M.Grid.WallAt(w.At(7, 4))?.Id);
         Assert.Equal(58, w.M.Building.Cracks.Single().Damage);
-        w.Do(new Dig(w.At(7, 4), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(w.At(7, 4)));
         Assert.Equal(1, Count(w, "alloyScrap"));
@@ -63,7 +63,7 @@ public class RuinsTests
     public void ASpireCacheOpensToAnyHitGivingItsScrapWireAndSilicon()
     {
         var w = Chamber();
-        w.Do(new Dig(w.At(1, 3), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 3), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal((4, 6, 2), (Count(w, "alloyScrap"), Count(w, "wire"), Count(w, "silicon")));
         Assert.DoesNotContain(Ruins.SpireCache, Kinds(w));
@@ -92,13 +92,13 @@ public class RuinsTests
         Assert.Equal(4, swings);
         for (int i = 1; i < swings; i++)
         {
-            w.Do(new Dig(w.At(5, 1), Axe)).Run();
+            w.Do(HewTesting.Dig(w, w.At(5, 1), Axe)).Run();
             // Untouched it only glows: the shock is the striker's alone, as the two breathe alike.
             Assert.Equal(i * Ruins.CradleShock, Suit(w, 1) - Suit(w, 0));
         }
         Assert.Contains(Ruins.Cradle, Kinds(w));
         Assert.Equal(0, Count(w, Ruins.Shard));
-        w.Do(new Dig(w.At(4, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(4, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(swings * Ruins.CradleShock, Suit(w, 1) - Suit(w, 0));
         Assert.Equal(4, Count(w, Ruins.Shard));
@@ -121,7 +121,11 @@ public class RuinsTests
     public void AHitOnAnythingElseInTheChamberShocksNobody()
     {
         var w = WithHeroes();
-        w.Do(new Dig(w.At(1, 3), Axe)).Do(new Dig(w.At(6, 3), Axe)).Run();
+        // The cache aimed at leftward and the bush rightward, away from the cradle between them: their fans miss it.
+        var (cache, bush) = (HewTesting.Dig(w, w.At(1, 3), Axe, heading: 128), HewTesting.Dig(w, w.At(6, 3), Axe, heading: 0));
+        Assert.All((Hew[])[cache, bush], h => Assert.DoesNotContain(w.M.Building.Struck(Axe, h.X, h.Y, h.Heading).Plants, p => p.Kind == Ruins.Cradle));
+        w.Do(cache).Do(bush).Run();
+        Assert.Empty(w.Refusals);
         Assert.Equal(Suit(w, 1), Suit(w, 0));
     }
 
@@ -129,7 +133,7 @@ public class RuinsTests
     public void TheHomesNicheGivesItsOneShardToASwingAndShocksNobody()
     {
         var w = WithHeroes();
-        w.Do(new Dig(w.At(7, 1), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(7, 1), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(1, Count(w, Ruins.Shard));
         Assert.Equal(Suit(w, 1), Suit(w, 0));
@@ -147,7 +151,7 @@ public class RuinsTests
         w.Do(new Transfer(1)).Run(2);
         var cradle = w.On(1).Building.Relics.Single(r => r.Kind == Ruins.Cradle);
         Assert.False(cradle.Taken);
-        for (int i = 0; i < 4; i++) w.Do(new Dig(cradle.Cell, Axe)).Run();
+        for (int i = 0; i < 4; i++) w.Do(HewTesting.Dig(w, cradle.Cell, Axe, surface: 1)).Run();
         var taken = w.On(1).Building.Relics.ToList();
         Assert.Contains(cradle with { Taken = true }, taken);
         // What a friend joining later gets is the host's save: a world loaded from it reads its relics from the felled cells alone.
@@ -162,7 +166,7 @@ public class RuinsTests
     public void ACradleWhoseFloorIsDugOutFallsGivingItsShardsToTheDiggerUnshocked()
     {
         var w = WithHeroes();
-        for (int i = 0; i < Materials.Get("alloy").Strength / Weapons.Axe.Damage; i++) w.Do(new Dig(w.At(4, 4), Axe)).Run();
+        for (int i = 0; i < Materials.Get("alloy").Strength / Weapons.Axe.Damage; i++) w.Do(HewTesting.Dig(w, w.At(4, 4), Axe)).Run();
         Assert.DoesNotContain(Ruins.Cradle, Kinds(w));
         Assert.True(Taken(w, Ruins.Cradle));
         Assert.Equal(Suit(w, 1), Suit(w, 0));

@@ -63,11 +63,15 @@ public partial class ContentTests
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
         Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
-        // The ruins' alloy (0085): six seconds of the drill, three of the drill with the arc module (0098), fifteen of the axe.
+        // The ruins' alloy (0085): three seconds of the drill, one and a half of the drill with the arc module (0098), fifteen of
+        // the axe; in whole seconds.
         int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
         var fitted = Weapons.Drill with { Damage = Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
-        Assert.Equal((15, 6, 3), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(fitted)));
-        Assert.True(fitted.Damage < Materials.All.Where(m => m.Breaks).Min(m => m.Strength));
+        Assert.Equal((15, 3, 1), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(fitted)));
+        // The fitted drill alone takes soil in one hit (the fan of rays: the drill hits 2, the arc doubles it, 0098); stone and harder
+        // still crack first.
+        Assert.Equal(Materials.Get("soil").Strength, fitted.Damage);
+        Assert.True(fitted.Damage < Materials.All.Where(m => m.Breaks && m.Id != "soil").Min(m => m.Strength));
     }
 
     // Machines

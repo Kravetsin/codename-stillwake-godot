@@ -130,7 +130,7 @@ public class BudgetTests(ITestOutputHelper output)
         var m = w.On(1);
         int spawn = m.Crew.Spawn, width = m.Grid.Width;
         // A shaft dug straight down under the spawn with the axe, a hit a tick, every wall broken along with the next one cracked.
-        var digging = Time(w.World, 600, t => [new Building.Dig(spawn + (1 + t / 6) * width, Content.Weapons.Axe.Item)]);
+        var digging = Time(w.World, 600, t => [HewAt(spawn + (1 + t / 6) * width, width)]);
         int dugSave = w.World.Save().Length - ship;
         output.WriteLine($"planet {ground.Width}×{ground.Height}: grown in {grow:F1} ms mean; opened on a tick of {opening.Mean:F0} ms, the rooms' first flood {flood:F0} ms of it; {memory / (1024 * 1024)} MB held");
         output.WriteLine($"a save {planet} bytes more than the ship's alone, {dugSave} after a shaft of a hundred cells; loaded, ground grown again, in {load:F0} ms");
@@ -189,7 +189,7 @@ public class BudgetTests(ITestOutputHelper output)
         int bare = w.World.Save().Length;
         long before = GC.GetTotalMemory(forceFullCollection: true);
         var hitting = Stopwatch.StartNew();
-        w.World.Step([.. Enumerable.Range(0, count).Reverse().Select(c => (Command)new Building.Dig(c, Content.Weapons.Axe.Item))]);
+        w.World.Step([.. Enumerable.Range(0, count).Reverse().Select(c => (Command)HewAt(c, width))]);
         double hit = hitting.Elapsed.TotalMilliseconds;
         long held = GC.GetTotalMemory(forceFullCollection: true) - before;
         Assert.Equal(count, w.M.Building.Cracks.Count);
@@ -397,6 +397,10 @@ public class BudgetTests(ITestOutputHelper output)
         // A desk takes about 1.3 ms.
         Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
     }
+
+    /// <summary>The axe hit from inside <paramref name="cell"/>, aimed up: it strikes that cell's wall alone.</summary>
+    private static Building.Hew HewAt(int cell, int width) =>
+        new(Content.Weapons.Axe.Item, cell % width * 1000 + 500, cell / width * 1000 + 500, HewTesting.Up);
 }
 
 /// <summary>The budget tests run with no other test beside them, so their timings are the sim's alone.</summary>

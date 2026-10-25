@@ -513,7 +513,7 @@ public class FaunaTests
     [Fact]
     public void TheDrillHitsAsItsToolStatsSayPlainOrFittedWhileItRuns()
     {
-        foreach (var (drill, damage) in new[] { (new Stack(Drill, 1), 1), (new Stack(Drill, 1, Module: "arcModule"), 2) })
+        foreach (var (drill, damage) in new[] { (new Stack(Drill, 1), 2), (new Stack(Drill, 1, Module: "arcModule"), 4) })
         {
             var w = FaunaTesting.Planet(Room).HeroAt(1, 3).Put(0, drill).Do(new SetCreative(true)).Do(new Run(Drill, true));
             var c = w.Loper(5, 3).Still();

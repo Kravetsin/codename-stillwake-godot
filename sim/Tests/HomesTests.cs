@@ -42,7 +42,7 @@ public class HomesTests
     /// <summary>Hits <paramref name="cell"/> with <paramref name="tool"/> <paramref name="times"/> times, a tick apart.</summary>
     private static Scenario Hit(Scenario w, int cell, int times = 1, string? tool = null)
     {
-        for (int i = 0; i < times; i++) w.Do(new Dig(cell, tool ?? Axe)).Run();
+        for (int i = 0; i < times; i++) w.Do(HewTesting.Dig(w, cell, tool ?? Axe)).Run();
         return w;
     }
 
@@ -114,10 +114,11 @@ public class HomesTests
         Assert.Equal("drawings", w.M.Building.PlantAt(w.At(2, 3))!.Kind);
         Hit(w, w.At(2, 3));
         Assert.DoesNotContain("drawings", Kinds(w));
-        // The mural is painted on the plaster: no hit takes it, a hit there finds nothing.
+        // The mural is painted on the plaster: no hit takes it, whichever way a fan crosses it.
         Assert.Null(w.M.Building.PlantAt(w.At(6, 2)));
+        var at = HewTesting.Dig(w, w.At(6, 2), Axe);
+        Assert.All(Enumerable.Range(0, Headings.Turn), h => Assert.DoesNotContain(w.M.Building.Struck(Axe, at.X, at.Y, h).Plants, p => p.Kind == "mural"));
         Hit(w, w.At(6, 2));
-        Assert.Equal("building.nothingToDig", w.Refusals.Single().Reason);
         Assert.Contains("mural", Kinds(w));
     }
 
@@ -183,9 +184,9 @@ public class HomesTests
         Hit(w, w.At(3, 3));
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((1, 1), (Count(w, "gear"), Count(w, "copper")));
-        // The drill's hit is a third of it; with the arc module (0098), two thirds.
+        // The drill's hit is two of its three; with the arc module (0098), all of it.
         int fitted = Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)), strength = Flora.Get("musicBox").Strength;
-        Assert.Equal((3, 2), ((strength + Weapons.Drill.Damage - 1) / Weapons.Drill.Damage, (strength + fitted - 1) / fitted));
+        Assert.Equal((2, 1), ((strength + Weapons.Drill.Damage - 1) / Weapons.Drill.Damage, (strength + fitted - 1) / fitted));
     }
 
     [Fact]
@@ -276,7 +277,7 @@ public class HomesTests
             Assert.All(home.Pieces, q => Assert.Contains(m.Building.Plants, p => p.Kind == q.Kind && p.Cell == (hy + q.Y) * l.Width + hx + q.X));
             // A cobweb, in every scheme, to any hit; and a load grows the ground again but for it.
             int webCell = (hy + home.Pieces.Single(p => p.Kind == "cobweb").Y) * l.Width + hx + home.Pieces.Single(p => p.Kind == "cobweb").X;
-            w.Do(new Dig(webCell, Axe)).Run();
+            w.Do(HewTesting.Dig(w, webCell, Axe, surface: 1)).Run();
             Assert.DoesNotContain(PiecesOf(w.On(1), "cobweb"), p => p.Cell == webCell);
             int standing = w.On(1).Building.Plants.Count;
             w.Reload().Run(2);
