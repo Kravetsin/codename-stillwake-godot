@@ -9,8 +9,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   and Play together open a panel opposite their button, closed by pressing it again. The version,
   Open logs folder and the update at its foot. **Worlds** (`WorldsPanel`): the worlds of `platform/WorldIndex`, the last
   played first, a grey row with why for one this build cannot play; Play the one picked, Delete it after
-  a confirmation in the panel, New world by name. **Play together** (`TogetherPage`): Host enters the
-  world picked (else Continue's, else a new one) and opens it on the relay; Join by code loads no world
+  a confirmation in the panel, its folder going from disk, New world by name. Any world can be picked
+  (`logic/WorldPick`), so one this build cannot play is deleted too; Play takes only a playable one.
+  **Play together** (`TogetherPage`): Host enters the
+  playable world picked (else Continue's, else a new one) and opens it on the relay; Join by code loads no world
   of its own. While joining, nothing is played.
 - **The old save slot:** v0.0.3 and before kept one save, `user://saves/world.json`. Shown, the title
   first takes it in as a world, "Saved before worlds", last played when it was saved
@@ -59,9 +61,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
 | `logic/Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint: which version a player runs, to tell a friend or a bug … | yes |
+| `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text (`En`) | no |
 
-`game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`.
+`game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`; the pick by `WorldPickTests`.
 
 ## Deliberately not handled
 

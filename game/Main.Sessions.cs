@@ -216,7 +216,7 @@ public partial class Main
         // From the title: the world picked in Worlds, else Continue's, else a new one.
         if (_session == null)
         {
-            if ((_title?.Worlds.Picked ?? _index.Continue()?.Id) is string id) Play(id);
+            if ((_title?.Worlds.Playable ?? _index.Continue()?.Id) is string id) Play(id);
             else NewWorld("");
             if (_session == null) return;
         }

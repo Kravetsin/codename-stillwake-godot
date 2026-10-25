@@ -11,7 +11,8 @@ namespace Stillwake.Game.Menu;
 /// <summary>
 /// The title's Worlds panel (0031, the approved mockup): the worlds, the last played first, each with
 /// when it was last played and how long; one this build cannot play greyed with why. Play the one
-/// picked, Delete it after a word of confirmation in the panel, or make a new one by name.
+/// picked, Delete it after a word of confirmation in the panel (any world, one that cannot be played
+/// too), or make a new one by name.
 /// </summary>
 public partial class WorldsPanel : VBoxContainer
 {
@@ -26,8 +27,11 @@ public partial class WorldsPanel : VBoxContainer
     private readonly LineEdit _name;
     private IReadOnlyList<WorldEntry> _worlds = [];
 
-    /// <summary>The world picked, if any: what Play and Delete take, and what Play together hosts.</summary>
+    /// <summary>The world picked, if any, playable or not: what Delete takes.</summary>
     public string? Picked { get; private set; }
+
+    /// <summary>The world picked when it can be played: what Play takes and Play together hosts.</summary>
+    public string? Playable => WorldPick.Playable(_worlds, Picked);
 
     /// <param name="list">The worlds on disk, read afresh.</param>
     /// <param name="play">Plays a world.</param>
@@ -43,12 +47,16 @@ public partial class WorldsPanel : VBoxContainer
         scroll.AddChild(_rows = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }, 4));
         AddChild(scroll);
         var actions = Style.Gap(new HBoxContainer(), 6);
-        actions.AddChild(_playButton = Style.Button("", () => Act(_play), size: 13, padX: 12, padY: 5));
+        actions.AddChild(_playButton = Style.Button("", () => { if (Playable is string id) _play(id); }, size: 13, padX: 12, padY: 5));
         actions.AddChild(_deleteButton = Style.Button(T("worlds.delete"), AskDelete, size: 13, padX: 12, padY: 5));
         AddChild(actions);
         _confirm = Style.Gap(new HBoxContainer(), 6);
         _confirm.AddChild(_sure = Line("", Style.Red300, 12));
-        _confirm.AddChild(Style.Button(T("worlds.deleteYes"), () => { Act(_delete); Refresh(); }, size: 12, padX: 10, padY: 4));
+        _confirm.AddChild(Style.Button(T("worlds.deleteYes"), () =>
+        {
+            if (Picked is string id) _delete(id);
+            Refresh();
+        }, size: 12, padX: 10, padY: 4));
         _confirm.AddChild(Style.Button(T("worlds.keep"), () => _confirm.Visible = false, size: 12, padX: 10, padY: 4));
         _confirm.Visible = false;
         AddChild(_confirm);
@@ -76,8 +84,7 @@ public partial class WorldsPanel : VBoxContainer
     {
         _worlds = _list();
         _confirm.Visible = false;
-        if (Picked == null || _worlds.All(w => w.Id != Picked || w.Status != WorldStatus.Playable))
-            Picked = _worlds.FirstOrDefault(w => w.Status == WorldStatus.Playable)?.Id;
+        Picked = WorldPick.After(_worlds, Picked);
         foreach (var child in _rows.GetChildren()) child.QueueFree();
         foreach (var world in _worlds) _rows.AddChild(Row(world));
         Buttons();
@@ -86,8 +93,9 @@ public partial class WorldsPanel : VBoxContainer
     private void Buttons()
     {
         var picked = _worlds.FirstOrDefault(w => w.Id == Picked);
-        _playButton.Text = picked != null ? T("worlds.play", ("name", picked.Name)) : T("worlds.playNone");
-        _playButton.Disabled = picked == null || _busy();
+        bool playable = picked?.Status == WorldStatus.Playable;
+        _playButton.Text = playable ? T("worlds.play", ("name", picked!.Name)) : T("worlds.playNone");
+        _playButton.Disabled = !playable || _busy();
         _deleteButton.Disabled = picked == null;
     }
 
@@ -110,7 +118,6 @@ public partial class WorldsPanel : VBoxContainer
         }, size: 12, padX: 10, padY: 6);
         row.Alignment = HorizontalAlignment.Left;
         row.SizeFlagsHorizontal = SizeFlags.ExpandFill;
-        row.Disabled = !playable && world.Id != Picked;
         if (world.Id == Picked) row.Modulate = new Color(0.75f, 0.9f, 1.15f);
         else if (!playable) row.Modulate = new Color(1, 1, 1, 0.5f);
         return row;
@@ -130,11 +137,6 @@ public partial class WorldsPanel : VBoxContainer
     {
         int minutes = seconds / 60;
         return minutes < 60 ? T("worlds.minutes", ("m", minutes)) : T("worlds.hours", ("h", minutes / 60), ("m", minutes % 60));
-    }
-
-    private void Act(Action<string> act)
-    {
-        if (Picked is string id) act(id);
     }
 
     private void AskDelete()
