@@ -23,10 +23,16 @@ public static class GroundLooks
         ["alloy"] = new((78, 103, 114), (110, 138, 147), (20, 29, 36), (166, 194, 198)),
         // The homes' plaster (0091), the page's warm lime-washed stone: seen only as their back walls.
         ["plaster"] = new((92, 79, 69), (106, 90, 76), (36, 28, 22), (130, 112, 96)),
+        // Veins of ore: the stone they run through flecked with these, its colour the ore's, its fleck the ore's glint; edged as stone.
+        ["copperVein"] = new((190, 112, 62), (255, 186, 120), (26, 28, 36), (138, 146, 160)),
+        ["iceVein"] = new((132, 204, 236), (232, 250, 255), (26, 28, 36), (138, 146, 160)),
     };
 
     /// <summary>The dust and the chips of a break; a hit's are <see cref="HitLooks"/>'.</summary>
     public const int BreakDust = 18, BreakChips = 8;
+
+    /// <summary>A vein's flecks of ore in its stone's picture: the share of its 2 px blocks that are ore, in hundredths.</summary>
+    public const int VeinFlecks = 40;
 
     /// <summary>
     /// How a natural back wall recedes behind its ground (0088), worked on its picture at load: paled toward its grey by

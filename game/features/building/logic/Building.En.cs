@@ -94,6 +94,8 @@ public static partial class En
         ["material.lava"] = "lava",
         ["material.alloy"] = "alloy",
         ["material.plaster"] = "plaster",
+        ["material.copperVein"] = "copper vein",
+        ["material.iceVein"] = "ice vein",
         ["tool.analyzer.about"] = "Analyses what is put in it, on power: what is made only of analysed items opens.",
         ["tool.former.about"] = "Presses and turns parts five times as fast as the lifepod, on power, eight crafts in its queue. Draws nothing while idle.",
         ["tool.smelter.about"] = "Smelts twice as fast as the furnace, on power, and hot enough for silicon: it makes glass. Draws nothing while idle.",

@@ -31,10 +31,14 @@ namespace Stillwake.Content;
 /// <param name="Look">How it is drawn (<see cref="MaterialLook"/>).</param>
 /// <param name="Menu">Its wall's card in the build menu (0114); none for one never built.</param>
 /// <param name="BackMenu">Its back wall's card (0108, 0114); none for one never built.</param>
+/// <param name="In">
+/// A vein's (<see cref="Vein"/>): the material it runs through, drawn as that one flecked with its ore, the back wall it
+/// leaves when dug that one's. None for any other.
+/// </param>
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,
     bool Hurts = false, bool Grows = false, Tread Footing = Tread.Deck, MaterialLook Look = MaterialLook.Cut, MenuSlot? Menu = null,
-    MenuSlot? BackMenu = null)
+    MenuSlot? BackMenu = null, string? In = null)
 {
     /// <summary>The <see cref="Strength"/> of a material nothing breaks.</summary>
     public const int Unbreakable = 0;
@@ -42,8 +46,8 @@ public sealed record Material(
     /// <summary>Whether weapons break a wall of it (0077): natural and not <see cref="Unbreakable"/>.</summary>
     public bool Breaks => Natural && Strength != Unbreakable;
 
-    /// <summary>Whether a wall of it may be planned and built: it costs something.</summary>
-    public bool Built => Cost.Count > 0;
+    /// <summary>Whether a wall of it may be planned and built: it takes work, and costs something.</summary>
+    public bool Built => BuildTicks > 0;
 }
 
 /// <summary>What boots on a material sound like (0093): a deck's plates, rock, soil (grass or moss over it heard as such), the ruins' metal.</summary>
@@ -79,6 +83,9 @@ public static class Materials
         new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy, Menu: new(MenuTabs.Structure, 50), BackMenu: new(MenuTabs.Structure, 150)),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
         new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),
+        // Veins of ore in a planet's stone: as hard as it, a lump of ore or ice a cell, never built.
+        new("copperVein", Code: 9, Strength: 12, Leak: 36, Cost: [("copperOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone"),
+        new("iceVein", Code: 10, Strength: 12, Leak: 36, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone"),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

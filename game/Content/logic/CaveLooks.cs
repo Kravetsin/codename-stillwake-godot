@@ -53,8 +53,6 @@ public static class CaveLooks
         ["roots"] = new(3) { Light = Green, Strength = 0.8f, Keep = 0.812f, Reach = 8 },
         ["moss"] = new(4) { Light = Teal, Strength = 1f, Keep = 0.837f, Reach = 10 },
         ["mica"] = new(0) { Glints = 3 },
-        ["veinIce"] = new(3) { Glints = 3, GlintColour = (232, 250, 255) },
-        ["veinCopper"] = new(3) { Glints = 3, GlintColour = (255, 208, 138) },
         ["fossil"] = new(3),
         ["geode"] = new(2) { Light = Violet, Strength = 1.4f, Keep = 0.883f, Reach = 14, Glints = 2, GlintColour = (240, 216, 255) },
         ["heatCrack"] = new(4) { Light = Ember, Strength = 1.3f, Keep = 0.86f, Reach = 12 },
