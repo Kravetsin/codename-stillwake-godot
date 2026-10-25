@@ -107,18 +107,35 @@ public class FanAimTests
     }
 
     [Fact]
-    public void TheFacesThatGlowAreTheStruckWallsSidesOpenToTheAirTurnedToTheHandAndTheEdgeOfBackWallsAndPlants()
+    public void TheAimGlowsOnlyInWhatBreaksNearWhereTheRaysTouchItAndDeeperFades()
     {
         var m = Cave().M;
-        var hand = new Point(20_500, 5_500);
-        // The right wall struck from its left: its left sides glow, never its top, bottom or right, walls all.
-        Assert.Equal([new Face(23, 5, Side.Left), new Face(23, 6, Side.Left)], FanFaces.Of(m.Grid, new Hewn([At(23, 5), At(23, 6)], []), hand, back: false));
-        // The floor's corner cell struck from above and left: its top, open; its left meets the floor.
-        Assert.Equal([new Face(22, 9, Side.Top)], FanFaces.Of(m.Grid, new Hewn([At(22, 9)], []), hand, back: false));
-        // Two back walls side by side: the edge round both, not the line between them.
-        Assert.Equal([new Face(5, 5, Side.Left), new Face(5, 5, Side.Top), new Face(5, 5, Side.Bottom), new Face(6, 5, Side.Right), new Face(6, 5, Side.Top), new Face(6, 5, Side.Bottom)],
-            FanFaces.Of(m.Grid, new Hewn([At(5, 5), At(6, 5)], []), hand, back: true));
-        Assert.Equal(4, FanFaces.Of(m.Grid, new Hewn([], [new Plant(At(4, 8), "bellTeal")]), hand, back: false).Count);
+        var fan = Aiming.FanOf(m, Standing(20), Aiming.PointOf(Centre(23, 6)), Axe);
+        var hits = AimGlow.HitsOf(m.Grid, m.Building, fan);
+        Assert.InRange(hits.Count, 1, Spec.Weapons.Axe.Rays);
+        // Every point lies in a struck cell, on its face.
+        Assert.All(hits, h => Assert.Contains((int)(h.Y / 8) * W + (int)Math.Min(h.X / 8, W - 1), fan.Hewn.Cells));
+        var field = AimGlow.FieldOf(m.Grid, m.Building, fan)!;
+        // Bright at the wall's face, dimmer a cell in, none in the air before it.
+        int y = 6 * 8 + 4;
+        Assert.True(field.At(23 * 8, y) > 0.5f);
+        Assert.True(field.At(23 * 8 + 6, y) < field.At(23 * 8, y) / 4);
+        Assert.Equal(0, field.At(22 * 8 + 4, y));
+    }
+
+    [Fact]
+    public void TheGlowSlidesAsTheAimTurnsAStepAndDoesNotJump()
+    {
+        var m = Cave().M;
+        var hero = Standing(20);
+        var hand = Aiming.HandOf(hero);
+        int heading = Aiming.HeadingOf(hand, Aiming.PointOf(Centre(23, 6)));
+        GlowField Field(int h) => AimGlow.FieldOf(m.Grid, m.Building, Aiming.FanOf(m, hero, hand with { X = hand.X + (int)(5000 * Math.Cos(h * Math.Tau / 256)), Y = hand.Y + (int)(5000 * Math.Sin(h * Math.Tau / 256)) }, Axe))!;
+        var (a, b) = (Field(heading), Field(heading + 1));
+        double moved = 0;
+        for (int x = 20 * 8; x < 24 * 8; x++)
+            for (int yy = 0; yy < 12 * 8; yy++) moved = Math.Max(moved, Math.Abs(a.At(x, yy) - b.At(x, yy)));
+        Assert.True(moved < 0.35, $"a step of the aim changed a pixel by {moved:0.00}");
     }
 
     [Fact]
@@ -129,15 +146,4 @@ public class FanAimTests
         Assert.Equal(Stillwake.Game.Render.Breath.Alpha(100), Stillwake.Game.Render.Breath.Alpha(100 + Stillwake.Game.Render.Breath.PeriodMs), 6);
     }
 
-    [Fact]
-    public void TheGlowTurnsAnInnerCornerAndFadesOnlyAtItsOpenEnds()
-    {
-        // The sketch's corner: an overhang's underside and the wall under it, both struck, meeting at (17, 5).
-        var faces = new List<Face> { new(16, 4, Side.Bottom), new(17, 5, Side.Left), new(17, 6, Side.Left) };
-        Assert.Equal([(false, true), (true, true), (true, false)], FaceGlow.Joined(faces));
-        // The rock behind both, up and right of the corner, is lit too.
-        Assert.Equal([((17, 5), (1, -1))], FaceGlow.Corners(faces));
-        // Two sides of one cell meet outward: no inner corner.
-        Assert.Empty(FaceGlow.Corners([new Face(5, 5, Side.Left), new Face(5, 5, Side.Top)]));
-    }
 }

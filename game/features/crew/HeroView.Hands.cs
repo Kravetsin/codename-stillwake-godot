@@ -36,9 +36,9 @@ public partial class HeroView
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, back: back) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim);
         TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null, back);
-        // A tool's hit is shown by the faces it would strike, a rim breathing on each (the fan of rays), not outlined.
-        _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan
-            ? FanFaces.Of(m.Grid, fan.Hewn, new Point(fan.Ground.X, fan.Ground.Y), fan.Ground.Back) : [], prompt?.Problem != null ? AimRefused : AimReady);
+        // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
+        _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan ? AimGlow.FieldOf(m.Grid, m.Building, fan) : null,
+            prompt?.Problem != null ? AimRefused : AimGlowColour);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);

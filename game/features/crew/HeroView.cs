@@ -32,6 +32,8 @@ namespace Stillwake.Game.Features.Crew;
 public partial class HeroView : Node2D
 {
     private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
+    /// <summary>A tool's aim glowing where it would strike (the fan of rays): a bright cold blue.</summary>
+    private static readonly Color AimGlowColour = new("5cc8ff");
     /// <summary>A safety line's yellow, pale enough not to shout across the dark.</summary>
     private static readonly Color Line = new(new Color("d9c27a"), 0.9f);
     /// <summary>The harpoon's line, the rope of its picture's spool: warmer than the tether's.</summary>

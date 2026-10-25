@@ -12,7 +12,7 @@ public static class Breath
     public const double PeriodMs = 1900;
 
     /// <summary>The faintest and the brightest a breath gets.</summary>
-    public const double Least = 0.35, Most = 0.8;
+    public const double Least = 0.6, Most = 1;
 
     /// <summary>How bright a breath is <paramref name="clockMs"/> into the game, from <see cref="Least"/> to <see cref="Most"/>.</summary>
     public static double Alpha(double clockMs) =>
