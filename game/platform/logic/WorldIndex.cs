@@ -24,7 +24,7 @@ public sealed record WorldEntry(string Id, string Name, DateTime LastPlayed, int
 
 /// <summary>
 /// The player's worlds (0031), a folder each under <paramref name="dir"/>: <c>world.json</c>, the save
-/// before it as <c>world.bak.json</c>, <c>name.txt</c>, and who is who in it, <c>players.json</c> (0032). Nothing else is kept about a world: the list
+/// before it as <c>world.bak.json</c>, <c>name.txt</c>, who is who in it, <c>players.json</c> (0032), and a picture of its ship, <c>shot.png</c>. Nothing else is kept about a world: the list
 /// reads <c>format</c> and <c>tick</c>, the first keys of a save, from its first bytes, and the file's
 /// time as when it was last played. A save of a format from <paramref name="oldest"/> to
 /// <paramref name="current"/> can be played; <paramref name="ticksPerSecond"/> turns its tick into play
@@ -34,7 +34,7 @@ public sealed class WorldIndex(string dir, int oldest, int current, int ticksPer
 {
     /// <summary>The longest name, in code points.</summary>
     public const int NameMost = 32;
-    private const string Save = "world", Players = "players", Name = "name.txt";
+    private const string Save = "world", Players = "players", Name = "name.txt", Shot = "shot.png";
 
     /// <summary>Every world, the last played first, ties by id.</summary>
     public IReadOnlyList<WorldEntry> List()
@@ -106,6 +106,16 @@ public sealed class WorldIndex(string dir, int oldest, int current, int ticksPer
 
     /// <summary>Keeps who is who in world <paramref name="id"/>.</summary>
     public void WritePlayers(string id, string roster) => new Saves(Path.Combine(dir, id)).Write(Players, roster);
+
+    /// <summary>Where world <paramref name="id"/>'s picture of its ship is kept, <c>shot.png</c> in its folder; there or not.</summary>
+    public string ShotOf(string id) => Path.Combine(dir, id, Shot);
+
+    /// <summary>Keeps <paramref name="png"/> as world <paramref name="id"/>'s picture, over the last; nothing for a world gone.</summary>
+    public void WriteShot(string id, byte[] png)
+    {
+        if (!Directory.Exists(Path.Combine(dir, id))) return;
+        File.WriteAllBytes(ShotOf(id), png);
+    }
 
     /// <summary>The name world <paramref name="id"/> was given.</summary>
     public string NameOf(string id) =>

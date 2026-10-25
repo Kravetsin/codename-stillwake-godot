@@ -5,7 +5,7 @@ using Rung = Stillwake.Game.HeroMotion.Ladder;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>What a hero's figure is doing, read from its movement: never decided anywhere else.</summary>
-public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble }
+public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit }
 
 /// <summary>
 /// Each limb's bend (<see cref="Rig"/>), and how the whole body is placed: <see cref="Tilt"/> radians
@@ -84,6 +84,16 @@ public static class Poses
         public static readonly Limbs Push = new(B(2.6, 0.2), B(2.2, 0.25), B(-0.1, -0.08), B(-0.35, -0.1), 0, 0, false);
     }
 
+    /// <summary>
+    /// Sitting on a ledge's edge (the title, 0031): the hips on the ledge at the feet's point, the thighs out over it, the
+    /// shins hanging and swaying a little; slumped forward by <see cref="Slump"/>, the front hand on the knee, the back one
+    /// braced behind; a slow breath every <see cref="BreathMs"/>, the legs swinging once every <see cref="SwingMs"/>.
+    /// </summary>
+    public static class Seated
+    {
+        public const double Slump = 0.16, BreathMs = 4200, SwingMs = 7800;
+    }
+
     /// <summary>How far the head turns toward the pointer, in radians: up, and down.</summary>
     public static class Head
     {
@@ -141,8 +151,8 @@ public static class Poses
         return dx < 0 ? -1 : 1;
     }
 
-    /// <summary>Whether the hands can hold the plan or a tool in <paramref name="pose"/>: on a ladder too (0077: dig while climbing), not passed out.</summary>
-    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble);
+    /// <summary>Whether the hands can hold the plan or a tool in <paramref name="pose"/>: on a ladder too (0077: dig while climbing), not passed out nor sitting.</summary>
+    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble or Pose.Sit);
 
     /// <summary>The sheet's turn, clockwise, for the head's turn <paramref name="look"/>.</summary>
     public static double SheetTurn(double look) => -Sheet.Ahead + look * Sheet.PerLook;
@@ -286,6 +296,8 @@ public static class Poses
             case Pose.Lie:
                 // With no time given, long since: lying still.
                 return Collapse(moment.OutMs ?? 1e9, moment.Slump);
+            case Pose.Sit:
+                return Sitting(moment.TimeMs);
             default:
                 return Limp(moment);
         }
@@ -427,6 +439,23 @@ public static class Poses
             B(Pick(slump, 4, 0.2, 0.7) + 0.05 * stir, -Pick(slump, 5, 0.3, 1.0)),
             B(Pick(slump, 6, -0.1, 0.4) - 0.05 * stir, -Pick(slump, 7, 0.2, 0.8)),
             moment.OutTilt, 0, false);
+    }
+
+    /// <summary>
+    /// Sitting on a ledge (<see cref="Seated"/>): the body lowered by the hip's height, so the hips rest where the feet would
+    /// stand, the thighs level ahead and the shins hanging over the edge, the breath lifting the shoulders a little.
+    /// </summary>
+    private static Limbs Sitting(double timeMs)
+    {
+        double breath = Math.Sin(timeMs / Seated.BreathMs * 2 * Math.PI), swing = Math.Sin(timeMs / Seated.SwingMs * 2 * Math.PI);
+        // The legs' angles are the body's own: tilted forward, the thighs are raised as much to stay level.
+        double tilt = Seated.Slump - 0.02 * breath;
+        return new Limbs(
+            FrontArm: B(0.85 + 0.03 * breath, 0.75),
+            BackArm: B(-0.5, 0.2),
+            FrontLeg: B(Math.PI / 2 - tilt, -(Math.PI / 2 - 0.15 * swing)),
+            BackLeg: B(Math.PI / 2 - tilt - 0.08, -(Math.PI / 2 - 0.1 + 0.12 * swing)),
+            Tilt: tilt, Lift: -Rig.Hip, Lying: false);
     }
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>

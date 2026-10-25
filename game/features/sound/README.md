@@ -29,7 +29,7 @@ Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Hear
   loud as the next. `Heard2D` turns Godot's fall-off off and sets the volume each frame; Godot still pans.
 - **Tool idle** (0068): every tool sound made while it works nothing (`DrillWhir`, `Swing`) plays at the one
   `Sound.ToolIdleDb`; a new one is levelled alike, never given a level of its own.
-- **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows; the bed of
+- **Music** (0035, 0042) on Music, loops stopped once silent: the title's track while the title shows, the World bus muted under it; the bed of
   space (`Sound.Space`) while the hero floats, the vents' hum taking over aboard.
 - **Reset** (0033): the `AudioServer` outlives `ReloadCurrentScene`, so `SoundView._Ready` sets World and Suit clear.
 - **Clicks** (0033, 0081): every `BaseButton` in the tree (found on `_Ready`, then by `NodeAdded`, connected once) and

@@ -3,14 +3,17 @@
 The title the game opens on and the game menu on Esc (0031). Not in the TypeScript game, which had
 neither: its save and load were the dev panel's buttons and its suit colours a row under the oxygen bar.
 
-- **The title** (`TitleScreen`), with no arguments: Continue (the last world played, its name and play
-  time; New game on a first run), Worlds, Play together, Quit, a column on the left, centred, over its
-  own space — stars streaming by, wreckage tumbling past — so nothing of the game behind shows. Worlds
-  and Play together open a panel opposite their button, closed by pressing it again. The version,
-  Open logs folder and the update at its foot. **Worlds** (`WorldsPanel`): the worlds of `platform/WorldIndex`, the last
-  played first, a grey row with why for one this build cannot play; Play the one picked, Delete it after
-  a confirmation in the panel, its folder going from disk, New world by name. Any world can be picked
-  (`logic/WorldPick`), so one this build cannot play is deleted too; Play takes only a playable one.
+- **The title scene** (2026-10-25-title-scene): with no arguments the wreck runs behind the title, a world never saved
+  (`Main.Title`), its hero sitting on the torn deck's edge (`TitleBackdrop`, `logic/TitleScene`), debris and now and then an
+  astronaut drifting past left to right, the camera wandering; the HUD's layers hidden, the world unheard under the music.
+- **The title** (`TitleScreen`): the scene alone for a moment, then the name and the choices fading in, words over the
+  darkened left (`TitleItem`) — Continue (the last world played; New game on a first run), Worlds, Play together,
+  Settings (`SettingsRows`), Quit; any key or click brings them at once. A choice slides its panel out beside it; choosing
+  again or Esc closes it. A newer version shows top right with Update; the build at the foot. **Worlds** (`WorldsPanel`):
+  New world first, opening into its name (the name it gets if left empty shown); the worlds of `platform/WorldIndex`, each
+  a card with its ship as last pictured (`render/WorldShot`, taken on every save and as the Esc menu opens), when played
+  and how long, why it cannot be played; the picked card holds Play and Delete, asked once more in the card, the folder
+  going from disk. Any world can be picked (`logic/WorldPick`); Play takes a playable one; a double click plays.
   **Play together** (`TogetherPage`): Host enters the
   playable world picked (else Continue's, else a new one) and opens it on the relay; Join by code loads no world
   of its own. While joining, nothing is played.
@@ -55,16 +58,20 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | File          | Holds                                                                          | Godot |
 | ------------- | ------------------------------------------------------------------------------ | ----- |
 | `GameMenu.cs` | the menu, its pages and buttons, and Esc for the whole game                    | yes   |
-| `TitleScreen.cs` | the title: its buttons, its panels opposite them, its space               | yes   |
-| `WorldsPanel.cs` | the worlds, Play, Delete, New world                                        | yes   |
+| `TitleScreen.cs` | the title: its name and choices fading in, the panel slid out, the update notice | yes |
+| `TitleItem.cs` | a title choice: words that light and slide under the pointer, a line under them | yes |
+| `TitleBackdrop.cs` | the title scene beyond the wreck: the seated hero, the debris and astronauts drifting by, the camera | yes |
+| `SettingsRows.cs` | the settings kept on this machine, the title's and the game menu's: slots, shimmer, logs | yes |
+| `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
 | `TogetherPage.cs` | host or join on the relay, the password kept                             | yes   |
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
 | `logic/Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint: which version a player runs, to tell a friend or a bug … | yes |
+| `logic/TitleScene.cs` | the title scene's arithmetic: the ledge sat on, the camera's wander, what drifts past and when | no |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text (`En`) | no |
 
-`game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`; the pick by `WorldPickTests`.
+`game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`; the pick by `WorldPickTests`; the scene by `TitleSceneTests`.
 
 ## Deliberately not handled
 
@@ -73,6 +80,8 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 - The testbed played together, saved, refilled or given items by a command: it is for looking, and
   starts afresh each time.
 - Renaming, copying or exporting a world; loading its backup from the title.
+- A world never pictured (saved before pictures were kept, or never opened the menu in) shows a blank card till it is.
+- The title scene is the same wreck every time, not the last world played: loading a save only to look at it costs a load.
 - Esc switching an overlay off: an overlay only shows (0022), and Esc with one on opens the menu.
 - A button held on the world as Esc opens the menu stays held behind it, with no pointer to work.
 - An exception on a thread of our own goes unlogged in a release (Godot logs it in debug builds

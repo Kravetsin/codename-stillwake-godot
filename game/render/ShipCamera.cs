@@ -51,6 +51,13 @@ public partial class ShipCamera : Camera2D
         Zoom = new Vector2(zoom, zoom);
     }
 
+    /// <summary>Gives the zoom back to the player's level after <see cref="SetZoom"/>.</summary>
+    public void FreeZoom()
+    {
+        _fixed = null;
+        Apply();
+    }
+
     public override void _Ready()
     {
         Apply();

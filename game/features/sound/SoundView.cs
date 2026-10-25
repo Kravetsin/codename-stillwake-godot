@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Sound;
 /// <summary>
 /// The hearing (ADR 0033, 0042): a click for every button; floating in space, the World bus's low-pass
 /// falling as it fades out, the Suit bus dulled to a thud and raised, the Helmet bus left clear, and a quiet bed of
-/// music fading in; the title's music while the title is up. Reads whether this player's hero floats ten
+/// music fading in; the title's music while the title is up, its world unheard. Reads whether this player's hero floats ten
 /// times a second and eases every frame.
 /// </summary>
 public partial class SoundView : Node
@@ -65,6 +65,8 @@ public partial class SoundView : Node
         double muffleS = S.MuffleMs / 1000.0;
         _muffle = Hearing.Ease(_muffle, _heard, delta, muffleS, muffleS);
         Hear();
+        // The title's world is seen, not heard: its music alone (0031).
+        AudioServer.SetBusMute(_world, _title());
         _musicShare = Hearing.Ease(_musicShare, _title(), delta, S.MusicFadeS, S.MusicFadeS);
         Play(_music, _musicShare, S.Title.VolumeDb);
         _spaceShare = Hearing.Ease(_spaceShare, _heard, delta, S.SpaceInS, S.SpaceOutS);

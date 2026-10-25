@@ -48,6 +48,7 @@
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `Stars.cs` | Space behind the ship: a tile of stars over the whole screen. |
+| `WorldShot.cs` | A small picture of the world as the camera sees it, no HUD in it: the title's world cards. |
 | `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
 | `WorldButtons.cs` | The mouse over the world: feeds `Buttons`, a press only when no panel took it. |
