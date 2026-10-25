@@ -324,4 +324,10 @@ public class ItemCardTests
         Assert.Same(HeldLook.Drill, HeldLook.Of(Spec.Weapons.Drill.Item));
         Assert.True(HeldLook.IsDrill(Spec.Weapons.Drill.Item));
     }
+
+    [Fact]
+    public void EveryScrewdriverIsHeldInTheHandSoTheToolInUseShowsWithoutTheHotbar()
+    {
+        foreach (var driver in Spec.Screwdrivers.All) Assert.Same(HeldLook.Screwdriver, HeldLook.Of(driver.Item));
+    }
 }
