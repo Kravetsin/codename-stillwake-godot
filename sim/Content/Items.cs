@@ -144,6 +144,10 @@ public static class Items
         // Two circuits driving a rotor through a coil, made at the circuit assembler: what slides a launch platform's deck
         // open, the last part built of what space gives (the drop pod's, to come).
         new("deckDrive", 20),
+        // The ship computer's and the radar's parts, at the circuit assembler of what space gives: the last made before a planet.
+        new("processor", 10),
+        new("display", 10),
+        new("transceiver", 10),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on

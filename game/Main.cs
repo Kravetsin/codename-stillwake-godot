@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using Godot;
 using Stillwake.Game.Dev;
+using Stillwake.Game.Features.Computer;
 using Stillwake.Game.Features.Crafting;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
@@ -202,19 +203,31 @@ public partial class Main : Node2D, ITogether
             Opening = () =>
             {
                 _items?.Panel.Close();
+                _hands.Ui.OpenComputer.Set(null);
                 _hands.Plan.PutPlanAway();
             },
         };
         AddChild(handbook);
+        // The ship's computer (its window on E): opening it puts away the inventory, the plan and the Handbook, as the Handbook does.
+        var computer = new ComputerPanel(_hands.Ui, () => _session != null ? _m : null);
+        _hands.Ui.OpenComputer.Subscribe(() =>
+        {
+            if (_hands.Ui.OpenComputer.Get() == null) return;
+            _items?.Panel.Close();
+            handbook.Close();
+            _hands.Plan.PutPlanAway();
+        });
+        AddChild(computer);
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || _hands.Plan.PlanOut.Get(),
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || _hands.Plan.PlanOut.Get(),
             putAway: () =>
             {
                 // A search in the build menu goes first, the menu staying open.
                 if (_hands.Menu.DropSearch()) return;
                 _items?.Panel.Close();
                 handbook.Close();
+                computer.Close();
                 _hands.Plan.PutPlanAway();
             },
             handbook: handbook.Open,
@@ -253,6 +266,7 @@ public partial class Main : Node2D, ITogether
         _seed = surface == 0 ? 0 : client.World.Surfaces.First(s => s.Id == surface).Seed;
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
+        _hands.Ui.OpenComputer.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
         Bolts.Shared.Clear();
