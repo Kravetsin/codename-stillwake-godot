@@ -16,7 +16,8 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `logic/Catalogue.cs` | The menu's fixed frame (0073): size by slot size, rows scrolled, card under the pointer, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`, Z X C. |
 | `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud, behind the walls. |
-| `PlanKey.cs` | A layer's key on the build tablet's right edge (0110), a mode's on its left (plan-modes). |
+| `PlanKey.cs` | A key in a wing: a layer's (0110), a mode's (plan-modes). |
+| `PlanWing.cs` | The tablet's metal wings the keys sit in: modes left, layers right. |
 | `logic/Building.En.cs` | Its player text (`En`) |
 
 Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,
@@ -38,7 +39,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   only (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else marks everything of
   that layer built there, each piece or machine once. The other layer is drawn at 35% (`AlphasOf`). Away from the ship
   (`PlanHand.Aboard`) nothing fades and the tools' see-through is off (`SeesThrough`). No removal card; no grid drawn.
-- **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or keys on the left edge; kept
+- **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or the left wing's keys; kept
   while the plan is away. Wiring and piping show their cards alone, no search, layers or Q (`CardsOf`); the card picked
   (`ToolCard`) is what the left lays. Leaving building puts the card in hand aside till return. Off the ship the plan
   only builds (`ModeShown`); the sim refuses `power.notAboard`, `pipes.notAboard`.
@@ -65,7 +66,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. The field takes every key,
   the hero standing still; Enter or a click elsewhere ends typing, Esc clears (`DropSearch`, before the game menu's
   Esc); a tab clicked or a card Q takes that the words miss ends it; put away, it is forgotten.
-- **The hint** (no ADR, `HintOf`): one line under the cards, cut with an ellipsis, never widening the frame.
+- **The hint** (no ADR, `HintOf`): one line under the cards, cut by an ellipsis.
 - **Plans are ghosts** (0064, `PlanTiles`): their own picture greyed, lifted toward white, a little blue, unlit, back
   walls fainter, joined to what is planned and built beside them. Planned back walls draw just over the rooms' air
   (`Layers.PlanBacks`), the rest over the ship. The ghost in hand is green where the sim takes it, red where not (0022).
