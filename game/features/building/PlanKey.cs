@@ -11,7 +11,7 @@ public enum KeyFace { Front, Back, Build, Wiring, Piping }
 /// A key of the build tablet, set in a <see cref="PlanWing"/> on its side: a layer's on its right (0110), a mode's on its
 /// left (plan modes). A wrist key's rubber face sunk in a slot cut in the metal; its face a schematic of what it picks, at
 /// the art's scale, and the keyboard's key engraved in its corner when it has one. The one picked is backlit, as a key
-/// that is on; the glyph lights sky under the pointer and white while held.
+/// that is on, and ringed sky; the glyph lights pale sky under the pointer and white while held.
 /// </summary>
 public partial class PlanKey : WristKey
 {
@@ -60,19 +60,24 @@ public partial class PlanKey : WristKey
     protected override void DrawCap(Rect2 face)
     {
         Face(face, lit: _on);
-        var (ink, glow, strength) = State switch
+        // The one picked reads at a glance: its face washed sky and ringed by it.
+        if (_on)
         {
-            KeyState.Down => (Colors.White, Held, 1f),
-            KeyState.Hover => (Hover, Sky, 0.6f),
-            _ when _on => (Colors.White, Sky, 0.5f),
-            _ => (Ink, Sky, After),
+            DrawRect(face, Sky with { A = 0.14f });
+            DrawRect(face.Grow(-U / 2f), Sky with { A = 0.85f }, false, U);
+        }
+        var ink = State switch
+        {
+            KeyState.Down => Colors.White,
+            _ when _on => Colors.White,
+            KeyState.Hover => Hover,
+            _ => Ink,
         };
         int down = State == KeyState.Down ? U : 0;
         if (_letter != null)
             DrawString(Render.Style.Mono, face.Position + new Vector2(2 * U, 2 * U + 9 + down), _letter, fontSize: 10,
-                modulate: (_on ? Sky : Ink) with { A = 0.7f });
+                modulate: _on ? Held : Ink with { A = 0.7f });
         var at = new Vector2(Mathf.Round(face.Position.X + (face.Size.X - Side * U) / 2), Mathf.Round(face.Position.Y + (face.Size.Y - Side * U) / 2) + down);
-        if (strength > 0) DrawRect(new Rect2(at, new Vector2(Side, Side) * U).Grow(U), glow with { A = 0.12f * strength });
         DrawSetTransform(at, 0, new Vector2(U, U));
         switch (_face)
         {
