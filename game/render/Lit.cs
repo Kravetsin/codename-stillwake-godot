@@ -75,12 +75,16 @@ public static class Lit
                 vec2 w = texel * lightmap_texel + lightmap_at;
                 return cell(ivec2(floor((w - starlight_rect.xy) / starlight_rect.zw * vec2(textureSize(starlight, 0))))).a > 0.5;
             }
+            // The lamps' light at texel when both texels blended there, blend either way, lie on the pixel's side; else here's.
+            // The lamps' light at texel when both texels blended there along blend lie on the pixel's side; else here's.
+            float own(vec2 texel, vec2 blend, bool wall, float here, vec3 luma) {
+                return walled(texel - blend) == wall && walled(texel + blend) == wall ? dot(mapped(lightmap, texel), luma) : here;
+            }
 
-            // The lamps' light across 2 * step about texel, a sample in a cell of the other side taken as here's.
+            // The lamps' light across 2 * step about texel, a sample reaching a cell of the other side taken as here's.
             float sided(vec2 texel, vec2 step, bool wall, float here, vec3 luma) {
-                float ahead = walled(texel + step) == wall ? dot(mapped(lightmap, texel + step), luma) : here;
-                float behind = walled(texel - step) == wall ? dot(mapped(lightmap, texel - step), luma) : here;
-                return ahead - behind;
+                vec2 blend = normalize(step) * 0.5;
+                return own(texel + step, blend, wall, here, luma) - own(texel - step, blend, wall, here, luma);
             }
 
             void fragment() {
