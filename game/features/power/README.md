@@ -1,6 +1,6 @@
 # power (client): cables as ropes
 
-Cables hanging between their nodes and their overlay, shown while the stripper is held (0108), where they are laid, carried and cut
+Cables hanging between their nodes and their overlay, shown while the plan is wiring (X, 0108), where they are laid, carried and cut
 (0017, 0021, 0022, 0030), ported from `apps/game/src/features/power/` and `render/cable.ts` (G-08). The sim's
 `sim/Power` decides: the client reads `Cables`, `Networks`, `NodeAt`, `NetworkOf`, `Satisfaction`,
 `LayProblem` and `MoveProblem`, and sends `Lay`, `Cut` and `Move`.
@@ -11,7 +11,7 @@ Cables hanging between their nodes and their overlay, shown while the stripper i
 | --------------- | -------------------------------------------------------------------------------------- | ----- |
 | `logic/Wiring.cs` | what a press takes hold of (`GripAt`), supports on the way (`SupportOnWay`), `LightOf` (`wiring.ts`) | no    |
 | `logic/CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
-| `logic/PowerHands.cs` | the hands with the stripper (0108), its menu's one card the cable (0110; peg moving stays on Ctrl+drag): the left lays and leads on through supports, with Ctrl carries a peg or plug, a right press near a cable cuts (`mode.ts`) | no    |
+| `logic/PowerHands.cs` | the hands while the plan is wiring (0108), its menu's one card the cable (0110; peg moving stays on Ctrl+drag): the left lays and leads on through supports, with Ctrl carries a peg or plug, a right press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
 | `ChargerLights.cs` | each charging station's light and the battery in its bay (0053)                     | yes   |
 | `StoreLights.cs` | each capacitor bank's gauge, its spark and its light (0101)                          | yes   |

@@ -48,7 +48,8 @@ public partial class ContentTests
             Assert.True(m.Leak > 0, m.Id);
             // Bedrock and lava alone break never and are never built (0077).
             Assert.True(m.Strength > 0 || m.Id is "bedrock" or "lava", m.Id);
-            Assert.True(m.BuildTicks > 0 == m.Built, m.Id);
+            // What is built costs something; a vein costs nothing to build, for it never is, but yields its ore.
+            Assert.True(!m.Built || m.Cost.Count > 0, m.Id);
         }
     }
 
@@ -61,7 +62,7 @@ public partial class ContentTests
             Assert.All(Weapons.All, w => Assert.True(w.Damage < m.Strength, $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
-        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
+        Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
         // The ruins' alloy (0085): six seconds of the drill, three of the drill with the arc module (0098), fifteen of the axe.
         int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
         var fitted = Weapons.Drill with { Damage = Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
@@ -160,7 +161,7 @@ public partial class ContentTests
             Assert.All(kind.Yields, y => Assert.True(Content.Items.TryGet(y.Item, out _) && y.Count > 0, $"{kind.Id}: {y.Item}"));
         var giving = Flora.All.Concat<Flora.Growth>(Flora.Cave).Where(k => k.Yields.Count > 0).Select(k => k.Id).Order(StringComparer.Ordinal);
         Assert.Equal(
-            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "spireCache", "veinCopper", "veinIce"],
+            ["acacia", "bush", "crystalAmber", "crystalAmberHang", "crystalEmber", "crystalIce", "crystalIceHang", "crystalRose", "geode", "glowcapTeal", "glowcapViolet", "hangcap", "heatCrack", "mica", "rock", "spireCache"],
             giving);
         // A geode is a hollow of crystals: more than any one crystal gives.
         Assert.True(Flora.Get("geode").Yields.Single().Count > Flora.Cave.Where(k => k.Id.StartsWith("crystal", StringComparison.Ordinal)).Max(k => k.Yields.Single().Count));

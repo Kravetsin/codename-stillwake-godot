@@ -1,7 +1,7 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// How a planet's ground grows from its seed (0077), read by the core's <c>Terrain</c>: ranges, hills and cliffs of soil
+/// How a planet's ground grows from its seed (0077), read by the core's <c>Terrain</c>: plains and highlands, ranges and hills of soil
 /// over stone, caves denser deeper, a few landmarks at places the seed chooses — chasms and great halls — and lava over
 /// bedrock under it all, bedrock at its sides. Noise values run from 0 to 65535; a wave is how many cells one swell of noise spans.
 /// Rows count down from the top of the grid, depths down from a column's surface. Each planet type's numbers are in its
@@ -13,12 +13,22 @@ public sealed record Ground(int Width, int Height)
     public required int Surface { get; init; }
 
     /// <summary>
+    /// Plains and highlands along the planet: one swell every <see cref="RegionWave"/> columns, from plains, where the ranges,
+    /// hills and bumps rise <see cref="RegionLeast"/> percent of their most, to highlands, where they rise all of it and the
+    /// land stands <see cref="RegionLift"/> rows higher.
+    /// </summary>
+    public required int RegionWave { get; init; }
+    public required int RegionLeast { get; init; }
+    public required int RegionLift { get; init; }
+
+    /// <summary>
     /// The ranges and valleys: one swell every <see cref="RangeWave"/> columns, lifting or sinking the surface up to
-    /// <see cref="RangeRise"/> rows, in steps of <see cref="CliffStep"/> rows, so their sides are terraces of cliffs.
+    /// <see cref="RangeRise"/> rows, in shelves <see cref="TerraceStep"/> rows apart; the whole surface is then made a stair of
+    /// one-row steps (0106), so a shelf's riser is a run of steps, never a cliff.
     /// </summary>
     public required int RangeWave { get; init; }
     public required int RangeRise { get; init; }
-    public required int CliffStep { get; init; }
+    public required int TerraceStep { get; init; }
 
     /// <summary>The hills on them: one swell every <see cref="HillWave"/> columns, up to <see cref="HillRise"/> rows either way.</summary>
     public required int HillWave { get; init; }
@@ -86,7 +96,7 @@ public sealed record Ground(int Width, int Height)
     public required int HallTall { get; init; }
     public required int HallFrom { get; init; }
 
-    /// <summary>The columns either side of the middle no landmark comes into: where heroes beam down.</summary>
+    /// <summary>The columns either side of the middle no landmark nor cave mouth comes into: where heroes beam down.</summary>
     public required int Clear { get; init; }
 
     /// <summary>

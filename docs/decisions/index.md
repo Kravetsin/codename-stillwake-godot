@@ -82,10 +82,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted |  |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
-| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted |  |
+| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | veins-and-stairs (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | accepted |  |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
-| [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted |  |
+| [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
 | [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted |  |
@@ -113,12 +113,14 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted |  |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
 | [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109 (in part) |
-| [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110 (in part) |
-| [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110 (in part) |
-| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted |  |
+| [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes (in part) |
+| [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
+| [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes (in part) |
 | [0111](0111-doors-and-hatches.md) | Doors and hatches are two things | accepted |  |
 | [0112](0112-structure-traits.md) | Systems ask a structure's traits, not its kind | accepted | 0113 (in part) |
 | [0113](0113-machine-traits.md) | Systems ask a machine's traits, not its kind | accepted | 0114 (in part) |
 | [0114](0114-build-menu-from-content.md) | The build menu is laid out from content | accepted |  |
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
+| [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
+| [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |

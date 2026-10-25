@@ -11,7 +11,7 @@ through it to a planet. For now it opens and shuts a platform's run by hand, gat
 
 - **Depends on:** `Grid` (`IGridQueries`: the platform cells; `IGridOps.SetDoorway`: opening a run), `Power`
   (`IPowerQueries.Feeds`: whether a run has power enough).
-- **State:** none yet (`LandingState` is empty): a platform's state is its structure codes, the grid's. New to save format 30,
+- **State:** none yet (`LandingState` is empty): a platform's state is its structure codes, the grid's. New to save format 32,
   its slice made empty by the migration step.
 
 ## Rules

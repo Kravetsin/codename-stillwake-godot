@@ -24,7 +24,7 @@ the first slice: the platform alone, to build, to cable and to open by hand.
 - **Power gates it.** A cable may end on any of its cells (`PowerNodes` anchors any structure). Its lamp is green while a
   cell of it is fed (`IPowerQueries.Feeds`: its network makes or stores power and covers all its demand), red otherwise;
   there is no amber. A network drawing nothing has full satisfaction, so `Feeds` asks for supply as well.
-- **A sim module opens it** (`Landing`, save format 30): `SetPlatform(cell, open)` sets its run as its sender saw it should
+- **A sim module opens it** (`Landing`, save format 32): `SetPlatform(cell, open)` sets its run as its sender saw it should
   be, refused `landing.unpowered` when opening a dark run; shutting needs no power. `SetDoor` refuses a platform
   (`grid.noDoor`), as Grid cannot ask Power. E on a run sends it (`Aim`), and says why a dark one stays shut.
 - **Open, it vents but holds.** An open piece is an `Opening` that still `Supports`: its room is open to what lies under the

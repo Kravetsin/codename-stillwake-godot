@@ -157,7 +157,7 @@ public class GroundSoundsTests
         Assert.Same(S.GlassBreak, GroundSounds.FallOf(Spec.Ruins.SpireLamp));
         // What lies in the rock goes with its stone, whose break speaks.
         Assert.Null(GroundSounds.FallOf("moss"));
-        Assert.Null(GroundSounds.FallOf("veinCopper"));
+        Assert.Null(GroundSounds.FallOf("mica"));
     }
 
     [Fact]

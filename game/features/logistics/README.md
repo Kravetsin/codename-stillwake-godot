@@ -13,15 +13,16 @@ bay C (the perch), motion "lively". Numbers live in `game/Content/logic/DroneLoo
 
 | File               | Holds                                                                                         | Godot |
 | ------------------ | --------------------------------------------------------------------------------------------- | ----- |
-| `logic/Served.cs`  | the badge's look and tooltip keys; own `SetServed` in flight (0014); a drone between ticks; bay slots filled or emptied; a clamp's grip | no |
+| `logic/Served.cs`  | the badge's look and tooltip keys; own `SetServed` in flight (0014); bay slots filled or emptied; a clamp's grip | no |
 | `logic/Hover.cs`   | a drone's drawn motion: spring, lean, face, bob, rotors, swinging cargo, lift, landing | no |
+| `logic/Trail.cs`   | where a flying drone is drawn between ticks: its path averaged over the last ticks | no |
 | `logic/Whir.cs`    | a drone's rotors heard: pitch and volume from its speed and id | no |
 | `ServedBadge.cs`   | a machine's drone badge, a wrist key in its frame's header (0081) | yes |
 | `LogisticsView.cs` | drones in flight and docked, pads, lamps, a bay's beacon and zone; drones heard | yes |
 | `DroneLight.cs`    | drones in light (0075): rotor discs and glints, floor dust under them, lamp trail, shimmer, landing puffs | yes |
 | `logic/Logistics.En.cs` | Its player text (`En`) | no |
 
-Tests: `ServedTests`, `HoverTests`, `DroneSoundTests`. The testbed (`-- --testbed`, `TestbedTests`) runs two drones from a powered bay through a closed
+Tests: `ServedTests`, `HoverTests`, `TrailTests`, `DroneSoundTests`. The testbed (`-- --testbed`, `TestbedTests`) runs two drones from a powered bay through a closed
 door keeping the furnace, Former and grow capsule going from a supply crate, the farm's crate switched off;
 `--open=droneBay` (`--open-at 130`) shows the bay's frame and zone, `--open=crate@2` a crossed badge,
 `--near=furnace` starts in that room, `--card=droneBay --pick` holds a bay's blueprint.
@@ -49,9 +50,10 @@ door keeping the furnace, Former and grow capsule going from a supply crate, the
   hand every zone is, and the one the card would make, clipped at the grid. A flat drone shows `drone_empty`.
 - **Drones in flight:** `drone_fly_0..3` (rotor frames), lit by its normal map (`PixelArt.Lit`), eye and status lamp
   unlit over it. It follows a spring target (`Hover`, `DroneLook.Lively`) where the sim has it between ticks
-  (`Served.Smoothed`), easing, overshooting a stop, rounding corners. The target flies over the cell's centre, lower
-  under a wall, floor or closed door in the two cells above, so it does not poke into a ceiling (one right above,
-  it still does by a few pixels). It leans into speed
+  (`Trail`: its path through the last ticks averaged over `TrailTicks`, so it keeps an even speed and turns a corner
+  along a curve, a little behind the sim), easing, overshooting a stop. The target flies half a cell over the cell's centre,
+  lower under a ceiling in the two cells above, so its body (taller than a cell, 0104) keeps clear of it; a doorway is
+  no ceiling to a drone in one or flying up or down through it. It leans into speed
   and acceleration, faces its way, bobs, rotors turning. Cargo hangs from the clamp on a short tether, upright, jaws
   over the stack's corners, swinging as a pendulum the drone's acceleration pushes. Its lamp shines sky while its
   rotors run, lighting round it a little; flying home `Low` it

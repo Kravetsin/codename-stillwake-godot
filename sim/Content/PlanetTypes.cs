@@ -44,6 +44,21 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     /// <summary>In a great hall chances are this many percent of a tunnel's.</summary>
     public required int Hall { get; init; }
 
+    /// <summary>The veins of ore in its rock, painted in this order: kinds of <see cref="Vein"/>.</summary>
+    public IReadOnlyList<Vein> Veins { get; init; } = [];
+
+    /// <summary>
+    /// Its lodes, the stretches of rock rich in veins and crystals: where a smooth noise, a swell every <see cref="LodeWave"/>
+    /// cells, passes <see cref="LodeOver"/>. Its veins run there, thickest at a lode's heart, and its crystals and geodes
+    /// (<see cref="Flora.CaveKind.Lode"/>) grow only there, their chances scaled from nothing at its edge to <see cref="LodeMost"/>
+    /// percent at its heart, so they gather in rich caves with bare ones between.
+    /// </summary>
+    public required int LodeWave { get; init; }
+
+    public required int LodeOver { get; init; }
+
+    public required int LodeMost { get; init; }
+
     /// <summary>What lives on it (0102): each species where it spawns, drawn by weight; none for a lifeless type.</summary>
     public IReadOnlyList<Content.Fauna.Habitat> Fauna { get; init; } = [];
 }
@@ -63,9 +78,12 @@ public static class PlanetTypes
     public static readonly PlanetType First = new("planet", new Ground(4096, 1536)
     {
         Surface = 320,
+        RegionWave = 1024,
+        RegionLeast = 10,
+        RegionLift = 64,
         RangeWave = 768,
         RangeRise = 88,
-        CliffStep = 10,
+        TerraceStep = 10,
         HillWave = 128,
         HillRise = 24,
         BumpWave = 24,
@@ -120,6 +138,15 @@ public static class PlanetTypes
         PatchWave = 24,
         PatchMost = 220,
         Hall = 700,
+        // Ice veins in the cold band, copper below it, richest in the amber deep: as their growths were (0080).
+        Veins =
+        [
+            new("iceVein", Wave: 40, Tall: 24, Widths: [1800, 0, 0, 0]),
+            new("copperVein", Wave: 40, Tall: 24, Widths: [0, 1400, 2400, 1800]),
+        ],
+        LodeWave = 96,
+        LodeOver = 42000,
+        LodeMost = 1000,
         // Neutral creatures only on the first planet (the user's word), spawned by habitat (the user's rule, 2026-10-22): the
         // loper, the tapir and the sixleg on the open ground; the fluff on cave floors of the cold band and, more, the garden's.
         // Nothing yet in the amber and ember bands: their kinds come later.
@@ -142,6 +169,7 @@ public static class PlanetTypes
     public static readonly PlanetType Small = First with
     {
         Id = "smallPlanet",
+        LodeWave = 24,
         Ground = First.Ground with
         {
             Width = 128,
@@ -149,7 +177,9 @@ public static class PlanetTypes
             Surface = 28,
             RangeWave = 96,
             RangeRise = 8,
-            CliffStep = 4,
+            TerraceStep = 4,
+            RegionWave = 64,
+            RegionLift = 6,
             HillWave = 48,
             HillRise = 6,
             CaveFrom = 16,

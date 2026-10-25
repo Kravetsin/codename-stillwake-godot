@@ -49,6 +49,13 @@ public sealed record HeldLook(
         Spin: ["res://art/hero_drill_spin1.png", "res://art/hero_drill_spin2.png", "res://art/hero_drill_spin3.png"], Lamp: (1.5, 4.5),
         Mounts: [new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))], Both: new TwoHands((12, 10.5), (7.5, 10.5)), Clamp: (17.5, 7));
 
+    /// <summary>
+    /// The screwdriver, <c>art/hero_screwdriver_held.png</c>, the first frame of the twist the hand works plans with
+    /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works): the fist round its ribbed handle, held square to
+    /// the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
+    /// </summary>
+    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (3, 2), System.Math.PI / 2, (13, 2), (16, 2), Clamp: (4, 2));
+
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
@@ -60,7 +67,8 @@ public sealed record HeldLook(
 
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
-        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill : null;
+        item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
+        : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
     /// <summary>Whether <paramref name="item"/> is the drill, a module in it or not: aimed, run on the belt, drilling what its bit touches.</summary>
     public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item;

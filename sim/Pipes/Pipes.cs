@@ -73,7 +73,7 @@ public interface IPipesQueries
 }
 
 /// <summary>
-/// Pipes as spans (0109): straight pipes between machines' ports and joints, laid and taken away by hand with the wrench,
+/// Pipes as spans (0109): straight pipes between machines' ports and joints, laid and taken away by hand from the plan,
 /// and the networks they join, along which air flows between the machines on them.
 /// </summary>
 public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
@@ -206,7 +206,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
     /// </summary>
     public string? LayProblem(int peer, int a, int b)
     {
-        // Pipes are laid aboard only (0110): away from the ship the wrench does nothing.
+        // Pipes are laid aboard only (0110): away from the ship the plan only builds.
         if (Rules != Content.Surfaces.Ship) return "pipes.notAboard";
         int size = _grid.Width * _grid.Height;
         if (a < 0 || b < 0 || a >= size || b >= size) return "pipes.offGrid";
