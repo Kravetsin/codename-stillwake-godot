@@ -46,16 +46,14 @@ public class BackDigTests
     private static Crack? CrackAt(Scenario w, int cell, bool back) => w.M.Building.Cracks.FirstOrDefault(c => c.Cell == cell && c.Back == back);
 
     [Fact]
-    public void TheAxeStrikesTheSoilBackWallsOfTheOpenCellsItsRaysCrossBreakingThemInTwoHitsTheSoilGoingToTheDigger()
+    public void TheAxeStrikesTheBackWallsOfTheOpenCellsItsRaysCrossSoilAtASwingStoneCrackedTheSoilGoingToTheDigger()
     {
         var w = World();
         // From the top row's (2, 0), aimed right: the row's back walls to the bedrock, the hull's in the row below passed by.
         Assert.Equal([At(2, 0), At(3, 0), At(4, 0), At(5, 0)], w.M.Building.Struck(Axe, 2500, 500, Right, back: true).Cells);
         w.Do(HewTesting.Dig(w, At(2, 0), Axe, Back: true, heading: Right)).Run();
-        Assert.Equal(Weapons.Axe.Damage, CrackAt(w, At(3, 0), back: true)?.Damage);
-        Assert.Equal(Weapons.Axe.Damage, CrackAt(w, At(5, 0), back: true)?.Damage);
-        w.Do(HewTesting.Dig(w, At(2, 0), Axe, Back: true, heading: Right)).Run();
         Assert.Empty(w.Refusals);
+        Assert.Equal(Weapons.Axe.BlockDamage, CrackAt(w, At(5, 0), back: true)?.Damage);
         Assert.All([At(2, 0), At(3, 0), At(4, 0)], c => Assert.Null(w.M.Grid.BackAt(c)));
         Assert.Equal("stone", w.M.Grid.BackAt(At(5, 0))?.Id);
         Assert.Equal("bedrock", w.M.Grid.BackAt(At(6, 0))?.Id);
@@ -78,10 +76,10 @@ public class BackDigTests
     public void AWallAndABackWallKeepCracksOfTheirOwnInCellOrderThroughASave()
     {
         var w = World();
-        w.Do(HewTesting.Dig(w, At(4, 2), Axe)).Do(HewTesting.Dig(w, At(4, 0), Axe, Back: true, heading: Right)).Run();
-        Assert.Equal([(At(4, 0), true), (At(5, 0), true), (At(4, 2), false)], w.M.Building.Cracks.Select(c => (c.Cell, c.Back)));
+        w.Do(HewTesting.Dig(w, At(4, 2), Axe)).Do(HewTesting.Dig(w, At(5, 0), Axe, Back: true, heading: Right)).Run();
+        Assert.Equal([(At(5, 0), true), (At(4, 2), false)], w.M.Building.Cracks.Select(c => (c.Cell, c.Back)));
         w.Reload();
-        Assert.Equal(3, w.M.Building.Cracks.Count);
+        Assert.Equal(2, w.M.Building.Cracks.Count);
         w.Run(Builds.CrackHeals);
         Assert.Empty(w.M.Building.Cracks);
     }

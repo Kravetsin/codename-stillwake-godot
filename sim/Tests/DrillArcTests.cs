@@ -40,7 +40,7 @@ public class DrillArcTests
     public void AFittedDrillHitsTwiceAsHardAndAPlainOneOrNoneCarriedAsTheWeaponSays()
     {
         var w = Ground().Put(0, Fitted).GiveItems(1, (Drill, 1));
-        Assert.Equal((4, 2, 2), (w.M.Items.Damage(0, Drill), w.M.Items.Damage(1, Drill), w.M.Items.Damage(2, Drill)));
+        Assert.Equal((2, 1, 1), (w.M.Items.Damage(0, Drill), w.M.Items.Damage(1, Drill), w.M.Items.Damage(2, Drill)));
         // The axe takes no module: its own, whatever else is carried.
         Assert.Equal(Spec.Weapons.Axe.Damage, w.M.Items.Damage(0, Spec.Weapons.Axe.Item));
         Assert.Throws<InvalidOperationException>(() => w.M.Items.Damage(0, "iron"));
@@ -53,10 +53,10 @@ public class DrillArcTests
         Assert.Equal(Fitted, w.M.Items.ToolStack(0, Drill));
         Assert.Equal(new Stack(Drill, 1), w.M.Items.ToolStack(1, Drill) ?? new Stack(Drill, 1));
         Assert.Null(w.M.Items.ToolStack(2, Drill));
-        Assert.Equal(4, w.M.Items.Damage(0, Drill));
+        Assert.Equal(2, w.M.Items.Damage(0, Drill));
         w.Put(5, null!);
         Assert.Equal(new Stack(Drill, 1), w.M.Items.ToolStack(0, Drill));
-        Assert.Equal(2, w.M.Items.Damage(0, Drill));
+        Assert.Equal(1, w.M.Items.Damage(0, Drill));
     }
 
     [Fact]
@@ -67,14 +67,14 @@ public class DrillArcTests
         int stone = 2 * 8 + 5, strength = Spec.Materials.Get("stone").Strength;
         plain.Do(HewTesting.Dig(plain, stone, Drill)).Run();
         fitted.Do(HewTesting.Dig(fitted, stone, Drill)).Run();
-        Assert.Equal((2, 4), (CrackAt(plain, stone), CrackAt(fitted, stone)));
+        Assert.Equal((4, 8), (CrackAt(plain, stone), CrackAt(fitted, stone)));
         int hits = 1;
         while (fitted.M.Grid.WallAt(stone) != null && hits < strength)
         {
             fitted.Do(HewTesting.Dig(fitted, stone, Drill)).Run();
             hits++;
         }
-        Assert.Equal((strength + 3) / 4, hits);
+        Assert.Equal((strength + 7) / 8, hits);
         Assert.Empty(fitted.Refusals);
         Assert.Empty(plain.Refusals);
     }
@@ -136,7 +136,7 @@ public class DrillArcTests
         var plain = Facing(new Stack(Drill, 1));
         var fitted = Facing(Fitted);
         foreach (var w in new[] { plain, fitted }) w.Do(new Run(Drill, true)).Do(HewTesting.Hit(w, 1, Drill)).Do(HewTesting.Hit(w, 1, Drill)).Run();
-        Assert.Equal((4, 8), (plain.M.Debris.Pieces[0].Damage, fitted.M.Debris.Pieces[0].Damage));
+        Assert.Equal((2, 4), (plain.M.Debris.Pieces[0].Damage, fitted.M.Debris.Pieces[0].Damage));
         Assert.Empty(fitted.Refusals);
     }
 
@@ -148,13 +148,14 @@ public class DrillArcTests
     [Fact]
     public void ToolStatsFoldTheModulesOfAStackAndAreWhatTheSimHitsAndDrawsBy()
     {
-        Assert.Equal(new ToolStats(2, 2, 3), ToolStats.Of(new Stack(Drill, 1)));
-        Assert.Equal(new ToolStats(4, 2, 6), ToolStats.Of(Fitted));
+        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(new Stack(Drill, 1)));
+        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Fitted));
         Assert.Equal(new ToolStats(2, 10, 0), ToolStats.Of(new Stack(Spec.Weapons.Axe.Item, 1)));
-        // Two modules summed first, then applied once: damage 2 × 2500 / 1000 to 5, draw 3 × 1750 / 1000 up to 6; one alone,
-        // damage 2 × 1500 / 1000 to 3.
-        Assert.Equal(new ToolStats(5, 2, 6), ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]));
-        Assert.Equal(new ToolStats(3, 2, 3), ToolStats.Of(Drill, [Fake]));
+        // Two modules summed first, then applied once: damage 1 × 2500 / 1000 down to 2, draw 3 × 1750 / 1000 up to 6.
+        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]));
+        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(Drill, [Fake]));
+        // On blocks, the same gain: 4 × 2500 / 1000 to 10.
+        Assert.Equal(10, ToolStats.BlockDamageOf(Drill, [Spec.Modules.Arc, Fake]));
         Assert.Equal(ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]), ToolStats.Of(Drill, [Fake, Spec.Modules.Arc]));
         Assert.Equal([Spec.Modules.Arc], ToolStats.ModulesOf(Fitted));
         Assert.Same(ToolStats.ModulesOf(Fitted), ToolStats.ModulesOf(Fitted with { }));
@@ -184,9 +185,9 @@ public class DrillArcTests
     [Fact]
     public void TheFittedDrillBreaksSoilStoneAndAlloyInHalfTheHitsAndABatteryLastsHalfAsLong()
     {
-        // 4, 12 and 60 strong: a hit every 0.1 s, so soil 0.2 s plain and 0.1 s fitted, stone 0.6 s and 0.3 s, alloy 3 s and 1.5 s.
-        Assert.Equal((2, 6, 30), (HitsToBreak(new Stack(Drill, 1), 9), HitsToBreak(new Stack(Drill, 1), 10), HitsToBreak(new Stack(Drill, 1), 11)));
-        Assert.Equal((1, 3, 15), (HitsToBreak(Fitted, 9), HitsToBreak(Fitted, 10), HitsToBreak(Fitted, 11)));
+        // 4, 12 and 60 strong: a hit every 0.1 s, 4 and 8 a hit on blocks: soil at a hit either way, stone 0.3 s and 0.2 s, alloy 1.5 s and 0.8 s.
+        Assert.Equal((1, 3, 15), (HitsToBreak(new Stack(Drill, 1), 9), HitsToBreak(new Stack(Drill, 1), 10), HitsToBreak(new Stack(Drill, 1), 11)));
+        Assert.Equal((1, 2, 8), (HitsToBreak(Fitted, 9), HitsToBreak(Fitted, 10), HitsToBreak(Fitted, 11)));
         // A battery: 1800 power-ticks, 600 ticks (30 s) at the plain drill's 3, 300 (15 s) at the fitted 6.
         Assert.Equal((600, 300), (Full / S / ToolStats.Of(new Stack(Drill, 1)).Draw, Full / S / ToolStats.Of(Fitted).Draw));
     }

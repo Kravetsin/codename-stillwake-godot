@@ -14,7 +14,7 @@ public class ImpactsTests
 {
     private static readonly string Axe = Spec.Weapons.Axe.Item, Drill = Spec.Weapons.Drill.Item;
     /// <summary>A hit of the drill, plain and with the arc module fitted (0098).</summary>
-    private static readonly int Bite = Spec.Weapons.Drill.Damage, ArcBite = Sim.Items.Boost.Gain(Bite, Spec.Modules.Arc.Adds(Spec.Weapons.Drill.Item, Spec.Stat.Damage));
+    private static readonly int Bite = Spec.Weapons.Drill.BlockDamage, ArcBite = Sim.Items.Boost.Gain(Bite, Spec.Modules.Arc.Adds(Spec.Weapons.Drill.Item, Spec.Stat.Damage));
 
     /// <summary>
     /// Row 1: soil, two soil walls side by side, stone, plaster, alloy, soil; row 2 soil underneath. Over row 1
@@ -121,20 +121,20 @@ public class ImpactsTests
             ########
             """).WithMaterials("""
             ........
-            ssssssss
+            tttttttt
             """) with { Flora = [(2, "bush"), (3, "tuft")] };
         var world = new TestWorld(layout);
         var m = world.M;
         Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);
         // A tuft falls to any hit: that hit is its only one.
         Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 3, Drill, Bite));
-        // The axe's fans from inside the soil cell and the bush's, up: each that one alone.
+        // The axe's fans from inside the stone cell and the bush's, up: each that one alone.
         world.Step(new Sim.Building.Hew(Axe, 1_500, 1_500, 192) { From = 0 }, new Sim.Building.Hew(Axe, 2_500, 500, 192) { From = 0 });
-        // Soil of 4 cracked 2: the drill's 2 breaks it out, and so its whole look; with the arc fitted too.
-        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite));
+        // Stone of 12 cracked 4: the drill's 4 leaves it standing, its 8 with the arc fitted breaks it out.
+        Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);
         Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, ArcBite));
+        // A bush of 8 cracked 4: the drill's next hit fells it.
         Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 2, Drill, Bite));
-        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 2, Drill, ArcBite));
     }
 
     [Fact]

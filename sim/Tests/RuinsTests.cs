@@ -46,11 +46,11 @@ public class RuinsTests
     public void AlloyStandsUnderFiftyNineDamageAndBreaksAtSixtyGivingItsScrap()
     {
         var w = Chamber();
-        int hits = Materials.Get("alloy").Strength / Weapons.Axe.Damage;
-        Assert.Equal(30, hits);
+        int hits = Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage;
+        Assert.Equal(15, hits);
         for (int i = 0; i < hits - 1; i++) w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Equal("alloy", w.M.Grid.WallAt(w.At(7, 4))?.Id);
-        Assert.Equal(58, w.M.Building.Cracks.Single().Damage);
+        Assert.Equal(56, w.M.Building.Cracks.Single().Damage);
         w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(w.At(7, 4)));
@@ -88,7 +88,7 @@ public class RuinsTests
         Assert.Equal(cradle, w.M.Building.PlantAt(w.At(5, 1)));
         // By cell: the niche up on the wall first.
         Assert.Equal([new Relic(w.At(7, 1), Ruins.Niche, false), new Relic(Bottom(w, 3, 3), Ruins.Cradle, false)], w.M.Building.Relics);
-        int swings = Flora.Get(Ruins.Cradle).Strength / Weapons.Axe.Damage;
+        int swings = Flora.Get(Ruins.Cradle).Strength / Weapons.Axe.BlockDamage;
         Assert.Equal(4, swings);
         for (int i = 1; i < swings; i++)
         {
@@ -166,7 +166,7 @@ public class RuinsTests
     public void ACradleWhoseFloorIsDugOutFallsGivingItsShardsToTheDiggerUnshocked()
     {
         var w = WithHeroes();
-        for (int i = 0; i < Materials.Get("alloy").Strength / Weapons.Axe.Damage; i++) w.Do(HewTesting.Dig(w, w.At(4, 4), Axe)).Run();
+        for (int i = 0; i < Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage; i++) w.Do(HewTesting.Dig(w, w.At(4, 4), Axe)).Run();
         Assert.DoesNotContain(Ruins.Cradle, Kinds(w));
         Assert.True(Taken(w, Ruins.Cradle));
         Assert.Equal(Suit(w, 1), Suit(w, 0));

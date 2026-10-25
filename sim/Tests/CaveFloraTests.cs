@@ -138,7 +138,7 @@ public class CaveFloraTests
     private static int Bottom(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
 
     /// <summary>The axe's hits that break stone.</summary>
-    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
+    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
 
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
 

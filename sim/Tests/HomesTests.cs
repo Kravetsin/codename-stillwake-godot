@@ -65,9 +65,9 @@ public class HomesTests
         Assert.All((int[])[w.At(2, 3), w.At(3, 3), w.At(4, 3), w.At(2, 2), w.At(4, 2)], cell => Assert.Equal(bed, w.M.Building.PlantAt(cell)));
         Assert.Null(w.M.Building.PlantAt(w.At(5, 3)));
         Assert.Null(w.M.Building.PlantAt(w.At(2, 1)));
-        // Its crack is kept by its own cell, whichever is hit: six hit points, three swings.
+        // Its crack is kept by its own cell, whichever is hit: twelve hit points, three swings.
         Hit(w, w.At(4, 2), 2);
-        Assert.Equal((Bottom(w, 2, 3), 4), (w.M.Building.Cracks.Single().Cell, w.M.Building.Cracks.Single().Damage));
+        Assert.Equal((Bottom(w, 2, 3), 8), (w.M.Building.Cracks.Single().Cell, w.M.Building.Cracks.Single().Damage));
         Hit(w, w.At(3, 3));
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plants);
@@ -127,7 +127,7 @@ public class HomesTests
     {
         var w = Room((At(5, 3), "bench"));
         // The bench's right column stands on the alloy at (6, 4): thirty swings of the axe.
-        Hit(w, w.At(6, 4), Materials.Get("alloy").Strength / Weapons.Axe.Damage);
+        Hit(w, w.At(6, 4), Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage);
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((2, 1, 1), (Count(w, "planks"), Count(w, "cloth"), Count(w, "alloyScrap")));
@@ -164,12 +164,12 @@ public class HomesTests
         Assert.All((int[])[w.At(3, 3), w.At(4, 3), w.At(6, 3), w.At(7, 3)], cell => Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(cell)));
         Assert.Equal("fallenBeam", w.M.Building.PlantAt(w.At(4, 3))!.Kind);
         // Its right wall dug out, sixty damage of alloy, and the beam goes, its scrap with the wall's.
-        Hit(w, w.At(4, 3), Materials.Get("alloy").Strength / Weapons.Axe.Damage);
+        Hit(w, w.At(4, 3), Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage);
         Assert.DoesNotContain("fallenBeam", Kinds(w));
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(w.At(3, 3)));
         Assert.Equal(1 + 3, Count(w, "alloyScrap"));
         // The rubble's stone, six swings.
-        Hit(w, w.At(6, 3), Materials.Get("stone").Strength / Weapons.Axe.Damage);
+        Hit(w, w.At(6, 3), Materials.Get("stone").Strength / Weapons.Axe.BlockDamage);
         Assert.DoesNotContain("rubble", Kinds(w));
         Assert.Equal((1 + 2, 1 + 3 + 1), (Count(w, "rock"), Count(w, "alloyScrap")));
     }
@@ -180,19 +180,19 @@ public class HomesTests
         var w = Room((At(3, 3), "musicBox"));
         Hit(w, w.At(3, 3));
         Assert.Contains("musicBox", Kinds(w));
-        Assert.Equal(Weapons.Axe.Damage, w.M.Building.Cracks.Single().Damage);
+        Assert.Equal(Weapons.Axe.BlockDamage, w.M.Building.Cracks.Single().Damage);
         Hit(w, w.At(3, 3));
         Assert.Empty(w.M.Building.Plants);
         Assert.Equal((1, 1), (Count(w, "gear"), Count(w, "copper")));
         // The drill's hit is two of its three; with the arc module (0098), all of it.
-        int fitted = Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)), strength = Flora.Get("musicBox").Strength;
-        Assert.Equal((2, 1), ((strength + Weapons.Drill.Damage - 1) / Weapons.Drill.Damage, (strength + fitted - 1) / fitted));
+        int fitted = Boost.Gain(Weapons.Drill.BlockDamage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)), strength = Flora.Get("musicBox").Strength;
+        Assert.Equal((2, 1), ((strength + Weapons.Drill.BlockDamage - 1) / Weapons.Drill.BlockDamage, (strength + fitted - 1) / fitted));
     }
 
     [Fact]
     public void FurnitureTakesTheHitsItsStrengthSaysTheHearthAndTheResonatorAsATree()
     {
-        int Swings(string kind) => (Flora.Get(kind).Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
+        int Swings(string kind) => (Flora.Get(kind).Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
         Assert.Equal((1, 2, 3, 6), (Swings("ceilLamp"), Swings("chair"), Swings("table"), Swings("hearth")));
         Assert.Equal(Flora.Get("acacia").Strength, Flora.Get(Ruins.Resonator).Strength);
         var w = Room((At(2, 3), "chair"), (At(5, 3), "hearth"));
@@ -238,7 +238,7 @@ public class HomesTests
     public void AFelledResonatorZapsNoMoreAndInCreativeModeItNeverDid()
     {
         var w = Resonating(near: (6, 2), far: (8, 2));
-        Hit(w, w.At(5, 1), (Flora.Get(Ruins.Resonator).Strength + 1) / Weapons.Axe.Damage);
+        Hit(w, w.At(5, 1), (Flora.Get(Ruins.Resonator).Strength + 1) / Weapons.Axe.BlockDamage);
         Assert.Empty(w.M.Building.Plants);
         Assert.False(w.M.Building.Zaps(w.At(6, 2)));
         Assert.Equal((3, 2, 1, 2), (Count(w, "copper"), Count(w, "wire"), Count(w, "crystal"), Count(w, "alloyScrap")));

@@ -13,7 +13,6 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan; the blade on creatures |
-| `logic/FanFaces.cs` | what of a fan glints: faces struck, its reach |
 | `logic/AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
@@ -36,7 +35,6 @@ commands reach the sim. Other heroes come through the host.
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
-| `FanPreview.cs` | a tool's aim as faint glints, no light |
 | `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
 | `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
@@ -102,7 +100,7 @@ commands reach the sim. Other heroes come through the host.
   small piece in space. Outlined green or red; `UsePrompt` says why. With a plan in hand
   (`Ui.Hand`, 0022) the hero holds the sheet and E does nothing.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`, from the shoulder): a `Hew` and in space a `HewWrecks`, each
-  sent if the sim's query strikes something; heard at the cell nearest the pointer; glints (`FanPreview`).
+  sent if the sim's query strikes something; heard at the cell nearest the pointer; what it strikes outlined.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through once begun.
   E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.

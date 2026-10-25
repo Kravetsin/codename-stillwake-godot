@@ -25,7 +25,7 @@ public sealed record WorkAim(int Plan, string? Problem);
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens crate <see cref="Crate"/>.
 /// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
 /// (0034), which is outlined itself, not its cell. <see cref="Fan"/> is a tool's hit toward the pointer (the fan of rays): what
-/// it would strike, shown by its faces lit, never outlined.
+/// it would strike, each cell and plant outlined.
 /// </summary>
 public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null, Fan? Fan = null);
 

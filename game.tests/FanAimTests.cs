@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 
 /// <summary>
 /// A tool aimed at the ground (the fan of rays): the axe or the drill cast from the hero's shoulder toward the pointer, what it
-/// would strike the sim's own query's, and what of it glints.
+/// would strike the sim's own query's.
 /// </summary>
 public class FanAimTests
 {
@@ -104,43 +104,5 @@ public class FanAimTests
         var fan = Aiming.FanOf(m, Standing(20), Aiming.PointOf(Centre(23, 6)), Axe);
         foreach (int cell in fan.Hewn.Cells)
             Assert.Equal(cell, Aiming.LeadOf(fan, new Point(cell % W * Unit + 500, cell / W * Unit + 500), W));
-    }
-
-    [Fact]
-    public void TheFacesThatGlintAreTheStruckWallsSidesOpenToTheAirAndTurnedToTheHand()
-    {
-        var m = Cave().M;
-        var hand = new Point(20_500, 5_500);
-        // The right wall struck from its left: its left faces glint, never its top, bottom or right, walls all.
-        var hewn = new Hewn([At(23, 5), At(23, 6)], []);
-        Assert.Equal([new Glint(23, 5, 23, 6), new Glint(23, 6, 23, 7)], FanFaces.Of(m.Grid, hewn, hand, back: false));
-        // The floor's corner cell struck from above and left: its top and its left face, each open.
-        var corner = new Hewn([At(22, 9)], []);
-        Assert.Equal([new Glint(22, 9, 23, 9)], FanFaces.Of(m.Grid, corner, hand, back: false));
-        // A back wall and a plant glint over their whole cell.
-        Assert.Equal([new Glint(5, 5, 6, 6)], FanFaces.Of(m.Grid, new Hewn([At(5, 5)], []), hand, back: true));
-        Assert.Equal([new Glint(4, 8, 5, 9)], FanFaces.Of(m.Grid, new Hewn([], [new Plant(At(4, 8), "bellTeal")]), hand, back: false));
-    }
-
-    [Fact]
-    public void TheAxesReachIsAnArcOverItsFanAndTheDrillsADottedLine()
-    {
-        var hand = new Point(10_000, 5_000);
-        var axe = Spec.Weapons.Axe;
-        var (x0, y0) = FanFaces.ArcAt(axe, hand, 0, 0);
-        var (x1, y1) = FanFaces.ArcAt(axe, hand, 0, 1);
-        // A quarter turn wide, its range from the hand, either side of the heading.
-        Assert.Equal(10 + 3.5 * System.Math.Cos(System.Math.PI / 4), x0, 6);
-        Assert.Equal(5 - 3.5 * System.Math.Sin(System.Math.PI / 4), y0, 6);
-        Assert.Equal((x0, 10 - y0), (x1, y1 - 0), new TupleTolerance());
-        var dots = FanFaces.DotsOf(Spec.Weapons.Drill, hand, 0);
-        Assert.Equal((int)(5.5 / FanFaces.DotEvery), dots.Count);
-        Assert.Equal((10 + FanFaces.DotEvery, 5.0), dots[0], new TupleTolerance());
-    }
-
-    private sealed class TupleTolerance : IEqualityComparer<(double, double)>
-    {
-        public bool Equals((double, double) a, (double, double) b) => System.Math.Abs(a.Item1 - b.Item1) < 1e-6 && System.Math.Abs(a.Item2 - b.Item2) < 1e-6;
-        public int GetHashCode((double, double) t) => 0;
     }
 }

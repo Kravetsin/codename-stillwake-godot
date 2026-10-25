@@ -47,15 +47,12 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing (no ADR).
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building keeps its run order before crew.
-- **`Hew(Tool, X, Y, Heading, Back)`** (fan-of-rays): the weapon's fan (`Rays`, Core) from the hand, each ray stopped by
-  the first wall or whatever stops a body; a natural wall that breaks is struck, a ship's, bedrock and lava not; a plant in
-  an open cell is struck and passed through. `Struck` says what, for the command and the client's preview alike. Each
-  wall and plant takes the weapon's damage (`Damage`, module boost included, 0098) once, walls by cell then plants: a wall
-  at its `Strength` clears alone, giving its material's `Cost` and the `Yields` of every growth it held to the sender
-  (`GiveOrDrop`). Refused `building.nothingToDig` when it strikes nothing, then `items.flat` / `items.notRunning`.
-  Two hits in a tick go in host order.
-- **`Back`** (0107, 0108): each ray strikes the natural back wall of every open cell it crosses, a ship's passed, until a
-  wall stops it; in a crack of its own (`Crack.Back`), what hangs on it (`Anchor.Back`) felled with it.
+- **`Hew(Tool, X, Y, Heading, Back)`** (fan-of-rays): the weapon's fan (`Rays`) from the hand, each ray stopped by the
+  first wall or what stops a body, striking it if natural and breakable; plants in open cells struck and passed. `Struck`
+  says what. Each takes `BlockDamage` (boosted, 0098) once, walls first: a wall at its `Strength`
+  clears, its `Cost` and held growths' `Yields` to the sender. Refused `building.nothingToDig` for nothing struck, then
+  `items.flat` / `items.notRunning`. `Back` (0107, 0108): the natural back walls of the open cells crossed, in cracks of
+  their own (`Crack.Back`), what hangs on one (`Anchor.Back`) felled with it.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
@@ -90,7 +87,7 @@ that would generate a `Deconstruct` method, which the type's name forbids. Fuzz 
 
 - Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
-- Reach, the hand a fan is cast from and which cell is worked are the client's word.
+- Reach, a fan's hand and which plan is worked are the client's word.
 - Stale plans: plans claim their slots and only building fills the grid, so completing one over something throws.
 - A blueprint finished on its hero's cell puts the hero inside it. A tool dealing no damage throws: our bug.
 - Taking apart needs no knowledge of a thing (0024).

@@ -100,6 +100,13 @@ public sealed partial class ItemsModule
         return ToolStack(peer, tool) is { } stack ? ToolStats.Of(stack).Damage : damage;
     }
 
+    /// <summary>What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes off a block (the fan of rays), as <see cref="Damage"/>.</summary>
+    public int BlockDamage(int peer, string tool)
+    {
+        int damage = Weapons.Of(tool)?.BlockDamage ?? throw new InvalidOperationException($"items.blockDamage: {tool} deals no damage");
+        return ToolStack(peer, tool) is { } stack ? ToolStats.BlockDamageOf(stack) : damage;
+    }
+
     /// <summary>What <paramref name="stack"/>, an electric item, draws a tick it runs, its modules in it (<see cref="ToolStats"/>, 0098).</summary>
     private static int DrawOf(Stack stack) => ToolStats.Of(stack).Draw;
 

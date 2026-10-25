@@ -9,7 +9,7 @@ namespace Stillwake.Sim.Building;
 /// thousandths of a cell, aimed at <c>Heading</c> (<see cref="Headings"/>), sent as the axe strikes or at the drill's pace. Each
 /// ray strikes the first wall it meets and stops there, a natural one cracked, a ship's or bedrock untouched; it passes through
 /// the plants it crosses, cracking each by its own cell. Each wall and plant takes the damage once, however many rays meet it.
-/// <c>Back</c> (0107, the right button) strikes instead every natural back wall behind the open cells a ray crosses, until a
+/// It takes the weapon's block damage (<c>BlockDamage</c>). <c>Back</c> (0107, the right button) strikes instead every natural back wall behind the open cells a ray crosses, until a
 /// wall stops it (0108). A wall broken gives the sender what it is made of and what grew on, in or from it.
 /// </summary>
 public sealed record Hew(string Tool, int X, int Y, int Heading, bool Back = false) : Command;
@@ -94,7 +94,7 @@ public sealed partial class BuildingModule
     private void ApplyHew(Hew c)
     {
         var hewn = Struck(c.Tool, c.X, c.Y, c.Heading, c.Back);
-        int hit = _items.Damage(c.From, c.Tool);
+        int hit = _items.BlockDamage(c.From, c.Tool);
         if (c.Back)
         {
             foreach (int cell in hewn.Cells) HitBack(c.From, cell, hit);
@@ -159,7 +159,7 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Adds a hit's <paramref name="hit"/> damage, its sender's weapon's (<see cref="IItemsQueries.Damage"/>), to
+    /// Adds a hit's <paramref name="hit"/> damage, its sender's weapon's on blocks (<see cref="IItemsQueries.BlockDamage"/>), to
     /// <paramref name="cell"/>'s crack: true, its crack dropped, once it reaches <paramref name="strength"/>; else false, the
     /// crack kept deeper, its last hit now.
     /// </summary>

@@ -71,7 +71,7 @@ public static class Materials
     [
         new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110)),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120)),
-        // A planet's ground (0077), leakier than any hull. Soil breaks in two swings of the axe, stone in six; a shovelful
+        // A planet's ground (0077), leakier than any hull. Soil breaks at a swing of the axe, stone at three; a shovelful
         // of soil and a lump of rock, the asteroids' own, come out of it, and build it back.
         new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 5, Natural: true, Grows: true, Footing: Tread.Soil, Menu: new(MenuTabs.Structure, 30), BackMenu: new(MenuTabs.Structure, 130)),
         new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 10, Natural: true, Footing: Tread.Stone, Menu: new(MenuTabs.Structure, 40), BackMenu: new(MenuTabs.Structure, 140)),
@@ -79,7 +79,7 @@ public static class Materials
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
         new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true,
             Hurts: true, Footing: Tread.Stone, Look: MaterialLook.Molten),
-        // The ruins' metal (0085): five times stone, three seconds of the drill, one and a half with the arc fitted (0098); a scrap of it a cell.
+        // The ruins' metal (0085): five times stone, a second and a half of the drill, under one with the arc fitted (0098); a scrap of it a cell.
         new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy, Menu: new(MenuTabs.Structure, 50), BackMenu: new(MenuTabs.Structure, 150)),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
         new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),

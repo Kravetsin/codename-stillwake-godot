@@ -59,7 +59,7 @@ public class GrownSaveTests
         var w = Down(Content.PlanetTypes.Small);
         var m = w.On(1);
         int spawn = m.Crew.Spawn, under = spawn + m.Grid.Width;
-        w.Do(HewTesting.Dig(w, under, "fireAxe", surface: 1)).Do(HewTesting.Dig(w, under, "fireAxe", surface: 1)).Run();
+        w.Do(HewTesting.Dig(w, under, "fireAxe", surface: 1)).Run();
         Assert.Null(m.Grid.WallAt(under));
         var edits = GridOf(w.World.Save(), 1)["edits"]!.AsArray().Select(n => (int)n!).ToArray();
         Assert.Equal(5, edits.Length);

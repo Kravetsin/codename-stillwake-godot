@@ -160,26 +160,26 @@ public class AsteroidTests
     }
 
     [Fact]
-    public void TakesAsManyHitsOfTheDrillAsOfTheAxeYetFiveTimesLessTime()
+    public void TakesTwiceTheHitsOfTheAxeWithTheDrillYetTwoAndAHalfTimesLessTime()
     {
         int hp = WreckageSpec.HpOf("asteroid")!.Value;
         Assert.Equal(60, hp / Weapons.Axe.Damage);
-        Assert.Equal(60, hp / Weapons.Drill.Damage);
-        // In ticks, at each one's pace: 30 s of the axe, 6 s of the drill.
+        Assert.Equal(120, hp / Weapons.Drill.Damage);
+        // In ticks, at each one's pace: 30 s of the axe, 12 s of the drill.
         Assert.Equal(600, hp / Weapons.Axe.Damage * Weapons.Axe.Pace);
-        Assert.Equal(120, hp / Weapons.Drill.Damage * Weapons.Drill.Pace);
+        Assert.Equal(240, hp / Weapons.Drill.Damage * Weapons.Drill.Pace);
     }
 
     [Fact]
-    public void BreaksAnAsteroidOnItsSixtiethHitOfTheDrillIntoThreeToFiveRockAlikeInTwoWorlds()
+    public void BreaksAnAsteroidOnItsHundredAndTwentiethPointIntoThreeToFiveRockAlikeInTwoWorlds()
     {
         Scenario Broken(uint seed)
         {
             var w = new Scenario(DebrisZonesTests.Open(20, 8, 1, 1, w: 1, h: 1), seed).Run(DebrisSpec.Every);
             Pieces(w)[0].Item = "asteroid";
             w.GiveItems(0, (Drill, 1)).Do(new SetCreative(true)).Do(new Enter(1 * 20 + 12)).Run();
-            Hits(w, 59, Drill).Run();
-            Assert.Equal(118, Pieces(w)[0].Damage);
+            Hits(w, 119, Drill).Run();
+            Assert.Equal(119, Pieces(w)[0].Damage);
             Assert.Empty(w.M.Items.Floor);
             return Hits(w, 1, Drill).Run();
         }
@@ -291,7 +291,7 @@ public class AsteroidTests
         Assert.Empty(w.Refusals);
         Assert.Empty(bare.Refusals);
         Assert.Equal(Battery(Draw * S), w.M.Items.Inventory(0)[Belt]);
-        Assert.Equal((10, 10), (Pieces(w)[0].Damage, Pieces(bare)[0].Damage));
+        Assert.Equal((5, 5), (Pieces(w)[0].Damage, Pieces(bare)[0].Damage));
     }
 
     [Fact]

@@ -45,7 +45,7 @@ public class PlanetYieldsTests
     private static readonly string Axe = Weapons.Axe.Item;
 
     /// <summary>The axe's hits that break stone.</summary>
-    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
+    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
 
     private static int Count(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
@@ -119,7 +119,7 @@ public class PlanetYieldsTests
         Fell(w, w.At(4, 1));
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "seed")));
         // The rock's soil dug from under it: it goes to the digger too, whole, with the soil.
-        w.Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Run();
         Assert.Equal((2, 1), (Count(w, "rock"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Plants);
         Assert.Empty(w.M.Building.Cracks);
@@ -153,8 +153,8 @@ public class PlanetYieldsTests
     public void ATreeTakesThreeSecondsOfTheAxeARockTwoABushOneAndACapOneHit()
     {
         var w = Meadow();
-        int axe = Weapons.Axe.Damage, pace = Weapons.Axe.Pace;
-        Assert.Equal((12, 8, 4), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
+        int axe = Weapons.Axe.BlockDamage, pace = Weapons.Axe.Pace;
+        Assert.Equal((24, 16, 8), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
         // Swings at the axe's pace, the first at once: a tree's sixth lands two and a half seconds in, three of swinging.
         Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, w.At(1, 1)));
         Assert.Equal(3 * World.TicksPerSecond, Flora.Get("acacia").Strength / axe * pace);
@@ -168,7 +168,7 @@ public class PlanetYieldsTests
     public void ATreesHitsAddUpWhicheverOfItsCellsTheyLandOnAndHealUnhitForAWhile()
     {
         var w = Meadow();
-        int axe = Weapons.Axe.Damage;
+        int axe = Weapons.Axe.BlockDamage;
         w.Do(HewTesting.Dig(w, w.At(1, 1), Axe)).Run().Do(HewTesting.Dig(w, w.At(1, 0), Axe)).Run();
         // Cracked by its own cell, wherever it was hit; still standing, nothing given.
         Assert.Equal([new Crack(Bottom(w, 1, 1), 2 * axe, w.M.Building.Cracks[0].At)], w.M.Building.Cracks);
@@ -186,7 +186,7 @@ public class PlanetYieldsTests
         w.Do(HewTesting.Dig(w, w.At(1, 0), Axe)).Run();
         Assert.Single(w.M.Building.Cracks);
         // Its soil dug out from under it: the tree goes whole to the digger, its crack with it.
-        w.Do(HewTesting.Dig(w, w.At(1, 2), Axe)).Run().Do(HewTesting.Dig(w, w.At(1, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 2), Axe)).Run();
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Cracks);
     }

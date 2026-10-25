@@ -94,7 +94,8 @@ public class HewTests
         Assert.Equal([At(w, 6, 3), At(w, 6, 4), At(w, 6, 5)], Struck(w, Axe, at, Right).Cells);
         w.Do(new Hew(Axe, at.X, at.Y, Right)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal([(At(w, 6, 3), 2), (At(w, 6, 4), 2), (At(w, 6, 5), 2)], w.M.Building.Cracks.Select(c => (c.Cell, c.Damage)));
+        int hit = Weapons.Axe.BlockDamage;
+        Assert.Equal([(At(w, 6, 3), hit), (At(w, 6, 4), hit), (At(w, 6, 5), hit)], w.M.Building.Cracks.Select(c => (c.Cell, c.Damage)));
     }
 
     [Fact]
@@ -173,8 +174,8 @@ public class HewTests
         ........
         ........
         ........
-        ssssssss
-        ssssssss
+        tttttttt
+        tttttttt
         """;
 
     [Fact]
@@ -188,8 +189,8 @@ public class HewTests
         Assert.Contains(At(w, 3, 4), struck.Cells);
         w.Do(new Hew(Axe, 3500, 1500, Down)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(Weapons.Axe.Damage, w.M.Building.Cracks.Single(c => c.Cell == bush.Cell).Damage);
-        Assert.Equal(Weapons.Axe.Damage, w.M.Building.Cracks.Single(c => c.Cell == At(w, 3, 4)).Damage);
+        Assert.Equal(Weapons.Axe.BlockDamage, w.M.Building.Cracks.Single(c => c.Cell == bush.Cell).Damage);
+        Assert.Equal(Weapons.Axe.BlockDamage, w.M.Building.Cracks.Single(c => c.Cell == At(w, 3, 4)).Damage);
     }
 
     [Fact]
@@ -199,7 +200,7 @@ public class HewTests
         var tree = w.M.Building.Plants.Single();
         Assert.Equal([tree], Struck(w, Axe, Mid(1, 2), Right).Plants);
         w.Do(new Hew(Axe, 1500, 2500, Right)).Run();
-        Assert.Equal(Weapons.Axe.Damage, w.M.Building.Cracks.Single(c => c.Cell == tree.Cell).Damage);
+        Assert.Equal(Weapons.Axe.BlockDamage, w.M.Building.Cracks.Single(c => c.Cell == tree.Cell).Damage);
     }
 
     // In space.

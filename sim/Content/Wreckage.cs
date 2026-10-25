@@ -19,13 +19,13 @@ public static class Wreckage
         ("shieldSlab", 31),
         // Loose earth, as frail as the frailest wrecks: between the tank cluster and the cable rack, four axe hits.
         ("soilClod", 8),
-        // Rock from the band round the ship (0054): 6 s of the drill, 30 s of the axe.
+        // Rock from the band round the ship (0054): 12 s of the drill, 30 s of the axe.
         ("asteroid", 120),
         // Its kinds (0056): the bigger, the harder and the more rock; the rich one, ore-dense, more rock for its size.
         ("asteroidSmall", 50),
         ("asteroidLarge", 200),
         ("asteroidRich", 160),
-        // Derelicts far out (0056), as hard as rock: 6 to 9 s of the drill, 28 to 45 s of the axe.
+        // Derelicts far out (0056), as hard as rock: 11 to 18 s of the drill, 28 to 45 s of the axe.
         ("engineBlock", 180),
         ("cargoHold", 140),
         ("podCluster", 110),

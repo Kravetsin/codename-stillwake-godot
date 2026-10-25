@@ -25,7 +25,7 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
   beside it and stops if either stops it: two walls touching at a corner close the gap, and the walk is the same mirrored.
 - **What a ray meets in front** (`Hew(Tool, X, Y, Heading, Back)`, Building): a wall stops it, a natural one that breaks is
   struck, a ship's, bedrock and lava are not; whatever stops a body stops it; a plant in an open cell is struck and passed
-  through. Each wall and plant takes the weapon's damage once, however many rays meet it: walls by cell, then plants, a plant
+  through. Each wall and plant takes the weapon's block damage once, however many rays meet it: walls by cell, then plants, a plant
   its wall took already left out; a relic's cradle among them shocks its striker once (0096).
 - **Behind** (`Back`, the right button): a ray strikes the natural back wall of every open cell it crosses, a ship's passed,
   until a wall stops it. A back wall behind a wall is no longer reached.
@@ -37,13 +37,15 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
   (`items.flat`, `items.notRunning`). The hand point is the client's word, among friends (0002); the range bounds the walk.
 - **The client** casts from the shoulder toward the pointer, one `Hew` and in space one `HewWrecks` a hit, each sent only when
   the sim's own query (`Struck`) strikes something. Creatures stay on the blade and the bit (0102).
-- **The preview** (`FanPreview`): while a tool is in hand over the world, faint luminous glints, no light, on the faces of
-  exactly what the query strikes turned toward the hand, a back wall's or a plant's whole cell; the axe's reach a fading arc,
-  the drill's a dotted line. No outline, no words.
-- **Numbers.** The drill hits 2 (was 1), everywhere: rule 0054 holds, a better tool is only faster. Measured by seconds to
-  cut a 4×20 tunnel of stone (80 cells, strength 12): the axe about 4 face cells a swing at 2 a second, 16 a second, 60 s as
-  the brush did; the drill about 1.5 cells at 10 hits a second, 30 a second, 32 s. With the arc module (0098) the drill hits
-  4 and takes soil in one hit. To be tuned by feel.
+- **The preview:** every cell and plant the hit would strike is outlined, a square each, green or red as the aim (the same
+  query, so it never lies), over the hero; nothing while the fan strikes nothing. No reach shown, no particles, no words.
+- **Block damage apart** (`Weapon.BlockDamage`): walls, back walls and plants take it, wrecks and creatures `Damage`. A
+  weapon made to fight will hit hard and break blocks slowly, so fights do not end in ruins. A module's damage gain (0098)
+  scales both.
+- **Numbers.** The axe 2 and 4 on blocks, the drill 1 and 4 (its arc module 2 and 8); wrecks as before. Plants and the
+  ruins' pieces doubled in strength, so they fall to as many swings as before. Measured by seconds to cut a 4×20 tunnel of
+  stone (80 cells, strength 12): the axe about 4 face cells a swing, stone at three swings, 30 s; the drill about 1.5 cells
+  at 10 hits a second, stone at three hits, 16 s. Soil goes at one hit of either. To be tuned by feel.
 
 ## Deliberately not handled
 

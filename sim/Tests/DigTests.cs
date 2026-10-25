@@ -29,7 +29,7 @@ public class DigTests
         """;
 
     private static readonly string Axe = Weapons.Axe.Item, Drill = Weapons.Drill.Item;
-    private static readonly int AxeDamage = Weapons.Axe.Damage;
+    private static readonly int AxeDamage = Weapons.Axe.BlockDamage;
     private static readonly Material Soil = Materials.Get("soil"), Stone = Materials.Get("stone");
 
     private static Layout Layout(IReadOnlyList<string>? known = null) => Sim.Layout.Parse(Map).WithMaterials(Ground) with { Known = known };
@@ -50,14 +50,11 @@ public class DigTests
     }
 
     [Fact]
-    public void TheAxeBreaksSoilInTwoHitsTheBackWallStayingAndTheSoilGoingToTheDigger()
+    public void TheAxeBreaksSoilAtASwingTheBackWallStayingAndTheSoilGoingToTheDigger()
     {
         var w = World();
         int cell = At(2, 2);
-        w.Do(HewTesting.Dig(w, cell, Axe)).Run();
-        Assert.Equal(AxeDamage, CrackAt(w, cell));
-        Assert.Equal("soil", w.M.Grid.WallAt(cell)?.Id);
-        Assert.Equal(2, Soil.Strength / AxeDamage);
+        Assert.Equal(1, Soil.Strength / AxeDamage);
         w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(cell));
@@ -72,12 +69,12 @@ public class DigTests
     {
         var w = World();
         int cell = At(5, 2);
-        for (int i = 0; i < 3; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
-        Assert.Equal(3 * AxeDamage, CrackAt(w, cell));
+        for (int i = 0; i < 2; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
+        Assert.Equal(2 * AxeDamage, CrackAt(w, cell));
         w.Reload();
-        Assert.Equal(3 * AxeDamage, CrackAt(w, cell));
+        Assert.Equal(2 * AxeDamage, CrackAt(w, cell));
         Assert.Equal("stone", w.M.Grid.WallAt(cell)?.Id);
-        for (int i = 3; i < Stone.Strength / AxeDamage; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
+        for (int i = 2; i < Stone.Strength / AxeDamage; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         Assert.Null(w.M.Grid.WallAt(cell));
         Assert.Equal(1, Count(w, "rock"));
         Assert.Empty(w.M.Building.Cracks);
@@ -87,8 +84,8 @@ public class DigTests
     public void KeepsEachWallsCrackApartInCellOrder()
     {
         var w = World();
-        w.Do(HewTesting.Dig(w, At(6, 3), Axe)).Do(HewTesting.Dig(w, At(1, 2), Axe)).Do(HewTesting.Dig(w, At(4, 2), Axe)).Run();
-        Assert.Equal([At(1, 2), At(4, 2), At(6, 3)], w.M.Building.Cracks.Select(c => c.Cell));
+        w.Do(HewTesting.Dig(w, At(6, 3), Axe)).Do(HewTesting.Dig(w, At(5, 2), Axe)).Do(HewTesting.Dig(w, At(4, 2), Axe)).Run();
+        Assert.Equal([At(4, 2), At(5, 2), At(6, 3)], w.M.Building.Cracks.Select(c => c.Cell));
     }
 
     [Fact]
@@ -105,7 +102,8 @@ public class DigTests
         Assert.Null(HewTesting.DigProblem(w, 0, At(2, 2), Drill));
         w.Do(new Run(Drill, true)).Do(HewTesting.Dig(w, At(2, 2), Drill)).Run();
         Assert.Equal(2, w.Refusals.Count);
-        Assert.Equal(Weapons.Drill.Damage, CrackAt(w, At(2, 2)));
+        // Soil at one hit of the drill.
+        Assert.Null(w.M.Grid.WallAt(At(2, 2)));
     }
 
     [Fact]
@@ -124,7 +122,7 @@ public class DigTests
     {
         var w = World().GiveItems(0, ("scrap", 500 * Inventory.Slots));
         int cell = At(1, 3);
-        w.Do(HewTesting.Dig(w, cell, Axe)).Do(HewTesting.Dig(w, cell, Axe)).Run();
+        w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         Assert.Null(w.M.Grid.WallAt(cell));
         var spilt = Assert.Single(w.M.Items.Floor);
         Assert.Equal(("soil", 1, cell), (spilt.Item, spilt.Count, spilt.Cell));
@@ -134,13 +132,15 @@ public class DigTests
     public void OfTwoDiggersOnOneTickTheFirstBreaksTheWallAndTheSecondsRaysGoOnToTheWallBehindIt()
     {
         var w = World();
-        int cell = At(2, 3);
-        w.Do(HewTesting.Dig(w, cell, Axe)).Run();
-        w.Do(HewTesting.Dig(w, cell, Axe) with { From = 1 }).Do(HewTesting.Dig(w, cell, Axe) with { From = 0 }).Run();
+        int cell = At(5, 3);
+        for (int i = 1; i < Stone.Strength / AxeDamage; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
+        // Both aimed from inside it, up: the first breaks it, the second's rays go on through the gap to the stone above.
+        var (one, two) = (HewTesting.Dig(w, cell, Axe) with { From = 1 }, HewTesting.Dig(w, cell, Axe) with { From = 0 });
+        w.Do(one).Do(two).Run();
         Assert.Empty(Reasons(w));
-        Assert.Equal(1, Count(w, "soil", peer: 1));
-        Assert.Equal(0, Count(w, "soil", peer: 0));
-        Assert.Equal(AxeDamage, CrackAt(w, At(2, 2)));
+        Assert.Equal(1, Count(w, "rock", peer: 1));
+        Assert.Equal(0, Count(w, "rock", peer: 0));
+        Assert.Equal(AxeDamage, CrackAt(w, At(5, 2)));
     }
 
     [Fact]
@@ -203,16 +203,16 @@ public class DigTests
     {
         var w = World();
         int cell = At(5, 2);
-        for (int i = 0; i < 3; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
-        // Hit last on the third tick: it lasts CrackHeals ticks from there, through a save, then heals.
+        for (int i = 0; i < 2; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
+        // Hit last on the second tick: it lasts CrackHeals ticks from there, through a save, then heals.
         w.Run(Builds.CrackHeals - 2).Reload();
-        Assert.Equal(3 * AxeDamage, CrackAt(w, cell));
+        Assert.Equal(2 * AxeDamage, CrackAt(w, cell));
         w.Run();
         Assert.Null(CrackAt(w, cell));
         Assert.Equal("stone", w.M.Grid.WallAt(cell)?.Id);
         // A hit keeps a crack fresh: one every few seconds never heals.
-        for (int i = 0; i < 3; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run(Builds.CrackHeals - 1);
-        Assert.Equal(3 * AxeDamage, CrackAt(w, cell));
+        for (int i = 0; i < 2; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run(Builds.CrackHeals - 1);
+        Assert.Equal(2 * AxeDamage, CrackAt(w, cell));
     }
 
     [Fact]
