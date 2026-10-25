@@ -296,11 +296,13 @@ internal static class Stacks
     /// <summary>
     /// Why a machine of <paramref name="spec"/>, its slots <paramref name="slots"/>, holds what it does not take: a charging
     /// station only items with a <c>Capacity</c> (<c>items.notBattery</c>); an arc bench's first slot only a tool a module
-    /// fits (<c>items.notTool</c>, 0099). Null when each holds what it may.
+    /// fits (<c>items.notTool</c>, 0099); one that <c>Takes</c> an item only that (<c>items.notTaken</c>, the engine's biofuel).
+    /// Null when each holds what it may.
     /// </summary>
     public static string? Unfit(MachineSpec spec, IReadOnlyList<Stack?> slots)
     {
         if (spec.Tunes) return slots.Count > 0 && slots[0] is { } tool && !Modules.Hosted(tool.Item) ? "items.notTool" : null;
+        if (spec.Takes is { } only) return slots.Any(s => s != null && s.Item != only) ? "items.notTaken" : null;
         if (!spec.Charges) return null;
         foreach (var s in slots)
             if (s != null && Content.Items.Get(s.Item).Capacity == null) return "items.notBattery";

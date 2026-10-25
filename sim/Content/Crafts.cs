@@ -43,6 +43,11 @@ public static class Crafts
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
         new("drone", [("rotor", 1), ("plate", 2), ("circuit", 1), ("battery", 1)], Ticks: 160),
         new("deckDrive", [("circuit", 2), ("rotor", 1), ("coil", 1)], Ticks: 200),
+        // The engine's parts, the last made: a nozzle pressed of the ruins' heat-proof alloy lined with copper, and a fuel pump
+        // of a motor at the Former; an igniter of a crystal's spark at the circuit assembler.
+        new("nozzle", [("alloyScrap", 4), ("copper", 2)], Ticks: 200),
+        new("fuelPump", [("motor", 1), ("tube", 2), ("plate", 1)], Ticks: 160),
+        new("igniter", [("crystal", 1), ("circuit", 1), ("wire", 2)], Ticks: 120),
         // At the arc bench (0099): a sky shard wound into a module an electric station or the drill takes (0086, 0096), in ten seconds.
         new("arcModule", [("arcShard", 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.

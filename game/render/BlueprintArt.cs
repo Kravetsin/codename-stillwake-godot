@@ -10,9 +10,10 @@ public enum TileLayer { Back, Pipes, Valves, Walls, Edges, Fixtures, Doors, Mach
 
 /// <summary>
 /// A picture of the ship's atlas laid on a cell: whole from its top-left, or <c>Cut</c> from a picture laid over the world; a
-/// machine's standing <c>Rise</c> cells above its footprint (<see cref="ShipTiles.RiseOf"/>, the arc bench's vise, 0099).
+/// machine's standing <c>Rise</c> cells above its footprint (<see cref="ShipTiles.RiseOf"/>, the arc bench's vise, 0099) and reaching
+/// <c>Reach</c> cells left of it (<see cref="ShipTiles.ReachOf"/>, the engine's nozzle).
 /// </summary>
-public readonly record struct TilePiece(TileLayer Layer, string Picture, bool Cut = false, int Rise = 0);
+public readonly record struct TilePiece(TileLayer Layer, string Picture, bool Cut = false, int Rise = 0, int Reach = 0);
 
 /// <summary>
 /// What a placement looks like built (render/blueprint-art.ts): the ship's own pictures, for plans,
@@ -39,7 +40,7 @@ public static class BlueprintArt
                 : new(TileLayer.Back, ShipTiles.BackName(placement.Material!), Cut: true)]
             : Structures.ByBuild(placement.Kind) is { } spec
                 ? StructurePieces(spec, placement, linked)
-                : [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind))];
+                : [new(TileLayer.Machines, $"machine_{placement.Kind}", Rise: ShipTiles.RiseOf(placement.Kind), Reach: ShipTiles.ReachOf(placement.Kind))];
 
     private static IReadOnlyList<TilePiece> StructurePieces(StructureSpec spec, Placement placement, int linked) => spec.Draw switch
     {

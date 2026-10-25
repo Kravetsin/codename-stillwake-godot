@@ -72,6 +72,10 @@ A living document: what is decided about the game and what is still open. Techni
   four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
   them. Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
   ([0060](decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)).
+- **The engine** is the last thing built, of a planet's parts: a nozzle of the ruins' alloy and copper, a fuel pump round a
+  motor of the deepest magnetite, an igniter of a crystal. It stands at the stern, its nozzle out through the hull into
+  space, its tank taking biofuel alone, cabled to power; it does not fire yet, the jump to come
+  ([the-engine-through-the-hull](decisions/2026-10-25-the-engine-through-the-hull.md)).
 - **Spacewalks:** on a tether from the hull at first, swimming slowly; an oxygen jetpack worn on the back
   frees the hero from it, its thrust paid in the suit's air, and canisters breathed refill the suit
   ([0047](decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)).
@@ -149,7 +153,7 @@ A living document: what is decided about the game and what is still open. Techni
 
 - Which dangers besides meteors, how often, how they are telegraphed; a peaceful mode as in Raft?
   Directions so far: enemies living in other wrecks, pirate raids.
-- What the engine and the radar are made of, and what the path to them asks for.
+- What the jump between places costs in biofuel, and how the radar shows where it goes.
 - How resources move between machines: belts, drones, or hired crew carrying them. In side view
   this shapes the ship's layout; carrying by hand comes first, so automation is felt as relief.
 - Co-op start: one shared wreck, or separate wrecks that dock later?

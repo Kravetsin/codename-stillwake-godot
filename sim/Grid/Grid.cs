@@ -551,10 +551,39 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!cells.All(InZone)) return "grid.outsideZone";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
-                return null;
+                return Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach)
+                    ? "grid.noExhaust" : null;
             default:
                 return "grid.noSuchLayer";
         }
+    }
+
+    /// <summary>
+    /// Whether a nozzle reaching <paramref name="reach"/> cells out of the left side of a machine at <paramref name="cell"/>,
+    /// <paramref name="rows"/> tall, passes through the hull (2026-10-25-the-engine-through-the-hull): in every row, from its
+    /// side, one wall or more, then space past them, open and with no back wall, up to the nozzle's tip or a cell past it.
+    /// </summary>
+    private bool ExhaustsThroughHull(int cell, int rows, int reach)
+    {
+        int w = State.Width, x0 = cell % w, y0 = cell / w;
+        for (int y = y0; y < y0 + rows; y++)
+        {
+            int walls = 0;
+            while (walls < reach && IsWall(x0 - 1 - walls, y)) walls++;
+            if (walls == 0) return false;
+            for (int k = walls; k < Math.Max(walls + 1, reach); k++)
+                if (!IsSpace(x0 - 1 - k, y)) return false;
+        }
+        return true;
+    }
+
+    private bool IsWall(int x, int y) => x >= 0 && Structures.Is(State.Structure[y * State.Width + x], Trait.Terrain);
+
+    private bool IsSpace(int x, int y)
+    {
+        if (x < 0) return true;
+        int c = y * State.Width + x;
+        return State.Structure[c] == Structure.Empty && State.Back[c] == Back.None && State.Occupancy[c] == 0;
     }
 
     public void Place(int cell, Placement p)

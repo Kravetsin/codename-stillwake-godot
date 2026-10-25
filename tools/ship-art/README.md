@@ -1,3 +1,4 @@
+| `engine/engine.gd` (Godot) | `machine_engine`; `items/` `nozzle`, `fuelPump`, `igniter` | none | `godot --headless --script tools/ship-art/engine/engine.gd -- <artDir> [sheet]` | exact 4/4 |
 ﻿# Ship art painters
 
 These scripts paint the ship-era pictures in `game/art`: debris, machines, hero tools, drones, hatches, the tank, the
