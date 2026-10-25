@@ -4,6 +4,7 @@ using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Power;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
+using Stillwake.Sim.Grid;
 using Stillwake.Sim.Landing;
 using Xunit;
 using Hero = Stillwake.Game.Features.Crew.Hero;
@@ -38,6 +39,26 @@ public class LaunchPlatformTests
         var runs = PlatformRuns.Of(w.M.Grid);
         Assert.Equal([(Char(3, 4), 4), (Char(10, 4), 2)], runs);
         Assert.Equal([true, false], runs.Select(r => PlatformRuns.Lit(w.M.Power, r)));
+    }
+
+    [Fact]
+    public void PlansAPieceWholeAsItIsBuiltNotADoorsQuarterACell()
+    {
+        Assert.False(Tools.LaysDoor(new Placement("structure", Builds.Platform)));
+        Assert.True(Tools.LaysDoor(new Placement("structure", "door")));
+        Assert.True(Tools.LaysDoor(new Placement("structure", Builds.Hatch)));
+    }
+
+    [Fact]
+    public void RunsEveryCableToARunIntoItsSocketAtItsLeftEnd()
+    {
+        var w = new TestWorld(Layout.Parse(Rows, [], [((0, 0), (4, 4))]).Doubled());
+        int width = w.M.Grid.Width;
+        int Char(int x, int y) => 2 * y * width + 2 * x;
+        var plug = Structures.Of(Structure.PlatformClosed).Plug!.Value;
+        Assert.Equal(Char(3, 4), w.M.Power.NodeAt(Char(4, 4)));
+        Assert.Equal((3 * 2 + plug.X / 8.0, 4 * 2 + plug.Y / 8.0), Stillwake.Game.Render.CableShape.EndOf(w.M.Grid, Char(3, 4)));
+        Assert.True(PlatformRuns.Lit(w.M.Power, PlatformRuns.Of(w.M.Grid)[0]));
     }
 
     [Fact]

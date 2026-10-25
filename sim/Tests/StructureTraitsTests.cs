@@ -20,7 +20,7 @@ public class StructureTraitsTests
             var other = Structures.Of(s.Toggle!.Value);
             Assert.Equal(s.Code, other.Toggle);
             Assert.Equal(s.Group, other.Group);
-            Assert.NotEqual(s.Has(Trait.Opening), other.Has(Trait.Opening));
+            Assert.NotEqual(s.Has(Trait.Seals), other.Has(Trait.Seals));
             Assert.NotEqual(StructureGroup.None, s.Group);
         }
         Assert.All(Structures.All.Where(s => s.Group != StructureGroup.None), s => Assert.NotNull(s.Toggle));

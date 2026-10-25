@@ -207,6 +207,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
                 if (cx < x || cx >= x + s.Width || cy < y || cy >= y + s.Height) continue;
                 return IsPowered(s) ? top : throw none;
             }
+            // A run with a plug, a launch platform's, is plugged at its left end, as NodeAt has it.
+            if (Content.Structures.OfChar(layout.At(cell)) is int code && Content.Structures.Of(code).Plug != null)
+                while (cx > 0 && Content.Structures.OfChar(layout.At(cell - 1)) is int left && Content.Structures.Of(left).Group == Content.Structures.Of(code).Group) (cell, cx) = (cell - 1, cx - 1);
             // Every character but a space has a back wall to mount on, a machine's included.
             return layout.At(cell) == ' ' ? throw none : cell;
         }

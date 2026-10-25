@@ -72,6 +72,10 @@ public enum DragMode { Line, Area }
 /// <param name="Toggle">The code it becomes when its doorway opens or shuts; its own for none.</param>
 /// <param name="Build">What places it, by id: <c>wall</c> for walls (costing their material), else one of <see cref="Builds"/>.</param>
 /// <param name="Flat">A deck one cell thick: a map drawn at 16 px lays it in its block's top row only (0104).</param>
+/// <param name="Plug">
+/// Where a cable plugs into a run of it, in pixels from its left end's corner, as a machine's <c>Plug</c>: every cable to the run
+/// ends on that cell, the socket drawn there; null for a structure a cable is fixed to anywhere.
+/// </param>
 public sealed record StructureSpec(
     int Code,
     char? Char,
@@ -85,7 +89,8 @@ public sealed record StructureSpec(
     StructureDraw Draw = StructureDraw.None,
     string? Tile = null,
     DragMode Drag = DragMode.Line,
-    bool Flat = false)
+    bool Flat = false,
+    (int X, int Y)? Plug = null)
 {
     public bool Has(Trait trait) => (Traits & trait) != 0;
 }
@@ -116,13 +121,15 @@ public static class Structures
         // A test fixture (0112): what a plain new structure takes, this row alone. No build and no art yet; no map of the game draws it.
         new(Structure.Grate, '%', "grate: a deck stood on that air and light pass through", Trait.Supports, Flat: true),
         // The launch platform (the drop pod's deck): shut, stood on and sealed as a shut hatch is; its pieces side by side are one
-        // doorway as far as the run goes, opened with power alone (Landing). Open, its deck parts and lets air and light through,
-        // but still holds what stands on it: nothing drops yet.
+        // doorway as far as the run goes, opened with power alone (Landing), its cable plugged in at the run's left end. Open, its
+        // deck parts into a hole: no opening a room's edge runs through, so space comes in, the room's air and gravity gone.
         new(Structure.PlatformClosed, '_', "launch platform, shut: a deck in the floor, two cells a piece, joined side by side",
             Trait.Supports | Trait.BlocksFromBelow | Trait.Seals | Trait.BlocksLight, Build: Builds.Platform, Leak: Air.DoorLeak,
-            Toggle: Structure.PlatformOpen, Group: StructureGroup.Platform, Join: Join.Run, Draw: StructureDraw.Joined, Tile: "platform", Flat: true),
-        new(Structure.PlatformOpen, '~', "launch platform, open", Trait.Supports | Trait.Opening, Build: Builds.Platform, Leak: Air.DoorLeak,
-            Toggle: Structure.PlatformClosed, Group: StructureGroup.Platform, Join: Join.Run, Draw: StructureDraw.Joined, Tile: "platform_open", Flat: true),
+            Toggle: Structure.PlatformOpen, Group: StructureGroup.Platform, Join: Join.Run, Draw: StructureDraw.Joined, Tile: "platform",
+            Flat: true, Plug: (3, 4)),
+        new(Structure.PlatformOpen, '~', "launch platform, open: a hole in the floor", Trait.None, Build: Builds.Platform, Leak: Air.DoorLeak,
+            Toggle: Structure.PlatformClosed, Group: StructureGroup.Platform, Join: Join.Run, Draw: StructureDraw.Joined, Tile: "platform_open",
+            Flat: true, Plug: (3, 4)),
     ];
 
     /// <summary>What a hero builds of these (<see cref="Builds.All"/>): each build's cost, ticks and piece, by the id a spec names.</summary>

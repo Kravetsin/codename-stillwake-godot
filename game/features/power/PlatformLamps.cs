@@ -9,7 +9,8 @@ namespace Stillwake.Game.Features.Power;
 /// <summary>
 /// Each launch platform's lamp, the lens in its right end post: green while its network has power enough, red while not
 /// (<see cref="PlatformRuns"/>), lighting the deck a little in its colour. Drawn unlit over the platform's picture
-/// (<c>platform_*.png</c>, whose lens is dark). The runs are found again only when the grid changes.
+/// (<c>platform_*.png</c>, whose lens is dark). Its socket, where every cable to the run plugs in, sits in its left end post, lit
+/// as a machine's is (<c>StructureSpec.Plug</c>). The runs are found again only when the grid changes.
 /// </summary>
 public partial class PlatformLamps : Node2D
 {
@@ -25,6 +26,7 @@ public partial class PlatformLamps : Node2D
     private readonly List<(Vector2 At, bool Lit)> _lamps = [];
     private readonly List<Glow> _glows = [];
     private int _version = -1;
+    private readonly Node2D _sockets = new();
     private double _sinceRead = RefreshMs;
 
     public PlatformLamps(IGridQueries grid, IPowerQueries power)
@@ -33,6 +35,7 @@ public partial class PlatformLamps : Node2D
         _power = power;
         ZIndex = Layers.Screens;
         Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+        AddChild(_sockets);
     }
 
     public override void _Process(double delta)
@@ -43,6 +46,7 @@ public partial class PlatformLamps : Node2D
         {
             _version = _grid.Version;
             _runs = PlatformRuns.Of(_grid);
+            PlaceSockets();
         }
         _lamps.Clear();
         foreach (var run in _runs)
@@ -52,6 +56,23 @@ public partial class PlatformLamps : Node2D
         }
         Light();
         QueueRedraw();
+    }
+
+    /// <summary>A socket in each run's left end post, where its plug is.</summary>
+    private void PlaceSockets()
+    {
+        foreach (var socket in _sockets.GetChildren()) socket.QueueFree();
+        foreach (var run in _runs)
+        {
+            if (Content.Structures.Of(_grid.StructureAt(run.First)).Plug is not { } plug) continue;
+            var socket = new Sprite2D
+            {
+                Texture = PixelArt.Lit("power-socket"),
+                Position = new Vector2(run.First % _grid.Width, run.First / _grid.Width) * ShipCamera.Cell + new Vector2(plug.X, plug.Y),
+            };
+            Lit.Set(socket);
+            _sockets.AddChild(socket);
+        }
     }
 
     private void Light()

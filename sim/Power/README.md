@@ -24,7 +24,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 ## Rules
 
 - **A node** (0017) is a machine that makes, draws or stores power (`MachineSpec.Powered`), named by its top-left
-  whichever cell a cable is laid at; or an **anchor**: any other cell with a wall, floor, door or back wall and no
+  whichever cell a cable is laid at; a **run with a plug** (a launch platform, `StructureSpec.Plug`), named by its left
+  end, whichever of its cells a cable is laid at; or an **anchor**: any other cell with a wall, floor, door or back wall and no
   machine, existing only while a cable ends there.
 - **A cable** (0017) joins two different nodes whose nearest cells are within `Content.Power.MaxSpan`, one cable a
   pair. It takes no cell: it runs through walls and leaks no air.

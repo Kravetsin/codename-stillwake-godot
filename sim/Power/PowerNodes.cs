@@ -48,15 +48,17 @@ internal static class PowerNodes
 
     /// <summary>
     /// The node a cable laid at <paramref name="cell"/> ends on: a machine that makes or draws power,
-    /// named by its top-left cell; or an anchor, the cell itself, where a wall, a floor, a door or a back
-    /// wall stands and no machine does. Nothing anywhere else.
+    /// named by its top-left cell; a structure with a plug (a launch platform), its run's left end, where the plug is; or an
+    /// anchor, the cell itself, where a wall, a floor, a door or a back wall stands and no machine does. Nothing anywhere else.
     /// </summary>
     public static int? NodeAt(IGridQueries grid, int cell)
     {
         if (cell < 0 || cell >= grid.Width * grid.Height) return null;
         var machine = grid.MachineAt(cell);
         if (machine != null) return IsPowered(Spec(machine)) ? machine.Cell : null;
-        bool mounted = grid.StructureAt(cell) != Structure.Empty || grid.BackLayer[cell] == Back.Wall;
+        var spec = Structures.Of(grid.StructureAt(cell));
+        if (spec.Plug != null) return StructureRuns.RunOf(cell, grid.Width, c => Structures.Of(grid.StructureAt(c)).Group == spec.Group ? 1 : 0).First;
+        bool mounted = spec.Code != Structure.Empty || grid.BackLayer[cell] == Back.Wall;
         return mounted ? cell : null;
     }
 

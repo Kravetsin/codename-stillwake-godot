@@ -95,12 +95,11 @@ public class LaunchPlatformTests
 
     private static Scenario Cabled(Pairs cables) => new(Layout.Parse(Rows, Under, cables), doubled: true);
 
-    /// <summary>Whether any cell of the run at character (7, 4) is fed: what its lamp shows.</summary>
+    /// <summary>Whether the run at character (7, 4) is fed at its plug: what its lamp shows.</summary>
     private static bool Lit(Scenario w)
     {
-        var (first, length) = StructureRuns.RunOf(Char(7, 4), Wide, w.M.Grid.StructureAt);
-        Assert.Equal(4, length);
-        return Enumerable.Range(first, length).Any(w.M.Power.Feeds);
+        Assert.Equal((Char(7, 4), 4), Stillwake.Sim.Landing.LandingModule.RunOf(w.M.Grid, Char(8, 4)));
+        return w.M.Landing.Powered(Char(8, 4));
     }
 
     [Fact]
@@ -111,8 +110,21 @@ public class LaunchPlatformTests
         Assert.Equal((5, 4, 1000), (network.Supply, network.Demand, network.Satisfaction));
         Assert.True(Lit(w));
         Assert.True(w.M.Power.Feeds(Char(7, 4)));
-        // Only the cell a cable ends on is on the network; the run is lit by any of its cells.
+        // Only its plug, at its left end, is on the network.
         Assert.False(w.M.Power.Feeds(Char(8, 4)));
+    }
+
+    [Fact]
+    public void PlugsEveryCableToARunInAtItsLeftEndWhereverItIsLaid()
+    {
+        // A map's cable to the run's right piece, and one laid to its last cell.
+        var w = Cabled([((0, 0), (1, 3)), ((1, 3), (8, 4))]);
+        Assert.Equal(Char(7, 4), w.M.Power.NodeAt(Char(8, 4) + 1));
+        Assert.Contains(w.M.Power.Cables, c => c.A == Char(7, 4) || c.B == Char(7, 4));
+        Assert.True(Lit(w));
+        w.Do(new Stillwake.Sim.Items.SetCreative(true)).Do(new Stillwake.Sim.Power.Lay(Char(4, 3), Char(8, 4) + 1) { From = 0 }).Run();
+        Assert.Empty(Reasons(w));
+        Assert.Contains(w.M.Power.Cables, c => (c.A, c.B) == (Char(4, 3), Char(7, 4)) || (c.A, c.B) == (Char(7, 4), Char(4, 3)));
     }
 
     [Fact]
@@ -148,22 +160,25 @@ public class LaunchPlatformTests
     private static int[] RunCells => [Char(7, 5), Char(7, 5) + 1, Char(8, 5), Char(8, 5) + 1];
     private static int[] Codes(Scenario w) => RunCells.Select(w.M.Grid.StructureAt).ToArray();
     private static readonly int Above = Char(9, 4);
-    private static Stillwake.Sim.Rooms.Room RoomAbove(Scenario w) => w.M.Rooms.RoomById(w.M.Rooms.RoomAt(Above)!.Value)!;
+    private const int Space = Stillwake.Sim.Rooms.RoomsModule.Space;
 
     [Fact]
-    public void OpensAPoweredRunWholeItsRoomOpenToSpaceAndShutsItAgain()
+    public void OpensAPoweredRunWholeIntoAHoleTheRoomTurnedToSpaceAndShutsItAgain()
     {
         var w = Decked(ToDeck);
-        Assert.Empty(RoomAbove(w).Openings);
-        // Opened from its last cell, the whole run opens, and its room vents through it.
+        Assert.NotEqual(Space, w.M.Rooms.RoomAt(Above));
+        Assert.False(w.M.Rooms.Afloat(Above));
+        // Opened from its last cell, the whole run opens: space comes in through it, the room's air and gravity gone.
         w.Do(new SetPlatform(Char(8, 5) + 1, true)).Run();
         Assert.Empty(w.Refusals);
         Assert.All(Codes(w), c => Assert.Equal(Structure.PlatformOpen, c));
-        Assert.NotEmpty(RoomAbove(w).Openings);
-        Assert.Equal(Stillwake.Sim.Atmosphere.RoomStatus.Venting, w.M.Atmosphere.StatusOf(RoomAbove(w).Id));
+        Assert.Equal(Space, w.M.Rooms.RoomAt(Above));
+        Assert.True(w.M.Rooms.Afloat(Above));
+        // Shut, the room is closed again, an airless room with gravity.
         w.Do(new SetPlatform(Char(7, 5), false)).Run();
         Assert.All(Codes(w), c => Assert.Equal(Structure.PlatformClosed, c));
-        Assert.Empty(RoomAbove(w).Openings);
+        Assert.NotEqual(Space, w.M.Rooms.RoomAt(Above));
+        Assert.False(w.M.Rooms.Afloat(Above));
     }
 
     [Fact]
@@ -174,7 +189,8 @@ public class LaunchPlatformTests
         w.Do(new Stillwake.Sim.Items.Drop(new Stillwake.Sim.Items.Place(0), 3, Char(7, 5) - Wide, 0) { From = 0 }).Run(60);
         var before = Assert.Single(w.M.Items.Floor);
         w.Do(new SetPlatform(Char(7, 5), true)).Run(600);
-        Assert.Equal(Stillwake.Sim.Atmosphere.RoomStatus.Venting, w.M.Atmosphere.StatusOf(RoomAbove(w).Id));
+        Assert.True(w.M.Rooms.Afloat(before.Cell));
+        // Afloat before a back wall, inside the ship, it does not drift back as a stack out in space does.
         var after = Assert.Single(w.M.Items.Floor);
         Assert.Equal((before.Item, before.Count, before.X, before.Y), (after.Item, after.Count, after.X, after.Y));
     }
@@ -191,12 +207,15 @@ public class LaunchPlatformTests
     }
 
     [Fact]
-    public void StaysADeckToStandOnOpenLettingAirAndLightThrough()
+    public void IsAHoleOpenThatNothingStopsOrStandsOnAndNoRoomEndsAt()
     {
         var open = Structures.Of(Structure.PlatformOpen);
-        Assert.Equal(Trait.Supports | Trait.Opening, open.Traits);
+        Assert.Equal(Trait.None, open.Traits);
+        Assert.False(Structures.Solid(Structure.PlatformOpen));
         Assert.Equal(Structure.PlatformClosed, open.Toggle);
         Assert.Equal(Structure.PlatformClosed, Structures.Placed(Builds.Platform));
+        Assert.True(Doorways.IsOpen(Structure.PlatformOpen));
+        Assert.True(Doorways.IsClosed(Structure.PlatformClosed));
         // Every cell of a run joins its neighbours along its row, so the doorway is the run, not a piece.
         var w = Decked(ToDeck);
         Assert.Equal(Doorways.Left | Doorways.Right, Doorways.LinksOf(Char(7, 5) + 1, Wide, Wide * 14, w.M.Grid.StructureAt));

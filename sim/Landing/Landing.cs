@@ -44,14 +44,11 @@ public sealed class LandingModule : Module<LandingState>
         return open && !Powered(cell) ? "landing.unpowered" : null;
     }
 
-    /// <summary>Whether the run of the platform at <paramref name="cell"/> has power enough: a cable on any of its cells fed (<see cref="IPowerQueries.Feeds"/>).</summary>
-    public bool Powered(int cell)
-    {
-        var (first, length) = RunOf(_grid, cell);
-        for (int i = 0; i < length; i++)
-            if (_power.Feeds(first + i)) return true;
-        return false;
-    }
+    /// <summary>
+    /// Whether the run of the platform at <paramref name="cell"/> has power enough: its plug, its left end, where every cable to it
+    /// ends, fed (<see cref="IPowerQueries.Feeds"/>).
+    /// </summary>
+    public bool Powered(int cell) => _power.Feeds(RunOf(_grid, cell).First);
 
     /// <summary>The run of platform pieces <paramref name="cell"/> is in, shut and open alike: its first cell and how many cells it runs.</summary>
     public static (int First, int Length) RunOf(IGridQueries grid, int cell) =>

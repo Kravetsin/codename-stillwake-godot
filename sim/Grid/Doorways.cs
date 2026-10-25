@@ -34,11 +34,11 @@ public static class Doorways
     /// <summary>Whether <paramref name="structure"/> is part of a door, a hatch or a launch platform.</summary>
     public static bool IsDoorway(int structure) => Structures.Of(structure).Group != StructureGroup.None;
 
-    /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands open.</summary>
-    public static bool IsOpen(int structure) => IsDoorway(structure) && Structures.Is(structure, Trait.Opening);
+    /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands open: sealing nothing, an opening or a platform's hole.</summary>
+    public static bool IsOpen(int structure) => IsDoorway(structure) && !Structures.Is(structure, Trait.Seals);
 
-    /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands shut.</summary>
-    public static bool IsClosed(int structure) => IsDoorway(structure) && !Structures.Is(structure, Trait.Opening);
+    /// <summary>Whether <paramref name="structure"/> is a doorway's cell as it stands shut: sealed.</summary>
+    public static bool IsClosed(int structure) => IsDoorway(structure) && Structures.Is(structure, Trait.Seals);
 
     /// <summary>The code <paramref name="structure"/>, a doorway cell, takes <paramref name="open"/> or shut: its own, or its toggle.</summary>
     public static int Toggled(int structure, bool open) =>
