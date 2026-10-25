@@ -71,6 +71,18 @@ public static class Lit
                 return texture(map, at / vec2(textureSize(map, 0))).rgb;
             }
 
+            bool walled(vec2 texel) {
+                vec2 w = texel * lightmap_texel + lightmap_at;
+                return cell(ivec2(floor((w - starlight_rect.xy) / starlight_rect.zw * vec2(textureSize(starlight, 0))))).a > 0.5;
+            }
+
+            // The lamps' light across 2 * step about texel, a sample in a cell of the other side taken as here's.
+            float sided(vec2 texel, vec2 step, bool wall, float here, vec3 luma) {
+                float ahead = walled(texel + step) == wall ? dot(mapped(lightmap, texel + step), luma) : here;
+                float behind = walled(texel - step) == wall ? dot(mapped(lightmap, texel - step), luma) : here;
+                return ahead - behind;
+            }
+
             void fragment() {
                 // Debris that axes have hit shows it, on its own pixels, before the light falls on it.
                 COLOR.rgb = cracked(COLOR.rgb, UV, TEXTURE_PIXEL_SIZE);
@@ -94,14 +106,16 @@ public static class Lit
                 vec3 star = weight > 0.0 ? sum / weight : own.rgb;
                 vec2 texel = (world - lightmap_at) / lightmap_texel;
                 vec3 lamps = mapped(lightmap, texel), spots = mapped(spotmap, texel);
-                // Where the lamps' light comes from: up its slope, half a cell each side. Where it hardly
+                // Where the lamps' light comes from: up its slope, a cell each side. Where it hardly
                 // changes, or none falls, the picture is shaded as facing it.
                 const vec3 LUMA = vec3(0.3, 0.59, 0.11);
                 float h = 8.0 / lightmap_texel;
+                // Read on its own side only: past a deck, the light of the room below is not light coming at it.
+                float here = dot(lamps, LUMA);
                 vec2 slope = vec2(
-                    dot(mapped(lightmap, texel + vec2(h, 0.0)) - mapped(lightmap, texel - vec2(h, 0.0)), LUMA),
-                    dot(mapped(lightmap, texel + vec2(0.0, h)) - mapped(lightmap, texel - vec2(0.0, h)), LUMA));
-                float steep = clamp(length(slope) / max(dot(lamps, LUMA), 0.0001) / 0.06, 0.0, 1.0);
+                    sided(texel, vec2(h, 0.0), wall, here, LUMA),
+                    sided(texel, vec2(0.0, h), wall, here, LUMA));
+                float steep = clamp(length(slope) / max(here, 0.0001) / 0.06, 0.0, 1.0);
                 vec3 toward = normalize(vec3(slope / max(length(slope), 0.0001) * steep, 1.0));
                 float facing = clamp(dot(NORMAL, toward) / toward.z, 0.0, 1.5);
                 // Where the stars and lamps together pass whole in a colour, all of their light is scaled down
