@@ -208,9 +208,9 @@ public class PlanetRulesTests
     [Fact]
     public void EveryPlacementTheStripAllowsIsInItsListAndTheShipAllowsEveryOne()
     {
-        // A planet is climbed out of, not built on (the fan of rays): no walls.
-        Assert.All(["floor", "ladder", "door", "hatch"], kind => Assert.True(Strip.Allows(kind)));
-        Assert.All(["wall", "backWall", "furnace", "vent", "pipe", "valve", "cable", "lamp"], kind => Assert.False(Strip.Allows(kind)));
+        // A planet has no back layer to build in (the fan of rays): blocks to climb out by, no back walls.
+        Assert.All(["wall", "floor", "ladder", "door", "hatch"], kind => Assert.True(Strip.Allows(kind)));
+        Assert.All(["backWall", "furnace", "vent", "pipe", "valve", "cable", "lamp"], kind => Assert.False(Strip.Allows(kind)));
         Assert.All(Research.Blueprints.All, b => Assert.True(Content.Surfaces.Ship.Allows(b.Placement.Kind)));
     }
 }

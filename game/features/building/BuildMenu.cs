@@ -415,7 +415,11 @@ public partial class BuildMenu : CanvasLayer
         Tool? tool = toolMenu ? _hand.ToolCard.Get() : _hand.Selected.Get();
         _search.Visible = !toolMenu;
         if (toolMenu && _search.Text != "") _search.Text = "";
-        _focus.Visible = !toolMenu;
+        // A surface where no back wall is built (a planet) has one layer: no keys for the other, and the focus kept on the front.
+        bool layered = m.Rules.Allows("backWall");
+        _hand.Layered = layered;
+        if (!layered) _hand.FocusOn(Focus.Front);
+        _focus.Visible = !toolMenu && layered;
         _modes.Visible = _hand.Aboard.Get();
         string query = _search.Text.Trim();
         _list = query == "" ? [.. shownTab?.Tools ?? []] : Tools.Matching(tabs.SelectMany(t => t.Tools), query);

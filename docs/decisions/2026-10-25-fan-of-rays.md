@@ -28,8 +28,8 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
   through; ladders and open doors likewise. Each wall, piece and plant takes the weapon's block damage once, however many rays meet it: walls by cell, then plants, a plant
   its wall took already left out; a relic's cradle among them shocks its striker once (0096).
 - **Each surface its own way** (`Surfaces.Kind.ToolsBreak`): on a planet tools break all that stands on its grid, the
-  pieces a hero builds there too (floor, ladder, door, hatch, at `Build.Strength`), and nothing is marked
-  (`building.notHere`); no wall nor back wall is built there: a planet is climbed out of, not built on; on the ship the plan alone takes things apart, ground built aboard too, and tools break nothing of
+  walls and pieces a hero builds there too (floor, ladder, door, hatch, at `Build.Strength`), and nothing is marked
+  (`building.notHere`); no back wall is built there, and the plan shows it no back layer: blocks are laid to climb out by; on the ship the plan alone takes things apart, ground built aboard too, and tools break nothing of
   its grid (`building.notHere`), only wrecks in space. No tool strikes back walls: a planet's give nothing. A test or dev
   world drawn as a planet plays the ship's grid under its rules (`Layout.Kind`, saved only when not the ship's).
 - **In space** (`HewWrecks(Tool, X, Y, Heading)`, Debris): each ray strikes the first wreck whose box (its size in cells,

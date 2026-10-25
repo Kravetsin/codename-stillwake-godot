@@ -184,9 +184,9 @@ public class DigTests
     }
 
     [Fact]
-    public void NoBlueprintBuildsBedrockFrontOrBackNotEvenInCreativeModeAndAPlanetNoWallAtAll()
+    public void NoBlueprintBuildsBedrockFrontOrBackNotEvenInCreativeModeAndAPlanetNoBackWallAtAll()
     {
-        Assert.Equal("building.notHere", World().M.Building.Problem(At(3, 1), Placement.Wall("stone")));
+        Assert.Equal("building.notHere", World().M.Building.Problem(At(3, 1), Placement.BackWall("stone")));
         var w = Aboard();
         w.Do(new SetCreative(true)).Run();
         Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock")));

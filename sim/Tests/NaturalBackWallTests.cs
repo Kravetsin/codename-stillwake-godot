@@ -39,14 +39,13 @@ public class NaturalBackWallTests
     }
 
     [Fact]
-    public void NoWallNorBackWallIsPlannedOnAPlanet()
+    public void NoBackWallIsPlannedOnAPlanet()
     {
-        // A planet is climbed out of, not built on (the fan of rays).
+        // A planet has no back layer to build in (the fan of rays).
         var w = Down(items: ("soil", 1));
         var m = w.On(1);
         int cell = m.Crew.Spawn - m.Grid.Width;
         Assert.Equal("building.notHere", m.Building.Problem(cell, Placement.BackWall("soil")));
-        Assert.Equal("building.notHere", m.Building.Problem(cell, Placement.Wall("soil")));
         w.Do(new PlacePlan(cell, Placement.BackWall("soil"))).Run();
         Assert.Equal(["building.notHere"], w.Refusals.Select(r => r.Reason));
         Assert.Null(m.Grid.BackAt(cell));
