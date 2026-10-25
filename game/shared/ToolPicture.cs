@@ -135,6 +135,8 @@ public partial class ToolPicture : Control
 
     public override void _Process(double delta)
     {
+        // Godot turns processing back on at ready, whatever the constructor said: a tool that never spins does nothing here.
+        if (_light == null) return;
         double ms = delta * 1000;
         double cycle = HeldLook.SpinUpMs + CardLook.RunMs + HeldLook.SpinDownMs + CardLook.RestMs;
         _clockMs = (_clockMs + ms) % cycle;
