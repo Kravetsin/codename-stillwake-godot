@@ -115,6 +115,10 @@ public enum MachineTrait
     Fire = 64,
     /// <summary>Opens the ship's programs on E, each brought by a module on its network (<see cref="Programs"/>): the ship's computer.</summary>
     Computer = 128,
+    /// <summary>A hero boards it with E and sits in it, one hero at a time (Landing): the drop pod.</summary>
+    Seats = 256,
+    /// <summary>Stands only on a launch platform, the row under it wholly a run of one (<c>grid.noPlatform</c>): the drop pod, its landers to come.</summary>
+    Lands = 512,
 }
 
 /// <summary>
@@ -169,6 +173,9 @@ public static class Machines
         // The engine (2026-10-25-the-engine-through-the-hull): the last thing built, of a planet's parts; its nozzle out through
         // the stern's wall, its tank of biofuel, its pumps and igniter kept ready on power. It does not run yet: the jump is to come.
         new("engine", 6, 4, [], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 2), ("plate", 4)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, Takes: "biofuel", Exhaust: 3, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),
+        // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
+        // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
+        new("dropPod", 4, 6, [], [("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: "biofuel", Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

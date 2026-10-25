@@ -551,14 +551,28 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!cells.All(InZone)) return "grid.outsideZone";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
-                return Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach)
-                    ? "grid.noExhaust" : null;
+                if (Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach))
+                    return "grid.noExhaust";
+                return Content.Machines.Is(p.Kind, MachineTrait.Lands) && !OnPlatform(p.Kind, cell) ? "grid.noPlatform" : null;
             default:
                 return "grid.noSuchLayer";
         }
     }
 
     /// <summary>
+    /// Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands on a launch platform: every cell of the row
+    /// under its footprint a platform's, shut or open, so it stands over one run (<see cref="MachineTrait.Lands"/>).
+    /// </summary>
+    private bool OnPlatform(string kind, int cell)
+    {
+        var spec = Content.Machines.Get(kind);
+        int x = cell % State.Width, below = cell / State.Width + spec.Height;
+        if (below >= State.Height) return false;
+        for (int dx = 0; dx < spec.Width; dx++)
+            if (!Doorways.IsPlatform(State.Structure[below * State.Width + x + dx])) return false;
+        return true;
+    }
+
     /// Whether a nozzle reaching <paramref name="reach"/> cells out of the left side of a machine at <paramref name="cell"/>,
     /// <paramref name="rows"/> tall, passes through the hull (2026-10-25-the-engine-through-the-hull): in every row, from its
     /// side, one wall or more, then space past them, open and with no back wall, up to the nozzle's tip or a cell past it.

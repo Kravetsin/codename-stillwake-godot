@@ -1,3 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup><ProjectReference Include="../Power/Power.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Power/Power.csproj" />
+    <ProjectReference Include="../Crew/Crew.csproj" />
+  </ItemGroup>
 </Project>

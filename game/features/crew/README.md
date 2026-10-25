@@ -8,7 +8,7 @@ commands reach the sim. Other heroes come through the host.
 
 | File | Holds |
 | --- | --- |
-| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; one `Step` at 60 a second; steps (0106); flight (0047) |
+| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; a `Step` at 60/s; steps (0106); flight (0047) |
 | `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) |
 | `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
@@ -20,6 +20,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not |
+| `logic/Seating.cs` | where a hero in a drop pod is held |
 | `UsePrompt.cs` | the prompt at the bottom middle |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
 | `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) |

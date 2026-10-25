@@ -337,6 +337,8 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
+        // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (landing).
+        int? seat = Seating.SeatOf(m, client.Id);
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
         bool canThrust = !passedOut && jetpack && known is { Suit: > 0 };
@@ -388,7 +390,7 @@ public partial class HeroView : Node2D
                 ? Hero.ThrustToward(taken.X, taken.Y, _current.Middle, pointed)
                 : null;
             if (thrust != null) _thrust = thrust;
-            var input = passedOut
+            var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
                 : taken with { Face = faces, Swings = swinging || _aimsGun || _aimsDrill, Pull = pull, Jetpack = jetpack, Thrust = thrust };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
@@ -400,6 +402,7 @@ public partial class HeroView : Node2D
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
         }
+        if (seat is int seatCell) _previous = _current = Hero.At(ship, seatCell) with { Facing = _current.Facing };
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
@@ -457,6 +460,7 @@ public partial class HeroView : Node2D
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.Ledge = LedgeOf(ship, drawn);
         _figure.Show(drawn, pose, look, holdsPlan, elapsedMs);
+        _figure.Visible = seat == null;
         // Its own thrust shows at once (0014); others' as the sim says.
         Plume(client.Id, _figure, _thrust is { } own ? (own.X, own.Y) : null, elapsedMs);
         ShowHarpoon(elapsedMs);
