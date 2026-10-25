@@ -27,9 +27,9 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
   struck, a ship's, bedrock and lava are not; whatever stops a body stops it; a plant in an open cell is struck and passed
   through; ladders and open doors likewise. Each wall, piece and plant takes the weapon's block damage once, however many rays meet it: walls by cell, then plants, a plant
   its wall took already left out; a relic's cradle among them shocks its striker once (0096).
-- **Each surface its own way** (`Surfaces.Kind.ToolsBreak`): on a planet tools break all that stands on its grid, a hero's
-  walls of any material and built pieces (floor, ladder, door, hatch, at `Build.Strength`) too, and nothing is marked
-  (`building.notHere`); on the ship the plan alone takes things apart, ground built aboard too, and tools break nothing of
+- **Each surface its own way** (`Surfaces.Kind.ToolsBreak`): on a planet tools break all that stands on its grid, the
+  pieces a hero builds there too (floor, ladder, door, hatch, at `Build.Strength`), and nothing is marked
+  (`building.notHere`); no wall nor back wall is built there: a planet is climbed out of, not built on; on the ship the plan alone takes things apart, ground built aboard too, and tools break nothing of
   its grid (`building.notHere`), only wrecks in space. No tool strikes back walls: a planet's give nothing. A test or dev
   world drawn as a planet plays the ship's grid under its rules (`Layout.Kind`, saved only when not the ship's).
 - **In space** (`HewWrecks(Tool, X, Y, Heading)`, Debris): each ray strikes the first wreck whose box (its size in cells,
@@ -57,5 +57,4 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
 - A wreck that drifts between the preview and its tick may be missed by a hit: one swing lost.
 - A wreck is struck by the cells a ray crosses, not its picture's outline: up to a cell of slack.
 - A machine does not stop a ray, as it does not stop a body; a planet has none.
-- A back wall a hero built on a planet stays: nothing marks it there and no tool strikes it.
 - A cheating client may hew from anywhere: no anti-cheat (principle 6).

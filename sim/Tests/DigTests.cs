@@ -34,6 +34,9 @@ public class DigTests
 
     private static Layout Layout(IReadOnlyList<string>? known = null) => Sim.Layout.Parse(Map).WithMaterials(Ground) with { Known = known, Kind = Content.Surfaces.TestStrip.Id };
     private static Scenario World(IReadOnlyList<string>? known = null) => new(Layout(known));
+
+    /// <summary>The same map aboard the ship, where walls are built and taken apart by the plan.</summary>
+    private static Scenario Aboard(IReadOnlyList<string>? known = null) => new(Sim.Layout.Parse(Map).WithMaterials(Ground) with { Known = known });
     private static int At(int x, int y) => y * 8 + x;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
@@ -159,9 +162,9 @@ public class DigTests
     }
 
     [Fact]
-    public void ASoilWallIsPlannedOnceSoilIsAnalysedBuiltOfSoilAndDugAgain()
+    public void AboardASoilWallIsPlannedOnceSoilIsAnalysedBuiltOfSoilAndTakenApartForItAgain()
     {
-        var w = World(known: []).GiveItems(0, ("soil", 1));
+        var w = Aboard(known: []).GiveItems(0, ("soil", 1));
         int cell = At(3, 1);
         var soilWall = Placement.Wall("soil");
         Assert.Equal("building.unknown", w.M.Building.Problem(cell, soilWall));
@@ -173,15 +176,18 @@ public class DigTests
         Assert.Empty(w.Refusals);
         Assert.Equal("soil", w.M.Grid.WallAt(cell)?.Id);
         Assert.Equal(0, Count(w, "soil"));
-        w.Do(HewTesting.Dig(w, cell, Axe)).Do(HewTesting.Dig(w, cell, Axe)).Run();
+        w.Do(new Deconstruct(cell, "structure")).Run();
+        int mark = w.M.Building.Plans.Single().Id;
+        for (int i = 0; i < 20 && w.M.Building.Plans.Count > 0; i++) w.Do(new Work(mark)).Run();
         Assert.Null(w.M.Grid.WallAt(cell));
         Assert.Equal(1, Count(w, "soil"));
     }
 
     [Fact]
-    public void NoBlueprintBuildsBedrockFrontOrBackNotEvenInCreativeMode()
+    public void NoBlueprintBuildsBedrockFrontOrBackNotEvenInCreativeModeAndAPlanetNoWallAtAll()
     {
-        var w = World();
+        Assert.Equal("building.notHere", World().M.Building.Problem(At(3, 1), Placement.Wall("stone")));
+        var w = Aboard();
         w.Do(new SetCreative(true)).Run();
         Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock")));
         w.Do(new ClearAt(At(3, 1), "back")).Run();
@@ -221,7 +227,7 @@ public class DigTests
     [Fact]
     public void AWallsLastTickWaitsWhileAHeroStandsInItsCellAndFinishesOnceItStepsOut()
     {
-        var w = World();
+        var w = Aboard();
         int cell = At(3, 1);
         // The hero's body round the cell: its middle reported a cell above, the body under three cells tall.
         w.Do(new Crew.Enter(At(3, 0))).Do(new SetCreative(true)).Run();

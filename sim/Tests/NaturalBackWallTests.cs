@@ -39,33 +39,21 @@ public class NaturalBackWallTests
     }
 
     [Fact]
-    public void ASoilBackWallIsBuiltOfSoilUnderThePlanetsSkyAndStaysThroughALoad()
+    public void NoWallNorBackWallIsPlannedOnAPlanet()
     {
+        // A planet is climbed out of, not built on (the fan of rays).
         var w = Down(items: ("soil", 1));
         var m = w.On(1);
         int cell = m.Crew.Spawn - m.Grid.Width;
-        Assert.Null(m.Grid.BackAt(cell));
+        Assert.Equal("building.notHere", m.Building.Problem(cell, Placement.BackWall("soil")));
+        Assert.Equal("building.notHere", m.Building.Problem(cell, Placement.Wall("soil")));
         w.Do(new PlacePlan(cell, Placement.BackWall("soil"))).Run();
-        WorkAll(w, m);
-        Assert.Empty(w.Refusals);
-        Assert.Equal("soil", m.Grid.BackAt(cell)?.Id);
-        Assert.False(m.Grid.GrownBack(cell));
-        Assert.Equal(0, Count(m, "soil"));
-
-        // Natural ground holds no air (0077): a cell before it stays outside, as before the ground's own back walls.
-        Assert.Equal(RoomsModule.Space, m.Rooms.RoomAt(cell));
-
-        m = w.Reload().On(1);
-        Assert.Equal("soil", m.Grid.BackAt(cell)?.Id);
-        Assert.False(m.Grid.GrownBack(cell));
-        // Nothing is marked on a planet, and tools leave back walls alone (the fan of rays): it stays.
-        w.Do(new Deconstruct(cell, "back")).Run();
         Assert.Equal(["building.notHere"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal("soil", m.Grid.BackAt(cell)?.Id);
+        Assert.Null(m.Grid.BackAt(cell));
     }
 
     [Fact]
-    public void TheGroundsOwnBackWallIsNeverMarkedNorBuiltOverAndASoilOneWaitsForSoilAnalysed()
+    public void TheGroundsOwnBackWallIsNeverMarkedNorBuiltOver()
     {
         var w = Down(known: [], items: ("fireAxe", 1));
         var m = w.On(1);
@@ -81,11 +69,8 @@ public class NaturalBackWallTests
         Assert.Empty(m.Building.Plans);
         Assert.Equal("grid.occupied", m.Grid.PlacementProblem(under, Placement.BackWall("stone")));
 
-        Assert.Equal("building.unknown", m.Building.Problem(sky, Placement.BackWall("soil")));
-        w.M.Knowledge.Learn("soil");
-        Assert.Null(m.Building.Problem(sky, Placement.BackWall("soil")));
-        Assert.Equal("building.unknown", m.Building.Problem(sky, Placement.BackWall("stone")));
-        Assert.Equal("building.unknown", m.Building.Problem(sky, Placement.BackWall("bedrock")));
+        // Nor is any back wall built over the sky there.
+        Assert.Equal("building.notHere", m.Building.Problem(sky, Placement.BackWall("soil")));
     }
 
     [Fact]
