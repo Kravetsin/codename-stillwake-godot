@@ -13,7 +13,7 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Draws">Power it draws a tick from its network, cabled to one.</param>
 /// <param name="Plug">
-/// Where a cable plugs into it, in pixels of its picture from its top-left, eight to a cell (0104): given
+/// Where a cable plugs into it, in pixels from its footprint's top-left, eight to a cell (0104): given
 /// with <paramref name="Makes"/> or <paramref name="Draws"/>, one socket a machine. Only drawn: the sim
 /// knows the machine as one node.
 /// </param>
@@ -41,9 +41,11 @@ namespace Stillwake.Content;
 /// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
 /// paid by hand, and drones never touch it.
 /// </param>
-/// <param name="Takes">
-/// The only items its slots take, by id: the drop pod's biofuel (<c>items.notTaken</c> for anything else); null for a machine taking
-/// whatever its other rules let in.
+/// <param name="Takes">The one item its slots hold, put in by hand or by drones: the engine's biofuel. Any when not given.</param>
+/// <param name="Exhaust">
+/// Cells its nozzle reaches out of its left side, the stern's (2026-10-25-the-engine-through-the-hull): in every row of it, a
+/// wall or more from its side, then space, the nozzle's tip in space. Its picture is as much wider, the nozzle drawn over the
+/// wall. None for a machine standing wholly in its footprint.
 /// </param>
 /// <param name="Has">
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
@@ -69,7 +71,8 @@ public sealed record MachineSpec(
     bool Charges = false,
     StoreSpec? Store = null,
     bool Tunes = false,
-    IReadOnlyList<string>? Takes = null,
+    string? Takes = null,
+    int? Exhaust = null,
     MachineTrait Has = MachineTrait.None,
     MenuSlot? Menu = null,
     char? Char = null,
@@ -167,9 +170,12 @@ public static class Machines
         // The ship's computer and the radar antenna on its roof (the radar its program): of what space gives, the last built before a planet.
         new("computer", 6, 4, [], [("frame", 2), ("plate", 4), ("processor", 2), ("display", 1), ("coil", 2), ("wire", 6)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
         new("radarAntenna", 4, 4, [], [("frame", 1), ("plate", 3), ("tube", 2), ("rotor", 1), ("gear", 2), ("transceiver", 1), ("solarCell", 1)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
+        // The engine (2026-10-25-the-engine-through-the-hull): the last thing built, of a planet's parts; its nozzle out through
+        // the stern's wall, its tank of biofuel, its pumps and igniter kept ready on power. It does not run yet: the jump is to come.
+        new("engine", 6, 4, [], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 2), ("plate", 4)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, Takes: "biofuel", Exhaust: 3, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),
         // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
         // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
-        new("dropPod", 4, 6, [], [("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: ["biofuel"], Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "drop pod: draw its whole footprint, on a launch platform"),
+        new("dropPod", 4, 6, [], [("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: "biofuel", Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

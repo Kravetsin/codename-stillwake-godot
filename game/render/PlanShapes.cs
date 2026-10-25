@@ -53,9 +53,9 @@ public static class PlanShapes
                 for (int i = 0; i < w; i++)
                     if (mask[(sy + j) * stride + sx + i]) union[(dy + j) * width + dx + i] = true;
         var rims = PlanOutline.RimOf((i, j) => union[j * width + i], width, height);
-        // A machine's picture rising over its footprint (0099) is laid from the cells above.
-        int rise = pieces.Count > 0 ? pieces.Max(p => p.Rise) * Cell : 0;
-        return Rims[key] = rise == 0 ? rims : rims.Select(r => r with { Y = r.Y - rise }).ToList();
+        // A machine's picture rising over its footprint (0099) is laid from the cells above, one reaching left of it from the cells there.
+        int rise = pieces.Count > 0 ? pieces.Max(p => p.Rise) * Cell : 0, reach = pieces.Count > 0 ? pieces.Max(p => p.Reach) * Cell : 0;
+        return Rims[key] = rise == 0 && reach == 0 ? rims : rims.Select(r => r with { X = r.X - reach, Y = r.Y - rise }).ToList();
     }
 
     private static (bool[] Mask, int Width, int Height) MaskOf(string picture)

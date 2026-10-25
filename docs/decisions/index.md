@@ -125,4 +125,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted |  |
 | [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
+| [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |

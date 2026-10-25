@@ -31,9 +31,9 @@ public class DropPodTests
     [
         "##########",
         "#........#",
-        "#..XX....#",
-        "#..XX....#",
-        "#..XX....#",
+        "#..ZZ....#",
+        "#..ZZ....#",
+        "#..ZZ....#",
         "###__#####",
         "          ",
     ];
@@ -53,7 +53,7 @@ public class DropPodTests
         Assert.Equal([("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], spec.Cost);
         Assert.Equal(MachineTrait.Seats | MachineTrait.Lands, spec.Traits);
         Assert.Equal(1, spec.Slots);
-        Assert.Equal(["biofuel"], spec.Takes!);
+        Assert.Equal("biofuel", spec.Takes);
         Assert.Equal(MenuTabs.Ship, spec.Menu!.Tab);
         // Its blueprint opens with the computer's parts analysed: late in space.
         Assert.DoesNotContain("dropPod", Content.Research.StartKnown);

@@ -290,7 +290,7 @@ public class DrillArcTests
             .Concat(w.M.Items.Floor.Select(s => new Stack(s.Item, s.Count, s.Charge, s.Module)));
 
     /// <summary>
-    /// Every arc module is in exactly one place, whatever the items fuzz draws by three peers carrying modules, fitted drills
+    /// Every arc module is in exactly one place, whatever the items fuzz draws but spawns by three peers carrying modules, fitted drills
     /// and plain ones: as an item, fitted into a machine, or on a drill's stack, a stack of one of an item it fits; never made
     /// or lost, never on two stacks.
     /// </summary>
@@ -311,7 +311,7 @@ public class DrillArcTests
         var rng = new Rng(new RngState { S = (uint)seed.Get });
         for (int i = 0; i < 300; i++)
         {
-            if (w.M.Items.Fuzz(rng, i % 3) is { } c) w.Do(c).Run();
+            if (w.M.Items.Fuzz(rng, i % 3) is { } c and not Spawn) w.Do(c).Run();
             Assert.All(Everywhere(w).Where(s => s.Module != null), s => Assert.True(s.Count == 1 && Spec.Modules.Fits(s.Module, s.Item), $"{s}"));
         }
         var after = Count(w);

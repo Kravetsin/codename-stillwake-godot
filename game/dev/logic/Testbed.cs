@@ -38,13 +38,19 @@ public static class Testbed
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
     /// arc module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make, and an empty accumulator
-    /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>) and a launch platform's deck drive, the full crate having no
-    /// slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
+    /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
+    /// (<see cref="EngineParts"/>), the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive"];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive", .. EngineParts];
 
     /// <summary>The ship computer's and the radar's parts, one each in the supply crate: the full crate has no slot left for them.</summary>
     public static readonly IReadOnlyList<string> ComputerParts = ["processor", "display", "transceiver"];
+
+    /// <summary>The engine's parts, one each in the supply crate too.</summary>
+    public static readonly IReadOnlyList<string> EngineParts = ["nozzle", "fuelPump", "igniter"];
+
+    /// <summary>What the engine's tank holds at the start: biofuel, so it draws its power.</summary>
+    public const int Fuelled = 10;
 
     /// <summary>A drill with <paramref name="module"/> fitted, as a save writes its stack (0098): a dev world's, the bench to come.</summary>
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
@@ -63,19 +69,23 @@ public static class Testbed
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
     /// bay's zone. Three oxygen generators, piped with the tank to both vents, make more than the rooms leak and the two
     /// fires breathe, so the air holds however long a session runs; one alone ran room two dry in three minutes.
-    /// Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104).
+    /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
+    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104).
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            "                      XX" + new string(' ', 72),
-            "   NN                 XX",
-            "   NN  PPP  PPPPPP PPPXX PPP PPP PPP PPP PPP PPP PPP PPP",
+            "                      ZZ" + new string(' ', 72),
+            "   NN                 ZZ",
+            "   NN  PPP  PPPPPP PPPZZ PPP PPP PPP PPP PPP PPP PPP PPP",
             "  ####################__#########################",
             "  #.......LUUU...#....L.........J.......L...#.L.#",
             "  #.OOOQQ..UUU.RRD..............gg...GG.....D...D",
             "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",
             "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBD...D",
-            "  ###############################################",
+            "  #o#############################################",
+            "  #XXXL#",
+            "  #XXX.#",
+            "  ######",
         ],
         [
             "",
@@ -92,6 +102,7 @@ public static class Testbed
             ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (46, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
+            ((7, 5), (3, 9)), ((3, 9), (6, 9)),
         ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
@@ -177,6 +188,7 @@ public static class Testbed
             new() { ["id"] = Id("analyzer"), ["slots"] = Slots("analyzer", [Stack(Analysing, 1)]) },
             new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
+            new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
             new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },
