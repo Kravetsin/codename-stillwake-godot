@@ -230,7 +230,10 @@ public static class Aiming
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
         int? crate = machine != null && Opens(machine.Kind) ? machine.Id : null;
-        var press = crate == null ? PressOf(m, peer, cell, shown) : null;
+        // A drop pod is boarded on E, and its slot opens as the hero sits (Landing): the press and the panel both.
+        var press = machine != null && Spec.Machines.Is(machine.Kind, Spec.MachineTrait.Seats)
+            ? new Use(new Board(machine.Id), m.Landing.BoardProblem(peer, machine.Id))
+            : crate == null ? PressOf(m, peer, cell, shown) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
@@ -458,6 +461,8 @@ public static class Aiming
     public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1)
     {
         if (aim is not { InReach: true }) return new([], null, -1);
+        // A drop pod boarded opens with it; one the sim would refuse neither seats nor opens.
+        if (pressed && aim.Crate is int pod && aim.Press?.Command is Board) return aim.Press.Problem == null ? new([aim.Press.Command], pod, -1) : new([], null, -1);
         if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
         // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).

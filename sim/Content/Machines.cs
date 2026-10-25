@@ -41,6 +41,10 @@ namespace Stillwake.Content;
 /// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
 /// paid by hand, and drones never touch it.
 /// </param>
+/// <param name="Takes">
+/// The only items its slots take, by id: the drop pod's biofuel (<c>items.notTaken</c> for anything else); null for a machine taking
+/// whatever its other rules let in.
+/// </param>
 /// <param name="Has">
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
 /// <paramref name="FuelSlot"/> implies.
@@ -65,6 +69,7 @@ public sealed record MachineSpec(
     bool Charges = false,
     StoreSpec? Store = null,
     bool Tunes = false,
+    IReadOnlyList<string>? Takes = null,
     MachineTrait Has = MachineTrait.None,
     MenuSlot? Menu = null,
     char? Char = null,
@@ -107,6 +112,10 @@ public enum MachineTrait
     Fire = 64,
     /// <summary>Opens the ship's programs on E, each brought by a module on its network (<see cref="Programs"/>): the ship's computer.</summary>
     Computer = 128,
+    /// <summary>A hero boards it with E and sits in it, one hero at a time (Landing): the drop pod.</summary>
+    Seats = 256,
+    /// <summary>Stands only on a launch platform, the row under it wholly a run of one (<c>grid.noPlatform</c>): the drop pod, its landers to come.</summary>
+    Lands = 512,
 }
 
 /// <summary>
@@ -158,6 +167,9 @@ public static class Machines
         // The ship's computer and the radar antenna on its roof (the radar its program): of what space gives, the last built before a planet.
         new("computer", 6, 4, [], [("frame", 2), ("plate", 4), ("processor", 2), ("display", 1), ("coil", 2), ("wire", 6)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
         new("radarAntenna", 4, 4, [], [("frame", 1), ("plate", 3), ("tube", 2), ("rotor", 1), ("gear", 2), ("transceiver", 1), ("solarCell", 1)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
+        // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
+        // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
+        new("dropPod", 4, 6, [], [("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: ["biofuel"], Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "drop pod: draw its whole footprint, on a launch platform"),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

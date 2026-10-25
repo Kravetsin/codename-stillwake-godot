@@ -34,6 +34,8 @@ public static partial class En
         ["use.closeDoor"] = "[E] Close door",
         ["use.openPlatform"] = "[E] Open platform",
         ["use.closePlatform"] = "[E] Close platform",
+        ["use.board"] = "[E] Board drop pod",
+        ["use.alight"] = "[E] Leave drop pod",
         ["use.openValve"] = "[E] Open valve",
         ["use.closeValve"] = "[E] Close valve",
     };

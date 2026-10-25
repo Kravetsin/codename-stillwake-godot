@@ -551,10 +551,24 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!cells.All(InZone)) return "grid.outsideZone";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
-                return null;
+                return Content.Machines.Is(p.Kind, MachineTrait.Lands) && !OnPlatform(p.Kind, cell) ? "grid.noPlatform" : null;
             default:
                 return "grid.noSuchLayer";
         }
+    }
+
+    /// <summary>
+    /// Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands on a launch platform: every cell of the row
+    /// under its footprint a platform's, shut or open, so it stands over one run (<see cref="MachineTrait.Lands"/>).
+    /// </summary>
+    private bool OnPlatform(string kind, int cell)
+    {
+        var spec = Content.Machines.Get(kind);
+        int x = cell % State.Width, below = cell / State.Width + spec.Height;
+        if (below >= State.Height) return false;
+        for (int dx = 0; dx < spec.Width; dx++)
+            if (!Doorways.IsPlatform(State.Structure[below * State.Width + x + dx])) return false;
+        return true;
     }
 
     public void Place(int cell, Placement p)

@@ -31,8 +31,10 @@ public partial class HeroView
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
-        var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown) : null;
-        var prompt = passedOut ? null : Prompts.Of(m, aim);
+        // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
+        bool seated = m.Landing.SeatOf(client.Id) != null;
+        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown) : null;
+        var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, aim);
         TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
         _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan && pointer is { } on
@@ -50,6 +52,11 @@ public partial class HeroView
         bool grab = clicked && aim?.Piece != null && !(gun && _harpoon.Rod != Rod.Seated);
         bool acts = !passedOut && handFree;
         bool builds = acts && driver != null && _mouse.Buttons.HoldsLeft;
+        if (seated && pressed && !passedOut)
+        {
+            client.Send(new Sim.Landing.Alight());
+            _ui.OpenCrate.Set(null);
+        }
         var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, driver?.Work ?? 1);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);

@@ -178,6 +178,7 @@ public static partial class En
         ["items.notEquipment"] = "That is not worn there",
         ["items.notBattery"] = "Only a battery charges here",
         ["items.notTool"] = "Only a tool that takes a module goes in the vise",
+        ["items.notTaken"] = "That does not go in here",
         ["items.noTool"] = "No tool in the vise",
         ["items.notElectric"] = "It runs on no power",
         ["items.notHeld"] = "You do not carry it",

@@ -86,7 +86,7 @@ public sealed class Registry
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
         Fauna = new FaunaModule(Grid, Crew, Crew, Items, Items);
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
-        Landing = new LandingModule(Grid, Grid, Power);
+        Landing = new LandingModule(Grid, Grid, Power, Crew);
         Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Fauna, Landing];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }

@@ -55,7 +55,8 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
   `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
-  `grid.noSuchMaterial`, `grid.noSuchMachine`.
+  `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noPlatform` (a machine that `Lands` with the row under it not all
+  launch platform).
 
 ## Maps
 

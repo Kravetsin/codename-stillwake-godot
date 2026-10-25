@@ -11,6 +11,7 @@ public static partial class En
         ["grid.blocked"] = "Something is in the way",
         ["grid.noSuchMaterial"] = "No such material",
         ["grid.noSuchMachine"] = "No such machine",
+        ["grid.noPlatform"] = "Stands only on a launch platform",
         // Not in the TypeScript: its types kept a placement to the layers there are.
         ["grid.noSuchLayer"] = "No such layer",
         ["grid.noDoor"] = "There is no door here",

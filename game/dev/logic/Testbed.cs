@@ -54,7 +54,7 @@ public static class Testbed
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
     /// furnace, the Former, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
     /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
-    /// antenna stands on the roof at the bow. Twelve panels on the roof: the first and the third feed the
+    /// antenna stands on the roof at the bow, the drop pod further aft on a launch platform laid in the roof, out in space. Twelve panels on the roof: the first and the third feed the
     /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
     /// computer and the antenna, the fourth the analyzer,
     /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
@@ -67,10 +67,10 @@ public static class Testbed
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            new string(' ', 96),
-            "   NN",
-            "   NN  PPP  PPPPPP PPP   PPP PPP PPP PPP PPP PPP PPP PPP",
-            "  ###############################################",
+            "                      XX" + new string(' ', 72),
+            "   NN                 XX",
+            "   NN  PPP  PPPPPP PPPXX PPP PPP PPP PPP PPP PPP PPP PPP",
+            "  ####################__#########################",
             "  #.......LUUU...#....L.........J.......L...#.L.#",
             "  #.OOOQQ..UUU.RRD..............gg...GG.....D...D",
             "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",

@@ -124,4 +124,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted |  |
+| [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |

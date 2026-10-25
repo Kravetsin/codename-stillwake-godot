@@ -19,6 +19,9 @@ public static class Prompts
     /// What E would do at <paramref name="aim"/> within reach, in words; nothing out of reach or with
     /// nothing to do. A door or valve says what its press would make of it (<see cref="Aiming.AimAt"/>).
     /// </summary>
+    /// <summary>What E does for a hero sitting in a drop pod, wherever the pointer is: it leaves.</summary>
+    public static readonly Prompt Seated = new("use.alight", null);
+
     public static Prompt? Of(Registry m, Aim? aim)
     {
         if (aim is not { InReach: true }) return null;
@@ -28,6 +31,8 @@ public static class Prompts
             string action = plan?.Clear != null ? "use.takeApart" : "use.build";
             return new Prompt(action, work.Problem);
         }
+        // A drop pod is boarded, its slot opening as the hero sits: said as a seat, with why not.
+        if (aim.Press is { Command: Sim.Landing.Board } board) return new Prompt("use.board", board.Problem);
         // Named for what it opens, by its kind's own words (use.open.<kind>): a furnace, the lifepod's Fabricator; else a crate.
         if (aim.Crate is int opens)
             return new Prompt(m.Grid.MachineById(opens)?.Kind is { } kind && I18n.En.Table.ContainsKey($"use.open.{kind}") ? $"use.open.{kind}" : "use.openCrate", null);
