@@ -10,6 +10,7 @@
 | `AirView.cs` | The ship's air. Without a word: every room losing oxygen into space lit red on the beat (each tank's sight glass is … |
 | `logic/Explain.cs` | What the air overlay says of a room. |
 | `logic/Streams.cs` | Where air streams out of a room: the middle of an opening, in cells, and the heading toward the space beside it, in … |
+| `logic/Decompression.cs` | Rooms the sim turned to space at once, air and all (a launch platform opened, a floor torn open), drawn venting a while … |
 | `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
 | `VentLight.cs` | Air escaping into space (0075), luminous: out of each opening a room vents through, a jet of fast pale streaks and … |
 | `logic/Atmosphere.En.cs` | Its player text (`En`) |
@@ -21,6 +22,7 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | ------------ | --------------------------------------------------------------------------------------- | ----- |
 | `logic/Explain.cs` | what the overlay says of a room, spans, and the rooms draining (`explain.ts`, `draining.ts`) | no    |
 | `logic/Streams.cs` | `AirStream`: where air streams out of a venting room, which way, how thick (`streams.ts`) | no    |
+| `logic/Decompression.cs` | a room turned to space at once drawn venting: its air let go over 1.5 to 6 s, farthest from the hole first | no    |
 | `logic/AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over what is built | no    |
 | `logic/AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
 | `AirLook.cs` | the shader, with O: the rooms' air dithered, grey dots where there is none, the pod's ragged aura | yes   |
@@ -63,3 +65,9 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   fuller, red from the lamp when empty. Read every 250 ms. Not animated: a tank changes slowly.
 - The forecast under the pointer counts the heroes awake in the room as breathing its air (`crew`).
 - `explain.test.ts`, `draining.test.ts` and `streams.test.ts` are ported.
+- A room the sim turns to space at once, air and all (a launch platform opened, a floor torn open), vents as through a
+  door (`Decompression`, no ADR): the sim drops its air in a tick, so the client keeps drawing it in the room it left,
+  venting toward the breach (the space beside it that was not its own), and lets it go over `MsPerCell` a cell, 1.5 to
+  6 s, the cells farthest from the hole first. Meanwhile the hole streams, the motes are swept, the room is lit red on
+  the beat and with O its air is red. Drawn only: the sim's air is already gone. Shut again, the room stands airless and
+  nothing more goes.

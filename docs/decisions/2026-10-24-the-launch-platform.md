@@ -32,7 +32,9 @@ the first slice: the platform alone, to build, to cable and to open by hand.
 - **Open, it is a hole.** An open piece has no trait: not an `Opening`, which a room's edge runs through (a door), so space
   under the run comes in and the room turns to space, its air and gravity gone at once, as a floor torn open does; heroes
   fly through it both ways. A doorway is open by sealing nothing (`Doorways.IsOpen`). What lies on the deck stays where it
-  lay: a stack afloat drifts back past the ship only out past the hull, with no back wall behind it (Items).
+  lay: a stack afloat drifts back past the ship only out past the hull, with no back wall behind it (Items). The sim drops
+  the room's air in a tick; the client draws it going out through the hole over a few seconds, as a door vents
+  (`Decompression`, red under the air overlay).
 - **It is the last thing space builds.** A piece costs a deck drive, two plates and a glass. The deck drive (`deckDrive`, a
   part) is made at the circuit assembler of two circuits, a rotor and a coil: what slides the deck open. So its blueprint
   opens once the drive, plates and glass are analysed (0027), after the electric smelter and the circuit assembler, both
