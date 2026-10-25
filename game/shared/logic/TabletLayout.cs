@@ -27,13 +27,16 @@ public static class TabletLayout
     public const int ArtScale = 2, ScreenLeft = 9, ScreenTop = 16, ArtAround = 26;
 
     /// <summary>
-    /// In the art's pixels: how far its metal runs right of the screen, and how far below the screen's top the stylus clipped
-    /// beside it (tablet_stylus.png, from the frame's top) ends: where keys mounted on the right edge go (0110).
+    /// In the art's pixels: how far its metal runs right of the screen, and how far the stylus clipped beside it
+    /// (tablet_stylus.png) juts out past it: what a wing bolted on the right keeps its keys clear of (0110).
     /// </summary>
-    public const int RightMetal = 7, StylusFoot = 78 - ScreenTop;
+    public const int RightMetal = 7, StylusOut = 6;
 
     /// <summary>Above the screen, the bezel's top edge: what the prompt for E keeps above.</summary>
     public const int BezelAbove = 8 * ArtScale;
+
+    /// <summary>Below the screen, the bezel's bottom edge; beside it, either side's outer edge: where wings bolted on meet it.</summary>
+    public const int BezelBelow = (ArtAround - ScreenTop) * ArtScale, BezelSide = RightMetal * ArtScale;
 
     /// <summary>How far past the bottom edge the tablet slides from its rest to be gone: the stylus's tip too, and a few pixels more.</summary>
     public const int Lift = ScreenTop * ArtScale + 4;

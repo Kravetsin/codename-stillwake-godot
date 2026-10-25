@@ -20,7 +20,7 @@ namespace Stillwake.Game.Features.Building;
 /// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc puts the plan
 /// away; with it away, the key that takes it out. Q picks the card under the pointer. Only what the world knows is
 /// shown (0024): a tab with nothing known, not at all, nor its mode. It is the screen of a rugged tablet (0073), which
-/// slides up from the bottom edge as the plan comes out and back down as it goes away. On its left edge, aboard, the plan's
+/// slides up from the bottom edge as the plan comes out and back down as it goes away. On a wing at its left, aboard, the plan's
 /// modes' keys, Z, X and C: building, wiring, piping; wiring's and piping's menus are their cards alone (0110).
 /// </summary>
 public partial class BuildMenu : CanvasLayer
@@ -50,15 +50,16 @@ public partial class BuildMenu : CanvasLayer
     private readonly Label _heldName = Tablet.Text("", Render.Style.Slate100), _hint = Tablet.Text("", Render.Style.Slate500, Tablet.HintSize);
     private readonly List<(Panel Box, TextureRect Picture, Label Count)> _cards = [];
     /// <summary>
-    /// On the tablet's right edge while the plan is out: the two layers' keys stacked, wrist keys as the bag's sort key, mounted
-    /// on the frame as it is, the focused one lit (0110).
+    /// A wing on the tablet's right side under its stylus while the plan is out: the two layers' keys stacked, the focused
+    /// one lit (0110).
     /// </summary>
-    private readonly Control _focus = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly PlanWing _focus = new(left: false);
     private readonly List<PlanKey> _layerKeys = [];
-    /// <summary>On the tablet's left edge while the plan is out aboard: the modes' keys stacked, Z, X and C, the mode's lit.</summary>
-    private readonly Control _modes = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    /// <summary>A wing the tablet's height on its left side while the plan is out aboard: the modes' keys, Z, X and C, a third of it each, the mode's lit.</summary>
+    private readonly PlanWing _modes = new(left: true);
     private readonly List<PlanKey> _modeKeys = [];
-    private const int KeyGap = 2, FocusHeight = 2 * WristLook.KeycapSide + KeyGap, ModesHeight = 3 * WristLook.KeycapSide + 2 * KeyGap;
+    /// <summary>The layers' keys' side, in screen pixels.</summary>
+    private const int LayerKey = 40;
     private readonly List<(PanelContainer Box, string Id)> _tabBoxes = [];
 
     private Catalogue _at;
@@ -109,27 +110,29 @@ public partial class BuildMenu : CanvasLayer
             }
             _grid.AcceptEvent();
         };
-        _root.AddChild(_open);
-        _focus.AnchorLeft = _focus.AnchorRight = 0.5f;
-        _focus.AnchorTop = _focus.AnchorBottom = 1;
+        // The wings go behind the tablet, so its frame overlaps their inner edges; the wheel over them scrolls as over it.
+        foreach (var wing in (PlanWing[])[_focus, _modes])
+        {
+            wing.AnchorLeft = wing.AnchorRight = 0.5f;
+            wing.AnchorTop = wing.AnchorBottom = 1;
+            wing.GuiInput += e => Scroll(e, wing);
+            _root.AddChild(wing);
+        }
         foreach (var layer in (Focus[])[Focus.Front, Focus.Back])
         {
             var face = layer == Focus.Front ? KeyFace.Front : KeyFace.Back;
-            var key = new PlanKey(face, () => _hand.FocusOn(layer)) { Position = new Vector2(0, (int)layer * (WristLook.KeycapSide + KeyGap)) };
+            var key = new PlanKey(face, Vector2.Zero, null, () => _hand.FocusOn(layer));
             _focus.AddChild(key);
             _layerKeys.Add(key);
         }
-        _root.AddChild(_focus);
-        _modes.AnchorLeft = _modes.AnchorRight = 0.5f;
-        _modes.AnchorTop = _modes.AnchorBottom = 1;
         foreach (var mode in Tools.Modes)
         {
-            var face = mode switch { PlanMode.Wiring => KeyFace.Wiring, PlanMode.Piping => KeyFace.Piping, _ => KeyFace.Build };
-            var key = new PlanKey(face, () => _hand.SetMode(mode)) { Position = new Vector2(0, (int)mode * (WristLook.KeycapSide + KeyGap)) };
+            var (face, letter) = mode switch { PlanMode.Wiring => (KeyFace.Wiring, "X"), PlanMode.Piping => (KeyFace.Piping, "C"), _ => (KeyFace.Build, "Z") };
+            var key = new PlanKey(face, Vector2.Zero, letter, () => _hand.SetMode(mode));
             _modes.AddChild(key);
             _modeKeys.Add(key);
         }
-        _root.AddChild(_modes);
+        _root.AddChild(_open);
         void Lit()
         {
             foreach (var key in _layerKeys) key.On = _layerKeys.IndexOf(key) == (int)_hand.Focus.Get();
@@ -198,6 +201,7 @@ public partial class BuildMenu : CanvasLayer
         _at = new Catalogue(_ui.Slot);
         _open.OffsetLeft = -(_at.Width / 2);
         _open.OffsetRight = _at.Width - _at.Width / 2;
+        SizeKeys();
         Dock();
         _tabs.Position = new Vector2(Catalogue.Pad, Catalogue.Pad);
         _grid.Position = new Vector2(Catalogue.Pad, _at.GridTop);
@@ -249,19 +253,41 @@ public partial class BuildMenu : CanvasLayer
     {
         _open.OffsetTop = -Slots.Margin - _at.Height + _drop;
         _open.OffsetBottom = -Slots.Margin + _drop;
-        // The layers' keys on the tablet's right edge under its stylus, sticking out of the metal as the bag's sort key does
-        // from the display's: as far into it from its outer edge as that key is.
-        int metal = TabletLayout.RightMetal * TabletLayout.ArtScale;
-        int into = (WristPieces.Display.Window.Right - WristPieces.Pad) * WristPiece.Scale - WristLook.SideKeyOut;
-        _focus.OffsetLeft = _at.Width - _at.Width / 2 + metal - into;
-        _focus.OffsetRight = _focus.OffsetLeft + WristLook.KeycapSide;
-        _focus.OffsetTop = _open.OffsetTop + TabletLayout.StylusFoot * TabletLayout.ArtScale + KeyGap;
-        _focus.OffsetBottom = _focus.OffsetTop + FocusHeight;
-        // The modes' keys mirror them on the left edge, from the screen's top: the metal left of the screen is ScreenLeft wide.
-        _modes.OffsetRight = -(_at.Width / 2) - TabletLayout.ScreenLeft * TabletLayout.ArtScale + into;
-        _modes.OffsetLeft = _modes.OffsetRight - WristLook.KeycapSide;
-        _modes.OffsetTop = _open.OffsetTop + Catalogue.Pad;
-        _modes.OffsetBottom = _modes.OffsetTop + ModesHeight;
+        // The modes' wing the frame's height on its left; the layers' on its right from its top, the stylus clipped over it.
+        var (modes, focus) = (_modes.Size, _focus.Size);
+        _modes.OffsetRight = -(_at.Width / 2) - TabletLayout.BezelSide + PlanWing.Tuck;
+        _modes.OffsetLeft = _modes.OffsetRight - modes.X;
+        _modes.OffsetTop = _open.OffsetTop - TabletLayout.BezelAbove;
+        _modes.OffsetBottom = _modes.OffsetTop + modes.Y;
+        _focus.OffsetLeft = _at.Width - _at.Width / 2 + TabletLayout.BezelSide - PlanWing.Tuck;
+        _focus.OffsetRight = _focus.OffsetLeft + focus.X;
+        _focus.OffsetTop = _modes.OffsetTop;
+        _focus.OffsetBottom = _focus.OffsetTop + focus.Y;
+    }
+
+    /// <summary>
+    /// The keys sized for the tablet's height now: a mode's a third of what of the frame shows above the screen's bottom edge,
+    /// a card wide; a layer's <see cref="LayerKey"/> square, clear of the stylus.
+    /// </summary>
+    private void SizeKeys()
+    {
+        const int pad = PlanWing.Pad, gap = PlanWing.Gap;
+        int height = TabletLayout.BezelAbove + _at.Height + TabletLayout.BezelBelow;
+        int shown = TabletLayout.BezelAbove + _at.Height + Slots.Margin;
+        int mode = (shown - 2 * pad - 2 * gap) / 3 / 2 * 2;
+        for (int i = 0; i < _modeKeys.Count; i++)
+        {
+            _modeKeys[i].CustomMinimumSize = _modeKeys[i].Size = new Vector2(_at.Card, mode);
+            _modeKeys[i].Position = new Vector2(pad, pad + i * (mode + gap));
+        }
+        _modes.Size = new Vector2(pad + _at.Card + pad + PlanWing.Tuck, height);
+        const int layer = LayerKey, clear = PlanWing.Tuck + TabletLayout.StylusOut * TabletLayout.ArtScale + gap;
+        for (int i = 0; i < _layerKeys.Count; i++)
+        {
+            _layerKeys[i].CustomMinimumSize = _layerKeys[i].Size = new Vector2(layer, layer);
+            _layerKeys[i].Position = new Vector2(clear, pad + i * (layer + gap));
+        }
+        _focus.Size = new Vector2(clear + layer + pad, pad + 2 * layer + gap + pad);
     }
 
 
@@ -356,7 +382,8 @@ public partial class BuildMenu : CanvasLayer
     }
 
     /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => _open.Visible ? _open.Covers : _closed.GetGlobalRect();
+    public Rect2 Covers => !_open.Visible ? _closed.GetGlobalRect()
+        : new[] { _modes, _focus }.Where(w => w.Visible).Aggregate(_open.Covers, (all, w) => all.Merge(w.GetGlobalRect()));
 
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
     public void Frame(Registry m)
