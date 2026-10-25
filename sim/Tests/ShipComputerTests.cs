@@ -1,12 +1,11 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
-using Stillwake.Sim.Items;
 using Xunit;
 using Pairs = System.Collections.Generic.IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The ship's computer and the radar antenna: a scrap each, planned in creative mode alone, drawing power once built.</summary>
+/// <summary>The ship's computer and the radar antenna: made of what space gives, opened by research, drawing power once built.</summary>
 public class ShipComputerTests
 {
     /// <summary>A panel and the antenna out on the roof, the computer in the room under them, both cabled to the panel.</summary>
@@ -28,34 +27,36 @@ public class ShipComputerTests
 
     private static int IdAt(Scenario w, (int X, int Y) cell) => w.M.Grid.MachineAt(w.At(cell.X, cell.Y))!.Id;
 
+    /// <summary>What a part is made of down to what is never crafted: wrecks' and asteroids' scrap, iron and rock, smelted.</summary>
+    private static IEnumerable<string> Raw(string item) =>
+        Crafts.All.FirstOrDefault(c => c.Item == item) is { } craft ? craft.Cost.SelectMany(c => Raw(c.Item)) : [item];
+
     [Fact]
-    public void CostAScrapEachAndAreTheOnlyBlueprintsKnownInCreativeModeAlone()
+    public void AreMadeOfWhatSpaceGivesAloneThroughTheNewPartsOfTheCircuitAssembler()
     {
-        Assert.Equal(["computer", "radarAntenna"], Research.Blueprints.CreativeOnly);
-        Assert.All(Research.Blueprints.CreativeOnly, kind => Assert.Equal(new[] { ("scrap", 1) }, Machines.Get(kind).Cost));
-        Assert.All(Research.Blueprints.CreativeOnly, kind => Assert.Equal(MenuTabs.Ship, Machines.Get(kind).Menu!.Tab));
+        var computer = Machines.Get("computer").Cost.Select(c => c.Item).ToList();
+        var antenna = Machines.Get("radarAntenna").Cost.Select(c => c.Item).ToList();
+        Assert.Contains("processor", computer);
+        Assert.Contains("display", computer);
+        Assert.Contains("transceiver", antenna);
+        // Iron and scrap from hulls, silicon of asteroids' rock and glass of silicon: no copper, magnetite, mica or shard.
+        Assert.Equal(["glass", "iron", "scrap", "silicon"], computer.Concat(antenna).SelectMany(Raw).Distinct().Order(StringComparer.Ordinal));
+        Assert.All(["processor", "display", "transceiver"], part => Assert.Contains(part, Stations.All.Single(s => s.Machine == "assembler").Rows.SelectMany(r => r)));
     }
 
     [Fact]
-    public void ArePlannedInCreativeModeAloneThoughTheWorldWasGrantedEveryBlueprint()
+    public void OpenOnceTheirNewPartsAreAnalysedAsAnyBlueprintAndArePlannedOnTheShipTab()
     {
-        var w = World();
-        int free = w.At(6, 3);
+        var w = new Scenario(Layout.Parse(Rows, null, Cables) with { Known = Content.Research.StartKnown }, doubled: true);
         var computer = new Placement("machine", "computer");
-        var antenna = new Placement("machine", "radarAntenna");
-        // Everything else is granted on a map with no Layout.Known: a lamp may be planned there.
-        Assert.Null(w.M.Building.Problem(free, new Placement("machine", "lamp")));
-        Assert.Equal("building.unknown", w.M.Building.Problem(free, computer));
-        Assert.Equal("building.unknown", w.M.Building.Problem(free, antenna));
-        Assert.False(w.M.Research.Knows(computer));
-
-        w.Do(new SetCreative(true)).Run();
-        Assert.Null(w.M.Building.Problem(free, computer));
-        Assert.Null(w.M.Building.Problem(w.At(6, 3), antenna));
-        Assert.True(w.M.Research.Knows(antenna));
-
-        w.Do(new SetCreative(false)).Run();
-        Assert.Equal("building.unknown", w.M.Building.Problem(free, computer));
+        Assert.Equal("building.unknown", w.M.Building.Problem(w.At(6, 3), computer));
+        var recipe = w.M.Research.Recipes().Single(r => r.Id == "computer");
+        Assert.Contains("processor", recipe.Unanalysed);
+        Assert.Contains("display", recipe.Unanalysed);
+        Assert.Contains("transceiver", w.M.Research.Recipes().Single(r => r.Id == "radarAntenna").Unanalysed);
+        Assert.All(["computer", "radarAntenna"], kind => Assert.Equal(MenuTabs.Ship, Machines.Get(kind).Menu!.Tab));
+        // A world granted everything plans them at once, creative or not.
+        Assert.Null(World().M.Building.Problem(w.At(6, 3), computer));
     }
 
     [Fact]

@@ -259,6 +259,59 @@ func antenna_beacon() -> void:
 	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
 		setp(18 + d.x, 24 + d.y, halo)
 
+# The parts' icons, 16x16 ----------------------------------------------------------------------------------------------
+
+## The processor: a dark chip with copper pins round it and a lit die in its middle.
+func processor_icon() -> void:
+	blank(16, 16)
+	for i in range(4, 12, 2):
+		for p in [Vector2i(i, 1), Vector2i(i, 14), Vector2i(1, i), Vector2i(14, i)]:
+			setp(p.x, p.y, C.cu)
+		rect(i, 2, i, 2, C.cu2)
+		rect(i, 13, i, 13, C.cu2)
+		rect(2, i, 2, i, C.cu2)
+		rect(13, i, 13, i, C.cu2)
+	box(3, 3, 12, 12, C.dark2)
+	rect(4, 4, 11, 4, C.dark)
+	box(6, 6, 9, 9, C.deep)
+	rect(7, 7, 8, 8, C.cyanDim)
+	setp(7, 7, C.cyan)
+	setp(4, 11, C.greenDim)
+
+## The display: a small screen in a steel frame on a stand, lines of text lit on it.
+func display_icon() -> void:
+	blank(16, 16)
+	box(5, 13, 10, 15, C.dark2)
+	rect(7, 11, 8, 13, C.dark)
+	box(0, 1, 15, 12, C.mid)
+	rect(1, 2, 14, 2, C.hi)
+	box(2, 3, 13, 10, C.termBg)
+	rect(4, 5, 9, 5, C.cyan)
+	rect(4, 7, 11, 7, C.cyanDim)
+	rect(4, 9, 7, 9, C.cyanDim)
+	setp(12, 4, C.glass)
+
+## The transceiver: a cased coil of copper with a rod up its side, a red tip and the signal's arcs.
+func transceiver_icon() -> void:
+	blank(16, 16)
+	box(1, 7, 12, 15, C.dark2)
+	rect(2, 8, 11, 8, C.mid2)
+	box(3, 10, 8, 13, C.cu2)
+	for x in [4, 6, 8]:
+		rect(x, 11, x, 12, C.cuHi)
+	setp(10, 11, C.greenDim)
+	setp(10, 13, C.amberDim)
+	rect(11, 2, 11, 6, C.mid)
+	setp(11, 1, C.red)
+	setp(13, 1, C.cyanDim)
+	setp(14, 2, C.cyanDim)
+	setp(14, 3, C.cyanDim)
+	setp(13, 4, C.cyanDim)
+	setp(9, 1, C.cyanDim)
+	setp(8, 2, C.cyanDim)
+	setp(8, 3, C.cyanDim)
+	setp(9, 4, C.cyanDim)
+
 # Preview ------------------------------------------------------------------------------------------------------------
 
 func over(base: Image, top: Image) -> Image:
@@ -306,6 +359,12 @@ func preview(path: String, pc: Image, idle: Array, radar: Array, lights: Array, 
 func _init():
 	var args = OS.get_cmdline_user_args()
 	var dir = args[0]
+	processor_icon()
+	save(dir + "/items", "processor")
+	display_icon()
+	save(dir + "/items", "display")
+	transceiver_icon()
+	save(dir + "/items", "transceiver")
 	computer()
 	var pc = save(dir, "machine_computer")
 	var idle = []

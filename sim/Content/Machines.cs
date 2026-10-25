@@ -41,7 +41,6 @@ namespace Stillwake.Content;
 /// and a module fitted with it as the target goes onto that tool's stack. Its other slots are what it crafts; its crafts are
 /// paid by hand, and drones never touch it.
 /// </param>
-/// <param name="CreativeOnly">Its blueprint is known in creative mode alone, whatever the world was granted: the ship's computer and antenna, until they play.</param>
 /// <param name="Has">
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
 /// <paramref name="FuelSlot"/> implies.
@@ -66,7 +65,6 @@ public sealed record MachineSpec(
     bool Charges = false,
     StoreSpec? Store = null,
     bool Tunes = false,
-    bool CreativeOnly = false,
     MachineTrait Has = MachineTrait.None,
     MenuSlot? Menu = null,
     char? Char = null,
@@ -107,6 +105,8 @@ public enum MachineTrait
     Glow = 32,
     /// <summary>A fire burns in it, fuel from its <see cref="MachineSpec.FuelSlot"/> (0023): implied by that slot, never declared.</summary>
     Fire = 64,
+    /// <summary>Opens the ship's programs on E, each brought by a module on its network (<see cref="Programs"/>): the ship's computer.</summary>
+    Computer = 128,
 }
 
 /// <summary>
@@ -155,9 +155,9 @@ public static class Machines
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
         new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 1), ("plate", 2), ("gear", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
-        // The ship's computer and the radar antenna on its roof: built and powered, nothing to use yet; in creative mode alone.
-        new("computer", 6, 4, [], [("scrap", 1)], BuildTicks: 40, Draws: 2, Plug: (43, 11), CreativeOnly: true, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
-        new("radarAntenna", 4, 4, [], [("scrap", 1)], BuildTicks: 40, Draws: 1, Plug: (13, 26), CreativeOnly: true, Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
+        // The ship's computer and the radar antenna on its roof (the radar its program): of what space gives, the last built before a planet.
+        new("computer", 6, 4, [], [("frame", 2), ("plate", 4), ("processor", 2), ("display", 1), ("coil", 2), ("wire", 6)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
+        new("radarAntenna", 4, 4, [], [("frame", 1), ("plate", 3), ("tube", 2), ("rotor", 1), ("gear", 2), ("transceiver", 1), ("solarCell", 1)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

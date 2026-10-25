@@ -67,6 +67,7 @@ public static class DevModes
         new("--hatches", DevShape.Flag, "a built hatch over a ladder and plans of doorways"),
         // Machines and items.
         new("--open-at", DevShape.Next, "with --open, after that many seconds"),
+        new("--program", DevShape.Equals, "with --open=computer, the program it shows once open (radar)"),
         new("--into", DevShape.Next, "with --marks, the slot"),
         new("--pick", DevShape.Flag, "with --card, the card in hand"),
         new("--shots", DevShape.Next, "with --charger, the screen saved to that folder at a few moments, then quits"),

@@ -28,10 +28,6 @@ public static class Blueprints
 
     private static readonly HashSet<string> Ids = All.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);
 
-    /// <summary>The blueprints known in creative mode alone (<c>MachineSpec.CreativeOnly</c>), sorted ordinally.</summary>
-    public static readonly IReadOnlyList<string> CreativeOnly =
-        [.. Content.Machines.All.Where(m => m.CreativeOnly).Select(m => m.Kind).Order(StringComparer.Ordinal)];
-
     /// <summary>Whether a blueprint places <paramref name="placement"/>: none for a bedrock wall or back wall.</summary>
     public static bool Has(Placement placement) => Ids.Contains(Of(placement));
 

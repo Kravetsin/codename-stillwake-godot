@@ -35,6 +35,9 @@ public static class Crafts
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 2)], Ticks: 80),
         new("solarCell", [("silicon", 1), ("glass", 1), ("wire", 1)], Ticks: 100),
+        new("processor", [("circuit", 4), ("silicon", 2), ("coil", 1)], Ticks: 240),
+        new("display", [("glass", 2), ("circuit", 1), ("wire", 4)], Ticks: 160),
+        new("transceiver", [("coil", 3), ("circuit", 2), ("tube", 1), ("glass", 1)], Ticks: 200),
         // Pressed at the Former only: a grow capsule's bed (0060).
         new("soil", [("rock", 1), ("planks", 1)], Ticks: 60),
         // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band.

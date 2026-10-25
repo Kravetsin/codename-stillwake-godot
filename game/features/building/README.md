@@ -30,7 +30,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **The menu is content** (0114): a card is a row with a `MenuSlot` (machine, build, a material's wall and back wall),
   on its tab by `Order`; `MenuTabs.All` orders the tabs (`Tools.TabsOf`). Every built material has both (0077, 0084,
   0108; no bedrock). A card not known is not shown, nor a tab with none known but those of `MenuTabs.ShownEmpty` (`Tools.Shown`): the ship's
-  tab, its computer and radar antenna creative-only. Walls have no shape to
+  tab, shown before its computer and radar antenna are known. Walls have no shape to
   turn (0106). Pipes are not planned: the wrench lays them (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (everything solid: walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
