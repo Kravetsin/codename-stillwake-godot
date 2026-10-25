@@ -8,6 +8,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Landing;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content;
 using Structures = Stillwake.Content.Structures;
@@ -22,7 +23,7 @@ public sealed record WorkAim(int Plan, string? Problem);
 
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
-/// a door or valve, puts a canister into a tank, grabs a piece of debris or opens crate <see cref="Crate"/>.
+/// a door or valve, puts a canister into a tank, grabs a piece of debris or opens <see cref="Crate"/>, a machine holding items or a computer.
 /// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
 /// (0034), which is outlined itself, not its cell. <see cref="Fan"/> is a tool's hit toward the pointer (the fan of rays): what
 /// it would strike, its faces glowing.
@@ -185,13 +186,13 @@ public static class Aiming
         return piece is var (id, stuck, _) ? new RodHit(id, stuck) : null;
     }
 
-    /// <summary>Whether a machine of <paramref name="kind"/> holds items, opened with E: a crate, a furnace, an analyzer.</summary>
-    private static bool HoldsItems(string kind) => Spec.Machines.TryGet(kind, out var spec) && spec.Slots != null;
+    /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace, an analyzer), or the ship's computer.</summary>
+    private static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer));
 
-    /// <summary>Whether crate, furnace or analyzer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
+    /// <summary>Whether crate, furnace, analyzer or computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
     {
-        var crate = grid.MachineById(id) is { } m && HoldsItems(m.Kind) ? m : null;
+        var crate = grid.MachineById(id) is { } m && Opens(m.Kind) ? m : null;
         var cells = crate == null ? [] : grid.Footprint(crate.Kind, crate.Cell) ?? [];
         return cells.Any(cell => Reaches(hero, cell, grid.Width));
     }
@@ -228,7 +229,7 @@ public static class Aiming
             .ToList();
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
-        int? crate = machine != null && HoldsItems(machine.Kind) ? machine.Id : null;
+        int? crate = machine != null && Opens(machine.Kind) ? machine.Id : null;
         var press = crate == null ? PressOf(m, peer, cell, shown) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         var piece = PieceNear(m, hero, point, passOver);
@@ -439,6 +440,8 @@ public static class Aiming
         if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
+        // A platform opens only with power (Landing): E on a dark one says why, as on an empty canister.
+        if (Doorways.IsPlatform(structure)) return new Use(new SetPlatform(cell, Doorways.IsClosed(structure)), m.Landing.Problem(cell, Doorways.IsClosed(structure)));
         if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), null);
         if (valve is bool open) return new Use(new Sim.Pipes.SetValve(cell, !open), null);
         return null;

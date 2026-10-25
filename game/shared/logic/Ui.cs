@@ -223,6 +223,15 @@ public sealed class Ui
     public Store<int?> OpenCrate { get; } = new(null);
 
     /// <summary>
+    /// The ship's computer this player has open: <c>crew</c> opens it on E within reach and closes it out of reach,
+    /// <c>computer</c> shows its window and closes it on E or Esc.
+    /// </summary>
+    public Store<int?> OpenComputer { get; } = new(null);
+
+    /// <summary>The program the open computer shows, by id; none as it opens, and none once it stops being ready.</summary>
+    public Store<string?> ComputerProgram { get; } = new(null);
+
+    /// <summary>
     /// Where the open inventory's grid ends on the screen, its left edge and its bottom; null while it is
     /// closed. Set by <c>items</c> every frame; every machine's panel opens under it (0058), and
     /// <c>crafting</c> docks a queued station's there.

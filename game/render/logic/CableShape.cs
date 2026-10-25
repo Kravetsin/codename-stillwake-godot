@@ -24,15 +24,22 @@ public static class CableShape
     private const double Probe = 0.05;
 
     /// <summary>
-    /// Where a cable meets node <paramref name="node"/>, in cells: a machine's socket (<c>Plug</c>), or an
-    /// anchor's middle. One socket a machine, so every cable to it plugs in at one place.
+    /// Where a cable meets node <paramref name="node"/>, in cells: a machine's socket (<c>Plug</c>), a launch platform run's
+    /// (its structure's <c>Plug</c>, at its left end), or an anchor's middle. One socket a machine or a run, so every cable to it
+    /// plugs in at one place.
     /// </summary>
     public static (double X, double Y) EndOf(IGridQueries grid, int node)
     {
         int x = node % grid.Width, y = node / grid.Width;
+        return PlugOf(grid, node) is { } p ? (x + p.X / (double)Camera.Cell, y + p.Y / (double)Camera.Cell) : (x + 0.5, y + 0.5);
+    }
+
+    /// <summary>Where node <paramref name="node"/>'s socket is, in pixels from its cell's corner: a machine's or a structure's plug; null for an anchor.</summary>
+    public static (int X, int Y)? PlugOf(IGridQueries grid, int node)
+    {
         var machine = grid.MachineAt(node);
-        var plug = machine != null && machine.Cell == node ? Machines.Get(machine.Kind).Plug : null;
-        return plug is { } p ? (x + p.X / (double)Camera.Cell, y + p.Y / (double)Camera.Cell) : (x + 0.5, y + 0.5);
+        if (machine != null) return machine.Cell == node ? Machines.Get(machine.Kind).Plug : null;
+        return Structures.Of(grid.StructureAt(node)).Plug;
     }
 
     /// <summary>A node's middle, in cells: what the other end of a cable aims at.</summary>

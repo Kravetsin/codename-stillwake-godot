@@ -39,6 +39,7 @@ public static class Prompts
             HewWrecks => new Prompt("use.chop", press.Problem),
             Hew => new Prompt("use.dig", press.Problem),
             SetDoor d => new Prompt(d.Open ? "use.openDoor" : "use.closeDoor", press.Problem),
+            Sim.Landing.SetPlatform p => new Prompt(p.Open ? "use.openPlatform" : "use.closePlatform", press.Problem),
             Sim.Pipes.SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
             _ => throw new InvalidOperationException($"No prompt for {press.Command.GetType().Name}"),
         };

@@ -10,6 +10,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | File | Holds |
 | --- | --- |
 | `StoreScenario.cs` | `--store` |
+| `PlatformScenario.cs` | `--platform`: launch platforms, a run cabled and lit green, one uncabled and red, a piece alone |
 | `TestbedScenarios.cs` | `--testbed`, and the scenarios played on it: `--jetpack`, `--charge`, `--dust` |
 | `WreckScenarios.cs` | `--wreck`, `--wrecks`, `--harpoon` (seeded hosting too), `--grapple` |
 | `GroundScenario.cs` | `--ground=<mode>` with its modifiers (`--axe`, `--precise`, `--take-at`, `--ground-offset`, `--sprint`) |

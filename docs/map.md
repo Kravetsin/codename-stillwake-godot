@@ -39,10 +39,13 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 **Debris and wrecks**
 - Debris — sim/Debris · f/debris: `Debris.cs` DebrisModule, `Hit`; `Drift.cs` (zones, spawns); `DebrisView.cs`, `BreakView.cs`, `Finds.cs`; c/`Debris.cs`, `Wreck.cs`, `Wreckage.cs`
 - Hazards — sim/Hazards: `Hazards.cs` HazardsModule, `MeteorHit`
+- Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power; the drop pod to come)
 
 **Light** — f/light: `LightView.cs`, `Lightmap.cs`, `Sources.cs`, `StarField.cs`; f/effects: `EffectsView.cs`, `Impacts.cs`; r/`Lit.cs`, `Luminous.cs`, `Flares.cs`; gc/`Light.cs`, `Fx.cs`
 
 **Sound** — f/sound: `SoundView.cs`, `Hearing.cs`, `Motors.cs`, `GroundSounds.cs`; gc/`Sound.cs` (every cue); game/shared `Cues.cs`; files in `game/audio`
+
+**Ship computer** — f/computer: `ComputerPanel.cs`, `RadarScreen.cs`, `ComputerScreens.cs`, `Readout.cs` (programs brought by modules on its network); c/`Programs.cs`
 
 **UI and tablet** — game/shared: `Tablet.cs`, `TabletLayout.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
 

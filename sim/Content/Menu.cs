@@ -16,6 +16,9 @@ public static class MenuTabs
 
     public static readonly IReadOnlyList<string> All = [Structure, Air, Power, Production, Storage, Ship];
 
-    /// <summary>The tabs shown with no card known: the ship's, which has none yet.</summary>
+    /// <summary>
+    /// The tabs shown with no card known: the ship's, its computer and antenna known late, just before a planet, and its launch
+    /// platform only at the end of space.
+    /// </summary>
     public static readonly IReadOnlyList<string> ShownEmpty = [Ship];
 }

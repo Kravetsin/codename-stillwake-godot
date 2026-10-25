@@ -138,9 +138,15 @@ public partial class HeroView
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
         ShowHands(_figure, _wields, FittedOf(m, client.Id, _wields), _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
-        if (uses.Open is int open) _ui.OpenCrate.Set(open);
-        // A crate stays open while the hero can reach it, awake.
+        // The computer opens its own window; every other machine its slots under the inventory.
+        if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
+        {
+            if (Content.Machines.Is(machine.Kind, Content.MachineTrait.Computer)) _ui.OpenComputer.Set(open);
+            else _ui.OpenCrate.Set(open);
+        }
+        // A crate or a computer stays open while the hero can reach it, awake.
         if (_ui.OpenCrate.Get() is int opened && (passedOut || !Aiming.CrateInReach(m.Grid, _current, opened))) _ui.OpenCrate.Set(null);
+        if (_ui.OpenComputer.Get() is int screen && (passedOut || !Aiming.CrateInReach(m.Grid, _current, screen))) _ui.OpenComputer.Set(null);
     }
 
     /// <summary>

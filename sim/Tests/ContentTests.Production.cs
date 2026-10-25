@@ -136,13 +136,13 @@ public partial class ContentTests
 
     /// <summary>
     /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
-    /// going to machines (0057): the electronics, circuits and solar cells, to the circuit assembler alone, and soil to
+    /// going to machines (0057): the electronics, circuits, solar cells and the deck drive, to the circuit assembler alone, and soil to
     /// the Former alone (0060), as the motor of a planet's copper; the arc module to the assembler too (0086).
     /// </summary>
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
+        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));

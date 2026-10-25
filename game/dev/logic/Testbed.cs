@@ -38,10 +38,13 @@ public static class Testbed
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
     /// arc module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make, and an empty accumulator
-    /// (0099), the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc
-    /// bench, to be fitted there (0099).
+    /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>) and a launch platform's deck drive, the full crate having no
+    /// slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator"];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive"];
+
+    /// <summary>The ship computer's and the radar's parts, one each in the supply crate: the full crate has no slot left for them.</summary>
+    public static readonly IReadOnlyList<string> ComputerParts = ["processor", "display", "transceiver"];
 
     /// <summary>A drill with <paramref name="module"/> fitted, as a save writes its stack (0098): a dev world's, the bench to come.</summary>
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
@@ -50,8 +53,10 @@ public static class Testbed
     /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
     /// furnace, the Former, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
-    /// and the burner generator; then the airlock, no vent in it. Eleven panels on the roof: the first and the third feed the
-    /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the fourth the analyzer,
+    /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
+    /// antenna stands on the roof at the bow. Twelve panels on the roof: the first and the third feed the
+    /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
+    /// computer and the antenna, the fourth the analyzer,
     /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
     /// room two, and the last three, over the airlock and past the stern, the charging station: 15, what it draws with the arc
     /// fitted (0100); the burner generator feeds the Former and room
@@ -63,11 +68,11 @@ public static class Testbed
     public static readonly Layout Map = Layout.Parse(
         [
             new string(' ', 96),
-            "",
-            "       PPP  PPP    PPP   PPP PPP PPP PPP PPP PPP PPP PPP",
+            "   NN",
+            "   NN  PPP  PPPPPP PPP   PPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......L......#....L.........J.......L...#.L.#",
-            "  #.OOOQQ......RRD..............gg...GG.....D...D",
+            "  #.......LUUU...#....L.........J.......L...#.L.#",
+            "  #.OOOQQ..UUU.RRD..............gg...GG.....D...D",
             "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",
             "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBD...D",
             "  ###############################################",
@@ -86,7 +91,7 @@ public static class Testbed
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
             ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (46, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
-            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)),
+            ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
         ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>

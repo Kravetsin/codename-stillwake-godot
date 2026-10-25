@@ -24,7 +24,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 ## Rules
 
 - **A node** (0017) is a machine that makes, draws or stores power (`MachineSpec.Powered`), named by its top-left
-  whichever cell a cable is laid at; or an **anchor**: any other cell with a wall, floor, door or back wall and no
+  whichever cell a cable is laid at; a **run with a plug** (a launch platform, `StructureSpec.Plug`), named by its left
+  end, whichever of its cells a cable is laid at; or an **anchor**: any other cell with a wall, floor, door or back wall and no
   machine, existing only while a cable ends there.
 - **A cable** (0017) joins two different nodes whose nearest cells are within `Content.Power.MaxSpan`, one cable a
   pair. It takes no cell: it runs through walls and leaks no air.
@@ -55,7 +56,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 
 ## API
 
-- **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Satisfaction(machineId)`,
+- **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Feeds(cell)`, a structure a cable
+  ends on with power enough: its network makes or stores some and covers its demand (a launch platform's lamp); `Satisfaction(machineId)`,
   0 off every network; `Draw(machineId)`, modules folded in (0086); `LayProblem(peer, a, b)` and
   `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100).

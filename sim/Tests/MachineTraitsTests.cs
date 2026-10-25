@@ -19,6 +19,7 @@ public class MachineTraitsTests
     [InlineData(MachineTrait.Zone, new[] { "droneBay" })]
     [InlineData(MachineTrait.Glow, new[] { "lamp", "arcLamp" })]
     [InlineData(MachineTrait.Fire, new[] { "furnace", "burnerGenerator" })]
+    [InlineData(MachineTrait.Computer, new[] { "computer" })]
     public void EachTraitIsWhatItsMachinesAre(MachineTrait trait, string[] kinds)
     {
         Assert.Equal(kinds, Machines.All.Where(m => m.Is(trait)).Select(m => m.Kind));

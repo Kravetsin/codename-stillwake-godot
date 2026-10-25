@@ -141,6 +141,11 @@ public interface IGridOps
 {
     void Place(int cell, Placement placement);
     void Clear(int cell, string layer);
+    /// <summary>
+    /// Opens or shuts the doorway <paramref name="cell"/> is in as <see cref="SetDoor"/> does: a launch platform's, which only its
+    /// module opens, with power (Landing). The caller checks it is a doorway.
+    /// </summary>
+    void SetDoorway(int cell, bool open);
 }
 
 /// <summary>
@@ -161,15 +166,9 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     {
         _structureAt = c => State.Structure[c];
         _now = ValueAt;
-        // Already as asked, a door is left alone, the version too: nothing derived from the grid is redone.
-        Handles<SetDoor>(c => IsDoorway(State.Structure, c.Cell) ? null : "grid.noDoor", c =>
-        {
-            int to = Doorways.Toggled(State.Structure[c.Cell], c.Open);
-            var doorway = DoorwayOf(c.Cell, _structureAt);
-            if (!Differs(State.Structure, doorway, to)) return;
-            State.Version++;
-            foreach (int cell in doorway) Set(State.Structure, GridLayers.Structure, cell, to);
-        });
+        // A launch platform is no door to open by hand: it opens with power, by its own module's command (Landing).
+        Handles<SetDoor>(c => IsDoorway(State.Structure, c.Cell) && !Doorways.IsPlatform(State.Structure[c.Cell]) ? null : "grid.noDoor",
+            c => SetDoorway(c.Cell, c.Open));
     }
 
     /// <summary>Every write to a layer goes through here, so the log misses none: it holds what the cell held before.</summary>
@@ -457,6 +456,16 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return cells;
     }
 
+    public void SetDoorway(int cell, bool open)
+    {
+        // Already as asked, a doorway is left alone, the version too: nothing derived from the grid is redone.
+        int to = Doorways.Toggled(State.Structure[cell], open);
+        var doorway = DoorwayOf(cell, _structureAt);
+        if (!Differs(State.Structure, doorway, to)) return;
+        State.Version++;
+        foreach (int c in doorway) Set(State.Structure, GridLayers.Structure, c, to);
+    }
+
     public IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles)
     {
         // Only the toggled cells: copying the layers cost a big world 16 MB a tick while a toggle was in flight.
@@ -464,7 +473,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
         foreach (var t in toggles)
         {
-            if (t is SetDoor door && InBounds(door.Cell) && Doorways.IsDoorway(StructureAt(door.Cell)))
+            if (t is SetDoor door && InBounds(door.Cell) && Doorways.IsDoorway(StructureAt(door.Cell)) && !Doorways.IsPlatform(StructureAt(door.Cell)))
             {
                 int to = Doorways.Toggled(StructureAt(door.Cell), door.Open);
                 foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = to;

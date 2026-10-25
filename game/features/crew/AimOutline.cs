@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -33,6 +34,13 @@ public static class AimOutline
         if (grid.MachineAt(aim.Cell) is { } machine)
         {
             Machine(outline, machine.Kind, machine.Cell, width, colour);
+            return;
+        }
+        // A launch platform's run opens whole: the box round all of it.
+        if (Doorways.IsPlatform(grid.StructureAt(aim.Cell)))
+        {
+            var (first, length) = Sim.Landing.LandingModule.RunOf(grid, aim.Cell);
+            outline.AddBox(BoxOf([.. Enumerable.Range(first, length)], width), colour);
             return;
         }
         if (Doorways.IsDoorway(shown.StructureAt(grid, aim.Cell)))

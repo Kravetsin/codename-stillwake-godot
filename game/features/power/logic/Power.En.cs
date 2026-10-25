@@ -13,5 +13,7 @@ public static partial class En
         ["power.noCable"] = "No cable here",
         ["power.supply"] = "Power: {supply} made / {demand} drawn",
         ["power.stored"] = "Stored: {stored} / {capacity}",
+        ["landing.noPlatform"] = "There is no platform here",
+        ["landing.unpowered"] = "No power: the platform stays shut",
     };
 }

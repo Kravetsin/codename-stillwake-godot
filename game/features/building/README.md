@@ -30,7 +30,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   elsewhere puts the plan away. A drag ends with the card that began it.
 - **The menu is content** (0114): a card is a row with a `MenuSlot` (machine, build, a material's wall and back wall),
   on its tab by `Order`; `MenuTabs.All` orders the tabs (`Tools.TabsOf`). Every built material has both (0077, 0084,
-  0108; no bedrock). A card not known is not shown, nor a tab with none known. Walls have no shape to
+  0108; no bedrock). A card not known is not shown, nor a tab with none but the ship's (`ShownEmpty`). Walls have no shape to
   turn (0106). Pipes are not planned: piping lays them (0109).
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (everything solid: walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
@@ -38,7 +38,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   focused layer's cards. The right button, click or drag, with a card or none, marks or cancels in the focused layer
   only (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else marks everything of
   that layer built there, each piece or machine once. The other layer is drawn at 35% (`AlphasOf`). Away from the ship
-  (`PlanHand.Aboard`) nothing fades and the tools' see-through is off (`SeesThrough`). No removal card; no grid drawn.
+  (`PlanHand.Aboard`) nothing fades, no see-through (`SeesThrough`). No removal card; no grid drawn.
 - **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or the left wing's keys; kept
   while the plan is away. Wiring and piping show their cards alone, no search, layers or Q (`CardsOf`); the card picked
   (`ToolCard`) is what the left lays. Leaving building puts the card in hand aside till return. Off the ship the plan

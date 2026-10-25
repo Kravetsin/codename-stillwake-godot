@@ -516,8 +516,8 @@ public partial class HeroView : Node2D
         _figure.OnPixels = new Vector2((float)feet.X, (float)feet.Y) * (float)Rig.Cell;
     }
 
-    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none while the mouse is off the window.</summary>
-    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() ? null : _mouse.Pointer());
+    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu or the computer's window.</summary>
+    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null ? null : _mouse.Pointer());
 
     public override void _UnhandledInput(InputEvent e)
     {

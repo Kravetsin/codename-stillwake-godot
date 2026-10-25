@@ -6,6 +6,7 @@
 | --- | --- |
 | `ChangeLog.cs` | Every write to the grid's layers, oldest first, as the version it was made under, the cell, the layer and what the … |
 | `Doorways.cs` | What a doorway is and how its cells join and toggle, from its structure spec (0111, 0112). |
+| `StructureRuns.cs` | Cells of one structure side by side along a row, one run: a launch platform's pieces, one deck with one lamp. |
 | `Grid.cs` | The ship's cells in layers. |
 | `Grown.cs` | What a save holds of a grown surface's grid (0077): its size and zone, its machines, and the cells changed since … |
 
@@ -48,16 +49,18 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 - `PlacementProblem(cell, placement)`; `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
   client's own toggles in flight (0014); not a copy of the layer.
 - **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
-  `Clear(cell, layer)` (a whole machine). Only in commands or construction.
+  `Clear(cell, layer)` (a whole machine), `SetDoorway(cell, open)` (a whole doorway as `SetDoor` sets it: Landing's
+  platforms). Only in commands or construction.
 - **Command:** `SetDoor(cell, open)` — sets the whole doorway the cell is in to the state its sender saw it should take
   (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
-  `grid.noDoor`.
+  `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
   `grid.noSuchMaterial`, `grid.noSuchMachine`.
 
 ## Maps
 
-A structure's map character is its spec's `Char` (`#` wall, `=` floor, `H` ladder, `D`/`d` door, `h`/`o` hatch, `%` the grate
+A structure's map character is its spec's `Char` (`#` wall, `=` floor, `H` ladder, `D`/`d` door, `h`/`o` hatch, `_`/`~` launch
+platform, `%` the grate
 fixture); `-` pipe, `v`/`x` valve, a machine by its spec's `Char`. A machine is drawn as its whole footprint. Every character
 but a space has a back wall of the default hull. Machines take ids by their top-left cells in reading order.
 

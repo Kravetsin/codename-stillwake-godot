@@ -123,4 +123,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted |  |
+| [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |

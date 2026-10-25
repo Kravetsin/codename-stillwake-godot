@@ -16,7 +16,8 @@ namespace Stillwake.Sim;
 /// spans (0109): no save before it migrates either, nothing released having held one. Format 30 took the stripper and the
 /// wrench out of the game (plan modes): no save before it migrates, every hero having been given both and nothing released.
 /// Format 31 grew planets anew (stairs for cliffs, veins of ore, crystals by the lodes): no save before it migrates, a
-/// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel.
+/// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel. Format 32 added
+/// the landing module (the launch platform), its slice empty.
 /// </summary>
 public static class Migrations
 {
@@ -24,7 +25,16 @@ public static class Migrations
     public const int Oldest = 31;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins];
+
+    /// <summary>31 to 32: the landing module (the launch platform) joins every surface, holding nothing yet.</summary>
+    private static JsonObject LandingJoins(JsonObject save)
+    {
+        save["slices"]!.AsObject()["landing"] = new JsonObject();
+        if (save["surfaces"] is JsonArray surfaces)
+            foreach (var surface in surfaces) surface!["slices"]!.AsObject()["landing"] = new JsonObject();
+        return save;
+    }
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();
