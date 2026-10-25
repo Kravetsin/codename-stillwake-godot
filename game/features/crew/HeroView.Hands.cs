@@ -35,7 +35,10 @@ public partial class HeroView
         bool back = (axe || drill != null) && (_swing.Phase != null ? _swingBack : Layering.Back(_mouse.Buttons.HoldsLeft, _mouse.Buttons.HoldsRight));
         var aim = pointer is { } p ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, back: back) : null;
         var prompt = passedOut ? null : Prompts.Of(m, aim);
-        TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null, back);
+        TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null, back);
+        // A tool's hit is shown by the faces it would strike, a rim breathing on each (the fan of rays), not outlined.
+        _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan
+            ? FanFaces.Of(m.Grid, fan.Hewn, new Point(fan.Ground.X, fan.Ground.Y), fan.Ground.Back) : [], prompt?.Problem != null ? AimRefused : AimReady);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
@@ -311,16 +314,6 @@ public partial class HeroView
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
 
-    /// <summary>What <paramref name="fan"/> strikes, as one number: its outline is drawn again only when that changes.</summary>
-    private static int KeyOf(Fan? fan)
-    {
-        if (fan == null) return 0;
-        var key = new System.HashCode();
-        foreach (int cell in fan.Hewn.Cells) key.Add(cell);
-        foreach (var plant in fan.Hewn.Plants) key.Add(~plant.Cell);
-        return key.ToHashCode();
-    }
-
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
     private static Vector2 Pixels(Point at) => new Vector2(at.X, at.Y) * (float)(Rig.Cell / Hero.Unit);
 
@@ -332,13 +325,12 @@ public partial class HeroView
     {
         var grid = m.Grid;
         var traced = aim is { } a
-            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ValveOpenAt(m.Pipes, a.Cell) switch { null => 0, true => 1, false => 2 }, grid.MachineAt(a.Cell)?.Id, back, KeyOf(a.Fan))
-            : ((int, int?, bool, int, int, int?, bool, int)?)null;
+            ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ValveOpenAt(m.Pipes, a.Cell) switch { null => 0, true => 1, false => 2 }, grid.MachineAt(a.Cell)?.Id, back)
+            : ((int, int?, bool, int, int, int?, bool)?)null;
         if (traced == _traced) return;
         _traced = traced;
         _outline.Dashed = back;
-        // What a tool strikes is outlined over the hero and its tool, which may stand in front of it (0077).
-        _outline.ZIndex = aim?.Fan != null ? Layers.Dug : Layers.Aim;
+        _outline.ZIndex = Layers.Aim;
         _outline.Begin();
         if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : AimReady);
         _outline.End();

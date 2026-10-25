@@ -35,6 +35,8 @@ commands reach the sim. Other heroes come through the host.
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
+| `FaceRim.cs` | a breathing rim on the faces a tool would strike |
+| `logic/FanFaces.cs` | those faces |
 | `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
 | `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
@@ -100,7 +102,7 @@ commands reach the sim. Other heroes come through the host.
   small piece in space. Outlined green or red; `UsePrompt` says why. With a plan in hand
   (`Ui.Hand`, 0022) the hero holds the sheet and E does nothing.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`, from the shoulder): a `Hew` and in space a `HewWrecks`, each
-  sent if the sim's query strikes something; heard at the cell nearest the pointer; what it strikes outlined.
+  sent if the sim's query strikes something; heard at the cell nearest the pointer; faces it strikes glow.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through once begun.
   E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.

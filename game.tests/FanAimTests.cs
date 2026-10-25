@@ -105,4 +105,27 @@ public class FanAimTests
         foreach (int cell in fan.Hewn.Cells)
             Assert.Equal(cell, Aiming.LeadOf(fan, new Point(cell % W * Unit + 500, cell / W * Unit + 500), W));
     }
+
+    [Fact]
+    public void TheFacesThatGlowAreTheStruckWallsSidesOpenToTheAirTurnedToTheHandAndTheEdgeOfBackWallsAndPlants()
+    {
+        var m = Cave().M;
+        var hand = new Point(20_500, 5_500);
+        // The right wall struck from its left: its left sides glow, never its top, bottom or right, walls all.
+        Assert.Equal([new Face(23, 5, Side.Left), new Face(23, 6, Side.Left)], FanFaces.Of(m.Grid, new Hewn([At(23, 5), At(23, 6)], []), hand, back: false));
+        // The floor's corner cell struck from above and left: its top, open; its left meets the floor.
+        Assert.Equal([new Face(22, 9, Side.Top)], FanFaces.Of(m.Grid, new Hewn([At(22, 9)], []), hand, back: false));
+        // Two back walls side by side: the edge round both, not the line between them.
+        Assert.Equal([new Face(5, 5, Side.Left), new Face(5, 5, Side.Top), new Face(5, 5, Side.Bottom), new Face(6, 5, Side.Right), new Face(6, 5, Side.Top), new Face(6, 5, Side.Bottom)],
+            FanFaces.Of(m.Grid, new Hewn([At(5, 5), At(6, 5)], []), hand, back: true));
+        Assert.Equal(4, FanFaces.Of(m.Grid, new Hewn([], [new Plant(At(4, 8), "bellTeal")]), hand, back: false).Count);
+    }
+
+    [Fact]
+    public void WhatIsAimedAtBreathesFromFaintToBrightAndBack()
+    {
+        Assert.Equal(Stillwake.Game.Render.Breath.Least, Stillwake.Game.Render.Breath.Alpha(Stillwake.Game.Render.Breath.PeriodMs * 0.75), 6);
+        Assert.Equal(Stillwake.Game.Render.Breath.Most, Stillwake.Game.Render.Breath.Alpha(Stillwake.Game.Render.Breath.PeriodMs * 0.25), 6);
+        Assert.Equal(Stillwake.Game.Render.Breath.Alpha(100), Stillwake.Game.Render.Breath.Alpha(100 + Stillwake.Game.Render.Breath.PeriodMs), 6);
+    }
 }

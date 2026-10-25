@@ -7,7 +7,8 @@ namespace Stillwake.Game.Render;
 /// A thin line round the silhouette of what is aimed at: the pictures added are drawn together as
 /// masks, each in its colour, and only the ring of screen pixels just outside them shows, a pixel wide
 /// at 1080 lines whatever the zoom, so a machine, a door or a piece of debris is outlined along its own
-/// shape, not boxed. Unlit, so it reads in the dark. Hidden with nothing added, when it costs nothing.
+/// shape, not boxed. Unlit, so it reads in the dark, and breathing (<see cref="Breath"/>). Hidden with nothing added, when it
+/// costs nothing.
 /// </summary>
 public partial class Outline : CanvasGroup
 {
@@ -113,6 +114,11 @@ public partial class Outline : CanvasGroup
         ZIndex = z;
         Material = Ring;
         Visible = false;
+    }
+
+    public override void _Process(double delta)
+    {
+        if (Visible) SelfModulate = Colors.White with { A = (float)Breath.Alpha(Time.GetTicksMsec()) };
     }
 
     /// <summary>Whether the line is the back layer's (0107): dashed, a pixel inside the front's.</summary>

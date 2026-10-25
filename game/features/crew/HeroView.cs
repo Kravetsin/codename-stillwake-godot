@@ -42,6 +42,7 @@ public partial class HeroView : Node2D
     private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
+    private readonly FaceRim _faceRim = new();
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
@@ -102,7 +103,7 @@ public partial class HeroView : Node2D
     /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
     /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
-    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, bool Back, int Fan)? _traced;
+    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, bool Back)? _traced;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
@@ -219,6 +220,7 @@ public partial class HeroView : Node2D
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
+        AddChild(_faceRim);
         AddChild(_prompt);
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
