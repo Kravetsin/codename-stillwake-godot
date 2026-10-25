@@ -12,8 +12,6 @@ public static partial class En
         ["building.notHere"] = "Cannot be built here",
         ["building.natural"] = "Ground: dig it with a tool",
         ["building.nothingToDig"] = "Nothing to dig",
-        ["building.bedrock"] = "Too hard",
-        ["building.builtWall"] = "Built: mark it, then the screwdriver",
         ["building.heroInside"] = "Step out to finish",
         ["tool.wall"] = "Wall",
         ["tool.backWall"] = "Back wall",

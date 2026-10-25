@@ -51,7 +51,7 @@ public class OwnCatchesTests
     {
         var own = new OwnCatches();
         // A friend caught 5 meanwhile: the sim knows it, but no grab of this peer's flew for it.
-        own.Read([new Hit(6, Spec.Weapons.Axe.Item)], CaughtFrom);
+        own.Read([new HewWrecks(Spec.Weapons.Axe.Item, 6_000, 0, 0)], CaughtFrom);
         Assert.Empty(own.Read([], CaughtFrom));
     }
 

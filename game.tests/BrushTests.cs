@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The brush: the square of cells a strike or a build stroke covers round the cell corner nearest the pointer.</summary>
+/// <summary>The brush: where a build stroke's stamp lies round the cell corner nearest the pointer, and the strokes a drag lays.</summary>
 public class BrushTests
 {
     private const int W = 10, H = 6;
@@ -38,15 +38,6 @@ public class BrushTests
     {
         Assert.Equal((0, 0), Brush.Corner(W, H, (0.2, 0.2), 2, 2));
         Assert.Equal((8, 4), Brush.Corner(W, H, (9.9, 5.9), 2, 2));
-        Assert.Equal([0, 1, 10, 11], Brush.Cells(W, H, (0.2, 0.2), 2));
-    }
-
-    [Fact]
-    public void ItsCellsAreAscendingAndPreciseIsOneCell()
-    {
-        Assert.Equal([24, 25, 34, 35], Brush.Cells(W, H, (4.7, 3.2), 2));
-        Assert.Equal([34], Brush.Cells(W, H, (4.7, 3.2), Brush.SideOf(precise: true)));
-        Assert.Equal(Stillwake.Content.Builds.Brush, Brush.SideOf(precise: false));
     }
 
     [Fact]

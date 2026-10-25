@@ -52,17 +52,15 @@ public partial class HeroView
             shown.Figure.Wear(Suits.Of(m.Players, id));
             var (axe, chop) = _heardChops.GetValueOrDefault(id);
             if (!axe) shown.Swing.Stop();
-            // Its blade heard and seen where it strikes the ground as it is played here, the dig its own peer sends then (0093, 0094),
-            // by the whole brush: whether its peer holds Ctrl is not sent.
-            if (shown.Swing.Follow(elapsedMs, axe ? chop : null).Hits
-                && Aiming.LeadOf(Aiming.DigsAt(m, id, hero, shown.Swing.At, Content.Weapons.Axe.Item, Brush.SideOf(false)), shown.Swing.At, m.Grid.Width) is { } dig)
-                Struck(_othersGroundHits, m, dig, hero, id);
-            // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the dig its peer sends there.
+            // Its blade heard and seen where it strikes the ground as it is played here, the fan its own peer sends then (0093, 0094),
+            // in the front layer: which button its peer swings with is not sent.
+            if (shown.Swing.Follow(elapsedMs, axe ? chop : null).Hits)
+                StruckBy(m, id, hero, shown.Swing.At, Content.Weapons.Axe.Item);
+            // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the fan its peer sends there.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
-            if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1)
-                && Aiming.LeadOf(Aiming.DigsAt(m, id, hero, seen.Busy!.Value.At, running!, Brush.SideOf(false)), seen.Busy!.Value.At, m.Grid.Width) is { } bored)
-                Struck(_othersGroundHits, m, bored, hero, id);
+            if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1))
+                StruckBy(m, id, hero, seen.Busy!.Value.At, running!);
             ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
@@ -228,6 +226,16 @@ public partial class HeroView
     }
 
     /// <summary>Whether a rod biting into <paramref name="piece"/> thumps as a glove does, a crate or a pod, rather than ringing as metal.</summary>
+    /// <summary>
+    /// Peer <paramref name="id"/>'s hit of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, heard and
+    /// seen at the ground its fan strikes nearest the point, as that peer's own hit is (the fan of rays).
+    /// </summary>
+    private void StruckBy(Registry m, int id, Hero hero, Point at, string tool)
+    {
+        var fan = Aiming.FanOf(m, hero, at, tool);
+        if (!fan.Hewn.IsEmpty) Struck(_othersGroundHits, m, Aiming.LeadOf(fan, at, m.Grid.Width), tool, false, hero, id);
+    }
+
     private static bool Thumps(Piece piece) => Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;
 
     /// <summary>The spring's breath leaving <paramref name="figure"/>'s muzzle with the rod, along its barrel, and its glint.</summary>

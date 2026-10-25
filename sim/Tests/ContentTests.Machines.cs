@@ -63,9 +63,6 @@ public partial class ContentTests
     [Fact]
     public void BuildsComeApartFasterThanTheyGoUpByAWholeFactor() => Assert.True(Builds.DeconstructSpeedup > 1);
 
-    [Fact]
-    public void TheBrushCoversAtLeastOneCell() => Assert.InRange(Builds.Brush, 1, 4);
-
     /// <summary>
     /// Drones (0062): every number positive and whole; a bay is a charging station of slots on the power grid, a drone an
     /// item of a stack of one holding charge, made at the assembler; a drone crosses at most a cell a tick, launches short

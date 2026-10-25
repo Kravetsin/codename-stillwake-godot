@@ -6,7 +6,7 @@
 | --- | --- |
 | `Building.cs` | Plans, and the work that turns them into the ship: blueprints built and marks … |
 | `Costs.cs` | What things cost and take to build, from content, and what a blueprint still lacks. |
-| `Digging.cs` | A hit of weapon `Tool` on the natural wall at `Cell` (0077): sent as the axe strikes, or at the drill's pace while … |
+| `Digging.cs` | A hit of weapon `Tool` on a planet's ground (the fan of rays): its fan cast from the hand at (`X`, `Y`), in thousandths … |
 | `Flora.cs` | A plant or a stone on a planet's surface (0079), a growth of its caves (0080) or a piece of a ruin's home (0091) … |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
 | `Rules.cs` | Which plans may be made and worked. |
@@ -47,12 +47,15 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing (no ADR).
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building keeps its run order before crew.
-- **`Dig(Cell, Tool)`** (0077): the weapon's damage (`Damage`, module boost included, 0098) adds to the cell's crack; at
-  the wall's `Strength` the wall alone clears, giving its material's `Cost` and the `Yields` of every growth it held to
-  the sender (`GiveOrDrop`). Refused `building.builtWall` for a ship's material (0108), `building.nothingToDig`,
-  `building.bedrock`, then the weapon's `items.flat` / `items.notRunning`. Two digs in a tick go in host order.
-- **`Dig(…, Back: true)`** (0107, 0108) hits the back wall in a crack of its own (`Crack.Back`): a natural one or a
-  hero's soil cracks and clears, the front wall staying, what hangs on it (`Anchor.Back`) felled; same refusals.
+- **`Hew(Tool, X, Y, Heading, Back)`** (fan-of-rays): the weapon's fan (`Rays`, Core) from the hand, each ray stopped by
+  the first wall or whatever stops a body; a natural wall that breaks is struck, a ship's, bedrock and lava not; a plant in
+  an open cell is struck and passed through. `Struck` says what, for the command and the client's preview alike. Each
+  wall and plant takes the weapon's damage (`Damage`, module boost included, 0098) once, walls by cell then plants: a wall
+  at its `Strength` clears alone, giving its material's `Cost` and the `Yields` of every growth it held to the sender
+  (`GiveOrDrop`). Refused `building.nothingToDig` when it strikes nothing, then `items.flat` / `items.notRunning`.
+  Two hits in a tick go in host order.
+- **`Back`** (0107, 0108): each ray strikes the natural back wall of every open cell it crosses, a ship's passed, until a
+  wall stops it; in a crack of its own (`Crack.Back`), what hangs on it (`Anchor.Back`) felled with it.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
@@ -63,15 +66,15 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 - **Ruins** (0085, 0091): caches, lenses and the homes' pieces are growths set by `Terrain`. `Behind` pieces have a
   layer of their own, the front hit first; `Fixed` ones no hit takes; a piece standing on another falls with it.
 - **The resonator** (0091): every breath, before crew breathes, a hero within `Ruins.ZapReach` of one pays `Ruins.Zap` (`Shock`).
-- **The relic** (0096): every `Dig` on a cradle first shocks its sender (`ShockOf`, a faster tool its pace's share of
+- **The relic** (0096): every `Hew` striking a cradle first shocks its sender once (`ShockOf`, a faster tool its pace's share of
   the axe's, rounded up); its floor dug out fells it unshocked. `Relics` reads taken-ness from `Felled` alone.
 
 ## Commands
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
 (`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`),
-`Dig(Cell, Tool, Back)`. Previews ask `Problem`, `WorkProblem`, `DigProblem`. `Deconstruct` is not a positional record:
-that would generate a `Deconstruct` method, which the type's name forbids. Fuzz aims `Work` and digs so plans complete.
+`Hew(Tool, X, Y, Heading, Back)`. Previews ask `Problem`, `WorkProblem`, `HewProblem`, `Struck`. `Deconstruct` is not a positional record:
+that would generate a `Deconstruct` method, which the type's name forbids. Fuzz aims `Work` and hits so plans complete.
 
 ## Invariants
 
@@ -87,7 +90,7 @@ that would generate a `Deconstruct` method, which the type's name forbids. Fuzz 
 
 - Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
-- Reach and which cell is dug or worked are the client's word.
+- Reach, the hand a fan is cast from and which cell is worked are the client's word.
 - Stale plans: plans claim their slots and only building fills the grid, so completing one over something throws.
 - A blueprint finished on its hero's cell puts the hero inside it. A tool dealing no damage throws: our bug.
 - Taking apart needs no knowledge of a thing (0024).

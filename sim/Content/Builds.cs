@@ -32,12 +32,6 @@ public static class Builds
     public const int CrackHeals = 200;
 
     /// <summary>
-    /// The side, in cells, of the square a strike or a build stroke covers (the client's brush): 2 at 8 px cells, so
-    /// digging and building go as fast per area as one 16 px cell did; 1 at 16 px. Ctrl held strikes or builds one cell.
-    /// </summary>
-    public const int Brush = 2;
-
-    /// <summary>
     /// A hatch (0104, 0111): as wide as a door segment and a cell tall, so a ladder meets it flush. Its own build, its own
     /// blueprint, and a doorway of its own.
     /// </summary>

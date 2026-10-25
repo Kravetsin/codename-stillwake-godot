@@ -102,7 +102,7 @@ public partial class HeroView : Node2D
     /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
     /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
-    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, (int, int, int)? Square, bool Back)? _traced;
+    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, bool Back)? _traced;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
@@ -131,8 +131,8 @@ public partial class HeroView : Node2D
     /// its last hits went on while it runs; none while it does not.
     /// </summary>
     private bool _aimsDrill;
-    /// <summary>The side of the brush this frame's strikes cover: one cell with Ctrl held (<see cref="Brush"/>).</summary>
-    private int _brush = Brush.SideOf(false);
+    /// <summary>A tool's aim, its fan's faces and reach glinting (the fan of rays).</summary>
+    private readonly FanPreview _fanPreview = new();
     private DrillPace _drillPace;
     /// <summary>The drill on a wreck, heard at its bit through the suit as the wreck sounds hit, the chop, at the drill's pace (0093).</summary>
     private readonly Heard2D _drillChop = Cues.Player2D(S.Chop, S.Suit, voices: 4);

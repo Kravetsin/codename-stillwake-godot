@@ -128,11 +128,12 @@ public class ImpactsTests
         Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);
         // A tuft falls to any hit: that hit is its only one.
         Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 3, Drill, Bite));
-        world.Step(new Sim.Building.Dig(8 + 1, Axe) { From = 0 }, new Sim.Building.Dig(2, Axe) { From = 0 });
-        // Soil of 4 cracked 2: the drill's 1 leaves it standing, its 2 with the arc fitted breaks it out.
-        Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);
+        // The axe's fans from inside the soil cell and the bush's, up: each that one alone.
+        world.Step(new Sim.Building.Hew(Axe, 1_500, 1_500, 192) { From = 0 }, new Sim.Building.Hew(Axe, 2_500, 500, 192) { From = 0 });
+        // Soil of 4 cracked 2: the drill's 2 breaks it out, and so its whole look; with the arc fitted too.
+        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite));
         Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, ArcBite));
-        Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 2, Drill, Bite), 9);
+        Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 2, Drill, Bite));
         Assert.Equal(1, Impacts.ShareAt(m.Grid, m.Building, 2, Drill, ArcBite));
     }
 

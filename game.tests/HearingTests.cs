@@ -11,16 +11,22 @@ namespace Stillwake.Game.Tests;
 /// <summary>What is heard in space (ADR 0041): only what this player's hero touches, dulled; the world silent; a bed of music.</summary>
 public class HearingTests
 {
+    /// <summary>An axe's hit in space striking <paramref name="pieces"/>, as <see cref="Struck"/> reads it back: a test's own key.</summary>
+    private static HewWrecks Hit(params int[] pieces) => new(Spec.Weapons.Axe.Item, pieces[0], pieces.Length > 1 ? pieces[1] : -1, 0);
+
+    /// <summary>The pieces <see cref="Hit"/> said its hit strikes, as the sim's query would.</summary>
+    private static IReadOnlyList<int> Struck(HewWrecks hit) => hit.Y < 0 ? [hit.X] : [hit.X, hit.Y];
+
     [Fact]
     public void AnOwnHitIsHeardWhenItsTickHasRunAndNotWhileItFlies()
     {
         var own = new OwnHits();
-        var hit = new Hit(7, Spec.Weapons.Axe.Item);
-        own.Read([hit]);
+        var hit = Hit(7);
+        own.Read([hit], Struck);
         Assert.False(own.Ran(7));
-        own.Read([]);
+        own.Read([], Struck);
         Assert.True(own.Ran(7));
-        own.Read([]);
+        own.Read([], Struck);
         Assert.False(own.Ran(7));
     }
 
@@ -29,8 +35,8 @@ public class HearingTests
     {
         var own = new OwnHits();
         // This peer's grab flew and landed; the wreck's damage rose from a friend's hit meanwhile.
-        own.Read([new Grab(7)]);
-        own.Read([]);
+        own.Read([new Grab(7)], Struck);
+        own.Read([], Struck);
         Assert.False(own.Ran(7));
     }
 
@@ -38,11 +44,11 @@ public class HearingTests
     public void AHitRunsAsTheNextOnTheSamePieceIsSentAndOnlyItCounts()
     {
         var own = new OwnHits();
-        var (first, second) = (new Hit(7, Spec.Weapons.Axe.Item), new Hit(7, Spec.Weapons.Axe.Item));
-        own.Read([first]);
-        own.Read([second]);
+        var (first, second) = (Hit(7), Hit(7));
+        own.Read([first], Struck);
+        own.Read([second], Struck);
         Assert.True(own.Ran(7));
-        own.Read([second]);
+        own.Read([second], Struck);
         Assert.False(own.Ran(7));
     }
 
@@ -50,8 +56,8 @@ public class HearingTests
     public void OneSwingThroughTwoWrecksHearsBoth()
     {
         var own = new OwnHits();
-        own.Read(new List<Command> { new Hit(3, Spec.Weapons.Axe.Item), new Grab(5), new Hit(9, Spec.Weapons.Axe.Item) });
-        own.Read([]);
+        own.Read(new List<Command> { Hit(3, 9), new Grab(5) }, Struck);
+        own.Read([], Struck);
         Assert.True(own.Ran(3));
         Assert.True(own.Ran(9));
         Assert.False(own.Ran(5));

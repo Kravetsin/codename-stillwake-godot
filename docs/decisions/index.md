@@ -44,8 +44,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037 (in part) |
 | [0037](0037-others-see-the-hands.md) | Others see the hands | accepted | 0038 (in part) |
 | [0038](0038-one-swing-one-hit.md) | One swing, one hit | accepted | 0039 (in part) |
-| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040 (in part) |
-| [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted |  |
+| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays (in part) |
+| [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
 | [0043](0043-a-solar-panel-needs-the-stars.md) | A solar panel needs the stars | accepted |  |
@@ -59,7 +59,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0051](0051-the-grid-keeps-a-log-of-changed-cells.md) | The grid keeps a log of changed cells | accepted |  |
 | [0052](0052-debris-by-zones-around-every-hero.md) | Debris by zones, around every hero | accepted |  |
 | [0053](0053-charge-belongs-to-the-item.md) | Charge belongs to the item; batteries and the charging station | accepted |  |
-| [0054](0054-asteroids-and-the-drill.md) | Asteroids and the drill | accepted | 0055, 0056, 0059 (in part) |
+| [0054](0054-asteroids-and-the-drill.md) | Asteroids and the drill | accepted | 0055, 0056, 0059, fan-of-rays (in part) |
 | [0055](0055-an-electric-tool-draws-while-it-runs.md) | An electric tool draws while it runs | accepted |  |
 | [0056](0056-rich-finds-far-out.md) | Rich finds far out | accepted |  |
 | [0057](0057-stations-one-model-for-every-crafting-machine.md) | Stations: one model for every crafting machine | accepted |  |
@@ -82,7 +82,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted |  |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
-| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | veins-and-stairs (in part) |
+| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | accepted |  |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
@@ -112,7 +112,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted |  |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
-| [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109 (in part) |
+| [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
 | [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes (in part) |
 | [0109](0109-pipes-are-spans.md) | Pipes are straight spans, laid with the wrench | accepted | 0110, plan-modes (in part) |
 | [0110](0110-the-plan-has-a-focused-layer.md) | The open plan has a focused layer; the hand tools have card menus | accepted | plan-modes (in part) |
@@ -122,4 +122,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0114](0114-build-menu-from-content.md) | The build menu is laid out from content | accepted |  |
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
+| [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |

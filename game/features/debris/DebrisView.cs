@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -96,7 +97,7 @@ public partial class DebrisView(Ui ui) : Node2D
     {
         _clockMs += elapsedMs;
         Pieces = debris.Pieces;
-        _own.Read(client.InFlight);
+        _own.Read(client.InFlight, h => debris.Struck(h.Tool, h.X, h.Y, h.Heading).Select(p => p.Id).ToList());
         var grabbed = Predicted.Grabbing(client.InFlight);
         int left = (int)Math.Floor(view.Position.X - Margin) * Unit, right = (int)Math.Ceiling(view.End.X + Margin) * Unit;
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;

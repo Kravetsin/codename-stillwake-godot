@@ -193,11 +193,12 @@ public class GroundSoundsTests
         Assert.Same(S.ChopWood, GroundSounds.HitAt(m.Grid, m.Building, 4, Spec.Weapons.Drill.Damage));
         Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Drill.Damage));
         Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 3, Spec.Weapons.Drill.Damage));
-        world.Step(new Dig(2, Axe) { From = 0 });
+        // The axe's fan from inside the bush's cell, up and off the grid: the bush alone.
+        world.Step(new Hew(Axe, 2_500, 500, 192) { From = 0 });
         Assert.Contains(m.Building.Cracks, c => c.Cell == 2);
         Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Axe.Damage));
-        // The drill's smaller bite leaves it standing one hit more: that hit is heard.
-        Assert.Same(S.Bush, GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Drill.Damage));
+        // The drill bites as hard: its hit fells it too, and the fall alone is heard.
+        Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Spec.Weapons.Drill.Damage));
         // With the arc fitted (0098) its bite is the axe's: that hit fells it, and the fall says so.
         Assert.Null(GroundSounds.HitAt(m.Grid, m.Building, 2, Sim.Items.Boost.Gain(Spec.Weapons.Drill.Damage, Spec.Modules.Arc.Adds(Spec.Weapons.Drill.Item, Spec.Stat.Damage))));
         // Nothing there, nothing heard.

@@ -36,8 +36,8 @@ public static class Prompts
         {
             LoadCanister => new Prompt("use.loadCanister", press.Problem),
             Grab => new Prompt("use.catch", press.Problem),
-            Hit => new Prompt("use.chop", press.Problem),
-            Dig d => new Prompt(d.Back ? "use.digBack" : "use.dig", press.Problem),
+            HewWrecks => new Prompt("use.chop", press.Problem),
+            Hew h => new Prompt(h.Back ? "use.digBack" : "use.dig", press.Problem),
             SetDoor d => new Prompt(d.Open ? "use.openDoor" : "use.closeDoor", press.Problem),
             Sim.Pipes.SetValve v => new Prompt(v.Open ? "use.openValve" : "use.closeValve", press.Problem),
             _ => throw new InvalidOperationException($"No prompt for {press.Command.GetType().Name}"),

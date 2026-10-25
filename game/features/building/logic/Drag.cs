@@ -42,7 +42,7 @@ public static class Drag
 
     /// <summary>
     /// What <paramref name="act"/> lays at each point of a drag, columns by rows: a ladder and a door segment their piece (0104);
-    /// everything else one cell, a click one cell, as building has no brush (the dig's stays, <see cref="Brush"/>).
+    /// everything else one cell, a click one cell.
     /// </summary>
     public static (int W, int H) StampOf(Act act) =>
         act is PlaceTool p && Spec.Builds.PieceOf(p.Placement.Kind) is { } piece ? piece : (1, 1);

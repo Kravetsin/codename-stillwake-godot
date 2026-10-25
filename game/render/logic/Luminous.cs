@@ -82,6 +82,12 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Rising off the line where a plan turns real, in the planner's sky blue.</summary>
     public static readonly Luminous EdgeMote = new(Glimmer.Mote, [(200, 246, 255), (120, 200, 255)], (700, 1300))
     { Bright = 0.7, Drag = 0.5, Turbulence = 18, Size = 0.5 };
+    /// <summary>
+    /// A tool's aim (the fan of rays): a faint cold glint where its hit would strike and along its reach, born still and gone
+    /// in a moment, giving no light: lights are dear.
+    /// </summary>
+    public static readonly Luminous AimGlint = new(Glimmer.Mote, [(222, 244, 255), (150, 206, 255)], (260, 420))
+    { Bright = 0.85, Fade = 1, Rise = 0.3, Size = 0.6 };
     /// <summary>Thrown off the edge of a plan as it is finished.</summary>
     public static readonly Luminous FinishMote = new(Glimmer.Mote, [(220, 250, 255), (120, 200, 255)], (600, 1200))
     { Bright = 0.85, Drag = 1.2, Turbulence = 20, Size = 0.55 };
