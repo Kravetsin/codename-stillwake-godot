@@ -13,10 +13,10 @@
 | `State.cs` | The saved slice and its records: `Stack`, `Place`, `Target`, `Body`, `FloorStack`, … |
 | `ToolStats.cs` | What a tool works with (0098): its damage a hit, the ticks between its hits and what it draws a tick it runs … |
 
-Every stack of items: each hero's inventory, by peer id; what each machine holding items holds, by machine id; the
-stacks on the floor; and creative mode, the world setting in which nothing is ever taken (0008).
+Every stack of items: each hero's inventory, by peer id; what each machine holds, by id; the
+stacks on the floor; and creative mode, where nothing is ever taken (0008).
 
-- **Depends on:** `Grid` (which machines hold items, what holds a floor stack up) and `Rooms` (space, open cells in a
+- **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open cells in a
   room).
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
@@ -39,7 +39,8 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (`Stacks.Misfit`, 0047). Worn items
   are never taken nor counted (`Totals`).
 - **Give and take** all of a cost or none (0008; order no ADR): giving fills stacks of the item in slot order, then empty
-  own slots; taking empties own slots from the last, so the hotbar goes last.
+  own slots; taking empties own slots from the last, so the hotbar goes last. `Spawn` (creative) gives what
+  fits, a battery full.
 - **Move** (0008) takes the least of `Count`, what `Src` holds and what fits, onto an empty slot or a stack alike; part
   of a stack onto one not alike is refused. With no `Dst` slot, that side as a whole. A machine with `Inputs` takes items
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charging station holds
@@ -49,7 +50,7 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
   stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
   first belt battery holding that much, so the belt drains left to right. Creative mode takes nothing, answers true.
-- **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, before the floor settles, each
+- **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, each
   run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its peer no longer
   carries stops itself. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
 - **Modules** (0086): `Fit` takes a module out of every slot into one of its `Hosts`, one of each kind a machine;
@@ -62,7 +63,7 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
 - **The floor** (no ADR; numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
   inside anything built is pushed out breadth-first through built cells up to `PushReach`, a room's open cell before
-  space, ties by lowest index, else rises a cell. Afloat it flies on, drifting only with no back wall behind it;
+  space, ties by lowest index, else rises a cell. Afloat it flies on, drifting only with no back wall;
   elsewhere it falls by gravity times its surface's `Fall` and slides to a stop. Gone past the grid's edge. Alike stacks
   at rest in a cell merge.
 - **Machines and ladders hold no stack** (no ADR): one falls through to the floor below; one laid in their cells is not
@@ -78,7 +79,8 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
 `Move` (`items.noCrate`, `noSlot`, `takeOnly`, `notEquipment`, `notBattery`, `notTool`, `empty`, `full`); `Drop`
 (`noCrate`, `noSlot`, `empty`, `noCell`); `PickUp` (`gone`, `tooSoon`, `full`); `Sort` (`noCrate`, `notCrate`); `Run`
 (`notElectric`; on: `notHeld`, `flat`); `Fit` (`noMachine`, `noCrate`, `noSlot`, `empty`, `notModule`, `fitted`,
-`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `SetCreative`. A negative cost throws.
+`noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `SetCreative`; `Spawn` (`notCreative`, `full`). A
+negative cost throws.
 
 ## Invariants
 
