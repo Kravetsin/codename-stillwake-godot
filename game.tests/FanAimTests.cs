@@ -128,4 +128,16 @@ public class FanAimTests
         Assert.Equal(Stillwake.Game.Render.Breath.Most, Stillwake.Game.Render.Breath.Alpha(Stillwake.Game.Render.Breath.PeriodMs * 0.25), 6);
         Assert.Equal(Stillwake.Game.Render.Breath.Alpha(100), Stillwake.Game.Render.Breath.Alpha(100 + Stillwake.Game.Render.Breath.PeriodMs), 6);
     }
+
+    [Fact]
+    public void TheGlowTurnsAnInnerCornerAndFadesOnlyAtItsOpenEnds()
+    {
+        // The sketch's corner: an overhang's underside and the wall under it, both struck, meeting at (17, 5).
+        var faces = new List<Face> { new(16, 4, Side.Bottom), new(17, 5, Side.Left), new(17, 6, Side.Left) };
+        Assert.Equal([(false, true), (true, true), (true, false)], FaceGlow.Joined(faces));
+        // The rock behind both, up and right of the corner, is lit too.
+        Assert.Equal([((17, 5), (1, -1))], FaceGlow.Corners(faces));
+        // Two sides of one cell meet outward: no inner corner.
+        Assert.Empty(FaceGlow.Corners([new Face(5, 5, Side.Left), new Face(5, 5, Side.Top)]));
+    }
 }

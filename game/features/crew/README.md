@@ -35,8 +35,8 @@ commands reach the sim. Other heroes come through the host.
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
-| `FaceRim.cs` | a breathing rim on the faces a tool would strike |
-| `logic/FanFaces.cs` | those faces |
+| `FaceRim.cs` | a glow into the rock where a tool strikes |
+| `logic/FanFaces.cs` | those faces, ends, corners |
 | `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
 | `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
