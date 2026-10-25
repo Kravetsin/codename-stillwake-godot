@@ -86,36 +86,7 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(Line(T("menu.suit"), Style.Slate300, 12));
         suits.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
         _settings.AddChild(suits);
-        _settings.AddChild(Line(T("menu.slots"), Style.Slate300, 12));
-        var sizes = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 8);
-        foreach (var (scale, key) in (ReadOnlySpan<(SlotScale, string)>)[(SlotScale.Normal, "menu.slotsNormal"), (SlotScale.Large, "menu.slotsLarge")])
-        {
-            var chosen = scale;
-            var button = Style.Button(T(key), () => _ui.SlotScale.Set(chosen), size: 13, padX: 14, padY: 5);
-            _buttons[key] = button;
-            sizes.AddChild(button);
-        }
-        _settings.AddChild(sizes);
-        PaintSizes();
-        _ui.SlotScale.Subscribe(PaintSizes);
-        // Heat shimmer (0075): on by default, kept on this machine.
-        _settings.AddChild(Line(T("menu.shimmer"), Style.Slate300, 12));
-        var shimmer = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, 8);
-        foreach (var (on, key) in (ReadOnlySpan<(bool, string)>)[(true, "menu.on"), (false, "menu.off")])
-        {
-            var chosen = on;
-            var button = Style.Button(T(key), () =>
-            {
-                Shimmer.Enabled = chosen;
-                Settings.KeepShimmer(chosen);
-                PaintShimmer();
-            }, size: 13, padX: 14, padY: 5);
-            _buttons[key] = button;
-            shimmer.AddChild(button);
-        }
-        _settings.AddChild(shimmer);
-        PaintShimmer();
-        _settings.AddChild(Choice("menu.logs", Logs.OpenFolder));
+        _settings.AddChild(new SettingsRows(ui));
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
 
@@ -132,22 +103,6 @@ public partial class GameMenu : CanvasLayer
 
     /// <summary>The middle of the button saying <paramref name="key"/> on screen, for scripted runs.</summary>
     public Vector2 CenterOf(string key) => _buttons[key].GetGlobalRect().GetCenter();
-
-    /// <summary>The slot size in use lit, the other as any button.</summary>
-    private void PaintSizes()
-    {
-        bool large = _ui.SlotScale.Get() == SlotScale.Large;
-        Style.Paint(_buttons["menu.slotsNormal"], large ? Style.Slate700 : Style.Sky700, large ? Style.Slate600 : Style.Sky700, 14, 5);
-        Style.Paint(_buttons["menu.slotsLarge"], large ? Style.Sky700 : Style.Slate700, large ? Style.Sky700 : Style.Slate600, 14, 5);
-    }
-
-    /// <summary>Whether heat shimmers lit, the other as any button.</summary>
-    private void PaintShimmer()
-    {
-        bool on = Shimmer.Enabled;
-        Style.Paint(_buttons["menu.on"], on ? Style.Sky700 : Style.Slate700, on ? Style.Sky700 : Style.Slate600, 14, 5);
-        Style.Paint(_buttons["menu.off"], on ? Style.Slate700 : Style.Sky700, on ? Style.Slate600 : Style.Sky700, 14, 5);
-    }
 
     private Button Choice(string key, Action pressed)
     {

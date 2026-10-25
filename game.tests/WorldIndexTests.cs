@@ -98,4 +98,17 @@ public class WorldIndexTests
         Assert.False(Directory.Exists(Path.Combine(dir, id)));
         Assert.Empty(index.List());
     }
+
+    [Fact]
+    public void KeepsAPictureOfAWorldInItsFolderGoneWithItAndNoneForAWorldGone()
+    {
+        string dir = Fresh();
+        var index = Index(dir);
+        string id = index.Create("Pictured", new DateTime(2026, 10, 1));
+        index.WriteShot(id, [1, 2, 3]);
+        Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(index.ShotOf(id)));
+        index.Delete(id);
+        index.WriteShot(id, [4]);
+        Assert.False(File.Exists(index.ShotOf(id)));
+    }
 }

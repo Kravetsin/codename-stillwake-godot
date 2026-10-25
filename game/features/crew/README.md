@@ -71,7 +71,7 @@ commands reach the sim. Other heroes come through the host.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
 - **Jump and walk feel** (0089): coyote time and jump buffer; the rise cut when Space is let go; eased apex; speed
   eased toward the keys, `AirControl` of it in the air (`HeroFeelTests`).
-- **The figure answers its motion** (0090), read from sent `X`, `Y`, `Vx`, `Vy`, so friends move alike.
+- **The figure answers its motion** (0090), read from sent `X`, `Y`, `Vx`, `Vy`, so friends move alike. It sits (`Pose.Sit`) on the title only.
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`.

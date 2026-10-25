@@ -275,6 +275,7 @@ public partial class Main
         {
             _index.Write(id, s.Client.World.Save());
             (_lastSaveTick, _savedAt, _saveProblem) = (s.Client.World.Tick, DateTime.Now, null);
+            TakeShot();
             return true;
         }
         catch (Exception e) when (e is System.IO.IOException or UnauthorizedAccessException)
@@ -325,9 +326,9 @@ public partial class Main
     private void ShowTitle()
     {
         AdoptOldSave();
-        var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld,
+        var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld, ShotOf,
             busy: () => _together.Mode is TogetherMode.Joining or TogetherMode.Opening);
-        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, Quit,
+        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, new SettingsRows(_hands.Ui), Quit,
             Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status,
             testbed: OS.IsDebugBuild() ? PlayTestbed : null));
         if (_next is { } said) _title.Say(said);

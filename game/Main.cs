@@ -186,6 +186,12 @@ public partial class Main : Node2D, ITogether
         var effects = new EffectsView();
         AddChild(effects);
         AddChild(_hands);
+        AddChild(_shot);
+        // The world pictured for its card as the menu opens, the way out of it.
+        _hands.Ui.MenuOpen.Subscribe(() =>
+        {
+            if (_hands.Ui.MenuOpen.Get()) TakeShot();
+        });
         var join = _dev.Given("--join");
         var hostAs = _dev.Given("--host");
         // Every way out saves first: the window's close as well.

@@ -372,4 +372,22 @@ public class PoseTests
         Close(HeadTurn(4, 1), HeadTurn(-4, 1));
         Assert.Equal(0, HeadTurn(-4, 0));
     }
+
+    [Fact]
+    public void SittingRestsTheHipsOnTheLedgeTheThighsLevelAndTheShinsHangingHoldingNothing()
+    {
+        Assert.False(HoldsIn(Pose.Sit));
+        for (double ms = 0; ms < Seated.SwingMs; ms += 500)
+        {
+            var sat = LimbsOf(Pose.Sit, Standing, At(0, ms));
+            Assert.Equal(-Rig.Hip, sat.Lift);
+            foreach (var leg in new[] { sat.FrontLeg, sat.BackLeg })
+            {
+                // The limbs turn with the body (a limb at Upper is turned back by it, the body forward by Tilt): the thigh
+                // points level ahead and the shin straight down, give or take the swing.
+                Assert.InRange(leg.Upper - sat.Tilt, Math.PI / 2 - 0.05, Math.PI / 2 + 0.05);
+                Assert.InRange(leg.Upper + leg.Lower - sat.Tilt, -0.2, 0.2);
+            }
+        }
+    }
 }
