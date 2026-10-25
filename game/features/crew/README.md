@@ -35,8 +35,8 @@ commands reach the sim. Other heroes come through the host.
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
-| `FaceRim.cs` | a tool's aim glow, drawn |
-| `logic/AimGlow.cs` | its light field, from the rays |
+| `FaceRim.cs` | a tool's aim glow |
+| `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
 | `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
@@ -97,12 +97,12 @@ commands reach the sim. Other heroes come through the host.
 
 - **What the hand holds shows** (`HeldLook`): axe, harpoon, drill, screwdriver; working a plan, the screwdriver twists.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
-  wiring, lays cables; the axe or drill on the right strikes back walls only.
+  wiring, lays cables; a tool on the right does nothing.
 - **One aim** (`Aiming.AimAt`): a plan, a machine, tank, door or valve (E), a wreck under the pointer, else the nearest
   small piece in space. Outlined green or red; `UsePrompt` says why. With a plan in hand
   (`Ui.Hand`, 0022) the hero holds the sheet and E does nothing.
-- **A tool's hit is a fan of rays** (`Aiming.FanOf`, from the shoulder): a `Hew` and in space a `HewWrecks`, each
-  sent if the sim's query strikes something; heard at the cell nearest the pointer; faces it strikes glow.
+- **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
+  strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through once begun.
   E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.

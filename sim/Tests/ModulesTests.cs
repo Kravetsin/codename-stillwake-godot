@@ -110,7 +110,7 @@ public class ModulesTests
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
-        for (int i = 0; i < 300; i++)
+        for (int i = 0; i < 400; i++)
         {
             if (readAir && live.Rooms.All.Count > 0)
             {
