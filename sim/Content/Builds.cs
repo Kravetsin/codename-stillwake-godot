@@ -43,6 +43,9 @@ public static class Builds
     /// </summary>
     public const string Hatch = "hatch";
 
+    /// <summary>A launch platform's piece: a deck two cells by one, pieces side by side one run (the drop pod's, to come).</summary>
+    public const string Platform = "launchPlatform";
+
     /// <summary>
     /// The cells across and down of a piece of <paramref name="kind"/>, placed and taken apart as one (0104): a ladder's 2×2, a
     /// door segment's 2×2, a hatch's 2×1; null for what is placed a cell at a time.

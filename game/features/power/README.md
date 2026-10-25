@@ -15,6 +15,8 @@ Cables hanging between their nodes and their overlay, shown while the plan is wi
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |
 | `ChargerLights.cs` | each charging station's light and the battery in its bay (0053)                     | yes   |
 | `StoreLights.cs` | each capacitor bank's gauge, its spark and its light (0101)                          | yes   |
+| `PlatformLamps.cs` | each launch platform's lamp in its right end post, green while its plug is fed, red not; its socket in its left end post | yes   |
+| `logic/PlatformRuns.cs` | the launch platforms run by run, shut or open (`LandingModule.RunOf`), and whether each lamp is green: a cell fed (`Power.Feeds`) | no    |
 | `logic/StoreGauge.cs` | how the gauge reads: segments lit by how full, the spark's way and place (tested)     | no    |
 | `StoreWorld.cs`, `StoreDemo.cs` | the world of `-- --store` and its script: a bank filling, then emptying into an arc smelter | `StoreDemo` |
 | `StoreDemo.cs` | for recordings (`-- --store`, 0101): plays `StoreWorld`, the bank filling while the smelter stands empty; at … | yes |
@@ -50,7 +52,7 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   a cable through the hull moved to a node on it, or one laid from outside to a lamp inside, starts each
   new piece along its stretch of that line (`CableRopes.StartsOf`); the TypeScript snapped those to a
   fresh hang.
-- A dragged cable runs to where it would end: a machine's socket, an anchor's middle.
+- A dragged cable runs to where it would end: a machine's socket or a platform run's, an anchor's middle.
 - While a cable is carried, every powered machine's socket glows and is outlined along its own picture,
   a screen pixel wide (`render/Outline.cs`): green where the cable would plug in, grey out of reach,
   red where it may not.

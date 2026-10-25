@@ -62,8 +62,9 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
 - **The floor** (no ADR; numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
   inside anything built is pushed out breadth-first through built cells up to `PushReach`, a room's open cell before
-  space, ties by lowest index, else rises a cell. Afloat in space it flies on and drifts; elsewhere it falls by gravity
-  times its surface's `Fall` and slides to a stop. Past the grid's edge it is gone. Alike stacks at rest in a cell merge.
+  space, ties by lowest index, else rises a cell. Afloat it flies on, drifting only with no back wall behind it;
+  elsewhere it falls by gravity times its surface's `Fall` and slides to a stop. Gone past the grid's edge. Alike stacks
+  at rest in a cell merge.
 - **Machines and ladders hold no stack** (no ADR): one falls through to the floor below; one laid in their cells is not
   pushed out.
 - **Whole cells** (0106): a stack is a point; it lands on a cell's top and stops against a built cell, never climbing.

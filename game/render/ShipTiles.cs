@@ -161,8 +161,20 @@ public sealed class ShipTiles
     /// <summary>The 16 px pictures cut into the cells of what fills a character's cells (0104): a ladder, a floor, iron's back walls.</summary>
     public static bool CutDrawn(string name) => name is "back_iron_plain" or "back_iron_grille" || StructureTiles.Contains(name);
 
-    /// <summary>The pictures structures are cut from over the world (<see cref="StructureDraw.Cut"/>, <see cref="StructureDraw.Paired"/>): a floor's, a ladder's.</summary>
-    private static string[] StructureTiles => _structureTiles ??= Structures.All.Select(s => s.Tile).OfType<string>().Distinct().ToArray();
+    /// <summary>
+    /// The pictures structures are cut from over the world (<see cref="StructureDraw.Cut"/>, <see cref="StructureDraw.Paired"/>,
+    /// <see cref="StructureDraw.Joined"/>): a floor's, a ladder's, a launch platform's by its joins.
+    /// </summary>
+    private static string[] StructureTiles => _structureTiles ??= Structures.All
+        .SelectMany(s => s.Tile is not { } tile ? Array.Empty<string>()
+            : s.Draw == StructureDraw.Joined ? JoinedLinks.Select(l => JoinedName(tile, l)).Prepend(tile).ToArray() : [tile])
+        .Distinct().ToArray();
+
+    /// <summary>A joined structure's pictures by its piece's joins, a hatch's links: alone, on the right, both sides, on the left.</summary>
+    private static readonly int[] JoinedLinks = [0, 2, 10, 8];
+
+    /// <summary>The picture of a <see cref="StructureDraw.Joined"/> piece of <paramref name="tile"/> joined on <paramref name="links"/> (left 8, right 2).</summary>
+    public static string JoinedName(string tile, int links) => $"{tile}_{links}";
     private static string[]? _structureTiles;
 
     /// <summary>The source every tile is in.</summary>

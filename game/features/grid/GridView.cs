@@ -109,7 +109,7 @@ public partial class GridView : Node2D
             foreach (var change in changes)
             {
                 Hear(change);
-                if (IsDoorway(change.Structure) && IsDoorway(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
+                if (Slides(change.Structure) && Slides(_drawn.Structure[change.Cell]) && change.Structure != _drawn.Structure[change.Cell])
                     _slides.Moved(change.Cell, Doorways.IsOpen(_drawn.Structure[change.Cell]));
             }
             foreach (int cell in _drawn.Stale(changes))
@@ -140,7 +140,7 @@ public partial class GridView : Node2D
         if (!_slides.Any) return;
         foreach (int cell in _slides.Advance(delta))
         {
-            if (!IsDoorway(_drawn.Structure[cell])) continue;
+            if (!Slides(_drawn.Structure[cell])) continue;
             DrawDoor(cell);
             Light(cell);
         }
@@ -214,6 +214,9 @@ public partial class GridView : Node2D
     }
 
     private static bool IsDoorway(int s) => Doorways.IsDoorway(s);
+
+    /// <summary>A doorway whose panel slides as it moves: a door's or a hatch's; a launch platform is drawn open or shut.</summary>
+    private static bool Slides(int s) => Structures.Of(s).Draw == StructureDraw.Door;
 
     /// <summary>The sides door cell <paramref name="cell"/> joins its doorway on, as drawn (<see cref="Doorways.LinksOf"/>).</summary>
     private int DoorLinksOf(int cell) => Doorways.LinksOf(cell, _grid.Width, _drawn.Structure.Length, _drawnAt ??= c => _drawn.Structure[c]);
@@ -297,8 +300,24 @@ public partial class GridView : Node2D
             case StructureDraw.Door:
                 DrawDoor(cell);
                 break;
+            case StructureDraw.Joined:
+                {
+                    // Paired as a ladder is, its picture by whether its row runs on past the piece: pieces side by side one deck.
+                    // A cell's half shows only its own side's join, so redrawing a changed cell's neighbours keeps a run whole.
+                    int left = RunLeftOf(cell), start = cell - left % 2, code = _drawn.Structure[cell];
+                    int links = (InRowOf(cell, start - 1, code) ? JoinedLeft : 0) | (InRowOf(cell, start + 2, code) ? JoinedRight : 0);
+                    _fixtures.SetCell(at, ShipTiles.Source, _tiles.CutAt(ShipTiles.JoinedName(spec.Tile!, links), left, y));
+                    break;
+                }
         }
     }
+
+    /// <summary>A joined piece's links, as a hatch's: another of its kind on the left, on the right.</summary>
+    private const int JoinedLeft = 8, JoinedRight = 2;
+
+    /// <summary>Whether <paramref name="other"/> lies in <paramref name="cell"/>'s row and holds <paramref name="code"/>, as drawn.</summary>
+    private bool InRowOf(int cell, int other, int code) =>
+        other >= 0 && other < _drawn.Structure.Length && other / _grid.Width == cell / _grid.Width && _drawn.Structure[other] == code;
 
     /// <summary>
     /// The living edge on the wall at <paramref name="cell"/> where it shows (<see cref="Grass.Edged"/>), laid from the cell above, up

@@ -38,10 +38,10 @@ public static class Testbed
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
     /// arc module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make, and an empty accumulator
-    /// (0099) and a part of each of the computer's (<see cref="ComputerParts"/>), the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc
-    /// bench, to be fitted there (0099).
+    /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>) and a launch platform's deck drive, the full crate having no
+    /// slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive"];
 
     /// <summary>The ship computer's and the radar's parts, one each in the supply crate: the full crate has no slot left for them.</summary>
     public static readonly IReadOnlyList<string> ComputerParts = ["processor", "display", "transceiver"];

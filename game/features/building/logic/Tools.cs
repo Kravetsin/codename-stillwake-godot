@@ -247,8 +247,12 @@ public static class Tools
             planned(c).Any(o => Render.Blueprint.Joins(place, o)) || BuiltAt(c, place.Layer, grid) is { } built && Render.Blueprint.Joins(place, built));
     }
 
-    /// <summary>Whether <paramref name="place"/> lays a doorway's cells: a door segment or a hatch (0104, 0111).</summary>
-    public static bool LaysDoor(Placement place) => place.Layer == "structure" && Doorways.IsDoorway(CodeOf(place.Kind));
+    /// <summary>
+    /// Whether <paramref name="place"/> lays a doorway's cells drawn by their joins: a door segment or a hatch (0104, 0111). A launch
+    /// platform is a doorway too, but drawn a piece whole, as built.
+    /// </summary>
+    public static bool LaysDoor(Placement place) =>
+        place.Layer == "structure" && Doorways.IsDoorway(CodeOf(place.Kind)) && Structures.Of(CodeOf(place.Kind)).Draw == StructureDraw.Door;
 
     /// <summary>The structure code a placement of <paramref name="kind"/> is built as, as the grid stores it.</summary>
     public static int CodeOf(string kind) => Structures.Placed(kind) ?? Structure.Empty;

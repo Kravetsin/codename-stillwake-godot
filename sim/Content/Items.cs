@@ -141,6 +141,9 @@ public static class Items
         new("circuit", 20),
         // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
         new("solarCell", 20),
+        // Two circuits driving a rotor through a coil, made at the circuit assembler: what slides a launch platform's deck
+        // open, the last part built of what space gives (the drop pod's, to come).
+        new("deckDrive", 20),
         // The ship computer's and the radar's parts, at the circuit assembler of what space gives: the last made before a planet.
         new("processor", 10),
         new("display", 10),

@@ -17,7 +17,8 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// The ship's air (features/atmosphere/index.ts, air-overlay.ts). Without a word: every room losing
 /// oxygen into space lit red on the beat (each tank's sight glass is <see cref="TankLooks"/>), air streaming out through its openings
 /// while it holds any, in light (<see cref="AirStream"/>, <see cref="VentLight"/>, 0075), faint soft motes gliding in all air
-/// (<see cref="AirMotes"/>), swept toward a breach as wind lines, and fresh air breathed out of filling vents.
+/// (<see cref="AirMotes"/>), swept toward a breach as wind lines, and fresh air breathed out of filling vents. A room turned to
+/// space at once vents just so too (<see cref="Decompression"/>).
 /// With O, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
 /// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
@@ -71,6 +72,12 @@ public partial class AirView : Node2D
     private static (double X, double Y) Middle(string kind) => (Machines.Get(kind).Width / 2.0, Machines.Get(kind).Height / 2.0);
     /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
     private List<Vector2> _blowing = [];
+    /// <summary>Rooms turned to space at once, drawn venting as through a door (a launch platform opened); the rooms and air as drawn with them.</summary>
+    private Decompression _decompression = new();
+    /// <summary>The rooms <see cref="_decompression"/> follows: another surface's air never goes from this one.</summary>
+    private IRoomsQueries? _decompressing;
+    private int[] _roomOfShown = [];
+    private IReadOnlyList<int> _airedShown = [];
 
     public AirView(Ui ui)
     {
@@ -101,8 +108,9 @@ public partial class AirView : Node2D
         Nearest(_hum, _blowing);
         if ((_since += elapsedMs) >= RefreshMs)
         {
+            double since = _since;
             _since = 0;
-            Survey(m);
+            Survey(m, since);
         }
         Show(m, elapsedMs);
         if (On) Tell(m, pointer);
@@ -118,7 +126,7 @@ public partial class AirView : Node2D
             if (_field.Write()) Upload(_field);
         }
         ((ShaderMaterial)_look.Material).SetShaderParameter("overlay", Shown);
-        _motes.Step(elapsedMs, _field, m.Atmosphere.AiredCells, _fillingVents, _reach);
+        _motes.Step(elapsedMs, _field, _airedShown, _fillingVents, _reach);
         Winds();
         _specks.QueueRedraw();
     }
@@ -214,14 +222,17 @@ public partial class AirView : Node2D
         if (!loop.Playing) loop.Play();
     }
 
-    private void Survey(Registry m)
+    private void Survey(Registry m, double elapsedMs)
     {
         int width = m.Grid.Width;
         var air = m.Atmosphere.RoomsAir();
         _byRoom = air.ToDictionary(a => a.Room);
-        var roomOf = m.Rooms.RoomOfCells;
+        if (_decompressing != m.Rooms) (_decompression, _decompressing) = (new Decompression(), m.Rooms);
+        _decompression.Survey(m.Atmosphere.AiredCells, m.Rooms.RoomAt, RoomsModule.Space, width, elapsedMs);
+        var roomOf = AsDrawn(m.Rooms.RoomOfCells, m.Atmosphere.AiredCells);
         var losing = Explain.Draining(air);
         var next = AirStream.Of(air, room => m.Rooms.RoomById(room)?.Openings ?? [], width, m.Grid.Height, cell => m.Rooms.RoomAt(cell) == RoomsModule.Space);
+        next.AddRange(_decompression.Streams);
         if (!next.SequenceEqual(_streams))
         {
             _streams = next;
@@ -237,6 +248,24 @@ public partial class AirView : Node2D
         Look(m, air, roomOf);
     }
 
+    /// <summary>
+    /// The rooms as drawn: the sim's, but each cell whose air still goes (<see cref="Decompression"/>) in the room it left, and its
+    /// air with the sim's aired cells; the sim's own when none goes.
+    /// </summary>
+    private ReadOnlySpan<int> AsDrawn(ReadOnlySpan<int> roomOf, IReadOnlyList<int> aired)
+    {
+        if (!_decompression.Any)
+        {
+            _airedShown = aired;
+            return roomOf;
+        }
+        if (_roomOfShown.Length != roomOf.Length) _roomOfShown = new int[roomOf.Length];
+        roomOf.CopyTo(_roomOfShown);
+        foreach (int cell in _decompression.Cells) _roomOfShown[cell] = _decompression.RoomOf(cell)!.Value;
+        _airedShown = [.. aired.Concat(_decompression.Cells).Order()];
+        return _roomOfShown;
+    }
+
     /// <summary>What the field, the motes and the pod's reach are drawn from, as the sim has it now.</summary>
     private void Look(Registry m, IReadOnlyList<RoomAir> air, ReadOnlySpan<int> roomOf)
     {
@@ -249,7 +278,8 @@ public partial class AirView : Node2D
         var venting = new Dictionary<int, IReadOnlyList<int>>();
         foreach (var a in air)
             if (a.Status == RoomStatus.Venting && m.Rooms.RoomById(a.Room) is { } room) venting[a.Room] = room.Openings;
-        _field.Survey(roomOf, m.Atmosphere.AiredCells, venting, m.Grid.Built);
+        foreach (var (room, breach) in _decompression.Breaches) venting[room] = breach;
+        _field.Survey(roomOf, _airedShown, venting, m.Grid.Built);
         _fillingVents = m.Grid.Machines
             .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
             .Select(x => ((x.Cell % width + Middle(x.Kind).X) * Cell, (x.Cell / width + Middle(x.Kind).Y) * Cell)).ToList();

@@ -104,7 +104,7 @@ internal static class FloorRules
     /// <summary>
     /// A tick of one stack. Inside something built it is pushed out, still, into the cell
     /// <see cref="PushedTo"/> finds, or rises a cell with nothing open in reach. Afloat in space it flies on as
-    /// it was thrown, and with everything outside it drifts back past the moving ship. Elsewhere it falls by
+    /// it was thrown, and out past the hull (no back wall behind it) drifts back past the moving ship. Elsewhere it falls by
     /// <paramref name="gravity"/> a tick, its surface's (0076), stops against what is built, and slides to a stop on what it lands on. Whether it is
     /// still on the grid: past the edge it is gone.
     /// </summary>
@@ -121,7 +121,8 @@ internal static class FloorRules
         }
         else if (rooms.Afloat(s.Cell))
         {
-            s.X += s.Vx - Tune.SpaceDrift;
+            // Before a back wall it is inside the ship, a room opened to space, moving with it: it drifts only out past the hull.
+            s.X += s.Vx - (grid.BackLayer[s.Cell] == Back.Wall ? 0 : Tune.SpaceDrift);
             s.Y += s.Vy;
         }
         else
