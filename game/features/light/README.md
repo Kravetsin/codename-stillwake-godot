@@ -63,7 +63,8 @@ the reaches of fire, particles, screens.
 - **`render/Lit.cs`** draws what `Lit.Set` marks, unshaded, lightmaps blended between texels: ambient,
   stars and main scaled down together where a colour would pass whole (orange stays orange), plus spots,
   at most `ParticleMost`; a wall takes `WallIn` of what reaches it. Normal-mapped pictures
-  (`PixelArt.VolumeMap`) shade toward the main map's slope, tilted 45° up; where it is flat, as facing it.
+  (`PixelArt.VolumeMap`) shade toward the main map's slope, tilted 45° up, read a cell each way on their own
+  side only (a deck lit by the lamp under it is no light from below); where it is flat, as facing it.
   `CanvasModulate` of `Light.Ambient` tints only what is drawn without `Lit`, not unshaded things.
 - **Lit:** cells, machines, cables, floor stacks, debris, heroes; not fire, glows, particles, plans, overlays.
 - **Helmet lamps** (0077, `LightView.HeadLamps` from `HeroView.HeadLamps()`): a `HeadLamp` beam within

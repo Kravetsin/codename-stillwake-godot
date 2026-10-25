@@ -24,7 +24,7 @@ public class PlanetYieldsTests
 
     /// <summary>
     /// A cave in stone: a geode in the left wall at (0, 1), an ice crystal hanging at (3, 1), a teal cap at (2, 2), an amber
-    /// crystal at (3, 2), a violet cap at (5, 2), a stalagmite at (6, 2), a copper vein in the right wall at (7, 2).
+    /// crystal at (3, 2), a violet cap at (5, 2), a stalagmite at (6, 2); the right wall at (7, 2) a copper vein.
     /// </summary>
     private static Scenario Cave() => new(Layout.Parse("""
         ########
@@ -34,12 +34,12 @@ public class PlanetYieldsTests
         """).WithMaterials("""
         tttttttt
         t......t
-        t......t
+        t......c
         tttttttt
         """) with
     {
         Flora = [(At(0, 1), "geode"), (At(3, 1), "crystalIceHang"), (At(2, 2), "glowcapTeal"), (At(3, 2), "crystalAmber"),
-            (At(5, 2), "glowcapViolet"), (At(6, 2), "stalagmite"), (At(7, 2), "veinCopper")],
+            (At(5, 2), "glowcapViolet"), (At(6, 2), "stalagmite")],
     }, doubled: true);
 
     private static readonly string Axe = Weapons.Axe.Item;
@@ -58,13 +58,13 @@ public class PlanetYieldsTests
     }
 
     [Fact]
-    public void ADugCopperVeinGivesItsOreToTheDiggerWithItsRock()
+    public void ADugCopperVeinGivesItsOreToTheDiggerAndLeavesTheStoneItRanThroughBehind()
     {
         var w = Cave();
         DigOut(w, w.At(7, 2));
         Assert.Empty(w.Refusals);
-        Assert.Equal((2, 1), (Count(w, "copperOre"), Count(w, "rock")));
-        Assert.DoesNotContain("veinCopper", Kinds(w));
+        Assert.Equal((1, 0), (Count(w, "copperOre"), Count(w, "rock")));
+        Assert.Equal("stone", w.M.Grid.BackAt(w.At(7, 2))?.Id);
         Assert.Empty(w.M.Items.Floor);
     }
 
@@ -97,8 +97,8 @@ public class PlanetYieldsTests
         Assert.Empty(w.Refusals);
         Assert.Equal((2, 1), (Count(w, "biomass"), Count(w, "spore")));
         Assert.Equal(3, w.M.Items.Totals(0).Sum(t => t.Count));
-        // By own cell: the vein's is its block's top row, the amber crystal's its block's bottom (0104).
-        Assert.Equal(["geode", "crystalIceHang", "veinCopper", "crystalAmber"], Kinds(w));
+        // By own cell: the ice crystal's is its block's top row, the amber crystal's its block's bottom (0104).
+        Assert.Equal(["geode", "crystalIceHang", "crystalAmber"], Kinds(w));
     }
 
     [Fact]
@@ -108,7 +108,7 @@ public class PlanetYieldsTests
         w.Do(new Dig(w.At(2, 2), Axe)).Run();
         DigOut(w, w.At(7, 2));
         var floor = w.M.Items.Floor.Select(s => (s.Item, s.Count, s.Cell)).OrderBy(s => s.Item, StringComparer.Ordinal);
-        Assert.Equal([("biomass", 2, Bottom(w, 2, 2)), ("copperOre", 2, w.At(7, 2)), ("rock", 1, w.At(7, 2))], floor);
+        Assert.Equal([("biomass", 2, Bottom(w, 2, 2)), ("copperOre", 1, w.At(7, 2))], floor);
     }
 
     [Fact]

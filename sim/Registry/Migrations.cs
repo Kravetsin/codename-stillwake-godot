@@ -13,12 +13,15 @@ namespace Stillwake.Sim;
 /// Only saves read from disk are upgraded: a guest's welcome and a resync come from this very build.
 /// Format 28 halved the cell (0104): no save before it migrates, its cells and lengths those of another
 /// scale and a planet's edits laid on a ground that now grows differently, so its steps went with it. Format 29 made pipes
-/// spans (0109): no save before it migrates either, nothing released having held one.
+/// spans (0109): no save before it migrates either, nothing released having held one. Format 30 took the stripper and the
+/// wrench out of the game (plan modes): no save before it migrates, every hero having been given both and nothing released.
+/// Format 31 grew planets anew (stairs for cliffs, veins of ore, crystals by the lodes): no save before it migrates, a
+/// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel.
 /// </summary>
 public static class Migrations
 {
-    /// <summary>The oldest format a save may have and still load: pipes as spans' first (0109).</summary>
-    public const int Oldest = 29;
+    /// <summary>The oldest format a save may have and still load: the veined planets' first.</summary>
+    public const int Oldest = 31;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
     public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];

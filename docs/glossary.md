@@ -15,8 +15,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid
 - задняя стена / back wall → `Back.Wall`, layer `"back"`, `tool.backWall` → Grid
 - обшивка / hull **≠** → the ship's walls (`Structure.Wall`; "hull wall" in `tool.wallScrap.about`); item `hullPlate`, `hullSection` are salvage → Grid, Debris
-- слой / layer → `GridLayers` (`sim/Grid/ChangeLog.cs`), f/building `LayerKey`, `Placement` layer → Grid, Building
-- план / plan → `Plan`, `PlacePlan`, `CancelPlan`, `Work` (`sim/Building`); f/building `PlanHand`, `BuildMenu`; r/`PlanTiles`, `PlanOutline` → Building
+- слой / layer → `GridLayers` (`sim/Grid/ChangeLog.cs`), f/building `PlanKey`, `Placement` layer → Grid, Building
+- план / plan → `Plan`, `PlacePlan`, `CancelPlan`, `Work` (`sim/Building`); f/building `PlanHand`, `BuildMenu`; план мод / plan modes (Z X C) `PlanMode`, `PlanHand.Mode`; r/`PlanTiles`, `PlanOutline` → Building
 - меню строительства / build menu → f/building `BuildMenu`, `Tools.Tabs`; cards and order from content: `MenuSlot` on machine, build and material rows, `MenuTabs` (c/`Menu.cs`, 0114) → Building
 - планшет / tablet → `game/shared/Tablet.cs`, `TabletLayout`, `TabletMotion` (build menu and Handbook) → UI
 - кисть / brush → `game/shared/logic/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
@@ -27,11 +27,11 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## Air, power, pipes
 
 - баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (suit) → Atmosphere, Crew
-- провод / cable **≠** → `Cable`, `tool.cable` (laid by the stripper); item `wire` is the crafted part → Power
-- стриппер / wire stripper → item `stripper`, `HandTools.Stripper`, f/power `PowerHands` → Power
+- провод / cable **≠** → `Cable`, `tool.cable` (laid by the plan, wiring); item `wire` is the crafted part → Power
+- проводка / wiring (plan mode, X) → `PlanMode.Wiring`, f/power `PowerHands` → Power
 - труба / pipe → spans: `LayPipe`, `CutPipe`, `PipeNetworks`, `tool.pipe` → Pipes
 - клапан / valve → `Valve`, `MakeValve`, `SetValve`, `tool.valve` → Pipes
-- ключ / pipe wrench **≠** → item `wrench`, `HandTools.Wrench`, f/pipes `PipeHands` → Pipes
+- трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
 - генератор / generator **≠** → `"generator"` is the oxygen generator (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
 - аккумулятор / accumulator → item `accumulator` (belt equipment); the machine is `capacitorBank` "Capacitor bank" **≠** → Items, Power
@@ -72,6 +72,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - метеор / meteor → `MeteorHit` → Hazards
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
+- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core
+- рудная зона / lode → `PlanetType.LodeWave`, `LodeOver`, `CaveKind.Lode` (crystals by the veins) → Core
+- равнина, нагорье / plain, highland → `Ground.RegionWave`, `RegionLeast`, `RegionLift` → Core
 - мох / moss **≠** → `Grass` (f/grid `Grass.cs`, the living edge); `Sound.StepMoss` → Grid (client only)
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building
 - существо / creature **≠** → `Creature`, `FaunaModule` → Fauna

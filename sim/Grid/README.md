@@ -64,7 +64,8 @@ but a space has a back wall of the default hull. Machines take ids by their top-
 Maps are drawn a character a 16 px cell and doubled (`Layout.Doubled()`): a character fills its 2×2 cells, a `Flat` structure
 (floor, hatch) its top row only, `S` its bottom-left, a conduit its top-left toward its neighbours. A test of a rule per cell
 reads its map a character a cell. A map may carry its cells' materials (`Layout.Materials`, 0077): a grown planet's or a
-test's (`Legend.Materials`); code 0 is open sky with no back wall.
+test's (`Legend.Materials`); code 0 is open sky with no back wall. A vein's cell (`Material.In`) has the stone it runs
+through as its back wall, so digging it out leaves no second lump of ore.
 
 **A grown grid saves its edits** (0077, `Grown.cs`): the cells that differ from the ground grown from the seed, ascending,
 `cell, structure, material, back, backMaterial`; loading lays them on the ground grown again. A drawn map saves every layer.

@@ -54,7 +54,7 @@ warm amber and red near the bottom.
   floor's or ceiling's face, one in the rock just past its open face nearest its glow; `CaveLooks.LightSize` wide, so
   shadows are soft. Only those whose reach touches the view, nearest its middle first, at most `CaveLooks.MostLights`,
   are its `Lights` (`ILightSource`). A glow picture fades to nothing over its last three pixels (`Atlas.Faded`).
-- **Glints:** mica, veins, crystals and geodes sparkle where a helmet's beam falls on them with nothing between,
+- **Glints:** mica, crystals and geodes sparkle where a helmet's beam falls on them with nothing between,
   as bright as the beam there. Mica draws nothing else.
 - **Drift** (0075): spores up from glowcaps; drips from one stalactite in `DripShare`, landing on the first solid
   cell under its tip within `DripRows` and splashing (`Planting.DripFloor`), none with no open cell under it; faint

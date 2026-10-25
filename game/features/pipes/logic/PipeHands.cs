@@ -8,7 +8,7 @@ using Stillwake.Sim.Pipes;
 namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
-/// The hands at work on pipes with the wrench (0109): a left drag lays a span from the cell pressed to the cell let go,
+/// The hands at work on pipes, the plan piping (0109): a left drag lays a span from the cell pressed to the cell let go,
 /// a machine's cell standing for its nearest port; a right press takes the span nearest it away; with the menu's valve card
 /// (0110) the buttons make and take valves instead. While dragging, the span runs from its start to the pointer in the
 /// colour of what the sim would say, its reason beside it. Plain C#: <c>PipesOverlay</c> draws what it leaves here.
@@ -59,7 +59,7 @@ public sealed class PipeHands
     }
 
     /// <summary>
-    /// One frame with the wrench held: the left presses and releases since the last, <paramref name="valves"/> whether its menu's
+    /// One frame of the plan piping: the left presses and releases since the last, <paramref name="valves"/> whether its menu's
     /// valve card is picked (0110), the right presses, <paramref name="cuts"/>, and the pointer, in cells. With the pipe card the left
     /// lays and the right takes the nearest span away; with the valve card the left makes a valve on the joint pressed and the
     /// right takes one off. Commands go out through <paramref name="send"/> as peer <paramref name="peer"/>.
@@ -99,6 +99,6 @@ public sealed class PipeHands
     /// <summary>The span the right button would take away now, with the pipe card in hand and nothing being laid: drawn lit.</summary>
     public PipeSpan? Hovered { get; private set; }
 
-    /// <summary>Lets go of whatever is held: the wrench put away mid-drag.</summary>
+    /// <summary>Lets go of whatever is held: piping left mid-drag.</summary>
     public void Release() => (_from, Laying, Hovered) = (null, null, null);
 }

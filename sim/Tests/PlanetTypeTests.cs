@@ -30,11 +30,11 @@ public class PlanetTypeTests
             Cave("stalagmite", 400, 300, 300),
             Cave("crystalIceHang", 500, 40, 0),
             Cave("stalactite", 700, 500, 500),
-            Cave("veinIce", 800, 100, 0),
-            Cave("veinCopper", 0, 300, 600),
             Cave("mica", 1600, 1200, 1200),
         ],
         Bands = [400, 800],
+        // Ice veins only, in its cold and middle bands.
+        Veins = [new("iceVein", Wave: 40, Tall: 24, Widths: [900, 300, 0])],
     };
 
     /// <summary>What is wrong with <paramref name="t"/>, or null: what its ground grows from exists and fits its draws.</summary>
@@ -65,6 +65,12 @@ public class PlanetTypeTests
             if (Flora.Cave.FirstOrDefault(c => c.Id == k.Id) is not { } c || !Alike(k, c) || k.Holds != c.Holds) return $"{k.Id}: not the catalog's cave growth";
             if (k.Chances.Count != t.Bands.Count + 1 || k.Chances.Any(n => n < 0) || k.Wide < 0 || k.Apart < 1) return $"{k.Id}: a chance for each band";
         }
+        foreach (var v in t.Veins)
+        {
+            if (!Materials.TryGet(v.Material, out var m) || m.In != t.Stone || !m.Breaks) return $"{v.Material}: no vein in its stone";
+            if (v.Wave < 1 || v.Tall < 1 || v.Widths.Count != t.Bands.Count + 1 || v.Widths.Any(n => n is < 0 or >= 32768)) return $"{v.Material}: a width for each band";
+        }
+        if (t.LodeWave < 1 || t.LodeOver is < 0 or >= 65536 || t.LodeMost < 0) return "its lodes";
         foreach (var on in Enum.GetValues<Flora.Anchor>())
             for (int band = 0; band <= t.Bands.Count; band++)
                 if (t.Caves.Where(k => k.On == on).Sum(k => k.Chances[band]) > 10000) return $"{on} in band {band}: chances past a slot";
@@ -90,6 +96,8 @@ public class PlanetTypeTests
         Assert.NotNull(Wrong(PlanetTypes.Small with { Core = "molten" }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Bedrock = "stone" }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Bands = [600, 250] }));
+        Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("stone", 40, 24, [0, 0, 0, 0])] }));
+        Assert.NotNull(Wrong(PlanetTypes.Small with { Veins = [new("iceVein", 40, 24, [900])] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Bands = [250, 600] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Plants = [Plant("acacia", 600), Plant("bush", 600)] }));
         Assert.NotNull(Wrong(PlanetTypes.Small with { Plants = [Plant("acacia", 100) with { Yields = [("planks", 99)] }] }));
@@ -132,7 +140,10 @@ public class PlanetTypeTests
             new Scenario(l).Run(2);
         }
         var grown = Enumerable.Range(1, 6).SelectMany(s => Terrain.Generate(Frost, (uint)s).Flora!).Select(p => p.Kind).ToHashSet();
-        Assert.Contains("veinIce", grown);
+        // Its own veins, not the first planet's.
+        var materials = Enumerable.Range(1, 6).SelectMany(s => Terrain.Generate(Frost, (uint)s).Materials!).ToHashSet();
+        Assert.Contains(Materials.Get("iceVein").Code, materials);
+        Assert.DoesNotContain(Materials.Get("copperVein").Code, materials);
         Assert.Contains("rock", grown);
         Assert.Equal(3, Terrain.BandOf(Frost, Frost.Ground.Height - Frost.Ground.CoreRows - 1) + 1);
         // Its rules are its own: a fall gains less a step than on the first planet.

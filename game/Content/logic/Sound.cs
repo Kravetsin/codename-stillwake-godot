@@ -345,6 +345,8 @@ public static class Sound
     {
         ["soil"] = (HitSoil, BreakSoil),
         ["stone"] = (HitStone, BreakStone),
+        ["copperVein"] = (HitStone, BreakStone),
+        ["iceVein"] = (HitStone, BreakStone),
         ["plaster"] = (HitStone, BreakStone),
         ["alloy"] = (Chop, Break),
     };
@@ -360,7 +362,7 @@ public static class Sound
         (["rock", "stalagmite", "stalactite"], HitStone, BreakStone),
         (["bellTeal", "bellViolet", "bellAmber", "tuft", "herbs", "cobweb"], null, Grass),
         (["threadTeal", "threadViolet", "roots"], null, BushSoft),
-        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode", "veinIce"], null, Crystal),
+        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode"], null, Crystal),
         (["glowcapViolet", "glowcapTeal", "hangcap"], null, Glowcap),
         (["table", "chair", "stool", "bench", "bed", "cradle", "wardrobe", "chest", "frame", "clock", "basket", "toys", "desk",
             "bookshelf", "wallShelf", "toolRack", "heightMarks"], ChopWood, WoodBreak),
@@ -398,7 +400,7 @@ public static class Sound
     };
 
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
-    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "veinCopper", "heatCrack", "fossil", "rubble", "mural", "crack"];
+    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack"];
 
     private static Dictionary<string, (Cue? Hit, Cue Fall)> Sounding(params (string[] Kinds, Cue? Hit, Cue Fall)[] groups) =>
         groups.SelectMany(g => g.Kinds.Select(kind => (kind, g.Hit, g.Fall))).ToDictionary(k => k.kind, k => (k.Hit, k.Fall));

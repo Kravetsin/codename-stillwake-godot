@@ -14,10 +14,10 @@ public static class Terrain
     /// <summary>Noise values run from 0 below <see cref="Whole"/>; weights from 0 to it.</summary>
     private const int Whole = 65536;
 
-    /// <summary>Each noise and draw of a ground hashed apart from the others.</summary>
+    /// <summary>Each noise and draw of a ground hashed apart from the others; the veins last, two for each from <c>Veins</c> on.</summary>
     private const uint Ranges = 1, Hills = 2, Bumps = 3, Soil = 4, Mouths = 5, Tunnels = 6, TunnelsFine = 7, Caverns = 8,
         CavernsFine = 9, ChasmAt = 10, ChasmWander = 11, HallAt = 12, Plants = 13, CaveRoll = 14, CavePatch = 17, MouthFade = 18,
-        SpireAt = 19, HomeAt = 20;
+        SpireAt = 19, HomeAt = 20, Regions = 21, Lodes = 22, Veins = 23;
 
     public static Layout Generate(PlanetType t, uint seed) => Generate(t, seed, out _, out _, out _);
 
@@ -52,24 +52,26 @@ public static class Terrain
         var soilDepth = new int[w];
         var mouth = new int[w];
         var caveFrom = new int[w];
-        int gentleWas = 0;
         for (int x = 0; x < w; x++)
         {
-            int range = Swell(Noise(seed, Ranges, x, g.RangeWave), g.RangeRise);
-            // Terraced: the range rises in steps, so its sides are cliffs.
-            if (g.CliffStep > 1) range = (range >= 0 ? range : range - g.CliffStep + 1) / g.CliffStep * g.CliffStep;
-            // Hills and bumps rise a cell a column at most, from the left: a stair of steps a hero walks up (0106). Only the
-            // range's terraces are cliffs.
-            int gentle = Swell(Noise(seed, Hills, x, g.HillWave), g.HillRise) + Swell(Noise(seed, Bumps, x, g.BumpWave), g.BumpRise);
-            if (x > 0) gentle = Math.Clamp(gentle, gentleWas - 1, gentleWas + 1);
-            gentleWas = gentle;
-            top[x] = Math.Clamp(g.Surface + range + gentle, 1, floor - 1);
+            // Plains and highlands: the region's noise lifts the land and scales its ranges, hills and bumps, flat where it is low.
+            int region = Noise(seed, Regions, x, g.RegionWave);
+            int scale = g.RegionLeast + (int)((long)(100 - g.RegionLeast) * region / Whole);
+            int range = Swell(Noise(seed, Ranges, x, g.RangeWave), g.RangeRise * scale / 100);
+            // Terraced: the range rises in shelves, their risers made stairs below.
+            if (g.TerraceStep > 1) range = (range >= 0 ? range : range - g.TerraceStep + 1) / g.TerraceStep * g.TerraceStep;
+            int gentle = Swell(Noise(seed, Hills, x, g.HillWave), g.HillRise * scale / 100) + Swell(Noise(seed, Bumps, x, g.BumpWave), g.BumpRise * scale / 100);
+            int lift = (int)((long)g.RegionLift * region / Whole);
+            top[x] = Math.Clamp(g.Surface - lift + range + gentle, 1, floor - 1);
             soilDepth[x] = g.SoilLeast + (int)((long)Noise(seed, Soil, x, g.SoilWave) * (g.SoilMost - g.SoilLeast + 1) / Whole);
             // Where the mouths' noise passes its mark caves begin nearer the surface and open as if deeper, the more the
             // further past: at the surface itself from halfway past, as open as at the bedrock at its peak.
             mouth[x] = (int)((long)Math.Max(0, Noise(seed, Mouths, x, g.MouthWave) - g.MouthOver) * Whole / (Whole - g.MouthOver));
+            // None in the clear middle, so the heroes beam down on whole ground.
+            if (Math.Abs(x - w / 2) <= g.Clear) mouth[x] = 0;
             caveFrom[x] = Math.Max(0, g.CaveFrom - (int)((long)mouth[x] * 2 * (g.CaveFrom + 1) / Whole));
         }
+        Stairs(top);
 
         var tunnels = new Field(seed, Tunnels, g.TunnelWave, g.TunnelTall, w);
         var tunnelsFine = new Field(seed, TunnelsFine, Math.Max(1, g.TunnelWave / 3), Math.Max(1, g.TunnelTall / 3), w);
@@ -152,6 +154,7 @@ public static class Terrain
                 (kind[y * w + x], codes[y * w + x]) = (0, 0);
         }
         surface = top;
+        PaintVeins(t, seed, kind, codes, stone);
 
         var rows = new char[h][];
         for (int y = 0; y < h; y++)
@@ -159,7 +162,7 @@ public static class Terrain
             var row = rows[y] = new char[w];
             for (int x = 0; x < w; x++) row[x] = kind[y * w + x] switch { 1 => '#', 2 => '.', _ => ' ' };
         }
-        var spawn = SpawnOf(rows, w, h);
+        var spawn = SpawnOf(rows, w, h, g.Clear);
         var surfaceTop = TopsOf(rows, w, h);
         var flora = Flora(t, seed, rows, codes, soil, spawn % w, surfaceTop);
         CaveFlora(t, seed, rows, codes, hall, surfaceTop, flora);
@@ -169,6 +172,52 @@ public static class Terrain
         flora.Sort((a, b) => a.Item1.CompareTo(b.Item1));
         rows[spawn / w][spawn % w] = 'S';
         return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes) { Grown = true, Flora = flora };
+    }
+
+    /// <summary>
+    /// The veins of ore (<see cref="PlanetType.Veins"/>), row by row from the top, each row from the left: a solid stone cell
+    /// in a lode is a vein's where that vein's noise is within its band's width of its middle, the width scaled by how far into
+    /// the lode it lies, full from halfway to its heart; the first vein in the list that takes it has it. Painted after the caves
+    /// and landmarks opened the ground, so a vein shows in a cave's walls, never its back wall.
+    /// </summary>
+    private static void PaintVeins(PlanetType t, uint seed, byte[] kind, int[] codes, int stone)
+    {
+        var g = t.Ground;
+        int w = g.Width, floor = g.Height - g.CoreRows;
+        if (t.Veins.Count == 0) return;
+        var lodes = new Field(seed, Lodes, t.LodeWave, t.LodeWave, w);
+        var lode = new int[w];
+        var veins = new (int Code, Field Coarse, Field Fine, int[] A, int[] B)[t.Veins.Count];
+        for (int i = 0; i < veins.Length; i++)
+        {
+            var v = t.Veins[i];
+            uint which = Veins + 2 * (uint)i;
+            veins[i] = (Materials.Get(v.Material).Code, new Field(seed, which, v.Wave, v.Tall, w),
+                new Field(seed, which + 1, Math.Max(1, v.Wave / 3), Math.Max(1, v.Tall / 3), w), new int[w], new int[w]);
+        }
+        for (int y = 1; y < floor; y++)
+        {
+            int band = BandOf(t, y);
+            lodes.Row(y, lode);
+            foreach (var v in veins)
+            {
+                v.Coarse.Row(y, v.A);
+                v.Fine.Row(y, v.B);
+            }
+            for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
+            {
+                int cell = y * w + x;
+                if (kind[cell] != 1 || codes[cell] != stone || lode[x] <= t.LodeOver) continue;
+                long into = Math.Min(Whole, (long)(lode[x] - t.LodeOver) * 2 * Whole / (Whole - t.LodeOver));
+                for (int i = 0; i < veins.Length; i++)
+                {
+                    int width = (int)(t.Veins[i].Widths[band] * into / Whole);
+                    if (Math.Abs(((3 * veins[i].A[x] + veins[i].B[x]) >> 2) - Whole / 2) >= width) continue;
+                    codes[cell] = veins[i].Code;
+                    break;
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -262,6 +311,10 @@ public static class Terrain
         var taken = new bool[w * h];
         var patches = new Field(seed, CavePatch, t.PatchWave, t.PatchWave, w);
         var patch = new int[w];
+        // The same lodes the veins run in: crystals gather by them.
+        var lodes = new Field(seed, Lodes, t.LodeWave, t.LodeWave, w);
+        var lode = new int[w];
+        var inLode = kinds.Select(k => k.Lode).ToArray();
         bool Open(int x, int y) => rows[y][x] == '.';
         // A growth in the rock is two by two from its own cell (0104): its block, not its cell, is what lies beside a cave.
         bool BlockBeside(int x, int y) => x + 1 < w - 1 && y + 1 < h - 1
@@ -271,6 +324,7 @@ public static class Terrain
             Array.Fill(last, int.MinValue / 2);
             Array.Fill(lastOn, int.MinValue / 2);
             patches.Row(y, patch);
+            lodes.Row(y, lode);
             for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
             {
                 int cell = y * w + x;
@@ -289,14 +343,17 @@ public static class Terrain
         {
             if (taken[cell]) return;
             int band = bands[y], roll = (int)((long)Lattice(seed, CaveRoll + (uint)on, x, y) * 10000 / Whole);
-            // Percent of the chances here: the patch noise's share of its most, times a hall's — a wall's when it faces one.
+            // Percent of the chances here: the patch noise's share of its most (a lode kind's, the lode's), times a hall's — a
+            // wall's when it faces one.
             bool inHall = hall[cell] || on == Content.Flora.Anchor.Rock && (hall[cell - w] || hall[cell + w] || hall[cell - 1] || hall[cell + 1]);
-            long scale = (long)patch[x] * t.PatchMost / Whole * (inHall ? t.Hall : 100);
+            int hallScale = inHall ? t.Hall : 100;
+            long scale = (long)patch[x] * t.PatchMost / Whole * hallScale;
+            long lodeScale = lode[x] <= t.LodeOver ? 0 : (long)(lode[x] - t.LodeOver) * t.LodeMost / (Whole - t.LodeOver) * hallScale;
             long from = 0;
             int k = -1;
             foreach (int each in byAnchor[(int)on])
             {
-                from += chances[each][band] * scale / 10000;
+                from += chances[each][band] * (inLode[each] ? lodeScale : scale) / 10000;
                 if (roll < from)
                 {
                     k = each;
@@ -560,9 +617,10 @@ public static class Terrain
 
     /// <summary>
     /// Where heroes beam down: on the flat column nearest the middle, the ground whole under it and two columns either side level
-    /// with it, six rows of sky over it at least; to the left of the middle first at a tie. The middle's column when none is flat.
+    /// with it, six rows of sky over it at least; to the left of the middle first at a tie. Only within <paramref name="clear"/> of
+    /// the middle, where no landmark or ruin comes; the middle's column when none there is flat.
     /// </summary>
-    private static int SpawnOf(char[][] rows, int w, int h)
+    private static int SpawnOf(char[][] rows, int w, int h, int clear)
     {
         int TopOf(int x)
         {
@@ -577,12 +635,23 @@ public static class Terrain
             return y >= 6 && y < h && rows[y][x] == '#' && TopOf(x - 2) == y && TopOf(x - 1) == y && TopOf(x + 1) == y && TopOf(x + 2) == y;
         }
         int middle = w / 2;
-        for (int d = 0; d < w; d++)
+        for (int d = 0; d <= clear; d++)
         {
             if (Flat(middle - d)) return (TopOf(middle - d) - 1) * w + middle - d;
             if (Flat(middle + d)) return (TopOf(middle + d) - 1) * w + middle + d;
         }
         return Math.Max(0, TopOf(middle) - 1) * w + middle;
+    }
+
+    /// <summary>
+    /// The surface made a stair a hero walks (0106): no column more than a row under either neighbour. Where it falls faster —
+    /// a terrace's riser, a steep hill — the lower side is filled up, from the left and then from the right, so the high ground
+    /// keeps its shape and a riser becomes a run of one-row steps, the same whichever way it faces.
+    /// </summary>
+    private static void Stairs(int[] top)
+    {
+        for (int x = 1; x < top.Length; x++) top[x] = Math.Min(top[x], top[x - 1] + 1);
+        for (int x = top.Length - 2; x >= 0; x--) top[x] = Math.Min(top[x], top[x + 1] + 1);
     }
 
     /// <summary><paramref name="from"/> to <paramref name="to"/> by <paramref name="t"/> of <see cref="Whole"/>, rounded toward <paramref name="from"/>.</summary>

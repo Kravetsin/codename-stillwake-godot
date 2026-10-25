@@ -211,6 +211,8 @@ public static class HitLooks
     {
         ["soil"] = Impact.Soil,
         ["stone"] = Impact.Stone,
+        ["copperVein"] = Impact.Stone,
+        ["iceVein"] = Impact.Stone,
         ["plaster"] = Impact.Plaster,
         ["alloy"] = Impact.Alloy,
     };
@@ -225,7 +227,7 @@ public static class HitLooks
         (["roots"], Impact.Wood),
         (["rock", "stalagmite", "stalactite"], Impact.Stone),
         (["cobweb", "threadTeal", "threadViolet"], Impact.Cloth),
-        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode", "veinIce",
+        (["crystalRose", "crystalIce", "crystalAmber", "crystalEmber", "crystalIceHang", "crystalAmberHang", "geode",
             Stillwake.Content.Ruins.Cradle], Impact.Crystal),
         (["glowcapViolet", "glowcapTeal", "hangcap"], Impact.Spores),
         (["table", "chair", "stool", "bench", "bed", "cradle", "wardrobe", "chest", "frame", "clock", "basket", "toys", "desk",

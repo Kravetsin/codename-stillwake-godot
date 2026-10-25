@@ -21,7 +21,7 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
   `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
-- **Start:** every inventory and machine empty; `Kit` gives `Inventory.Kit` (screwdriver, stripper, wrench; 0107-0109)
+- **Start:** every inventory and machine empty; `Kit` gives `Inventory.Kit` (the screwdriver; 0107)
   to a peer's first hero.
 
 ## Rules

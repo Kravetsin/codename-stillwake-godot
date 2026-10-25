@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://phu2hv5prq14"
-path="res://.godot/imported/wrench.png-2959a48e8d034f5667fa2a1877bb10f8.ctex"
+uid="uid://bse2d0gmkednh"
+path="res://.godot/imported/hero_screwdriver_held.png-bb6ca11944463002f23c20c236030867.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/items/wrench.png"
-dest_files=["res://.godot/imported/wrench.png-2959a48e8d034f5667fa2a1877bb10f8.ctex"]
+source_file="res://art/hero_screwdriver_held.png"
+dest_files=["res://.godot/imported/hero_screwdriver_held.png-bb6ca11944463002f23c20c236030867.ctex"]
 
 [params]
 

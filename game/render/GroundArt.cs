@@ -95,6 +95,28 @@ public static class GroundArt
         return image;
     }
 
+    /// <summary>
+    /// The wall of <paramref name="vein"/>: the picture of the stone it runs through, <see cref="GroundLooks.VeinFlecks"/> of its
+    /// 2 px blocks flecked with its ore (<see cref="GroundLooks"/>' colour), each lit at its top left and shaded at its bottom right.
+    /// </summary>
+    public static Image Vein(Image stone, string vein)
+    {
+        var look = GroundLooks.Of[vein];
+        var image = (Image)stone.Duplicate();
+        for (int by = 0; by < image.GetHeight() / 2; by++)
+            for (int bx = 0; bx < image.GetWidth() / 2; bx++)
+            {
+                if (Hash(bx, by, 11) % 100 >= GroundLooks.VeinFlecks) continue;
+                for (int i = 0; i < 4; i++)
+                {
+                    int x = 2 * bx + i % 2, y = 2 * by + i / 2;
+                    if (image.GetPixel(x, y).A8 == 0) continue;
+                    image.SetPixel(x, y, i switch { 0 => Colour(look.Fleck), 3 => Colour(look.Colour, 0.62), _ => Colour(look.Colour) });
+                }
+            }
+        return image;
+    }
+
     private static Color Colour((int R, int G, int B) c, double by = 1) =>
         Color.Color8(Byte(c.R * by), Byte(c.G * by), Byte(c.B * by));
 

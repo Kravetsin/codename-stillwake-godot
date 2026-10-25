@@ -101,14 +101,19 @@ public class HoverTests
         Assert.InRange(Math.Abs(h.Bob(Cruise, M)), 0, M.BobAmp);
     }
 
+    /// <summary>Pixels between a drone's body top at <paramref name="lift"/> and a ceiling's underside <paramref name="rows"/> cells over its cell's top.</summary>
+    private static double Gap(double lift, int rows) => Camera.Cell / 2.0 - lift - DroneLook.AnchorY + rows * Camera.Cell;
+
     [Fact]
-    public void ItFliesEightPixelsOverItsCellButTwoUnderASolidOne()
+    public void ItFliesHalfACellOverItsCellAndNeverIntoACeiling()
     {
-        Assert.Equal(8, Hover.Lift(Structure.Empty, Structure.Empty, M));
-        Assert.Equal(2, Hover.Lift(Structure.Empty, Structure.Wall, M));
-        Assert.Equal(2, Hover.Lift(Structure.Empty, Structure.Floor, M));
-        // Under a closed hatch from outside it, the hatch is a ceiling.
-        Assert.Equal(2, Hover.Lift(Structure.Empty, Structure.DoorClosed, M));
+        Assert.Equal(M.Lift, Hover.Lift(Structure.Empty, Structure.Empty, Structure.Empty, false, M));
+        // A ceiling right over its cell, or a cell higher: its body keeps Clear under it.
+        foreach (int ceiling in new[] { Structure.Wall, Structure.Floor, Structure.DoorClosed, Structure.HatchClosed })
+        {
+            Assert.True(Gap(Hover.Lift(Structure.Empty, ceiling, Structure.Wall, false, M), 0) >= M.Clear);
+            Assert.True(Gap(Hover.Lift(Structure.Empty, Structure.Empty, ceiling, false, M), 1) >= M.Clear);
+        }
         Assert.True(Hover.Solid(Structure.Wall));
         Assert.True(Hover.Solid(Structure.Floor));
         Assert.True(Hover.Solid(Structure.DoorClosed));
@@ -121,14 +126,25 @@ public class HoverTests
     public void ThroughAClosedDoorItFliesAtItsHeightDippingOnlyUnderTheWallOverIt()
     {
         // A column across a doorway three cells tall: the wall over it, the door, the floor under it.
-        int[] column = [Structure.Wall, Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed, Structure.Floor];
-        double LiftAt(int row) => Hover.Lift(column[row], column[row - 1], M);
-        Assert.Equal(2, LiftAt(1));
-        Assert.Equal(8, LiftAt(2));
-        Assert.Equal(8, LiftAt(3));
+        int[] column = [Structure.Wall, Structure.Wall, Structure.DoorClosed, Structure.DoorClosed, Structure.DoorClosed, Structure.Floor];
+        double LiftAt(int row) => Hover.Lift(column[row], column[row - 1], column[row - 2], false, M);
+        Assert.True(Gap(LiftAt(2), 0) >= M.Clear);
+        Assert.True(LiftAt(2) < M.Lift);
+        Assert.Equal(M.Lift, LiftAt(3));
+        Assert.Equal(M.Lift, LiftAt(4));
         // The same open, and beside it in the room, the same height.
-        Assert.Equal(8, Hover.Lift(Structure.DoorOpen, Structure.DoorOpen, M));
-        Assert.Equal(8, Hover.Lift(Structure.Empty, Structure.Empty, M));
+        Assert.Equal(M.Lift, Hover.Lift(Structure.DoorOpen, Structure.DoorOpen, Structure.DoorOpen, false, M));
+    }
+
+    [Fact]
+    public void UpThroughAClosedHatchItRisesStraightButAcrossUnderOneItDips()
+    {
+        Assert.Equal(M.Lift, Hover.Lift(Structure.Empty, Structure.HatchClosed, Structure.Empty, true, M));
+        Assert.Equal(M.Lift, Hover.Lift(Structure.Empty, Structure.Empty, Structure.HatchClosed, true, M));
+        Assert.Equal(M.Lift, Hover.Lift(Structure.HatchClosed, Structure.Empty, Structure.Empty, true, M));
+        Assert.True(Hover.Lift(Structure.Empty, Structure.HatchClosed, Structure.Empty, false, M) < M.Lift);
+        // A wall over its way up is still a ceiling.
+        Assert.True(Gap(Hover.Lift(Structure.Empty, Structure.Wall, Structure.Wall, true, M), 0) >= M.Clear);
     }
 
     [Fact]

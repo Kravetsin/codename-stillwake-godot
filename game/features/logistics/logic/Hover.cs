@@ -19,6 +19,8 @@ public sealed class Hover
     // The model's own shape, not a pick: how fast the lean and the rotors follow, the pendulum's own swing, and the
     // speed past which it turns to face its way.
     private const double TiltEaseS = 0.08, SpinEaseS = 0.12, RotorFps = 20, FaceAt = 6;
+    // How fast its height over the path follows a ceiling coming or going: a dip, not a hop.
+    private const double LiftEaseS = 0.06;
     private const double CargoHz = 1.4, CargoDamping = 0.3, CargoMost = 0.6;
 
     private readonly int _id;
@@ -36,7 +38,7 @@ public sealed class Hover
     /// <summary>How fast its rotors turn, 0 to 1.</summary>
     public double Spin { get; set; }
 
-    private double _swingV, _phase, _t;
+    private double _swingV, _phase, _t, _lift = double.NaN;
 
     public Hover(int id)
     {
@@ -114,12 +116,23 @@ public sealed class Hover
     }
 
     /// <summary>
-    /// How far over its cell's centre a drone flies, by the structure of its cell (<paramref name="here"/>) and of the one
-    /// above: <c>LiftUnder</c> under a solid cell, so it never pokes into a ceiling, else <c>Lift</c>. Inside a door, the
-    /// door's own cells above are no ceiling: it flies through at its height, and dips only under the wall over the door.
+    /// How far over its cell's centre a drone flies, pixels (under it when negative), by the structures of its cell
+    /// (<paramref name="here"/>) and the two above: <c>Lift</c>, but low enough that its body keeps <c>Clear</c> under a
+    /// ceiling there. A doorway is no ceiling to a drone in one or flying <paramref name="upOrDown"/>: it flies through.
     /// </summary>
-    public static double Lift(int here, int? above, L.Motion m) =>
-        Solid(above) && !(Doorways.IsDoor(here) && above is int a && Doorways.IsDoor(a)) ? m.LiftUnder : m.Lift;
+    public static double Lift(int here, int? above, int? twoAbove, bool upOrDown, L.Motion m)
+    {
+        bool Ceiling(int? s) => Solid(s) && !(Doorways.IsDoorway(s!.Value) && (upOrDown || Doorways.IsDoorway(here)));
+        double room = Ceiling(above) ? Camera.Cell / 2.0 : Ceiling(twoAbove) ? Camera.Cell * 1.5 : double.MaxValue;
+        return Math.Min(m.Lift, room - L.AnchorY - m.Clear);
+    }
+
+    /// <summary>Its lift (<see cref="Lift"/>) eased toward <paramref name="lift"/> over <paramref name="dt"/> seconds; the first taken at once.</summary>
+    public double EaseLift(double lift, double dt)
+    {
+        _lift = double.IsNaN(_lift) ? lift : _lift + (lift - _lift) * (1 - Math.Exp(-dt / LiftEaseS));
+        return _lift;
+    }
 
     /// <summary>Whether a cell of <paramref name="structure"/> is solid over a drone (<see cref="Structures.Solid"/>); null, past the grid's top, is.</summary>
     public static bool Solid(int? structure) => structure is not int s || Structures.Solid(s);

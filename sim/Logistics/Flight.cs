@@ -16,7 +16,7 @@ public sealed partial class LogisticsModule
     private const int Unit = 1000;
 
     // Scratch for the floods and paths, inside one zone box at a time: derived, never saved.
-    private int[] _seen = [], _parent = [], _queue = [], _dist = [];
+    private int[] _seen = [], _parent = [], _queue = [], _dist = [], _hug = [];
     private int _stamp;
     private Box _box = Box.None;
 
@@ -238,9 +238,9 @@ public sealed partial class LogisticsModule
 
     // Cells.
 
-    /// <summary>Where a drone may be: a cell holding air, or a door's, open or closed; drones never open doors.</summary>
+    /// <summary>Where a drone may be: a cell holding air, or a doorway's (door or hatch), open or closed; drones never open them.</summary>
     private bool Passable(int cell) =>
-        _air.AiredAt(cell) || Doorways.IsDoor(_grid.StructureAt(cell));
+        _air.AiredAt(cell) || Doorways.IsDoorway(_grid.StructureAt(cell));
 
     private (int X, int Y) Centre(int cell) => (cell % _grid.Width * Unit + Unit / 2, cell / _grid.Width * Unit + Unit / 2);
 
@@ -285,6 +285,7 @@ public sealed partial class LogisticsModule
             _parent = new int[size];
             _queue = new int[size];
             _dist = new int[size];
+            _hug = new int[size];
             _stamp = 0;
         }
         _box = box;
@@ -365,38 +366,68 @@ public sealed partial class LogisticsModule
     /// <summary>
     /// From <paramref name="from"/>, through passable cells inside <paramref name="box"/>: the first step on a shortest
     /// path to any cell of <paramref name="goal"/>, and the cells to any of <paramref name="bay"/>'s, the way home. Breadth
-    /// first, neighbours up, left, right, down, so ties go to the lowest cell; -1 for either with no path.
+    /// first; of paths as short, the one least under ceilings (<see cref="Hug"/>), then neighbours up, left, right, down,
+    /// so ties go to the lowest cell; -1 for either with no path.
     /// </summary>
     private (int Step, int Home) Search(int from, Machine goal, Machine bay, Box box)
     {
         Begin(box);
         if (!InBox(from)) return (-1, -1);
-        int head = 0, tail = 0, step = -1, home = Covers(bay, from) ? 0 : -1;
+        int head = 0, tail = 0, first = -1, near = int.MaxValue, home = Covers(bay, from) ? 0 : -1;
         Span<int> around = stackalloc int[4];
-        _seen[Local(from)] = _stamp;
-        _parent[Local(from)] = -1;
-        _dist[Local(from)] = 0;
+        int start = Local(from);
+        (_seen[start], _parent[start], _dist[start], _hug[start]) = (_stamp, -1, 0, 0);
         _queue[tail++] = from;
-        while (head < tail && (step < 0 || home < 0))
+        while (head < tail)
         {
-            int c = _queue[head++];
+            int c = _queue[head], lc = Local(c), d = _dist[lc] + 1;
+            // Done once the way home is known and every way into the goal's nearest cells is weighed.
+            if (home >= 0 && d > near) break;
+            head++;
             Neighbours(c, around);
             foreach (int n in around)
             {
-                if (n < 0 || !InBox(n) || _seen[Local(n)] == _stamp || !Passable(n)) continue;
-                _seen[Local(n)] = _stamp;
-                _parent[Local(n)] = c;
-                _dist[Local(n)] = _dist[Local(c)] + 1;
-                if (home < 0 && Covers(bay, n)) home = _dist[Local(n)];
-                if (step < 0 && Covers(goal, n))
+                if (n < 0 || !InBox(n)) continue;
+                int ln = Local(n);
+                if (_seen[ln] == _stamp)
                 {
-                    step = n;
-                    while (_parent[Local(step)] != from) step = _parent[Local(step)];
+                    if (_dist[ln] != d) continue;
+                    // As short through c: kept if less under ceilings, its own cost what it added to its parent's.
+                    int via = _hug[lc] + _hug[ln] - _hug[Local(_parent[ln])];
+                    if (via < _hug[ln]) (_parent[ln], _hug[ln]) = (c, via);
+                    continue;
                 }
+                if (!Passable(n)) continue;
+                (_seen[ln], _parent[ln], _dist[ln], _hug[ln]) = (_stamp, c, d, _hug[lc] + Hug(n));
+                if (home < 0 && Covers(bay, n)) home = d;
+                if (first < 0 && Covers(goal, n)) (first, near) = (tail, d);
                 _queue[tail++] = n;
             }
         }
+        if (first < 0) return (-1, home);
+        int best = _queue[first];
+        for (int i = first + 1; i < tail && _dist[Local(_queue[i])] == near; i++)
+            if (Covers(goal, _queue[i]) && _hug[Local(_queue[i])] < _hug[Local(best)]) best = _queue[i];
+        int step = best;
+        while (_parent[Local(step)] != from) step = _parent[Local(step)];
         return (step, home);
+    }
+
+    /// <summary>
+    /// How much a drone, taller than a cell (0104), would rather not fly through <paramref name="cell"/>: 2 right under a
+    /// ceiling (a wall or floor, not a doorway it may pass), 1 a cell lower, else 0.
+    /// </summary>
+    private int Hug(int cell)
+    {
+        int w = _grid.Width;
+        if (cell < w || Ceiling(cell - w)) return 2;
+        return cell < 2 * w || Ceiling(cell - 2 * w) ? 1 : 0;
+    }
+
+    private bool Ceiling(int cell)
+    {
+        int s = _grid.StructureAt(cell);
+        return Structures.Solid(s) && !Doorways.IsDoorway(s);
     }
 
     /// <summary>The four neighbours of <paramref name="cell"/> in the order paths try them, up, left, right, down; -1 past the grid's edge.</summary>

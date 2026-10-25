@@ -328,8 +328,8 @@ public class ResearchTests
         bool Granted(string id) => Content.Research.StartKnown.Contains(id);
         var inACost = Content.Crafts.All.Where(c => !Granted(c.Item)).SelectMany(c => c.Cost)
             .Concat(Content.Builds.All.Where(b => !Granted(b.Id)).SelectMany(b => b.Cost))
-            .Concat(Content.Materials.All.Where(m => !Granted("wall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
-            .Concat(Content.Materials.All.Where(m => !Granted("backWall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
+            .Concat(Content.Materials.All.Where(m => m.Built && !Granted("wall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
+            .Concat(Content.Materials.All.Where(m => m.Built && !Granted("backWall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
             .Concat(Content.Machines.All.Where(m => !m.Fixed && !Granted(m.Kind)).SelectMany(m => m.Cost))
             .Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
         Assert.Equal(Sorted(inACost), Analysable.All);
