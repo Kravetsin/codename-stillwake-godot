@@ -44,7 +44,7 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
   of a stack onto one not alike is refused. With no `Dst` slot, that side as a whole. A machine with `Inputs` takes items
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charging station holds
   only items with a `Capacity` (`items.notBattery`, 0053); an arc bench's vise only a tool a module fits
-  (`items.notTool`, 0099).
+  (`items.notTool`, 0099); one that `Takes` an item only it (`items.notTaken`).
 - **Sort** (0008): the bag past the hotbar, or every slot of a `crate` (`items.notCrate` for other machines). Alike
   stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
@@ -56,8 +56,8 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
   `Unfit` returns it. `Boost(machine)` sums their trades in thousandths over 1000 (`Gain` rounds down, `Cost` up).
   At an arc bench (0099) `Fit`/`Unfit` act on the vise's tool stack; its `Fitted` stays empty.
 - **Inputs remember** their last item through machine writes (`KeptAt`); a hand emptying one forgets (0062).
-- **Deliveries** (0062): a fuel goes only into a `FuelSlot`, anything else into inputs, a crate's all slots, a charging
-  station only what has a capacity. Outputs are the slots past the inputs (0057).
+- **Deliveries** (0062): a fuel only into a `FuelSlot`, else inputs, a crate's all slots, a charging station only
+  what has a capacity, a `Takes` only its item. Outputs are the slots past the inputs (0057).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
 - **The floor** (no ADR; numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
@@ -65,8 +65,7 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
   space, ties by lowest index, else rises a cell. Afloat it flies on, drifting only with no back wall behind it;
   elsewhere it falls by gravity times its surface's `Fall` and slides to a stop. Gone past the grid's edge. Alike stacks
   at rest in a cell merge.
-- **Machines and ladders hold no stack** (no ADR): one falls through to the floor below; one laid in their cells is not
-  pushed out.
+- **Machines and ladders hold no stack** (no ADR): one falls through to the floor; one laid in their cells stays.
 - **Whole cells** (0106): a stack is a point; it lands on a cell's top and stops against a built cell, never climbing.
 - **Picking up** gives as much as fits; the dropper waits `Floor.OwnPickupDelay` ticks (no ADR).
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
@@ -75,7 +74,7 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
 
 ## Commands
 
-`Move` (`items.noCrate`, `noSlot`, `takeOnly`, `notEquipment`, `notBattery`, `notTool`, `empty`, `full`); `Drop`
+`Move` (`items.noCrate`, `noSlot`, `takeOnly`, `notEquipment`, `notBattery`, `notTool`, `notTaken`, `empty`, `full`); `Drop`
 (`noCrate`, `noSlot`, `empty`, `noCell`); `PickUp` (`gone`, `tooSoon`, `full`); `Sort` (`noCrate`, `notCrate`); `Run`
 (`notElectric`; on: `notHeld`, `flat`); `Fit` (`noMachine`, `noCrate`, `noSlot`, `empty`, `notModule`, `fitted`,
 `noTool`); `Unfit` (`notFitted`, `noTool`, `noSlot`, `full`); `SetCreative`. A negative cost throws.
@@ -89,12 +88,12 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
 
 ## Deliberately not handled
 
-- Ownership across sessions: an inventory or body belongs to a peer id; after a load it goes to whoever joins in that
-  slot. A body outlasts its owner leaving and is anyone's.
-- Reach: the client opens only crates within reach. A stale pick, or a drone after a sort, takes what is there then.
+- Ownership across sessions: an inventory or body is a peer id's, after a load whoever joins in that slot. A body
+  outlasts its owner leaving and is anyone's.
+- Reach is the client's. A stale pick, or a drone after a sort, takes what is there then.
 - A stack pushed out of a wall in space with no room in reach drifts away.
 - Anyone may switch creative mode (dev panel).
 - A module in a machine gone other than by `Building` would stay in `Fitted`: nothing a player does causes it.
-- A fit shows once its tick runs (0014). With two drills carried the fitted one works (0098).
-- Charge never leaks; what is short of a tick's draw stays until charged (0053).
+- A fit shows once its tick runs (0014). Of two drills carried the fitted one works (0098).
+- Charge never leaks; short of a tick's draw, it waits to be charged (0053).
 - A `Run` landing on a hero already out pays one tick before `Crew` stops it.

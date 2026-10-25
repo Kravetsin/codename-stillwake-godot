@@ -46,7 +46,9 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 - **Pieces:** `Footprint(kind, cell)` — what a machine or piece would cover from that top-left, null when it does not fit;
   `PieceOf(cell)` — the cells taken apart with it: its build's piece, columns paired from its row's run of the same (a
   doorway's group), rows from its column's top; any other structure its own cell.
-- `PlacementProblem(cell, placement)`; `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
+- `PlacementProblem(cell, placement)`: a machine with an `Exhaust` (the engine) also needs, in every row of its footprint, one
+  wall or more left of it, then space up to its nozzle's tip or a cell past the wall: else `grid.noExhaust`
+  ([the-engine-through-the-hull](../../docs/decisions/2026-10-25-the-engine-through-the-hull.md)); `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
   client's own toggles in flight (0014); not a copy of the layer.
 - **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
   `Clear(cell, layer)` (a whole machine), `SetDoorway(cell, open)` (a whole doorway as `SetDoor` sets it: Landing's
@@ -55,7 +57,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
   `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
-  `grid.noSuchMaterial`, `grid.noSuchMachine`.
+  `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`.
 
 ## Maps
 
@@ -88,5 +90,6 @@ through as its back wall, so digging it out leaves no second lump of ore.
 
 - A grid that grows; taking apart what a map put outside the zone is allowed.
 - Machines need no floor under them.
+- An engine's exhaust is checked only when placed: what is later built in its nozzle's cells or taken from them leaves it standing.
 - Door kinds with rules of their own (an airlock) would need a layer (0067).
 - The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`); a tick writing more makes readers look at everything.

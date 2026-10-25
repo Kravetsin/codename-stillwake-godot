@@ -96,8 +96,8 @@ public partial class PlanTiles : Node2D
         {
             var tile = piece.Cut ? _tiles.CutAt(piece.Picture, at.X, at.Y) : _tiles.At(piece.Picture);
             // A tile covers its picture from the cell, whole cells of it: one cut from a picture over the world, one; a machine's
-            // that rises over its footprint from the cells above (0099).
-            LayTile(piece.Layer, at, tile, piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture), piece.Rise, cut);
+            // that rises over its footprint from the cells above (0099) or reaches out of its left side.
+            LayTile(piece.Layer, at, tile, piece.Cut ? Vector2I.One : _tiles.SizeOf(piece.Picture), new Vector2I(piece.Reach, piece.Rise), cut);
         }
     }
 
@@ -109,10 +109,10 @@ public partial class PlanTiles : Node2D
     public void LayDoor(int cell, int width, System.Func<int, int> linksOf, bool hatch, PlanCut? cut = null)
     {
         var (picture, quarter) = DoorShape.TileOf(DoorShape.SpotOf(cell, width, linksOf, hatch), closed: true);
-        LayTile(TileLayer.Doors, new Vector2I(cell % width, cell / width), _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y), Vector2I.One, 0, cut);
+        LayTile(TileLayer.Doors, new Vector2I(cell % width, cell / width), _tiles.At(picture) + new Vector2I(quarter.X, quarter.Y), Vector2I.One, Vector2I.Zero, cut);
     }
 
-    private void LayTile(TileLayer layer, Vector2I at, Vector2I tile, Vector2I cells, int rise, PlanCut? cut)
+    private void LayTile(TileLayer layer, Vector2I at, Vector2I tile, Vector2I cells, Vector2I outward, PlanCut? cut)
     {
         if (cut is not { } line)
         {
@@ -120,7 +120,7 @@ public partial class PlanTiles : Node2D
             return;
         }
         var size = cells * Cell;
-        var corner = at * Cell - new Vector2I(0, rise * Cell);
+        var corner = (at - outward) * Cell;
         var (real, plan) = line.Split((corner.X, corner.Y, size.X, size.Y));
         Region(plan, corner, tile, (rect, source) => _cutPieces[(int)layer].Add((rect, source)));
         Region(real, corner, tile, (rect, source) => _built?.Add(layer, rect, source));

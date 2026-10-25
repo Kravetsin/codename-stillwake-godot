@@ -148,6 +148,11 @@ public static class Items
         new("processor", 10),
         new("display", 10),
         new("transceiver", 10),
+        // The engine's parts, of what a planet gives (ruins' alloy, the deepest band's magnetite in a motor, the deep's crystal):
+        // the last made. A nozzle and a fuel pump at the Former, an igniter at the circuit assembler.
+        new("nozzle", 10),
+        new("fuelPump", 10),
+        new("igniter", 10),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
@@ -156,7 +161,8 @@ public static class Items
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 20),
         new("biomass", 20, Yields: [("biofuel", 1)], SmeltTicks: 160),
-        // The engine's fuel, to come; meanwhile the furnace and the burner generator burn it four times as long as a plank.
+        // The engine's fuel, the one item its tank takes; till the engine runs, the furnace and the burner generator burn it four times
+        // as long as a plank.
         new("biofuel", 20, BurnTicks: 1600),
         // Tools, made as parts are.
         // Every hero comes aboard with one (Inventory.Kit, 0107): it builds plans and takes marks apart.
