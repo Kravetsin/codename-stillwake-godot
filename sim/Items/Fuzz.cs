@@ -12,11 +12,16 @@ public sealed partial class ItemsModule
     /// of the bag or of a machine, a crate or not (<c>items.notCrate</c>) or none (<c>items.noCrate</c>).
     /// Creative mode switches now and then, mostly off; now and then a run of an electric tool (<see cref="RunOrStop"/>). Now and then a drop onto a cell, off the grid
     /// too, or a pick-up of a stack on the floor or of one long gone. Now and then a module fitted or taken out
-    /// (<see cref="FitOrUnfit"/>).
+    /// (<see cref="FitOrUnfit"/>). Now and then a spawn of any item, up to two stacks of it, refused outside creative mode.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(10) == 0) return new SetCreative(rng.Below(4) == 0) { From = from };
+        if (rng.Below(20) == 0)
+        {
+            var item = Content.Items.All[(int)rng.Below((uint)Content.Items.All.Count)];
+            return new Spawn(item.Id, 1 + (int)rng.Below((uint)item.Stack * 2)) { From = from };
+        }
         if (rng.Below(10) == 0) return RunOrStop(rng, from);
         var own = State.Inventories.Find(h => h.Id == from)?.Slots;
         if (rng.Below(10) == 0) return FitOrUnfit(rng, from, own);

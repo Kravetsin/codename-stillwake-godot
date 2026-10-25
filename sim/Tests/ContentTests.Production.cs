@@ -142,7 +142,7 @@ public partial class ContentTests
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
+        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], formed = ["soil", "motor", "nozzle", "fuelPump"], arc = ["arcModule", "accumulator"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
@@ -280,7 +280,8 @@ public partial class ContentTests
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
     /// or its blueprint is known and its cost reachable; under the opening rule (0027) a blueprint or craft is
     /// known when granted or when every item of its cost is reachable, and so analysed. Debris of the kinds
-    /// <paramref name="never"/> is left out, as if it never drifted by. Aboard only: what a planet gives is not had.
+    /// <paramref name="never"/> is left out, as if it never drifted by, and so are a planet's items of them. Aboard only: what a
+    /// planet gives is not had.
     /// </summary>
     private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, params string[] never) =>
         Reachable(stations, planet: false, never);
@@ -294,7 +295,7 @@ public partial class ContentTests
         var had = new HashSet<string>(StringComparer.Ordinal);
         if (planet)
             foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.Every.SelectMany(k => k.Yields)))
-                had.Add(item);
+                if (!never.Contains(item)) had.Add(item);
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Where(k => !never.Contains(k.Item)))
         {
             had.Add(item);
@@ -365,6 +366,28 @@ public partial class ContentTests
         var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
         Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
         Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(PlanetTypes.First.Bands.Count)));
+    }
+
+    /// <summary>
+    /// The engine is the last thing opened (2026-10-25-the-engine-through-the-hull): never aboard, only of a planet's
+    /// parts, and with any one of the ruins' alloy, the deepest band's magnetite or the deep's crystal missing, neither it nor
+    /// the part made of it. Its card is the ship tab's last.
+    /// </summary>
+    [Fact]
+    public void TheEngineOpensLastOfAPlanetsAlloyMagnetiteAndCrystal()
+    {
+        Assert.DoesNotContain("engine", Reachable(Stations.All).Known);
+        Assert.Contains("engine", Reachable(Stations.All, planet: true).Known);
+        foreach (var (missing, part) in new[] { ("alloyScrap", "nozzle"), ("magnetite", "fuelPump"), ("crystal", "igniter") })
+        {
+            var (had, known) = Reachable(Stations.All, planet: true, missing);
+            Assert.DoesNotContain(part, had);
+            Assert.DoesNotContain("engine", known);
+        }
+        var ship = Machines.All.Where(m => m.Menu?.Tab == MenuTabs.Ship).Select(m => m.Menu!.Order)
+            .Concat(Builds.All.Where(b => b.Menu?.Tab == MenuTabs.Ship).Select(b => b.Menu!.Order)).ToList();
+        Assert.Equal(ship.Max(), Machines.Get("engine").Menu!.Order);
+        Assert.Single(Machines.All, m => m.Menu?.Order == ship.Max() && m.Menu.Tab == MenuTabs.Ship);
     }
 
     /// <summary>

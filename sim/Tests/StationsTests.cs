@@ -232,7 +232,7 @@ public class StationsTests
         var rng = new Rng(new RngState { S = 7 });
         var at = new Dictionary<int, int>();
         var taken = new HashSet<int>();
-        for (int i = 0; i < 3000; i++)
+        for (int i = 0; i < 4000; i++)
         {
             // Creative mode now and then, as the items fuzz switches it: crafts paid for nothing fill the queues.
             if (i % 50 == 0) w.Do(new SetCreative(i % 100 == 0)).Run();
