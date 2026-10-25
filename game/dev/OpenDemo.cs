@@ -7,10 +7,10 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --testbed --open=&lt;kind&gt;</c>: the hero starts just right of the testbed's machine of that kind
-/// and opens it a second in (or <c>openAt</c> seconds), with the inventory, as E would: for recording a machine at work and its panel (the
-/// Former, the circuit assembler, the lifepod's Fabricator, the furnace, a crate and its drone badge, the drone bay).
+/// and opens it a second in (or <c>openAt</c> seconds), with the inventory, as E would, a computer on <c>program</c> if given: for recording a machine at work and its panel (the
+/// Former, the circuit assembler, the lifepod's Fabricator, the furnace, a crate and its drone badge, the drone bay, the computer).
 /// </summary>
-public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, double openAt = 1.0) : Node
+public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, double openAt = 1.0, string? program = null) : Node
 {
     private double _t;
     private bool _opened;
@@ -31,7 +31,14 @@ public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, double openA
         _t += delta;
         if (_opened || _t < openAt) return;
         _opened = true;
-        ui.OpenCrate.Set(Nth(m(), kind).Id);
+        var machine = Nth(m(), kind);
+        // The computer opens its own window, as the crew's E has it.
+        if (Content.Machines.Is(machine.Kind, Content.MachineTrait.Computer))
+        {
+            ui.OpenComputer.Set(machine.Id);
+            ui.ComputerProgram.Set(program);
+        }
+        else ui.OpenCrate.Set(machine.Id);
     }
 
     private static Sim.Grid.Machine Nth(Registry m, string kind)

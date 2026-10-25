@@ -1,11 +1,11 @@
-# Ship art painters
+﻿# Ship art painters
 
 These scripts paint the ship-era pictures in `game/art`: debris, machines, hero tools, drones, hatches, the tank, the
 wrist, the tablet, the farm and the early item icons. Each writes into `game/art`, relative to the repo root, or takes
 an output dir. The planet's painters are in [`tools/planet-art`](../planet-art).
 
-Plain Node unless noted (`fs`, `path`, `zlib`). **Reproduces**, against the art at 85f408a: **exact** — identical
-bytes; **pixel-exact** — same pixels, other bytes (the shared PNG encoder was rewritten since); **drifted** — the art
+Plain Node unless noted (`fs`, `path`, `zlib`). **Reproduces**, against the art at 85f408a: **exact** вЂ” identical
+bytes; **pixel-exact** вЂ” same pixels, other bytes (the shared PNG encoder was rewritten since); **drifted** вЂ” the art
 was redrawn later, and the painter is the source of the earlier look.
 
 | Folder | Makes in `game/art` | Inputs | Command | Reproduces |
@@ -24,6 +24,7 @@ was redrawn later, and the painter is the source of the earlier look.
 | `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod`; `held_spring(_loaded)`, `icon_spring` were `hero_harpoon(_loaded)`, `items/harpoon` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
 | `screwdriver/screwdriver.js` | `hero_screwdriver`, `tool_screwdriver` | none | `node tools/ship-art/screwdriver/screwdriver.js <outDir>` | exact 2/2 |
 | `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `godot --headless --script tools/ship-art/jetpack/jetpack.gd -- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |
+| `computer/computer.gd` (Godot) | `*computer*`, `*radarAntenna*`; `items/` `processor`, `display`, `transceiver` | none | `godot --headless --script tools/ship-art/computer/computer.gd -- <artDir> [preview]` | exact 29/29 |
 | `debris-v1/gen.js` | `debris/` `crate_01-08`, `hull_01-12`, `pod_01-04`, `scrap_01-12` | none | `node tools/ship-art/debris-v1/gen.js [outDir]` | exact 36/36 |
 | `debris/gen.js` | `debris/` `asteroid_01-06`, `smallrock_01-06`, `bigrock_01-06`, `orerock_01-06`, `hold_01-04`, `pods_01-04`, `engine_01-04` (styles A, B) | `game/art/debris` | `node tools/ship-art/debris/gen.js [finalDir]` | exact 36/36 |
 | `wreck-section/section.js` | `debris/section_01`, `items/hullSection` | `debris-v1/gen.js` | `node tools/ship-art/wreck-section/section.js [outDir]` | exact 2/2 |

@@ -20,7 +20,7 @@ public class BuildMenuDataTests
             "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",
             "production: furnace analyzer former smelter assembler growCapsule arcBench",
             "storage: crate droneBay",
-            "ship: ",
+            "ship: computer radarAntenna",
         ], Tools.Tabs.Select(Ids));
     }
 

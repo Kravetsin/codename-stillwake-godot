@@ -22,7 +22,7 @@ public sealed record WorkAim(int Plan, string? Problem);
 
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
-/// a door or valve, puts a canister into a tank, grabs a piece of debris or opens crate <see cref="Crate"/>.
+/// a door or valve, puts a canister into a tank, grabs a piece of debris or opens <see cref="Crate"/>, a machine holding items or a computer.
 /// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
 /// (0034, 0039), which is outlined itself, not its cell. <see cref="Square"/> is the brush a dig covers, its top-left column
 /// and row and its side, when it is wider than a cell (<see cref="Brush"/>): outlined whole.
@@ -175,13 +175,13 @@ public static class Aiming
         return piece is var (id, stuck, _) ? new RodHit(id, stuck) : null;
     }
 
-    /// <summary>Whether a machine of <paramref name="kind"/> holds items, opened with E: a crate, a furnace, an analyzer.</summary>
-    private static bool HoldsItems(string kind) => Spec.Machines.TryGet(kind, out var spec) && spec.Slots != null;
+    /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace, an analyzer), or the ship's computer.</summary>
+    private static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer));
 
-    /// <summary>Whether crate, furnace or analyzer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
+    /// <summary>Whether crate, furnace, analyzer or computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
     {
-        var crate = grid.MachineById(id) is { } m && HoldsItems(m.Kind) ? m : null;
+        var crate = grid.MachineById(id) is { } m && Opens(m.Kind) ? m : null;
         var cells = crate == null ? [] : grid.Footprint(crate.Kind, crate.Cell) ?? [];
         return cells.Any(cell => Reaches(hero, cell, grid.Width));
     }
@@ -221,7 +221,7 @@ public static class Aiming
             .ToList();
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
-        int? crate = machine != null && HoldsItems(machine.Kind) ? machine.Id : null;
+        int? crate = machine != null && Opens(machine.Kind) ? machine.Id : null;
         var press = crate == null ? PressOf(m, peer, cell, shown) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         var piece = PieceNear(m, hero, point, passOver);

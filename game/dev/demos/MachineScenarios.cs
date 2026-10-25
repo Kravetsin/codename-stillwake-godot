@@ -57,7 +57,7 @@ public sealed class OpenScenario : DevScenario
     public override Func<Registry, int>? Start => m => OpenDemo.StartOf(m, Kind);
 
     public override void Attach(DevContext c) =>
-        c.Add(new OpenDemo(c.Ui, Kind, c.M, Args.Arg("--open-at") is { } at ? double.Parse(at, CultureInfo.InvariantCulture) : 1.0));
+        c.Add(new OpenDemo(c.Ui, Kind, c.M, Args.Arg("--open-at") is { } at ? double.Parse(at, CultureInfo.InvariantCulture) : 1.0, Args.Value("--program")));
 }
 
 [Dev("--near", "with --testbed, the hero starts beside the machine of that kind, opening nothing", Shape = DevShape.Equals, Order = 20)]

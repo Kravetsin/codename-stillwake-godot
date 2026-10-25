@@ -142,7 +142,7 @@ public partial class ContentTests
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
+        string[] electronics = ["circuit", "solarCell", "drone", "processor", "display", "transceiver"], formed = ["soil", "motor"], arc = ["arcModule", "accumulator"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));

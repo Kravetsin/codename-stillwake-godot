@@ -44,6 +44,8 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Sound** — f/sound: `SoundView.cs`, `Hearing.cs`, `Motors.cs`, `GroundSounds.cs`; gc/`Sound.cs` (every cue); game/shared `Cues.cs`; files in `game/audio`
 
+**Ship computer** — f/computer: `ComputerPanel.cs`, `RadarScreen.cs`, `ComputerScreens.cs`, `Readout.cs` (programs brought by modules on its network); c/`Programs.cs`
+
 **UI and tablet** — game/shared: `Tablet.cs`, `TabletLayout.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
 
 **Net and co-op** — net/Net: `Host.cs`, `Client.cs`, `Session.cs`, `Playout.cs`; net/Tests `Desync.cs`; game/net: `EnetLink.cs`, `RelayLink.cs`; game/`Main.Sessions.cs` (hosting, joining, worlds on disk, the title); sim/Core: `Sim.cs` World, `Module.cs` Command, `Rng.cs`; sim/Registry: `Registry.cs`, `Migrations.cs`; game/platform: `Saves.cs`
