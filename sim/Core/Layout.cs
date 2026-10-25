@@ -32,6 +32,12 @@ public sealed record Layout(
     /// </summary>
     public IReadOnlyList<(int Cell, string Kind)>? Flora { get; init; }
 
+    /// <summary>
+    /// The kind of surface the ship's own grid is played under (<c>Content.Surfaces</c>), by its id: the ship's, but for a test
+    /// or dev world drawn as a planet's ground, played under its rules.
+    /// </summary>
+    public string Kind { get; init; } = Surface.Ship;
+
     /// <summary>The build zone of a world of <c>Content.World</c>'s size: <c>ZoneWidth</c> × <c>ZoneHeight</c> in its middle.</summary>
     public static Box WorldZone
     {

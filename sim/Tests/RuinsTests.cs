@@ -37,7 +37,7 @@ public class RuinsTests
         a.......a
         a.......a
         aaaaaasaa
-        """) with { Flora = [(At(7, 1), Ruins.Niche), (At(1, 3), Ruins.SpireCache), (At(3, 3), Ruins.Cradle), (At(6, 3), "bush")] }, doubled: true);
+        """) with { Flora = [(At(7, 1), Ruins.Niche), (At(1, 3), Ruins.SpireCache), (At(3, 3), Ruins.Cradle), (At(6, 3), "bush")], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
 
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();

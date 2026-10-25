@@ -38,11 +38,10 @@ public static class AimGlow
 
     /// <summary>
     /// The light of a hit of <paramref name="tool"/> from the hand at (<paramref name="handX"/>, <paramref name="handY"/>), in
-    /// thousandths of a cell, toward <paramref name="angle"/> radians, in the front layer or the <paramref name="back"/> one: in
-    /// natural walls that break where the sheaf first meets them, or on natural back walls that break in the open cells it
-    /// crosses. None where it meets nothing.
+    /// thousandths of a cell, toward <paramref name="angle"/> radians: in the walls that break where the sheaf first meets them.
+    /// None where it meets nothing.
     /// </summary>
-    public static GlowField? FieldOf(IGridQueries grid, string tool, int handX, int handY, double angle, bool back)
+    public static GlowField? FieldOf(IGridQueries grid, string tool, int handX, int handY, double angle)
     {
         var weapon = Spec.Weapons.Of(tool)!;
         double ox = handX * (double)Cell / Hero.Unit, oy = handY * (double)Cell / Hero.Unit;
@@ -61,16 +60,14 @@ public static class AimGlow
                 int cell = CellAt(grid, x, y);
                 if (cell < 0) break;
                 double light = edge * Math.Min(1, (range - s) / (range * EndFade));
-                if (grid.WallAt(cell) is { } wall || grid.Blocks(cell))
+                if (grid.WallAt(cell) != null || grid.Blocks(cell))
                 {
                     // In front: the light runs on into what the ray met, if it breaks.
-                    if (!back && grid.WallAt(cell) is { Breaks: true })
+                    if (grid.WallAt(cell) is { } met && met.Strength != Spec.Material.Unbreakable)
                         for (double d = 0; d <= Depth; d += 1)
                             splashes.Add((x + ux * d, y + uy * d, light * Math.Pow(1 - d / Depth, 1.4)));
                     break;
                 }
-                if (back && grid.BackAt(cell) is { Natural: true } behind && behind.Strength != Spec.Material.Unbreakable)
-                    splashes.Add((x, y, light * 0.8));
             }
         }
         if (splashes.Count == 0) return null;
@@ -88,16 +85,14 @@ public static class AimGlow
                     int i = (py - top) * w + px - left;
                     field[i] = Math.Max(field[i], (float)(light * Math.Exp(-d2 / (2 * Spread * Spread))));
                 }
-        // Light stays in what it lights: walls that break in front, back walls that break behind; never the air.
+        // Light stays in what it lights, the walls that break; never the air.
         for (int py = 0; py < h; py++)
             for (int px = 0; px < w; px++)
             {
                 int i = py * w + px;
                 if (field[i] == 0) continue;
                 int cell = CellAt(grid, left + px + 0.5, top + py + 0.5);
-                bool lit = cell >= 0 && (back
-                    ? grid.WallAt(cell) == null && !grid.Blocks(cell) && grid.BackAt(cell) is { Natural: true } b && b.Strength != Spec.Material.Unbreakable
-                    : grid.WallAt(cell) is { Breaks: true });
+                bool lit = cell >= 0 && grid.WallAt(cell) is { } wall && wall.Strength != Spec.Material.Unbreakable;
                 if (!lit) field[i] = 0;
             }
         return new GlowField(left, top, w, h, field);

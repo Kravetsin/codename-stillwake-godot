@@ -117,7 +117,6 @@ public partial class HeroView : Node2D
     private int _swingFace = 1;
     private bool _grabHeld;
     /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
-    private bool _swingBack;
     /// <summary>
     /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
     /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.

@@ -21,13 +21,13 @@ public class HewTests
     private const int Right = 0, Down = 64, Left = 128, Up = HewTesting.Up;
 
     /// <summary>A map a character a cell, its walls of the materials map: s soil, t stone, b bedrock, a dot the hull.</summary>
-    private static Scenario World(string map, string materials) => new(Layout.Parse(map).WithMaterials(materials));
+    private static Scenario World(string map, string materials) => new(Layout.Parse(map).WithMaterials(materials).OnPlanet());
 
     /// <summary>A point in thousandths of a cell: the middle of cell (<paramref name="x"/>, <paramref name="y"/>).</summary>
     private static (int X, int Y) Mid(int x, int y) => (x * 1000 + 500, y * 1000 + 500);
 
-    private static Hewn Struck(Scenario w, string tool, (int X, int Y) at, int heading, bool back = false) =>
-        w.M.Building.Struck(tool, at.X, at.Y, heading, back);
+    private static Hewn Struck(Scenario w, string tool, (int X, int Y) at, int heading) =>
+        w.M.Building.Struck(tool, at.X, at.Y, heading);
 
     private static int At(Scenario w, int x, int y) => y * w.M.Grid.Width + x;
 
@@ -142,15 +142,15 @@ public class HewTests
     }
 
     [Fact]
-    public void AShipsWallInFrontStopsTheFanSoTheGroundBehindItIsSpared()
+    public void BedrockInFrontStopsTheFanSoTheGroundBehindItIsSpared()
     {
         var w = World(Face, """
             ..........
             ..........
             ..........
-            .......ttt
-            .......ttt
-            .......ttt
+            ......bttt
+            ......bttt
+            ......bttt
             ..........
             """);
         w.Do(new Hew(Axe, 5500, 4500, Right)).Run();
@@ -181,7 +181,7 @@ public class HewTests
     [Fact]
     public void ARayPassesThroughABushStrikingItAndTheWallBehindIt()
     {
-        var w = new Scenario(Layout.Parse(Meadow).WithMaterials(MeadowGround) with { Flora = [(3 * 8 + 3, "bush")] });
+        var w = new Scenario((Layout.Parse(Meadow).WithMaterials(MeadowGround) with { Flora = [(3 * 8 + 3, "bush")] }).OnPlanet());
         var bush = w.M.Building.Plants.Single();
         // From above and beside the bush, down through it to the ground under it.
         var struck = Struck(w, Drill, Mid(3, 1), Down);
@@ -196,7 +196,7 @@ public class HewTests
     [Fact]
     public void ATreeMetByManyRaysIsStruckOnce()
     {
-        var w = new Scenario(Layout.Parse(Meadow).WithMaterials(MeadowGround) with { Flora = [(3 * 8 + 3, "acacia")] });
+        var w = new Scenario((Layout.Parse(Meadow).WithMaterials(MeadowGround) with { Flora = [(3 * 8 + 3, "acacia")] }).OnPlanet());
         var tree = w.M.Building.Plants.Single();
         Assert.Equal([tree], Struck(w, Axe, Mid(1, 2), Right).Plants);
         w.Do(new Hew(Axe, 1500, 2500, Right)).Run();
@@ -252,8 +252,8 @@ public class HewTests
     // Invariants.
 
     /// <summary>
-    /// On any ground, from any point and heading, front or back: every cell struck is the first wall some ray of the fan meets (or,
-    /// behind, an open cell before it), and every ray\x27s first breakable wall is struck; a ship\x27s wall is never struck.
+    /// On any planet's ground, from any point and heading: every cell struck is the first wall some ray of the fan meets, and every
+    /// ray's first wall that breaks is struck; bedrock never.
     /// </summary>
     [Property(MaxTest = 200)]
     public Property EveryCellStruckIsTheFirstARayMeetsAndNothingBehindItIs()
@@ -266,17 +266,16 @@ public class HewTests
             from y in Gen.Choose(0, height * 1000 - 1)
             from heading in Gen.Choose(0, Headings.Turn - 1)
             from tool in Gen.Elements(Axe, Drill)
-            from back in Gen.Elements(false, true)
-            select (cells, backs, x, y, heading, tool, back);
+            select (cells, backs, x, y, heading, tool);
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
             string Rows(Func<int, char> at) =>
                 string.Join("\n", Enumerable.Range(0, height).Select(r => new string(Enumerable.Range(0, width).Select(c => at(r * width + c)).ToArray())));
             var map = Rows(i => t.cells[i] == '.' ? '.' : '#');
             var materials = Rows(i => t.cells[i] is '.' or '#' ? (t.cells[i] == '.' ? t.backs[i] : '.') : t.cells[i]);
-            var w = new Scenario(Layout.Parse(map).WithMaterials(materials));
+            var w = new Scenario(Layout.Parse(map).WithMaterials(materials).OnPlanet());
             var grid = w.M.Grid;
-            var struck = w.M.Building.Struck(t.tool, t.x, t.y, t.heading, t.back).Cells;
+            var struck = w.M.Building.Struck(t.tool, t.x, t.y, t.heading).Cells;
             var weapon = Weapons.Of(t.tool)!;
             var expected = new SortedSet<int>();
             for (int i = 0; i < weapon.Rays; i++)
@@ -284,13 +283,12 @@ public class HewTests
                 {
                     if (grid.WallAt(c) is { } wall)
                     {
-                        if (!t.back && wall.Breaks) expected.Add(c);
+                        if (wall.Strength != Material.Unbreakable) expected.Add(c);
                         return true;
                     }
-                    if (t.back && grid.BackAt(c) is { Natural: true } b && b.Strength != Material.Unbreakable) expected.Add(c);
-                    return false;
+                    return grid.Blocks(c);
                 });
-            return struck.SequenceEqual(expected) && struck.All(c => t.back || grid.WallAt(c)!.Natural);
+            return struck.SequenceEqual(expected);
         });
     }
 
@@ -314,7 +312,7 @@ public class HewTests
                 char At(int r, int c) => t.cells[r * width + (mirrored ? width - 1 - c : c)];
                 var rows = Enumerable.Range(0, height).Select(r => new string(Enumerable.Range(0, width).Select(c => At(r, c)).ToArray())).ToArray();
                 return new Scenario(Layout.Parse(string.Join("\n", rows.Select(r => new string(r.Select(ch => ch == '.' ? '.' : '#').ToArray()))))
-                    .WithMaterials(string.Join("\n", rows)));
+                    .WithMaterials(string.Join("\n", rows)).OnPlanet());
             }
             var plain = Of(false).M.Building.Struck(t.tool, t.x, t.y, t.heading).Cells;
             var mirror = Of(true).M.Building.Struck(t.tool, width * 1000 - t.x, t.y, (Headings.Turn / 2 - t.heading) & (Headings.Turn - 1)).Cells;

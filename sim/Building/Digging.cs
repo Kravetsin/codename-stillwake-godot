@@ -5,38 +5,39 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Sim.Building;
 
 /// <summary>
-/// A hit of weapon <c>Tool</c> on a planet's ground (the fan of rays): its fan cast from the hand at (<c>X</c>, <c>Y</c>), in
-/// thousandths of a cell, aimed at <c>Heading</c> (<see cref="Headings"/>), sent as the axe strikes or at the drill's pace. Each
-/// ray strikes the first wall it meets and stops there, a natural one cracked, a ship's or bedrock untouched; it passes through
-/// the plants it crosses, cracking each by its own cell. Each wall and plant takes the damage once, however many rays meet it.
-/// It takes the weapon's block damage (<c>BlockDamage</c>). <c>Back</c> (0107, the right button) strikes instead every natural back wall behind the open cells a ray crosses, until a
-/// wall stops it (0108). A wall broken gives the sender what it is made of and what grew on, in or from it.
+/// A hit of weapon <c>Tool</c> on what stands on a planet's grid (the fan of rays): its fan cast from the hand at (<c>X</c>,
+/// <c>Y</c>), in thousandths of a cell, aimed at <c>Heading</c> (<see cref="Headings"/>), sent as the axe strikes or at the
+/// drill's pace. Each ray strikes the first wall it meets, a closed door or hatch, a floor, and stops there; it passes through
+/// the plants, ladders and open doors it crosses, striking them. What stands takes the weapon's block damage
+/// (<c>BlockDamage</c>) once, however many rays meet it: a wall at its material's strength, a built piece at its build's, and
+/// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>): on the ship the plan
+/// alone takes things apart.
 /// </summary>
-public sealed record Hew(string Tool, int X, int Y, int Heading, bool Back = false) : Command;
+public sealed record Hew(string Tool, int X, int Y, int Heading) : Command;
 
-/// <summary>What a <see cref="Hew"/> strikes: the cells of its walls, ascending, and its plants, by their own cells.</summary>
+/// <summary>What a <see cref="Hew"/> strikes: its walls' cells and its built pieces' first cells, ascending, and its plants, by their own cells.</summary>
 public sealed record Hewn(IReadOnlyList<int> Cells, IReadOnlyList<Plant> Plants)
 {
     public bool IsEmpty => Cells.Count == 0 && Plants.Count == 0;
 }
 
-/// <summary>Digging a planet's ground (0077): cracks kept by cell, a wall broken out at its strength.</summary>
+/// <summary>Breaking what stands on a planet's grid with tools (0077, the fan of rays): cracks kept by cell, broken at strength.</summary>
 public sealed partial class BuildingModule
 {
-    /// <summary>The natural walls and the plants (by their own cells) hit part way, ascending by cell: live and read-only.</summary>
+    /// <summary>The walls, built pieces and plants (by their own cells) hit part way, ascending by cell: live and read-only.</summary>
     public IReadOnlyList<Crack> Cracks => State.Cracks;
 
     /// <summary>
     /// What a hit of <paramref name="tool"/> from (<paramref name="x"/>, <paramref name="y"/>) toward <paramref name="heading"/>
-    /// would strike (<see cref="Hew"/>), in the front layer or the <paramref name="back"/> one: what the command strikes, and the
-    /// client's preview, so the two never differ.
+    /// would strike (<see cref="Hew"/>): what the command strikes, and the client's preview, so the two never differ. Nothing
+    /// where the surface's tools break nothing.
     /// </summary>
-    public Hewn Struck(string tool, int x, int y, int heading, bool back = false)
+    public Hewn Struck(string tool, int x, int y, int heading)
     {
         var weapon = Weapons.Of(tool) ?? throw new InvalidOperationException($"building.hew: {tool} deals no damage");
         var cells = new List<int>();
         var plants = new List<Plant>();
-        Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, back ? cell => StopsBehind(cell, cells) : cell => Stops(cell, cells, plants));
+        if (Rules.ToolsBreak) Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell => Stops(cell, cells, plants));
         cells.Sort();
         for (int i = cells.Count - 1; i > 0; i--)
             if (cells[i] == cells[i - 1]) cells.RemoveAt(i);
@@ -45,70 +46,72 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Whether a ray in the front layer stops at <paramref name="cell"/>: at any wall, a natural one that breaks added to
-    /// <paramref name="cells"/>, and at whatever else stops a body, a shut door; a plant in an open cell added to
-    /// <paramref name="plants"/>, once, and passed.
+    /// Whether a ray stops at <paramref name="cell"/>: at a wall, one that breaks added to <paramref name="cells"/>; at a built
+    /// piece that stops a body, added by its first cell; through a piece that does not (a ladder, an open door) and a plant in an
+    /// open cell, each added once.
     /// </summary>
     private bool Stops(int cell, List<int> cells, List<Plant> plants)
     {
         if (_grid.WallAt(cell) is { } wall)
         {
-            if (wall.Breaks) cells.Add(cell);
+            if (wall.Strength != Material.Unbreakable) cells.Add(cell);
             return true;
+        }
+        if (PieceAt(cell) is { } piece)
+        {
+            cells.Add(piece.Head);
+            return _grid.Blocks(cell);
         }
         if (_grid.Blocks(cell)) return true;
         if (_grid.StructureAt(cell) == Structure.Empty && PlantAt(cell) is { } plant && !plants.Contains(plant)) plants.Add(plant);
         return false;
     }
 
-    /// <summary>
-    /// Whether a ray in the back layer stops at <paramref name="cell"/>: at a wall or whatever stops a body; else its back wall,
-    /// natural and breakable, added to <paramref name="cells"/>, a ship's passed by (0108).
-    /// </summary>
-    private bool StopsBehind(int cell, List<int> cells)
+    /// <summary>The built piece at <paramref name="cell"/>, a floor, ladder, door or hatch: its first cell, kept by, and its build; none for a wall or nothing.</summary>
+    private (int Head, Build Build)? PieceAt(int cell)
     {
-        if (_grid.WallAt(cell) != null || _grid.Blocks(cell)) return true;
-        if (_grid.BackAt(cell) is { Natural: true } behind && behind.Strength != Material.Unbreakable) cells.Add(cell);
-        return false;
+        int structure = _grid.StructureAt(cell);
+        if (structure == Structure.Empty || _grid.WallAt(cell) != null || Structures.Of(structure).Build is not { } build) return null;
+        return (_grid.PieceOf(cell)[0], Builds.Get(build));
     }
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s hit of <paramref name="tool"/> (<see cref="Hew"/>) would be refused: what the client
     /// shows before it sends, which leaves out whether an electric weapon runs, as a hit on debris does.
     /// </summary>
-    public string? HewProblem(int peer, string tool, int x, int y, int heading, bool back = false) =>
-        HewProblemOf(peer, Struck(tool, x, y, heading, back), tool, running: false);
+    public string? HewProblem(int peer, string tool, int x, int y, int heading) =>
+        HewProblemOf(peer, Struck(tool, x, y, heading), tool, running: false);
 
     /// <summary>
-    /// <c>building.nothingToDig</c> for a fan that strikes nothing (bedrock and a ship's walls only stop it), then what the
-    /// weapon says (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the command applies, not running.
+    /// <c>building.notHere</c> where the surface's tools break nothing (the ship: the plan takes things apart),
+    /// <c>building.nothingToDig</c> for a fan that strikes nothing (bedrock and lava only stop it), then what the weapon says
+    /// (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the command applies, not running.
     /// </summary>
     private string? HewProblemOf(int peer, Hewn hewn, string tool, bool running) =>
-        hewn.IsEmpty ? "building.nothingToDig" : _items.WeaponProblem(peer, tool, running);
+        !Rules.ToolsBreak ? "building.notHere" : hewn.IsEmpty ? "building.nothingToDig" : _items.WeaponProblem(peer, tool, running);
 
     /// <summary>
-    /// The weapon's damage added once to each wall and plant the fan strikes, walls first: a wall at its strength is cleared,
-    /// what it is made of given to the sender, then the yields of the growths it held; a plant at its strength is felled. A
-    /// relic's cradle among them discharges into the sender once (0096). A back wall broken fells what hangs on it.
+    /// The weapon's block damage added once to each wall, piece and plant the fan strikes, walls and pieces first: one at its
+    /// strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
+    /// felled. A relic's cradle among them discharges into the sender once (0096).
     /// </summary>
     private void ApplyHew(Hew c)
     {
-        var hewn = Struck(c.Tool, c.X, c.Y, c.Heading, c.Back);
+        var hewn = Struck(c.Tool, c.X, c.Y, c.Heading);
         int hit = _items.BlockDamage(c.From, c.Tool);
-        if (c.Back)
-        {
-            foreach (int cell in hewn.Cells) HitBack(c.From, cell, hit);
-            return;
-        }
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
         if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(c.From, ShockOf(c.Tool));
-        foreach (int cell in hewn.Cells) HitWall(c.From, cell, hit);
+        foreach (int cell in hewn.Cells)
+        {
+            if (_grid.WallAt(cell) != null) HitWall(c.From, cell, hit);
+            else HitPiece(c.From, cell, hit);
+        }
         // A plant its wall took with it is gone; one of no strength falls to any hit.
         foreach (var plant in hewn.Plants)
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, c.From);
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s natural wall: broken at its strength, for <paramref name="peer"/>.</summary>
+    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>.</summary>
     private void HitWall(int peer, int cell, int hit)
     {
         var wall = _grid.WallAt(cell)!;
@@ -120,17 +123,16 @@ public sealed partial class BuildingModule
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, peer);
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s natural back wall: broken at its strength, for <paramref name="peer"/>.</summary>
-    private void HitBack(int peer, int cell, int hit)
+    /// <summary>
+    /// A hit of <paramref name="hit"/> on the built piece kept by <paramref name="head"/>: at its build's strength it comes apart
+    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost.
+    /// </summary>
+    private void HitPiece(int peer, int head, int hit)
     {
-        var back = _grid.BackAt(cell)!;
-        if (!Cracked(cell, back.Strength, hit, back: true)) return;
-        // What hangs on it goes to its digger now; the sweep would fell it for nothing.
-        var hung = HungOn(cell);
-        _gridOps.Clear(cell, "back");
-        _itemsOps.GiveOrDrop(peer, back.Cost, cell);
-        foreach (var plant in hung)
-            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, peer);
+        if (PieceAt(head) is not { } piece || !Cracked(head, piece.Build.Strength, hit)) return;
+        var cost = Costs.BuiltAt(_grid, head, "structure")!.Cost;
+        foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
+        _itemsOps.GiveOrDrop(peer, cost, head);
     }
 
     /// <summary>
@@ -197,17 +199,6 @@ public sealed partial class BuildingModule
         return ~lo;
     }
 
-    /// <summary>The growths hung on <paramref name="cell"/>'s back wall (<see cref="Flora.Anchor.Back"/>), in cell order: felled with it.</summary>
-    private List<Plant> HungOn(int cell)
-    {
-        var hung = new List<Plant>();
-        foreach (var layer in (Dictionary<int, Plant>[])[_plantIn, _plantBehind])
-            if (layer.TryGetValue(cell, out var plant) && !hung.Contains(plant) && Kinds[plant.Kind].On == Flora.Anchor.Back && HoldsOf(plant).Contains(cell))
-                hung.Add(plant);
-        hung.Sort(ByCell);
-        return hung;
-    }
-
     /// <summary>
     /// A crack heals whole <c>Builds.CrackHeals</c> ticks after its last hit, as Terraria's; one whose wall is gone, to a meteor,
     /// is dropped: only a natural wall that breaks, or a plant of some strength in its own open cell, keeps one. The clock
@@ -220,22 +211,12 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Whether <paramref name="cell"/> holds what a crack is kept for: a natural wall that breaks, or the own cell of a plant with
-    /// strength; in the <paramref name="back"/> layer, a back wall that breaks.
+    /// Whether <paramref name="cell"/> holds what a crack is kept for: a wall that breaks, the first cell of a built piece, or the
+    /// own cell of a plant with strength; in the <paramref name="back"/> layer, a back wall that breaks (cracked before tools
+    /// left the back walls, healing out of old saves).
     /// </summary>
     private bool Crackable(int cell, bool back) => back ? _grid.BackAt(cell) is { } behind && behind.Strength != Material.Unbreakable
-        : _grid.WallAt(cell) is { } wall
-        ? wall.Breaks
+        : _grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable
+        : PieceAt(cell) is { } piece ? piece.Head == cell
         : _plantOwn.TryGetValue(cell, out var plant) && Kinds[plant.Kind].Strength > 0;
-
-    /// <summary>
-    /// Whether what <paramref name="layer"/> of <paramref name="cell"/> holds is natural ground, never marked: a natural wall,
-    /// dug, or the ground's own back wall; one a hero built of soil or stone is taken apart as any back wall (0084).
-    /// </summary>
-    private bool IsNatural(int cell, string layer) => layer switch
-    {
-        "structure" => _grid.WallAt(cell)?.Natural == true,
-        "back" => _grid.BackAt(cell)?.Natural == true && _grid.GrownBack(cell),
-        _ => false,
-    };
 }

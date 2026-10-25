@@ -40,6 +40,7 @@ public class PlanetYieldsTests
     {
         Flora = [(At(0, 1), "geode"), (At(3, 1), "crystalIceHang"), (At(2, 2), "glowcapTeal"), (At(3, 2), "crystalAmber"),
             (At(5, 2), "glowcapViolet"), (At(6, 2), "stalagmite")],
+        Kind = Content.Surfaces.TestStrip.Id,
     }, doubled: true);
 
     private static readonly string Axe = Weapons.Axe.Item;
@@ -134,7 +135,7 @@ public class PlanetYieldsTests
         ........
         ........
         ssssssss
-        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")] }, doubled: true);
+        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
 
     /// <summary>Hits <paramref name="cell"/> with the axe, a hit a tick, till what stands there is felled; the hits it took.</summary>
     private static int Fell(Scenario w, int cell)
@@ -204,7 +205,7 @@ public class PlanetYieldsTests
             t......t
             tttttttt
             tttttttt
-            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")] }, doubled: true);
+            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
         DigOut(w, w.At(0, 1));
         DigOut(w, w.At(3, 2));
         Assert.Equal((1, 2, 2), (Count(w, "mica"), Count(w, "magnetite"), Count(w, "rock")));

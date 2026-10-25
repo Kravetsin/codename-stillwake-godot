@@ -122,7 +122,7 @@ public class ImpactsTests
             """).WithMaterials("""
             ........
             tttttttt
-            """) with { Flora = [(2, "bush"), (3, "tuft")] };
+            """) with { Flora = [(2, "bush"), (3, "tuft")], Kind = Stillwake.Content.Surfaces.TestStrip.Id };
         var world = new TestWorld(layout);
         var m = world.M;
         Assert.Equal(0.2, Impacts.ShareAt(m.Grid, m.Building, 8 + 1, Drill, Bite), 9);

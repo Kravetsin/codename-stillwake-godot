@@ -185,7 +185,7 @@ public class BudgetTests(ITestOutputHelper output)
     {
         const int width = 128, height = 80, count = width * height;
         var rows = Enumerable.Repeat(new string('#', width), height).ToArray();
-        var w = new Scenario(Layout.Parse(rows).WithMaterials(string.Join("\n", Enumerable.Repeat(new string('t', width), height))));
+        var w = new Scenario(Layout.Parse(rows).WithMaterials(string.Join("\n", Enumerable.Repeat(new string('t', width), height))).OnPlanet());
         int bare = w.World.Save().Length;
         long before = GC.GetTotalMemory(forceFullCollection: true);
         var hitting = Stopwatch.StartNew();

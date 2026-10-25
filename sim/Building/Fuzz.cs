@@ -54,11 +54,10 @@ public sealed partial class BuildingModule
                     // mostly on a crack, so walls break within a run, or anywhere, mostly on the ground a planet is made of.
                     int cell = _plants.Count > 0 && Below(4) == 0 ? (FuzzPlant(Below) is var p && Below(2) == 0 ? p.Cell : HoldOf(p))
                         : State.Cracks.Count > 0 && Below(2) == 0 ? State.Cracks[Below(State.Cracks.Count)].Cell : Cell();
-                    // The hand anywhere in that cell, or just off the grid before it, aimed anywhere; a quarter of hits at the back
-                    // wall (0107), ship and ground alike.
+                    // The hand anywhere in that cell, or just off the grid before it, aimed anywhere; on the ship, refused.
                     int x = cell >= 0 ? cell % _grid.Width * 1000 + Below(1000) : -1 - Below(1000);
                     int y = cell >= 0 ? cell / _grid.Width * 1000 + Below(1000) : Below(1000);
-                    return new Hew(Weapons.All[Below(Weapons.All.Count)].Item, x, y, Below(Headings.Turn), Back: Below(4) == 0) { From = from };
+                    return new Hew(Weapons.All[Below(Weapons.All.Count)].Item, x, y, Below(Headings.Turn)) { From = from };
                 }
             case 0:
                 return new PlacePlan(Cell(), FuzzPlacements[Below(FuzzPlacements.Length)]) { From = from };

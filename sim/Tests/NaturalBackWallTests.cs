@@ -39,7 +39,7 @@ public class NaturalBackWallTests
     }
 
     [Fact]
-    public void ASoilBackWallIsBuiltOfSoilUnderThePlanetsSkyAndTakenApartForItAgainAfterALoad()
+    public void ASoilBackWallIsBuiltOfSoilUnderThePlanetsSkyAndStaysThroughALoad()
     {
         var w = Down(items: ("soil", 1));
         var m = w.On(1);
@@ -58,11 +58,10 @@ public class NaturalBackWallTests
         m = w.Reload().On(1);
         Assert.Equal("soil", m.Grid.BackAt(cell)?.Id);
         Assert.False(m.Grid.GrownBack(cell));
+        // Nothing is marked on a planet, and tools leave back walls alone (the fan of rays): it stays.
         w.Do(new Deconstruct(cell, "back")).Run();
-        WorkAll(w, m);
-        Assert.Empty(w.Refusals);
-        Assert.Null(m.Grid.BackAt(cell));
-        Assert.Equal(1, Count(m, "soil"));
+        Assert.Equal(["building.notHere"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal("soil", m.Grid.BackAt(cell)?.Id);
     }
 
     [Fact]
@@ -76,8 +75,9 @@ public class NaturalBackWallTests
         var ground = m.Grid.BackAt(under)!;
         Assert.True(ground.Natural);
         Assert.True(m.Grid.GrownBack(under));
+        // Nothing is marked on a planet (the fan of rays), its ground's back wall no more than any.
         w.Do(new Deconstruct(under, "back")).Run();
-        Assert.Equal(["building.natural"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(["building.notHere"], w.Refusals.Select(r => r.Reason));
         Assert.Empty(m.Building.Plans);
         Assert.Equal("grid.occupied", m.Grid.PlacementProblem(under, Placement.BackWall("stone")));
 

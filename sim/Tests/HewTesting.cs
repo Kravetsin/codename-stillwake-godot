@@ -13,31 +13,31 @@ public static class HewTesting
     /// <summary>
     /// A hit of <paramref name="tool"/> from the middle of <paramref name="cell"/>, aimed at <paramref name="heading"/> or, with
     /// none, the first heading from straight up round the turn whose fan strikes what is there alone: a wall there by itself (every
-    /// ray stops in it at once), a plant there by itself, or, with <paramref name="Back"/>, that cell's back wall by itself; where
+    /// ray stops in it at once), or a plant there by itself; where
     /// none does, or nothing is there, straight up. Off the grid, nothing is struck. On <paramref name="surface"/>'s grid.
     /// </summary>
-    public static Hew Dig(Scenario w, int cell, string tool, bool Back = false, int? heading = null, int surface = 0)
+    public static Hew Dig(Scenario w, int cell, string tool, int? heading = null, int surface = 0)
     {
         var m = w.On(surface);
         int width = m.Grid.Width;
         var (x, y) = cell < 0 ? (-500, 500) : (cell % width * 1000 + 500, cell / width * 1000 + 500);
-        return new Hew(tool, x, y, heading ?? AloneFrom(m, cell, tool, x, y, Back), Back);
+        return new Hew(tool, x, y, heading ?? AloneFrom(m, cell, tool, x, y));
     }
 
     /// <summary>
     /// The first heading from straight up whose fan from (<paramref name="x"/>, <paramref name="y"/>) strikes <paramref name="cell"/>'s
     /// own thing alone; for a plant, failing that, the first that strikes no other plant, walls only cracked besides.
     /// </summary>
-    private static int AloneFrom(Registry m, int cell, string tool, int x, int y, bool back)
+    private static int AloneFrom(Registry m, int cell, string tool, int x, int y)
     {
         var building = m.Building;
         bool open = cell >= 0 && cell < m.Grid.Width * m.Grid.Height && m.Grid.WallAt(cell) == null;
-        var plant = open && !back ? building.PlantAt(cell) : null;
+        var plant = open ? building.PlantAt(cell) : null;
         int? amongWalls = null;
         for (int step = 0; step < Headings.Turn; step++)
         {
             int heading = (Up + step) & (Headings.Turn - 1);
-            var struck = building.Struck(tool, x, y, heading, back);
+            var struck = building.Struck(tool, x, y, heading);
             if (plant == null)
             {
                 if (struck.Plants.Count == 0 && struck.Cells.Count == 1 && struck.Cells[0] == cell) return heading;
@@ -58,10 +58,10 @@ public static class HewTesting
     }
 
     /// <summary>Why <see cref="Dig"/>'s hit would be refused, as the client asks it.</summary>
-    public static string? DigProblem(Scenario w, int peer, int cell, string tool, bool Back = false, int? heading = null)
+    public static string? DigProblem(Scenario w, int peer, int cell, string tool, int? heading = null)
     {
-        var hew = Dig(w, cell, tool, Back, heading);
-        return w.M.Building.HewProblem(peer, tool, hew.X, hew.Y, hew.Heading, Back);
+        var hew = Dig(w, cell, tool, heading);
+        return w.M.Building.HewProblem(peer, tool, hew.X, hew.Y, hew.Heading);
     }
 
     /// <summary>Why <see cref="Hit"/>'s hit would be refused, as the client asks it.</summary>
@@ -70,4 +70,11 @@ public static class HewTesting
         var hew = Hit(w, id, tool);
         return w.M.Debris.HewProblem(peer, tool, hew.X, hew.Y, hew.Heading);
     }
+}
+
+/// <summary>Maps drawn as a planet's ground: played under its rules, where tools break what stands (the fan of rays).</summary>
+public static class Planets
+{
+    /// <summary><paramref name="layout"/> played under the test strip's rules, a planet's.</summary>
+    public static Layout OnPlanet(this Layout layout) => layout with { Kind = Content.Surfaces.TestStrip.Id };
 }

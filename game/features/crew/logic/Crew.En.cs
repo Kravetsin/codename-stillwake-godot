@@ -30,7 +30,6 @@ public static partial class En
         ["use.catch"] = "[E] Catch",
         ["use.chop"] = "[Hold LMB] Break",
         ["use.dig"] = "[Hold LMB] Dig",
-        ["use.digBack"] = "[Hold RMB] Dig back wall",
         ["use.openDoor"] = "[E] Open door",
         ["use.closeDoor"] = "[E] Close door",
         ["use.openValve"] = "[E] Open valve",

@@ -43,7 +43,7 @@ public class FanAimTests
         ssssssssssssssssssssssss
         tttttttttttttttttttttttt
         bbbbbbbbbbbbbbbbbbbbbbbb
-        """);
+        """) with { Kind = Spec.Surfaces.TestStrip.Id };
 
     private static TestWorld Cave() => new(CaveLayout);
 
@@ -111,14 +111,14 @@ public class FanAimTests
     {
         var m = Cave().M;
         var hand = Aiming.HandOf(Standing(20));
-        var field = AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, 0, back: false)!;
+        var field = AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, 0)!;
         // Bright at the right wall's face level with the hand, dimmer a cell in, none in the air before it.
         int y = hand.Y * 8 / Unit;
         Assert.True(field.At(23 * 8, y) > 0.5f);
         Assert.True(field.At(23 * 8 + 7, y) < field.At(23 * 8, y) / 3);
         Assert.Equal(0, field.At(22 * 8 + 4, y));
         // Up into the open cave, out of reach: nothing.
-        Assert.Null(AimGlow.FieldOf(m.Grid, Axe, Aiming.HandOf(Standing(11)).X, Aiming.HandOf(Standing(11)).Y, -Math.PI / 2, back: false));
+        Assert.Null(AimGlow.FieldOf(m.Grid, Axe, Aiming.HandOf(Standing(11)).X, Aiming.HandOf(Standing(11)).Y, -Math.PI / 2));
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class FanAimTests
         double most = 0;
         for (double angle = -0.6; angle < 0.6; angle += 0.01)
         {
-            var (a, b) = (AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, angle, false)!, AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, angle + 0.01, false)!);
+            var (a, b) = (AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, angle)!, AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, angle + 0.01)!);
             for (int x = 20 * 8; x < 24 * 8; x++)
                 for (int y = 0; y < 12 * 8; y++) most = Math.Max(most, Math.Abs(a.At(x, y) - b.At(x, y)));
         }

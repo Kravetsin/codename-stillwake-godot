@@ -30,8 +30,8 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   grid's `PlacementProblem` keys; `building.planned`. Structure and machines share one solid slot, a
   back wall has its own. A machine's blueprint covers its footprint; a ladder's or door segment's 2×2, a hatch's 2×1
   (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints like any (0084).
-- **Marks** (no ADR): one thing takes one mark and needs something in that layer. Natural ground and the ground's own
-  back wall are dug, never marked: `building.natural` (0077); a soil or stone back wall a hero built is marked (0084). A
+- **Marks** (no ADR): one thing takes one mark and needs something in that layer; none at all where the surface's tools
+  break things (`ToolsBreak`, a planet: `building.notHere`, its old marks not worked, fan-of-rays). A
   machine holding items, a fitted module (0086) or queued crafts (0057) is marked only empty, `building.notEmpty`,
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
@@ -47,12 +47,12 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing (no ADR).
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building keeps its run order before crew.
-- **`Hew(Tool, X, Y, Heading, Back)`** (fan-of-rays): the weapon's fan (`Rays`) from the hand, each ray stopped by the
-  first wall or what stops a body, striking it if natural and breakable; plants in open cells struck and passed. `Struck`
-  says what. Each takes `BlockDamage` (boosted, 0098) once, walls first: a wall at its `Strength`
-  clears, its `Cost` and held growths' `Yields` to the sender. Refused `building.nothingToDig` for nothing struck, then
-  `items.flat` / `items.notRunning`. `Back` (0107, 0108): the natural back walls of the open cells crossed, in cracks of
-  their own (`Crack.Back`), what hangs on one (`Anchor.Back`) felled with it.
+- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
+  (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (any material but bedrock and
+  lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.
+  `Struck` says what. Each takes `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths,
+  a piece whole for its cost. `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. Back
+  walls are no tool's: old back cracks heal.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
@@ -70,7 +70,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
 (`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`),
-`Hew(Tool, X, Y, Heading, Back)`. Previews ask `Problem`, `WorkProblem`, `HewProblem`, `Struck`. `Deconstruct` is not a positional record:
+`Hew(Tool, X, Y, Heading)`. Previews ask `Problem`, `WorkProblem`, `HewProblem`, `Struck`. `Deconstruct` is not a positional record:
 that would generate a `Deconstruct` method, which the type's name forbids. Fuzz aims `Work` and hits so plans complete.
 
 ## Invariants

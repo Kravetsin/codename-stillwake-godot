@@ -83,7 +83,8 @@ public sealed partial class BuildingModule
     private string? MarkProblem(int cell, string layer)
     {
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
-        if (IsNatural(at, layer)) return "building.natural";
+        // Where tools break what stands, nothing is marked: a planet's things go to tools alone (the fan of rays).
+        if (Rules.ToolsBreak) return "building.notHere";
         if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer);
@@ -172,7 +173,7 @@ public sealed partial class BuildingModule
     {
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
-        if (plan.Clear is { } layer) return InUse(plan.Cell, layer);
+        if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer);
         // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
         if (plan.Place is { Kind: "wall" } && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && HeroIn(plan.Cell)) return "building.heroInside";
         return Owes(plan) && PaymentOf(plan, peer) == null ? "items.notEnough" : null;

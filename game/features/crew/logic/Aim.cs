@@ -207,15 +207,14 @@ public static class Aiming
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
     /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/> or a <paramref name="drill"/>, the plain or the arc
     /// drill by its item, a small piece is still grabbed, else the tool's fan toward the pointer is aimed (<see cref="FanOf"/>): at
-    /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing, its reach still shown; on the
-    /// <paramref name="back"/> layer its back walls alone (0107). With a <paramref name="gun"/>, the
+    /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing. With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
     /// flight, the next press undoes them, and a press says what its sender saw should become of it.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null, bool back = false)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -241,12 +240,12 @@ public static class Aiming
         }
         if (axe || drill != null)
         {
-            // The tool's fan toward the pointer (the fan of rays): the ground it strikes first, natural walls and plants, or the
-            // back walls behind open cells on the right button (0107); in space the wrecks it meets.
+            // The tool's fan toward the pointer (the fan of rays): what stands on a planet's grid that it strikes first; in space
+            // the wrecks it meets.
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
-            var fan = FanOf(m, hero, PointOf(point), tool, back);
+            var fan = FanOf(m, hero, PointOf(point), tool);
             if (!fan.Hewn.IsEmpty)
-                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, tool, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading, back)), Fan: fan);
+                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, tool, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading)), Fan: fan);
             if (fan.Pieces.FirstOrDefault() is { } wreck)
                 return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true,
                     new Use(fan.Wrecks, m.Debris.HewProblem(peer, tool, fan.Wrecks.X, fan.Wrecks.Y, fan.Wrecks.Heading)), Piece: wreck.Id, Fan: fan);
@@ -382,17 +381,17 @@ public static class Aiming
 
     /// <summary>
     /// The hit of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, in thousandths of a cell (the fan
-    /// of rays): from its hand (<see cref="HandOf"/>), in the front layer or the <paramref name="back"/> one, with what the sim
-    /// says it would strike; no wreck in the back layer, nor while the hero is aboard.
+    /// of rays): from its hand (<see cref="HandOf"/>), with what the sim says it would strike; no wreck while the hero is
+    /// aboard.
     /// </summary>
-    public static Fan FanOf(Registry m, Hero hero, Point at, string tool, bool back = false)
+    public static Fan FanOf(Registry m, Hero hero, Point at, string tool)
     {
         var hand = HandOf(hero);
         int heading = HeadingOf(hand, at);
-        var ground = new Hew(tool, hand.X, hand.Y, heading, back);
+        var ground = new Hew(tool, hand.X, hand.Y, heading);
         var wrecks = new HewWrecks(tool, hand.X, hand.Y, heading);
-        bool outside = !back && m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
-        return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading, back), wrecks,
+        bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
+        return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading), wrecks,
             outside ? m.Debris.Struck(tool, hand.X, hand.Y, heading) : []);
     }
 

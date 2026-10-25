@@ -50,12 +50,12 @@ public sealed class World
     /// <summary>How commands and saves are written: every module's commands by their names.</summary>
     public JsonSerializerOptions Json { get; }
 
-    private World(IReadOnlyList<Module> modules, RngState rng, int tick)
+    private World(IReadOnlyList<Module> modules, RngState rng, int tick, string kind)
     {
         _rng = rng;
         _rngOver = new Rng(rng);
         Tick = tick;
-        _surfaces.Add(Attach(new Surface(0, Surface.Ship, 0), modules));
+        _surfaces.Add(Attach(new Surface(0, kind, 0), modules));
         _own.Add(typeof(OpenSurface), (_ => null, c => Open((OpenSurface)c)));
         _own.Add(typeof(Transfer), (c => TransferProblem((Transfer)c), c => Move(c.From, ((Transfer)c).To, ((Transfer)c).Cell)));
         // Every surface runs the ship's modules, so the ship's commands are every module command there is.
@@ -97,7 +97,7 @@ public sealed class World
     public static World Create(uint seed, Layout layout, IReadOnlyList<Module> modules)
     {
         foreach (var m in modules) m.Create(layout);
-        var world = new World(modules, new RngState { S = seed }, 0);
+        var world = new World(modules, new RngState { S = seed }, 0, layout.Kind);
         foreach (var m in modules) m.Rebuild();
         return world;
     }
@@ -111,7 +111,7 @@ public sealed class World
         if (format != SaveFormat)
             throw new InvalidDataException($"A save of format {format} cannot be loaded by format {SaveFormat}.");
         var rng = new RngState { S = root.GetProperty("rng").GetUInt32() };
-        var world = new World(modules, rng, root.GetProperty("tick").GetInt32());
+        var world = new World(modules, rng, root.GetProperty("tick").GetInt32(), root.TryGetProperty("kind", out var kind) ? kind.GetString()! : Surface.Ship);
         // A field this build does not know is a newer build's: refused, never dropped, so an added field needs no bump.
         var json = new JsonSerializerOptions(world.Json) { UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow };
         Restore(root.GetProperty("slices"), modules, json, null);
@@ -288,6 +288,8 @@ public sealed class World
         w.WriteNumber("format", SaveFormat);
         w.WriteNumber("tick", Tick);
         w.WriteNumber("rng", _rng.S);
+        // The ship's grid under another kind's rules: a test's or a dev world's drawn ground; the ship's own, unsaid.
+        if (_surfaces[0].Surface.Kind != Surface.Ship) w.WriteString("kind", _surfaces[0].Surface.Kind);
         // The ship's slices, as before surfaces; the others, and who is on them, only when there are any (0076).
         WriteSlices(w, _surfaces[0].Modules);
         if (_surfaces.Count > 1)

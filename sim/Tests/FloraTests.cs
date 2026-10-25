@@ -94,7 +94,7 @@ public class FloraTests
             ssssssss
             tttttttt
             """) with { Flora = [(1 * 8 + 2, "bellTeal"), (1 * 8 + 5, "acacia")] };
-        return new Scenario(layout, doubled: true);
+        return new Scenario(layout.OnPlanet(), doubled: true);
     }
 
     /// <summary>The own cell of a plant drawn at (<paramref name="x"/>, <paramref name="y"/>): its block's bottom-left, on the ground.</summary>

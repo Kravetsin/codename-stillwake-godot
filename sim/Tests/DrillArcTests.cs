@@ -30,7 +30,7 @@ public class DrillArcTests
 
     /// <summary>Open ground over a row of walls, as DigTests': soil at 1 to 3, stone at 4 to 6, bedrock at 7.</summary>
     private static Scenario Ground() =>
-        new(Layout.Parse("........\n........\n########\n########").WithMaterials("........\n........\n.ssstttb\n.ssstttb"));
+        new(Layout.Parse("........\n........\n########\n########").WithMaterials("........\n........\n.ssstttb\n.ssstttb").OnPlanet());
 
     private static int CrackAt(Scenario w, int cell) => w.M.Building.Cracks.FirstOrDefault(c => c.Cell == cell)?.Damage ?? 0;
 
@@ -166,7 +166,7 @@ public class DrillArcTests
     }
 
     /// <summary>Soil, stone and alloy side by side in the ground's top row: cells 9, 10 and 11.</summary>
-    private static Scenario Materials() => new(Layout.Parse("....\n....\n####\n####").WithMaterials("....\n....\n.sta\n.sta"));
+    private static Scenario Materials() => new(Layout.Parse("....\n....\n####\n####").WithMaterials("....\n....\n.sta\n.sta").OnPlanet());
 
     /// <summary>The digs <paramref name="stack"/> takes to break <paramref name="cell"/>, a hit every pace.</summary>
     private static int HitsToBreak(Stack stack, int cell)

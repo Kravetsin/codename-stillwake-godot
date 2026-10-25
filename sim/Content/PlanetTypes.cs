@@ -128,6 +128,7 @@ public static class PlanetTypes
         Sky = new Surfaces.Light(1000, 970, 900),
         Debris = false,
         Builds = ["wall", "backWall", "floor", "ladder", "door", "hatch"],
+        ToolsBreak = true,
         Soil = "soil",
         Stone = "stone",
         Bedrock = "bedrock",

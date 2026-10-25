@@ -131,7 +131,7 @@ public class CaveFloraTests
             t......t
             tttttttt
             """) with { Flora = [(1 * 8 + 4, "threadViolet"), (1 * 8 + 5, "stalactite"), (2 * 8 + 2, "glowcapTeal"), (2 * 8 + 7, "moss")] };
-        return new Scenario(layout, doubled: true);
+        return new Scenario(layout.OnPlanet(), doubled: true);
     }
 
     /// <summary>The lower row of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): the wall a ceiling's growth hangs from.</summary>

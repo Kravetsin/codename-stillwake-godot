@@ -23,12 +23,15 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
   thousandths (`Headings.Sines`), mirrored to the whole turn. A ray asks each cell it crosses, its start's first, and stops at
   the first that stops it; a cell it only touches at its end is not asked. Through a cell's exact corner it asks both cells
   beside it and stops if either stops it: two walls touching at a corner close the gap, and the walk is the same mirrored.
-- **What a ray meets in front** (`Hew(Tool, X, Y, Heading, Back)`, Building): a wall stops it, a natural one that breaks is
+- **What a ray meets** (`Hew(Tool, X, Y, Heading)`, Building): a wall stops it, a natural one that breaks is
   struck, a ship's, bedrock and lava are not; whatever stops a body stops it; a plant in an open cell is struck and passed
-  through. Each wall and plant takes the weapon's block damage once, however many rays meet it: walls by cell, then plants, a plant
+  through; ladders and open doors likewise. Each wall, piece and plant takes the weapon's block damage once, however many rays meet it: walls by cell, then plants, a plant
   its wall took already left out; a relic's cradle among them shocks its striker once (0096).
-- **Behind** (`Back`, the right button): a ray strikes the natural back wall of every open cell it crosses, a ship's passed,
-  until a wall stops it. A back wall behind a wall is no longer reached.
+- **Each surface its own way** (`Surfaces.Kind.ToolsBreak`): on a planet tools break all that stands on its grid, a hero's
+  walls of any material and built pieces (floor, ladder, door, hatch, at `Build.Strength`) too, and nothing is marked
+  (`building.notHere`); on the ship the plan alone takes things apart, ground built aboard too, and tools break nothing of
+  its grid (`building.notHere`), only wrecks in space. No tool strikes back walls: a planet's give nothing. A test or dev
+  world drawn as a planet plays the ship's grid under its rules (`Layout.Kind`, saved only when not the ship's).
 - **In space** (`HewWrecks(Tool, X, Y, Heading)`, Debris): each ray strikes the first wreck whose box (its size in cells,
   `Wreckage.Sizes`) covers part of a cell it crosses, the first spawned of those in one cell, and stops there or at a wall. A
   wreck whose middle is not in space is passed; the hero must be in space. Two commands, not one: ground and wrecks share no
@@ -53,5 +56,6 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
 - A fan may skip a face cell between its outer rays; ray count is content.
 - A wreck that drifts between the preview and its tick may be missed by a hit: one swing lost.
 - A wreck is struck by the cells a ray crosses, not its picture's outline: up to a cell of slack.
-- A machine does not stop a ray, as it does not stop a body.
+- A machine does not stop a ray, as it does not stop a body; a planet has none.
+- A back wall a hero built on a planet stays: nothing marks it there and no tool strikes it.
 - A cheating client may hew from anywhere: no anti-cheat (principle 6).

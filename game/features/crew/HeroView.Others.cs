@@ -233,7 +233,7 @@ public partial class HeroView
     private void StruckBy(Registry m, int id, Hero hero, Point at, string tool)
     {
         var fan = Aiming.FanOf(m, hero, at, tool);
-        if (!fan.Hewn.IsEmpty) Struck(_othersGroundHits, m, Aiming.LeadOf(fan, at, m.Grid.Width), tool, false, hero, id);
+        if (!fan.Hewn.IsEmpty) Struck(_othersGroundHits, m, Aiming.LeadOf(fan, at, m.Grid.Width), tool, hero, id);
     }
 
     private static bool Thumps(Piece piece) => Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;

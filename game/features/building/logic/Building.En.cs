@@ -10,7 +10,6 @@ public static partial class En
         ["building.noPlan"] = "No plan here",
         ["building.fixed"] = "Built into the ship: it stays",
         ["building.notHere"] = "Cannot be built here",
-        ["building.natural"] = "Ground: dig it with a tool",
         ["building.nothingToDig"] = "Nothing to dig",
         ["building.heroInside"] = "Step out to finish",
         ["tool.wall"] = "Wall",

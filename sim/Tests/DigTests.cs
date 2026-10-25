@@ -32,7 +32,7 @@ public class DigTests
     private static readonly int AxeDamage = Weapons.Axe.BlockDamage;
     private static readonly Material Soil = Materials.Get("soil"), Stone = Materials.Get("stone");
 
-    private static Layout Layout(IReadOnlyList<string>? known = null) => Sim.Layout.Parse(Map).WithMaterials(Ground) with { Known = known };
+    private static Layout Layout(IReadOnlyList<string>? known = null) => Sim.Layout.Parse(Map).WithMaterials(Ground) with { Known = known, Kind = Content.Surfaces.TestStrip.Id };
     private static Scenario World(IReadOnlyList<string>? known = null) => new(Layout(known));
     private static int At(int x, int y) => y * 8 + x;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
@@ -107,14 +107,18 @@ public class DigTests
     }
 
     [Fact]
-    public void RefusesAHitOnBedrockAHullWallOpenGroundOrOffTheGridAsStrikingNothing()
+    public void RefusesAHitOnBedrockOpenGroundOrOffTheGridAsStrikingNothingAndBreaksTheHullAsAnyWall()
     {
         var w = World();
-        // Bedrock and the hull stop every ray unhurt; from open ground aimed up the rays leave the grid.
-        w.Do(HewTesting.Dig(w, At(7, 2), Axe)).Do(HewTesting.Dig(w, At(0, 2), Axe)).Do(HewTesting.Dig(w, At(3, 0), Axe)).Do(HewTesting.Dig(w, -1, Axe)).Run();
-        Assert.Equal(["building.nothingToDig", "building.nothingToDig", "building.nothingToDig", "building.nothingToDig"], Reasons(w));
+        // Bedrock stops every ray unhurt; from open ground aimed up the rays leave the grid.
+        w.Do(HewTesting.Dig(w, At(7, 2), Axe)).Do(HewTesting.Dig(w, At(3, 0), Axe)).Do(HewTesting.Dig(w, -1, Axe)).Run();
+        Assert.Equal(["building.nothingToDig", "building.nothingToDig", "building.nothingToDig"], Reasons(w));
         Assert.Empty(w.M.Building.Cracks);
         Assert.Equal("bedrock", w.M.Grid.WallAt(At(7, 2))?.Id);
+        // On a planet a hull wall is any wall: struck, and its scrap given back.
+        w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
+        Assert.Null(w.M.Grid.WallAt(At(0, 2)));
+        Assert.Equal(1, Count(w, "scrap"));
     }
 
     [Fact]
@@ -144,15 +148,14 @@ public class DigTests
     }
 
     [Fact]
-    public void RefusesAMarkOnANaturalWallButNotOnTheHullBesideIt()
+    public void RefusesEveryMarkOnAPlanetGroundOrHull()
     {
-        // The ground's own back walls, refused too, are a grown planet's (NaturalBackWallTests): a drawn map's are as built.
         var w = World();
         w.Do(new Deconstruct(At(2, 2), "structure")).Do(new Deconstruct(At(7, 2), "structure")).Run();
         w.Do(new Deconstruct(At(0, 2), "structure")).Run();
-        Assert.Equal(["building.natural", "building.natural"], Reasons(w));
-        Assert.Equal("building.natural", w.M.Building.Problem(At(1, 3), "structure"));
-        Assert.Single(w.M.Building.Plans);
+        Assert.Equal(["building.notHere", "building.notHere", "building.notHere"], Reasons(w));
+        Assert.Equal("building.notHere", w.M.Building.Problem(At(1, 3), "structure"));
+        Assert.Empty(w.M.Building.Plans);
     }
 
     [Fact]
@@ -236,7 +239,7 @@ public class DigTests
     }
 
     /// <summary>
-    /// Whatever digs come, in whatever order and with whatever weapon: every crack lies on a natural wall that breaks, below
+    /// Whatever digs come, in whatever order and with whatever weapon: every crack lies on a wall that breaks, below
     /// its strength, in cell order; and every wall broken gave exactly what it is made of, no more.
     /// </summary>
     [Property(MaxTest = 60)]
@@ -265,15 +268,15 @@ public class DigTests
                 for (int k = 0; k < cracks.Count; k++)
                 {
                     if (k > 0 && cracks[k - 1].Cell >= cracks[k].Cell) return false;
-                    if (w.M.Grid.WallAt(cracks[k].Cell) is not { Breaks: true } wall || cracks[k].Damage <= 0 || cracks[k].Damage >= wall.Strength) return false;
+                    if (w.M.Grid.WallAt(cracks[k].Cell) is not { } wall || wall.Strength == Material.Unbreakable || cracks[k].Damage <= 0 || cracks[k].Damage >= wall.Strength) return false;
                 }
             }
-            int soil = 0, rock = 0;
+            int soil = 0, rock = 0, scrap = 0;
             for (int c = 0; c < 32; c++)
                 if (before[c] != null && w.M.Grid.WallAt(c) == null)
-                    (soil, rock) = before[c] == "soil" ? (soil + 1, rock) : (soil, rock + 1);
+                    (soil, rock, scrap) = before[c] switch { "soil" => (soil + 1, rock, scrap), "scrap" => (soil, rock, scrap + 1), _ => (soil, rock + 1, scrap) };
             int Got(string item) => Count(w, item, 0) + Count(w, item, 1) + w.M.Items.Floor.Where(s => s.Item == item).Sum(s => s.Count);
-            return Got("soil") == soil && Got("rock") == rock && before.Count(b => b is "bedrock" or "scrap") == Enumerable.Range(0, 32).Count(c => w.M.Grid.WallAt(c)?.Id is "bedrock" or "scrap");
+            return Got("soil") == soil && Got("rock") == rock && Got("scrap") == scrap && before.Count(b => b is "bedrock") == Enumerable.Range(0, 32).Count(c => w.M.Grid.WallAt(c)?.Id is "bedrock");
         });
     }
 }

@@ -178,7 +178,7 @@ public class GroundSoundsTests
             """).WithMaterials("""
             ........
             ssssssss
-            """) with { Flora = [(2, "bush"), (3, "tuft"), (4, "acacia")] };
+            """) with { Flora = [(2, "bush"), (3, "tuft"), (4, "acacia")], Kind = Stillwake.Content.Surfaces.TestStrip.Id };
         var world = new TestWorld(layout);
         var m = world.M;
         Assert.Same(S.HitSoil, GroundSounds.HitAt(m.Grid, m.Building, 8 + 1, Spec.Weapons.Axe.BlockDamage));

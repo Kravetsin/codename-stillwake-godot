@@ -34,7 +34,7 @@ public class HomesTests
         appppppppppa
         aaaaaaaaaaaa
         aaaaaaaaaaaa
-        """) with { Flora = [.. pieces.OrderBy(p => p.Cell)] }, doubled: true);
+        """) with { Flora = [.. pieces.OrderBy(p => p.Cell)], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
 
     private static int Count(Scenario w, string item, int peer = 0) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
@@ -160,7 +160,7 @@ public class HomesTests
             appppppppppa
             aaaaaattaaaa
             aaaaaaaaaaaa
-            """) with { Flora = [(At(3, 3), "fallenBeam"), (At(6, 3), "rubble")] }, doubled: true);
+            """) with { Flora = [(At(3, 3), "fallenBeam"), (At(6, 3), "rubble")], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
         Assert.All((int[])[w.At(3, 3), w.At(4, 3), w.At(6, 3), w.At(7, 3)], cell => Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(cell)));
         Assert.Equal("fallenBeam", w.M.Building.PlantAt(w.At(4, 3))!.Kind);
         // Its right wall dug out, sixty damage of alloy, and the beam goes, its scrap with the wall's.
