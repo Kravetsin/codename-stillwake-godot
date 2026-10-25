@@ -37,7 +37,8 @@ public partial class HeroView
         var prompt = passedOut ? null : Prompts.Of(m, aim);
         TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null, back);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
-        _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan ? AimGlow.FieldOf(m.Grid, m.Building, fan) : null,
+        _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan && pointer is { } on
+            ? AimGlow.FieldOf(m.Grid, fan.Ground.Tool, fan.Ground.X, fan.Ground.Y, AngleOf(fan.Ground, on), fan.Ground.Back) : null,
             prompt?.Problem != null ? AimRefused : AimGlowColour);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);
@@ -313,6 +314,10 @@ public partial class HeroView
 
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
+
+    /// <summary>The angle from <paramref name="hew"/>'s hand to <paramref name="pointer"/>, in cells, in radians: the pointer's own, not a step of the turn.</summary>
+    private static double AngleOf(Sim.Building.Hew hew, (double X, double Y) pointer) =>
+        System.Math.Atan2(pointer.Y * Hero.Unit - hew.Y, pointer.X * Hero.Unit - hew.X);
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
     private static Vector2 Pixels(Point at) => new Vector2(at.X, at.Y) * (float)(Rig.Cell / Hero.Unit);

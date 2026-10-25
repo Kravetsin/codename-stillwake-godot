@@ -107,35 +107,33 @@ public class FanAimTests
     }
 
     [Fact]
-    public void TheAimGlowsOnlyInWhatBreaksNearWhereTheRaysTouchItAndDeeperFades()
+    public void TheAimGlowsOnlyInWhatBreaksWhereTheSheafMeetsItAndDeeperFades()
     {
         var m = Cave().M;
-        var fan = Aiming.FanOf(m, Standing(20), Aiming.PointOf(Centre(23, 6)), Axe);
-        var hits = AimGlow.HitsOf(m.Grid, m.Building, fan);
-        Assert.InRange(hits.Count, 1, Spec.Weapons.Axe.Rays);
-        // Every point lies in a struck cell, on its face.
-        Assert.All(hits, h => Assert.Contains((int)(h.Y / 8) * W + (int)Math.Min(h.X / 8, W - 1), fan.Hewn.Cells));
-        var field = AimGlow.FieldOf(m.Grid, m.Building, fan)!;
-        // Bright at the wall's face, dimmer a cell in, none in the air before it.
-        int y = 6 * 8 + 4;
+        var hand = Aiming.HandOf(Standing(20));
+        var field = AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, 0, back: false)!;
+        // Bright at the right wall's face level with the hand, dimmer a cell in, none in the air before it.
+        int y = hand.Y * 8 / Unit;
         Assert.True(field.At(23 * 8, y) > 0.5f);
-        Assert.True(field.At(23 * 8 + 6, y) < field.At(23 * 8, y) / 4);
+        Assert.True(field.At(23 * 8 + 7, y) < field.At(23 * 8, y) / 3);
         Assert.Equal(0, field.At(22 * 8 + 4, y));
+        // Up into the open cave, out of reach: nothing.
+        Assert.Null(AimGlow.FieldOf(m.Grid, Axe, Aiming.HandOf(Standing(11)).X, Aiming.HandOf(Standing(11)).Y, -Math.PI / 2, back: false));
     }
 
     [Fact]
-    public void TheGlowSlidesAsTheAimTurnsAStepAndDoesNotJump()
+    public void TheGlowSlidesAsTheAimTurnsAndDoesNotJump()
     {
         var m = Cave().M;
-        var hero = Standing(20);
-        var hand = Aiming.HandOf(hero);
-        int heading = Aiming.HeadingOf(hand, Aiming.PointOf(Centre(23, 6)));
-        GlowField Field(int h) => AimGlow.FieldOf(m.Grid, m.Building, Aiming.FanOf(m, hero, hand with { X = hand.X + (int)(5000 * Math.Cos(h * Math.Tau / 256)), Y = hand.Y + (int)(5000 * Math.Sin(h * Math.Tau / 256)) }, Axe))!;
-        var (a, b) = (Field(heading), Field(heading + 1));
-        double moved = 0;
-        for (int x = 20 * 8; x < 24 * 8; x++)
-            for (int yy = 0; yy < 12 * 8; yy++) moved = Math.Max(moved, Math.Abs(a.At(x, yy) - b.At(x, yy)));
-        Assert.True(moved < 0.35, $"a step of the aim changed a pixel by {moved:0.00}");
+        var hand = Aiming.HandOf(Standing(20));
+        double most = 0;
+        for (double angle = -0.6; angle < 0.6; angle += 0.01)
+        {
+            var (a, b) = (AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, angle, false)!, AimGlow.FieldOf(m.Grid, Axe, hand.X, hand.Y, angle + 0.01, false)!);
+            for (int x = 20 * 8; x < 24 * 8; x++)
+                for (int y = 0; y < 12 * 8; y++) most = Math.Max(most, Math.Abs(a.At(x, y) - b.At(x, y)));
+        }
+        Assert.True(most < 0.25, $"half a degree of the aim changed a pixel by {most:0.00}");
     }
 
     [Fact]
