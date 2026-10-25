@@ -43,7 +43,8 @@ public partial class PodSeats : Node2D
                 AddChild(sprite);
                 _shown[seat.Pod] = sprite;
             }
-            sprite.Position = new Vector2(pod.Cell % _grid.Width, pod.Cell / _grid.Width) * ShipCamera.Cell;
+            // Over the pod's picture, which rises over its footprint as a tall machine's does (0099).
+            sprite.Position = new Vector2(pod.Cell % _grid.Width, pod.Cell / _grid.Width - ShipTiles.RiseOf(pod.Kind)) * ShipCamera.Cell;
         }
         foreach (var pod in _shown.Keys.Where(p => !seated.Contains(p)).ToList())
         {

@@ -12,9 +12,11 @@ and a slot for biofuel.
 
 ## Decision
 
-- **A machine with two new traits** (0113): `dropPod`, 4 × 6 cells (the platform's two pieces wide; a hero, five cells
-  tall, sits in it), `Seats` and `Lands`. It costs four frames, eight plates, two glass, three tubes, a processor and a
-  display: guided as the ship's computer is, so its blueprint opens with the computer's parts analysed, late in space.
+- **A machine with two new traits** (0113): `dropPod`, 4 × 6 cells (the platform's two pieces wide), its picture a cell taller,
+  rising over the footprint as the arc bench's vise does (0099): a bell a little taller than a hero, as the concept draws it,
+  on a short thruster and landing legs no taller than it, `Seats` and `Lands`. It costs four frames, eight plates, two
+  glass, three tubes, a processor and a display: guided as the ship's computer is, so its blueprint opens with the
+  computer's parts analysed, late in space.
   Its card is on the Ship tab after the launch platform. No power: the platform's is what gates a launch.
 - **`Lands`: only on a launch platform** (Grid's placement, `grid.noPlatform`): every cell of the row under the footprint a
   platform's, shut or open, so the pod stands over one run. Planning checks it as building does, so a ghost elsewhere is red.
