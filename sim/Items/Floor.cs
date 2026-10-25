@@ -164,15 +164,16 @@ internal static class FloorRules
     /// <summary>
     /// A tick of the floor: each stack moves, in id order, and one that left the grid is gone for good:
     /// thrown out into space; so is a body's stack <see cref="Tune.BodyLasts"/> ticks after its death, wherever it
-    /// is. Then stacks of one item at rest in a cell merge into the oldest, up to its limit, only within one body
-    /// or outside any.
+    /// is, and any other <see cref="Tune.Lasts"/> ticks after it was dropped. Then stacks of one item at rest in a
+    /// cell merge into the oldest, up to its limit, only within one body or outside any; the one merged into lies on
+    /// from the later drop.
     /// </summary>
     public static void Settle(ItemsState state, IGridQueries grid, IRoomsQueries rooms, int gravity)
     {
         var kept = new List<FloorStack>();
         foreach (var s in state.Floor)
         {
-            if (s.Body is { } body && state.Ticks - body.Died >= Tune.BodyLasts) continue;
+            if (s.Body is { } body ? state.Ticks - body.Died >= Tune.BodyLasts : state.Ticks - s.At >= Tune.Lasts) continue;
             if (!Move(s, grid, rooms, gravity)) continue;
             bool resting = s.Vx == 0 && s.Vy == 0;
             foreach (var into in kept)
@@ -182,6 +183,7 @@ internal static class FloorRules
                 int n = Math.Min(s.Count, Content.Items.Get(s.Item).Stack - into.Count);
                 into.Count += n;
                 s.Count -= n;
+                if (n > 0) into.At = Math.Max(into.At, s.At);
             }
             if (s.Count > 0) kept.Add(s);
         }

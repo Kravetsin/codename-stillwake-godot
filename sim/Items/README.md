@@ -61,17 +61,17 @@ stacks on the floor; and creative mode, the world setting in which nothing is ev
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
 - **The floor** (no ADR; numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
-  inside anything built is pushed out breadth-first through built cells up to `PushReach`, a room's open cell before
-  space, ties by lowest index, else rises a cell. Afloat it flies on, drifting only with no back wall behind it;
-  elsewhere it falls by gravity times its surface's `Fall` and slides to a stop. Gone past the grid's edge. Alike stacks
-  at rest in a cell merge.
+  in anything built is pushed out breadth-first up to `PushReach`, a room's open cell before space, ties by index,
+  else rises a cell. Afloat it flies on, drifting only with no back wall behind it; elsewhere it falls by gravity
+  times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts` after a drop.
+  Alike resting stacks in a cell merge, the later time kept.
 - **Machines and ladders hold no stack** (no ADR): one falls through to the floor below; one laid in their cells is not
   pushed out.
 - **Whole cells** (0106): a stack is a point; it lands on a cell's top and stops against a built cell, never climbing.
-- **Picking up** gives as much as fits; the dropper waits `Floor.OwnPickupDelay` ticks (no ADR).
+- **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks (no ADR).
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
   `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative mode leaves none. Each is gone
-  `Floor.BodyLasts` after death; stacks merge only within one body or outside any.
+  `BodyLasts` after death; stacks merge only within one body or outside any.
 
 ## Commands
 

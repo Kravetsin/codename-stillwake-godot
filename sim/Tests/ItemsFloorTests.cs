@@ -40,6 +40,38 @@ public class ItemsFloorTests
         Assert.Equal(("scrap", 4, At(2, 3), 0, 0), (s.Item, s.Count, s.Cell, s.Vx, s.Vy));
     }
 
+    private static int Ticks(Scenario w) => ((ItemsState)w.M.Items.Slice).Ticks;
+
+    [Fact]
+    public void TakesAStackAwayTheLimitAfterItWasDropped()
+    {
+        var w = Room().GiveItems(0, ("scrap", 10));
+        Drop(w, Own(0), 4, At(2, 1));
+        int dropped = Floor(w)[0].At;
+        w.Run(dropped + Content.Floor.Lasts - 1 - Ticks(w));
+        Assert.Single(Floor(w));
+        w.Run(1);
+        Assert.Equal(dropped + Content.Floor.Lasts, Ticks(w));
+        Assert.Empty(Floor(w));
+    }
+
+    [Fact]
+    public void AStackMergedIntoAnOlderOneLiesTheLimitFromTheLaterDrop()
+    {
+        var w = Room().GiveItems(0, ("scrap", 10));
+        Drop(w, Own(0), 4, At(2, 1));
+        w.Run(Content.Floor.Lasts / 2);
+        Drop(w, Own(0), 3, At(2, 1));
+        w.Run(40);
+        var merged = Assert.Single(Floor(w));
+        Assert.Equal(7, merged.Count);
+        int later = merged.At;
+        w.Run(later + Content.Floor.Lasts - 1 - Ticks(w));
+        Assert.Single(Floor(w));
+        w.Run(1);
+        Assert.Empty(Floor(w));
+    }
+
     [Fact]
     public void ThrowsAStackTheWayTheHeroFacesAFewCellsAlongBeforeItComesToRest()
     {
