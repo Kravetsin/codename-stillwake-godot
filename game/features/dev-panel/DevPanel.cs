@@ -40,6 +40,13 @@ public partial class DevPanel : CanvasLayer
     private readonly VBoxContainer _slices = new();
     private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
     private readonly Button _speed, _creative;
+    private readonly VBoxContainer _picker = Style.Gap(new VBoxContainer { Visible = false }, 4);
+    private readonly LineEdit _search = new() { PlaceholderText = "find an item…", ContextMenuEnabled = false, CaretBlink = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+    private readonly Label _pickerNote = Text(Style.Amber400);
+    private readonly Dictionary<string, Button> _rows = [];
+    private readonly List<(Button Button, int? Count)> _counts = [];
+    /// <summary>How many a pick gives; none for a whole stack of the item.</summary>
+    private int? _count;
     private readonly HashSet<string> _expanded = [];
     private readonly Dictionary<string, (Button Toggle, ScrollContainer Box, Label Json)> _entries = [];
     private double _sinceRead = RefreshMs;
@@ -85,6 +92,17 @@ public partial class DevPanel : CanvasLayer
         column.AddChild(surfaces);
         column.AddChild(_status);
         Say("");
+        var items = Toggle("▸ items", Style.Slate400);
+        items.Pressed += () =>
+        {
+            _picker.Visible = !_picker.Visible;
+            items.Text = $"{(_picker.Visible ? "▾" : "▸")} items";
+            if (_picker.Visible) _search.GrabFocus();
+            else _search.ReleaseFocus();
+        };
+        column.AddChild(items);
+        MakePicker();
+        column.AddChild(_picker);
         // Shut at the start: open, the board takes a third of a 720-pixel screen.
         var sounds = Toggle("▸ sounds", Style.Slate400);
         sounds.Pressed += () =>
@@ -123,6 +141,83 @@ public partial class DevPanel : CanvasLayer
         if (_session() is not Session s) return;
         // Read now, not from the last reading: two quick clicks must switch it back.
         s.Client.Send(new SetCreative(!_modules().Items.Creative));
+    }
+
+    /// <summary>
+    /// The item picker (creative mode): a search by name or id, how many a pick gives, and a row for every item, those
+    /// the search names shown. A row clicked, or Enter for the first shown, puts that many into this hero's bag.
+    /// </summary>
+    private void MakePicker()
+    {
+        var line = Style.Gap(new HBoxContainer(), 4);
+        _search.AddThemeFontOverride("font", Style.Mono);
+        _search.AddThemeFontSizeOverride("font_size", 12);
+        _search.AddThemeColorOverride("font_color", Style.Slate100);
+        _search.AddThemeColorOverride("font_placeholder_color", Style.Slate500);
+        _search.AddThemeStyleboxOverride("normal", Style.Box(Style.Slate950, Style.Slate700, 4));
+        _search.AddThemeStyleboxOverride("focus", Style.Box(Style.Slate950, Amber600, 4));
+        _search.TextChanged += Filter;
+        _search.TextSubmitted += _ =>
+        {
+            if (ItemPicker.Matching(_search.Text).FirstOrDefault() is { } first) Pick(first.Id);
+        };
+        line.AddChild(_search);
+        foreach (int? count in new int?[] { 1, 10, null })
+        {
+            var button = Style.Button(count?.ToString() ?? "stack", () => ShowCount(count), size: 11, padX: 6, padY: 2);
+            _counts.Add((button, count));
+            line.AddChild(button);
+        }
+        _picker.AddChild(line);
+        _picker.AddChild(_pickerNote);
+        var list = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
+        list.AddThemeConstantOverride("separation", 0);
+        foreach (var item in ItemPicker.Matching(""))
+        {
+            var row = Toggle(ItemPicker.NameOf(item.Id), Style.Slate300);
+            row.Icon = ItemIcons.Icon(item.Id);
+            row.TooltipText = $"{item.Id} · stack {item.Stack}";
+            row.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
+            row.AddThemeConstantOverride("icon_max_width", 2 * ItemIcons.Pixels);
+            row.Pressed += () => Pick(item.Id);
+            _rows[item.Id] = row;
+            list.AddChild(row);
+        }
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 280), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        scroll.AddChild(list);
+        _picker.AddChild(scroll);
+        ShowCount(null);
+    }
+
+    private void Filter(string query)
+    {
+        var shown = ItemPicker.Matching(query).Select(item => item.Id).ToHashSet();
+        foreach (var (id, row) in _rows) row.Visible = shown.Contains(id);
+    }
+
+    private void ShowCount(int? count)
+    {
+        _count = count;
+        foreach (var (button, each) in _counts)
+        {
+            bool on = each == count;
+            Style.Paint(button, on ? Style.Amber700 : Style.Slate700, on ? Amber600 : Style.Slate600, 6, 2);
+        }
+    }
+
+    /// <summary>Gives this hero <see cref="_count"/> of <paramref name="item"/>, a stack for none; says so when creative mode is off.</summary>
+    private void Pick(string item)
+    {
+        if (_session() is not Session s) return;
+        // Read now: creative switched on a moment ago may not be in the last reading.
+        if (!_modules().Items.Creative)
+        {
+            _pickerNote.Text = "Creative mode is off: switch it on first.";
+            return;
+        }
+        int count = _count ?? Content.Items.Get(item).Stack;
+        s.Client.Send(new Spawn(item, count));
+        _pickerNote.Text = $"+{count} {ItemPicker.NameOf(item)}";
     }
 
     private void Send(Command command)
@@ -183,6 +278,8 @@ public partial class DevPanel : CanvasLayer
     {
         if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.Quoteleft }) return;
         Visible = !Visible;
+        // A hidden search would keep the keys from the hero.
+        if (!Visible) _search.ReleaseFocus();
         _sinceRead = RefreshMs;
         GetViewport().SetInputAsHandled();
     }

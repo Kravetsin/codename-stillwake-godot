@@ -311,7 +311,7 @@ public class ArcModuleTests
         + w.M.Items.Floor.Where(s => s.Item == Arc).Sum(s => s.Count);
 
     /// <summary>
-    /// Items are conserved across fits and takes: whatever the items fuzz draws, fits, takes, moves, drops and pick-ups
+    /// Items are conserved across fits and takes: whatever the items fuzz draws but spawns, fits, takes, moves, drops and pick-ups
     /// by three peers carrying modules, no arc module is made or lost.
     /// </summary>
     [Property(MaxTest = 30)]
@@ -321,7 +321,7 @@ public class ArcModuleTests
         int before = Arcs(w);
         var rng = new Rng(new RngState { S = (uint)seed.Get });
         for (int i = 0; i < 300; i++)
-            if (w.M.Items.Fuzz(rng, i % 3) is { } c) w.Do(c).Run();
+            if (w.M.Items.Fuzz(rng, i % 3) is { } c and not Spawn) w.Do(c).Run();
         return (Arcs(w) == before).Label($"{Arcs(w)} arc modules of {before}");
     }
 

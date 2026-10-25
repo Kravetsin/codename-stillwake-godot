@@ -172,6 +172,7 @@ public static partial class En
         ["items.noMachine"] = "There is no machine here",
         ["items.notEnough"] = "You do not carry enough",
         ["items.full"] = "Not enough room",
+        ["items.notCreative"] = "Only in creative mode",
         ["items.noCell"] = "Nowhere to drop it",
         ["items.takeOnly"] = "Things only come out of here",
         ["items.gone"] = "Someone took it",
