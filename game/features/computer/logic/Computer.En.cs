@@ -9,6 +9,8 @@ public static partial class En
         ["computer.select"] = "Select a module",
         ["computer.short.radar"] = "Radar: not enough power",
         ["computer.program.radar"] = "Radar",
+        ["computer.radar.ship"] = "My ship",
+        ["computer.radar.planet"] = "Planet",
         ["use.open.computer"] = "[E] Ship computer",
     };
 }

@@ -30,17 +30,36 @@ public partial class RadarScreen : Control
         QueueRedraw();
     }
 
+    /// <summary>What lies under <paramref name="global"/>, a point on the screen: the ship's or the planet's i18n key; none elsewhere.</summary>
+    public string? KeyAt(Vector2 global)
+    {
+        var at = GetGlobalTransform().AffineInverse() * global;
+        if (!new Rect2(Vector2.Zero, Size).HasPoint(at)) return null;
+        var (middle, core, radius) = Shape();
+        // A little wider than the dot itself, so the pointer finds it.
+        if (ShipBox(middle).Grow(4).HasPoint(at)) return "computer.radar.ship";
+        return at.DistanceTo(core) <= radius ? "computer.radar.planet" : null;
+    }
+
+    /// <summary>The ship in the middle, and the planet's core and radius: its curve a third of the screen under the ship, so wide it reads as ground.</summary>
+    private (Vector2 Middle, Vector2 Core, float Radius) Shape()
+    {
+        var middle = (Size / 2).Round();
+        float radius = Size.X * 1.6f;
+        return (middle, middle + new Vector2(0, Mathf.Min(Size.X, Size.Y) * 0.3f + radius), radius);
+    }
+
+    private static Rect2 ShipBox(Vector2 middle) => new(middle - new Vector2(7, 7), new Vector2(14, 14));
+
     public override void _Draw()
     {
         var size = Size;
-        var middle = (size / 2).Round();
+        var (middle, core, radius) = Shape();
         float reach = size.Length() / 2;
         float side = Mathf.Min(size.X, size.Y);
         DrawRect(new Rect2(Vector2.Zero, size), Back);
 
-        // The planet below: its curve a third of the screen under the ship, so wide it reads as ground.
-        float radius = size.X * 1.6f;
-        var core = middle + new Vector2(0, side * 0.3f + radius);
+        // The planet below.
         DrawCircle(core, radius, Ground);
         DrawArc(core, radius, 0, Mathf.Tau, 512, Rim, 2);
 
@@ -62,7 +81,7 @@ public partial class RadarScreen : Control
 
         // The ship, and how high it rides over the ground.
         DrawDashedLine(middle, new Vector2(middle.X, core.Y - radius), Ship with { A = 0.6f }, 1.5f, 4);
-        var ship = new Rect2(middle - new Vector2(7, 7), new Vector2(14, 14));
+        var ship = ShipBox(middle);
         DrawRect(ship, Line);
         DrawRect(ship.Grow(-2), Ship);
     }

@@ -38,6 +38,7 @@ public partial class ComputerPanel : CanvasLayer
     };
     private readonly RadarScreen _radar = new() { Visible = false };
     private readonly List<(Panel Box, TextureRect Icon, ProgramSpec Program)> _buttons = [];
+    private readonly TipSpots _tips;
     private Reading _reading = new(false, []);
     private double _sinceRead;
 
@@ -46,6 +47,7 @@ public partial class ComputerPanel : CanvasLayer
     public ComputerPanel(Ui ui, Func<Registry?> world)
     {
         (_ui, _world) = (ui, world);
+        _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = 20 } };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -79,7 +81,7 @@ public partial class ComputerPanel : CanvasLayer
     {
         var box = Boxed(Socket, 2, 2);
         box.CustomMinimumSize = new Vector2(Button, Button);
-        box.TooltipText = T($"computer.program.{program.Id}");
+        _tips.Add(box, () => new Tip(T($"computer.program.{program.Id}")));
         var icon = new TextureRect
         {
             Texture = PixelArt.Picture($"machine_{program.Module}"),
@@ -107,8 +109,13 @@ public partial class ComputerPanel : CanvasLayer
     {
         bool open = Shown && _world() != null;
         _frame.Visible = open;
-        if (!open) return;
+        if (!open)
+        {
+            _tips.Show(null);
+            return;
+        }
         LayOut();
+        Tips();
         _sinceRead += delta;
         if (_sinceRead < ReadEvery) return;
         _sinceRead = 0;
@@ -116,6 +123,19 @@ public partial class ComputerPanel : CanvasLayer
         // A program that stops being ready is put away: the screen says why instead.
         if (!Readout.Ready(_reading, _ui.ComputerProgram.Get())) _ui.ComputerProgram.Set(null);
         Paint();
+    }
+
+    /// <summary>The one tooltip: what the radar shows under the pointer, my ship or the planet; else a button's program; none behind the menu.</summary>
+    private void Tips()
+    {
+        if (_ui.MenuOpen.Get())
+        {
+            _tips.Show(null);
+            return;
+        }
+        var mouse = _frame.GetViewport().GetMousePosition();
+        if (_radar.IsVisibleInTree() && _radar.KeyAt(mouse) is { } key) _tips.Show(new Tip(T(key)));
+        else _tips.Frame(mouse);
     }
 
     /// <summary>A monitor half the screen's width, in its middle; the side panel only while it has buttons.</summary>
