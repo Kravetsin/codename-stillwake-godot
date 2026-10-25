@@ -4,16 +4,16 @@ namespace Stillwake.Game.Features.Computer;
 
 /// <summary>
 /// The radar program, over the computer's whole screen: the ship a dot held in the middle, rings of range round it out past
-/// the edges, a beam sweeping round, and a planet's curve below sliding by as the ship orbits it. Only a picture so far: the
-/// sim knows no orbit nor anything in range, so it moves by real time, the same on every screen.
+/// the edges, a beam sweeping round, and a planet's curve below, still: the ship drifts round it too slowly to see. Only a
+/// picture so far: the sim knows no orbit nor anything in range, so the beam turns by real time.
 /// </summary>
 public partial class RadarScreen : Control
 {
     private static readonly Color Back = new("0b1f16"), Grid = new("1d4a30"), Beam = new("7dffa8"), Trail = new("26804a"),
-        Ship = new("ffe08a"), Line = new("1a1e25"), Ground = new("1f2e1a"), Rim = new("6fe08a"), Fields = new("3a5a30");
+        Ship = new("ffe08a"), Line = new("1a1e25"), Ground = new("1f2e1a"), Rim = new("6fe08a");
 
-    /// <summary>Seconds a turn of the beam takes, and a turn of the ship round the planet.</summary>
-    private const float SweepSeconds = 4f, OrbitSeconds = 240f;
+    /// <summary>Seconds a turn of the beam takes.</summary>
+    private const float SweepSeconds = 4f;
 
     private float _time;
 
@@ -38,17 +38,10 @@ public partial class RadarScreen : Control
         float side = Mathf.Min(size.X, size.Y);
         DrawRect(new Rect2(Vector2.Zero, size), Back);
 
-        // The planet below: its curve a third of the screen under the ship, so wide it reads as ground, its fields turning by.
+        // The planet below: its curve a third of the screen under the ship, so wide it reads as ground.
         float radius = size.X * 1.6f;
         var core = middle + new Vector2(0, side * 0.3f + radius);
         DrawCircle(core, radius, Ground);
-        float turned = Mathf.Tau * _time / OrbitSeconds;
-        for (int i = 0; i < 90; i++)
-        {
-            float at = turned + i * Mathf.Tau / 90;
-            var spot = core + new Vector2(Mathf.Cos(at), Mathf.Sin(at)) * (radius - side * 0.04f);
-            if (spot.Y < size.Y + 8) DrawRect(new Rect2(spot - new Vector2(3, 3), new Vector2(6, 6)), Fields);
-        }
         DrawArc(core, radius, 0, Mathf.Tau, 512, Rim, 2);
 
         // Rings of range round the ship, and its cross.

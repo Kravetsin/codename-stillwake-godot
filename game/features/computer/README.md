@@ -29,8 +29,8 @@ computer's row in `c/Machines.cs`. Files in `logic/` are Godot-free and tested i
   the chosen program while it is ready; else the first program short of power says so; else `Select a module`. A network
   short slows all its users alike, so the computer's screen stays lit while its antenna stands short.
 - **The program shown** is `Ui.ComputerProgram`: none each time it opens, and none again once it stops being ready.
-- **The radar** draws only time: the ship held in the middle, the beam turning every 4 s, a planet's curve turning by
-  below once in 4 minutes. Nothing in the sim stands behind it yet.
+- **The radar** draws only time: the ship held in the middle, the beam turning every 4 s, a planet's curve still below,
+  the ship drifting round it too slowly to see. Nothing in the sim stands behind it yet.
 - The panel reads the world every quarter of a second, never every frame; the radar redraws every frame while shown.
 
 ## Main's hook
