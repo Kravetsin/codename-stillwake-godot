@@ -8,7 +8,8 @@ namespace Stillwake.Game.Menu;
 
 /// <summary>
 /// The title's scene (<see cref="TitleScene"/>, 2026-10-25-title-scene), drawn here, none of it the game's world: deep space,
-/// the stars going by to the left, the rim of a vast dark planet below, far off the broken ship the hero came from; and the
+/// the stars going by to the left, the rim of a vast dark planet below, far off the ship the hero came from, broken in two
+/// (<see cref="FarShipArt"/>); and the
 /// plate (<see cref="PlateArt"/>) drifting right, turning slowly, its hero sitting hunched on its end, tethered to it, a
 /// red emergency lamp blinking beside him, the only warm light there is. Shards of metal and now and then a limp astronaut
 /// come from the right and go by behind the plate. The hero is drawn unlit, in the cold of the planet's light.
@@ -16,7 +17,7 @@ namespace Stillwake.Game.Menu;
 public partial class TitleBackdrop : CanvasLayer
 {
     private static readonly Color Space = new("03050a"), StarNear = new("c9d6ee"), StarMid = new("7a879f"), StarFar = new("39435a");
-    private static readonly Color Planet = new("070b14"), Rim = new("5b8fd4"), Hull = new("161c28"), HullEdge = new("252d3d");
+    private static readonly Color Planet = new("070b14"), Rim = new("5b8fd4");
     private static readonly Color Cold = new(0.46f, 0.52f, 0.68f), Red = new(1f, 0.22f, 0.16f);
 
     /// <summary>The plate's shades: shadow, body, lit top, rivet, seam, rib, the dark inside its frame, wire.</summary>
@@ -39,7 +40,10 @@ public partial class TitleBackdrop : CanvasLayer
     private readonly Sky _sky = new();
     private readonly Figure _hero = new(Suits.All[0], own: false);
     private readonly Line2D _tether = new() { Width = 1, DefaultColor = new Color("2a3140"), Antialiased = false };
-    private readonly Sprite2D _glow = new(), _lamp = new();
+    private readonly Sprite2D _lamp = new();
+    /// <summary>The lamp's light round it, where the lamp is.</summary>
+    private readonly Node2D _glowAt = new();
+    private readonly ColorRect _glow = Dither.Glow(Red, 96);
     private readonly PlateArt _art = PlateArt.Of(7);
     private readonly List<(Drifter Path, double From, Node2D Drawn, Figure? Figure)> _drifting = [];
     private readonly Random _rng = new();
@@ -54,14 +58,13 @@ public partial class TitleBackdrop : CanvasLayer
         _scene.AddChild(_behind);
         _scene.AddChild(_plate);
         var plate = new Sprite2D { Texture = PlateTexture(_art), Centered = false, Position = new Vector2(-_art.Width / 2f, -_art.Height / 2f) };
-        _glow.Texture = Halo();
-        _glow.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         _lamp.Texture = Dot();
         _plate.AddChild(plate);
         _plate.AddChild(_tether);
         _plate.AddChild(_hero);
         _plate.AddChild(_lamp);
-        _plate.AddChild(_glow);
+        _glowAt.AddChild(_glow);
+        _plate.AddChild(_glowAt);
         Unlit(_hero);
         _hero.Modulate = Cold;
         for (int i = 0; i < 4; i++) Shard(_rng.NextDouble() * TitleScene.Wide);
@@ -90,8 +93,8 @@ public partial class TitleBackdrop : CanvasLayer
         var lamp = OnPlate(_art.Lamp) + new Vector2(0, -1);
         _lamp.Position = lamp;
         _lamp.Modulate = new Color(0.35f, 0.08f, 0.06f).Lerp(Red, lit);
-        _glow.Position = lamp;
-        _glow.Modulate = Red with { A = 0.8f * lit };
+        _glowAt.Position = lamp;
+        Dither.Shine(_glow, 0.8f * lit);
         _hero.Modulate = Cold.Lerp(new Color(0.9f, 0.42f, 0.38f), 0.3f * lit);
 
         if (_seconds >= _nextDrifter)
@@ -195,17 +198,6 @@ public partial class TitleBackdrop : CanvasLayer
         return ImageTexture.CreateFromImage(image);
     }
 
-    /// <summary>The lamp's light round it: a soft disc, brightest in the middle.</summary>
-    private static Texture2D Halo() => new GradientTexture2D
-    {
-        Gradient = new Gradient { Offsets = [0, 1], Colors = [Colors.White, Colors.White with { A = 0 }] },
-        Fill = GradientTexture2D.FillEnum.Radial,
-        FillFrom = new Vector2(0.5f, 0.5f),
-        FillTo = new Vector2(0.5f, 0),
-        Width = 96,
-        Height = 96,
-    };
-
     private static Texture2D Dot()
     {
         var image = Image.CreateEmpty(3, 2, false, Image.Format.Rgba8);
@@ -213,11 +205,21 @@ public partial class TitleBackdrop : CanvasLayer
         return ImageTexture.CreateFromImage(image);
     }
 
-    /// <summary>Space: the dark, the stars going by in three layers, the planet's rim below, the broken ship far off.</summary>
+    /// <summary>
+    /// Space: the dark, the stars going by in three layers, each shared between the two pixels it lies across so it glides
+    /// rather than jumps; the planet's rim below; the broken ship far off, still, a window or two in it still lit.
+    /// </summary>
     private sealed partial class Sky : Node2D
     {
         private const int StarCount = 260;
+        /// <summary>Where the ship's two halves hang, their tops' left corners, and how each is turned, apart from the other.</summary>
+        private static readonly Vector2 ForeAt = new(292, 50), AftAt = new(368, 57);
+        private const float ForeTurn = -0.05f, AftTurn = 0.07f;
+        private static readonly Color Window = new("d99a3e");
+
         private readonly (Vector2 At, int Layer)[] _stars = new (Vector2, int)[StarCount];
+        private readonly FarShipArt _ship = FarShipArt.Of(3);
+        private readonly ImageTexture _fore, _aft;
 
         public double Seconds { get; set; }
 
@@ -225,6 +227,26 @@ public partial class TitleBackdrop : CanvasLayer
         {
             var rng = new Random(11);
             for (int i = 0; i < StarCount; i++) _stars[i] = (new Vector2(rng.Next(0, TitleScene.Wide), rng.Next(0, TitleScene.High)), rng.Next(0, 10) switch { < 6 => 0, < 9 => 1, _ => 2 });
+            _fore = Picture(FarShipArt.ForeWide, _ship.ForeAt);
+            _aft = Picture(FarShipArt.AftWide, _ship.AftAt);
+        }
+
+        private static readonly System.Collections.Generic.Dictionary<ShipPixel, Color> Shades = new()
+        {
+            [ShipPixel.Hull] = new("1c2433"),
+            [ShipPixel.Edge] = new("34405a"),
+            [ShipPixel.Under] = new("33557e"),
+            [ShipPixel.Window] = new("1c2433"),
+            [ShipPixel.Dark] = new("07090e"),
+        };
+
+        private static ImageTexture Picture(int wide, Func<int, int, ShipPixel> at)
+        {
+            var image = Image.CreateEmpty(wide, FarShipArt.High, false, Image.Format.Rgba8);
+            for (int y = 0; y < FarShipArt.High; y++)
+                for (int x = 0; x < wide; x++)
+                    if (Shades.TryGetValue(at(x, y), out var colour)) image.SetPixel(x, y, colour);
+            return ImageTexture.CreateFromImage(image);
         }
 
         public override void _Draw()
@@ -233,12 +255,11 @@ public partial class TitleBackdrop : CanvasLayer
             foreach (var (at, layer) in _stars)
             {
                 float x = (float)((at.X - Seconds * TitleScene.StarSpeeds[layer]) % TitleScene.Wide + TitleScene.Wide) % TitleScene.Wide;
-                DrawRect(new Rect2(Mathf.Floor(x), at.Y, 1, 1), layer switch { 0 => StarFar, 1 => StarMid, _ => StarNear });
+                Star(x, at.Y, layer switch { 0 => StarFar, 1 => StarMid, _ => StarNear });
             }
-            // The broken ship, far behind: two halves drifting apart, falling slowly away to the left, one light still on.
-            float shipX = 214 - (float)Seconds * 0.12f, part = (float)Seconds * 0.01f;
-            Hulk(new Vector2(shipX - part, 118), 24, false);
-            Hulk(new Vector2(shipX + 27 + part, 120 + part * 0.5f), 18, true);
+            Half(_fore, ForeAt, ForeTurn, FarShipArt.ForeWide, _ship.ForeAt, 0);
+            Half(_aft, AftAt, AftTurn, FarShipArt.AftWide, _ship.AftAt, 1);
+            DrawSetTransform(Vector2.Zero, 0, Vector2.One);
             // The planet, so vast only its rim shows, lit thin and cold along its edge.
             var middle = new Vector2(500, 830);
             DrawCircle(middle, 560, Planet);
@@ -247,14 +268,27 @@ public partial class TitleBackdrop : CanvasLayer
             DrawArc(middle, 560, Mathf.Pi * 1.24f, Mathf.Pi * 1.76f, 160, Rim with { A = 0.55f }, 1);
         }
 
-        /// <summary>Half of the broken ship: a long hull, a tower, a torn end; <paramref name="lit"/> keeps a light that slowly blinks.</summary>
-        private void Hulk(Vector2 at, float length, bool lit)
+        /// <summary>One half of the ship, turned a little, its windows lit faintly, each now and then going out a moment.</summary>
+        private void Half(ImageTexture picture, Vector2 at, float turn, int wide, Func<int, int, ShipPixel> pixels, int half)
         {
-            DrawRect(new Rect2(at, new Vector2(length, 5)), Hull);
-            DrawRect(new Rect2(at + new Vector2(lit ? 2 : length - 8, -4), new Vector2(5, 4)), Hull);
-            DrawRect(new Rect2(at, new Vector2(length, 1)), HullEdge);
-            for (int i = 0; i < 3; i++) DrawRect(new Rect2(at + new Vector2(lit ? length + i : -1 - i, 1 + i), new Vector2(1, 3 - i)), Hull);
-            if (lit && Seconds % 6 < 0.4) DrawRect(new Rect2(at + new Vector2(4, -5), Vector2.One), new Color("e8a33a"));
+            DrawSetTransform(at, turn, Vector2.One);
+            DrawTexture(picture, Vector2.Zero);
+            for (int y = 0; y < FarShipArt.High; y++)
+                for (int x = 0; x < wide; x++)
+                {
+                    if (pixels(x, y) != ShipPixel.Window) continue;
+                    // Each window its own slow flicker: lit most of the time, out for a breath now and then.
+                    double phase = (Seconds / 7 + x * 0.37 + y * 0.11 + half * 0.5) % 1;
+                    if (phase > 0.06) DrawRect(new Rect2(x, y, 1, 1), Window with { A = 0.75f });
+                }
+        }
+
+        /// <summary>A star at <paramref name="x"/>, a fraction of a pixel along, shared between the two pixels it lies across.</summary>
+        private void Star(float x, float y, Color colour)
+        {
+            float whole = Mathf.Floor(x), f = x - whole;
+            DrawRect(new Rect2(whole, y, 1, 1), colour with { A = 1 - f });
+            DrawRect(new Rect2(whole + 1, y, 1, 1), colour with { A = f });
         }
     }
 }

@@ -10,9 +10,9 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   darkened left (`TitleItem`) — Continue (the last world played; New game on a first run), Worlds, Play together,
   Settings (`SettingsRows`), Quit; any key or click brings them at once. A choice slides its panel out beside it; choosing
   again or Esc closes it. A newer version shows top right with Update; the build at the foot. **Worlds** (`WorldsPanel`):
-  New world first, opening into its name (the name it gets if left empty shown); the worlds of `platform/WorldIndex`, each
-  a card with its ship as last pictured (`render/WorldShot`, taken on every save and as the Esc menu opens), when played
-  and how long, why it cannot be played; the picked card holds Play and Delete, asked once more in the card, the folder
+  New world first, opening into its name; the worlds of `platform/WorldIndex`, each
+  a card with its ship as last pictured (`render/WorldShot`, on every save and as the Esc menu opens), when played
+  and how long, why it cannot be played; the picked card holds Play and Delete (asked once more), the folder
   going from disk. Any world can be picked (`logic/WorldPick`); Play takes a playable one; a double click plays.
   **Play together** (`TogetherPage`): Host enters the
   playable world picked (else Continue's, else a new one) and opens it on the relay; Join by code loads no world
@@ -65,10 +65,12 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
 | `TogetherPage.cs` | host or join on the relay, the password kept                             | yes   |
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
-| `logic/Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
-| `VersionCorner.cs` | the build in the screen's bottom-right corner, faint: which version a player runs, to tell a friend or a bug … | yes |
+| `logic/Together.cs` | playing together as the menu shows it: the mode, the code, the suits aboard | no |
+| `VersionCorner.cs` | the build in the screen's bottom-right corner, faint, to tell a friend or a bug report | yes |
 | `logic/TitleScene.cs` | the title scene's arithmetic: the plate's sway, what drifts past, when and how | no |
 | `logic/PlateArt.cs` | the title's plate drawn pixel by pixel, the hero's seat on it | no |
+| `logic/FarShipArt.cs` | the far ship broken in two, drawn pixel by pixel | no |
+| `Dither.cs` | the title's gradients, noised so dark ones show no bands | yes |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text (`En`) | no |
 

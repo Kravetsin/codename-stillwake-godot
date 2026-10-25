@@ -53,7 +53,7 @@ public partial class TitleScreen : CanvasLayer
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
         AddChild(new TitleBackdrop());
-        root.AddChild(Shade());
+        root.AddChild(Dither.Shade());
 
         var column = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         column.AddThemeConstantOverride("separation", 4);
@@ -109,20 +109,6 @@ public partial class TitleScreen : CanvasLayer
         column.AddChild(item);
         _items.Add(item);
         return item;
-    }
-
-    /// <summary>The screen darkened from the left, so the words read over the scene and the hero's side stays clear.</summary>
-    private static TextureRect Shade()
-    {
-        var gradient = new Gradient { Offsets = [0, 0.38f, 0.62f], Colors = [new Color(0, 0, 0, 0.72f), new Color(0, 0, 0, 0.45f), new Color(0, 0, 0, 0)] };
-        var shade = new TextureRect
-        {
-            Texture = new GradientTexture2D { Gradient = gradient, Width = 256, Height = 4 },
-            StretchMode = TextureRect.StretchModeEnum.Scale,
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-        };
-        shade.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        return shade;
     }
 
     /// <summary>Says what went wrong under the choices: a world that would not load, a host that left.</summary>

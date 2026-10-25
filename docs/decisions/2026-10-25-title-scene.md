@@ -17,8 +17,9 @@ not match it.
   through the dark and turning slowly; its hero hunched on its end, legs over space, head hanging (`Pose.Sit`), tethered
   to it, a red emergency lamp blinking beside him, the only warm light there is. All else comes from the right and goes
   by to the left, behind the plate: the stars, shards of metal, now and then an astronaut gone limp; the hero's head lifts
-  to one going by. Below, the rim of a vast dark planet, the figure drawn in its cold light; far off, the broken ship he
-  came from, falling slowly away. Tried first and dropped: the game's own wreck run as a world behind the title — it
+  to one going by. Below, the rim of a vast dark planet, the figure drawn in its cold light; far off, the ship he
+  came from, broken in two, a window or two still lit. Stars glide, shared between the pixels they lie across, and the
+  gradients carry a little noise, so dark ones show no bands. Tried first and dropped: the game's own wreck run as a world behind the title — it
   read as the game paused, not as a scene, and needed the HUD hidden and the world muted.
 - **The scene first.** For a moment only the scene and its music; then the name, then the choices fade in. Any key or
   click brings them at once.
