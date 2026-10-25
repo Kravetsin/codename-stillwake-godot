@@ -138,7 +138,7 @@ public partial class Figure : Node2D
     private readonly Sprite2D _tool;
     /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
     private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
-    /// <summary>What the front fist holds, the fire axe, the harpoon or the drill, in the picture of its look (<see cref="HeldLook"/>).</summary>
+    /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
     private readonly Sprite2D _held;
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;

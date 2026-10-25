@@ -93,6 +93,7 @@ commands reach the sim. Other heroes come through the host.
 
 ## The hands
 
+- **What the hand holds shows** (`HeldLook`): axe, harpoon, drill, screwdriver; working a plan, the screwdriver twists.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
   wiring, lays cables; the axe or drill on the right digs back walls only (`building.builtWall` for a ship's).
 - **One aim** (`Aiming.AimAt`): a plan, a machine, tank, door or valve (E), a wreck under the pointer, else the nearest
