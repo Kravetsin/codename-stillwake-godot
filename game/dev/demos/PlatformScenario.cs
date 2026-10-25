@@ -8,10 +8,10 @@ using Stillwake.Sim.Landing;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// Launch platforms laid in the hull's floor over space, a lamp lighting them, the room full of air: a run of two pieces cabled to
-/// a panel out in space, its lamp green, E opening it and venting the room; a run of three with no cable, red, staying shut; a
-/// piece alone. With <c>--platform-vent</c> the cabled run opens by itself two seconds in, its air seen going; <c>--platform-air</c>
-/// shows it under the air overlay.
+/// Launch platforms laid in the hull's floor over space, a lamp lighting them, the rooms full of air: a run of two pieces cabled
+/// to a panel out in space, its lamp green, E opening it and venting its room; a run of three with no cable, red, staying shut; a
+/// piece alone in the room beside, which has a door to space. With <c>--platform-vent</c> the cabled run and that door open by
+/// themselves two seconds in, both rooms' air seen going alike; <c>--platform-air</c> shows it under the air overlay.
 /// </summary>
 [Dev("--platform", "launch platforms in the floor of an aired room: a run cabled to a panel, lit green, opened by E; a run uncabled, red; a piece alone")]
 [Dev("--platform-vent", "the launch platforms, the cabled run opening by itself two seconds in: its room's air seen going out through it")]
@@ -24,16 +24,16 @@ public sealed class PlatformScenario : DevScenario
 
     public override Layout? Map => Layout.Parse(
         [
-            "                    ",
-            "  PPP               ",
-            "                    ",
-            "####################",
-            "#....L.............#",
-            "#..................#",
-            "#.S................#",
-            "#..................#",
-            "##__#___###_########",
-            "                    ",
+            "                     ",
+            "  PPP                ",
+            "                     ",
+            "#################### ",
+            "#....L....#........# ",
+            "#.........#........# ",
+            "#.S.......#........D ",
+            "#.........#........D ",
+            "##__#___###_######## ",
+            "                     ",
         ],
         [],
         [((2, 1), (2, 8)), ((2, 1), (5, 4))]).Doubled();
@@ -58,6 +58,8 @@ public sealed class PlatformScenario : DevScenario
         _vented = true;
         int width = m.Grid.Width, cell = 8 * 2 * width + 2 * 2;
         client.Send(new SetPlatform(cell, true));
+        // The room beside it opened to space through a door on the same tick, to be seen venting alike.
+        client.Send(new Stillwake.Sim.Grid.SetDoor(6 * 2 * width + 19 * 2, true));
         log($"opened the run at {cell}: {m.Landing.Problem(cell, true) ?? "powered"}");
     }
 }

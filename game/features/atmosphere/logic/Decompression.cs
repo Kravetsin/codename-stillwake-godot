@@ -5,15 +5,16 @@ using System.Linq;
 namespace Stillwake.Game.Features.Atmosphere;
 
 /// <summary>
-/// Rooms the sim turned to space at once, air and all (a launch platform opened, a floor torn open), drawn venting a while as a
-/// room venting through a door is: the sim drops their air in a tick, so the client lets it go over a while (<see cref="MsPerCell"/>), the
-/// cells farthest from the breach first, its air drawn toward the hole. Each such room keeps its last id; its breach is the space beside its cells that was
-/// not its own, the hole it went out through. Purely drawn: nothing here reaches the sim.
+/// Rooms the sim turned to space at once, air and all (a launch platform opened, a floor torn open), drawn venting as a room
+/// venting through a door is: the sim drops their air in a tick, so the client lets it go as fast as a door's room loses it
+/// (<see cref="MsPerCell"/>), the cells farthest from the breach first, its air drawn toward the hole. Each such room keeps its
+/// last id; its breach is the space beside its cells that was not its own, the hole it went out through. Purely drawn: nothing
+/// here reaches the sim.
 /// </summary>
 public sealed class Decompression
 {
-    /// <summary>How long a room's air takes to go, by its cells, and the least and most it takes.</summary>
-    public const double MsPerCell = 15, LeastMs = 1500, MostMs = 6000;
+    /// <summary>How long a cell's air takes to go: as a room open to space loses it in the sim, <c>Air.VentLoss</c> cells a tick.</summary>
+    public const double MsPerCell = 1000.0 / (Sim.World.TicksPerSecond * Content.Air.VentLoss);
 
     /// <summary>Each room going, by its last id: its cells with when each lets go, and the cells of its breach, ascending.</summary>
     private readonly SortedDictionary<int, (Dictionary<int, double> Cells, int[] Breach, AirStream[] Streams)> _going = [];
@@ -83,7 +84,7 @@ public sealed class Decompression
             foreach (int n in Near(c, width))
                 if (!own.Contains(n) && roomAt(n) == space) breach.Add(n);
         if (breach.Count == 0) return;
-        double drain = Math.Clamp(cells.Count * MsPerCell, LeastMs, MostMs);
+        double drain = cells.Count * MsPerCell;
         // A cell lets go by how far it lies from the breach, straight: the air's edge comes round toward the hole, not stepped.
         var far = cells.ToDictionary(c => c, c => breach.Min(b => Math.Sqrt(Square(c % width - b % width) + Square(c / width - b / width))));
         double farthest = far.Values.Max();

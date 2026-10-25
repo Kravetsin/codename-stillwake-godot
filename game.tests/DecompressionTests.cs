@@ -1,9 +1,10 @@
 using Stillwake.Game.Features.Atmosphere;
+using Stillwake.Sim;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A room turned to space at once drawn venting a while: what goes, toward where, and when it stops.</summary>
+/// <summary>A room turned to space at once drawn venting as through a door: what goes, toward where, and when it stops.</summary>
 public class DecompressionTests
 {
     private const int Space = -1, Width = 6;
@@ -51,11 +52,14 @@ public class DecompressionTests
         // Out of the hole, downward, into the space past it.
         Assert.All(d.Streams, s => Assert.Equal(System.Math.PI / 2, s.Heading!.Value, 6));
         Assert.Equal([(2.5, 3.5), (3.5, 3.5)], d.Streams.Select(s => (s.X, s.Y)));
-        // The top corners, farthest from the hole, go first; the cells over the hole last.
-        d.Survey([], RoomsOf(Open), Space, Width, Decompression.LeastMs * 0.6);
+        // As fast as a room open to space loses its air in the sim: the top corners, farthest from the hole, first; the cells
+        // over the hole last.
+        Assert.Equal(1000, Decompression.MsPerCell * Content.Air.VentLoss * World.TicksPerSecond, 6);
+        double drain = RoomCells.Length * Decompression.MsPerCell;
+        d.Survey([], RoomsOf(Open), Space, Width, drain * 0.6);
         Assert.DoesNotContain(At(1, 1), d.Cells);
         Assert.Contains(At(2, 2), d.Cells);
-        d.Survey([], RoomsOf(Open), Space, Width, Decompression.LeastMs);
+        d.Survey([], RoomsOf(Open), Space, Width, drain);
         Assert.False(d.Any);
         Assert.Empty(d.Streams);
     }

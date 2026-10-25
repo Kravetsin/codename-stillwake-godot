@@ -18,7 +18,7 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// oxygen into space lit red on the beat (each tank's sight glass is <see cref="TankLooks"/>), air streaming out through its openings
 /// while it holds any, in light (<see cref="AirStream"/>, <see cref="VentLight"/>, 0075), faint soft motes gliding in all air
 /// (<see cref="AirMotes"/>), swept toward a breach as wind lines, and fresh air breathed out of filling vents. A room turned to
-/// space at once vents so a while too (<see cref="Decompression"/>).
+/// space at once vents just so too (<see cref="Decompression"/>).
 /// With O, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
 /// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
@@ -72,7 +72,7 @@ public partial class AirView : Node2D
     private static (double X, double Y) Middle(string kind) => (Machines.Get(kind).Width / 2.0, Machines.Get(kind).Height / 2.0);
     /// <summary>Vents with oxygen behind them, in pixels: the ship's hum comes from them.</summary>
     private List<Vector2> _blowing = [];
-    /// <summary>Rooms turned to space at once, drawn venting a while (a launch platform opened); the rooms and air as drawn with them.</summary>
+    /// <summary>Rooms turned to space at once, drawn venting as through a door (a launch platform opened); the rooms and air as drawn with them.</summary>
     private Decompression _decompression = new();
     /// <summary>The rooms <see cref="_decompression"/> follows: another surface's air never goes from this one.</summary>
     private IRoomsQueries? _decompressing;
@@ -231,15 +231,14 @@ public partial class AirView : Node2D
         _decompression.Survey(m.Atmosphere.AiredCells, m.Rooms.RoomAt, RoomsModule.Space, width, elapsedMs);
         var roomOf = AsDrawn(m.Rooms.RoomOfCells, m.Atmosphere.AiredCells);
         var losing = Explain.Draining(air);
-        losing.UnionWith(_decompression.Breaches.Keys);
         var next = AirStream.Of(air, room => m.Rooms.RoomById(room)?.Openings ?? [], width, m.Grid.Height, cell => m.Rooms.RoomAt(cell) == RoomsModule.Space);
         next.AddRange(_decompression.Streams);
         if (!next.SequenceEqual(_streams))
         {
             _streams = next;
         }
-        // Laid out again only when the rooms or those draining changed, and while a room turned to space lets its air go.
-        if (_losingFor != (m.Rooms, m.Rooms.Version) || !losing.SetEquals(_losingRooms) || _decompression.Any)
+        // Laid out again only when the rooms or those draining changed.
+        if (_losingFor != (m.Rooms, m.Rooms.Version) || !losing.SetEquals(_losingRooms))
         {
             (_losingFor, _losingRooms) = ((m.Rooms, m.Rooms.Version), losing);
             _losing = Runs(roomOf, width, m.Grid.Built, (_, room) => losing.Contains(room) ? Pulse : null);
