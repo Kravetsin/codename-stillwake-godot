@@ -17,7 +17,7 @@ namespace Stillwake.Game.Dev;
 [Dev("--platform", "launch platforms in the floor of an aired room: a run cabled to a panel, lit green, opened by E, a drop pod on it; a run uncabled, red; a piece alone")]
 [Dev("--platform-vent", "the launch platforms, the cabled run opening by itself two seconds in: its room's air seen going out through it")]
 [Dev("--platform-air", "--platform-vent with the air overlay on: the air going red as it goes")]
-[Dev("--platform-seat", "the launch platforms, the hero boarding the drop pod by itself a second in: seated behind its porthole")]
+[Dev("--platform-seat", "the launch platforms, the hero boarding the drop pod by itself a second in, seated behind its porthole, and leaving it two seconds later")]
 public sealed class PlatformScenario : DevScenario
 {
     /// <summary>The tick the cabled run opens on with <c>--platform-vent</c>.</summary>
@@ -25,6 +25,8 @@ public sealed class PlatformScenario : DevScenario
     private bool _vented;
     /// <summary>The tick the hero boards the pod on with <c>--platform-seat</c>.</summary>
     private const int SeatAt = 20;
+    /// <summary>Ticks it sits before it leaves again with <c>--platform-seat</c>: the porthole seen emptying as it steps out.</summary>
+    private const int LeaveAfter = 40;
 
     public override Layout? Map => Layout.Parse(
         [
@@ -77,6 +79,7 @@ public sealed class PlatformScenario : DevScenario
     {
         if (Args.Has("--platform-seat") && client.World.Tick == SeatAt && m.Grid.MachinesWith(Content.MachineTrait.Seats) is [var pod, ..])
             client.Send(new Board(pod.Id));
+        if (Args.Has("--platform-seat") && client.World.Tick == SeatAt + LeaveAfter) client.Send(new Alight());
         if (_vented || !Args.Has("--platform-vent") && !Args.Has("--platform-air") || client.World.Tick < VentAt) return;
         _vented = true;
         int width = m.Grid.Width, cell = 8 * 2 * width + 2 * 2;

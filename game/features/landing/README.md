@@ -14,7 +14,8 @@ The platform's lamps and socket are the power feature's (`PlatformLamps`).
 ## Rules
 
 - A seated hero is drawn behind its pod's porthole from the chest up, the same picture for every peer; its own body is
-  hidden (`HeroView`), held at the pod's floor (`Seating`), so the pod stands in front of nothing. Read every 250 ms.
+  hidden (`HeroView`), held at the pod's floor (`Seating`), so the pod stands in front of nothing. The seats are compared every
+  frame, so the porthole empties the frame the body shows.
 - E on a pod boards it and opens its one slot under the inventory, as a crate's; seated, E leaves it and shuts the slot
   (`crew`). A pod the sim would refuse is neither boarded nor opened; the prompt says why.
 
