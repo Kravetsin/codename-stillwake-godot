@@ -91,19 +91,4 @@ public class TitleSceneTests
             Assert.All(shard, p => Assert.True(Math.Abs(p.X) <= 8 && Math.Abs(p.Y) <= 3.5));
         }
     }
-
-    [Fact]
-    public void TheFarShipIsTwoHalvesTornAtTheirFacingEndsWithAWindowOrTwoStillLit()
-    {
-        var ship = FarShipArt.Of(3);
-        Assert.Equal(ship.Fore, FarShipArt.Of(3).Fore);
-        Assert.Contains(ShipPixel.Window, ship.Fore);
-        Assert.Contains(ShipPixel.Dark, ship.Fore);
-        Assert.Contains(ShipPixel.Dark, ship.Aft);
-        // The fore half's torn end is at its right, facing the aft half's at its left: dark inside showing on each.
-        int Middle(int wide, Func<int, int, ShipPixel> at, bool fromRight) =>
-            Enumerable.Range(0, wide).Select(i => fromRight ? wide - 1 - i : i).First(x => at(x, 16) != ShipPixel.None);
-        Assert.Equal(ShipPixel.Dark, ship.ForeAt(Middle(FarShipArt.ForeWide, ship.ForeAt, true), 16));
-        Assert.Equal(ShipPixel.Dark, ship.AftAt(Middle(FarShipArt.AftWide, ship.AftAt, false), 16));
-    }
 }

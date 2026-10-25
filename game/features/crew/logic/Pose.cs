@@ -85,13 +85,23 @@ public static class Poses
     }
 
     /// <summary>
-    /// Sitting on an edge (the title, 2026-10-25-title-scene): the hips on it at the feet's point, the thighs out over it, the
-    /// shins hanging alike and swaying a little; hunched forward by <see cref="Slump"/>, both forearms on the knees; a slow
-    /// breath every <see cref="BreathMs"/>, the legs swinging once every <see cref="SwingMs"/>.
+    /// Sitting on an edge in despair (the title, 2026-10-25-title-scene): the hips on it at the feet's point, the thighs out over
+    /// it, the shins hanging alike, barely stirring; hunched forward by <see cref="Slump"/>, the arms hanging limp between the
+    /// knees; a slow breath every <see cref="BreathMs"/>, the legs drifting once every <see cref="SwingMs"/>; every
+    /// <see cref="SighMs"/> a heavy sigh, the body rising by <see cref="SighLift"/> over <see cref="SighLongMs"/> and sinking back.
     /// </summary>
     public static class Seated
     {
-        public const double Slump = 0.28, BreathMs = 4600, SwingMs = 9000;
+        public const double Slump = 0.44, BreathMs = 5600, SwingMs = 13000, SighMs = 15000, SighLongMs = 4200, SighLift = 0.12;
+    }
+
+    /// <summary>How far into a heavy sigh a seated hero is, <paramref name="timeMs"/> in, 0 to 1: a quick breath in, a long one out.</summary>
+    public static double Sigh(double timeMs)
+    {
+        double into = timeMs % Seated.SighMs;
+        if (into >= Seated.SighLongMs) return 0;
+        double t = into / Seated.SighLongMs;
+        return t < 0.3 ? Math.Sin(t / 0.3 * Math.PI / 2) : Math.Pow(Math.Cos((t - 0.3) / 0.7 * Math.PI / 2), 2);
     }
 
     /// <summary>How far the head turns toward the pointer, in radians: up, and down.</summary>
@@ -443,18 +453,18 @@ public static class Poses
 
     /// <summary>
     /// Sitting on a ledge (<see cref="Seated"/>): the body lowered by the hip's height, so the hips rest where the feet would
-    /// stand, the thighs level ahead and the shins hanging over the edge, the breath lifting the shoulders a little.
+    /// stand, the thighs level ahead and the shins hanging over the edge, the breath and the sighs lifting the shoulders.
     /// </summary>
     private static Limbs Sitting(double timeMs)
     {
         double breath = Math.Sin(timeMs / Seated.BreathMs * 2 * Math.PI), swing = Math.Sin(timeMs / Seated.SwingMs * 2 * Math.PI);
         // The limbs turn with the body: tilted forward, the thighs are raised as much again to stay level.
-        double tilt = Seated.Slump - 0.02 * breath;
-        // Seen side on, both legs hang alike, the far one behind the near; both forearms rest on the knees, hunched.
-        var leg = B(Math.PI / 2 + tilt, -(Math.PI / 2 - 0.12 * swing));
+        double tilt = Seated.Slump - 0.02 * breath - Seated.SighLift * Sigh(timeMs);
+        // Seen side on, both legs hang alike, the far one behind the near; the arms hang limp, the hands between the knees.
+        var leg = B(Math.PI / 2 + tilt, -(Math.PI / 2 - 0.04 * swing));
         return new Limbs(
-            FrontArm: B(0.55 + 0.03 * breath, 1.0),
-            BackArm: B(0.45 + 0.03 * breath, 1.05),
+            FrontArm: B(0.28 + 0.02 * breath, 0.45),
+            BackArm: B(0.2 + 0.02 * breath, 0.5),
             FrontLeg: leg,
             BackLeg: leg with { Lower = leg.Lower + 0.04 },
             Tilt: tilt, Lift: -Rig.Hip, Lying: false);

@@ -3,9 +3,10 @@
 The title the game opens on and the game menu on Esc (0031). Not in the TypeScript game, which had
 neither: its save and load were the dev panel's buttons and its suit colours a row under the oxygen bar.
 
-- **The title scene** (2026-10-25-title-scene, `TitleBackdrop`): drawn here, none of it the game's world — a torn chunk of hull
-  (`logic/PlateArt`) drifting right, its hero hunched on its end, tethered, a red lamp blinking; shards and now and then a
-  limp astronaut going by behind it to the left (`logic/TitleScene`); the planet's rim, the broken ship far off.
+- **The title scene** (2026-10-25-title-scene, `TitleBackdrop`): drawn here, none of it the game's world — the game's own
+  stars (`Render.Stars.Sky`) and, the whole subject, a torn chunk of hull (`logic/PlateArt`) drifting right, its hero
+  hunched on its end in despair, tethered, sighing now and then, a red lamp blinking; shards and now and then a limp
+  astronaut going by behind it to the left (`logic/TitleScene`), his head slowly lifting to one.
 - **The title** (`TitleScreen`): the scene alone for a moment, then the name and the choices fading in, words over the
   darkened left (`TitleItem`) — Continue (the last world played; New game on a first run), Worlds, Play together,
   Settings (`SettingsRows`), Quit; any key or click brings them at once. A choice slides its panel out beside it; choosing
@@ -60,7 +61,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `GameMenu.cs` | the menu, its pages and buttons, and Esc for the whole game                    | yes   |
 | `TitleScreen.cs` | the title: its name and choices fading in, the panel slid out, the update notice | yes |
 | `TitleItem.cs` | a title choice: words that light and slide under the pointer, a line under them | yes |
-| `TitleBackdrop.cs` | the title scene: space, the planet, the far ship, the plate, its hero and lamp, what drifts by | yes |
+| `TitleBackdrop.cs` | the title scene: the stars, the plate, its hero and lamp, what drifts by | yes |
 | `SettingsRows.cs` | the settings kept on this machine, the title's and the game menu's: slots, shimmer, logs | yes |
 | `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
 | `TogetherPage.cs` | host or join on the relay, the password kept                             | yes   |
@@ -69,8 +70,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint, to tell a friend or a bug report | yes |
 | `logic/TitleScene.cs` | the title scene's arithmetic: the plate's sway, what drifts past, when and how | no |
 | `logic/PlateArt.cs` | the title's plate drawn pixel by pixel, the hero's seat on it | no |
-| `logic/FarShipArt.cs` | the far ship broken in two, drawn pixel by pixel | no |
-| `Dither.cs` | the title's gradients, noised so dark ones show no bands | yes |
+| `Dither.cs` | the title's shade and glow, blended with noise on the final colour so no bands show | yes |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text (`En`) | no |
 

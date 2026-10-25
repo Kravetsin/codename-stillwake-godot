@@ -32,7 +32,7 @@ public static class TitleScene
     public const int Wide = 640, High = 360, Scale = 2;
 
     /// <summary>Where the plate's middle hangs, in the scene's pixels: right of the middle, the menu's side left clear.</summary>
-    public const double PlateX = 430, PlateY = 196;
+    public const double PlateX = 420, PlateY = 200;
 
     /// <summary>How far the plate turns about its middle, in radians, and how long a turn there and back takes, in seconds; how far it bobs.</summary>
     public const double Tilt = 0.06, TiltSeconds = 53, Bob = 3, BobSeconds = 19;
@@ -43,8 +43,15 @@ public static class TitleScene
     /// <summary>The seconds between one shard and the next, at least and at most.</summary>
     public const double ShardGapLeast = 1.2, ShardGapMost = 4;
 
-    /// <summary>How fast the stars' three layers go by, far to near, in the scene's pixels a second.</summary>
-    public static readonly double[] StarSpeeds = [0.6, 1.5, 3.5];
+    /// <summary>
+    /// How far the hero's head hangs, how far at most it lifts to an astronaut going by, in radians down; how much a sigh lifts
+    /// it; how slowly it moves, in seconds.
+    /// </summary>
+    public const double HeadHangs = 0.8, HeadLifts = 0.05, HeadSighs = 0.25, HeadSeconds = 2.2;
+
+    /// <summary>How much larger than the scene's pixels the plate and its hero are drawn: they are what the scene is about.</summary>
+    public const float PlateScale = 1.5f;
+
 
     private const double Margin = 40;
 

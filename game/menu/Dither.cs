@@ -17,13 +17,14 @@ public static class Dither
         Code = $$"""
             shader_type canvas_item;
             {{Noise}}
-            // Black from the left: whole at the edge, half by a third of the way across, none past three fifths.
+            uniform sampler2D screen : hint_screen_texture, filter_nearest, repeat_disable;
+            // Darker toward the left, easing out over two thirds of the screen. Blended over the screen itself, not by alpha:
+            // the noise then lands on the final colour, a step of brightness either way, and breaks every band.
             void fragment() {
-                float x = UV.x;
-                float a = x < 0.38 ? mix(0.72, 0.45, x / 0.38) : mix(0.45, 0.0, smoothstep(0.0, 1.0, clamp((x - 0.38) / 0.24, 0.0, 1.0)));
-                // Over near black a step of the alpha moves the colour less than one of the screen's steps: the noise goes into
-                // the colour instead, up to a step and a half of brightness, scattered, fading out with the shade.
-                COLOR = vec4(vec3((noise(FRAGCOORD.xy) + 0.5) * 1.5 / 255.0 * smoothstep(0.0, 0.3, a) / max(a, 0.02)), a);
+                float a = 0.74 * pow(1.0 - smoothstep(0.0, 0.66, UV.x), 1.6);
+                vec3 under = texture(screen, SCREEN_UV).rgb * (1.0 - a);
+                float n = noise(FRAGCOORD.xy) + noise(FRAGCOORD.xy + vec2(37.0, 91.0));
+                COLOR = vec4(under + vec3(n / 255.0) * min(a * 12.0, 1.0), 1.0);
             }
             """,
     };

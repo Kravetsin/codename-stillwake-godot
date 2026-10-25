@@ -15,7 +15,7 @@ public partial class Stars : CanvasLayer
     /// <summary>The star tile, in screen pixels, and how many stars it holds.</summary>
     private const int Tile = 512, Count = 420;
     /// <summary>How fast the stars stream by, in screen pixels a second.</summary>
-    private const float Speed = 8;
+    public const float Speed = 8;
     /// <summary>How much of the camera's movement the stars follow.</summary>
     private const float Parallax = 0.08f;
     private static readonly Color Star = new(223 / 255f, 232 / 255f, 245 / 255f);
@@ -33,6 +33,30 @@ public partial class Stars : CanvasLayer
         Layer = ScreenLayers.Stars;
         // After every node at the default priority, the camera among them: its centre is this frame's.
         ProcessPriority = 1;
+        _sky = Sky();
+        AddChild(_sky);
+        AddChild(_wrecks);
+        AddChild(_dust);
+    }
+
+    /// <summary>
+    /// The stars over a screen: a sprite of the star tile, repeated, its region set to the screen and moved as they stream by.
+    /// The title's scene draws them too (2026-10-25-title-scene), so space there is the game's.
+    /// </summary>
+    public static Sprite2D Sky() => new()
+    {
+        Texture = TileOfStars,
+        Centered = false,
+        RegionEnabled = true,
+        TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled,
+        // The project draws nearest: a star would hold still and jump a whole pixel every few frames.
+        TextureFilter = CanvasItem.TextureFilterEnum.Linear,
+    };
+
+    private static readonly ImageTexture TileOfStars = MakeTile();
+
+    private static ImageTexture MakeTile()
+    {
         var rng = new RandomNumberGenerator { Seed = 7 };
         var image = Image.CreateEmpty(Tile, Tile, false, Image.Format.Rgba8);
         // Clear in the stars' own colour: filtered toward black, a star between two pixels would dim twice over.
@@ -44,18 +68,7 @@ public partial class Stars : CanvasLayer
             int x = rng.RandiRange(0, Tile - size), y = rng.RandiRange(0, Tile - size);
             image.FillRect(new Rect2I(x, y, size, size), colour);
         }
-        _sky = new Sprite2D
-        {
-            Texture = ImageTexture.CreateFromImage(image),
-            Centered = false,
-            RegionEnabled = true,
-            TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled,
-            // The project draws nearest: a star would hold still and jump a whole pixel every few frames.
-            TextureFilter = CanvasItem.TextureFilterEnum.Linear,
-        };
-        AddChild(_sky);
-        AddChild(_wrecks);
-        AddChild(_dust);
+        return ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>
