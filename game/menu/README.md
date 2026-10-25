@@ -3,9 +3,9 @@
 The title the game opens on and the game menu on Esc (0031). Not in the TypeScript game, which had
 neither: its save and load were the dev panel's buttons and its suit colours a row under the oxygen bar.
 
-- **The title scene** (2026-10-25-title-scene): with no arguments the wreck runs behind the title, a world never saved
-  (`Main.Title`), its hero sitting on the torn deck's edge (`TitleBackdrop`, `logic/TitleScene`), debris and now and then an
-  astronaut drifting past left to right, the camera wandering; the HUD's layers hidden, the world unheard under the music.
+- **The title scene** (2026-10-25-title-scene, `TitleBackdrop`): drawn here, none of it the game's world — a torn chunk of hull
+  (`logic/PlateArt`) drifting right, its hero hunched on its end, tethered, a red lamp blinking; shards and now and then a
+  limp astronaut going by behind it to the left (`logic/TitleScene`); the planet's rim, the broken ship far off.
 - **The title** (`TitleScreen`): the scene alone for a moment, then the name and the choices fading in, words over the
   darkened left (`TitleItem`) — Continue (the last world played; New game on a first run), Worlds, Play together,
   Settings (`SettingsRows`), Quit; any key or click brings them at once. A choice slides its panel out beside it; choosing
@@ -60,14 +60,15 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `GameMenu.cs` | the menu, its pages and buttons, and Esc for the whole game                    | yes   |
 | `TitleScreen.cs` | the title: its name and choices fading in, the panel slid out, the update notice | yes |
 | `TitleItem.cs` | a title choice: words that light and slide under the pointer, a line under them | yes |
-| `TitleBackdrop.cs` | the title scene beyond the wreck: the seated hero, the debris and astronauts drifting by, the camera | yes |
+| `TitleBackdrop.cs` | the title scene: space, the planet, the far ship, the plate, its hero and lamp, what drifts by | yes |
 | `SettingsRows.cs` | the settings kept on this machine, the title's and the game menu's: slots, shimmer, logs | yes |
 | `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
 | `TogetherPage.cs` | host or join on the relay, the password kept                             | yes   |
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
 | `logic/Together.cs` | playing together as the menu shows it: the mode, the session's code, the suit colours aboard (this player's first) … | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint: which version a player runs, to tell a friend or a bug … | yes |
-| `logic/TitleScene.cs` | the title scene's arithmetic: the ledge sat on, the camera's wander, what drifts past and when | no |
+| `logic/TitleScene.cs` | the title scene's arithmetic: the plate's sway, what drifts past, when and how | no |
+| `logic/PlateArt.cs` | the title's plate drawn pixel by pixel, the hero's seat on it | no |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text (`En`) | no |
 
@@ -81,7 +82,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   starts afresh each time.
 - Renaming, copying or exporting a world; loading its backup from the title.
 - A world never pictured (saved before pictures were kept, or never opened the menu in) shows a blank card till it is.
-- The title scene is the same wreck every time, not the last world played: loading a save only to look at it costs a load.
+- The title scene is the same every time, not the player's own ship: loading a save only to look at it costs a load.
 - Esc switching an overlay off: an overlay only shows (0022), and Esc with one on opens the menu.
 - A button held on the world as Esc opens the menu stays held behind it, with no pointer to work.
 - An exception on a thread of our own goes unlogged in a release (Godot logs it in debug builds

@@ -1,91 +1,94 @@
 using System;
+using System.Linq;
 using Stillwake.Game.Menu;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The scene behind the title: where its hero sits, where the camera looks, what drifts past and how.</summary>
+/// <summary>The scene behind the title: the plate drawn, how it sways, what drifts past it and how.</summary>
 public class TitleSceneTests
 {
-    /// <summary>A map from rows, '#' solid: the wreck's shape small, a roof over a torn deck that reaches out past it.</summary>
-    private static Func<int, int, bool> Map(params string[] rows) =>
-        (x, y) => y < 0 || y >= rows.Length || x < 0 || x >= rows[y].Length || rows[y][x] == '#';
-
-    private static readonly string[] Wreck =
-    [
-        "          ",
-        "    ######",
-        "    #     ",
-        "          ",
-        "  ########",
-        "  ########",
-        "          ",
-    ];
-
     [Fact]
-    public void SitsOnTheLowestEdgeOpenAboveAndOutWithDeckBehindNotTheRoof()
+    public void ThePlateIsTheSameForASeedAndItsSeatALevelEdgeWithSpaceAboveAndToItsRight()
     {
-        Assert.Equal((2, 4), TitleScene.Ledge(Map(Wreck), 10, Wreck.Length));
-        Assert.Equal((2 + TitleScene.SitIn, 4.0), TitleScene.Seat((2, 4)));
+        var plate = PlateArt.Of(7);
+        Assert.Equal(plate.Pixels, PlateArt.Of(7).Pixels);
+        var (x, y) = plate.Seat;
+        Assert.Equal(PlatePixel.Lit, plate.At(x, y));
+        Assert.Equal(PlatePixel.Lit, plate.At(x - 6, y));
+        for (int up = 1; up < 10; up++) Assert.Equal(PlatePixel.None, plate.At(x, y - up));
+        // The legs hang past the end: nothing a few pixels to its right, all the way down.
+        for (int down = 0; down < 20; down++) Assert.Equal(PlatePixel.None, plate.At(x + 4, y + down));
     }
 
     [Fact]
-    public void FindsNoLedgeOnAMapWithNone()
+    public void TheLampAndTheTetherRingSitOnThePlatesLitTop()
     {
-        string[] none = ["     ", "     ", "#####", "#####"];
-        Assert.Null(TitleScene.Ledge(Map(none), 5, none.Length));
-    }
-
-    [Fact]
-    public void TheCameraKeepsTheHeroWhereItSitsOnScreenWanderingLittle()
-    {
-        var seat = (100.0, 50.0);
-        var screen = (40.0, 22.5);
-        for (double s = 0; s < 120; s += 3.7)
+        var plate = PlateArt.Of(7);
+        foreach (var (x, y) in new[] { plate.Lamp, plate.Anchor })
         {
-            var (x, y) = TitleScene.Camera(seat, screen, s);
-            double across = 0.5 - (x - seat.Item1) / screen.Item1, down = 0.5 - (y - seat.Item2) / screen.Item2;
-            Assert.InRange(across, TitleScene.HeroAcross - TitleScene.SwayX / screen.Item1 - 1e-9, TitleScene.HeroAcross + TitleScene.SwayX / screen.Item1 + 1e-9);
-            Assert.InRange(down, TitleScene.HeroDown - TitleScene.SwayY / screen.Item2 - 1e-9, TitleScene.HeroDown + TitleScene.SwayY / screen.Item2 + 1e-9);
+            Assert.Equal(PlatePixel.Lit, plate.At(x, y));
+            Assert.Equal(PlatePixel.None, plate.At(x, y - 1));
         }
     }
 
     [Fact]
-    public void EverythingDriftsLeftToRightFromOffTheViewToOffItAndIsGoneOnceAcross()
+    public void ThePlateIsBentDownAndTornAtItsLeftWithWiresHangingFromItsTears()
+    {
+        var plate = PlateArt.Of(7);
+        int TopOf(int x) => Enumerable.Range(PlateArt.RibHigh, plate.Height - PlateArt.RibHigh).First(y => plate.At(x, y) != PlatePixel.None);
+        Assert.True(TopOf(10) > plate.Seat.Y + 4, "the left end is not bent down");
+        Assert.Contains(PlatePixel.Wire, plate.Pixels);
+        Assert.Contains(PlatePixel.Rib, plate.Pixels);
+    }
+
+    [Fact]
+    public void ThePlateSwaysWithinItsBounds()
+    {
+        for (double s = 0; s < 200; s += 1.7)
+        {
+            var (turn, dy) = TitleScene.Sway(s);
+            Assert.InRange(turn, -TitleScene.Tilt, TitleScene.Tilt);
+            Assert.InRange(dy, -TitleScene.Bob, TitleScene.Bob);
+        }
+    }
+
+    [Fact]
+    public void EverythingComesFromTheRightAndGoesOffTheLeftAsThePlateDriftsRightAndIsGoneOnceAcross()
     {
         var rng = new Random(7);
-        var view = (10.0, 20.0, 40.0, 22.5);
         for (int i = 0; i < 200; i++)
-        {
-            foreach (var drift in new[] { TitleScene.NextDrifter(rng, view), TitleScene.NextPiece(rng, view) })
+            foreach (var drift in new[] { TitleScene.NextDrifter(rng), TitleScene.NextShard(rng) })
             {
-                Assert.True(drift.FromX < view.Item1 && drift.ToX > view.Item1 + view.Item3);
-                Assert.InRange(drift.Depth, 0.3, 1.2);
+                Assert.True(drift.FromX > TitleScene.Wide && drift.ToX < 0);
+                Assert.InRange(drift.Depth, 0, 1);
                 Assert.True(drift.Seconds > 0);
                 Assert.Equal((drift.FromX, drift.FromY, 0.0), drift.At(0));
                 Assert.Null(drift.At(drift.Seconds + 0.01));
                 Assert.Null(drift.At(-0.01));
             }
-        }
     }
 
     [Fact]
-    public void AstronautsDriftAboveOrBelowTheWreckWhereSpaceIsOpenNeverThroughIt()
+    public void AstronautsDriftAboveOrBelowThePlateNeverAcrossIt()
     {
         var rng = new Random(3);
-        var view = (0.0, 0.0, 40.0, 100.0);
         for (int i = 0; i < 200; i++)
         {
-            double y = TitleScene.NextDrifter(rng, view).FromY;
-            Assert.True(y <= 22 || y >= 66, $"{y} crosses the wreck's band");
+            double y = TitleScene.NextDrifter(rng).FromY;
+            Assert.True(y <= TitleScene.High * 0.32 || y >= TitleScene.High * 0.7, $"{y} crosses the plate's band");
         }
     }
 
     [Fact]
-    public void GapsFallBetweenTheirBounds()
+    public void AShardIsAFewCornersAboutItsMiddle()
     {
-        var rng = new Random(1);
-        for (int i = 0; i < 100; i++)
-            Assert.InRange(TitleScene.Gap(rng, TitleScene.DrifterGapLeast, TitleScene.DrifterGapMost), TitleScene.DrifterGapLeast, TitleScene.DrifterGapMost);
+        var rng = new Random(5);
+        for (int i = 0; i < 50; i++)
+        {
+            var shard = TitleScene.ShardOf(rng, 10);
+            Assert.InRange(shard.Length, 4, 7);
+            Assert.All(shard, p => Assert.True(Math.Abs(p.X) <= 8 && Math.Abs(p.Y) <= 3.5));
+        }
     }
 }

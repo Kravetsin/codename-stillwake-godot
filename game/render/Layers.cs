@@ -118,6 +118,9 @@ public static class ScreenLayers
     /// <summary>The dev panel, then the game menu over it all.</summary>
     public const int Dev = 12, Menu = 20;
 
+    /// <summary>The title's scene, under its words and over all else, so nothing of the game behind shows (2026-10-25-title-scene).</summary>
+    public const int TitleScene = 19;
+
     /// <summary>
     /// Words by the pointer over every panel: an item's name, a card's tooltip, a cost, an overlay's
     /// words, a refusal, the stack carried; then a scripted run's drawn pointer.

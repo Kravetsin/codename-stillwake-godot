@@ -383,9 +383,10 @@ public class PoseTests
             Assert.Equal(-Rig.Hip, sat.Lift);
             foreach (var leg in new[] { sat.FrontLeg, sat.BackLeg })
             {
-                // Turned with the body, the thigh points ahead and the shin straight down, give or take the swing.
-                Assert.InRange(leg.Upper + sat.Tilt, Math.PI / 2 - 0.15, Math.PI / 2 + 0.05);
-                Assert.InRange(leg.Upper + leg.Lower + sat.Tilt, -0.3, 0.3);
+                // The limbs turn with the body (a limb at Upper is turned back by it, the body forward by Tilt): the thigh
+                // points level ahead and the shin straight down, give or take the swing.
+                Assert.InRange(leg.Upper - sat.Tilt, Math.PI / 2 - 0.05, Math.PI / 2 + 0.05);
+                Assert.InRange(leg.Upper + leg.Lower - sat.Tilt, -0.2, 0.2);
             }
         }
     }

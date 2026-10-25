@@ -8,7 +8,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// What the game opens on (0031), over the title's world (<see cref="TitleBackdrop"/>): for a moment the scene alone with
+/// What the game opens on (0031), over its scene (<see cref="TitleBackdrop"/>): for a moment the scene alone with
 /// its music, then the name fading in and the choices after it, words alone at the left where the screen is darkened for
 /// them — Continue the last world played (New game on a first run), Worlds, Play together, Settings, Quit; Testbed in a
 /// debug build. Any key or click brings them at once. Worlds, Play together and Settings slide a panel out beside them,
@@ -52,6 +52,7 @@ public partial class TitleScreen : CanvasLayer
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
+        AddChild(new TitleBackdrop());
         root.AddChild(Shade());
 
         var column = new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };

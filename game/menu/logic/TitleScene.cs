@@ -2,18 +2,17 @@ using System;
 
 namespace Stillwake.Game.Menu;
 
-/// <summary>Something drifting past the title's wreck, an astronaut or a piece of debris: its way across, in cells, its turn, how far off it is.</summary>
-/// <param name="FromX">Where it comes in, in cells, off the view's left.</param>
-/// <param name="ToX">Where it goes out, off its right.</param>
-/// <param name="FromY">Its height coming in, in cells.</param>
+/// <summary>Something drifting past the title's plate, an astronaut or a shard of metal: its way across, its turn, how far off it is.</summary>
+/// <param name="FromX">Where it comes in, in the scene's pixels, off the view's right.</param>
+/// <param name="ToX">Where it goes out, off its left.</param>
+/// <param name="FromY">Its height coming in.</param>
 /// <param name="ToY">Its height going out.</param>
 /// <param name="Seconds">How long it takes to cross.</param>
 /// <param name="Spin">How fast it turns over, in radians a second, either way.</param>
-/// <param name="Depth">How far off it is: 1 beside the wreck, smaller farther, drawn smaller and dimmer.</param>
-/// <param name="Lamp">An astronaut's: whether its helmet lamp still burns.</param>
-public readonly record struct Drifter(double FromX, double ToX, double FromY, double ToY, double Seconds, double Spin, double Depth, bool Lamp)
+/// <param name="Depth">How far off it is, 0 to 1: nearer is bigger, quicker and less faded into the dark.</param>
+public readonly record struct Drifter(double FromX, double ToX, double FromY, double ToY, double Seconds, double Spin, double Depth)
 {
-    /// <summary>Where it is <paramref name="seconds"/> after coming in, in cells, and how far it has turned; null once it has crossed.</summary>
+    /// <summary>Where it is <paramref name="seconds"/> after coming in, and how far it has turned; null once it has crossed.</summary>
     public (double X, double Y, double Turn)? At(double seconds)
     {
         if (seconds < 0 || seconds > Seconds) return null;
@@ -23,79 +22,68 @@ public readonly record struct Drifter(double FromX, double ToX, double FromY, do
 }
 
 /// <summary>
-/// The scene behind the title (0031): the wreck the game starts in, a world run but never saved, its hero sitting on the
-/// edge of the torn deck looking out into space; debris and now and then another astronaut drifting past from where it looks,
-/// left to right, as the wreck drifts on; the camera wandering slowly. Plain arithmetic; the client draws it.
+/// The scene behind the title (2026-10-25-title-scene), in its own pixels, <see cref="Wide"/> by <see cref="High"/>: the
+/// plate drifting right through the dark with its hero, so all else comes at it from the right and goes by to the left —
+/// the stars, shards of metal, now and then an astronaut gone limp — always behind the plate. Plain arithmetic.
 /// </summary>
 public static class TitleScene
 {
-    /// <summary>The camera's zoom: the hero small against the dark.</summary>
-    public const float Zoom = 3;
+    /// <summary>The scene's size in its pixels, each drawn <see cref="Scale"/> screen pixels square on a 1280 × 720 screen.</summary>
+    public const int Wide = 640, High = 360, Scale = 2;
 
-    /// <summary>Where the hero sits on screen, as a share of it from the top-left: its gaze has the space to the left.</summary>
-    public const float HeroAcross = 0.7f, HeroDown = 0.52f;
+    /// <summary>Where the plate's middle hangs, in the scene's pixels: right of the middle, the menu's side left clear.</summary>
+    public const double PlateX = 430, PlateY = 196;
 
-    /// <summary>How far the camera wanders, in cells, and how long each way takes, in seconds: slow enough to feel, never to see move.</summary>
-    public const double SwayX = 0.9, SwayY = 0.5, SwayXSeconds = 37, SwayYSeconds = 23;
-
-    /// <summary>How far in from the deck's edge the hips sit, in cells: the knees just over it.</summary>
-    public const double SitIn = 0.7;
+    /// <summary>How far the plate turns about its middle, in radians, and how long a turn there and back takes, in seconds; how far it bobs.</summary>
+    public const double Tilt = 0.06, TiltSeconds = 53, Bob = 3, BobSeconds = 19;
 
     /// <summary>The seconds between one astronaut and the next, at least and at most; the first comes sooner.</summary>
-    public const double DrifterGapLeast = 16, DrifterGapMost = 34, FirstDrifter = 3;
+    public const double DrifterGapLeast = 18, DrifterGapMost = 40, FirstDrifter = 5;
 
-    /// <summary>The seconds between one piece of debris and the next, at least and at most.</summary>
-    public const double PieceGapLeast = 1.5, PieceGapMost = 5;
+    /// <summary>The seconds between one shard and the next, at least and at most.</summary>
+    public const double ShardGapLeast = 1.2, ShardGapMost = 4;
 
-    /// <summary>How far off the view's sides things come in and go out, in cells: never seen popping in.</summary>
-    private const double Margin = 10;
+    /// <summary>How fast the stars' three layers go by, far to near, in the scene's pixels a second.</summary>
+    public static readonly double[] StarSpeeds = [0.6, 1.5, 3.5];
 
-    /// <summary>
-    /// The edge the hero sits on: the lowest solid cell open above it and to its left, with deck to its right, so its legs
-    /// hang in space; null on a map with none. <paramref name="solid"/> says whether a cell, by its column and row, is solid.
-    /// </summary>
-    public static (int X, int Y)? Ledge(Func<int, int, bool> solid, int width, int height)
+    private const double Margin = 40;
+
+    /// <summary>How the plate is turned and how far it has bobbed, <paramref name="seconds"/> into the title.</summary>
+    public static (double Turn, double Dy) Sway(double seconds) =>
+        (Tilt * Math.Sin(seconds / TiltSeconds * 2 * Math.PI), Bob * Math.Sin(seconds / BobSeconds * 2 * Math.PI));
+
+    /// <summary>The next astronaut: across the whole view, slowly, above or below the plate, limp and far.</summary>
+    public static Drifter NextDrifter(Random rng)
     {
-        for (int y = height - 2; y > 0; y--)
-            for (int x = 1; x < width - 1; x++)
-                if (solid(x, y) && solid(x + 1, y) && !solid(x - 1, y) && !solid(x, y - 1) && !solid(x - 1, y + 1)) return (x, y);
-        return null;
+        double depth = 0.3 + 0.5 * rng.NextDouble();
+        double y = rng.NextDouble() < 0.5 ? High * (0.12 + 0.2 * rng.NextDouble()) : High * (0.7 + 0.18 * rng.NextDouble());
+        return Across(rng, y, depth, (70 + 40 * rng.NextDouble()) / (0.4 + 0.6 * depth), 0.04 + 0.1 * rng.NextDouble());
     }
 
-    /// <summary>Where the hips rest, in cells, on the ledge at <paramref name="ledge"/>: on its top, <see cref="SitIn"/> in from its edge.</summary>
-    public static (double X, double Y) Seat((int X, int Y) ledge) => (ledge.X + SitIn, ledge.Y);
+    /// <summary>The next shard of metal: at any height, near or far, quicker the nearer.</summary>
+    public static Drifter NextShard(Random rng) =>
+        Across(rng, High * rng.NextDouble(), rng.NextDouble(), 0, 0.1 + 0.5 * rng.NextDouble());
 
-    /// <summary>
-    /// The point the camera centres, in cells, <paramref name="seconds"/> into the title, for a hero seated at
-    /// <paramref name="seat"/> on a screen <paramref name="screenCells"/> wide and high at <see cref="Zoom"/>.
-    /// </summary>
-    public static (double X, double Y) Camera((double X, double Y) seat, (double W, double H) screenCells, double seconds) =>
-        (seat.X + (0.5 - HeroAcross) * screenCells.W + SwayX * Math.Sin(seconds / SwayXSeconds * 2 * Math.PI),
-         seat.Y + (0.5 - HeroDown) * screenCells.H + SwayY * Math.Sin(seconds / SwayYSeconds * 2 * Math.PI));
-
-    /// <summary>
-    /// The next astronaut to drift past a view <paramref name="view"/> (its left, top, width and height in cells): above the
-    /// wreck or below it, where space is open, slowly, near or far, a few with their lamps still burning.
-    /// </summary>
-    public static Drifter NextDrifter(Random rng, (double Left, double Top, double W, double H) view)
+    private static Drifter Across(Random rng, double y, double depth, double seconds, double spin)
     {
-        double depth = 0.45 + 0.55 * rng.NextDouble();
-        double share = rng.NextDouble() < 0.5 ? 0.06 + 0.16 * rng.NextDouble() : 0.66 + 0.24 * rng.NextDouble();
-        return Across(rng, view, view.Top + view.H * share, depth, (55 + 30 * rng.NextDouble()) / (0.5 + 0.5 * depth),
-            0.05 + 0.12 * rng.NextDouble(), rng.NextDouble() < 0.35);
+        if (seconds <= 0) seconds = (40 + 30 * rng.NextDouble()) / (0.3 + 0.7 * depth);
+        return new Drifter(Wide + Margin, -Margin, y, y + (rng.NextDouble() - 0.5) * High * 0.15, seconds,
+            (rng.NextDouble() < 0.5 ? -1 : 1) * spin, depth);
     }
 
-    /// <summary>The next piece of debris to drift past <paramref name="view"/>: at any height, near or far, quicker than an astronaut.</summary>
-    public static Drifter NextPiece(Random rng, (double Left, double Top, double W, double H) view)
+    /// <summary>A shard's outline about its middle: a jagged scrap of a few corners, <paramref name="size"/> pixels across or so.</summary>
+    public static (double X, double Y)[] ShardOf(Random rng, double size)
     {
-        double depth = 0.3 + 0.9 * rng.NextDouble();
-        return Across(rng, view, view.Top + view.H * rng.NextDouble(), depth, (30 + 30 * rng.NextDouble()) / (0.4 + 0.6 * depth),
-            0.1 + 0.5 * rng.NextDouble(), false);
+        int corners = 4 + rng.Next(0, 4);
+        var points = new (double X, double Y)[corners];
+        for (int i = 0; i < corners; i++)
+        {
+            double angle = i * 2 * Math.PI / corners + rng.NextDouble() * 0.6, reach = size / 2 * (0.45 + 0.55 * rng.NextDouble());
+            // Long and thin more often than round: torn strips.
+            points[i] = (Math.Cos(angle) * reach * 1.6, Math.Sin(angle) * reach * 0.7);
+        }
+        return points;
     }
-
-    private static Drifter Across(Random rng, (double Left, double Top, double W, double H) view, double y, double depth, double seconds, double spin, bool lamp) =>
-        new(view.Left - Margin, view.Left + view.W + Margin, y, y + (rng.NextDouble() - 0.5) * view.H * 0.2, seconds,
-            (rng.NextDouble() < 0.5 ? -1 : 1) * spin, depth, lamp);
 
     /// <summary>A gap from <paramref name="least"/> to <paramref name="most"/> seconds.</summary>
     public static double Gap(Random rng, double least, double most) => least + (most - least) * rng.NextDouble();

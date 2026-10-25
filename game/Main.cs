@@ -290,7 +290,7 @@ public partial class Main : Node2D, ITogether
         _views.Clear();
         _faded.Clear();
         _light?.QueueFree();
-        var context = new SurfaceContext(_m, _hands, () => (_session ?? _scene)?.Progress ?? 0, HeadLamps, HeroBodies,
+        var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null });
         foreach (var each in SurfaceViews.All)
         {
@@ -308,7 +308,7 @@ public partial class Main : Node2D, ITogether
             LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f,
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
-            HeadLamps = HeadLamps,
+            HeadLamps = () => _hero?.HeadLamps() ?? [],
             // The creatures live across surfaces: their view is made once, not with these.
             Shining = [.. _views.OfType<ILightSource>(), _fauna],
         });
@@ -360,7 +360,6 @@ public partial class Main : Node2D, ITogether
         if (_gcPace.Due(GC.GetTotalAllocatedBytes(), GC.CollectionCount(0))) GC.Collect(0, GCCollectionMode.Forced, blocking: true);
         _poll();
         _frameLog?.Mark("net");
-        if (_session == null && _scene is Session scene) SceneFrame(scene, delta);
         if (_session is not Session session) return;
         var client = session.Client;
         int before = client.World.Tick;

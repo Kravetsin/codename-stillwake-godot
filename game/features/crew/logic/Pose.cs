@@ -85,13 +85,13 @@ public static class Poses
     }
 
     /// <summary>
-    /// Sitting on a ledge's edge (the title, 0031): the hips on the ledge at the feet's point, the thighs out over it, the
-    /// shins hanging and swaying a little; slumped forward by <see cref="Slump"/>, the front hand on the knee, the back one
-    /// braced behind; a slow breath every <see cref="BreathMs"/>, the legs swinging once every <see cref="SwingMs"/>.
+    /// Sitting on an edge (the title, 2026-10-25-title-scene): the hips on it at the feet's point, the thighs out over it, the
+    /// shins hanging alike and swaying a little; hunched forward by <see cref="Slump"/>, both forearms on the knees; a slow
+    /// breath every <see cref="BreathMs"/>, the legs swinging once every <see cref="SwingMs"/>.
     /// </summary>
     public static class Seated
     {
-        public const double Slump = 0.16, BreathMs = 4200, SwingMs = 7800;
+        public const double Slump = 0.28, BreathMs = 4600, SwingMs = 9000;
     }
 
     /// <summary>How far the head turns toward the pointer, in radians: up, and down.</summary>
@@ -448,13 +448,15 @@ public static class Poses
     private static Limbs Sitting(double timeMs)
     {
         double breath = Math.Sin(timeMs / Seated.BreathMs * 2 * Math.PI), swing = Math.Sin(timeMs / Seated.SwingMs * 2 * Math.PI);
-        // The legs' angles are the body's own: tilted forward, the thighs are raised as much to stay level.
+        // The limbs turn with the body: tilted forward, the thighs are raised as much again to stay level.
         double tilt = Seated.Slump - 0.02 * breath;
+        // Seen side on, both legs hang alike, the far one behind the near; both forearms rest on the knees, hunched.
+        var leg = B(Math.PI / 2 + tilt, -(Math.PI / 2 - 0.12 * swing));
         return new Limbs(
-            FrontArm: B(0.85 + 0.03 * breath, 0.75),
-            BackArm: B(-0.5, 0.2),
-            FrontLeg: B(Math.PI / 2 - tilt, -(Math.PI / 2 - 0.15 * swing)),
-            BackLeg: B(Math.PI / 2 - tilt - 0.08, -(Math.PI / 2 - 0.1 + 0.12 * swing)),
+            FrontArm: B(0.55 + 0.03 * breath, 1.0),
+            BackArm: B(0.45 + 0.03 * breath, 1.05),
+            FrontLeg: leg,
+            BackLeg: leg with { Lower = leg.Lower + 0.04 },
             Tilt: tilt, Lift: -Rig.Hip, Lying: false);
     }
 

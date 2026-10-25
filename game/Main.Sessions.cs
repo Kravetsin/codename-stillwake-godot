@@ -326,7 +326,6 @@ public partial class Main
     private void ShowTitle()
     {
         AdoptOldSave();
-        ShowScene();
         var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld, ShotOf,
             busy: () => _together.Mode is TogetherMode.Joining or TogetherMode.Opening);
         AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, new SettingsRows(_hands.Ui), Quit,
@@ -354,7 +353,6 @@ public partial class Main
     {
         _title?.QueueFree();
         _title = null;
-        LeaveScene();
     }
 
     /// <summary>Continue: the last world played, or a new one on a first run.</summary>
