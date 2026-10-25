@@ -52,8 +52,8 @@ public partial class InventoryPanel
             GetViewport().SetInputAsHandled();
             Refresh();
         }
-        // Over the world only: a panel under the pointer takes the wheel before it gets here.
-        else if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } wheel)
+        // Over the world only: a panel under the pointer takes the wheel before it gets here. With Ctrl it zooms the camera.
+        else if (e is InputEventMouseButton { Pressed: true, CtrlPressed: false, ButtonIndex: MouseButton.WheelDown or MouseButton.WheelUp } wheel)
         {
             _ui.Hand.Set(Holding.Free);
             _chosen = Hotbar.WheelSlot(_chosen, wheel.ButtonIndex == MouseButton.WheelDown ? 1 : -1);

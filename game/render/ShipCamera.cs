@@ -4,7 +4,7 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// The camera over the ship (render/camera.ts): it centres a world point, zooms in steps with
-/// <c>-</c> and <c>=</c> from the farthest, <see cref="Farthest"/> on any screen, to twice as near, and answers which cells
+/// <c>-</c> and <c>=</c> or Ctrl and the wheel from the farthest, <see cref="Farthest"/> on any screen, to twice as near, and answers which cells
 /// are on screen and which cell the pointer is over. Until the hero is ported it is moved by hand: the
 /// arrow keys and a middle-button drag pan it, the wheel zooms.
 /// </summary>
@@ -104,6 +104,13 @@ public partial class ShipCamera : Camera2D
                 _ => 0,
             };
             if (direction != 0) Step(direction);
+        }
+        // Ctrl and the wheel zoom in play too; the hotbar leaves the wheel to it while Ctrl is held.
+        if (e is InputEventMouseButton { Pressed: true, CtrlPressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel)
+        {
+            Step(wheel.ButtonIndex == MouseButton.WheelUp ? 1 : -1);
+            GetViewport().SetInputAsHandled();
+            return;
         }
         if (!DevControls) return;
         switch (e)

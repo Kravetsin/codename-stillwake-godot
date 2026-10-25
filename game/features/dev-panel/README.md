@@ -15,6 +15,11 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   is breached through; or a line saying none is left. Surfaces (0076): `open planet` opens a planet grown from its seed
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
   opened last (`world.transfer`), or say none is open.
+- **Items** (creative mode): a picker, shut at the start, with a row for every item in `Content.Items.All` by group then
+  name (`ItemPicker`), so a new item appears on it unasked. The search keeps the rows whose name or id holds what is
+  typed, case ignored; `1`, `10` or `stack` is how many a pick gives. A row clicked, or Enter for the first shown, sends
+  `items`' `Spawn` for this hero: what fits goes into its bag. With creative mode off it says so and sends nothing.
+  While the search is focused the hero takes no keys (`HeroView`); hiding the panel lets go of it.
 - **Sounds:** a board, shut at the start, with a button for every cue in `Sound.All`, so a new cue
   appears on it unasked. Cues have no names; each is called by its first file under `res://audio/`
   without its `-1` and extension (`crew/step`, `CueNames`), and its tune when it plays another's files
@@ -27,8 +32,9 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
 
 | File          | Holds                                          | Godot |
 | ------------- | ---------------------------------------------- | ----- |
-| `DevPanel.cs` | the panel, its readouts, buttons and sound board | yes   |
+| `DevPanel.cs` | the panel, its readouts, buttons, item picker and sound board | yes   |
 | `logic/CueNames.cs` | what the sound board calls a cue               | no    |
+| `logic/ItemPicker.cs` | what the item picker lists for a search  | no    |
 
 ## Accepted limitations
 

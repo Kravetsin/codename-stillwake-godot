@@ -11,6 +11,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - дверь / door → `Structure.DoorClosed`, `Structure.DoorOpen`, command `SetDoor`; `Doorways`, r/`DoorShape`, f/grid `DoorSlides` → Grid
 - лестница / ladder → `Structure.Ladder`, `tool.ladder`; climbing in f/crew `Hero` → Grid, Crew
 - бортовой компьютер / ship computer → machine `computer` (`MachineTrait.Computer`), f/computer `ComputerPanel`; радарная антенна / radar antenna → `radarAntenna`; программа / program, радар / radar → c/`Programs.cs`, f/computer `RadarScreen`; их детали / their parts → items `processor`, `display`, `transceiver` (circuit assembler) → Crafting
+- двигатель / engine → machine `engine` (`Exhaust`, `Takes`: biofuel), its nozzle out through the stern's wall (`grid.noExhaust`); сопло / nozzle, топливный насос / fuel pump, запал / igniter → items `nozzle`, `fuelPump` (Former), `igniter` (circuit assembler) → Crafting
 - платформа / platform **≠** → `Structure.Floor`, `tool.floor`, build `"floor"` → Grid
 - открывающаяся (посадочная) платформа / launch platform **≠** → `Structure.PlatformClosed`, `Structure.PlatformOpen`, build `Builds.Platform` = `"launchPlatform"`, a run doorway (`StructureGroup.Platform`, `Join.Run`), command `SetPlatform`; f/power `PlatformLamps`; item `deckDrive` → Landing, Grid
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid

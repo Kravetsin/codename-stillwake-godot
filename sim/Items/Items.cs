@@ -17,6 +17,12 @@ public sealed record PickUp(int Id) : Command;
 public sealed record SetCreative(bool On) : Command;
 
 /// <summary>
+/// Puts up to <c>Count</c> of <c>Item</c> into the sender's inventory out of nothing, as much as fits: creative mode
+/// only, from the dev panel's item picker. A battery comes full.
+/// </summary>
+public sealed record Spawn(string Item, int Count) : Command;
+
+/// <summary>
 /// The sender's hero runs electric item <c>Item</c>, one it carries (<c>On</c>), or stops what it runs: sent while
 /// its client's run differs from the sim's, as <c>Thrust</c> is. A run draws the item's <c>Draw</c> every tick (0055).
 /// </summary>
@@ -107,6 +113,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<Drop>(DropProblem, ApplyDrop);
         Handles<PickUp>(c => PickUpProblem(c.From, c.Id), ApplyPickUp);
         Handles<SetCreative>(_ => null, c => State.Creative = c.On);
+        Handles<Spawn>(SpawnProblem, ApplySpawn);
         Handles<Move>(MoveProblem, ApplyMove);
         Handles<Run>(RunProblem, ApplyRun);
         Handles<Sort>(SortProblem, ApplySort);
@@ -602,6 +609,22 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         SetSide(c.From, c.Src, left);
         ForgetEmptied(c.Src);
         FloorRules.LayDown(State, taken, c.Cell, Math.Sign(c.Facing) * Content.Floor.ThrowSpeed, _grid.Width, c.From);
+    }
+
+    private string? SpawnProblem(Spawn c)
+    {
+        if (!State.Creative) return "items.notCreative";
+        return Stacks.PlacedSome(Inventory(c.From), Spawned(c), Own).Left == c.Count ? "items.full" : null;
+    }
+
+    private void ApplySpawn(Spawn c) =>
+        Stacks.SetInventory(State, c.From, Stacks.PlacedSome(Inventory(c.From), Spawned(c), Own).Slots);
+
+    /// <summary>What a spawn makes, as one stack however many slots it takes; a count below 1 is a caller's bug.</summary>
+    private static Stack Spawned(Spawn c)
+    {
+        if (c.Count < 1) throw new InvalidOperationException("items.spawn: a count below 1");
+        return new Stack(c.Item, c.Count, Charge: Content.Items.Get(c.Item).Capacity ?? 0);
     }
 
     private void ApplyPickUp(PickUp c)

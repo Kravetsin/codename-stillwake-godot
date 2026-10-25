@@ -76,8 +76,8 @@ public static class AimOutline
     private static void Machine(Outline outline, string kind, int cell, int width, Color colour)
     {
         var corner = CornerOf(cell, width);
-        // Its picture from the cells above, where it rises over its footprint (0099).
-        outline.Add(PixelArt.Picture($"machine_{kind}"), corner - new Vector2(0, ShipTiles.RiseOf(kind) * Cell), colour);
+        // Its picture from the cells above, where it rises over its footprint (0099), and from those left of it, where it reaches out.
+        outline.Add(PixelArt.Picture($"machine_{kind}"), corner - new Vector2(ShipTiles.ReachOf(kind), ShipTiles.RiseOf(kind)) * Cell, colour);
         if (Machines.TryGet(kind, out var spec) && spec.Plug is { } plug)
             outline.Add(PixelArt.Picture("power-socket"), corner + new Vector2(plug.X, plug.Y), 0, 1, colour);
     }
