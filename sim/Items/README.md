@@ -13,7 +13,7 @@
 | `State.cs` | The saved slice and its records: `Stack`, `Place`, `Target`, `Body`, `FloorStack`, … |
 | `ToolStats.cs` | What a tool works with (0098): its damage a hit, the ticks between its hits and what it draws a tick it runs … |
 
-Every stack of items: each hero's inventory, by peer id; what each machine holds, by id; the
+Every stack of items: each hero's inventory, by peer; what each machine holds, by id; the
 stacks on the floor; and creative mode, where nothing is ever taken (0008).
 
 - **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open cells in a
@@ -39,8 +39,8 @@ stacks on the floor; and creative mode, where nothing is ever taken (0008).
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (`Stacks.Misfit`, 0047). Worn items
   are never taken nor counted (`Totals`).
 - **Give and take** all of a cost or none (0008; order no ADR): giving fills stacks of the item in slot order, then empty
-  own slots; taking empties own slots from the last, so the hotbar goes last. `Spawn` (creative) gives what
-  fits, a battery full.
+  own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
+  fits, batteries full.
 - **Move** (0008) takes the least of `Count`, what `Src` holds and what fits, onto an empty slot or a stack alike; part
   of a stack onto one not alike is refused. With no `Dst` slot, that side as a whole. A machine with `Inputs` takes items
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charging station holds
@@ -49,10 +49,10 @@ stacks on the floor; and creative mode, where nothing is ever taken (0008).
 - **Sort** (0008): the bag past the hotbar, or every slot of a `crate` (`items.notCrate` for other machines). Alike
   stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
-  first belt battery holding that much, so the belt drains left to right. Creative mode takes nothing, answers true.
+  first belt battery holding that much, so the belt drains left to right. Creative takes nothing, answers true.
 - **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, each
   run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its peer no longer
-  carries stops itself. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
+  carries stops. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
 - **Modules** (0086): `Fit` takes a module out of every slot into one of its `Hosts`, one of each kind a machine;
   `Unfit` returns it. `Boost(machine)` sums their trades in thousandths over 1000 (`Gain` rounds down, `Cost` up).
   At an arc bench (0099) `Fit`/`Unfit` act on the vise's tool stack; its `Fitted` stays empty.
@@ -62,16 +62,16 @@ stacks on the floor; and creative mode, where nothing is ever taken (0008).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
 - **The floor** (no ADR; numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
-  inside anything built is pushed out breadth-first through built cells up to `PushReach`, a room's open cell before
-  space, ties by lowest index, else rises a cell. Afloat it flies on, drifting only with no back wall;
-  elsewhere it falls by gravity times its surface's `Fall` and slides to a stop. Gone past the grid's edge. Alike stacks
-  at rest in a cell merge.
+  inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell before
+  space, ties by index, else rises a cell. Afloat it flies on, drifting only with no back wall;
+  elsewhere it falls by gravity times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts`
+  after a drop. Alike stacks resting in a cell merge, the later time kept.
 - **Machines and ladders hold no stack** (no ADR): one falls through to the floor; one laid in their cells stays.
 - **Whole cells** (0106): a stack is a point; it lands on a cell's top and stops against a built cell, never climbing.
-- **Picking up** gives as much as fits; the dropper waits `Floor.OwnPickupDelay` ticks (no ADR).
+- **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks (no ADR).
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
   `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative mode leaves none. Each is gone
-  `Floor.BodyLasts` after death; stacks merge only within one body or outside any.
+  `BodyLasts` after death; stacks merge only within one body or outside any.
 
 ## Commands
 

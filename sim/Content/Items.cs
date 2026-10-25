@@ -253,4 +253,10 @@ public static class Floor
     /// ticks a second (0061). Long enough to fly back for it; short enough that bodies never pile up.
     /// </summary>
     public const int BodyLasts = 12_000;
+
+    /// <summary>
+    /// How long any other stack lies on the floor after it was dropped before it is gone: ten minutes. The floor is
+    /// worked every tick on every peer, so what is thrown away must not pile up.
+    /// </summary>
+    public const int Lasts = 12_000;
 }
