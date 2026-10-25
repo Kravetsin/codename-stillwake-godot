@@ -38,18 +38,21 @@ public sealed class ShipTiles
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
         // A planet's ground (0079): its walls and back walls drawn in art/planet, their edges made here; by name as the hull's are.
+        // A vein is drawn as the stone it runs through (Material.In): its wall that stone's flecked with its ore, the rest that stone's.
+        static string ArtOf(string natural) => Materials.Get(natural).In ?? natural;
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            Made($"wall_{natural}", Art($"planet/wall_{natural}"));
+            var wall = Art($"planet/wall_{ArtOf(natural)}");
+            Made($"wall_{natural}", ArtOf(natural) == natural ? wall : GroundArt.Vein(wall, natural));
             for (int open = 1; open < 16; open++) Made($"wall-edge_{natural}_{open}", GroundArt.Edge(natural, open));
             // Its back wall recedes behind it, paler, cooler and darker (0088).
-            Made(BackName(natural), GroundArt.Recede(Art($"planet/back_{natural}")));
+            Made(BackName(natural), GroundArt.Recede(Art($"planet/back_{ArtOf(natural)}")));
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
             // Its living edge, up into the cell above (0082): two 16 px cells tall, behind the heroes and before them; each 16 px
             // column in two halves, a cell each (0104), a cell showing the half its column's parity picks.
-            var tops = Art($"planet/top_{natural}");
+            var tops = Art($"planet/top_{ArtOf(natural)}");
             for (int v = 0; v < GroundArt.TopVariants; v++)
                 foreach (bool front in (bool[])[false, true])
                     for (int half = 0; half < 2; half++)
@@ -60,7 +63,7 @@ public sealed class ShipTiles
                     }
             // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
             // several on the second.
-            var details = Art($"planet/detail_{natural}");
+            var details = Art($"planet/detail_{ArtOf(natural)}");
             for (int k = 0; k < GroundDetails.Singles; k++)
                 pictures.Add(Picture(DetailName(natural, k), details.GetRegion(new Rect2I(k * Drawn, 0, Drawn, Drawn)), Relief.None));
             for (int f = 0, at = 0; f < GroundDetails.Features.Length; at += GroundDetails.Features[f++])

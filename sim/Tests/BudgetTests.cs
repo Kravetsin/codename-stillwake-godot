@@ -155,15 +155,19 @@ public class BudgetTests(ITestOutputHelper output)
         w.Do(new Items.SetCreative(true)).Run();
         var idle = Time(w.World, 300, _ => []);
         int width = m.Grid.Width, spawn = m.Crew.Spawn, row = spawn / width;
-        // Over the ground either side of the hero, a body's width apart, a cell over the first wall down any of its columns.
+        // Over the ground either side of the hero, a body's width apart, a cell over the first wall down any of its columns; let
+        // out again till all forty stay a few beats, for on the open plains one wanders out of the hero's reach and goes.
         int body = Content.Fauna.Loper.Width;
-        for (int x = spawn % width - 100; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 100; x += body)
+        for (int round = 0; round < 4 && m.Fauna.Creatures.Count < Content.Fauna.Max; round++)
         {
-            int y = row - 40;
-            while (y < row + 40 && Enumerable.Range(x, body).All(c => m.Grid.StructureAt((y + 1) * width + c) != Stillwake.Content.Structure.Wall)) y++;
-            w.Do(new Fauna.Release(Content.Fauna.Loper.Id, y * width + x)).Run();
+            for (int x = spawn % width - 100; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 100; x += body)
+            {
+                int y = row - 40;
+                while (y < row + 40 && Enumerable.Range(x, body).All(c => m.Grid.StructureAt((y + 1) * width + c) != Stillwake.Content.Structure.Wall)) y++;
+                w.Do(new Fauna.Release(Content.Fauna.Loper.Id, y * width + x)).Run();
+            }
+            w.Run(Content.Fauna.Beat * 4);
         }
-        w.Run(Content.Fauna.Beat * Content.Fauna.Max);
         Assert.Equal(Content.Fauna.Max, m.Fauna.Creatures.Count);
         var living = Time(w.World, 600, t => t % 10 == 0 && m.Fauna.Creatures.Count > 0
             ? [new Fauna.Strike(m.Fauna.Creatures[t / 10 % m.Fauna.Creatures.Count].Id, Content.Weapons.Axe.Item)]

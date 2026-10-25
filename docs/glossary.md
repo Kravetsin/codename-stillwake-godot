@@ -71,6 +71,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - метеор / meteor → `MeteorHit` → Hazards
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
+- жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core
+- рудная зона / lode → `PlanetType.LodeWave`, `LodeOver`, `CaveKind.Lode` (crystals by the veins) → Core
+- равнина, нагорье / plain, highland → `Ground.RegionWave`, `RegionLeast`, `RegionLift` → Core
 - мох / moss **≠** → `Grass` (f/grid `Grass.cs`, the living edge); `Sound.StepMoss` → Grid (client only)
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building
 - существо / creature **≠** → `Creature`, `FaunaModule` → Fauna

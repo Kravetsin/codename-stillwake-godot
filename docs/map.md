@@ -32,7 +32,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Creatures** — sim/Fauna · f/fauna: `Fauna.cs` FaunaModule; `Live.cs`, `Spawn.cs`, `Jump.cs`; `FaunaView.cs`, `CreatureBody.cs`, `CreaturePose.cs`; c/`Fauna.cs`; gc/`FaunaLooks.cs`
 
-**Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
+**Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
 
 **Ruins** — sim/Building `Flora.cs` (`Relic`, ruin pieces as plants) · f/ruins: `HomesView.cs`, `SpiresView.cs`, `RelicSparks.cs`; c/`Ruins.cs`; gc/`HomesLooks.cs`, `RelicLooks.cs`
 

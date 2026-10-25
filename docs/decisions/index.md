@@ -82,10 +82,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted |  |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
-| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted |  |
+| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | veins-and-stairs (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | accepted |  |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
-| [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted |  |
+| [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
 | [0082](0082-the-grounds-chipped-look-details-and-living-edge.md) | The ground's chipped look: details over it and a living edge on top | accepted |  |
 | [0083](0083-the-handbook-is-a-tablet.md) | The Handbook is a tablet | accepted |  |
@@ -122,3 +122,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0114](0114-build-menu-from-content.md) | The build menu is laid out from content | accepted |  |
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
+| [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |

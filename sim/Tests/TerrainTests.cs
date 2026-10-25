@@ -71,6 +71,16 @@ public class TerrainTests
     });
 
     [Fact]
+    public void HeroesBeamDownInTheClearMiddleNeverInARuinWhereLittleGroundIsFlat()
+    {
+        // A small planet whose spawn once went out past its cave mouths, to a spire's columns and into its alloy.
+        var l = Terrain.Generate(PlanetTypes.Small, 205198277);
+        int spawn = Assert.Single(l.CellsOf('S'));
+        Assert.Equal(0, l.Materials![spawn]);
+        Assert.InRange(spawn % l.Width, l.Width / 2 - Small.Clear, l.Width / 2 + Small.Clear);
+    }
+
+    [Fact]
     public void HeroesBeamDownNearTheMiddleOfThePlanet()
     {
         var l = Terrain.Generate(PlanetTypes.First, 7);
@@ -86,8 +96,8 @@ public class TerrainTests
         {
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
-            // Stone from there to the bedrock, open or not; nothing but sky above.
-            if (Enumerable.Range(top + soil, l.Height - Small.CoreRows - top - soil).Any(y => l.Materials![y * l.Width + x] != Code("stone"))) return false;
+            // Stone from there to the bedrock, open or not, veins of ore in it; nothing but sky above.
+            if (Enumerable.Range(top + soil, l.Height - Small.CoreRows - top - soil).Any(y => Materials.ByCode(l.Materials![y * l.Width + x]) is not ({ Id: "stone" } or { In: "stone" }))) return false;
             // Above it, the sky, or a cave under an overhang of another column's: open, and of no material but in a cave.
             if (Enumerable.Range(0, top).Any(y => l.Rows[y][x] is not (' ' or 'S' or '.') || l.Rows[y][x] != '.' && l.Materials![y * l.Width + x] != 0)) return false;
         }
@@ -123,18 +133,20 @@ public class TerrainTests
     });
 
     [Fact]
-    public void TheHillsRiseACellAColumnAtMostAStairAHeroWalksOnlyTheRangesTerracesAreCliffs()
+    public void TheSurfaceIsAStairAHeroWalksWithNoCliffAnywhere()
     {
-        // The first planet's hills and bumps together are steeper than a cell a column in places; the range steps CliffStep.
-        foreach (uint seed in new uint[] { 1, 2 })
-        {
-            Terrain.Generate(PlanetTypes.First, seed, out _, out var surface);
-            for (int x = 1; x < surface.Length; x++)
-            {
-                int rise = Math.Abs(surface[x] - surface[x - 1]);
-                Assert.True(rise <= 1 || rise >= Planet.CliffStep - 1, $"seed {seed}: {rise} rows at column {x}");
-            }
-        }
+        // The first planet's terraces and hills are steeper than a row a column wherever they rise; the stair fills them up.
+        foreach (uint seed in new uint[] { 1, 2 }) AStair(PlanetTypes.First, seed);
+    }
+
+    [Property(MaxTest = 60)]
+    public Property TheSmallSurfaceIsAStairWhateverTheSeed() => Prop.ForAll(Seeds, seed => AStair(PlanetTypes.Small, seed));
+
+    private static void AStair(PlanetType type, uint seed)
+    {
+        Terrain.Generate(type, seed, out _, out var surface);
+        for (int x = 1; x < surface.Length; x++)
+            Assert.True(Math.Abs(surface[x] - surface[x - 1]) <= 1, $"seed {seed}: {surface[x] - surface[x - 1]} rows at column {x}");
     }
 
     [Property(MaxTest = 60)]
@@ -271,8 +283,108 @@ public class TerrainTests
         for (int cell = 0; cell < l.Width * l.Height; cell++)
         {
             int code = l.Materials![cell];
-            Assert.Equal(code <= 0 ? null : Materials.All.Single(m => m.Code == code), grid.BackAt(cell));
+            // A vein's back wall the stone it runs through.
+            var back = code <= 0 ? null : Materials.ByCode(code)!;
+            Assert.Equal(back?.In is { } rock ? Materials.Get(rock) : back, grid.BackAt(cell));
             if (l.At(cell) == '#') Assert.Equal(code, Materials.All.Single(m => m.Id == grid.WallAt(cell)!.Id).Code);
+        }
+    }
+
+    /// <summary>The first planet grown from seed 1, once: the veins' tests read it.</summary>
+    private static readonly Lazy<Layout> FirstOne = new(() => Terrain.Generate(PlanetTypes.First, 1));
+
+    private static bool IsVein(int code) => Materials.ByCode(code)?.In != null;
+
+    [Fact]
+    public void VeinsRunOnlyThroughSolidStoneInTheBandsTheyRunIn()
+    {
+        var (l, t) = (FirstOne.Value, PlanetTypes.First);
+        var seen = new HashSet<string>();
+        for (int cell = 0; cell < l.Width * l.Height; cell++)
+        {
+            if (!IsVein(l.Materials![cell])) continue;
+            var vein = t.Veins.Single(v => Materials.Get(v.Material).Code == l.Materials[cell]);
+            Assert.Equal('#', l.At(cell));
+            Assert.True(vein.Widths[Terrain.BandOf(t, cell / l.Width)] > 0, $"{vein.Material} at row {cell / l.Width}");
+            seen.Add(vein.Material);
+        }
+        Assert.Equal(t.Veins.Select(v => v.Material).Order(StringComparer.Ordinal), seen.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void AVeinIsALineOfCellsNotScatteredDots()
+    {
+        // Nearly every vein cell has another of its vein beside it, across or corner to corner.
+        var l = FirstOne.Value;
+        int w = l.Width, cells = 0, joined = 0;
+        for (int y = 1; y < l.Height - 1; y++)
+            for (int x = 1; x < w - 1; x++)
+            {
+                int code = l.Materials![y * w + x];
+                if (!IsVein(code)) continue;
+                cells++;
+                bool beside = false;
+                for (int dy = -1; dy <= 1 && !beside; dy++)
+                    for (int dx = -1; dx <= 1 && !beside; dx++)
+                        beside = (dx, dy) != (0, 0) && l.Materials[(y + dy) * w + x + dx] == code;
+                if (beside) joined++;
+            }
+        Assert.True(cells > 1000, $"{cells} vein cells");
+        Assert.True(joined * 100 >= cells * 97, $"{joined} of {cells} joined");
+    }
+
+    [Fact]
+    public void WithoutLodesThereAreNoVeinsNorCrystalsButTheRestOfTheCavesStillGrow()
+    {
+        var bare = PlanetTypes.Small with { LodeOver = 65535 };
+        foreach (uint seed in new uint[] { 1, 2, 3, 4 })
+        {
+            var l = Terrain.Generate(bare, seed);
+            Assert.DoesNotContain(l.Materials!, IsVein);
+            Assert.DoesNotContain(l.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && k.Lode));
+        }
+        Assert.Contains(FirstOne.Value.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && k.Lode));
+        Assert.Contains(FirstOne.Value.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && !k.Lode));
+    }
+
+    [Fact]
+    public void CrystalsGatherByTheVeinsInRichCavesWithBareOnesBetween()
+    {
+        // Within a lode's reach of a vein cell: a crystal or a geode far more often than any growth that grows by the patches.
+        var l = FirstOne.Value;
+        int w = l.Width, reach = PlanetTypes.First.LodeWave / 2;
+        var near = new bool[l.Width * l.Height];
+        for (int cell = 0; cell < near.Length; cell++)
+            if (IsVein(l.Materials![cell]))
+                for (int dy = -reach; dy <= reach; dy += 4)
+                    for (int dx = -reach; dx <= reach; dx += 4)
+                    {
+                        int x = cell % w + dx, y = cell / w + dy;
+                        if (x >= 0 && x < w && y >= 0 && y < l.Height) near[y * w + x] = true;
+                    }
+        double Share(bool lode)
+        {
+            var kinds = l.Flora!.Where(p => Flora.Cave.Any(k => k.Id == p.Kind && k.Lode == lode && k.Chances.Any(c => c > 0))).ToList();
+            return (double)kinds.Count(p => near[p.Cell]) / kinds.Count;
+        }
+        Assert.True(Share(true) > 0.95, $"{Share(true)} of the crystals by a vein");
+        Assert.True(Share(false) < 0.6, $"{Share(false)} of the rest by a vein");
+    }
+
+    [Fact]
+    public void PlainsFlattenTheLandAndHighlandsLiftIt()
+    {
+        // Against the same seeds grown with no regions: the ranges and hills of every column at their most, the land unlifted.
+        var flat = PlanetTypes.First with { Ground = PlanetTypes.First.Ground with { RegionLeast = 100, RegionLift = 0 } };
+        foreach (uint seed in new uint[] { 1, 2 })
+        {
+            Terrain.Generate(PlanetTypes.First, seed, out _, out var regions);
+            Terrain.Generate(flat, seed, out _, out var none);
+            // The rows climbed over each eighth of the planet: the plains' the flattest.
+            static long[] Climbs(int[] s) => [.. s.Chunk(s.Length / 8).Select(c => c.Zip(c.Skip(1)).Sum(p => (long)Math.Abs(p.First - p.Second)))];
+            Assert.True(Climbs(regions).Min() * 2 < Climbs(none).Min(), $"seed {seed}: {Climbs(regions).Min()} rows climbed on the plains, {Climbs(none).Min()} with none");
+            Assert.True(Climbs(regions).Sum() < Climbs(none).Sum(), $"seed {seed}");
+            Assert.True(regions.Average() < none.Average() - PlanetTypes.First.Ground.RegionLift / 4, $"seed {seed}: {regions.Average()} against {none.Average()}");
         }
     }
 }

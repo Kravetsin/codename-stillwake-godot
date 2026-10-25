@@ -56,10 +56,10 @@ public class FloraTests
         int Of(params string[] kinds) => l.Flora!.Count(p => kinds.Contains(p.Kind));
         // At 8 px cells the ground steps twice as finely, so the level ground a tree, a bush or a rock needs is rarer (0104):
         // they grow about half as often as at 16 px, the flowers, needing none, as often; more since every step of a hill is
-        // whole soil, no slope (0106).
-        Assert.InRange(Of("acacia"), 18, 3 * 18);
-        Assert.InRange(Of("bush"), 21, 3 * 21);
-        Assert.InRange(Of("rock"), 14, 3 * 14);
+        // whole soil, no slope (0106); more again on the plains' level ground (veins-and-stairs).
+        Assert.InRange(Of("acacia"), 18, 4 * 18);
+        Assert.InRange(Of("bush"), 21, 4 * 21);
+        Assert.InRange(Of("rock"), 14, 4 * 14);
         Assert.InRange(Of("bellTeal", "bellViolet", "bellAmber"), 2 * 139, 7 * 139 / 2);
         Assert.Equal(l.Flora!.OrderBy(p => p.Cell), l.Flora!);
     }
@@ -177,8 +177,8 @@ public class FloraTests
         string fresh = w.World.Save();
         Assert.Empty(Building(fresh)["felled"]!.AsArray());
         Assert.True(fresh.Length < 16 * 1024, $"{fresh.Length} bytes");
-        // Three felled, one of them by the ground under it.
-        var (a, c, d) = (all[0], all[all.Count / 2], all[^1]);
+        // Three felled, one of them by the ground under it; the middle one in a single hit of the axe.
+        var (a, c, d) = (all[0], all.Skip(all.Count / 2).First(p => Flora.Get(p.Kind).Strength <= Weapons.Axe.Damage), all[^1]);
         w.Do(new Dig(a.Cell, Weapons.Axe.Item)).Do(new Dig(c.Cell, Weapons.Axe.Item)).Run();
         for (int i = 0; i < 2; i++) w.Do(new Dig(d.Cell + w.On(1).Grid.Width, Weapons.Axe.Item)).Run();
         var felled = Building(w.World.Save())["felled"]!.AsArray().Select(n => (int)n!).ToArray();

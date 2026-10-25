@@ -110,38 +110,39 @@ public static class Flora
 
         /// <summary>In the rock, only in a floor: a wall with a cave cell over it. The heat's cracks run along floors, not up walls.</summary>
         public bool Floors { get; init; }
+
+        /// <summary>Only in its planet type's lodes, scaled by the lode, not the patch noise (<see cref="PlanetType.LodeMost"/>): crystals in the veins' rich rock.</summary>
+        public bool Lode { get; init; }
     }
 
     /// <summary>
     /// The caves' growths (0080), the catalog every planet type takes its caves' from (0095), with the first planet's chances
     /// in its four bands; by anchor, the rarest first within each, so a dense patch does not crowd them out but for mica. Teal and
-    /// hanging caps give biomass, violet ones spores; ice crystals and veins ice, the others crystal, a geode six; copper veins
-    /// ore; mica its flakes; the heat's cracks magnetite.
+    /// hanging caps give biomass, violet ones spores; ice crystals ice, the others crystal, a geode six, crystals and geodes only
+    /// in the lodes, by the veins of ore (<see cref="Vein"/>); mica its flakes; the heat's cracks magnetite.
     /// </summary>
     public static readonly IReadOnlyList<CaveKind> Cave =
     [
         // On floors: glowing mushrooms in clusters, crystals by band, stalagmites.
-        new("crystalRose", Anchor.Floor, Tall: 2, Wide: 0, Apart: 16, Chances: [0, 0, 160, 0]) { Yields = [("crystal", 1)] },
-        new("crystalIce", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [380, 40, 0, 0]) { Yields = [("ice", 1)] },
-        new("crystalAmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 380, 40]) { Yields = [("crystal", 1)] },
-        new("crystalEmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 30, 380]) { Yields = [("crystal", 1)] },
+        new("crystalRose", Anchor.Floor, Tall: 2, Wide: 0, Apart: 16, Chances: [0, 0, 160, 0]) { Lode = true, Yields = [("crystal", 1)] },
+        new("crystalIce", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [380, 40, 0, 0]) { Lode = true, Yields = [("ice", 1)] },
+        new("crystalAmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 380, 40]) { Lode = true, Yields = [("crystal", 1)] },
+        new("crystalEmber", Anchor.Floor, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 30, 380]) { Lode = true, Yields = [("crystal", 1)] },
         new("glowcapViolet", Anchor.Floor, Tall: 2, Wide: 0, Apart: 8, Chances: [0, 220, 160, 0]) { Yields = [("spore", 1)] },
         new("glowcapTeal", Anchor.Floor, Tall: 2, Wide: 0, Apart: 6, Chances: [30, 420, 90, 15]) { Yields = [("biomass", 2)] },
         new("stalagmite", Anchor.Floor, Tall: 2, Wide: 0, Apart: 8, Chances: [400, 240, 320, 320]),
         // From ceilings: roots near the surface, crystals, the garden's threads and hanging caps, stalactites that drip.
-        new("crystalIceHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [320, 30, 0, 0]) { Yields = [("ice", 1)] },
-        new("crystalAmberHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 280, 60]) { Yields = [("crystal", 1)] },
+        new("crystalIceHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [320, 30, 0, 0]) { Lode = true, Yields = [("ice", 1)] },
+        new("crystalAmberHang", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 12, Chances: [0, 0, 280, 60]) { Lode = true, Yields = [("crystal", 1)] },
         new("hangcap", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 14, Chances: [0, 200, 60, 0]) { Yields = [("biomass", 2)] },
         new("threadTeal", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 10, Chances: [30, 320, 0, 0]),
         new("threadViolet", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 10, Chances: [0, 500, 90, 0]),
         new("roots", Anchor.Ceiling, Tall: 4, Wide: 0, Apart: 4, Chances: [2000, 0, 0, 0]) { Shallow = 48 },
         new("stalactite", Anchor.Ceiling, Tall: 2, Wide: 0, Apart: 6, Chances: [700, 460, 620, 540]),
-        // In the rock by a cave: a rare geode, fossils, veins, the heat's glowing cracks along the floors over the bedrock, glow
+        // In the rock by a cave: a rare geode, fossils, the heat's glowing cracks along the floors over the bedrock, glow
         // moss on its faces, and last mica that glints in a beam, which gives way where the moss fills a hall's walls.
-        new("geode", Anchor.Rock, Tall: 2, Wide: 0, Apart: 80, Chances: [0, 4, 10, 4]) { Yields = [("crystal", 6)] },
+        new("geode", Anchor.Rock, Tall: 2, Wide: 0, Apart: 80, Chances: [0, 4, 10, 4]) { Lode = true, Yields = [("crystal", 6)] },
         new("fossil", Anchor.Rock, Tall: 2, Wide: 0, Apart: 40, Chances: [0, 30, 50, 0]),
-        new("veinIce", Anchor.Rock, Tall: 2, Wide: 0, Apart: 4, Chances: [360, 0, 0, 0]) { Yields = [("ice", 2)] },
-        new("veinCopper", Anchor.Rock, Tall: 2, Wide: 0, Apart: 4, Chances: [0, 60, 360, 140]) { Yields = [("copperOre", 2)] },
         new("heatCrack", Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [0, 0, 0, 2400]) { Floors = true, Yields = [("magnetite", 2)] },
         new("moss", Anchor.Rock, Tall: 2, Wide: 0, Apart: 2, Chances: [360, 2000, 500, 0]),
         new("mica", Anchor.Rock, Tall: 2, Wide: 0, Apart: 4, Chances: [1600, 900, 1400, 800]) { Yields = [("mica", 1)] },
