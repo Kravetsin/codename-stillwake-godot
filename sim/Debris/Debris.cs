@@ -12,12 +12,14 @@ namespace Stillwake.Sim.Debris;
 public sealed record Grab(int Piece) : Command;
 
 /// <summary>
-/// Strikes wreck <c>Piece</c> with weapon <c>Tool</c>, by its item: takes the weapon's <c>Damage</c> off its hit
-/// points, and at none left it breaks into its loot, floating where it was. An electric weapon hits only while
-/// the sender's hero runs it (<c>Run</c>), which pays for it by the tick (0055); the hit itself spends nothing.
-/// Whether the sender holds it, and how often it strikes, is the client's word (0034, 0054).
+/// A hit of weapon <c>Tool</c> in space (the fan of rays): its fan cast from the hand at (<c>X</c>, <c>Y</c>), in thousandths
+/// of a cell, aimed at <c>Heading</c>, each ray striking the first wreck it meets, by the cells it crosses, and stopping there
+/// or at a wall. Each wreck struck loses the weapon's <c>Damage</c> once, however many rays meet it, and at none left breaks
+/// into its loot, floating where it was. An electric weapon hits only while the sender's hero runs it (<c>Run</c>), which pays
+/// for it by the tick (0055); the hit itself spends nothing. Whether the sender holds it, and how often it strikes, is the
+/// client's word (0034, 0054).
 /// </summary>
-public sealed record Hit(int Piece, string Tool) : Command;
+public sealed record HewWrecks(string Tool, int X, int Y, int Heading) : Command;
 
 /// <summary>
 /// Reels piece <c>Piece</c> by a harpoon to (<c>ToX</c>, <c>ToY</c>), in thousandths of a cell: the point
@@ -51,7 +53,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _held = held;
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
-        Handles<Hit>(c => HitProblem(c.From, c.Piece, c.Tool) ?? _held.WeaponProblem(c.From, c.Tool, running: true), Apply);
+        Handles<HewWrecks>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), Apply);
         Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
@@ -82,7 +84,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
 
     /// <summary>
     /// Every kind of debris found in this world (0066), in the order first found, each with the items seen come out
-    /// of it: what a <see cref="Grab"/> or a breaking <see cref="Hit"/> drew. Live and read-only: the Handbook's.
+    /// of it: what a <see cref="Grab"/> or a breaking <see cref="HewWrecks"/> drew. Live and read-only: the Handbook's.
     /// </summary>
     public IReadOnlyList<FoundKind> Found => State.Found;
 
@@ -98,18 +100,48 @@ public sealed partial class DebrisModule : Module<DebrisState>
         Reachable(peer, id, out var piece) ?? (Content.Wreckage.HpOf(piece!.Item) != null ? "debris.tooBig" : null);
 
     /// <summary>
-    /// Why peer <paramref name="peer"/>'s hit of piece <paramref name="id"/> with weapon <paramref name="tool"/>
-    /// would be refused: it is gone, the hero or the piece is not in space, it is no wreckage, or the weapon is
-    /// electric and no battery on the belt can pay a tick of its draw (<c>items.flat</c>). Any weapon breaks any wreck (0054).
-    /// What the client asks before it sends: the command is refused besides while an electric weapon is not running
-    /// (<c>items.notRunning</c>, <see cref="IItemsQueries.WeaponProblem"/>).
+    /// The wrecks a hit of <paramref name="tool"/> from (<paramref name="x"/>, <paramref name="y"/>) toward
+    /// <paramref name="heading"/> would strike (<see cref="HewWrecks"/>), in spawn order: each ray's first, whose box
+    /// (<see cref="Content.Wreckage.SizeOf"/>) covers part of a cell the ray crosses, the first spawned of those in one cell; a
+    /// ray stops at a wall or whatever stops a body, and a wreck whose middle is not in space is passed by. What the command
+    /// strikes and the client's preview.
     /// </summary>
-    public string? HitProblem(int peer, int id, string tool)
+    public IReadOnlyList<Piece> Struck(string tool, int x, int y, int heading)
     {
-        if (Content.Weapons.Of(tool) == null) throw new InvalidOperationException($"debris.hit: {tool} deals no damage");
-        return Reachable(peer, id, out var piece)
-            ?? (Content.Wreckage.HpOf(piece!.Item) == null ? "debris.notWreckage"
-            : _held.WeaponProblem(peer, tool, running: false));
+        var weapon = Content.Weapons.Of(tool) ?? throw new InvalidOperationException($"debris.hew: {tool} deals no damage");
+        var wrecks = State.Pieces.Where(p => Content.Wreckage.SizeOf(p.Item) != null && Outside(CellOf(p.X, p.Y, _grid.Width))).ToList();
+        var struck = new List<Piece>();
+        if (wrecks.Count == 0) return struck;
+        Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell =>
+        {
+            if (_grid.WallAt(cell) != null || _grid.Blocks(cell)) return true;
+            int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
+            foreach (var p in wrecks)
+            {
+                var (w, h) = Content.Wreckage.SizeOf(p.Item)!.Value;
+                if (p.X - w * Unit / 2 >= left + Unit || p.X + w * Unit / 2 <= left || p.Y - h * Unit / 2 >= top + Unit || p.Y + h * Unit / 2 <= top) continue;
+                if (!struck.Contains(p)) struck.Add(p);
+                return true;
+            }
+            return false;
+        });
+        struck.Sort((a, b) => a.Id.CompareTo(b.Id));
+        return struck;
+    }
+
+    /// <summary>
+    /// Why peer <paramref name="peer"/>'s hit of <paramref name="tool"/> (<see cref="HewWrecks"/>) would be refused: the hero
+    /// is not in space, the fan strikes no wreck, or the weapon is electric and no battery on the belt can pay a tick of its draw
+    /// (<c>items.flat</c>). Any weapon breaks any wreck (0054). What the client asks before it sends: the command is refused
+    /// besides while an electric weapon is not running (<c>items.notRunning</c>, <see cref="IItemsQueries.WeaponProblem"/>).
+    /// </summary>
+    public string? HewProblem(int peer, string tool, int x, int y, int heading) =>
+        HewProblemOf(peer, Struck(tool, x, y, heading), tool, running: false);
+
+    private string? HewProblemOf(int peer, IReadOnlyList<Piece> struck, string tool, bool running)
+    {
+        if (_crew.HeroOf(peer) is not { } hero || !Outside(hero.Cell)) return "debris.notOutside";
+        return struck.Count == 0 ? "debris.nothingToHit" : _held.WeaponProblem(peer, tool, running);
     }
 
     /// <summary>
@@ -162,19 +194,20 @@ public sealed partial class DebrisModule : Module<DebrisState>
         _caught.Add((piece.Id, gave));
     }
 
-    private void Apply(Hit c)
+    private void Apply(HewWrecks c)
     {
-        int at = IndexOf(c.Piece);
-        if (at < 0) throw new InvalidOperationException("debris.hit: applied to a piece that is gone");
-        var piece = State.Pieces[at];
-        int hp = Content.Wreckage.HpOf(piece.Item) ?? throw new InvalidOperationException("debris.hit: applied to no wreck");
-        piece.Damage += _held.Damage(c.From, c.Tool);
-        if (piece.Damage < hp) return;
-        State.Pieces.RemoveAt(at);
-        var loot = LootOf(piece.Item, Random);
-        Record(piece, loot);
-        // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
-        _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
+        int hit = _held.Damage(c.From, c.Tool);
+        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading))
+        {
+            int hp = Content.Wreckage.HpOf(piece.Item)!.Value;
+            piece.Damage += hit;
+            if (piece.Damage < hp) continue;
+            State.Pieces.RemoveAt(IndexOf(piece.Id));
+            var loot = LootOf(piece.Item, Random);
+            Record(piece, loot);
+            // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
+            _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
+        }
     }
 
     /// <summary>

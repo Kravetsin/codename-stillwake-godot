@@ -40,19 +40,20 @@ public class PlanetYieldsTests
     {
         Flora = [(At(0, 1), "geode"), (At(3, 1), "crystalIceHang"), (At(2, 2), "glowcapTeal"), (At(3, 2), "crystalAmber"),
             (At(5, 2), "glowcapViolet"), (At(6, 2), "stalagmite")],
+        Kind = Content.Surfaces.TestStrip.Id,
     }, doubled: true);
 
     private static readonly string Axe = Weapons.Axe.Item;
 
     /// <summary>The axe's hits that break stone.</summary>
-    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
+    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
 
     private static int Count(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
 
     private static Scenario DigOut(Scenario w, int cell)
     {
-        for (int i = 0; i < Hits; i++) w.Do(new Dig(cell, Axe)).Run();
+        for (int i = 0; i < Hits; i++) w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         Assert.Null(w.M.Grid.WallAt(cell));
         return w;
     }
@@ -93,7 +94,7 @@ public class PlanetYieldsTests
     public void AHitOnATealCapGivesBiomassOnAVioletOneSporesAndOnAStalagmiteNothing()
     {
         var w = Cave();
-        w.Do(new Dig(w.At(2, 2), Axe)).Do(new Dig(w.At(5, 2), Axe)).Do(new Dig(w.At(6, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(2, 2), Axe)).Do(HewTesting.Dig(w, w.At(5, 2), Axe)).Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal((2, 1), (Count(w, "biomass"), Count(w, "spore")));
         Assert.Equal(3, w.M.Items.Totals(0).Sum(t => t.Count));
@@ -105,7 +106,7 @@ public class PlanetYieldsTests
     public void WhatAFullInventoryCannotTakeFallsWhereTheGrowthWas()
     {
         var w = Cave().GiveItems(0, ("scrap", Content.Items.Get("scrap").Stack * Inventory.Slots));
-        w.Do(new Dig(w.At(2, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(2, 2), Axe)).Run();
         DigOut(w, w.At(7, 2));
         var floor = w.M.Items.Floor.Select(s => (s.Item, s.Count, s.Cell)).OrderBy(s => s.Item, StringComparer.Ordinal);
         Assert.Equal([("biomass", 2, Bottom(w, 2, 2)), ("copperOre", 1, w.At(7, 2))], floor);
@@ -119,7 +120,7 @@ public class PlanetYieldsTests
         Fell(w, w.At(4, 1));
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "seed")));
         // The rock's soil dug from under it: it goes to the digger too, whole, with the soil.
-        w.Do(new Dig(w.At(6, 2), Axe)).Do(new Dig(w.At(6, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(6, 2), Axe)).Run();
         Assert.Equal((2, 1), (Count(w, "rock"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Plants);
         Assert.Empty(w.M.Building.Cracks);
@@ -134,7 +135,7 @@ public class PlanetYieldsTests
         ........
         ........
         ssssssss
-        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")] }, doubled: true);
+        """) with { Flora = [(At(1, 1), "acacia"), (At(4, 1), "bush"), (At(6, 1), "rock")], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
 
     /// <summary>Hits <paramref name="cell"/> with the axe, a hit a tick, till what stands there is felled; the hits it took.</summary>
     private static int Fell(Scenario w, int cell)
@@ -143,7 +144,7 @@ public class PlanetYieldsTests
         while (w.M.Building.Plants.Count == count)
         {
             Assert.True(++hits <= 100, $"nothing at {cell} felled");
-            w.Do(new Dig(cell, Axe)).Run();
+            w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         }
         Assert.Empty(w.Refusals);
         return hits;
@@ -153,8 +154,8 @@ public class PlanetYieldsTests
     public void ATreeTakesThreeSecondsOfTheAxeARockTwoABushOneAndACapOneHit()
     {
         var w = Meadow();
-        int axe = Weapons.Axe.Damage, pace = Weapons.Axe.Pace;
-        Assert.Equal((12, 8, 4), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
+        int axe = Weapons.Axe.BlockDamage, pace = Weapons.Axe.Pace;
+        Assert.Equal((24, 16, 8), (Flora.Get("acacia").Strength, Flora.Get("rock").Strength, Flora.Get("bush").Strength));
         // Swings at the axe's pace, the first at once: a tree's sixth lands two and a half seconds in, three of swinging.
         Assert.Equal(Flora.Get("acacia").Strength / axe, Fell(w, w.At(1, 1)));
         Assert.Equal(3 * World.TicksPerSecond, Flora.Get("acacia").Strength / axe * pace);
@@ -168,8 +169,8 @@ public class PlanetYieldsTests
     public void ATreesHitsAddUpWhicheverOfItsCellsTheyLandOnAndHealUnhitForAWhile()
     {
         var w = Meadow();
-        int axe = Weapons.Axe.Damage;
-        w.Do(new Dig(w.At(1, 1), Axe)).Run().Do(new Dig(w.At(1, 0), Axe)).Run();
+        int axe = Weapons.Axe.BlockDamage;
+        w.Do(HewTesting.Dig(w, w.At(1, 1), Axe)).Run().Do(HewTesting.Dig(w, w.At(1, 0), Axe)).Run();
         // Cracked by its own cell, wherever it was hit; still standing, nothing given.
         Assert.Equal([new Crack(Bottom(w, 1, 1), 2 * axe, w.M.Building.Cracks[0].At)], w.M.Building.Cracks);
         Assert.Contains("acacia", w.M.Building.Plants.Select(p => p.Kind));
@@ -183,10 +184,10 @@ public class PlanetYieldsTests
     public void ATreeCrackedAndThenFelledByItsGroundLeavesNoCrackBehind()
     {
         var w = Meadow();
-        w.Do(new Dig(w.At(1, 0), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 0), Axe)).Run();
         Assert.Single(w.M.Building.Cracks);
         // Its soil dug out from under it: the tree goes whole to the digger, its crack with it.
-        w.Do(new Dig(w.At(1, 2), Axe)).Run().Do(new Dig(w.At(1, 2), Axe)).Run();
+        w.Do(HewTesting.Dig(w, w.At(1, 2), Axe)).Run();
         Assert.Equal((10, 1), (Count(w, "planks"), Count(w, "soil")));
         Assert.Empty(w.M.Building.Cracks);
     }
@@ -204,7 +205,7 @@ public class PlanetYieldsTests
             t......t
             tttttttt
             tttttttt
-            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")] }, doubled: true);
+            """) with { Flora = [(At(0, 1), "mica"), (At(3, 2), "heatCrack")], Kind = Content.Surfaces.TestStrip.Id }, doubled: true);
         DigOut(w, w.At(0, 1));
         DigOut(w, w.At(3, 2));
         Assert.Equal((1, 2, 2), (Count(w, "mica"), Count(w, "magnetite"), Count(w, "rock")));

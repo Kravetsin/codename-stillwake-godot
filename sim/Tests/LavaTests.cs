@@ -35,7 +35,7 @@ public class LavaTests
     /// <summary>Where a hero standing on the lava at column 4 is reported: its body's middle, Lava.Reach rows over the lava's top.</summary>
     private static readonly int OnLava = At(4, 2);
 
-    private static Scenario World() => new(Layout.Parse(Map).WithMaterials(Ground), doubled: true);
+    private static Scenario World(bool planet = false) => new(planet ? Layout.Parse(Map).WithMaterials(Ground).OnPlanet() : Layout.Parse(Map).WithMaterials(Ground), doubled: true);
     private static Hero HeroOf(Scenario w) => w.M.Crew.HeroOf(0)!;
 
     /// <summary>A world with hero 0 brought in at <paramref name="cell"/> with a full suit on a breath's tick, run through it.</summary>
@@ -122,9 +122,10 @@ public class LavaTests
     [Fact]
     public void LavaIsTooHardToDigAndStays()
     {
-        var w = World();
-        w.Do(new Dig(At(3, 4), Content.Weapons.Axe.Item)).Run();
-        Assert.Equal(["building.bedrock"], w.Refusals.Select(r => r.Reason));
+        var w = World(planet: true);
+        w.Do(HewTesting.Dig(w, At(3, 4), Content.Weapons.Axe.Item)).Run();
+        // It stops every ray unhurt, as bedrock does: the fan strikes nothing.
+        Assert.Equal(["building.nothingToDig"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(LavaSpec.Material, w.M.Grid.WallAt(At(3, 4))?.Id);
         Assert.Empty(w.M.Building.Cracks);
     }

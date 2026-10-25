@@ -30,7 +30,7 @@ public class DrillArcTests
 
     /// <summary>Open ground over a row of walls, as DigTests': soil at 1 to 3, stone at 4 to 6, bedrock at 7.</summary>
     private static Scenario Ground() =>
-        new(Layout.Parse("........\n........\n########\n########").WithMaterials("........\n........\n.ssstttb\n.ssstttb"));
+        new(Layout.Parse("........\n........\n########\n########").WithMaterials("........\n........\n.ssstttb\n.ssstttb").OnPlanet());
 
     private static int CrackAt(Scenario w, int cell) => w.M.Building.Cracks.FirstOrDefault(c => c.Cell == cell)?.Damage ?? 0;
 
@@ -65,16 +65,16 @@ public class DrillArcTests
         var plain = Ground().GiveItems(0, (Drill, 1)).Do(new SetCreative(true)).Do(new Run(Drill, true));
         var fitted = Ground().Put(0, Fitted).Do(new SetCreative(true)).Do(new Run(Drill, true));
         int stone = 2 * 8 + 5, strength = Spec.Materials.Get("stone").Strength;
-        plain.Do(new Dig(stone, Drill)).Run();
-        fitted.Do(new Dig(stone, Drill)).Run();
-        Assert.Equal((1, 2), (CrackAt(plain, stone), CrackAt(fitted, stone)));
+        plain.Do(HewTesting.Dig(plain, stone, Drill)).Run();
+        fitted.Do(HewTesting.Dig(fitted, stone, Drill)).Run();
+        Assert.Equal((4, 8), (CrackAt(plain, stone), CrackAt(fitted, stone)));
         int hits = 1;
         while (fitted.M.Grid.WallAt(stone) != null && hits < strength)
         {
-            fitted.Do(new Dig(stone, Drill)).Run();
+            fitted.Do(HewTesting.Dig(fitted, stone, Drill)).Run();
             hits++;
         }
-        Assert.Equal((strength + 1) / 2, hits);
+        Assert.Equal((strength + 7) / 8, hits);
         Assert.Empty(fitted.Refusals);
         Assert.Empty(plain.Refusals);
     }
@@ -135,7 +135,7 @@ public class DrillArcTests
     {
         var plain = Facing(new Stack(Drill, 1));
         var fitted = Facing(Fitted);
-        foreach (var w in new[] { plain, fitted }) w.Do(new Run(Drill, true)).Do(new Hit(1, Drill)).Do(new Hit(1, Drill)).Run();
+        foreach (var w in new[] { plain, fitted }) w.Do(new Run(Drill, true)).Do(HewTesting.Hit(w, 1, Drill)).Do(HewTesting.Hit(w, 1, Drill)).Run();
         Assert.Equal((2, 4), (plain.M.Debris.Pieces[0].Damage, fitted.M.Debris.Pieces[0].Damage));
         Assert.Empty(fitted.Refusals);
     }
@@ -154,6 +154,8 @@ public class DrillArcTests
         // Two modules summed first, then applied once: damage 1 × 2500 / 1000 down to 2, draw 3 × 1750 / 1000 up to 6.
         Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]));
         Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(Drill, [Fake]));
+        // On blocks, the same gain: 4 × 2500 / 1000 to 10.
+        Assert.Equal(10, ToolStats.BlockDamageOf(Drill, [Spec.Modules.Arc, Fake]));
         Assert.Equal(ToolStats.Of(Drill, [Spec.Modules.Arc, Fake]), ToolStats.Of(Drill, [Fake, Spec.Modules.Arc]));
         Assert.Equal([Spec.Modules.Arc], ToolStats.ModulesOf(Fitted));
         Assert.Same(ToolStats.ModulesOf(Fitted), ToolStats.ModulesOf(Fitted with { }));
@@ -164,7 +166,7 @@ public class DrillArcTests
     }
 
     /// <summary>Soil, stone and alloy side by side in the ground's top row: cells 9, 10 and 11.</summary>
-    private static Scenario Materials() => new(Layout.Parse("....\n....\n####\n####").WithMaterials("....\n....\n.sta\n.sta"));
+    private static Scenario Materials() => new(Layout.Parse("....\n....\n####\n####").WithMaterials("....\n....\n.sta\n.sta").OnPlanet());
 
     /// <summary>The digs <paramref name="stack"/> takes to break <paramref name="cell"/>, a hit every pace.</summary>
     private static int HitsToBreak(Stack stack, int cell)
@@ -173,7 +175,7 @@ public class DrillArcTests
         int hits = 0;
         while (w.M.Grid.WallAt(cell) != null && hits < 100)
         {
-            w.Do(new Dig(cell, Drill)).Run(Spec.Weapons.Drill.Pace);
+            w.Do(HewTesting.Dig(w, cell, Drill)).Run(Spec.Weapons.Drill.Pace);
             hits++;
         }
         Assert.Empty(w.Refusals);
@@ -183,9 +185,9 @@ public class DrillArcTests
     [Fact]
     public void TheFittedDrillBreaksSoilStoneAndAlloyInHalfTheHitsAndABatteryLastsHalfAsLong()
     {
-        // 4, 12 and 60 strong: a hit every 0.1 s, so soil 0.4 s plain and 0.2 s fitted, stone 1.2 s and 0.6 s, alloy 6 s and 3 s.
-        Assert.Equal((4, 12, 60), (HitsToBreak(new Stack(Drill, 1), 9), HitsToBreak(new Stack(Drill, 1), 10), HitsToBreak(new Stack(Drill, 1), 11)));
-        Assert.Equal((2, 6, 30), (HitsToBreak(Fitted, 9), HitsToBreak(Fitted, 10), HitsToBreak(Fitted, 11)));
+        // 4, 12 and 60 strong: a hit every 0.1 s, 4 and 8 a hit on blocks: soil at a hit either way, stone 0.3 s and 0.2 s, alloy 1.5 s and 0.8 s.
+        Assert.Equal((1, 3, 15), (HitsToBreak(new Stack(Drill, 1), 9), HitsToBreak(new Stack(Drill, 1), 10), HitsToBreak(new Stack(Drill, 1), 11)));
+        Assert.Equal((1, 2, 8), (HitsToBreak(Fitted, 9), HitsToBreak(Fitted, 10), HitsToBreak(Fitted, 11)));
         // A battery: 1800 power-ticks, 600 ticks (30 s) at the plain drill's 3, 300 (15 s) at the fitted 6.
         Assert.Equal((600, 300), (Full / S / ToolStats.Of(new Stack(Drill, 1)).Draw, Full / S / ToolStats.Of(Fitted).Draw));
     }

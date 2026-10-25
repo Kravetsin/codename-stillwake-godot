@@ -108,12 +108,12 @@ public class DebrisFoundTests
         const string wreck = "cargoContainer";
         int hits = (WreckageSpec.HpOf(wreck)!.Value + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
         var w = Out(wreck);
-        for (int i = 0; i < hits - 1; i++) w.Do(new Hit(1, Axe));
+        for (int i = 0; i < hits - 1; i++) w.Do(HewTesting.Hit(w, 1, Axe));
         w.Run();
         Assert.Empty(w.Refusals);
         Assert.Single(w.M.Debris.Pieces);
         Assert.Empty(w.M.Debris.Found);
-        w.Do(new Hit(1, Axe)).Run();
+        w.Do(HewTesting.Hit(w, 1, Axe)).Run();
         Assert.Empty(w.M.Debris.Pieces);
         var (kind, items) = Assert.Single(Found(w));
         Assert.Equal(wreck, kind);
@@ -201,7 +201,7 @@ public class DebrisFoundTests
                 switch (s.Action)
                 {
                     case 0: w.Do(new Grab(id)); break;
-                    case 1: for (int i = 0; i < s.Times; i++) w.Do(new Hit(id, Axe)); break;
+                    case 1: for (int i = 0; i < s.Times; i++) w.Do(HewTesting.Hit(w, id, Axe)); break;
                     case 2: w.Do(new Reel(id, 14_000, 3_000)); break;
                     case 3: w.Do(new Enter(At(12, 1))); break;
                     case 4: w.Do(new Enter(At(3, 3))); break;

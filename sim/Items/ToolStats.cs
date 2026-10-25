@@ -29,6 +29,20 @@ public readonly record struct ToolStats(int Damage, int Pace, int Draw)
         return new ToolStats(weapon is null ? 0 : Boost.Gain(weapon.Damage, boost.Damage), weapon?.Pace ?? 0, Boost.Cost(draw, boost.Draw));
     }
 
+    /// <summary>
+    /// What a hit of <paramref name="stack"/>'s tool takes off a block (the fan of rays): its weapon's block damage, gained as its
+    /// damage is by the modules fitted (0098); 0 for an item that deals none.
+    /// </summary>
+    public static int BlockDamageOf(Stack stack) => BlockDamageOf(stack.Item, ModulesOf(stack));
+
+    /// <summary>What a hit of <paramref name="item"/> with <paramref name="modules"/> fitted takes off a block.</summary>
+    public static int BlockDamageOf(string item, IReadOnlyList<ModuleSpec> modules)
+    {
+        var boost = new Boost();
+        for (int i = 0; i < modules.Count; i++) boost = boost.Plus(modules[i], item);
+        return Weapons.Of(item) is { } weapon ? Boost.Gain(weapon.BlockDamage, boost.Damage) : 0;
+    }
+
     /// <summary>The modules fitted into <paramref name="stack"/>'s tool, in the order they are fitted; none for a plain one. Never a new list for one.</summary>
     public static IReadOnlyList<ModuleSpec> ModulesOf(Stack stack) => stack.Module is { } module ? Alone[module] : [];
 }

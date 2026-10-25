@@ -136,16 +136,18 @@ public class DesyncTests(ITestOutputHelper output)
                     return;
                 }
                 var on = Registry.On(world, down.Id);
-                bool Hits(int cell) => on.Building.DigProblem(first.Id, cell, axe) == null;
+                // A hit from inside the cell, aimed up: a wall there is struck alone, a plant from its own cell.
+                Hew HewAt(int cell) => new(axe, cell % on.Grid.Width * 1000 + 500, cell / on.Grid.Width * 1000 + 500, 192);
+                bool Hits(int cell) => HewAt(cell) is var h && on.Building.HewProblem(first.Id, axe, h.X, h.Y, h.Heading) == null;
                 if (tick % 20 == 0)
                 {
                     if (wall >= 0 && on.Grid.WallAt(wall) == null) broke++;
                     if (wall < 0 || !Ground(on.Grid.WallAt(wall)) || !Hits(wall))
                         wall = Enumerable.Range(0, on.Grid.Width * on.Grid.Height).FirstOrDefault(c => Ground(on.Grid.WallAt(c)) && Hits(c), -1);
-                    if (wall >= 0) first.Send(new Dig(wall, axe));
+                    if (wall >= 0) first.Send(HewAt(wall));
                 }
                 else if (on.Building.Plants.FirstOrDefault(p => on.Grid.WallAt(p.Cell) == null && Hits(p.Cell)) is { } plant)
-                    first.Send(new Dig(plant.Cell, axe));
+                    first.Send(HewAt(plant.Cell));
             });
             return (run, planets >= 1 && cracked >= 1 && broke >= 1 && dug >= 1 && felled >= 1 ? null
                 : $"{planets} small planets, {cracked} cracks at most, {broke} walls broken out, {dug} soil and rock dug, {felled} plants felled");

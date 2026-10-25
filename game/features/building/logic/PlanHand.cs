@@ -129,6 +129,9 @@ public sealed class PlanHand
     /// <summary>B: takes the plan out, or puts it away.</summary>
     public void Toggle() => PlanOut.Set(!PlanOut.Get());
 
+    /// <summary>Whether the surface has a back layer to build in: none on a planet, where the focus stays on the front.</summary>
+    public bool Layered { get; set; } = true;
+
     /// <summary>The middle button with the plan out: the focus to the other layer.</summary>
     public void ToggleFocus() => FocusOn(Tools.Toggled(Focus.Get()));
 
@@ -138,7 +141,7 @@ public sealed class PlanHand
     /// </summary>
     public void FocusOn(Focus focus)
     {
-        if (!PlanOut.Get() || !Builds || focus == Focus.Get()) return;
+        if (!PlanOut.Get() || !Builds || focus == Focus.Get() || !Layered && focus == Building.Focus.Back) return;
         _kept[(int)Focus.Get()] = Selected.Get();
         var back = _kept[(int)focus];
         _kept[(int)focus] = null;

@@ -8,6 +8,7 @@
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | What a placement looks like built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
+| `logic/Breath.cs` | How what is aimed at breathes: its outline and a tool's glowing faces, faint to bright on one clock. |
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
 | `logic/Buttons.cs` | The mouse buttons as the world reads them: presses and releases since the last take. |
 | `logic/CableShape.cs` | A cable as drawn: where it meets its nodes, how it hangs, where it goes through the hull. |
@@ -31,7 +32,7 @@
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
-| `Outline.cs` | A thin line round the silhouette of what is aimed at. |
+| `Outline.cs` | A soft light inside the silhouette of what is aimed at, breathing. |
 | `PixelArt.cs` | The ship's pictures from `game/art`, a pixel of art a pixel of the world. |
 | `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
 | `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |

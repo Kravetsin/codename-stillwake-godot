@@ -25,11 +25,21 @@ public sealed record WorkAim(int Plan, string? Problem);
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens <see cref="Crate"/>, a machine holding items or a computer.
 /// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
-/// (0034, 0039), which is outlined itself, not its cell. <see cref="Square"/> is the brush a dig covers, its top-left column
-/// and row and its side, when it is wider than a cell (<see cref="Brush"/>): outlined whole.
+/// (0034), which is outlined itself, not its cell. <see cref="Fan"/> is a tool's hit toward the pointer (the fan of rays): what
+/// it would strike, its faces glowing.
 /// </summary>
-public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null,
-    (int X, int Y, int Side)? Square = null);
+public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null, Fan? Fan = null);
+
+/// <summary>
+/// A tool's hit toward the pointer (the fan of rays): its <see cref="Ground"/> command and what it would strike there
+/// (<see cref="Hewn"/>), and in space its <see cref="Wrecks"/> command and the wrecks it would strike (<see cref="Pieces"/>), as the
+/// sim's own queries say, so what is shown is what the hit takes.
+/// </summary>
+public sealed record Fan(Hew Ground, Hewn Hewn, HewWrecks Wrecks, IReadOnlyList<Piece> Pieces)
+{
+    /// <summary>Whether the fan would strike nothing at all.</summary>
+    public bool IsEmpty => Hewn.IsEmpty && Pieces.Count == 0;
+}
 
 /// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
@@ -196,19 +206,16 @@ public static class Aiming
     /// a wreck whose picture is under the pointer, else the piece of debris nearest it within
     /// <c>Debris.AimRadius</c>, only while the hero is out in space, where it can catch one, and none in
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
-    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/>, a small piece is still
-    /// grabbed, but no wreck by the pointer is aimed at: the first a swing toward the pointer begun now
-    /// would touch is (<see cref="Struck"/>), wherever the pointer is. With a <paramref name="drill"/>, the plain or the arc
-    /// drill, by its item, the same, the first wreck its bit aimed at the pointer touches (<see cref="Touched"/>); ground or a plant in
-    /// the <paramref name="brush"/>'s square round the pointer is dug first (<see cref="DugAim"/>). With a <paramref name="gun"/>, the
+    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/> or a <paramref name="drill"/>, the plain or the arc
+    /// drill by its item, a small piece is still grabbed, else the tool's fan toward the pointer is aimed (<see cref="FanOf"/>): at
+    /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing. With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
     /// flight, the next press undoes them, and a press says what its sender saw should become of it.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null, int brush = 1,
-        bool back = false)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -234,16 +241,16 @@ public static class Aiming
         }
         if (axe || drill != null)
         {
-            // A swing begun now faces the pointer (Poses.FaceOf), and so does the stroke it is judged by; the drill always does.
+            // The tool's fan toward the pointer (the fan of rays): what stands on a planet's grid that it strikes first; in space
+            // the wrecks it meets.
             string tool = axe ? Spec.Weapons.Axe.Item : drill!;
-            // Natural ground under the brush is dug where it is (0077), in a shaft or a cave as under the open sky; a plant felled (0079).
-            // The right button's: the back walls under it, whatever they are of (0107), and nothing else.
-            if (DugAim(m, peer, hero, point, cell, tool, brush, back) is { } dug) return dug;
-            if (back) return new Aim(cell, inReach);
-            var toward = hero with { Facing = Poses.FaceOf(point, hero) ?? hero.Facing };
-            var touched = axe ? Struck(m, toward, PointOf(point)) : Touched(m, toward, PointOf(point));
-            if (touched.FirstOrDefault() is not { } wreck) return new Aim(cell, inReach);
-            return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true, new Use(new Hit(wreck.Id, tool), m.Debris.HitProblem(peer, wreck.Id, tool)), Piece: wreck.Id);
+            var fan = FanOf(m, hero, PointOf(point), tool);
+            if (!fan.Hewn.IsEmpty)
+                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, tool, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading)), Fan: fan);
+            if (fan.Pieces.FirstOrDefault() is { } wreck)
+                return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true,
+                    new Use(fan.Wrecks, m.Debris.HewProblem(peer, tool, fan.Wrecks.X, fan.Wrecks.Y, fan.Wrecks.Heading)), Piece: wreck.Id, Fan: fan);
+            return new Aim(cell, inReach, Fan: fan);
         }
         if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
@@ -259,28 +266,6 @@ public static class Aiming
 
     /// <summary>The downstroke sampled every this many radians (2°): the edge moves under a tenth of a cell between two.</summary>
     private const double SampleStep = Math.PI / 90;
-
-    /// <summary>
-    /// The wrecks a swing of <paramref name="look"/>, the fire axe unless a test says, by
-    /// <paramref name="hero"/> toward <paramref name="at"/>, in thousandths of a cell, touches as it
-    /// strikes (0039, 0040), in spawn order; none while the hero is aboard. Its edge, held as the figure
-    /// draws it (<see cref="AxeSwing.EdgeAt"/>), sweeps the downstroke's last stretch, from crossing the
-    /// line to the point to <see cref="AxeSwing.Through"/> past it, from the shoulder of the body upright,
-    /// turned the way the hero faces; never the raised stretch over the head. A wreck is touched where it
-    /// is aimed at: its picture and a margin, square to the world.
-    /// </summary>
-    public static List<Piece> Struck(Registry m, Hero hero, Point at, HeldLook? look = null)
-    {
-        var struck = new List<Piece>();
-        if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return struck;
-        var edges = SwingEdges(hero, at, look ?? HeldLook.FireAxe);
-        foreach (var p in m.Debris.Pieces)
-        {
-            if (HalfOf(p.Item) is not var (halfW, halfH)) continue;
-            if (edges.Any(e => Crosses(e, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH))) struck.Add(p);
-        }
-        return struck;
-    }
 
     /// <summary>
     /// The edge of <paramref name="look"/>, held as the figure draws it, swung by <paramref name="hero"/> toward <paramref name="at"/>,
@@ -313,8 +298,8 @@ public static class Aiming
 
     /// <summary>
     /// The creatures a swing of <paramref name="look"/>, the fire axe unless a test says, by <paramref name="hero"/> toward
-    /// <paramref name="at"/> touches as it strikes, in id order (0102): its edge as for a wreck (<see cref="Struck"/>), against each
-    /// creature's body and a margin, wherever the hero stands.
+    /// <paramref name="at"/> touches as it strikes, in id order (0102): its edge, sampled down the downstroke's last stretch, against
+    /// each creature's body and a margin, wherever the hero stands.
     /// </summary>
     public static List<Creature> StruckCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
     {
@@ -332,7 +317,8 @@ public static class Aiming
 
     /// <summary>
     /// The creatures the bit of <paramref name="look"/>, the drill unless a test says, touches held by <paramref name="hero"/>
-    /// aimed at <paramref name="at"/> (0102), in id order: its bit as for a wreck (<see cref="Touched"/>), wherever the hero stands.
+    /// aimed at <paramref name="at"/> (0102), in id order: its bit, turned at the chest toward the point, against each creature's body
+    /// and a margin, wherever the hero stands.
     /// </summary>
     public static List<Creature> TouchedCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
     {
@@ -371,33 +357,6 @@ public static class Aiming
         return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay) ? enter : null;
     }
 
-    /// <summary>
-    /// The hits peer <paramref name="peer"/>'s swing of the axe toward <paramref name="at"/> sends as it strikes:
-    /// one for each wreck it touches (<see cref="Struck"/>) the sim would let it hit.
-    /// </summary>
-    public static List<Hit> HitsOf(Registry m, int peer, Hero hero, Point at) => HitsOf(m, peer, Struck(m, hero, at), Spec.Weapons.Axe.Item);
-
-    /// <summary>A hit with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> hit.</summary>
-    public static List<Hit> HitsOf(Registry m, int peer, IEnumerable<Piece> touched, string tool) =>
-        touched.Where(p => m.Debris.HitProblem(peer, p.Id, tool) == null).Select(p => new Hit(p.Id, tool)).ToList();
-
-    /// <summary>
-    /// The wrecks the bit of <paramref name="look"/>, the drill unless a test says, touches, held by
-    /// <paramref name="hero"/> aimed at <paramref name="at"/>, in thousandths of a cell (0054), in spawn order;
-    /// none while the hero is aboard. Held in both hands, the drill turns at the chest so the bit's line runs
-    /// through the point, as far as it turns (<see cref="TwoHand.AngleFor"/>), from the shoulder of the body upright, turned the way
-    /// the hero faces, as the figure draws it; the bit, its edge, is tested against each wreck's aim box as the axe's blade is.
-    /// </summary>
-    public static List<Piece> Touched(Registry m, Hero hero, Point at, HeldLook? look = null)
-    {
-        var touched = new List<Piece>();
-        if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return touched;
-        var bit = BitOf(hero, at, look ?? HeldLook.Drill);
-        foreach (var p in m.Debris.Pieces)
-            if (HalfOf(p.Item) is var (halfW, halfH) && Crosses(bit, p.X - halfW, p.Y - halfH, p.X + halfW, p.Y + halfH)) touched.Add(p);
-        return touched;
-    }
-
     /// <summary>The bit of <paramref name="look"/> held by <paramref name="hero"/> aimed at <paramref name="at"/>, turned at the chest as far as it turns, as the figure draws it.</summary>
     private static (double Ax, double Ay, double Bx, double By) BitOf(Hero hero, Point at, HeldLook look)
     {
@@ -408,76 +367,48 @@ public static class Aiming
     }
 
     /// <summary>
-    /// The digs a strike of <paramref name="tool"/> at <paramref name="at"/>, in thousandths of a cell, sends (0077) with a brush
-    /// <paramref name="brush"/> cells across round it (<see cref="Brush"/>), ascending: one at each natural wall or plant of its
-    /// square within the hero's reach, as plans are reached, but one a plant, at its first cell, so a tree falls as fast as
-    /// it did to one cell; none where the sim would refuse it, nor off the grid. Each takes its full damage. Wherever the hero
-    /// stands, a shaft or a cave too: no swing nor bit is traced, the cells are the pointer's.
+    /// Where a tool's fan is cast from: <paramref name="hero"/>'s shoulder, the body upright, in thousandths of a cell. The sim
+    /// takes it on the client's word, among friends (0002).
     /// </summary>
-    public static List<Dig> DigsAt(Registry m, int peer, Hero hero, Point at, string tool, int brush, bool back = false)
+    public static Point HandOf(Hero hero) => new(hero.X, hero.Y - ShoulderUp);
+
+    /// <summary>The heading from <paramref name="from"/> to <paramref name="to"/>, in steps of the turn (<see cref="Spec.Headings"/>), to the nearest.</summary>
+    public static int HeadingOf(Point from, Point to)
     {
-        var digs = new List<Dig>();
-        var grid = m.Grid;
-        if (CellAt(grid, at) == null) return digs;
-        var felled = new List<Plant>();
-        foreach (int cell in Brush.Cells(grid.Width, grid.Height, (at.X / (double)Hero.Unit, at.Y / (double)Hero.Unit), brush))
+        if (from == to) return 0;
+        double turns = Math.Atan2(to.Y - from.Y, to.X - from.X) / (2 * Math.PI);
+        return (int)Math.Round(turns * Spec.Headings.Turn) & (Spec.Headings.Turn - 1);
+    }
+
+    /// <summary>
+    /// The hit of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, in thousandths of a cell (the fan
+    /// of rays): from its hand (<see cref="HandOf"/>), with what the sim says it would strike; no wreck while the hero is
+    /// aboard.
+    /// </summary>
+    public static Fan FanOf(Registry m, Hero hero, Point at, string tool)
+    {
+        var hand = HandOf(hero);
+        int heading = HeadingOf(hand, at);
+        var ground = new Hew(tool, hand.X, hand.Y, heading);
+        var wrecks = new HewWrecks(tool, hand.X, hand.Y, heading);
+        bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
+        return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading), wrecks,
+            outside ? m.Debris.Struck(tool, hand.X, hand.Y, heading) : []);
+    }
+
+    /// <summary>
+    /// The cell of <paramref name="fan"/>'s ground heard and seen as its strike's own: of the walls and plants it strikes, the one
+    /// nearest <paramref name="at"/>, the pointer; a plant by its own cell.
+    /// </summary>
+    public static int LeadOf(Fan fan, Point at, int width)
+    {
+        long Off(int cell)
         {
-            if (!Digs(m, peer, hero, cell, tool, back)) continue;
-            if (back)
-            {
-                digs.Add(new Dig(cell, tool, Back: true));
-                continue;
-            }
-            if (grid.WallAt(cell) is not { Natural: true } && m.Building.PlantAt(cell) is { } plant)
-            {
-                if (felled.Contains(plant)) continue;
-                felled.Add(plant);
-            }
-            digs.Add(new Dig(cell, tool));
+            long dx = cell % width * Hero.Unit + Hero.Unit / 2 - at.X, dy = cell / width * Hero.Unit + Hero.Unit / 2 - at.Y;
+            return dx * dx + dy * dy;
         }
-        return digs;
-    }
-
-    /// <summary>The dig of <paramref name="digs"/> heard and seen as a strike's own at <paramref name="at"/>: the one in its cell, else the first.</summary>
-    public static Dig? LeadOf(IReadOnlyList<Dig> digs, Point at, int width)
-    {
-        int x = (int)Math.Floor(at.X / (double)Hero.Unit), y = (int)Math.Floor(at.Y / (double)Hero.Unit);
-        foreach (var dig in digs)
-            if (dig.Cell == y * width + x) return dig;
-        return digs.Count > 0 ? digs[0] : null;
-    }
-
-    /// <summary>
-    /// Whether a strike of <paramref name="tool"/> digs <paramref name="cell"/>: natural ground or a plant there, or with
-    /// <paramref name="back"/> its back wall, within reach, as the sim would take it.
-    /// </summary>
-    private static bool Digs(Registry m, int peer, Hero hero, int cell, string tool, bool back = false) =>
-        IsGround(m, cell, back) && Reaches(hero, cell, m.Grid.Width) && m.Building.DigProblem(peer, cell, tool, back) == null;
-
-    /// <summary>Whether <paramref name="cell"/> holds what is dug: a natural wall, or a plant (0079); a back wall of any material for the right button (0107).</summary>
-    private static bool IsGround(Registry m, int cell, bool back = false) =>
-        back ? m.Grid.BackAt(cell) != null : m.Grid.WallAt(cell) is { Natural: true } || m.Building.PlantAt(cell) != null;
-
-    /// <summary>
-    /// The aim of a strike of <paramref name="tool"/> with the brush <paramref name="brush"/> cells across round
-    /// <paramref name="point"/>, in cells, when ground or a plant is in its square: at the pointer's <paramref name="cell"/> if it
-    /// could be dug, else the first cell that could, else the pointer's own if it is ground, else the first that is, with why
-    /// the sim would refuse it; none with no ground in the square.
-    /// </summary>
-    private static Aim? DugAim(Registry m, int peer, Hero hero, (double X, double Y) point, int cell, string tool, int brush, bool back = false)
-    {
-        var grid = m.Grid;
-        var ground = Brush.Cells(grid.Width, grid.Height, point, brush).Where(c => IsGround(m, c, back)).OrderBy(c => c == cell ? 0 : 1).ToList();
-        if (ground.Count == 0) return null;
-        int at = ground.FirstOrDefault(c => Digs(m, peer, hero, c, tool, back), ground[0]);
-        (int, int, int)? square = brush > 1 && Brush.Corner(grid.Width, grid.Height, point, brush, brush) is var (x, y) ? (x, y, brush) : null;
-        return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Dig(at, tool, back), m.Building.DigProblem(peer, at, tool, back)), Square: square);
-    }
-
-    private static int? CellAt(IGridQueries grid, Point at)
-    {
-        int x = (int)Math.Floor(at.X / (double)Hero.Unit), y = (int)Math.Floor(at.Y / (double)Hero.Unit);
-        return x < 0 || y < 0 || x >= grid.Width || y >= grid.Height ? null : y * grid.Width + x;
+        var cells = fan.Hewn.Cells.Concat(fan.Hewn.Plants.Select(p => p.Cell));
+        return cells.OrderBy(Off).ThenBy(c => c).First();
     }
 
     /// <summary>
@@ -530,7 +461,7 @@ public static class Aiming
         if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
         // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
-        if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hit or Dig)) commands.Add(press.Command);
+        if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hew or HewWrecks)) commands.Add(press.Command);
         if (aim.Work is not { Problem: null } work || !held) return new(commands, null, -1);
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;

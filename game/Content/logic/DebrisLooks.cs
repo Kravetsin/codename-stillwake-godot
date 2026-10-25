@@ -27,26 +27,12 @@ public static class DebrisLooks
 
     /// <summary>
     /// Wreckage, aimed at by its whole picture rather than near its middle (0034): its picture's size in
-    /// pixels of the world, eight to a cell, outline included.
+    /// pixels of the world, eight to a cell, outline included, the sim's own size of it (<c>Content.Wreckage.Sizes</c>).
     /// </summary>
-    public static readonly IReadOnlyDictionary<string, (int W, int H)> Wrecks = new Dictionary<string, (int, int)>
-    {
-        ["hullSection"] = (48, 32),
-        ["cargoContainer"] = (64, 32),
-        ["machineBlock"] = (48, 32),
-        ["cableRack"] = (32, 32),
-        ["tankCluster"] = (32, 32),
-        ["shieldSlab"] = (64, 32),
-        ["soilClod"] = (32, 32),
-        ["asteroid"] = (32, 32),
-        ["asteroidSmall"] = (24, 24),
-        ["asteroidLarge"] = (48, 48),
-        ["asteroidRich"] = (40, 40),
-        // Derelicts (0056): the biggest pieces out, 10 to 12 cells across.
-        ["engineBlock"] = (80, 48),
-        ["cargoHold"] = (96, 48),
-        ["podCluster"] = (64, 64),
-    };
+    public static readonly IReadOnlyDictionary<string, (int W, int H)> Wrecks =
+        Content.Wreckage.Sizes.ToDictionary(w => w.Item, w => (w.W * PixelsPerCell, w.H * PixelsPerCell));
+
+    private const int PixelsPerCell = 8;
 
     /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears (<c>Content.Looks.Of</c>), or null to draw the item; a look's own, by its number from 0, too.</summary>
     public static string? PictureOf(string item, int id) =>

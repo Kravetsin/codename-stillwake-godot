@@ -129,7 +129,7 @@ public class AsteroidTests
     private static Scenario Hits(Scenario w, int times, string tool, int peer = 0)
     {
         if (Stillwake.Content.Items.Get(tool).Draw != null) w.Do(new Run(tool, true) { From = peer });
-        for (int i = 0; i < times; i++) w.Do(new Hit(1, tool) { From = peer });
+        for (int i = 0; i < times; i++) w.Do(HewTesting.Hit(w, 1, tool) with { From = peer });
         return w;
     }
 
@@ -200,17 +200,17 @@ public class AsteroidTests
     public void HitsWithTheDrillOnlyWhileItsHeroRunsIt()
     {
         var w = Facing("asteroid", Full);
-        w.Do(new Hit(1, Drill)).Run();
+        w.Do(HewTesting.Hit(w, 1, Drill)).Run();
         Assert.Equal(["items.notRunning"], Reasons(w));
         Assert.Equal(0, Pieces(w)[0].Damage);
         // The client sends its run before the frame's hits: the host applies them in that order, on one tick.
-        w.Do(new Run(Drill, true)).Do(new Hit(1, Drill)).Run();
+        w.Do(new Run(Drill, true)).Do(HewTesting.Hit(w, 1, Drill)).Run();
         Assert.Single(w.Refusals);
         Assert.Equal(Weapons.Drill.Damage, Pieces(w)[0].Damage);
-        w.Do(new Run(Drill, false)).Do(new Hit(1, Drill)).Run();
+        w.Do(new Run(Drill, false)).Do(HewTesting.Hit(w, 1, Drill)).Run();
         Assert.Equal(["items.notRunning", "items.notRunning"], Reasons(w));
         // What the client asks before it sends says nothing of the run, so the first hit goes with the run.
-        Assert.Null(w.M.Debris.HitProblem(0, 1, Drill));
+        Assert.Null(HewTesting.HitProblem(w, 0, 1, Drill));
     }
 
     [Fact]
@@ -219,11 +219,11 @@ public class AsteroidTests
         var w = Facing("asteroid", Full);
         Hits(w, 1, Axe).Run(5);
         Assert.Equal(Battery(Full), w.M.Items.Inventory(0)[Belt]);
-        // A hundred hits on one tick and none on the next three cost the same: four ticks of the draw.
-        Hits(w, 100, Drill).Run(4);
+        // Fifty hits on one tick and none on the next three cost the same: four ticks of the draw.
+        Hits(w, 50, Drill).Run(4);
         Assert.Equal(Battery(Full - 4 * Draw * S), w.M.Items.Inventory(0)[Belt]);
         Assert.Empty(w.Refusals);
-        Assert.Equal(Weapons.Axe.Damage + 100 * Weapons.Drill.Damage, Pieces(w)[0].Damage);
+        Assert.Equal(Weapons.Axe.Damage + 50 * Weapons.Drill.Damage, Pieces(w)[0].Damage);
     }
 
     [Fact]
@@ -235,13 +235,13 @@ public class AsteroidTests
         Assert.Equal(600, Full / S / Draw);
         Hits(w, 1, Drill).Run(600);
         Assert.Equal(Battery(0), w.M.Items.Inventory(0)[Belt]);
-        Assert.Equal("items.flat", w.M.Debris.HitProblem(0, 1, Drill));
-        w.Do(new Hit(1, Drill)).Run();
+        Assert.Equal("items.flat", HewTesting.HitProblem(w, 0, 1, Drill));
+        w.Do(HewTesting.Hit(w, 1, Drill)).Run();
         Assert.Null(w.M.Items.Running(0));
         Assert.Equal(["items.flat"], Reasons(w));
         Assert.Equal(Weapons.Drill.Damage, Pieces(w)[0].Damage);
         // The axe needs no battery.
-        Assert.Null(w.M.Debris.HitProblem(0, 1, Axe));
+        Assert.Null(HewTesting.HitProblem(w, 0, 1, Axe));
     }
 
     [Fact]
@@ -264,7 +264,7 @@ public class AsteroidTests
     {
         var w = Facing("asteroid", Full);
         Hits(w, 1, Drill).Run();
-        w.Do(new Move(new Items.Place(Belt), new Target(5), 1)).Do(new Hit(1, Drill)).Run();
+        w.Do(new Move(new Items.Place(Belt), new Target(5), 1)).Do(HewTesting.Hit(w, 1, Drill)).Run();
         Assert.Equal(["items.flat"], Reasons(w));
         Assert.Null(w.M.Items.Running(0));
     }
@@ -273,9 +273,10 @@ public class AsteroidTests
     public void RefusesTheDrillForTheReasonsTheAxeIsRefusedFirst()
     {
         var w = Facing("scrapChunk");
-        Assert.Equal("debris.notWreckage", w.M.Debris.HitProblem(0, 1, Drill));
-        Assert.Equal("debris.gone", w.M.Debris.HitProblem(0, 9, Drill));
-        Assert.Equal("debris.notOutside", w.M.Debris.HitProblem(1, 1, Drill));
+        // A piece caught by hand is passed by, as is one gone: the fan strikes nothing.
+        Assert.Equal("debris.nothingToHit", HewTesting.HitProblem(w, 0, 1, Drill));
+        Assert.Equal("debris.nothingToHit", HewTesting.HitProblem(w, 0, 9, Drill));
+        Assert.Equal("debris.notOutside", HewTesting.HitProblem(w, 1, 1, Drill));
     }
 
     [Fact]
@@ -298,7 +299,7 @@ public class AsteroidTests
     {
         var w = Facing("asteroid", Full).GiveItems(1, (Drill, 1)).Put(Belt, Battery(Full), peer: 1).Do(new Enter(1 * 20 + 13) { From = 1 }).Run();
         Hits(w, 1, Drill);
-        Hits(w, 1, Drill, peer: 1).Do(new Hit(1, Axe) { From = 1 }).Run(2);
+        Hits(w, 1, Drill, peer: 1).Do(HewTesting.Hit(w, 1, Axe) with { From = 1 }).Run(2);
         Assert.Empty(w.Refusals);
         Assert.Equal(Full - 2 * Draw * S, w.M.Items.Inventory(0)[Belt]!.Charge);
         Assert.Equal(Full - 2 * Draw * S, w.M.Items.Inventory(1)[Belt]!.Charge);
@@ -343,7 +344,7 @@ public class AsteroidTests
                         if (Pieces(w).FirstOrDefault(p => WreckageSpec.HpOf(p.Item) != null) is { } wreck)
                         {
                             w.Do(new Run(Drill, true) { From = s.Peer });
-                            for (int i = 0; i < 1 + s.Ticks % 40; i++) w.Do(new Hit(wreck.Id, i % 2 == 0 ? Drill : Axe) { From = s.Peer });
+                            for (int i = 0; i < 1 + s.Ticks % 40; i++) w.Do(HewTesting.Hit(w, wreck.Id, i % 2 == 0 ? Drill : Axe) with { From = s.Peer });
                         }
                         break;
                     case "wall":

@@ -18,11 +18,11 @@ public class SoilClodTests
         var w = new Scenario(DebrisZonesTests.Open(20, 8, 1, 1, w: 1, h: 1), seed).Run(DebrisSpec.Every);
         w.M.Debris.Pieces[0].Item = "soilClod";
         w.Do(new Enter(1 * 20 + 12)).Run();
-        for (int i = 0; i < hits - 1; i++) w.Do(new Hit(w.M.Debris.Pieces[0].Id, Weapons.Axe.Item));
+        for (int i = 0; i < hits - 1; i++) w.Do(HewTesting.Hit(w, w.M.Debris.Pieces[0].Id, Weapons.Axe.Item));
         w.Run();
         Assert.Single(w.M.Debris.Pieces);
         Assert.Empty(w.M.Items.Floor);
-        w.Do(new Hit(w.M.Debris.Pieces[0].Id, Weapons.Axe.Item));
+        w.Do(HewTesting.Hit(w, w.M.Debris.Pieces[0].Id, Weapons.Axe.Item));
         return w.Run();
     }
 

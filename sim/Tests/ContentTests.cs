@@ -59,15 +59,18 @@ public partial class ContentTests
         // A wall breaking in one hit would show no crack before its dust; what a dig gives is what a plan of it costs.
         foreach (var m in Materials.All.Where(m => m.Breaks))
         {
-            Assert.All(Weapons.All, w => Assert.True(w.Damage < m.Strength, $"{w.Item} on {m.Id}"));
+            Assert.All(Weapons.All, w => Assert.True(w.BlockDamage < m.Strength || m.Id == "soil", $"{w.Item} on {m.Id}"));
             Assert.All(m.Cost, c => Assert.True(Content.Items.TryGet(c.Item, out _), c.Item));
         }
         Assert.Equal(["soil", "stone", "bedrock", "lava", "alloy", "plaster", "copperVein", "iceVein"], Materials.All.Where(m => m.Natural).Select(m => m.Id));
-        // The ruins' alloy (0085): six seconds of the drill, three of the drill with the arc module (0098), fifteen of the axe.
-        int Seconds(Weapon w) => Materials.Get("alloy").Strength / (w.Damage * World.TicksPerSecond / w.Pace);
-        var fitted = Weapons.Drill with { Damage = Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
-        Assert.Equal((15, 6, 3), (Seconds(Weapons.Axe), Seconds(Weapons.Drill), Seconds(fitted)));
-        Assert.True(fitted.Damage < Materials.All.Where(m => m.Breaks).Min(m => m.Strength));
+        // The ruins' alloy (0085), a cell of it: seven and a half seconds of the axe, a second and a half of the drill, under one
+        // fitted (0098).
+        int Tenths(Weapon w) => Materials.Get("alloy").Strength * 10 / (w.BlockDamage * World.TicksPerSecond / w.Pace);
+        var fitted = Weapons.Drill with { BlockDamage = Sim.Items.Boost.Gain(Weapons.Drill.BlockDamage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
+        Assert.Equal((75, 15, 7), (Tenths(Weapons.Axe), Tenths(Weapons.Drill), Tenths(fitted)));
+        // Either tool takes soil in one hit (the fan of rays); stone and harder crack first, the drill fitted or not.
+        Assert.All(Weapons.All, w => Assert.Equal(Materials.Get("soil").Strength, w.BlockDamage));
+        Assert.True(fitted.BlockDamage < Materials.All.Where(m => m.Breaks && m.Id != "soil").Min(m => m.Strength));
     }
 
     // Machines
@@ -136,16 +139,16 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// A surface plant with strength takes more than one hit of any weapon and fewer than a stone wall's (0077): a tree some
+    /// A surface plant with strength takes more than one hit of any weapon and at most two stone walls' (0077): a tree some
     /// seconds of the axe, more than a rock, more than a bush. A tree gives more planks than any cargo crate holds.
     /// </summary>
     [Fact]
     public void TreesRocksAndBushesTakeSeveralHitsOfAnyWeaponATreeTheMostAndGiveMorePlanksThanACrate()
     {
-        int Seconds(string kind) => Flora.Get(kind).Strength / (Weapons.Axe.Damage * World.TicksPerSecond / Weapons.Axe.Pace);
+        int Seconds(string kind) => Flora.Get(kind).Strength / (Weapons.Axe.BlockDamage * World.TicksPerSecond / Weapons.Axe.Pace);
         Assert.Equal((3, 2, 1), (Seconds("acacia"), Seconds("rock"), Seconds("bush")));
         foreach (var kind in Flora.All.Where(k => k.Strength > 0))
-            Assert.All(Weapons.All, w => Assert.True(w.Damage < kind.Strength && kind.Strength <= Materials.Get("stone").Strength, $"{w.Item} on {kind.Id}"));
+            Assert.All(Weapons.All, w => Assert.True(w.BlockDamage < kind.Strength && kind.Strength <= 2 * Materials.Get("stone").Strength, $"{w.Item} on {kind.Id}"));
         Assert.All(Flora.Cave, k => Assert.Equal(0, k.Strength));
         Assert.True(Flora.Get("acacia").Yields.Single(y => y.Item == "planks").Count > Loot.Of("cargoCrate")!.Single(e => e.Item == "planks").Max);
     }

@@ -75,7 +75,6 @@ public static class DevModes
         // Debris, wrecks and the ground.
         new("--arc-drill", DevShape.Flag, "with --asteroid, --planet or --ground, the drill in hand has the arc module fitted (0098)"),
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),
-        new("--precise", DevShape.Flag, "with --ground, Ctrl held: one cell struck, not the brush (GroundHands)"),
         new("--take-at", DevShape.Next, "with --ground at a spire, the second its nearest relic is struck from (0096)"),
         new("--ground-offset", DevShape.Next, "with --ground, the hero stood N columns right of its mode's spot"),
         new("--sprint", DevShape.Next, "with --ground=sprint --autopilot, cells run; 300 by default"),

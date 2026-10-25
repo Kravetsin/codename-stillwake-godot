@@ -61,6 +61,8 @@ public interface IItemsQueries
     string? FitProblem(int peer, Place from, int machine);
     Stack? ToolStack(int peer, string item);
     int Damage(int peer, string tool);
+    /// <summary>What a hit of weapon <paramref name="tool"/> by <paramref name="peer"/> takes off a wall, back wall or plant.</summary>
+    int BlockDamage(int peer, string tool);
 }
 
 /// <summary>How a module that depends on the items may change them.</summary>

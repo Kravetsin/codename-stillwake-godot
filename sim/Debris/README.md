@@ -62,13 +62,13 @@ by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052)
   the world's `Rng` as it applies; what does not fit floats at the hero (`GiveOrDrop`). Refused `debris.gone`,
   `debris.notOutside` (the hero's reported cell or the piece's middle not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; hit points alone say how hard it is,
-  and every weapon breaks every kind (0054). A cable rack always breaks into one circuit (0041). `Hit(Piece, Tool)`
-  adds the weapon's `Damage` (module boost included, 0098); at the hit points it is removed and its `Loot` falls still
-  under its middle, dropped by `FloorStack.Nobody`. Refused `debris.gone`, `debris.notOutside`, `debris.notWreckage`,
-  then `items.flat` and, for the command only, `items.notRunning` (`WeaponProblem`, 0055). A hit spends nothing; the
-  run pays by the tick. `HitProblem` leaves the run out, so a first hit may go in the frame of its `Run`. A swing
-  sends one `Hit` per wreck its blade touches (0039, 0040).
-- **Found** (0066): a `Grab` that applies and a `Hit` that breaks record the kind, the items `LootOf` drew for it (the
+  and every weapon breaks every kind (0054); a cable rack gives one circuit (0041). `HewWrecks(Tool, X, Y, Heading)`
+  (fan-of-rays): each ray of the fan strikes the first wreck whose box (`Wreckage.Sizes`) covers a cell it crosses (first
+  spawned there), stopping there or at a wall; one whose middle is not in space is passed (`Struck`). Each struck takes
+  `Damage` once (boosted, 0098); at its hit points it goes, its `Loot` still under its middle (`FloorStack.Nobody`).
+  Refused `debris.notOutside` (the hero), `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055). A hit
+  spends nothing; `HewProblem` leaves the run out, so a first hit may go in its `Run`'s frame.
+- **Found** (0066): a `Grab` that applies and a `HewWrecks` that breaks record the kind, the items `LootOf` drew for it (the
   same roll, overflow too) and the look it wore (`Content.Looks.Of`), each appended the first time. Nothing else
   records. One record for the world; never sorted, never shrunk.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` clamps the point to the grid and sets `Reel { By, ToX, ToY, Left }`,
@@ -95,7 +95,7 @@ by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052)
 - A stale reported cell (0050), a window over 1920×1080 or a grid too narrow to push past a view may show a spawn (0052).
 - A stream pushed right by a hero by its lead is thinned by the cap while the hero stays (0052).
 - Heroes share one far field's density; with no hull there is none. A half-broken far wreck can despawn.
-- Two grabs or hits of one piece on a tick: host order; the second is `debris.gone`.
+- Two grabs of one piece on a tick: host order; the second is `debris.gone`.
 - A catch's popup is lost if a load or resync runs it (0066). Picking up a floor stack records nothing.
 - A wreck is judged by its middle cell: over the hull it cannot be hit, and drifts on.
 - An asteroid reeled out of its band stays out. A diagonal reel is up to 41% faster: no square root (0044).

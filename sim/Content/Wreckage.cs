@@ -38,4 +38,35 @@ public static class Wreckage
             if (All[i].Item == item) return All[i].Hp;
         return null;
     }
+
+    /// <summary>
+    /// Each kind's size in cells, its picture's, outline included: the box a tool's ray strikes it in (the fan of rays) and
+    /// the client draws and aims at it by.
+    /// </summary>
+    public static readonly IReadOnlyList<(string Item, int W, int H)> Sizes =
+    [
+        ("hullSection", 6, 4),
+        ("cargoContainer", 8, 4),
+        ("machineBlock", 6, 4),
+        ("cableRack", 4, 4),
+        ("tankCluster", 4, 4),
+        ("shieldSlab", 8, 4),
+        ("soilClod", 4, 4),
+        ("asteroid", 4, 4),
+        ("asteroidSmall", 3, 3),
+        ("asteroidLarge", 6, 6),
+        ("asteroidRich", 5, 5),
+        // Derelicts (0056): the biggest pieces out, 10 to 12 cells across.
+        ("engineBlock", 10, 6),
+        ("cargoHold", 12, 6),
+        ("podCluster", 8, 8),
+    ];
+
+    /// <summary>The size in cells of wreckage <paramref name="item"/> (<see cref="Sizes"/>), or null when it is no wreckage.</summary>
+    public static (int W, int H)? SizeOf(string item)
+    {
+        for (int i = 0; i < Sizes.Count; i++)
+            if (Sizes[i].Item == item) return (Sizes[i].W, Sizes[i].H);
+        return null;
+    }
 }

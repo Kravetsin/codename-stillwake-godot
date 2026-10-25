@@ -33,8 +33,10 @@ public partial class ContentTests
             Assert.Same(weapon, Weapons.Of(weapon.Item));
         }
         Assert.Null(Weapons.Of(Harpoon.Item));
-        // Damage a second is all that sets them apart (0054): the drill 10, the axe 4.
+        // Damage a second is all that sets them apart (0054): the drill 10, the axe 4; on blocks (the fan of rays) the drill 40 on
+        // a cell or two, the axe 8 on a band of about four.
         Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
+        Assert.Equal((40, 8), (Weapons.Drill.BlockDamage * 20 / Weapons.Drill.Pace, Weapons.Axe.BlockDamage * 20 / Weapons.Axe.Pace));
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
         // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;

@@ -131,14 +131,14 @@ public class CaveFloraTests
             t......t
             tttttttt
             """) with { Flora = [(1 * 8 + 4, "threadViolet"), (1 * 8 + 5, "stalactite"), (2 * 8 + 2, "glowcapTeal"), (2 * 8 + 7, "moss")] };
-        return new Scenario(layout, doubled: true);
+        return new Scenario(layout.OnPlanet(), doubled: true);
     }
 
     /// <summary>The lower row of the drawn character at (<paramref name="x"/>, <paramref name="y"/>): the wall a ceiling's growth hangs from.</summary>
     private static int Bottom(Scenario w, int x, int y) => w.At(x, y) + w.Layout.Width;
 
     /// <summary>The axe's hits that break stone.</summary>
-    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.Damage - 1) / Weapons.Axe.Damage;
+    private static readonly int Hits = (Materials.Get("stone").Strength + Weapons.Axe.BlockDamage - 1) / Weapons.Axe.BlockDamage;
 
     private static string[] Kinds(Scenario w) => w.M.Building.Plants.Select(p => p.Kind).ToArray();
 
@@ -146,10 +146,11 @@ public class CaveFloraTests
     public void AHitOnAGrowthFellsItAndOnHangingThreadsAnyCellTheyHangIn()
     {
         var w = Cave();
-        w.Do(new Dig(w.At(2, 2), Weapons.Axe.Item)).Do(new Dig(w.At(4, 2), Weapons.Axe.Item)).Run();
+        w.Do(HewTesting.Dig(w, w.At(2, 2), Weapons.Axe.Item)).Do(HewTesting.Dig(w, w.At(4, 2), Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(["stalactite", "moss"], Kinds(w));
-        Assert.Empty(w.M.Building.Cracks);
+        // Felled at a hit: no plant keeps a crack, whatever wall the fans cracked besides.
+        Assert.All(w.M.Building.Cracks, c => Assert.NotNull(w.M.Grid.WallAt(c.Cell)));
     }
 
     [Fact]
@@ -160,10 +161,10 @@ public class CaveFloraTests
         int[] holds = [w.At(2, 3), Bottom(w, 5, 0), w.At(7, 2)];
         for (int hit = 1; hit < Hits; hit++)
         {
-            foreach (int cell in holds) w.Do(new Dig(cell, Weapons.Axe.Item));
+            foreach (int cell in holds) w.Do(HewTesting.Dig(w, cell, Weapons.Axe.Item));
             Assert.Equal(4, w.Run().M.Building.Plants.Count);
         }
-        foreach (int cell in holds) w.Do(new Dig(cell, Weapons.Axe.Item));
+        foreach (int cell in holds) w.Do(HewTesting.Dig(w, cell, Weapons.Axe.Item));
         w.Run();
         Assert.Equal(["threadViolet"], Kinds(w));
     }
@@ -173,7 +174,7 @@ public class CaveFloraTests
     public void AHitOnStoneWithMossInItDigsTheStoneNotTheMoss()
     {
         var w = Cave();
-        w.Do(new Dig(w.At(7, 2), Weapons.Axe.Item)).Run();
+        w.Do(HewTesting.Dig(w, w.At(7, 2), Weapons.Axe.Item)).Run();
         Assert.Single(w.M.Building.Cracks);
         Assert.Contains("moss", Kinds(w));
     }
@@ -204,8 +205,8 @@ public class CaveFloraTests
         // A glowcap hit, and the stone a moss lies in dug out.
         var cap = cave.First(p => p.Kind == "glowcapTeal");
         var moss = cave.First(p => p.Kind == "moss");
-        w.Do(new Dig(cap.Cell, Weapons.Axe.Item)).Run();
-        for (int i = 0; i < Hits; i++) w.Do(new Dig(moss.Cell, Weapons.Axe.Item)).Run();
+        w.Do(HewTesting.Dig(w, cap.Cell, Weapons.Axe.Item, surface: 1)).Run();
+        for (int i = 0; i < Hits; i++) w.Do(HewTesting.Dig(w, moss.Cell, Weapons.Axe.Item, surface: 1)).Run();
         var felled = Building(w.World.Save())["felled"]!.AsArray().Select(n => (int)n!).ToArray();
         Assert.Equal(new[] { cap.Cell, moss.Cell }.Order(), felled);
         w.Reload();

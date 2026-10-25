@@ -31,7 +31,7 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public partial class HeroView : Node2D
 {
-    private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
+    private static readonly Color AimReady = Outline.AimReady, AimRefused = Outline.AimRefused;
     /// <summary>A safety line's yellow, pale enough not to shout across the dark.</summary>
     private static readonly Color Line = new(new Color("d9c27a"), 0.9f);
     /// <summary>The harpoon's line, the rope of its picture's spool: warmer than the tether's.</summary>
@@ -42,6 +42,7 @@ public partial class HeroView : Node2D
     private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
+    private readonly FaceRim _faceRim = new();
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
@@ -102,7 +103,7 @@ public partial class HeroView : Node2D
     /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
     /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
-    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, (int, int, int)? Square, bool Back)? _traced;
+    private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, bool Back)? _traced;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
@@ -116,7 +117,6 @@ public partial class HeroView : Node2D
     private int _swingFace = 1;
     private bool _grabHeld;
     /// <summary>Whether the swing under way was begun with the right button: it digs the back walls (0107).</summary>
-    private bool _swingBack;
     /// <summary>
     /// The harpoon (0044): this hero's rod and the cooldown every harpoon it holds waits for, the line to the
     /// rod, the rod as drawn, and whether the arm aims the gun, so the hero keeps facing the pointer.
@@ -131,8 +131,6 @@ public partial class HeroView : Node2D
     /// its last hits went on while it runs; none while it does not.
     /// </summary>
     private bool _aimsDrill;
-    /// <summary>The side of the brush this frame's strikes cover: one cell with Ctrl held (<see cref="Brush"/>).</summary>
-    private int _brush = Brush.SideOf(false);
     private DrillPace _drillPace;
     /// <summary>The drill on a wreck, heard at its bit through the suit as the wreck sounds hit, the chop, at the drill's pace (0093).</summary>
     private readonly Heard2D _drillChop = Cues.Player2D(S.Chop, S.Suit, voices: 4);
@@ -221,6 +219,7 @@ public partial class HeroView : Node2D
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
+        AddChild(_faceRim);
         AddChild(_prompt);
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.

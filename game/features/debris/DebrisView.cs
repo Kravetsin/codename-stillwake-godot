@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -35,7 +36,7 @@ public partial class DebrisView(Ui ui) : Node2D
     private const int Margin = 8;
     /// <summary>Pictures made at the start, small pieces' and wrecks': more than the far field shows in view at once (0052).</summary>
     private const int WarmSmall = 48, WarmWrecks = 32;
-    private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
+    private static readonly Color AimReady = Outline.AimReady, AimRefused = Outline.AimRefused;
 
     /// <summary>What is shown of a piece: its picture, the damage last seen, the jolt still settling and which way, and where it was on which tick.</summary>
     private sealed class Shown(Sprite2D picture, bool wreck)
@@ -96,7 +97,7 @@ public partial class DebrisView(Ui ui) : Node2D
     {
         _clockMs += elapsedMs;
         Pieces = debris.Pieces;
-        _own.Read(client.InFlight);
+        _own.Read(client.InFlight, h => debris.Struck(h.Tool, h.X, h.Y, h.Heading).Select(p => p.Id).ToList());
         var grabbed = Predicted.Grabbing(client.InFlight);
         int left = (int)Math.Floor(view.Position.X - Margin) * Unit, right = (int)Math.Ceiling(view.End.X + Margin) * Unit;
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;

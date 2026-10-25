@@ -403,7 +403,9 @@ public partial class Main
         foreach (var surface in world.Surfaces)
             foreach (var hero in Registry.On(world, surface.Id).Crew.Heroes.Where(h => h.Id != seat).ToList())
                 host.Release(hero.Id, client.World.Encode(new Sim.Crew.Leave()));
-        if (world.SurfaceOf(seat) != 0) host.Release(seat, client.World.Encode(new Transfer(0)));
+        // Sent as this player's own, so the client holds it in flight when it comes back; released by the host for it, the
+        // client took it for a desync and stopped, the world frozen.
+        if (world.SurfaceOf(seat) != 0) client.Send(new Transfer(0));
         (_worldId, _lastSaveTick, _savedAt, _saveProblem) = (id, world.Tick, DateTime.Now, null);
         SaveRoster();
         CloseTitle();

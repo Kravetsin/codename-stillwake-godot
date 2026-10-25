@@ -94,7 +94,7 @@ public class FloraTests
             ssssssss
             tttttttt
             """) with { Flora = [(1 * 8 + 2, "bellTeal"), (1 * 8 + 5, "acacia")] };
-        return new Scenario(layout, doubled: true);
+        return new Scenario(layout.OnPlanet(), doubled: true);
     }
 
     /// <summary>The own cell of a plant drawn at (<paramref name="x"/>, <paramref name="y"/>): its block's bottom-left, on the ground.</summary>
@@ -110,7 +110,7 @@ public class FloraTests
         // The acacia's trunk, a row above its own cell.
         Assert.Equal("acacia", w.M.Building.PlantAt(w.At(5, 0))?.Kind);
         // A tree takes hits to its strength (0080), each on any of its cells.
-        for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.Damage; hit++) w.Do(new Dig(w.At(5, 0), Weapons.Axe.Item)).Run();
+        for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.BlockDamage; hit++) w.Do(HewTesting.Dig(w, w.At(5, 0), Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(["bellTeal"], Kinds(w));
         Assert.Null(w.M.Building.PlantAt(w.At(5, 0)));
@@ -121,10 +121,11 @@ public class FloraTests
     }
 
     [Fact]
-    public void AHitOnOpenGroundWithNoPlantStillDigsNothing()
+    public void AHitIntoOpenAirWithNoPlantStillDigsNothing()
     {
         var w = Meadow();
-        w.Do(new Dig(w.At(3, 1), Weapons.Axe.Item)).Run();
+        // From open ground straight up: the fan meets nothing before it leaves the grid.
+        w.Do(HewTesting.Dig(w, w.At(3, 0), Weapons.Axe.Item, heading: HewTesting.Up)).Run();
         Assert.Equal(["building.nothingToDig"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(2, w.M.Building.Plants.Count);
     }
@@ -134,9 +135,9 @@ public class FloraTests
     {
         var w = Meadow();
         int under = w.At(2, 2);
-        w.Do(new Dig(under, Weapons.Axe.Item)).Run();
         Assert.Equal(2, w.M.Building.Plants.Count);
-        w.Do(new Dig(under, Weapons.Axe.Item)).Run();
+        // Soil at a swing of the axe.
+        w.Do(HewTesting.Dig(w, under, Weapons.Axe.Item)).Run();
         Assert.Null(w.M.Grid.WallAt(under));
         Assert.Equal(["acacia"], Kinds(w));
     }
@@ -178,9 +179,9 @@ public class FloraTests
         Assert.Empty(Building(fresh)["felled"]!.AsArray());
         Assert.True(fresh.Length < 16 * 1024, $"{fresh.Length} bytes");
         // Three felled, one of them by the ground under it; the middle one in a single hit of the axe.
-        var (a, c, d) = (all[0], all.Skip(all.Count / 2).First(p => Flora.Get(p.Kind).Strength <= Weapons.Axe.Damage), all[^1]);
-        w.Do(new Dig(a.Cell, Weapons.Axe.Item)).Do(new Dig(c.Cell, Weapons.Axe.Item)).Run();
-        for (int i = 0; i < 2; i++) w.Do(new Dig(d.Cell + w.On(1).Grid.Width, Weapons.Axe.Item)).Run();
+        var (a, c, d) = (all[0], all.Skip(all.Count / 2).First(p => Flora.Get(p.Kind).Strength <= Weapons.Axe.BlockDamage), all[^1]);
+        w.Do(HewTesting.Dig(w, a.Cell, Weapons.Axe.Item, surface: 1)).Do(HewTesting.Dig(w, c.Cell, Weapons.Axe.Item, surface: 1)).Run();
+        for (int i = 0; i < 2; i++) w.Do(HewTesting.Dig(w, d.Cell + w.On(1).Grid.Width, Weapons.Axe.Item, surface: 1)).Run();
         var felled = Building(w.World.Save())["felled"]!.AsArray().Select(n => (int)n!).ToArray();
         Assert.Equal(new[] { a.Cell, c.Cell, d.Cell }, felled);
         w.Reload();

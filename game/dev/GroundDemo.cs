@@ -138,7 +138,7 @@ public sealed class GroundDemo(string mode)
             int sx = m.Crew.HeroOf(client.Id)?.Cell % m.Grid.Width ?? 0;
             string kind = Spires(mode) ? Spec.Ruins.Cradle : Spec.Ruins.Niche;
             if (m.Building.Relics.Where(r => r.Kind == kind).OrderBy(r => Math.Abs(r.Cell % m.Grid.Width - sx)).FirstOrDefault() is { Taken: false } relic)
-                client.Send(new Dig(relic.Cell, Spec.Weapons.Axe.Item));
+                client.Send(HewAt(relic.Cell, m.Grid.Width));
         }
         if (world.SurfaceOf(client.Id) != _planet || mode is "mouth" or "acacia" or "sprint" || Caves(mode) || (Spires(mode) && mode != "spire-climb") || Homes(mode)) return;
         var here = Registry.On(world, _planet.Value);
@@ -177,8 +177,12 @@ public sealed class GroundDemo(string mode)
         }
         if (world.Tick - _hits < Pace) return;
         _hits = world.Tick;
-        if (next >= 0) client.Send(new Dig(_cells[next], Spec.Weapons.Axe.Item));
+        if (next >= 0) client.Send(HewAt(_cells[next], here.Grid.Width));
     }
+
+    /// <summary>An axe's hit from inside <paramref name="cell"/>, aimed up: a wall there struck alone, a plant from its own cell.</summary>
+    private static Hew HewAt(int cell, int width) =>
+        new(Spec.Weapons.Axe.Item, cell % width * 1000 + 500, cell / width * 1000 + 500, Spec.Headings.Turn * 3 / 4);
 
     /// <summary>
     /// With <c>drill</c> or <c>poses</c>, where the hands aim the drill, in cells: the tunnel's next cell not dug yet, or a point

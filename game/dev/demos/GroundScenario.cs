@@ -31,11 +31,10 @@ public sealed class GroundScenario : DevScenario
 
     public override void Attach(DevContext c)
     {
-        bool precise = Args.Has("--precise");
-        if (Mode is "drill" or "poses") c.Add(new GroundHands(Demo) { Precise = precise });
+        if (Mode is "drill" or "poses") c.Add(new GroundHands(Demo));
         // With --arc-drill the fitted drill is the first slot and the axe the third (GroundDemo.Seed).
         else if (GroundDemo.Hits(Mode))
-            c.Add(new GroundHands(Demo, slot: Args.Has("--axe") ? (ArcDrill != null ? Key.Key3 : Key.Key1) : ArcDrill != null ? Key.Key1 : Key.Key2) { Precise = precise });
+            c.Add(new GroundHands(Demo, slot: Args.Has("--axe") ? (ArcDrill != null ? Key.Key3 : Key.Key1) : ArcDrill != null ? Key.Key1 : Key.Key2));
         else if (GroundDemo.Caves(Mode)) c.Add(new GroundHands(Demo, dig: false));
     }
 

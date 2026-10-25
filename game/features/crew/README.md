@@ -12,7 +12,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) |
 | `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
-| `logic/Aim.cs` | reach, the aim, what the hands send and the tools touch (0039, 0054, 0102) |
+| `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan; the blade on creatures |
 | `logic/AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
@@ -35,6 +35,8 @@ commands reach the sim. Other heroes come through the host.
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
+| `FaceRim.cs` | a tool's aim glow |
+| `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
 | `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
@@ -95,17 +97,17 @@ commands reach the sim. Other heroes come through the host.
 
 - **What the hand holds shows** (`HeldLook`): axe, harpoon, drill, screwdriver; working a plan, the screwdriver twists.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
-  wiring, lays cables; the axe or drill on the right digs back walls only (`building.builtWall` for a ship's).
+  wiring, lays cables; a tool on the right does nothing.
 - **One aim** (`Aiming.AimAt`): a plan, a machine, tank, door or valve (E), a wreck under the pointer, else the nearest
   small piece in space. Outlined green or red; `UsePrompt` says why. With a plan in hand
   (`Ui.Hand`, 0022) the hero holds the sheet and E does nothing.
-- **The axe** (0034, 0038-0040): left held swings; it strikes as the drawn edge crosses the line, one `Hit` per wreck
-  touched in space; played through once begun. E never chops.
+- **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
+  strikes something; heard at the cell nearest the pointer.
+- **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through once begun.
+  E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **The drill** (0054, 0055, 0078): held as a rifle; left held sends `Run` until the sim runs it, and hits every
-  `Pace` ticks on wrecks its bit touches.
-- **Digging** (0077, 0093, 0094): with axe or drill, the brush (`Builds.Brush`, Ctrl for one cell) sends one `Dig` per
-  cell the sim would take; a strike is heard and seen.
+  `Pace` ticks.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump short of a ledge by the foot's lift is mantled.
 

@@ -36,6 +36,12 @@ public static class Surfaces
         /// <summary>Whether debris drifts by in the zones of <see cref="Debris.Zones"/>: none on a planet.</summary>
         public bool Debris { get; init; } = true;
 
+        /// <summary>
+        /// Whether its tools break what stands on its grid, and nothing on it is taken apart by a mark (a planet: the fan of rays);
+        /// else the plan alone takes things apart and its tools break nothing of its grid (the ship).
+        /// </summary>
+        public bool ToolsBreak { get; init; }
+
         /// <summary>The kinds of placement that may be built on it (<c>wall</c>, <c>ladder</c>, <c>cable</c>); null for every one.</summary>
         public IReadOnlyList<string>? Builds { get; init; }
 
@@ -66,6 +72,7 @@ public static class Surfaces
         Sky = PlanetTypes.First.Sky,
         Debris = PlanetTypes.First.Debris,
         Builds = PlanetTypes.First.Builds,
+        ToolsBreak = PlanetTypes.First.ToolsBreak,
     };
 
     /// <summary>The kinds a world may open: every one but the ship.</summary>
