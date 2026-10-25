@@ -17,7 +17,7 @@ be a fan of rays from the hand, each stopping at the first thing it meets, compu
 
 - **A fan of rays.** A weapon (`Content.Weapons`) has an arc in steps of a turn (`Headings.Turn`, 256), a ray count and a
   range in thousandths of a cell. Its rays spread evenly over the arc round the aim, each offset truncated toward zero. The
-  axe: a quarter turn, 9 rays, 3.5 cells, a wave that takes a band of a wall's face. The drill: 8 steps (11°), 3 rays, 5.5
+  axe: a quarter turn, 9 rays, 4.5 cells, a wave that takes a band of a wall's face. The drill: 8 steps (11°), 3 rays, 6.5
   cells, one or two cells.
 - **Cast in the sim** (`Rays`, Core): an integer walk over the cells (DDA), directions from a quarter table of sines in
   thousandths (`Headings.Sines`), mirrored to the whole turn. A ray asks each cell it crosses, its start's first, and stops at

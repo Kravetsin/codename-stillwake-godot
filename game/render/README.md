@@ -32,7 +32,7 @@
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
-| `Outline.cs` | A thin line round the silhouette of what is aimed at. |
+| `Outline.cs` | A soft light inside the silhouette of what is aimed at, breathing. |
 | `PixelArt.cs` | The ship's pictures from `game/art`, a pixel of art a pixel of the world. |
 | `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
 | `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |

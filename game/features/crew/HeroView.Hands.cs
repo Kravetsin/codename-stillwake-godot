@@ -39,7 +39,7 @@ public partial class HeroView
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
         _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan && pointer is { } on
             ? AimGlow.FieldOf(m.Grid, fan.Ground.Tool, fan.Ground.X, fan.Ground.Y, AngleOf(fan.Ground, on), fan.Ground.Back) : null,
-            prompt?.Problem != null ? AimRefused : AimGlowColour);
+            prompt?.Problem != null ? AimRefused : AimReady);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);

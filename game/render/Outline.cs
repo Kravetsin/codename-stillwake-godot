@@ -4,10 +4,10 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// A thin line round the silhouette of what is aimed at: the pictures added are drawn together as
-/// masks, each in its colour, and only the ring of screen pixels just outside them shows, a pixel wide
-/// at 1080 lines whatever the zoom, so a machine, a door or a piece of debris is outlined along its own
-/// shape, not boxed. Unlit, so it reads in the dark, and breathing (<see cref="Breath"/>). Hidden with nothing added, when it
+/// A soft light inside the silhouette of what is aimed at, as a tool's aim glows in the rock: the pictures added are drawn
+/// together as masks, each in its colour, and each pixel of them glows by how near it lies to their edge, fading in over
+/// <see cref="GlowDepth"/> screen pixels at 1080 lines whatever the zoom, so a machine, a door or a piece of debris lights
+/// along its own shape, not boxed. Unlit, so it reads in the dark, and breathing (<see cref="Breath"/>). Hidden with nothing added, when it
 /// costs nothing.
 /// </summary>
 public partial class Outline : CanvasGroup
@@ -15,32 +15,47 @@ public partial class Outline : CanvasGroup
     /// <summary>The lines of the screen a pixel of the line's width stands for: 1 pixel at 1080 lines, 2 at 2160.</summary>
     public const int LinesPerPixel = 1080;
 
+    /// <summary>How far in from a silhouette's edge its glow runs, in screen pixels at 1080 lines.</summary>
+    public const int GlowDepth = 6;
+
+    /// <summary>What is aimed at glows a bright cold blue while the sim would take its use, red while it would refuse it.</summary>
+    public static readonly Color AimReady = new("5cc8ff"), AimRefused = new("e05555");
+
     /// <summary>How wide the line is, in screen pixels, on a screen <paramref name="lines"/> high: never under one.</summary>
     public static int Width(float lines) => Mathf.Max(1, Mathf.RoundToInt(lines / LinesPerPixel));
 
-    // The masks are drawn into the group's own buffer; a pixel clear there with one drawn within the
-    // line's width round it takes that one's colour.
+    // The masks are drawn into the group's own buffer; a pixel of one glows by how near it lies to the mask's edge, looked for
+    // eight ways, so the light runs in from the silhouette and fades, added over what is drawn.
     private static readonly ShaderMaterial Ring = new()
     {
         Shader = new Shader
         {
             Code = $$"""
                 shader_type canvas_item;
-                render_mode unshaded;
+                render_mode unshaded, blend_add;
                 uniform sampler2D masks : hint_screen_texture, repeat_disable, filter_nearest;
 
                 void fragment() {
                     vec4 here = textureLod(masks, SCREEN_UV, 0.0);
-                    int width = int(max(1.0, round(1.0 / (SCREEN_PIXEL_SIZE.y * {{LinesPerPixel}}.0))));
-                    vec4 near = vec4(0.0);
-                    for (int i = 1; i <= width; i++)
-                        for (int dx = -1; dx <= 1; dx++)
-                            for (int dy = -1; dy <= 1; dy++) {
-                                vec4 s = textureLod(masks, SCREEN_UV + vec2(float(dx), float(dy)) * float(i) * SCREEN_PIXEL_SIZE, 0.0);
-                                if (s.a > near.a) near = s;
+                    COLOR = vec4(0.0);
+                    if (here.a > 0.001) {
+                        float unit = max(1.0, round(1.0 / (SCREEN_PIXEL_SIZE.y * {{LinesPerPixel}}.0)));
+                        float depth = {{GlowDepth}}.0 * unit;
+                        float nearest = depth;
+                        for (int d = 0; d < 8; d++) {
+                            vec2 way = vec2(cos(float(d) * 0.7853982), sin(float(d) * 0.7853982));
+                            for (int s = 1; s <= {{GlowDepth * 4}}; s++) {
+                                if (float(s) > nearest) break;
+                                if (textureLod(masks, SCREEN_UV + way * float(s) * SCREEN_PIXEL_SIZE, 0.0).a < 0.001) {
+                                    nearest = float(s);
+                                    break;
+                                }
                             }
-                    // Drawn on a clear buffer, a mask's colour is there times its alpha.
-                    COLOR = here.a > 0.001 || near.a < 0.001 ? vec4(0.0) : vec4(near.rgb / near.a, near.a);
+                        }
+                        // Drawn on a clear buffer, a mask's colour is there times its alpha.
+                        float glow = pow(1.0 - (nearest - 1.0) / depth, 1.6);
+                        COLOR = vec4(here.rgb / here.a, glow * here.a);
+                    }
                 }
                 """,
         },

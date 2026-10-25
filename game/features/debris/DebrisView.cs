@@ -36,7 +36,7 @@ public partial class DebrisView(Ui ui) : Node2D
     private const int Margin = 8;
     /// <summary>Pictures made at the start, small pieces' and wrecks': more than the far field shows in view at once (0052).</summary>
     private const int WarmSmall = 48, WarmWrecks = 32;
-    private static readonly Color AimReady = new("7fe08a"), AimRefused = new("e05555");
+    private static readonly Color AimReady = Outline.AimReady, AimRefused = Outline.AimRefused;
 
     /// <summary>What is shown of a piece: its picture, the damage last seen, the jolt still settling and which way, and where it was on which tick.</summary>
     private sealed class Shown(Sprite2D picture, bool wreck)

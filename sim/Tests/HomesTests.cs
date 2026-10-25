@@ -67,7 +67,7 @@ public class HomesTests
         Assert.Null(w.M.Building.PlantAt(w.At(2, 1)));
         // Its crack is kept by its own cell, whichever is hit: twelve hit points, three swings.
         Hit(w, w.At(4, 2), 2);
-        Assert.Equal((Bottom(w, 2, 3), 8), (w.M.Building.Cracks.Single().Cell, w.M.Building.Cracks.Single().Damage));
+        Assert.Equal(8, w.M.Building.Cracks.Single(c => c.Cell == Bottom(w, 2, 3)).Damage);
         Hit(w, w.At(3, 3));
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plants);

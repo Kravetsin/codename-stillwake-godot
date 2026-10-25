@@ -531,7 +531,7 @@ public class AimTests
     {
         var hand = HandOf(HeroOn(6, 7));
         string drill = Spec.Weapons.Drill.Item;
-        var (w, hero) = Field(("asteroid", hand.X + 4_000 + HalfW("asteroid"), hand.Y));
+        var (w, hero) = Field(("asteroid", hand.X + 5_300 + HalfW("asteroid"), hand.Y));
         var at = ((double)hand.X / Unit + 10, (double)hand.Y / Unit);
         // Past the axe's range, within the drill's.
         Assert.Empty(Struck(w, hero, Aiming.PointOf(at)));

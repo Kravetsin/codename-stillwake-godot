@@ -19,18 +19,18 @@ public sealed record Weapon(string Item, int Damage, int BlockDamage, int Pace, 
 public static class Weapons
 {
     /// <summary>
-    /// The fire axe (0034): 2 a swing, 4 on blocks, a swing every half second, its wave a quarter turn wide and 3.5 cells long,
+    /// The fire axe (0034): 2 a swing, 4 on blocks, a swing every half second, its wave a quarter turn wide and 4.5 cells long,
     /// 9 rays: a band of about 4 cells of a wall's face a swing, soil at a swing, stone at three, a 4×20 tunnel of it in 30 s.
     /// It never wears out.
     /// </summary>
-    public static readonly Weapon Axe = new("fireAxe", Damage: 2, BlockDamage: 4, Pace: 10, Arc: 64, Rays: 9, Range: 3500, Effects: []);
+    public static readonly Weapon Axe = new("fireAxe", Damage: 2, BlockDamage: 4, Pace: 10, Arc: 64, Rays: 9, Range: 4500, Effects: []);
 
     /// <summary>
-    /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its beam 8 steps (11°) wide and 5.5 cells long, 3 rays: one
+    /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its beam 8 steps (11°) wide and 6.5 cells long, 3 rays: one
     /// or two cells, soil at a hit, stone at three, a 4×20 tunnel of it in 16 s, on the belt's batteries; with the arc module
     /// fitted (0098), twice either for twice the draw.
     /// </summary>
-    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 8, Rays: 3, Range: 5500, Effects: []);
+    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 8, Rays: 3, Range: 6500, Effects: []);
 
     public static readonly IReadOnlyList<Weapon> All = [Axe, Drill];
 
