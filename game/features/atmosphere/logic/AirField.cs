@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// the sim says so a cell comes and goes over <see cref="EaseMs"/> rather than at once, how red it is
 /// for its room venting, and which way a venting room's air runs, toward its nearest opening. The first
 /// survey shows the world as it is, eased from nothing only after. Purely drawn: the sim stays per cell,
-/// on or off. Kept over <see cref="Region"/> only, everything built so far and a cell of space round it:
+/// on or off. Kept over <see cref="Region"/> only, every room so far and a cell of space round it:
 /// past it no cell is in a room. A survey looks again only at the cells whose room or air moved, and a
 /// frame eases and writes only the cells still on their way.
 /// </summary>
@@ -66,11 +66,11 @@ public sealed class AirField(int width, int height)
     /// <summary>
     /// What the sim says now: <paramref name="roomOf"/> each cell's room (negative for none),
     /// <paramref name="aired"/> the cells holding air, ascending, each venting room's openings by room id,
-    /// and the box <paramref name="built"/> outside which no cell is in a room.
+    /// and the box <paramref name="rooms"/> outside which no cell is in a room.
     /// </summary>
-    public void Survey(ReadOnlySpan<int> roomOf, IReadOnlyList<int> aired, IReadOnlyDictionary<int, IReadOnlyList<int>> venting, Box built)
+    public void Survey(ReadOnlySpan<int> roomOf, IReadOnlyList<int> aired, IReadOnlyDictionary<int, IReadOnlyList<int>> venting, Box rooms)
     {
-        Grow(built);
+        Grow(rooms);
         // Rooms whose openings changed have every cell looked at again; the rest only where the room moved.
         var reopened = new HashSet<int>();
         foreach (var (room, openings) in venting)
@@ -151,13 +151,13 @@ public sealed class AirField(int width, int height)
     }
 
     /// <summary>
-    /// The region grown to hold <paramref name="built"/> and a cell round it: a cell of space between the
+    /// The region grown to hold <paramref name="rooms"/> and a cell round it: a cell of space between the
     /// rooms and its edge, so the shader blends a room's edge with no room, as over the whole world.
     /// </summary>
-    private void Grow(Box built)
+    private void Grow(Box rooms)
     {
-        if (built.IsEmpty) return;
-        var wanted = new Box(Math.Max(0, built.Left - 1), Math.Max(0, built.Top - 1), Math.Min(Width - 1, built.Right + 1), Math.Min(Height - 1, built.Bottom + 1));
+        if (rooms.IsEmpty) return;
+        var wanted = new Box(Math.Max(0, rooms.Left - 1), Math.Max(0, rooms.Top - 1), Math.Min(Width - 1, rooms.Right + 1), Math.Min(Height - 1, rooms.Bottom + 1));
         var next = Region.Union(wanted);
         if (next == Region) return;
         var was = Region;

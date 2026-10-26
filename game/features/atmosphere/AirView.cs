@@ -230,6 +230,7 @@ public partial class AirView : Node2D
         if (_decompressing != m.Rooms) (_decompression, _decompressing) = (new Decompression(), m.Rooms);
         _decompression.Survey(m.Atmosphere.AiredCells, m.Rooms.RoomAt, RoomsModule.Space, width, elapsedMs);
         var roomOf = AsDrawn(m.Rooms.RoomOfCells, m.Atmosphere.AiredCells);
+        var rooms = RoomsIn(m);
         var losing = Explain.Draining(air);
         var next = AirStream.Of(air, room => m.Rooms.RoomById(room)?.Openings ?? [], width, m.Grid.Height, cell => m.Rooms.RoomAt(cell) == RoomsModule.Space);
         next.AddRange(_decompression.Streams);
@@ -241,11 +242,26 @@ public partial class AirView : Node2D
         if (_losingFor != (m.Rooms, m.Rooms.Version) || !losing.SetEquals(_losingRooms))
         {
             (_losingFor, _losingRooms) = ((m.Rooms, m.Rooms.Version), losing);
-            _losing = Runs(roomOf, width, m.Grid.Built, (_, room) => losing.Contains(room) ? Pulse : null);
-            _alarms = Middles(roomOf, width, m.Grid.Built, losing);
+            _losing = Runs(roomOf, width, rooms, (_, room) => losing.Contains(room) ? Pulse : null);
+            _alarms = Middles(roomOf, width, rooms, losing);
             _pulse.QueueRedraw();
         }
-        Look(m, air, roomOf);
+        Look(m, air, roomOf, rooms);
+    }
+
+    /// <summary>The rooms' box (<see cref="RoomsBox"/>) as of <see cref="_roomsFor"/>: found again only when the rooms change.</summary>
+    private Stillwake.Sim.Box _rooms = Stillwake.Sim.Box.None;
+    private (IRoomsQueries? Rooms, int Version) _roomsFor;
+
+    /// <summary>The box holding every room as drawn: the sim's, and the cells whose air still goes from a room just opened.</summary>
+    private Stillwake.Sim.Box RoomsIn(Registry m)
+    {
+        if (_roomsFor != (m.Rooms, m.Rooms.Version))
+            (_roomsFor, _rooms) = ((m.Rooms, m.Rooms.Version), RoomsBox.Of(m.Rooms.RoomOfCells, m.Grid.Width, m.Grid.Built));
+        var box = _rooms;
+        int width = m.Grid.Width;
+        foreach (int cell in _decompression.Cells) box = box.Union(new(cell % width, cell / width, cell % width, cell / width));
+        return box;
     }
 
     /// <summary>
@@ -267,7 +283,7 @@ public partial class AirView : Node2D
     }
 
     /// <summary>What the field, the motes and the pod's reach are drawn from, as the sim has it now.</summary>
-    private void Look(Registry m, IReadOnlyList<RoomAir> air, ReadOnlySpan<int> roomOf)
+    private void Look(Registry m, IReadOnlyList<RoomAir> air, ReadOnlySpan<int> roomOf, Stillwake.Sim.Box rooms)
     {
         int width = m.Grid.Width, height = m.Grid.Height;
         if (_field == null || _field.Width != width || _field.Height != height)
@@ -279,7 +295,7 @@ public partial class AirView : Node2D
         foreach (var a in air)
             if (a.Status == RoomStatus.Venting && m.Rooms.RoomById(a.Room) is { } room) venting[a.Room] = room.Openings;
         foreach (var (room, breach) in _decompression.Breaches) venting[room] = breach;
-        _field.Survey(roomOf, _airedShown, venting, m.Grid.Built);
+        _field.Survey(roomOf, _airedShown, venting, rooms);
         _fillingVents = m.Grid.Machines
             .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
             .Select(x => ((x.Cell % width + Middle(x.Kind).X) * Cell, (x.Cell / width + Middle(x.Kind).Y) * Cell)).ToList();
@@ -302,14 +318,14 @@ public partial class AirView : Node2D
 
     /// <summary>
     /// Rooms' cells in the colour <paramref name="colourOf"/> gives each cell of a room, none where it gives
-    /// none: a rectangle per run of one colour along a row. Only <paramref name="built"/> holds rooms.
+    /// none: a rectangle per run of one colour along a row. Only <paramref name="within"/> holds rooms.
     /// </summary>
-    private static List<(Rect2, Color)> Runs(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box built, Func<int, int, Color?> colourOf)
+    private static List<(Rect2, Color)> Runs(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box within, Func<int, int, Color?> colourOf)
     {
         var runs = new List<(Rect2, Color)>();
         Color? ColourAt(ReadOnlySpan<int> rooms, int cell) => rooms[cell] >= 0 ? colourOf(cell, rooms[cell]) : null;
-        for (int y = built.Top; y <= built.Bottom; y++)
-            for (int start = y * width + built.Left, last = y * width + built.Right; start <= last;)
+        for (int y = within.Top; y <= within.Bottom; y++)
+            for (int start = y * width + within.Left, last = y * width + within.Right; start <= last;)
             {
                 var here = ColourAt(roomOf, start);
                 int end = start + 1;
@@ -322,13 +338,13 @@ public partial class AirView : Node2D
 
     /// <summary>
     /// The middle of each of <paramref name="rooms"/>, in pixels, and how far its light reaches to fill it, in cells: about the
-    /// side of a square of its size, six to sixteen. Only <paramref name="built"/> holds rooms.
+    /// side of a square of its size, six to sixteen. Only <paramref name="within"/> holds rooms.
     /// </summary>
-    private static List<(int Room, Vector2 At, int Reach)> Middles(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box built, HashSet<int> rooms)
+    private static List<(int Room, Vector2 At, int Reach)> Middles(ReadOnlySpan<int> roomOf, int width, Stillwake.Sim.Box within, HashSet<int> rooms)
     {
         var sums = new Dictionary<int, (double X, double Y, int N)>();
-        for (int y = built.Top; y <= built.Bottom; y++)
-            for (int x = built.Left; x <= built.Right; x++)
+        for (int y = within.Top; y <= within.Bottom; y++)
+            for (int x = within.Left; x <= within.Right; x++)
             {
                 int room = roomOf[y * width + x];
                 if (!rooms.Contains(room)) continue;
