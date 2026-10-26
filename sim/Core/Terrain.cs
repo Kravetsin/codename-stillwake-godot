@@ -187,22 +187,23 @@ public static class Terrain
         if (t.Veins.Count == 0) return;
         var lodes = new Field(seed, Lodes, t.LodeWave, t.LodeWave, w);
         var lode = new int[w];
-        var veins = new (int Code, Field Coarse, Field Fine, int[] A, int[] B)[t.Veins.Count];
+        var veins = new (int Code, Field Coarse, Field Fine)[t.Veins.Count];
         for (int i = 0; i < veins.Length; i++)
         {
             var v = t.Veins[i];
             uint which = Veins + 2 * (uint)i;
             veins[i] = (Materials.Get(v.Material).Code, new Field(seed, which, v.Wave, v.Tall, w),
-                new Field(seed, which + 1, Math.Max(1, v.Wave / 3), Math.Max(1, v.Tall / 3), w), new int[w], new int[w]);
+                new Field(seed, which + 1, Math.Max(1, v.Wave / 3), Math.Max(1, v.Tall / 3), w));
         }
         for (int y = 1; y < floor; y++)
         {
             int band = BandOf(t, y);
             lodes.Row(y, lode);
+            // The veins' noise only where a cell asks it: stone in a lode, a few of a row's.
             foreach (var v in veins)
             {
-                v.Coarse.Row(y, v.A);
-                v.Fine.Row(y, v.B);
+                v.Coarse.Start(y);
+                v.Fine.Start(y);
             }
             for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
             {
@@ -212,7 +213,7 @@ public static class Terrain
                 for (int i = 0; i < veins.Length; i++)
                 {
                     int width = (int)(t.Veins[i].Widths[band] * into / Whole);
-                    if (Math.Abs(((3 * veins[i].A[x] + veins[i].B[x]) >> 2) - Whole / 2) >= width) continue;
+                    if (Math.Abs(((3 * veins[i].Coarse.At(x) + veins[i].Fine.At(x)) >> 2) - Whole / 2) >= width) continue;
                     codes[cell] = veins[i].Code;
                     break;
                 }
@@ -316,25 +317,27 @@ public static class Terrain
         var lode = new int[w];
         var inLode = kinds.Select(k => k.Lode).ToArray();
         bool Open(int x, int y) => rows[y][x] == '.';
-        // A growth in the rock is two by two from its own cell (0104): its block, not its cell, is what lies beside a cave.
-        bool BlockBeside(int x, int y) => x + 1 < w - 1 && y + 1 < h - 1
-            && (Open(x, y - 1) || Open(x + 1, y - 1) || Open(x, y + 2) || Open(x + 1, y + 2) || Open(x - 1, y) || Open(x - 1, y + 1) || Open(x + 2, y) || Open(x + 2, y + 1));
         for (int y = 1; y < floor; y++)
         {
             Array.Fill(last, int.MinValue / 2);
             Array.Fill(lastOn, int.MinValue / 2);
             patches.Row(y, patch);
             lodes.Row(y, lode);
+            // The rows round this one, read a row at a time: most of a planet's cells are stone, each asking its block's sides.
+            char[] above = rows[y - 1], here = rows[y], below = rows[y + 1], under = y + 2 < h ? rows[y + 2] : below;
             for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
             {
                 int cell = y * w + x;
-                if (Open(x, y))
+                if (here[x] == '.')
                 {
                     // Nothing grows on the lava under the caves' last row.
-                    if (y + 1 < floor && rows[y + 1][x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
-                    if (rows[y - 1][x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
+                    if (y + 1 < floor && below[x] == '#') Try(Content.Flora.Anchor.Floor, x, y, cell);
+                    if (above[x] == '#') Try(Content.Flora.Anchor.Ceiling, x, y, cell);
                 }
-                else if (rows[y][x] == '#' && codes[cell] == stone && BlockBeside(x, y))
+                // A growth in the rock is two by two from its own cell (0104): its block, not its cell, is what lies beside a cave.
+                else if (here[x] == '#' && codes[cell] == stone && x + 1 < w - 1 && y + 1 < h - 1
+                    && (above[x] == '.' || above[x + 1] == '.' || under[x] == '.' || under[x + 1] == '.'
+                        || here[x - 1] == '.' || below[x - 1] == '.' || here[x + 2] == '.' || below[x + 2] == '.'))
                     Try(Content.Flora.Anchor.Rock, x, y, cell);
             }
         }
@@ -688,13 +691,22 @@ public static class Terrain
 
         public void Row(int y, int[] values)
         {
+            Start(y);
+            for (int x = 0; x < values.Length; x++) values[x] = At(x);
+        }
+
+        /// <summary>Readies row <paramref name="y"/> for <see cref="At"/>: where few of its cells are asked, cheaper than <see cref="Row"/>.</summary>
+        public void Start(int y)
+        {
             int j = y / _down, t = Ease(y % _down, _down);
             for (int i = 0; i < _column.Length; i++) _column[i] = Mix(Lattice(_seed, _which, i, j), Lattice(_seed, _which, i, j + 1), t);
-            for (int x = 0; x < values.Length; x++)
-            {
-                int i = _lattice[x];
-                values[x] = Mix(_column[i], _column[i + 1], _ease[x]);
-            }
+        }
+
+        /// <summary>The noise at column <paramref name="x"/> of the row last <see cref="Start"/>ed, as <see cref="Row"/> gives it.</summary>
+        public int At(int x)
+        {
+            int i = _lattice[x];
+            return Mix(_column[i], _column[i + 1], _ease[x]);
         }
     }
 
