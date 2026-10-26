@@ -43,7 +43,8 @@ internal abstract class DriveRule
 
     internal abstract Gait GaitOf(Creature c);
 
-    internal abstract Posture PostureOf(Creature c);
+    /// <summary>How it shows: by its gait unless it says more.</summary>
+    internal virtual Posture PostureOf(Creature c) => GaitOf(c) switch { Gait.Walk => Posture.Wander, Gait.Run => Posture.Flee, _ => Posture.Idle };
 }
 
 /// <summary>The rule of one kind of body (<see cref="Spec.Shape"/>): how it stands, steers and moves a tick.</summary>
@@ -80,7 +81,8 @@ internal abstract class MoveRule
     /// <summary>Whether the body walks its way under it: kept against a wall till its steering turns it.</summary>
     internal abstract bool Walks(Act a);
 
-    internal abstract Posture PostureOf(Act a);
+    /// <summary>How it shows: crouched, then under way.</summary>
+    internal virtual Posture PostureOf(Act a) => a.Phase == ActPhase.Active ? Posture.Charge : Posture.WindUp;
 }
 
 /// <summary>
@@ -102,6 +104,9 @@ internal static class RuleBook
 
     /// <summary>Whether some rule serves the record type <paramref name="record"/>.</summary>
     internal static bool Serves(Type record) => Drives.ContainsKey(record) || Bodies.ContainsKey(record) || Moves.ContainsKey(record);
+
+    /// <summary>Whether <paramref name="c"/> is in flight: a drive in charge that runs, no act under way.</summary>
+    internal static bool FleeingOf(Creature c) => c.Act == null && Drive(Spec.Get(c.Species).Brain[c.Drive]).GaitOf(c) == Gait.Run;
 
     internal static Posture PostureOf(Creature c)
     {

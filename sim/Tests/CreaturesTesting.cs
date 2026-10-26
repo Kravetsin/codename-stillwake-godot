@@ -33,6 +33,15 @@ public static class CreaturesTesting
         return w;
     }
 
+    /// <summary><paramref name="w"/> saved and loaded, its creatures told again they run on the planet it put them on.</summary>
+    public static Scenario ReloadOnPlanet(this Scenario w)
+    {
+        var where = w.M.Creatures.Where;
+        w.Reload();
+        w.M.Creatures.Where = where;
+        return w;
+    }
+
     /// <summary>The first planet with nothing living on it: gravity, no spawns.</summary>
     public static readonly Spec.PlanetType Lifeless = Spec.PlanetTypes.First with { Creatures = [] };
 

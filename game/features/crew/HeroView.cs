@@ -483,7 +483,7 @@ public partial class HeroView : Node2D
         client.Send(new Stillwake.Sim.Creatures.HitBy(c.Id));
         _ramGuard.Sent(tick);
         int away = Rams.Away(c, _current);
-        _current = Rams.Knocked(_current, away, Content.Creatures.Get(c.Species).Moves[0].Damage);
+        _current = Rams.Knocked(_current, away, Content.Creatures.Get(c.Species).Moves[c.Act!.Move].Damage);
         _reel = Spec.Reel;
         _figure.Flinch(-away);
         var (x, y) = Chest(_current);

@@ -174,6 +174,8 @@ public class BudgetTests(ITestOutputHelper output)
             : []);
         output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with {Content.Creatures.Max} creatures {living.Mean:F3} ms mean, {living.Max:F3} ms max");
         Assert.True(living.Mean < Within(2), $"a planet's tick with its creatures took {living.Mean:F3} ms");
+        // The creatures' own share: some 0.12 ms for forty on a desk (2026-10-26, Release); a rule gone slow shows here first.
+        Assert.True(living.Mean - idle.Mean < Within(0.4), $"forty creatures took {living.Mean - idle.Mean:F3} ms of the tick");
     }
 
     /// <summary>

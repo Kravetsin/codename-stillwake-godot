@@ -163,7 +163,7 @@ public class DesyncTests(ITestOutputHelper output)
         string planet = Content.PlanetTypes.Small.Id, axe = Content.Weapons.Axe.Item, loper = Content.Creatures.Loper.Id;
         Covering(31, tried =>
         {
-            int most = 0, fled = 0, killed = 0;
+            int most = 0, fled = 0, killed = 0, charged = 0;
             var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, ticks: 1200, joinAt: 600, worldEvery: 6, tamper: (tick, clients) =>
             {
                 var world = clients[0].World;
@@ -172,6 +172,7 @@ public class DesyncTests(ITestOutputHelper output)
                     var m = Registry.On(world, surface.Id);
                     most = Math.Max(most, m.Creatures.Creatures.Count);
                     fled += m.Creatures.Creatures.Count(c => c.Posture == Sim.Creatures.Posture.Flee);
+                    charged += m.Creatures.Creatures.Count(c => c.Posture == Sim.Creatures.Posture.Charge);
                     killed = Math.Max(killed, m.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count));
                 }
                 var first = clients[0];
@@ -197,7 +198,8 @@ public class DesyncTests(ITestOutputHelper output)
                 else if (on.Creatures.Creatures.Count > 0)
                     first.Send(new Sim.Creatures.Strike(on.Creatures.Creatures[tick / 10 % on.Creatures.Creatures.Count].Id, axe));
             });
-            return (run, most >= 3 && fled >= 1 && killed >= 1 ? null : $"{most} creatures at most, {fled} creature-ticks fleeing, {killed} biomass dropped");
+            return (run, most >= 3 && fled >= 1 && charged >= 1 && killed >= 1 ? null
+                : $"{most} creatures at most, {fled} creature-ticks fleeing, {charged} charging, {killed} biomass dropped");
         });
     }
 

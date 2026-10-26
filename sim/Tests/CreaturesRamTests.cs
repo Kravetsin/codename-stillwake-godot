@@ -74,9 +74,9 @@ public class CreaturesRamTests
             held++;
         }
         // Its wind-up's ticks, then at the hero, at the charge's speed, along the ground.
-        Assert.Equal(Tune.Loper.Lunge().WindUp, held);
+        Assert.Equal(Tapir.Lunge().WindUp, held);
         Assert.Equal(Posture.Charge, c.Posture);
-        Assert.Equal(-Tune.Loper.Lunge().Speed, c.VX);
+        Assert.Equal(-Tapir.Lunge().Speed, c.VX);
         Assert.Equal(4 * Cell, c.Y);
     }
 
@@ -163,12 +163,12 @@ public class CreaturesRamTests
         w.Do(new Strike(c.Id, Axe)).Run();
         Assert.Equal(Posture.Retreat, c.Posture);
         // Its draw, less the tick that ran since.
-        Assert.InRange(c.Left, Tune.Loper.Retaliation().FleeLeast - 1, Tune.Loper.Retaliation().FleeMost - 1);
+        Assert.InRange(c.Left, Tapir.Retaliation().FleeLeast - 1, Tapir.Retaliation().FleeMost - 1);
         Assert.True(c.VX > 0, "not fleeing away from the hero");
         while (c.Posture == Posture.Retreat) w.Run();
         Assert.Equal(Posture.WindUp, c.Posture);
         while (c.Posture == Posture.WindUp) w.Run();
-        Assert.Equal((Posture.Charge, -Tune.Loper.Lunge().Speed), (c.Posture, c.VX));
+        Assert.Equal((Posture.Charge, -Tapir.Lunge().Speed), (c.Posture, c.VX));
     }
 
     [Fact]
@@ -198,9 +198,26 @@ public class CreaturesRamTests
             was = c.Posture;
         }
         Assert.Equal(1, windUps);
-        // Struck again, it may ram again.
+        // Struck again, it may ram again: retaliating or fleeing, never left escaping.
         w.Do(new Strike(c.Id, Axe)).Run();
-        Assert.True(CreaturesModule.Fleeing(c.Posture));
+        Assert.Contains(c.Posture, new[] { Posture.Flee, Posture.Retreat });
+    }
+
+    [Fact]
+    public void StruckWhileEscapingAfterItsRamItFleesOrTurnsBackAnewNeverStillEscaping()
+    {
+        // The usual answer to a ram: the hero rammed swings back at the creature recoiling off it.
+        var w = CreaturesTesting.Planet(Pen).Breathing().HeroAt(3, 3);
+        var c = w.Let(Tapir, 6, 3).Charging(-1);
+        w.Do(new HitBy(c.Id)).Run();
+        Assert.Equal(Posture.Escape, c.Posture);
+        w.Run(5);
+        Assert.Equal(Posture.Escape, c.Posture);
+        w.Do(new Strike(c.Id, Axe)).Run();
+        Assert.Contains(c.Posture, new[] { Posture.Flee, Posture.Retreat });
+        int longest = c.Posture == Posture.Flee ? Tapir.FleeTicks() : Tapir.Retaliation().FleeMost;
+        Assert.InRange(c.Left, longest - 9, longest - 1);
+        Assert.Null(c.Act);
     }
 
     [Fact]
@@ -232,12 +249,12 @@ public class CreaturesRamTests
             int x = c.X;
             w.Run();
             ticks++;
-            if (c.Posture == Posture.Charge) Assert.Equal(x - Tune.Loper.Lunge().Speed, c.X);
+            if (c.Posture == Posture.Charge) Assert.Equal(x - Tapir.Lunge().Speed, c.X);
         }
-        Assert.True(ticks < Tune.Loper.Lunge().Ticks, "it ran out its charge");
+        Assert.True(ticks < Tapir.Lunge().Ticks, "it ran out its charge");
         Assert.Equal((Posture.Escape, -Tapir.Run()), (c.Posture, c.VX));
         // Turned to escaping the tick its middle was RamPast cells past the hero's, and on a step that tick.
-        Assert.InRange(w.HeroMiddle(20) - c.X, Tune.Loper.Lunge().Past * Unit + Tapir.Run(), Tune.Loper.Lunge().Past * Unit + Tune.Loper.Lunge().Speed + Tapir.Run());
+        Assert.InRange(w.HeroMiddle(20) - c.X, Tapir.Lunge().Past * Unit + Tapir.Run(), Tapir.Lunge().Past * Unit + Tapir.Lunge().Speed + Tapir.Run());
     }
 
     [Fact]
@@ -253,7 +270,7 @@ public class CreaturesRamTests
             most = Math.Max(most, c.X);
             Assert.True(Clear(w, c));
         }
-        Assert.True(ticks < Tune.Loper.Lunge().Ticks, "it ran out its charge rather than meet the wall");
+        Assert.True(ticks < Tapir.Lunge().Ticks, "it ran out its charge rather than meet the wall");
         // Flush with the wall, short of the hero's middle by less than RamPast, then turned from it, escaping.
         Assert.Equal(17 * Cell - Cell, most);
         Assert.Equal((Posture.Escape, -Tapir.Run()), (c.Posture, c.VX));
@@ -272,7 +289,7 @@ public class CreaturesRamTests
             Assert.Equal(3 * Cell, c.Y);
         }
         Assert.Equal((Posture.Escape, -Tapir.Run()), (c.Posture, c.VX));
-        Assert.InRange(most, 7 * Cell - Tune.Loper.Lunge().Speed, 7 * Cell);
+        Assert.InRange(most, 7 * Cell - Tapir.Lunge().Speed, 7 * Cell);
     }
 
     // Hit by it.
@@ -341,5 +358,74 @@ public class CreaturesRamTests
         Assert.Equal(0, hero.Suit);
         var body = Assert.Single(w.M.Items.Floor);
         Assert.Equal(("scrap", 4, 0), (body.Item, body.Count, body.Body!.Peer));
+    }
+
+    /// <summary>A field 80 wide, its floor row 4: room for a whole charge and a hero past its run.</summary>
+    private static readonly string Field = string.Join('\n',
+        [new string('#', 80), .. Enumerable.Repeat("#" + new string('.', 78) + "#", 3), new string('#', 80)]);
+
+    /// <summary>A tapir at column <paramref name="x"/> of the field, its wind-up one tick from its end.</summary>
+    private static Creature WindingUp(Scenario w, int x)
+    {
+        var c = w.Let(Tapir, x, 3).Still();
+        (c.Drive, c.Act) = (CreaturesTesting.Place<Tune.Retaliate>(Tapir), new Act { Move = 0, Phase = ActPhase.WindUp, Left = 1 });
+        return c;
+    }
+
+    [Fact]
+    public void AWindUpEndingWithTheNearestHeroPastItsRunLetsItBeAndEscapesAwayFromThatHero()
+    {
+        // The nearest hero 70 cells right, past the 56 of a charge; a farther one 76 cells left: it escapes left, from the nearest.
+        var w = CreaturesTesting.Planet(Field, CreaturesTesting.Lifeless).HeroAt(75, 3).HeroAt(2, 3, peer: 1);
+        var c = WindingUp(w, 40);
+        w.Run();
+        Assert.Equal((Posture.Escape, -Tapir.Run()), (c.Posture, c.VX));
+    }
+
+    [Fact]
+    public void AWindUpEndingWithTheNearestHeroWithinItsRunChargesIt()
+    {
+        var w = CreaturesTesting.Planet(Field, CreaturesTesting.Lifeless).HeroAt(60, 3);
+        var c = WindingUp(w, 40);
+        w.Run();
+        Assert.Equal((Posture.Charge, Tapir.Lunge().Speed), (c.Posture, c.VX));
+    }
+
+    [Fact]
+    public void TwoHeroesAsNearChargeTheFirstInIdOrderOnWhicheverSide()
+    {
+        foreach (var (right, left, way) in new[] { (0, 1, +1), (1, 0, -1) })
+        {
+            var w = CreaturesTesting.Planet(Field, CreaturesTesting.Lifeless).HeroAt(52, 3, peer: right).HeroAt(30, 3, peer: left);
+            var c = WindingUp(w, 40);
+            w.Run();
+            Assert.Equal((Posture.Charge, way * Tapir.Lunge().Speed), (c.Posture, c.VX));
+        }
+    }
+
+    [Fact]
+    public void AChargeMeetingNothingEndsWhenItsTicksRunOutAndEscapes()
+    {
+        // The hero far ahead, past the whole run: neither a wall nor the hero ends it, only its time.
+        var w = CreaturesTesting.Planet(Field, CreaturesTesting.Lifeless).HeroAt(78, 3);
+        var c = w.Let(Tapir, 6, 3).Charging(+1);
+        w.Run(Tapir.Lunge().Ticks - 1);
+        Assert.Equal(Posture.Charge, c.Posture);
+        w.Run();
+        Assert.Equal((Posture.Escape, -Tapir.Run()), (c.Posture, c.VX));
+    }
+
+    [Fact]
+    public void AHitByACreatureKilledEarlierInTheTickIsRefusedGoneAndCostsNothing()
+    {
+        // One hero lands the killing blow as another's client reports its ram, on one tick.
+        var w = CreaturesTesting.Planet(Pen).HeroAt(3, 3).HeroAt(3, 3, peer: 1);
+        var c = w.Let(Tapir, 6, 3).Charging(-1);
+        c.Damage = Tapir.Life.Hp - 1;
+        int suit = Suit(w, 1);
+        w.Do(new Strike(c.Id, Axe)).Do(new HitBy(c.Id) { From = 1 }).Run();
+        Assert.Empty(w.M.Creatures.Creatures);
+        Assert.Equal(["creatures.gone"], Reasons(w));
+        Assert.Equal(suit, Suit(w, 1));
     }
 }

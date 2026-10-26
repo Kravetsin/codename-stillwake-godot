@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Xunit;
@@ -26,8 +27,12 @@ public class CreatureSpeciesGuardTests
         "game/Content/logic/Sound.cs",
     ];
 
+    /// <summary>Every species' record, by its field in <c>Content.Creatures</c>: named through any alias (<c>Spec.Loper</c>, <c>Tune.Tapir</c>).</summary>
+    private static readonly string[] Records = typeof(Stillwake.Content.Creatures).GetFields(BindingFlags.Public | BindingFlags.Static)
+        .Where(f => f.FieldType == typeof(Stillwake.Content.Creatures.Species)).Select(f => f.Name).ToArray();
+
     private static readonly Regex Named = new(
-        $@"""(?:{string.Join('|', Stillwake.Content.Creatures.All.Select(s => s.Id))})""|\bCreatures\.(?:Loper|Tapir|Sixleg|Fluff)\b",
+        $@"""(?:{string.Join('|', Stillwake.Content.Creatures.All.Select(s => s.Id))})""|\.(?:{string.Join('|', Records)})\b",
         RegexOptions.Compiled);
 
     private static string Slashed(string path) => path.Replace('\\', '/');
@@ -57,6 +62,9 @@ public class CreatureSpeciesGuardTests
     {
         Assert.Single(Offenders("if (c.Species == \"loper\") return;"));
         Assert.Single(Offenders("var ram = Spec.Creatures.Tapir.Moves[0];"));
+        Assert.Single(Offenders("if (Spec.Get(c.Species) == Spec.Loper) return;"));
+        Assert.Single(Offenders("int hp = Tune.Fluff.Life.Hp;"));
+        Assert.Equal(Stillwake.Content.Creatures.All.Count, Records.Length);
         Assert.Empty(Offenders("var spec = Spec.Creatures.Get(c.Species);"));
         Assert.True(Skipped("game/dev/CreaturesDemo.cs"));
         Assert.True(Skipped("game/Content/logic/CreatureLooks.cs"));

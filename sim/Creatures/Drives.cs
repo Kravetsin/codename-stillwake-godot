@@ -37,8 +37,6 @@ internal sealed class GrazeDrive : DriveRule
     }
 
     internal override Gait GaitOf(Creature c) => c.Step == Wandering ? Gait.Walk : Gait.Still;
-
-    internal override Posture PostureOf(Creature c) => c.Step == Wandering ? Posture.Wander : Posture.Idle;
 }
 
 /// <summary>
@@ -69,8 +67,6 @@ internal sealed class FleeDrive : DriveRule
     internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) => m.Escape(c, spec, way, hop);
 
     internal override Gait GaitOf(Creature c) => Gait.Run;
-
-    internal override Posture PostureOf(Creature c) => Posture.Flee;
 }
 
 /// <summary>

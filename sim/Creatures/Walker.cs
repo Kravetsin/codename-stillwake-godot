@@ -281,7 +281,7 @@ internal sealed class WalkerBody : BodyRule
 }
 
 /// <summary>A jump's shape under a planet's gravity (0102): integer, as a creature moves, a tick at a time.</summary>
-public static class Leaps
+internal static class Leaps
 {
     /// <summary>How high a jump at <paramref name="vy"/> a tick up carries the feet under gravity <paramref name="g"/> a tick, in thousandths.</summary>
     public static int Height(int vy, int g)

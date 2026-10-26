@@ -12,6 +12,8 @@ public static class Creatures
     /// its <paramref name="Faction"/>, one of <see cref="Factions"/>; how long it lives; its <paramref name="Brain"/>, the drives it
     /// may follow, the first ranked highest; its <paramref name="Moves"/>, the acts it may make; what it gives when it dies, drawn
     /// entry by entry as a container's loot is. Each record is served by one rule in the creatures module.
+    /// A creature saves its drive in charge and its act by their places in <paramref name="Brain"/> and <paramref name="Moves"/>:
+    /// reorder or insert into them only with a save-format bump whose step drops or remaps the creatures (<c>CreatureContractTests</c>).
     /// </summary>
     public sealed record Species(
         string Id, string Look, Shape Body, Life Life, string Faction, Lifetime Lifetime, IReadOnlyList<Drive> Brain,

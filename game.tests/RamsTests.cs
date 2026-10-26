@@ -25,13 +25,14 @@ public class RamsTests
             var creatures = root["slices"]!["creatures"]!;
             var c = JsonSerializer.SerializeToNode(new Creature(), w.World.Json)!.AsObject();
             (c["id"], c["species"], c["x"], c["y"], c["vx"]) = (1, Spec.Creatures.Tapir.Id, x, y, vx);
-            // The tapir's brain: retaliate, flee, escape, graze; its ram a lunge, wound up or charging.
+            // The drive the posture shows, found by its kind in the tapir's brain; its ram a lunge, wound up or charging.
             (c["drive"], c["step"], c["driveLeft"]) = mode switch
             {
-                Posture.Idle => (3, 0, 5),
-                Posture.Wander => (3, 1, 5),
-                Posture.Flee => (1, 0, 5),
-                _ => (0, 0, 5),
+                Posture.Idle => (DriveOf<Spec.Creatures.Graze>(), 0, 5),
+                Posture.Wander => (DriveOf<Spec.Creatures.Graze>(), 1, 5),
+                Posture.Flee => (DriveOf<Spec.Creatures.Flee>(), 0, 5),
+                Posture.Escape => (DriveOf<Spec.Creatures.Escape>(), 0, 5),
+                _ => (DriveOf<Spec.Creatures.Retaliate>(), 0, 5),
             };
             if (mode is Posture.WindUp or Posture.Charge)
             {
@@ -45,6 +46,8 @@ public class RamsTests
         return w.M.Creatures.Creatures[0];
     }
 
+    private static int DriveOf<D>() where D : Spec.Creatures.Drive => Spec.Creatures.Tapir.Brain.ToList().FindIndex(d => d is D);
+
     private static readonly Hero Standing = new(6 * Unit, 13 * Unit, 0, 0, false, 1);
 
     [Fact]
@@ -54,7 +57,7 @@ public class RamsTests
         int edge = Standing.X + Spec.Hero.Width / 2 + Spec.Creatures.Tapir.Body.Width * Unit / 2;
         Assert.Equal(1, Rams.Contact([Tapir(edge + Rams.Margin - 1, 13 * Unit, Posture.Charge, -1400)], Standing)?.Id);
         Assert.Null(Rams.Contact([Tapir(edge + Rams.Margin + 1, 13 * Unit, Posture.Charge, -1400)], Standing));
-        foreach (var mode in new[] { Posture.Idle, Posture.Wander, Posture.Flee, Posture.WindUp })
+        foreach (var mode in new[] { Posture.Idle, Posture.Wander, Posture.Flee, Posture.Retreat, Posture.WindUp, Posture.Escape })
             Assert.Null(Rams.Contact([Tapir(Standing.X, 13 * Unit, mode)], Standing));
         // Jumped clear over it: the feet above its back and the margin.
         var over = Standing with { Y = 13 * Unit - Spec.Creatures.Tapir.Body.Height * Unit - Rams.Margin - 1 };

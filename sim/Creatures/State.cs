@@ -25,6 +25,7 @@ public enum Posture
 }
 
 /// <summary>The phase of an act: crouched for it, then under way.</summary>
+/// <summary>Saved by number, so never renumber one.</summary>
 public enum ActPhase
 {
     WindUp = 0,
@@ -74,6 +75,9 @@ public sealed class Creature
 
     /// <summary>How it shows what it does (<see cref="Creatures.Posture"/>).</summary>
     [JsonIgnore] public Posture Posture => RuleBook.PostureOf(this);
+
+    /// <summary>Whether it is in flight: steered as one, at its run, turned and leaping alike.</summary>
+    [JsonIgnore] public bool Fleeing => RuleBook.FleeingOf(this);
 
     /// <summary>The ticks left to what it does: its act's while one is under way, else its drive's.</summary>
     [JsonIgnore] public int Left => Act?.Left ?? DriveLeft;

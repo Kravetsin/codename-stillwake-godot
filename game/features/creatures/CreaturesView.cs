@@ -300,7 +300,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         Rams(one, c, spec, drawn, grounded, elapsedMs);
         // Its legs go by the ground the sim moved it on its last tick, never by a frame's step: a frame's is uneven, a tick's is not.
         double speed = Math.Abs(one.To.X - one.From.X) / Unit * Cell * World.TicksPerSecond;
-        bool fleeing = CreaturesModule.Fleeing(c.Posture);
+        bool fleeing = c.Fleeing;
         var gait = one.Gait;
         gait.Step(elapsedMs, speed, grounded, fleeing);
         // Idle with no hero by, a while, it grazes; idle with one near, it watches it.

@@ -480,19 +480,6 @@ public class CreaturesTests
     }
 
     [Fact]
-    public void TwoHeroesKillingALoperInOneTickKillItOnceTheSecondStrikeRefusedAsGone()
-    {
-        // Dead the moment the first blow lands (2026-10-26-creatures-are-composed): one death, one roll of its yields.
-        var w = CreaturesTesting.Planet(Room).HeroAt(1, 3).HeroAt(1, 3, peer: 1);
-        var c = w.Loper(5, 3).Still();
-        c.Damage = Loper.Life.Hp - 1;
-        w.Do(new Strike(c.Id, Axe)).Do(new Strike(c.Id, Axe) { From = 1 }).Run(30);
-        Assert.Empty(w.M.Creatures.Creatures);
-        Assert.Equal("creatures.gone", Assert.Single(w.Refusals).Reason);
-        Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count), 2, 3);
-    }
-
-    [Fact]
     public void ALoperGivesASeedNowAndThen()
     {
         const int kills = 40;
@@ -538,6 +525,24 @@ public class CreaturesTests
         w.Do(new Strike(c.Id, Axe)).Do(new Strike(c.Id, Axe) { From = 1 }).Run();
         Assert.Empty(w.M.Creatures.Creatures);
         Assert.Equal(["creatures.gone"], Reasons(w));
+        // Dead the moment the first blow lands: one roll of its yields.
+        w.Run(30);
+        Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count), 2, 3);
+    }
+
+    [Fact]
+    public void AReleaseOnTheTickOneDiesAtTheCapFindsRoom()
+    {
+        // The killed are gone to the cap at once (2026-10-26-creatures-are-composed), not at the sweep.
+        var w = CreaturesTesting.Planet(Room, CreaturesTesting.Lifeless).HeroAt(1, 3);
+        for (int i = 0; i < Tune.Max; i++) w.Do(new Release(Loper.Id, w.Feet(5, 3)));
+        w.Run();
+        Assert.Equal(Tune.Max, w.M.Creatures.Creatures.Count);
+        var c = w.M.Creatures.Creatures[0];
+        c.Damage = Loper.Life.Hp - 1;
+        w.Do(new Strike(c.Id, Axe)).Do(new Release(Loper.Id, w.Feet(5, 3))).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(Tune.Max, w.M.Creatures.Creatures.Count);
     }
 
     [Fact]
@@ -765,5 +770,40 @@ public class CreaturesTests
         w.Do(new Place(w.Feet(5, 3), Grid.Placement.Wall())).Do(new Place(w.Feet(6, 3), Grid.Placement.Wall())).Run();
         Assert.Equal(4 * Cell - Unit, c.Y);
         Assert.True(Clear(w, c));
+    }
+
+    [Fact]
+    public void AWorldSavedAndLoadedEveryTickPlaysOnAsOneNeverSaved()
+    {
+        // Every saved field of a creature mid-drive and mid-act (2026-10-26-creatures-are-composed): a world reloaded before each
+        // tick hashes as one that never was, through wanders, retreats, wind-ups, charges and escapes.
+        Scenario Made()
+        {
+            var w = CreaturesTesting.Planet(Long, CreaturesTesting.Lifeless).Breathing().HeroAt(10, 3).HeroAt(30, 3, peer: 1);
+            w.Run();
+            return w;
+        }
+        var (a, b) = (Made(), Made());
+        var rng = new Rng(new RngState { S = 7 });
+        var seen = new HashSet<Posture>();
+        for (int t = 0; t < 1500; t++)
+        {
+            var all = a.M.Creatures.Creatures;
+            var sent = new List<Command>();
+            if (all.Count < 3) sent.Add(new Release(rng.Below(2) == 0 ? Tune.Tapir.Id : Loper.Id, a.Feet(14 + (int)rng.Below(16), 3)));
+            else if (rng.Below(30) == 0) sent.Add(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Axe) { From = (int)rng.Below(2) });
+            foreach (var c in all)
+                if (c.Posture == Posture.Charge && rng.Below(3) == 0) sent.Add(new HitBy(c.Id) { From = (int)rng.Below(2) });
+            foreach (var command in sent)
+            {
+                a.Do(command);
+                b.Do(command);
+            }
+            a.Run();
+            b.ReloadOnPlanet().Run();
+            Assert.Equal(a.World.Hash(), b.World.Hash());
+            foreach (var c in all) seen.Add(c.Posture);
+        }
+        Assert.Superset(new HashSet<Posture> { Posture.Wander, Posture.Retreat, Posture.WindUp, Posture.Charge, Posture.Escape }, seen);
     }
 }

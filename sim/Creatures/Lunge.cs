@@ -55,6 +55,4 @@ internal sealed class LungeMove : MoveRule
     internal override bool Hits(Act a) => a.Phase == ActPhase.Active;
 
     internal override bool Walks(Act a) => a.Phase == ActPhase.Active;
-
-    internal override Posture PostureOf(Act a) => a.Phase == ActPhase.Active ? Posture.Charge : Posture.WindUp;
 }

@@ -36,7 +36,7 @@ public sealed partial class CreaturesModule
         for (int i = 0; i < all.Count; i++)
         {
             var creature = all[i];
-            if (creature.Dead || !Kept(creature)) continue;
+            if (!Kept(creature)) continue;
             Behave(creature, Spec.Get(creature.Species));
             all[kept++] = creature;
         }
@@ -80,8 +80,8 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
-    /// A tick of <paramref name="c"/>: freed by its body, else its act's clock, or the drives above the one in charge asked and its
-    /// drive's clock; then its body's steering and move.
+    /// A tick of <paramref name="c"/>: freed by its body, else its act's clock, or the drives above the one in charge asked — one that
+    /// takes over starts its clock next tick — and its drive's clock; then its body's steering and move.
     /// </summary>
     private void Behave(Creature c, Spec.Species spec)
     {
@@ -95,30 +95,28 @@ public sealed partial class CreaturesModule
         }
         else
         {
-            for (int i = 0; i < c.Drive; i++)
-                if (RuleBook.Drive(spec.Brain[i]).Wants(c, spec.Brain[i]))
-                {
-                    TakeOver(c, spec, i);
-                    break;
-                }
-            if (c.DriveLeft > 0) c.DriveLeft -= 1;
-            var d = spec.Brain[c.Drive];
-            if (c.DriveLeft == 0 && !RuleBook.Drive(d).Next(this, c, spec, d)) Yield(c, spec);
+            if (FirstWanting(c, spec, below: c.Drive) is int over and >= 0) TakeOver(c, spec, over);
+            else
+            {
+                if (c.DriveLeft > 0) c.DriveLeft -= 1;
+                var d = spec.Brain[c.Drive];
+                if (c.DriveLeft == 0 && !RuleBook.Drive(d).Next(this, c, spec, d)) TakeOver(c, spec, Fallback(spec, c));
+            }
         }
         body.Step(this, c, spec, grounded);
     }
 
-    /// <summary>The drive in charge yielded: the first from the top that wants <paramref name="c"/> takes it.</summary>
-    private void Yield(Creature c, Spec.Species spec)
+    /// <summary>The first drive from the top of <paramref name="spec"/>'s brain, above <paramref name="below"/>, that wants <paramref name="c"/>; -1 for none.</summary>
+    internal static int FirstWanting(Creature c, Spec.Species spec, int below)
     {
-        for (int i = 0; i < spec.Brain.Count; i++)
-            if (RuleBook.Drive(spec.Brain[i]).Wants(c, spec.Brain[i]))
-            {
-                TakeOver(c, spec, i);
-                return;
-            }
-        throw new InvalidOperationException($"creatures: nothing in {spec.Id}'s brain wants it");
+        for (int i = 0; i < below; i++)
+            if (RuleBook.Drive(spec.Brain[i]).Wants(c, spec.Brain[i])) return i;
+        return -1;
     }
+
+    /// <summary>The drive that takes <paramref name="c"/> when the one in charge yields, or when it is born: the first that wants it.</summary>
+    internal static int Fallback(Spec.Species spec, Creature c) =>
+        FirstWanting(c, spec, spec.Brain.Count) is int at and >= 0 ? at : throw new InvalidOperationException($"creatures: nothing in {spec.Id}'s brain wants it");
 
     private void TakeOver(Creature c, Spec.Species spec, int at)
     {
@@ -156,7 +154,7 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>The place in <paramref name="spec"/>'s brain of its first drive of kind <typeparamref name="D"/>.</summary>
-    private static int IndexOf<D>(Spec.Species spec) where D : Spec.Drive
+    internal static int IndexOf<D>(Spec.Species spec) where D : Spec.Drive
     {
         for (int i = 0; i < spec.Brain.Count; i++)
             if (spec.Brain[i] is D) return i;
@@ -169,9 +167,6 @@ public sealed partial class CreaturesModule
     /// </summary>
     internal bool Cornered(Creature c, int way, int reach) =>
         Nearest(c) is ({ } hero, int d) && d <= reach && Math.Sign(Middle(hero.X) - c.X) == -way;
-
-    /// <summary>Whether <paramref name="p"/> is a flight: steered as one, at the species' run, turned and leaping alike.</summary>
-    public static bool Fleeing(Posture p) => p is Posture.Flee or Posture.Retreat or Posture.Escape;
 
     /// <summary>The middle of column <paramref name="x"/>, in thousandths of a cell.</summary>
     internal int Middle(int x) => x * Unit + Unit / 2;

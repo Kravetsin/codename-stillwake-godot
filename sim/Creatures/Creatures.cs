@@ -62,15 +62,8 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     // Queries.
 
-    /// <summary>The creatures, in id order; live and read-only.</summary>
+    /// <summary>The creatures, in id order; live and read-only. One killed by a command is in it till the system sweeps it, within the tick.</summary>
     public IReadOnlyList<Creature> Creatures => State.Creatures;
-
-    /// <summary>Creature <paramref name="id"/>; null for one gone or never spawned.</summary>
-    public Creature? CreatureById(int id)
-    {
-        int at = Alive(id);
-        return at < 0 ? null : State.Creatures[at];
-    }
 
     /// <summary>
     /// Why peer <paramref name="peer"/>'s strike of creature <paramref name="id"/> with <paramref name="tool"/> would be refused: it
@@ -174,13 +167,8 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private void Add(Spec.Species spec, int x, int y)
     {
         var c = new Creature { Id = State.NextId, Species = spec.Id, X = x, Y = y, SeenAt = State.Clock };
-        for (int i = 0; i < spec.Brain.Count; i++)
-            if (RuleBook.Drive(spec.Brain[i]).Wants(c, spec.Brain[i]))
-            {
-                c.Drive = i;
-                RuleBook.Drive(spec.Brain[i]).Born(c, spec.Brain[i]);
-                break;
-            }
+        c.Drive = Fallback(spec, c);
+        RuleBook.Drive(spec.Brain[c.Drive]).Born(c, spec.Brain[c.Drive]);
         State.Creatures.Add(c);
         State.NextId += 1;
     }
