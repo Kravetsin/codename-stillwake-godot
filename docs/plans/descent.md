@@ -1,6 +1,6 @@
 # Design: the drop pod's descent and return
 
-Status: designed (design-author, cut by design-reviewer); next a plan, `/review-plan`, then slice 1.
+Status: slice 1 built (the sim, the Descend/Return key, the white-out; ADR `2026-10-26-the-descent`, which records where it departs from this design); slice 2, the cinematics, next.
 
 ## Problem
 
