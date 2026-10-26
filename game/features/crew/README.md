@@ -20,7 +20,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not |
-| `logic/Seating.cs` | where a hero in a drop pod is held |
+| `logic/Seating.cs` | where a hero sitting or flying in a drop pod is held |
 | `UsePrompt.cs` | the prompt at the bottom middle |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
 | `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) |
@@ -59,7 +59,7 @@ commands reach the sim. Other heroes come through the host.
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`) at any frame rate and is drawn between its last two steps. Floats only in drawing.
+  (`Net.Clock`) at any frame rate, drawn between its last two steps. Floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor (FsCheck). A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089, `ShutOutTests`).
@@ -68,9 +68,9 @@ commands reach the sim. Other heroes come through the host.
 - **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a hole a step
   deep is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down. No crouch.
-- **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
+- **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Eased, as a ramp.
 - **Jump and walk feel** (0089): coyote time and jump buffer; the rise cut when Space is let go; eased apex; speed
-  eased toward the keys, `AirControl` of it in the air (`HeroFeelTests`).
+  eased to the keys, `AirControl` of it in the air (`HeroFeelTests`).
 - **The figure answers its motion** (0090), read from sent `X`, `Y`, `Vx`, `Vy`, so friends move alike. It sits (`Pose.Sit`) on the title only.
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.

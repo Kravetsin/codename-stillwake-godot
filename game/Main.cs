@@ -163,6 +163,12 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Kept = p => p.Crate is int id && _m.Logistics.Served(id) ? _m.Items.KeptAt(id, p.Slot) : null;
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
+            // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
+            Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Seats)
+                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id, s.Client.World.SurfaceOf(s.Client.Id) == 0) : null, SendNow, _hands.Ui.Tip)
+                : null;
+            _items.Panel.Launch = LaunchOf;
+            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)?.TicksLeft) : null));
             // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
             // suit's gauge, so the red edges and the dark of passing out cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
