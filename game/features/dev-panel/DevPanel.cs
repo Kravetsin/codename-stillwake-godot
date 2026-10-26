@@ -40,7 +40,7 @@ public partial class DevPanel : CanvasLayer
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
     private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
-    private readonly Button _speed, _creative, _instant;
+    private readonly Button _speed, _creative, _instant, _items;
     private readonly VBoxContainer _picker = Style.Gap(new VBoxContainer { Visible = false }, 4);
     private readonly LineEdit _search = new() { PlaceholderText = "find an item…", ContextMenuEnabled = false, CaretBlink = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Label _pickerNote = Text(Style.Amber400);
@@ -94,15 +94,9 @@ public partial class DevPanel : CanvasLayer
         column.AddChild(surfaces);
         column.AddChild(_status);
         Say("");
-        var items = Toggle("▸ items", Style.Slate400);
-        items.Pressed += () =>
-        {
-            _picker.Visible = !_picker.Visible;
-            items.Text = $"{(_picker.Visible ? "▾" : "▸")} items";
-            if (_picker.Visible) _search.GrabFocus();
-            else _search.ReleaseFocus();
-        };
-        column.AddChild(items);
+        _items = Toggle("▸ items", Style.Slate400);
+        _items.Pressed += () => ShowPicker(!_picker.Visible);
+        column.AddChild(_items);
         MakePicker();
         column.AddChild(_picker);
         // Shut at the start: open, the board takes a third of a 720-pixel screen.
@@ -123,6 +117,25 @@ public partial class DevPanel : CanvasLayer
     }
 
     private static Label Text(Color colour, int size = 12) => new() { LabelSettings = Style.Text(Style.Mono, size, colour) };
+
+    /// <summary>Whether the item picker's search has the keys: Esc then shuts the picker first (<see cref="DropSearch"/>).</summary>
+    public bool Searching => Visible && _search.HasFocus();
+
+    /// <summary>Shuts the item picker and lets go of its search if it has the keys; false when it had not, so Esc goes on.</summary>
+    public bool DropSearch()
+    {
+        if (!Searching) return false;
+        ShowPicker(false);
+        return true;
+    }
+
+    private void ShowPicker(bool open)
+    {
+        _picker.Visible = open;
+        _items.Text = $"{(open ? "▾" : "▸")} items";
+        if (open) _search.GrabFocus();
+        else _search.ReleaseFocus();
+    }
 
     /// <summary>A line under the buttons saying how the last of them went; none when there is nothing to say.</summary>
     private void Say(string text)
@@ -283,7 +296,16 @@ public partial class DevPanel : CanvasLayer
         Say("");
     }
 
-    public override void _UnhandledInput(InputEvent e)
+    /// <summary>The backquote while the search has the keys, before it types one: it hides the panel all the same.</summary>
+    public override void _Input(InputEvent e)
+    {
+        if (_search.HasFocus()) ToggleOn(e);
+    }
+
+    /// <summary>The backquote anywhere else, after every field: one typed into another feature's field stays its own.</summary>
+    public override void _UnhandledInput(InputEvent e) => ToggleOn(e);
+
+    private void ToggleOn(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.Quoteleft }) return;
         Visible = !Visible;

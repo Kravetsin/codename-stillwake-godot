@@ -20,7 +20,9 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   name (`ItemPicker`), so a new item appears on it unasked. The search keeps the rows whose name or id holds what is
   typed, case ignored; `1`, `10` or `stack` is how many a pick gives. A row clicked, or Enter for the first shown, sends
   `items`' `Spawn` for this hero: what fits goes into its bag. With creative mode off it says so and sends nothing.
-  While the search is focused the hero takes no keys (`HeroView`); hiding the panel lets go of it.
+  While the search is focused the hero takes no keys (`HeroView`); hiding the panel lets go of it. The backquote hides
+  the panel from the search too, never typed into it; Esc there shuts the picker and lets go of the search before it
+  does anything else (`DropSearch`, wired in `Main` as the build menu's search is).
 - **Sounds:** a board, shut at the start, with a button for every cue in `Sound.All`, so a new cue
   appears on it unasked. Cues have no names; each is called by its first file under `res://audio/`
   without its `-1` and extension (`crew/step`, `CueNames`), and its tune when it plays another's files
