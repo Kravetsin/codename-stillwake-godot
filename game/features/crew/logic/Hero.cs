@@ -37,7 +37,7 @@ public readonly record struct HeroInput(
 /// </summary>
 public sealed class Ship(
     int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null,
-    int gravity = Spec.Gravity, int falling = Spec.FallGravity)
+    int gravity = Spec.Gravity, int falling = Spec.FallGravity, Shared.FogEdges? fog = null)
 {
     /// <summary>What a fall gains a step, in thousandths of a cell a step.</summary>
     public int Gravity => gravity;
@@ -59,6 +59,12 @@ public sealed class Ship(
 
     public bool Hull(int cell) => hull?.Invoke(cell) ?? structureAt(cell) != Structure.Empty;
 
+    /// <summary>A planet's fog at its sides (fog-edges), where the hero glides; none aboard.</summary>
+    public Shared.FogEdges? Fog => fog;
+
+    /// <summary>Whether a body centre at <paramref name="x"/>, in thousandths of a cell, glides: in a planet's fog.</summary>
+    public bool Glides(int x) => fog?.Outside(x) ?? false;
+
     /// <summary>
     /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
     /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014). Under the rules of
@@ -71,7 +77,7 @@ public sealed class Ship(
         var kind = rules ?? Stillwake.Content.Surfaces.Ship;
         return new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
             cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null,
-            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity);
+            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind));
     }
 }
 
@@ -216,6 +222,8 @@ public readonly record struct Hero(
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
+        // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
+        if (ship.Glides(hero.X)) return Glide(ship, hero, input, facing);
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
@@ -448,6 +456,16 @@ public readonly record struct Hero(
         int ny = MoveY(ship, nx, hero.Y, dy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
+    }
+
+    /// <summary>
+    /// A step in a planet's fog (fog-edges): weightless at the height the hero came in, the keys pacing it across as on the
+    /// ground, up, down and jump doing nothing. Walls stop it, and what a wall stops it loses.
+    /// </summary>
+    private static Hero Glide(Ship ship, Hero hero, HeroInput input, int facing)
+    {
+        int nx = MoveX(ship, hero.X, hero.Y, Paced(hero.Vx, input, grounded: true));
+        return new Hero(nx, hero.Y, nx - hero.X, 0, false, facing);
     }
 
     /// <summary>
