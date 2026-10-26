@@ -123,6 +123,7 @@ public static class PlanetTypes
         BedrockSide = 2,
         Fog = 64,
         FogDrop = 12,
+        FogOut = 15,
     })
     {
         Gravity = 700,
@@ -202,6 +203,7 @@ public static class PlanetTypes
             HomeDeepMost = 20,
             Fog = 8,
             FogDrop = 6,
+            FogOut = 4,
         },
     };
 

@@ -18,9 +18,12 @@ the grid) and `FogShare` (how thick the fog is by column and over the screen, an
   backdrop, creatures, friends and this player's own hero. Made by `SurfaceViews` only where `FogEdges.Of` finds bands: a
   planet whose zone leaves the same columns at each side; never aboard, on a test map or on a planet saved before it had
   bands.
-- **By column** (`FogShare.Column`, worked out again in the shader): none from `FogLooks.Lead` columns inside the zone,
-  easing to `FogLooks.Edge` at the zone's side, so the hollow band is never seen clear, and to whole at the seam and past
-  the grid. Wisps drift through it where it is thin, never where it is whole.
+- **By column** (`FogShare.Column`, worked out again in the shader): whole over a band, so its hollow is never seen, and
+  past the grid; thinning over the `Ground.FogOut` columns past it to `FogLooks.Edge`, where a moved hero glides out and
+  falls; none `FogLooks.Lead` columns further in.
+- **Texture:** the frost's noise, never a flat colour: billows warped through themselves and long flat wisps, the fog
+  thicker and lighter in them, thinner and darker between, and whole wherever it is whole. No ridged noise: its veins
+  read as water. It follows the view as it scrolls but not a move across: the texture runs on, unbroken.
 - **Over the screen** (`FogScreen`): none while the screen's middle is in the zone, whole at a seam. When the middle moves
   more than half the grid's width in a frame with fog on either side — the hero moved across — it holds whole for
   `FogLooks.FlashMs` and eases back over `FadeMs`. A beam-down, a load or a wake at the spawn flash nothing.

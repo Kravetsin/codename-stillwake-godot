@@ -8,22 +8,27 @@ namespace Stillwake.Game.Tests;
 /// <summary>How thick a planet's fog is (fog-edges): by column, over the screen, flashed whole at a move; and the sound dulled in it.</summary>
 public class FogShareTests
 {
-    /// <summary>A planet 128 wide with bands of 8: its seams at 4 and 124, its zone's sides at 8 and 120.</summary>
-    private static readonly FogEdges Edges = new(128, 8, 6, 30, 32);
+    /// <summary>A planet 128 wide with bands of 8 and 4 columns past each: its seams at 4 and 124, its zone's sides at 8 and 120.</summary>
+    private static readonly FogEdges Edges = new(128, 8, 6, 4, 30, 32);
 
     [Fact]
-    public void TheColumnsFogIsNoneInsideTheZoneTheEdgeAtItsSideWholeAtTheSeamAndPastTheGrid()
+    public void TheColumnsFogIsWholeOverABandThinningPastItToTheEdgeAndNoneFurtherIn()
     {
         Assert.Equal(0, FogShare.Column(Edges, 64));
-        Assert.Equal(0, FogShare.Column(Edges, 8 + FogLooks.Lead));
-        Assert.Equal(FogLooks.Edge, FogShare.Column(Edges, 8), 9);
-        Assert.Equal(FogLooks.Edge, FogShare.Column(Edges, 120), 9);
+        Assert.Equal(0, FogShare.Column(Edges, 12 + FogLooks.Lead));
+        // Whole over the band and at the zone's side: its hollow never shows.
+        Assert.Equal(1, FogShare.Column(Edges, 8));
+        Assert.Equal(1, FogShare.Column(Edges, 120));
+        Assert.InRange(FogShare.Column(Edges, 10), FogLooks.Edge, 1);
+        // Where a moved hero falls out of it.
+        Assert.Equal(FogLooks.Edge, FogShare.Column(Edges, 12), 9);
+        Assert.Equal(FogLooks.Edge, FogShare.Column(Edges, 116), 9);
         Assert.Equal(1, FogShare.Column(Edges, 4));
         Assert.Equal(1, FogShare.Column(Edges, 124));
         Assert.Equal(1, FogShare.Column(Edges, -3));
         Assert.Equal(1, FogShare.Column(Edges, 131));
         double was = 0;
-        for (double x = 8 + FogLooks.Lead; x >= 0; x -= 0.25)
+        for (double x = 12 + FogLooks.Lead; x >= 0; x -= 0.25)
         {
             double now = FogShare.Column(Edges, x);
             Assert.True(now >= was, $"thinner at {x}");

@@ -450,7 +450,7 @@ public partial class HeroView : Node2D
         _ui.Bits = Bits(m, client.Id);
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space.
-        var pose = Poses.PoseOf(drawn, inSpace || ship.Glides(drawn.X), passedOut);
+        var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding, passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         drawn = drawn with { Facing = _current.Facing };
@@ -481,7 +481,7 @@ public partial class HeroView : Node2D
     private void Fogged(Ship ship, bool seated)
     {
         if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) _harpoon = new HarpoonShot();
-        if (FogMove.Of(ship.Fog, _previous, _current, seated) is not { } moved) return;
+        if (FogMove.Of(ship, _previous, _current, seated) is not { } moved) return;
         _previous = _current = moved;
         _harpoon = new HarpoonShot();
         _snap = true;

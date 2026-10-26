@@ -32,6 +32,16 @@ public class FogEdgesTests
 
     private static Ship ShipOf(Registry m) => Ship.Of(m.Grid, m.Rooms, rules: m.Rules);
 
+    /// <summary>The top of the small planet's ground in a column, as a moved hero's arrival reads it.</summary>
+    private static int Top(int column) => Hero.TopOf(ShipOf(Small.Value), column);
+
+    /// <summary>A ship, with no fog.</summary>
+    private static readonly TestWorld Aboard = new("""
+        ......
+        .S....
+        ######
+        """);
+
     /// <summary>A band column's ground line as the grid has it: its first row with a back wall.</summary>
     private static int LineOf(Registry m, int x) =>
         Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.BackLayer[y * m.Grid.Width + x] != Stillwake.Sim.Grid.Back.None);
@@ -75,7 +85,12 @@ public class FogEdgesTests
         Assert.Equal(0, e.Shift(e.LeftSeam + 300, e.LeftSeam + 100));
         Assert.Equal(0, e.Shift(e.LeftSeam - 1, e.LeftSeam + 200));
         Assert.Equal(0, e.Shift(e.RightSeam + 1, e.RightSeam - 200));
-        Assert.Equal(((e.RightLine - e.Drop) * Unit, (e.LeftLine - e.Drop) * Unit), (e.Arrive(e.Period), e.Arrive(-e.Period)));
+        // Over the highest ground it will glide on over: the band's line beside the zone, or a tower past it as built.
+        Assert.Equal((e.RightLine - e.Drop) * Unit, e.Arrive(e.Period, _ => 1000));
+        Assert.Equal((e.LeftLine - e.Drop) * Unit, e.Arrive(-e.Period, _ => 1000));
+        int tower = e.RightLine - 4;
+        Assert.Equal((tower - e.Drop) * Unit, e.Arrive(e.Period, c => c == e.Width - 1 - e.Fog - e.Out + 1 ? tower : 1000));
+        Assert.Equal(Stillwake.Content.Hero.Height, e.Arrive(e.Period, _ => 0));
     }
 
     [Fact]
@@ -83,10 +98,10 @@ public class FogEdgesTests
     {
         var e = Edges;
         var at = new Hero(e.LeftSeam, 30 * Unit, -240, 0, false, -1);
-        var over = FogMove.Of(e, at, at with { X = e.LeftSeam - 100 }, seated: false)!.Value;
-        Assert.Equal((e.RightSeam - 100, e.Arrive(e.Period), -240, 0), (over.X, over.Y, over.Vx, over.Vy));
-        var back = FogMove.Of(e, over, over with { X = e.RightSeam + 50, Vx = 240 }, seated: false)!.Value;
-        Assert.Equal((e.LeftSeam + 50, e.Arrive(-e.Period)), (back.X, back.Y));
+        var over = FogMove.Of(ShipOf(Small.Value), at, at with { X = e.LeftSeam - 100 }, seated: false)!.Value;
+        Assert.Equal((e.RightSeam - 100, e.Arrive(e.Period, Top), -240, 0), (over.X, over.Y, over.Vx, over.Vy));
+        var back = FogMove.Of(ShipOf(Small.Value), over, over with { X = e.RightSeam + 50, Vx = 240 }, seated: false)!.Value;
+        Assert.Equal((e.LeftSeam + 50, e.Arrive(-e.Period, Top)), (back.X, back.Y));
         Assert.Equal(PlanetTypes.Small.Ground.Fog / 2, back.X / Unit);
     }
 
@@ -95,8 +110,8 @@ public class FogEdgesTests
     {
         var e = Edges;
         var at = new Hero(e.LeftSeam, 30 * Unit, -240, 0, false, -1);
-        Assert.Null(FogMove.Of(e, at, at with { X = e.LeftSeam - 100 }, seated: true));
-        Assert.Null(FogMove.Of(null, at, at with { X = e.LeftSeam - 100 }, seated: false));
+        Assert.Null(FogMove.Of(ShipOf(Small.Value), at, at with { X = e.LeftSeam - 100 }, seated: true));
+        Assert.Null(FogMove.Of(Ship.Of(Aboard.M.Grid, Aboard.M.Rooms), at, at with { X = e.LeftSeam - 100 }, seated: false));
     }
 
     [Fact]
@@ -121,11 +136,11 @@ public class FogEdgesTests
     }
 
     [Fact]
-    public void InTheZoneTheSameJumpRises()
+    public void InTheZoneTheSameJumpRisesEvenInTheColumnsPastABandForAHeroThatWalkedThere()
     {
         var m = Small.Value;
         var ship = ShipOf(m);
-        int x = PlanetTypes.Small.Ground.Fog + 4, top = Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Stillwake.Content.Structure.Empty);
+        int x = PlanetTypes.Small.Ground.Fog + PlanetTypes.Small.Ground.FogOut / 2, top = Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Stillwake.Content.Structure.Empty);
         var hero = new Hero(x * Unit + Unit / 2, top * Unit, 0, 0, false, 1).Step(Still, ship);
         Assert.True(hero.Step(Jump, ship).Vy < 0);
     }
@@ -136,11 +151,13 @@ public class FogEdgesTests
         var m = Small.Value;
         var ship = ShipOf(m);
         var e = Edges;
-        var hero = new Hero(e.RightSeam - 100, e.Arrive(e.Period), -Stillwake.Content.Hero.Walk, 0, false, -1);
+        var hero = new Hero(e.RightSeam - 100, e.Arrive(e.Period, Top), -Stillwake.Content.Hero.Walk, 0, false, -1, Gliding: true);
         bool fell = false;
         for (int i = 0; i < 150; i++)
         {
             hero = hero.Step(Left, ship);
+            // It glides on through the band and the columns past it, and only then falls, out of the thick fog.
+            if (hero.Vy > 0 && !fell) Assert.False(e.Carries(hero.X), $"it fell at {hero.X / Unit}, in the thick fog");
             fell |= hero.Vy > 0;
         }
         Assert.True(fell, "it never fell");
