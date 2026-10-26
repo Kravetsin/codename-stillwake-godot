@@ -10,7 +10,8 @@ namespace Stillwake.Sim;
 /// </summary>
 public static class Rays
 {
-    private const int Cell = 1000;
+    /// <summary>Thousandths of a cell: what a point and a speed are in.</summary>
+    public const int Cell = 1000;
 
     /// <summary>The direction of <paramref name="heading"/> (<see cref="Headings"/>) in thousandths: 0 along +x, 64 along +y (down).</summary>
     public static (int X, int Y) Direction(int heading) => (Sine(heading + Headings.Turn / 4), Sine(heading));

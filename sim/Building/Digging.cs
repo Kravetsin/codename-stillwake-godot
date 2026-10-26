@@ -113,19 +113,21 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// A hit of <paramref name="damage"/> on what stands solid in <paramref name="cell"/> alone, by peer <paramref name="peer"/>'s
-    /// shot (shots-are-the-sims): a wall that breaks, or a built piece that stops a body, as a <see cref="Hew"/>'s ray would strike
-    /// it; what it gives to the peer, or, for none, falling there, anyone's. Nothing where the surface's tools break nothing, nor on
-    /// what never breaks (bedrock, lava), nor on what does not stop a body (a ladder, an open door, a back wall, a plant).
+    /// shot (shots-are-the-sims): a wall that breaks, or a built piece, a floor too, as a <see cref="Hew"/>'s ray strikes it; what
+    /// it gives to the peer, or, its hero not on this surface (gone aboard, left, or none), falling there, anyone's. Nothing where
+    /// the surface's tools break nothing, nor on what never breaks (bedrock, lava). A shot stops only where it is solid, so never
+    /// here for a ladder, an open door, a back wall or a plant.
     /// </summary>
-    public void Hit(int? peer, int cell, int damage)
+    public void Hit(int peer, int cell, int damage)
     {
         if (!Rules.ToolsBreak || damage <= 0) return;
+        int? here = _crew.HeroOf(peer) != null ? peer : null;
         if (_grid.WallAt(cell) is { } wall)
         {
-            if (wall.Strength != Material.Unbreakable) HitWall(peer, cell, damage);
+            if (wall.Strength != Material.Unbreakable) HitWall(here, cell, damage);
             return;
         }
-        if (PieceAt(cell) is { } piece && _grid.Blocks(cell)) HitPiece(peer, piece.Head, damage);
+        if (PieceAt(cell) is { } piece) HitPiece(here, piece.Head, damage);
     }
 
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>

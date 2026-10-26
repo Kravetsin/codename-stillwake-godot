@@ -18,20 +18,24 @@ come with their first user ("hero guns will send their `Fire` here").
   slice, so every peer and a joiner see the same shots; none in flight writes nothing.
 - **One flight, shared with the client.** `ShotFlight` in Core, whole numbers: `Launch` (the speed along the heading,
   rounded toward zero; `Reach` cells' ticks, rounded down), `Gravity` (`Creatures.Gravity × Weight` under the surface's
-  gravity, none where it floats: open space and the ship, aboard too) and `Step` (a tick less left, gravity added, then a
-  walk from the old point to the new by `Rays.Walk`, its own cell first). The walk only finds: at an exact corner the x cell
-  first; nothing changes during it, so one shot meets one thing. The shooter's client draws its own shot by the same step.
+  gravity, none where it floats: open space and the ship, aboard too) and `Step` (a tick less left, then a walk by `Rays.Walk`
+  from the old point, its own cell first, falling by its fall and half the gravity, rounded down, the fall then gaining the
+  whole: the tick's mean, so the arc is the parabola's at every tick, ≈30.6 cells and not 28). The walk only finds: at an
+  exact corner the x cell first; nothing changes during it, so one shot meets one thing; it also gives the last cell it
+  asked, where a shot out of reach or off the grid ends. The shooter's client draws its own shot by the same step.
 - **What a shot meets**, in the first cell its walk stops at, in that order: a solid cell (a creature's solid: walls,
   floors, closed doors, the grid's edge, a planet's fog); then the lowest-id live creature whose box overlaps the cell; then
-  the first wreck a hit there strikes (`IDebrisOps.WreckAt`: wreckage, its middle in space). Heroes are passed. Shots fly in
-  id order after the creatures move, one fired this tick included; one out of reach or off the grid ends. `Ended` lists the
-  tick's ends for the client, derived.
+  the first wreck a hit there strikes (`IDebrisQueries.Wrecks`: wreckage, its middle in space, with its box, taken once a
+  tick, as 640 far pieces scanned per cell cost 6 ms a tick). Heroes are passed. Shots fly in id order after the creatures
+  move, one fired this tick included; one out of reach or off the grid ends. `Ended` lists the tick's ends for the client,
+  derived. The creatures a shot killed are swept out as the shots end: `Dead` is never saved, so one left listed till the
+  next tick's sweep came back alive in a save made that tick.
 - **What a hit takes**, from the projectile's row: a creature the `Damage` through the hit path, knocked by `Pace` along
   the shot's `VX` (straight up or down, away from the shooter's hero); a wreck the `Damage` through `IDebrisOps.Hit`, the
   body `HewWrecks` now calls too; a solid cell the `BlockDamage` through `IBuildingOps.Hit`, Building's first interface:
   `Hew`'s path for one cell, where the surface's tools break things, on a wall that breaks or a built piece that stops a
-  body, its yield to the shooter if its hero is on this surface, else falling there for anyone. Creatures depends on
-  Building, which runs before it and reads nothing of it.
+  body or a floor, its yield to the shooter if its hero is on this surface (Building judges), else falling there for
+  anyone. Creatures depends on Building, which runs before it and reads nothing of it.
 - **A blow says when it is answered.** The sentry answers blows on its wreck by the debris clock. A hit now carries
   `Answered`: the clock and one from a command (it lands before the debris drifts), the clock from a system (a shot lands
   after), so a nail on the sentry and an axe on its wreck the next tick are both answered.
@@ -45,7 +49,10 @@ come with their first user ("hero guns will send their `Fire` here").
 - A drawn nail may part from the sim's by a tick, or fly on with no shot behind it when its `Fire` is refused as it
   applies: cosmetic.
 - A world's hash covers shots in flight; a save mid-flight plays on alike.
-- The fuzz draws `Fire`, which shifted one desync test's draws: its seed 9 became 10.
+- The fuzz draws `Fire`, arming its sender now and then (creative mode, a nailer, nails) so shots fly in the generic
+  suites; its new draws shifted one desync test's: its seed 9 became 10.
+- A creature never overlaps a solid cell, nor a clamped sentry its wreck, so the order solid → creature → wreck is a
+  tie-break the game rarely meets: a sentry in flight over another wreck is the one case.
 
 ## Rejected
 

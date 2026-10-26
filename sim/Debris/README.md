@@ -15,7 +15,7 @@ found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056, 0060, 0066).
 
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds), `Crew` (the sender's hero, every hero's
   reported cell), `Rooms` (what is space), `Items` (`CanDrain`, `Running`, `Damage`, `WeaponProblem`; `GiveOrDrop`,
-  `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it (`IDebrisQueries`, `WreckAt`) and changes it
+  `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it (`IDebrisQueries`, `Wrecks`) and changes it
   (`Unreel`: the sentry; `Hit`: a shot).
 - **State** (`DebrisState`, saved): `Pieces` in spawn (id) order, each `{ Id, Zone, Item, X, Y, Speed, Start, End,
   Damage, Reel, SeenAt }`, positions in thousandths of a cell (`DebrisModule.Unit`); `NextId`, never reused; `Clock`;
@@ -66,7 +66,7 @@ by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052)
   and every weapon breaks every kind (0054); a cable rack gives one circuit (0041). `HewWrecks(Tool, X, Y, Heading)`
   (fan-of-rays): each ray of the fan strikes the first wreck whose box (`Wreckage.Sizes`) covers a cell it crosses (first
   spawned there), stopping there or at a wall; one whose middle is not in space is passed (`Struck`). Each struck takes
-  `Damage` once (boosted, 0098) through `Hit`, as a shot's wreck (`WreckAt`): the blow kept (`Piece.Struck`: peer, debris
+  `Damage` once (boosted, 0098) through `Hit`, as a shot's wreck (`Wrecks`): the blow kept (`Piece.Struck`: peer, debris
   clock); at its hit points it goes,
   its `Loot` under its middle (`FloorStack.Nobody`).
   Refused `debris.notOutside` (the hero), `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055). A hit

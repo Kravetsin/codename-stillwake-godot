@@ -1,3 +1,4 @@
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Items;
 using Spec = Stillwake.Content.Creatures;
 
@@ -31,7 +32,7 @@ public sealed partial class CreaturesModule
     public string? FireProblem(int peer, string tool, int x, int y)
     {
         if (Content.Shots.GunOf(tool) is not { } gun || _held.ToolStack(peer, gun.Item) == null) return "creatures.noGun";
-        if (x < 0 || y < 0 || x >= _grid.Width * Unit || y >= _grid.Height * Unit) return "creatures.blocked";
+        if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return "creatures.blocked";
         return _held.ShortOf(peer, [(gun.Ammo, 1)]);
     }
 
@@ -54,44 +55,46 @@ public sealed partial class CreaturesModule
         });
     }
 
-    /// <summary>Every shot's step, in id order, those fired this tick too: one that met something hits it and ends, as one that ran out or left the grid.</summary>
+    /// <summary>
+    /// Every shot's step, in id order, those fired this tick too: one that met something hits it and ends, as one that ran out or
+    /// left the grid. The wrecks are taken once, the debris having drifted. Those its hits killed are swept out at the end, as the
+    /// creatures' system sweeps a command's: the tick saves no creature dead and still listed.
+    /// </summary>
     private void Fly()
     {
         _ended.Clear();
         var shots = State.Shots;
+        if (shots.Count == 0) return;
+        _wrecks = _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
         int kept = 0;
         for (int i = 0; i < shots.Count; i++)
             if (Step(shots[i])) shots[kept++] = shots[i];
         shots.RemoveRange(kept, shots.Count - kept);
+        State.Creatures.RemoveAll(c => c.Dead);
     }
 
     /// <summary>A tick of <paramref name="s"/>'s flight: true while it flies on.</summary>
     private bool Step(Shot s)
     {
         var p = Content.Shots.Get(s.Projectile);
-        var (next, met) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Stops(cell, p));
+        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Stops(cell, p));
         if (met >= 0)
         {
             HitAt(s, p, met);
             _ended.Add(new ShotEnd(s.Id, s.Projectile, met));
             return false;
         }
-        if (next.Left <= 0 || !ShotFlight.OnGrid(next, _grid.Width, _grid.Height))
+        if (next.Left <= 0 || !ShotFlight.OnGrid(next.X, next.Y, _grid.Width, _grid.Height))
         {
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, OnGridCell(next) ?? OnGridCell(s.Motion)!.Value));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, last));
             return false;
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);
         return true;
     }
 
-    /// <summary>The cell under <paramref name="f"/>'s point; null off the grid.</summary>
-    private int? OnGridCell(ShotMotion f) =>
-        ShotFlight.OnGrid(f, _grid.Width, _grid.Height) ? f.Y / Unit * _grid.Width + f.X / Unit : null;
-
     /// <summary>Whether a shot of <paramref name="p"/> stops in <paramref name="cell"/>: solid as for a body, or holding a creature or a wreck it may hit.</summary>
-    private bool Stops(int cell, Content.Projectile p) =>
-        Solid(cell % _grid.Width, cell / _grid.Width) || p.HitsBodies && (CreatureIn(cell) != null || _debris.WreckAt(cell) != null);
+    private bool Stops(int cell, Content.Projectile p) => Solid(cell) || p.HitsBodies && (CreatureIn(cell) != null || WreckIn(cell) != null);
 
     /// <summary>
     /// <paramref name="s"/>'s hit in <paramref name="cell"/>, the first it meets there: what is solid takes its block damage, where tools
@@ -100,11 +103,9 @@ public sealed partial class CreaturesModule
     private void HitAt(Shot s, Content.Projectile p, int cell)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        // Its yield to its shooter if its hero is on this surface; else it falls there, anyone's.
-        int? here = s.By.Kind == RefKind.Hero && _crew.HeroOf(peer) != null ? peer : null;
-        if (Solid(cell % _grid.Width, cell / _grid.Width))
+        if (Solid(cell))
         {
-            if (p.BlockDamage > 0) _building.Hit(here, cell, p.BlockDamage);
+            if (p.BlockDamage > 0) _building.Hit(peer, cell, p.BlockDamage);
             return;
         }
         if (CreatureIn(cell) is { } creature)
@@ -114,7 +115,18 @@ public sealed partial class CreaturesModule
             Hurt(creature, Spec.Get(creature.Species), p.Damage, new Hit(peer, away, Math.Min(Spec.KnockPace, p.Pace), _debris.Clock));
             return;
         }
-        if (_debris.WreckAt(cell) is { } wreck) _debrisOps.Hit(peer, wreck.Id, p.Damage);
+        if (WreckIn(cell) is { } wreck) _debrisOps.Hit(peer, wreck.Piece, p.Damage);
+    }
+
+    /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>
+    private IReadOnlyList<WreckBox> _wrecks = [];
+
+    /// <summary>The first wreck, in spawn order, whose box covers part of <paramref name="cell"/>; null for none.</summary>
+    private WreckBox? WreckIn(int cell)
+    {
+        foreach (var w in _wrecks)
+            if (w.Covers(cell, _grid.Width) && _debris.PieceById(w.Piece) != null) return w;
+        return null;
     }
 
     /// <summary>The lowest-id live creature whose body's box overlaps <paramref name="cell"/>; null for none.</summary>

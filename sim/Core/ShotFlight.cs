@@ -11,7 +11,7 @@ public readonly record struct ShotMotion(int X, int Y, int VX, int VY, int Left)
 /// </summary>
 public static class ShotFlight
 {
-    private const int Unit = 1000;
+    private const int Unit = Rays.Cell;
 
     /// <summary>
     /// A shot of <paramref name="p"/> fired from (<paramref name="x"/>, <paramref name="y"/>) along <paramref name="heading"/>
@@ -30,21 +30,24 @@ public static class ShotFlight
     public static int Gravity(Surfaces.Kind kind, Projectile p) => p.Weight == 0 || kind.Floats ? 0 : kind.Fall(Creatures.Gravity * p.Weight);
 
     /// <summary>
-    /// A tick of <paramref name="f"/>: a tick less left, <paramref name="gravity"/> added to its fall, then the walk from its point to
-    /// the new one (<see cref="Rays.Walk"/>), its own cell first: <c>Met</c> is the first cell <paramref name="stops"/> says true of,
-    /// the x one first at an exact corner, -1 for none. Cells are asked only, never changed, so the caller applies a hit after.
+    /// A tick of <paramref name="f"/>: a tick less left, then the walk from its point to the new one (<see cref="Rays.Walk"/>), its
+    /// own cell first, falling by its fall and half of <paramref name="gravity"/> (rounded down), its fall then gaining the whole: the
+    /// tick's mean, so its arc is the parabola's at every tick. <c>Met</c> is the first cell <paramref name="stops"/> says true of, the
+    /// x one first at an exact corner, -1 for none; <c>Last</c> the last cell the walk asked of, on the grid. Cells are asked only,
+    /// never changed, so the caller applies a hit after.
     /// </summary>
-    public static (ShotMotion Next, int Met) Step(ShotMotion f, int gravity, int width, int height, Func<int, bool> stops)
+    public static (ShotMotion Next, int Met, int Last) Step(ShotMotion f, int gravity, int width, int height, Func<int, bool> stops)
     {
-        int vy = f.VY + gravity, met = -1;
-        Rays.Walk(width, height, f.X, f.Y, f.VX, vy, cell =>
+        int fall = f.VY + gravity / 2, met = -1, last = -1;
+        Rays.Walk(width, height, f.X, f.Y, f.VX, fall, cell =>
         {
+            last = cell;
             if (met < 0 && stops(cell)) met = cell;
             return met >= 0;
         });
-        return (new ShotMotion(f.X + f.VX, f.Y + vy, f.VX, vy, f.Left - 1), met);
+        return (new ShotMotion(f.X + f.VX, f.Y + fall, f.VX, f.VY + gravity, f.Left - 1), met, last);
     }
 
-    /// <summary>Whether <paramref name="f"/>'s point is on a grid <paramref name="width"/> by <paramref name="height"/> cells.</summary>
-    public static bool OnGrid(ShotMotion f, int width, int height) => f.X >= 0 && f.Y >= 0 && f.X < width * Unit && f.Y < height * Unit;
+    /// <summary>Whether (<paramref name="x"/>, <paramref name="y"/>), in thousandths of a cell, is on a grid <paramref name="width"/> by <paramref name="height"/> cells.</summary>
+    public static bool OnGrid(int x, int y, int width, int height) => x >= 0 && y >= 0 && x < width * Unit && y < height * Unit;
 }

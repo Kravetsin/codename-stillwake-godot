@@ -18,7 +18,7 @@ public class ShotsTests
 
     /// <summary>
     /// Ground on the test strip, the first planet's rules, a cell a character: 100 open cells by 30 over three rows of soil, a soil
-    /// pillar at column 90, bedrock at column 95.
+    /// pillar at column 90, bedrock at column 95, a floor at columns 50 to 53 of row 25.
     /// </summary>
     private static Scenario Ground()
     {
@@ -26,7 +26,7 @@ public class ShotsTests
         var looks = new List<string>();
         for (int y = 0; y < 30; y++)
         {
-            rows.Add(new string('.', 90) + "#....#....");
+            rows.Add(y == 25 ? new string('.', 50) + "====" + new string('.', 36) + "#....#...." : new string('.', 90) + "#....#....");
             looks.Add(new string('.', 90) + "s....b....");
         }
         for (int y = 0; y < 3; y++)
@@ -82,6 +82,8 @@ public class ShotsTests
         dry.Do(At(10, 10, Right)).Run();
         Assert.Equal(shots + 1, dry.M.Creatures.Shots.Count);
         Assert.Equal(0, Nails(dry));
+        dry.GiveItems(0, ("nail", 3)).Do(At(10, 10, Right)).Run();
+        Assert.Equal(3, Nails(dry));
     }
 
     [Fact]
@@ -112,7 +114,7 @@ public class ShotsTests
         }
         int cell = ends.Single().Cell;
         Assert.Equal(30, cell / 100);
-        Assert.InRange(cell % 100 - 2, 27, 31);
+        Assert.InRange(cell % 100 - 2, 30, 31);
         Assert.Equal(Nail.BlockDamage, CrackAt(w, cell));
     }
 
@@ -187,7 +189,7 @@ public class ShotsTests
         // The muzzle is the client's word: here two cells short of the loper, its hero 38 cells off.
         w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Run();
         Assert.Equal(Nail.Damage, loper.Damage);
-        Assert.True(loper.VX > 0);
+        Assert.Equal(((Spec.Creatures.Walker)Spec.Creatures.Loper.Body).Run, loper.VX);
         Assert.Equal(Posture.Flee, loper.Posture);
     }
 
@@ -198,7 +200,7 @@ public class ShotsTests
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         w.Do(new Fire(Nailer, loper.X, 12 * Unit, Down)).Run(3);
         Assert.Equal(Nail.Damage, loper.Damage);
-        Assert.True(loper.VX < 0);
+        Assert.Equal(-((Spec.Creatures.Walker)Spec.Creatures.Loper.Body).Run, loper.VX);
     }
 
     [Fact]
@@ -258,5 +260,39 @@ public class ShotsTests
         loaded.Run(20);
         Assert.Equal(kept.M.Building.Cracks.Select(c => (c.Cell, c.Damage)), loaded.M.Building.Cracks.Select(c => (c.Cell, c.Damage)));
         Assert.Equal(kept.World.Hash(), loaded.World.Hash());
+    }
+
+    [Fact]
+    public void ACreatureANailKillsIsGoneFromASaveMadeThatTick()
+    {
+        Scenario Killed()
+        {
+            var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+            w.Let(Spec.Creatures.Loper, 40, 19);
+            // Two nails from beside it on one tick: 12, the loper's hit points.
+            return w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Run();
+        }
+        var kept = Killed();
+        var loaded = Killed().ReloadOnPlanet();
+        Assert.Empty(loaded.M.Creatures.Creatures);
+        kept.Run();
+        loaded.Run();
+        Assert.Equal(kept.World.Hash(), loaded.World.Hash());
+    }
+
+    [Fact]
+    public void AFloorTakesANailsBlockDamage()
+    {
+        var w = Ground();
+        int cell = EndOf(w, At(45, 25, Right));
+        Assert.Equal(25 * 100 + 50, cell);
+        Assert.Equal(Nail.BlockDamage, w.M.Building.Cracks.Single().Damage);
+    }
+
+    [Fact]
+    public void ANailLeavingTheGridEndsInTheLastCellItCrossed()
+    {
+        var w = Space();
+        Assert.Equal(10 * 320 + 319, EndOf(w, At(300, 10, Right)));
     }
 }

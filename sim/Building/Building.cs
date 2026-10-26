@@ -40,7 +40,7 @@ public sealed record SetInstant(bool On) : Command;
 /// <summary>How another module may change what stands on the grid.</summary>
 public interface IBuildingOps
 {
-    void Hit(int? peer, int cell, int damage);
+    void Hit(int peer, int cell, int damage);
 }
 
 /// <summary>

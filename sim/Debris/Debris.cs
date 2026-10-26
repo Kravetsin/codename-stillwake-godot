@@ -42,7 +42,21 @@ public interface IDebrisQueries
 
     Piece? PieceById(int id);
 
-    Piece? WreckAt(int cell);
+    IReadOnlyList<WreckBox> Wrecks();
+}
+
+/// <summary>
+/// A wreck a hit may strike, its middle in space: piece <paramref name="Piece"/>'s box (<see cref="Content.Wreckage.SizeOf"/>),
+/// its edges in thousandths of a cell, the right and bottom ones past it.
+/// </summary>
+public readonly record struct WreckBox(int Piece, int Left, int Top, int Right, int Bottom)
+{
+    /// <summary>Whether the box covers part of <paramref name="cell"/> of a grid <paramref name="width"/> cells wide.</summary>
+    public bool Covers(int cell, int width)
+    {
+        int left = cell % width * DebrisModule.Unit, top = cell / width * DebrisModule.Unit;
+        return Left < left + DebrisModule.Unit && Right > left && Top < top + DebrisModule.Unit && Bottom > top;
+    }
 }
 
 /// <summary>How another module may change the debris.</summary>
@@ -168,15 +182,16 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     public IReadOnlyList<Piece> Struck(string tool, int x, int y, int heading)
     {
         var weapon = Content.Weapons.Of(tool) ?? throw new InvalidOperationException($"debris.hew: {tool} deals no damage");
-        var wrecks = State.Pieces.Where(Hittable).ToList();
+        var wrecks = Wrecks();
         var struck = new List<Piece>();
         if (wrecks.Count == 0) return struck;
         Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell =>
         {
             if (_grid.WallAt(cell) != null || _grid.Blocks(cell)) return true;
-            foreach (var p in wrecks)
+            foreach (var w in wrecks)
             {
-                if (!Covers(p, cell)) continue;
+                if (!w.Covers(cell, _grid.Width)) continue;
+                var p = PieceById(w.Piece)!;
                 if (!struck.Contains(p)) struck.Add(p);
                 return true;
             }
@@ -187,25 +202,19 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     }
 
     /// <summary>
-    /// The first wreck, in spawn order, that a hit in <paramref name="cell"/> strikes: whose box covers part of it and whose middle
-    /// is in space, as for <see cref="Struck"/>; null for none. Where a shot meets a wreck.
+    /// The wrecks a hit may strike now, in spawn order, with their boxes: wreckage whose middle is in space, as for
+    /// <see cref="Struck"/>. A new list a call: a shot's flight takes it once a tick and asks it of each cell it crosses.
     /// </summary>
-    public Piece? WreckAt(int cell)
+    public IReadOnlyList<WreckBox> Wrecks()
     {
+        var wrecks = new List<WreckBox>();
         foreach (var p in State.Pieces)
-            if (Hittable(p) && Covers(p, cell)) return p;
-        return null;
-    }
-
-    /// <summary>Whether <paramref name="p"/> is a wreck a hit may strike: wreckage, its middle in space.</summary>
-    private bool Hittable(Piece p) => Content.Wreckage.SizeOf(p.Item) != null && Outside(CellOf(p.X, p.Y, _grid.Width));
-
-    /// <summary>Whether wreck <paramref name="p"/>'s box (<see cref="Content.Wreckage.SizeOf"/>) covers part of <paramref name="cell"/>.</summary>
-    private bool Covers(Piece p, int cell)
-    {
-        int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
-        var (w, h) = Content.Wreckage.SizeOf(p.Item)!.Value;
-        return p.X - w * Unit / 2 < left + Unit && p.X + w * Unit / 2 > left && p.Y - h * Unit / 2 < top + Unit && p.Y + h * Unit / 2 > top;
+        {
+            if (Content.Wreckage.SizeOf(p.Item) is not { } size || !Outside(CellOf(p.X, p.Y, _grid.Width))) continue;
+            var (w, h) = size;
+            wrecks.Add(new WreckBox(p.Id, p.X - w * Unit / 2, p.Y - h * Unit / 2, p.X + w * Unit / 2, p.Y + h * Unit / 2));
+        }
+        return wrecks;
     }
 
     /// <summary>

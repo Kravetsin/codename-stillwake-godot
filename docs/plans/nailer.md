@@ -41,7 +41,9 @@ developer before either.
 
 ### N-1 — Shots in the sim, the nail first ✅
 
-**Built, but:** the nail's `Reach` is 288 cells (half the farthest zoom's 192-cell screen and a whole one past it); the
+**Built, but:** the flight is `ShotFlight` (`Launch`, `Gravity`, `Step`, `OnGrid`) on a `ShotMotion`, walking `Rays.Walk`, moving by
+the tick's mean fall so the arc is ≈30.6 cells; wrecks come from `IDebrisQueries.Wrecks`, taken once a tick; Building judges whether
+the shooter is on the surface; shots sweep out the creatures they kill. The nail's `Reach` is 288 cells (half the farthest zoom's 192-cell screen and a whole one past it); the
 next id is kept as `Fired`; empty `Shots` save nothing, so the format's fixture stands; no `--fire` dev mode (the testbed's
 supply crate holds the nailer and 100 nails, N-2 fires them); the fuzz's new draws moved one desync test's seed 9 to 10.
 The nailer and nails have placeholder icons. ADR: `2026-10-26-shots-are-the-sims`.

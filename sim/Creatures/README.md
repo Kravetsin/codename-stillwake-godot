@@ -25,7 +25,7 @@ to wrecks in space: creatures run wherever one is let out or a habitat spawns. S
 ([shots-are-the-sims](../../docs/decisions/2026-10-26-shots-are-the-sims.md)).
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells; `Shock`); `Items` (`Damage`, `WeaponProblem`, `ToolStack`, `ShortOf`,
-  `Take`, `DropAt`); `Debris` (queries, `WreckAt`, `Unreel`, `Hit`); `Building` (`IBuildingOps.Hit`).
+  `Take`, `DropAt`); `Debris` (queries, `Wrecks`, `Unreel`, `Hit`); `Building` (`IBuildingOps.Hit`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge by its place in
   the brain, `Step` where that drive is within itself, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its

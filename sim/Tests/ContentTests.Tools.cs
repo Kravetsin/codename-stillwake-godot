@@ -21,6 +21,21 @@ public partial class ContentTests
     }
 
     [Fact]
+    public void EveryProjectileFliesAndReachesAndEveryGunIsAToolOfOneFiringAnItemCraftedAtThePod()
+    {
+        Assert.Equal(Shots.Projectiles.Count, Shots.Projectiles.Select(p => p.Id).Distinct().Count());
+        Assert.All(Shots.Projectiles, p => Assert.True(p.Speed > 0 && p.Reach > 0 && p.Damage >= 0 && p.BlockDamage >= 0 && p.Weight >= 0, p.Id));
+        foreach (var gun in Shots.Guns)
+        {
+            Assert.Equal(1, Content.Items.Get(gun.Item).Stack);
+            Assert.True(gun.Pace > 0, gun.Item);
+            Assert.Null(Weapons.Of(gun.Item));
+            Assert.True(Content.Items.TryGet(gun.Ammo, out _), gun.Ammo);
+            Assert.True(Crafts.TryGet(gun.Item, out _) && Crafts.TryGet(gun.Ammo, out _), gun.Item);
+        }
+    }
+
+    [Fact]
     public void EveryWeaponIsAToolOfOneCraftedHitsInWholeUnitsAndTheDrillsOutdamageTheAxeOnTheBelt()
     {
         Assert.Equal(Weapons.All.Count, Weapons.All.Select(w => w.Item).Distinct().Count());

@@ -34,9 +34,18 @@ public sealed partial class CreaturesModule
         return new Release(species.Id, (int)rng.Below((uint)cells + 2) - 1) { From = from };
     }
 
-    /// <summary>A <see cref="Fire"/>: the nailer three times in four, else the axe (no gun); from within four cells of the hero, or anywhere with none, a cell past the grid at most.</summary>
-    private Fire FuzzFire(Rng rng, int from)
+    /// <summary>
+    /// A <see cref="Fire"/>: the nailer three times in four, else the axe (no gun); from within four cells of the hero, or anywhere
+    /// with none, a cell past the grid at most. A sender with no nailer half the time switches creative mode on or spawns one, and
+    /// one with no nails spawns some, so shots fly in the suites.
+    /// </summary>
+    private Command FuzzFire(Rng rng, int from)
     {
+        string nailer = Content.Shots.Nailer.Item;
+        if (_held.ToolStack(from, nailer) == null && rng.Below(2) == 0)
+            return rng.Below(2) == 0 ? new Items.SetCreative(true) { From = from } : new Items.Spawn(nailer, 1) { From = from };
+        if (_held.ShortOf(from, [(Content.Shots.Nailer.Ammo, 1)]) != null && rng.Below(2) == 0)
+            return new Items.Spawn(Content.Shots.Nailer.Ammo, 20) { From = from };
         string tool = rng.Below(4) == 0 ? Content.Weapons.Axe.Item : Content.Shots.Nailer.Item;
         int x, y;
         if (_crew.HeroOf(from)?.Cell is int cell && cell >= 0 && cell < _grid.Width * _grid.Height)
