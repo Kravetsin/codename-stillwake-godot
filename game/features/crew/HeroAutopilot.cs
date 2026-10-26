@@ -362,6 +362,35 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// A walk across a planet's fog (fog-edges), <c>-- --ground=fog --autopilot</c>: left into the left band, gliding to its seam,
+    /// moved, out of the right band, falling and landing; then back right across the right seam to land beside the left band. A
+    /// leg ends once the hero has been moved, fallen and stood, or after half a minute.
+    /// </summary>
+    public static HeroAutopilot Fog()
+    {
+        var acts = new List<Act> { Wait(90) };
+        foreach (int dir in (int[])[-1, 1])
+        {
+            int? last = null;
+            bool moved = false, fell = false;
+            acts.Add(new Act(Still, (_, _) =>
+            {
+                (last, moved, fell) = (null, false, false);
+                return true;
+            }));
+            acts.Add(Until(new HeroInput(dir, 0, false), (h, p) =>
+            {
+                moved |= last is int x && Math.Abs(h.X - x) > 50 * Hero.Unit;
+                last = h.X;
+                fell |= moved && h.Vy > 0;
+                return moved && fell && h.Vy == 0 || p.Steps > 60 * 30;
+            }));
+            acts.Add(Wait(90));
+        }
+        return new HeroAutopilot(acts);
+    }
+
+    /// <summary>
     /// Where <see cref="Sprint"/> starts: the cell over the ground at the start of the longest run of columns whose ground steps
     /// up or down at most eight cells from one to the next, so a sprint there is never caught in a pit.
     /// </summary>

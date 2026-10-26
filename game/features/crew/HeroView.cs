@@ -401,6 +401,7 @@ public partial class HeroView : Node2D
             }
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
+            Fogged(ship, seated: seat != null);
         }
         if (seat is int seatCell) _previous = _current = Hero.At(ship, seatCell) with { Facing = _current.Facing };
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
@@ -448,7 +449,8 @@ public partial class HeroView : Node2D
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         _ui.Bits = Bits(m, client.Id);
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
-        var pose = Poses.PoseOf(drawn, inSpace, passedOut);
+        // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space.
+        var pose = Poses.PoseOf(drawn, inSpace || ship.Glides(drawn.X), passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         drawn = drawn with { Facing = _current.Facing };
@@ -469,6 +471,21 @@ public partial class HeroView : Node2D
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
+    }
+
+    /// <summary>
+    /// The step just made, in a planet's fog (fog-edges): going in, the harpoon let go, for a glide neither rises nor sinks;
+    /// crossing a seam outward, the hero moved by the period to the other band at the drop height, the camera snapped and its
+    /// cell reported this frame, so the sim never keeps it on the side it left.
+    /// </summary>
+    private void Fogged(Ship ship, bool seated)
+    {
+        if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) _harpoon = new HarpoonShot();
+        if (FogMove.Of(ship.Fog, _previous, _current, seated) is not { } moved) return;
+        _previous = _current = moved;
+        _harpoon = new HarpoonShot();
+        _snap = true;
+        _reportedAt = int.MinValue / 2;
     }
 
     /// <summary>

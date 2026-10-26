@@ -20,9 +20,13 @@ public static class Hearing
     /// <summary>The quietest the World bus is set: its gain never reaches 0, whose decibels are infinite.</summary>
     public const double Faint = 1e-4;
 
-    /// <summary>The buses <paramref name="floating"/> of the way into space: World dulled and faded, Suit dulled to a thud and raised; the Helmet bus is never touched.</summary>
-    public static Mix At(double floating) => new(
-        Cutoff(S.ClearHz, S.MuffledHz, floating),
+    /// <summary>
+    /// The buses <paramref name="floating"/> of the way into space: World dulled and faded, Suit dulled to a thud and raised; the
+    /// Helmet bus is never touched. <paramref name="fogged"/> of the way into a planet's fog (fog-edges) dulls World as space does,
+    /// the more of the two, and nothing else.
+    /// </summary>
+    public static Mix At(double floating, double fogged = 0) => new(
+        Cutoff(S.ClearHz, S.MuffledHz, Math.Max(floating, fogged)),
         Math.Max(1 - floating, Faint),
         Cutoff(S.ClearHz, S.SuitMuffledHz, floating),
         1 + (S.SuitLowsGain - 1) * floating,

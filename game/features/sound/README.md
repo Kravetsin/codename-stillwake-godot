@@ -24,6 +24,8 @@ Effects → World, Suit, Helmet); `game/shared/` `Cues.cs`, `ActSound.cs`, `Hear
 - **Floating** (0042): over `Sound.MuffleMs` the World bus's low-pass eases to `MuffledHz` as it fades to silence; the
   Suit bus, what the hero touches, dulls to a thud (low-pass to `SuitMuffledHz`, low shelf up) and rises
   `SuitFloatingDb` (0059). Helmet, the alarm's, is never touched. The reverse back aboard (`Hearing.At`).
+- **Fog** (fog-edges): in a planet's fog the World bus's low-pass eases toward `MuffledHz` by the fog at the hero
+  (`FogShare.Column`, `Hearing.At`'s `fogged`), as floating dulls it; its gain and the Suit bus are left alone.
 - **Reach** (0033, 0059): a placed sound is full up to its cue's `Reach.Full` cells from the screen's middle, then fades
   as the square of the way left to `Silent`. Every station at work carries alike (`Sound.StationReach`) and about as
   loud as the next. `Heard2D` turns Godot's fall-off off and sets the volume each frame; Godot still pans.

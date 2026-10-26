@@ -13,7 +13,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan; the blade on creatures |
-| `logic/AxeSwing.cs` | the axe's swing clock, arm and edge (0038-0040); a bite held (0075) |
+| `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
 | `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) |
@@ -21,11 +21,12 @@ commands reach the sim. Other heroes come through the host.
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
 | `logic/Seating.cs` | where a hero in a drop pod is held |
+| `logic/FogMove.cs` | the move across a planet's fog (fog-edges) |
 | `SeatedHeroes.cs` | its figure behind the porthole |
 | `UsePrompt.cs` | the prompt at the bottom middle |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
-| `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) |
-| `logic/Motor.cs` | the `Run` sent while the sim differs from what is wanted (0055) |
+| `logic/DrillPace.cs` | when the drill hits (0054) |
+| `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
 | `logic/Remote.cs` | `Seen`, `SentHero`, `RemoteHeroes`, `HeroSender` |
 | `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) |
 | `logic/Suits.cs` | suit colours and shades |
@@ -44,12 +45,12 @@ commands reach the sim. Other heroes come through the host.
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
 | `logic/Danger.cs` | what the suit gauge reads |
 | `logic/AirCues.cs` | the moments air comes back (0081) |
-| `logic/CanistersSeen.cs` | a friend's canister read off its suit (0081) |
+| `logic/CanistersSeen.cs` | a friend's canister (0081) |
 | `AirSwirl.cs` | a canister's vortex, a breath, a ram's leak (0081, 0103) |
-| `SuitGauge.cs` | the suit gauge under the hotbar (0058, 0074, 0081) |
+| `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
 | `SuitColours.cs` | the suit colour row in the game menu |
 | `logic/Markers.cs` | the markers' list and geometry |
-| `MarkerLayer.cs` | edge arrows to home, own body and friends |
+| `MarkerLayer.cs` | edge arrows home, to bodies, friends |
 | `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) |
 | `BodyView.cs` | each body drawn, its beacon (0061) |
 | `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
@@ -72,10 +73,11 @@ commands reach the sim. Other heroes come through the host.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
 - **Jump and walk feel** (0089): coyote time and jump buffer; the rise cut when Space is let go; eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
-- **The figure answers its motion** (0090), read from sent `X`, `Y`, `Vx`, `Vy`, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
+- **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.
-- **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`.
+- **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
+  in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
 - **Camera** (`Content/logic/Camera.cs`): leads the way the hero last moved, never its facing; eases height; snaps
   on a new place; on whole pixels.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;

@@ -125,7 +125,7 @@ public partial class Main : Node2D, ITogether
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
         // Before everything else, so every button made after it clicks.
-        var sound = new SoundView(Floats, () => _title != null);
+        var sound = new SoundView(Floats, () => _title != null, Fogged);
         AddChild(sound);
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
@@ -253,6 +253,10 @@ public partial class Main : Node2D, ITogether
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
     private bool Floats() => _session != null && _hero is { Placed: true, Floats: true };
+
+    /// <summary>How deep in a planet's fog this player's placed hero is, 0 to 1 (fog-edges): the world dulls in it as in space.</summary>
+    private double Fogged() => _session != null && _hero is { Placed: true } hero && Shared.FogEdges.Of(_m.Grid, _m.Rules) is { } fog
+        ? Shared.FogShare.Column(fog, hero.Current.X / (double)Hero.Unit) : 0;
 
     private IReadOnlyList<Sim.Module> Modules()
     {

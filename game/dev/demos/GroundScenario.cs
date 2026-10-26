@@ -8,7 +8,7 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Dev;
 
 /// <summary>A planet's ground looked at, dug or struck by script (<see cref="GroundDemo"/>, 0077), the hero carrying its tools.</summary>
-[Dev("--ground", "a planet's ground looked at: acacia, hit-soil|-stone|-alloy|-tree|-crystal, band0…3, hall, cave, shaft, sprint, spire-climb, drill, poses (GroundDemo)", Shape = DevShape.Equals)]
+[Dev("--ground", "a planet's ground looked at: acacia, hit-soil|-stone|-alloy|-tree|-crystal, band0…3, hall, cave, shaft, sprint, spire-climb, drill, poses, fog, fog-cave (GroundDemo)", Shape = DevShape.Equals)]
 public sealed class GroundScenario : DevScenario
 {
     private GroundDemo? _demo;
@@ -27,6 +27,7 @@ public sealed class GroundScenario : DevScenario
         !Args.Has("--autopilot") ? null
         : Mode == "spire-climb" ? HeroAutopilot.SpireClimb()
         : Mode == "sprint" ? HeroAutopilot.Sprint(int.Parse(Args.Arg("--sprint") ?? "300"))
+        : Mode is "fog" or "fog-cave" ? HeroAutopilot.Fog()
         : null;
 
     public override void Attach(DevContext c)
