@@ -10,29 +10,37 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The fog at a planet's sides (fog-edges): bands of bedrock under the open sky, outside the build zone, so nothing is dug or
-/// built there; the walk out to a band's middle a stair; the zone kept across a load; and no cold in them.
+/// The fog at a planet's sides (fog-edges): hollow bands, the open sky over their ground line and open air under it before a
+/// bedrock back wall, outside the build zone, so nothing is dug or built there; their line beside the zone a drop's height
+/// under the sky and level with the zone's ground; the zone kept across a load; and no cold in them.
 /// </summary>
 public class FogBandsTests
 {
     private static int Code(string material) => Materials.Get(material).Code;
 
+    /// <summary>The hero's height in whole rows, rounded up.</summary>
+    private static readonly int HeroRows = (Content.Hero.Height + 999) / 1000;
+
     /// <summary>The top of the ground in column <paramref name="x"/>: its first solid cell.</summary>
     private static int TopOf(Layout l, int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][x] == '#');
 
+    /// <summary>A band column's ground line: its first row that is not open sky.</summary>
+    private static int LineOf(Layout l, int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[y][x] != ' ');
+
     [Fact]
-    public void EveryPlanetsFogIsEvenWiderThanItsBedrockAndAFractionOfItsWidth()
+    public void EveryPlanetsFogIsEvenWiderThanItsBedrockAFractionOfItsWidthAndDropsAHerosHeight()
     {
         foreach (var g in PlanetTypes.All.Select(t => t.Ground))
         {
             Assert.Equal(0, g.Fog % 2);
             Assert.True(g.Fog >= g.BedrockSide + 2, $"{g.Fog} columns of fog over {g.BedrockSide} of bedrock");
             Assert.True(2 * g.Fog * 4 < g.Width, $"{g.Fog} columns of fog on a planet {g.Width} wide");
+            Assert.True(g.FogDrop >= HeroRows, $"a drop of {g.FogDrop} rows under a hero {HeroRows} tall");
         }
     }
 
     [Fact]
-    public void EachBandIsBedrockUnderTheSkyWithNothingGrownOrStampedAndOutsideTheZone()
+    public void EachBandIsHollowWithNothingGrownOrStampedAndOutsideTheZone()
     {
         foreach (var type in PlanetTypes.All)
             foreach (uint seed in new uint[] { 1, 2, 3 })
@@ -45,22 +53,27 @@ public class FogBandsTests
                 var band = Enumerable.Range(g.BedrockSide, g.Fog - g.BedrockSide).Concat(Enumerable.Range(w - g.Fog, g.Fog - g.BedrockSide));
                 foreach (int x in band)
                 {
-                    int top = TopOf(l, x);
+                    int line = LineOf(l, x);
                     for (int y = 0; y < floor; y++)
                     {
                         int cell = y * w + x;
-                        if (y < top) Assert.True(l.Rows[y][x] == ' ' && l.Materials![cell] == 0, $"{at}: ({x}, {y}) is not sky");
-                        else Assert.True(l.Rows[y][x] == '#' && l.Materials![cell] == Code("bedrock"), $"{at}: ({x}, {y}) is not bedrock");
+                        if (y < line) Assert.True(l.Rows[y][x] == ' ' && l.Materials![cell] == 0, $"{at}: ({x}, {y}) is not sky");
+                        else Assert.True(l.Rows[y][x] == '.' && l.Materials![cell] == Code("bedrock"), $"{at}: ({x}, {y}) is not open before bedrock");
                         Assert.False(hall[cell], $"{at}: ({x}, {y}) is a hall's");
                     }
                 }
                 Assert.DoesNotContain(l.Flora!, f => f.Cell % w < g.Fog || f.Cell % w >= w - g.Fog);
+                // No cave growth faces a band's hollow: each keeps a column off the zone's side.
+                Assert.All(l.Flora!.Where(f => Content.Flora.Cave.Any(k => k.Id == f.Kind)), f => Assert.InRange(f.Cell % w, g.Fog + 1, w - g.Fog - 3));
                 Assert.All(spires, s => Assert.InRange(s.X, g.Fog + 1, w - g.Fog - Ruins.SpireWide - 1));
                 Assert.All(homes, h => Assert.InRange(h.X, g.Fog + 1, w - g.Fog - h.Home.Wide - 1));
-                // The walk from the zone's side out to each band's middle: no step of more than a row.
-                foreach (var (from, to) in new[] { (g.Fog / 2, g.Fog), (w - 1 - g.Fog, w - g.Fog / 2) })
-                    for (int x = from; x < to; x++)
-                        Assert.True(Math.Abs(TopOf(l, x) - TopOf(l, x + 1)) <= 1, $"{at}: a step of more than a row at column {x}");
+                // Beside the zone a band's line is level with the zone's ground and a drop under the sky: a moved hero fits.
+                foreach (var (inner, side) in new[] { (g.Fog - 1, g.Fog), (w - g.Fog, w - 1 - g.Fog) })
+                {
+                    int line = LineOf(l, inner);
+                    Assert.True(Math.Abs(line - TopOf(l, side)) <= 1, $"{at}: the line at column {inner} is not level with the zone's ground");
+                    Assert.True(line - g.FogDrop >= HeroRows, $"{at}: no room for a hero dropped at column {inner}");
+                }
             }
     }
 
@@ -77,24 +90,24 @@ public class FogBandsTests
         return w.Do(new Transfer(1)).Run();
     }
 
-    /// <summary>A cell of the small planet's left band: the ground's top, halfway out.</summary>
-    private static int BandGround(Registry m)
+    /// <summary>The cell on a band column's ground line: its first with a back wall.</summary>
+    private static int LineCell(Registry m, int x)
     {
-        int w = m.Grid.Width, x = PlanetTypes.Small.Ground.Fog / 2;
-        int y = Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * w + x) != Structure.Empty);
-        return y * w + x;
+        int w = m.Grid.Width;
+        return Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.BackLayer[y * w + x] != Back.None) * w + x;
     }
 
     [Fact]
-    public void AHitInABandStrikesNothingAndAPlanThereIsRefusedOutsideTheZone()
+    public void AHitInABandAimedOutwardStrikesNothingAndAPlanThereIsRefusedOutsideTheZone()
     {
         var w = Down();
         var m = w.On(1);
-        int ground = BandGround(m);
-        w.Do(HewTesting.Dig(w, ground, Weapons.Axe.Item, surface: 1)).Run();
-        w.Do(new PlacePlan(ground - m.Grid.Width, Placement.Wall())).Run();
+        int cell = LineCell(m, PlanetTypes.Small.Ground.Fog / 2);
+        // Aimed left, out of the zone: through the band's open air to its unbreakable bedrock.
+        w.Do(HewTesting.Dig(w, cell, Weapons.Axe.Item, heading: Headings.Turn / 2, surface: 1)).Run();
+        w.Do(new PlacePlan(cell, Placement.Wall())).Run();
         Assert.Equal(["building.nothingToDig", "grid.outsideZone"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(Structure.Wall, m.Grid.StructureAt(ground));
+        Assert.Equal(Structure.Empty, m.Grid.StructureAt(cell));
     }
 
     [Fact]
@@ -145,9 +158,8 @@ public class FogBandsTests
             var band = Enumerable.Range(0, width * m.Grid.Height).Where(c => c % width < fog || c % width >= width - fog).ToList();
             int[] Layers(int c) => [m.Grid.StructureLayer[c], m.Grid.MaterialLayer[c], m.Grid.BackLayer[c], m.Grid.BackMaterialLayer[c]];
             var before = band.Select(Layers).ToList();
-            // The axe needs no power: its hits go at the ground's top in a few band columns, often enough to break stone there.
-            int TopCell(int x) => Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * width + x) != Structure.Empty) * width + x;
-            int[] hit = [TopCell(fog / 2), TopCell(fog - 1), TopCell(width - fog), TopCell(width - 1 - fog / 2)];
+            // The axe needs no power: its hits go along the ground line of a few band columns, often enough to break what is there.
+            int[] hit = [LineCell(m, fog / 2), LineCell(m, fog - 1), LineCell(m, width - fog), LineCell(m, width - 1 - fog / 2)];
             var rng = new Rng(new RngState { S = (uint)t.seed });
             for (int i = 0; i < t.ticks; i++)
             {

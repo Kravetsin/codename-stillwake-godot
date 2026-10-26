@@ -330,7 +330,8 @@ public static class Terrain
             lodes.Row(y, lode);
             // The rows round this one, read a row at a time: most of a planet's cells are stone, each asking its block's sides.
             char[] above = rows[y - 1], here = rows[y], below = rows[y + 1], under = y + 2 < h ? rows[y + 2] : below;
-            for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
+            // Off the fog (fog-edges): no growth stands in a band, nor faces its hollow from the zone's side.
+            for (int x = g.Fog + 1; x < w - g.Fog - 2; x++)
             {
                 int cell = y * w + x;
                 if (here[x] == '.')
@@ -653,8 +654,9 @@ public static class Terrain
 
     /// <summary>
     /// The fog bands (fog-edges): in each of the <see cref="Ground.Fog"/> columns at either side, inside the bedrock columns,
-    /// bedrock from the ground's top (<paramref name="top"/>, already a stair) down to the core and the open sky over it, no
-    /// back wall and no hall. Nothing grows there after: no vein, plant or cave growth finds stone, soil or an open cell.
+    /// hollow: the open sky down to the ground's line (<paramref name="top"/>, already a stair), open air from it to the core
+    /// before a bedrock back wall, dark and unbreakable as a cave's, and no hall. A hero glides through it at any height.
+    /// Nothing grows there after: no vein or plant finds stone or soil, and cave growth keeps off it.
     /// </summary>
     private static void Seal(Ground g, int[] top, byte[] kind, int[] codes, bool[] hall, int bedrock)
     {
@@ -664,7 +666,7 @@ public static class Terrain
                 for (int y = 0; y < floor; y++)
                 {
                     int cell = y * w + x;
-                    (kind[cell], codes[cell], hall[cell]) = y >= top[x] ? ((byte)1, bedrock, false) : ((byte)0, 0, false);
+                    (kind[cell], codes[cell], hall[cell]) = y >= top[x] ? ((byte)2, bedrock, false) : ((byte)0, 0, false);
                 }
     }
 

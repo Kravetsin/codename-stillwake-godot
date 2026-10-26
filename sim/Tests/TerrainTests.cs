@@ -155,7 +155,8 @@ public class TerrainTests
         var l = Terrain.Generate(BareType, seed);
         static bool Open(char c) => c is ' ' or '.' or 'S';
         for (int y = 1; y < l.Height; y++)
-            for (int x = 1; x < l.Width - 1; x++)
+            // Inside the zone: the fog's hollow bands are no ground grown (fog-edges), their side a cut, not a post.
+            for (int x = Small.Fog + 1; x < l.Width - Small.Fog - 1; x++)
             {
                 char c = l.Rows[y][x], above = l.Rows[y - 1][x];
                 // No post a cell wide standing in the open.
@@ -176,7 +177,8 @@ public class TerrainTests
     private static bool SkyFadesUnderTheSurface(uint seed)
     {
         var l = Terrain.Generate(BareType, seed, out _, out var surface);
-        for (int x = 0; x < l.Width; x++)
+        // Inside the zone: the fog's hollow bands keep a back wall under their line wherever it is (fog-edges).
+        for (int x = Small.Fog; x < l.Width - Small.Fog; x++)
         {
             // Down each column: open sky, with no material, till its first solid cell or a few rows under its surface's line,
             // whichever comes first; every other open cell keeps its back wall, a shaft's deep down too.
@@ -256,7 +258,8 @@ public class TerrainTests
             int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] == '#');
             // A chasm: a column open nine cells in ten from the land beside it down half a chasm's greatest depth.
             int LandBy(int x) => Math.Min(TopOf(x - 20), TopOf(x + 20));
-            var chasms = Enumerable.Range(1, w - 2).Where(x => Enumerable.Range(LandBy(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
+            // Inside the zone, twenty columns in: the fog's hollow bands are no chasms (fog-edges).
+            var chasms = Enumerable.Range(Planet.Fog + 20, w - 2 * Planet.Fog - 40).Where(x => Enumerable.Range(LandBy(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
             Assert.NotEmpty(chasms);
             Assert.All(chasms, x => Assert.True(Math.Abs(x - middle) > Planet.Clear, $"seed {seed}: a chasm at {x}"));
             Assert.True(chasms.Max() - chasms.Min() > w / 2, $"seed {seed}: chasms only from {chasms.Min()} to {chasms.Max()}");

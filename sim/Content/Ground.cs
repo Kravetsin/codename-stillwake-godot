@@ -134,6 +134,12 @@ public sealed record Ground(int Width, int Height)
     /// </summary>
     public required int Fog { get; init; }
 
+    /// <summary>
+    /// Rows over a band's ground line beside the zone that a hero moved across the fog arrives at, its feet: it glides out
+    /// of the band and falls to the ground (fog-edges). At least the hero's height.
+    /// </summary>
+    public required int FogDrop { get; init; }
+
     /// <summary>The rows under the caves: the lava and the bedrock under it.</summary>
     public int CoreRows => LavaRows + BedrockRows;
 }
