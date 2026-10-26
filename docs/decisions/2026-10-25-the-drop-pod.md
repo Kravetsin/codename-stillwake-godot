@@ -23,7 +23,10 @@ and a slot for biofuel.
 - **`Seats`: boarding is Landing's** (`Seats` saved, by pod): `Board(pod)` and `Alight`, one hero a pod and a pod a hero; a
   seat freed when its pod is taken apart, its peer leaves or its hero passes out. Heroes are client-authoritative (0002): a
   seated hero's client holds it at the pod's floor, takes no keys but E, and hides its body; every peer draws it behind the
-  porthole (`dropPod_seated.png`, `PodSeats`).
+  porthole as its own figure in its suit, strapped in upright (`Pose.Strapped`) and clipped to the glass
+  (`dropPod_porthole.png`, crew's `SeatedHeroes`), the pod's lamps and the glass's glint over it (`dropPod_lit.png`,
+  `PodSeats`). Amended 2026-10-26: at first a fixed picture of one hero, which neither showed the suit's colour nor would
+  follow a new look of the hero.
 - **E boards and opens at once**: E on a pod sends `Board` and opens its slot under the inventory, as a crate's; refused
   (`landing.taken`, `landing.seated`), it does neither and says why. Seated, E anywhere sends `Alight` and shuts the slot.
 - **Its slot takes biofuel only** (`MachineSpec.Takes`, the one item its slots hold, as the
@@ -33,6 +36,6 @@ and a slot for biofuel.
 ## Deliberately not handled
 
 - The launch, the descent, landers, the return: the next slices (the launch platform design).
-- The suit's colour behind the porthole: the seated picture is one hero for every peer.
+- What the seated hero wears or holds: the figure behind the glass is its suit alone, every peer facing the same way.
 - Boarding from out of reach is not refused by the sim: the client asks only within reach, and peers are trusted.
 - A pod left over a platform taken apart, or opened, stays where it is: nothing falls until a launch.
