@@ -39,7 +39,12 @@ developer before either.
 
 ## Tasks
 
-### N-1 — Shots in the sim, the nail first
+### N-1 — Shots in the sim, the nail first ✅
+
+**Built, but:** the nail's `Reach` is 288 cells (half the farthest zoom's 192-cell screen and a whole one past it); the
+next id is kept as `Fired`; empty `Shots` save nothing, so the format's fixture stands; no `--fire` dev mode (the testbed's
+supply crate holds the nailer and 100 nails, N-2 fires them); the fuzz's new draws moved one desync test's seed 9 to 10.
+The nailer and nails have placeholder icons. ADR: `2026-10-26-shots-are-the-sims`.
 
 - **Content** (`sim/Content/Shots.cs`):
   - `Projectile(Id, Speed, Weight, Reach, Damage, BlockDamage, Pace, HitsBodies)`: `Weight` a whole multiplier of

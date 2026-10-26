@@ -156,4 +156,35 @@ public sealed class CreaturesState
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>The newest debris piece that has drawn whether a guard comes with it (<c>Surfaces.Kind.Guards</c>): those after it draw next.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Watermark { get; set; }
+    /// <summary>The shots in flight, in id order (shots-are-the-sims).</summary>
+    [JsonIgnore] internal List<Shot> Shots { get; set; } = [];
+
+    /// <summary>The shots as saved: none written while none fly, so a world that never fired saves as before shots.</summary>
+    [JsonInclude, JsonPropertyName("shots"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Shot>? SavedShots { get => Shots.Count > 0 ? Shots : null; set => Shots = value ?? []; }
+    /// <summary>The shots ever fired: the next one's id is one more. Ids are never reused.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Fired { get; set; }
 }
+
+/// <summary>
+/// A shot in flight (shots-are-the-sims): what flies (<see cref="Content.Shots.Projectile"/>), who fired it, its point and speed in
+/// thousandths of a cell, always on the grid, and the ticks of flight it has left.
+/// </summary>
+public sealed class Shot
+{
+    [JsonInclude] public int Id { get; internal set; }
+    /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
+    [JsonInclude] public string Projectile { get; internal set; } = "";
+    /// <summary>Its shooter: a hero by its peer, or none.</summary>
+    [JsonInclude] public Ref By { get; internal set; }
+    [JsonInclude] public int X { get; internal set; }
+    [JsonInclude] public int Y { get; internal set; }
+    [JsonInclude] public int VX { get; internal set; }
+    [JsonInclude] public int VY { get; internal set; }
+    [JsonInclude] public int Left { get; internal set; }
+
+    internal ShotMotion Motion => new(X, Y, VX, VY, Left);
+}
+
+/// <summary>A shot that ended this tick: its id, its projectile and the cell it met or last flew in.</summary>
+public readonly record struct ShotEnd(int Id, string Projectile, int Cell);

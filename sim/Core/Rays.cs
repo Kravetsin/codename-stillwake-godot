@@ -57,7 +57,15 @@ public static class Rays
     public static void Cast(int width, int height, int x, int y, int heading, int range, Func<int, bool> stops)
     {
         var (dx, dy) = Direction(heading);
-        long run = (long)dx * range / Cell, rise = (long)dy * range / Cell;
+        Walk(width, height, x, y, (long)dx * range / Cell, (long)dy * range / Cell, stops);
+    }
+
+    /// <summary>
+    /// Walks from (<paramref name="x"/>, <paramref name="y"/>) by (<paramref name="run"/>, <paramref name="rise"/>), all in
+    /// thousandths of a cell, as <see cref="Cast"/> walks a ray: a shot's step (<see cref="ShotFlight"/>).
+    /// </summary>
+    public static void Walk(int width, int height, int x, int y, long run, long rise, Func<int, bool> stops)
+    {
         int sx = Math.Sign(run), sy = Math.Sign(rise);
         long ax = Math.Abs(run), ay = Math.Abs(rise);
         int cx = FloorCell(x), cy = FloorCell(y);

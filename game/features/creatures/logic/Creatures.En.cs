@@ -10,5 +10,6 @@ public static partial class En
         ["creatures.full"] = "Enough creatures here",
         ["creatures.blocked"] = "No room for it there",
         ["creatures.noPiece"] = "No wreck there to cling to",
+        ["creatures.noGun"] = "No gun to fire",
     };
 }

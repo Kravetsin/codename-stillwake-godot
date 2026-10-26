@@ -71,6 +71,8 @@ public static class Items
     public static readonly IReadOnlyList<ItemSpec> All =
     [
         new("scrap", 500),
+        // What the nailer fires (Content.Shots), made of scrap at the pod.
+        new("nail", 100),
         new("iron", 500),
         new("canister", 5),
         new("planks", 50, BurnTicks: 400),
@@ -169,6 +171,8 @@ public static class Items
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),
         new("fireAxe", 1, Gear: true, Group: ItemGroup.Tool),
         new("harpoon", 1, Gear: true, Group: ItemGroup.Tool),
+        // A gun (Content.Shots): one nail a shot.
+        new("nailer", 1, Gear: true, Group: ItemGroup.Tool),
         // Electric: draws from the belt's batteries while it drills (0053, 0054).
         new("drill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).

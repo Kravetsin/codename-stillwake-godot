@@ -1,3 +1,4 @@
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
@@ -44,13 +45,16 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private readonly IItemsOps _items;
     private readonly IDebrisQueries _debris;
     private readonly IDebrisOps _debrisOps;
+    private readonly IBuildingOps _building;
 
     public override string Id => "creatures";
 
-    public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps)
+    public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
+        IBuildingOps building)
     {
         _debris = debris;
         _debrisOps = debrisOps;
+        _building = building;
         _grid = grid;
         _crew = crew;
         _crewOps = crewOps;
@@ -59,8 +63,11 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         Handles<Strike>(c => StrikeProblem(c.From, c.Creature, c.Tool) ?? _held.WeaponProblem(c.From, c.Tool, running: true), Apply);
         Handles<Release>(c => ReleaseProblem(c.Species, c.Cell), Apply);
         Handles<HitBy>(c => HitByProblem(c.Creature), Apply);
+        Handles<Fire>(c => FireProblem(c.From, c.Tool, c.X, c.Y), Apply);
         // After crew in the simulation phase: where heroes are is this tick's.
         System(Phase.Simulation, Live);
+        // After the creatures move, and after the debris drifts (registered before): a shot meets them where they are now.
+        System(Phase.Simulation, Fly);
     }
 
     protected override CreaturesState Init(Layout layout) => new();
@@ -164,7 +171,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         var spec = Spec.Get(creature.Species);
         // A tool's pace is its weapon's (0098): the drill's quick hits each knock a share, rounded toward none.
         Hurt(creature, spec, _held.Damage(c.From, c.Tool), new Hit(c.From, AwayFrom(creature, _crew.HeroOf(c.From)?.Cell),
-            Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace)));
+            Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace), _debris.Clock + 1));
     }
 
     /// <summary>
