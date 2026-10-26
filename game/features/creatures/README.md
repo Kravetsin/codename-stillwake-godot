@@ -13,10 +13,8 @@
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
 | `logic/Creatures.En.cs` | Its player text (`En`) |
 | `TickBodies.cs` | The creatures drawn as the tick (the sentry): sprite, lamp, arcs, burner, sparks, death, sounds. |
-| `logic/TickArt.cs` | The tick's sprite drawn anew from its pose, the sentry page's `drawTick` ported: plain C#, tested. |
+| `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |
 | `logic/TickMotion.cs` | How a tick moves and what moments it has, read off the sim: plain C#, tested. |
-
-A creature whose look is the tick (`CreatureLooks.Ticks`, the sentry) is drawn by `TickBodies`; see **The tick** below.
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Creatures`)
 spawns, moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the
@@ -68,8 +66,9 @@ axe's blade and the drill's bit are tested against each creature's body as again
   white over it unlit. `TickMotion` reads the sim: `Clamped` grips (legs down, magnets aglow, a bounce), else legs folded, nose
   along its flight; X moving along its wreck while clamped steps its legs. Eye teal, yellow `Alerted` or flying home, red from
   its crouch on, lighting the wreck. Winding up: trembling, red arcs between its legs. Flying: an amber burner, sparks and smoke.
-  Struck: flash, shake, fine sparks. `LastCut`: sparks off its claw. Killed: cracks 0.32 s, then a burst and four hot plates. A
-  pounce cut short struck a hero: sparks there. Heard on Suit (`Sound.Ticks`), as a wreck is; a friend's blow on World.
+  Struck: flash, shake, fine sparks. `CutLeft`: it faces the line (its reel's hero), rears, saws with its claw and mandible,
+  sparks thickening; `LastCut`: sparks and a whip of light down the line, a recoil. Killed (its wreck gone too): cracks 0.32 s,
+  then a burst and hot plates. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev
@@ -87,4 +86,4 @@ drill on one loper; `--strip --creatures --creatures-course` puts a loper by the
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,
   jumps and fits where a small one does.
 - **A dying body's parts show through each other** as they fade; a far ear's glow is added over the body.
-- **A tick's cut sparks at its claw,** not where the hook held: the hook point is the harpoon's, not the sim's.
+- **A tick saws at its claw,** not where the hook held: the hook point is the harpoon's. No sawing sound yet: none picked.

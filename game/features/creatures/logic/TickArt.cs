@@ -28,9 +28,10 @@ public sealed class TickArt
     /// <summary>
     /// What it is doing, the page's <c>P</c>: crouched (1, −0.5 a hop up), walking (0..1) and how far its legs have gone, its legs
     /// folded for flight (0..1), its eye's colour and brightness (lit at 1 and over), where it looks across (−1..1, its own way),
-    /// how far its death's cracks have spread (0..1, none at 0).
+    /// how far its death's cracks have spread (0..1, none at 0), its front claw raised to work at a line (0..1) and its mandible open (0..1).
     /// </summary>
-    public readonly record struct Pose(double Crouch, double Walk, double Gait, double Fly, Rgb Eye, double EyeAmp, double Look, double Cracks = 0);
+    public readonly record struct Pose(double Crouch, double Walk, double Gait, double Fly, Rgb Eye, double EyeAmp, double Look, double Cracks = 0,
+        double Saw = 0, double Jaw = 0);
 
     /// <summary>
     /// Where its parts are this frame, in its own pixels (origin the middle of its feet): the eye, its nozzle, its near feet, the
@@ -78,6 +79,7 @@ public sealed class TickArt
         ];
         int[] order = [3, 4, 5, 0, 1, 2];
         var feet = new List<(double, double)>(3);
+        (double X, double Y) claw = (10, -1);
         var knees = new List<(double, double)>(9);
         foreach (int k in order)
         {
@@ -85,6 +87,9 @@ public sealed class TickArt
             var (fx, fy) = StepFoot(l.B, p.Gait * 1.3 + l.Ph, p.Walk, 1.5, 2);
             int folded = Math.Sign(l.B - l.Hx);
             int x = Round(Lerp(fx, l.Hx + folded * 2, p.Fly)), y = Round(Lerp(fy, l.Hy + 2, p.Fly));
+            // Its front claw raised forward to the line it cuts, at its head's height.
+            if (k == 2 && p.Saw > 0) (x, y) = (Round(Lerp(x, 11, p.Saw)), Round(Lerp(y, by - 4, p.Saw)));
+            if (k == 2) claw = (x, y);
             var layer = l.Near ? _near : _far;
             int s = Math.Sign(x - l.Hx);
             if (s == 0) s = 1;
@@ -100,10 +105,10 @@ public sealed class TickArt
         Rows(top + 3, [(2, 5), (2, 7), (2, 8), (2, 8), (2, 6)], 3);
         Rows(top + 3, [(-13, -12), (-13, -12)], 3);
         Lamp([(6, top + 4), (7, top + 4), (7, top + 5)], (6 + (LookX(p.Look) > 0 ? 1 : 0), top + 4), p);
-        Line(_near, 8, top + 6, 9, top + 8, pal[3]);
+        Line(_near, 8, top + 6, 9 + Round(p.Jaw), top + 8 - Round(p.Jaw), pal[3]);
         var arcs = new List<(double, double)>(knees);
         arcs.AddRange(feet);
-        return new Anchors((7, top + 4.5), (-13, top + 4), feet, (10, -1), arcs, (-3, top + 4));
+        return new Anchors((7, top + 4.5), (-13, top + 4), feet, p.Saw > 0 ? claw : (10, -1), arcs, (-3, top + 4));
     }
 
     /// <summary>The page's cracks: four glowing paths wandering out from its middle, longer as <paramref name="u"/> grows, on the body only.</summary>

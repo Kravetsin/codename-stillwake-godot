@@ -145,12 +145,12 @@ public class TickTests
     public void CrawlingAlongItsWreckItsLegsWalkAndItFacesItsWay()
     {
         var motion = new TickMotion(() => 0.5);
-        Run(motion, Watching with { Hero = null, Crawl = -14 }, 1);
+        Run(motion, Watching with { Hero = null, Crawl = -5 }, 1);
         Assert.Equal(-1, motion.Face);
         Assert.True(motion.Pose.Walk > 0.9, $"walks {motion.Pose.Walk:F2}");
         double gait = motion.Pose.Gait;
-        Run(motion, Watching with { Hero = null, Crawl = -14 }, 1);
-        Assert.InRange(motion.Pose.Gait - gait, 11, 11.5);
+        Run(motion, Watching with { Hero = null, Crawl = -5 }, 1);
+        Assert.InRange(motion.Pose.Gait - gait, 7.9, 8.2);
         Run(motion, Watching with { Hero = null }, 1);
         Assert.True(motion.Pose.Walk < 0.01);
     }
@@ -171,6 +171,40 @@ public class TickTests
         Run(motion, default, TickMotion.CracksS);
         Assert.Equal(1, motion.Pose.Cracks);
         Assert.True(motion.Dying >= TickMotion.CracksS);
+    }
+
+    [Fact]
+    public void CuttingALineItFacesItRearsAndSawsAtItThenRecoilsAsItSnaps()
+    {
+        var motion = new TickMotion(() => 0.5);
+        Run(motion, Watching, 0.5);
+        Assert.Equal(1, motion.Face);
+        var cutting = Watching with { Cutting = true, CutDone = 0.5, Line = (-60, -10) };
+        Run(motion, cutting, 0.4);
+        Assert.Equal(-1, motion.Face);
+        Assert.Equal(0.5, motion.Cut);
+        Assert.True(motion.Hot);
+        Assert.InRange(motion.Pose.Crouch, -0.55, -0.45);
+        Assert.True(motion.Pose.Saw > 0.6, $"saws {motion.Pose.Saw:F2}");
+        Assert.True(motion.Angle > 0.1, "it does not rear its head up toward the line");
+        Assert.Equal(TickMotion.Attacking, motion.Pose.Eye, Near);
+        motion.Snipped();
+        Run(motion, Watching, 1 / 60.0);
+        Assert.Null(motion.Cut);
+        Assert.True(motion.Shake > 1, $"no recoil: {motion.Shake:F2}");
+        Run(motion, Watching, 0.6);
+        Assert.InRange(motion.Pose.Saw, 0, 0.01);
+        Assert.Equal(0, motion.Shake, 2);
+    }
+
+    [Fact]
+    public void ItsClawRisesToTheLineItSaws()
+    {
+        var art = new TickArt();
+        var standing = art.Draw(Standing);
+        var sawing = art.Draw(Standing with { Saw = 1, Jaw = 1 });
+        Assert.Equal((10, -1), standing.Cut);
+        Assert.True(sawing.Cut.Y < -3 && sawing.Cut.X >= 9, $"its claw at {sawing.Cut}");
     }
 
     private static readonly IEqualityComparer<TickArt.Rgb> Near = EqualityComparer<TickArt.Rgb>.Create(

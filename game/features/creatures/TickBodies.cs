@@ -52,7 +52,9 @@ public partial class TickBodies : Node2D
         public S.TickCues? Cues;
         public Vector2 From, To, Drawn;
         public int Tick = -1, Damage, Cut, Piece;
-        public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed;
+        public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed, SawOwed, WhipLeft;
+        /// <summary>The way the line it saws runs off, from its claw: what its snap whips along.</summary>
+        public Vector2 LineWay = Vector2.Left;
         public string Species = "";
 
         public Shown()
@@ -144,11 +146,13 @@ public partial class TickBodies : Node2D
                 if (_clockMs - one.OwnAt > OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: false);
                 one.Damage = c.Damage;
             }
-            var moments = one.Motion.Step(SeenOf(one, c, progress), dt);
+            var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress), dt);
             one.Drawn = feet;
             one.Show(feet);
             Moments(one, moments);
             Cut(one, c);
+            Sawing(one, debris, dt, lights);
+            Whip(one, dt);
             Effects(one, dt, lights);
         }
         _alive.Clear();
@@ -197,6 +201,7 @@ public partial class TickBodies : Node2D
         (one.Cut, one.OwnAt, one.Piece) = (CreaturesModule.LastCut(c), double.NegativeInfinity, -1);
         one.Cues = S.Ticks.GetValueOrDefault(c.Species);
         one.Burning = default;
+        (one.WhipLeft, one.LineWay) = (0, Vector2.Left);
         one.Visible = true;
         one.Modulate = Colors.White;
         if (one.Cues is { } cues && one.Burner == null)
@@ -233,7 +238,7 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>What the sim says of <paramref name="c"/> as its motion reads it, <paramref name="progress"/> of the way to the next tick.</summary>
-    private TickMotion.Seen SeenOf(Shown one, Creature c, double progress)
+    private TickMotion.Seen SeenOf(Shown one, Creature c, CreaturesModule creatures, IDebrisQueries debris, double progress)
     {
         var spec = Spec.Creatures.Get(c.Species);
         bool clamped = CreaturesModule.Clamped(c);
@@ -246,8 +251,23 @@ public partial class TickBodies : Node2D
         double crawl = clamped ? (one.AlongTo - one.AlongFrom) * perTick : 0;
         var middle = one.Drawn + new Vector2(0, -8);
         (double, double)? hero = Nearest(middle) is { } h ? (h.X - middle.X, h.Y - middle.Y) : null;
+        var (cutLeft, cutOf) = creatures.CutLeft(c);
+        bool cutting = cutOf > 0;
+        (double, double)? line = cutting && LineEnd(debris, one.Piece) is { } end ? (end.X - middle.X, end.Y - middle.Y) : null;
+        double done = cutting ? Math.Clamp((cutOf - cutLeft + Math.Clamp(progress, 0, 1)) / cutOf, 0, 1) : 0;
         return new TickMotion.Seen(clamped, CreaturesModule.Alerted(c), winding, windUpS, pouncing, pouncing ? act!.Left : 0,
-            c.VX * perTick, c.VY * perTick, crawl, hero);
+            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line);
+    }
+
+    /// <summary>
+    /// Where the harpoon line on <paramref name="piece"/> runs off to, in pixels: the hero reeling it as drawn, the one nearest the
+    /// point the sim reels the piece to (by that hero's muzzle); that point itself with none drawn near. None with no line on it.
+    /// </summary>
+    private Vector2? LineEnd(IDebrisQueries debris, int piece)
+    {
+        if (debris.PieceById(piece)?.Reel is not { } reel) return null;
+        var to = new Vector2(reel.ToX, reel.ToY) / Unit * Cell;
+        return Nearest(to) is { } hero && hero.DistanceTo(to) < 6 * Cell ? hero : to;
     }
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame; none with no hero.</summary>
@@ -359,11 +379,54 @@ public partial class TickBodies : Node2D
         one.Cut = cut;
         one.Motion.Snipped();
         var claw = one.World(one.Anchors.Cut);
-        double up = -Math.PI / 2 - 0.6 * one.Motion.Face;
-        Sparks(claw, up, 0.9);
-        Glims.Shared.Spray(Luminous.Snip, claw.X, claw.Y, 3, -Math.PI / 2 + (Math.PI / 2 - 0.7) * one.Motion.Face, (-0.5, 0.5), (90, 160));
+        // The cut end flies off along the line: sparks and white slivers that way, a whip of light down it.
+        double along = Math.Atan2(one.LineWay.Y, one.LineWay.X);
+        Sparks(claw, Math.Atan2(one.LineWay.Y - 0.5, one.LineWay.X), 1.1);
+        Glims.Shared.Spray(Luminous.Snip, claw.X, claw.Y, 5, along, (-0.35, 0.35), (120, 220));
+        one.WhipLeft = WhipS;
         Flares.Shared.Flash(claw.X, claw.Y, (255, 245, 220), 0.45 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
         if (one.Cues is { } cues) _suit.Play(cues.Snap, claw);
+    }
+
+    /// <summary>
+    /// Its claw at a harpoon line (<see cref="CreaturesModule.CutLeft"/>), sawing: thin cutting sparks thrown off the bite toward the
+    /// line and up, thicker as the cut goes on, now and then a white sliver; the bite flickering with each stroke, a little light.
+    /// </summary>
+    private void Sawing(Shown one, IDebrisQueries debris, double dt, List<LightSource> lights)
+    {
+        var motion = one.Motion;
+        if (motion.Cut is not double done) return;
+        var glims = Glims.Shared;
+        var claw = one.World(one.Anchors.Cut);
+        var toward = LineEnd(debris, one.Piece) is { } end && end.DistanceTo(claw) > 1 ? (end - claw).Normalized() : new Vector2(one.Motion.Face, 0);
+        one.LineWay = toward;
+        // Off the bite: along the line, and up off the hull.
+        double heading = Math.Atan2(toward.Y - 0.8, toward.X);
+        double stroke = motion.Stroke;
+        for (int i = Due(ref one.SawOwed, (18 + 130 * done) * (0.4 + 0.6 * stroke) * Fx.Count, dt); i > 0; i--)
+        {
+            double a = heading + glims.Between(-0.7, 0.7), s = glims.Between(50, 150 + 60 * done);
+            glims.Add(glims.Between(0, 1) < 0.1 ? Luminous.Snip : Luminous.FineSpark, claw.X, claw.Y, Math.Cos(a) * s, Math.Sin(a) * s);
+        }
+        var hot = (255, (int)(225 + 25 * stroke), (int)(190 + 50 * stroke));
+        Flares.Shared.Bloom(claw.X, claw.Y, 3 + 4 * stroke * (0.5 + 0.5 * done), hot, 0.25 + 0.45 * stroke);
+        lights.Add(new LightSource(claw.X, claw.Y, (1f, 0.88f, 0.7f), (float)((0.15 + 0.35 * stroke) * (0.5 + 0.5 * done)), 6,
+            CreatureLooks.LightKeep, 1));
+    }
+
+    /// <summary>How long the line's cut end whips away as light.</summary>
+    private const double WhipS = 0.16;
+
+    /// <summary>The line just cut whipping off along its way from the claw: a thin line of light running out and fading.</summary>
+    private static void Whip(Shown one, double dt)
+    {
+        if (one.WhipLeft <= 0) return;
+        one.WhipLeft -= dt;
+        double u = 1 - Math.Max(0, one.WhipLeft) / WhipS;
+        var claw = one.World(one.Anchors.Cut);
+        var from = claw + one.LineWay * (float)(2 + 10 * u);
+        var to = claw + one.LineWay * (float)(8 + 34 * u);
+        Flares.Shared.Trail(to.X, to.Y, from.X, from.Y, (255, 236, 210), 0.8, 0.9 * (1 - u), 0.3);
     }
 
     /// <summary>What glows of it this frame: its eye's glow and light, its burner's plume, flame, sparks, smoke and light, its magnets, its wind-up's arcs.</summary>
