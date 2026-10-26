@@ -58,6 +58,8 @@ public static class SurfaceViews
         new(Drones),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
+        // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.
+        new(c => FogEdges.Of(c.M.Grid, c.M.Rules) is { } fog ? new Features.Fog.FogView(fog, PlanetLooks.Of[c.M.Rules.Id].Fog) : null),
     ];
 
     /// <summary>The drones, a bay's zone shown while its inventory is open or a zoned machine's card is held (0062).</summary>

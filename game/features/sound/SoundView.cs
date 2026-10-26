@@ -16,6 +16,7 @@ public partial class SoundView : Node
     private const double ReadS = 0.1;
 
     private readonly Func<bool> _floats, _title;
+    private readonly Func<double> _fogged;
     private readonly AudioStreamPlayer _music = Cues.Player(S.Title, S.Music), _space = Cues.Player(S.Space, S.Music);
     private double _musicShare, _spaceShare;
     private readonly AudioStreamPlayer _click = Cues.Player(S.Click, S.Ui, voices: 2);
@@ -25,13 +26,14 @@ public partial class SoundView : Node
     private int _world, _suit;
     private bool _heard;
     private ulong _clickedOn = ulong.MaxValue;
-    private double _sinceRead = ReadS, _muffle;
+    private double _sinceRead = ReadS, _muffle, _fog, _fogTo;
 
     /// <param name="floats">Whether this player's placed hero floats out in space: the world falls silent and the bed of space plays.</param>
     /// <param name="title">Whether the title is shown: its music plays while it is (0035).</param>
-    public SoundView(Func<bool> floats, Func<bool> title)
+    /// <param name="fogged">How deep in a planet's fog this player's hero is, 0 to 1 (fog-edges): the world dulls as in space.</param>
+    public SoundView(Func<bool> floats, Func<bool> title, Func<double> fogged)
     {
-        (_floats, _title) = (floats, title);
+        (_floats, _title, _fogged) = (floats, title, fogged);
         // Heard behind the game menu as well.
         ProcessMode = ProcessModeEnum.Always;
         AddChild(_click);
@@ -61,9 +63,11 @@ public partial class SoundView : Node
         {
             _sinceRead = 0;
             _heard = _floats();
+            _fogTo = _fogged();
         }
         double muffleS = S.MuffleMs / 1000.0;
         _muffle = Hearing.Ease(_muffle, _heard, delta, muffleS, muffleS);
+        _fog = _fog < _fogTo ? Math.Min(_fogTo, _fog + delta / muffleS) : Math.Max(_fogTo, _fog - delta / muffleS);
         Hear();
         _musicShare = Hearing.Ease(_musicShare, _title(), delta, S.MusicFadeS, S.MusicFadeS);
         Play(_music, _musicShare, S.Title.VolumeDb);
@@ -86,7 +90,7 @@ public partial class SoundView : Node
     /// <summary>The World and Suit buses as dulled (and the Suit as raised) as the hearing is now (<see cref="Hearing.At"/>).</summary>
     private void Hear()
     {
-        var mix = Hearing.At(_muffle);
+        var mix = Hearing.At(_muffle, _fog);
         _worldLowPass.CutoffHz = (float)mix.WorldHz;
         AudioServer.SetBusVolumeDb(_world, Mathf.LinearToDb((float)mix.WorldGain));
         _suitLowPass.CutoffHz = (float)mix.SuitHz;
