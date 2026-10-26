@@ -59,7 +59,7 @@ public class CreaturesTests
     private static Creature Only(Scenario w) => Assert.Single(w.M.Creatures.Creatures);
 
     /// <summary>Whether <paramref name="c"/>'s body is clear of every wall, in the grid.</summary>
-    private static bool Clear(Scenario w, Creature c) => !w.M.Creatures.Overlaps(Tune.Get(c.Species), c.X, c.Y);
+    private static bool Clear(Scenario w, Creature c) => !w.M.Creatures.Overlaps(Tune.Get(c.Species).Body, c.X, c.Y);
 
     // Walking.
 
@@ -74,9 +74,9 @@ public class CreaturesTests
     }
 
     [Theory]
-    [InlineData(Mode.Wander)]
-    [InlineData(Mode.Flee)]
-    public void AWalkerTurnsBackAtAWallItCannotStepUpNeverEnteringIt(Mode mode)
+    [InlineData(Posture.Wander)]
+    [InlineData(Posture.Flee)]
+    public void AWalkerTurnsBackAtAWallItCannotStepUpNeverEnteringIt(Posture mode)
     {
         var w = CreaturesTesting.Planet(Room).HeroAt(1, 3);
         var c = w.Loper(2, 3).Walking(+1, mode);
@@ -96,9 +96,9 @@ public class CreaturesTests
     }
 
     [Theory]
-    [InlineData(Mode.Wander)]
-    [InlineData(Mode.Flee)]
-    public void AWalkerTurnsBackFromADropOfThreeRowsAtTheLedgesEdge(Mode mode)
+    [InlineData(Posture.Wander)]
+    [InlineData(Posture.Flee)]
+    public void AWalkerTurnsBackFromADropOfThreeRowsAtTheLedgesEdge(Posture mode)
     {
         var w = CreaturesTesting.Planet(Ledge).HeroAt(8, 5);
         var c = w.Loper(2, 2).Walking(+1, mode);
@@ -106,12 +106,12 @@ public class CreaturesTests
         for (int t = 0; t < 200; t++)
         {
             w.Run();
-            most = Math.Max(most, c.X + Loper.Width * Unit / 2);
+            most = Math.Max(most, c.X + Loper.Body.Width * Unit / 2);
             Assert.Equal(3 * Cell, c.Y);
         }
         // Its leading edge reaches the ledge's edge at column 7 and goes no farther.
         Assert.True(most <= 7 * Cell, $"its edge reached {most}");
-        int speed = mode == Mode.Flee ? Loper.Flee : Loper.Wander;
+        int speed = mode == Posture.Flee ? Loper.Run() : Loper.Walk();
         Assert.True(most > 7 * Cell - speed - 1, $"it turned early, at {most}");
     }
 
@@ -127,9 +127,9 @@ public class CreaturesTests
     }
 
     [Theory]
-    [InlineData(Mode.Wander)]
-    [InlineData(Mode.Flee)]
-    public void AWalkerStepsUpAStepOneCellHighOnItsWay(Mode mode)
+    [InlineData(Posture.Wander)]
+    [InlineData(Posture.Flee)]
+    public void AWalkerStepsUpAStepOneCellHighOnItsWay(Posture mode)
     {
         var w = CreaturesTesting.Planet(Step).HeroAt(1, 4);
         var c = w.Loper(2, 4).Walking(+1, mode);
@@ -144,9 +144,9 @@ public class CreaturesTests
     }
 
     [Theory]
-    [InlineData(Mode.Wander)]
-    [InlineData(Mode.Flee)]
-    public void AWalkerStepsDownAStepOneCellDeepWithoutFalling(Mode mode)
+    [InlineData(Posture.Wander)]
+    [InlineData(Posture.Flee)]
+    public void AWalkerStepsDownAStepOneCellDeepWithoutFalling(Posture mode)
     {
         var w = CreaturesTesting.Planet("""
             ##############
@@ -184,7 +184,7 @@ public class CreaturesTests
         {
             w.Run();
             jumped |= c.VY < 0;
-            up |= c.Y == (10 - high) * Unit && c.X - Loper.Width * Unit / 2 >= 15 * Unit;
+            up |= c.Y == (10 - high) * Unit && c.X - Loper.Body.Width * Unit / 2 >= 15 * Unit;
             Assert.True(Clear(w, c));
         }
         // Up a step of three it leaps, as up a ledge (WanderLedge), never walks.
@@ -195,15 +195,15 @@ public class CreaturesTests
     public void FasterThanACellATickACreatureNeverPassesAWallOrAFloorOneCellThick()
     {
         // Fleeing at 1500 a tick and falling at most 1200, it moves in parts of under a cell (0104).
-        Assert.True(Loper.Flee > Unit && Tune.MaxFall > Unit);
+        Assert.True(Loper.Run() > Unit && Tune.MaxFall > Unit);
         var w = CreaturesTesting.Planet(Layout.Parse([.. Enumerable.Range(0, 8).Select(y => new string([.. Enumerable.Range(0, 30)
             .Select(x => y == 0 || y == 7 || x == 0 || x == 29 || x == 15 ? '#' : '.')]))]), cells: true).HeroAt(1, 6);
-        var c = w.Loper(5, 6).Walking(+1, Mode.Flee);
+        var c = w.Loper(5, 6).Walking(+1, Posture.Flee);
         int most = 0;
         for (int t = 0; t < 60; t++)
         {
             w.Run();
-            most = Math.Max(most, c.X + Loper.Width * Unit / 2);
+            most = Math.Max(most, c.X + Loper.Body.Width * Unit / 2);
             Assert.True(Clear(w, c));
         }
         Assert.Equal(15 * Unit, most);
@@ -238,14 +238,14 @@ public class CreaturesTests
     private static (Creature C, bool Over, bool Fell) Flee(Layout course, int past)
     {
         var w = CreaturesTesting.Planet(course, CreaturesTesting.Lifeless).Breathing().HeroAt(20, 8);
-        var c = w.Loper(30, 8).Walking(+1, Mode.Flee);
-        c.ModeLeft = 200;
+        var c = w.Loper(30, 8).Walking(+1, Posture.Flee);
+        c.DriveLeft = 200;
         bool over = false, fell = false;
         for (int t = 0; t < 200; t++)
         {
             w.Run();
             Assert.True(Clear(w, c), $"in a wall at ({c.X}, {c.Y})");
-            over |= c.X - Loper.Width * Unit / 2 >= (40 + past) * Cell && c.VY == 0;
+            over |= c.X - Loper.Body.Width * Unit / 2 >= (40 + past) * Cell && c.VY == 0;
             fell |= c.Y > 9 * Cell;
         }
         return (c, over, fell);
@@ -255,8 +255,8 @@ public class CreaturesTests
     public void ALopersJumpIsAboutNineCellsHighAndThirtyFourLongOnTheFirstPlanet()
     {
         int g = Content.PlanetTypes.First.Fall(Tune.Gravity);
-        Assert.InRange(Leaps.Height(Loper.Jump, g), 8_000, 9_200);
-        Assert.InRange(Leaps.Length(Loper.Jump, Loper.JumpAcross, g), 30_000, 36_000);
+        Assert.InRange(Leaps.Height(((Tune.Walker)Loper.Body).Jump, g), 8_000, 9_200);
+        Assert.InRange(Leaps.Length(((Tune.Walker)Loper.Body).Jump, ((Tune.Walker)Loper.Body).JumpAcross, g), 30_000, 36_000);
     }
 
     [Theory]
@@ -311,7 +311,7 @@ public class CreaturesTests
             {
                 w.Run();
                 Assert.True(Clear(w, c));
-                over |= c.X - Loper.Width * Unit / 2 >= 41 * Cell;
+                over |= c.X - Loper.Body.Width * Unit / 2 >= 41 * Cell;
                 fell |= c.Y > 9 * Cell;
             }
             Assert.Equal(gets, over);
@@ -324,14 +324,14 @@ public class CreaturesTests
     {
         var w = CreaturesTesting.Planet(Room).HeroAt(1, 3);
         var c = w.Loper(4, 3);
-        var modes = new HashSet<Mode>();
+        var modes = new HashSet<Posture>();
         for (int t = 0; t < 600; t++)
         {
             w.Run();
-            modes.Add(c.Mode);
-            Assert.True(c.Mode != Mode.Wander || Math.Abs(c.VX) == Loper.Wander || c.VY != 0);
+            modes.Add(c.Posture);
+            Assert.True(c.Posture != Posture.Wander || Math.Abs(c.VX) == Loper.Walk() || c.VY != 0);
         }
-        Assert.Equal([Mode.Idle, Mode.Wander], modes.Order());
+        Assert.Equal([Posture.Idle, Posture.Wander], modes.Order());
     }
 
     // Hits.
@@ -343,22 +343,21 @@ public class CreaturesTests
     [Fact]
     public void ALoperHasNoHitStunAHitKnocksItAwayWithAHopAndItFleesAtOnceThenCalmsDown()
     {
-        Assert.Equal(0, Loper.Stun);
         // Struck from past RamBackReach, on the hero's side: it flees, never turning back to ram (0103).
         foreach (var (hero, away, striker) in new[] { (20, +1, 2), (27, -1, 45) })
         {
             var w = CreaturesTesting.Planet(Long).HeroAt(hero, 3).HeroAt(striker, 3, peer: 1);
             var c = w.Loper(23, 3).Still();
             w.Do(new Strike(c.Id, Axe) { From = 1 }).Run();
-            Assert.Equal(Mode.Flee, c.Mode);
+            Assert.Equal(Posture.Flee, c.Posture);
             // Knocked at its flight's speed or the knock's, the more: it bolts from the blow.
-            Assert.Equal(away * Math.Max(Loper.Knock, Loper.Flee), c.VX);
+            Assert.Equal(away * Math.Max(Loper.Life.Knock, Loper.Run()), c.VX);
             Assert.True(c.VY < 0, "no hop");
             while (c.VY != 0) w.Run();
             w.Run();
-            Assert.Equal(away * Loper.Flee, c.VX);
-            w.Run(Loper.FleeTicks);
-            Assert.Equal(Mode.Idle, c.Mode);
+            Assert.Equal(away * Loper.Run(), c.VX);
+            w.Run(Loper.FleeTicks());
+            Assert.Equal(Posture.Idle, c.Posture);
             Assert.Equal(0, c.VX);
             Assert.Equal(Spec.Weapons.Axe.Damage, c.Damage);
         }
@@ -371,7 +370,7 @@ public class CreaturesTests
         // two ticks a strike on the loper while any of its body is within that, as the client sends one.
         var w = CreaturesTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
         var c = w.Loper(5, 3).Still();
-        int reach = w.HeroMiddle(4) + 3 * Cell, half = Loper.Width * Unit / 2, hits = 0, free = -1;
+        int reach = w.HeroMiddle(4) + 3 * Cell, half = Loper.Body.Width * Unit / 2, hits = 0, free = -1;
         for (int t = 0; t < 80; t++)
         {
             if (t % Spec.Weapons.Drill.Pace == 0 && c.X - half <= reach && w.M.Creatures.Creatures.Count > 0)
@@ -386,7 +385,7 @@ public class CreaturesTests
         Assert.True(c.X - half > reach, $"still under the bit at {c.X}");
         // Out of reach within half a second, a few of the drill's twelve hits taken.
         Assert.InRange(free, 1, 10);
-        Assert.True(c.Damage < Loper.Hp / 2, $"{hits} hits, {c.Damage} damage before it got away");
+        Assert.True(c.Damage < Loper.Life.Hp / 2, $"{hits} hits, {c.Damage} damage before it got away");
     }
 
     [Fact]
@@ -394,27 +393,27 @@ public class CreaturesTests
     {
         // The hero's sprint in thousandths a tick: its controller steps 60 times a second, the sim 20.
         int sprint = Spec.Hero.Run * 60 / World.TicksPerSecond;
-        Assert.True(Loper.Flee > sprint, $"a flee of {Loper.Flee} a tick against a sprint of {sprint}");
+        Assert.True(Loper.Run() > sprint, $"a flee of {Loper.Run()} a tick against a sprint of {sprint}");
         var wide = Wide(400, 8);
         // Struck by a friend past RamBackReach behind the hero: it flees, never turning back to ram (0103).
         var w = CreaturesTesting.Planet(wide, CreaturesTesting.Lifeless).Breathing().HeroAt(100, 6).HeroAt(80, 6, peer: 1);
         var c = w.Loper(102, 6).Still();
         w.Do(new Strike(c.Id, Axe) { From = 1 }).Run();
         // A hero sprinting after it from where it struck, its body's middle level with the loper's back as the blow lands.
-        long hero = w.HeroMiddle(100), gap = c.X - Loper.Width * Unit / 2 - hero;
+        long hero = w.HeroMiddle(100), gap = c.X - Loper.Body.Width * Unit / 2 - hero;
         int ticks = 1;
-        while (c.Mode == Mode.Flee)
+        while (c.Posture == Posture.Flee)
         {
             w.Run();
             hero += sprint;
             ticks++;
-            long now = c.X - Loper.Width * Unit / 2 - hero;
+            long now = c.X - Loper.Body.Width * Unit / 2 - hero;
             Assert.True(now >= gap - 2 * sprint, $"the gap closed to {now} from {gap} on tick {ticks}");
         }
         // Calmed within its flight's three seconds, never caught; then it idles and wanders, where a follower finds it.
-        Assert.InRange(ticks, Loper.FleeTicks, Loper.FleeTicks + 1);
-        Assert.True(c.X - Loper.Width * Unit / 2 - hero > gap, "a sprint gained on it");
-        Assert.Equal(Mode.Idle, c.Mode);
+        Assert.InRange(ticks, Loper.FleeTicks(), Loper.FleeTicks() + 1);
+        Assert.True(c.X - Loper.Body.Width * Unit / 2 - hero > gap, "a sprint gained on it");
+        Assert.Equal(Posture.Idle, c.Posture);
         Assert.Same(c, Only(w));
     }
 
@@ -422,16 +421,16 @@ public class CreaturesTests
     public void ABlowNeverSlowsALoperRunningTheKnocksWay()
     {
         var w = CreaturesTesting.Planet(Long).HeroAt(4, 3).Do(new SetCreative(true)).Do(new Run(Drill, true)).GiveItems(0, (Drill, 1));
-        var c = w.Loper(10, 3).Walking(+1, Mode.Flee);
+        var c = w.Loper(10, 3).Walking(+1, Posture.Flee);
         w.Run();
         // Sent flying faster than it runs, struck again: not slowed to the blow's speed.
-        c.VX = 2 * Loper.Flee;
+        c.VX = 2 * Loper.Run();
         w.Do(new Strike(c.Id, Drill)).Run();
-        Assert.Equal(2 * Loper.Flee, c.VX);
+        Assert.Equal(2 * Loper.Run(), c.VX);
         // Running at the hero, it is turned back, bolting.
-        c.Walking(-1, Mode.Flee);
+        c.Walking(-1, Posture.Flee);
         w.Do(new Strike(c.Id, Drill)).Run();
-        Assert.Equal(Loper.Flee, c.VX);
+        Assert.Equal(Loper.Run(), c.VX);
     }
 
     [Fact]
@@ -442,8 +441,8 @@ public class CreaturesTests
         w.Do(new Strike(c.Id, Drill)).Run();
         int share = Spec.Weapons.Drill.Pace * 1000 / Tune.KnockPace;
         // Its knock a fifth of the axe's, under its flight: it bolts at its flight's speed, hopping a fifth as high.
-        Assert.Equal(Loper.Flee, c.VX);
-        Assert.Equal(-Loper.Hop * share / 1000 + Content.PlanetTypes.First.Fall(Tune.Gravity), c.VY);
+        Assert.Equal(Loper.Run(), c.VX);
+        Assert.Equal(-Loper.Life.Hop * share / 1000 + Content.PlanetTypes.First.Fall(Tune.Gravity), c.VY);
         int rising = c.VY;
         Assert.True(rising < 0);
         // Struck again while it rises: knocked as before, its rise not renewed.
@@ -452,23 +451,9 @@ public class CreaturesTests
     }
 
     [Fact]
-    public void AStunnedCreatureFleesAwayFromTheNearestHeroAsItsStunEnds()
-    {
-        // No species has hit-stun yet (a hostile's to come): one held stunned, knocked left by hero 1 on its right, bolts from
-        // hero 0 beside it on the left, the nearer, once its stun is out.
-        var w = CreaturesTesting.Planet(Room).HeroAt(10, 3, peer: 1).HeroAt(4, 3);
-        var c = w.Loper(5, 3).Still();
-        (c.Mode, c.ModeLeft, c.VX) = (Mode.Hurt, 3, -Loper.Knock);
-        w.Run(2);
-        Assert.Equal((Mode.Hurt, -Loper.Knock), (c.Mode, c.VX));
-        w.Run();
-        Assert.Equal((Mode.Flee, Loper.Flee), (c.Mode, c.VX));
-    }
-
-    [Fact]
     public void SixHitsOfTheAxeKillALoperAndItsYieldsFallWhereItStood()
     {
-        int hits = (Loper.Hp + Spec.Weapons.Axe.Damage - 1) / Spec.Weapons.Axe.Damage;
+        int hits = (Loper.Life.Hp + Spec.Weapons.Axe.Damage - 1) / Spec.Weapons.Axe.Damage;
         Assert.Equal(6, hits);
         var w = CreaturesTesting.Planet(Room).HeroAt(1, 3);
         var c = w.Loper(5, 3).Still();
@@ -502,7 +487,7 @@ public class CreaturesTests
         for (int k = 0; k < kills; k++)
         {
             var c = w.Loper(5, 3).Still();
-            c.Damage = Loper.Hp - 1;
+            c.Damage = Loper.Life.Hp - 1;
             w.Do(new Strike(c.Id, Axe)).Run();
         }
         int seeds = w.M.Items.Floor.Where(s => s.Item == "seed").Sum(s => s.Count);
@@ -526,7 +511,7 @@ public class CreaturesTests
                 w.Do(new Strike(c.Id, Drill)).Run();
                 hits++;
             }
-            Assert.Equal((Loper.Hp + damage - 1) / damage, hits);
+            Assert.Equal((Loper.Life.Hp + damage - 1) / damage, hits);
             Assert.Empty(w.Refusals);
         }
     }
@@ -536,10 +521,28 @@ public class CreaturesTests
     {
         var w = CreaturesTesting.Planet(Room).HeroAt(1, 3).HeroAt(10, 3, peer: 1);
         var c = w.Loper(5, 3).Still();
-        c.Damage = Loper.Hp - 2;
+        c.Damage = Loper.Life.Hp - 2;
         w.Do(new Strike(c.Id, Axe)).Do(new Strike(c.Id, Axe) { From = 1 }).Run();
         Assert.Empty(w.M.Creatures.Creatures);
         Assert.Equal(["creatures.gone"], Reasons(w));
+        // Dead the moment the first blow lands: one roll of its yields.
+        w.Run(30);
+        Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count), 2, 3);
+    }
+
+    [Fact]
+    public void AReleaseOnTheTickOneDiesAtTheCapFindsRoom()
+    {
+        // The killed are gone to the cap at once (2026-10-26-creatures-are-composed), not at the sweep.
+        var w = CreaturesTesting.Planet(Room, CreaturesTesting.Lifeless).HeroAt(1, 3);
+        for (int i = 0; i < Tune.Max; i++) w.Do(new Release(Loper.Id, w.Feet(5, 3)));
+        w.Run();
+        Assert.Equal(Tune.Max, w.M.Creatures.Creatures.Count);
+        var c = w.M.Creatures.Creatures[0];
+        c.Damage = Loper.Life.Hp - 1;
+        w.Do(new Strike(c.Id, Axe)).Do(new Release(Loper.Id, w.Feet(5, 3))).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(Tune.Max, w.M.Creatures.Creatures.Count);
     }
 
     [Fact]
@@ -631,10 +634,10 @@ public class CreaturesTests
             {
                 Assert.Equal(0, w.World.Tick % Tune.Beat);
                 var spec = Tune.Get(c.Species);
-                int left = c.X / Unit - spec.Width / 2, top = c.Y / Unit - spec.Height;
+                int left = c.X / Unit - spec.Body.Width / 2, top = c.Y / Unit - spec.Body.Height;
                 foreach (var hero in new[] { 2 * 200, 2 * 150 })
-                    Assert.False(left + spec.Width - 1 >= hero - Tune.View.X && left <= hero + Tune.View.X, $"creature {c.Id} spawned at {left} in view of {hero}");
-                Assert.Equal((11 * Cell, Mode.Idle), (c.Y, c.Mode));
+                    Assert.False(left + spec.Body.Width - 1 >= hero - Tune.View.X && left <= hero + Tune.View.X, $"creature {c.Id} spawned at {left} in view of {hero}");
+                Assert.Equal((11 * Cell, Posture.Idle), (c.Y, c.Posture));
                 Assert.True(top >= 0);
                 seen = c.Id;
             }
@@ -742,7 +745,7 @@ public class CreaturesTests
         Assert.All(Tune.All, s =>
         {
             // Faster than a cell a tick is moved in parts (0104): FasterThanACellATickACreatureNeverPassesAWallOrAFloorOneCellThick.
-            Assert.True(s.Width > 0 && s.Height > 0 && s.Hp > 0 && s.Stun >= 0 && s.FleeTicks > 0);
+            Assert.True(s.Body.Width > 0 && s.Body.Height > 0 && s.Life.Hp > 0 && s.FleeTicks() > 0);
             Assert.All(s.Yields, y => Assert.NotNull(Spec.Items.Get(y.Item)));
         });
         foreach (var type in Spec.PlanetTypes.All)
@@ -753,7 +756,7 @@ public class CreaturesTests
                 Assert.InRange(h.Band, 0, type.Bands.Count);
             });
         // Spawned past every view, inside the keep box, which lies inside the hard box.
-        Assert.True(Tune.RingFrom > Tune.View.X && Tune.RingTo + Tune.All.Max(s => s.Width) <= Tune.Keep.X);
+        Assert.True(Tune.RingFrom > Tune.View.X && Tune.RingTo + Tune.All.Max(s => s.Body.Width) <= Tune.Keep.X);
         Assert.True(Tune.Keep.X < Tune.Hard.X && Tune.Keep.Y < Tune.Hard.Y && Tune.View.Y < Tune.Keep.Y);
         Assert.True(Tune.PerKeep <= Tune.Max);
     }
@@ -767,5 +770,40 @@ public class CreaturesTests
         w.Do(new Place(w.Feet(5, 3), Grid.Placement.Wall())).Do(new Place(w.Feet(6, 3), Grid.Placement.Wall())).Run();
         Assert.Equal(4 * Cell - Unit, c.Y);
         Assert.True(Clear(w, c));
+    }
+
+    [Fact]
+    public void AWorldSavedAndLoadedEveryTickPlaysOnAsOneNeverSaved()
+    {
+        // Every saved field of a creature mid-drive and mid-act (2026-10-26-creatures-are-composed): a world reloaded before each
+        // tick hashes as one that never was, through wanders, retreats, wind-ups, charges and escapes.
+        Scenario Made()
+        {
+            var w = CreaturesTesting.Planet(Long, CreaturesTesting.Lifeless).Breathing().HeroAt(10, 3).HeroAt(30, 3, peer: 1);
+            w.Run();
+            return w;
+        }
+        var (a, b) = (Made(), Made());
+        var rng = new Rng(new RngState { S = 7 });
+        var seen = new HashSet<Posture>();
+        for (int t = 0; t < 1500; t++)
+        {
+            var all = a.M.Creatures.Creatures;
+            var sent = new List<Command>();
+            if (all.Count < 3) sent.Add(new Release(rng.Below(2) == 0 ? Tune.Tapir.Id : Loper.Id, a.Feet(14 + (int)rng.Below(16), 3)));
+            else if (rng.Below(30) == 0) sent.Add(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Axe) { From = (int)rng.Below(2) });
+            foreach (var c in all)
+                if (c.Posture == Posture.Charge && rng.Below(3) == 0) sent.Add(new HitBy(c.Id) { From = (int)rng.Below(2) });
+            foreach (var command in sent)
+            {
+                a.Do(command);
+                b.Do(command);
+            }
+            a.Run();
+            b.ReloadOnPlanet().Run();
+            Assert.Equal(a.World.Hash(), b.World.Hash());
+            foreach (var c in all) seen.Add(c.Posture);
+        }
+        Assert.Superset(new HashSet<Posture> { Posture.Wander, Posture.Retreat, Posture.WindUp, Posture.Charge, Posture.Escape }, seen);
     }
 }

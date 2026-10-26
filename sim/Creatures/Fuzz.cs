@@ -20,7 +20,7 @@ public sealed partial class CreaturesModule
         }
         if (pick == 5)
         {
-            var charging = all.Where(c => c.Mode == Mode.Charge).ToList();
+            var charging = all.Where(c => c.Posture == Posture.Charge).ToList();
             int id = charging.Count > 0 && rng.Below(2) == 0 ? charging[(int)rng.Below((uint)charging.Count)].Id : Any();
             return new HitBy(id) { From = from };
         }

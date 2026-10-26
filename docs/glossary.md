@@ -82,6 +82,11 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building
 - существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
 - лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
+- вид / species → `Content.Creatures.Species`, composed of a body (`Shape`: `Walker`), `Life`, a faction, a brain and moves → Creatures
+- побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures
+- действие / act **≠** → `Act` (`Move`, `Phase`, `Left`), a move's rule a `MoveRule` (`Lunge`, the ram) → Creatures
+- фракция / faction → `Species.Faction`, `Content.Creatures.Factions`, `Relations` (`Stance`) → Creatures
+- поза / posture **≠** → `Posture`, derived from the drive or act in charge, what the client draws by → Creatures
 - руины / ruins → `c/Ruins.cs`, f/ruins `HomesView` (ruin pieces as plants) → Building, Ruins
 - шпиль / spire → f/ruins `SpiresView`, its cradle a `Relic` → Ruins
 - реликвия / relic → `Relic` (sim/Building `Flora.cs`), `RelicArt`, `RelicSparks` → Ruins

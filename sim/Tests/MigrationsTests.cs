@@ -67,6 +67,26 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void AFormat33SaveLetsItsCreaturesGoAndKeepsTheirIdsAndClock()
+    {
+        // The fixture's strip holding a loper in its old mode (2026-10-26-creatures-are-composed).
+        var save = JsonNode.Parse(File.ReadAllText(Fixture(33)))!.AsObject();
+        save["surfaces"]![0]!["slices"]!["creatures"] = JsonNode.Parse("""
+            {"creatures":[{"id":7,"species":"loper","x":5000,"y":9000,"vx":0,"vy":0,"damage":2,"mode":2,"modeLeft":30,"seenAt":40}],
+             "nextId":8,"clock":41}
+            """);
+        string upgraded = Migrations.Upgrade(save.ToJsonString());
+        var creatures = JsonNode.Parse(upgraded)!["surfaces"]![0]!["slices"]!["creatures"]!;
+        Assert.Empty(creatures["creatures"]!.AsArray());
+        Assert.Equal((8, 41), (creatures["nextId"]!.GetValue<int>(), creatures["clock"]!.GetValue<int>()));
+        // And it loads and plays on, its ids never reused.
+        var m = new Registry();
+        var world = World.Load(upgraded, m.All);
+        for (int i = 0; i < 600; i++) world.Step([]);
+        Assert.True(JsonNode.Parse(world.Save())!["surfaces"]![0]!["slices"]!["creatures"]!["nextId"]!.GetValue<int>() >= 8);
+    }
+
+    [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneFromBeforeTheHalvedCellForTheLoadToRefuse()
     {
         string save = Played();

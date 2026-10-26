@@ -19,7 +19,7 @@ the two axes).
 
 ## Tasks
 
-### C-0 — The module is called `Creatures`
+### C-0 — The module is called `Creatures` ✅
 
 A rename and nothing else: robots and pets are not fauna.
 
@@ -60,7 +60,14 @@ A rename and nothing else: robots and pets are not fauna.
 - a planet with creatures let out by `--creatures` shows lopers grazing, fleeing and ramming as before (frames
   recorded with `--write-movie`).
 
-### C-1 — The core, every creature behaving as before
+### C-1 — The core, every creature behaving as before ✅
+
+**Built as planned, but:** a drive keeps where it is within itself in a creature's `Step` (grazing: idling or wandering); the
+lunge has no `Contact`, `Interruptible` or `GroundOnly` flags and acts no `HitPeers` yet, the ram being their one user; a hit
+carries its peer, not a `Ref`; `Target`, `Mem` and the relations' reader come with the sentry (C-3); spawning stays in
+`Spawn.cs`, no `HabitatSpawner` till `OnDebris` makes two; on a hit the first claim in brain order wins (not only a higher
+drive's). The trace matched on every seed from the first run. Forty creatures take some 0.12 ms of a tick on a desk, about
+as on main (the 0.055 ms of 0102 was another desk); `BudgetTests` holds their share under 0.4 ms.
 
 The composition of the ADR, built only as far as today's four species need it. Starts once C-0 is merged.
 

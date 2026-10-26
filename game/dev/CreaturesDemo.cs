@@ -128,13 +128,13 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
         foreach (var c in m.Creatures.Creatures)
         {
             if (Math.Abs(c.X / CreaturesModule.Unit - x0) > 20) continue;
-            int left = (Spec.Creatures.Get(c.Species).Hp - c.Damage + hit - 1) / hit;
+            int left = (Spec.Creatures.Get(c.Species).Life.Hp - c.Damage + hit - 1) / hit;
             for (int i = 0; i < (tick == _outAt + KillAfter ? left - 1 : left); i++) client.Send(new Strike(c.Id, axe));
         }
     }
 
     private int _rammedOut = -1, _struckAt = -1;
-    private Mode? _ramWas;
+    private Posture? _ramWas;
     private bool _jumping, _struckWindUp, _wound;
 
     /// <summary>
@@ -147,24 +147,24 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
         if (m.Creatures.Creatures.Count == 0 || m.Crew.HeroOf(client.Id) is not { } hero) return;
         var c = m.Creatures.Creatures[0];
         int heroX = hero.Cell % m.Grid.Width * CreaturesModule.Unit + CreaturesModule.Unit / 2;
-        if (c.Mode != _ramWas) log($"creatures ram: tick {tick}, {c.Species} {c.Id} {c.Mode} at {c.X}, hero at {heroX}, suit {hero.Suit}");
-        _ramWas = c.Mode;
-        _wound |= c.Mode == Mode.WindUp;
+        if (c.Posture != _ramWas) log($"creatures ram: tick {tick}, {c.Species} {c.Id} {c.Posture} at {c.X}, hero at {heroX}, suit {hero.Suit}");
+        _ramWas = c.Posture;
+        _wound |= c.Posture == Posture.WindUp;
         string axe = Spec.Weapons.Axe.Item;
         bool once = tick - _struckAt > 6;
         if (!_wound && tick >= _rammedOut + 20 && once && c.X >= heroX + 1500
-            && (c.Mode is Mode.Idle or Mode.Wander || c.Mode == Mode.Flee && c.VX < 0))
+            && (c.Posture is Posture.Idle or Posture.Wander || c.Posture == Posture.Flee && c.VX < 0))
         {
             client.Send(new Strike(c.Id, axe));
             _struckAt = tick;
         }
-        if (ram == "strike" && c.Mode == Mode.WindUp && !_struckWindUp && c.ModeLeft <= Spec.Creatures.WindUp - 3)
+        if (ram == "strike" && c.Posture == Posture.WindUp && !_struckWindUp && c.Left <= ((Spec.Creatures.Lunge)Spec.Creatures.Get(c.Species).Moves[0]).WindUp - 3)
         {
             client.Send(new Strike(c.Id, axe));
             _struckWindUp = true;
             log($"creatures ram: tick {tick}, struck it winding up");
         }
-        bool jump = ram == "dodge" && c.Mode == Mode.Charge;
+        bool jump = ram == "dodge" && c.Posture == Posture.Charge;
         if (jump != _jumping)
         {
             Godot.Input.ParseInputEvent(new Godot.InputEventKey { Keycode = Godot.Key.Space, PhysicalKeycode = Godot.Key.Space, Pressed = jump });
@@ -175,7 +175,7 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
 
     /// <summary>Each creature's damage as last logged, by id: what the log says changed.</summary>
     private readonly Dictionary<int, int> _damage = [];
-    private readonly Dictionary<int, Mode> _modes = [];
+    private readonly Dictionary<int, Posture> _modes = [];
 
     /// <summary>Logs every strike that landed and every creature gone, for reading a recording against.</summary>
     private void Trace(Registry m, int tick, Action<string> log)
@@ -184,12 +184,12 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
         foreach (var c in all)
         {
             // A ram's wind-up and charge, and how either ended (0103).
-            var mode = _modes.GetValueOrDefault(c.Id, c.Mode);
-            if (mode != c.Mode && (c.Mode is Mode.WindUp or Mode.Charge || mode is Mode.WindUp or Mode.Charge))
-                log($"creatures demo: tick {tick}, {c.Species} {c.Id} {mode} to {c.Mode} at ({c.X}, {c.Y})");
-            _modes[c.Id] = c.Mode;
+            var mode = _modes.GetValueOrDefault(c.Id, c.Posture);
+            if (mode != c.Posture && (c.Posture is Posture.WindUp or Posture.Charge || mode is Posture.WindUp or Posture.Charge))
+                log($"creatures demo: tick {tick}, {c.Species} {c.Id} {mode} to {c.Posture} at ({c.X}, {c.Y})");
+            _modes[c.Id] = c.Posture;
             if (_damage.TryGetValue(c.Id, out int was) && was != c.Damage)
-                log($"creatures demo: tick {tick}, {all.Count} out, {c.Species} {c.Id} struck to {c.Damage}/{Spec.Creatures.Get(c.Species).Hp}, {c.Mode}");
+                log($"creatures demo: tick {tick}, {all.Count} out, {c.Species} {c.Id} struck to {c.Damage}/{Spec.Creatures.Get(c.Species).Life.Hp}, {c.Posture}");
             _damage[c.Id] = c.Damage;
         }
         foreach (int id in _damage.Keys.Where(id => all.All(c => c.Id != id)).ToList())

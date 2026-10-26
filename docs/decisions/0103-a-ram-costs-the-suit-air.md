@@ -1,6 +1,6 @@
 # 0103 — A ram costs the suit air
 
-- Status: accepted; slice 1 (a struck creature rams back, cornered ones too, the hit, the knock, the tells) built
+- Status: accepted; slice 1 (a struck creature rams back, cornered ones too, the hit, the knock, the tells) built; the ram as modes superseded by an act (the lunge) in [2026-10-26-creatures-are-composed](2026-10-26-creatures-are-composed.md)
 - Date: 2026-10-22
 - Design: `designs/hero-damage.md` (the session's scratchpad); its review outcome overrides its top, and the user's word
   after playing the first build overrides the review's trigger (below)

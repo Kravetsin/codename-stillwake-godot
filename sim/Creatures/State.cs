@@ -2,25 +2,42 @@ using System.Text.Json.Serialization;
 
 namespace Stillwake.Sim.Creatures;
 
-/// <summary>What a creature is doing: saved by number, so never renumber one.</summary>
-public enum Mode
+/// <summary>
+/// How a creature shows what it does, derived from its drive and act in charge, never saved: what the client and the tests read
+/// while looks are still keyed by it (2026-10-26-creatures-are-composed). New looks read the drive, act and phase themselves.
+/// </summary>
+public enum Posture
 {
-    /// <summary>Standing about, still.</summary>
-    Idle = 0,
-    /// <summary>Walking its way at its species' wander.</summary>
-    Wander = 1,
-    /// <summary>Bolting its way, away from the nearest hero when it began, at its species' flee.</summary>
-    Flee = 2,
-    /// <summary>Knocked by a hit and flinching, steering nothing: flight follows.</summary>
-    Hurt = 3,
-    /// <summary>Crouched to ram the nearest hero, standing (0103): a charge follows.</summary>
-    WindUp = 4,
-    /// <summary>Charging at the nearest hero as its wind-up ended, along the ground: a hit, passing it, a wall or a drop end it.</summary>
-    Charge = 5,
-    /// <summary>Struck and fleeing a moment before it turns back to ram the hero (0103): a flight, as <see cref="Flee"/>.</summary>
-    Retreat = 6,
-    /// <summary>Fleeing after its ram, hit or missed: a flight that never rams, till it calms or is struck again (0103).</summary>
-    Escape = 7,
+    /// <summary>Standing about, still: grazing.</summary>
+    Idle,
+    /// <summary>Walking its way: grazing.</summary>
+    Wander,
+    /// <summary>Bolting from what struck it.</summary>
+    Flee,
+    /// <summary>Struck and fleeing a moment before it turns back on the hero (0103).</summary>
+    Retreat,
+    /// <summary>Crouched for its move: a lunge's wind-up.</summary>
+    WindUp,
+    /// <summary>Its move under way: a lunge's charge.</summary>
+    Charge,
+    /// <summary>Fleeing after its move, hit or missed: a flight that never turns back.</summary>
+    Escape,
+}
+
+/// <summary>The phase of an act: crouched for it, then under way.</summary>
+/// <summary>Saved by number, so never renumber one.</summary>
+public enum ActPhase
+{
+    WindUp = 0,
+    Active = 1,
+}
+
+/// <summary>An act under way (0103): which of its species' moves, its phase and the ticks left in it.</summary>
+public sealed class Act
+{
+    [JsonInclude] public int Move { get; internal set; }
+    [JsonInclude] public ActPhase Phase { get; internal set; }
+    [JsonInclude] public int Left { get; internal set; }
 }
 
 /// <summary>
@@ -42,11 +59,28 @@ public sealed class Creature
     [JsonInclude] public int VY { get; internal set; }
     /// <summary>The hit points weapons have taken off it: below its species' hit points.</summary>
     [JsonInclude] public int Damage { get; internal set; }
-    [JsonInclude] public Mode Mode { get; internal set; }
-    /// <summary>Ticks left in its mode.</summary>
-    [JsonInclude] public int ModeLeft { get; internal set; }
+    /// <summary>The drive in charge, by its place in its species' brain.</summary>
+    [JsonInclude] public int Drive { get; internal set; }
+    /// <summary>Ticks left to the drive in charge; frozen while an act is under way.</summary>
+    [JsonInclude] public int DriveLeft { get; internal set; }
+    /// <summary>Where the drive in charge is within itself: a grazer idling (0) or wandering (1).</summary>
+    [JsonInclude] public int Step { get; internal set; }
+    /// <summary>The act under way, null for none.</summary>
+    [JsonInclude] public Act? Act { get; internal set; }
     /// <summary>The clock it was last in some hero's keep box: <c>Creatures.Linger</c> past it, out of every one, it is gone.</summary>
     [JsonInclude] public int SeenAt { get; internal set; }
+
+    /// <summary>Killed this tick: gone to every command, query and cap, swept out before the creatures next act. Never saved.</summary>
+    [JsonIgnore] internal bool Dead { get; set; }
+
+    /// <summary>How it shows what it does (<see cref="Creatures.Posture"/>).</summary>
+    [JsonIgnore] public Posture Posture => RuleBook.PostureOf(this);
+
+    /// <summary>Whether it is in flight: steered as one, at its run, turned and leaping alike.</summary>
+    [JsonIgnore] public bool Fleeing => RuleBook.FleeingOf(this);
+
+    /// <summary>The ticks left to what it does: its act's while one is under way, else its drive's.</summary>
+    [JsonIgnore] public int Left => Act?.Left ?? DriveLeft;
 }
 
 /// <summary>The creatures slice. Public so it can be named, its members internal: others read <see cref="CreaturesModule.Creatures"/>.</summary>

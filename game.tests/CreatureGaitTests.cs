@@ -38,7 +38,7 @@ public class CreatureGaitTests
         foreach (var species in Spec.Creatures.All)
         {
             var run = CreatureLooks.Runs[species.Look];
-            double walk = CreatureGait.StridesAt(Px(species.Wander), run), flee = CreatureGait.StridesAt(Px(species.Flee), run);
+            double walk = CreatureGait.StridesAt(Px(((Spec.Creatures.Walker)species.Body).Walk), run), flee = CreatureGait.StridesAt(Px(((Spec.Creatures.Walker)species.Body).Run), run);
             // Before: 2.6 a second walking, 7.3 fleeing at 30 cells a second.
             Assert.InRange(walk, 1.7, 2.7);
             Assert.InRange(flee, 2.5, 3.5);

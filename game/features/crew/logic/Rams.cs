@@ -16,13 +16,13 @@ public static class Rams
     public const int Margin = 300;
 
     /// <summary>
-    /// The first creature in id order charging (the sim's <see cref="Mode.Charge"/>) whose body and <see cref="Margin"/> touch
+    /// The first creature in id order charging (the sim's <see cref="Posture.Charge"/>) whose body and <see cref="Margin"/> touch
     /// <paramref name="hero"/>'s body; none for none.
     /// </summary>
     public static Creature? Contact(IReadOnlyList<Creature> all, Hero hero)
     {
         foreach (var c in all)
-            if (c.Mode == Mode.Charge && Touches(c, hero, Margin)) return c;
+            if (c.Posture == Posture.Charge && Touches(c, hero, Margin)) return c;
         return null;
     }
 
@@ -30,9 +30,9 @@ public static class Rams
     public static bool Touches(Creature c, Hero hero, int margin)
     {
         var spec = Tune.Get(c.Species);
-        int half = spec.Width * Hero.Unit / 2 + margin;
+        int half = spec.Body.Width * Hero.Unit / 2 + margin;
         return c.X - half < hero.X + Spec.Width / 2 && c.X + half > hero.X - Spec.Width / 2
-            && c.Y - spec.Height * Hero.Unit - margin < hero.Y && c.Y + margin > hero.Y - Spec.Height;
+            && c.Y - spec.Body.Height * Hero.Unit - margin < hero.Y && c.Y + margin > hero.Y - Spec.Height;
     }
 
     /// <summary>

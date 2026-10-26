@@ -7,19 +7,83 @@ namespace Stillwake.Content;
 public static class Creatures
 {
     /// <summary>
-    /// A species: its <paramref name="Look"/>, the design the client draws it in (its parts in <c>game/art/creatures/</c>), its body
-    /// <paramref name="Width"/> × <paramref name="Height"/> cells, its hit points, how fast it wanders and
-    /// flees a tick, how long it flees once hurt, its hit-stun — the ticks a hit holds it steering nothing before it flees, 0 for
-    /// a neutral one that bolts at once — the knock a hit gives it across and the hop up, its jump — the speed up it leaps at
-    /// most, and across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for a
-    /// species that never jumps — what it gives when it dies, drawn entry by entry as a container's loot is — and its ram (0103):
-    /// the units of suit air a charge of it that hits takes, 0 for one that never rams, and the chance in a thousand that, struck
-    /// by a hero within <see cref="RamBackReach"/>, it turns back on it after a short flight, or, fleeing and cornered with a hero
-    /// near, it winds up to charge rather than turn.
+    /// A species, composed (2026-10-26-creatures-are-composed): its <paramref name="Look"/>, the design the client draws it in (its
+    /// parts in <c>game/art/creatures/</c>); its <paramref name="Body"/>, how it is shaped and moves; its <paramref name="Life"/>;
+    /// its <paramref name="Faction"/>, one of <see cref="Factions"/>; how long it lives; its <paramref name="Brain"/>, the drives it
+    /// may follow, the first ranked highest; its <paramref name="Moves"/>, the acts it may make; what it gives when it dies, drawn
+    /// entry by entry as a container's loot is. Each record is served by one rule in the creatures module.
+    /// A creature saves its drive in charge and its act by their places in <paramref name="Brain"/> and <paramref name="Moves"/>:
+    /// reorder or insert into them only with a save-format bump whose step drops or remaps the creatures (<c>CreatureContractTests</c>).
     /// </summary>
     public sealed record Species(
-        string Id, string Look, int Width, int Height, int Hp, int Wander, int Flee, int FleeTicks, int Stun, int Knock, int Hop,
-        int Jump, int JumpAcross, IReadOnlyList<LootEntry> Yields, int Ram = 0, int RamChance = 0);
+        string Id, string Look, Shape Body, Life Life, string Faction, Lifetime Lifetime, IReadOnlyList<Drive> Brain,
+        IReadOnlyList<Move> Moves, IReadOnlyList<LootEntry> Yields);
+
+    /// <summary>A body's shape: <paramref name="Width"/> × <paramref name="Height"/> cells, its bottom middle where it stands.</summary>
+    public abstract record Shape(int Width, int Height);
+
+    /// <summary>
+    /// A walker under the surface's gravity: how fast it walks and runs a tick, and its jump — the speed up it leaps at most, and
+    /// across it in the air (its highest and longest follow from them under the planet's gravity: `Leaps`), 0 for one that never
+    /// jumps.
+    /// </summary>
+    public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross) : Shape(Width, Height);
+
+    /// <summary>Its hit points, and the knock a hit gives it across and the hop up, at a full pace's blow (<see cref="KnockPace"/>).</summary>
+    public sealed record Life(int Hp, int Knock, int Hop);
+
+    /// <summary>How long a creature lives: <see cref="Wild"/>, while some hero is near (<see cref="Keep"/>, <see cref="Linger"/>).</summary>
+    public enum Lifetime { Wild }
+
+    /// <summary>Something a creature may want to do, ranked by its place in a brain.</summary>
+    public abstract record Drive;
+
+    /// <summary>Idling and wandering by turns, drawn lengths (<see cref="IdleLeast"/>…): what a creature does when nothing else.</summary>
+    public sealed record Graze : Drive;
+
+    /// <summary>
+    /// Running from what struck it for <paramref name="Ticks"/>; cornered at a wall or a drop with a hero within
+    /// <paramref name="CorneredReach"/> cells on the side it would turn to, it turns on it with its first move <paramref name="CorneredChance"/>
+    /// times in a thousand (0103); 0 for one that never does.
+    /// </summary>
+    public sealed record Flee(int Ticks, int CorneredChance = 0, int CorneredReach = 0) : Drive;
+
+    /// <summary>
+    /// Struck by a hero within <paramref name="Reach"/> cells, <paramref name="Chance"/> times in a thousand it runs a drawn
+    /// <paramref name="FleeLeast"/>..<paramref name="FleeMost"/> ticks, then turns back on it with its first move (0103).
+    /// </summary>
+    public sealed record Retaliate(int Chance, int Reach, int FleeLeast, int FleeMost) : Drive;
+
+    /// <summary>Running for <paramref name="Ticks"/> after its move, hit or missed: a flight that never turns back.</summary>
+    public sealed record Escape(int Ticks) : Drive;
+
+    /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
+    public abstract record Move(int Damage);
+
+    /// <summary>
+    /// A ram along the ground (0103): it crouches <paramref name="WindUp"/> ticks once grounded, then charges the nearest hero at
+    /// <paramref name="Speed"/> a tick, never leaping, till it is <paramref name="Past"/> cells past it, a wall or a drop, or
+    /// <paramref name="Ticks"/>: a hero farther than that run as the wind-up ends is let be. A blow cuts it short.
+    /// </summary>
+    public sealed record Lunge(int WindUp, int Speed, int Ticks, int Past, int Damage) : Move(Damage);
+
+    /// <summary>The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>.</summary>
+    public const string Crew = "crew", Grazer = "grazer";
+
+    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer];
+
+    /// <summary>How one faction stands to another: none listed, it ignores it.</summary>
+    public enum Stance { Ignore, Fear, Hunt }
+
+    public sealed record Relation(string From, string To, Stance Stance);
+
+    public static readonly IReadOnlyList<Relation> Relations = [new(Grazer, Crew, Stance.Ignore)];
+
+    /// <summary>The ram of the loper and the sixleg: three units of a suit; at 28 cells a second, past a hero's sprint of 26.4.</summary>
+    private static readonly Lunge LightRam = new(WindUp: 8, Speed: 1400, Ticks: 40, Past: 6, Damage: 3);
+
+    /// <summary>The flight of every grazer: three seconds.</summary>
+    private const int FleeTicks = 60;
 
     /// <summary>Where a habitat's creatures spawn: on the open ground under the sky, or on a cave's floor in one depth band (0080).</summary>
     public enum Place { Surface, Band }
@@ -41,9 +105,12 @@ public static class Creatures
     /// axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
     /// Struck, it mostly turns back and rams (0103, the user's word after playing): seven times in ten, three units of a suit.
     /// </summary>
-    public static readonly Species Loper = new("loper", Look: "classic", Width: 4, Height: 4, Hp: 12, Wander: 200, Flee: 1500,
-        FleeTicks: 60, Stun: 0, Knock: 400, Hop: 360, Jump: 880, JumpAcross: 800,
-        Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)], Ram: 3, RamChance: 700);
+    public static readonly Species Loper = new("loper", Look: "classic",
+        Body: new Walker(Width: 4, Height: 4, Walk: 200, Run: 1500, Jump: 880, JumpAcross: 800), Life: new(Hp: 12, Knock: 400, Hop: 360),
+        Faction: Grazer, Lifetime: Lifetime.Wild,
+        Brain: [new Retaliate(Chance: 700, Reach: 24, FleeLeast: 12, FleeMost: 20), new Flee(FleeTicks, CorneredChance: 700, CorneredReach: 12),
+            new Escape(FleeTicks), new Graze()],
+        Moves: [LightRam], Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
 
     /// <summary>
     /// The tapir («Тапирчик»): a round, dark-coated walker of the open ground, a glowing seed pod on its snout; the loper's life
@@ -52,18 +119,19 @@ public static class Creatures
     /// 7.2 cells high on the first planet: a wall of six, not of eight. It gives more: three or four biomass, a seed one time in
     /// three (placeholders). Struck, it rams the most often and the hardest (0103): nine times in ten, five units of a suit.
     /// </summary>
-    public static readonly Species Tapir = new("tapir", Look: "tapir", Width: 4, Height: 4, Hp: 16, Wander: 160, Flee: 1400,
-        FleeTicks: 60, Stun: 0, Knock: 300, Hop: 280, Jump: 800, JumpAcross: 720,
-        Yields: [new("biomass", 3, 4), new("seed", 1, 1, OneIn: 3)], Ram: 5, RamChance: 900);
+    public static readonly Species Tapir = new("tapir", Look: "tapir",
+        Body: new Walker(Width: 4, Height: 4, Walk: 160, Run: 1400, Jump: 800, JumpAcross: 720), Life: new(Hp: 16, Knock: 300, Hop: 280),
+        Faction: Grazer, Lifetime: Lifetime.Wild,
+        Brain: [new Retaliate(Chance: 900, Reach: 24, FleeLeast: 12, FleeMost: 20), new Flee(FleeTicks, CorneredChance: 900, CorneredReach: 12),
+            new Escape(FleeTicks), new Graze()],
+        Moves: [LightRam with { Damage = 5 }], Yields: [new("biomass", 3, 4), new("seed", 1, 1, OneIn: 3)]);
 
     /// <summary>
     /// The sixleg («Шестиног»): a barrel-bodied grazer of the open ground on six hooves, its tail a stem hung with glowing
     /// berries. The loper's size and the loper's numbers, but for two more hit points for its barrel: fourteen, seven of the
     /// axe's; and the loper's ram (0103).
     /// </summary>
-    public static readonly Species Sixleg = new("sixleg", Look: "sixleg", Width: 4, Height: 4, Hp: 14, Wander: 200, Flee: 1500,
-        FleeTicks: 60, Stun: 0, Knock: 400, Hop: 360, Jump: 880, JumpAcross: 800,
-        Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)], Ram: 3, RamChance: 700);
+    public static readonly Species Sixleg = Loper with { Id = "sixleg", Look = "sixleg", Life = Loper.Life with { Hp = 14 } };
 
     /// <summary>
     /// The fluff («Пушок»): a ball of fur on tiny paws, glowing spots down its back and lantern antennae, living on the floors of
@@ -72,8 +140,9 @@ public static class Creatures
     /// smaller, 760 up and 720 across, 6.4 cells high on the first planet, still over a ledge of six. One or two biomass, a
     /// seed one time in four (placeholders). It never rams.
     /// </summary>
-    public static readonly Species Fluff = new("fluff", Look: "fluff", Width: 4, Height: 4, Hp: 8, Wander: 160, Flee: 1400,
-        FleeTicks: 60, Stun: 0, Knock: 480, Hop: 440, Jump: 760, JumpAcross: 720,
+    public static readonly Species Fluff = new("fluff", Look: "fluff",
+        Body: new Walker(Width: 4, Height: 4, Walk: 160, Run: 1400, Jump: 760, JumpAcross: 720), Life: new(Hp: 8, Knock: 480, Hop: 440),
+        Faction: Grazer, Lifetime: Lifetime.Wild, Brain: [new Flee(FleeTicks), new Graze()], Moves: [],
         Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff];
@@ -132,17 +201,6 @@ public static class Creatures
     /// and gap its jump clears, a landing found for it first.
     /// </summary>
     public const int WanderLedge = 4;
-
-    /// <summary>
-    /// A ram (0103). Struck by a hero within <see cref="RamBackReach"/> cells (box distance, by its reported cell), a rammer that
-    /// draws its <c>RamChance</c> flees a draw of <see cref="RamFleeLeast"/>..<see cref="RamFleeMost"/> ticks (0.6 to 1 s), then
-    /// turns back; fleeing and cornered with the nearest hero within <see cref="RamReach"/>, it draws it again. Either way it
-    /// crouches <see cref="WindUp"/> ticks, standing, then charges the nearest hero at <see cref="Charge"/> a tick (28 cells a
-    /// second, past a hero's sprint of 26.4) till it is <see cref="RamPast"/> cells past it, at most <see cref="ChargeTicks"/>
-    /// (56 cells): a hero farther than that as the wind-up ends is let be.
-    /// </summary>
-    public const int RamReach = 12, RamBackReach = 24, RamFleeLeast = 12, RamFleeMost = 20, WindUp = 8, ChargeTicks = 40, Charge = 1400,
-        RamPast = 6;
 
     /// <summary>What a fall gains a tick aboard's measure, scaled by the planet's gravity (<c>Kind.Fall</c>), as stacks fall; the fastest fall a tick.</summary>
     public const int Gravity = 60, MaxFall = 1200;

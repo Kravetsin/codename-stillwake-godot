@@ -18,7 +18,8 @@ namespace Stillwake.Sim;
 /// Format 31 grew planets anew (stairs for cliffs, veins of ore, crystals by the lodes): no save before it migrates, a
 /// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel. Format 32 added
 /// the landing module (the launch platform), its slice empty. Format 33 renamed the fauna module creatures
-/// (2026-10-26-creatures-are-composed).
+/// (2026-10-26-creatures-are-composed); format 34 composed its species, dropping the creatures out, which planets reached only
+/// from the dev panel held.
 /// </summary>
 public static class Migrations
 {
@@ -26,7 +27,7 @@ public static class Migrations
     public const int Oldest = 31;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed, CreaturesComposed];
 
     /// <summary>31 to 32: the landing module (the launch platform) joins every surface, holding nothing yet.</summary>
     private static JsonObject LandingJoins(JsonObject save)
@@ -46,6 +47,18 @@ public static class Migrations
         save["slices"] = Renamed(save["slices"]!.AsObject(), "fauna", "creatures");
         if (save["surfaces"] is JsonArray surfaces)
             foreach (var surface in surfaces) surface!["slices"] = Renamed(surface["slices"]!.AsObject(), "fauna", "creatures");
+        return save;
+    }
+
+    /// <summary>
+    /// 33 to 34: species composed of drives and acts (2026-10-26-creatures-are-composed), a creature's mode gone. The creatures
+    /// of every surface are let go, their ids and clock kept: only planets opened from the dev panel held any.
+    /// </summary>
+    private static JsonObject CreaturesComposed(JsonObject save)
+    {
+        save["slices"]!["creatures"]!["creatures"] = new JsonArray();
+        if (save["surfaces"] is JsonArray surfaces)
+            foreach (var surface in surfaces) surface!["slices"]!["creatures"]!["creatures"] = new JsonArray();
         return save;
     }
 

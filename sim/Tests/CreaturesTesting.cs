@@ -33,6 +33,15 @@ public static class CreaturesTesting
         return w;
     }
 
+    /// <summary><paramref name="w"/> saved and loaded, its creatures told again they run on the planet it put them on.</summary>
+    public static Scenario ReloadOnPlanet(this Scenario w)
+    {
+        var where = w.M.Creatures.Where;
+        w.Reload();
+        w.M.Creatures.Where = where;
+        return w;
+    }
+
     /// <summary>The first planet with nothing living on it: gravity, no spawns.</summary>
     public static readonly Spec.PlanetType Lifeless = Spec.PlanetTypes.First with { Creatures = [] };
 
@@ -49,33 +58,62 @@ public static class CreaturesTesting
         return w.M.Creatures.Creatures[^1];
     }
 
-    /// <summary><paramref name="c"/> set charging <paramref name="way"/> (+1 right, -1 left), its charge just begun (0103).</summary>
+    /// <summary><paramref name="c"/> set charging <paramref name="way"/> (+1 right, -1 left), its charge just begun (0103), as its retaliation.</summary>
     public static Creature Charging(this Creature c, int way)
     {
-        c.Mode = Mode.Charge;
-        c.ModeLeft = Spec.Creatures.ChargeTicks;
-        c.VX = way * Spec.Creatures.Charge;
+        var spec = Spec.Creatures.Get(c.Species);
+        var lunge = (Spec.Creatures.Lunge)spec.Moves[0];
+        c.Drive = Place<Spec.Creatures.Retaliate>(spec);
+        c.Act = new Act { Move = 0, Phase = ActPhase.Active, Left = lunge.Ticks };
+        c.VX = way * lunge.Speed;
         return c;
     }
 
     /// <summary><paramref name="c"/> set walking <paramref name="way"/> (+1 right, -1 left) a long while.</summary>
-    public static Creature Walking(this Creature c, int way, Mode mode = Mode.Wander)
+    public static Creature Walking(this Creature c, int way, Posture posture = Posture.Wander)
     {
         var spec = Spec.Creatures.Get(c.Species);
-        c.Mode = mode;
-        c.ModeLeft = 100_000;
-        c.VX = way * (mode == Mode.Flee ? spec.Flee : spec.Wander);
+        var body = (Spec.Creatures.Walker)spec.Body;
+        bool flees = posture == Posture.Flee;
+        (c.Drive, c.Step, c.DriveLeft, c.Act) = (flees ? Place<Spec.Creatures.Flee>(spec) : Place<Spec.Creatures.Graze>(spec), flees ? 0 : 1, 100_000, null);
+        c.VX = way * (flees ? body.Run : body.Walk);
         return c;
     }
 
     /// <summary><paramref name="c"/> set standing still a long while.</summary>
     public static Creature Still(this Creature c)
     {
-        c.Mode = Mode.Idle;
-        c.ModeLeft = 100_000;
+        (c.Drive, c.Step, c.DriveLeft, c.Act) = (Place<Spec.Creatures.Graze>(Spec.Creatures.Get(c.Species)), 0, 100_000, null);
         c.VX = 0;
         return c;
     }
+
+    /// <summary>The place in <paramref name="spec"/>'s brain of its drive of kind <typeparamref name="D"/>.</summary>
+    public static int Place<D>(Spec.Creatures.Species spec) where D : Spec.Creatures.Drive
+    {
+        for (int i = 0; i < spec.Brain.Count; i++)
+            if (spec.Brain[i] is D) return i;
+        throw new InvalidOperationException($"{spec.Id} has no {typeof(D).Name}");
+    }
+
+    /// <summary>A species' first move, its ram (0103).</summary>
+    public static Spec.Creatures.Lunge Lunge(this Spec.Creatures.Species s) => (Spec.Creatures.Lunge)s.Moves[0];
+
+    /// <summary>A species' retaliation: when and how long it flees before it rams (0103).</summary>
+    public static Spec.Creatures.Retaliate Retaliation(this Spec.Creatures.Species s) => s.Brain.OfType<Spec.Creatures.Retaliate>().Single();
+
+    /// <summary>The suit units a species' ram takes, 0 for one that never rams.</summary>
+    public static int Ram(this Spec.Creatures.Species s) => s.Moves.Count > 0 ? s.Moves[0].Damage : 0;
+
+    /// <summary>The chance in a thousand a species turns back on the hero that struck it, 0 for one that never does.</summary>
+    public static int RamChance(this Spec.Creatures.Species s) => s.Brain.OfType<Spec.Creatures.Retaliate>().FirstOrDefault()?.Chance ?? 0;
+
+    public static int Run(this Spec.Creatures.Species s) => ((Spec.Creatures.Walker)s.Body).Run;
+
+    public static int Walk(this Spec.Creatures.Species s) => ((Spec.Creatures.Walker)s.Body).Walk;
+
+    /// <summary>How long a species flees once struck.</summary>
+    public static int FleeTicks(this Spec.Creatures.Species s) => s.Brain.OfType<Spec.Creatures.Flee>().Single().Ticks;
 
     /// <summary>Creative mode: every hero's suit endless, so heroes out in a long run never pass out and wake elsewhere.</summary>
     public static Scenario Breathing(this Scenario w) => w.Do(new Items.SetCreative(true));

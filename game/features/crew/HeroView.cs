@@ -483,7 +483,7 @@ public partial class HeroView : Node2D
         client.Send(new Stillwake.Sim.Creatures.HitBy(c.Id));
         _ramGuard.Sent(tick);
         int away = Rams.Away(c, _current);
-        _current = Rams.Knocked(_current, away, Content.Creatures.Get(c.Species).Ram);
+        _current = Rams.Knocked(_current, away, Content.Creatures.Get(c.Species).Moves[c.Act!.Move].Damage);
         _reel = Spec.Reel;
         _figure.Flinch(-away);
         var (x, y) = Chest(_current);
@@ -499,7 +499,7 @@ public partial class HeroView : Node2D
     private int? RamEndedBy(Registry m, Hero hero)
     {
         foreach (var c in m.Creatures.Creatures)
-            if (_charging.Contains(c.Id) && c.Mode != Stillwake.Sim.Creatures.Mode.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
+            if (_charging.Contains(c.Id) && c.Posture != Stillwake.Sim.Creatures.Posture.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
                 return c.VX >= 0 ? 1 : -1;
         return null;
     }

@@ -55,29 +55,28 @@ public class CreaturesInvariantTests
             var c = all[i];
             var spec = Tune.Get(c.Species);
             if (i > 0 && all[i - 1].Id >= c.Id) return $"ids {all[i - 1].Id} then {c.Id}";
-            if (c.Damage >= spec.Hp) return $"creature {c.Id} alive at {c.Damage} damage";
-            int half = spec.Width * Unit / 2;
-            if (c.X - half < 0 || c.X + half > Width * Unit || c.Y - spec.Height * Unit < 0 || c.Y > Height * Unit)
+            if (c.Damage >= spec.Life.Hp) return $"creature {c.Id} alive at {c.Damage} damage";
+            int half = spec.Body.Width * Unit / 2;
+            if (c.X - half < 0 || c.X + half > Width * Unit || c.Y - spec.Body.Height * Unit < 0 || c.Y > Height * Unit)
                 return $"creature {c.Id} off the grid at ({c.X}, {c.Y})";
-            if (w.M.Creatures.Overlaps(spec, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
-            if (c.ModeLeft < 1 || c.ModeLeft > LongestOf(c.Mode, spec)) return $"creature {c.Id} {c.Mode} with {c.ModeLeft} ticks left";
+            if (w.M.Creatures.Overlaps(spec.Body, c.X, c.Y)) return $"creature {c.Id} in a wall at ({c.X}, {c.Y})";
+            if (c.Left < 1 || c.Left > LongestOf(c.Posture, spec)) return $"creature {c.Id} {c.Posture} with {c.Left} ticks left";
         }
         foreach (var hero in w.M.Crew.Heroes)
             if (hero.Suit < 0 || hero.Suit > Content.Crew.Suit) return $"hero {hero.Id}'s suit at {hero.Suit}";
         return null;
     }
 
-    /// <summary>The most ticks <paramref name="mode"/> lasts for a creature of <paramref name="spec"/>: what is left of it never exceeds it.</summary>
-    private static int LongestOf(Mode mode, Tune.Species spec) => mode switch
+    /// <summary>The most ticks <paramref name="posture"/> lasts for a creature of <paramref name="spec"/>: what is left of it never exceeds it.</summary>
+    private static int LongestOf(Posture posture, Tune.Species spec) => posture switch
     {
-        Mode.Idle => Tune.IdleMost,
-        Mode.Wander => Tune.WanderMost,
-        Mode.Flee => spec.FleeTicks,
-        Mode.Hurt => spec.Stun,
-        Mode.WindUp => Tune.WindUp,
-        Mode.Charge => Tune.ChargeTicks,
-        Mode.Retreat => Tune.RamFleeMost,
-        Mode.Escape => spec.FleeTicks,
+        Posture.Idle => Tune.IdleMost,
+        Posture.Wander => Tune.WanderMost,
+        Posture.Flee => spec.Brain.OfType<Tune.Flee>().Single().Ticks,
+        Posture.WindUp => ((Tune.Lunge)spec.Moves[0]).WindUp,
+        Posture.Charge => ((Tune.Lunge)spec.Moves[0]).Ticks,
+        Posture.Retreat => spec.Brain.OfType<Tune.Retaliate>().Single().FleeMost,
+        Posture.Escape => spec.Brain.OfType<Tune.Escape>().Single().Ticks,
         _ => 0,
     };
 
@@ -144,7 +143,7 @@ public class CreaturesInvariantTests
                 var sent = new List<HitBy>();
                 foreach (var c in all)
                     for (int h = 0; h < heroes; h++)
-                        if (c.Mode == Mode.Charge ? rng.Below(2) == 0 : rng.Below(50) == 0) sent.Add(new HitBy(c.Id) { From = h });
+                        if (c.Posture == Posture.Charge ? rng.Below(2) == 0 : rng.Below(50) == 0) sent.Add(new HitBy(c.Id) { From = h });
                 foreach (var hit in sent) w.Do(hit);
                 if (rng.Below(30) == 0) w.HeroAt(1 + (int)rng.Below(Width - 2), (int)rng.Below(Height), peer: (int)rng.Below((uint)heroes));
                 int refused = w.Refusals.Count;
@@ -155,11 +154,11 @@ public class CreaturesInvariantTests
                 if (strike != null && !turnedDown.Contains(strike)) windUps[strike.Creature] = 0;
                 foreach (var c in w.M.Creatures.Creatures)
                 {
-                    if (c.Mode == Mode.WindUp && winding.Add(c.Id)) windUps[c.Id] = windUps.GetValueOrDefault(c.Id) + 1;
-                    else if (c.Mode != Mode.WindUp) winding.Remove(c.Id);
+                    if (c.Posture == Posture.WindUp && winding.Add(c.Id)) windUps[c.Id] = windUps.GetValueOrDefault(c.Id) + 1;
+                    else if (c.Posture != Posture.WindUp) winding.Remove(c.Id);
                     if (windUps.GetValueOrDefault(c.Id) > 1) broken ??= $"creature {c.Id} wound up {windUps[c.Id]} times on one hit";
-                    if (c.Mode == Mode.Charge && charging.Add(c.Id)) hits[c.Id] = 0;
-                    else if (c.Mode != Mode.Charge) charging.Remove(c.Id);
+                    if (c.Posture == Posture.Charge && charging.Add(c.Id)) hits[c.Id] = 0;
+                    else if (c.Posture != Posture.Charge) charging.Remove(c.Id);
                     if (hits.GetValueOrDefault(c.Id) > 1) broken ??= $"creature {c.Id}'s charge hurt {hits[c.Id]} times";
                 }
                 broken ??= Broken(w);

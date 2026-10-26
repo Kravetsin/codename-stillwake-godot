@@ -1,6 +1,6 @@
 # Creatures are composed
 
-- Status: accepted; nothing built yet: the plan is [`creatures`](../plans/creatures.md)
+- Status: accepted; C-0 (the rename) and C-1 (the composed core, today's four species unchanged) built; `Mem`, `Target`, `HitPeers`, `Ref` and the relations' reader come with the sentry, and a drive keeps its own `Step`
 - Date: 2026-10-26
 
 ## Context
@@ -53,26 +53,28 @@ abstract class DriveRule<D> where D : Drive {
   virtual void Ended(Mind m, Creature c, D d, ActEnd how);  // an act the drive in charge began has ended
 }
 abstract class BodyRule<S> where S : Shape { bool Fits(...); void Step(Mind m, Creature c, S s, in Intent go); Box BoxOf(...); }
-abstract class ActRule<M> where M : Move { void Begin(Mind m, Creature c, M mv, Ref aim); void Tick(Mind m, Creature c, M mv, ref Intent go); }
-abstract class SpawnRule<P> where P : Spawner { void Beat(Mind m, P p); }
+abstract class MoveRule<M> where M : Move { void Begin(Mind m, Creature c, M mv, Ref aim); void Tick(Mind m, Creature c, M mv, ref Intent go); }
+abstract class SpawnRule<P> where P : Spawner { void Beat(Mind m, P p); }    // with the first spawner past habitats
 ```
 
 - **Rules hold no state.** One instance per module instance; whatever a creature needs remembered lives on the
   creature. `Mind` is the tick's context: heroes' cells, `Nearest(creature, stance, reach)` over the relations, `Claim`,
-  `Begin`, `Hurt`, `Spawn`, the grid, the Rng and the owners' ops.
+  `Begin`, `Hurt`, `Spawn`, the grid, the Rng and the owners' ops. Until the sentry needs more, the module's own internal
+  members are that context.
 - **Discovery.** The module maps each record type to its rule class by reflection over its own assembly: a lookup
   never iterated, so no registry line and no shared list two developers edit. A record with no rule, or two, fails a
   contract test.
 - **The brain.** On a creature's think tick the drives above the one in charge are asked whether they want to take
   over; the first that does, does. The drive in charge runs every tick and may yield, and then the drives are asked
-  from the top. A drive may `Claim` the creature on a hit only if it outranks the drive in charge.
+  from the top. On a hit the drives are told in brain order and the first that claims the creature wins, whatever was in
+  charge; a drive taking over counts its ticks from the next tick.
 - **Acts** record the peers they have hit: a ram still hits a hero once, and a slam can hit all four.
 - **The hit path,** one for every source: the struck body's wards and knock, then the damage (to the body sharing its
   life, for a segment), an interruptible act cut short, every drive told in brain order, the striker taken as the
   grudge (the creature's `Target`) when it has none, death at its hit points.
 - **Death marks; one sweep removes.** A creature marked dead is gone to everything from that moment: commands on it are
-  refused as gone, queries and the fuzz skip it, it counts toward no cap. Its yields roll at the mark. The sweep runs at
-  the end of the creatures' loop, before spawning; the mark is never saved. Spawns append and act from the next tick.
+  refused as gone and it counts toward no cap; the list of creatures holds it till the sweep. Its yields roll at the mark.
+  The sweep runs as the creatures' system starts; the mark is never saved. Spawns append and act from the next tick.
 - **Targets by relation:** (from, to) → ignore, fear or hunt; heroes and owned creatures are faction `crew`; a grudge
   overrides the table. Nearest by box distance, heroes before creatures at a tie, then by id.
 - **Refs** (to a hero, creature, piece or cell) are resolved where they are used; one that resolves to nothing reads as
