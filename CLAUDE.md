@@ -180,6 +180,9 @@ in the sim.
   `main` is protected: nothing lands without a PR and a green CI, no approval needed, so nobody waits
   on the other. Never push to `main`; keep branches short and merge `main` into them often. Small
   edits to the files every task touches (`game/Main.cs`, `game/dev/logic/DevModes.cs`).
+- Every task in its own worktree beside the clone (`git worktree add -b <branch> ../stillwake-<task> origin/main`),
+  never a branch switched in the main folder: several agents work at once, and a checkout there moves the others'
+  files under them. Remove the worktree (`git worktree remove`) once its PR is merged.
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
   commit: the full `dotnet test Stillwake.sln`. The pre-commit hook (`git config core.hooksPath tools/hooks`, once
   per clone) formats the staged `.cs` files; CI fails on whitespace. Budget tests are strict on a desk: a miss is real.
