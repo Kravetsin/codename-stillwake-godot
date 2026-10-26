@@ -1,8 +1,8 @@
 using System.Text.Json;
+using Stillwake.Game.Features.Creatures;
 using Stillwake.Game.Features.Crew;
-using Stillwake.Game.Features.Fauna;
 using Stillwake.Sim;
-using Stillwake.Sim.Fauna;
+using Stillwake.Sim.Creatures;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -22,13 +22,13 @@ public class RamsTests
         var w = new TestWorld(Layout.Parse([.. Enumerable.Repeat(new string('.', 24), 13), new string('#', 24)]));
         w.Edit(root =>
         {
-            var fauna = root["slices"]!["fauna"]!;
+            var creatures = root["slices"]!["creatures"]!;
             var c = JsonSerializer.SerializeToNode(new Creature(), w.World.Json)!.AsObject();
-            (c["id"], c["species"], c["x"], c["y"], c["mode"], c["modeLeft"], c["vx"]) = (1, Spec.Fauna.Tapir.Id, x, y, (int)mode, 5, vx);
-            fauna["creatures"]!.AsArray().Add(c);
-            fauna["nextId"] = 2;
+            (c["id"], c["species"], c["x"], c["y"], c["mode"], c["modeLeft"], c["vx"]) = (1, Spec.Creatures.Tapir.Id, x, y, (int)mode, 5, vx);
+            creatures["creatures"]!.AsArray().Add(c);
+            creatures["nextId"] = 2;
         });
-        return w.M.Fauna.Creatures[0];
+        return w.M.Creatures.Creatures[0];
     }
 
     private static readonly Hero Standing = new(6 * Unit, 13 * Unit, 0, 0, false, 1);
@@ -37,13 +37,13 @@ public class RamsTests
     public void OnlyACreatureTheSimSaysChargesTouchesTheHeroBodyToBody()
     {
         // Its body's edge a margin short of the hero's: touched; a little more off: not.
-        int edge = Standing.X + Spec.Hero.Width / 2 + Spec.Fauna.Tapir.Width * Unit / 2;
+        int edge = Standing.X + Spec.Hero.Width / 2 + Spec.Creatures.Tapir.Width * Unit / 2;
         Assert.Equal(1, Rams.Contact([Tapir(edge + Rams.Margin - 1, 13 * Unit, Mode.Charge, -1400)], Standing)?.Id);
         Assert.Null(Rams.Contact([Tapir(edge + Rams.Margin + 1, 13 * Unit, Mode.Charge, -1400)], Standing));
         foreach (var mode in new[] { Mode.Idle, Mode.Wander, Mode.Flee, Mode.Hurt, Mode.WindUp })
             Assert.Null(Rams.Contact([Tapir(Standing.X, 13 * Unit, mode)], Standing));
         // Jumped clear over it: the feet above its back and the margin.
-        var over = Standing with { Y = 13 * Unit - Spec.Fauna.Tapir.Height * Unit - Rams.Margin - 1 };
+        var over = Standing with { Y = 13 * Unit - Spec.Creatures.Tapir.Height * Unit - Rams.Margin - 1 };
         Assert.Null(Rams.Contact([Tapir(Standing.X, 13 * Unit, Mode.Charge, 1400)], over));
     }
 
@@ -51,11 +51,11 @@ public class RamsTests
     public void AHeroIsThrownTheWayTheCreatureChargesOffItsLadderAndHarderByABiggerRam()
     {
         var climbing = Standing with { Climbing = true, LetGo = 9 };
-        var thrown = Rams.Knocked(climbing, Rams.Away(Tapir(Standing.X + 600, 13 * Unit, Mode.Charge, -1400), climbing), Spec.Fauna.Tapir.Ram);
+        var thrown = Rams.Knocked(climbing, Rams.Away(Tapir(Standing.X + 600, 13 * Unit, Mode.Charge, -1400), climbing), Spec.Creatures.Tapir.Ram);
         Assert.False(thrown.Climbing);
         Assert.Equal(0, thrown.LetGo);
         Assert.True(thrown.Vx < 0 && thrown.Vy < 0, $"thrown at ({thrown.Vx}, {thrown.Vy})");
-        var lighter = Rams.Knocked(Standing, -1, Spec.Fauna.Loper.Ram);
+        var lighter = Rams.Knocked(Standing, -1, Spec.Creatures.Loper.Ram);
         Assert.True(Math.Abs(lighter.Vx) < Math.Abs(thrown.Vx) && lighter.Vy > thrown.Vy);
         // Still, away from its middle.
         Assert.Equal(1, Rams.Away(Tapir(Standing.X - 600, 13 * Unit, Mode.Charge), Standing));
@@ -90,7 +90,7 @@ public class RamsTests
     public void ReelingTheKnockIsKeptAloftAndNoHeldKeyWalksOrTakesALadder()
     {
         var ship = HeroTests.ShipFrom(Floor);
-        var hero = Rams.Knocked(new Hero(12 * Block + 1000, 8 * Block, 0, 0, false, 1), +1, Spec.Fauna.Tapir.Ram);
+        var hero = Rams.Knocked(new Hero(12 * Block + 1000, 8 * Block, 0, 0, false, 1), +1, Spec.Creatures.Tapir.Ram);
         var keys = new HeroInput(-1, -1, true, JumpHeld: true, Sprint: true, Reeling: true);
         int vx = hero.Vx;
         var h = hero;

@@ -60,7 +60,7 @@ public sealed record PlanetType(string Id, Ground Ground) : Surfaces.Kind(Id, []
     public required int LodeMost { get; init; }
 
     /// <summary>What lives on it (0102): each species where it spawns, drawn by weight; none for a lifeless type.</summary>
-    public IReadOnlyList<Content.Fauna.Habitat> Fauna { get; init; } = [];
+    public IReadOnlyList<Content.Creatures.Habitat> Creatures { get; init; } = [];
 }
 
 /// <summary>The planet types there are (0095): each a surface kind a world may open (<see cref="Surfaces.All"/>).</summary>
@@ -151,13 +151,13 @@ public static class PlanetTypes
         // Neutral creatures only on the first planet (the user's word), spawned by habitat (the user's rule, 2026-10-22): the
         // loper, the tapir and the sixleg on the open ground; the fluff on cave floors of the cold band and, more, the garden's.
         // Nothing yet in the amber and ember bands: their kinds come later.
-        Fauna =
+        Creatures =
         [
-            new(Content.Fauna.Loper.Id, Content.Fauna.Place.Surface, 3),
-            new(Content.Fauna.Tapir.Id, Content.Fauna.Place.Surface, 2),
-            new(Content.Fauna.Sixleg.Id, Content.Fauna.Place.Surface, 2),
-            new(Content.Fauna.Fluff.Id, Content.Fauna.Place.Band, 2, Band: 0),
-            new(Content.Fauna.Fluff.Id, Content.Fauna.Place.Band, 3, Band: 1),
+            new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 3),
+            new(Content.Creatures.Tapir.Id, Content.Creatures.Place.Surface, 2),
+            new(Content.Creatures.Sixleg.Id, Content.Creatures.Place.Surface, 2),
+            new(Content.Creatures.Fluff.Id, Content.Creatures.Place.Band, 2, Band: 0),
+            new(Content.Creatures.Fluff.Id, Content.Creatures.Place.Band, 3, Band: 1),
         ],
     };
 

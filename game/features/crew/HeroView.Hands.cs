@@ -84,7 +84,7 @@ public partial class HeroView
         {
             // The fan toward the swing's point (the fan of rays): what stands on a planet's grid, heard once; in space the wrecks.
             bool bites = Hew(client, m, Aiming.FanOf(m, _current, _swing.At, Content.Weapons.Axe.Item), _swing.At);
-            // Every creature the blade meets, wherever the hero stands (0102): its flinch is the fauna's to show.
+            // Every creature the blade meets, wherever the hero stands (0102): its flinch is the creatures' to show.
             var strikes = Aiming.StrikesOf(m, client.Id, Aiming.StruckCreatures(m, _current, _swing.At), Content.Weapons.Axe.Item);
             foreach (var strike in strikes) client.Send(strike);
             // A blade that bites is drawn stopped on contact a moment (0075).
@@ -167,7 +167,7 @@ public partial class HeroView
         var fan = Aiming.FanOf(m, _current, at, drill!);
         Hew(client, m, fan, at);
         if (fan.Pieces.Count > 0) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
-        // A creature under the bit is struck at the same pace; how it sounds and flinches is the fauna's (0102).
+        // A creature under the bit is struck at the same pace; how it sounds and flinches is the creatures' (0102).
         foreach (var strike in Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, at), drill!)) client.Send(strike);
     }
 

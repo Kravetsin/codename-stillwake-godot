@@ -113,8 +113,8 @@ public partial class Main
         var world = _scenarios.Select(s => s.Create(modules)).FirstOrDefault(w => w != null)
             ?? (Has("--gallery") ? Dev.DevWorlds.Gallery(modules) : World.Create(1, layout, modules));
         foreach (var scenario in _scenarios) world = scenario.Seed(world, new Dev.DevSeed(Modules, _m));
-        // --fauna-trace logs the creatures' strides a second, =frames every frame.
-        if (Has("--fauna-trace") || Has("--fauna-trace=frames")) (_fauna.Trace, _fauna.TraceFrames) = (Log, Has("--fauna-trace=frames"));
+        // --creatures-trace logs the creatures' strides a second, =frames every frame.
+        if (Has("--creatures-trace") || Has("--creatures-trace=frames")) (_creatures.Trace, _creatures.TraceFrames) = (Log, Has("--creatures-trace=frames"));
         PlayDev(world, Has("--gallery") ? null : layout);
     }
 

@@ -1,7 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
-using Stillwake.Game.Features.Fauna;
+using Stillwake.Game.Features.Creatures;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -13,7 +13,7 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public class CreatureVarietyTests
 {
-    public static TheoryData<string> Species() => [.. Spec.Fauna.All.Select(s => s.Id)];
+    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Select(s => s.Id)];
 
     private static Arbitrary<(uint Seed, int Id)> Creatures =>
         Gen.Choose(0, int.MaxValue).SelectMany(s => Gen.Choose(1, 1_000_000).Select(id => ((uint)s * 2654435761u, id))).ToArbitrary();
@@ -22,8 +22,8 @@ public class CreatureVarietyTests
     [MemberData(nameof(Species))]
     public void EverySpeciesVariesInRampsItsDesignIsPaintedInAndEveryPaletteHas(string species)
     {
-        Assert.True(FaunaLooks.Varieties.TryGetValue(species, out var v), $"{species} has no variety");
-        var design = FaunaArt.Designs[Spec.Fauna.Get(species).Look];
+        Assert.True(CreatureLooks.Varieties.TryGetValue(species, out var v), $"{species} has no variety");
+        var design = CreatureArt.Designs[Spec.Creatures.Get(species).Look];
         Assert.Contains(v.Coat, design.Parts["body"].Ramps);
         Assert.InRange(v.Least, 500, 1000);
         Assert.InRange(v.Most, 1000, 1500);
@@ -34,14 +34,14 @@ public class CreatureVarietyTests
         Assert.InRange(v.Drop, 0, 999);
         Assert.InRange(v.Faint, 0, 1000);
         Assert.True(v.MorphOneIn >= 0);
-        foreach (var palette in FaunaArt.Palettes.Values)
+        foreach (var palette in CreatureArt.Palettes.Values)
             Assert.All(new[] { v.Coat, v.Toward, v.Away }, r => Assert.True(palette.ContainsKey(r), $"{species}: ramp {r}"));
     }
 
     [Property(MaxTest = 300)]
     public Property AnIndividualIsItsIdsAndItsSeedsAloneWithinItsSpeciesBounds() => Prop.ForAll(Creatures, c =>
     {
-        foreach (var (species, v) in FaunaLooks.Varieties)
+        foreach (var (species, v) in CreatureLooks.Varieties)
         {
             var one = CreatureVariety.Of(v, c.Seed, c.Id);
             Assert.Equal(one, CreatureVariety.Of(v with { }, c.Seed, c.Id));
@@ -57,7 +57,7 @@ public class CreatureVarietyTests
     [Fact]
     public void TheSameCreatureIsTheSameIndividualOnEveryPeer()
     {
-        var v = FaunaLooks.Varieties["loper"];
+        var v = CreatureLooks.Varieties["loper"];
         Assert.Equal(CreatureVariety.Of(v, 12345, 7), CreatureVariety.Of(v, 12345, 7));
         Assert.Equal(new CreatureVariety.Individual(1049, 1, 1, false, 24252, 1000), CreatureVariety.Of(v, 12345, 7));
         Assert.NotEqual(CreatureVariety.Of(v, 12345, 7), CreatureVariety.Of(v, 12346, 7));
@@ -66,7 +66,7 @@ public class CreatureVarietyTests
     [Fact]
     public void AHerdOfThreeInSpawnOrderSpreadsOverMostOfItsSizesAndEachWearsItsOwnTint()
     {
-        foreach (var v in FaunaLooks.Varieties.Values)
+        foreach (var v in CreatureLooks.Varieties.Values)
             for (int id = 1; id < 500; id++)
             {
                 var three = Enumerable.Range(id, 3).Select(i => CreatureVariety.Of(v, 98765, i)).ToList();
@@ -82,7 +82,7 @@ public class CreatureVarietyTests
     [MemberData(nameof(Species))]
     public void SomeAreMorphsAboutAsOftenAsTheirSpeciesSaysAndEveryShadeAndBlendIsDrawn(string species)
     {
-        var v = FaunaLooks.Varieties[species];
+        var v = CreatureLooks.Varieties[species];
         var all = Enumerable.Range(1, 7000).Select(id => CreatureVariety.Of(v, 4242, id)).ToList();
         Assert.InRange(all.Count(o => o.Morph), 7000 / v.MorphOneIn * 8 / 10, 7000 / v.MorphOneIn * 12 / 10);
         Assert.Equal(2 * v.Shade + 1, all.Where(o => !o.Morph).Select(o => o.Shade).Distinct().Count());
@@ -95,8 +95,8 @@ public class CreatureVarietyTests
     [Fact]
     public void ACoatStaysInThePaletteBetweenItsOwnRampAndItsNeighboursATonEitherSideAndNothingElseChanges()
     {
-        foreach (var (species, v) in FaunaLooks.Varieties)
-            foreach (var (name, ramps) in FaunaArt.Palettes)
+        foreach (var (species, v) in CreatureLooks.Varieties)
+            foreach (var (name, ramps) in CreatureArt.Palettes)
                 for (int shade = -4; shade <= 4; shade++)
                     for (int hue = -CreatureVariety.HueSteps; hue <= CreatureVariety.HueSteps; hue++)
                     {
@@ -126,8 +126,8 @@ public class CreatureVarietyTests
     [Fact]
     public void APlainCreatureIsDrawnAsPainted()
     {
-        var v = FaunaLooks.Varieties["loper"];
-        var ramps = FaunaArt.Palettes["savanna"];
+        var v = CreatureLooks.Varieties["loper"];
+        var ramps = CreatureArt.Palettes["savanna"];
         for (int tone = 0; tone < 6; tone++) Assert.Equal(ramps[v.Coat][tone], CreatureVariety.Tone(ramps, v, CreatureVariety.Plain, v.Coat, tone));
         Assert.All(Enumerable.Range(0, 40), m => Assert.True(CreatureVariety.Wears(CreatureVariety.Plain, m)));
     }

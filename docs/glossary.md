@@ -80,8 +80,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - равнина, нагорье / plain, highland → `Ground.RegionWave`, `RegionLeast`, `RegionLift` → Core
 - мох / moss **≠** → `Grass` (f/grid `Grass.cs`, the living edge); `Sound.StepMoss` → Grid (client only)
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building
-- существо / creature **≠** → `Creature`, `FaunaModule` → Fauna
-- лопер / loper → `Fauna.Loper` = `"loper"` → Fauna
+- существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
+- лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
 - руины / ruins → `c/Ruins.cs`, f/ruins `HomesView` (ruin pieces as plants) → Building, Ruins
 - шпиль / spire → f/ruins `SpiresView`, its cradle a `Relic` → Ruins
 - реликвия / relic → `Relic` (sim/Building `Flora.cs`), `RelicArt`, `RelicSparks` → Ruins

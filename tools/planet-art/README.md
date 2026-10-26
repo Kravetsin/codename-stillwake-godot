@@ -15,7 +15,7 @@ Plain Node, no packages: `fs`, `path`, `zlib`. Run from anywhere; verified with 
 | `lava/lava.js` | `planet/{wall,back,top,detail}_lava` (4) | none | `node tools/planet-art/lava/lava.js [planetDir]` | **4 / 4 exact** |
 | `ruins/make.js` | placeholders of the spires (ADR 0085): `planet/{wall,back,top,detail}_alloy`, `caves/{spireCache,relicShrine,spireLamp}_0` and their `_glow`, `items/arcCoil`, `items/alloyScrap` | none | `node tools/planet-art/ruins/make.js [artDir] [previewDir]` | **11 / 12 exact**; its `alloyScrap` is the placeholder the planet icons replaced: run `icons` after it |
 | `icons/build.js` + `icons/pick.js` (with `engine2.js`, candidates in `items1-3.js`) | every candidate of the planet icons page into `icons/out/<id>/<id>_<key>.png`; `pick.js` copies the picked ones (`picks.json`) to `items/`: `copperOre`, `copper`, `ice`, `crystal`, `spore`, `magnetite`, `motor`, `alloyScrap`, `cloth`, `arcLamp`, `helmetLamp` | `game/art/items/iron.png` (one candidate recolours it), `game/art/machine_arcLamp*.png` (one composites them) | `node tools/planet-art/icons/build.js tools/planet-art/icons/out items1.js items2.js items3.js` then `node tools/planet-art/icons/pick.js` | **11 / 11 exact** (`arcLamp` B and D are the same picture) |
-| `fauna/export.js` (with `loper-parts.js`, the loper page's painter) | `fauna/{classic,tapir,sixleg,fluff}/`: every part of the four looks the user picked as an index map (R ramp, G tone) and its `_glow` map (60 files), and the generated `game/Content/logic/FaunaArt.cs` (sizes, pivots, rig, pose numbers, eye, the three palettes' ramps) the game recolours them by at load (ADR 0102) | none | `node tools/planet-art/fauna/export.js [artDir] [contentFile]` | **60 / 60 exact**, the page's own exports byte for byte. `fauna/paint.js` is the page's exporter as it was: every design, colour previews and manifests into a folder given (`node tools/planet-art/fauna/paint.js <outDir>`) |
+| `creatures/export.js` (with `loper-parts.js`, the loper page's painter) | `creatures/{classic,tapir,sixleg,fluff}/`: every part of the four looks the user picked as an index map (R ramp, G tone) and its `_glow` map (60 files), and the generated `game/Content/logic/CreatureArt.cs` (sizes, pivots, rig, pose numbers, eye, the three palettes' ramps) the game recolours them by at load (ADR 0102) | none | `node tools/planet-art/creatures/export.js [artDir] [contentFile]` | **60 / 60 exact**, the page's own exports byte for byte. `creatures/paint.js` is the page's exporter as it was: every design, colour previews and manifests into a folder given (`node tools/planet-art/creatures/paint.js <outDir>`) |
 | [`../homes-art/export.js`](../homes-art) | `homes/` (82), `planet/{wall,back,top,detail}_plaster`, `machine_arcLamp{,_glow,_lit}`, `game/Content/logic/HomesArt.cs`, `game/audio/ruins/*-1.wav` | `game/art/items/arcLamp.png` | `node tools/homes-art/export.js` | **exact**, every file unchanged |
 
 `surface/s9-stillwake.js` is the surface study the export cut its pictures from, kept as the reference for its palette
@@ -32,7 +32,7 @@ rm game/art/planet/grass_*.png
 node tools/planet-art/caves/export.js
 node tools/planet-art/ruins/make.js
 node tools/planet-art/lava/lava.js
-node tools/planet-art/fauna/export.js
+node tools/planet-art/creatures/export.js
 node tools/planet-art/icons/build.js tools/planet-art/icons/out items1.js items2.js items3.js
 node tools/planet-art/icons/pick.js
 node tools/homes-art/export.js

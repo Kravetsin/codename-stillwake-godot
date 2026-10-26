@@ -380,20 +380,20 @@ public static class Sound
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Thump, Cue Death)> Creatures = new Dictionary<string, (Cue, Cue, Cue)>
     {
-        [Stillwake.Content.Fauna.Loper.Id] = (
+        [Stillwake.Content.Creatures.Loper.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
             LandHard with { VolumeDb = -2, Tune = 1.25f, Heard = BreakReach }),
         // The sixleg the loper's; the heavier tapir lower, the small fluff higher (placeholders all).
-        [Stillwake.Content.Fauna.Sixleg.Id] = (
+        [Stillwake.Content.Creatures.Sixleg.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
             LandHard with { VolumeDb = -2, Tune = 1.25f, Heard = BreakReach }),
-        [Stillwake.Content.Fauna.Tapir.Id] = (
+        [Stillwake.Content.Creatures.Tapir.Id] = (
             Glowcap with { Tune = 0.68f, Pitch = 0.1f },
             LandSoft with { VolumeDb = -2, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
             LandHard with { VolumeDb = -1, Tune = 1.05f, Heard = BreakReach }),
-        [Stillwake.Content.Fauna.Fluff.Id] = (
+        [Stillwake.Content.Creatures.Fluff.Id] = (
             Glowcap with { Tune = 1.0f, Pitch = 0.14f },
             LandSoft with { VolumeDb = -5, Tune = 1.6f, Pitch = 0.12f, Heard = ToolReach },
             LandHard with { VolumeDb = -4, Tune = 1.5f, Heard = BreakReach }),

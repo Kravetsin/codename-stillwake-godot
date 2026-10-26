@@ -197,10 +197,10 @@ public static class HitLooks
     /// <summary>A creature struck, by its species (0102), as <see cref="Sound.Creatures"/> hears it: its tufts its coat's colour.</summary>
     public static readonly IReadOnlyDictionary<string, Impact> Creatures = new Dictionary<string, Impact>
     {
-        [Stillwake.Content.Fauna.Loper.Id] = Impact.Flesh,
-        [Stillwake.Content.Fauna.Tapir.Id] = Impact.CoolFlesh,
-        [Stillwake.Content.Fauna.Sixleg.Id] = Impact.CoolFlesh,
-        [Stillwake.Content.Fauna.Fluff.Id] = Impact.CoolFlesh,
+        [Stillwake.Content.Creatures.Loper.Id] = Impact.Flesh,
+        [Stillwake.Content.Creatures.Tapir.Id] = Impact.CoolFlesh,
+        [Stillwake.Content.Creatures.Sixleg.Id] = Impact.CoolFlesh,
+        [Stillwake.Content.Creatures.Fluff.Id] = Impact.CoolFlesh,
     };
 
     /// <summary>The tuft a creature struck with <paramref name="impact"/> throws dying, every way.</summary>

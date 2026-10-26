@@ -17,7 +17,8 @@ namespace Stillwake.Sim;
 /// wrench out of the game (plan modes): no save before it migrates, every hero having been given both and nothing released.
 /// Format 31 grew planets anew (stairs for cliffs, veins of ore, crystals by the lodes): no save before it migrates, a
 /// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel. Format 32 added
-/// the landing module (the launch platform), its slice empty.
+/// the landing module (the launch platform), its slice empty. Format 33 renamed the fauna module creatures
+/// (2026-10-26-creatures-are-composed).
 /// </summary>
 public static class Migrations
 {
@@ -25,7 +26,7 @@ public static class Migrations
     public const int Oldest = 31;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed];
 
     /// <summary>31 to 32: the landing module (the launch platform) joins every surface, holding nothing yet.</summary>
     private static JsonObject LandingJoins(JsonObject save)
@@ -34,6 +35,30 @@ public static class Migrations
         if (save["surfaces"] is JsonArray surfaces)
             foreach (var surface in surfaces) surface!["slices"]!.AsObject()["landing"] = new JsonObject();
         return save;
+    }
+
+    /// <summary>
+    /// 32 to 33: the fauna slice is the creatures slice, on the ship and every surface. Renamed in place, key by key, since
+    /// <c>World.Restore</c> reads the slices in the modules' order and a key removed and added again would come last.
+    /// </summary>
+    private static JsonObject CreaturesRenamed(JsonObject save)
+    {
+        save["slices"] = Renamed(save["slices"]!.AsObject(), "fauna", "creatures");
+        if (save["surfaces"] is JsonArray surfaces)
+            foreach (var surface in surfaces) surface!["slices"] = Renamed(surface["slices"]!.AsObject(), "fauna", "creatures");
+        return save;
+    }
+
+    /// <summary>A copy of <paramref name="slices"/> in the same order, the slice <paramref name="from"/> named <paramref name="to"/>.</summary>
+    private static JsonObject Renamed(JsonObject slices, string from, string to)
+    {
+        var renamed = new JsonObject();
+        foreach (var (key, value) in slices.ToList())
+        {
+            slices.Remove(key);
+            renamed[key == from ? to : key] = value;
+        }
+        return renamed;
     }
 
     /// <summary>The format a save says it has.</summary>
