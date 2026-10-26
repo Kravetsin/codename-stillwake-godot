@@ -119,28 +119,17 @@ public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
         }
     }
 
-    // What the other end batched into a frame, in order.
     private static void Deliver(Channel channel, string text)
     {
-        if (RelayFrames.Unbatch(text) is not { } batch)
-        {
-            Links.Read<TIn>(null);
-            return;
-        }
-        foreach (var bytes in batch)
-            if (Links.Read<TIn>(bytes) is { } message) channel.Inbox.Deliver(message);
+        foreach (var message in Received.Batch<TIn>(text, GD.PushWarning)) channel.Inbox.Deliver(message);
     }
 
     // Each channel's messages since the last poll, in one frame: sent a frame late, to cost one frame's text, not one a message.
     private void Flush()
     {
         foreach (var (peer, channel) in _channels)
-        {
-            if (channel.Outbox.Count == 0) continue;
-            string batch = RelayFrames.Batch(channel.Outbox);
-            _socket.SendText(_hosting ? RelayFrames.ToPeerFrame((int)peer, batch) : RelayFrames.ToHostFrame(batch));
-            channel.Outbox.Clear();
-        }
+            if (channel.Outbox.Take() is { } batch)
+                _socket.SendText(_hosting ? RelayFrames.ToPeerFrame((int)peer, batch) : RelayFrames.ToHostFrame(batch));
     }
 
     private void Add(long id)
@@ -153,7 +142,7 @@ public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
     private sealed class Channel : IChannel<TIn, TOut>
     {
         public Inbox<TIn> Inbox { get; } = new();
-        public List<byte[]> Outbox { get; } = [];
+        public RelayOutbox Outbox { get; } = new();
 
         public void Send(TOut message) => Outbox.Add(Protocol.Write(message));
 

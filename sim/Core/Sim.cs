@@ -61,11 +61,15 @@ public sealed class World
         _own.Add(typeof(OpenSurface), (_ => null, c => Open((OpenSurface)c)));
         _own.Add(typeof(Transfer), (c => TransferProblem((Transfer)c), c => Move(c.From, ((Transfer)c).To, ((Transfer)c).Cell)));
         // Every surface runs the ship's modules, so the ship's commands are every module command there is.
-        CommandTypes = modules.SelectMany(m => m.Commands).Select(c => (c.Type, c.Name))
-            .Append((typeof(OpenSurface), "world.open")).Append((typeof(Transfer), "world.transfer"))
-            .OrderBy(c => c.Item2, StringComparer.Ordinal).Select(c => c.Item1).ToList();
+        CommandTypes = CommandTypesOf(modules);
         Json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, IncludeFields = false };
     }
+
+    /// <summary>The command types of a world made with <paramref name="modules"/>, its own included, in order of their names.</summary>
+    public static IReadOnlyList<Type> CommandTypesOf(IEnumerable<Module> modules) =>
+        modules.SelectMany(m => m.Commands).Select(c => (c.Type, c.Name))
+            .Append((typeof(OpenSurface), "world.open")).Append((typeof(Transfer), "world.transfer"))
+            .OrderBy(c => c.Item2, StringComparer.Ordinal).Select(c => c.Item1).ToList();
 
     /// <summary>The world's surfaces, in id order: the ship first.</summary>
     public IReadOnlyList<Surface> Surfaces => _surfaces.ConvertAll(s => s.Surface);

@@ -87,5 +87,11 @@ public static class Wire
     /// <summary>The command <see cref="Encode"/> wrote; garbled bytes throw <see cref="InvalidDataException"/>.</summary>
     public static Command Decode(this World world, ReadOnlySpan<byte> bytes) => (Command)Packing.Unpack(bytes, UnionOf(world));
 
+    /// <summary>
+    /// How these command types are laid out on the wire, as a short hash: a build's version names its commit, and two
+    /// builds of one commit may still pack commands differently, so a joiner checks this too.
+    /// </summary>
+    public static string Fingerprint(IReadOnlyList<Type> commandTypes) => new Packing.Union(commandTypes).Fingerprint();
+
     private static Packing.Union UnionOf(World world) => Unions.GetValue(world, w => new Packing.Union(w.CommandTypes));
 }

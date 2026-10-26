@@ -36,7 +36,8 @@ simulation on them, and what lives outside the simulation (heroes) is passed alo
 ## The protocol
 
 Messages are records packed (`Packing`, 2026-10-26-compact-wire): each value by its declared type with no names,
-a message tagged by its place in `Protocol`'s list. Both ends run one build, which the welcome checks. The loopback
+a message tagged by its place in `Protocol`'s list. Both ends run one build: the welcome checks it, with a fingerprint of
+how commands pack (`Wire.Fingerprint`) in the game's build string. The loopback
 copies through the same bytes, so in-process tests carry what the wire carries.
 
 | To the host | To a peer |

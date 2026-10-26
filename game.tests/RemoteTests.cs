@@ -304,6 +304,9 @@ public class RemoteTests
         var whole = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck)), 50).Encode();
         for (int cut = 0; cut < whole.Length; cut++) Assert.Null(SentHero.Decode(whole[..cut]));
         Assert.Null(SentHero.Decode([.. whole, 0]));
+        // A hero facing neither way.
+        Assert.Null(SentHero.Decode(Sent(HeroAt(1, facing: 0), at: 50).Encode()));
+        Assert.Null(SentHero.Decode(Sent(HeroAt(1, facing: 2), at: 50).Encode()));
     }
 
     [Fact]

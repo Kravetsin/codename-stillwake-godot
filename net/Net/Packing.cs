@@ -33,6 +33,18 @@ public static class Packing
 
         internal Type CaseOf(uint tag) =>
             tag < _cases.Length ? _cases[tag] : throw new InvalidDataException($"No type has tag {tag}.");
+
+        /// <summary>
+        /// A short hash of how every case is laid out: its name, then each field's name and kind, in order. Two peers whose
+        /// fingerprints agree read each other's bytes alike.
+        /// </summary>
+        public string Fingerprint()
+        {
+            ulong hash = 14695981039346656037;
+            foreach (byte b in Encoding.UTF8.GetBytes(string.Join(";", _cases.Select(c => c.FullName + For(c).Shape))))
+                hash = unchecked((hash ^ b) * 1099511628211);
+            return hash.ToString("x16");
+        }
     }
 
     public static byte[] Pack<T>(T value)
@@ -73,8 +85,11 @@ public static class Packing
         }
     }
 
-    /// <summary>How a type is written and read; <c>Whole</c>, for a record class, without whether it is there, as one sent on its own always is.</summary>
-    private sealed record Codec(Action<Writer, object?> Write, Func<Reader, object?> Read, Codec? Whole = null)
+    /// <summary>
+    /// How a type is written and read, its <c>Shape</c> told in a few letters; <c>Whole</c>, for a record class, without
+    /// whether it is there, as one sent on its own always is.
+    /// </summary>
+    private sealed record Codec(string Shape, Action<Writer, object?> Write, Func<Reader, object?> Read, Codec? Whole = null)
     {
         public Codec Alone => Whole ?? this;
     }
@@ -85,22 +100,22 @@ public static class Packing
 
     private static Codec Build(Type type)
     {
-        if (type == typeof(int)) return new((w, v) => w.Varint(Zig((int)v!)), r => Zag(r.Varint()));
-        if (type == typeof(bool)) return new((w, v) => w.Byte((bool)v! ? (byte)1 : (byte)0), r => r.Byte() switch
+        if (type == typeof(int)) return new("i", (w, v) => w.Varint(Zig((int)v!)), r => Zag(r.Varint()));
+        if (type == typeof(bool)) return new("b", (w, v) => w.Byte((bool)v! ? (byte)1 : (byte)0), r => r.Byte() switch
         {
             0 => false,
             1 => true,
             _ => throw new InvalidDataException("Not a bool."),
         });
-        if (type == typeof(double)) return new((w, v) => w.Fixed(BitConverter.DoubleToUInt64Bits((double)v!)), r => BitConverter.UInt64BitsToDouble(r.Fixed()));
-        if (type == typeof(ulong)) return new((w, v) => w.Fixed((ulong)v!), r => r.Fixed());
+        if (type == typeof(double)) return new("d", (w, v) => w.Fixed(BitConverter.DoubleToUInt64Bits((double)v!)), r => BitConverter.UInt64BitsToDouble(r.Fixed()));
+        if (type == typeof(ulong)) return new("u", (w, v) => w.Fixed((ulong)v!), r => r.Fixed());
         if (type == typeof(string))
-            return new((w, v) => w.Bytes(v is string s ? Encoding.UTF8.GetBytes(s) : null), r => r.Bytes() is { } b ? Encoding.UTF8.GetString(b) : null);
-        if (type == typeof(byte[])) return new((w, v) => w.Bytes((byte[]?)v), r => r.Bytes());
+            return new("s", (w, v) => w.Bytes(v is string s ? Encoding.UTF8.GetBytes(s) : null), r => r.Bytes() is { } b ? Encoding.UTF8.GetString(b) : null);
+        if (type == typeof(byte[])) return new("y", (w, v) => w.Bytes((byte[]?)v), r => r.Bytes());
         if (type.IsEnum)
         {
             if (Enum.GetUnderlyingType(type) != typeof(int)) throw new NotSupportedException($"{type.Name} is not an int enum.");
-            return new((w, v) => w.Varint(Zig((int)v!)), r =>
+            return new($"e:{type.Name}", (w, v) => w.Varint(Zig((int)v!)), r =>
             {
                 var value = Enum.ToObject(type, Zag(r.Varint()));
                 return Enum.IsDefined(type, value) ? value : throw new InvalidDataException($"No {type.Name} {value}.");
@@ -109,31 +124,30 @@ public static class Packing
         if (Nullable.GetUnderlyingType(type) is { } inner)
         {
             var codec = For(inner);
-            return new((w, v) =>
+            return new("?" + codec.Shape, (w, v) =>
             {
                 w.Byte(v == null ? (byte)0 : (byte)1);
                 if (v != null) codec.Write(w, v);
             }, r => r.Present() ? codec.Read(r) : null);
         }
-        if (ItemOf(type) is { } item) return List(type, item);
-        if (type.IsAbstract || type.IsInterface || type.IsPrimitive)
+        if (ItemOf(type) is { } item) return List(item);
+        if (type.IsAbstract || type.IsInterface || type.IsPrimitive || type.IsArray)
             throw new NotSupportedException($"{type.Name} has no packing: only plain records, ints, bools, doubles, strings and lists of them.");
         return Record(type);
     }
 
     private static Type? ItemOf(Type type)
     {
-        if (type.IsArray) return type.GetElementType();
         if (!type.IsGenericType) return null;
         var open = type.GetGenericTypeDefinition();
         return open == typeof(List<>) || open == typeof(IReadOnlyList<>) ? type.GetGenericArguments()[0] : null;
     }
 
-    private static Codec List(Type type, Type item)
+    private static Codec List(Type item)
     {
         var codec = For(item);
         var list = typeof(List<>).MakeGenericType(item);
-        return new((w, v) =>
+        return new($"[{codec.Shape}]", (w, v) =>
         {
             if (v is not System.Collections.IList items)
             {
@@ -148,17 +162,18 @@ public static class Packing
             if (count < 0) return null;
             var items = (System.Collections.IList)Activator.CreateInstance(list, count)!;
             for (int i = 0; i < count; i++) items.Add(codec.Read(r));
-            if (!type.IsArray) return items;
-            var array = Array.CreateInstance(item, count);
-            items.CopyTo(array, 0);
-            return array;
+            return items;
         });
     }
 
     private static Codec Record(Type type)
     {
-        var ctor = type.GetConstructors().OrderByDescending(c => c.GetParameters().Length).FirstOrDefault()
-            ?? throw new NotSupportedException($"{type.Name} has no public constructor.");
+        var ctors = type.GetConstructors().OrderByDescending(c => c.GetParameters().Length).ToArray();
+        if (ctors.Length == 0) throw new NotSupportedException($"{type.Name} has no public constructor.");
+        // Which of two alike would be read through would hang on reflection's order.
+        if (ctors.Length > 1 && ctors[1].GetParameters().Length == ctors[0].GetParameters().Length)
+            throw new NotSupportedException($"{type.Name} has two public constructors of {ctors[0].GetParameters().Length} parameters.");
+        var ctor = ctors[0];
         var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance).Where(p => p.CanRead && p.GetIndexParameters().Length == 0).ToList();
         var given = ctor.GetParameters().Select(a =>
             properties.FirstOrDefault(p => string.Equals(p.Name, a.Name, StringComparison.OrdinalIgnoreCase) && p.PropertyType == a.ParameterType)
@@ -166,8 +181,12 @@ public static class Packing
         // Properties set after the constructor, such as a command's From and Surface; by name, a total order.
         var set = properties.Where(p => !given.Contains(p) && p.SetMethod is { IsPublic: true })
             .OrderBy(p => p.Name, StringComparer.Ordinal).ToArray();
+        // State the wire cannot carry: an auto-property neither given nor publicly set would arrive at its default.
+        if (properties.FirstOrDefault(p => !given.Contains(p) && !set.Contains(p) && IsAuto(p)) is { } hidden)
+            throw new NotSupportedException($"{type.Name}.{hidden.Name} is neither a constructor parameter nor publicly settable.");
         var fields = given.Concat(set).Select(p => (Property: p, Codec: For(p.PropertyType))).ToArray();
-        var whole = new Codec((w, v) =>
+        string shape = "{" + string.Join(",", fields.Select(f => f.Property.Name + ":" + f.Codec.Shape)) + "}";
+        var whole = new Codec(shape, (w, v) =>
         {
             foreach (var (p, codec) in fields) codec.Write(w, p.GetValue(v));
         }, r =>
@@ -179,12 +198,15 @@ public static class Packing
             return value;
         });
         if (type.IsValueType) return whole;
-        return new((w, v) =>
+        return new("?" + shape, (w, v) =>
         {
             w.Byte(v == null ? (byte)0 : (byte)1);
             if (v != null) whole.Write(w, v);
         }, r => r.Present() ? whole.Read(r) : null, whole);
     }
+
+    private static bool IsAuto(PropertyInfo p) =>
+        p.DeclaringType!.GetField($"<{p.Name}>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance) != null;
 
     private static uint Zig(int n) => (uint)((n << 1) ^ (n >> 31));
     private static int Zag(uint n) => (int)(n >> 1) ^ -(int)(n & 1);
@@ -247,6 +269,8 @@ public static class Packing
             for (int shift = 0; shift < 35; shift += 7)
             {
                 byte b = Byte();
+                // A fifth byte holds only the top four bits.
+                if (shift == 28 && b > 0x0F) throw new InvalidDataException("A number too big.");
                 n |= (uint)(b & 0x7F) << shift;
                 if (b < 0x80) return n;
             }

@@ -62,20 +62,23 @@ public class NetTrafficTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The most the host may send a second, in KB, direct and on the relay, by players: about a fifth over what it sends now, so
-    /// a regression shows. Before the wire was packed (2026-10-26-compact-wire), four players cost 81 KB/s direct, 121 relayed.
+    /// The most the host may send and take a second, in KB, direct and on the relay, by players: a fifth over what it does now,
+    /// so a regression shows. Before the wire was packed (2026-10-26-compact-wire), four players cost the host 81 KB/s out
+    /// direct, 121 relayed.
     /// </summary>
     [Theory]
-    [InlineData(2, 2, 4)]
-    [InlineData(4, 13, 20)]
-    [InlineData(6, 35, 52)]
-    [InlineData(8, 68, 100)]
-    public void AFightCostsTheHostNoMoreThan(int players, int directKb, int relayKb)
+    [InlineData(2, 1.8, 1.3, 4.0, 3.1)]
+    [InlineData(4, 13.3, 4.0, 22.9, 9.5)]
+    [InlineData(6, 35.8, 6.6, 57.2, 15.8)]
+    [InlineData(8, 68.8, 9.1, 107.0, 22.2)]
+    public void AFightCostsTheHostNoMoreThan(int players, double outKb, double inKb, double relayOutKb, double relayInKb)
     {
         var (o, i, ro, ri) = Fight(players);
         output.WriteLine($"{players} players: direct out {o / 1024.0:F1} KB/s, in {i / 1024.0:F1} KB/s; relay out {ro / 1024.0:F1} KB/s, in {ri / 1024.0:F1} KB/s");
-        Assert.True(o <= directKb * 1024, $"direct {o / 1024.0:F1} KB/s");
-        Assert.True(ro <= relayKb * 1024, $"relay {ro / 1024.0:F1} KB/s");
+        Assert.True(o <= outKb * 1024, $"direct out {o / 1024.0:F1} KB/s");
+        Assert.True(i <= inKb * 1024, $"direct in {i / 1024.0:F1} KB/s");
+        Assert.True(ro <= relayOutKb * 1024, $"relay out {ro / 1024.0:F1} KB/s");
+        Assert.True(ri <= relayInKb * 1024, $"relay in {ri / 1024.0:F1} KB/s");
     }
 
     /// <summary>

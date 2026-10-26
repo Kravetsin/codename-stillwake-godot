@@ -26,28 +26,66 @@ public class WireTests
     [Fact]
     public void ACommandIsAFewBytes() => Assert.Equal(8, Game.Encode(new SetDoor(1_048_575, true) { From = 7, Surface = 0 }).Length);
 
-    [Theory]
-    [InlineData(1u)]
-    [InlineData(2u)]
-    [InlineData(3u)]
-    public void EveryCommandTheModulesDrawComesBackAsItWent(uint seed)
+    [Fact]
+    public void EveryCommandTypeTheModulesDrawComesBackAsItWent()
     {
-        var rng = new Rng(new RngState { S = seed });
         var drawn = new HashSet<Type>();
-        for (int i = 0; i < 400; i++)
-            foreach (var module in Game.ModulesOn(0).Where(m => m.Fuzzes))
-            {
-                var command = (i % 5 == 0 ? Game.Fuzz(rng, i % 4) : module.Fuzz(rng, i % 4)) is { } c ? c with { From = i % 4, Surface = i % 3 == 0 ? null : i % 2 } : null;
-                if (command == null) continue;
-                drawn.Add(command.GetType());
-                Assert.Equal(Json(command), Json(Game.Decode(Game.Encode(command))));
-            }
-        Assert.True(drawn.Count > Game.CommandTypes.Count / 2, $"drew {drawn.Count} of {Game.CommandTypes.Count} command types");
+        foreach (uint seed in new[] { 1u, 2u, 3u })
+        {
+            var rng = new Rng(new RngState { S = seed });
+            for (int i = 0; i < 400; i++)
+                foreach (var module in Game.ModulesOn(0).Where(m => m.Fuzzes))
+                {
+                    var command = (i % 5 == 0 ? Game.Fuzz(rng, i % 4) : module.Fuzz(rng, i % 4)) is { } c ? c with { From = i % 4, Surface = i % 3 == 0 ? null : i % 2 } : null;
+                    if (command == null) continue;
+                    drawn.Add(command.GetType());
+                    Assert.Equal(Json(command), Json(Game.Decode(Game.Encode(command))));
+                }
+        }
+        Assert.Equal(Game.CommandTypes.Select(t => t.Name).Order(), drawn.Select(t => t.Name).Order());
+    }
+
+    public sealed record Hidden(int A)
+    {
+        public int B { get; private set; }
+    }
+
+    public sealed record TwoWays
+    {
+        public TwoWays(int a) => A = a;
+        public TwoWays(string b) => A = b.Length;
+        public int A { get; init; }
+    }
+
+    [Fact]
+    public void ARecordTheWireCouldNotCarryWholeOrReadBackOneWayIsRefusedAtOnce()
+    {
+        Assert.Throws<NotSupportedException>(() => Packing.Pack(new Hidden(1)));
+        Assert.Throws<NotSupportedException>(() => Packing.Pack(new TwoWays(1)));
+        Assert.Throws<NotSupportedException>(() => Packing.Pack(new[] { 1, 2 }));
+    }
+
+    [Fact]
+    public void PeersPackingCommandsAlikeShareAFingerprintAndOthersDoNot()
+    {
+        Assert.Equal(Wire.Fingerprint(Game.CommandTypes), Wire.Fingerprint(World.CommandTypesOf(new Registry().All)));
+        Assert.NotEqual(Wire.Fingerprint([typeof(SetDoor), typeof(Transfer)]), Wire.Fingerprint([typeof(Transfer), typeof(SetDoor)]));
+        Assert.NotEqual(Wire.Fingerprint(Game.CommandTypes), Wire.Fingerprint(Game.CommandTypes.Skip(1).ToList()));
     }
 
     [Fact]
     public void CutOrGarbledBytesAreRefused()
     {
+        var tick = Protocol.Write<ToClient>(new TickMessage(5, [new Stamped(1, [1, 2]), new Stamped(2, [3])]));
+        for (int cut = 0; cut < tick.Length; cut++) Assert.Throws<InvalidDataException>(() => Protocol.Read<ToClient>(tick[..cut]));
+        // Whether the first stamped command is there: neither.
+        Assert.Equal([0, 10, 3, 1], tick[..4]);
+        tick[3] = 2;
+        Assert.Throws<InvalidDataException>(() => Protocol.Read<ToClient>(tick));
+        // Counts beyond the bytes left, the first wrapping round to "none" if let through; a number past 32 bits.
+        Assert.Throws<InvalidDataException>(() => Protocol.Read<ToClient>([0, 0, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F]));
+        Assert.Throws<InvalidDataException>(() => Protocol.Read<ToClient>([0, 0, 0xFF, 0xFF, 0xFF, 0x7F]));
+        Assert.Throws<InvalidDataException>(() => Protocol.Read<ToClient>([0, 0x80, 0x80, 0x80, 0x80, 0x7F, 1]));
         var whole = Game.Encode(new Transfer(1, 5) { From = 1, Surface = 0 });
         for (int cut = 0; cut < whole.Length; cut++) Assert.Throws<InvalidDataException>(() => Game.Decode(whole[..cut]));
         Assert.Throws<InvalidDataException>(() => Game.Decode([.. whole, 0]));

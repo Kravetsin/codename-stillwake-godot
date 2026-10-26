@@ -25,8 +25,12 @@ is the core of co-op, cheapest to change while the game is small.
 - **The relay batches:** the relay server carries text frames and is redeployed only when asked, so the game's
   messages to one end ride in one frame a game frame, packed together as base64 (`RelayFrames.Batch`). They leave on
   the next poll: one frame, about 17 ms, later than before.
-- **Bytes no peer of this build writes** are dropped with a warning (`Links.Read`): an older build's JSON cannot be
+- **Bytes no peer of this build writes** are dropped with a warning (`Received`): an older build's JSON cannot be
   read far enough for the welcome to say "another build".
+- **The build a joiner must match** carries a fingerprint of how commands pack (`Wire.Fingerprint`): two builds of one
+  commit with different commands would otherwise read each other's tags as other commands. A record the wire could not
+  carry whole (an auto-property neither given nor publicly set), or read back one way (two constructors alike), is refused
+  when its packing is built.
 
 The same fight now costs the host 11 KB/s with four players and 57 with eight, 19 and 89 through the relay
 (`NetTrafficTests`, which holds those as budgets); an `Enter` stamped is 10 bytes, a hero relayed about 45.
