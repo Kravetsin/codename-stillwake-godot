@@ -106,6 +106,20 @@ public static class CreatureLooks
     /// <summary>A glow map's pixels gathered into spots this many pixels square, each a light.</summary>
     public const int SpotPixels = 7;
 
+    /// <summary>
+    /// The looks drawn as the tick, the sentry page's candidate 3 «Клещ» (<c>TickArt</c>, <c>TickMotion</c>): a sprite posed and
+    /// drawn anew each frame, not a rig of painted parts.
+    /// </summary>
+    public static readonly IReadOnlySet<string> Ticks = new HashSet<string> { Stillwake.Content.Creatures.Sentry.Look };
+
+    /// <summary>
+    /// A tick's eye lamp's light: its colour at this strength times its brightness (half the page's 0.85, a third more acting), out
+    /// to <see cref="LightReach"/> cells; its burner's, orange, at <see cref="TickBurnerLight"/> times its thrust, out to
+    /// <see cref="TickBurnerReach"/>.
+    /// </summary>
+    public const float TickEyeLight = 0.45f, TickActingLight = 1.35f, TickBurnerLight = 0.9f;
+    public const int TickBurnerReach = 8;
+
     /// <summary>The ramps the parts are painted in (the index maps' R, the page's): its fur's two, belly, markings and skin.</summary>
     public const int FurA = 24, FurB = 25, Belly = 26, Mark = 27, Skin = 28;
 

@@ -67,11 +67,16 @@ public sealed class SortieScenario : DevScenario
     }
 }
 
-[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102)")]
+[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102); =fight: its line reeled and cut, struck once, then killed",
+    Shape = DevShape.Either)]
 public sealed class SentryScenario : DevScenario
 {
     private bool _let;
     private string _was = "";
+    private int? _sentry;
+
+    /// <summary>The fight's ticks: the hero reels the sentry's wreck, strikes it once, then strikes it to death, five blows a tick.</summary>
+    private const int ReelAt = 60, StrikeAt = 66, KillFrom = 78;
 
     public override Layout? Map => Registry.Wreck;
 
@@ -85,6 +90,16 @@ public sealed class SentryScenario : DevScenario
         {
             _let = true;
             client.Send(new Sim.Creatures.Release(Content.Creatures.Sentry.Id, Sim.Debris.DebrisModule.CellOf(block.X, block.Y, m.Grid.Width)));
+        }
+        if (client.World.Tick >= 8 && m.Creatures.Creatures.Count > 0) _sentry ??= m.Creatures.Creatures.Max(c => c.Id);
+        if (Args.Given("--sentry") == "fight" && m.Creatures.Creatures.FirstOrDefault(c => c.Id == _sentry) is { } sentry)
+        {
+            int tick = client.World.Tick;
+            if (tick == ReelAt && m.Creatures.ClingsTo(sentry) is int piece && m.Debris.PieceById(piece) is { } wreck)
+                client.Send(new Sim.Debris.Reel(piece, wreck.X - 4000, wreck.Y));
+            if (tick == StrikeAt) client.Send(new Sim.Creatures.Strike(sentry.Id, Content.Weapons.Axe.Item));
+            if (tick >= KillFrom)
+                for (int i = 0; i < 5; i++) client.Send(new Sim.Creatures.Strike(sentry.Id, Content.Weapons.Axe.Item));
         }
         foreach (var c in m.Creatures.Creatures)
         {
