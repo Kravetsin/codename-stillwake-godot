@@ -8,6 +8,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
+using Stillwake.Sim.Debris;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content;
 
@@ -95,14 +96,20 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         ZIndex = Layers.Creatures;
         AddChild(_ownHits);
         AddChild(_worldHits);
+        AddChild(_boxes);
     }
+
+    /// <summary>The creatures with no rig yet, drawn as their placeholder boxes (the sentry).</summary>
+    private readonly BoxBodies _boxes = new();
+
+    private readonly List<Creature> _boxed = [];
 
     /// <summary>
     /// Shows <paramref name="creatures"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
     /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
     /// <see cref="CreatureLooks.PaletteOf"/>), each creature its own individual by its id and the surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
     /// </summary>
-    public void Frame(Client client, CreaturesModule creatures, Rect2 view, double progress, double elapsedMs, string palette, uint seed)
+    public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, Rect2 view, double progress, double elapsedMs, string palette, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
@@ -110,6 +117,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         {
             foreach (var one in _shown.Values) Put(one.Body);
             _shown.Clear();
+            _boxes.Reset();
             _of = creatures;
         }
         (_palette, _seed) = (palette, seed);
@@ -118,11 +126,14 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;
         _out.Clear();
         _drawn.Clear();
+        _boxed.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
             _out.Add(c.Id);
-            if (c.X >= left && c.X <= right && c.Y >= top && c.Y <= bottom) _drawn.Add(c.Id);
+            if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
+            if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
+            else _boxed.Add(c);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -169,6 +180,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
+        _boxes.Frame(creatures, debris, _boxed, client.World.Tick, progress, elapsedMs, _sources);
         if (Trace != null) Traced(all);
     }
 

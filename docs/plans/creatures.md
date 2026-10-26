@@ -171,7 +171,17 @@ what the host sends, against 65 KB it already relays of the heroes themselves, s
   - the bytes a second the host sends with four heroes in a fight are measured and written in the PR; above 4 KB a
     second the threatened rule drops to every second tick.
 
-### C-3 — The sentry, playable with a placeholder
+### C-3 — The sentry, playable with a placeholder ✅
+
+**Built, but:** the pounce is its own move (`Pounce`, straight, never cut short) rather than flags on the lunge; `CutTether`
+is a reflex every drive may have (run every tick, whatever is in charge); `Return` sits above `Guard` and wants the sentry
+while it is unclamped; there is no `Bound` lifetime (the keep box already lets the sentry go after its wreck) nor a
+narrower `Mind`; the alert is 20 ticks (1 s); the clinger sits on its wreck's box top and does not crawl. A drive gained
+`Run`, `Reflex` and `ClaimsHits`; a move `Interruptible`; a body `ReleaseProblem` and `Place`. Hits that knock nothing (no
+`Knock`, no `Hop`) leave a creature's speed. Fifth species: fuzz draws shifted, so one desync test now lets a dismantled
+machine be. Frames (`--sentry`) show the eye teal, yellow, red crouched and red in flight, the pounce hitting the hero.
+Reviewed (correctness, determinism, tests): blows are answered by the debris clock, a pounce aims only at awake heroes and
+hangs after its `Ticks`, the body stays on the grid, the fuzz lets sentries out on wrecks and a desync test plays one.
 
 **Its numbers** (content, `Creatures.Sentry`; a play pass may change them):
 

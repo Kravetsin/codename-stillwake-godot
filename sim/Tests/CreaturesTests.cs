@@ -733,7 +733,13 @@ public class CreaturesTests
             w.Run();
         }
         Assert.Equal(before, CreaturesSlice(w));
-        Assert.All(w.Refusals.Where(r => r.Command is Release), r => Assert.Equal("creatures.notHere", r.Reason));
+        // This map holds no wrecks: off the grid nothing fits; on it a walker finds no gravity aboard, a clinger no piece.
+        int cells = w.M.Grid.Width * w.M.Grid.Height;
+        Assert.All(w.Refusals.Where(r => r.Command is Release), r =>
+        {
+            var release = (Release)r.Command;
+            Assert.Equal(release.Cell < 0 || release.Cell >= cells ? "creatures.blocked" : Tune.Get(release.Species).Body is Tune.Walker ? "creatures.notHere" : "creatures.noPiece", r.Reason);
+        });
     }
 
     private static string CreaturesSlice(Scenario w) => System.Text.Json.JsonSerializer.Serialize(w.M.Creatures.Slice, w.World.Json);
@@ -745,7 +751,7 @@ public class CreaturesTests
         Assert.All(Tune.All, s =>
         {
             // Faster than a cell a tick is moved in parts (0104): FasterThanACellATickACreatureNeverPassesAWallOrAFloorOneCellThick.
-            Assert.True(s.Body.Width > 0 && s.Body.Height > 0 && s.Life.Hp > 0 && s.FleeTicks() > 0);
+            Assert.True(s.Body.Width > 0 && s.Body.Height > 0 && s.Life.Hp > 0 && s.Brain.OfType<Tune.Flee>().All(f => f.Ticks > 0));
             Assert.All(s.Yields, y => Assert.NotNull(Spec.Items.Get(y.Item)));
         });
         foreach (var type in Spec.PlanetTypes.All)

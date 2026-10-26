@@ -1,6 +1,6 @@
 # Creatures are composed
 
-- Status: accepted; C-0 (the rename), C-1 (the composed core, today's four species unchanged) and C-2 (reports near hostiles) built; `Mem`, `Target`, `HitPeers` and `Ref` come with the sentry; `Threatens` is the relations' first reader, and a drive keeps its own `Step`
+- Status: accepted; C-0 (the rename), C-1 (the composed core, today's four species unchanged), C-2 (reports near hostiles) and C-3 (the sentry, a placeholder look) built; `Ref`, `Target` and `Mem` came with the sentry, `HitPeers` waits for a move hitting many; `Threatens` reads the relations; the module itself is the rules' context; a drive keeps its own `Step`
 - Date: 2026-10-26
 
 ## Context

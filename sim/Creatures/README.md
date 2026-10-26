@@ -4,97 +4,91 @@
 
 | File | Purpose |
 | --- | --- |
+| `Clinger.cs` | The clinger's rule (the sentry): clamped to a wreck's top, riding it, flying straight off it. |
 | `Creatures.cs` | The commands (`Strike`, `HitBy`, `Release`), the queries, and the hit path every hit takes. |
-| `Drives.cs` | The drives' rules: `Graze`, `Flee`, `Retaliate`, `Escape`. |
+| `Drives.cs` | The grazers' drives' rules: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Guard.cs` | The sentry's drives' rules: `Guard`, `Return`, and the `CutTether` reflex. |
 | `Live.cs` | The system: the killed swept out; each creature kept or gone, then its tick; the brain's shared steps. |
 | `Lunge.cs` | The lunge's rule: a ram along the ground in phases (0103). |
+| `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short. |
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
 | `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of every hero's view, where a habitat of the surface's type is. |
-| `State.cs` | The saved slice and its records: `Creature`, `Act`, `CreaturesState`; the derived `Posture`. |
+| `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `CreaturesState`; the derived `Posture`. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling and leaping (0102, 0104, 0106); `Leaps`. |
 
 Every creature, composed ([2026-10-26-creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
-species (`Content.Creatures`) names a body, a life, a brain of drives ranked from the top, its moves and yields, each record
-served by one rule here; its `Lifetime` is not read before the sentry. Living on planets
-([0102](../../docs/decisions/0102-creatures-live-in-the-sim.md)), grazing, struck, fleeing, ramming
-([0103](../../docs/decisions/0103-a-ram-costs-the-suit-air.md)), dying into yields. The ship has none.
+species (`Content.Creatures`) names a body, a life, a faction, a brain of drives ranked from the top, its moves and yields,
+each record served by one rule here; its `Lifetime` is not read yet. Grazers live on planets
+([0102](../../docs/decisions/0102-creatures-live-in-the-sim.md), [0103](../../docs/decisions/0103-a-ram-costs-the-suit-air.md));
+the sentry clings to wrecks in space, aboard's surface: creatures run wherever one is let out or a habitat spawns.
 
-- **Depends on:** `Grid` (size, solid, back walls); `Crew` (heroes' reported cells; `Shock`); `Items` (`Damage` (0098),
-  `WeaponProblem`; `DropAt` for yields).
-- **State** (`CreaturesState`, saved and hashed): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive,
-  DriveLeft, Step, Act, SeenAt }`, its bottom middle in thousandths of a cell (`Unit`); `Drive` the drive in charge by its
-  place in the brain, `Step` where that drive is within itself, `Act` the move under way (`{ Move, Phase, Left }`) or none;
-  `NextId`, never reused; `Clock`. **Never saved:** `Dead`, killed this tick. **Derived:** `Posture`, `Fleeing`, from the
-  drive or act in charge.
-- **Runs** after `Crew` in the simulation phase, so heroes' cells are this tick's.
+- **Depends on:** `Grid`; `Crew` (heroes' reported cells; `Shock`); `Items` (`Damage` (0098), `WeaponProblem`, `DropAt`);
+  `Debris` (`IDebrisQueries`, `IDebrisOps.Unreel`: the sentry's wreck).
+- **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
+  Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge by its place in
+  the brain, `Step` where that drive is within itself, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its
+  grudge (a `Ref`), `Mem` its rules' numbers by key in ordinal order (never a dictionary: a load keeps the order); `NextId`;
+  `Clock`. Empty `Target` and `Mem` are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`.
+- **Runs** after `Crew` and `Debris` in the simulation phase: heroes' cells and wrecks are this tick's.
 
 ## Adding a species or a rule
 
-- **A species from rules there are:** a record in `Content.Creatures`, its art, its name. Its brain ends with `Graze`,
-  holds a `Flee` to claim hits, and `Escape` if it has moves; its order is pinned (`CreatureContractTests`).
-- **A rule:** a record (`Drive`, `Shape` or `Move`) and a class here deriving `DriveRule`, `BodyRule` or `MoveRule`. `RuleBook`
-  finds it; no list is edited. Rules hold no state. Their context is the module's internal members; a narrower one comes with
-  the sentry.
-- **A brain's order is saved** (a creature's `Drive` and `Act.Move` are places in it): change it only with a format bump.
+- **A species:** a record in `Content.Creatures`, its art, its name. Some drive always wants it, one claims hits, and a drive
+  that acts has its follow-up (`Escape`, `Return`); its order is pinned (`CreatureContractTests`): a brain's order is saved,
+  change it only with a format bump.
+- **A rule:** a record (`Drive`, `Shape` or `Move`) and a class deriving `DriveRule`, `BodyRule` or `MoveRule`; `RuleBook`
+  finds it. Rules hold no state; their context is the module's internal members.
 
 ## Rules
 
-- **Nothing aboard** (0102): a surface with no habitats and no creature let out runs nothing and draws nothing.
-- **A tick,** in id order: kept or gone; its body freed of what was built into it since, spending the tick; else an act's
-  clock counts down (a lunge's wind-up once grounded) and its phase moves on, or a drive above the one in charge that
-  `Wants` it takes over, or the drive's clock counts down and at none its `Next` runs or it yields to the first that wants
-  it. Then its body steers by the act or drive and moves. Then, on the beat, spawns.
-- **The walker** (0102, 0104, 0106): integer, under the surface's gravity (capped `MaxFall`). Solid is a wall, floor, closed
-  door and past the grid's edge, not a machine. It steps up and down `StepUp`, in parts under a cell. Its drive's gait: still,
-  walking (`Walk`) or running (`Run`). Into a wall it cannot step up, or a drop of `Drop` rows, it first tries a leap flown
-  through the grid (`Lands`): running, the lowest of three that lands; walking, only up a wall at its feet. No leap, its
-  drive may act instead (`Blocked`); else it turns.
-- **Drives:** `Graze` idles and wanders by turns, lengths drawn, a wander's way first. `Flee` runs its ticks, then yields;
-  cornered — the nearest hero within `CorneredReach` on the side it would turn to — it draws `CorneredChance` and lunges.
-  `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn `FleeLeast..FleeMost`, then lunges (at once
-  where it must turn). `Escape` runs its ticks after a lunge, never acting, then yields.
-- **The lunge** (0103): wind-up, standing; then a charge at the hero nearest as it ends, along the ground at `Speed`, never
-  leaping, till `Past` cells past it, a wall or drop, or `Ticks`; a hero farther than that run, or none, is let be, and it
-  escapes away from the nearest. However it ends, the drive that began it hands the creature to `Escape`.
-- **The hit path** (`Strike`, 0102): takes `Items.Damage` off it; at its hit points it is dead, its `Yields` rolled and
-  dropped by nobody under its middle. Else knocked its `Life.Knock` away from the striker (a quick tool its pace's share of
-  `KnockPace`), never slowed, hopped unless rising; its act cut short; its drives told in brain order, the first claim winning
-  (`Retaliate`, else `Flee`, each bolting at its run or faster). Reach, pace and holding are the client's word.
-- **The dead** are gone to every command and cap from the blow that killed them; the `Creatures` list holds them till the
-  system sweeps them, first thing.
-- **`HitBy(Creature)`** (0103), from the hero a charge touched, as its client saw it (0034): its suit pays the move's
-  `Damage` (`Shock`); the creature recoils into `Escape`, hopping. One hit per charge.
-- **`Threatens(peer)`**: a creature within `ThreatReach` of its hero acts, retaliates or hunts the crew; its client then
-  reports every tick it moves (Terraria's way).
-- **`Release(Species, Cell)`** (0102), a dev command (`--creatures`): one born with its body's bottom left in the cell.
-- **Kept or gone** (wild, 0102), by the cell under its middle: in some hero's keep box it is seen; out of every one it is
-  gone `Linger` ticks after, and at once out of every hard box.
-- **Spawning** (0102, `Spawn.cs`), on the beat: per hero under `PerKeep` in its keep box, the surface under `Max`: three
-  draws, always taken (side, columns out, habitat by weight), then the first row down where the body stands in the
-  habitat's place; none where any hero sees it. Born to its grazing.
+- **A tick,** in id order: kept or gone; its body freed of what was built into it since; every drive's `Reflex`; then an
+  act's clock (a lunge's wind-up once grounded), or a drive above the one in charge that `Wants` it takes over, or the drive
+  in charge `Run`s (false yields; an act it begins counts from the next tick) and its clock counts down, at none its `Next`
+  running or yielding to the first that wants it. Then its body steers and moves. Then, on the beat, spawns.
+- **The walker** (0102, 0104, 0106): integer, under the surface's gravity; solid is a wall, floor, closed door and the grid's
+  edge. It steps `StepUp` up and down, in parts under a cell. Its gait still, walking or running; at a wall it cannot step or a
+  drop of `Drop` rows it tries a leap flown through the grid (`Lands`), else its drive may act (`Blocked`), else it turns.
+- **The clinger:** clamped to the top of the wreck it was let out on (`Wreckage.SizeOf`), `along` from its middle, riding
+  its drift; off it, it flies its speed straight, through walls, kept on the grid. Its wreck gone, it holds the last point.
+- **Grazers:** `Graze` idles and wanders by turns, lengths drawn. `Flee` runs its ticks; cornered with a hero near it may
+  lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
+- **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
+  drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
+- **The sentry:** `Guard` watches; an awake hero within `Notice` alerts it, `AlertTicks` (from the tick it noticed) of it
+  pounce. A blow on it, or on its wreck since it last answered (`Debris.Piece.Struck`, by the debris clock), and it pounces
+  at once at the striker (`Target`); a pounce answers every blow up to it, a blow while away is answered home, blows before
+  it was let out never. The pounce crouches `WindUp`, then flies straight at its grudge, else the nearest awake hero within
+  its run, at `Speed` on the longer axis: `Ticks` moves, never cut short, then it hangs. Unclamped, `Return` (above `Guard`)
+  flies it home and clamps it on, its grudge spent. `CutTether` lets go of any reel on its wreck the tick it is seen (the
+  reel moved it a step) and stamps the cut (`LastCut`). Body and home stay wholly on the grid. Queries: `Alerted`, `Clamped`.
+- **The hit path** (`Strike`): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked by a `Life.Knock`
+  and `Hop` above none, its act cut if interruptible, its drives told in brain order, the first claim winning.
+- **The dead** are gone to every command and cap from the blow; the list holds them till the sweep, first thing.
+- **`HitBy(Creature)`** (0103), as the hit hero's client saw it: its suit pays the move's `Damage`; the act ends.
+- **`Release(Species, Cell)`**, dev (`--creatures`, `--sentry`): its body's `ReleaseProblem` and `Place`.
+- **`Threatens(peer)`**: a creature within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
+- **Kept or gone** (0102): in some hero's keep box it is seen; out of every one gone `Linger` after; out of every hard box at
+  once. **Spawning** (`Spawn.cs`): on the beat round heroes under `PerKeep`, the surface under `Max`.
 
 ## Commands
 
-`Strike(Creature, Tool)`: `creatures.gone`, `items.flat`, `items.notRunning` (0055). `HitBy(Creature)`: `creatures.gone`,
-`creatures.notAttacking`. `Release(Species, Cell)`: `creatures.notHere` aboard, `creatures.full` at `Max`, `creatures.blocked`
-off the grid or in anything solid. A tool dealing no damage or an unknown species throws: our bug.
+`Strike`: `creatures.gone`, `items.flat`, `items.notRunning`. `HitBy`: `creatures.gone`, `creatures.notAttacking`. `Release`:
+`creatures.blocked` off the grid, `creatures.full`, then the body's: `creatures.notHere` (a walker with no gravity),
+`creatures.blocked` (in anything solid), `creatures.noPiece` (a clinger with no wreck).
 
 ## Guarantees
 
-- Every creature is on the grid and, but the ticks after a wall is built into it, out of everything solid; damage below
-  hit points; ids only grow; never more than `Max`; what is left of a drive or act never exceeds its length; a charge
-  hurts at most once; every suit stays between empty and full (`CreaturesInvariantTests`). A world saved and loaded every
-  tick plays on as one never saved.
+- Every creature is on the grid, a walker out of everything solid; damage below hit points; ids only grow; never more than
+  `Max`; a drive's or act's ticks never past its length; a charge hurts at most once; suits within range
+  (`CreaturesInvariantTests`). A world saved and loaded every tick plays on as one never saved.
 - A surface with no habitats and no creatures leaves the slice and the Rng untouched.
 
 ## Deliberately not handled
 
-- **Creatures do not collide** with each other or with heroes (0006). **Senses through rock.** **Despawning loses damage.**
-- **Walled in at the grid's top** it stays in the wall.
-- **A ram aims where the hero was reported** as the wind-up ended (0103). A second hero a charge touched pays nothing.
-- **The drill held on a rammer** draws anew at every hit, so it turns back only once the drilling stops.
-- **No hit-stun** (a `Flinch` drive) until a species needs one.
-- **Walkers only:** drives and the lunge read the walker's speeds; a second body moves them to its rule.
-- **Taking over:** only grazing wants a creature, so asking the drives above it is untested; one taking over counts from the
-  next tick.
+- **No collisions** (0006); senses through rock; despawning loses damage; walled in at the grid's top it stays.
+- **A ram aims where the hero was reported** (0103); a second hero touched pays nothing.
+- **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
+- **A derelict escorted onto the hull** brings its sentry over the ship; its pounce passes walls.
+- **The sentry sits on its wreck's box**, not its picture's outline, and does not crawl yet. A first blow that breaks its
+  wreck goes unanswered: the wreck is gone before it looks.

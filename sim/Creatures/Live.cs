@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content.Creatures;
 
@@ -14,6 +15,9 @@ public sealed partial class CreaturesModule
     /// <summary>Where each hero on the grid is this tick, by its reported cell, in id order; refilled every tick.</summary>
     private readonly List<(int X, int Y)> _heroes = [];
 
+    /// <summary>Whether each hero of <see cref="_heroes"/> is awake, not passed out.</summary>
+    private readonly List<bool> _awake = [];
+
     /// <summary>The habitats of this surface's type: none aboard, on a drawn map, or on a lifeless type.</summary>
     private IReadOnlyList<Spec.Habitat> Habitats => Rules is PlanetType type ? type.Creatures : [];
 
@@ -21,6 +25,21 @@ public sealed partial class CreaturesModule
     internal Rng Rand => Random;
 
     internal int GridWidth => _grid.Width;
+
+    internal int GridHeight => _grid.Height;
+
+    /// <summary>Ticks this module has run: what a rule stamps what it did with.</summary>
+    internal int Clock => State.Clock;
+
+    /// <summary>The debris, for the rules of a creature that clings to a piece.</summary>
+    internal IDebrisQueries Debris => _debris;
+
+    internal IDebrisOps DebrisOps => _debrisOps;
+
+    /// <summary>Peer <paramref name="peer"/>'s hero's reported cell as a column and row; null for none on the grid.</summary>
+    internal (int X, int Y)? HeroAt(int peer, bool awake = false) =>
+        _crew.HeroOf(peer) is { } hero && (!awake || hero.Out == 0) && hero.Cell >= 0 && hero.Cell < _grid.Width * _grid.Height
+            ? (hero.Cell % _grid.Width, hero.Cell / _grid.Width) : null;
 
     private void Live()
     {
@@ -48,12 +67,15 @@ public sealed partial class CreaturesModule
     private void FindHeroes()
     {
         _heroes.Clear();
+        _awake.Clear();
         int width = _grid.Width, cells = width * _grid.Height;
         var heroes = _crew.Heroes;
         for (int i = 0; i < heroes.Count; i++)
         {
             int cell = heroes[i].Cell;
-            if (cell >= 0 && cell < cells) _heroes.Add((cell % width, cell / width));
+            if (cell < 0 || cell >= cells) continue;
+            _heroes.Add((cell % width, cell / width));
+            _awake.Add(heroes[i].Out == 0);
         }
     }
 
@@ -88,6 +110,7 @@ public sealed partial class CreaturesModule
         var body = RuleBook.Body(spec.Body);
         if (body.Unstick(this, c, spec.Body)) return;
         bool grounded = body.Grounded(this, c, spec.Body);
+        for (int i = 0; i < spec.Brain.Count; i++) RuleBook.Drive(spec.Brain[i]).Reflex(this, c, spec, spec.Brain[i]);
         if (c.Act is { } act)
         {
             var mv = spec.Moves[act.Move];
@@ -95,8 +118,11 @@ public sealed partial class CreaturesModule
         }
         else
         {
+            var now = spec.Brain[c.Drive];
             if (FirstWanting(c, spec, below: c.Drive) is int over and >= 0) TakeOver(c, spec, over);
-            else
+            else if (!RuleBook.Drive(now).Run(this, c, spec, now)) TakeOver(c, spec, Fallback(spec, c));
+            // Its drive may have begun an act this tick: the act's clock starts next tick.
+            else if (c.Act == null)
             {
                 if (c.DriveLeft > 0) c.DriveLeft -= 1;
                 var d = spec.Brain[c.Drive];
@@ -172,13 +198,15 @@ public sealed partial class CreaturesModule
     internal int Middle(int x) => x * Unit + Unit / 2;
 
     /// <summary>The hero nearest <paramref name="c"/> by box distance in cells, the first in id order at a tie, and how far; none with none on the grid.</summary>
-    internal ((int X, int Y)? Hero, int Distance) Nearest(Creature c)
+    internal ((int X, int Y)? Hero, int Distance) Nearest(Creature c, bool awake = false)
     {
         int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
         (int X, int Y)? nearest = null;
         int best = int.MaxValue;
-        foreach (var at in _heroes)
+        for (int i = 0; i < _heroes.Count; i++)
         {
+            var at = _heroes[i];
+            if (awake && !_awake[i]) continue;
             int d = Math.Max(Math.Abs(x - at.X), Math.Abs(y - at.Y));
             if (d >= best) continue;
             (best, nearest) = (d, at);

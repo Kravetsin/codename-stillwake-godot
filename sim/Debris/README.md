@@ -15,7 +15,7 @@ found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056, 0060, 0066).
 
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds), `Crew` (the sender's hero, every hero's
   reported cell), `Rooms` (what is space), `Items` (`CanDrain`, `Running`, `Damage`, `WeaponProblem`; `GiveOrDrop`,
-  `DropAt`). Runs after `Hazards` and before `Furnace`. No module reads it: the client reads `Registry.Debris`.
+  `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it (`IDebrisQueries`, `IDebrisOps.Unreel`: the sentry).
 - **State** (`DebrisState`, saved): `Pieces` in spawn (id) order, each `{ Id, Zone, Item, X, Y, Speed, Start, End,
   Damage, Reel, SeenAt }`, positions in thousandths of a cell (`DebrisModule.Unit`); `NextId`, never reused; `Clock`;
   `Beats`, each zone's next due clock; `AtStart`; `Found` (0066), each `FoundKind { Kind, Items, Looks }` in the order
@@ -65,12 +65,12 @@ by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052)
   and every weapon breaks every kind (0054); a cable rack gives one circuit (0041). `HewWrecks(Tool, X, Y, Heading)`
   (fan-of-rays): each ray of the fan strikes the first wreck whose box (`Wreckage.Sizes`) covers a cell it crosses (first
   spawned there), stopping there or at a wall; one whose middle is not in space is passed (`Struck`). Each struck takes
-  `Damage` once (boosted, 0098); at its hit points it goes, its `Loot` still under its middle (`FloorStack.Nobody`).
+  `Damage` once (boosted, 0098) and keeps the blow (`Piece.Struck`: peer, debris clock); at its hit points it goes,
+  its `Loot` under its middle (`FloorStack.Nobody`).
   Refused `debris.notOutside` (the hero), `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055). A hit
   spends nothing; `HewProblem` leaves the run out, so a first hit may go in its `Run`'s frame.
 - **Found** (0066): a `Grab` that applies and a `HewWrecks` that breaks record the kind, the items `LootOf` drew for it (the
-  same roll, overflow too) and the look it wore (`Content.Looks.Of`), each appended the first time. Nothing else
-  records. One record for the world; never sorted, never shrunk.
+  same roll, overflow too) and the look it wore (`Content.Looks.Of`), each appended the first time; never sorted or shrunk.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` clamps the point to the grid and sets `Reel { By, ToX, ToY, Left }`,
   `Left` the longer axis's ticks at `Harpoon.ReelSpeed`, rounded up, at least one. Each tick the piece moves
   `X += (ToX − X) / Left` (and `Y`), truncating toward zero, instead of drifting; at `Left` 0 it is on the point and
@@ -87,7 +87,7 @@ by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052)
 - A reel's point is on the grid and its `Left` above zero. A wreck's `Damage` is below its hit points.
 - `Found` only grows; each kind once and spawnable, each item once among its loot, each look once and below
   `Looks.CountOf` (`DebrisFoundTests`).
-- Positions are never negative, so `X / Unit` truncation is the floor (no ADR).
+- Positions are never negative: `X / Unit` is the floor.
 
 ## Deliberately not handled
 

@@ -32,7 +32,25 @@ public sealed record Reel(int Piece, int ToX, int ToY) : Command;
 /// weapons, in zones by the hull, in its asteroid band and round every hero (ADRs 0006, 0009, 0034, 0044, 0052 and 0054;
 /// packages/sim/src/modules/debris).
 /// </summary>
-public sealed partial class DebrisModule : Module<DebrisState>
+/// <summary>What another module may read of the debris: the pieces, and one by its id.</summary>
+public interface IDebrisQueries
+{
+    IReadOnlyList<Piece> Pieces { get; }
+
+    /// <summary>Ticks the debris has run: what a blow on a piece is stamped with (<see cref="Piece.Struck"/>).</summary>
+    int Clock { get; }
+
+    Piece? PieceById(int id);
+}
+
+/// <summary>How another module may change the debris.</summary>
+public interface IDebrisOps
+{
+    /// <summary>Piece <paramref name="id"/>'s reel let go, if it has one: it drifts on from where it is. A piece gone is let be.</summary>
+    void Unreel(int id);
+}
+
+public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, IDebrisOps
 {
     /// <summary>Thousandths of a cell: a piece's position and speed are in these.</summary>
     public const int Unit = 1000;
@@ -70,6 +88,22 @@ public sealed partial class DebrisModule : Module<DebrisState>
 
     /// <summary>The pieces out, in spawn order; live and read-only.</summary>
     public IReadOnlyList<Piece> Pieces => State.Pieces;
+
+    public int Clock => State.Clock;
+
+    /// <summary>Piece <paramref name="id"/>; null for one gone or never spawned.</summary>
+    public Piece? PieceById(int id)
+    {
+        int at = IndexOf(id);
+        return at < 0 ? null : State.Pieces[at];
+    }
+
+    // Operations.
+
+    public void Unreel(int id)
+    {
+        if (PieceById(id) is { } piece) piece.Reel = null;
+    }
 
     /// <summary>
     /// What catching piece <paramref name="id"/> put into its catcher's inventory, by item, or null when no catch of it
@@ -201,6 +235,7 @@ public sealed partial class DebrisModule : Module<DebrisState>
         {
             int hp = Content.Wreckage.HpOf(piece.Item)!.Value;
             piece.Damage += hit;
+            piece.Struck = new Blow { By = c.From, At = State.Clock };
             if (piece.Damage < hp) continue;
             State.Pieces.RemoveAt(IndexOf(piece.Id));
             var loot = LootOf(piece.Item, Random);
