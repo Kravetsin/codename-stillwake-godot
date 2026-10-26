@@ -36,7 +36,8 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
 - **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while the left button is held on a plan
-  with the screwdriver (0107); the sim checks no tool. Two heroes work twice as fast; stopped work keeps progress. A blueprint takes its build's `BuildTicks` (`Materials`, `Builds`, `Machines`); a mark takes those
+  with the screwdriver (0107); the sim checks no tool. Two heroes work twice as fast; stopped work keeps progress. A
+  blueprint takes its `BuildTicks`; a mark takes those
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
@@ -44,9 +45,10 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   carry, else is refused `items.notEnough`, what was put in staying. Within a paid part anyone works, carrying nothing.
   Creative mode lacks nothing and takes nothing.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
-  or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing (no ADR).
+  or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building keeps its run order before crew.
+  A last tick waits on the grid's refusal too (a pod set down since).
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (any material but bedrock and
   lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.

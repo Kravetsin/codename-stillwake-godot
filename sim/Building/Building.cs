@@ -192,7 +192,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
     {
         if (plan.Place is { } place)
         {
-            // Plans claim their slots, so nothing can fill one first: a refusal here is our bug.
+            // Plans claim their slots, and a last tick waits on what a pod set down there since: a refusal here is our bug.
             _gridOps.Place(plan.Cell, place);
             // A machine built with its plug on a peg takes that peg's cables (0110).
             if (place.Layer == "machine" && _grid.MachineAt(plan.Cell) is { } made) _powerOps.Plug(made.Id);

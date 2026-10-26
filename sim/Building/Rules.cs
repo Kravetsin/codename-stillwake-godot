@@ -176,6 +176,9 @@ public sealed partial class BuildingModule
         if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer);
         // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
         if (plan.Place is { Kind: "wall" } && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && HeroIn(plan.Cell)) return "building.heroInside";
+        // So does any last tick over what stands there now: a drop pod docks or lands where it finds room, plans or not.
+        if (plan.Place is { } place && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && _grid.PlacementProblem(plan.Cell, place) is { } blocked)
+            return blocked;
         return Owes(plan) && PaymentOf(plan, peer) == null ? "items.notEnough" : null;
     }
 }
