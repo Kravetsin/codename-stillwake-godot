@@ -204,6 +204,25 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>A breath of room air at the visor: a pale mote drifting off and fading.</summary>
     public static readonly Luminous VisorMote = new(Glimmer.Mote, [(220, 246, 255), (150, 214, 245)], (900, 1400))
     { Bright = 0.85, Fade = 1.1, Rise = 0.12, Drag = 1.2, Turbulence = 10, Size = 0.55 };
+    // The tick (the sentry page's candidate 3): its amber burner, its fine sparks, its snip.
+
+    /// <summary>A tick's burner: short amber streaks, white at the nozzle, curling and flickering as they slow.</summary>
+    public static readonly Luminous Burner = new(Glimmer.Streak, [(255, 250, 228), (255, 200, 96), (255, 120, 40), (150, 38, 18)], (180, 380))
+    { Bright = 0.95, Fade = 1.3, Drag = 4, Spin = 4, NoiseScale = 0.1, Stretch = 0.05, Shortest = 0.6, Width = 0.3, Halo = 3.2, Flickers = true };
+    /// <summary>Warm motes swirling off its plume.</summary>
+    public static readonly Luminous BurnerMote = new(Glimmer.Mote, [(255, 190, 120), (200, 90, 50)], (500, 1000))
+    { Bright = 0.5, Drag = 1.2, Turbulence = 30, NoiseScale = 0.1, Size = 0.55 };
+    /// <summary>Grey smoke left along its flight, thin and swelling.</summary>
+    public static readonly Luminous BurnerSmoke = new(Glimmer.Wisp, [(118, 116, 122)], (900, 1500))
+    { Matter = true, Drag = 1.4, Turbulence = 30, NoiseScale = 0.08, Size = 1.3, Grow = 3, Alpha = 0.11 };
+    /// <summary>Struck: fine short sparks, quick to cool.</summary>
+    public static readonly Luminous FineSpark = HitSpark with { LifeMs = (140, 340), Width = 0.22, Halo = 2.4, Longest = 6, Drag = 2 };
+    /// <summary>Spitting from its cracks as it dies.</summary>
+    public static readonly Luminous CrackSpit = HitSpark with { LifeMs = (120, 260) };
+    /// <summary>A line snipped: a few white streaks flicked off the claw.</summary>
+    public static readonly Luminous Snip = new(Glimmer.Streak, [(255, 255, 255), (255, 236, 220)], (70, 140))
+    { Bright = 0.9, Fade = 1, Drag = 3, Stretch = 0.03, Shortest = 1, Longest = 9, Width = 0.3, Halo = 2, Hot = 0.8 };
+
     /// <summary>Rammed (0103): a jet of the suit's air knocked out of it, a quick pale streak slowing to nothing.</summary>
     public static readonly Luminous SuitLeak = new(Glimmer.Streak, Air, (260, 480))
     { Bright = 0.9, Fade = 1.2, Drag = 5, Turbulence = 14, Stretch = 0.05, Shortest = 0.6, Longest = 9, Width = 0.22, Hot = 0.5 };

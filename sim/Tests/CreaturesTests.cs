@@ -722,7 +722,7 @@ public class CreaturesTests
     }
 
     [Fact]
-    public void TheShipsCreaturesNeverChangesNorDrawsAboardWhateverTheHeroesDo()
+    public void TheShipsCreaturesNeverChangeAboardWhateverTheHeroesDoButForThePiecesLookedAt()
     {
         var w = new Scenario(Wide(400, 12)).HeroAt(200, 10).HeroAt(30, 10, peer: 1);
         string before = CreaturesSlice(w);
@@ -732,6 +732,8 @@ public class CreaturesTests
             if (w.M.Creatures.Fuzz(rng, (int)rng.Below(2)) is { } c) w.Do(c);
             w.Run();
         }
+        // The stream's pieces drift by, none a derelict: each looked at, none guarded.
+        Assert.Equal(w.M.Debris.Pieces[^1].Id, ((CreaturesState)w.M.Creatures.Slice).Watermark);
         Assert.Equal(before, CreaturesSlice(w));
         // This map holds no wrecks: off the grid nothing fits; on it a walker finds no gravity aboard, a clinger no piece.
         int cells = w.M.Grid.Width * w.M.Grid.Height;
@@ -742,7 +744,12 @@ public class CreaturesTests
         });
     }
 
-    private static string CreaturesSlice(Scenario w) => System.Text.Json.JsonSerializer.Serialize(w.M.Creatures.Slice, w.World.Json);
+    private static string CreaturesSlice(Scenario w)
+    {
+        var slice = System.Text.Json.JsonSerializer.SerializeToNode(w.M.Creatures.Slice, w.World.Json)!.AsObject();
+        slice.Remove("watermark");
+        return slice.ToJsonString();
+    }
 
     [Fact]
     public void TheSpeciesAndTheirHabitatsHoldTogether()

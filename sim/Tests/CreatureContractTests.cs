@@ -60,6 +60,7 @@ public class CreatureContractTests
         var w = new Scenario(string.Join('\n', Enumerable.Repeat(new string('.', 120), 60)), cells: true).Do(new Crew.Enter(30 * 120 + 50)).Run();
         var debris = (Debris.DebrisState)w.M.Debris.Slice;
         debris.Pieces.Add(new Debris.Piece { Id = debris.NextId++, Zone = Content.Debris.Far.Id, Item = "engineBlock", X = 60_000, Y = 30_000 });
+        SentryTests.Guarded(w);
         w.Do(new Release(s.Id, 28 * 120 + 60)).Run(3);
         return (w, w.M.Creatures.Creatures.Single());
     }

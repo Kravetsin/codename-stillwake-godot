@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Debris;
 using Spec = Stillwake.Content.Creatures;
 
 namespace Stillwake.Sim.Creatures;
@@ -90,5 +91,39 @@ public sealed partial class CreaturesModule
             if (left + spec.Body.Width - 1 >= at.X - view.X && left <= at.X + view.X && top + spec.Body.Height - 1 >= at.Y - view.Y && top <= at.Y + view.Y)
                 return true;
         return false;
+    }
+
+    /// <summary>
+    /// Each debris piece past the watermark, in id order, of a kind a guard of this surface's comes with (<c>Surfaces.Kind.Guards</c>):
+    /// one draw, always taken, and the guard clamped to the middle of its top when it comes and the surface is under its cap. The
+    /// pieces out when a world first runs this all draw on that tick. The watermark moves past them all.
+    /// </summary>
+    private void GuardNewPieces()
+    {
+        var pieces = _debris.Pieces;
+        int from = pieces.Count;
+        while (from > 0 && pieces[from - 1].Id > State.Watermark) from--;
+        for (int i = from; i < pieces.Count; i++)
+            foreach (var guard in Rules.Guards)
+                foreach (var (item, perMille) in guard.Kinds)
+                    if (item == pieces[i].Item) Guard(pieces[i], Spec.Get(guard.Species), perMille);
+        State.Watermark = pieces[^1].Id;
+    }
+
+    /// <summary>
+    /// <paramref name="piece"/>, its look with a perch wide enough for <paramref name="spec"/>, takes one with it
+    /// <paramref name="perMille"/> times in a thousand, under the cap: one draw, and one more for which perch when it has two or more.
+    /// The guard stands in the middle of its perch.
+    /// </summary>
+    private void Guard(Piece piece, Spec.Species spec, int perMille)
+    {
+        var perches = Content.Wreckage.PerchesOf(piece.Item, piece.Id);
+        var fit = new List<int>();
+        for (int p = 0; p < perches.Count; p++)
+            if (ClingerBody.Fits(perches[p], spec.Body)) fit.Add(p);
+        if (fit.Count == 0 || Random.Below(1000) >= perMille || State.Creatures.Count >= Spec.Max) return;
+        int perch = fit[fit.Count == 1 ? 0 : (int)Random.Below((uint)fit.Count)];
+        var (lo, hi) = ClingerBody.Span(piece, perches[perch], spec.Body);
+        ClingerBody.Mount(this, Add(spec, 0, 0), piece, perch + 1, (lo + hi) / 2);
     }
 }

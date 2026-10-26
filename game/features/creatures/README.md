@@ -4,7 +4,6 @@
 
 | File | Purpose |
 | --- | --- |
-| `BoxBodies.cs` | The placeholder look of a creature with no rig yet (the sentry): a box, its eye lamp's colour its state. |
 | `CreatureBody.cs` | One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's … |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102): plain C#, tested. |
 | `logic/CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
@@ -13,9 +12,9 @@
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. |
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
 | `logic/Creatures.En.cs` | Its player text (`En`) |
-
-A creature whose species has no rig (`CreatureLooks.Varieties`) is drawn by `BoxBodies`: teal eye guarding, yellow alerted,
-red and brighter from its crouch on, all unshaded; sparks when struck or killed; a spark where a harpoon line it cut held.
+| `TickBodies.cs` | The creatures drawn as the tick (the sentry): sprite, lamp, arcs, burner, sparks, death, sounds. |
+| `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |
+| `logic/TickMotion.cs` | How a tick moves and what moments it has, read off the sim: plain C#, tested. |
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Creatures`)
 spawns, moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the
@@ -63,6 +62,13 @@ axe's blade and the drill's bit are tested against each creature's body as again
   (placeholders), an own hit on Suit, a friend's on World. An own axe hit nudges the view as a wreck's does.
 - **Death** (0102): its hit thrown whole, a glint and shock ring, the body swelling white and fading; what it gives falls
   as the sim drops it (`features/items`). Heard where it fell.
+- **The tick** (the sentry page's «Клещ»): its sprite drawn each frame from its pose (`TickArt`), lit; eye, cracks and a blow's
+  white over it unlit. `TickMotion` reads the sim: `Clamped` grips (legs down, magnets aglow, a bounce), else legs folded, nose
+  along its flight; X moving along its wreck while clamped steps its legs. Eye teal, yellow `Alerted` or flying home, red from
+  its crouch on, lighting the wreck. Winding up: trembling, red arcs between its legs. Flying: an amber burner, sparks and smoke.
+  Struck: flash, shake, fine sparks. `CutLeft`: it faces the line (its reel's hero), rears, saws with its claw and mandible,
+  sparks thickening; `LastCut`: sparks and a whip of light down the line, a recoil. Killed (its wreck gone too): cracks 0.32 s,
+  then a burst and hot plates. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev
@@ -80,3 +86,4 @@ drill on one loper; `--strip --creatures --creatures-course` puts a loper by the
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,
   jumps and fits where a small one does.
 - **A dying body's parts show through each other** as they fade; a far ear's glow is added over the body.
+- **A tick saws at its claw,** not where the hook held: the hook point is the harpoon's. No sawing sound yet: none picked.

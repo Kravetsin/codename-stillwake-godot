@@ -14,6 +14,9 @@ public sealed record BoltTint((int R, int G, int B) Core, (int R, int G, int B) 
 
     /// <summary>The arc module's (0086): a white core over a violet rim, a violet-white light.</summary>
     public static readonly BoltTint Violet = new((252, 246, 255), (178, 132, 255), (170, 130, 255));
+
+    /// <summary>A tick winding up (the sentry page's): red arcs jumping between its legs over a white-pink core, a red light.</summary>
+    public static readonly BoltTint Red = new((255, 225, 219), (255, 120, 100), (255, 90, 70));
 }
 
 /// <summary>

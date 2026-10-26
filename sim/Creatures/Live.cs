@@ -46,7 +46,8 @@ public sealed partial class CreaturesModule
         var s = State;
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
-        // A surface with no life and none let out runs nothing and draws nothing: the ship's slice never changes.
+        if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
+        // A surface with no life and none let out runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
         if (s.Creatures.Count == 0 && Habitats.Count == 0) return;
         s.Clock += 1;
         FindHeroes();
