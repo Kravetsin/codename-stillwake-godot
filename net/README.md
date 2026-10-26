@@ -12,7 +12,8 @@
 | `Net/Host.cs` | Orders the session: collects every peer's commands and releases them tick by tick. |
 | `Net/LocalSession.cs` | A host and its player's client in one process, joined by a loopback. |
 | `Net/Playout.cs` | When a joined peer runs the ticks its host released: the measured reserve (0015). |
-| `Net/Protocol.cs` | How messages are written on the wire: JSON. |
+| `Net/Packing.cs` | Plain records as compact bytes: values by declared type, no names; tagged unions. |
+| `Net/Protocol.cs` | The messages and how they are written on the wire, packed; `Wire` packs commands. |
 | `Net/RoundTrip.cs` | Times this peer's commands from sent to run. |
 | `Net/Session.cs` | A session this machine plays in, and the time that drives it. |
 | `Tests/BadNetworkTests.cs` | A link made bad on purpose. |
@@ -24,6 +25,7 @@
 | `Tests/PaceTests.cs` | How a session's time runs: the clock and a joined game's playout. |
 | `Tests/SessionTests.cs` | The host and clients ordering commands. |
 | `Tests/SurfaceStampTests.cs` | A command goes out stamped with the surface its sender is on (0076); sessions carry every surface. |
+| `Tests/WireTests.cs` | Commands and messages packed and back; cut or garbled bytes refused. |
 
 How peers share one world (0002): a host orders every peer's commands tick by tick, every peer runs the same
 simulation on them, and what lives outside the simulation (heroes) is passed along beside it.
@@ -33,8 +35,10 @@ simulation on them, and what lives outside the simulation (heroes) is passed alo
 
 ## The protocol
 
-Messages are records written as JSON (`Protocol.Json`) with a `kind`; the loopback copies through the same JSON, so
-in-process tests carry what the wire carries (no ADR).
+Messages are records packed (`Packing`, 2026-10-26-compact-wire): each value by its declared type with no names,
+a message tagged by its place in `Protocol`'s list. Both ends run one build: the welcome checks it, with a fingerprint of
+how commands pack (`Wire.Fingerprint`) in the game's build string. The loopback
+copies through the same bytes, so in-process tests carry what the wire carries.
 
 | To the host | To a peer |
 | --- | --- |
@@ -43,8 +47,8 @@ in-process tests carry what the wire carries (no ADR).
 | `hash`: a tick and its hash | `welcome`: the peer's id, the host's build, a save |
 | | `resync`: the host player's world, saved |
 
-Commands travel encoded by the sender's world (`World.Encode`) and are decoded by each peer's (`World.Decode`), `From`
-set from the stamp. The host runs no world and never decodes them. `Client.Send` stamps each with its peer's surface
+Commands travel packed by the sender's world (`Wire.Encode`, tagged by their place among `World.CommandTypes` in name
+order) and are unpacked by each peer's (`Wire.Decode`), `From` set from the stamp. The host runs no world and never decodes them. `Client.Send` stamps each with its peer's surface
 (`Surface`, 0076), so one whose hero has moved on by its tick is refused.
 
 ## The session
@@ -73,7 +77,7 @@ set from the stamp. The host runs no world and never decodes them. `Client.Send`
 
 ## Heroes
 
-A client sends `hero` with a state net never reads (a string); the host passes it to every other peer stamped with the
+A client sends `hero` with a state net never reads (bytes); the host passes it to every other peer stamped with the
 sender and keeps nothing (0002). The game draws the others (`game/features/crew/logic/Remote.cs`).
 
 ## Hash checks
@@ -106,3 +110,5 @@ sender and keeps nothing (0002). The game draws the others (`game/features/crew/
 - A host that loads a save leaves its joined peers behind.
 - No host migration, no anti-cheat: friends trust each other (0002).
 - A save goes in one message: fine for the wreck, measured again with the reference world.
+- Every hero goes to every other peer, all of it, 20 times a second: the bytes grow as N×(N−1). Sending only what
+  changed, or only to peers on its surface, is the next step if eight players need it (2026-10-26-compact-wire).

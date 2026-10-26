@@ -83,7 +83,7 @@ public sealed class Client
     }
 
     /// <summary>Tells every other peer, through the host, where this peer's hero is now.</summary>
-    public void SendHero(string state) => _channel.Send(new HeroMessage(state));
+    public void SendHero(byte[] state) => _channel.Send(new HeroMessage(state));
 
     /// <summary>The other peers' heroes received since the last call, in order of arrival.</summary>
     public IReadOnlyList<PeerHeroMessage> TakeHeroes()

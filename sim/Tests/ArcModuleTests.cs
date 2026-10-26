@@ -363,7 +363,7 @@ public class ArcModuleTests
             if (i == 700) b.Reload(a.World.Save());
             if (a.M.Items.Fuzz(rng, i % 3) is not { } c) continue;
             a.Do(c).Run();
-            b.Do(b.World.Decode(a.World.Encode(c))).Run();
+            b.Do(c).Run();
             fitted = Math.Max(fitted, a.M.Grid.Machines.Sum(m => a.M.Items.FittedTo(m.Id).Count));
             Assert.Equal(a.World.Hash(), b.World.Hash());
         }

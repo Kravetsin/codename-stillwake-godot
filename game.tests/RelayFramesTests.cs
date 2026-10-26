@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json.Nodes;
 using Stillwake.Game.Net;
+using Stillwake.Net;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
@@ -43,6 +44,44 @@ public class RelayFramesTests
         Assert.Equal(24, RelayFrames.SessionName(new string('a', 40)).Length);
         Assert.Equal("kravets", (string)Parsed(RelayFrames.JoinFrame("Kravets"))["data"]!["session"]!);
         Assert.Equal("kravets", (string)Parsed(RelayFrames.HostFrame("Kravets"))["data"]!["name"]!);
+    }
+
+    [Fact]
+    public void CarriesAFramesMessagesBatchedAsTextInOrderAndReadsNothingFromTextItDidNotWrite()
+    {
+        byte[][] messages = [[1, 2, 3], [], [0xFF]];
+        string frame = RelayFrames.ToPeerFrame(2, RelayFrames.Batch(messages));
+        var read = RelayFrames.Unbatch(RelayFrames.Read(frame)!.Value.Message!);
+        Assert.Equal(messages, read);
+        Assert.Null(RelayFrames.Unbatch("{\"kind\":\"tick\"}"));
+        Assert.Null(RelayFrames.Unbatch("AQID"));
+    }
+
+    [Fact]
+    public void SendsAFramesMessagesInOneBatchAndNothingWhenThereAreNone()
+    {
+        var outbox = new RelayOutbox();
+        Assert.Null(outbox.Take());
+        var first = Protocol.Write<ToClient>(new TickMessage(1, []));
+        var second = Protocol.Write<ToClient>(new PeerHeroMessage(2, [7]));
+        outbox.Add(first);
+        outbox.Add(second);
+        var batch = outbox.Take();
+        Assert.Equal([first, second], RelayFrames.Unbatch(batch!));
+        Assert.Null(outbox.Take());
+    }
+
+    [Fact]
+    public void ReadsEveryMessageOfABatchItCanAndWarnsOfTheRest()
+    {
+        var warnings = new List<string>();
+        var batch = RelayFrames.Batch([Protocol.Write<ToClient>(new TickMessage(1, [])), [0xFF], Protocol.Write<ToClient>(new ResyncMessage("{}"))]);
+        Assert.Equal([1, -1], Received.Batch<ToClient>(batch, warnings.Add).Select(m => m is TickMessage t ? t.Tick : -1));
+        Assert.Single(warnings);
+        Assert.Empty(Received.Batch<ToClient>("{\"kind\":\"tick\"}", warnings.Add));
+        Assert.Equal(2, warnings.Count);
+        Assert.Null(Received.Message<ToClient>([0xFF], warnings.Add));
+        Assert.Equal(3, warnings.Count);
     }
 
     [Fact]

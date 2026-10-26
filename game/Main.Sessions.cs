@@ -41,7 +41,7 @@ public partial class Main
         // The debris and wreck scenarios are played hosting too, so a guest sees a catch, or the host chop.
         foreach (var scenario in _scenarios.Where(s => s.Hosted)) world = scenario.Seed(world, new Dev.DevSeed(Modules, _m));
         _roster = Roster.Empty();
-        var (host, client) = LocalSession.Create(world, Build, _roster.SeatOf(_playerKey));
+        var (host, client) = LocalSession.Create(world, SessionBuild, _roster.SeatOf(_playerKey));
         _session = new Session(host, client);
         ShowWorld();
         AimCamera(_layout);
@@ -169,7 +169,7 @@ public partial class Main
             Log($"connected to {address}{(network != null ? $" over {network}" : "")}");
             _net = $"joined {address}";
             _stopLink = link.Close;
-            Client.Join(Load, network?.Over(channel, new GodotTiming(GetTree())) ?? channel, Build,
+            Client.Join(Load, network?.Over(channel, new GodotTiming(GetTree())) ?? channel, SessionBuild,
                 client =>
                 {
                     CloseTitle();
@@ -397,7 +397,7 @@ public partial class Main
     {
         _roster = roster;
         int seat = roster.SeatOf(_playerKey);
-        var (host, client) = LocalSession.Create(world, Build, seat);
+        var (host, client) = LocalSession.Create(world, SessionBuild, seat);
         _session = new Session(host, client);
         // Saved with friends aboard, the world still holds their heroes, on whichever surface: they come back when their
         // players do, aboard (0076). This player comes back aboard too, at the pod.

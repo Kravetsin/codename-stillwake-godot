@@ -31,7 +31,7 @@ public sealed class EnetLink<TIn, TOut> : ILink<TIn, TOut>
         {
             long from = _peer.GetPacketPeer();
             var bytes = _peer.GetPacket();
-            if (_channels.TryGetValue(from, out var channel)) channel.Inbox.Deliver(Protocol.Read<TIn>(bytes));
+            if (_channels.TryGetValue(from, out var channel) && Received.Message<TIn>(bytes, GD.PushWarning) is { } message) channel.Inbox.Deliver(message);
         }
     }
 

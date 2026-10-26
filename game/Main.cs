@@ -46,6 +46,9 @@ public partial class Main : Node2D, ITogether
     private static readonly string Build =
         typeof(Main).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown";
 
+    /// <summary>What a joiner must match: the build, and how it packs commands (2026-10-26-compact-wire).</summary>
+    private static readonly string SessionBuild = $"{Build}+{Stillwake.Net.Wire.Fingerprint(World.CommandTypesOf(new Registry().All))}";
+
     private Session? _session;
     /// <summary>Playing together as the menu shows it; the link it runs over, and the guests by their peer on it.</summary>
     private TogetherState _together = TogetherState.Alone;

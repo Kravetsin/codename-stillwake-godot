@@ -90,7 +90,7 @@ public sealed class Host(int firstTick, IWorldSource? world = null, int hostId =
     /// <paramref name="farewell"/>, an encoded command, if given, stamped with its id: what the game does
     /// with a peer that left, such as take its hero out.
     /// </summary>
-    public void Disconnect(int id, string? farewell = null)
+    public void Disconnect(int id, byte[]? farewell = null)
     {
         int at = _peers.FindIndex(p => p.Id == id);
         if (at < 0) return;
@@ -105,7 +105,7 @@ public sealed class Host(int firstTick, IWorldSource? world = null, int hostId =
     /// Releases <paramref name="command"/>, encoded, in the next tick as though peer <paramref name="from"/>
     /// sent it, connected or not: how a world loaded with heroes of players not here takes them out.
     /// </summary>
-    public void Release(int from, string command) => _pending.Add(new Stamped(from, command));
+    public void Release(int from, byte[] command) => _pending.Add(new Stamped(from, command));
 
     /// <summary>Releases the next tick, carrying every command received since the last one.</summary>
     public void Advance()
