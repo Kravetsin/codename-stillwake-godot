@@ -66,15 +66,16 @@ public static class Creatures
 
     /// <summary>
     /// Guarding its piece: watching, and alerted while a hero is within <paramref name="Notice"/> cells (box distance); alerted
-    /// <paramref name="AlertTicks"/>, or struck, or its piece struck, it pounces with its first move.
+    /// <paramref name="AlertTicks"/> and a hero within <paramref name="Strike"/>, or struck, or its piece struck, it pounces with its
+    /// first move. Alerted, it waits for one to come that close.
     /// </summary>
-    public sealed record Guard(int Notice, int AlertTicks) : Drive;
+    public sealed record Guard(int Notice, int Strike, int AlertTicks) : Drive;
 
     /// <summary>Flying back to where it clamps on at <paramref name="Speed"/> a tick, wanted whenever it is not clamped on.</summary>
     public sealed record Return(int Speed) : Drive;
 
-    /// <summary>A reflex, never in charge: a harpoon's line on its piece is cut the tick it is seen.</summary>
-    public sealed record CutTether : Drive;
+    /// <summary>A reflex, never in charge: a harpoon's line on its piece is cut <paramref name="Ticks"/> after it is seen, if still on.</summary>
+    public sealed record CutTether(int Ticks) : Drive;
 
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
@@ -172,14 +173,15 @@ public static class Creatures
 
     /// <summary>
     /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
-    /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. It
-    /// watches; a hero within twelve cells alerts it for a second, then it pounces: a crouch of 0.8 s, then a flight of 0.85 s at
-    /// 24 cells a second, some twenty cells, six units of a suit if it hits. Struck, or its wreck struck, it crouches at once.
-    /// Forty hit points, never knocked. A harpoon on its wreck is cut. Placeholder numbers, for a play pass.
+    /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. A hero within 24 cells alerts it (the user's
+    /// word: it sees far, strikes near); alerted a second and a hero within twelve, it pounces: a crouch of 0.8 s, then a flight
+    /// of 0.85 s at 24 cells a second, some twenty cells, six units of a suit if it hits. Struck, or its wreck struck, it crouches
+    /// at once. It flies home at 40 cells a second, past a jetpack, so a hero cannot lead it far. Forty hit points, never
+    /// knocked. A harpoon on its wreck is cut 0.8 s after it bites. It dies with its wreck. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2, Crawl: 40),
         Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
-        Brain: [new CutTether(), new Return(Speed: 600), new Guard(Notice: 12, AlertTicks: 20)],
+        Brain: [new CutTether(Ticks: 16), new Return(Speed: 2000), new Guard(Notice: 24, Strike: 12, AlertTicks: 20)],
         Moves: [new Pounce(WindUp: 16, Speed: 1200, Ticks: 17, Damage: 6)], Yields: [new("scrapChunk", 3, 5)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];

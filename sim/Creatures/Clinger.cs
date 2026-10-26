@@ -8,7 +8,7 @@ namespace Stillwake.Sim.Creatures;
 /// The clinger (the sentry, 2026-10-26-creatures-are-composed): clamped to the top of a wreck, <c>along</c> from its middle, on
 /// one of its picture's perches (<c>Wreckage.Perches</c>), or on its box's top when let out on one with none; riding its drift.
 /// Watching, it crawls along its perch. Off it, it flies straight by its speed, nothing stopping it (0006), and clamps on again
-/// when its drive brings it home. With its wreck gone it holds the last point it clamped to. What it keeps, in its <c>Mem</c>:
+/// when its drive brings it home. With its wreck gone it dies. What it keeps, in its <c>Mem</c>:
 /// its piece, its perch (one past its number; 0 for the box's top), the point along it, whether it crawls back, whether it is
 /// clamped on, and that point last seen.
 /// </summary>
@@ -104,9 +104,15 @@ internal sealed class ClingerBody : BodyRule
         c.Keep(Back, back ? 1 : 0);
     }
 
-    /// <summary>Clamped on, it rides its wreck; else it flies its speed, kept on the grid.</summary>
+    /// <summary>Clamped on, it rides its wreck; else it flies its speed, kept on the grid. Its wreck gone, it dies.</summary>
     internal override void Step(CreaturesModule m, Creature c, Spec.Species spec, bool grounded)
     {
+        // Its wreck broken or gone, it goes with it (the user's word: never a sentry left adrift).
+        if (m.Debris.PieceById(c.Recall(Piece)) == null)
+        {
+            m.Kill(c, spec);
+            return;
+        }
         // Read now, not as the tick began: a pounce launched this tick has let go.
         if (c.Recall(Mounted) == 1)
         {

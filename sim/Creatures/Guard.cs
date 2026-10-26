@@ -33,18 +33,23 @@ internal sealed class GuardDrive : DriveRule
             Pounce(m, c, spec, Ref.Hero(blow.By), m.Debris.Clock);
             return true;
         }
-        bool near = m.Nearest(c, awake: true) is ({ }, int far) && far <= guard.Notice;
+        bool near = Within(m, c, guard.Notice);
         if (c.Step == Watching && near) (c.Step, c.DriveLeft) = (Alerted, guard.AlertTicks);
         else if (c.Step == Alerted && !near) (c.Step, c.DriveLeft) = (Watching, 0);
-        if (c.Step == Watching) ClingerBody.Crawl(m, c, spec);
+        if (c.Step == Watching && !CutTetherDrive.Cutting(c)) ClingerBody.Crawl(m, c, spec);
         return true;
     }
 
+    /// <summary>Alerted long enough: it pounces once an awake hero is within its strike, and waits for one till then.</summary>
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
-        if (c.Step == Alerted) Pounce(m, c, spec, Ref.None, m.Debris.Clock);
+        if (c.Step != Alerted) return true;
+        if (Within(m, c, ((Spec.Guard)d).Strike)) Pounce(m, c, spec, Ref.None, m.Debris.Clock);
+        else c.DriveLeft = 1;
         return true;
     }
+
+    private static bool Within(CreaturesModule m, Creature c, int cells) => m.Nearest(c, awake: true) is ({ }, int far) && far <= cells;
 
     internal override bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit)
     {
@@ -113,21 +118,37 @@ internal sealed class ReturnDrive : DriveRule
     internal override Gait GaitOf(Creature c) => Gait.Run;
 }
 
-/// <summary>A reflex: a harpoon's line on its wreck is let go the tick it is seen, whatever it is doing (0044).</summary>
+/// <summary>
+/// A reflex: a harpoon's line on its wreck is let go <c>Ticks</c> after it is seen, whatever it is doing (0044), if it is on still:
+/// long enough for its claws to be seen at the line.
+/// </summary>
 internal sealed class CutTetherDrive : DriveRule
 {
     /// <summary>Kept in its <c>Mem</c>: the creatures' clock of its last cut, plus one.</summary>
     internal const string Cut = "cut";
 
+    /// <summary>Kept in its <c>Mem</c>: the creatures' clock it cuts the line on its wreck at; 0 while there is none.</summary>
+    internal const string CutsAt = "cutsAt";
+
     internal override Type Serves => typeof(Spec.CutTether);
 
     internal override void Reflex(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
-        if (m.Debris.PieceById(c.Recall(ClingerBody.Piece)) is not { Reel: not null } piece) return;
+        if (m.Debris.PieceById(c.Recall(ClingerBody.Piece)) is not { Reel: not null } piece)
+        {
+            c.Keep(CutsAt, 0);
+            return;
+        }
+        if (c.Recall(CutsAt) == 0) c.Keep(CutsAt, m.Clock + ((Spec.CutTether)d).Ticks);
+        if (m.Clock < c.Recall(CutsAt)) return;
         m.DebrisOps.Unreel(piece.Id);
+        c.Keep(CutsAt, 0);
         // When it cut: what the client shows a snap by, as the line is gone within the tick.
         c.Keep(Cut, m.Clock + 1);
     }
+
+    /// <summary>Whether <paramref name="c"/> is at a line on its wreck, cutting it.</summary>
+    internal static bool Cutting(Creature c) => c.Recall(CutsAt) != 0;
 
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => false;
 

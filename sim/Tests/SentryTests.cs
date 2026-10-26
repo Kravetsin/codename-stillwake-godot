@@ -16,6 +16,8 @@ public class SentryTests
     private static readonly Tune.Species Sentry = Tune.Sentry;
     private static readonly Tune.Pounce Pounce = (Tune.Pounce)Sentry.Moves[0];
     private static readonly Tune.Guard Guard = Sentry.Brain.OfType<Tune.Guard>().Single();
+    private static readonly Tune.Return Return = Sentry.Brain.OfType<Tune.Return>().Single();
+    private static readonly Tune.CutTether Cut = Sentry.Brain.OfType<Tune.CutTether>().Single();
     private static readonly string Axe = Spec.Weapons.Axe.Item;
 
     /// <summary>Open space 160 cells by 80, a cell a character: no hull, so no stream of debris.</summary>
@@ -160,16 +162,39 @@ public class SentryTests
     }
 
     [Fact]
-    public void AHarpoonOnItsWreckIsCutTheTickItIsReeledThePieceAStepOn()
+    public void AHarpoonOnItsWreckIsCutItsCutTicksAfterItBitesTheWreckReeledTillThen()
     {
-        var (w, piece, _) = OnAWreck();
+        var (w, piece, c) = OnAWreck();
         HeroAt(w, 60, 40).Run();
         int x = piece.X;
         w.Do(new Reel(piece.Id, 62_000, 40_000)).Run();
         Assert.Empty(w.Refusals);
+        Assert.Equal((Cut.Ticks, Cut.Ticks), w.M.Creatures.CutLeft(c));
+        w.Run(Cut.Ticks - 1);
+        Assert.NotNull(piece.Reel);
+        Assert.Equal((1, Cut.Ticks), w.M.Creatures.CutLeft(c));
+        Assert.Equal(0, CreaturesModule.LastCut(c));
+        w.Run();
         Assert.Null(piece.Reel);
-        Assert.True(piece.X < x, "the reel moved it a step before the sentry cut it");
+        Assert.True(CreaturesModule.LastCut(c) > 0);
+        Assert.Equal((0, 0), w.M.Creatures.CutLeft(c));
+        Assert.True(piece.X < x, "the reel moved it till the sentry cut it");
         w.Run(10);
+        Assert.Null(piece.Reel);
+    }
+
+    [Fact]
+    public void ALineLetGoBeforeItIsCutIsForgottenAndTheNextCountsAnew()
+    {
+        var (w, piece, c) = OnAWreck();
+        HeroAt(w, 60, 40).Run();
+        w.Do(new Reel(piece.Id, 62_000, 40_000)).Run(Cut.Ticks / 2);
+        ((IDebrisOps)w.M.Debris).Unreel(piece.Id);
+        w.Run();
+        Assert.Equal((0, 0), w.M.Creatures.CutLeft(c));
+        w.Do(new Reel(piece.Id, 20_000, 40_000)).Run(Cut.Ticks);
+        Assert.NotNull(piece.Reel);
+        w.Run();
         Assert.Null(piece.Reel);
     }
 
@@ -185,16 +210,57 @@ public class SentryTests
     }
 
     [Fact]
-    public void ItsWreckGoneItHoldsTheLastPointItClampedToAndGuardsOn()
+    public void ItsWreckGoneItDiesWithItGivingItsScrap()
     {
-        var (w, piece, c) = OnAWreck(speed: 100);
+        var (w, piece, _) = OnAWreck(speed: 100);
         w.Run(20);
-        var (x, y) = (c.X, c.Y);
         ((DebrisState)w.M.Debris.Slice).Pieces.Remove(piece);
-        w.Run(20);
-        Assert.Equal((x, y), (c.X, c.Y));
-        HeroAt(w, Down(x) - 5, Down(y) - 1).Run(2);
+        w.Run(2);
+        Assert.Empty(w.M.Creatures.Creatures);
+        Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "scrapChunk").Sum(s => s.Count), 3, 5);
+    }
+
+    [Fact]
+    public void ItsWreckGoneMidPounceItDiesInFlight()
+    {
+        var (w, piece, c) = OnAWreck();
+        HeroAt(w, 76, 34).Run();
+        w.Do(new Strike(c.Id, Axe)).Run(Pounce.WindUp + 3);
+        Assert.False(Mounted(c));
+        ((DebrisState)w.M.Debris.Slice).Pieces.Remove(piece);
+        w.Run(2);
+        Assert.Empty(w.M.Creatures.Creatures);
+    }
+
+    [Fact]
+    public void NoticingAHeroFarItWaitsAlertedTillOneComesWithinItsStrike()
+    {
+        var (w, _, c) = OnAWreck();
+        // Twenty cells off: within its notice, past its strike.
+        HeroAt(w, 60, 36).Run();
         Assert.True(Alerted(c));
+        w.Run(3 * Guard.AlertTicks);
+        Assert.True(Alerted(c));
+        Assert.Null(c.Act);
+        HeroAt(w, 80 - Guard.Strike, 36).Run();
+        Assert.Equal(ActPhase.WindUp, c.Act!.Phase);
+    }
+
+    [Fact]
+    public void ItFliesHomeFasterThanAHerosJetpack()
+    {
+        // A hero leading it off by striking it: it outruns them home, back on its wreck before they are.
+        Assert.True(Return.Speed > 1500, $"{Return.Speed} a tick against the jetpack's 1500");
+        var (w, _, c) = OnAWreck();
+        HeroAt(w, 66, 30).Run();
+        w.Do(new Strike(c.Id, Axe)).Run();
+        for (int t = 0; t < 100 && Sentry.Brain[c.Drive] is not Tune.Return; t++) w.Run();
+        Assert.Equal(typeof(Tune.Return), Sentry.Brain[c.Drive].GetType());
+        int far = Math.Max(Math.Abs(c.X - 80_500), Math.Abs(c.Y - 37_000));
+        Assert.True(far > 10 * Unit, $"{far} away");
+        int ticks = 0;
+        for (; ticks < 300 && !Mounted(c); ticks++) w.Run();
+        Assert.InRange(ticks, 1, far / Return.Speed + 2);
     }
 
     [Fact]
@@ -421,6 +487,8 @@ public class SentryTests
         Assert.NotNull(c.Act);
         w.Do(new Reel(piece.Id, 62_000, 40_000)).Run();
         Assert.Empty(w.Refusals);
+        Assert.NotNull(piece.Reel);
+        w.Run(Cut.Ticks);
         Assert.Null(piece.Reel);
         Assert.True(CreaturesModule.LastCut(c) > 0);
     }
