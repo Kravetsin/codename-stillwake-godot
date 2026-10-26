@@ -7,12 +7,13 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// A shot this player's gun fired, flown here ahead of the sim's by the sim's own step (shots-are-the-sims): where it was a tick
-/// ago and is now, in thousandths of a cell, to draw it between; once ended, the cell it met or last flew in, and whether it met
-/// something there.
+/// ago and is now, in thousandths of a cell, to draw it between, and the gun it left; once ended, the cell it met or last flew in,
+/// and whether it met something there.
 /// </summary>
-public sealed class OwnShot(Projectile projectile, ShotMotion launched)
+public sealed class OwnShot(Projectile projectile, Gun gun, ShotMotion launched)
 {
     public Projectile Projectile { get; } = projectile;
+    public Gun Gun { get; } = gun;
     public ShotMotion Was { get; internal set; } = launched;
     public ShotMotion Now { get; internal set; } = launched;
     public int? EndCell { get; internal set; }
@@ -45,21 +46,21 @@ public sealed class GunHand
 
     /// <summary>
     /// A frame: the cooldown runs down by <paramref name="elapsedMs"/>; a <paramref name="pressed"/> click with <paramref name="gun"/>
-    /// wielded and its muzzle drawn at <paramref name="muzzle"/> (thousandths of a cell) fires along <paramref name="heading"/> if the
-    /// hero is ready and <paramref name="armed"/> (ammo carried, or creative), else clicks dry when ready. Ready again it says so,
+    /// wielded and its muzzle drawn at <paramref name="muzzle"/> (thousandths of a cell) fires <paramref name="ammo"/> along
+    /// <paramref name="heading"/> if the hero is ready and has some (the sim's <c>AmmoOf</c>), else clicks dry. Ready again it says so,
     /// while the gun is held.
     /// </summary>
-    public GunStep Step(double elapsedMs, bool pressed, Gun? gun, (int X, int Y)? muzzle, int heading, bool armed)
+    public GunStep Step(double elapsedMs, bool pressed, Gun? gun, (int X, int Y)? muzzle, int heading, Projectile? ammo)
     {
         _cooldownMs = Math.Max(0, _cooldownMs - elapsedMs);
         var step = new GunStep();
         if (pressed && gun != null && muzzle is { } at && Ready)
         {
-            if (!armed) step = step with { Dry = true };
+            if (ammo == null) step = step with { Dry = true };
             else
             {
                 _cooldownMs = PaceMs(gun);
-                _shots.Add(new OwnShot(gun.Projectile, ShotFlight.Launch(gun.Projectile, at.X, at.Y, heading)));
+                _shots.Add(new OwnShot(ammo, gun, ShotFlight.Launch(gun, at.X, at.Y, heading)));
                 step = step with { Fire = new Sim.Creatures.Fire(gun.Item, at.X, at.Y, heading) };
             }
         }

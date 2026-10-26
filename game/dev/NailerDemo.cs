@@ -31,7 +31,7 @@ public partial class NailerDemo(Func<Hero?> hero) : Node
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? new JsonObject { ["item"] = Spec.Shots.Nailer.Item, ["count"] = 1 }
-                : i == 1 ? new JsonObject { ["item"] = Spec.Shots.Nailer.Ammo, ["count"] = 100 }
+                : i == 1 ? new JsonObject { ["item"] = Spec.Shots.Nail.Id, ["count"] = 100 }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), modules());

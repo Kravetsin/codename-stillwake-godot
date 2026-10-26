@@ -41,7 +41,7 @@ public static class Testbed
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Nailer.Ammo];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Nail.Id];
 
     /// <summary>The ship computer's and the radar's parts, one each in the supply crate: the full crate has no slot left for them.</summary>
     public static readonly IReadOnlyList<string> ComputerParts = ["processor", "display", "transceiver"];
@@ -127,7 +127,7 @@ public static class Testbed
     public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14);
 
     /// <summary>What the supply crate holds at the start: what keeps the furnace, the Former and the grow capsule going (0062).</summary>
-    public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 50), 4), ("planks", 50), ("iron", 500), ("seed", 10), (Shots.Nailer.Ammo, 100)];
+    public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 50), 4), ("planks", 50), ("iron", 500), ("seed", 10), (Shots.Nail.Id, 100)];
 
     /// <summary>What the furnace holds at the start: a chunk and a little fuel, each under half a stack, so it burns at once and drones bring the rest.</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> FurnaceHolds = [("scrapChunk", 2), ("planks", 5)];

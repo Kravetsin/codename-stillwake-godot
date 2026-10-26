@@ -37,16 +37,16 @@ public partial class HeroView
     {
         (int X, int Y)? muzzle = null;
         int heading = 0;
-        bool armed = false;
+        Content.Projectile? ammo = null;
         if (wields && gun != null && _figure.Muzzle is { } at)
         {
             var (x, y) = Thousandths(at);
             var from = new Point((int)x, (int)y);
             heading = Aiming.HeadingOf(from, new Point(from.X + (int)(_figure.Barrel.X * Hero.Unit), from.Y + (int)(_figure.Barrel.Y * Hero.Unit)));
             string? problem = m.Creatures.FireProblem(client.Id, gun.Item, from.X, from.Y);
-            if (problem is null or "items.notEnough") (muzzle, armed) = ((from.X, from.Y), problem == null);
+            if (problem is null or "items.notEnough") (muzzle, ammo) = ((from.X, from.Y), m.Creatures.AmmoOf(client.Id, gun));
         }
-        var step = _guns.Step(elapsedMs, clicked && wields, wields ? gun : null, muzzle, heading, armed);
+        var step = _guns.Step(elapsedMs, clicked && wields, wields ? gun : null, muzzle, heading, ammo);
         if (step.Fire is { } fire)
         {
             client.Send(fire);
@@ -59,7 +59,7 @@ public partial class HeroView
         if (_gunTick < 0 || _gunTick > tick) _gunTick = tick;
         for (; _gunTick < tick; _gunTick++) _guns.Tick(m.Creatures.StepOf, m.Grid.Width, m.Grid.Height);
         foreach (var ended in _guns.TakeEnded())
-            ShotEnds.Show(m, _ownShotEnds, ended.Projectile.Id, ended.EndCell!.Value, (ended.Was.X / 1000.0, ended.Was.Y / 1000.0));
+            ShotEnds.Show(m, _ownShotEnds, ended.Gun.Item, ended.Projectile.Id, ended.EndCell!.Value, (ended.Was.X / 1000.0, ended.Was.Y / 1000.0));
         _ownShots.Show(_guns.Shots.Select(s =>
         {
             var (point, way) = ShotStreaks.Between(s.Was, s.Now, _progress);

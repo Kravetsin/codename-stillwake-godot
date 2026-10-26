@@ -58,7 +58,7 @@ public partial class ShotsView : Node2D
     {
         foreach (var end in creatures.Ended)
             if (_seen.Remove(end.Id, out var flew))
-                ShotEnds.Show(_m, _ends, end.Projectile, end.Cell, (flew.Now.X / 1000.0, flew.Now.Y / 1000.0));
+                ShotEnds.Show(_m, _ends, end.Gun, end.Projectile, end.Cell, (flew.Now.X / 1000.0, flew.Now.Y / 1000.0));
         var flying = new HashSet<int>();
         foreach (var shot in creatures.Shots)
         {

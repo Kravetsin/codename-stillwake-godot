@@ -33,19 +33,32 @@ public sealed partial class CreaturesModule
     {
         if (Content.Shots.GunOf(tool) is not { } gun || _held.ToolStack(peer, gun.Item) == null) return "creatures.noGun";
         if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return "creatures.blocked";
-        return _held.ShortOf(peer, [(gun.Ammo, 1)]);
+        return AmmoOf(peer, gun) == null ? "items.notEnough" : null;
+    }
+
+    /// <summary>
+    /// What peer <paramref name="peer"/>'s <paramref name="gun"/> fires next: the first of its ammo the hero carries (any, the first,
+    /// in creative); null for none. What the shooter's client flies its own shot as.
+    /// </summary>
+    public Content.Projectile? AmmoOf(int peer, Content.Gun gun)
+    {
+        foreach (string ammo in gun.Ammo)
+            if (_held.ShortOf(peer, [(ammo, 1)]) == null) return Content.Shots.Get(ammo);
+        return null;
     }
 
     private void Apply(Fire c)
     {
         var gun = Content.Shots.GunOf(c.Tool)!;
-        _items.Take(c.From, [(gun.Ammo, 1)]);
-        var f = ShotFlight.Launch(gun.Projectile, c.X, c.Y, c.Heading);
+        var ammo = AmmoOf(c.From, gun)!;
+        _items.Take(c.From, [(ammo.Id, 1)]);
+        var f = ShotFlight.Launch(gun, c.X, c.Y, c.Heading);
         State.Fired += 1;
         State.Shots.Add(new Shot
         {
             Id = State.Fired,
-            Projectile = gun.Projectile.Id,
+            Projectile = ammo.Id,
+            Gun = gun.Item,
             By = Ref.Hero(c.From),
             X = f.X,
             Y = f.Y,
@@ -81,12 +94,12 @@ public sealed partial class CreaturesModule
         if (met >= 0)
         {
             HitAt(s, p, met);
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, met));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met));
             return false;
         }
         if (next.Left <= 0 || !ShotFlight.OnGrid(next.X, next.Y, _grid.Width, _grid.Height))
         {
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, last));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last));
             return false;
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);
@@ -109,25 +122,27 @@ public sealed partial class CreaturesModule
         StepOf(f, p, p.HitsBodies && _debris.Pieces.Count > 0 ? _debris.Wrecks() : []);
 
     /// <summary>
-    /// <paramref name="s"/>'s hit in <paramref name="cell"/>, the first it meets there: what is solid takes its block damage, where tools
-    /// break things; else the lowest-id creature in it takes its damage, knocked along the shot's way; else the first wreck.
+    /// <paramref name="s"/>'s hit in <paramref name="cell"/>, the first it meets there, its gun's and its own added: what is solid takes
+    /// its block damage, where tools break things; else the lowest-id creature in it takes its damage, knocked by its gun along the
+    /// shot's way; else the first wreck.
     /// </summary>
     private void HitAt(Shot s, Content.Projectile p, int cell)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
         if (Solid(cell))
         {
-            if (p.BlockDamage > 0) _building.Hit(peer, cell, p.BlockDamage);
+            if (Content.Shots.BlockDamageOf(s.Gun, p.Id) is int block and > 0) _building.Hit(peer, cell, block);
             return;
         }
         if (CreatureIn(cell) is { } creature)
         {
             int away = s.VX != 0 ? Math.Sign(s.VX) : AwayFrom(creature, HeroCell(peer));
             // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
-            Hurt(creature, Spec.Get(creature.Species), p.Damage, new Hit(peer, away, Math.Min(Spec.KnockPace, p.Pace), _debris.Clock));
+            int knock = Math.Min(Spec.KnockPace, Content.Shots.GunOf(s.Gun)?.Knock ?? 0);
+            Hurt(creature, Spec.Get(creature.Species), Content.Shots.DamageOf(s.Gun, p.Id), new Hit(peer, away, knock, _debris.Clock));
             return;
         }
-        if (WreckIn(cell, _wrecks) is { } wreck) _debrisOps.Hit(peer, wreck.Piece, p.Damage);
+        if (WreckIn(cell, _wrecks) is { } wreck) _debrisOps.Hit(peer, wreck.Piece, Content.Shots.DamageOf(s.Gun, p.Id));
     }
 
     /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>

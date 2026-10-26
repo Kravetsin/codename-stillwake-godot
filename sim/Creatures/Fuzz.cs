@@ -44,8 +44,8 @@ public sealed partial class CreaturesModule
         string nailer = Content.Shots.Nailer.Item;
         if (_held.ToolStack(from, nailer) == null && rng.Below(2) == 0)
             return rng.Below(2) == 0 ? new Items.SetCreative(true) { From = from } : new Items.Spawn(nailer, 1) { From = from };
-        if (_held.ShortOf(from, [(Content.Shots.Nailer.Ammo, 1)]) != null && rng.Below(2) == 0)
-            return new Items.Spawn(Content.Shots.Nailer.Ammo, 20) { From = from };
+        if (AmmoOf(from, Content.Shots.Nailer) == null && rng.Below(2) == 0)
+            return new Items.Spawn(Content.Shots.Nailer.Ammo[0], 20) { From = from };
         string tool = rng.Below(4) == 0 ? Content.Weapons.Axe.Item : Content.Shots.Nailer.Item;
         int x, y;
         if (_crew.HeroOf(from)?.Cell is int cell && cell >= 0 && cell < _grid.Width * _grid.Height)

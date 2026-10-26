@@ -11,13 +11,14 @@ namespace Stillwake.Game.Shared;
 public static class ShotEnds
 {
     /// <summary>
-    /// A shot of <paramref name="projectile"/> ended in <paramref name="cell"/>, coming from <paramref name="from"/> (cells): on a wall or
-    /// a built piece, its hit heard on <paramref name="voices"/> and thrown off the face turned toward it; on a wreck, its chop.
+    /// A shot of <paramref name="projectile"/> from <paramref name="gun"/> ended in <paramref name="cell"/>, coming from
+    /// <paramref name="from"/> (cells): on a wall or a built piece, its hit heard on <paramref name="voices"/> and thrown off the face
+    /// turned toward it; on a wreck, its chop.
     /// </summary>
-    public static void Show(Registry m, Voices voices, string projectile, int cell, (double X, double Y) from)
+    public static void Show(Registry m, Voices voices, string? gun, string projectile, int cell, (double X, double Y) from)
     {
         var grid = m.Grid;
-        int damage = Content.Shots.Get(projectile).BlockDamage;
+        int damage = Content.Shots.BlockDamageOf(gun, projectile);
         if (grid.Solid(cell))
         {
             var at = Impacts.On(grid, cell, from.X, from.Y);

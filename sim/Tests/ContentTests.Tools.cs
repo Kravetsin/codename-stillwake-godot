@@ -21,17 +21,23 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void EveryProjectileFliesAndReachesAndEveryGunIsAToolOfOneFiringAnItemCraftedAtThePod()
+    public void EveryGunFliesAndReachesIsAToolOfOneCraftedAtThePodAndFiresProjectilesThatAreItemsCraftedThere()
     {
         Assert.Equal(Shots.Projectiles.Count, Shots.Projectiles.Select(p => p.Id).Distinct().Count());
-        Assert.All(Shots.Projectiles, p => Assert.True(p.Speed > 0 && p.Reach > 0 && p.Damage >= 0 && p.BlockDamage >= 0 && p.Weight >= 0, p.Id));
+        Assert.All(Shots.Projectiles, p => Assert.True(p.Damage >= 0 && p.BlockDamage >= 0 && p.Weight >= 0, p.Id));
         foreach (var gun in Shots.Guns)
         {
+            Assert.True(gun.Speed > 0 && gun.Reach > 0 && gun.Pace > 0 && gun.Damage >= 0 && gun.BlockDamage >= 0 && gun.Knock >= 0, gun.Item);
             Assert.Equal(1, Content.Items.Get(gun.Item).Stack);
-            Assert.True(gun.Pace > 0, gun.Item);
             Assert.Null(Weapons.Of(gun.Item));
-            Assert.True(Content.Items.TryGet(gun.Ammo, out _), gun.Ammo);
-            Assert.True(Crafts.TryGet(gun.Item, out _) && Crafts.TryGet(gun.Ammo, out _), gun.Item);
+            Assert.True(Crafts.TryGet(gun.Item, out _), gun.Item);
+            Assert.NotEmpty(gun.Ammo);
+            foreach (string ammo in gun.Ammo)
+            {
+                Assert.Equal(ammo, Shots.Get(ammo).Id);
+                Assert.True(Content.Items.TryGet(ammo, out _) && Crafts.TryGet(ammo, out _), ammo);
+                Assert.True(Shots.DamageOf(gun.Item, ammo) > 0, $"{gun.Item} with {ammo}");
+            }
         }
     }
 

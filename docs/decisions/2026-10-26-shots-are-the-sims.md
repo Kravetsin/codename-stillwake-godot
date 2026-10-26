@@ -16,7 +16,7 @@ come with their first user ("hero guns will send their `Fire` here").
 - **The sim flies every shot, in Creatures.** `Fire(Tool, X, Y, Heading)` spends one of the gun's ammo (`Content.Shots`;
   none in creative) and adds a `Shot { Id, Projectile, By, X, Y, VX, VY, Left }` at the muzzle. Shots are saved with the
   slice, so every peer and a joiner see the same shots; none in flight writes nothing.
-- **One flight, shared with the client.** `ShotFlight` in Core, whole numbers: `Launch` (the speed along the heading,
+- **One flight, shared with the client.** `ShotFlight` in Core, whole numbers: `Launch` (the gun's speed along the heading,
   rounded toward zero; `Reach` cells' ticks, rounded down), `Gravity` (`Creatures.Gravity × Weight` under the surface's
   gravity, none where it floats: open space and the ship, aboard too) and `Step` (a tick less left, then a walk by `Rays.Walk`
   from the old point, its own cell first, falling by its fall and half the gravity, rounded down, the fall then gaining the
@@ -30,18 +30,23 @@ come with their first user ("hero guns will send their `Fire` here").
   move, one fired this tick included; one out of reach or off the grid ends. `Ended` lists the tick's ends for the client,
   derived. The creatures a shot killed are swept out as the shots end: `Dead` is never saved, so one left listed till the
   next tick's sweep came back alive in a save made that tick.
-- **What a hit takes**, from the projectile's row: a creature the `Damage` through the hit path, knocked by `Pace` along
-  the shot's `VX` (straight up or down, away from the shooter's hero); a wreck the `Damage` through `IDebrisOps.Hit`, the
-  body `HewWrecks` now calls too; a solid cell the `BlockDamage` through `IBuildingOps.Hit`, Building's first interface:
+- **What a hit takes**, its gun's and its projectile's added: a creature the damage through the hit path, knocked by the gun along
+  the shot's `VX` (straight up or down, away from the shooter's hero); a wreck the damage through `IDebrisOps.Hit`, the
+  body `HewWrecks` now calls too; a solid cell the block damage through `IBuildingOps.Hit`, Building's first interface:
   `Hew`'s path for one cell, where the surface's tools break things, on a wall that breaks or a built piece that stops a
   body or a floor, its yield to the shooter if its hero is on this surface (Building judges), else falling there for
   anyone. Creatures depends on Building, which runs before it and reads nothing of it.
 - **A blow says when it is answered.** The sentry answers blows on its wreck by the debris clock. A hit now carries
   `Answered`: the clock and one from a command (it lands before the debris drifts), the clock from a system (a shot lands
   after), so a nail on the sentry and an axe on its wreck the next tick are both answered.
-- **The nail:** 60 cells a second; weight 7, so 294 a tick on the first planet and about 30 cells at 45°; gone at 288 cells,
-  half a screen and a whole one past it at the farthest zoom (192 cells); 6 off a creature or a wreck, 1 off a block, a
-  full knock. The nailer: 1 tube, 2 plates, 2 wire, 15 s at the pod; nails 2 scrap each, 1 s there, 100 a stack.
+- **The gun and its projectile** (the user's word, as Terraria): a hit takes the gun's damage and block damage with its
+  projectile's added, whole numbers; the gun gives the launch (speed, reach), the knock and the pace, and fires the first of
+  its `Ammo` the hero carries; the projectile its weight, what it hits and its look. A shot keeps its gun, none for a
+  creature's, whose damage is its projectile's alone. So a railgun to come fires the same nail faster, farther, harder.
+- **The nail and the nailer:** the nailer 4 and 1, the nail 2 and 0: 6 off a creature or a wreck, 1 off a block; 60 cells a
+  second; weight 7, so 294 a tick on the first planet and about 30 cells at 45°; gone at 288 cells, half a screen and a whole
+  one past it at the farthest zoom (192 cells); a full knock. The nailer: 1 tube, 2 plates, 2 wire, 15 s at the pod; nails 2
+  scrap each, 1 s there, 100 a stack.
 
 ## Consequences
 
@@ -55,6 +60,9 @@ come with their first user ("hero guns will send their `Fire` here").
   tie-break the game rarely meets: a sentry in flight over another wreck is the one case.
 
 ## Rejected
+
+- **A gun's multiplier on its projectile's damage:** thousandths and a rounding for every hit; the spread of the best gun with
+  the best ammo grows as a product. Added numbers keep the balance linear (the user's word).
 
 - **The nail flown by the shooter's client** with hits reported as `Strike`/`Hew`/`HewWrecks` and a `Shot` in the hero's
   sample for friends: two flights, one per kind of shooter, and friends' replay landing where the shooter's did not.

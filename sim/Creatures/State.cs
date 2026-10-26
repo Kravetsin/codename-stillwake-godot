@@ -175,6 +175,8 @@ public sealed class Shot
     [JsonInclude] public int Id { get; internal set; }
     /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
     [JsonInclude] public string Projectile { get; internal set; } = "";
+    /// <summary>The gun it was fired from, by its item; none for a creature's, whose damage is its projectile's alone.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Gun { get; internal set; }
     /// <summary>Its shooter: a hero by its peer, or none.</summary>
     [JsonInclude] public Ref By { get; internal set; }
     [JsonInclude] public int X { get; internal set; }
@@ -186,5 +188,5 @@ public sealed class Shot
     internal ShotMotion Motion => new(X, Y, VX, VY, Left);
 }
 
-/// <summary>A shot that ended this tick: its id, its projectile and the cell it met or last flew in.</summary>
-public readonly record struct ShotEnd(int Id, string Projectile, int Cell);
+/// <summary>A shot that ended this tick: its id, its projectile, its gun (none for a creature's) and the cell it met or last flew in.</summary>
+public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell);

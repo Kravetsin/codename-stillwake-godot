@@ -14,13 +14,13 @@ public static class ShotFlight
     private const int Unit = Rays.Cell;
 
     /// <summary>
-    /// A shot of <paramref name="p"/> fired from (<paramref name="x"/>, <paramref name="y"/>) along <paramref name="heading"/>
-    /// (<see cref="Headings"/>): its speed along the heading, rounded toward zero, and its reach's ticks, rounded down.
+    /// A shot fired from <paramref name="gun"/> at (<paramref name="x"/>, <paramref name="y"/>) along <paramref name="heading"/>
+    /// (<see cref="Headings"/>): the gun's speed along the heading, rounded toward zero, and its reach's ticks, rounded down.
     /// </summary>
-    public static ShotMotion Launch(Projectile p, int x, int y, int heading)
+    public static ShotMotion Launch(Gun gun, int x, int y, int heading)
     {
         var (dx, dy) = Rays.Direction(heading);
-        return new(x, y, dx * p.Speed / Unit, dy * p.Speed / Unit, p.Reach * Unit / p.Speed);
+        return new(x, y, dx * gun.Speed / Unit, dy * gun.Speed / Unit, gun.Reach * Unit / gun.Speed);
     }
 
     /// <summary>

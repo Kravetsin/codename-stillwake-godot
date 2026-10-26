@@ -46,7 +46,8 @@ the tick's mean fall so the arc is ≈30.6 cells; wrecks come from `IDebrisQueri
 the shooter is on the surface; shots sweep out the creatures they kill. The nail's `Reach` is 288 cells (half the farthest zoom's 192-cell screen and a whole one past it); the
 next id is kept as `Fired`; empty `Shots` save nothing, so the format's fixture stands; no `--fire` dev mode (the testbed's
 supply crate holds the nailer and 100 nails, N-2 fires them); the fuzz's new draws moved one desync test's seed 9 to 10.
-The nailer and nails have placeholder icons. ADR: `2026-10-26-shots-are-the-sims`.
+The nailer and nails have placeholder icons. ADR: `2026-10-26-shots-are-the-sims`. Then, the user's word: a hit is the gun's damage and
+its projectile's added, and the launch (speed, reach), knock and pace are the gun's; a shot keeps its gun; `Gun.Ammo` is a list.
 
 - **Content** (`sim/Content/Shots.cs`):
   - `Projectile(Id, Speed, Weight, Reach, Damage, BlockDamage, Pace, HitsBodies)`: `Weight` a whole multiplier of

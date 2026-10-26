@@ -11,7 +11,11 @@ public class ShotsTests
 {
     private const int Unit = CreaturesModule.Unit;
     private static readonly Spec.Projectile Nail = Spec.Shots.Nail;
-    private static readonly string Nailer = Spec.Shots.Nailer.Item;
+    private static readonly Spec.Gun Gun = Spec.Shots.Nailer;
+    private static readonly string Nailer = Gun.Item;
+
+    /// <summary>What a nailer's nail takes off a creature or a wreck, and off a block: the gun's and the nail's added.</summary>
+    private static readonly int Hit = Gun.Damage + Nail.Damage, BlockHit = Gun.BlockDamage + Nail.BlockDamage;
 
     /// <summary>Headings: along +x, down, and up and to the right at 45°.</summary>
     private const int Right = 0, Down = 64, UpRight = 224;
@@ -58,8 +62,10 @@ public class ShotsTests
         Assert.Empty(w.Refusals);
         Assert.Equal(19, Nails(w));
         var shot = w.M.Creatures.Shots.Single();
-        Assert.Equal((10_500 + Nail.Speed, 10_500, Nail.Speed, 0), (shot.X, shot.Y, shot.VX, shot.VY));
-        Assert.Equal(Ref.Hero(0), shot.By);
+        Assert.Equal((10_500 + Gun.Speed, 10_500, Gun.Speed, 0), (shot.X, shot.Y, shot.VX, shot.VY));
+        Assert.Equal((Ref.Hero(0), Nailer, Nail.Id), (shot.By, shot.Gun, shot.Projectile));
+        // A hit is the gun's and the nail's added; a creature's shot, with no gun, its projectile's alone.
+        Assert.Equal((Gun.Damage + Nail.Damage, Nail.Damage), (Spec.Shots.DamageOf(Nailer, Nail.Id), Spec.Shots.DamageOf(null, Nail.Id)));
     }
 
     [Fact]
@@ -90,7 +96,7 @@ public class ShotsTests
     public void InOpenSpaceANailFliesStraightTillItsReachRunsOut()
     {
         var w = Space();
-        int ticks = Nail.Reach * Unit / Nail.Speed;
+        int ticks = Gun.Reach * Unit / Gun.Speed;
         w.Do(At(2, 10, Right)).Run(ticks - 1);
         var shot = w.M.Creatures.Shots.Single();
         Assert.Equal((0, 10_500), (shot.VY, shot.Y));
@@ -115,7 +121,7 @@ public class ShotsTests
         int cell = ends.Single().Cell;
         Assert.Equal(30, cell / 100);
         Assert.InRange(cell % 100 - 2, 30, 31);
-        Assert.Equal(Nail.BlockDamage, CrackAt(w, cell));
+        Assert.Equal(BlockHit, CrackAt(w, cell));
     }
 
     [Fact]
@@ -125,7 +131,7 @@ public class ShotsTests
         w.Do(At(10, 31, Right)).Run();
         Assert.Empty(w.M.Creatures.Shots);
         Assert.Equal(31 * 100 + 10, w.M.Creatures.Ended.Single().Cell);
-        Assert.Equal(Nail.BlockDamage, CrackAt(w, 31 * 100 + 10));
+        Assert.Equal(BlockHit, CrackAt(w, 31 * 100 + 10));
     }
 
     [Fact]
@@ -156,7 +162,7 @@ public class ShotsTests
         var w = Ground();
         int pillar = EndOf(w, At(80, 20, Right));
         Assert.Equal(90, pillar % 100);
-        Assert.Equal(Nail.BlockDamage, CrackAt(w, pillar));
+        Assert.Equal(BlockHit, CrackAt(w, pillar));
         for (int i = 1; i < Spec.Materials.Get("soil").Strength; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
         Assert.Null(w.M.Grid.WallAt(pillar));
         Assert.Equal(1, w.M.Items.Totals(0).Where(t => t.Item == "soil").Sum(t => t.Count));
@@ -188,7 +194,7 @@ public class ShotsTests
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         // The muzzle is the client's word: here two cells short of the loper, its hero 38 cells off.
         w.Do(new Fire(Nailer, 38 * Unit, 18 * Unit, Right)).Run();
-        Assert.Equal(Nail.Damage, loper.Damage);
+        Assert.Equal(Hit, loper.Damage);
         Assert.Equal(((Spec.Creatures.Walker)Spec.Creatures.Loper.Body).Run, loper.VX);
         Assert.Equal(Posture.Flee, loper.Posture);
     }
@@ -199,7 +205,7 @@ public class ShotsTests
         var w = CreaturesTesting.Planet(Map, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 80 + 70)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
         var loper = w.Let(Spec.Creatures.Loper, 40, 19);
         w.Do(new Fire(Nailer, loper.X, 12 * Unit, Down)).Run(3);
-        Assert.Equal(Nail.Damage, loper.Damage);
+        Assert.Equal(Hit, loper.Damage);
         Assert.Equal(-((Spec.Creatures.Walker)Spec.Creatures.Loper.Body).Run, loper.VX);
     }
 
@@ -210,7 +216,7 @@ public class ShotsTests
         var first = w.Let(Spec.Creatures.Loper, 40, 19);
         var second = w.Let(Spec.Creatures.Loper, 40, 19);
         w.Do(new Crew.Enter(19 * 80 + 36)).Do(new Fire(Nailer, 34 * Unit, 18 * Unit, Right)).Run(3);
-        Assert.Equal((Nail.Damage, 0), (first.Damage, second.Damage));
+        Assert.Equal((Hit, 0), (first.Damage, second.Damage));
     }
 
     /// <summary>Flat open ground, a cell a character: 80 cells by 20 over a row of walls.</summary>
@@ -226,7 +232,7 @@ public class ShotsTests
         debris.Pieces.AddRange([scrap, wreck]);
         SentryTests.Guarded(w);
         w.Do(At(10, 10, Right)).Run(20);
-        Assert.Equal(Nail.Damage, wreck.Damage);
+        Assert.Equal(Hit, wreck.Damage);
         Assert.Equal(0, wreck.Struck!.By);
         Assert.Contains(scrap, w.M.Debris.Pieces);
     }
@@ -244,7 +250,7 @@ public class ShotsTests
         var sentry = w.M.Creatures.Creatures.Single();
         // Fired from beside it, so the nail lands this very tick, after the debris drifted.
         w.Do(new Fire(Nailer, sentry.X - 2 * Unit, sentry.Y - Unit, Right)).Run();
-        Assert.Equal(Nail.Damage, sentry.Damage);
+        Assert.Equal(Hit, sentry.Damage);
         int answered = sentry.Recall(GuardDrive.Answered);
         w.Do(HewTesting.Hit(w, wreck.Id, Spec.Weapons.Axe.Item)).Run();
         Assert.True(wreck.Struck!.At + 1 > answered);
@@ -286,7 +292,7 @@ public class ShotsTests
         var w = Ground();
         int cell = EndOf(w, At(45, 25, Right));
         Assert.Equal(25 * 100 + 50, cell);
-        Assert.Equal(Nail.BlockDamage, w.M.Building.Cracks.Single().Damage);
+        Assert.Equal(BlockHit, w.M.Building.Cracks.Single().Damage);
     }
 
     [Fact]

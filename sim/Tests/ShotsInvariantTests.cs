@@ -37,7 +37,7 @@ public class ShotsInvariantTests
     private static string? Broken(Scenario w, Dictionary<int, (int X, int Y)> was)
     {
         var shots = w.M.Creatures.Shots;
-        int most = Spec.Shots.Nail.Reach * Unit / Spec.Shots.Nail.Speed;
+        int most = Spec.Shots.Nailer.Reach * Unit / Spec.Shots.Nailer.Speed;
         for (int i = 0; i < shots.Count; i++)
         {
             var s = shots[i];
