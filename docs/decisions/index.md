@@ -128,3 +128,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
 | [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |
+| [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |

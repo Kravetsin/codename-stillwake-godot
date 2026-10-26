@@ -1,7 +1,7 @@
 # crew (client): the heroes
 
-This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here against the
-ship's cells, and only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `Run`, `HitBy` and the hands'
+This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here, and
+only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `Run`, `HitBy` and the hands'
 commands reach the sim. Other heroes come through the host.
 
 ## Files
@@ -52,7 +52,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) |
 | `BodyView.cs` | each body drawn, its beacon (0061) |
 | `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
-| `logic/Crew.En.cs` | Its player text (`En`) |
+| `logic/Crew.En.cs` | its player text |
 
 `logic/` is Godot-free, tested in `game.tests/`.
 
@@ -96,7 +96,7 @@ commands reach the sim. Other heroes come through the host.
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`): axe, harpoon, drill, screwdriver; working a plan, the screwdriver twists.
+- **What the hand holds shows** (`HeldLook`); working a plan, the screwdriver twists.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
   wiring, lays cables; a tool on the right does nothing.
 - **One aim** (`Aiming.AimAt`): a plan, a machine, tank, door or valve (E), a wreck under the pointer, else the nearest
