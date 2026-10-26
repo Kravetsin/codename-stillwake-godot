@@ -92,7 +92,8 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Why <paramref name="place"/> cannot be planned at <paramref name="cell"/>: a machine built into the ship, one its surface's kind
-    /// does not allow (0076), a blueprint not known (ADR 0024), what the grid says, then a plan already claiming its slot in a cell it covers.
+    /// does not allow (0076), a blueprint not known (ADR 0024), what the grid says, a plan already claiming its slot in a cell it covers,
+    /// then, building instantly, a wall on a hero.
     /// </summary>
     private string? PlaceProblem(int cell, Placement place)
     {
@@ -105,7 +106,9 @@ public sealed partial class BuildingModule
         var wanted = Covers(cell, place);
         bool taken = State.Plans.Exists(p =>
             p.Place is { } other && SlotOf(other.Layer) == slot && Covers(p).Any(wanted.Contains));
-        return taken ? "building.planned" : null;
+        if (taken) return "building.planned";
+        // Built at once, a wall waits for no step out: it is refused on a hero, as its last tick of work would be (0077).
+        return State.Instant && place.Kind == "wall" && HeroIn(cell) ? "building.heroInside" : null;
     }
 
     /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock; creative mode too.</summary>
