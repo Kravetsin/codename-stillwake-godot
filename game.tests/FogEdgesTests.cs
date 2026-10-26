@@ -14,7 +14,7 @@ namespace Stillwake.Game.Tests;
 public class FogEdgesTests
 {
     private const int Unit = Hero.Unit;
-    private static readonly HeroInput Still = new(0, 0, false), Left = Still with { X = -1 }, Up = Still with { Y = -1 },
+    private static readonly HeroInput Still = new(0, 0, false), Left = Still with { X = -1 }, Right = Still with { X = 1 }, Up = Still with { Y = -1 },
         Down = Still with { Y = 1 }, Jump = Still with { Jump = true, JumpHeld = true };
 
     /// <summary>The small planet, opened from a ship: its registry.</summary>
@@ -115,24 +115,56 @@ public class FogEdgesTests
     }
 
     [Fact]
-    public void InABandTheHeroGlidesAtItsHeightUpDownAndJumpDoingNothingAndTheKeysPacingItAcross()
+    public void InABandTheHeroGlidesAtItsHeightPulledOutAtAWalkWhateverTheKeys()
     {
         var m = Small.Value;
         var ship = ShipOf(m);
         var e = Edges;
-        // In the left band, over its seam, ten rows over its line and forty under it: weightless both.
+        // In the left band, ten rows over its line and forty under it: weightless both, and every key, even back, does nothing.
         foreach (int y in new[] { (e.LeftLine - 10) * Unit, (e.LeftLine + 40) * Unit })
-            foreach (var keys in new[] { Still, Up, Down, Jump })
+            foreach (var keys in new[] { Still, Right, Up, Down, Jump })
             {
-                var hero = new Hero(6 * Unit, y, 0, 0, false, 1);
-                for (int i = 0; i < 60; i++) hero = hero.Step(keys, ship);
-                Assert.Equal((6 * Unit, y, 0), (hero.X, hero.Y, hero.Vy));
+                var hero = new Hero(7 * Unit, y, 0, 0, false, 1);
+                for (int i = 0; i < 12; i++) hero = hero.Step(keys, ship);
+                Assert.Equal((y, 0, -Stillwake.Content.Hero.Walk, -1, false), (hero.Y, hero.Vy, hero.Vx, hero.Facing, hero.Gliding));
+                Assert.True(hero.X < 6 * Unit, $"glided only to {hero.X}");
             }
-        var walking = new Hero(7 * Unit, (e.LeftLine - 10) * Unit, 0, 0, false, -1);
-        for (int i = 0; i < 12; i++) walking = walking.Step(Left, ship);
-        Assert.Equal(-Stillwake.Content.Hero.Walk, walking.Vx);
-        Assert.Equal((e.LeftLine - 10) * Unit, walking.Y);
-        Assert.True(walking.X < 5 * Unit, $"glided only to {walking.X}");
+    }
+
+    [Fact]
+    public void AHeroThatWalksIntoABandIsPulledOnWhateverTheKeysAcrossTheSeamAndOutOfTheFarBand()
+    {
+        var ship = ShipOf(Small.Value);
+        var e = Edges;
+        foreach (var keys in new[] { Still, Right, Left, Up, Down, Jump })
+        {
+            var hero = new Hero(e.Fog * Unit - 1, (e.LeftLine - 10) * Unit, -Stillwake.Content.Hero.Walk, 0, false, -1);
+            bool moved = false;
+            for (int i = 0; i < 600 && !moved; i++)
+            {
+                var next = hero.Step(keys, ship);
+                var over = FogMove.Of(ship, hero, next, seated: false);
+                (moved, hero) = (over is not null, over ?? next);
+            }
+            Assert.True(moved, $"{keys}: never moved across");
+            for (int i = 0; i < 600; i++) hero = hero.Step(Still, ship);
+            Assert.False(e.Carries(hero.X), $"{keys}: left at column {hero.X / Unit}, in the fog");
+            Assert.Equal((0, hero.Y), (hero.Vy, hero.Step(Still, ship).Y));
+        }
+    }
+
+    [Fact]
+    public void AWallPastTheBandAcrossAMovedHerosGlideEndsItThereAndItFalls()
+    {
+        var m = Small.Value;
+        var e = Edges;
+        int wall = e.Width - e.Fog - e.Out + 1;
+        var ship = Ship.Of(m.Grid, m.Rooms, c => c % m.Grid.Width == wall ? Structure.Wall : m.Grid.StructureAt(c), m.Rules);
+        var hero = new Hero(e.RightSeam - 100, e.Arrive(e.Period, Top), -Stillwake.Content.Hero.Walk, 0, false, -1, Gliding: true);
+        for (int i = 0; i < 300; i++) hero = hero.Step(Still, ship);
+        Assert.False(hero.Gliding);
+        Assert.True(hero.X / Unit > wall, $"through the wall to {hero.X / Unit}");
+        Assert.Equal((0, hero.Y), (hero.Vy, hero.Step(Still, ship).Y));
     }
 
     [Fact]
@@ -146,24 +178,26 @@ public class FogEdgesTests
     }
 
     [Fact]
-    public void ArrivingTheHeroGlidesOutOfTheBandAndFallsToTheGroundAndStands()
+    public void ArrivingTheHeroIsPulledOutOfTheBandWhateverTheKeysAndFallsToTheGroundAndStands()
     {
         var m = Small.Value;
         var ship = ShipOf(m);
         var e = Edges;
-        var hero = new Hero(e.RightSeam - 100, e.Arrive(e.Period, Top), -Stillwake.Content.Hero.Walk, 0, false, -1, Gliding: true);
-        bool fell = false;
-        for (int i = 0; i < 150; i++)
+        foreach (var keys in new[] { Still, Left, Right })
         {
-            hero = hero.Step(Left, ship);
-            // It glides on through the band and the columns past it, and only then falls, out of the thick fog.
-            if (hero.Vy > 0 && !fell) Assert.False(e.Carries(hero.X), $"it fell at {hero.X / Unit}, in the thick fog");
-            fell |= hero.Vy > 0;
+            var hero = new Hero(e.RightSeam - 100, e.Arrive(e.Period, Top), -Stillwake.Content.Hero.Walk, 0, false, -1, Gliding: true);
+            bool fell = false;
+            for (int i = 0; i < 300 && !fell; i++)
+            {
+                hero = hero.Step(keys, ship);
+                // It glides on through the band and the columns past it, and only then falls, out of the thick fog.
+                if (hero.Vy > 0) Assert.False(e.Carries(hero.X), $"{keys}: it fell at {hero.X / Unit}, in the thick fog");
+                fell = hero.Vy > 0;
+            }
+            Assert.True(fell, $"{keys}: it never fell");
+            // Let go, it comes to stand on the ground: no fall left, its feet kept.
+            for (int i = 0; i < 120; i++) hero = hero.Step(Still, ship);
+            Assert.Equal((0, hero.Y), (hero.Vy, hero.Step(Still, ship).Y));
         }
-        Assert.True(fell, "it never fell");
-        Assert.False(e.Outside(hero.X), "it never left the band");
-        // Let go, it comes to stand on the ground: no fall left, its feet kept.
-        for (int i = 0; i < 120; i++) hero = hero.Step(Still, ship);
-        Assert.Equal((0, hero.Y), (hero.Vy, hero.Step(Still, ship).Y));
     }
 }
