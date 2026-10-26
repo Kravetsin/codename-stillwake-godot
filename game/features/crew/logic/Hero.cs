@@ -65,6 +65,9 @@ public sealed class Ship(
     /// <summary>Whether a body centre at <paramref name="x"/>, in thousandths of a cell, glides: in a planet's fog.</summary>
     public bool Glides(int x) => fog?.Outside(x) ?? false;
 
+    /// <summary>Whether a hero already gliding at <paramref name="x"/> glides on: in a band or the columns past it (<c>FogEdges.Carries</c>).</summary>
+    public bool Carries(int x) => fog?.Carries(x) ?? false;
+
     /// <summary>
     /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
     /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014). Under the rules of
@@ -91,10 +94,12 @@ public sealed class Ship(
 /// <see cref="Rising"/>, a jump rising that letting go of Space cuts. <see cref="LetGo"/>, steps since the hands let go of a
 /// ladder by a jump or a walk, kept at most one past <c>Hero.Regrab</c>: up grabs none before then (0092). <see cref="Leaping"/>,
 /// in the air from a jump, off the floor or a ladder, till the feet stand: only a jump steps up onto a ledge it fell short of.
+/// <see cref="Gliding"/>, weightless in a planet's fog (fog-edges): kept on past a band while <see cref="Ship.Carries"/>.
 /// </summary>
 public readonly record struct Hero(
     int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
-    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false)
+    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false,
+    bool Gliding = false)
 {
     /// <summary>Thousandths of a cell: the unit of every length and speed in <see cref="Spec"/>.</summary>
     public const int Unit = 1000;
@@ -223,7 +228,8 @@ public readonly record struct Hero(
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
         // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
-        if (ship.Glides(hero.X)) return Glide(ship, hero, input, facing);
+        if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero, input, facing);
+        hero = hero with { Gliding = false };
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
         if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
@@ -465,7 +471,7 @@ public readonly record struct Hero(
     private static Hero Glide(Ship ship, Hero hero, HeroInput input, int facing)
     {
         int nx = MoveX(ship, hero.X, hero.Y, Paced(hero.Vx, input, grounded: true));
-        return new Hero(nx, hero.Y, nx - hero.X, 0, false, facing);
+        return new Hero(nx, hero.Y, nx - hero.X, 0, false, facing, Gliding: true);
     }
 
     /// <summary>
@@ -743,6 +749,14 @@ public readonly record struct Hero(
     /// What a body stops in (<see cref="Trait.Blocks"/>, <see cref="Trait.BlocksFromBelow"/>: walls, shut doors and hatches), and
     /// everything past the grid's edge: a shut hatch lies in the deck, holding a walk from above and stopping a body from below.
     /// </summary>
+    /// <summary>The first row of <paramref name="column"/> a hero stands on or stops at, from the top: its ground's top; the grid's height for none.</summary>
+    public static int TopOf(Ship ship, int column)
+    {
+        for (int row = 0; row < ship.Height; row++)
+            if (Solid(ship, column, row)) return row;
+        return ship.Height;
+    }
+
     private static bool Solid(Ship ship, int x, int y) =>
         StructureAt(ship, x, y) is not int s || Structures.Is(s, Trait.Blocks | Trait.BlocksFromBelow);
 

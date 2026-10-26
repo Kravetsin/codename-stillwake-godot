@@ -300,13 +300,13 @@ public sealed class GroundDemo(string mode)
         Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Structure.Empty);
 
     /// <summary>
-    /// With <c>fog</c>, the cell on the ground twenty columns inside the left band's zone side, to walk into the fog from; with
-    /// <c>fog-cave</c>, one inside the left band four columns out of the zone, forty rows under its ground line, as a tunnel
-    /// out to it would leave the hero (fog-edges).
+    /// With <c>fog</c>, the cell on the ground forty-eight columns inside the left band's zone side, past the fog, to walk into
+    /// it from; with <c>fog-cave</c>, one inside the left band four columns out of the zone, forty rows under its ground line,
+    /// as a tunnel out to it would leave the hero (fog-edges).
     /// </summary>
     private static int FogSpot(Registry m, bool cave)
     {
-        int w = m.Grid.Width, fog = m.Grid.Zone.Left, x = cave ? fog - 4 : fog + 20;
+        int w = m.Grid.Width, fog = m.Grid.Zone.Left, x = cave ? fog - 4 : fog + 48;
         int top = Enumerable.Range(0, m.Grid.Height).First(y => cave
             ? m.Grid.BackLayer[y * w + x] != Stillwake.Sim.Grid.Back.None
             : m.Grid.StructureAt(y * w + x) != Structure.Empty);

@@ -10,15 +10,17 @@ namespace Stillwake.Game.Shared;
 public static class FogShare
 {
     /// <summary>
-    /// The fog on the column at <paramref name="x"/>, in cells: none from <see cref="FogLooks.Lead"/> columns inside the zone in,
-    /// easing to <see cref="FogLooks.Edge"/> at the zone's side and on to whole at the seam; whole past it and past the grid.
+    /// The fog on the column at <paramref name="x"/>, in cells: whole over a band and past the grid, so its hollow is never seen;
+    /// thinning over the <see cref="FogEdges.Out"/> columns past it to <see cref="FogLooks.Edge"/>, where a moved hero falls out of it;
+    /// gone <see cref="FogLooks.Lead"/> columns further in.
     /// </summary>
     public static double Column(FogEdges e, double x)
     {
         double t = Inward(e, x);
-        if (t >= e.Fog + FogLooks.Lead) return 0;
-        if (t >= e.Fog) return FogLooks.Edge * Smooth((e.Fog + FogLooks.Lead - t) / FogLooks.Lead);
-        if (t >= e.Fog / 2.0) return FogLooks.Edge + (1 - FogLooks.Edge) * Smooth((e.Fog - t) / (e.Fog / 2.0));
+        double edge = e.Fog + e.Out;
+        if (t >= edge + FogLooks.Lead) return 0;
+        if (t >= edge) return FogLooks.Edge * Smooth((edge + FogLooks.Lead - t) / FogLooks.Lead);
+        if (t > e.Fog) return FogLooks.Edge + (1 - FogLooks.Edge) * Smooth((edge - t) / Math.Max(1, e.Out));
         return 1;
     }
 

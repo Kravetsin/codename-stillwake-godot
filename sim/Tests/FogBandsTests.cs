@@ -36,6 +36,8 @@ public class FogBandsTests
             Assert.True(g.Fog >= g.BedrockSide + 2, $"{g.Fog} columns of fog over {g.BedrockSide} of bedrock");
             Assert.True(2 * g.Fog * 4 < g.Width, $"{g.Fog} columns of fog on a planet {g.Width} wide");
             Assert.True(g.FogDrop >= HeroRows, $"a drop of {g.FogDrop} rows under a hero {HeroRows} tall");
+            // The thick fog past a band, where a moved hero glides on: some, and most of the zone left clear of it.
+            Assert.True(g.FogOut > 0 && 2 * (g.Fog + g.FogOut) * 2 < g.Width, $"{g.FogOut} columns past a band of {g.Fog}");
         }
     }
 
