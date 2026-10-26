@@ -94,7 +94,8 @@ public sealed class Ship(
 /// <see cref="Rising"/>, a jump rising that letting go of Space cuts. <see cref="LetGo"/>, steps since the hands let go of a
 /// ladder by a jump or a walk, kept at most one past <c>Hero.Regrab</c>: up grabs none before then (0092). <see cref="Leaping"/>,
 /// in the air from a jump, off the floor or a ladder, till the feet stand: only a jump steps up onto a ledge it fell short of.
-/// <see cref="Gliding"/>, weightless in a planet's fog (fog-edges): kept on past a band while <see cref="Ship.Carries"/>.
+/// <see cref="Gliding"/>, moved across a planet's fog (fog-edges): pulled inward, gliding on past the band while
+/// <see cref="Ship.Carries"/>.
 /// </summary>
 public readonly record struct Hero(
     int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
@@ -228,7 +229,7 @@ public readonly record struct Hero(
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
         // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
-        if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero, input, facing);
+        if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero);
         hero = hero with { Gliding = false };
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
@@ -465,13 +466,16 @@ public readonly record struct Hero(
     }
 
     /// <summary>
-    /// A step in a planet's fog (fog-edges): weightless at the height the hero came in, the keys pacing it across as on the
-    /// ground, up, down and jump doing nothing. Walls stop it, and what a wall stops it loses.
+    /// A step in a planet's fog (fog-edges): weightless at the height the hero came in, pulled on at a walk the way it is
+    /// going, whatever the keys: out to the seam when it walked in, in out of the fog when it was moved across
+    /// (<see cref="Gliding"/>). A wall past the band, built across its glide, ends the glide there: it falls.
     /// </summary>
-    private static Hero Glide(Ship ship, Hero hero, HeroInput input, int facing)
+    private static Hero Glide(Ship ship, Hero hero)
     {
-        int nx = MoveX(ship, hero.X, hero.Y, Paced(hero.Vx, input, grounded: true));
-        return new Hero(nx, hero.Y, nx - hero.X, 0, false, facing, Gliding: true);
+        int way = hero.X < ship.Width * Unit / 2 == hero.Gliding ? 1 : -1;
+        int nx = MoveX(ship, hero.X, hero.Y, Paced(hero.Vx, new HeroInput(way, 0, false), grounded: true));
+        bool stopped = nx == hero.X && !ship.Glides(hero.X);
+        return new Hero(nx, hero.Y, nx - hero.X, 0, false, way, Gliding: hero.Gliding && !stopped);
     }
 
     /// <summary>
