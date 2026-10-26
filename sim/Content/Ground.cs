@@ -128,6 +128,12 @@ public sealed record Ground(int Width, int Height)
     public required int BedrockRows { get; init; }
     public required int BedrockSide { get; init; }
 
+    /// <summary>
+    /// The columns at each side hidden in fog (fog-edges): bedrock from the ground's top down, sky over it, no landmark,
+    /// ruin or growth, and outside the build zone, so nothing is dug or built there and no creature goes in.
+    /// </summary>
+    public required int Fog { get; init; }
+
     /// <summary>The rows under the caves: the lava and the bedrock under it.</summary>
     public int CoreRows => LavaRows + BedrockRows;
 }

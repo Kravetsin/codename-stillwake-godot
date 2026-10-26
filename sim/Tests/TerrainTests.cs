@@ -42,8 +42,8 @@ public class TerrainTests
         var bedrock = Enumerable.Range(floor + Small.LavaRows, Small.BedrockRows).SelectMany(y => Enumerable.Range(0, l.Width).Select(x => (x, y)));
         // The lava under every column between the sides, solid, the bedrock under it: nothing falls out of the bottom.
         var lava = Enumerable.Range(floor, Small.LavaRows).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
-        // Nowhere else: the ground inside is soil and stone.
-        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
+        // Nowhere else between the fog bands (fog-edges), which are bedrock: the ground inside is soil and stone.
+        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(Small.Fog, l.Width - 2 * Small.Fog).Select(x => (x, y)));
         return Small.LavaRows > 0 && Small.BedrockRows > 0
             && sides.Concat(bedrock).All(c => Is(c.Item1, c.Item2, "bedrock")) && lava.All(c => Is(c.Item1, c.Item2, "lava"))
             && inside.All(c => l.Materials![c.Item2 * l.Width + c.Item1] is var m && m != Code("bedrock") && m != Code("lava"));
@@ -92,7 +92,7 @@ public class TerrainTests
     public Property SoilLiesOverStoneAtMostSixteenDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(BareType, seed);
-        for (int x = Small.BedrockSide; x < l.Width - Small.BedrockSide; x++)
+        for (int x = Small.Fog; x < l.Width - Small.Fog; x++)
         {
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
@@ -112,7 +112,7 @@ public class TerrainTests
         foreach (uint seed in Enumerable.Range(1, 6).Select(s => (uint)s))
         {
             var l = Terrain.Generate(PlanetTypes.First, seed);
-            int thin = Enumerable.Range(Planet.BedrockSide, l.Width - 2 * Planet.BedrockSide).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
+            int thin = Enumerable.Range(Planet.Fog, l.Width - 2 * Planet.Fog).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
             Assert.True(thin * 10 <= l.Width, $"seed {seed}: {thin} thin columns");
         }
     }
