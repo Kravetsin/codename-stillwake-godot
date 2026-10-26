@@ -69,4 +69,30 @@ public static class Wreckage
             if (Sizes[i].Item == item) return (Sizes[i].W, Sizes[i].H);
         return null;
     }
+
+    /// <summary>
+    /// A flat stretch of a wreck picture's top, where a clinger stands: its columns from <paramref name="Left"/> up to
+    /// <paramref name="Right"/>, its top at row <paramref name="Top"/>, in the picture's pixels, eight to a cell, from its top left.
+    /// </summary>
+    public readonly record struct Perch(int Left, int Right, int Top);
+
+    /// <summary>A perch is at least this many pixels across: a sentry's three cells.</summary>
+    public const int PerchLeast = 24;
+
+    /// <summary>A wreck's picture has this many pixels to a cell, a pixel of art a pixel of the world.</summary>
+    public const int PixelsPerCell = 8;
+
+    /// <summary>
+    /// The perches of each look of the kinds clingers come with (<c>Creatures.Derelicts</c>), by its number from 0: the stretches of
+    /// its top, from the left, flat within a pixel and <see cref="PerchLeast"/> across, as <c>PerchesTests</c> measures the pictures.
+    /// A look with none, such as every pod cluster's, takes no clinger.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<IReadOnlyList<Perch>>> Perches = new Dictionary<string, IReadOnlyList<IReadOnlyList<Perch>>>
+    {
+        ["engineBlock"] = [[new(17, 54, 1)], [new(8, 42, 2)], [new(43, 71, 2)], []],
+        ["cargoHold"] = [[new(1, 85, 3)], [new(2, 37, 8), new(50, 94, 8)], [new(64, 94, 7)], [new(8, 51, 7), new(51, 87, 2)]],
+    };
+
+    /// <summary>The perches of piece <paramref name="id"/> of <paramref name="item"/>, by the look it wears (<see cref="Looks.Of"/>); none for a kind with none.</summary>
+    public static IReadOnlyList<Perch> PerchesOf(string item, int id) => Perches.TryGetValue(item, out var looks) ? looks[Looks.Of(item, id)] : [];
 }

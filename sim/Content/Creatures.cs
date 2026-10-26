@@ -30,10 +30,11 @@ public static class Creatures
     public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross) : Shape(Width, Height);
 
     /// <summary>
-    /// A clinger: clamped to a piece of debris at a point along its top, riding its drift; it leaves it only to fly, straight and
-    /// through walls, and flies back to clamp on again.
+    /// A clinger: clamped to a piece of debris at a point along its top, on one of its perches (<c>Wreckage.Perches</c>), riding its
+    /// drift; watching, it crawls along its perch at <paramref name="Crawl"/> a tick, turning at its ends. It leaves the piece only to
+    /// fly, straight and through walls, and flies back to clamp on again.
     /// </summary>
-    public sealed record Clinger(int Width, int Height) : Shape(Width, Height);
+    public sealed record Clinger(int Width, int Height, int Crawl = 0) : Shape(Width, Height);
 
     /// <summary>Its hit points, and the knock a hit gives it across and the hop up, at a full pace's blow (<see cref="KnockPace"/>).</summary>
     public sealed record Life(int Hp, int Knock, int Hop);
@@ -170,12 +171,13 @@ public static class Creatures
         Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4)]);
 
     /// <summary>
-    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp. It
+    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
+    /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. It
     /// watches; a hero within twelve cells alerts it for a second, then it pounces: a crouch of 0.8 s, then a flight of 0.85 s at
     /// 24 cells a second, some twenty cells, six units of a suit if it hits. Struck, or its wreck struck, it crouches at once.
     /// Forty hit points, never knocked. A harpoon on its wreck is cut. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2),
+    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2, Crawl: 40),
         Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
         Brain: [new CutTether(), new Return(Speed: 600), new Guard(Notice: 12, AlertTicks: 20)],
         Moves: [new Pounce(WindUp: 16, Speed: 1200, Ticks: 17, Damage: 6)], Yields: [new("scrapChunk", 3, 5)]);
@@ -183,13 +185,17 @@ public static class Creatures
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
 
     /// <summary>
-    /// A species that comes with debris pieces of some kinds as they drift in, clamped to one's top: each new piece of a kind draws
-    /// once, the species coming with it <paramref name="PerMille"/> times in a thousand. The species is a clinger.
+    /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):
+    /// each new piece of a kind, its look with a perch, draws once, the species coming with it <paramref name="PerMille"/>
+    /// times in a thousand. The species is a clinger.
     /// </summary>
     public sealed record OnDebris(string Species, IReadOnlyList<(string Item, int PerMille)> Kinds);
 
-    /// <summary>Sentries on about every other derelict out in the far field (0056): a sortie's prize is guarded.</summary>
-    public static readonly OnDebris Derelicts = new(Sentry.Id, [("engineBlock", 500), ("cargoHold", 500), ("podCluster", 500)]);
+    /// <summary>
+    /// Sentries on about every other engine block and cargo hold out in the far field (0056), whose pictures have a flat top to stand
+    /// on (<c>Wreckage.Perches</c>): a sortie's prize is guarded. Pod clusters have none.
+    /// </summary>
+    public static readonly OnDebris Derelicts = new(Sentry.Id, [("engineBlock", 500), ("cargoHold", 500)]);
 
     /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's

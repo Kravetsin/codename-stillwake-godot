@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Clinger.cs` | The clinger's rule (the sentry): clamped to a wreck's top, riding it, flying straight off it. |
+| `Clinger.cs` | The clinger's rule (the sentry): on a perch of a wreck's top, crawling, riding it, flying off it. |
 | `Creatures.cs` | The commands (`Strike`, `HitBy`, `Release`), the queries, and the hit path every hit takes. |
 | `Drives.cs` | The grazers' drives' rules: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
@@ -70,7 +70,7 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - **`Threatens(peer)`**: a creature within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
 - **Kept or gone** (0102): in some hero's keep box it is seen; out of every one gone `Linger` after; out of every hard box at
   once. **Spawning** (`Spawn.cs`): on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards**
-  (`Kind.Guards`): each piece past `Watermark` draws once, in id order: sentries on half the derelicts.
+  (`Kind.Guards`): each piece past `Watermark` with a perch (`Wreckage.Perches`) draws once: sentries on half.
 
 ## Commands
 
@@ -91,5 +91,5 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - **A ram aims where the hero was reported** (0103); a second hero touched pays nothing.
 - **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
 - **A derelict escorted onto the hull** brings its sentry over the ship; its pounce passes walls.
-- **The sentry sits on its wreck's box**, not its picture's outline, and does not crawl yet. A first blow that breaks its
-  wreck goes unanswered: the wreck is gone before it looks.
+- **A sentry stands on a flat stretch** of its picture's top, never its slopes. A first blow that breaks its wreck goes
+  unanswered: the wreck is gone before it looks.

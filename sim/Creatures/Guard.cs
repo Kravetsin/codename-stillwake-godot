@@ -3,8 +3,8 @@ using Spec = Stillwake.Content.Creatures;
 namespace Stillwake.Sim.Creatures;
 
 /// <summary>
-/// Guarding a wreck (the sentry): watching; a hero within its notice alerts it, and alerted its notice through it pounces;
-/// a hero gone from its notice calms it. Struck, or its wreck struck since it last looked, it turns on the striker and crouches
+/// Guarding a wreck (the sentry): watching, crawling along its perch; a hero within its notice alerts it, and alerted its
+/// notice through it pounces; a hero gone from its notice calms it. Struck, or its wreck struck since it last looked, it turns on the striker and crouches
 /// at once. Its pounce over, <see cref="ReturnDrive"/>, above it, wants the creature till it is clamped on again.
 /// </summary>
 internal sealed class GuardDrive : DriveRule
@@ -36,6 +36,7 @@ internal sealed class GuardDrive : DriveRule
         bool near = m.Nearest(c, awake: true) is ({ }, int far) && far <= guard.Notice;
         if (c.Step == Watching && near) (c.Step, c.DriveLeft) = (Alerted, guard.AlertTicks);
         else if (c.Step == Alerted && !near) (c.Step, c.DriveLeft) = (Watching, 0);
+        if (c.Step == Watching) ClingerBody.Crawl(m, c, spec);
         return true;
     }
 
