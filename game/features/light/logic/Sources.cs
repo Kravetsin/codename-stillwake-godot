@@ -39,16 +39,21 @@ public static class Sources
     public const int Stride = 16;
 
     /// <summary>
-    /// A byte a cell of <paramref name="box"/> of the structure <paramref name="structureAt"/> reads, a grid <paramref name="width"/>
-    /// wide and <paramref name="size"/> cells, row by row into <paramref name="cells"/>: what stops light there.
+    /// A byte a cell of <paramref name="box"/> of <paramref name="structure"/>, the grid's layer, which <paramref name="structureAt"/>
+    /// reads too, a grid <paramref name="width"/> wide, row by row into <paramref name="cells"/>: what stops light there. Most cells
+    /// of a planet are open or rock, read straight from the layer; a door's shape is found from its neighbours.
     /// </summary>
-    public static void Occupy(Func<int, int> structureAt, int width, int size, Box box, byte[] cells)
+    public static void Occupy(ReadOnlySpan<int> structure, Func<int, int> structureAt, int width, Box box, byte[] cells)
     {
         int i = 0;
         for (int y = box.Top; y <= box.Bottom; y++)
         {
             int cell = y * width + box.Left;
-            for (int end = cell + box.Width; cell < end; cell++) cells[i++] = Of(structureAt, width, size, cell);
+            for (int end = cell + box.Width; cell < end; cell++)
+            {
+                int s = structure[cell];
+                cells[i++] = !Structures.Is(s, Trait.BlocksLight) ? Open : !Doorways.IsDoor(s) ? Wall : Of(structureAt, width, structure.Length, cell);
+            }
         }
     }
 

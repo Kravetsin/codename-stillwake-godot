@@ -126,14 +126,20 @@ public partial class FloraView : Node2D, ILightSource
         _shown[plant.Cell] = (plant.Kind, picture, glow, lights);
     }
 
-    /// <summary>The first and last rows of <paramref name="texture"/> with anything drawn in them.</summary>
+    /// <summary>
+    /// The first and last rows of <paramref name="texture"/> with anything drawn in them, found once a picture: reading a texture
+    /// back is slow, and a planet's first look shows hundreds of plants of a few pictures.
+    /// </summary>
     private static (int Top, int Bottom) UsedRows(Texture2D texture)
     {
+        if (Used.TryGetValue(texture, out var rows)) return rows;
         var image = texture.GetImage();
         if (image.IsCompressed()) image.Decompress();
         var used = image.GetUsedRect();
-        return (used.Position.Y, used.End.Y - 1);
+        return Used[texture] = (used.Position.Y, used.End.Y - 1);
     }
+
+    private static readonly Dictionary<Texture2D, (int Top, int Bottom)> Used = new();
 
     /// <summary>The depth of each plant's crack last seen, by its cell, and the plants shaking: their picture's resting place and the seconds left.</summary>
     private readonly Dictionary<int, int> _cracks = new();

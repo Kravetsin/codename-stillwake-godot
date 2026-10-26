@@ -11,7 +11,8 @@
 | `Lightmap.cs` | All light composed on the GPU each frame into two maps over the view (0029). |
 | `logic/Sources.cs` | What the shader reads: walls and doors light stops at, and each light. |
 | `logic/StarField.cs` | Starlight cell by cell (0019, 0070). |
-| `Starlight.cs` | The starlight as a texture of a texel a cell, for `render/Lit.cs`. |
+| `Starlight.cs` | The starlight, tiles of a texel a cell, for `render/Lit.cs`. |
+| `logic/StarTiles.cs` | Starlight tiles: those a change wrote. |
 
 A dim ship lit by its lamps, fires, whatever glows, and the stars, whole in open space and falling off
 within a few cells of a hole (0019, 0029, 0070). Drawn only: nothing reaches the sim. Tuned at the 8 px
@@ -25,9 +26,9 @@ the reaches of fire, particles, screens.
   occupancy texel (`Lightmap.Follow`); one past the texture lays it out anew over `Built`. Lamps are
   relaid only when a machine's cell changed. Starlight is redone only within `StarField.Reach` and the
   sky's reach of changed structure, back wall or machine cells (`StarField.Follow`), byte for byte a full
-  redo (`BuiltBoundsTests`). A first look, or one past the log, redoes all over `Built` and
+  redo (`BuiltBoundsTests`); only tiles it wrote are sent. A first look, or one past the log, redoes all over `Built` and
   `StarField.Margin`; beyond is open stars at full, and `Lit` reads the edge texel there.
-- **No Godot lights** (0029): they light a thing by at most 15; all light is composed here, unlimited.
+- **No Godot lights** (0029): they light a thing by at most 15; all light is composed here.
 - **Lightmap:** two HDR `SubViewport`s over the view and a margin, sized from the view's size with a texel
   spare so the camera never resizes them; cleared each frame, a texel a world pixel (more past
   `MostTexels`). *Main* takes lamps and fires; *Spots* embers, sparks, glows, capped apart by `Lit`. Each
@@ -41,9 +42,9 @@ the reaches of fire, particles, screens.
   or fire is a line (`LampSize`, `FireSize`); its ends are walked, and seven points between if they differ.
 - **Lamps:** every `Glow` machine (0113) lights by its `Light.Lamps` row (colour, strength, reach, keep,
   halo, arc glass); a new lamp is a row. The starter lamp is dim and warm: a room lit to walk, corners
-  dark. Brightness is `LightView.LampShare`, the power it gets, flickering when short (`Flicker`). Short
-  of power (`LampSparks`, 0075) each catch gives a glint, often bouncing sparks, sometimes an arc; dark, a
-  cooling ember. Nothing flashes the room white.
+  dark. Brightness is `LightView.LampShare`, its power, flickering when short (`Flicker`). Short
+  of power (`LampSparks`, 0075) a catch gives a glint, often sparks, sometimes an arc; dark, a
+  cooling ember. Nothing flashes a room white.
 - **Arc lamp** (0091): cold `Light.ArcLamp`, a cyan glow. Its body (`machine_arcLamp`) is the grid's tile;
   shining, `LightView` lays `machine_arcLamp_lit` and `_glow` over it by `ArcLampLooks`; at full power its
   arc crackles (`Crackle`). **Homes' lamps** (0091): `HomesView.Lights`.
@@ -78,8 +79,8 @@ the reaches of fire, particles, screens.
   walls stop light.
 - **Daylight soaks into the ground** (0079): wall to wall downward it keeps `GroundSoak`, so the top cells
   under the sun are lit; sideways and up `WallDeep`, out into a cave `WallOut`: caves stay dark.
-- **Views give light** as `ILightSource` (`LightView.Shining`). **Plants glow** (0079): parts near the view are lamps by
-  `FloraLooks`, at most `MostLights` a plant. **Caves glow** (0080): growths near the view
+- **Views give light** (`ILightSource`, `LightView.Shining`). **Plants glow** (0079): parts near the view are lamps by
+  `FloraLooks`, `MostLights` a plant at most. **Caves glow** (0080): growths near the view
   (`CaveView.Lights`) are main map lamps by `CaveLooks`, at most `MostLights`, nearest the middle first.
 
 ## Deliberately not handled

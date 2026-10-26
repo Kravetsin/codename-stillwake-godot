@@ -165,7 +165,12 @@ public static class Flora
     public static IEnumerable<Growth> Every => All.Concat<Growth>(Cave).Concat(Ruins.Pieces);
 
     /// <summary>The kind <paramref name="id"/>, of the surface, the caves or a ruin's pieces; one not here is our bug.</summary>
-    public static Growth Get(string id) =>
-        (Growth?)All.FirstOrDefault(k => k.Id == id) ?? (Growth?)Cave.FirstOrDefault(k => k.Id == id) ?? Ruins.Pieces.FirstOrDefault(k => k.Id == id)
-        ?? throw new KeyNotFoundException($"No plant '{id}'.");
+    public static Growth Get(string id) => ById.TryGetValue(id, out var kind) ? kind : throw new KeyNotFoundException($"No plant '{id}'.");
+
+    /// <summary>
+    /// Every growth by its id, the surface's first, then the caves', then the pieces': asked for each of a planet's tens of
+    /// thousands of growths as its ruins are stamped, which a search of the lists made a tenth of a second.
+    /// </summary>
+    private static readonly Dictionary<string, Growth> ById = Every.GroupBy(k => k.Id, StringComparer.Ordinal)
+        .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
 }

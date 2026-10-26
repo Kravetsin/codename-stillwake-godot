@@ -46,7 +46,7 @@ public class GrateTests
     {
         int[] structure = [Structure.Grate, Structure.HatchClosed, Structure.Floor];
         var cells = new byte[3];
-        Sources.Occupy(c => structure[c], 3, structure.Length, new Stillwake.Sim.Box(0, 0, 2, 0), cells);
+        Sources.Occupy(structure, c => structure[c], 3, new Stillwake.Sim.Box(0, 0, 2, 0), cells);
         Assert.Equal(new[] { Sources.Open, Sources.Wall, Sources.Open }, cells);
         Assert.False(Sources.Blocks(c => structure[c], 3, 1, 16, 8, 8));
     }

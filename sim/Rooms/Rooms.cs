@@ -210,35 +210,36 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
     private static (int[] RoomOf, List<Room> Rooms) FindIn(
         int gridWidth, ReadOnlySpan<int> structure, ReadOnlySpan<int> back, Box region, ReadOnlySpan<int> backMaterial, bool grown)
     {
-        int width = region.Width, size = width * region.Height;
+        int width = region.Width, height = region.Height, size = width * height;
         int Cell(int c) => (region.Top + c / width) * gridWidth + region.Left + c % width;
+        // By row, a cell's grid cell found by adding, not dividing: a planet's region is millions of cells.
         var solid = new bool[size];
-        for (int c = 0; c < size; c++) solid[c] = IsSolid(structure[Cell(c)]);
+        for (int y = 0, c = 0; y < height; y++)
+            for (int x = 0, g = (region.Top + y) * gridWidth + region.Left; x < width; x++, c++, g++) solid[c] = IsSolid(structure[g]);
         var opening = new bool[size];
-        for (int c = 0; c < size; c++)
-        {
-            if (solid[c]) continue;
-            int x = c % width;
-            bool across = x > 0 && x < width - 1 && solid[c - 1] && solid[c + 1];
-            bool down = c >= width && c + width < size && solid[c - width] && solid[c + width];
-            opening[c] = Structures.Is(structure[Cell(c)], Trait.Opening) || across || down;
-        }
         // On grown ground an open cell under the sky or before natural ground is outside, wherever it is (0077).
         var porous = new bool[size];
-        if (grown)
-            for (int c = 0; c < size; c++) porous[c] = !solid[c] && IsPorous(back[Cell(c)], backMaterial[Cell(c)]);
+        for (int y = 0, c = 0; y < height; y++)
+            for (int x = 0, g = (region.Top + y) * gridWidth + region.Left; x < width; x++, c++, g++)
+            {
+                if (solid[c]) continue;
+                bool across = x > 0 && x < width - 1 && solid[c - 1] && solid[c + 1];
+                bool down = c >= width && c + width < size && solid[c - width] && solid[c + width];
+                opening[c] = Structures.Is(structure[g], Trait.Opening) || across || down;
+                if (grown) porous[c] = IsPorous(back[g], backMaterial[g]);
+            }
         Span<int> near = stackalloc int[4];
 
         var roomOf = new int[size];
         for (int c = 0; c < size; c++) roomOf[c] = solid[c] ? Solid : Unseen;
         var queue = new int[size];
         int tail = 0;
-        for (int c = 0; c < size; c++)
-        {
-            int x = c % width;
-            bool border = x == 0 || x == width - 1 || c < width || c >= size - width;
-            if (roomOf[c] == Unseen && (porous[c] || border && !opening[c])) { roomOf[c] = Space; queue[tail++] = c; }
-        }
+        for (int y = 0, c = 0; y < height; y++)
+            for (int x = 0; x < width; x++, c++)
+            {
+                bool border = x == 0 || x == width - 1 || y == 0 || y == height - 1;
+                if (roomOf[c] == Unseen && (porous[c] || border && !opening[c])) { roomOf[c] = Space; queue[tail++] = c; }
+            }
         for (int head = 0; head < tail; head++)
         {
             Neighbours(queue[head], width, size, near);
@@ -263,29 +264,33 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         }
 
         // Openings and hull in one pass in cell order, so both come out sorted.
-        for (int c = 0; c < size; c++)
-        {
-            int here = roomOf[c];
-            if (here == Space) continue;
-            bool outside = Outside(roomOf, width, c);
-            if (here != Solid)
+        for (int y = 0, c = 0; y < height; y++)
+            for (int x = 0; x < width; x++, c++)
             {
-                if (outside || back[Cell(c)] != Back.Wall) openings[index[here]].Add(Cell(c));
-                continue;
+                int here = roomOf[c];
+                if (here == Space) continue;
+                // A solid cell with no room beside it is no room's hull: most of a planet's rock.
+                if (here == Solid && !(x > 0 && roomOf[c - 1] >= 0 || x < width - 1 && roomOf[c + 1] >= 0
+                    || y > 0 && roomOf[c - width] >= 0 || y < height - 1 && roomOf[c + width] >= 0)) continue;
+                bool outside = Outside(roomOf, width, c);
+                if (here != Solid)
+                {
+                    if (outside || back[Cell(c)] != Back.Wall) openings[index[here]].Add(Cell(c));
+                    continue;
+                }
+                // A solid cell with the outside beyond it is hull to every room it borders, once each; one with a wall cell beyond it
+                // away from a room, the outside beyond that, is that room's too: a wall two cells thick, a 16 px cell (0104).
+                Neighbours(c, width, size, near);
+                for (int i = 0; i < 4; i++)
+                {
+                    int id = near[i] == Edge ? Space : roomOf[near[i]];
+                    if (id < 0 || !outside && !Through(roomOf, width, near[i ^ 1])) continue;
+                    bool seen = false;
+                    for (int j = 0; j < i; j++)
+                        if (near[j] != Edge && roomOf[near[j]] == id && (outside || Through(roomOf, width, near[j ^ 1]))) seen = true;
+                    if (!seen) hulls[index[id]].Add(Cell(c));
+                }
             }
-            // A solid cell with the outside beyond it is hull to every room it borders, once each; one with a wall cell beyond it
-            // away from a room, the outside beyond that, is that room's too: a wall two cells thick, a 16 px cell (0104).
-            Neighbours(c, width, size, near);
-            for (int i = 0; i < 4; i++)
-            {
-                int id = near[i] == Edge ? Space : roomOf[near[i]];
-                if (id < 0 || !outside && !Through(roomOf, width, near[i ^ 1])) continue;
-                bool seen = false;
-                for (int j = 0; j < i; j++)
-                    if (near[j] != Edge && roomOf[near[j]] == id && (outside || Through(roomOf, width, near[j ^ 1]))) seen = true;
-                if (!seen) hulls[index[id]].Add(Cell(c));
-            }
-        }
         for (int i = 0; i < rooms.Count; i++) rooms[i] = rooms[i] with { Hull = hulls[i], Openings = openings[i] };
         for (int c = 0; c < size; c++) if (roomOf[c] >= 0) roomOf[c] = Cell(roomOf[c]);
         return (roomOf, rooms);

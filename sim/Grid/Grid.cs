@@ -206,6 +206,19 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return changes;
     }
 
+    /// <summary>
+    /// What each map character means, found once rather than per cell, for a planet's map is millions of cells: its structure,
+    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire, under the stars it needs.
+    /// </summary>
+    private static readonly (int Structure, bool Bare)[] Looks = Enumerable.Range(0, char.MaxValue + 1)
+        .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null }))
+        .ToArray();
+
+    /// <summary>Each material's back wall, by code: a vein's is the rock it runs through, so digging it out leaves no second lump of ore.</summary>
+    private static readonly int[] BackOf = Enumerable.Range(0, Materials.All.Max(m => m.Code) + 1)
+        .Select(code => Materials.ByCode(code)?.In is { } rock ? Materials.Get(rock).Code : code)
+        .ToArray();
+
     protected override GridState Init(Layout layout)
     {
         (_grown, _touched) = (layout.Grown, []);
@@ -224,19 +237,22 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         int hull = Materials.Get(Materials.DefaultHull).Code;
         var drawn = layout.Materials;
         for (int cell = 0, y = 0; y < layout.Height; y++)
+        {
+            string row = layout.Rows[y];
             for (int x = 0; x < layout.Width; x++, cell++)
             {
-                char c = layout.Rows[y][x];
+                char c = row[x];
+                var look = Looks[c];
+                int d = drawn == null ? 0 : drawn[cell];
                 // A wall and its back wall of the material the map draws there (0077), else of the default hull.
-                int material = drawn != null && drawn[cell] != 0 ? drawn[cell] : hull;
-                // A vein's back wall is the rock it runs through: digging it out leaves no second lump of ore behind.
-                int back = Materials.ByCode(material)?.In is { } rock ? Materials.Get(rock).Code : material;
-                // Every cell but space has a back wall of the default hull, hull walls included; a solar panel,
-                // making power with no fire, is drawn under the stars, which it needs; a planet's sky has none (0077).
-                if (c != ' ' && (drawn == null || drawn[cell] > 0) && !(Legend.MachineOf(c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null })) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = back; }
-                s.Structure[cell] = Structures.OfChar(c) ?? Structure.Empty;
-                if (Structures.Is(s.Structure[cell], Trait.Terrain)) s.Material[cell] = material;
+                int material = d != 0 ? d : hull;
+                int back = (uint)material < (uint)BackOf.Length ? BackOf[material] : material;
+                // Every cell but space has a back wall of the default hull, hull walls included; a planet's sky has none (0077).
+                if (c != ' ' && (drawn == null || d > 0) && !look.Bare) { s.Back[cell] = Back.Wall; s.BackMaterial[cell] = back; }
+                s.Structure[cell] = look.Structure;
+                if (Structures.Is(look.Structure, Trait.Terrain)) s.Material[cell] = material;
             }
+        }
         foreach (var (kind, cell) in layout.Machines()) s.Machines.Add(new Machine(s.NextMachineId++, kind, cell));
         return s;
     }
