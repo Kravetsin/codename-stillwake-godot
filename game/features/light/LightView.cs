@@ -130,7 +130,7 @@ public partial class LightView : Node2D
         if (log == null)
         {
             // The first look, or the grid's log let go of what changed: everything laid out anew.
-            _lightmap.Occupy(_grid.StructureAt, w, w * _grid.Height, _grid.Built, DoorPanels);
+            _lightmap.Occupy(_grid.StructureLayer, _grid.StructureAt, w, _grid.Built, DoorPanels);
             _machines = _grid.Machines.ToArray();
             ShowLamps();
             _starlight.Show(_grid);
@@ -145,7 +145,7 @@ public partial class LightView : Node2D
             if ((change.Layers & (GridLayers.Structure | GridLayers.Back | GridLayers.Machine)) != 0) _lit.Add(change.Cell);
             machines |= (change.Layers & GridLayers.Machine) != 0;
         }
-        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureAt, w, w * _grid.Height, _grid.Built, _walls, DoorPanels);
+        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureLayer, _grid.StructureAt, w, _grid.Built, _walls, DoorPanels);
         if (machines)
         {
             _machines = _grid.Machines.ToArray();

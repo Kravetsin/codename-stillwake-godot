@@ -51,6 +51,10 @@ public sealed class StarField
     /// </summary>
     public byte[] Texels { get; private set; } = [];
 
+    /// <summary>The boxes of <see cref="Region"/> whose texels the last <see cref="Work"/> or <see cref="Follow"/> wrote: all of it after a work, a few round the changes after a follow.</summary>
+    public IReadOnlyList<Box> Written => _written;
+    private readonly List<Box> _written = [];
+
     private byte[] _kind = [];
     /// <summary>Scratch: running sums of the cells round the box the stars shine into, to count each cell's sky.</summary>
     private int[] _skySum = [];
@@ -116,6 +120,8 @@ public sealed class StarField
         int n = region.Width * region.Height;
         if (Texels.Length != n * 4) Texels = new byte[n * 4];
         Compute(grid, region, region, machinesListed: true);
+        _written.Clear();
+        _written.Add(region);
     }
 
     /// <summary>
@@ -155,10 +161,13 @@ public sealed class StarField
             Work(grid, region);
             return;
         }
+        _written.Clear();
         foreach (var b in boxes)
         {
             var write = Within(Grown(b, shows), region);
-            if (!write.IsEmpty) Compute(grid, Within(Grown(b, spread), region), write, machinesListed: false);
+            if (write.IsEmpty) continue;
+            Compute(grid, Within(Grown(b, spread), region), write, machinesListed: false);
+            _written.Add(write);
         }
     }
 
@@ -242,8 +251,8 @@ public sealed class StarField
             for (int x = 0; x < w; x++)
             {
                 int i = y * w + x, gx = x + box.Left, gy = y + box.Top;
-                bool inside = gx >= 0 && gy >= 0 && gx < grid.Width && gy < grid.Height;
-                int cell = gy * grid.Width + gx;
+                bool inside = gx >= 0 && gy >= 0 && gx < gw && gy < gh;
+                int cell = gy * gw + gx;
                 if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
                 if (inside && Structures.Is(structure[cell], Trait.BlocksLight)) kind[i] = Wall;
                 // Its own cell's count, from the sums: whether the stars shine into it.
@@ -274,14 +283,20 @@ public sealed class StarField
 
     private void Texel(byte[] bytes, int at, float light, byte kind)
     {
+        // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
+        bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
+        // Most of a planet's ground is dark: no colour to work out.
+        if (light == 0)
+        {
+            bytes[at] = bytes[at + 1] = bytes[at + 2] = 0;
+            return;
+        }
         var (starR, starG, starB) = _sky;
         // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
         float face = kind == Wall ? light / L.WallIn : light;
         bytes[at] = (byte)(Math.Min(1, starR * face) * 255);
         bytes[at + 1] = (byte)(Math.Min(1, starG * face) * 255);
         bytes[at + 2] = (byte)(Math.Min(1, starB * face) * 255);
-        // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
-        bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
     }
 
     private static float[] SharesOf(float keep, float deep)
