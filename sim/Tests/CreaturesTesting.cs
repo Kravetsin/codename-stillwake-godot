@@ -16,6 +16,8 @@ public static class CreaturesTesting
         public int Here => 1;
         public Spec.Surfaces.Kind Kind => kind;
         public void Send(int peer, int surface) => throw new NotSupportedException("creatures sends no one anywhere");
+        public bool CanOpen => false;
+        public int Planet() => throw new NotSupportedException("creatures opens no planet");
     }
 
     /// <summary>

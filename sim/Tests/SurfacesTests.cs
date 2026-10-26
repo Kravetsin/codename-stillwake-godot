@@ -161,6 +161,35 @@ public class SurfacesTests
         Assert.False(w.On(2).Items.Creative);
     }
 
+    /// <summary>
+    /// A planet a descent asks for twice in a tick opens once, after every surface ran, by the ship (its creative mode kept), and
+    /// a hero sent to its id lands there. The one slow test here: it grows the first planet.
+    /// </summary>
+    [Fact]
+    public void APlanetAskedForOpensOnceByTheShipAndTakesWhoIsSentToIt()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new SetCreative(true)).Run();
+        var where = w.M.Landing.Where;
+        int id = where.Planet();
+        Assert.Equal(id, where.Planet());
+        where.Send(0, id);
+        w.Run();
+        Assert.Equal([Surface.Ship, Content.Landing.Planet], w.World.Surfaces.Select(s => s.Kind));
+        Assert.Equal(id, w.World.SurfaceOf(0));
+        Assert.True(w.On(id).Items.Creative);
+    }
+
+    [Fact]
+    public void APlanetAlreadyOpenIsTheOneAskedForAndNoneOpens()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new OpenSurface(Strip)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+        Assert.Equal(2, w.M.Landing.Where.Planet());
+        w.Run();
+        Assert.Equal(3, w.World.Surfaces.Count);
+    }
+
     [Fact]
     public void CarriesTheHerosSuitAndThrustTheInventoryAndARunningDrillAcross()
     {

@@ -553,23 +553,27 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 if (Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach))
                     return "grid.noExhaust";
-                return Content.Machines.Is(p.Kind, MachineTrait.Lands) && !OnPlatform(p.Kind, cell) ? "grid.noPlatform" : null;
+                if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
+                // Off the ship a pod is only ever landed by its module, on the ground.
+                if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
+                return RowUnder(p.Kind, cell, c => Doorways.IsPlatform(State.Structure[c])) ? null : "grid.noPlatform";
             default:
                 return "grid.noSuchLayer";
         }
     }
 
     /// <summary>
-    /// Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands on a launch platform: every cell of the row
-    /// under its footprint a platform's, shut or open, so it stands over one run (<see cref="MachineTrait.Lands"/>).
+    /// Whether every cell of the row under the footprint of a machine of <paramref name="kind"/> from <paramref name="cell"/> is
+    /// <paramref name="under"/>: aboard a launch platform's, shut or open, so it stands over one run; off the ship, ground
+    /// (<see cref="MachineTrait.Lands"/>).
     /// </summary>
-    private bool OnPlatform(string kind, int cell)
+    private bool RowUnder(string kind, int cell, Func<int, bool> under)
     {
         var spec = Content.Machines.Get(kind);
         int x = cell % State.Width, below = cell / State.Width + spec.Height;
         if (below >= State.Height) return false;
         for (int dx = 0; dx < spec.Width; dx++)
-            if (!Doorways.IsPlatform(State.Structure[below * State.Width + x + dx])) return false;
+            if (!under(below * State.Width + x + dx)) return false;
         return true;
     }
 
