@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Power;
 /// Each launch platform's lamp, the lens in its right end post: green while its network has power enough, red while not
 /// (<see cref="PlatformRuns"/>), lighting the deck a little in its colour. Drawn unlit over the platform's picture
 /// (<c>platform_*.png</c>, whose lens is dark). Its socket, where every cable to the run plugs in, sits in its left end post, lit
-/// as a machine's is (<c>StructureSpec.Plug</c>). The runs are found again only when the grid changes.
+/// as a machine's is (<c>StructureSpec.Plug</c>). The runs are followed through the grid's log (<see cref="KnownPlatforms"/>).
 /// </summary>
 public partial class PlatformLamps : Node2D
 {
@@ -22,10 +22,9 @@ public partial class PlatformLamps : Node2D
 
     private readonly IGridQueries _grid;
     private readonly IPowerQueries _power;
-    private List<(int First, int Length)> _runs = [];
+    private readonly KnownPlatforms _runs = new();
     private readonly List<(Vector2 At, bool Lit)> _lamps = [];
     private readonly List<Glow> _glows = [];
-    private int _version = -1;
     private readonly Node2D _sockets = new();
     private double _sinceRead = RefreshMs;
 
@@ -42,14 +41,9 @@ public partial class PlatformLamps : Node2D
     {
         if ((_sinceRead += delta * 1000) < RefreshMs) return;
         _sinceRead = 0;
-        if (_grid.Version != _version)
-        {
-            _version = _grid.Version;
-            _runs = PlatformRuns.Of(_grid);
-            PlaceSockets();
-        }
+        if (_runs.Follow(_grid)) PlaceSockets();
         _lamps.Clear();
-        foreach (var run in _runs)
+        foreach (var run in _runs.Runs)
         {
             int last = run.First + run.Length - 1;
             _lamps.Add((new Vector2(last % _grid.Width, last / _grid.Width) * ShipCamera.Cell + Lens, PlatformRuns.Lit(_power, run)));
@@ -62,7 +56,7 @@ public partial class PlatformLamps : Node2D
     private void PlaceSockets()
     {
         foreach (var socket in _sockets.GetChildren()) socket.QueueFree();
-        foreach (var run in _runs)
+        foreach (var run in _runs.Runs)
         {
             if (Content.Structures.Of(_grid.StructureAt(run.First)).Plug is not { } plug) continue;
             var socket = new Sprite2D

@@ -16,15 +16,21 @@ public static class PlatformRuns
     {
         var runs = new List<(int First, int Length)>();
         var box = grid.Built;
-        int width = grid.Width;
-        for (int y = box.Top; y <= box.Bottom; y++)
-            for (int x = box.Left; x <= box.Right; x++)
-            {
-                int cell = y * width + x;
-                if (!Doorways.IsPlatform(grid.StructureAt(cell)) || (x > 0 && Doorways.IsPlatform(grid.StructureAt(cell - 1)))) continue;
-                runs.Add(LandingModule.RunOf(grid, cell));
-            }
+        for (int y = box.Top; y <= box.Bottom; y++) AddRow(grid, y, box.Left, box.Right, runs);
         return runs;
+    }
+
+    /// <summary>Adds to <paramref name="runs"/> each run starting on row <paramref name="y"/> between columns <paramref name="x0"/> and <paramref name="x1"/>, left to right.</summary>
+    internal static void AddRow(IGridQueries grid, int y, int x0, int x1, List<(int First, int Length)> runs)
+    {
+        var structure = grid.StructureLayer;
+        int width = grid.Width;
+        for (int x = x0; x <= x1; x++)
+        {
+            int cell = y * width + x;
+            if (!Doorways.IsPlatform(structure[cell]) || (x > 0 && Doorways.IsPlatform(structure[cell - 1]))) continue;
+            runs.Add(LandingModule.RunOf(grid, cell));
+        }
     }
 
     /// <summary>Whether <paramref name="run"/>'s lamp is green: its plug fed.</summary>
