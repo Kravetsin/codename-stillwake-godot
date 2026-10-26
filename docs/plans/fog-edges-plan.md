@@ -37,7 +37,11 @@ within a band's width of one, seals each band solid bedrock under the sky, and s
 `CreaturesModule.Solid` makes every column outside a planet's zone solid to creatures; `FogBandsTests` and three
 `CreaturesTests`, each seen failing once with its rule broken.
 
-### F-1b — The bands hollow
+### F-1b — The bands hollow ✅
+
+**Built:** as below. Three more terrain tests (no spike, the sky's fade, where chasms lie) now look inside the zone only:
+the hollow bands are no ground grown. A plan is never built without work, so the FsCheck bites on hits; the plan's
+refusal has its own test.
 
 - **Content:** `Ground.FogDrop`, rows over a band's ground line beside the zone a moved hero's feet arrive at: 12 for
   `First`, 6 for `Small`. A content test: at least the hero's height in rows (`Content.Hero.Height` in rows).
@@ -61,7 +65,7 @@ within a band's width of one, seals each band solid bedrock under the sky, and s
   - A hit from a band cell on its ground line aimed outward, away from the zone, is refused with
     `building.nothingToDig`; a plan there with `grid.outsideZone`.
   - FsCheck, kept: no command changes a band's cell; hits aimed along the ground line, plans anywhere in a band. Proven
-    to bite by letting plans through once (the zone widened in the test's own layout).
+    to bite by growing the band breakable stone once; the plan's refusal by letting every cell into the zone once.
   - The zone kept across a load, no cold anywhere, `Fog` even and narrow: kept from F-1. F-1's walk-to-the-middle check
     is dropped: the band has no ground to walk.
 - **Docs:** this plan and the design, revised. No README holds the terrain rule (`sim/Core` has none); the ADR in F-2.
