@@ -106,6 +106,8 @@ public class ModulesTests
     {
         var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3).Doubled();
         var rng = new Rng(new RngState { S = seed });
+        // The edits that grow and shrink what is built draw their own numbers: a module's fuzz drawing more never starves them.
+        var edits = new Rng(new RngState { S = seed });
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
@@ -119,9 +121,9 @@ public class ModulesTests
             var loaded = new Registry();
             var copy = World.Load(world.Save(), [.. loaded.All, new Builder(loaded)]);
             var commands = RandomCommands(world, rng);
-            if (rng.Below(2) == 0) commands.Add(ShipEdit(live.Grid, rng, 6, 6, 64, 48));
+            if (edits.Below(2) == 0) commands.Add(ShipEdit(live.Grid, edits, 6, 6, 64, 48));
             // Out in the space above the ship, so what is built grows and shrinks.
-            if (rng.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, rng, 38, 0, 2, 6));
+            if (edits.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, edits, 38, 0, 2, 6));
             // Now and then a door worked more times in a tick than the grid's log holds: every reader falls behind it.
             int door = live.Grid.StructureLayer.IndexOfAny(Structure.DoorClosed, Structure.DoorOpen);
             if (i % 100 == 60 && door >= 0)

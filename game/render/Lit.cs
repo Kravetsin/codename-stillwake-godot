@@ -40,9 +40,12 @@ public static class Lit
             // The most the glowing particles' spots add in a colour, past whatever else lights it.
             uniform float spot_most = 0.0;
             // The stars' light, a texel a cell, its alpha whole in a wall's cell, laid over the world at
-            // starlight_rect (corner, size, in pixels).
-            uniform sampler2D starlight : filter_nearest, repeat_disable, hint_default_black;
+            // starlight_rect (corner, size, in pixels), starlight_cells across and down, cut into tiles of
+            // starlight_tile cells a side, a layer each, row by row (StarTiles).
+            uniform sampler2DArray starlight : filter_nearest, repeat_disable, hint_default_black;
             uniform vec4 starlight_rect = vec4(0.0, 0.0, 1.0, 1.0);
+            uniform ivec2 starlight_cells = ivec2(1);
+            uniform int starlight_tile = 1;
             // The lamps' and fires' light, and the spots', shadowed, from lightmap_at (pixels) a texel
             // every lightmap_texel pixels; blended between texels, so a shadow's edge does not step at
             // the world's pixels on a screen showing each of them larger.
@@ -64,7 +67,9 @@ public static class Lit
             }
 
             vec4 cell(ivec2 at) {
-                return texelFetch(starlight, clamp(at, ivec2(0), textureSize(starlight, 0) - 1), 0);
+                ivec2 c = clamp(at, ivec2(0), starlight_cells - 1);
+                int across = (starlight_cells.x + starlight_tile - 1) / starlight_tile;
+                return texelFetch(starlight, ivec3(c % starlight_tile, c.y / starlight_tile * across + c.x / starlight_tile), 0);
             }
 
             vec3 mapped(sampler2D map, vec2 at) {
@@ -73,7 +78,7 @@ public static class Lit
 
             bool walled(vec2 texel) {
                 vec2 w = texel * lightmap_texel + lightmap_at;
-                return cell(ivec2(floor((w - starlight_rect.xy) / starlight_rect.zw * vec2(textureSize(starlight, 0))))).a > 0.5;
+                return cell(ivec2(floor((w - starlight_rect.xy) / starlight_rect.zw * vec2(starlight_cells)))).a > 0.5;
             }
             // The lamps' light at texel when both texels blended there, blend either way, lie on the pixel's side; else here's.
             // The lamps' light at texel when both texels blended there along blend lie on the pixel's side; else here's.
@@ -91,7 +96,7 @@ public static class Lit
                 // Debris that axes have hit shows it, on its own pixels, before the light falls on it.
                 COLOR.rgb = cracked(COLOR.rgb, UV, TEXTURE_PIXEL_SIZE);
                 // Blended between the four cells round this point, those of its side only (lighting.ts).
-                vec2 at = (world - starlight_rect.xy) / starlight_rect.zw * vec2(textureSize(starlight, 0));
+                vec2 at = (world - starlight_rect.xy) / starlight_rect.zw * vec2(starlight_cells);
                 vec2 corner = floor(at - 0.5);
                 vec2 f = at - 0.5 - corner;
                 vec4 own = cell(ivec2(floor(at)));
@@ -136,7 +141,7 @@ public static class Lit
             """;
 
     private static readonly Dictionary<(float Share, bool Cracks), ShaderMaterial> Made = new();
-    private static (Texture2D Texture, Rect2 Rect)? _starlight;
+    private static (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
     private static Vector2? _seeThrough;
@@ -189,7 +194,7 @@ public static class Lit
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", _ambient);
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
-        if (_starlight is var (stars, starsAt)) ShowStars(kept, stars, starsAt);
+        if (_starlight is { } stars) ShowStars(kept, stars);
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
@@ -197,13 +202,14 @@ public static class Lit
     }
 
     /// <summary>
-    /// The stars' light from now on: <paramref name="texture"/>, a texel a cell, its alpha whole in a
-    /// wall's cell and nothing in the open, laid over <paramref name="rect"/> in pixels.
+    /// The stars' light from now on: <paramref name="tiles"/>, a texel a cell, its alpha whole in a
+    /// wall's cell and nothing in the open, laid over <paramref name="rect"/> in pixels, <paramref name="cells"/> across and
+    /// down, cut into square tiles of <paramref name="tile"/> cells, a layer each, row by row (<c>StarTiles</c>).
     /// </summary>
-    public static void ShowStarlight(Texture2D texture, Rect2 rect)
+    public static void ShowStarlight(Texture2DArray tiles, Rect2 rect, Vector2I cells, int tile)
     {
-        _starlight = (texture, rect);
-        foreach (var material in Made.Values) ShowStars(material, texture, rect);
+        _starlight = (tiles, rect, cells, tile);
+        foreach (var material in Made.Values) ShowStars(material, _starlight.Value);
     }
 
     /// <summary>The lamps' and fires' lightmap and the spots', from now on, wherever <see cref="PlaceLightmaps"/> lays them.</summary>
@@ -221,10 +227,12 @@ public static class Lit
         foreach (var material in Made.Values) Place(material);
     }
 
-    private static void ShowStars(ShaderMaterial material, Texture2D texture, Rect2 rect)
+    private static void ShowStars(ShaderMaterial material, (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile) stars)
     {
-        material.SetShaderParameter("starlight", texture);
-        material.SetShaderParameter("starlight_rect", new Vector4(rect.Position.X, rect.Position.Y, rect.Size.X, rect.Size.Y));
+        material.SetShaderParameter("starlight", stars.Tiles);
+        material.SetShaderParameter("starlight_rect", new Vector4(stars.Rect.Position.X, stars.Rect.Position.Y, stars.Rect.Size.X, stars.Rect.Size.Y));
+        material.SetShaderParameter("starlight_cells", stars.Cells);
+        material.SetShaderParameter("starlight_tile", stars.Tile);
     }
 
     private static void ShowMaps(ShaderMaterial material, Texture2D main, Texture2D spots)

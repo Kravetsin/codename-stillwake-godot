@@ -9,6 +9,7 @@
 | `logic/AirMotes.cs` | The air made visible without the overlay: sparse motes wandering in every cell holding air, blown out of a filling … |
 | `AirView.cs` | The ship's air. Without a word: every room losing oxygen into space lit red on the beat (each tank's sight glass is … |
 | `logic/Explain.cs` | What the air overlay says of a room. |
+| `logic/RoomsBox.cs` | The smallest box holding every room cell: all the overlay keeps, not all that is built, which on a planet is nearly every cell |
 | `logic/Streams.cs` | Where air streams out of a room: the middle of an opening, in cells, and the heading toward the space beside it, in … |
 | `logic/Decompression.cs` | Rooms the sim turned to space at once, air and all (a launch platform opened, a floor torn open), drawn venting as through a door … |
 | `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
@@ -23,7 +24,8 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | `logic/Explain.cs` | what the overlay says of a room, spans, and the rooms draining (`explain.ts`, `draining.ts`) | no    |
 | `logic/Streams.cs` | `AirStream`: where air streams out of a venting room, which way, how thick (`streams.ts`) | no    |
 | `logic/Decompression.cs` | a room turned to space at once drawn venting as through a door: its air let go at `Air.VentLoss` a tick, farthest from the hole first | no    |
-| `logic/AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over what is built | no    |
+| `logic/AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over the rooms' box (`RoomsBox`, found again when the rooms change) | no    |
+| `logic/RoomsBox.cs` | the box of every room cell, all the overlay keeps (tested) | no    |
 | `logic/AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
 | `AirLook.cs` | the shader, with O: the rooms' air dithered, grey dots where there is none, the pod's ragged aura | yes   |
 | `AirView.cs` | venting rooms lit red on the beat and their air streaming out, the motes, fresh air from filling vents; with O the air overlay | yes   |

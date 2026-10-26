@@ -6,14 +6,16 @@ namespace Stillwake.Game.Tests;
 /// <summary>Every species is seen and heard struck by what it is (0093, 0094, 0102): a new one fails here until it has both.</summary>
 public class CreatureLooksTests
 {
-    /// <summary>Species still silent, their sounds picked on an audition page to come: the sentry's with its look (C-4).</summary>
-    private static readonly string[] Silent = [Spec.Creatures.Sentry.Id];
-
     public static TheoryData<string> Species() => [.. Spec.Creatures.All.Select(s => s.Id)];
 
     [Fact]
-    public void EveryWalkerHasARigOnlyACreatureWithNoneIsDrawnAsABox() =>
+    public void EveryWalkerHasARig() =>
         Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
+
+    [Theory]
+    [MemberData(nameof(Species))]
+    public void EverySpeciesIsDrawnByItsRigOrAsTheTick(string species) =>
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look), species);
 
     [Theory]
     [MemberData(nameof(Species))]
@@ -21,9 +23,10 @@ public class CreatureLooksTests
     {
         Assert.True(HitLooks.Creatures.TryGetValue(species, out var impact), $"{species} has no hit look");
         Assert.NotEmpty(HitLooks.Of[impact].Throws);
-        if (Silent.Contains(species))
+        if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look))
         {
-            Assert.False(Sound.Creatures.ContainsKey(species), $"{species} has its sounds now: take it off the silent list");
+            Assert.True(Sound.Ticks.TryGetValue(species, out var tick), $"{species} is drawn as the tick with no tick's sounds");
+            Assert.All(new[] { tick.Alert, tick.WindUp, tick.Unclamp, tick.Clamp, tick.Snap, tick.Thrust, tick.Hit, tick.Death }, cue => Assert.NotNull(cue.Heard));
             return;
         }
         Assert.True(Sound.Creatures.TryGetValue(species, out var cues), $"{species} has no sounds");

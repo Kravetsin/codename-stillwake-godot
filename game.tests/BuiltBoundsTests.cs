@@ -143,11 +143,18 @@ public class BuiltBoundsTests
                 var changed = m.Grid.ChangedSince(version)!
                     .Where(c => (c.Layers & (GridLayers.Structure | GridLayers.Back | GridLayers.Machine)) != 0).Select(c => c.Cell).ToList();
                 if (changed.Count == 0) continue;
+                var (was, wasRegion) = (followed.Texels.ToArray(), followed.Region);
                 followed.Follow(m.Grid, changed);
                 var whole = new StarField();
                 whole.Work(m.Grid);
                 Assert.Equal(whole.Region, followed.Region);
                 Assert.True(whole.Texels.AsSpan().SequenceEqual(followed.Texels), $"world {world}, step {step}");
+                // What it says it wrote holds every texel that changed: all the tiles sent again need (StarTiles).
+                var r = followed.Region;
+                if (r == wasRegion)
+                    for (int i = 0; i < was.Length; i++)
+                        if (was[i] != followed.Texels[i])
+                            Assert.Contains(followed.Written, b => b.Contains(r.Left + i / 4 % r.Width, r.Top + i / 4 / r.Width));
                 if (whole.Region.Width > 4 * new StarField().Reach + 1) windowed++;
             }
         }

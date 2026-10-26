@@ -41,6 +41,41 @@ public class LaunchPlatformTests
         Assert.Equal([true, false], runs.Select(r => PlatformRuns.Lit(w.M.Power, r)));
     }
 
+    /// <summary>
+    /// The runs followed through the grid's log are those found anew over the whole grid, as pieces are built and taken down
+    /// beside each other, walls and floors among them, and runs open and shut.
+    /// </summary>
+    [Fact]
+    public void RunsFollowedThroughTheLogAreThoseFoundAnew()
+    {
+        var rng = new Random(3);
+        Placement[] placements = [new("structure", Builds.Platform), new("structure", Builds.Platform), Placement.Wall(), new("structure", "floor")];
+        for (int world = 0; world < 20; world++)
+        {
+            int w = rng.Next(4, 40), h = rng.Next(2, 12);
+            var m = new Registry();
+            Stillwake.Sim.World.Create(1, Layout.Parse(Enumerable.Repeat(new string(' ', w), h).ToList()), m.All);
+            var known = new KnownPlatforms();
+            known.Follow(m.Grid);
+            for (int step = 0; step < 30; step++)
+            {
+                for (int k = rng.Next(1, 4); k > 0; k--)
+                {
+                    int cell = rng.Next(w * h);
+                    var p = placements[rng.Next(placements.Length)];
+                    if (rng.Next(3) == 0) m.Grid.Clear(cell, "structure");
+                    else if (m.Grid.PlacementProblem(cell, p) == null) m.Grid.Place(cell, p);
+                }
+                var before = known.Runs.ToList();
+                bool changed = known.Follow(m.Grid);
+                var anew = PlatformRuns.Of(m.Grid);
+                Assert.Equal(anew, known.Runs);
+                Assert.Equal(!before.SequenceEqual(anew), changed);
+                Assert.False(known.Follow(m.Grid));
+            }
+        }
+    }
+
     [Fact]
     public void PlansAPieceWholeAsItIsBuiltNotADoorsQuarterACell()
     {

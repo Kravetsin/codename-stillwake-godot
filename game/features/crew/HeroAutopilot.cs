@@ -276,6 +276,10 @@ public sealed class HeroAutopilot
     /// </summary>
     public static HeroAutopilot Aside() => new([Wait(20), Hold(new HeroInput(-1, 0, false), 25), Wait(1)]);
 
+    /// <summary><c>-- --sentry=crawl</c>: jets off left, out of a sentry's notice, and floats there, so it calms and crawls its perch.</summary>
+    public static HeroAutopilot Away() =>
+        new([Wait(30), Hold(new HeroInput(-1, 0, false, Sprint: true), 75), Hold(new HeroInput(1, 0, false, Sprint: true), 75), Wait(60 * 60)]);
+
     /// <summary>
     /// <c>-- --hills --autopilot</c> (<c>HillsDemo</c>, 0106): over the first hill and back walking, then running right
     /// over it, through the valley and up the long stair, where it falls into the hole at its top, the high plateau's top

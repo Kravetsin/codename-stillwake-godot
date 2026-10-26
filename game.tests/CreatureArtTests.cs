@@ -88,7 +88,7 @@ public class CreatureArtTests
     }
 
     /// <summary>An RGBA, 8-bit, unfiltered or filtered PNG's pixels, as the painter writes them.</summary>
-    private static (int W, int H, byte[] Pixels) Pixels(string png)
+    internal static (int W, int H, byte[] Pixels) Pixels(string png)
     {
         var (w, h) = Size(png);
         var bytes = File.ReadAllBytes(png);

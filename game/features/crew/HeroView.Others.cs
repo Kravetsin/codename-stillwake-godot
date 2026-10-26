@@ -76,12 +76,12 @@ public partial class HeroView
             shown.Figure.Ledge = LedgeOf(ship, hero);
             bool afloat = ship.Space(hero.BodyCell(ship.Width));
             // A charge ended by it: it was rammed, its own peer says so; here it flinches, its air knocked out, heard where it is.
-            if (!out_ && RamEndedBy(m, hero) is int rammedFrom)
+            if (!out_ && RamEndedBy(m, hero) is (int rammedFrom, string rammer))
             {
                 shown.Figure.Flinch(rammedFrom);
                 var (cx, cy) = Chest(hero);
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
-                _othersThud.PlayAt(new Vector2(cx, cy));
+                _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
             shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);

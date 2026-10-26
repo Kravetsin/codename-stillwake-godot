@@ -19,7 +19,7 @@ public class LightSourcesTests
         int[] structure = [Structure.Empty, Structure.Wall, Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.DoorOpen, Structure.Floor, Structure.Wall];
         var cells = new byte[6];
         // Two rows four wide, the box from the second column on: row by row, what is built only.
-        Sources.Occupy(c => structure[c], 4, structure.Length, new Box(1, 0, 3, 1), cells);
+        Sources.Occupy(structure, c => structure[c], 4, new Box(1, 0, 3, 1), cells);
         // A lone door cell is a door, not a hatch (0111): shut, it stops light.
         Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
     }
@@ -35,7 +35,7 @@ public class LightSourcesTests
             Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty,
         ];
         var cells = new byte[12];
-        Sources.Occupy(c => structure[c], 4, structure.Length, new Box(0, 0, 3, 2), cells);
+        Sources.Occupy(structure, c => structure[c], 4, new Box(0, 0, 3, 2), cells);
         Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Wall, Sources.Wall, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
@@ -48,7 +48,7 @@ public class LightSourcesTests
         const int D = Structure.DoorClosed, H = Structure.HatchClosed, E = Structure.Empty;
         int[] structure = [D, D, E, H, H, E, D, D, E, E, E, E];
         var cells = new byte[12];
-        Sources.Occupy(c => structure[c], 6, structure.Length, new Box(0, 0, 5, 1), cells);
+        Sources.Occupy(structure, c => structure[c], 6, new Box(0, 0, 5, 1), cells);
         Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Wall, Sources.Wall, Sources.Open }, cells[..6]);
         Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells[6..12]);
     }

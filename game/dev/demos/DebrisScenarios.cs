@@ -67,11 +67,17 @@ public sealed class SortieScenario : DevScenario
     }
 }
 
-[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102)")]
+[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102); =fight: its line reeled and cut, struck once, its wreck hewn apart under it; =crawl: the hero jets off out of its notice and it crawls its perch",
+    Shape = DevShape.Either)]
 public sealed class SentryScenario : DevScenario
 {
     private bool _let;
     private string _was = "";
+    private int? _sentry;
+    private bool _breaking;
+
+    /// <summary>The fight's ticks: the hero reels the sentry's wreck (it cuts the line), strikes it once, then hews its wreck apart under it.</summary>
+    private const int ReelAt = 50, StrikeAt = 92, BreakFrom = 100;
 
     public override Layout? Map => Registry.Wreck;
 
@@ -79,12 +85,29 @@ public sealed class SentryScenario : DevScenario
 
     public override Func<Registry, int>? Start => SortieDemo.StartOf;
 
+    public override HeroAutopilot? Script => Args.Given("--sentry") == "crawl" ? HeroAutopilot.Away() : null;
+
     public override void Frame(Client client, Registry m, Action<string> log)
     {
         if (!_let && client.World.Tick >= 5 && m.Debris.Pieces.FirstOrDefault(p => p.Item == "engineBlock") is { } block)
         {
             _let = true;
             client.Send(new Sim.Creatures.Release(Content.Creatures.Sentry.Id, Sim.Debris.DebrisModule.CellOf(block.X, block.Y, m.Grid.Width)));
+        }
+        if (client.World.Tick >= 8 && m.Creatures.Creatures.Count > 0) _sentry ??= m.Creatures.Creatures.Max(c => c.Id);
+        if (Args.Given("--sentry") == "fight" && m.Creatures.Creatures.FirstOrDefault(c => c.Id == _sentry) is { } sentry
+            && m.Creatures.ClingsTo(sentry) is int piece && m.Debris.PieceById(piece) is { } wreck)
+        {
+            int tick = client.World.Tick;
+            // Reeled toward the hero, the reel sent again as the harpoon follows its hero, till the sentry has sawn the line through.
+            if (tick >= ReelAt && tick < ReelAt + 30 && (tick - ReelAt) % 4 == 0 && Sim.Creatures.CreaturesModule.LastCut(sentry) == 0
+                && m.Crew.HeroOf(client.Id) is { } hero)
+                client.Send(new Sim.Debris.Reel(piece, hero.Cell % m.Grid.Width * 1000 + 500, hero.Cell / m.Grid.Width * 1000 + 500));
+            if (tick == StrikeAt) client.Send(new Sim.Creatures.Strike(sentry.Id, Content.Weapons.Axe.Item));
+            // Its wreck hewn apart under it, once it is clamped on again: it goes with its wreck.
+            _breaking |= tick >= BreakFrom && Sim.Creatures.CreaturesModule.Clamped(sentry);
+            if (_breaking)
+                for (int i = 0; i < 30; i++) client.Send(new Sim.Debris.HewWrecks(Content.Weapons.Axe.Item, wreck.X, wreck.Y, 0));
         }
         foreach (var c in m.Creatures.Creatures)
         {

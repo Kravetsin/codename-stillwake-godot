@@ -152,13 +152,15 @@ public class SurfacesTests
     }
 
     [Fact]
-    public void ANewSurfaceKeepsTheCreativeModeOfTheSurfaceItWasOpenedFrom()
+    public void ANewSurfaceKeepsTheCreativeModeAndInstantBuildingOfTheSurfaceItWasOpenedFrom()
     {
         var w = new Scenario(Ship);
-        w.Do(new SetCreative(true)).Do(new OpenSurface(Strip)).Run();
+        w.Do(new SetCreative(true)).Do(new Building.SetInstant(true)).Do(new OpenSurface(Strip)).Run();
         Assert.True(w.On(1).Items.Creative);
-        w.Do(new SetCreative(false)).Do(new OpenSurface(Strip)).Run();
+        Assert.True(w.On(1).Building.Instant);
+        w.Do(new SetCreative(false)).Do(new Building.SetInstant(false)).Do(new OpenSurface(Strip)).Run();
         Assert.False(w.On(2).Items.Creative);
+        Assert.False(w.On(2).Building.Instant);
     }
 
     /// <summary>

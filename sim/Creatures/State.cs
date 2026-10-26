@@ -154,4 +154,6 @@ public sealed class CreaturesState
     [JsonInclude] internal int NextId { get; set; } = 1;
     /// <summary>Ticks this module has run on a surface with life: spawns come when it is a multiple of <c>Creatures.Beat</c>.</summary>
     [JsonInclude] internal int Clock { get; set; }
+    /// <summary>The newest debris piece that has drawn whether a guard comes with it (<c>Surfaces.Kind.Guards</c>): those after it draw next.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Watermark { get; set; }
 }

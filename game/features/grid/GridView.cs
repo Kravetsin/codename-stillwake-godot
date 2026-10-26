@@ -28,7 +28,7 @@ public partial class GridView : Node2D
     private const int Up = 1, Right = 2, Down = 4, Left = 8;
 
     private readonly IGridQueries _grid;
-    private readonly ShipTiles _tiles = new();
+    private readonly ShipTiles _tiles = ShipTiles.Shared;
     private readonly ShadowTiles _shadows = ShadowTiles.Shared;
     private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>

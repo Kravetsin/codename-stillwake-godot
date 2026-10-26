@@ -210,7 +210,8 @@ public partial class Main : Node2D, ITogether
         else if (hostAs != null) Host(hostAs.Length > 0 ? hostAs : null);
         else if (join != null) Join(join.Length > 0 ? join : "127.0.0.1", BadNetwork.From(_dev.All), Relay());
         else Alone();
-        AddChild(new DevPanel(() => _session, () => _m, () => _net));
+        var dev = new DevPanel(() => _session, () => _m, () => _net);
+        AddChild(dev);
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
@@ -235,11 +236,11 @@ public partial class Main : Node2D, ITogether
         AddChild(computer);
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || _hands.Plan.PlanOut.Get(),
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
-                // A search in the build menu goes first, the menu staying open.
-                if (_hands.Menu.DropSearch()) return;
+                // A search in the build menu or the dev panel goes first, what else is open staying so.
+                if (dev.DropSearch() || _hands.Menu.DropSearch()) return;
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();

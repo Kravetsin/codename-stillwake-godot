@@ -170,20 +170,26 @@ public class DebrisZonesTests
     [Fact]
     public void StopsAtTheFarFieldsCapTheLowerIdsSpawningFirst()
     {
-        // Six heroes 600 cells apart: six shares are more than the cap.
+        // Six heroes 600 cells apart, each keep box short of its share, one piece short of the cap in all: the first hero's spawn
+        // takes the last place, and none after it spawns though each has room.
         var heroes = Enumerable.Range(0, 6).Select(i => (600 + 600 * i, 400)).ToArray();
-        var w = With(Open(3800, 800, 100, 400, 12, 6), heroes);
-        bool capped = false;
-        for (int t = 0; t < 850 && !capped; t++)
+        var w = With(Open(3800, 800, 100, 400, 12, 6), heroes).Run();
+        var debris = Debris(w);
+        debris.Pieces.RemoveAll(p => p.Zone == DebrisSpec.Far.Id);
+        for (int i = 0; i < DebrisSpec.Far.Max - 1; i++)
         {
-            w.Run();
-            int far = Far(w).Count();
-            Assert.True(far <= DebrisSpec.Far.Max, $"{far} far pieces");
-            if (far < DebrisSpec.Far.Max) continue;
-            capped = true;
-            Assert.True(InKeep(w, heroes[^1]) < InKeep(w, heroes[0]), "the last hero spawned as many as the first");
+            var (x, y) = heroes[i % heroes.Length];
+            int at = (x - 60 + i / heroes.Length) * 1000 + 500;
+            debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = DebrisSpec.Far.Id, Item = "scrapChunk", X = at, Y = (y + 40) * 1000 + 500, Start = at, SeenAt = debris.Clock });
         }
-        Assert.True(capped);
+        Assert.All(heroes, h => Assert.InRange(InKeep(w, h), 1, Around.PerHero - 1));
+        int first = debris.NextId;
+        w.Run();
+        var spawned = Assert.Single(Far(w), p => p.Id >= first);
+        Assert.True(Within(CellOf(spawned), heroes[0], Around.Keep), "the first hero's spawn took the last place");
+        Assert.Equal(DebrisSpec.Far.Max, Far(w).Count());
+        w.Run(5);
+        Assert.Equal(DebrisSpec.Far.Max, Far(w).Count());
     }
 
     /// <summary>Wide with a hero at (800, 300) and its first far piece spawned; the piece's id.</summary>

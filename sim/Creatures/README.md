@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Clinger.cs` | The clinger's rule (the sentry): clamped to a wreck's top, riding it, flying straight off it. |
+| `Clinger.cs` | The clinger's rule (the sentry): on a perch of a wreck's top, crawling, riding it, flying off it. |
 | `Creatures.cs` | The commands (`Strike`, `HitBy`, `Release`), the queries, and the hit path every hit takes. |
 | `Drives.cs` | The grazers' drives' rules: `Graze`, `Flee`, `Retaliate`, `Escape`. |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
@@ -13,7 +13,7 @@
 | `Lunge.cs` | The lunge's rule: a ram along the ground in phases (0103). |
 | `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short. |
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
-| `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of every hero's view, where a habitat of the surface's type is. |
+| `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of every view, where a habitat is; guards on new derelicts. |
 | `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `CreaturesState`; the derived `Posture`. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling and leaping (0102, 0104, 0106); `Leaps`. |
 
@@ -55,13 +55,13 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
   lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
   drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
-- **The sentry:** `Guard` watches; an awake hero within `Notice` alerts it, `AlertTicks` (from the tick it noticed) of it
-  pounce. A blow on it, or on its wreck since it last answered (`Debris.Piece.Struck`, by the debris clock), and it pounces
+- **The sentry:** `Guard` watches; an awake hero within `Notice` alerts it; `AlertTicks` on, one within `Strike` and it
+  pounces. A blow on it, or on its wreck since it last answered (`Debris.Piece.Struck`, by the debris clock), and it pounces
   at once at the striker (`Target`); a pounce answers every blow up to it, a blow while away is answered home, blows before
   it was let out never. The pounce crouches `WindUp`, then flies straight at its grudge, else the nearest awake hero within
   its run, at `Speed` on the longer axis: `Ticks` moves, never cut short, then it hangs. Unclamped, `Return` (above `Guard`)
-  flies it home and clamps it on, its grudge spent. `CutTether` lets go of any reel on its wreck the tick it is seen (the
-  reel moved it a step) and stamps the cut (`LastCut`). Body and home stay wholly on the grid. Queries: `Alerted`, `Clamped`.
+  flies it home and clamps it on, its grudge spent. `CutTether` lets go of a reel on its wreck `Ticks` after it bites
+  (`CutLeft`), stamping it (`LastCut`). Its wreck gone, it dies. It stays on the grid. Queries: `Alerted`, `Clamped`.
 - **The hit path** (`Strike`): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked by a `Life.Knock`
   and `Hop` above none, its act cut if interruptible, its drives told in brain order, the first claim winning.
 - **The dead** are gone to every command and cap from the blow; the list holds them till the sweep, first thing.
@@ -69,7 +69,8 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - **`Release(Species, Cell)`**, dev (`--creatures`, `--sentry`): its body's `ReleaseProblem` and `Place`.
 - **`Threatens(peer)`**: a creature within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
 - **Kept or gone** (0102): in some hero's keep box it is seen; out of every one gone `Linger` after; out of every hard box at
-  once. **Spawning** (`Spawn.cs`): on the beat round heroes under `PerKeep`, the surface under `Max`.
+  once. **Spawning** (`Spawn.cs`): on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards**
+  (`Kind.Guards`): each piece past `Watermark` with a perch (`Wreckage.Perches`) draws once: sentries on half.
 
 ## Commands
 
@@ -82,7 +83,7 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - Every creature is on the grid, a walker out of everything solid; damage below hit points; ids only grow; never more than
   `Max`; a drive's or act's ticks never past its length; a charge hurts at most once; suits within range
   (`CreaturesInvariantTests`). A world saved and loaded every tick plays on as one never saved.
-- A surface with no habitats and no creatures leaves the slice and the Rng untouched.
+- No habitats, creatures or new guarded piece: nothing drawn; only `Watermark` moves.
 
 ## Deliberately not handled
 
@@ -90,5 +91,5 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - **A ram aims where the hero was reported** (0103); a second hero touched pays nothing.
 - **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
 - **A derelict escorted onto the hull** brings its sentry over the ship; its pounce passes walls.
-- **The sentry sits on its wreck's box**, not its picture's outline, and does not crawl yet. A first blow that breaks its
-  wreck goes unanswered: the wreck is gone before it looks.
+- **A sentry stands on a flat stretch** of its picture's top, never its slopes. A first blow that breaks its wreck goes
+  unanswered: the wreck is gone before it looks.

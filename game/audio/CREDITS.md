@@ -18,6 +18,11 @@ onset, or at the point of its source given here, held, decayed to −60 dB by it
 sound's variants levelled to one max momentary loudness, peaking at −3 dBFS at most (so a few fall short). The lava's rumble
 is synthesised as the machines' loops are, its second period kept.
 
+The sentry's sounds are the sentry audition's cuts, as the user picked them there: each mono 48 kHz WAV cut from its attack (or
+the point given here), decayed to −60 dB, levelled with the rest of the audition to one loudness (the loudest 100 ms RMS after
+a 150 Hz high-pass at −20 dBFS, peaks at −1 dBFS at most), then all turned down 2 dB alike so none peaks over −3 dBFS. Its
+death is two sources mixed as the audition mixed them. Its burner is the jetpack's loop, its hit the wreck's chop.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -52,6 +57,13 @@ is synthesised as the machines' loops are, its second period kept.
 | `crafting/smelter-crackle-4.wav` | generated for Stillwake: pop 4 of six, white noise (mulberry32 seed 4103) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `crafting/smelter-crackle-5.wav` | generated for Stillwake: pop 5 of six, white noise (mulberry32 seed 4104) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `crafting/smelter-crackle-6.wav` | generated for Stillwake: pop 6 of six, white noise (mulberry32 seed 4105) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
+| `creatures/sentry-alert-1.wav` | Freesound, "Computer Chirp.wav", https://freesound.org/people/pointparkcinema/sounds/407244/ | pointparkcinema | CC0 |
+| `creatures/sentry-windup-1.wav` | Freesound, "servomotor.wav", https://freesound.org/people/vacuumfan7072/sounds/264592/ | vacuumfan7072 | CC0 |
+| `creatures/sentry-unclamp-1.wav` | Freesound, "SqueakyClick1.wav" (from 0.067 s), https://freesound.org/people/BMacZero/sounds/94133/ | BMacZero | CC0 |
+| `creatures/sentry-clamp-1.wav` | Freesound, "clunk2.wav", https://freesound.org/people/spukkin/sounds/70880/ | spukkin | CC0 |
+| `creatures/sentry-snap-1.wav` | Freesound, "Whip Crack.m4a" (from 0.053 s), https://freesound.org/people/SciFiSounds/sounds/529925/ | SciFiSounds | CC0 |
+| `creatures/sentry-death-1.wav` | Freesound, "POWER06.WAV", https://freesound.org/people/mad-monkey/sounds/66692/, mixed with Freesound, "Heavy metal clatter.wav" (from 0.029 s), https://freesound.org/people/EntoClash/sounds/626811/ | mad-monkey, EntoClash | CC0 |
+| `creatures/sentry-punch-1.wav` | Freesound, "Metal Gauntlet Punch 4", https://freesound.org/people/Hoggington/sounds/536258/ | Hoggington | CC0 |
 | `crew/air-fill-1.wav` | generated for Stillwake: white noise (mulberry32 seed 47) through two band-passes, Q 1.1, their centre rising from 2.6 to 4.8 kHz, 0.55 s: in over 50 ms, held, falling away over the last 38 %, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/alarm-1.wav` | generated for Stillwake | Stillwake team | CC0 |
 | `crew/axe-swing-1.wav` | Freesound, "Swinging staff whoosh (strong) 04.wav", https://freesound.org/people/Nightflame/sounds/422513/ | Nightflame | CC0 |

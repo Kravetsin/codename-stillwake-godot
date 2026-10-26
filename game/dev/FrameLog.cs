@@ -25,7 +25,7 @@ public partial class FrameLog : Node
     private static readonly double[] Buckets = [Budget, 5, 6, 8, 12, 1000.0 / 60, 33, double.MaxValue];
 
     /// <summary>What <see cref="Mark"/> may be told: <c>Main</c>'s sections, in its order.</summary>
-    public static readonly string[] Sections = ["net", "sim", "light", "hero", "grid", "items", "debris", "hands", "reveal", "lightmap", "flora"];
+    public static readonly string[] Sections = ["net", "sim", "light", "hero", "grid", "items", "debris", "creatures", "hands", "reveal", "lightmap", "flora"];
 
     /// <summary>The log of this run, if frames are logged: views timed apart from <c>Main</c> tell it through <see cref="End"/>.</summary>
     public static FrameLog? Active { get; private set; }

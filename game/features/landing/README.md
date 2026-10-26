@@ -9,7 +9,7 @@ socket are the power feature's (`PlatformLamps`).
 
 | File | Purpose | Godot |
 | --- | --- | --- |
-| `PodSeats.cs` | each drop pod with a hero in it: the hero behind its porthole and its skirt's lamps lit, over the pod | yes |
+| `PodSeats.cs` | each drop pod with a hero in it: its skirt's lamps lit and the glint on its glass, over the pod and the hero | yes |
 | `LaunchKey.cs` | a pod's key under its slot: Descend aboard, Return off the ship, dim with the sim's refusal in its tooltip | yes |
 | `FlightOverlay.cs` | the white over the rider's screen at a flight's end, over the HUD, kept across a surface switch | yes |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
@@ -17,9 +17,10 @@ socket are the power feature's (`PlatformLamps`).
 
 ## Rules
 
-- A seated hero is drawn behind its pod's porthole from the chest up, the same picture for every peer; its own body is
-  hidden (`HeroView`), held at the pod's floor (`Seating`), so the pod stands in front of nothing. The seats are compared every
-  frame, so the porthole empties the frame the body shows.
+- A seated hero is the crew's to draw (`SeatedHeroes`): its own figure in its suit, behind the porthole from the chest up;
+  its walking body is hidden (`HeroView`), held at the pod's floor (`Seating`). This feature lays the lit lamps and the
+  glass's glint over it (`dropPod_lit.png`), drawn after it (`SurfaceViews`). The seats are compared every frame, so the
+  lamps go out the frame the body shows.
 - E on a pod boards it and opens its one slot under the inventory, as a crate's; seated, E leaves it and shuts the slot
   (`crew`). A pod the sim would refuse is neither boarded nor opened; the prompt says why.
 - The pod's frame carries `LaunchKey` under its slot (`InventoryPanel.Launch`, set by `Main`), read on a timer: a press sends
@@ -31,5 +32,5 @@ socket are the power feature's (`PlatformLamps`).
 
 ## Deliberately not handled
 
-- The suit's colour behind the glass: one picture for every hero.
+- What the seated hero wears or holds: the figure behind the glass is its suit alone.
 - The fall, the streaks and glow of a flight, the touchdown and the docking: slice 2. Peers aboard see the pod vanish.

@@ -96,13 +96,13 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         ZIndex = Layers.Creatures;
         AddChild(_ownHits);
         AddChild(_worldHits);
-        AddChild(_boxes);
+        AddChild(_ticks);
     }
 
-    /// <summary>The creatures with no rig yet, drawn as their placeholder boxes (the sentry).</summary>
-    private readonly BoxBodies _boxes = new();
+    /// <summary>The creatures drawn as the tick (<see cref="CreatureLooks.Ticks"/>): posed and drawn anew each frame, not a rig.</summary>
+    private readonly TickBodies _ticks = new();
 
-    private readonly List<Creature> _boxed = [];
+    private readonly List<Creature> _ticked = [];
 
     /// <summary>
     /// Shows <paramref name="creatures"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
@@ -117,7 +117,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         {
             foreach (var one in _shown.Values) Put(one.Body);
             _shown.Clear();
-            _boxes.Reset();
+            _ticks.Reset();
             _of = creatures;
         }
         (_palette, _seed) = (palette, seed);
@@ -126,14 +126,14 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;
         _out.Clear();
         _drawn.Clear();
-        _boxed.Clear();
+        _ticked.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
             _out.Add(c.Id);
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
-            else _boxed.Add(c);
+            else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -180,7 +180,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
-        _boxes.Frame(creatures, debris, _boxed, client.World.Tick, progress, elapsedMs, _sources);
+        _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources);
         if (Trace != null) Traced(all);
     }
 
@@ -229,7 +229,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         {
             if (inFlight[i] is not Strike strike) continue;
             _still.Add(strike);
-            if (_flying.Contains(strike) || !_shown.TryGetValue(strike.Creature, out var one)) continue;
+            if (_flying.Contains(strike)) continue;
+            if (!_shown.TryGetValue(strike.Creature, out var one))
+            {
+                _ticks.OwnStrike(strike.Creature, strike.Tool);
+                continue;
+            }
             one.OwnAt = _clockMs;
             Struck(one, strike.Tool, own: true);
         }
