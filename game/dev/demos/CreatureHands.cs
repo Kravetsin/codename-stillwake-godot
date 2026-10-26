@@ -64,7 +64,7 @@ public partial class CreatureHands(CreaturesDemo demo, Func<Hero?> hero, bool st
         double close = _tool == 1 ? DrillCells : StrikeCells;
         // Standing still (--creatures-drill): the drill held where the loper was, never chasing it.
         Walk(!still && Math.Abs(dx) > close ? Math.Sign(dx) : 0, !still && Math.Abs(dx) > RunCells);
-        var at = GetViewport().GetCanvasTransform() * (new Vector2(target.X, target.Y - spec.Height * Hero.Unit / 2) / Hero.Unit * ShipCamera.Cell);
+        var at = GetViewport().GetCanvasTransform() * (new Vector2(target.X, target.Y - spec.Body.Height * Hero.Unit / 2) / Hero.Unit * ShipCamera.Cell);
         Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at, ButtonMask = _holding ? MouseButtonMask.Left : 0 });
         Hold(Math.Abs(dx) <= close + 1.2);
     }

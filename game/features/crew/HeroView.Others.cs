@@ -28,7 +28,7 @@ public partial class HeroView
         var others = _remote.At(_clockMs).Where(o => _client.World.SurfaceOf(o.Id) == here).ToList();
         _chargingNow.Clear();
         foreach (var c in m.Creatures.Creatures)
-            if (c.Mode == Stillwake.Sim.Creatures.Mode.Charge) _chargingNow.Add(c.Id);
+            if (c.Posture == Stillwake.Sim.Creatures.Posture.Charge) _chargingNow.Add(c.Id);
         foreach (var (id, shown) in _shownOthers)
             if (!others.Any(o => o.Id == id))
             {

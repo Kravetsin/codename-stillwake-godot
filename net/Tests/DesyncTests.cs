@@ -171,7 +171,7 @@ public class DesyncTests(ITestOutputHelper output)
                 {
                     var m = Registry.On(world, surface.Id);
                     most = Math.Max(most, m.Creatures.Creatures.Count);
-                    fled += m.Creatures.Creatures.Count(c => c.Mode == Sim.Creatures.Mode.Flee);
+                    fled += m.Creatures.Creatures.Count(c => c.Posture == Sim.Creatures.Posture.Flee);
                     killed = Math.Max(killed, m.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count));
                 }
                 var first = clients[0];

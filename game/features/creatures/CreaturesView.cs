@@ -63,7 +63,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         public int LastVy { get; set; }
         public int Fall { get; set; }
         /// <summary>Its mode as last drawn, so a wind-up begun snorts once; and the time to the next scrape of its feet.</summary>
-        public Mode ModeWas { get; set; }
+        public Posture ModeWas { get; set; }
         public double ScrapeMs { get; set; }
     }
 
@@ -189,7 +189,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
                 if (_shown.TryGetValue(c.Id, out var one))
                 {
                     var at = GetViewport().GetCanvasTransform() * one.Body.Position;
-                    Trace!($"creatures frame {Engine.GetProcessFrames()}: {c.Species} {c.Id} {c.Mode} at {at.X:F0},{at.Y:F0} stride {one.Gait.Phase:F3} gallop {one.Gait.Gallop:F2} air {one.Gait.Air:F2}");
+                    Trace!($"creatures frame {Engine.GetProcessFrames()}: {c.Species} {c.Id} {c.Posture} at {at.X:F0},{at.Y:F0} stride {one.Gait.Phase:F3} gallop {one.Gait.Gallop:F2} air {one.Gait.Air:F2}");
                 }
         if (_clockMs - _tracedAt < 1000) return;
         double seconds = (_clockMs - _tracedAt) / 1000;
@@ -199,7 +199,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (!_shown.TryGetValue(c.Id, out var one)) continue;
             double was = _tracedPhase.GetValueOrDefault(c.Id, one.Gait.Phase);
             _tracedPhase[c.Id] = one.Gait.Phase;
-            Trace!($"creatures trace: {c.Species} {c.Id} {c.Mode}: {(one.Gait.Phase - was) / seconds:F2} strides/s at {one.Gait.Speed:F0} px/s, gallop {one.Gait.Gallop:F2}");
+            Trace!($"creatures trace: {c.Species} {c.Id} {c.Posture}: {(one.Gait.Phase - was) / seconds:F2} strides/s at {one.Gait.Speed:F0} px/s, gallop {one.Gait.Gallop:F2}");
         }
     }
 
@@ -231,13 +231,13 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private void Struck(Shown one, string tool, bool own)
     {
         var spec = Spec.Creatures.Get(one.Species);
-        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2 * one.Body.Size);
+        var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         var hero = NearestHero(middle);
         int away = middle.X >= hero.X ? 1 : -1;
         double share = Impacts.ShareOf(tool);
         one.Motion.Hit(away, share);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
-        var side = middle + new Vector2(-away * spec.Width * Cell * 0.4f * one.Body.Size, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
+        var side = middle + new Vector2(-away * spec.Body.Width * Cell * 0.4f * one.Body.Size, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
         HitBurst.Shared.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, share, floor: one.Drawn.Y);
         if (S.Creatures.TryGetValue(one.Species, out var cues))
         {
@@ -280,8 +280,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         var motion = one.Motion;
         // Never held where it was struck: a neutral creature bolts at the blow, and its drawing goes with it, only shaking.
         var drawn = at;
-        var watched = NearestHero(drawn + new Vector2(0, -spec.Height * Cell / 2));
-        var toHero = watched - (drawn + new Vector2(0, -spec.Height * Cell * 0.6f));
+        var watched = NearestHero(drawn + new Vector2(0, -spec.Body.Height * Cell / 2));
+        var toHero = watched - (drawn + new Vector2(0, -spec.Body.Height * Cell * 0.6f));
         bool near = toHero.Length() < Watch;
         int? watch = near && Math.Abs(toHero.X) > 2 ? Math.Sign(toHero.X) : null;
         // A jump read off the sim: a leap up faster than any blow's hop, from the ground; a landing as hard as the fall was fast.
@@ -293,18 +293,18 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             one.Fall = 0;
         }
         one.LastVy = c.VY;
-        motion.Bracing = c.Mode == Mode.WindUp;
+        motion.Bracing = c.Posture == Posture.WindUp;
         // Winding up it faces the hero it will charge, however far: it turned back on it (0103).
-        if (c.Mode == Mode.WindUp && Math.Abs(toHero.X) > 2) watch = Math.Sign(toHero.X);
+        if (c.Posture == Posture.WindUp && Math.Abs(toHero.X) > 2) watch = Math.Sign(toHero.X);
         motion.Step(elapsedMs, drawn.X - one.Drawn.X, grounded && !one.Grounded, c.VX == 0 ? watch : null);
         Rams(one, c, spec, drawn, grounded, elapsedMs);
         // Its legs go by the ground the sim moved it on its last tick, never by a frame's step: a frame's is uneven, a tick's is not.
         double speed = Math.Abs(one.To.X - one.From.X) / Unit * Cell * World.TicksPerSecond;
-        bool fleeing = CreaturesModule.Fleeing(c.Mode);
+        bool fleeing = CreaturesModule.Fleeing(c.Posture);
         var gait = one.Gait;
         gait.Step(elapsedMs, speed, grounded, fleeing);
         // Idle with no hero by, a while, it grazes; idle with one near, it watches it.
-        bool idle = c.Mode == Mode.Idle && grounded;
+        bool idle = c.Posture == Posture.Idle && grounded;
         one.AloneMs = idle && !near ? one.AloneMs + elapsedMs : 0;
         one.Graze += ((one.AloneMs > CreatureLooks.GrazeAfterMs ? 1 : 0) - one.Graze) * CreatureGait.Ease(elapsedMs, CreatureLooks.GrazeMs);
         one.Notice += ((idle && near ? 1 : 0) - one.Notice) * CreatureGait.Ease(elapsedMs, CreatureLooks.BlendMs);
@@ -335,21 +335,21 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private void Rams(Shown one, Creature c, Spec.Creatures.Species spec, Vector2 feet, bool grounded, double elapsedMs)
     {
         int facing = one.Motion.Facing;
-        float wide = spec.Width * Cell * one.Body.Size;
-        if (c.Mode == Mode.WindUp && one.ModeWas != Mode.WindUp)
+        float wide = spec.Body.Width * Cell * one.Body.Size;
+        if (c.Posture == Posture.WindUp && one.ModeWas != Posture.WindUp)
         {
-            var snout = feet + new Vector2(facing * wide * 0.5f, -spec.Height * Cell * 0.45f * one.Body.Size);
+            var snout = feet + new Vector2(facing * wide * 0.5f, -spec.Body.Height * Cell * 0.45f * one.Body.Size);
             var glims = Glims.Shared;
             for (int i = 0; i < 6; i++)
                 glims.Add(Puff, snout.X, snout.Y, facing * glims.Between(10, 28), glims.Between(-8, 2), size: glims.Between(2, 3.5));
             _worldHits.Play(S.Snort, snout, S.Snort.Tune, 0);
             one.ScrapeMs = 0;
         }
-        one.ModeWas = c.Mode;
-        if (!grounded || c.Mode is not (Mode.WindUp or Mode.Charge)) return;
+        one.ModeWas = c.Posture;
+        if (!grounded || c.Posture is not (Posture.WindUp or Posture.Charge)) return;
         one.ScrapeMs -= elapsedMs;
         if (one.ScrapeMs > 0) return;
-        bool charging = c.Mode == Mode.Charge;
+        bool charging = c.Posture == Posture.Charge;
         one.ScrapeMs = charging ? ChargeDustMs : ScrapeEveryMs;
         var heel = feet + new Vector2(-facing * wide * 0.32f, -0.5f);
         var dust = Glims.Shared;
@@ -402,7 +402,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private void Die(Shown one)
     {
         var spec = Spec.Creatures.Get(one.Species);
-        var middle = one.Drawn + new Vector2(0, -spec.Height * Cell / 2 * one.Body.Size);
+        var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
         HitBurst.Shared.Throw(HitLooks.Of[impact], middle.X, middle.Y, 0, -1, 1, floor: one.Drawn.Y);
         var glims = Glims.Shared;

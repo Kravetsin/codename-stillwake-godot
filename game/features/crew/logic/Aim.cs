@@ -295,8 +295,8 @@ public static class Aiming
     private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
     {
         var spec = Spec.Creatures.Get(c.Species);
-        int half = spec.Width * Hero.Unit / 2 + CreatureMargin;
-        return (c.X - half, c.Y - spec.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
+        int half = spec.Body.Width * Hero.Unit / 2 + CreatureMargin;
+        return (c.X - half, c.Y - spec.Body.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
     }
 
     /// <summary>

@@ -107,8 +107,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
 | [0100](0100-tech-branches.md) | Tech branches | accepted |  |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
-| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted |  |
-| [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted |  |
+| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed (in part) |
+| [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted | creatures-are-composed (in part) |
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted |  |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |

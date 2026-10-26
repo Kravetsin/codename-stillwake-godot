@@ -68,7 +68,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>Creature <paramref name="id"/>; null for one gone or never spawned.</summary>
     public Creature? CreatureById(int id)
     {
-        int at = IndexOf(id);
+        int at = Alive(id);
         return at < 0 ? null : State.Creatures[at];
     }
 
@@ -81,7 +81,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public string? StrikeProblem(int peer, int id, string tool)
     {
         if (Content.Weapons.Of(tool) == null) throw new InvalidOperationException($"creatures.strike: {tool} deals no damage");
-        return IndexOf(id) < 0 ? "creatures.gone" : _held.WeaponProblem(peer, tool, running: false);
+        return Alive(id) < 0 ? "creatures.gone" : _held.WeaponProblem(peer, tool, running: false);
     }
 
     /// <summary>
@@ -90,9 +90,10 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// </summary>
     public string? HitByProblem(int id)
     {
-        int at = IndexOf(id);
+        int at = Alive(id);
         if (at < 0) return "creatures.gone";
-        return State.Creatures[at].Mode == Mode.Charge ? null : "creatures.notAttacking";
+        var c = State.Creatures[at];
+        return c.Act is { } act && RuleBook.Move(Spec.Get(c.Species).Moves[act.Move]).Hits(act) ? null : "creatures.notAttacking";
     }
 
     /// <summary>Why a release of <paramref name="species"/> in <paramref name="cell"/> would be refused.</summary>
@@ -100,62 +101,63 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     {
         var spec = Spec.Get(species);
         if (Rules.Gravity == null) return "creatures.notHere";
-        if (State.Creatures.Count >= Spec.Max) return "creatures.full";
+        if (State.Creatures.Count(c => !c.Dead) >= Spec.Max) return "creatures.full";
         int width = _grid.Width;
         if (cell < 0 || cell >= width * _grid.Height) return "creatures.blocked";
         var (x, y) = Standing(spec, cell % width, cell / width);
-        return Overlaps(spec, x, y) ? "creatures.blocked" : null;
+        return Overlaps(spec.Body, x, y) ? "creatures.blocked" : null;
     }
 
     /// <summary>The bottom middle of a body of <paramref name="spec"/> whose bottom left cell is (<paramref name="column"/>, <paramref name="row"/>).</summary>
     internal static (int X, int Y) Standing(Spec.Species spec, int column, int row) =>
-        (column * Unit + spec.Width * Unit / 2, (row + 1) * Unit);
+        (column * Unit + spec.Body.Width * Unit / 2, (row + 1) * Unit);
 
     // Commands.
 
     private void Apply(Strike c)
     {
-        int at = IndexOf(c.Creature);
+        int at = Alive(c.Creature);
         if (at < 0) throw new InvalidOperationException("creatures.strike: applied to a creature that is gone");
         var creature = State.Creatures[at];
         var spec = Spec.Get(creature.Species);
-        creature.Damage += _held.Damage(c.From, c.Tool);
-        if (creature.Damage >= spec.Hp)
+        // A tool's pace is its weapon's (0098): the drill's quick hits each knock a share, rounded toward none.
+        Hurt(creature, spec, _held.Damage(c.From, c.Tool), new Hit(c.From, AwayFrom(creature, _crew.HeroOf(c.From)?.Cell),
+            Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace)));
+    }
+
+    /// <summary>
+    /// The hit path (2026-10-26-creatures-are-composed): <paramref name="damage"/> taken; at its hit points it dies; else knocked,
+    /// its act cut short, and its drives told in brain order till one claims it.
+    /// </summary>
+    private void Hurt(Creature c, Spec.Species spec, int damage, in Hit hit)
+    {
+        c.Damage += damage;
+        if (c.Damage >= spec.Life.Hp)
         {
-            State.Creatures.RemoveAt(at);
+            c.Dead = true;
             // From its top row, so what it gives falls to where it stood; anyone may sweep it up at once.
-            _items.DropAt(FloorStack.Nobody, Loots.Roll(spec.Yields, Random), TopCell(creature, spec));
+            _items.DropAt(FloorStack.Nobody, Loots.Roll(spec.Yields, Random), TopCell(c, spec));
             return;
         }
-        int away = AwayFrom(creature, _crew.HeroOf(c.From)?.Cell);
-        // A tool's pace is its weapon's (0098): the drill's quick hits each knock a share, rounded toward none.
-        int pace = Math.Min(Spec.KnockPace, Content.Weapons.Of(c.Tool)!.Pace);
-        // Stunned, it steers nothing a while, then flees; with no stun, a neutral one, it bolts at once, the knock's way, at its
-        // flight's speed or the knock's if more: hops off quick hits never ground it long enough to steer, so it runs from the first.
-        bool stunned = spec.Stun > 0;
-        int knock = Math.Max(spec.Knock * pace / Spec.KnockPace, stunned ? 0 : spec.Flee);
-        (creature.Mode, creature.ModeLeft) = stunned ? (Mode.Hurt, spec.Stun) : (Mode.Flee, spec.FleeTicks);
-        // A rammer struck by a hero near it mostly turns back on it after a moment's flight (0103): two draws, as its mode changes.
-        if (!stunned && spec.Ram > 0 && Near(creature, _crew.HeroOf(c.From)?.Cell, Spec.RamBackReach) && Random.Below(1000) < (uint)spec.RamChance)
-            (creature.Mode, creature.ModeLeft) = (Mode.Retreat, Spec.RamFleeLeast + (int)Random.Below(Spec.RamFleeMost - Spec.RamFleeLeast + 1));
-        // A blow never slows one already running the knock's way: a run of the drill's quick hits cannot hold it.
-        creature.VX = away * (Math.Sign(creature.VX) == away ? Math.Max(Math.Abs(creature.VX), knock) : knock);
+        // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
+        int knock = spec.Life.Knock * hit.Pace / Spec.KnockPace;
+        c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
-        if (creature.VY >= 0) creature.VY = -spec.Hop * pace / Spec.KnockPace;
+        if (c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
+        c.Act = null;
+        for (int i = 0; i < spec.Brain.Count; i++)
+            if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) return;
     }
 
     private void Apply(HitBy c)
     {
-        var creature = State.Creatures[IndexOf(c.Creature)];
+        var creature = State.Creatures[Alive(c.Creature)];
         var spec = Spec.Get(creature.Species);
         // A ram may take the suit's last unit: the hero passes out, as the cold or the lava would leave it.
-        _crewOps.Shock(c.From, spec.Ram);
-        // It recoils off the hero it struck, hopping back the way it came, escaping, its ram spent: the hero thrown on, the two part
-        // at once. Read from the creature alone.
-        creature.Mode = Mode.Escape;
-        creature.ModeLeft = spec.FleeTicks;
-        creature.VX = -(creature.VX >= 0 ? 1 : -1) * spec.Flee;
-        if (creature.VY >= 0) creature.VY = -spec.Hop;
+        _crewOps.Shock(c.From, spec.Moves[creature.Act!.Move].Damage);
+        // It recoils off the hero it struck, hopping back the way it came, its act spent: the hero thrown on, the two part at
+        // once. Read from the creature alone.
+        EndAct(creature, spec, creature.VX >= 0 ? -1 : 1, hop: true);
     }
 
     private void Apply(Release c)
@@ -165,24 +167,26 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         Add(spec, x, y);
     }
 
-    /// <summary>A creature of <paramref name="spec"/> standing at (<paramref name="x"/>, <paramref name="y"/>), idling, seen now: its id the next.</summary>
+    /// <summary>
+    /// A creature of <paramref name="spec"/> standing at (<paramref name="x"/>, <paramref name="y"/>), in the charge of the first drive
+    /// that wants it, seen now: its id the next.
+    /// </summary>
     private void Add(Spec.Species spec, int x, int y)
     {
-        State.Creatures.Add(new Creature
-        {
-            Id = State.NextId,
-            Species = spec.Id,
-            X = x,
-            Y = y,
-            Mode = Mode.Idle,
-            ModeLeft = Spec.IdleLeast,
-            SeenAt = State.Clock,
-        });
+        var c = new Creature { Id = State.NextId, Species = spec.Id, X = x, Y = y, SeenAt = State.Clock };
+        for (int i = 0; i < spec.Brain.Count; i++)
+            if (RuleBook.Drive(spec.Brain[i]).Wants(c, spec.Brain[i]))
+            {
+                c.Drive = i;
+                RuleBook.Drive(spec.Brain[i]).Born(c, spec.Brain[i]);
+                break;
+            }
+        State.Creatures.Add(c);
         State.NextId += 1;
     }
 
     /// <summary>The cell of <paramref name="c"/>'s top row under its middle: on the grid, and open, as its body is.</summary>
-    private int TopCell(Creature c, Spec.Species spec) => Down(c.Y - spec.Height * Unit, Unit) * _grid.Width + Down(c.X, Unit);
+    private int TopCell(Creature c, Spec.Species spec) => Down(c.Y - spec.Body.Height * Unit, Unit) * _grid.Width + Down(c.X, Unit);
 
     /// <summary>
     /// Which way across <paramref name="c"/> goes away from a hero reported at <paramref name="cell"/>: the sign of its middle less the
@@ -199,12 +203,22 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     }
 
     /// <summary>Whether a hero reported at <paramref name="cell"/> is within <paramref name="reach"/> cells of <paramref name="c"/> by box distance; none on the grid is not.</summary>
-    private bool Near(Creature c, int? cell, int reach)
+    internal bool Near(Creature c, int? cell, int reach)
     {
         if (cell is not int at || at < 0 || at >= _grid.Width * _grid.Height) return false;
         int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
         return Math.Max(Math.Abs(x - at % _grid.Width), Math.Abs(y - at / _grid.Width)) <= reach;
     }
+
+    /// <summary>Where creature <paramref name="id"/> is among the creatures; -1 for one gone, never spawned, or killed this tick.</summary>
+    private int Alive(int id)
+    {
+        int at = IndexOf(id);
+        return at >= 0 && !State.Creatures[at].Dead ? at : -1;
+    }
+
+    /// <summary>The cell peer <paramref name="peer"/>'s hero is reported in; null for none.</summary>
+    internal int? HeroCell(int peer) => _crew.HeroOf(peer)?.Cell;
 
     /// <summary>The binary search of <paramref name="id"/> among the creatures, in id order as they spawned; -1 for none.</summary>
     private int IndexOf(int id)

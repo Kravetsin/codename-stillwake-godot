@@ -157,7 +157,7 @@ public class BudgetTests(ITestOutputHelper output)
         int width = m.Grid.Width, spawn = m.Crew.Spawn, row = spawn / width;
         // Over the ground either side of the hero, a body's width apart, a cell over the first wall down any of its columns; let
         // out again till all forty stay a few beats, for on the open plains one wanders out of the hero's reach and goes.
-        int body = Content.Creatures.Loper.Width;
+        int body = Content.Creatures.Loper.Body.Width;
         for (int round = 0; round < 4 && m.Creatures.Creatures.Count < Content.Creatures.Max; round++)
         {
             for (int x = spawn % width - 100; m.Creatures.Creatures.Count < Content.Creatures.Max && x < spawn % width + 100; x += body)

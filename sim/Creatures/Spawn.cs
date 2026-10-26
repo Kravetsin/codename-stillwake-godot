@@ -30,9 +30,9 @@ public sealed partial class CreaturesModule
             var habitat = Drawn(habitats);
             var spec = Spec.Get(habitat.Species);
             // The body's left column: on the right its left edge is the ring's, on the left its right edge.
-            int left = right ? at.X + out_ : at.X - out_ - spec.Width + 1;
-            if (left < 0 || left + spec.Width > _grid.Width) continue;
-            if (PlaceIn(habitat, spec, left, at.Y) is not int row || Seen(left, row - spec.Height + 1, spec)) continue;
+            int left = right ? at.X + out_ : at.X - out_ - spec.Body.Width + 1;
+            if (left < 0 || left + spec.Body.Width > _grid.Width) continue;
+            if (PlaceIn(habitat, spec, left, at.Y) is not int row || Seen(left, row - spec.Body.Height + 1, spec)) continue;
             var (x, y) = Standing(spec, left, row);
             Add(spec, x, y);
         }
@@ -60,7 +60,7 @@ public sealed partial class CreaturesModule
     /// </summary>
     private int? PlaceIn(Spec.Habitat habitat, Spec.Species spec, int left, int heroRow)
     {
-        int from = Math.Max(spec.Height - 1, heroRow - Spec.Keep.Y), to = Math.Min(_grid.Height - 2, heroRow + Spec.Keep.Y);
+        int from = Math.Max(spec.Body.Height - 1, heroRow - Spec.Keep.Y), to = Math.Min(_grid.Height - 2, heroRow + Spec.Keep.Y);
         for (int row = from; row <= to; row++)
             if (Stands(habitat, spec, left, row)) return row;
         return null;
@@ -69,10 +69,10 @@ public sealed partial class CreaturesModule
     private bool Stands(Spec.Habitat habitat, Spec.Species spec, int left, int row)
     {
         int width = _grid.Width;
-        for (int x = left; x < left + spec.Width; x++)
+        for (int x = left; x < left + spec.Body.Width; x++)
         {
             if (!Solid(x, row + 1)) return false;
-            for (int y = row - spec.Height + 1; y <= row; y++)
+            for (int y = row - spec.Body.Height + 1; y <= row; y++)
             {
                 if (Solid(x, y)) return false;
                 bool backed = _grid.BackAt(y * width + x) != null;
@@ -87,7 +87,7 @@ public sealed partial class CreaturesModule
     {
         var view = Spec.View;
         foreach (var at in _heroes)
-            if (left + spec.Width - 1 >= at.X - view.X && left <= at.X + view.X && top + spec.Height - 1 >= at.Y - view.Y && top <= at.Y + view.Y)
+            if (left + spec.Body.Width - 1 >= at.X - view.X && left <= at.X + view.X && top + spec.Body.Height - 1 >= at.Y - view.Y && top <= at.Y + view.Y)
                 return true;
         return false;
     }
