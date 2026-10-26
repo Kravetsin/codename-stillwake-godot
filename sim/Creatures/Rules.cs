@@ -41,6 +41,9 @@ internal abstract class DriveRule
     /// <summary>An act it began has ended, the creature to go <paramref name="way"/>, hopping back when <paramref name="hop"/>.</summary>
     internal virtual void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) { }
 
+    /// <summary>Whether a creature in its charge may turn on a hero: it threatens heroes near it (<c>Threatens</c>).</summary>
+    internal virtual bool Menaces => false;
+
     internal abstract Gait GaitOf(Creature c);
 
     /// <summary>How it shows: by its gait unless it says more.</summary>

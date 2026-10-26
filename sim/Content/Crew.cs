@@ -38,6 +38,12 @@ public static class Crew
     /// </summary>
     public const int ReportEvery = 20;
 
+    /// <summary>
+    /// The fewest ticks between two reports while a creature threatens the hero (<c>Creatures.ThreatReach</c>): every tick it
+    /// moves, so what charges it aims a round trip behind, not a second (2026-10-26-creatures-are-composed).
+    /// </summary>
+    public const int ReportThreatened = 1;
+
     // Not a const: every constant of this table is a whole number (ContentTests).
     /// <summary>The item breathed into the suit.</summary>
     public static readonly string Canister = "canister";

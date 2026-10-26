@@ -806,4 +806,29 @@ public class CreaturesTests
         }
         Assert.Superset(new HashSet<Posture> { Posture.Wander, Posture.Retreat, Posture.WindUp, Posture.Charge, Posture.Escape }, seen);
     }
+
+    /// <summary>A plain 120 wide, its floor row 4: room to stand past the reach of a threat.</summary>
+    private static readonly string Plain = string.Join('\n',
+        [new string('#', 120), .. Enumerable.Repeat("#" + new string('.', 118) + "#", 3), new string('#', 120)]);
+
+    [Fact]
+    public void AHeroIsThreatenedOnlyByACreatureNearItThatActsOrRetaliates()
+    {
+        // Terraria's way (2026-10-26-creatures-are-composed): its client reports where it is every tick it moves.
+        var w = CreaturesTesting.Planet(Plain, CreaturesTesting.Lifeless).HeroAt(10, 3);
+        var c = w.Loper(20, 3).Still();
+        Assert.False(w.M.Creatures.Threatens(0));
+        c.Walking(+1, Posture.Flee);
+        Assert.False(w.M.Creatures.Threatens(0));
+        (c.Drive, c.DriveLeft) = (CreaturesTesting.Place<Tune.Retaliate>(Loper), 1000);
+        Assert.True(w.M.Creatures.Threatens(0));
+        c.Still().Act = new Act { Move = 0, Phase = ActPhase.WindUp, Left = 5 };
+        Assert.True(w.M.Creatures.Threatens(0));
+        // Past the reach, by box distance from the hero's reported cell; a peer with no hero is threatened by nothing.
+        c.X = (10 * 2 + Tune.ThreatReach + 2) * Unit;
+        Assert.False(w.M.Creatures.Threatens(0));
+        c.X = (10 * 2 + Tune.ThreatReach - 2) * Unit;
+        Assert.True(w.M.Creatures.Threatens(0));
+        Assert.False(w.M.Creatures.Threatens(1));
+    }
 }

@@ -138,6 +138,53 @@ public class ReportTests
         Assert.Equal(At(40, 1, 60), s.M.Crew.HeroOf(0)!.Cell);
     }
 
+    // Threatened: Terraria's way (2026-10-26-creatures-are-composed).
+
+    [Fact]
+    public void ReportsEveryTickItMovesWhileThreatenedAndOnceASecondOtherwise()
+    {
+        Assert.Equal(1, Report.Every(threatened: true));
+        Assert.Equal(Stillwake.Content.Crew.ReportEvery, Report.Every(threatened: false));
+        var s = TwoRooms();
+        Tell(s, HeroIn(1, 4));
+        Assert.Equal(new Enter(At(3, 3)), Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, s.M.Grid.Width, 0, HeroIn(3, 4), 101, 100, Report.Every(true)));
+        Assert.Null(Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, s.M.Grid.Width, 0, HeroIn(3, 4), 100, 100, Report.Every(true)));
+        Assert.Null(Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, s.M.Grid.Width, 0, HeroIn(1, 4), 101, 100, Report.Every(true)));
+    }
+
+    /// <summary>
+    /// How far behind a hero sprinting across open ground the sim's cell of it lags, its reports landing <paramref name="trip"/>
+    /// ticks after they go: the widest gap over three seconds, in cells.
+    /// </summary>
+    private static int Lag(bool threatened, int trip)
+    {
+        var s = WorldFrom(Layout.Parse([new string('.', 80), new string('.', 80), new string('#', 80)]).Doubled());
+        int width = s.M.Grid.Width, reported = -Stillwake.Content.Crew.ReportEvery, widest = 0;
+        // A sprint: the controller's run a step, three steps a tick.
+        int perTick = 3 * Stillwake.Content.Hero.Run;
+        var landing = new Dictionary<int, List<Command>>();
+        for (int t = 0; t < 120; t++)
+        {
+            var hero = new Hero(2 * Unit + t * perTick, 4 * Unit, perTick, 0, false, 1);
+            if (Report.Of(s.M.Crew, s.M.Rooms, s.M.Atmosphere, width, 0, hero, t, reported, Report.Every(threatened)) is { } said)
+            {
+                reported = t;
+                (landing.TryGetValue(t + trip, out var due) ? due : landing[t + trip] = []).Add(said);
+            }
+            s.World.Step(landing.GetValueOrDefault(t) ?? []);
+            if (t > 30 && s.M.Crew.HeroOf(0) is { } known) widest = Math.Max(widest, hero.BodyCell(width) % width - known.Cell % width);
+        }
+        return widest;
+    }
+
+    [Fact]
+    public void AThreatenedSprintingHeroIsKnownWithinARoundTripNotASecond()
+    {
+        // A round trip of some 0.2 s on a 100 ms link: 26.4 cells a second is about 5 behind, the 6 the plan allows.
+        Assert.InRange(Lag(threatened: true, trip: 4), 1, 6);
+        Assert.True(Lag(threatened: false, trip: 4) >= 25, "once a second, a sprint is some 26 cells ahead of the sim");
+    }
+
     [Fact]
     public void DrawsNoFrostInsideTheFieldAndFullFrostAtTheEdgeEasedOutBetween()
     {
