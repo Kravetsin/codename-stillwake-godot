@@ -121,6 +121,7 @@ public static class PlanetTypes
         LavaRows = 4,
         BedrockRows = 2,
         BedrockSide = 2,
+        Fog = 64,
     })
     {
         Gravity = 700,
@@ -198,6 +199,7 @@ public static class PlanetTypes
             HomeClear = 0,
             HomeDeepLeast = 8,
             HomeDeepMost = 20,
+            Fog = 8,
         },
     };
 

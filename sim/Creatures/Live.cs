@@ -239,9 +239,11 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// What stops a creature: anything solid (a wall, a floor, a shut doorway), as for a stack, or
-    /// past the grid's edge. A machine is not, as for a stack.
+    /// past the grid's edge; on a planet, every column outside the build zone, the fog at its sides
+    /// (fog-edges), so walking, leaping, a knock or a release never carries one in. A machine is not, as for a stack.
     /// </summary>
     internal bool Solid(int x, int y) =>
         x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height
+        || Rules is PlanetType && (x < _grid.Zone.Left || x > _grid.Zone.Right)
         || _grid.Solid(y * _grid.Width + x);
 }
