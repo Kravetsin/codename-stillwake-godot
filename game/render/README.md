@@ -44,7 +44,7 @@
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
-| `ShipTiles.cs` | Every picture of the ship's cells in one atlas with one normal map. |
+| `ShipTiles.cs` | Every picture of the ship's cells in one atlas with one normal map, built once (`Shared`) for every view and surface. |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `Stars.cs` | Space behind the ship: a tile of stars over the whole screen; its sprite also drawn behind the title. |
