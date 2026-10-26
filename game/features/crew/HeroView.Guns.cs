@@ -18,7 +18,8 @@ public partial class HeroView
     /// <summary>This player's own shots, over the heroes, drawn as flown here: the sim's of its hero are never drawn.</summary>
     private readonly ShotStreaks _ownShots = new() { ZIndex = Layers.Hero };
 
-    private readonly AudioStreamPlayer _nailShot = Cues.Player(S.NailShot, S.Suit), _dryClick = Cues.Player(S.DryClick, S.Suit);
+    private readonly AudioStreamPlayer _nailShot = Cues.Player(S.NailShot, S.Suit), _dryClick = Cues.Player(S.DryClick, S.Suit),
+        _nailReady = Cues.Player(S.NailReady, S.Suit);
     private readonly Voices _ownShotEnds = new(S.Suit, voices: 3);
 
     /// <summary>The world's tick this hero's own shots were last flown to.</summary>
@@ -54,7 +55,7 @@ public partial class HeroView
             Puff(_figure);
         }
         if (step.Dry) _dryClick.Play();
-        if (step.Ready) _ready.Play();
+        if (step.Ready) _nailReady.Play();
         int tick = client.World.Tick;
         if (_gunTick < 0 || _gunTick > tick) _gunTick = tick;
         for (; _gunTick < tick; _gunTick++) _guns.Tick(m.Creatures.StepOf, m.Grid.Width, m.Grid.Height);

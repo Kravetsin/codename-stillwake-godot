@@ -37,12 +37,13 @@ public sealed record HeldLook(
         "res://art/hero_harpoon.png", (4.5, 8), 0, (9, 3.5), (25, 3.5), Loaded: "res://art/hero_harpoon_loaded.png", Aimed: true, Clamp: (10.5, 4));
 
     /// <summary>
-    /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), a placeholder till a designer's: gripped by its orange
-    /// grip, held as a pistol is, one-handed, the barrel along the forearm; the edge the barrel, the nail leaving its muzzle. Its
-    /// loaded picture shows a nail at the muzzle and in the magazine while it is ready.
+    /// The nailer, <c>art/hero_nailer.png</c> (shots-are-the-sims), the user's pick, «Самоделка»: a pipe barrel bound with copper
+    /// wire on a wooden grip, as the harpoon's, a brass spring and a tin-can magazine under it; held as a pistol is, one-handed,
+    /// the barrel along the forearm; the edge the barrel, the nail leaving its muzzle. Its loaded picture shows the nail's point
+    /// at the muzzle while it is ready.
     /// </summary>
     public static readonly HeldLook Nailer = new(
-        "res://art/hero_nailer.png", (5, 7), 0, (4, 3.5), (18, 3.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (9, 3.5));
+        "res://art/hero_nailer.png", (4.5, 7), 0, (7, 2.5), (25, 2.5), Loaded: "res://art/hero_nailer_loaded.png", Aimed: true, Clamp: (14, 2.5));
 
     /// <summary>
     /// The drill, <c>art/hero_drill.png</c> (0054): the tube hammer, a motor in a length of tube, held as a rifle is

@@ -129,7 +129,8 @@ its projectile's added, and the launch (speed, reach), knock and pace are the gu
 **Built, but** in N-1's PR (the user's word): `GunHand` (crew logic) keeps the cooldown and flies this player's shots by
 `CreaturesModule.StepOf`, drawn by `HeroView.Guns.cs`; `ShotsView` (a `SurfaceViews` line, the context now giving the peer and
 the tick) draws the sim's others; the streak, `ShotLooks` in `Content/logic`, and the end shown as what it met, `ShotEnds`
-(game/shared). Sounds are placeholders: the harpoon's shot pitched up, the UI click pitched down. A friend's nailer hangs,
+(game/shared). Art and sounds are the user's picks (2026-10-26): «Самоделка» in hand and its icon, the nail strip, the steel nail in
+flight; an air nailer's shot, a rifle's dry fire, a small bullet's soft hit, a clip loaded (CC0, `game/audio/CREDITS.md`). A friend's nailer hangs,
 its aim unsent; the frame from two windows was not taken. `-- --strip --nailer` (`NailerDemo`) fires up at 45°, at a loper,
 level.
 

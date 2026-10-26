@@ -1,20 +1,21 @@
 namespace Stillwake.Game;
 
 /// <summary>
-/// How a shot in flight looks (shots-are-the-sims): a streak <paramref name="Length"/> pixels of the world long and
-/// <paramref name="Width"/> wide behind its point, fading from <paramref name="Head"/> to nothing, its point a square of
-/// <paramref name="Width"/> in <paramref name="Head"/>, "rrggbb"; drawn unlit, so it shows in the dark and at the farthest zoom.
+/// How a shot in flight looks (shots-are-the-sims): a line <paramref name="Length"/> pixels of the world long and
+/// <paramref name="Width"/> wide behind its point, coloured from <paramref name="Tail"/> at its back through <paramref name="Body"/>
+/// a quarter of the way along to <paramref name="Point"/> at its front, "rrggbb"; one that <paramref name="Fades"/> goes from nothing
+/// at its back instead, a streak rather than a thing. Drawn unlit over a dark rim, so it shows on a pale sky as in a cave.
 /// </summary>
-public sealed record ShotLook(double Length, double Width, string Head);
+public sealed record ShotLook(double Length, double Width, string Tail, string Body, string Point, bool Fades = false);
 
 /// <summary>Every projectile's look, by its id (<c>Content.Shots</c>).</summary>
 public static class ShotLooks
 {
     /// <summary>
-    /// The nail: a bright steel streak two cells long, about what it flies in a frame at 60 fps (60 cells a second), so it reads as
-    /// one moving line rather than a dot that jumps; a placeholder till a designer's.
+    /// The nail, the user's pick «Стальной гвоздь»: the nail itself, a cell long, its bright head behind, its grey shank, its
+    /// light point in front.
     /// </summary>
-    public static readonly ShotLook Nail = new(16, 2, "f4f7fb");
+    public static readonly ShotLook Nail = new(8, 2, Tail: "f4f7fa", Body: "8a94a2", Point: "c9ced6");
 
     /// <summary>The look of projectile <paramref name="id"/>: the nail's for any with none of its own yet.</summary>
     public static ShotLook Of(string id) => Nail;

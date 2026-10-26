@@ -38,20 +38,21 @@ public partial class ShotStreaks : Node2D
         foreach (var (at, way, look) in _streaks)
         {
             var tail = at - way.Normalized() * (float)look.Length;
-            var head = new Color(look.Head);
+            Color back = new(look.Tail), body = new(look.Body), point = new(look.Point);
             for (int i = 0; i <= Fade; i++)
             {
                 float k = (float)i / Fade;
                 _points[i] = tail.Lerp(at, k);
-                _colours[i] = head with { A = k * k };
+                // A quarter of the way along the tail gives way to the body, which runs on to the point.
+                _colours[i] = k < 0.25f ? back.Lerp(body, k / 0.25f) : body.Lerp(point, (k - 0.25f) / 0.75f);
+                if (look.Fades) _colours[i] = _colours[i] with { A = k * k };
             }
             float w = (float)look.Width;
-            // A dark rim under it, so a bright streak reads on a pale sky as on a cave's dark.
+            // A dark rim under it, so it reads on a pale sky as on a cave's dark.
             for (int i = 0; i <= Fade; i++) _rim[i] = Rim with { A = Rim.A * _colours[i].A };
             DrawPolylineColors(_points, _rim, w + 2);
-            DrawRect(new Rect2(at - new Vector2(w + 2, w + 2) / 2, new Vector2(w + 2, w + 2)), Rim);
             DrawPolylineColors(_points, _colours, w);
-            DrawRect(new Rect2(at - new Vector2(w, w) / 2, new Vector2(w, w)), head);
+            DrawRect(new Rect2(at - new Vector2(w, w) / 2, new Vector2(w, w)), point);
         }
     }
 
