@@ -1,4 +1,3 @@
-using System.Text.Json;
 
 namespace Stillwake.Net;
 
@@ -16,7 +15,7 @@ public interface IChannel<TIn, TOut>
 
 /// <summary>
 /// Two ends of an in-process link, used by single-player and by tests. Every message arrives as a
-/// copy, through JSON as over a network, so no peer can hold an object another peer also holds.
+/// copy, written and read as over a network, so no peer can hold an object another peer also holds.
 /// </summary>
 public static class Loopback
 {
@@ -33,8 +32,7 @@ public static class Loopback
         public void OnMessage(Action<TIn> handler) => own.Listen(handler);
     }
 
-    private static T Copy<T>(T message) =>
-        JsonSerializer.Deserialize<T>(JsonSerializer.Serialize(message, Protocol.Json), Protocol.Json)!;
+    private static T Copy<T>(T message) => Protocol.Read<T>(Protocol.Write(message));
 }
 
 /// <summary>

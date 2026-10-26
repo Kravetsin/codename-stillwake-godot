@@ -1,18 +1,12 @@
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.Runtime.CompilerServices;
+using Stillwake.Sim;
 
 namespace Stillwake.Net;
 
 /// <summary>
 /// What a peer sends the host. Commands travel encoded by the sender's world
-/// (<see cref="Stillwake.Sim.World.Encode"/>): the host runs no world and never reads them.
+/// (<see cref="Wire.Encode"/>): the host runs no world and never reads them.
 /// </summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(CommandMessage), "command")]
-[JsonDerivedType(typeof(HeroMessage), "hero")]
-[JsonDerivedType(typeof(HashMessage), "hash")]
-[JsonDerivedType(typeof(HelloMessage), "hello")]
 public abstract record ToHost;
 
 /// <summary>
@@ -22,31 +16,25 @@ public abstract record ToHost;
 public sealed record HelloMessage(string Player) : ToHost;
 
 /// <summary>A peer asks the host to apply a command.</summary>
-public sealed record CommandMessage(string Command) : ToHost;
+public sealed record CommandMessage(byte[] Command) : ToHost;
 
 /// <summary>
 /// A peer's hero, as it moves on that peer: not a command, since heroes live outside the simulation
 /// (0002). The host passes it to every other peer, stamped with the sender, and keeps nothing of it.
 /// </summary>
-public sealed record HeroMessage(string State) : ToHost;
+public sealed record HeroMessage(byte[] State) : ToHost;
 
 /// <summary>A peer's hash of its world once it has run up to <c>Tick</c>, every <see cref="Protocol.HashEvery"/> ticks.</summary>
 public sealed record HashMessage(int Tick, ulong Hash) : ToHost;
 
 /// <summary>What the host sends a peer.</summary>
-[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(TickMessage), "tick")]
-[JsonDerivedType(typeof(WelcomeMessage), "welcome")]
-[JsonDerivedType(typeof(PeerHeroMessage), "hero")]
-[JsonDerivedType(typeof(ResyncMessage), "resync")]
-[JsonDerivedType(typeof(RefusedMessage), "refused")]
 public abstract record ToClient;
 
 /// <summary>The host will not let a joining peer in, and why, in words for the player: its player is aboard already.</summary>
 public sealed record RefusedMessage(string Reason) : ToClient;
 
 /// <summary>A command as the host released it: encoded as its sender wrote it, stamped with who sent it.</summary>
-public sealed record Stamped(int From, string Command);
+public sealed record Stamped(int From, byte[] Command);
 
 /// <summary>The host releases a tick: every peer applies these commands on it, in this order.</summary>
 public sealed record TickMessage(int Tick, IReadOnlyList<Stamped> Commands) : ToClient;
@@ -58,7 +46,7 @@ public sealed record TickMessage(int Tick, IReadOnlyList<Stamped> Commands) : To
 public sealed record WelcomeMessage(int Id, string Build, string Save) : ToClient;
 
 /// <summary>Another peer's hero, as the host passed it on; net carries the state without reading it.</summary>
-public sealed record PeerHeroMessage(int From, string State) : ToClient;
+public sealed record PeerHeroMessage(int From, byte[] State) : ToClient;
 
 /// <summary>
 /// The host's world for a peer whose hash differed, saved on the tick the host releases next: the
@@ -66,16 +54,38 @@ public sealed record PeerHeroMessage(int From, string State) : ToClient;
 /// </summary>
 public sealed record ResyncMessage(string Save) : ToClient;
 
-/// <summary>How messages are written on the wire: JSON, as the TypeScript build wrote them.</summary>
+/// <summary>How messages are written on the wire: packed (<see cref="Packing"/>), each tagged by its place below.</summary>
 public static class Protocol
 {
     /// <summary>How often peers hash their worlds: a hash of the reference world is not free.</summary>
     public const int HashEvery = 20;
 
-    public static readonly JsonSerializerOptions Json = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    private static readonly Packing.Union ToHosts =
+        new([typeof(HelloMessage), typeof(CommandMessage), typeof(HeroMessage), typeof(HashMessage)]);
 
-    public static byte[] Write<T>(T message) => Encoding.UTF8.GetBytes(JsonSerializer.Serialize(message, Json));
+    private static readonly Packing.Union ToClients =
+        new([typeof(TickMessage), typeof(WelcomeMessage), typeof(PeerHeroMessage), typeof(ResyncMessage), typeof(RefusedMessage)]);
 
-    public static T Read<T>(ReadOnlySpan<byte> bytes) =>
-        JsonSerializer.Deserialize<T>(bytes, Json) ?? throw new InvalidDataException("An empty message.");
+    public static byte[] Write<T>(T message) => Packing.Pack(message!, UnionOf(typeof(T)));
+
+    /// <summary>The message <see cref="Write"/> wrote; anything else throws <see cref="InvalidDataException"/>.</summary>
+    public static T Read<T>(ReadOnlySpan<byte> bytes) => (T)Packing.Unpack(bytes, UnionOf(typeof(T)));
+
+    private static Packing.Union UnionOf(Type type) =>
+        typeof(ToHost).IsAssignableFrom(type) ? ToHosts
+        : typeof(ToClient).IsAssignableFrom(type) ? ToClients
+        : throw new ArgumentException($"{type.Name} is no message.");
+}
+
+/// <summary>Commands as the network carries them: packed, tagged by their place among the world's command types.</summary>
+public static class Wire
+{
+    private static readonly ConditionalWeakTable<World, Packing.Union> Unions = new();
+
+    public static byte[] Encode(this World world, Command command) => Packing.Pack(command, UnionOf(world));
+
+    /// <summary>The command <see cref="Encode"/> wrote; garbled bytes throw <see cref="InvalidDataException"/>.</summary>
+    public static Command Decode(this World world, ReadOnlySpan<byte> bytes) => (Command)Packing.Unpack(bytes, UnionOf(world));
+
+    private static Packing.Union UnionOf(World world) => Unions.GetValue(world, w => new Packing.Union(w.CommandTypes));
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using Godot;
 using Stillwake.Net;
 
@@ -57,6 +56,7 @@ public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
     public void Poll()
     {
         if (_closed) return;
+        if (_open) Flush();
         _socket.Poll();
         switch (_socket.GetReadyState())
         {
@@ -81,6 +81,7 @@ public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
 
     public void Close()
     {
+        if (_open && !_closed) Flush();
         _socket.Close();
         _closed = true;
     }
@@ -104,10 +105,10 @@ public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
                 Failed?.Invoke("no session by that name on the relay");
                 break;
             case RelayFrames.FromPeer when frame is { Peer: int from, Message: { } message }:
-                if (_channels.TryGetValue(from, out var channel)) channel.Inbox.Deliver(Protocol.Read<TIn>(Encoding.UTF8.GetBytes(message)));
+                if (_channels.TryGetValue(from, out var channel)) Deliver(channel, message);
                 break;
             case RelayFrames.FromHost when frame.Message is { } message:
-                if (_channels.TryGetValue(0, out var host)) host.Inbox.Deliver(Protocol.Read<TIn>(Encoding.UTF8.GetBytes(message)));
+                if (_channels.TryGetValue(0, out var host)) Deliver(host, message);
                 break;
             case RelayFrames.Left when frame.Peer is int gone:
                 if (_channels.Remove(gone)) Disconnected?.Invoke(gone);
@@ -118,22 +119,43 @@ public sealed class RelayLink<TIn, TOut> : ILink<TIn, TOut>
         }
     }
 
+    // What the other end batched into a frame, in order.
+    private static void Deliver(Channel channel, string text)
+    {
+        if (RelayFrames.Unbatch(text) is not { } batch)
+        {
+            Links.Read<TIn>(null);
+            return;
+        }
+        foreach (var bytes in batch)
+            if (Links.Read<TIn>(bytes) is { } message) channel.Inbox.Deliver(message);
+    }
+
+    // Each channel's messages since the last poll, in one frame: sent a frame late, to cost one frame's text, not one a message.
+    private void Flush()
+    {
+        foreach (var (peer, channel) in _channels)
+        {
+            if (channel.Outbox.Count == 0) continue;
+            string batch = RelayFrames.Batch(channel.Outbox);
+            _socket.SendText(_hosting ? RelayFrames.ToPeerFrame((int)peer, batch) : RelayFrames.ToHostFrame(batch));
+            channel.Outbox.Clear();
+        }
+    }
+
     private void Add(long id)
     {
-        var channel = new Channel(this, id);
+        var channel = new Channel();
         _channels[id] = channel;
         Connected?.Invoke(id, channel);
     }
 
-    private sealed class Channel(RelayLink<TIn, TOut> link, long peer) : IChannel<TIn, TOut>
+    private sealed class Channel : IChannel<TIn, TOut>
     {
         public Inbox<TIn> Inbox { get; } = new();
+        public List<byte[]> Outbox { get; } = [];
 
-        public void Send(TOut message)
-        {
-            string json = Encoding.UTF8.GetString(Protocol.Write(message));
-            link._socket.SendText(link._hosting ? RelayFrames.ToPeerFrame((int)peer, json) : RelayFrames.ToHostFrame(json));
-        }
+        public void Send(TOut message) => Outbox.Add(Protocol.Write(message));
 
         public void OnMessage(Action<TIn> handler) => Inbox.Listen(handler);
     }

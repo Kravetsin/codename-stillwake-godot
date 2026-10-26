@@ -177,6 +177,6 @@ public partial class Main
             client.Send(new SetDoor(_doors[_role == "guest" ? 1 : 0], true));
             Log($"sent SetDoor({_doors[_role == "guest" ? 1 : 0]}) at tick {client.World.Tick}, {client.InFlight.Count} in flight");
         }
-        if (client.World.Tick / 20 != before / 20) client.SendHero($"{{\"tick\":{client.World.Tick}}}");
+        if (client.World.Tick / 20 != before / 20) client.SendHero([]);
     }
 }

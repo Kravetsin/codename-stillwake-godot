@@ -234,7 +234,7 @@ public class RemoteTests
         Assert.Equal(4, sent.Count);
     }
 
-    // On the wire: net carries the hero as a string it never reads.
+    // On the wire: net carries the hero as bytes it never reads.
 
     [Fact]
     public void GoesThroughTheWireAsItWasSentAndNothingElseIsTakenForAHero()
@@ -242,7 +242,15 @@ public class RemoteTests
         var sent = Sent(HeroAt(1200, 3400, -1) with { Vx = 6, Climbing = true, Anchor = new Point(9000, 4000) }, at: 1250, look: -0.3, plan: true);
         Assert.Equal(sent, SentHero.Decode(sent.Encode()));
         Assert.Equal(Sent(HeroAt(1)), SentHero.Decode(Sent(HeroAt(1)).Encode()));
-        Assert.Null(SentHero.Decode("{\"tick\":20}"));
+        // The dev runs' --auto beats.
+        Assert.Null(SentHero.Decode([]));
+    }
+
+    [Fact]
+    public void AreAFewDozenBytesSprintingWithAnAxe()
+    {
+        var sent = new SentHero(new Seen(HeroAt(123_456, 45_000) with { Vx = 1320, Vy = -600 }, Look: 0.25, Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck, 7)), 123_456.5);
+        Assert.InRange(sent.Encode().Length, 1, 52);
     }
 
     // Its hands: what they wield and what they are busy with, so others draw them as its own client does.
@@ -263,16 +271,7 @@ public class RemoteTests
     public void GoThroughTheWireWithTheSwingsBegunChopping()
     {
         var sent = new SentHero(new Seen(HeroAt(1200, 3400), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck, 7)), 1250);
-        Assert.Contains("\"swings\":7", sent.Encode());
         Assert.Equal(sent, SentHero.Decode(sent.Encode()));
-    }
-
-    [Fact]
-    public void LeaveTheSwingsOutWhileNoneAndReadNoneWhereLeftOut()
-    {
-        Assert.DoesNotContain("swings", new SentHero(new Seen(HeroAt(1), Busy: new Busy(Handwork.Work, Wreck)), 50).Encode());
-        var decoded = SentHero.Decode("{\"x\":1,\"y\":0,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":false,\"busy\":{\"work\":\"chop\",\"at\":{\"x\":1,\"y\":2}}}");
-        Assert.Equal(new Busy(Handwork.Chop, new Point(1, 2)), decoded!.Value.Seen.Busy);
     }
 
     [Fact]
@@ -282,39 +281,29 @@ public class RemoteTests
         Assert.Equal(sent, SentHero.Decode(sent.Encode()));
     }
 
-    [Fact]
-    public void AreWrittenAsBeforeWhileEmptyAndIdle()
+    /// <summary><paramref name="a"/> as written, the one byte where <paramref name="b"/> differs from it set to <paramref name="value"/>.</summary>
+    private static byte[] Garbled(SentHero a, SentHero b, byte value)
     {
-        string written = Sent(HeroAt(1), at: 50, plan: true).Encode();
-        Assert.DoesNotContain("wields", written);
-        Assert.DoesNotContain("busy", written);
-    }
-
-    [Fact]
-    public void AreEmptyAndIdleInAHeroWrittenBeforeThereWereHandsToSend()
-    {
-        var decoded = SentHero.Decode("{\"x\":1200,\"y\":3400,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":true,\"at\":50}");
-        Assert.Equal(new SentHero(new Seen(HeroAt(1200, 3400), HoldsPlan: true), 50), decoded);
-        Assert.Null(decoded!.Value.Seen.Wields);
-        Assert.Null(decoded.Value.Seen.Busy);
+        byte[] first = a.Encode(), second = b.Encode();
+        Assert.Equal(first.Length, second.Length);
+        int at = Assert.Single(Enumerable.Range(0, first.Length), i => first[i] != second[i]);
+        first[at] = value;
+        return first;
     }
 
     [Theory]
-    [InlineData("\"juggle\"")]
-    [InlineData("7")]
-    [InlineData("null")]
-    public void MakeNoHeroOfWorkNoFigureKnows(string work)
-    {
-        string state = "{\"x\":1,\"y\":0,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":false,\"busy\":{\"work\":" + work + ",\"at\":{\"x\":1,\"y\":2}}}";
-        Assert.Null(SentHero.Decode(state));
-    }
+    [InlineData(1)]
+    [InlineData(0x7E)]
+    public void MakeNoHeroOfWorkNoFigureKnows(byte work) =>
+        Assert.Null(SentHero.Decode(Garbled(
+            new SentHero(new Seen(HeroAt(1), Busy: new Busy(Handwork.Chop, Wreck)), 50), new SentHero(new Seen(HeroAt(1), Busy: new Busy(Handwork.Drill, Wreck)), 50), work)));
 
     [Fact]
     public void MakeNoHeroOfAShortOrGarbledState()
     {
-        string whole = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck)), 50).Encode();
+        var whole = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe", Busy: new Busy(Handwork.Chop, Wreck)), 50).Encode();
         for (int cut = 0; cut < whole.Length; cut++) Assert.Null(SentHero.Decode(whole[..cut]));
-        Assert.Null(SentHero.Decode(whole.Replace("\"fireAxe\"", "[1]")));
+        Assert.Null(SentHero.Decode([.. whole, 0]));
     }
 
     [Fact]
@@ -390,24 +379,22 @@ public class RemoteTests
     // Its harpoon's rod (0065): on the wire while out of the gun, sent at once as it changes.
 
     [Fact]
-    public void GoThroughTheWireWithTheirRodOutAndLeaveItOutWhileInTheGun()
+    public void GoThroughTheWireWithTheirRodOutAndNoneWhileInTheGun()
     {
-        foreach (var rod in new RodSeen[] { new(Rod.Flying, new Point(300, -11_700)), new(Rod.Reeling, new Point(-500, 120), 7), new(Rod.Returning) })
+        foreach (var rod in new RodSeen[] { new(Rod.Flying, new Point(300, -11_700)), new(Rod.Reeling, new Point(-500, 120), 7), new(Rod.Returning), new(Rod.Hooked, new Point(6_000, 0)) })
         {
             var sent = new SentHero(new Seen(HeroAt(1200, 3400), Wields: "harpoon", Rod: rod), 1250);
             Assert.Equal(sent, SentHero.Decode(sent.Encode()));
         }
-        Assert.Contains("\"harpoon\":{\"rod\":\"hooked\",\"at\":{\"x\":6000,\"y\":0}}",
-            new SentHero(new Seen(HeroAt(1), Rod: new RodSeen(Rod.Hooked, new Point(6_000, 0))), 50).Encode());
-        Assert.DoesNotContain("\"harpoon\":", new SentHero(new Seen(HeroAt(1), Wields: "harpoon"), 50).Encode());
+        Assert.Null(SentHero.Decode(new SentHero(new Seen(HeroAt(1), Wields: "harpoon"), 50).Encode())!.Value.Seen.Rod);
     }
 
-    [Fact]
-    public void MakeNoHeroOfARodNoGunKnows()
-    {
-        string state = "{\"x\":1,\"y\":0,\"vx\":0,\"vy\":0,\"climbing\":false,\"facing\":1,\"plan\":false,\"harpoon\":{\"rod\":\"lasso\"}}";
-        Assert.Null(SentHero.Decode(state));
-    }
+    [Theory]
+    [InlineData(1)]
+    [InlineData(0x7E)]
+    public void MakeNoHeroOfARodNoGunKnows(byte rod) =>
+        Assert.Null(SentHero.Decode(Garbled(
+            new SentHero(new Seen(HeroAt(1), Rod: new RodSeen(Rod.Flying)), 50), new SentHero(new Seen(HeroAt(1), Rod: new RodSeen(Rod.Returning)), 50), rod)));
 
     [Fact]
     public void AreSentAtOnceAsTheirRodFiresSticksOrComesFreeThoughASendWentJustNow()

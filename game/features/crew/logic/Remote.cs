@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Text.Json;
-using System.Text.Json.Serialization;
+using System.IO;
+using Stillwake.Net;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -27,11 +27,9 @@ public enum Handwork { Work, Chop, Beam, Drill }
 /// <summary>
 /// What a hero's hands are busy with, and the point they work at, in thousandths of a cell as the hero's
 /// own position; chopping, the point its latest swing is aimed at (<see cref="AxeSwing.At"/>) and how many
-/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did. Left
-/// out of the wire while none.
+/// swings it has begun (<see cref="AxeSwing.Count"/>), so others swing once for each, where it did.
 /// </summary>
-public readonly record struct Busy(
-    Handwork Work, Point At, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Swings = 0)
+public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
 {
     /// <summary>Whether <paramref name="now"/> is a beam not shown yet: a beam is sent for as long as it fades, and drawn once.</summary>
     public static bool BeamsAnew(Busy? was, Busy? now) => now is { Work: Handwork.Beam } && now != was;
@@ -47,35 +45,26 @@ public readonly record struct Busy(
 /// <summary>A hero as sent (<c>SentHero</c> of remote.ts): stamped with the time of the controller step it stands at, on its own clock.</summary>
 public readonly record struct SentHero(Seen Seen, double? At = null)
 {
-    private static readonly JsonSerializerOptions Options = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        // By name: a garbled kind of work is no hero, rather than work no figure knows.
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: false) },
-    };
-
-    // Left out while null: a hero with idle, empty hands is written as before there were hands to send.
     private sealed record Wire(
         int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor, double? Look, bool Plan, double? At,
-        string? Wields = null, Busy? Busy = null, RodSeen? Harpoon = null);
+        string? Wields, Busy? Busy, RodSeen? Harpoon);
 
-    /// <summary>What <c>Client.SendHero</c> carries: net never reads it.</summary>
-    public string Encode()
+    /// <summary>What <c>Client.SendHero</c> carries, packed (<see cref="Packing"/>): net never reads it.</summary>
+    public byte[] Encode()
     {
         var h = Seen.Hero;
-        return JsonSerializer.Serialize(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy, Seen.Rod), Options);
+        return Packing.Pack(new Wire(h.X, h.Y, h.Vx, h.Vy, h.Climbing, h.Facing, h.Anchor, Seen.Look, Seen.HoldsPlan, At, Seen.Wields, Seen.Busy, Seen.Rod));
     }
 
     /// <summary>A hero another peer sent, as <see cref="Encode"/> wrote it; none for what it did not write.</summary>
-    public static SentHero? Decode(string state)
+    public static SentHero? Decode(ReadOnlySpan<byte> state)
     {
         try
         {
-            if (JsonSerializer.Deserialize<Wire>(state, Options) is not { Facing: 1 or -1 } w) return null;
+            if (Packing.Unpack<Wire>(state) is not { Facing: 1 or -1 } w) return null;
             return new SentHero(new Seen(new Hero(w.X, w.Y, w.Vx, w.Vy, w.Climbing, w.Facing, w.Anchor), w.Look, w.Plan, w.Wields, w.Busy, w.Harpoon), w.At);
         }
-        catch (JsonException)
+        catch (InvalidDataException)
         {
             // A peer of the same build writes nothing else; the dev runs' --auto beats carry no hero.
             return null;

@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
 
 namespace Stillwake.Sim;
 
@@ -47,8 +46,11 @@ public sealed class World
     /// <summary>The next tick to run.</summary>
     public int Tick { get; private set; }
 
-    /// <summary>How commands and saves are written: every module's commands by their names.</summary>
+    /// <summary>How saves are written.</summary>
     public JsonSerializerOptions Json { get; }
+
+    /// <summary>Every command type there is, in order of its name: how the network tags commands.</summary>
+    public IReadOnlyList<Type> CommandTypes { get; }
 
     private World(IReadOnlyList<Module> modules, RngState rng, int tick, string kind)
     {
@@ -59,26 +61,10 @@ public sealed class World
         _own.Add(typeof(OpenSurface), (_ => null, c => Open((OpenSurface)c)));
         _own.Add(typeof(Transfer), (c => TransferProblem((Transfer)c), c => Move(c.From, ((Transfer)c).To, ((Transfer)c).Cell)));
         // Every surface runs the ship's modules, so the ship's commands are every module command there is.
-        var names = modules.SelectMany(m => m.Commands).Select(c => new JsonDerivedType(c.Type, c.Name))
-            .Append(new JsonDerivedType(typeof(OpenSurface), "world.open"))
-            .Append(new JsonDerivedType(typeof(Transfer), "world.transfer")).ToList();
-        Json = new JsonSerializerOptions
-        {
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            IncludeFields = false,
-            TypeInfoResolver = new DefaultJsonTypeInfoResolver
-            {
-                Modifiers =
-                {
-                    info =>
-                    {
-                        if (info.Type != typeof(Command)) return;
-                        info.PolymorphismOptions = new JsonPolymorphismOptions { TypeDiscriminatorPropertyName = "type" };
-                        foreach (var n in names) info.PolymorphismOptions.DerivedTypes.Add(n);
-                    },
-                },
-            },
-        };
+        CommandTypes = modules.SelectMany(m => m.Commands).Select(c => (c.Type, c.Name))
+            .Append((typeof(OpenSurface), "world.open")).Append((typeof(Transfer), "world.transfer"))
+            .OrderBy(c => c.Item2, StringComparer.Ordinal).Select(c => c.Item1).ToList();
+        Json = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase, IncludeFields = false };
     }
 
     /// <summary>The world's surfaces, in id order: the ship first.</summary>
@@ -382,9 +368,4 @@ public sealed class World
 
         public Span<byte> GetSpan(int sizeHint = 0) => GetMemory(sizeHint).Span;
     }
-
-    /// <summary>A command as the network carries it, and back.</summary>
-    public string Encode(Command c) => JsonSerializer.Serialize(c, Json);
-    public Command Decode(string text) =>
-        JsonSerializer.Deserialize<Command>(text, Json) ?? throw new InvalidDataException("No command.");
 }

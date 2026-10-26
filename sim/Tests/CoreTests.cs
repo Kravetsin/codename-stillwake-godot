@@ -72,13 +72,4 @@ public class CoreTests
         var save = w.World.Save().Replace("\"builder\"", "\"other\"");
         Assert.Throws<InvalidDataException>(() => World.Load(save, w.Modules()));
     }
-
-    [Fact]
-    public void CarriesCommandsOverTheWireByTheirNames()
-    {
-        var w = new Scenario(Map);
-        var text = w.World.Encode(new SetDoor(12, true) { From = 2 });
-        Assert.Equal("""{"type":"grid.setDoor","cell":12,"open":true,"from":2}""", text);
-        Assert.Equal(new SetDoor(12, true) { From = 2 }, w.World.Decode(text));
-    }
 }

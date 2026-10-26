@@ -146,34 +146,36 @@ public class SessionTests
 
     // The loopback.
 
-    public sealed class Box
-    {
-        public List<int> List { get; set; } = [];
-    }
-
     [Fact]
     public void LoopbackDeliversCopiesSoSenderAndReceiverNeverShareAnObject()
     {
-        var (a, b) = Loopback.Create<Box, int>();
-        var received = new List<Box>();
+        var (a, b) = Loopback.Create<ToClient, ToHost>();
+        var received = new List<ToClient>();
         b.OnMessage(received.Add);
-        var sent = new Box { List = [1] };
-        a.Send(sent);
-        sent.List.Add(2);
-        Assert.Equal([1], Assert.Single(received).List);
+        var commands = new List<Stamped> { new(1, [7]) };
+        a.Send(new TickMessage(0, commands));
+        commands.Add(new Stamped(2, [8]));
+        commands[0].Command[0] = 9;
+        var tick = Assert.IsType<TickMessage>(Assert.Single(received));
+        Assert.Equal([7], Assert.Single(tick.Commands).Command);
     }
 
     [Fact]
     public void LoopbackHoldsMessagesUntilAReceiverIsSetThenDeliversThemInOrder()
     {
-        var (a, b) = Loopback.Create<int, int>();
-        a.Send(1);
-        a.Send(2);
-        var received = new List<int>();
+        var (a, b) = Loopback.Create<ToHost, ToClient>();
+        a.Send(new HashMessage(1, 1));
+        a.Send(new HashMessage(2, 2));
+        var received = new List<ToHost>();
         b.OnMessage(received.Add);
-        a.Send(3);
-        Assert.Equal([1, 2, 3], received);
+        a.Send(new HashMessage(3, 3));
+        Assert.Equal([new HashMessage(1, 1), new HashMessage(2, 2), new HashMessage(3, 3)], received);
     }
+
+    private static IReadOnlyList<string> Heard(Client client) =>
+        client.TakeHeroes().Select(h => $"{h.From}:{System.Text.Encoding.UTF8.GetString(h.State)}").ToList();
+
+    private static byte[] Hero(string state) => System.Text.Encoding.UTF8.GetBytes(state);
 
     // A peer leaving.
 
@@ -194,7 +196,7 @@ public class SessionTests
         var (host, clients) = TwoPlayers();
         clients[1].Send(Note("bye"));
         host.Disconnect(1);
-        clients[0].SendHero("{\"x\":1}");
+        clients[0].SendHero(Hero("x"));
         host.Advance();
         Assert.Empty(clients[1].Update());
         Assert.Empty(clients[1].TakeHeroes());
@@ -229,11 +231,11 @@ public class SessionTests
             var (toClient, toHost) = Loopback.Create<ToClient, ToHost>();
             return new Client(_game.Create(1), toHost, host.Connect(toClient));
         }).ToList();
-        clients[1].SendHero("x1");
-        clients[2].SendHero("x2");
-        clients[1].SendHero("x3");
-        Assert.Equal([new PeerHeroMessage(1, "x1"), new PeerHeroMessage(2, "x2"), new PeerHeroMessage(1, "x3")], clients[0].TakeHeroes());
-        Assert.Equal([new PeerHeroMessage(2, "x2")], clients[1].TakeHeroes());
+        clients[1].SendHero(Hero("x1"));
+        clients[2].SendHero(Hero("x2"));
+        clients[1].SendHero(Hero("x3"));
+        Assert.Equal(["1:x1", "2:x2", "1:x3"], Heard(clients[0]));
+        Assert.Equal(["2:x2"], Heard(clients[1]));
         Assert.Empty(clients[0].TakeHeroes());
     }
 
@@ -243,7 +245,7 @@ public class SessionTests
         var (host, client) = Single();
         var (toClient, toHost) = Loopback.Create<ToClient, ToHost>();
         var other = new Client(_game.Create(1), toHost, host.Connect(toClient));
-        other.SendHero("x5");
+        other.SendHero(Hero("x5"));
         host.Advance();
         var report = Assert.Single(client.Update());
         Assert.Empty(report.Refused);
@@ -253,7 +255,7 @@ public class SessionTests
         Assert.Equal(quiet.Hash(), client.World.Hash());
         other.Update();
         Assert.Equal(client.World.Hash(), other.World.Hash());
-        Assert.Equal([new PeerHeroMessage(1, "x5")], client.TakeHeroes());
+        Assert.Equal(["1:x5"], Heard(client));
     }
 
     // A peer playing ticks out at its own pace.

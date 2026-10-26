@@ -93,25 +93,6 @@ public class SurfacesTests
     }
 
     [Fact]
-    public void AStampedCommandCarriesItsSurfaceOverTheWireAndAnUnstampedOneNothing()
-    {
-        var w = new Scenario(Map);
-        var text = w.World.Encode(new SetDoor(12, true) { From = 2, Surface = 0 });
-        Assert.Equal("""{"type":"grid.setDoor","cell":12,"open":true,"from":2,"surface":0}""", text);
-        Assert.Equal(new SetDoor(12, true) { From = 2, Surface = 0 }, w.World.Decode(text));
-        Assert.DoesNotContain("surface", w.World.Encode(new SetDoor(12, true)));
-    }
-
-    [Fact]
-    public void TheWorldsOwnCommandsGoOverTheWireByTheirNames()
-    {
-        var w = new Scenario(Map);
-        Assert.Equal("""{"type":"world.open","kind":"testStrip","from":1}""", w.World.Encode(new OpenSurface(Strip) { From = 1 }));
-        Assert.Equal("""{"type":"world.transfer","to":1,"cell":null,"from":1}""", w.World.Encode(new Transfer(1) { From = 1 }));
-        Assert.Equal(new Transfer(1, 5) { From = 1 }, w.World.Decode(w.World.Encode(new Transfer(1, 5) { From = 1 })));
-    }
-
-    [Fact]
     public void ASaveLoadsAndSavesByteForByteAndAShipAloneHasNoKeyForSurfaces()
     {
         // The fixture of this format, with two strips opened, loads and saves byte for byte; a hash is of those bytes. A ship

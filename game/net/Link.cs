@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using Godot;
 using Stillwake.Net;
 
 namespace Stillwake.Game.Net;
@@ -18,4 +20,25 @@ public interface ILink<TIn, TOut>
     void Poll();
 
     void Close();
+}
+
+/// <summary>Reading messages off a link.</summary>
+public static class Links
+{
+    /// <summary>
+    /// The message in <paramref name="bytes"/>, or none, with a warning, for bytes no peer of this build writes: the other
+    /// end runs another build, whose welcome cannot be read to say so.
+    /// </summary>
+    public static T? Read<T>(byte[]? bytes)
+    {
+        try
+        {
+            if (bytes != null) return Protocol.Read<T>(bytes);
+        }
+        catch (InvalidDataException)
+        {
+        }
+        GD.PushWarning("A message no peer of this build writes came in: does the other end run another build?");
+        return default;
+    }
 }

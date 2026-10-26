@@ -1,12 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Nodes;
+using Stillwake.Net;
 
 namespace Stillwake.Game.Net;
 
 /// <summary>
 /// The playtest relay's frames (ADR 0012, packages/net/src/relay.ts of the TypeScript game): JSON
 /// <c>{ event, data }</c> over a WebSocket. The relay routes them without reading what they carry, so
-/// this game's Protocol messages ride inside as JSON text. Plain .NET, tested without Godot.
+/// this game's Protocol messages ride inside, batched (<see cref="Batch"/>). Plain .NET, tested without Godot.
 /// </summary>
 public static class RelayFrames
 {
@@ -48,6 +50,25 @@ public static class RelayFrames
 
     /// <summary>A host's message to its guest <paramref name="peer"/>.</summary>
     public static string ToPeerFrame(int peer, string message) => Of(ToPeer, new JsonObject { ["peer"] = peer, ["message"] = message });
+
+    /// <summary>
+    /// Messages for one end, as one frame carries them all: a frame a message would cost more than a hero, so a link sends
+    /// what it has once a frame. Packed (<see cref="Packing"/>), as base64, since the relay carries text.
+    /// </summary>
+    public static string Batch(IReadOnlyList<byte[]> messages) => Convert.ToBase64String(Packing.Pack(messages));
+
+    /// <summary>The messages <see cref="Batch"/> carried; none for text it did not write.</summary>
+    public static IReadOnlyList<byte[]>? Unbatch(string text)
+    {
+        try
+        {
+            return Packing.Unpack<IReadOnlyList<byte[]>>(Convert.FromBase64String(text));
+        }
+        catch (Exception e) when (e is FormatException or System.IO.InvalidDataException)
+        {
+            return null;
+        }
+    }
 
     /// <summary>What a frame from the relay says; null for one that is not JSON or names no event.</summary>
     public static Frame? Read(string text)

@@ -62,10 +62,9 @@ public class ModulesTests
         var second = World.Create(seed, Registry.Wreck, b.All);
         for (int i = 0; i < 300; i++)
         {
-            // Encoded and decoded, as the network carries them.
             var commands = RandomCommands(first, rng);
             first.Step(commands);
-            second.Step(commands.Select(c => second.Decode(first.Encode(c))).ToList());
+            second.Step(commands);
             Assert.Equal(first.Hash(), second.Hash());
         }
     }

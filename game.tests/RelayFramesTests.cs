@@ -46,6 +46,17 @@ public class RelayFramesTests
     }
 
     [Fact]
+    public void CarriesAFramesMessagesBatchedAsTextInOrderAndReadsNothingFromTextItDidNotWrite()
+    {
+        byte[][] messages = [[1, 2, 3], [], [0xFF]];
+        string frame = RelayFrames.ToPeerFrame(2, RelayFrames.Batch(messages));
+        var read = RelayFrames.Unbatch(RelayFrames.Read(frame)!.Value.Message!);
+        Assert.Equal(messages, read);
+        Assert.Null(RelayFrames.Unbatch("{\"kind\":\"tick\"}"));
+        Assert.Null(RelayFrames.Unbatch("AQID"));
+    }
+
+    [Fact]
     public void AsksWithThePasswordUnderAnyUserAsTheServerChecksIt()
     {
         string header = RelayFrames.Authorization("secret");
