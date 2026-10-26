@@ -10,7 +10,8 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   resynced; the surface this hero is on, of how many (0076). Every module of that surface by its id, the world's
   globals with the ship's; an open entry shows its slice of the world's save as JSON, the first 20 000 characters of it.
 - **Controls:** the world's speed ×4 and back, creative mode (`items`' `SetCreative`, read at the
-  click so two quick clicks switch it back), and a meteor on a random wall of the outer hull
+  click so two quick clicks switch it back), instant building right of it (`building`'s `SetInstant`, read the same way:
+  a blueprint placed is built at once, free), both amber while on, and a meteor on a random wall of the outer hull
   beside a room (`hazards`' `MeteorHit`), with the wall cell behind it away from the room, so a hull two cells thick (0104)
   is breached through; or a line saying none is left. Surfaces (0076): `open planet` opens a planet grown from its seed
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface

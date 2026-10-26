@@ -8,6 +8,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
@@ -39,7 +40,7 @@ public partial class DevPanel : CanvasLayer
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
     private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
-    private readonly Button _speed, _creative;
+    private readonly Button _speed, _creative, _instant;
     private readonly VBoxContainer _picker = Style.Gap(new VBoxContainer { Visible = false }, 4);
     private readonly LineEdit _search = new() { PlaceholderText = "find an item…", ContextMenuEnabled = false, CaretBlink = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Label _pickerNote = Text(Style.Amber400);
@@ -81,6 +82,7 @@ public partial class DevPanel : CanvasLayer
         var buttons = Style.Gap(new HBoxContainer(), 8);
         buttons.AddChild(_speed = Style.Button("×4", ToggleSpeed));
         buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
+        buttons.AddChild(_instant = Style.Button("instant", ToggleInstant));
         buttons.AddChild(Style.Button("meteor", Meteor));
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
@@ -141,6 +143,13 @@ public partial class DevPanel : CanvasLayer
         if (_session() is not Session s) return;
         // Read now, not from the last reading: two quick clicks must switch it back.
         s.Client.Send(new SetCreative(!_modules().Items.Creative));
+    }
+
+    private void ToggleInstant()
+    {
+        if (_session() is not Session s) return;
+        // Read now, as creative is: two quick clicks must switch it back.
+        s.Client.Send(new SetInstant(!_modules().Building.Instant));
     }
 
     /// <summary>
@@ -317,6 +326,8 @@ public partial class DevPanel : CanvasLayer
         _speed.Text = s.Speed == 1 ? "×4" : "×1";
         bool creative = m.Items.Creative;
         Style.Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
+        bool instant = m.Building.Instant;
+        Style.Paint(_instant, instant ? Style.Amber700 : Style.Slate700, instant ? Amber600 : Style.Slate600);
         ShowSlices(client.World, client.World.SurfaceOf(client.Id), m);
     }
 

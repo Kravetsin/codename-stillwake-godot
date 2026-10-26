@@ -34,6 +34,9 @@ public sealed record CancelPlan(int Id) : Command;
 /// </summary>
 public sealed record Work(int Plan) : Command;
 
+/// <summary>Switches instant building, from the dev panel: a blueprint placed is built at once, with no plan, work or cost.</summary>
+public sealed record SetInstant(bool On) : Command;
+
 /// <summary>
 /// Plans, and the work that turns them into the ship (packages/sim/src/modules/building): blueprints
 /// built and marks taken apart through the grid's operations, paid from and refunded to the items.
@@ -69,6 +72,7 @@ public sealed partial class BuildingModule : Module<BuildingState>
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
+        Handles<SetInstant>(_ => null, c => State.Instant = c.On);
         Handles<Hew>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), ApplyHew);
         // A mark whose thing a meteor broke has nothing left to take apart, nor a crack its wall. In derivation, after
         // every command and construction system, so a hit made before is seen on its tick.
@@ -82,7 +86,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
         System(Phase.Simulation, Zap);
     }
 
+    /// <summary>A new surface keeps the instant building of the one it was opened from, as it keeps creative mode.</summary>
+    protected override void Inherit(Module from) => State.Instant = ((BuildingModule)from).Instant;
+
     // Queries.
+
+    /// <summary>Instant building (dev panel): a blueprint placed is built at once, free, and no plan is kept.</summary>
+    public bool Instant => State.Instant;
 
     /// <summary>Every plan, in the order they were made; live and read-only.</summary>
     public IReadOnlyList<Plan> Plans => State.Plans;
@@ -141,6 +151,11 @@ public sealed partial class BuildingModule : Module<BuildingState>
 
     private void ApplyPlacePlan(PlacePlan c)
     {
+        if (State.Instant)
+        {
+            Build(c.Cell, c.Placement);
+            return;
+        }
         State.Plans.Add(Plan.Blueprint(State.NextPlanId, c.Cell, c.Placement));
         State.NextPlanId += 1;
     }
@@ -190,13 +205,8 @@ public sealed partial class BuildingModule : Module<BuildingState>
     /// </summary>
     private void Complete(Plan plan, int from)
     {
-        if (plan.Place is { } place)
-        {
-            // Plans claim their slots, so nothing can fill one first: a refusal here is our bug.
-            _gridOps.Place(plan.Cell, place);
-            // A machine built with its plug on a peg takes that peg's cables (0110).
-            if (place.Layer == "machine" && _grid.MachineAt(plan.Cell) is { } made) _powerOps.Plug(made.Id);
-        }
+        // Plans claim their slots, so nothing can fill one first: a refusal here is our bug.
+        if (plan.Place is { } place) Build(plan.Cell, place);
         else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
         {
             // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
@@ -206,5 +216,13 @@ public sealed partial class BuildingModule : Module<BuildingState>
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }
         State.Plans.RemoveAll(p => p.Id == plan.Id);
+    }
+
+    /// <summary>Puts <paramref name="place"/> into the grid at <paramref name="cell"/>, a slot validation found free.</summary>
+    private void Build(int cell, Placement place)
+    {
+        _gridOps.Place(cell, place);
+        // A machine built with its plug on a peg takes that peg's cables (0110).
+        if (place.Layer == "machine" && _grid.MachineAt(cell) is { } made) _powerOps.Plug(made.Id);
     }
 }

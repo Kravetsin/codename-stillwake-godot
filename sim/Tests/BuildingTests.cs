@@ -152,6 +152,39 @@ public class BuildingTests
     }
 
     [Fact]
+    public void BuildsABlueprintAtOnceWhileInstantFreeAndKeepingNoPlanThroughASave()
+    {
+        // The hero carries nothing and creative mode is off: an instant build takes nothing.
+        var w = new Scenario(Open).Do(new SetInstant(true)).Run().Reload();
+        w.Do(new PlacePlan(At(1, 1), Wall)).Do(new PlacePlan(At(3, 1), Tank)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Plans);
+        Assert.Equal("iron", w.M.Grid.WallAt(At(1, 1))?.Id);
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(3, 1))?.Kind);
+        // Its rules stand: a slot taken is refused as ever. Switched off, blueprints are plans again, their ids untouched.
+        w.Do(new PlacePlan(At(1, 1), Wall)).Do(new SetInstant(false)).Run();
+        w.Do(new PlacePlan(At(5, 1), Wall)).Run();
+        Assert.Equal(["grid.occupied"], Reasons(w));
+        Assert.False(w.M.Building.Instant);
+        Assert.Equal([Placed(1, At(5, 1), Wall)], PlansOf(w));
+    }
+
+    [Fact]
+    public void RefusesAnInstantWallOnAHeroAsItsLastTickOfWorkWouldBe()
+    {
+        int hero = At(3, 1) + 18;
+        var w = new Scenario(Open).Do(new Crew.Enter(hero)).Do(new SetInstant(true)).Run();
+        Assert.Equal("building.heroInside", w.M.Building.Problem(hero + 18, Wall));
+        w.Do(new PlacePlan(hero + 18, Wall)).Do(new PlacePlan(hero + 2, Wall)).Run();
+        Assert.Equal(["building.heroInside"], Reasons(w));
+        Assert.Null(w.M.Grid.WallAt(hero + 18));
+        Assert.Equal("iron", w.M.Grid.WallAt(hero + 2)?.Id);
+        // Planned, a wall on a hero is no problem until its last tick.
+        w.Do(new SetInstant(false)).Run();
+        Assert.Null(w.M.Building.Problem(hero, Wall));
+    }
+
+    [Fact]
     public void PlansABackWallBehindAPlannedWallAndInSpaceButNotWhereOneStandsOrIsPlanned()
     {
         var backWall = Placement.BackWall("scrap");

@@ -41,4 +41,6 @@ public sealed class BuildingState
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>The cells of the plants felled since the ground grew (0079), ascending: the rest of its plants grow again from the seed.</summary>
     [JsonInclude] internal List<int> Felled { get; set; } = [];
+    /// <summary>Instant building (dev panel): a blueprint placed is built at once. A world setting, kept per surface; off, not written.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool Instant { get; set; }
 }

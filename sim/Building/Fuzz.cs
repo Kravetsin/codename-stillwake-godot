@@ -44,6 +44,8 @@ public sealed partial class BuildingModule
             return (top + Below(bottom - top + 1)) * _grid.Width + left + Below(right - left + 1);
         }
         int Cell() => Below(8) == 0 ? Anywhere() : Within(FuzzMargin);
+        // Instant building now and then, mostly off, so plans and their work are drawn too.
+        if (Below(20) == 0) return new SetInstant(Below(4) == 0) { From = from };
         var marks = State.Plans.Where(p => p.Clear != null).ToList();
         // On grown ground digging is most of what heroes do: half the draws there are digs.
         switch (Rules is Content.PlanetType && Below(2) == 0 ? 5 : Below(6))
