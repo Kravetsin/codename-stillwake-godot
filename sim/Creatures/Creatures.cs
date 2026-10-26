@@ -89,6 +89,32 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         return c.Act is { } act && RuleBook.Move(Spec.Get(c.Species).Moves[act.Move]).Hits(act) ? null : "creatures.notAttacking";
     }
 
+    /// <summary>
+    /// Whether peer <paramref name="peer"/>'s hero is threatened: within <c>Creatures.ThreatReach</c> cells of it (box distance, by its
+    /// reported cell) a creature acts, retaliates, or is of a faction that hunts the crew. What its client asks to report where it
+    /// is every tick it moves (2026-10-26-creatures-are-composed); false with no hero on the grid.
+    /// </summary>
+    public bool Threatens(int peer)
+    {
+        if (_crew.HeroOf(peer)?.Cell is not int cell || cell < 0 || cell >= _grid.Width * _grid.Height) return false;
+        int hx = cell % _grid.Width, hy = cell / _grid.Width;
+        foreach (var c in State.Creatures)
+        {
+            if (c.Dead || Math.Max(Math.Abs(Down(c.X, Unit) - hx), Math.Abs(Down(c.Y - 1, Unit) - hy)) > Spec.ThreatReach) continue;
+            var spec = Spec.Get(c.Species);
+            if (c.Act != null || RuleBook.Drive(spec.Brain[c.Drive]).Menaces || Hunts(spec.Faction, Spec.Crew)) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Whether faction <paramref name="from"/> hunts faction <paramref name="to"/> (<c>Creatures.Relations</c>; none listed: it ignores it).</summary>
+    private static bool Hunts(string from, string to)
+    {
+        foreach (var r in Spec.Relations)
+            if (r.From == from && r.To == to) return r.Stance == Spec.Stance.Hunt;
+        return false;
+    }
+
     /// <summary>Why a release of <paramref name="species"/> in <paramref name="cell"/> would be refused.</summary>
     public string? ReleaseProblem(string species, int cell)
     {

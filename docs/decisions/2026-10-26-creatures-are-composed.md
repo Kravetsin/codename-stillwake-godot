@@ -1,6 +1,6 @@
 # Creatures are composed
 
-- Status: accepted; C-0 (the rename) and C-1 (the composed core, today's four species unchanged) built; `Mem`, `Target`, `HitPeers`, `Ref` and the relations' reader come with the sentry, and a drive keeps its own `Step`
+- Status: accepted; C-0 (the rename), C-1 (the composed core, today's four species unchanged) and C-2 (reports near hostiles) built; `Mem`, `Target`, `HitPeers` and `Ref` come with the sentry; `Threatens` is the relations' first reader, and a drive keeps its own `Step`
 - Date: 2026-10-26
 
 ## Context

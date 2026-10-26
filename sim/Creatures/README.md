@@ -16,7 +16,7 @@
 
 Every creature, composed ([2026-10-26-creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
 species (`Content.Creatures`) names a body, a life, a brain of drives ranked from the top, its moves and yields, each record
-served by one rule here; its `Faction`, `Lifetime` and the `Relations` are not read before the sentry. Living on planets
+served by one rule here; its `Lifetime` is not read before the sentry. Living on planets
 ([0102](../../docs/decisions/0102-creatures-live-in-the-sim.md)), grazing, struck, fleeing, ramming
 ([0103](../../docs/decisions/0103-a-ram-costs-the-suit-air.md)), dying into yields. The ship has none.
 
@@ -65,6 +65,8 @@ served by one rule here; its `Faction`, `Lifetime` and the `Relations` are not r
   system sweeps them, first thing.
 - **`HitBy(Creature)`** (0103), from the hero a charge touched, as its client saw it (0034): its suit pays the move's
   `Damage` (`Shock`); the creature recoils into `Escape`, hopping. One hit per charge.
+- **`Threatens(peer)`**: a creature within `ThreatReach` of its hero acts, retaliates or hunts the crew; its client then
+  reports every tick it moves (Terraria's way).
 - **`Release(Species, Cell)`** (0102), a dev command (`--creatures`): one born with its body's bottom left in the cell.
 - **Kept or gone** (wild, 0102), by the cell under its middle: in some hero's keep box it is seen; out of every one it is
   gone `Linger` ticks after, and at once out of every hard box.

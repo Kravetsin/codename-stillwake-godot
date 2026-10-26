@@ -24,8 +24,9 @@ suit elsewhere; passing out when the suit runs dry, made again at the pod.
 - **Enter and report** (0050): `Enter(Cell)` puts the sender's hero at `Cell`; the first brings it in with a full
   suit, later ones never refill it. The client sends it when the sim lacks its hero or puts it in another room
   or across the air's edge than its body (compared by cell: doors rename rooms), and as a report every
-  `Crew.ReportEvery` ticks while the cells differ. `Hero.Cell` thus lags up to a second and a round trip; the
-  breath and anything placed by heroes read it. Passed out, a client sends no command.
+  `Crew.ReportEvery` ticks while the cells differ, every `Crew.ReportThreatened` while a creature threatens it
+  (2026-10-26-creatures-are-composed). `Hero.Cell` thus lags up to a second, or a tick, and a round trip; the breath
+  and anything placed by heroes read it. Passed out, a client sends no command.
 - **The breath** (0011, 0016, 0028): every `Crew.BreathEvery` ticks, in id order, each conscious hero breathes.
   Within `Crew.PodReach` of the pod (`ByPod`) it first takes up to `Crew.PodRefill` of the pod's own air, from no
   store. Then `Breathe` draws the rest of one unit plus up to `Crew.Refill` for the suit. Air taken pays the

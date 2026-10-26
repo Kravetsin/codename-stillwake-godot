@@ -81,9 +81,9 @@ commands reach the sim. Other heroes come through the host.
   `Thrust` is sent while own thrust differs from the sim's. The plume shows at once (0014).
 - **A canister** (0047, 0081): a right click sends `Refill` when the sim would take it and none is in flight.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
-  and picks nothing up (0061). `Enter` is sent when the sim's room or field side differs, and every
-  `Crew.ReportEvery` ticks off its cell, none while out (0050). The host sends `Leave` for a closed link. The tether is
-  tied where the body's middle last was in the hull (0007, 0104).
+  and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
+  ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
+  body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
 - **Markers** (bodies 0061): home, own newest body and friends heard, at the screen's edge, clear of the HUD.
 
 ## Others' heroes

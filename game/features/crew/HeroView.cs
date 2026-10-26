@@ -407,7 +407,7 @@ public partial class HeroView : Node2D
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
         if (passedOut) _reportedAt = tick;
-        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt) is { } report)
+        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt, Report.Every(m.Creatures.Threatens(client.Id))) is { } report)
         {
             client.Send(report);
             _reportedAt = tick;

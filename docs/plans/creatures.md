@@ -152,7 +152,13 @@ a species and a rule); 0102's and 0103's status lines say their state and the ra
 - the full `dotnet test Stillwake.sln` passes;
 - frames of the dev planet look as before.
 
-### C-2 — Heroes report as in Terraria near hostiles
+### C-2 — Heroes report as in Terraria near hostiles ✅
+
+**Built, measured:** `Threatens(peer)` (a creature within `ThreatReach` 96 cells that acts, retaliates or hunts the crew) and
+`Report.Every`. A sprinting hero reported every tick with a 4-tick round trip is known within 6 cells; once a second, 25 and
+more (`ReportTests`). An `Enter` stamped into a tick is 108 bytes: four threatened heroes sprinting add some 26 KB a second to
+what the host sends, against 65 KB it already relays of the heroes themselves, so the plan's 4 KB bound was a guess and
+`ReportTrafficTests` now holds the reports under the heroes' own traffic. Not yet seen in a live two-peer session with lag.
 
 - The module gives `Threatens(peer)`: a creature within that peer's hero's keep box holds a grudge on it, is in an
   act aimed at it, or belongs to a faction that hunts `crew`. Lopers count from the moment they turn to ram.

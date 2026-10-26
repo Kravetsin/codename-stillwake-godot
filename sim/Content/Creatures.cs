@@ -202,6 +202,12 @@ public static class Creatures
     /// </summary>
     public const int WanderLedge = 4;
 
+    /// <summary>
+    /// How near, in cells by box distance, a creature that may hit a hero makes that hero's client report where it is every tick
+    /// it moves (2026-10-26-creatures-are-composed, Terraria's way): past a retaliation's flight and a lunge's run of 56.
+    /// </summary>
+    public const int ThreatReach = 96;
+
     /// <summary>What a fall gains a tick aboard's measure, scaled by the planet's gravity (<c>Kind.Fall</c>), as stacks fall; the fastest fall a tick.</summary>
     public const int Gravity = 60, MaxFall = 1200;
 }

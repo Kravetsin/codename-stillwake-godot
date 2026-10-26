@@ -17,18 +17,26 @@ public static class Report
     /// air are compared where they are now, never remembered: a door that merges or splits rooms renames
     /// them. Until the host releases it, the same <c>Enter</c> goes out again each frame — a few, and only
     /// on crossing an edge. Else, as the hero's report, while the sim holds it in another cell than the
-    /// body's and <c>Crew.ReportEvery</c> ticks have gone since the last one sent (<paramref name="reported"/>,
-    /// at world tick <paramref name="tick"/>): what the cold past the field reads (0050). Null otherwise.
+    /// body's and <paramref name="every"/> ticks have gone since the last one sent (<paramref name="reported"/>,
+    /// at world tick <paramref name="tick"/>): what the cold past the field reads (0050), every tick it moves while a
+    /// creature threatens it (<see cref="Every"/>). Null otherwise.
     /// </summary>
-    public static Command? Of(ICrewQueries crew, IRoomsQueries rooms, IAtmosphereQueries air, int width, int id, Hero hero, int tick, int reported)
+    public static Command? Of(ICrewQueries crew, IRoomsQueries rooms, IAtmosphereQueries air, int width, int id, Hero hero, int tick, int reported,
+        int every = Stillwake.Content.Crew.ReportEvery)
     {
         int cell = hero.BodyCell(width);
         var known = crew.HeroOf(id);
         if (known != null && rooms.RoomAt(known.Cell) == rooms.RoomAt(cell) && air.AiredAt(known.Cell) == air.AiredAt(cell)
             && crew.ByPod(known.Cell) == crew.ByPod(cell))
-            return known.Cell != cell && tick - reported >= Stillwake.Content.Crew.ReportEvery ? new Enter(cell) : null;
+            return known.Cell != cell && tick - reported >= every ? new Enter(cell) : null;
         return new Enter(cell);
     }
+
+    /// <summary>
+    /// How often the hero reports where it is: every tick it moves while a creature <paramref name="threatened"/> it, so what charges
+    /// it aims a round trip behind (Terraria's way, 2026-10-26-creatures-are-composed); else once a second (0050).
+    /// </summary>
+    public static int Every(bool threatened) => threatened ? Stillwake.Content.Crew.ReportThreatened : Stillwake.Content.Crew.ReportEvery;
 
     /// <summary>
     /// How hard the cold bites at <paramref name="cell"/>, the body's own, from 0 inside the field to 1 at

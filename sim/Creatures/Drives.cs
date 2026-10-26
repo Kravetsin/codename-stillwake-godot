@@ -77,6 +77,8 @@ internal sealed class RetaliateDrive : DriveRule
 {
     internal override Type Serves => typeof(Spec.Retaliate);
 
+    internal override bool Menaces => true;
+
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
         RuleBook.Move(spec.Moves[0]).Begin(m, c, spec, 0);
