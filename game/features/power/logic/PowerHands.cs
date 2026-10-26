@@ -50,9 +50,8 @@ public sealed class PowerHands
     /// <summary>Each powered machine's socket and each launch platform run's, lit while a cable is dragged.</summary>
     public IReadOnlyList<SocketLight> Sockets { get; private set; } = [];
 
-    /// <summary>The launch platform runs as the grid stood at <see cref="_runsVersion"/>: found again only when it changes.</summary>
-    private List<(int First, int Length)> _runs = [];
-    private int _runsVersion = -1;
+    /// <summary>The launch platform runs, followed through the grid's log.</summary>
+    private readonly KnownPlatforms _runs = new();
 
     /// <summary>The cable nearest <paramref name="at"/> within <see cref="CutReach"/>, if any: what a right press there cuts.</summary>
     public static Line? Nearest(IReadOnlyList<Line> lines, (double X, double Y) at)
@@ -159,11 +158,11 @@ public sealed class PowerHands
             : power.MoveProblem(grip.Node, cell, (grip as EndGrip)?.Cable);
 
         // Each powered machine's socket and each platform run's lit by whether the cable reaches it: where it would plug in.
-        if (grid.Version != _runsVersion) (_runs, _runsVersion) = (PlatformRuns.Of(grid), grid.Version);
+        _runs.Follow(grid);
         Sockets = grid.Machines
             .Where(m => Machines.Get(m.Kind).Plug != null)
             .Select(m => m.Cell)
-            .Concat(_runs.Select(r => r.First))
+            .Concat(_runs.Runs.Select(r => r.First))
             .Where(node => node != from)
             .Select(node => new SocketLight(CableShape.EndOf(grid, node), Wiring.LightOf(ProblemAt(node))))
             .ToList();

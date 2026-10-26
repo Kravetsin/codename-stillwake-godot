@@ -24,6 +24,19 @@ public class AirLookTests
         return field;
     }
 
+    /// <summary>The box the overlay keeps to holds every room cell and no more: none for ground all space or solid, as a planet's.</summary>
+    [Fact]
+    public void KeepsToTheBoxOfTheRoomsNotToAllThatIsBuilt()
+    {
+        Assert.Equal(Built, RoomsBox.Of(RoomOf, W, new Box(0, 0, W - 1, H - 1)));
+        // Two rooms apart, solid and space between and round them.
+        int[] two = [-2, -2, -1, -2, -2, -2, -2, -2, -1, -1, 3, -2, -2, 1, -2, -1, -2, -2];
+        Assert.Equal(new Box(1, 1, 4, 2), RoomsBox.Of(two, W, new Box(0, 0, W - 1, H - 1)));
+        Assert.Equal(new Box(1, 2, 1, 2), RoomsBox.Of(two, W, new Box(0, 2, 2, 2)));
+        Assert.Equal(Box.None, RoomsBox.Of([-1, -2, -1, -1, -2, -1], 3, new Box(0, 0, 2, 1)));
+        Assert.Equal(Box.None, RoomsBox.Of(two, W, Box.None));
+    }
+
     [Fact]
     public void ShowsTheWorldAsItIsAtFirstThenEasesACellNewlyAiredInRatherThanAtOnce()
     {

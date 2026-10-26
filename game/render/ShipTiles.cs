@@ -31,10 +31,10 @@ public sealed class ShipTiles
 
     private static ShipTiles? _shared;
 
-    /// <summary>One atlas for the views that draw what is not built yet (plans, ghosts): made on first use.</summary>
+    /// <summary>The one atlas every view draws cells from, built and planned alike: made on first use, never changed after.</summary>
     public static ShipTiles Shared => _shared ??= new();
 
-    public ShipTiles()
+    private ShipTiles()
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
         // A planet's ground (0079): its walls and back walls drawn in art/planet, their edges made here; by name as the hull's are.

@@ -237,7 +237,15 @@ public sealed record Layout(
     /// The machines the map draws, in reading order of their top-left cells: each unclaimed machine
     /// character starts one, whose footprint must be drawn in full.
     /// </summary>
-    public IReadOnlyList<(string Kind, int Cell)> Machines()
+    public IReadOnlyList<(string Kind, int Cell)> Machines() => Found.GetValue(this, layout => layout.FindMachines());
+
+    /// <summary>
+    /// Each map's machines, found once: every module creating its slice asks, and a planet's map is millions of cells. Kept by
+    /// the instance, not in a field, so a copy made by <c>with</c> finds its own and two layouts still compare by what they draw.
+    /// </summary>
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Layout, IReadOnlyList<(string Kind, int Cell)>> Found = new();
+
+    private (string Kind, int Cell)[] FindMachines()
     {
         var claimed = new bool[Width * Height];
         var found = new List<(string, int)>();
@@ -261,6 +269,6 @@ public sealed record Layout(
                 }
             found.Add((kind, cell));
         }
-        return found;
+        return [.. found];
     }
 }

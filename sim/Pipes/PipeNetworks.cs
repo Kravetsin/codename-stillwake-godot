@@ -73,11 +73,18 @@ internal static class PipeNetworks
         var valves = new List<Valve>();
         if (size == 0 || layout.Rows.Count == 0) return (spans, valves);
         var pipe = new bool[size];
-        for (int cell = 0; cell < size; cell++)
+        // By row, as a planet's map is millions of cells and most rows hold no pipe at all.
+        for (int y = 0; y < height; y++)
         {
-            char c = layout.At(cell);
-            pipe[cell] = c is '-' or 'v' or 'x';
-            if (c is 'v' or 'x') valves.Add(new Valve(cell, c == 'v', true));
+            string row = layout.Rows[y];
+            if (row.AsSpan().IndexOfAny('-', 'v', 'x') < 0) continue;
+            for (int x = 0; x < width; x++)
+            {
+                char c = row[x];
+                int cell = y * width + x;
+                pipe[cell] = c is '-' or 'v' or 'x';
+                if (c is 'v' or 'x') valves.Add(new Valve(cell, c == 'v', true));
+            }
         }
         foreach (int cell in layout.CellsOf('-', under: true)) pipe[cell] = true;
         var ports = new HashSet<int>();
