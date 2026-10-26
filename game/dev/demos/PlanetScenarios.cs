@@ -65,7 +65,12 @@ public sealed class NailerScenario : DevScenario
 
     public override World Seed(World world, DevSeed seed) => NailerDemo.Seed(world, seed.Modules);
 
-    public override void Attach(DevContext c) => c.Add(_demo = new NailerDemo(c.Hero));
+    // With --manual the player fires: the loper let out, nothing else played.
+    public override void Attach(DevContext c)
+    {
+        _demo = new NailerDemo(c.Hero);
+        if (!Args.Has("--manual")) c.Add(_demo);
+    }
 
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m);
 }
