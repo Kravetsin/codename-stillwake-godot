@@ -33,6 +33,18 @@ public partial class ContentTests
         Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
 
+    [Fact]
+    public void AMapsMachinesAreFoundOnceAndACopyDrawingOthersFindsItsOwn()
+    {
+        var drawn = Layout.Parse(Wreck.Rows).Doubled();
+        var machines = drawn.Machines();
+        Assert.Same(machines, drawn.Machines());
+        var blank = drawn with { Rows = [.. drawn.Rows.Select(r => new string(' ', r.Length))] };
+        Assert.Empty(blank.Machines());
+        Assert.Contains(drawn.Machines(), m => m.Kind == "lifepod");
+        Assert.Equal(drawn, drawn with { });
+    }
+
     // Builds
 
     [Fact]
