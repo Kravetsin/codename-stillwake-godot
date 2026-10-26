@@ -1,4 +1,4 @@
-using Stillwake.Game.Features.Fauna;
+using Stillwake.Game.Features.Creatures;
 using Xunit;
 
 namespace Stillwake.Game.Tests;

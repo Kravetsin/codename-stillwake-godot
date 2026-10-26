@@ -64,7 +64,7 @@ suit elsewhere; passing out when the suit runs dry, made again at the pod.
   (`Content.Lava.Material`) at the reported cell or up to `Lava.Reach` rows under it. Each breath the suit alone
   pays `Lava.Burn` more, with the cold.
 - **A shock** (0091, 0103): `ICrewOps.Shock(peer, units)` takes units from a conscious hero's suit at once,
-  passing it out as an empty suit does; nothing in creative. `Building` (ruins) and `Fauna` (a ram) call it.
+  passing it out as an empty suit does; nothing in creative. `Building` (ruins) and `Creatures` (a ram) call it.
 - **Creative mode** (no ADR, `Items`' switch): each tick a conscious hero's suit is full; it takes no pod or
   room air. A hero already out wakes as ever.
 - **Order** (no ADR): breaths run in the simulation phase after `Atmosphere`'s, so they read this tick's air.

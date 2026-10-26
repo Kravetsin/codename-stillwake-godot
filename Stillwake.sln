@@ -57,7 +57,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Players", "sim\Players\Play
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Knowledge", "sim\Knowledge\Knowledge.csproj", "{B4D9DF98-35A4-44B4-BA83-D4A5B43F0F10}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Fauna", "sim\Fauna\Fauna.csproj", "{9CDC1A2A-3D99-4FB7-B3C6-E8ED4C6FE1E5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Creatures", "sim\Creatures\Creatures.csproj", "{9CDC1A2A-3D99-4FB7-B3C6-E8ED4C6FE1E5}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Landing", "sim\Landing\Landing.csproj", "{D78A23E1-FAF0-48C0-AD8B-FE01A73CA033}"
 EndProject

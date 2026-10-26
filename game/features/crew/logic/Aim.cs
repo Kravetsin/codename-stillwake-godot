@@ -5,8 +5,8 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Building;
+using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
-using Stillwake.Sim.Fauna;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Landing;
 using Stillwake.Sim.Rooms;
@@ -294,7 +294,7 @@ public static class Aiming
     /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
     private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
     {
-        var spec = Spec.Fauna.Get(c.Species);
+        var spec = Spec.Creatures.Get(c.Species);
         int half = spec.Width * Hero.Unit / 2 + CreatureMargin;
         return (c.X - half, c.Y - spec.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
     }
@@ -307,7 +307,7 @@ public static class Aiming
     public static List<Creature> StruckCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
     {
         var struck = new List<Creature>();
-        var all = m.Fauna.Creatures;
+        var all = m.Creatures.Creatures;
         if (all.Count == 0) return struck;
         var edges = SwingEdges(hero, at, look ?? HeldLook.FireAxe);
         foreach (var c in all)
@@ -326,7 +326,7 @@ public static class Aiming
     public static List<Creature> TouchedCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
     {
         var touched = new List<Creature>();
-        var all = m.Fauna.Creatures;
+        var all = m.Creatures.Creatures;
         if (all.Count == 0) return touched;
         var bit = BitOf(hero, at, look ?? HeldLook.Drill);
         foreach (var c in all)
@@ -339,7 +339,7 @@ public static class Aiming
 
     /// <summary>A strike with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> make.</summary>
     public static List<Strike> StrikesOf(Registry m, int peer, IEnumerable<Creature> touched, string tool) =>
-        touched.Where(c => m.Fauna.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
+        touched.Where(c => m.Creatures.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
 
     /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
     private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom) =>

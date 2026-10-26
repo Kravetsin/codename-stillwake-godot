@@ -157,22 +157,22 @@ public class BudgetTests(ITestOutputHelper output)
         int width = m.Grid.Width, spawn = m.Crew.Spawn, row = spawn / width;
         // Over the ground either side of the hero, a body's width apart, a cell over the first wall down any of its columns; let
         // out again till all forty stay a few beats, for on the open plains one wanders out of the hero's reach and goes.
-        int body = Content.Fauna.Loper.Width;
-        for (int round = 0; round < 4 && m.Fauna.Creatures.Count < Content.Fauna.Max; round++)
+        int body = Content.Creatures.Loper.Width;
+        for (int round = 0; round < 4 && m.Creatures.Creatures.Count < Content.Creatures.Max; round++)
         {
-            for (int x = spawn % width - 100; m.Fauna.Creatures.Count < Content.Fauna.Max && x < spawn % width + 100; x += body)
+            for (int x = spawn % width - 100; m.Creatures.Creatures.Count < Content.Creatures.Max && x < spawn % width + 100; x += body)
             {
                 int y = row - 40;
                 while (y < row + 40 && Enumerable.Range(x, body).All(c => m.Grid.StructureAt((y + 1) * width + c) != Stillwake.Content.Structure.Wall)) y++;
-                w.Do(new Fauna.Release(Content.Fauna.Loper.Id, y * width + x)).Run();
+                w.Do(new Creatures.Release(Content.Creatures.Loper.Id, y * width + x)).Run();
             }
-            w.Run(Content.Fauna.Beat * 4);
+            w.Run(Content.Creatures.Beat * 4);
         }
-        Assert.Equal(Content.Fauna.Max, m.Fauna.Creatures.Count);
-        var living = Time(w.World, 600, t => t % 10 == 0 && m.Fauna.Creatures.Count > 0
-            ? [new Fauna.Strike(m.Fauna.Creatures[t / 10 % m.Fauna.Creatures.Count].Id, Content.Weapons.Axe.Item)]
+        Assert.Equal(Content.Creatures.Max, m.Creatures.Creatures.Count);
+        var living = Time(w.World, 600, t => t % 10 == 0 && m.Creatures.Creatures.Count > 0
+            ? [new Creatures.Strike(m.Creatures.Creatures[t / 10 % m.Creatures.Creatures.Count].Id, Content.Weapons.Axe.Item)]
             : []);
-        output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with {Content.Fauna.Max} creatures {living.Mean:F3} ms mean, {living.Max:F3} ms max");
+        output.WriteLine($"the first planet idle {idle.Mean:F3} ms a tick; with {Content.Creatures.Max} creatures {living.Mean:F3} ms mean, {living.Max:F3} ms max");
         Assert.True(living.Mean < Within(2), $"a planet's tick with its creatures took {living.Mean:F3} ms");
     }
 

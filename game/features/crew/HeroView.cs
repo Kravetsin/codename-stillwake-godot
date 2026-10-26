@@ -479,11 +479,11 @@ public partial class HeroView : Node2D
     private void Rammed(Client client, Registry m)
     {
         int tick = client.World.Tick;
-        if (!_ramGuard.Open(tick) || Rams.Contact(m.Fauna.Creatures, _current) is not { } c || m.Fauna.HitByProblem(c.Id) != null) return;
-        client.Send(new Stillwake.Sim.Fauna.HitBy(c.Id));
+        if (!_ramGuard.Open(tick) || Rams.Contact(m.Creatures.Creatures, _current) is not { } c || m.Creatures.HitByProblem(c.Id) != null) return;
+        client.Send(new Stillwake.Sim.Creatures.HitBy(c.Id));
         _ramGuard.Sent(tick);
         int away = Rams.Away(c, _current);
-        _current = Rams.Knocked(_current, away, Content.Fauna.Get(c.Species).Ram);
+        _current = Rams.Knocked(_current, away, Content.Creatures.Get(c.Species).Ram);
         _reel = Spec.Reel;
         _figure.Flinch(-away);
         var (x, y) = Chest(_current);
@@ -498,8 +498,8 @@ public partial class HeroView : Node2D
     /// </summary>
     private int? RamEndedBy(Registry m, Hero hero)
     {
-        foreach (var c in m.Fauna.Creatures)
-            if (_charging.Contains(c.Id) && c.Mode != Stillwake.Sim.Fauna.Mode.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
+        foreach (var c in m.Creatures.Creatures)
+            if (_charging.Contains(c.Id) && c.Mode != Stillwake.Sim.Creatures.Mode.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
                 return c.VX >= 0 ? 1 : -1;
         return null;
     }

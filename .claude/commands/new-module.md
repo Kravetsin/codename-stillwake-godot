@@ -3,12 +3,12 @@ description: Add a sim module — its assembly, state, commands, wiring, save st
 argument-hint: <Module> "<what it simulates>"
 ---
 
-User arguments: `$ARGUMENTS` — the module's name (PascalCase, `Fauna`; its id camelCase, `fauna`) and what it simulates.
+User arguments: `$ARGUMENTS` — the module's name (PascalCase, `Creatures`; its id camelCase, `creatures`) and what it simulates.
 Ask for either if missing, and stop.
 
 A module is a new mechanic: it starts as a design (`design-author` → `design-reviewer` → a plan in `docs/plans/`,
 CLAUDE.md Workflow). Do not start here without that plan; if there is none, say so and stop. This recipe is the wiring
-the plan does not repeat. Walked last on `10c8ea1d` (the fauna module) and on today's code.
+the plan does not repeat. Walked last on `10c8ea1d` (the creatures module) and on today's code.
 
 ## 1. The assembly — `sim/<Module>/`
 
@@ -33,7 +33,7 @@ of a surface (`Module[] surface = [...]`). Saved slices follow that order, so a 
 1. Before the bump, write this format's fixture: `STILLWAKE_WRITE_FIXTURE=1 dotnet test sim/Tests --filter MigrationsTests`.
 2. Bump `World.SaveFormat` in `sim/Core/Sim.cs`.
 3. Add its step to `Migrations.Steps` in `sim/Registry/Migrations.cs`: its slice added by hand, aboard and on every surface,
-   empty where a running world allows it (fauna's `Creatures` step is the example), never a silent default.
+   empty where a running world allows it (`LandingJoins` is the example), never a silent default.
 4. `tools/test.sh Migrations`: every format since `Migrations.Oldest` upgrades, loads and plays on.
 
 ## 4. Tests — `sim/Tests/`

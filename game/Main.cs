@@ -82,7 +82,7 @@ public partial class Main : Node2D, ITogether
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
     private DebrisView _debris = null!;
-    private Features.Fauna.FaunaView _fauna = null!;
+    private Features.Creatures.CreaturesView _creatures = null!;
     private Hands _hands = null!;
     private FrameLog? _frameLog;
     private AllocationSampler? _allocs;
@@ -140,8 +140,8 @@ public partial class Main : Node2D, ITogether
         AddChild(_debris);
         AddChild(_camera = new ShipCamera());
         _debris.Nudged += _camera.Nudge;
-        AddChild(_fauna = new Features.Fauna.FaunaView(_hands.Ui));
-        _fauna.Nudged += _camera.Nudge;
+        AddChild(_creatures = new Features.Creatures.CreaturesView(_hands.Ui));
+        _creatures.Nudged += _camera.Nudge;
         _layout = DevLayout(_layout);
         // The dev worlds are looked at, not walked: the camera moves by hand there.
         if (!Has("--perf") && !Has("--gallery"))
@@ -310,7 +310,7 @@ public partial class Main : Node2D, ITogether
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
             // The creatures live across surfaces: their view is made once, not with these.
-            Shining = [.. _views.OfType<ILightSource>(), _fauna],
+            Shining = [.. _views.OfType<ILightSource>(), _creatures],
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
@@ -402,8 +402,8 @@ public partial class Main : Node2D, ITogether
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _fauna.Frame(client, _m.Fauna, _camera.View(), session.Progress, delta * 1000, FaunaLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, FaunaLooks.Palette), _seed);
-        _frameLog?.Mark("fauna");
+        _creatures.Frame(client, _m.Creatures, _camera.View(), session.Progress, delta * 1000, CreatureLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, CreatureLooks.Palette), _seed);
+        _frameLog?.Mark("creatures");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");
     }

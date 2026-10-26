@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Stillwake.Sim.Fauna;
+using Stillwake.Sim.Creatures;
 using Spec = Stillwake.Content.Hero;
-using Tune = Stillwake.Content.Fauna;
+using Tune = Stillwake.Content.Creatures;
 
 namespace Stillwake.Game.Features.Crew;
 

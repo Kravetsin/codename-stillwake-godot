@@ -1,4 +1,4 @@
-using Stillwake.Game.Features.Fauna;
+using Stillwake.Game.Features.Creatures;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -10,7 +10,7 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public class CreatureGaitTests
 {
-    public static TheoryData<string> Designs() => [.. FaunaLooks.Runs.Keys];
+    public static TheoryData<string> Designs() => [.. CreatureLooks.Runs.Keys];
 
     /// <summary>A species' speed in pixels a second at <paramref name="perTick"/> thousandths of a cell a tick.</summary>
     private static double Px(int perTick) => perTick / 1000.0 * Camera.Cell * 20;
@@ -19,7 +19,7 @@ public class CreatureGaitTests
     [MemberData(nameof(Designs))]
     public void StridesRiseWithSpeedSmoothlyAndNeverPassTheirCap(string design)
     {
-        var run = FaunaLooks.Runs[design];
+        var run = CreatureLooks.Runs[design];
         double last = 0;
         for (double v = 0.25; v <= 2000; v += 0.25)
         {
@@ -35,9 +35,9 @@ public class CreatureGaitTests
     [Fact]
     public void EveryKindWalksAtItsOldPaceAndFleesAtHalfTheOldCadenceOrLess()
     {
-        foreach (var species in Spec.Fauna.All)
+        foreach (var species in Spec.Creatures.All)
         {
-            var run = FaunaLooks.Runs[species.Look];
+            var run = CreatureLooks.Runs[species.Look];
             double walk = CreatureGait.StridesAt(Px(species.Wander), run), flee = CreatureGait.StridesAt(Px(species.Flee), run);
             // Before: 2.6 a second walking, 7.3 fleeing at 30 cells a second.
             Assert.InRange(walk, 1.7, 2.7);
@@ -51,7 +51,7 @@ public class CreatureGaitTests
     /// frames even or ragged (±30%), the sim's speed changing only on its ticks. Its strides at the end and the most its rate
     /// changed from one frame to the next, after easing.
     /// </summary>
-    private static (double Phase, double Jolt) Ran(FaunaLooks.Run run, double fps, bool ragged)
+    private static (double Phase, double Jolt) Ran(CreatureLooks.Run run, double fps, bool ragged)
     {
         var gait = new CreatureGait(run);
         var rng = new System.Random(3);
@@ -75,7 +75,7 @@ public class CreatureGaitTests
     [MemberData(nameof(Designs))]
     public void TheLegsGoTheSameAtSixtyFramesAndAHundredAndFortyFourEvenOrRaggedAndNeverJolt(string design)
     {
-        var run = FaunaLooks.Runs[design];
+        var run = CreatureLooks.Runs[design];
         var (sixty, jolt60) = Ran(run, 60, false);
         foreach (var (fps, ragged) in new[] { (144.0, false), (60.0, true), (144.0, true) })
         {
@@ -89,7 +89,7 @@ public class CreatureGaitTests
     [Fact]
     public void ItGallopsOnlyAtAFlightAndItsLegsRestStanding()
     {
-        var run = FaunaLooks.Runs["classic"];
+        var run = CreatureLooks.Runs["classic"];
         CreatureGait At(double speed)
         {
             var g = new CreatureGait(run);
@@ -111,12 +111,12 @@ public class CreatureGaitTests
     [MemberData(nameof(Designs))]
     public void APoseStandsItsLegsStillAndShowsEachEyeStateAndMovesOnlyALittleFromFrameToFrame(string design)
     {
-        var pose = new CreaturePose(FaunaArt.Designs[design], FaunaLooks.Runs[design]);
-        var rig = FaunaArt.Designs[design].Rig;
+        var pose = new CreaturePose(CreatureArt.Designs[design], CreatureLooks.Runs[design]);
+        var rig = CreatureArt.Designs[design].Rig;
         CreaturePose.Doing Still(double eye = 1, double graze = 0) => new(0.3, 0, 0, 0, 0, graze, 0, 1000, 0, eye, null);
         pose.Set(Still());
         for (int i = 0; i < rig.Count; i++)
-            if (rig[i].Drive == FaunaArt.Drive.Leg) Assert.Equal((0, 0, 0), (pose.Joints[i].A, pose.Joints[i].X, pose.Joints[i].Y));
+            if (rig[i].Drive == CreatureArt.Drive.Leg) Assert.Equal((0, 0, 0), (pose.Joints[i].A, pose.Joints[i].X, pose.Joints[i].Y));
         Assert.Equal(CreaturePose.EyeState.Open, pose.Eye);
         pose.Set(Still(eye: 0.1));
         Assert.Equal(CreaturePose.EyeState.Blink, pose.Eye);
@@ -125,7 +125,7 @@ public class CreatureGaitTests
         pose.Set(Still(graze: 1));
         Assert.Equal(CreaturePose.EyeState.Half, pose.Eye);
         // Galloping at its most strides a second, a 144th of a second moves no node far: no twitch.
-        var run = FaunaLooks.Runs[design];
+        var run = CreatureLooks.Runs[design];
         double step = run.MostStrides / 144, most = 0;
         var was = new CreaturePose.Joint[rig.Count];
         for (int f = 0; f < 144; f++)

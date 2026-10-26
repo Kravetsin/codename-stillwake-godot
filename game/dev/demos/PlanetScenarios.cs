@@ -19,7 +19,7 @@ public sealed class PlanetScenario : DevScenario
 
     // The hero carries the axe and the drill and wears the helmet lamp, to try the caves; --ground seeds the same.
     public override World Seed(World world, DevSeed seed) =>
-        Args.Value("--ground") == null && (Args.Has("--planet") || Args.Given("--fauna") != null) ? GroundDemo.Seed(world, seed.Modules, ArcDrill) : world;
+        Args.Value("--ground") == null && (Args.Has("--planet") || Args.Given("--creatures") != null) ? GroundDemo.Seed(world, seed.Modules, ArcDrill) : world;
 
     public override HeroAutopilot? Script => Strip && Args.Has("--autopilot") ? HeroAutopilot.PlanetRun() : null;
 
@@ -39,19 +39,19 @@ public sealed class PlanetScenario : DevScenario
 }
 
 /// <summary>Creatures let out by the hero, with --planet or --strip, hunted by script unless --manual (0102).</summary>
-[Dev("--fauna", "creatures of every kind let out by the hero, or =kind one kind, hunted by script (FaunaHands, 0102)", Shape = DevShape.Either)]
-public sealed class FaunaScenario : DevScenario
+[Dev("--creatures", "creatures of every kind let out by the hero, or =kind one kind, hunted by script (CreatureHands, 0102)", Shape = DevShape.Either)]
+public sealed class CreaturesScenario : DevScenario
 {
-    private FaunaDemo? _demo;
+    private CreaturesDemo? _demo;
 
     public override void Attach(DevContext c)
     {
         // =fluff (a species or its look): only that kind let out.
-        string? kind = Args.Given("--fauna") is { Length: > 0 } k ? k : null;
-        string? ram = Args.Given("--fauna-ram") is { } r ? r.Length > 0 ? r : "hit" : null;
-        bool drill = Args.Has("--fauna-drill"), course = Args.Has("--fauna-course");
-        _demo = new FaunaDemo(drill: drill, course: course, kind: kind, herd: Args.Has("--fauna-herd"), ram: ram) { Kill = Args.Has("--fauna-kill") };
-        if (!Args.Has("--manual")) c.Add(new FaunaHands(_demo, c.Hero, still: drill, quick: course));
+        string? kind = Args.Given("--creatures") is { Length: > 0 } k ? k : null;
+        string? ram = Args.Given("--creatures-ram") is { } r ? r.Length > 0 ? r : "hit" : null;
+        bool drill = Args.Has("--creatures-drill"), course = Args.Has("--creatures-course");
+        _demo = new CreaturesDemo(drill: drill, course: course, kind: kind, herd: Args.Has("--creatures-herd"), ram: ram) { Kill = Args.Has("--creatures-kill") };
+        if (!Args.Has("--manual")) c.Add(new CreatureHands(_demo, c.Hero, still: drill, quick: course));
     }
 
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, log);

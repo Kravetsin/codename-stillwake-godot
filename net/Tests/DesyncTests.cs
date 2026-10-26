@@ -160,7 +160,7 @@ public class DesyncTests(ITestOutputHelper output)
         // Creatures on small planets (0102): the first client beamed down lets lopers out over the ground by its hero and
         // strikes them with the axe, so they are knocked, flee, wander, die into their yields and are gone with the last hero,
         // alike on every peer and in a joiner's welcome; the fuzz releases and strikes besides.
-        string planet = Content.PlanetTypes.Small.Id, axe = Content.Weapons.Axe.Item, loper = Content.Fauna.Loper.Id;
+        string planet = Content.PlanetTypes.Small.Id, axe = Content.Weapons.Axe.Item, loper = Content.Creatures.Loper.Id;
         Covering(31, tried =>
         {
             int most = 0, fled = 0, killed = 0;
@@ -170,8 +170,8 @@ public class DesyncTests(ITestOutputHelper output)
                 foreach (var surface in world.Surfaces.Where(s => s.Kind == planet))
                 {
                     var m = Registry.On(world, surface.Id);
-                    most = Math.Max(most, m.Fauna.Creatures.Count);
-                    fled += m.Fauna.Creatures.Count(c => c.Mode == Sim.Fauna.Mode.Flee);
+                    most = Math.Max(most, m.Creatures.Creatures.Count);
+                    fled += m.Creatures.Creatures.Count(c => c.Mode == Sim.Creatures.Mode.Flee);
                     killed = Math.Max(killed, m.Items.Floor.Where(s => s.Item == "biomass").Sum(s => s.Count));
                 }
                 var first = clients[0];
@@ -192,10 +192,10 @@ public class DesyncTests(ITestOutputHelper output)
                 {
                     int y = 2;
                     while (y < on.Grid.Height - 2 && on.Grid.StructureAt((y + 1) * width + x) == Structure.Empty) y++;
-                    first.Send(new Sim.Fauna.Release(loper, y * width + x));
+                    first.Send(new Sim.Creatures.Release(loper, y * width + x));
                 }
-                else if (on.Fauna.Creatures.Count > 0)
-                    first.Send(new Sim.Fauna.Strike(on.Fauna.Creatures[tick / 10 % on.Fauna.Creatures.Count].Id, axe));
+                else if (on.Creatures.Creatures.Count > 0)
+                    first.Send(new Sim.Creatures.Strike(on.Creatures.Creatures[tick / 10 % on.Creatures.Creatures.Count].Id, axe));
             });
             return (run, most >= 3 && fled >= 1 && killed >= 1 ? null : $"{most} creatures at most, {fled} creature-ticks fleeing, {killed} biomass dropped");
         });
