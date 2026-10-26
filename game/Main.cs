@@ -165,7 +165,7 @@ public partial class Main : Node2D, ITogether
             _fabricator.Served = BadgeOf;
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
             Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Seats)
-                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id, s.Client.World.SurfaceOf(s.Client.Id) == 0) : null, SendNow, _hands.Ui.Tip)
+                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
                 : null;
             _items.Panel.Launch = LaunchOf;
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)?.TicksLeft) : null));

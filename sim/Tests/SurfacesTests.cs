@@ -171,8 +171,8 @@ public class SurfacesTests
         var w = new Scenario(Ship);
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new SetCreative(true)).Run();
         var where = w.M.Landing.Where;
-        int id = where.Planet();
-        Assert.Equal(id, where.Planet());
+        int id = where.OpenPlanet();
+        Assert.Equal(id, where.OpenPlanet());
         where.Send(0, id);
         w.Run();
         Assert.Equal([Surface.Ship, Content.Landing.Planet], w.World.Surfaces.Select(s => s.Kind));
@@ -185,7 +185,7 @@ public class SurfacesTests
     {
         var w = new Scenario(Ship);
         w.Do(new OpenSurface(Strip)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
-        Assert.Equal(2, w.M.Landing.Where.Planet());
+        Assert.Equal(2, w.M.Landing.Where.OpenPlanet());
         w.Run();
         Assert.Equal(3, w.World.Surfaces.Count);
     }

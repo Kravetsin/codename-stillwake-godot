@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <ProjectReference Include="../Grid/Grid.csproj" />
+    <ProjectReference Include="../Items/Items.csproj" />
     <ProjectReference Include="../Power/Power.csproj" />
     <ProjectReference Include="../Crew/Crew.csproj" />
   </ItemGroup>

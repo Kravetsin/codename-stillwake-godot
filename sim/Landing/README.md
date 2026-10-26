@@ -30,16 +30,19 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 - A seat holds while its pod stands and its hero is here and awake.
 - **`Launch`** flies the sender's pod: from the ship down, burning `Content.Landing.DescentFuel` biofuel and opening its run
   under it; from anywhere else back to its home aboard, free. Its machine and seat go; its slot's stack flies as its load.
+  A hero gone or out on the tick it launches launches nothing (its seat lasts till derivation); a flying hero boards none.
 - Flights count down in the construction phase (the grid changes only in commands or construction). A descent shuts its
   run `FallTicks` after its launch, whether or not it was open before; one whose hero is gone or out ends at once, docked
-  home empty, no planet opened. At zero a descent sends its hero to `ISurfaces.Planet()` (an open planet, else the first,
-  opened once every surface ran), a return aboard.
+  home empty, no planet opened; one passing out after it on its last tick is sent all the same. At zero a descent sends its
+  hero to `ISurfaces.OpenPlanet()` (an open planet, else the first, opened once every surface ran), a return aboard. A dev
+  transfer mid-fall shuts the run the descent opened.
 - **A pod goes where its hero goes** (`ICarries`, after Crew and Items): its flight, or, off the ship, the pod it owns,
   whatever moved the hero — a flight ending, `Leave`, a wake aboard, a load, a dev transfer.
   - Aboard it **docks** at home, its load put back; home built over or its run gone, its build cost and load are laid there.
   - Off the ship it **lands** by the spawn: from the spawn's column outward, left first, the first anchor whose four column
     tops are level and where it fits; it is its rider's (`Owners`). Nowhere, it is laid at the spawn as its cost and load.
   - Its hero is seated in it when it rode (a flight, not a pod following its owner) and is here and awake.
+  - It minds the grid, not plans: a plan under it waits on its last tick (Building) till the pod is gone.
 - Off the ship only its owner boards or launches a pod (`landing.notYours`). Nothing takes a pod apart there: Building marks
   nothing where tools break.
 - The hero arrives at the surface's spawn (`Send` carries no cell, and the pod is placed after Crew arrives); its client
@@ -49,19 +52,21 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 
 - **Queries:** `Problem(cell, open)`, `Powered(cell)`, `RunOf(grid, cell)` (static); `BoardProblem(peer, pod)`,
   `LaunchProblem(peer)` — what the pod's panel greys its button with; `SeatOf(peer)`, `RiderOf(pod)`, `Seats`;
-  `FlightOf(peer)`, `Flights`; `OwnerOf(pod)`; `FloorOf(cell, width)` (static) — where a pod's rider sits.
+  `FlightOf(peer)`; `Returns` — the key's Return; `FloorOf(cell, width)` (static) — where a pod's rider sits.
 - **Commands:** `SetPlatform(cell, open)` — `landing.noPlatform`, `landing.unpowered`. `Board(pod)` — `landing.noPod`,
-  `landing.seated`, `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`;
+  `landing.seated` (in a pod or flying), `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`;
   aboard `landing.noPlatform`, `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave` (a world that cannot open
   surfaces); off the ship `landing.notYours` (another's pod, or one nobody came down in).
-- **Fuzz:** one turn in 8: a quarter of them a launch, a third of the rest a board or a leave, the others a set of a platform.
+- **Fuzz:** one turn in 8: a launch, half of them from a seated hero, an eighth from others; else a board or a leave a third,
+  a set of a platform the rest.
 
 ## Invariants
 
 - A run is all shut or all open after any `SetPlatform`; a shut run never opens without power enough.
 - A pod has at most one rider and a hero at most one pod; every seat's pod stands and its hero is awake after a tick.
-- Every pod is in one place: standing on one surface or in one flight. Every owned pod stands by its owner, or its owner
-  flies. Biofuel goes only by a descent's five (`DescentTests`).
+- Every pod is in one place: standing on one surface or in one flight; a hero flies one at most, seated in none meanwhile.
+  Every owned pod stands by its owner, or its owner flies. Biofuel goes only by a descent's five; a twin fed the same, saved
+  and loaded, hashes alike (`DescentTests`).
 
 ## Deliberately not handled
 

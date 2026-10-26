@@ -41,10 +41,11 @@ public interface ISurfaces
     bool CanOpen { get; }
 
     /// <summary>
-    /// The planet a descent lands on: the lowest-id open surface of a planet's kind, else one opening this tick, else one of
-    /// <c>Content.Landing.Planet</c> opened once every surface has run, before the sends: its id, to <see cref="Send"/> to.
+    /// The planet a descent lands on, opened if need be — a change to the world, so called only by a system on its tick: the lowest-id
+    /// open surface of a planet's kind, else one opening this tick, else one of <c>Content.Landing.Planet</c> opened once every
+    /// surface has run, before the sends. Returns its id, to <see cref="Send"/> to.
     /// </summary>
-    int Planet();
+    int OpenPlanet();
 }
 
 /// <summary>

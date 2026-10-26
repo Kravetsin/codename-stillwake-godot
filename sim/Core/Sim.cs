@@ -38,7 +38,7 @@ public sealed class World
     private readonly SortedDictionary<int, int> _where = new();
     // Moves asked by modules while the surfaces ran, made once they all have, in the order asked.
     private readonly List<(int Peer, int Surface)> _sends = [];
-    // The planet a descent asked for this tick (ISurfaces.Planet), opened before the sends; never saved, empty between steps.
+    // The planet a descent asked for this tick (ISurfaces.OpenPlanet), opened before the sends; never saved, empty between steps.
     private string? _opening;
     private readonly RngState _rng;
     private readonly Rng _rngOver;
@@ -362,7 +362,7 @@ public sealed class World
 
         public bool CanOpen => world.CanOpen;
 
-        public int Planet()
+        public int OpenPlanet()
         {
             for (int i = 1; i < world._surfaces.Count; i++)
                 if (Content.Surfaces.Get(world._surfaces[i].Surface.Kind) is Content.PlanetType) return i;

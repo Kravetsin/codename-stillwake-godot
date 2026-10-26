@@ -128,6 +128,8 @@ public interface IGridQueries
     /// </summary>
     IReadOnlyList<int> PieceOf(int cell);
     string? PlacementProblem(int cell, Placement placement);
+    /// <summary>Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands over a launch platform's run, every cell under it a platform's, shut or open.</summary>
+    bool OnRun(string kind, int cell);
     /// <summary>
     /// The structure codes of the cells the <see cref="SetDoor"/>s among <paramref name="toggles"/> would change, in order, each as its command would apply it and skipped
     /// where it would be refused: what a client shows of its own toggles before their tick runs (0014). Every
@@ -556,11 +558,13 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
                 // Off the ship a pod is only ever landed by its module, on the ground.
                 if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
-                return RowUnder(p.Kind, cell, c => Doorways.IsPlatform(State.Structure[c])) ? null : "grid.noPlatform";
+                return OnRun(p.Kind, cell) ? null : "grid.noPlatform";
             default:
                 return "grid.noSuchLayer";
         }
     }
+
+    public bool OnRun(string kind, int cell) => RowUnder(kind, cell, c => Doorways.IsPlatform(State.Structure[c]));
 
     /// <summary>
     /// Whether every cell of the row under the footprint of a machine of <paramref name="kind"/> from <paramref name="cell"/> is

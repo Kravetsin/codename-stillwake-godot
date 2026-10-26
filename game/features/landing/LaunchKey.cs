@@ -18,7 +18,7 @@ public partial class LaunchKey : WristKey
     private const int FontSize = 13;
     private static readonly Color Sky = new("38bdf8");
 
-    private readonly Func<(LandingModule Landing, int Peer, bool Aboard)?> _world;
+    private readonly Func<(LandingModule Landing, int Peer)?> _world;
     private readonly Action<Command> _send;
     private readonly TipSpots _tips;
     private string? _problem = "landing.notSeated";
@@ -26,7 +26,7 @@ public partial class LaunchKey : WristKey
     private double _sinceRead = RefreshMs;
     private Vector2 _mouse;
 
-    public LaunchKey(Func<(LandingModule Landing, int Peer, bool Aboard)?> world, Action<Command> send, Store<Tip?> tip)
+    public LaunchKey(Func<(LandingModule Landing, int Peer)?> world, Action<Command> send, Store<Tip?> tip)
         : base(new Vector2(96, WristLook.KeycapSide))
     {
         (_world, _send) = (world, send);
@@ -61,8 +61,8 @@ public partial class LaunchKey : WristKey
     private void Read()
     {
         _sinceRead = 0;
-        if (_world() is not var (landing, peer, aboard)) return;
-        var (problem, word) = (landing.LaunchProblem(peer), aboard ? "landing.descend" : "landing.return");
+        if (_world() is not var (landing, peer)) return;
+        var (problem, word) = (landing.LaunchProblem(peer), landing.Returns ? "landing.return" : "landing.descend");
         if ((problem, word) == (_problem, _word)) return;
         (_problem, _word) = (problem, word);
         QueueRedraw();

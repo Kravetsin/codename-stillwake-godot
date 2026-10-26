@@ -24,14 +24,20 @@ is its first slice, the sim with a button and a white-out, the pictures of the f
   with the hero by whatever moved it — a flight ending, `Leave`, a wake aboard, a load, a dev transfer — so no new trigger
   exists and the own-pod rule never strands anyone. A hero rides in only at a flight's end; a pod following its owner
   arrives empty.
-- **The planet is shared.** `ISurfaces.Planet()` gives the lowest open planet, else opens `Content.Landing.Planet` once every
-  surface has run, before the sends, by the ship, from the next tick on: two descents ending together share it.
+- **The planet is shared.** `ISurfaces.OpenPlanet()` gives the lowest open planet, else opens `Content.Landing.Planet` once every
+  surface has run, before the sends, by the ship, from the next tick on: two descents ending together share it. One planet
+  kind is queued a tick (`_opening`), as only descents open one.
 - **Landing and docking.** Off the ship a pod lands by the spawn: from its column outward, left first, four level column tops
   it fits over (Grid's `Lands` reads the surface: off the ship solid ground, `grid.noGround`). Aboard it docks at home. Either
   failing (home built over, no level ground), it is laid as its build cost and load. Nothing takes a pod apart off the ship:
   Building marks nothing where tools break.
 - **Flights count down in the construction phase,** as the grid changes only in commands or construction; a descent whose
-  hero left or passed out ends there, docked home, before any planet opens.
+  hero left or passed out ends there, docked home, before any planet opens. A hero passing out later on that very last tick
+  is sent all the same: its pod lands, owned, and follows it home when it wakes aboard.
+- **Its rider is one hero, awake.** A flying hero boards no other pod (`landing.seated`), and a hero gone or out on the tick
+  it launches launches nothing (`landing.notSeated`): its seat lasts till the derivation phase, its fuel unburnt.
+- **A pod minds the grid, not plans.** A plan a pod docks or lands over waits on its last tick while the grid refuses it
+  (Building), as a wall's does on a hero, rather than building into the pod.
 - **The rider's client** holds its hero where the pod stood on the surface it is on (`Flight.Floor`), hidden for every peer,
   its hands idle; its screen whites out over the flight's last second, so the frame frozen while a planet opens is white,
   and fades in on arrival.

@@ -82,7 +82,7 @@ not two: the surface says which way. Refused `landing.notSeated`, `landing.noPla
 the run. A flight shuts its run when it reaches `FallTicks` or ends early, whichever comes first, whether or not it was
 open before.
 
-**Flights** (simulation phase): ticks left count down. A descent ending asks `ISurfaces.Planet()` for its surface, then
+**Flights** (construction phase, as built): ticks left count down. A descent ending asks `ISurfaces.OpenPlanet()` for its surface, then
 `Send`s the rider there; a return ends with `Send(peer, 0)`. In the derivation phase, a descent whose rider is gone or
 passed out ends at once and docks home.
 
@@ -96,13 +96,13 @@ seats the rider if here and awake:
 - Aboard: its home cell; if that no longer fits, it falls apart there into its build cost, its stack laid beside.
 - The hero arrives at the surface's spawn (`Send` carries no cell, and the pod is placed after Crew arrives); its
   client holds it at the pod's floor and reports it there within a round trip. A pod off the ship cannot be taken apart
-  (`building.podStays`), so nobody strands its owner.
+  (Building marks nothing where tools break, as built), so nobody strands its owner.
 
 **Placement.** Grid's `Lands` rule reads the surface kind: aboard a run under the pod (`grid.noPlatform`, shut or open),
 elsewhere standing ground under every column (`grid.noGround`). Players cannot build machines on planets, so only
 Landing reaches it.
 
-**Core.** `ISurfaces` gains `Planet()`: the lowest-id planet surface, opening `PlanetTypes.First` if there is none,
+**Core.** `ISurfaces` gains `OpenPlanet()`: the lowest-id planet surface, opening `PlanetTypes.First` if there is none,
 including one queued earlier this tick, so two descents ending together share it. The open is queued and made once every
 surface has run, before the sends; its seed is drawn from the world's Rng then; the opener is the ship (`Inherit` copies
 the ship's creative flag). `Where.Send` today throws for a surface id that does not exist yet (Sim.cs ~347): it checks
