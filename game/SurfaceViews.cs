@@ -48,6 +48,8 @@ public static class SurfaceViews
         new(c => new Features.Power.ChargerLights(c.M.Grid, c.M.Items, c.M.Power), Fades: true),
         new(c => new Features.Power.StoreLights(c.M.Grid, c.M.Power), Fades: true),
         new(c => new Features.Power.PlatformLamps(c.M.Grid, c.M.Power), Fades: true),
+        // A seated hero behind its pod's porthole, then the pod's lamps and the glint on its glass over it.
+        new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players), Fades: true),
         new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),

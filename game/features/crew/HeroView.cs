@@ -337,7 +337,7 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
-        // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (landing).
+        // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
