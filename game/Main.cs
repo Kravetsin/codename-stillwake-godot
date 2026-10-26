@@ -402,7 +402,7 @@ public partial class Main : Node2D, ITogether
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _creatures.Frame(client, _m.Creatures, _camera.View(), session.Progress, delta * 1000, CreatureLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, CreatureLooks.Palette), _seed);
+        _creatures.Frame(client, _m.Creatures, _m.Debris, _camera.View(), session.Progress, delta * 1000, CreatureLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, CreatureLooks.Palette), _seed);
         _frameLog?.Mark("creatures");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");

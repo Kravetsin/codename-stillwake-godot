@@ -29,6 +29,12 @@ public static class Creatures
     /// </summary>
     public sealed record Walker(int Width, int Height, int Walk, int Run, int Jump, int JumpAcross) : Shape(Width, Height);
 
+    /// <summary>
+    /// A clinger: clamped to a piece of debris at a point along its top, riding its drift; it leaves it only to fly, straight and
+    /// through walls, and flies back to clamp on again.
+    /// </summary>
+    public sealed record Clinger(int Width, int Height) : Shape(Width, Height);
+
     /// <summary>Its hit points, and the knock a hit gives it across and the hop up, at a full pace's blow (<see cref="KnockPace"/>).</summary>
     public sealed record Life(int Hp, int Knock, int Hop);
 
@@ -57,6 +63,18 @@ public static class Creatures
     /// <summary>Running for <paramref name="Ticks"/> after its move, hit or missed: a flight that never turns back.</summary>
     public sealed record Escape(int Ticks) : Drive;
 
+    /// <summary>
+    /// Guarding its piece: watching, and alerted while a hero is within <paramref name="Notice"/> cells (box distance); alerted
+    /// <paramref name="AlertTicks"/>, or struck, or its piece struck, it pounces with its first move.
+    /// </summary>
+    public sealed record Guard(int Notice, int AlertTicks) : Drive;
+
+    /// <summary>Flying back to where it clamps on at <paramref name="Speed"/> a tick, wanted whenever it is not clamped on.</summary>
+    public sealed record Return(int Speed) : Drive;
+
+    /// <summary>A reflex, never in charge: a harpoon's line on its piece is cut the tick it is seen.</summary>
+    public sealed record CutTether : Drive;
+
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
 
@@ -68,16 +86,22 @@ public static class Creatures
     public sealed record Lunge(int WindUp, int Speed, int Ticks, int Past, int Damage) : Move(Damage);
 
     /// <summary>The factions a creature may be of: heroes and what is theirs are <see cref="Crew"/>.</summary>
-    public const string Crew = "crew", Grazer = "grazer";
+    public const string Crew = "crew", Grazer = "grazer", Machines = "machines";
 
-    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer];
+    public static readonly IReadOnlyList<string> Factions = [Crew, Grazer, Machines];
 
     /// <summary>How one faction stands to another: none listed, it ignores it.</summary>
     public enum Stance { Ignore, Fear, Hunt }
 
     public sealed record Relation(string From, string To, Stance Stance);
 
-    public static readonly IReadOnlyList<Relation> Relations = [new(Grazer, Crew, Stance.Ignore)];
+    public static readonly IReadOnlyList<Relation> Relations = [new(Grazer, Crew, Stance.Ignore), new(Machines, Crew, Stance.Hunt)];
+
+    /// <summary>
+    /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
+    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed).
+    /// </summary>
+    public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage) : Move(Damage);
 
     /// <summary>The ram of the loper and the sixleg: three units of a suit; at 28 cells a second, past a hero's sprint of 26.4.</summary>
     private static readonly Lunge LightRam = new(WindUp: 8, Speed: 1400, Ticks: 40, Past: 6, Damage: 3);
@@ -145,7 +169,18 @@ public static class Creatures
         Faction: Grazer, Lifetime: Lifetime.Wild, Brain: [new Flee(FleeTicks), new Graze()], Moves: [],
         Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff];
+    /// <summary>
+    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp. It
+    /// watches; a hero within twelve cells alerts it for a second, then it pounces: a crouch of 0.8 s, then a flight of 0.85 s at
+    /// 24 cells a second, some twenty cells, six units of a suit if it hits. Struck, or its wreck struck, it crouches at once.
+    /// Forty hit points, never knocked. A harpoon on its wreck is cut. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2),
+        Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
+        Brain: [new CutTether(), new Return(Speed: 600), new Guard(Notice: 12, AlertTicks: 20)],
+        Moves: [new Pounce(WindUp: 16, Speed: 1200, Ticks: 17, Damage: 6)], Yields: [new("scrapChunk", 3, 5)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
 
     /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's

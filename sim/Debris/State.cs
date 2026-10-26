@@ -28,6 +28,8 @@ public sealed class Piece
     [JsonInclude] public int Damage { get; internal set; }
     /// <summary>A harpoon's line pulling it to a point instead of its drift, or null (0044).</summary>
     [JsonInclude] public Reeling? Reel { get; internal set; }
+    /// <summary>The last blow a weapon landed on it (a wreck), or null: what a creature guarding it answers (the sentry).</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public Blow? Struck { get; internal set; }
     /// <summary>The clock it was last in some hero's keep box, for a zone round the heroes; 0 for the stream's, never despawned by distance.</summary>
     [JsonInclude] public int SeenAt { get; internal set; }
 }
@@ -44,6 +46,13 @@ public sealed class Reeling
     [JsonInclude] public int ToY { get; internal set; }
     /// <summary>The ticks till it is there, above zero: the reel clears on the tick it lands.</summary>
     [JsonInclude] public int Left { get; internal set; }
+}
+
+/// <summary>A blow on a piece: peer <see cref="By"/>'s weapon, at the debris clock <see cref="At"/>; the last in host order of a tick wins.</summary>
+public sealed class Blow
+{
+    [JsonInclude] public int By { get; internal set; }
+    [JsonInclude] public int At { get; internal set; }
 }
 
 /// <summary>A zone's beat: the clock at which it next spawns.</summary>

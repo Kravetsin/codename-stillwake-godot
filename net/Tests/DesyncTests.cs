@@ -397,15 +397,20 @@ public class DesyncTests(ITestOutputHelper output)
                 var first = clients[0];
                 var grid = game.Module<GridModule>(first.World);
                 var power = game.Module<Sim.Power.PowerModule>(first.World);
-                int Cell(string kind, int nth) => grid.MachinesOf(kind)[nth].Cell;
+                // A machine the fuzz took apart is let be: its cable is laid no more.
+                int? Cell(string kind, int nth) => grid.MachinesOf(kind) is var all && all.Count > nth ? all[nth].Cell : null;
+                void Lay(int? a, int? b)
+                {
+                    if (a is int from && b is int to) first.Send(new Sim.Power.Lay(from, to));
+                }
                 if (tick % 20 == 10)
                 {
                     first.Send(new SetCreative(true));
-                    first.Send(new Sim.Power.Lay(Cell("capacitorBank", 0), Cell("capacitorBank", 1)));
-                    first.Send(new Sim.Power.Lay(Cell("capacitorBank", 0), Cell("lamp", 0)));
-                    first.Send(new Sim.Power.Lay(Cell("capacitorBank", 1), Cell("lamp", 1)));
+                    Lay(Cell("capacitorBank", 0), Cell("capacitorBank", 1));
+                    Lay(Cell("capacitorBank", 0), Cell("lamp", 0));
+                    Lay(Cell("capacitorBank", 1), Cell("lamp", 1));
                 }
-                if (tick % 300 == 150) first.Send(new Sim.Power.Lay(Cell("solarPanel", 0), Cell("capacitorBank", 0)));
+                if (tick % 300 == 150) Lay(Cell("solarPanel", 0), Cell("capacitorBank", 0));
                 foreach (var bank in grid.MachinesOf("capacitorBank"))
                 {
                     int flow = power.Store(bank.Id)!.Flow;

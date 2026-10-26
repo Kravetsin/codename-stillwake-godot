@@ -40,6 +40,28 @@ public sealed class Act
     [JsonInclude] public int Left { get; internal set; }
 }
 
+/// <summary>What a <see cref="Ref"/> points at: nothing yet, or a hero by its peer. More kinds come with their first users.</summary>
+public enum RefKind
+{
+    None = 0,
+    Hero = 1,
+}
+
+/// <summary>Something a creature points at, resolved where it is used: one that resolves to nothing reads as none.</summary>
+public readonly record struct Ref(RefKind Kind, int Id)
+{
+    public static readonly Ref None = new(RefKind.None, 0);
+
+    public static Ref Hero(int peer) => new(RefKind.Hero, peer);
+}
+
+/// <summary>One number a rule keeps on a creature, by its key.</summary>
+public sealed class Note
+{
+    [JsonInclude] public string Key { get; internal set; } = "";
+    [JsonInclude] public int Value { get; internal set; }
+}
+
 /// <summary>
 /// One creature (0102): its body <see cref="Content.Creatures.Species"/> cells across and tall, its bottom middle at <see cref="X"/>,
 /// <see cref="Y"/> in thousandths of a cell, always on the grid and out of what is solid. It faces the way it moves, the sign of <see cref="VX"/>;
@@ -67,8 +89,48 @@ public sealed class Creature
     [JsonInclude] public int Step { get; internal set; }
     /// <summary>The act under way, null for none.</summary>
     [JsonInclude] public Act? Act { get; internal set; }
+    /// <summary>Its grudge or aim: the hero it means to strike, or none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public Ref Target { get; internal set; }
+
+    /// <summary>
+    /// What its rules keep, a number a key, in ordinal order of the key (<see cref="string.CompareOrdinal(string, string)"/>), so a
+    /// load lays them out as the save did: never a dictionary, whose order a load would not keep.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<Note>? Mem { get; set; }
+
     /// <summary>The clock it was last in some hero's keep box: <c>Creatures.Linger</c> past it, out of every one, it is gone.</summary>
     [JsonInclude] public int SeenAt { get; internal set; }
+
+    /// <summary>What its rules keep under <paramref name="key"/>; 0 for nothing kept.</summary>
+    internal int Recall(string key)
+    {
+        int at = Find(key);
+        return at >= 0 ? Mem![at].Value : 0;
+    }
+
+    /// <summary>Keeps <paramref name="value"/> under <paramref name="key"/>, in its ordinal place.</summary>
+    internal void Keep(string key, int value)
+    {
+        Mem ??= [];
+        int at = Find(key);
+        if (at >= 0) Mem[at].Value = value;
+        else Mem.Insert(~at, new Note { Key = key, Value = value });
+    }
+
+    /// <summary>The binary search of <paramref name="key"/> in <see cref="Mem"/>: its place, or the complement of where it would go.</summary>
+    private int Find(string key)
+    {
+        if (Mem == null) return ~0;
+        int lo = 0, hi = Mem.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + (hi - lo) / 2, order = string.CompareOrdinal(Mem[mid].Key, key);
+            if (order == 0) return mid;
+            if (order < 0) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
+    }
 
     /// <summary>Killed this tick: gone to every command, query and cap, swept out before the creatures next act. Never saved.</summary>
     [JsonIgnore] internal bool Dead { get; set; }

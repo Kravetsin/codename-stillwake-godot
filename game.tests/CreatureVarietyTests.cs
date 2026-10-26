@@ -13,7 +13,7 @@ namespace Stillwake.Game.Tests;
 /// </summary>
 public class CreatureVarietyTests
 {
-    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Select(s => s.Id)];
+    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Where(s => CreatureLooks.Varieties.ContainsKey(s.Id)).Select(s => s.Id)];
 
     private static Arbitrary<(uint Seed, int Id)> Creatures =>
         Gen.Choose(0, int.MaxValue).SelectMany(s => Gen.Choose(1, 1_000_000).Select(id => ((uint)s * 2654435761u, id))).ToArbitrary();

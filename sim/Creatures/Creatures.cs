@@ -1,4 +1,5 @@
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Spec = Stillwake.Content.Creatures;
@@ -41,11 +42,15 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private readonly ICrewOps _crewOps;
     private readonly IItemsQueries _held;
     private readonly IItemsOps _items;
+    private readonly IDebrisQueries _debris;
+    private readonly IDebrisOps _debrisOps;
 
     public override string Id => "creatures";
 
-    public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items)
+    public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps)
     {
+        _debris = debris;
+        _debrisOps = debrisOps;
         _grid = grid;
         _crew = crew;
         _crewOps = crewOps;
@@ -89,6 +94,9 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         return c.Act is { } act && RuleBook.Move(Spec.Get(c.Species).Moves[act.Move]).Hits(act) ? null : "creatures.notAttacking";
     }
 
+    /// <summary>The piece <paramref name="c"/> clings to, by its id: what a clinger was let out on; null for any other.</summary>
+    public int? ClingsTo(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Piece) is int piece and > 0 ? piece : null;
+
     /// <summary>
     /// Whether peer <paramref name="peer"/>'s hero is threatened: within <c>Creatures.ThreatReach</c> cells of it (box distance, by its
     /// reported cell) a creature acts, retaliates, or is of a faction that hunts the crew. What its client asks to report where it
@@ -119,12 +127,9 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public string? ReleaseProblem(string species, int cell)
     {
         var spec = Spec.Get(species);
-        if (Rules.Gravity == null) return "creatures.notHere";
+        if (cell < 0 || cell >= _grid.Width * _grid.Height) return "creatures.blocked";
         if (State.Creatures.Count(c => !c.Dead) >= Spec.Max) return "creatures.full";
-        int width = _grid.Width;
-        if (cell < 0 || cell >= width * _grid.Height) return "creatures.blocked";
-        var (x, y) = Standing(spec, cell % width, cell / width);
-        return Overlaps(spec.Body, x, y) ? "creatures.blocked" : null;
+        return RuleBook.Body(spec.Body).ReleaseProblem(this, spec, cell);
     }
 
     /// <summary>The bottom middle of a body of <paramref name="spec"/> whose bottom left cell is (<paramref name="column"/>, <paramref name="row"/>).</summary>
@@ -159,11 +164,12 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
             return;
         }
         // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
+        // A body never knocked (no knock, no hop) keeps its way: a sentry in flight flies on.
         int knock = spec.Life.Knock * hit.Pace / Spec.KnockPace;
-        c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
+        if (spec.Life.Knock > 0) c.VX = hit.Away * (Math.Sign(c.VX) == hit.Away ? Math.Max(Math.Abs(c.VX), knock) : knock);
         // No hop while it rises already: a run of quick hits keeps it low rather than juggling it up.
-        if (c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
-        c.Act = null;
+        if (spec.Life.Hop > 0 && c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
+        if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible) c.Act = null;
         for (int i = 0; i < spec.Brain.Count; i++)
             if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) return;
     }
@@ -182,21 +188,21 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private void Apply(Release c)
     {
         var spec = Spec.Get(c.Species);
-        var (x, y) = Standing(spec, c.Cell % _grid.Width, c.Cell / _grid.Width);
-        Add(spec, x, y);
+        RuleBook.Body(spec.Body).Place(this, Add(spec, 0, 0), spec, c.Cell);
     }
 
     /// <summary>
     /// A creature of <paramref name="spec"/> standing at (<paramref name="x"/>, <paramref name="y"/>), in the charge of the first drive
     /// that wants it, seen now: its id the next.
     /// </summary>
-    private void Add(Spec.Species spec, int x, int y)
+    private Creature Add(Spec.Species spec, int x, int y)
     {
         var c = new Creature { Id = State.NextId, Species = spec.Id, X = x, Y = y, SeenAt = State.Clock };
         c.Drive = Fallback(spec, c);
         RuleBook.Drive(spec.Brain[c.Drive]).Born(c, spec.Brain[c.Drive]);
         State.Creatures.Add(c);
         State.NextId += 1;
+        return c;
     }
 
     /// <summary>The cell of <paramref name="c"/>'s top row under its middle: on the grid, and open, as its body is.</summary>

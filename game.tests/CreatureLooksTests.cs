@@ -6,7 +6,11 @@ namespace Stillwake.Game.Tests;
 /// <summary>Every species is seen and heard struck by what it is (0093, 0094, 0102): a new one fails here until it has both.</summary>
 public class CreatureLooksTests
 {
-    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Select(s => s.Id)];
+    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Where(s => CreatureLooks.Varieties.ContainsKey(s.Id)).Select(s => s.Id)];
+
+    [Fact]
+    public void EveryWalkerHasARigOnlyACreatureWithNoneIsDrawnAsABox() =>
+        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
 
     [Theory]
     [MemberData(nameof(Species))]

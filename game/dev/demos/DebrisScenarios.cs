@@ -1,6 +1,8 @@
 using System;
+using System.Linq;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Debris;
+using Stillwake.Net;
 using Stillwake.Sim;
 
 namespace Stillwake.Game.Dev;
@@ -62,5 +64,35 @@ public sealed class SortieScenario : DevScenario
     public override void Attach(DevContext c)
     {
         if (!Args.Has("--manual")) c.Add(new SortieDemo(c.Debris, c.Ui, c.World));
+    }
+}
+
+[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102)")]
+public sealed class SentryScenario : DevScenario
+{
+    private bool _let;
+    private string _was = "";
+
+    public override Layout? Map => Registry.Wreck;
+
+    public override World Seed(World world, DevSeed seed) => SortieDemo.Seed(world, seed.M, seed.Modules);
+
+    public override Func<Registry, int>? Start => SortieDemo.StartOf;
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        if (!_let && client.World.Tick >= 5 && m.Debris.Pieces.FirstOrDefault(p => p.Item == "engineBlock") is { } block)
+        {
+            _let = true;
+            client.Send(new Sim.Creatures.Release(Content.Creatures.Sentry.Id, Sim.Debris.DebrisModule.CellOf(block.X, block.Y, m.Grid.Width)));
+        }
+        foreach (var c in m.Creatures.Creatures)
+        {
+            var spec = Content.Creatures.Get(c.Species);
+            string now = c.Act is { } act ? $"act {act.Phase}" : $"{spec.Brain[c.Drive].GetType().Name} {c.Step}";
+            if (now == _was) continue;
+            log($"sentry: tick {client.World.Tick}, {now} at ({c.X}, {c.Y}), velocity ({c.VX}, {c.VY})");
+            _was = now;
+        }
     }
 }

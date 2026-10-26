@@ -35,7 +35,7 @@ public class CreatureGaitTests
     [Fact]
     public void EveryKindWalksAtItsOldPaceAndFleesAtHalfTheOldCadenceOrLess()
     {
-        foreach (var species in Spec.Creatures.All)
+        foreach (var species in Spec.Creatures.All.Where(s => CreatureLooks.Varieties.ContainsKey(s.Id)))
         {
             var run = CreatureLooks.Runs[species.Look];
             double walk = CreatureGait.StridesAt(Px(((Spec.Creatures.Walker)species.Body).Walk), run), flee = CreatureGait.StridesAt(Px(((Spec.Creatures.Walker)species.Body).Run), run);

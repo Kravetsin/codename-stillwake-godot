@@ -11,7 +11,7 @@ public class CreatureArtTests
 {
     private static string Art => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");
 
-    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Select(s => s.Id)];
+    public static TheoryData<string> Species() => [.. Spec.Creatures.All.Where(s => CreatureLooks.Varieties.ContainsKey(s.Id)).Select(s => s.Id)];
 
     [Theory]
     [MemberData(nameof(Species))]

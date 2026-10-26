@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Spec = Stillwake.Content.Creatures;
 
@@ -21,6 +22,20 @@ public sealed partial class CreaturesModule
     internal Rng Rand => Random;
 
     internal int GridWidth => _grid.Width;
+
+    internal int GridHeight => _grid.Height;
+
+    /// <summary>The debris, for the rules of a creature that clings to a piece.</summary>
+    internal IDebrisQueries Debris => _debris;
+
+    internal IDebrisOps DebrisOps => _debrisOps;
+
+    /// <summary>Every hero's reported cell this tick, as a column and row, in id order.</summary>
+    internal IReadOnlyList<(int X, int Y)> Heroes => _heroes;
+
+    /// <summary>Peer <paramref name="peer"/>'s hero's reported cell as a column and row; null for none on the grid.</summary>
+    internal (int X, int Y)? HeroAt(int peer) =>
+        HeroCell(peer) is int cell && cell >= 0 && cell < _grid.Width * _grid.Height ? (cell % _grid.Width, cell / _grid.Width) : null;
 
     private void Live()
     {
@@ -88,6 +103,7 @@ public sealed partial class CreaturesModule
         var body = RuleBook.Body(spec.Body);
         if (body.Unstick(this, c, spec.Body)) return;
         bool grounded = body.Grounded(this, c, spec.Body);
+        for (int i = 0; i < spec.Brain.Count; i++) RuleBook.Drive(spec.Brain[i]).Reflex(this, c, spec, spec.Brain[i]);
         if (c.Act is { } act)
         {
             var mv = spec.Moves[act.Move];
@@ -95,8 +111,11 @@ public sealed partial class CreaturesModule
         }
         else
         {
+            var now = spec.Brain[c.Drive];
             if (FirstWanting(c, spec, below: c.Drive) is int over and >= 0) TakeOver(c, spec, over);
-            else
+            else if (!RuleBook.Drive(now).Run(this, c, spec, now)) TakeOver(c, spec, Fallback(spec, c));
+            // Its drive may have begun an act this tick: the act's clock starts next tick.
+            else if (c.Act == null)
             {
                 if (c.DriveLeft > 0) c.DriveLeft -= 1;
                 var d = spec.Brain[c.Drive];

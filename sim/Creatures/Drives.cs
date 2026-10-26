@@ -47,6 +47,8 @@ internal sealed class FleeDrive : DriveRule
 {
     internal override Type Serves => typeof(Spec.Flee);
 
+    internal override bool ClaimsHits => true;
+
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => false;
 
     internal override bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit)

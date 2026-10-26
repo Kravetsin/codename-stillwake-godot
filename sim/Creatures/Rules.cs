@@ -29,6 +29,12 @@ internal abstract class DriveRule
     /// <summary>Takes charge of a creature just let out or spawned; never draws.</summary>
     internal virtual void Born(Creature c, Spec.Drive d) { }
 
+    /// <summary>The drive in charge, every tick before its clock, no act under way: false yields.</summary>
+    internal virtual bool Run(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => true;
+
+    /// <summary>A reflex: every tick, for every drive of the brain, whatever is in charge or under way.</summary>
+    internal virtual void Reflex(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) { }
+
     /// <summary>Its ticks ran out: false yields, so the brain asks again from the top.</summary>
     internal abstract bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d);
 
@@ -40,6 +46,9 @@ internal abstract class DriveRule
 
     /// <summary>An act it began has ended, the creature to go <paramref name="way"/>, hopping back when <paramref name="hop"/>.</summary>
     internal virtual void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) { }
+
+    /// <summary>Whether it always claims a hit (<see cref="Hurt"/>): a brain needs one, or a hit would leave it as it was.</summary>
+    internal virtual bool ClaimsHits => false;
 
     /// <summary>Whether a creature in its charge may turn on a hero: it threatens heroes near it (<c>Threatens</c>).</summary>
     internal virtual bool Menaces => false;
@@ -60,6 +69,12 @@ internal abstract class BodyRule
 
     internal abstract bool Grounded(CreaturesModule m, Creature c, Spec.Shape s);
 
+    /// <summary>Why one could not be let out in <paramref name="cell"/> (<see cref="Release"/>): its refusal, or null.</summary>
+    internal abstract string? ReleaseProblem(CreaturesModule m, Spec.Species spec, int cell);
+
+    /// <summary>Puts <paramref name="c"/>, just let out, in <paramref name="cell"/>, where <see cref="ReleaseProblem"/> found room.</summary>
+    internal abstract void Place(CreaturesModule m, Creature c, Spec.Species spec, int cell);
+
     /// <summary>Its steering by the drive or act in charge, then its move.</summary>
     internal abstract void Step(CreaturesModule m, Creature c, Spec.Species spec, bool grounded);
 }
@@ -77,6 +92,9 @@ internal abstract class MoveRule
 
     /// <summary>Its steering, on the ground.</summary>
     internal abstract void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv);
+
+    /// <summary>Whether a blow cuts it short.</summary>
+    internal virtual bool Interruptible => true;
 
     /// <summary>Whether a hero may be hit by it now (<see cref="HitBy"/>).</summary>
     internal abstract bool Hits(Act a);

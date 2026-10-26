@@ -30,6 +30,16 @@ internal sealed class WalkerBody : BodyRule
     /// <summary>Whether something solid is right under <paramref name="c"/>'s feet: it stands.</summary>
     internal override bool Grounded(CreaturesModule m, Creature c, Spec.Shape s) => c.VY >= 0 && m.Overlaps(s, c.X, c.Y + 1);
 
+    internal override string? ReleaseProblem(CreaturesModule m, Spec.Species spec, int cell)
+    {
+        if (m.Rules.Gravity == null) return "creatures.notHere";
+        var (x, y) = Standing(spec, cell % m.GridWidth, cell / m.GridWidth);
+        return m.Overlaps(spec.Body, x, y) ? "creatures.blocked" : null;
+    }
+
+    internal override void Place(CreaturesModule m, Creature c, Spec.Species spec, int cell) =>
+        (c.X, c.Y) = Standing(spec, cell % m.GridWidth, cell / m.GridWidth);
+
     /// <summary>
     /// On the ground, an act steers itself; a drive that walks or runs keeps its way, turning at a wall it cannot step up or a
     /// drop too deep unless it leaps, or its drive acts instead; one standing stops. Then its move.

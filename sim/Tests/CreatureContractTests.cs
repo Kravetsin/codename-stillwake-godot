@@ -27,13 +27,21 @@ public class CreatureContractTests
         {
             Assert.True(s.Body.Width > 0 && s.Body.Height > 0 && s.Life.Hp > 0, s.Id);
             Assert.Contains(s.Faction, Tune.Factions);
-            // The last word of a brain: what it does when nothing else wants it.
-            Assert.IsType<Tune.Graze>(s.Brain[^1]);
-            // A species that acts escapes after it: its acts' drives hand it over.
-            if (s.Moves.Count > 0) Assert.Single(s.Brain.OfType<Tune.Escape>());
-            // A hit is claimed by some drive, or a cut act would only begin again: today that is the flight.
-            Assert.Single(s.Brain.OfType<Tune.Flee>());
-            if (s.Brain.Any(d => d is Tune.Retaliate || d is Tune.Flee { CorneredChance: > 0 })) Assert.NotEmpty(s.Moves);
+            // What it does when nothing else wants it: some drive always does.
+            Assert.True(CreaturesModule.Fallback(s, new Creature()) >= 0);
+            // A hit is claimed by some drive, or a cut act would only begin again: the flight, the guard.
+            Assert.Contains(s.Brain, d => RuleBook.Drive(d).ClaimsHits);
+            // A drive that begins an act hands the creature over after it: the ram to the escape, the pounce to the return.
+            if (s.Brain.Any(d => d is Tune.Retaliate || d is Tune.Flee { CorneredChance: > 0 }))
+            {
+                Assert.NotEmpty(s.Moves);
+                Assert.Single(s.Brain.OfType<Tune.Escape>());
+            }
+            if (s.Brain.Any(d => d is Tune.Guard))
+            {
+                Assert.NotEmpty(s.Moves);
+                Assert.Single(s.Brain.OfType<Tune.Return>());
+            }
         });
         Assert.All(Tune.Relations, r => Assert.True(Tune.Factions.Contains(r.From) && Tune.Factions.Contains(r.To), $"{r.From} → {r.To}"));
     }
@@ -45,6 +53,7 @@ public class CreatureContractTests
         { "tapir", "Retaliate Flee Escape Graze | Lunge" },
         { "sixleg", "Retaliate Flee Escape Graze | Lunge" },
         { "fluff", "Flee Graze | " },
+        { "sentry", "CutTether Return Guard | Pounce" },
     };
 
     [Fact]
