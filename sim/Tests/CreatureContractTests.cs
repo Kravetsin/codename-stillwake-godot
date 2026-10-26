@@ -29,8 +29,6 @@ public class CreatureContractTests
             Assert.Contains(s.Faction, Tune.Factions);
             // What it does when nothing else wants it: some drive always does.
             Assert.True(CreaturesModule.Fallback(s, new Creature()) >= 0);
-            // A hit is claimed by some drive, or a cut act would only begin again: the flight, the guard.
-            Assert.Contains(s.Brain, d => RuleBook.Drive(d).ClaimsHits);
             // A drive that begins an act hands the creature over after it: the ram to the escape, the pounce to the return.
             if (s.Brain.Any(d => d is Tune.Retaliate || d is Tune.Flee { CorneredChance: > 0 }))
             {
@@ -44,6 +42,42 @@ public class CreatureContractTests
             }
         });
         Assert.All(Tune.Relations, r => Assert.True(Tune.Factions.Contains(r.From) && Tune.Factions.Contains(r.To), $"{r.From} → {r.To}"));
+    }
+
+    /// <summary>A creature of <paramref name="s"/> let out where its body lives, a hero beside it: on a planet's floor, or on a wreck in space.</summary>
+    private static (Scenario W, Creature C) LetOut(Tune.Species s)
+    {
+        if (s.Body is Tune.Walker)
+        {
+            var ground = CreaturesTesting.Planet("""
+                ####################
+                #..................#
+                #..................#
+                ####################
+                """, CreaturesTesting.Lifeless).HeroAt(2, 2);
+            return (ground, ground.Let(s, 6, 2).Still());
+        }
+        var w = new Scenario(string.Join('\n', Enumerable.Repeat(new string('.', 120), 60)), cells: true).Do(new Crew.Enter(30 * 120 + 50)).Run();
+        var debris = (Debris.DebrisState)w.M.Debris.Slice;
+        debris.Pieces.Add(new Debris.Piece { Id = debris.NextId++, Zone = Content.Debris.Far.Id, Item = "engineBlock", X = 60_000, Y = 30_000 });
+        w.Do(new Release(s.Id, 28 * 120 + 60)).Run(3);
+        return (w, w.M.Creatures.Creatures.Single());
+    }
+
+    [Fact]
+    public void EverySpeciesStruckTurnsToSomethingAndAClampedSentryGuards()
+    {
+        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed).
+        Assert.All(Tune.All, s =>
+        {
+            var (w, c) = LetOut(s);
+            int drive = c.Drive;
+            w.Do(new Strike(c.Id, Content.Weapons.Axe.Item)).Run();
+            Assert.True(c.Act != null || c.Drive != drive, $"{s.Id} struck changed nothing");
+        });
+        var (_, sentry) = LetOut(Tune.Sentry);
+        Assert.True(CreaturesModule.Clamped(sentry));
+        Assert.IsType<Tune.Guard>(Tune.Sentry.Brain[CreaturesModule.Fallback(Tune.Sentry, sentry)]);
     }
 
     /// <summary>Each species' drives and moves in order: a creature saves its drive and act by their places in them.</summary>

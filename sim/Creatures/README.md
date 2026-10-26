@@ -55,11 +55,13 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
   lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
   drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
-- **The sentry:** `Guard` watches; a hero within `Notice` alerts it, `AlertTicks` of it pounce. A blow on it, or on its
-  wreck since it last answered one (`Debris.Piece.Struck`), and it pounces at once at the striker (`Target`). The pounce
-  crouches `WindUp`, then flies straight at its grudge, or the nearest within its run, at `Speed` on the longer axis for
-  `Ticks`, never cut short. Unclamped, `Return` (above `Guard`) flies it home and clamps it on, its grudge spent.
-  `CutTether` lets go of any reel on its wreck the tick it is seen, the reel having moved it a step.
+- **The sentry:** `Guard` watches; an awake hero within `Notice` alerts it, `AlertTicks` (from the tick it noticed) of it
+  pounce. A blow on it, or on its wreck since it last answered (`Debris.Piece.Struck`, by the debris clock), and it pounces
+  at once at the striker (`Target`); a pounce answers every blow up to it, a blow while away is answered home, blows before
+  it was let out never. The pounce crouches `WindUp`, then flies straight at its grudge, else the nearest awake hero within
+  its run, at `Speed` on the longer axis: `Ticks` moves, never cut short, then it hangs. Unclamped, `Return` (above `Guard`)
+  flies it home and clamps it on, its grudge spent. `CutTether` lets go of any reel on its wreck the tick it is seen (the
+  reel moved it a step) and stamps the cut (`LastCut`). Body and home stay wholly on the grid. Queries: `Alerted`, `Clamped`.
 - **The hit path** (`Strike`): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked by a `Life.Knock`
   and `Hop` above none, its act cut if interruptible, its drives told in brain order, the first claim winning.
 - **The dead** are gone to every command and cap from the blow; the list holds them till the sweep, first thing.
@@ -88,4 +90,5 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - **A ram aims where the hero was reported** (0103); a second hero touched pays nothing.
 - **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
 - **A derelict escorted onto the hull** brings its sentry over the ship; its pounce passes walls.
-- **The sentry sits on its wreck's box**, not its picture's outline, and does not crawl yet.
+- **The sentry sits on its wreck's box**, not its picture's outline, and does not crawl yet. A first blow that breaks its
+  wreck goes unanswered: the wreck is gone before it looks.

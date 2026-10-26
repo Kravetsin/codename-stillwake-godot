@@ -155,6 +155,47 @@ public class DesyncTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncWithASentryOnAWreck()
+    {
+        // The sentry (2026-10-26-creatures-are-composed): the first client lets one out on a wreck of the stream, stands its hero
+        // by it, strikes it, harpoons its wreck and reports its pounces' hits; the fuzz strikes and releases besides. A joiner
+        // comes in mid-fight, Mem, Target and the wreck's blow in its welcome.
+        string sentry = Content.Creatures.Sentry.Id, axe = Content.Weapons.Axe.Item;
+        Covering(41, tried =>
+        {
+            int alive = 0, pounced = 0, cut = 0;
+            var game = Definition.Game();
+            var run = Desync.Fuzz(game, tried, layout: Registry.Wreck, ticks: 1500, joinAt: 700, tamper: (tick, clients) =>
+            {
+                var first = clients[0];
+                var m = Registry.On(first.World, 0);
+                var sentries = m.Creatures.Creatures.Where(c => c.Species == sentry).ToList();
+                alive += sentries.Count;
+                pounced += sentries.Count(c => c.Posture == Sim.Creatures.Posture.Charge);
+                cut += sentries.Count(c => Sim.Creatures.CreaturesModule.LastCut(c) > 0);
+                if (tick == 1) first.Send(new SetCreative(true));
+                foreach (var c in sentries.Where(c => c.Posture == Sim.Creatures.Posture.Charge))
+                    first.Send(new Sim.Creatures.HitBy(c.Id));
+                if (tick % 10 != 0) return;
+                int width = m.Grid.Width;
+                if (sentries.Count == 0)
+                {
+                    if (m.Debris.Pieces.FirstOrDefault(p => Content.Wreckage.SizeOf(p.Item) != null) is { } wreck)
+                        first.Send(new Sim.Creatures.Release(sentry, DebrisModule.CellOf(wreck.X, wreck.Y, width)));
+                    return;
+                }
+                var s = sentries[0];
+                int cx = s.X / 1000, cy = s.Y / 1000;
+                if (tick % 60 == 0) first.Send(new Enter(Math.Clamp(cy - 1, 0, m.Grid.Height - 1) * width + Math.Clamp(cx - 6, 0, width - 1)));
+                if (tick % 90 == 30) first.Send(new Sim.Creatures.Strike(s.Id, axe));
+                if (tick % 130 == 70 && m.Creatures.ClingsTo(s) is int piece && m.Debris.PieceById(piece) is { } held)
+                    first.Send(new Reel(piece, held.X - 8000, held.Y));
+            });
+            return (run, alive >= 300 && pounced >= 1 && cut >= 1 ? null : $"{alive} sentry-ticks, {pounced} pouncing, {cut} after a cut");
+        });
+    }
+
+    [Fact]
     public void KeepsEveryClientAndAJoinerInSyncWithCreaturesOnSmallPlanets()
     {
         // Creatures on small planets (0102): the first client beamed down lets lopers out over the ground by its hero and

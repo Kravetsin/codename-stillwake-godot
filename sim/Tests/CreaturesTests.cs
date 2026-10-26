@@ -733,7 +733,13 @@ public class CreaturesTests
             w.Run();
         }
         Assert.Equal(before, CreaturesSlice(w));
-        Assert.All(w.Refusals.Where(r => r.Command is Release), r => Assert.Contains(r.Reason, new[] { "creatures.notHere", "creatures.noPiece" }));
+        // This map holds no wrecks: off the grid nothing fits; on it a walker finds no gravity aboard, a clinger no piece.
+        int cells = w.M.Grid.Width * w.M.Grid.Height;
+        Assert.All(w.Refusals.Where(r => r.Command is Release), r =>
+        {
+            var release = (Release)r.Command;
+            Assert.Equal(release.Cell < 0 || release.Cell >= cells ? "creatures.blocked" : Tune.Get(release.Species).Body is Tune.Walker ? "creatures.notHere" : "creatures.noPiece", r.Reason);
+        });
     }
 
     private static string CreaturesSlice(Scenario w) => System.Text.Json.JsonSerializer.Serialize(w.M.Creatures.Slice, w.World.Json);

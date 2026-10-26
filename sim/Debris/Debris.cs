@@ -37,6 +37,9 @@ public interface IDebrisQueries
 {
     IReadOnlyList<Piece> Pieces { get; }
 
+    /// <summary>Ticks the debris has run: what a blow on a piece is stamped with (<see cref="Piece.Struck"/>).</summary>
+    int Clock { get; }
+
     Piece? PieceById(int id);
 }
 
@@ -85,6 +88,8 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
 
     /// <summary>The pieces out, in spawn order; live and read-only.</summary>
     public IReadOnlyList<Piece> Pieces => State.Pieces;
+
+    public int Clock => State.Clock;
 
     /// <summary>Piece <paramref name="id"/>; null for one gone or never spawned.</summary>
     public Piece? PieceById(int id)

@@ -37,7 +37,7 @@ public partial class BoxBodies : Node2D
 
     private readonly Dictionary<int, Shown> _shown = new();
     private readonly List<(Vector2 At, double LeftMs)> _snaps = [];
-    private readonly Dictionary<int, int> _reeled = new();
+    private readonly Dictionary<int, int> _cuts = new();
     private readonly HashSet<int> _seen = [];
     private readonly List<int> _gone = [];
     private readonly List<(int Id, Vector2 At, Vector2 Size, Color Eye, float Crouch)> _drawn = [];
@@ -110,20 +110,26 @@ public partial class BoxBodies : Node2D
     private static Color EyeOf(Creature c, Spec.Creatures.Species spec)
     {
         if (c.Act != null) return Attacking;
-        return spec.Brain[c.Drive] is Spec.Creatures.Guard && c.Step == 1 ? Alerted : Guarding;
+        return CreaturesModule.Alerted(c) ? Alerted : Guarding;
     }
 
-    /// <summary>A harpoon line on <paramref name="c"/>'s wreck gone short of its landing: cut, a spark where it held.</summary>
+    /// <summary>A harpoon line <paramref name="c"/> cut since last seen (<see cref="CreaturesModule.LastCut"/>): a spark where it held, on the wreck.</summary>
     private void Snaps(CreaturesModule creatures, IDebrisQueries debris, Creature c)
     {
-        if (creatures.ClingsTo(c) is not int id || debris.PieceById(id) is not { } piece) return;
-        int was = _reeled.GetValueOrDefault(id);
-        if (piece.Reel is { } reel) _reeled[id] = reel.Left;
-        else
-        {
-            if (was > 1) _snaps.Add((new Vector2(piece.X, piece.Y) / Unit * Cell, SnapMs));
-            _reeled.Remove(id);
-        }
+        int cut = CreaturesModule.LastCut(c);
+        if (_cuts.TryGetValue(c.Id, out int was) && cut > was && creatures.ClingsTo(c) is int id && debris.PieceById(id) is { } piece)
+            _snaps.Add((new Vector2(piece.X, piece.Y) / Unit * Cell, SnapMs));
+        _cuts[c.Id] = cut;
+    }
+
+    /// <summary>Another surface, or a load: what was shown was another world's, gone without a spark.</summary>
+    public void Reset()
+    {
+        _shown.Clear();
+        _cuts.Clear();
+        _snaps.Clear();
+        _drawn.Clear();
+        _lamps.Show(_drawn, _snaps);
     }
 
     private static void Sparks(Vector2 at, Spec.Creatures.Species? spec, double share) =>

@@ -9,7 +9,10 @@ namespace Stillwake.Sim.Creatures;
 /// </summary>
 internal sealed class GuardDrive : DriveRule
 {
-    private const int Watching = 0, Alerted = 1;
+    private const int Watching = 0;
+
+    /// <summary>Its step while alerted.</summary>
+    internal const int Alerted = 1;
 
     /// <summary>Kept in its <c>Mem</c>: the debris clock of the last blow on its wreck it answered, plus one.</summary>
     internal const string Answered = "answered";
@@ -17,8 +20,6 @@ internal sealed class GuardDrive : DriveRule
     internal override Type Serves => typeof(Spec.Guard);
 
     internal override bool Wants(Creature c, Spec.Drive d) => true;
-
-    internal override bool ClaimsHits => true;
 
     internal override void Born(Creature c, Spec.Drive d) => (c.Step, c.DriveLeft) = (Watching, 0);
 
@@ -29,11 +30,10 @@ internal sealed class GuardDrive : DriveRule
         var guard = (Spec.Guard)d;
         if (m.Debris.PieceById(c.Recall(ClingerBody.Piece))?.Struck is { } blow && blow.At + 1 > c.Recall(Answered))
         {
-            c.Keep(Answered, blow.At + 1);
-            Pounce(m, c, spec, Ref.Hero(blow.By));
+            Pounce(m, c, spec, Ref.Hero(blow.By), m.Debris.Clock);
             return true;
         }
-        bool near = m.Nearest(c) is ({ }, int far) && far <= guard.Notice;
+        bool near = m.Nearest(c, awake: true) is ({ }, int far) && far <= guard.Notice;
         if (c.Step == Watching && near) (c.Step, c.DriveLeft) = (Alerted, guard.AlertTicks);
         else if (c.Step == Alerted && !near) (c.Step, c.DriveLeft) = (Watching, 0);
         return true;
@@ -41,7 +41,7 @@ internal sealed class GuardDrive : DriveRule
 
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
-        if (c.Step == Alerted) Pounce(m, c, spec, Ref.None);
+        if (c.Step == Alerted) Pounce(m, c, spec, Ref.None, m.Debris.Clock);
         return true;
     }
 
@@ -50,14 +50,28 @@ internal sealed class GuardDrive : DriveRule
         // Mid-pounce it flies on (a pounce is never cut short), its aim already taken.
         if (c.Act != null) return true;
         m.Claim(c, at, 0);
-        Pounce(m, c, spec, Ref.Hero(hit.Peer));
+        Pounce(m, c, spec, Ref.Hero(hit.Peer), m.Debris.Clock + 1);
         return true;
+    }
+
+    /// <summary>Its pounce over: it hangs where it stopped; one that never left lets its grudge go, one away flies home first.</summary>
+    internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop)
+    {
+        (c.VX, c.VY) = (0, 0);
+        if (c.Recall(ClingerBody.Mounted) == 1) c.Target = Ref.None;
     }
 
     internal override Gait GaitOf(Creature c) => Gait.Still;
 
-    private static void Pounce(CreaturesModule m, Creature c, Spec.Species spec, Ref target)
+    /// <summary>
+    /// A pounce begun at <paramref name="target"/>: every blow on its wreck up to this tick answered with it, so one swing that hits
+    /// the sentry and its wreck pounces once; a blow while it is away is answered once it is home. A blow is stamped with the
+    /// debris clock of the commands it came with, and the debris clock moves on as the simulation runs: from a hit (commands)
+    /// <paramref name="answered"/> is the clock and one, from the system the clock.
+    /// </summary>
+    private static void Pounce(CreaturesModule m, Creature c, Spec.Species spec, Ref target, int answered)
     {
+        c.Keep(Answered, answered);
         (c.Step, c.DriveLeft, c.Target) = (Watching, 0, target);
         RuleBook.Move(spec.Moves[0]).Begin(m, c, spec, 0);
     }
@@ -89,7 +103,7 @@ internal sealed class ReturnDrive : DriveRule
             return true;
         }
         // Its speed on the longer axis, the other its share, rounded toward none: a diagonal goes up to 41% faster.
-        (c.VX, c.VY) = (speed * dx / far, speed * dy / far);
+        (c.VX, c.VY) = ((int)((long)speed * dx / far), (int)((long)speed * dy / far));
         return true;
     }
 
@@ -101,11 +115,17 @@ internal sealed class ReturnDrive : DriveRule
 /// <summary>A reflex: a harpoon's line on its wreck is let go the tick it is seen, whatever it is doing (0044).</summary>
 internal sealed class CutTetherDrive : DriveRule
 {
+    /// <summary>Kept in its <c>Mem</c>: the creatures' clock of its last cut, plus one.</summary>
+    internal const string Cut = "cut";
+
     internal override Type Serves => typeof(Spec.CutTether);
 
     internal override void Reflex(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
-        if (m.Debris.PieceById(c.Recall(ClingerBody.Piece)) is { Reel: not null } piece) m.DebrisOps.Unreel(piece.Id);
+        if (m.Debris.PieceById(c.Recall(ClingerBody.Piece)) is not { Reel: not null } piece) return;
+        m.DebrisOps.Unreel(piece.Id);
+        // When it cut: what the client shows a snap by, as the line is gone within the tick.
+        c.Keep(Cut, m.Clock + 1);
     }
 
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d) => false;

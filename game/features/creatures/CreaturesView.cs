@@ -117,6 +117,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         {
             foreach (var one in _shown.Values) Put(one.Body);
             _shown.Clear();
+            _boxes.Reset();
             _of = creatures;
         }
         (_palette, _seed) = (palette, seed);

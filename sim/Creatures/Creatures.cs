@@ -94,6 +94,15 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         return c.Act is { } act && RuleBook.Move(Spec.Get(c.Species).Moves[act.Move]).Hits(act) ? null : "creatures.notAttacking";
     }
 
+    /// <summary>Whether <paramref name="c"/> is alerted: a guard that has noticed a hero and will pounce.</summary>
+    public static bool Alerted(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Guard && c.Act == null && c.Step == GuardDrive.Alerted;
+
+    /// <summary>Whether <paramref name="c"/> is clamped on to its wreck: a clinger not flying.</summary>
+    public static bool Clamped(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Mounted) == 1;
+
+    /// <summary>The creatures' clock when <paramref name="c"/> last cut a harpoon line, plus one; 0 for never.</summary>
+    public static int LastCut(Creature c) => c.Recall(CutTetherDrive.Cut);
+
     /// <summary>The piece <paramref name="c"/> clings to, by its id: what a clinger was let out on; null for any other.</summary>
     public int? ClingsTo(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Piece) is int piece and > 0 ? piece : null;
 

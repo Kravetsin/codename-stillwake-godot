@@ -31,6 +31,8 @@ internal sealed class ClingerBody : BodyRule
         c.Keep(Piece, piece.Id);
         c.Keep(Along, Math.Clamp(m.Middle(cell % m.GridWidth) - piece.X, -room, room));
         c.Keep(Mounted, 1);
+        // Blows on the wreck before it was there are none of its business.
+        c.Keep(GuardDrive.Answered, m.Debris.Clock + 1);
         (c.X, c.Y) = Hold(m, c);
     }
 
@@ -42,8 +44,9 @@ internal sealed class ClingerBody : BodyRule
     {
         if (m.Debris.PieceById(c.Recall(Piece)) is { } piece && Content.Wreckage.SizeOf(piece.Item) is var (_, h))
         {
-            c.Keep(HomeX, piece.X + c.Recall(Along));
-            c.Keep(HomeY, piece.Y - h * Unit / 2);
+            var s = Spec.Get(c.Species).Body;
+            c.Keep(HomeX, ClampX(m, s, piece.X + c.Recall(Along)));
+            c.Keep(HomeY, ClampY(m, s, piece.Y - h * Unit / 2));
         }
         return (c.Recall(HomeX), c.Recall(HomeY));
     }
@@ -58,9 +61,15 @@ internal sealed class ClingerBody : BodyRule
             (c.VX, c.VY) = (0, 0);
             return;
         }
-        c.X = Math.Clamp(c.X + c.VX, 0, m.GridWidth * Unit - 1);
-        c.Y = Math.Clamp(c.Y + c.VY, spec.Body.Height * Unit, m.GridHeight * Unit);
+        c.X = ClampX(m, spec.Body, c.X + c.VX);
+        c.Y = ClampY(m, spec.Body, c.Y + c.VY);
     }
+
+    /// <summary>A body's middle kept so the whole of it is on the grid across.</summary>
+    private static int ClampX(CreaturesModule m, Spec.Shape s, int x) => Math.Clamp(x, s.Width * Unit / 2, m.GridWidth * Unit - s.Width * Unit / 2);
+
+    /// <summary>A body's feet kept so the whole of it is on the grid down.</summary>
+    private static int ClampY(CreaturesModule m, Spec.Shape s, int y) => Math.Clamp(y, s.Height * Unit, m.GridHeight * Unit);
 
     /// <summary>The first wreck in spawn order whose box (<c>Wreckage.SizeOf</c>) covers part of <paramref name="cell"/>; null for none.</summary>
     private static Piece? WreckAt(CreaturesModule m, int cell)

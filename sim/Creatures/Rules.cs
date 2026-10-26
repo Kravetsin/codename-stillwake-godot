@@ -47,9 +47,6 @@ internal abstract class DriveRule
     /// <summary>An act it began has ended, the creature to go <paramref name="way"/>, hopping back when <paramref name="hop"/>.</summary>
     internal virtual void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop) { }
 
-    /// <summary>Whether it always claims a hit (<see cref="Hurt"/>): a brain needs one, or a hit would leave it as it was.</summary>
-    internal virtual bool ClaimsHits => false;
-
     /// <summary>Whether a creature in its charge may turn on a hero: it threatens heroes near it (<c>Threatens</c>).</summary>
     internal virtual bool Menaces => false;
 
