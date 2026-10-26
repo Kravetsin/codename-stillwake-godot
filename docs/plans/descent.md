@@ -92,10 +92,11 @@ seats the rider if here and awake:
 
 - On a planet: columns outward from the spawn column, left first on a tie; at each the pod drops to its highest standing
   row; the first column where it can be placed wins. Pods already down take their cells, so a new one lands beside them.
-  None found is a broken generator: it throws.
+  None found: the cost and stack are laid at the spawn (a throw would crash every peer).
 - Aboard: its home cell; if that no longer fits, it falls apart there into its build cost, its stack laid beside.
-- The hero is moved to the pod's floor cell, not the surface's spawn (`Arrive` gets that cell), so creatures and the
-  air read where it really is.
+- The hero arrives at the surface's spawn (`Send` carries no cell, and the pod is placed after Crew arrives); its
+  client holds it at the pod's floor and reports it there within a round trip. A pod off the ship cannot be taken apart
+  (`building.podStays`), so nobody strands its owner.
 
 **Placement.** Grid's `Lands` rule reads the surface kind: aboard a run under the pod (`grid.noPlatform`, shut or open),
 elsewhere standing ground under every column (`grid.noGround`). Players cannot build machines on planets, so only
