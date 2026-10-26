@@ -91,4 +91,22 @@ public sealed partial class CreaturesModule
                 return true;
         return false;
     }
+
+    /// <summary>
+    /// Each debris piece past the watermark, in id order, of a kind a guard of this surface's comes with (<c>Surfaces.Kind.Guards</c>):
+    /// one draw, always taken, and the guard clamped to the middle of its top when it comes and the surface is under its cap. The
+    /// pieces out when a world first runs this all draw on that tick. The watermark moves past them all.
+    /// </summary>
+    private void GuardNewPieces()
+    {
+        var pieces = _debris.Pieces;
+        int from = pieces.Count;
+        while (from > 0 && pieces[from - 1].Id > State.Watermark) from--;
+        for (int i = from; i < pieces.Count; i++)
+            foreach (var guard in Rules.Guards)
+                foreach (var (item, perMille) in guard.Kinds)
+                    if (item == pieces[i].Item && Random.Below(1000) < perMille && State.Creatures.Count < Spec.Max)
+                        ClingerBody.Mount(this, Add(Spec.Get(guard.Species), 0, 0), pieces[i], 0);
+        State.Watermark = pieces[^1].Id;
+    }
 }

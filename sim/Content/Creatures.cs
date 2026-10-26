@@ -183,6 +183,15 @@ public static class Creatures
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
 
     /// <summary>
+    /// A species that comes with debris pieces of some kinds as they drift in, clamped to one's top: each new piece of a kind draws
+    /// once, the species coming with it <paramref name="PerMille"/> times in a thousand. The species is a clinger.
+    /// </summary>
+    public sealed record OnDebris(string Species, IReadOnlyList<(string Item, int PerMille)> Kinds);
+
+    /// <summary>Sentries on about every other derelict out in the far field (0056): a sortie's prize is guarded.</summary>
+    public static readonly OnDebris Derelicts = new(Sentry.Id, [("engineBlock", 500), ("cargoHold", 500), ("podCluster", 500)]);
+
+    /// <summary>
     /// A tool striking this many ticks apart or more knocks a creature its species' whole knock and hop; a faster one its pace's
     /// share of them, rounded down, so a second of the drill's ten hits pushes about as far as the axe's two (the axe's pace).
     /// </summary>

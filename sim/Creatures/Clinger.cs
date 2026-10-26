@@ -28,8 +28,14 @@ internal sealed class ClingerBody : BodyRule
         var piece = WreckAt(m, cell)!;
         var (w, _) = Content.Wreckage.SizeOf(piece.Item)!.Value;
         int room = Math.Max(0, (w - spec.Body.Width) * Unit / 2);
+        Mount(m, c, piece, Math.Clamp(m.Middle(cell % m.GridWidth) - piece.X, -room, room));
+    }
+
+    /// <summary><paramref name="c"/> clamped to <paramref name="piece"/>'s top, <paramref name="along"/> from its middle: where it was let out, or the wreck it came with.</summary>
+    internal static void Mount(CreaturesModule m, Creature c, Piece piece, int along)
+    {
         c.Keep(Piece, piece.Id);
-        c.Keep(Along, Math.Clamp(m.Middle(cell % m.GridWidth) - piece.X, -room, room));
+        c.Keep(Along, along);
         c.Keep(Mounted, 1);
         // Blows on the wreck before it was there are none of its business.
         c.Keep(GuardDrive.Answered, m.Debris.Clock + 1);

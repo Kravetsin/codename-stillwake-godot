@@ -13,7 +13,7 @@
 | `Lunge.cs` | The lunge's rule: a ram along the ground in phases (0103). |
 | `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short. |
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
-| `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of every hero's view, where a habitat of the surface's type is. |
+| `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of every view, where a habitat is; guards on new derelicts. |
 | `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `CreaturesState`; the derived `Posture`. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling and leaping (0102, 0104, 0106); `Leaps`. |
 
@@ -69,7 +69,8 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - **`Release(Species, Cell)`**, dev (`--creatures`, `--sentry`): its body's `ReleaseProblem` and `Place`.
 - **`Threatens(peer)`**: a creature within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
 - **Kept or gone** (0102): in some hero's keep box it is seen; out of every one gone `Linger` after; out of every hard box at
-  once. **Spawning** (`Spawn.cs`): on the beat round heroes under `PerKeep`, the surface under `Max`.
+  once. **Spawning** (`Spawn.cs`): on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards**
+  (`Kind.Guards`): each piece past `Watermark` draws once, in id order: sentries on half the derelicts.
 
 ## Commands
 
@@ -82,7 +83,7 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
 - Every creature is on the grid, a walker out of everything solid; damage below hit points; ids only grow; never more than
   `Max`; a drive's or act's ticks never past its length; a charge hurts at most once; suits within range
   (`CreaturesInvariantTests`). A world saved and loaded every tick plays on as one never saved.
-- A surface with no habitats and no creatures leaves the slice and the Rng untouched.
+- No habitats, creatures or new guarded piece: nothing drawn; only `Watermark` moves.
 
 ## Deliberately not handled
 

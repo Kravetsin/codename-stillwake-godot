@@ -28,12 +28,16 @@ public class SentryTests
         var debris = (DebrisState)w.M.Debris.Slice;
         var piece = new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 80_000, Y = 40_000, Speed = speed, Start = 80_000, SeenAt = debris.Clock };
         debris.Pieces.Add(piece);
+        Guarded(w);
         w.Do(new Release(Sentry.Id, 38 * 160 + 80)).Run();
         Assert.Empty(w.Refusals);
         return (w, piece, w.M.Creatures.Creatures.Single());
     }
 
     private static Scenario HeroAt(Scenario w, int x, int y, int peer = 0) => w.Do(new Crew.Enter(y * 160 + x) { From = peer });
+
+    /// <summary>The pieces put out by hand have drawn whether a sentry comes with them, and none came: the tests let theirs out.</summary>
+    internal static void Guarded(Scenario w) => ((CreaturesState)w.M.Creatures.Slice).Watermark = ((DebrisState)w.M.Debris.Slice).NextId - 1;
 
     private static bool Alerted(Creature c) => CreaturesModule.Alerted(c);
 
@@ -427,6 +431,7 @@ public class SentryTests
         var w = new Scenario(Space, cells: true).Do(new Crew.Enter(40 * 160 + 4)).Run();
         var debris = (DebrisState)w.M.Debris.Slice;
         debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 80_000, Y = 40_000, Struck = new Blow { By = 0, At = 0 } });
+        Guarded(w);
         w.Run(50).Do(new Release(Sentry.Id, 38 * 160 + 80)).Run(5);
         Assert.Null(w.M.Creatures.Creatures.Single().Act);
     }
@@ -437,6 +442,7 @@ public class SentryTests
         var w = new Scenario(Space, cells: true).Do(new Crew.Enter(1 * 160 + 4)).Run();
         var debris = (DebrisState)w.M.Debris.Slice;
         debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 2_000, Y = 3_000 });
+        Guarded(w);
         w.Do(new Release(Sentry.Id, 1 * 160 + 1)).Run();
         var c = w.M.Creatures.Creatures.Single();
         Assert.Equal((Sentry.Body.Width * Unit / 2, Sentry.Body.Height * Unit), (c.X, c.Y));
@@ -480,6 +486,7 @@ public class SentryInvariantTests
                 int x = 6_000 + (int)rng.Below((Width - 12) * 1000), y = 6_000 + (int)rng.Below((Height - 12) * 1000);
                 debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = kinds[rng.Below(4)], X = x, Y = y, Speed = (int)rng.Below(150), Start = x });
             }
+            SentryTests.Guarded(w);
             foreach (var p in debris.Pieces.ToList()) w.Do(new Release(Sentry.Id, Debris.DebrisModule.CellOf(p.X, p.Y, Width)));
             w.Run();
             string? broken = null;
