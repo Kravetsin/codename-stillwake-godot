@@ -103,6 +103,15 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>The creatures' clock when <paramref name="c"/> last cut a harpoon line, plus one; 0 for never.</summary>
     public static int LastCut(Creature c) => c.Recall(CutTetherDrive.Cut);
 
+    /// <summary>
+    /// How many ticks till <paramref name="c"/> cuts the harpoon line on its wreck, and how many it takes in all; (0, 0) when it is
+    /// cutting none.
+    /// </summary>
+    public (int Left, int Of) CutLeft(Creature c) =>
+        CutTetherDrive.Cutting(c) && Spec.Get(c.Species).Brain.OfType<Spec.CutTether>().FirstOrDefault() is { } cut
+            ? (Math.Max(0, c.Recall(CutTetherDrive.CutsAt) - State.Clock), cut.Ticks)
+            : (0, 0);
+
     /// <summary>The piece <paramref name="c"/> clings to, by its id: what a clinger was let out on; null for any other.</summary>
     public int? ClingsTo(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Piece) is int piece and > 0 ? piece : null;
 
@@ -167,9 +176,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         c.Damage += damage;
         if (c.Damage >= spec.Life.Hp)
         {
-            c.Dead = true;
-            // From its top row, so what it gives falls to where it stood; anyone may sweep it up at once.
-            _items.DropAt(FloorStack.Nobody, Loots.Roll(spec.Yields, Random), TopCell(c, spec));
+            Kill(c, spec);
             return;
         }
         // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
@@ -181,6 +188,14 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible) c.Act = null;
         for (int i = 0; i < spec.Brain.Count; i++)
             if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) return;
+    }
+
+    /// <summary><paramref name="c"/> dies, giving what it gives: struck down, or gone with the wreck it clung to.</summary>
+    internal void Kill(Creature c, Spec.Species spec)
+    {
+        c.Dead = true;
+        // From its top row, so what it gives falls to where it stood; anyone may sweep it up at once.
+        _items.DropAt(FloorStack.Nobody, Loots.Roll(spec.Yields, Random), TopCell(c, spec));
     }
 
     private void Apply(HitBy c)

@@ -14,12 +14,13 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - двигатель / engine → machine `engine` (`Exhaust`, `Takes`: biofuel), its nozzle out through the stern's wall (`grid.noExhaust`); сопло / nozzle, топливный насос / fuel pump, запал / igniter → items `nozzle`, `fuelPump` (Former), `igniter` (circuit assembler) → Crafting
 - платформа / platform **≠** → `Structure.Floor`, `tool.floor`, build `"floor"` → Grid
 - открывающаяся (посадочная) платформа / launch platform **≠** → `Structure.PlatformClosed`, `Structure.PlatformOpen`, build `Builds.Platform` = `"launchPlatform"`, a run doorway (`StructureGroup.Platform`, `Join.Run`), command `SetPlatform`; f/power `PlatformLamps`; item `deckDrive` → Landing, Grid
-- капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `LandingModule.Seats`; art `machine_dropPod.png`, `dropPod_seated.png`; f/landing `PodSeats` → Landing
+- капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `LandingModule.Seats`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid
 - задняя стена / back wall → `Back.Wall`, layer `"back"`, `tool.backWall` → Grid
 - обшивка / hull **≠** → the ship's walls (`Structure.Wall`; "hull wall" in `tool.wallScrap.about`); item `hullPlate`, `hullSection` are salvage → Grid, Debris
 - слой / layer → `GridLayers` (`sim/Grid/ChangeLog.cs`), f/building `PlanKey`, `Placement` layer → Grid, Building
 - план / plan → `Plan`, `PlacePlan`, `CancelPlan`, `Work` (`sim/Building`); f/building `PlanHand`, `BuildMenu`; план мод / plan modes (Z X C) `PlanMode`, `PlanHand.Mode`; r/`PlanTiles`, `PlanOutline` → Building
+- мгновенная постройка / instant building (dev panel) → `SetInstant`, `BuildingModule.Instant`; f/dev-panel → Building
 - меню строительства / build menu → f/building `BuildMenu`, `Tools.Tabs`; cards and order from content: `MenuSlot` on machine, build and material rows, `MenuTabs` (c/`Menu.cs`, 0114) → Building
 - планшет / tablet → `game/shared/Tablet.cs`, `TabletLayout`, `TabletMotion` (build menu and Handbook) → UI
 - кисть / brush → `game/shared/logic/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
@@ -82,7 +83,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - растение / plant → `Plant` (sim/Building `Flora.cs`), `c/Flora.cs` → Building
 - существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
 - лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
-- сентри / sentry → `Creatures.Sentry` = `"sentry"`: a `Clinger` on a wreck, `Guard`, `Return`, `CutTether`, `Pounce`; dev `--sentry` → Creatures
+- сентри / sentry → `Creatures.Sentry` = `"sentry"`: a `Clinger` on a wreck, `Guard`, `Return`, `CutTether`, `Pounce`; dev `--sentry` (`=fight`: a line sawn, struck, its wreck broken; `=crawl`) → Creatures
+- клещ / tick → the sentry's look (its pick page's «Клещ»): `CreatureLooks.Ticks`, f/creatures `TickBodies`, `TickArt`, `TickMotion`; sounds `Sound.Ticks`
 - вид / species → `Content.Creatures.Species`, composed of a body (`Shape`: `Walker`), `Life`, a faction, a brain and moves → Creatures
 - побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures
 - действие / act **≠** → `Act` (`Move`, `Phase`, `Left`), a move's rule a `MoveRule` (`Lunge`, the ram) → Creatures

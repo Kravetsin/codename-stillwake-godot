@@ -390,4 +390,21 @@ public class PoseTests
             }
         }
     }
+
+    [Fact]
+    public void StrappedInSitsUprightTheThighsLevelAndTheShinsDownHoldingNothing()
+    {
+        Assert.False(HoldsIn(Pose.Strapped));
+        for (double ms = 0; ms < Seated.BreathMs; ms += 500)
+        {
+            var sat = LimbsOf(Pose.Strapped, Standing, At(0, ms));
+            Assert.Equal(-Rig.Hip, sat.Lift);
+            Assert.InRange(sat.Tilt, -0.05, 0.05);
+            foreach (var leg in new[] { sat.FrontLeg, sat.BackLeg })
+            {
+                Assert.InRange(leg.Upper - sat.Tilt, Math.PI / 2 - 0.05, Math.PI / 2 + 0.05);
+                Assert.InRange(leg.Upper + leg.Lower - sat.Tilt, -0.05, 0.05);
+            }
+        }
+    }
 }

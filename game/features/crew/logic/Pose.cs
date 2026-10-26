@@ -5,7 +5,7 @@ using Rung = Stillwake.Game.HeroMotion.Ladder;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>What a hero's figure is doing, read from its movement: never decided anywhere else.</summary>
-public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit }
+public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit, Strapped }
 
 /// <summary>
 /// Each limb's bend (<see cref="Rig"/>), and how the whole body is placed: <see cref="Tilt"/> radians
@@ -162,7 +162,7 @@ public static class Poses
     }
 
     /// <summary>Whether the hands can hold the plan or a tool in <paramref name="pose"/>: on a ladder too (0077: dig while climbing), not passed out nor sitting.</summary>
-    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble or Pose.Sit);
+    public static bool HoldsIn(Pose pose) => pose is not (Pose.Lie or Pose.Tumble or Pose.Sit or Pose.Strapped);
 
     /// <summary>The sheet's turn, clockwise, for the head's turn <paramref name="look"/>.</summary>
     public static double SheetTurn(double look) => -Sheet.Ahead + look * Sheet.PerLook;
@@ -308,6 +308,8 @@ public static class Poses
                 return Collapse(moment.OutMs ?? 1e9, moment.Slump);
             case Pose.Sit:
                 return Sitting(moment.TimeMs);
+            case Pose.Strapped:
+                return Strapped(moment.TimeMs);
             default:
                 return Limp(moment);
         }
@@ -467,6 +469,22 @@ public static class Poses
             BackArm: B(0.2 + 0.02 * breath, 0.5),
             FrontLeg: leg,
             BackLeg: leg with { Lower = leg.Lower + 0.04 },
+            Tilt: tilt, Lift: -Rig.Hip, Lying: false);
+    }
+
+    /// <summary>
+    /// Strapped into a drop pod's seat (landing): sitting upright, the hips where the feet would stand, the thighs level ahead,
+    /// the shins straight down and the hands on the knees; only a slow breath stirs the shoulders.
+    /// </summary>
+    private static Limbs Strapped(double timeMs)
+    {
+        double tilt = 0.02 * Math.Sin(timeMs / Seated.BreathMs * 2 * Math.PI);
+        var leg = B(Math.PI / 2 + tilt, -Math.PI / 2);
+        return new Limbs(
+            FrontArm: B(0.5 + tilt, 0.9),
+            BackArm: B(0.4 + tilt, 0.95),
+            FrontLeg: leg,
+            BackLeg: leg,
             Tilt: tilt, Lift: -Rig.Hip, Lying: false);
     }
 

@@ -36,6 +36,9 @@ public static class Surfaces
         /// <summary>Whether debris drifts by in the zones of <see cref="Debris.Zones"/>: none on a planet.</summary>
         public bool Debris { get; init; } = true;
 
+        /// <summary>The creatures that come with its debris, clamped on (<see cref="Creatures.OnDebris"/>).</summary>
+        public IReadOnlyList<Creatures.OnDebris> Guards { get; init; } = [];
+
         /// <summary>
         /// Whether its tools break what stands on its grid, and nothing on it is taken apart by a mark (a planet: the fan of rays);
         /// else the plan alone takes things apart and its tools break nothing of its grid (the ship).
@@ -58,8 +61,8 @@ public static class Surfaces
         public bool Allows(string kind) => Builds == null || Builds.Contains(kind, StringComparer.Ordinal);
     }
 
-    /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was.</summary>
-    public static readonly Kind Ship = new("ship", []);
+    /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was, and sentries on the derelicts.</summary>
+    public static readonly Kind Ship = new("ship", []) { Guards = [Creatures.Derelicts] };
 
     /// <summary>
     /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip, a character a 16 px cell and doubled as it opens (0104): under

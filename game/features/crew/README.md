@@ -19,8 +19,9 @@ commands reach the sim. Other heroes come through the host.
 | `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) |
 | `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
-| `logic/Prompt.cs` | `Prompts.Of`: what E does at the aim, or why not |
+| `logic/Prompt.cs` | what E does at the aim, or why not |
 | `logic/Seating.cs` | where a hero in a drop pod is held |
+| `SeatedHeroes.cs` | its figure behind the porthole |
 | `UsePrompt.cs` | the prompt at the bottom middle |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
 | `logic/DrillPace.cs` | when the drill hits: on its start tick, then every `Pace` ticks (0054) |
@@ -38,7 +39,7 @@ commands reach the sim. Other heroes come through the host.
 | `AimOutline.cs` | what the aim outline traces |
 | `FaceRim.cs` | a tool's aim glow |
 | `logic/AimGlow.cs` | its light, from rays |
-| `HeroAutopilot.cs` | scripted runs and their maps (0089, 0090, 0092) |
+| `HeroAutopilot.cs` | scripted runs (0089, 0090, 0092) |
 | `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
 | `logic/Danger.cs` | what the suit gauge reads |
@@ -62,7 +63,7 @@ commands reach the sim. Other heroes come through the host.
   (`Net.Clock`) at any frame rate and is drawn between its last two steps. Floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor (FsCheck). A door shut on the hero pushes it `Hero.PushStep` a step to the
-  nearest fit, carrying no speed (0089, `ShutOutTests`).
+  nearest fit, carrying no speed (0089).
 - Doors are walked as this peer shows them, own toggles in flight made (0014). A press asks for the other state
   (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
 - **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a hole a step
@@ -70,8 +71,8 @@ commands reach the sim. Other heroes come through the host.
   ladder under the feet holds; jump wins over down. No crouch.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
 - **Jump and walk feel** (0089): coyote time and jump buffer; the rise cut when Space is let go; eased apex; speed
-  eased toward the keys, `AirControl` of it in the air (`HeroFeelTests`).
-- **The figure answers its motion** (0090), read from sent `X`, `Y`, `Vx`, `Vy`, so friends move alike. It sits (`Pose.Sit`) on the title only.
+  eased toward the keys, `AirControl` of it in the air.
+- **The figure answers its motion** (0090), read from sent `X`, `Y`, `Vx`, `Vy`, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`.

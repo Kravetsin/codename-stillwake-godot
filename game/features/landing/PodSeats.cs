@@ -8,10 +8,10 @@ using Stillwake.Sim.Landing;
 namespace Stillwake.Game.Features.Landing;
 
 /// <summary>
-/// Each drop pod with a hero in it, without a word: the hero behind its porthole from the chest up and the lamps round its skirt
-/// lit (<c>dropPod_seated.png</c> over <c>machine_dropPod.png</c>); the hero's own body is hidden while it sits. The seats are
+/// Each drop pod with a hero in it, without a word: the lamps round its skirt lit and the glint on its glass over the hero
+/// strapped in behind it (<c>dropPod_lit.png</c> over the crew's seated figure, over <c>machine_dropPod.png</c>). The seats are
 /// compared every frame, a handful at most, and the pictures laid again only when they change: the frame a hero leaves, its
-/// body shows and the porthole empties together.
+/// lamps go out.
 /// </summary>
 public partial class PodSeats : Node2D
 {
@@ -38,7 +38,7 @@ public partial class PodSeats : Node2D
             seated.Add(seat.Pod);
             if (!_shown.TryGetValue(seat.Pod, out var sprite))
             {
-                sprite = new Sprite2D { Texture = PixelArt.Lit("dropPod_seated"), Centered = false };
+                sprite = new Sprite2D { Texture = PixelArt.Lit("dropPod_lit"), Centered = false };
                 Lit.Set(sprite);
                 AddChild(sprite);
                 _shown[seat.Pod] = sprite;

@@ -399,6 +399,37 @@ public static class Sound
             LandHard with { VolumeDb = -4, Tune = 1.5f, Heard = BreakReach }),
     };
 
+    /// <summary>
+    /// A tick's sounds (the sentry, its audition page's picks): its alert's chirp, its wind-up's servo, the click as it lets go,
+    /// the clunk as it clamps on, a harpoon line it cuts snapping, its burner (the jetpack's loop, while it flies), a blow on it
+    /// (a wreck's chop, as metal), its death (a power-down over a heavy clatter). All on the Suit bus, the hero's, as a wreck's are:
+    /// it lives out in space, where the World bus is silent.
+    /// </summary>
+    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Unclamp, Cue Clamp, Cue Snap, Cue Thrust, Cue Hit, Cue Death);
+
+    /// <summary>Each species drawn as a tick (<c>CreatureLooks.Ticks</c>): its cues, levelled alike on the audition page.</summary>
+    public static readonly IReadOnlyDictionary<string, TickCues> Ticks = new Dictionary<string, TickCues>
+    {
+        [Stillwake.Content.Creatures.Sentry.Id] = new(
+            Alert: new(Shots("creatures/sentry-alert", 1), -1.5f, Heard: ToolReach),
+            WindUp: new(Shots("creatures/sentry-windup", 1), -1.5f, Heard: ToolReach),
+            Unclamp: new(Shots("creatures/sentry-unclamp", 1), -1.5f, Heard: ToolReach),
+            Clamp: new(Shots("creatures/sentry-clamp", 1), -1.5f, Heard: ToolReach),
+            Snap: new(Shots("creatures/sentry-snap", 1), -1.5f, Heard: ToolReach),
+            Thrust: Thrust with { VolumeDb = -2, Heard = ToolReach },
+            Hit: Chop,
+            Death: new(Shots("creatures/sentry-death", 1), -1.5f, Heard: BreakReach)),
+    };
+
+    /// <summary>
+    /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch.
+    /// This player's own on Suit, a friend's on World.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>
+    {
+        [Stillwake.Content.Creatures.Sentry.Id] = new(Shots("creatures/sentry-punch", 1), -1.5f, Heard: ToolReach),
+    };
+
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
     public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack"];
 
@@ -457,7 +488,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, CaveDrip];
+        LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

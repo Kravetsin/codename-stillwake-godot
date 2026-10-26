@@ -30,7 +30,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
 - Players — sim/Players: `Players.cs` PlayersModule (what is the player's, not a surface's)
 
-**Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Pounce.cs`, `Spawn.cs`; `CreaturesView.cs`, `BoxBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; c/`Creatures.cs`; gc/`CreatureLooks.cs`
+**Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Pounce.cs`, `Spawn.cs`; `CreaturesView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; c/`Creatures.cs`; gc/`CreatureLooks.cs`
 
 **Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
 
@@ -39,7 +39,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 **Debris and wrecks**
 - Debris — sim/Debris · f/debris: `Debris.cs` DebrisModule, `Hit`; `Drift.cs` (zones, spawns); `DebrisView.cs`, `BreakView.cs`, `Finds.cs`; c/`Debris.cs`, `Wreck.cs`, `Wreckage.cs`
 - Hazards — sim/Hazards: `Hazards.cs` HazardsModule, `MeteorHit`
-- Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats); client game/features/landing: `PodSeats.cs`
+- Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats); client game/features/landing: `PodSeats.cs`; the seated hero: f/crew `SeatedHeroes.cs`
 
 **Light** — f/light: `LightView.cs`, `Lightmap.cs`, `Sources.cs`, `StarField.cs`; f/effects: `EffectsView.cs`, `Impacts.cs`; r/`Lit.cs`, `Luminous.cs`, `Flares.cs`; gc/`Light.cs`, `Fx.cs`
 

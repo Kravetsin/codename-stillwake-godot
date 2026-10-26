@@ -226,6 +226,10 @@ hangs after its `Ticks`, the body stays on the grid, the fuzz lets sentries out 
 - The robot's art from a pick page (the user chooses), crawling along the outline, the wind-up's flicker and whine,
   the unclamp's clack, the thruster trail and puffs, sparks and clang on hits, the snap of a cut cable; sounds from an
   audition page (the user chooses).
+- Built (spawning): `Surfaces.Ship` guards engine blocks and cargo holds, 500‰ each, on a flat stretch of the picture's top
+  (`Wreckage.Perches`, measured from the art by `PerchesTests`): pod clusters and one engine look have none, so no sentry
+  (the user's word: it looked like it had nowhere to stand). Watching, it crawls along its perch. An hour hovering far out
+  meets some 220 derelicts with a perch, 45% guarded (`SentryGuardTests`). The look: the user picked «Клещ», the tick.
 - **Done when** a play pass at the far field meets a sentry on about every other derelict, and the user has picked
   its look and sounds.
 

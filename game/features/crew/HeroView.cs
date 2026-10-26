@@ -194,8 +194,8 @@ public partial class HeroView : Node2D
     private readonly Rams.Guard _ramGuard = new();
     private int _reel;
     private HashSet<int> _charging = [], _chargingNow = [];
-    private readonly AudioStreamPlayer _thud = Cues.Player(S.RamThud, S.Suit);
-    private readonly Heard2D _othersThud = Cues.Player2D(S.RamThud, S.World, voices: 2);
+    // A ram heard by what rams (S.RamHits): this player's own through the suit, a friend's where it is.
+    private readonly Voices _thud = new(S.Suit, voices: 2, placed: false), _othersThud = new(S.World, voices: 2);
 
     /// <param name="ui">What the hand holds, the crate open and the piece aimed at, shared with the other features.</param>
     /// <param name="mouse">The pointer and the left button as the world reads them.</param>
@@ -337,7 +337,7 @@ public partial class HeroView : Node2D
         var ship = _ship = Ship.Of(grid, m.Rooms, cell => shown.StructureAt(grid, cell), m.Rules);
         var known = m.Crew.HeroOf(client.Id);
         bool passedOut = (known?.Out ?? 0) > 0;
-        // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (landing).
+        // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
@@ -488,19 +488,19 @@ public partial class HeroView : Node2D
         _figure.Flinch(-away);
         var (x, y) = Chest(_current);
         _air.Leak(new Vector2(x, y), -away);
-        _thud.Play();
+        _thud.Play(S.RamHits.GetValueOrDefault(c.Species, S.RamThud), default);
     }
 
     /// <summary>
     /// Whether a creature whose charge ended since last frame touched <paramref name="hero"/>, a friend drawn here (0103): the side
-    /// it came from, +1 right, the way it recoils, for the friend to flinch from; none for none. Its peer sent the hit; this one
+    /// it came from, +1 right, the way it recoils, for the friend to flinch from, and what rammed; none for none. Its peer sent the hit; this one
     /// only shows it.
     /// </summary>
-    private int? RamEndedBy(Registry m, Hero hero)
+    private (int From, string Species)? RamEndedBy(Registry m, Hero hero)
     {
         foreach (var c in m.Creatures.Creatures)
             if (_charging.Contains(c.Id) && c.Posture != Stillwake.Sim.Creatures.Posture.Charge && Rams.Touches(c, hero, Rams.FriendMargin))
-                return c.VX >= 0 ? 1 : -1;
+                return (c.VX >= 0 ? 1 : -1, c.Species);
         return null;
     }
 

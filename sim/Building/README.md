@@ -20,7 +20,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   `Crafting` (`Queue`: a station with crafts queued stands, 0057). The client reads `Registry.Building`.
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
-  `Felled`, cells of growths felled since the ground grew, ascending; `Clock`. Derived (`Flora.cs`): the growths grown
+  `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`. Derived (`Flora.cs`): the growths grown
   and standing, by cell; the resonators standing.
 
 ## Rules
@@ -43,9 +43,10 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   down. The tick that starts an unpaid part takes from the sender the first item in cost order still lacking that they
   carry, else is refused `items.notEnough`, what was put in staying. Within a paid part anyone works, carrying nothing.
   Creative mode lacks nothing and takes nothing.
+- **Instant** (`SetInstant`, dev panel): a blueprint is built as placed, free, no plan; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing (no ADR).
-- **A wall does not finish on a hero** (0077): the `Work` that would complete a wall is refused `building.heroInside`
+- **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building keeps its run order before crew.
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (any material but bedrock and
@@ -70,8 +71,8 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
 (`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`),
-`Hew(Tool, X, Y, Heading)`. Previews ask `Problem`, `WorkProblem`, `HewProblem`, `Struck`. `Deconstruct` is not a positional record:
-that would generate a `Deconstruct` method, which the type's name forbids. Fuzz aims `Work` and hits so plans complete.
+`Hew(Tool, X, Y, Heading)`, `SetInstant(On)`. Previews ask `Problem`, `WorkProblem`, `HewProblem`, `Struck`.
+Fuzz aims `Work` and hits so plans complete.
 
 ## Invariants
 
