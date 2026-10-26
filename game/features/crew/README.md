@@ -8,11 +8,11 @@ commands reach the sim. Other heroes come through the host.
 
 | File | Holds |
 | --- | --- |
-| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`; a `Step` at 60/s; steps (0106); flight (0047) |
+| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`, a `Step` at 60/s (0047, 0106) |
 | `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) |
 | `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
-| `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan; the blade on creatures |
+| `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan |
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
@@ -20,19 +20,21 @@ commands reach the sim. Other heroes come through the host.
 | `logic/TwoHand.cs` | the two-handed hold, as a rifle (0078) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
-| `logic/Seating.cs` | where a hero in a drop pod is held |
-| `logic/FogMove.cs` | the move across a planet's fog (fog-edges) |
-| `SeatedHeroes.cs` | its figure behind the porthole |
+| `logic/Seating.cs` | a hero in a drop pod |
+| `logic/FogMove.cs` | across a planet's fog (fog-edges) |
+| `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | the prompt at the bottom middle |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
-| `logic/Remote.cs` | `Seen`, `SentHero`, `RemoteHeroes`, `HeroSender` |
+| `logic/Remote.cs` | what is sent of heroes, and kept |
 | `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) |
-| `logic/Suits.cs` | suit colours and shades |
+| `logic/Suits.cs` | suit colours |
 | `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim |
+| `HeroView.Guns.cs` | its gun fired, its own shots flown and drawn |
+| `logic/GunHand.cs` | a gun's cooldown, dry click, own shots (shots-are-the-sims) |
 | `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers |
 | `logic/CameraFollow.cs` | where the camera looks |
 | `JetPlume.cs` | a jetpack's plume (0075) |
@@ -40,17 +42,17 @@ commands reach the sim. Other heroes come through the host.
 | `AimOutline.cs` | what the aim outline traces |
 | `FaceRim.cs` | a tool's aim glow |
 | `logic/AimGlow.cs` | its light, from rays |
-| `HeroAutopilot.cs` | scripted runs (0089, 0090, 0092) |
-| `logic/Report.cs` | the `Enter` report (0050); exert, thrust, refill; `Cold` |
+| `HeroAutopilot.cs` | scripted runs |
+| `logic/Report.cs` | the `Enter` report (0050), exert, thrust, refill, cold |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
 | `logic/Danger.cs` | what the suit gauge reads |
-| `logic/AirCues.cs` | the moments air comes back (0081) |
-| `logic/CanistersSeen.cs` | a friend's canister (0081) |
-| `AirSwirl.cs` | a canister's vortex, a breath, a ram's leak (0081, 0103) |
+| `logic/AirCues.cs` | when air comes back (0081) |
+| `logic/CanistersSeen.cs` | a friend's canister |
+| `AirSwirl.cs` | a vortex, a breath, a ram's leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
-| `SuitColours.cs` | the suit colour row in the game menu |
+| `SuitColours.cs` | the menu's suit colours |
 | `logic/Markers.cs` | the markers' list and geometry |
-| `MarkerLayer.cs` | edge arrows home, to bodies, friends |
+| `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) |
 | `BodyView.cs` | each body drawn, its beacon (0061) |
 | `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
@@ -71,14 +73,14 @@ commands reach the sim. Other heroes come through the host.
   deep is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down. No crouch.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
-- **Jump and walk feel** (0089): coyote time and jump buffer; the rise cut when Space is let go; eased apex; speed
+- **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
 - **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
 - **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
   `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
-- **Camera** (`Content/logic/Camera.cs`): leads the way the hero last moved, never its facing; eases height; snaps
+- **Camera** (`Camera.cs`): leads the way last moved, never the facing; eases height; snaps
   on a new place; on whole pixels.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
   `Thrust` is sent while own thrust differs from the sim's. The plume shows at once (0014).
@@ -87,7 +89,7 @@ commands reach the sim. Other heroes come through the host.
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
-- **Markers** (bodies 0061): home, own newest body and friends heard, at the screen's edge, clear of the HUD.
+- **Markers** (0061): home, own newest body, friends heard, at the screen's edge.
 
 ## Others' heroes
 
@@ -102,14 +104,15 @@ commands reach the sim. Other heroes come through the host.
 - **What the hand holds shows** (`HeldLook`); working a plan, the screwdriver twists.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
   wiring, lays cables; a tool on the right does nothing.
-- **One aim** (`Aiming.AimAt`): a plan, a machine, tank, door or valve (E), a wreck under the pointer, else the nearest
-  small piece in space. Outlined green or red; `UsePrompt` says why. With a plan in hand
-  (`Ui.Hand`, 0022) the hero holds the sheet and E does nothing.
+- **One aim** (`Aiming.AimAt`): a plan, machine, tank, door or valve (E), a wreck under the pointer, else the nearest
+  small piece in space. Outlined green or red; `UsePrompt` says why. A plan in hand
+  (0022) holds the sheet and E does nothing.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
   strikes something; heard at the cell nearest the pointer.
-- **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through once begun.
+- **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.
   E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
+- **A gun** (shots-are-the-sims): a click sends `Fire` from the muzzle drawn; its shot flown here (`StepOf`).
 - **The drill** (0054, 0055, 0078): held as a rifle; left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
@@ -119,4 +122,4 @@ commands reach the sim. Other heroes come through the host.
 
 - Friends are pointed at only while heard; markers one way overlap; friends have no names.
 - A body of a peer who left is drawn in the first suit colour; a body's look is the hero's sprites.
-- Others' swings are not held on contact: a peer is not told which bit.
+- Others' swings are not held on contact. A friend's gun hangs, its aim unsent.

@@ -29,6 +29,7 @@ public partial class HeroView
     {
         bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
+        var shooter = GunInHand(handFree);
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
@@ -108,7 +109,10 @@ public partial class HeroView
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
-        _aimsGun = wieldsGun && pointer != null;
+        // A gun of the sim's shots, aimed at the pointer anywhere; its shot fires from the muzzle as last drawn.
+        bool wieldsShooter = acts && shooter != null && Poses.HoldsIn(pose);
+        _aimsGun = (wieldsGun || wieldsShooter) && pointer != null;
+        Shoot(client, m, shooter, wieldsShooter, clicked && !grabbed, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
             (middle.X, middle.Y), _letsGo);
@@ -137,7 +141,7 @@ public partial class HeroView
         // Pulled, the gun points along the line at the hook; hanging, at the pointer again, as a wall it hangs flush on would swallow it.
         _figure.Aim = _harpoon.Rod == Rod.Pulling && wieldsGun ? Pixels(_harpoon.Tip)
             : (_aimsGun || _aimsDrill) && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
-        _figure.Loaded = _harpoon.Ready;
+        _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)

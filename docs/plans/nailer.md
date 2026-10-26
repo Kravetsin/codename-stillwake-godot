@@ -123,7 +123,14 @@ The nailer and nails have placeholder icons. ADR: `2026-10-26-shots-are-the-sims
     a solid cell it crossed (proven to bite once). `Creatures/Fuzz.cs` draws `Fire`.
   - Creatures', Debris' and Building's READMEs say what changed; the map gains Building's interface.
 
-### N-2 — The nailer in hand
+### N-2 — The nailer in hand ✅
+
+**Built, but** in N-1's PR (the user's word): `GunHand` (crew logic) keeps the cooldown and flies this player's shots by
+`CreaturesModule.StepOf`, drawn by `HeroView.Guns.cs`; `ShotsView` (a `SurfaceViews` line, the context now giving the peer and
+the tick) draws the sim's others; the streak, `ShotLooks` in `Content/logic`, and the end shown as what it met, `ShotEnds`
+(game/shared). Sounds are placeholders: the harpoon's shot pitched up, the UI click pitched down. A friend's nailer hangs,
+its aim unsent; the frame from two windows was not taken. `-- --strip --nailer` (`NailerDemo`) fires up at 45°, at a loper,
+level.
 
 - **The shot:** held, a click fires when the gun is ready (`Gun.Pace`, kept on the hero as the harpoon's cooldown, so a
   slot swap does not dodge it): the client sends `Fire` with the muzzle and heading as integers, and at once flies its

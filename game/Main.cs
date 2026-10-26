@@ -299,7 +299,8 @@ public partial class Main : Node2D, ITogether
         _faded.Clear();
         _light?.QueueFree();
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
-            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null });
+            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
+            Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;

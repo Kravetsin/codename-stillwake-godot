@@ -5,16 +5,17 @@
 | File | Purpose |
 | --- | --- |
 | `CreatureBody.cs` | One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's … |
-| `logic/CreatureGait.cs` | How fast a creature's legs go (0102): plain C#, tested. |
+| `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
 | `CreatureParts.cs` | The creatures' parts as pictures (0102): each index map of `art/creatures` recoloured once, at first use, by a palette … |
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
-| `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102), drawn only: plain C#, tested. |
+| `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
 | `logic/Creatures.En.cs` | Its player text (`En`) |
-| `TickBodies.cs` | The creatures drawn as the tick (the sentry): sprite, lamp, arcs, burner, sparks, death, sounds. |
+| `TickBodies.cs` | The tick (the sentry): sprite, lamp, arcs, burner, sparks, death, sounds. |
+| `ShotsView.cs` | Every peer's shots but this player's own, drawn a tick behind; heard fired; their ends. |
 | `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |
-| `logic/TickMotion.cs` | How a tick moves and what moments it has, read off the sim: plain C#, tested. |
+| `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Creatures`)
 spawns, moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the

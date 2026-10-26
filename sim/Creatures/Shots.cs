@@ -77,7 +77,7 @@ public sealed partial class CreaturesModule
     private bool Step(Shot s)
     {
         var p = Content.Shots.Get(s.Projectile);
-        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Stops(cell, p));
+        var (next, met, last) = StepOf(s.Motion, p, _wrecks);
         if (met >= 0)
         {
             HitAt(s, p, met);
@@ -94,7 +94,19 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>Whether a shot of <paramref name="p"/> stops in <paramref name="cell"/>: solid as for a body, or holding a creature or a wreck it may hit.</summary>
-    private bool Stops(int cell, Content.Projectile p) => Solid(cell) || p.HitsBodies && (CreatureIn(cell) != null || WreckIn(cell) != null);
+    private bool Stops(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks) =>
+        Solid(cell) || p.HitsBodies && (CreatureIn(cell) != null || WreckIn(cell, wrecks) != null);
+
+    /// <summary>A tick of a shot of <paramref name="p"/> flying as <paramref name="f"/> (<see cref="ShotFlight.Step"/>), meeting what <paramref name="wrecks"/> holds.</summary>
+    private (ShotMotion Next, int Met, int Last) StepOf(ShotMotion f, Content.Projectile p, IReadOnlyList<WreckBox> wrecks) =>
+        ShotFlight.Step(f, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Stops(cell, p, wrecks));
+
+    /// <summary>
+    /// A tick of a shot of <paramref name="p"/> flying as <paramref name="f"/>, on this world as it stands: the step the sim flies it by,
+    /// for the shooter's client to fly its own shot ahead of the sim's (shots-are-the-sims).
+    /// </summary>
+    public (ShotMotion Next, int Met, int Last) StepOf(ShotMotion f, Content.Projectile p) =>
+        StepOf(f, p, p.HitsBodies && _debris.Pieces.Count > 0 ? _debris.Wrecks() : []);
 
     /// <summary>
     /// <paramref name="s"/>'s hit in <paramref name="cell"/>, the first it meets there: what is solid takes its block damage, where tools
@@ -115,16 +127,16 @@ public sealed partial class CreaturesModule
             Hurt(creature, Spec.Get(creature.Species), p.Damage, new Hit(peer, away, Math.Min(Spec.KnockPace, p.Pace), _debris.Clock));
             return;
         }
-        if (WreckIn(cell) is { } wreck) _debrisOps.Hit(peer, wreck.Piece, p.Damage);
+        if (WreckIn(cell, _wrecks) is { } wreck) _debrisOps.Hit(peer, wreck.Piece, p.Damage);
     }
 
     /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>
     private IReadOnlyList<WreckBox> _wrecks = [];
 
-    /// <summary>The first wreck, in spawn order, whose box covers part of <paramref name="cell"/>; null for none.</summary>
-    private WreckBox? WreckIn(int cell)
+    /// <summary>The first wreck of <paramref name="wrecks"/>, in spawn order, still out, whose box covers part of <paramref name="cell"/>; null for none.</summary>
+    private WreckBox? WreckIn(int cell, IReadOnlyList<WreckBox> wrecks)
     {
-        foreach (var w in _wrecks)
+        foreach (var w in wrecks)
             if (w.Covers(cell, _grid.Width) && _debris.PieceById(w.Piece) != null) return w;
         return null;
     }

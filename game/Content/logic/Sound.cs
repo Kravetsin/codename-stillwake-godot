@@ -448,6 +448,14 @@ public static class Sound
     public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
 
     /// <summary>
+    /// The nailer (shots-are-the-sims), placeholders till its own sounds: a nail fired, the harpoon's shot pitched up, short and
+    /// pneumatic, heard where it is as a friend's too (<see cref="NailShot"/>); a click with no nails, the hand's alone
+    /// (<see cref="DryClick"/>). A nail's hit sounds as what it hits: the ground's, a wreck's chop, a creature's own.
+    /// </summary>
+    public static readonly Cue NailShot = Shot with { VolumeDb = -9, Tune = 1.7f };
+    public static readonly Cue DryClick = Click with { VolumeDb = -10, Tune = 0.6f };
+
+    /// <summary>
     /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
     /// band climbing as it fills. This player's own on the Helmet bus, in the helmet's air, so floating out in space never
     /// muffles it away (on Suit its band was all but cut there); a friend's on World where its hero is, a tool's reach.
@@ -485,7 +493,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values];

@@ -1,6 +1,6 @@
 # Shots are the sim's
 
-- Status: accepted; the nail built (N-1 of `docs/plans/nailer.md`); the nailer in hand and the sentry's bolt to come
+- Status: accepted; the nail built and the nailer in hand (N-1, N-2 of `docs/plans/nailer.md`); the sentry's bolt to come
 - Date: 2026-10-26
 
 ## Context
