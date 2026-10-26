@@ -46,9 +46,10 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
   act's clock (a lunge's wind-up once grounded), or a drive above the one in charge that `Wants` it takes over, or the drive
   in charge `Run`s (false yields; an act it begins counts from the next tick) and its clock counts down, at none its `Next`
   running or yielding to the first that wants it. Then its body steers and moves. Then, on the beat, spawns.
-- **The walker** (0102, 0104, 0106): integer, under the surface's gravity; solid is a wall, floor, closed door and the grid's
-  edge. It steps `StepUp` up and down, in parts under a cell. Its gait still, walking or running; at a wall it cannot step or a
-  drop of `Drop` rows it tries a leap flown through the grid (`Lands`), else its drive may act (`Blocked`), else it turns.
+- **The walker** (0102, 0104, 0106): integer, under the surface's gravity; solid is a wall, floor, closed door, the grid's
+  edge and on a planet the fog past its zone. It steps `StepUp` up and down, in parts under a cell. Its gait still, walking
+  or running; at a wall it cannot step or a drop of `Drop` rows it tries a leap flown through the grid (`Lands`), else its
+  drive may act (`Blocked`), else it turns.
 - **The clinger:** clamped to the top of the wreck it was let out on (`Wreckage.SizeOf`), `along` from its middle, riding
   its drift; off it, it flies its speed straight, through walls, kept on the grid. Its wreck gone, it holds the last point.
 - **Grazers:** `Graze` idles and wanders by turns, lengths drawn. `Flee` runs its ticks; cornered with a hero near it may
@@ -64,7 +65,7 @@ the sentry clings to wrecks in space, aboard's surface: creatures run wherever o
   (`CutLeft`), stamping it (`LastCut`). Its wreck gone, it dies. It stays on the grid. Queries: `Alerted`, `Clamped`.
 - **The hit path** (`Strike`): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked by a `Life.Knock`
   and `Hop` above none, its act cut if interruptible, its drives told in brain order, the first claim winning.
-- **The dead** are gone to every command and cap from the blow; the list holds them till the sweep, first thing.
+- **The dead** are gone to every command and cap from the blow; the list holds them till the sweep.
 - **`HitBy(Creature)`** (0103), as the hit hero's client saw it: its suit pays the move's `Damage`; the act ends.
 - **`Release(Species, Cell)`**, dev (`--creatures`, `--sentry`): its body's `ReleaseProblem` and `Place`.
 - **`Threatens(peer)`**: a creature within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
