@@ -38,6 +38,8 @@ const FIXED = {
   v: '#1d2836/80', V: '#8fb6d6/210', y: '#cfe6f5/235',
   // the cape's wool: light, own, shade, outline
   p: '#c49a68', q: '#9a7148', r: '#6e4f33', t: '#3b2a1b',
+  // the cape's lining
+  a: '#6f9e98', b: '#4f7a75', c: '#375752', f: '#1f3330',
 };
 
 // The head's slot shares the helmet's template: 13x12, turning at the neck, (6.5, 12), its bottom middle. Every
@@ -266,31 +268,23 @@ const jumpsuit = {
   ],
 };
 
-// The cape (a prototype, Cape.cs): pieces top to hem, each 9x9 hanging from past its top right pixel (9, 1), the inside of
-// the cloth against the back on the right, widening toward the hem; a fold down every other piece, the hem in shade.
-const CAPE_W = 9, CAPE_H = 9, CAPE_WIDTHS = [5, 6, 6, 7, 8];
-const cape = CAPE_WIDTHS.slice(0, -1).map((w0, j) => Array.from({ length: CAPE_H }, (_, r) => {
-  const w = Math.round(w0 + ((CAPE_WIDTHS[j + 1] - w0) * r) / (CAPE_H - 1)), left = CAPE_W - w, last = j === CAPE_WIDTHS.length - 2;
-  if (last && r === CAPE_H - 1) return '.'.repeat(left) + 't'.repeat(w);
-  return [...Array(CAPE_W)].map((_, x) => {
-    if (x < left) return '.';
-    if (x === left) return 't';
-    if (x === CAPE_W - 1) return 'r';
-    if (last && r === CAPE_H - 2) return 'r';
-    if (x === left + 1) return j < 2 ? 'p' : 'q';
-    if (j % 2 === 1 && x === left + 2 && w >= 5) return 'r';
-    return 'q';
-  }).join('');
-}));
-// The mantle over the shoulders and the air pack, 15x7 from (-10, -Neck) of the figure, a clasp at the throat.
-const mantle = [
-  '...tttttttttt..',
-  '..tpppppppppHt.',
-  '.tpqqqqqqqqqqqt',
-  'tqqqqqqqqqqqqrt',
-  'trqqqqqqqqqqrrt',
-  '.trrqqqqqqqrrt.',
-  '..ttttttttttt..',
-];
+// The cape (a prototype, Cape.cs): its outside and its lining, laid over its grid of cloth, 14x30, across from its
+// front edge at the neck (column 0) to its back edge, down from the shoulders to the hem. The outside shows a strip of
+// lining down its front edge, where it opens; folds run down from a third of the way, longer toward the back.
+const CAPE_W = 14, CAPE_H = 30;
+function capeSide(light, own, shade, line, lining) {
+  return Array.from({ length: CAPE_H }, (_, r) => [...Array(CAPE_W)].map((_, x) => {
+    if (r === 0 || r === CAPE_H - 1 || x === CAPE_W - 1) return line;
+    if (lining && x === 0) return 'c';
+    if (lining && x === 1) return 'b';
+    if (lining && x === 2) return line;
+    if (r === CAPE_H - 2) return shade;
+    if (r <= 2) return light;
+    if ((x === 6 && r >= 9) || (x === 10 && r >= 6) || (x === 8 && r >= 18)) return shade;
+    if ((x === 3 || x === 4) && r < 12) return light;
+    return own;
+  }).join(''));
+}
+const cape = { outside: capeSide('p', 'q', 'r', 't', true), lining: capeSide('a', 'b', 'c', 'f', false) };
 
-module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape, mantle };
+module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape };

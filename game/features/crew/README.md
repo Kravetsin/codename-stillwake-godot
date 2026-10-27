@@ -28,12 +28,13 @@ commands reach the sim. Other heroes come through the host.
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
 | `logic/Remote.cs` | what is sent of heroes, and kept |
-| `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) |
+| `logic/RemoteRod.cs` | another's harpoon rod (0065) |
 | `logic/Suits.cs` | suit colours |
 | `Figure.cs` | the sprite rig, lit and posed; dust (0075, 0090) |
-| `logic/Cape.cs` | a cape on a rope (prototype) |
+| `logic/Cape.cs` | a cape of cloth (prototype) |
+| `CapeView.cs` | it drawn, with its lining |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
-| `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim |
+| `HeroView.Hands.cs` | its hands: E, plans, axe, drill, aim |
 | `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
 | `logic/GunHand.cs` | each gun's cooldown, dry click, own shots |
 | `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers |
@@ -52,7 +53,7 @@ commands reach the sim. Other heroes come through the host.
 | `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
 | `SuitColours.cs` | the menu's suit colours |
-| `logic/Markers.cs` | the markers' list and geometry |
+| `logic/Markers.cs` | markers' list and shape |
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies from floor stacks (0061) |
 | `BodyView.cs` | each body drawn, its beacon (0061) |
