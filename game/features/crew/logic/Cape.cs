@@ -33,9 +33,15 @@ public sealed class Cape
     private const double Give = 1;
     /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem: the cape round the far side.</summary>
     private const double WrapAtShoulders = 2, WrapAtHem = 4;
-    /// <summary>Where the top is pinned, front to back, from the feet: round the top of the neck and over the shoulder.</summary>
+    /// <summary>
+    /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
+    /// the neck and over the shoulder to the back, where its hood lies.
+    /// </summary>
     private static readonly (double X, double Y)[] Pins =
-        [(1.5, -(Rig.Neck - 1)), (-1.5, -(Rig.Neck - 0.6)), (-4.4, -(Rig.Neck - 1)), (-6.4, -(Rig.Neck - 2.2))];
+        [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -Rig.Neck), (-7, -(Rig.Neck - 1.5))];
+
+    /// <summary>Where its clasp is, from the feet: its front pin, at the throat.</summary>
+    public static (double X, double Y) Clasp => Pins[0];
 
     private Cloth? _cloth;
     private (double X, double Y)? _shoulders;
@@ -58,7 +64,7 @@ public sealed class Cape
         int c = i % Cols;
         double u = (double)c / (Cols - 1), v = (double)(i / Cols) / (Rows - 1);
         var top = Pins[c];
-        double hemX = -2.5 - u * 16, hemY = -1.5;
+        double hemX = -1 - u * 20, hemY = -1.5;
         // Full from the shoulders down, as it trails walking: it stands off the back rather than clinging to it.
         return (top.X + (hemX - top.X) * Math.Pow(v, 1.2), top.Y + (hemY - top.Y) * v);
     }

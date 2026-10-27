@@ -286,5 +286,17 @@ function capeSide(light, own, shade, line, lining) {
   }).join(''));
 }
 const cape = { outside: capeSide('p', 'q', 'r', 't', true), lining: capeSide('a', 'b', 'c', 'f', false) };
+// The cape's hood, down, lying on the back behind the neck: a fold of the wool, lit on top, the crescent of its lining
+// toward the head, its foot running on into the cape. 9x8, its top left at (-12.5, -Neck - 2) of the figure.
+const hood = [
+  '...tttt..',
+  '..tpppqt.',
+  '.tppqqcft',
+  'tpqqqcbft',
+  'tqqqqqbbt',
+  'tqqqqqqqt',
+  'trqqqqqrt',
+  '.rrqqqrr.',
+];
 
-module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape };
+module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape, hood };
