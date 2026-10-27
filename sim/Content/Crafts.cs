@@ -56,6 +56,8 @@ public static class Crafts
         new("arcModule", [("arcShard", 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.
         new("accumulator", [("arcShard", 1), ("battery", 1), ("copper", 2), ("circuit", 1)], Ticks: 200),
+        // At the arc bench (2026-10-27-the-railgun): two rails of copper wound with coils round a sky shard, in ten seconds.
+        new("railgun", [("arcShard", 1), ("copper", 4), ("coil", 2), ("tube", 1), ("frame", 1), ("circuit", 2)], Ticks: 200),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);

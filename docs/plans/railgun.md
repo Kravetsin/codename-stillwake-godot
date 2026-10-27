@@ -1,6 +1,6 @@
 # Plan: the railgun
 
-Branch `feat/railgun`, worktree `../stillwake-railgun`. ADR to write: `docs/decisions/2026-10-27-railgun.md`, amending
+Branch `feat/railgun`, worktree `../stillwake-railgun`. ADR to write: `docs/decisions/2026-10-27-the-railgun.md`, amending
 [shots pierce](../decisions/2026-10-27-shots-pierce.md) (its pierce kind "everything" and the memory of a body passed come here).
 
 ## The user's rules

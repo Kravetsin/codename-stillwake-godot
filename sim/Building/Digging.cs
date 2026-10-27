@@ -120,12 +120,16 @@ public sealed partial class BuildingModule
     /// </summary>
     public bool Hit(int peer, int cell, int damage)
     {
-        // Nothing breaks in a planet's fog, where a shot already stops as at a wall.
-        if (!Rules.ToolsBreak || damage <= 0 || !_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return false;
+        if (damage <= 0 || !ShotTakes(cell)) return false;
         int? here = _crew.HeroOf(peer) != null ? peer : null;
-        if (_grid.WallAt(cell) is { } wall) return wall.Strength != Material.Unbreakable && HitWall(here, cell, damage);
-        return PieceAt(cell) is { } piece && HitPiece(here, piece.Head, damage);
+        return _grid.WallAt(cell) != null ? HitWall(here, cell, damage) : HitPiece(here, PieceAt(cell)!.Value.Head, damage);
     }
+
+    /// <inheritdoc/>
+    // Nothing breaks in a planet's fog, where a shot already stops as at a wall.
+    public bool ShotTakes(int cell) =>
+        Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
+        && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
 
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
     private void Yield(int? peer, IReadOnlyList<(string Item, int Count)> cost, int cell)

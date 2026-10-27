@@ -24,10 +24,12 @@ public static class ShotFlight
     }
 
     /// <summary>
-    /// What <paramref name="p"/> gains falling a tick on a surface of <paramref name="kind"/>: <see cref="Creatures.Gravity"/> times
-    /// its weight under the kind's gravity; none where it floats (the ship's, open space to a shot) or for no weight.
+    /// What <paramref name="p"/> fired from <paramref name="gun"/> gains falling a tick on a surface of <paramref name="kind"/>:
+    /// <see cref="Creatures.Gravity"/> times its weight under the kind's gravity, times the gun's <c>Fall</c> thousandths, rounded down
+    /// (2026-10-27-the-railgun); no gun, the whole; none where it floats (the ship's, open space to a shot) or for no weight.
     /// </summary>
-    public static int Gravity(Surfaces.Kind kind, Projectile p) => p.Weight == 0 || kind.Floats ? 0 : kind.Fall(Creatures.Gravity * p.Weight);
+    public static int Gravity(Surfaces.Kind kind, Projectile p, Gun? gun) =>
+        p.Weight == 0 || kind.Floats ? 0 : kind.Fall(Creatures.Gravity * p.Weight) * (gun?.Fall ?? 1000) / 1000;
 
     /// <summary>
     /// A tick of <paramref name="f"/>: a tick less left, then the walk from its point to the new one (<see cref="Rays.Walk"/>), its
