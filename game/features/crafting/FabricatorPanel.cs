@@ -539,14 +539,18 @@ public partial class FabricatorPanel : CanvasLayer
 
     private static ShaderMaterial Shaded(string code) => new() { Shader = new Shader { Code = code } };
 
-    private TextureRect Icon(string item) => new()
+    private TextureRect Icon(string item)
     {
-        Texture = ItemIcons.Icon(item),
-        Position = new Vector2(Slots.Inset, Slots.Inset),
-        Size = new Vector2(_slot - 2 * Slots.Inset, _slot - 2 * Slots.Inset),
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.Scale,
-        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-    };
+        var (at, side) = Slots.IconBox(item, _slot);
+        return new TextureRect
+        {
+            Texture = ItemIcons.Icon(item, side),
+            Position = new Vector2(at, at),
+            Size = new Vector2(side, side),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.Scale,
+            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+    }
 }

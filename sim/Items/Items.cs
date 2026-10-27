@@ -55,6 +55,7 @@ public interface IItemsQueries
     int PickUpAmount(int peer, int id);
     Shown AfterMoves(int peer, IReadOnlyList<Command> moves);
     bool Equipped(int peer, string item);
+    string? WornIn(int peer, string kind);
     (int Charge, int Capacity) BeltCharge(int peer);
     bool CanDrain(int peer, int amount);
     string? Running(int peer);
@@ -335,6 +336,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         for (int i = Own; i < slots.Count; i++)
             if (slots[i]?.Item == item) return true;
         return false;
+    }
+
+    /// <summary>
+    /// The item <paramref name="peer"/> wears in its first equipment slot of <paramref name="kind"/>, or null: the suit it
+    /// wears, whichever suit that is (2026-10-27-suits-are-worn).
+    /// </summary>
+    public string? WornIn(int peer, string kind)
+    {
+        int at = Content.Inventory.Equipment.ToList().IndexOf(kind);
+        return at < 0 ? null : Inventory(peer)[Own + at]?.Item;
     }
 
     /// <summary>

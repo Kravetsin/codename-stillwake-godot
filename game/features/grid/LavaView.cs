@@ -236,7 +236,7 @@ public partial class LavaView : Node2D, ILightSource
     private void Embers(double delta)
     {
         if (_open.Count == 0) return;
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Lava).Glims;
         _emberDue += delta * LavaLooks.EmbersASecond * _open.Count;
         for (; _emberDue >= 1; _emberDue--)
         {

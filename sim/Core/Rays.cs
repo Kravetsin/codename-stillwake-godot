@@ -10,7 +10,8 @@ namespace Stillwake.Sim;
 /// </summary>
 public static class Rays
 {
-    private const int Cell = 1000;
+    /// <summary>Thousandths of a cell: what a point and a speed are in.</summary>
+    public const int Cell = 1000;
 
     /// <summary>The direction of <paramref name="heading"/> (<see cref="Headings"/>) in thousandths: 0 along +x, 64 along +y (down).</summary>
     public static (int X, int Y) Direction(int heading) => (Sine(heading + Headings.Turn / 4), Sine(heading));
@@ -57,7 +58,15 @@ public static class Rays
     public static void Cast(int width, int height, int x, int y, int heading, int range, Func<int, bool> stops)
     {
         var (dx, dy) = Direction(heading);
-        long run = (long)dx * range / Cell, rise = (long)dy * range / Cell;
+        Walk(width, height, x, y, (long)dx * range / Cell, (long)dy * range / Cell, stops);
+    }
+
+    /// <summary>
+    /// Walks from (<paramref name="x"/>, <paramref name="y"/>) by (<paramref name="run"/>, <paramref name="rise"/>), all in
+    /// thousandths of a cell, as <see cref="Cast"/> walks a ray: a shot's step (<see cref="ShotFlight"/>).
+    /// </summary>
+    public static void Walk(int width, int height, int x, int y, long run, long rise, Func<int, bool> stops)
+    {
         int sx = Math.Sign(run), sy = Math.Sign(rise);
         long ax = Math.Abs(run), ay = Math.Abs(rise);
         int cx = FloorCell(x), cy = FloorCell(y);

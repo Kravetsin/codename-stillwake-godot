@@ -145,7 +145,7 @@ public partial class BenchView : Node2D, ILightSource
     {
         (s.Burst, s.NextStrike) = (BenchLook.BurstMs, 0);
         var (lx, ly) = BenchLook.LightAt;
-        Flares.Shared.Flash(corner.X + lx, corner.Y + ly, RelicLooks.Hot, RelicLooks.FlashStrength * BenchLook.FlashStrength * RelicLooks.SmallFlash,
+        Stages.Of(Layers.Machines).Flares.Flash(corner.X + lx, corner.Y + ly, RelicLooks.Hot, RelicLooks.FlashStrength * BenchLook.FlashStrength * RelicLooks.SmallFlash,
             BenchLook.Reach + 4, RelicLooks.LightKeep, RelicLooks.FlashDecay * 1.5);
     }
 
@@ -166,7 +166,7 @@ public partial class BenchView : Node2D, ILightSource
             var a = corner + new Vector2(sx, sy);
             var b = corner + new Vector2(target.X + (float)(_random.NextDouble() - 0.5) * 2, target.Y + (float)(_random.NextDouble() - 0.5));
             double bow = (_random.NextDouble() - 0.5) * 0.5;
-            Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, bow), _random.Next(3, 6), 0.8, 0.6, branchy: _random.NextDouble() < 0.3, tint: BoltTint.Violet);
+            Stages.Of(Layers.Machines).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, bow), _random.Next(3, 6), 0.8, 0.6, branchy: _random.NextDouble() < 0.3, tint: BoltTint.Violet);
         }
     }
 

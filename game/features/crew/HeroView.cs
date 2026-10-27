@@ -170,6 +170,8 @@ public partial class HeroView : Node2D
     private Registry? _m;
     private Client? _client;
     private double _progress;
+    /// <summary>Whether this peer hosts its world: its shots drawn as the sim flies them, none flown here (<see cref="ShotDraws"/>).</summary>
+    private bool _hosts;
     /// <summary>The ship as this frame's steps met it, doors as this peer shows them: what the rod grips.</summary>
     private Ship? _ship;
     /// <summary>Whether the player jumped or held a movement key in this frame's steps: a hanging hero lets go.</summary>
@@ -226,7 +228,8 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         _rod = NewRod();
         foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
-                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud })
+                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady,
+                     _ownShotEnds })
             AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
@@ -328,11 +331,12 @@ public partial class HeroView : Node2D
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
     /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
     /// client took since the last frame, each drawn where it stood a little while ago; <paramref name="progress"/> is
-    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn.
+    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn;
+    /// <paramref name="hosts"/>, whether this peer hosts, so draws its shots as the sim flies them.
     /// </summary>
-    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, double elapsedMs)
+    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, bool hosts, double elapsedMs)
     {
-        (_m, _client, _progress) = (m, client, progress);
+        (_m, _client, _progress, _hosts) = (m, client, progress, hosts);
         var grid = m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
@@ -345,12 +349,16 @@ public partial class HeroView : Node2D
         InPod = seat != null;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
-        bool canThrust = !passedOut && jetpack && known is { Suit: > 0 };
+        bool canThrust = !passedOut && jetpack && known is { Air: > 0 };
         int surface = client.World.SurfaceOf(client.Id);
         bool moved = _placed && surface != _surface;
         _surface = surface;
         // Moved to another surface, the harpoon's rod is back in the gun: what it stuck in is another grid's (0076).
-        if (moved) _harpoon = new HarpoonShot();
+        if (moved)
+        {
+            _harpoon = new HarpoonShot();
+            _guns.Drop();
+        }
         // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
         // stands where it arrived.
         if (moved && known != null)
@@ -376,7 +384,11 @@ public partial class HeroView : Node2D
         int steps = _clock.Advance(elapsedMs);
         if (steps > 0) _thrust = null;
         if (passedOut || moved) _reel = 0;
-        else Rammed(client, m);
+        else
+        {
+            Rammed(client, m);
+            Bolted(client, m);
+        }
         for (int due = steps; due > 0; due--)
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
@@ -405,6 +417,7 @@ public partial class HeroView : Node2D
             }
             (_previous, _current) = (_current, _current.Step(input, ship));
             _steps++;
+            Fogged(ship, seated: seat != null);
         }
         if (seat is int seatCell) _previous = _current = Hero.At(ship, seatCell) with { Facing = _current.Facing };
         double ownLook = passedOut ? 0 : Poses.LookOf(_current, pointed);
@@ -452,7 +465,8 @@ public partial class HeroView : Node2D
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
         _ui.Bits = Bits(m, client.Id);
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
-        var pose = Poses.PoseOf(drawn, inSpace, passedOut);
+        // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space.
+        var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding, passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         drawn = drawn with { Facing = _current.Facing };
@@ -476,6 +490,21 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>
+    /// The step just made, in a planet's fog (fog-edges): going in, the harpoon let go, for a glide neither rises nor sinks;
+    /// crossing a seam outward, the hero moved by the period to the other band at the drop height, the camera snapped and its
+    /// cell reported this frame, so the sim never keeps it on the side it left.
+    /// </summary>
+    private void Fogged(Ship ship, bool seated)
+    {
+        if (ship.Glides(_current.X) && !ship.Glides(_previous.X)) _harpoon = new HarpoonShot();
+        if (FogMove.Of(ship, _previous, _current, seated) is not { } moved) return;
+        _previous = _current = moved;
+        _harpoon = new HarpoonShot();
+        _snap = true;
+        _reportedAt = int.MinValue / 2;
+    }
+
+    /// <summary>
     /// A creature's charge touching this hero (0103), as this client sees them, while its guard is open: <c>HitBy</c> sent, and at
     /// once, a round trip before the sim's word, the hero thrown away from it and reeling, flinching, its suit's air knocked out,
     /// a thud through the suit. The sim takes the air; the gauge shows it as it drops.
@@ -493,6 +522,32 @@ public partial class HeroView : Node2D
         var (x, y) = Chest(_current);
         _air.Leak(new Vector2(x, y), -away);
         _thud.Play(S.RamHits.GetValueOrDefault(c.Species, S.RamThud), default);
+    }
+
+    /// <summary>The arcs this hero's client has looked at: each judged once, the tick it is first seen, forgotten once it is gone.</summary>
+    private readonly HashSet<int> _arcsSeen = [];
+
+    /// <summary>
+    /// A creature's arc crossing this hero (2026-10-27-sentry-arc), as this client sees it the tick it struck: <c>Bolted</c> sent,
+    /// and at once, as a ram's, the hero thrown the arc's way and reeling, flinching, its suit's air knocked out, a shock through the
+    /// suit. An arc it walks into after is past: it struck once.
+    /// </summary>
+    private void Bolted(Client client, Registry m)
+    {
+        var arcs = m.Creatures.Arcs;
+        _arcsSeen.RemoveWhere(id => !arcs.Any(a => a.Id == id));
+        foreach (var arc in arcs)
+        {
+            if (!_arcsSeen.Add(arc.Id) || !Rams.Crosses(arc, _current) || m.Creatures.BoltedProblem(client.Id, arc.Id) != null) continue;
+            client.Send(new Stillwake.Sim.Creatures.Bolted(arc.Id));
+            int away = arc.X1 >= arc.X0 ? 1 : -1;
+            _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(null, arc.Projectile));
+            _reel = Spec.Reel;
+            _figure.Flinch(-away);
+            var (x, y) = Chest(_current);
+            _air.Leak(new Vector2(x, y), -away);
+            _thud.Play(S.ArcHit, default);
+        }
     }
 
     /// <summary>

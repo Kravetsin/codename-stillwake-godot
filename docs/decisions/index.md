@@ -80,7 +80,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0072](0072-air-shows-under-every-build-tab.md) | Air shows under every build tab | accepted |  |
 | [0073](0073-the-build-menu-is-a-docked-catalogue.md) | The build menu is a docked catalogue | accepted |  |
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
-| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted |  |
+| [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | accepted |  |
@@ -130,5 +130,16 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [veins-and-stairs](2026-10-25-veins-and-stairs.md) | A planet's ground is a stair, with veins of ore in its lodes | accepted |  |
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
+| [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
+| [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce (in part) |
 | [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
+| [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
+| [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
+| [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
+| [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
+| [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |
+| [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted |  |
+| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
+| [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
+| [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |

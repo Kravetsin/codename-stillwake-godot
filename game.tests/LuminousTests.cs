@@ -259,6 +259,23 @@ public class LuminousTests
     }
 
     [Fact]
+    public void AnArcKeepsItsLastShapesNewestFirstForItsAfterimageAtMostItsGhosts()
+    {
+        int calls = 0;
+        var bolts = new Bolts(() => (calls++ * 0.37) % 1);
+        var bolt = bolts.Add(() => (0, 0, 20, 0, 0), 100, branchy: true)!;
+        var points = new (double X, double Y)[65];
+        Assert.Equal(0, bolt.Ghosts);
+        var first = points.Take(bolt.PointsOf(0, 0, 0, 20, 0, points)).ToArray();
+        bolts.Step(Frame * Bolts.Hold);
+        Assert.Equal(1, bolt.Ghosts);
+        // Its own line, not its branches, as it was before the roll.
+        Assert.Equal(first, points.Take(bolt.GhostOf(1, 0, 0, 20, 0, points)));
+        for (int i = 0; i < 10; i++) bolts.Step(Frame * Bolts.Hold);
+        Assert.Equal(Bolts.Ghosts, bolt.Ghosts);
+    }
+
+    [Fact]
     public void AFineArcIsFourSegmentsHoweverShortAndRolledAnewEveryFrame()
     {
         int calls = 0;

@@ -15,11 +15,11 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `WreckScenarios.cs` | `--wreck`, `--wrecks`, `--harpoon` (seeded hosting too), `--grapple` |
 | `GroundScenario.cs` | `--ground=<mode>` with its modifiers (`--axe`, `--precise`, `--take-at`, `--ground-offset`, `--sprint`) |
 | `GroundHands.cs` | `--ground`'s hands: the tool held on the cell `GroundDemo` names |
-| `HeroScenarios.cs` | the hero's maps and scripts: `--poses`, `--ledges`, `--ladders`, `--feel`, `--gym`, `--lone-hatch`, `--hills`, `--floor`, `--segments`, `--die`, `--breathe`, `--breathe-air` |
+| `HeroScenarios.cs` | the hero's maps and scripts: `--poses`, `--ledges`, `--ladders`, `--feel`, `--gym`, `--lone-hatch`, `--hills`, `--floor`, `--segments`, `--die`, `--breathe`, `--breathe-air`, `--suit` |
 | `MachineScenarios.cs` | machines and items: `--furnace`, `--items`, `--menu-demo`, `--open`, `--near`, `--marks`, `--card`, `--charger`, `--arc`, `--bench`, `--pod`, `--handbook`, `--tool-cards` |
 | `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--layer-demo`, `--shimmer-demo` |
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie` |
-| `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers |
+| `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 
 ## How a run is put together

@@ -156,4 +156,93 @@ public sealed class CreaturesState
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>The newest debris piece that has drawn whether a guard comes with it (<c>Surfaces.Kind.Guards</c>): those after it draw next.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Watermark { get; set; }
+    /// <summary>The shots in flight, in id order (shots-are-the-sims).</summary>
+    [JsonIgnore] internal List<Shot> Shots { get; set; } = [];
+
+    /// <summary>The shots as saved: none written while none fly, so a world that never fired saves as before shots.</summary>
+    [JsonInclude, JsonPropertyName("shots"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Shot>? SavedShots { get => Shots.Count > 0 ? Shots : null; set => Shots = value ?? []; }
+    /// <summary>The arcs struck and still taking heroes' word they were crossed, in id order (2026-10-27-sentry-arc).</summary>
+    [JsonIgnore] internal List<Arc> Arcs { get; set; } = [];
+
+    /// <summary>The arcs as saved: none written while none linger.</summary>
+    [JsonInclude, JsonPropertyName("arcs"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Arc>? SavedArcs { get => Arcs.Count > 0 ? Arcs : null; set => Arcs = value ?? []; }
+
+    /// <summary>The shots ever fired and arcs ever struck: the next one's id is one more. Ids are never reused.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Fired { get; set; }
+}
+
+/// <summary>
+/// A shot in flight (shots-are-the-sims): what flies (<see cref="Content.Shots.Projectile"/>), who fired it, its point and speed in
+/// thousandths of a cell, always on the grid, and the ticks of flight it has left.
+/// </summary>
+public sealed class Shot
+{
+    [JsonInclude] public int Id { get; internal set; }
+    /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
+    [JsonInclude] public string Projectile { get; internal set; } = "";
+    /// <summary>The gun it was fired from, by its item; none for a creature's, whose damage is its projectile's alone.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public string? Gun { get; internal set; }
+    /// <summary>Its shooter: a hero by its peer, or none.</summary>
+    [JsonInclude] public Ref By { get; internal set; }
+    [JsonInclude] public int X { get; internal set; }
+    [JsonInclude] public int Y { get; internal set; }
+    [JsonInclude] public int VX { get; internal set; }
+    [JsonInclude] public int VY { get; internal set; }
+    [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The things it flew on through (2026-10-27-shots-pierce), broken, killed or, for a gun that pierces all, still standing, its damages kept through each; none written while none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Pierced { get; internal set; }
+    /// <summary>
+    /// What a shot that pierces everything hit and flew on through that still stands, in the order hit (2026-10-27-the-railgun): never
+    /// hit again, a body spanning cells and ticks. Pierced counts these and what broke.
+    /// </summary>
+    [JsonIgnore] internal List<ShotPass> Passed { get; set; } = [];
+
+    /// <summary>What it passed, as saved: none written while none, so a shot that passed nothing saves as before.</summary>
+    [JsonInclude, JsonPropertyName("passed"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<ShotPass>? SavedPassed { get => Passed.Count > 0 ? Passed : null; set => Passed = value ?? []; }
+
+    internal ShotMotion Motion => new(X, Y, VX, VY, Left);
+}
+
+/// <summary>
+/// A shot that ended this tick: its id, its projectile, its gun (none for a creature's), the cell it met or last flew in, and
+/// whether it met something there or ran out of reach or grid.
+/// </summary>
+public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);
+
+/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck. Saved by number in what a shot passed, so never renumber one.</summary>
+public enum ShotTarget
+{
+    Solid = 0,
+    Creature = 1,
+    Wreck = 2,
+}
+
+/// <summary>
+/// A hit of a shot this tick (2026-10-27-shots-pierce): the shot by its id, its shooter, projectile and gun; the cell it hit
+/// <see cref="What"/> in, from (<see cref="From"/>), the shot's point as the tick began, in thousandths of a cell; and
+/// what it took (block damage off what is solid) and whether it broke or killed it, the shot then flying on. One with nothing
+/// left to take is listed too, taking nothing.
+/// </summary>
+public readonly record struct ShotHit(int Shot, Ref By, string Projectile, string? Gun, int Cell, (int X, int Y) From, ShotTarget What, int Damage, bool Broke);
+
+/// <summary>
+/// An arc a creature struck (2026-10-27-sentry-arc): what it carries (<see cref="Content.Shots.Projectile"/>), from its creature's
+/// middle (<see cref="X0"/>, <see cref="Y0"/>) to where it struck (<see cref="X1"/>, <see cref="Y1"/>), in thousandths of a cell;
+/// the ticks it still takes a hero's word it crossed them, and the heroes, by peer, it has hurt.
+/// </summary>
+public sealed class Arc
+{
+    [JsonInclude] public int Id { get; internal set; }
+    /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
+    [JsonInclude] public string Projectile { get; internal set; } = "";
+    [JsonInclude] public int X0 { get; internal set; }
+    [JsonInclude] public int Y0 { get; internal set; }
+    [JsonInclude] public int X1 { get; internal set; }
+    [JsonInclude] public int Y1 { get; internal set; }
+    [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The peers whose heroes it has hurt, in order; none written while none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Paid { get; set; }
 }

@@ -1,10 +1,10 @@
 // A zoomed contact sheet for checking the pixels by eye: per direction the icon, the held sprite empty
-// and loaded, and the rod, at 8x, with the fire axe and its icon for scale.
+// and loaded, and the rod, at 8x, with the fire axe for scale.
 const P = require('../weapons/png.js'), B = require('./build.js'), path = require('path');
 const ART = path.join(__dirname, '..', '..', '..', 'game', 'art') + '/';
 const S = 8, gap = 16;
-const axe = P.read(ART + 'hero_axe.png'), axeIcon = P.read(ART + 'items/fireAxe.png');
-const rows = [[axeIcon, axe], ...Object.values(B).map(d => [d.icon, d.heldIm, d.loadedIm, d.rodIm])];
+const axe = P.read(ART + 'hero_axe.png');
+const rows = [[axe], ...Object.values(B).map(d => [d.icon, d.heldIm, d.loadedIm, d.rodIm])];
 const W = Math.max(...rows.map(r => r.reduce((a, im) => a + im.w * S + gap, gap)));
 const H = rows.reduce((a, r) => a + Math.max(...r.map(im => im.h)) * S + gap, gap);
 const c = { w: W, h: H, data: Buffer.alloc(W * H * 4) };

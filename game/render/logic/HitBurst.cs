@@ -6,15 +6,12 @@ namespace Stillwake.Game.Render;
 /// A hit's look thrown where it lands (0094): each of its throws out of the struck face, its glint, shock line and flash. A
 /// share of a whole hit throws that share of each count on average, rounded by chance so a drill's tenth-sized hits still add
 /// up, and its glint and shock line by the same chance; its light flares to the share's root, so a run of quick hits holds a
-/// glow about as bright as one hit's. Thrown into the world's particles, or a drill's card's own.
+/// glow about as bright as one hit's. Thrown into a stage's particles, or a drill's card's own.
 /// </summary>
 public sealed class HitBurst(Glims glims, Flares flares)
 {
     private const double FrameMs = 1000.0 / 60, FlashDecay = 0.84;
     private static readonly (int, int, int) ShockColour = (255, 236, 210);
-
-    /// <summary>Thrown into the world's particles, which the effects layer draws.</summary>
-    public static HitBurst Shared { get; } = new(Glims.Shared, Flares.Shared);
 
     /// <summary>
     /// <paramref name="look"/>, <paramref name="share"/> of it (0 to 1), at (<paramref name="x"/>, <paramref name="y"/>) in pixels of the

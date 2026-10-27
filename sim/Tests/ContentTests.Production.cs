@@ -137,12 +137,12 @@ public partial class ContentTests
     /// <summary>
     /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
     /// going to machines (0057): the electronics, circuits, solar cells and the deck drive, to the circuit assembler alone, and soil to
-    /// the Former alone (0060), as the motor of a planet's copper; the arc module to the assembler too (0086).
+    /// the Former alone (0060), as the motor of a planet's copper; the arc crafts to the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
     public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], formed = ["soil", "motor", "nozzle", "fuelPump"], arc = ["arcModule", "accumulator"];
+        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], formed = ["soil", "motor", "nozzle", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
@@ -167,7 +167,7 @@ public partial class ContentTests
     {
         var bench = Stations.Get("arcBench");
         var crafts = bench.Rows.SelectMany(r => r).ToList();
-        Assert.Equal(["arcModule", "accumulator"], crafts);
+        Assert.Equal(["arcModule", "accumulator", "railgun"], crafts);
         Assert.All(crafts, c => Assert.Contains(Crafts.Get(c).Cost, e => e.Item == Content.Ruins.Shard));
         Assert.Equal(crafts, Crafts.All.Where(c => c.Cost.Any(e => e.Item == Content.Ruins.Shard)).Select(c => c.Item));
         Assert.All(crafts, c => Assert.Equal(["arcBench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c))).Select(s => s.Machine)));
@@ -226,7 +226,8 @@ public partial class ContentTests
         foreach (var craft in Crafts.All)
         {
             Assert.True(Content.Items.TryGet(craft.Item, out _), craft.Item);
-            Assert.NotEmpty(craft.Cost);
+            // The basic helmet and body alone are free (2026-10-27-suits-are-worn).
+            if (craft.Item != Content.Suit.Basic && craft.Item != Content.Helmet.Basic) Assert.NotEmpty(craft.Cost);
             foreach (var (item, amount) in craft.Cost)
             {
                 Assert.True(Content.Items.TryGet(item, out _), item);

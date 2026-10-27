@@ -91,19 +91,19 @@ public class LightSourcesTests
     }
 
     [Fact]
-    public void AHelmetLampsGlowShinesFromInsideTheHeroAndItsBeamFromThereWhenTheBulbIsInAWall()
+    public void AHelmetLampShinesFromItsLensOrTheNearestOpenPointBackTowardTheNeck()
     {
-        // Standing against the wall, the neck in the open cell, the bulb poking 2 px into the wall.
-        var (beam, glow) = Sources.HeadLamp((18, 6), (1, 0), (12, 10), Blocks);
-        Assert.False(Blocks(glow.X, glow.Y));
-        Assert.False(Blocks(beam.X, beam.Y));
-        Assert.Equal((glow.X, glow.Y), (beam.X, beam.Y));
+        // In the open: beam and glow both from the lens, not the helmet.
+        var (beam, glow) = Sources.HeadLamp((12, 6), (1, 0), (6, 10), Blocks);
+        Assert.Equal((12.0, 6.0), (beam.X, beam.Y));
+        Assert.Equal((12.0, 6.0), (glow.X, glow.Y));
         Assert.Equal((1.0, 0.0), beam.Toward);
         Assert.Null(glow.Toward);
-        // A step back, the bulb in the open: the beam from the bulb, the glow still from the head.
-        (beam, glow) = Sources.HeadLamp((12, 6), (1, 0), (6, 10), Blocks);
-        Assert.Equal((12.0, 6.0), (beam.X, beam.Y));
-        Assert.Equal((9.0, 8.0), (glow.X, glow.Y));
+        // Standing against the wall, the neck in the open cell, the lens poking 2 px into the wall: just out of it, by the lens.
+        (beam, glow) = Sources.HeadLamp((18, 6), (1, 0), (12, 10), Blocks);
+        Assert.False(Blocks(beam.X, beam.Y));
+        Assert.Equal((glow.X, glow.Y), (beam.X, beam.Y));
+        Assert.InRange(beam.X, 15, 16);
     }
 
     /// <summary>Every glowing machine lights as its looks say (0113), and only they: a new lamp is a row there and in the machines.</summary>

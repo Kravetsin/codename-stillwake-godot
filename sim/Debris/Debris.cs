@@ -41,6 +41,25 @@ public interface IDebrisQueries
     int Clock { get; }
 
     Piece? PieceById(int id);
+
+    IReadOnlyList<WreckBox> Wrecks();
+
+    /// <summary>Whether a hit of <paramref name="damage"/> on wreck <paramref name="piece"/> breaks it: what <see cref="IDebrisOps.Hit"/> decides by.</summary>
+    bool Breaks(int piece, int damage);
+}
+
+/// <summary>
+/// A wreck a hit may strike, its middle in space: piece <paramref name="Piece"/>'s box (<see cref="Content.Wreckage.SizeOf"/>),
+/// its edges in thousandths of a cell, the right and bottom ones past it.
+/// </summary>
+public readonly record struct WreckBox(int Piece, int Left, int Top, int Right, int Bottom)
+{
+    /// <summary>Whether the box covers part of <paramref name="cell"/> of a grid <paramref name="width"/> cells wide.</summary>
+    public bool Covers(int cell, int width)
+    {
+        int left = cell % width * DebrisModule.Unit, top = cell / width * DebrisModule.Unit;
+        return Left < left + DebrisModule.Unit && Right > left && Top < top + DebrisModule.Unit && Bottom > top;
+    }
 }
 
 /// <summary>How another module may change the debris.</summary>
@@ -48,6 +67,9 @@ public interface IDebrisOps
 {
     /// <summary>Piece <paramref name="id"/>'s reel let go, if it has one: it drifts on from where it is. A piece gone is let be.</summary>
     void Unreel(int id);
+
+    /// <summary>Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: true when it broke.</summary>
+    bool Hit(int peer, int id, int damage);
 }
 
 public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, IDebrisOps
@@ -106,6 +128,32 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     }
 
     /// <summary>
+    /// Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: the blow stamped with the
+    /// debris clock (<see cref="Piece.Struck"/>), and at its hit points broken into its loot, floating where it was, anyone's. What
+    /// a <see cref="HewWrecks"/> does to each wreck it strikes, and a shot to the ones it meets. A piece gone is let be. True when it broke.
+    /// </summary>
+    public bool Hit(int peer, int id, int damage)
+    {
+        int at = IndexOf(id);
+        if (at < 0) return false;
+        var piece = State.Pieces[at];
+        bool breaks = Breaks(id, damage);
+        piece.Damage += damage;
+        piece.Struck = new Blow { By = peer, At = State.Clock };
+        if (!breaks) return false;
+        State.Pieces.RemoveAt(at);
+        var loot = LootOf(piece.Item, Random);
+        Record(piece, loot);
+        // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
+        _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
+        return true;
+    }
+
+    /// <inheritdoc/>
+    public bool Breaks(int piece, int damage) =>
+        PieceById(piece) is { } p && p.Damage + damage >= (Content.Wreckage.HpOf(p.Item) ?? throw new InvalidOperationException($"debris.hit: {p.Item} is no wreck"));
+
+    /// <summary>
     /// What catching piece <paramref name="id"/> put into its catcher's inventory, by item, or null when no catch of it
     /// is among the last <see cref="CaughtKept"/>: for the client to show its own catch over its hero (none if all fell).
     /// </summary>
@@ -143,17 +191,16 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     public IReadOnlyList<Piece> Struck(string tool, int x, int y, int heading)
     {
         var weapon = Content.Weapons.Of(tool) ?? throw new InvalidOperationException($"debris.hew: {tool} deals no damage");
-        var wrecks = State.Pieces.Where(p => Content.Wreckage.SizeOf(p.Item) != null && Outside(CellOf(p.X, p.Y, _grid.Width))).ToList();
+        var wrecks = Wrecks();
         var struck = new List<Piece>();
         if (wrecks.Count == 0) return struck;
         Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell =>
         {
             if (_grid.WallAt(cell) != null || _grid.Blocks(cell)) return true;
-            int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
-            foreach (var p in wrecks)
+            foreach (var w in wrecks)
             {
-                var (w, h) = Content.Wreckage.SizeOf(p.Item)!.Value;
-                if (p.X - w * Unit / 2 >= left + Unit || p.X + w * Unit / 2 <= left || p.Y - h * Unit / 2 >= top + Unit || p.Y + h * Unit / 2 <= top) continue;
+                if (!w.Covers(cell, _grid.Width)) continue;
+                var p = PieceById(w.Piece)!;
                 if (!struck.Contains(p)) struck.Add(p);
                 return true;
             }
@@ -161,6 +208,22 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         });
         struck.Sort((a, b) => a.Id.CompareTo(b.Id));
         return struck;
+    }
+
+    /// <summary>
+    /// The wrecks a hit may strike now, in spawn order, with their boxes: wreckage whose middle is in space, as for
+    /// <see cref="Struck"/>. A new list a call: a shot's flight takes it once a tick and asks it of each cell it crosses.
+    /// </summary>
+    public IReadOnlyList<WreckBox> Wrecks()
+    {
+        var wrecks = new List<WreckBox>();
+        foreach (var p in State.Pieces)
+        {
+            if (Content.Wreckage.SizeOf(p.Item) is not { } size || !Outside(CellOf(p.X, p.Y, _grid.Width))) continue;
+            var (w, h) = size;
+            wrecks.Add(new WreckBox(p.Id, p.X - w * Unit / 2, p.Y - h * Unit / 2, p.X + w * Unit / 2, p.Y + h * Unit / 2));
+        }
+        return wrecks;
     }
 
     /// <summary>
@@ -231,18 +294,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     private void Apply(HewWrecks c)
     {
         int hit = _held.Damage(c.From, c.Tool);
-        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading))
-        {
-            int hp = Content.Wreckage.HpOf(piece.Item)!.Value;
-            piece.Damage += hit;
-            piece.Struck = new Blow { By = c.From, At = State.Clock };
-            if (piece.Damage < hp) continue;
-            State.Pieces.RemoveAt(IndexOf(piece.Id));
-            var loot = LootOf(piece.Item, Random);
-            Record(piece, loot);
-            // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
-            _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
-        }
+        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading)) Hit(c.From, piece.Id, hit);
     }
 
     /// <summary>

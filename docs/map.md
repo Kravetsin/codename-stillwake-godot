@@ -9,7 +9,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship building**
 - Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries, `MachinesWith`; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); c/`Machines.cs` (`MachineSpec`, `MachineTrait`, 0113); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
-- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`; c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
+- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`; c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
 - Rooms — sim/Rooms: `Rooms.cs` RoomsModule (rooms from walls and doors). Drawn: r/`ShipTiles.cs`, `BlueprintArt.cs`, `DoorShape.cs`
 
 **Air** — Atmosphere — sim/Atmosphere · f/atmosphere: `Atmosphere.cs` AtmosphereModule, `LoadCanister`; `Air.cs`; `Order.cs`; `AirView.cs`, `TankLooks.cs`, `VentLight.cs`; c/`Air.cs`
@@ -30,9 +30,9 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
 - Players — sim/Players: `Players.cs` PlayersModule (what is the player's, not a surface's)
 
-**Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Pounce.cs`, `Spawn.cs`; `CreaturesView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; c/`Creatures.cs`; gc/`CreatureLooks.cs`
+**Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Pounce.cs`, `Spawn.cs`, `Shots.cs` (shots: `Fire`, the flight); sim/Core `ShotFlight.cs`; `CreaturesView.cs`, `ShotsView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; f/crew `HeroView.Guns.cs`, `GunHand.cs`; game/shared `ShotStreaks.cs`, `ShotEnds.cs`, `ShotDraws.cs`; c/`Creatures.cs`, `Shots.cs`; gc/`CreatureLooks.cs`
 
-**Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
+**Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; the fog at a planet's sides: f/fog `FogView.cs`, game/shared `FogEdges.cs`, `FogShare.cs`, f/crew `FogMove.cs`, gc/`FogLooks.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
 
 **Ruins** — sim/Building `Flora.cs` (`Relic`, ruin pieces as plants) · f/ruins: `HomesView.cs`, `SpiresView.cs`, `RelicSparks.cs`; c/`Ruins.cs`; gc/`HomesLooks.cs`, `RelicLooks.cs`
 
@@ -58,7 +58,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - **Content by id**: `grep -rn '"<id>"' sim/Content`. Systems ask a machine's `MachineTrait` (0113) or a structure's `Trait` (0112), never its kind. Items `Items.cs`, machines `Machines.cs`, materials `Materials.cs`,
   creatures `Creatures.cs`, planet types `PlanetTypes.cs`, builds `Builds.cs`, recipes `Crafts.cs`, stations `Stations.cs`.
   ASCII map characters: `Legend.cs`. A content file is named after its module or catalogue.
-- **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png`,
+- **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png` (none for a tool, 2026-10-27-tool-icons),
   `debris/<look>_<nn>.png`, `creatures/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`;
   `_glow`/`_lit` suffixes for light. Loaded by `PixelArt.Picture(name)` = `res://art/<name>.png`.
 - **i18n** (core `game/i18n/logic/En.cs`; a feature's strings are in its `logic/<Name>.En.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),

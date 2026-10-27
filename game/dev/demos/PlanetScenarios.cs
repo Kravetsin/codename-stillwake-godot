@@ -56,3 +56,39 @@ public sealed class CreaturesScenario : DevScenario
 
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, log);
 }
+
+/// <summary>The nailer fired by script (shots-are-the-sims): on the strip with --strip, aboard without.</summary>
+[Dev("--nailer", "the nailer and nails in hand, fired up at 45°, at a loper and level, by script (NailerDemo)")]
+public sealed class NailerScenario : DevScenario
+{
+    private NailerDemo? _demo;
+
+    public override World Seed(World world, DevSeed seed) => NailerDemo.Seed(world, seed.Modules);
+
+    // With --manual the player fires: the loper let out, nothing else played.
+    public override void Attach(DevContext c)
+    {
+        _demo = new NailerDemo(c.Hero);
+        if (!Args.Has("--manual")) c.Add(_demo);
+    }
+
+    public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m);
+}
+
+/// <summary>The railgun charged and fired by script (2026-10-27-the-railgun): on the strip with --strip, aboard without.</summary>
+[Dev("--railgun", "the railgun held to charge and fired at two lopers, straight up and into the ground, once let go early (RailgunDemo)")]
+public sealed class RailgunScenario : DevScenario
+{
+    private RailgunDemo? _demo;
+
+    public override World Seed(World world, DevSeed seed) => RailgunDemo.Seed(world, seed.Modules);
+
+    // With --manual the player fires: the lopers let out, nothing else played.
+    public override void Attach(DevContext c)
+    {
+        _demo = new RailgunDemo(c.Hero);
+        if (!Args.Has("--manual")) c.Add(_demo);
+    }
+
+    public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m);
+}

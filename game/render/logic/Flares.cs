@@ -96,7 +96,9 @@ public sealed class Flares
     /// <summary>A flash this faint has died away.</summary>
     private const double Faint = 0.02;
 
-    public static Flares Shared { get; } = new();
+    /// <summary>Whether nothing of it lives or is stamped: no glint, ring, flash, trail or bloom.</summary>
+    public bool Empty => _glints.Count == 0 && _shocks.Count == 0 && _flashes.Count == 0 && _held.Count == 0
+        && _trails.Count == 0 && _drawnTrails.Count == 0 && _blooms.Count == 0 && _drawnBlooms.Count == 0;
 
     private readonly List<Glint> _glints = [];
     private readonly List<Shock> _shocks = [];

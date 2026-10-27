@@ -16,10 +16,13 @@ namespace Stillwake.Game;
 /// <param name="HeroBodies">The middle of every hero's body on this surface, in pixels of the world.</param>
 /// <param name="Homes">Whether a planet's homes and spires are drawn: <c>--no-homes</c> leaves them out, to measure what they cost.</param>
 /// <param name="HomesMood">The homes' mood held lit or dark (<c>--homes</c>); their own by the hour with none.</param>
+/// <param name="Peer">This player's peer, and the world's tick (<paramref name="Tick"/>): what a view of the sim's shots reads.</param>
+/// <param name="Hosts">Whether this peer hosts its world, so draws its own shots as the sim flies them (<c>ShotDraws</c>).</param>
 /// <param name="Arrivals">The drop pods still coming down on this surface (the landing feature's): held out of the grid's drawing till they stand.</param>
 public sealed record SurfaceContext(
     Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps,
-    Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Features.Landing.Arrivals Arrivals);
+    Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
+    Features.Landing.Arrivals Arrivals);
 
 /// <summary>One view of a surface: how it is made, null where it has nothing to draw; whether it fades with the plan's front layer.</summary>
 public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = false);
@@ -59,8 +62,12 @@ public static class SurfaceViews
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),
         new(Drones),
+        // Every peer's shots but this player's own, which its hero's hands draw ahead of the sim's (shots-are-the-sims).
+        new(c => new Features.Creatures.ShotsView(c.M, c.Progress, c.Peer, c.Tick, c.Hosts)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
+        // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.
+        new(c => FogEdges.Of(c.M.Grid, c.M.Rules) is { } fog ? new Features.Fog.FogView(fog, PlanetLooks.Of[c.M.Rules.Id].Fog) : null),
     ];
 
     /// <summary>The drones, a bay's zone shown while its inventory is open or a zoned machine's card is held (0062).</summary>

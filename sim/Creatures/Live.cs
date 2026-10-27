@@ -44,6 +44,7 @@ public sealed partial class CreaturesModule
     private void Live()
     {
         var s = State;
+        Linger();
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
         if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
@@ -239,9 +240,14 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// What stops a creature: anything solid (a wall, a floor, a shut doorway), as for a stack, or
-    /// past the grid's edge. A machine is not, as for a stack.
+    /// past the grid's edge; on a planet, every column outside the build zone, the fog at its sides
+    /// (fog-edges), so walking, leaping, a knock or a release never carries one in. A machine is not, as for a stack.
     /// </summary>
+    internal bool Solid(int cell) => Solid(cell % _grid.Width, cell / _grid.Width);
+
+    /// <inheritdoc cref="Solid(int)"/>
     internal bool Solid(int x, int y) =>
         x < 0 || y < 0 || x >= _grid.Width || y >= _grid.Height
+        || Rules is PlanetType && (x < _grid.Zone.Left || x > _grid.Zone.Right)
         || _grid.Solid(y * _grid.Width + x);
 }

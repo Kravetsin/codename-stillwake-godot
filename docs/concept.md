@@ -50,9 +50,11 @@ A living document: what is decided about the game and what is still open. Techni
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
-  never taken apart. Heroes are made at its hatch, at the start and after dying, with a full
-  suit; standing by it, a suit slowly fills with the pod's own air, even in a ship open to space, and
-  the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
+  never taken apart. Heroes are made at its hatch, at the start bare and after dying in what they wore,
+  their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space,
+  and the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
+- **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
+  keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a tube, a coil and its line of wire
@@ -92,7 +94,13 @@ A living document: what is decided about the game and what is still open. Techni
   screen's edge. Anyone may pick it up, as any stack; out in space it drifts with the rest and leaves the world
   at its edge, and wherever it is, it is gone ten minutes after the death
   ([0061](decisions/0061-death-leaves-a-body.md)).
-- **Dangers:** yes — the game can hurt you. Which ones is open.
+- **Dangers:** yes — the game can hurt you: the cold and the vacuum, lava, grazers that ram when struck, and sentries on
+  the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
+  before, at once. Which others is open.
+- **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
+  two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
+  the gun's damage and its projectile's added, so guns to come fire the same nails their own way
+  ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.
 - **Characters** are assembled from parts with simple keyframed movement; the parts exist mainly for

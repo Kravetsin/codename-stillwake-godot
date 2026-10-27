@@ -427,9 +427,7 @@ public partial class Main
         _stopLink?.Invoke();
         _stopLink = null;
         _session = null;
-        Bolts.Shared.Clear();
-        Glims.Shared.Clear();
-        Flares.Shared.Clear();
+        Stages.Clear();
         _next = why;
         // A reload takes the scene out of the tree at once: deferred, the frame that asked (a click, the host gone) ends whole.
         GetTree().CallDeferred(SceneTree.MethodName.ReloadCurrentScene);

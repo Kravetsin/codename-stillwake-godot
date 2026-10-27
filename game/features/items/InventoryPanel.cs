@@ -198,7 +198,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The hotbar, the inventory, the equipment and the stack in hand, at the slot size chosen now.</summary>
     private void Build()
     {
-        int size = _ui.Slot, icon = size - 2 * Slots.Inset;
+        int size = _ui.Slot;
         var top = Style.Gap(new HBoxContainer(), 8);
         top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i)), keys: true));
         top.AddChild(_creative = new Label
@@ -233,8 +233,6 @@ public partial class InventoryPanel : CanvasLayer
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.Scale,
             TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-            Position = new Vector2(Slots.Inset, Slots.Inset),
-            Size = new Vector2(icon, icon),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
         _held.AddChild(_heldMark = SlotBox.Corner(MarkLooks.Unknown, size));
@@ -313,22 +311,34 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>
     /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058): the head's slot
-    /// over the back's over the belt's three, each row under its name; no silhouettes in empty slots. The screwdriver is
-    /// a hotbar item (0107), so the hands have no slot.
+    /// with the helmet mount's beside it, over the back's, the belt's three and the body's, each kind under its name;
+    /// no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so the hands have no slot.
     /// </summary>
     private WristScreen Body(int size)
     {
         var column = Style.Gap(new VBoxContainer(), 2);
-        foreach (var kind in Content.Inventory.Equipment.Distinct())
+        foreach (var kind in Content.Inventory.Equipment.Distinct().Where(k => k != Content.Helmet.Mount))
         {
-            column.AddChild(Caption(kind));
             var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-            foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
+            row.AddChild(Kind(kind));
+            // What is fixed onto the helmet sits beside it.
+            if (kind == Content.Helmet.Slot) row.AddChild(Kind(Content.Helmet.Mount));
             column.AddChild(row);
         }
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
         body.AddChild(column);
         return body;
+    }
+
+    /// <summary>One kind's slots in a row under its name.</summary>
+    private VBoxContainer Kind(string kind)
+    {
+        var column = Style.Gap(new VBoxContainer(), 2);
+        column.AddChild(Caption(kind));
+        var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
+        foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
+        column.AddChild(row);
+        return column;
     }
 
     private static Label Caption(string kind) => new()
@@ -474,13 +484,13 @@ public partial class InventoryPanel : CanvasLayer
         {
             var stack = reading.At(h.Place)!;
             var item = stack.Item;
-            _heldIcon.Texture = ItemIcons.Icon(Charges.Picture(item, stack.Charge));
+            FitHeld(Charges.Picture(item, stack.Charge));
             _heldMark.Visible = reading.Unknown(item);
             _heldCount.Text = h.Count > 1 ? h.Count.ToString() : "";
         }
         else if (_unfitting is { } coming)
         {
-            _heldIcon.Texture = ItemIcons.Icon(coming.Module);
+            FitHeld(coming.Module);
             _heldMark.Visible = false;
             _heldCount.Text = "";
         }
@@ -488,5 +498,14 @@ public partial class InventoryPanel : CanvasLayer
         // A machine open under the bag squares the display's bottom edge, where the machine's module meets it (0074).
         _inventory.Piece = _built != null ? WristPieces.DisplayDocked : WristPieces.Display;
         Power(0);
+    }
+
+    /// <summary>The stack in hand's icon, placed in its slot-sized box as a slot places it (<see cref="Slots.IconBox"/>).</summary>
+    private void FitHeld(string item)
+    {
+        var (at, side) = Slots.IconBox(item, _ui.Slot);
+        _heldIcon.Texture = ItemIcons.Icon(item, side);
+        _heldIcon.Position = new Vector2(at, at);
+        _heldIcon.Size = new Vector2(side, side);
     }
 }

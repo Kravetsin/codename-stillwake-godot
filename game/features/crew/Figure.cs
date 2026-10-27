@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -63,23 +64,19 @@ public partial class Figure : Node2D
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _body, _helmet;
-    private readonly Sprite2D _headLamp;
-
-    /// <summary>Where the helmet lamp sits on the helmet, from the neck it turns at, facing +x: on its brow, ahead of the visor.</summary>
-    private static readonly Vector2 HeadLampOn = new(4, -9);
+    private readonly Sprite2D _headLamp, _lens;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
     private static readonly Vector2 VisorOn = new(4, -5);
 
-    /// <summary>The lamp's bulb, a few warm pixels, a placeholder till its art is picked: each figure's own, freed with it.</summary>
-    private readonly Texture2D _bulb = MakeBulb();
+    /// <summary>The helmet lamp's lens, its two warm pixels drawn again unlit: each figure's own, freed with it.</summary>
+    private readonly Texture2D _lensPicture = MakeLens();
 
-    private static Texture2D MakeBulb()
+    private static Texture2D MakeLens()
     {
-        var image = Image.CreateEmpty(3, 2, false, Image.Format.Rgba8);
-        image.Fill(new Color(1f, 0.9f, 0.62f));
-        image.SetPixel(0, 1, new Color(0.55f, 0.48f, 0.4f));
-        image.SetPixel(2, 1, new Color(0.55f, 0.48f, 0.4f));
+        var image = Image.CreateEmpty(1, 2, false, Image.Format.Rgba8);
+        image.SetPixel(0, 0, new Color("fff6ce"));
+        image.SetPixel(0, 1, new Color("f0be5a"));
         return ImageTexture.CreateFromImage(image);
     }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
@@ -140,6 +137,11 @@ public partial class Figure : Node2D
     private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
     /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
     private readonly Sprite2D _held;
+    /// <summary>A gun's charged picture, its lit pixels alone, over the held one as bright as its charge (<see cref="Charge"/>), lit as it is.</summary>
+    private readonly Sprite2D _charged = new() { Centered = false, Visible = false, UseParentMaterial = true };
+
+    /// <summary>The charge's own light on the held stage, held while it charges, the brighter the fuller (2026-10-27-the-railgun).</summary>
+    private static readonly (int R, int G, int B) ChargeLight = (95, 216, 255);
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
@@ -157,6 +159,8 @@ public partial class Figure : Node2D
     private double _lastPhase;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
+    /// <summary>The near arm's node among the parts: the held stage's view goes just under it.</summary>
+    private readonly Node2D _frontArmNode;
     private Vector2? _workAt;
     private double _workMs;
     private static readonly Color BeamColour = new(0.49f, 0.83f, 0.99f);
@@ -179,11 +183,13 @@ public partial class Figure : Node2D
     /// <param name="own">Whether it is this player's hero, heard the same anywhere rather than from where it is.</param>
     public Figure(int colour, bool own)
     {
+        _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
+        _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
         backArm.Position = frontArm.Position = new Vector2(0, (float)-Rig.Shoulder);
@@ -201,8 +207,11 @@ public partial class Figure : Node2D
         // The helmet turns at the neck.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
         _helmet.AddChild(Part("helmet"));
-        // The helmet lamp's bulb on its brow (0077), drawn unlit: it is the light.
-        _headLamp = new Sprite2D { Texture = _bulb, Position = HeadLampOn, Visible = false, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+        // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
+        _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
+        Lit.Set(_headLamp);
+        _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+        _headLamp.AddChild(_lens);
         _helmet.AddChild(_headLamp);
         _plan = Part("sheet");
         _plan.Visible = false;
@@ -229,6 +238,7 @@ public partial class Figure : Node2D
         Lit.Set(_held);
         _held.AddChild(_lamp);
         _held.AddChild(_lampGlow);
+        _held.AddChild(_charged);
         _lampGlow.Colour = LampColour * LampLight;
         for (int i = 0; i < BeamsMost; i++)
         {
@@ -321,15 +331,15 @@ public partial class Figure : Node2D
         set => _jetpack.Visible = value;
     }
 
-    /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
+    /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow.</summary>
     public bool HeadLamp
     {
         get => _headLamp.Visible;
         set => _headLamp.Visible = value;
     }
 
-    /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
-    public Vector2 HeadLampAt => _headLamp.GlobalPosition;
+    /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
+    public Vector2 HeadLampAt => _lens.GlobalPosition;
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
     public Vector2 Visor => _helmet.ToGlobal(VisorOn);
@@ -349,11 +359,48 @@ public partial class Figure : Node2D
     /// <summary>Whether the harpoon held shows its rod in the barrel: ready to fire.</summary>
     public bool Loaded { get; set; } = true;
 
+    /// <summary>How full the charge of the gun held is, 0..1 (2026-10-27-the-railgun): its charged picture laid over it that bright.</summary>
+    public double Charge { get; set; }
+
     /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
     public bool Spinning { get; set; }
 
-    private readonly DrillLight _drillLight = new();
+    /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
+    private DrillLight? _drillLight;
     private Func<(double X, double Y), Vector2>? _heldAt;
+
+    private readonly bool _own;
+
+    /// <summary>What the figure itself throws, its boots' dust, its landing, its gloves' sparks: on its hero's layer.</summary>
+    private Stage Worn => Stages.Of(_own ? Layers.Hero : Layers.OtherHeroes);
+
+    private Stage? _heldStage;
+    private EffectsView? _heldView;
+
+    /// <summary>
+    /// What the held tool throws (effects-on-their-layer), the drill's coil and the harpoon's muzzle: over the torso and the tool,
+    /// under the front arm, its view a part of the figure between them. Made on first use, let go of as the figure leaves.
+    /// </summary>
+    public Stage Held
+    {
+        get
+        {
+            if (_heldStage != null) return _heldStage;
+            _heldStage = Stages.Held();
+            _heldView = new EffectsView(_heldStage) { InWorld = true };
+            _frame.AddChild(_heldView);
+            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
+            return _heldStage;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        if (_heldStage == null) return;
+        Stages.Drop(_heldStage);
+        _heldView!.QueueFree();
+        (_heldStage, _heldView, _drillLight) = (null, null, null);
+    }
 
     /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its frames the picture is, in frames.</summary>
     private double _spin, _spinFrame;
@@ -389,9 +436,9 @@ public partial class Figure : Node2D
     /// A running boot's dust at (<paramref name="x"/>, <paramref name="y"/>), the floor (0075): fine motes kicked back
     /// against the way it <paramref name="faces"/>, settling, and a thin veil drifting back; matter, lit by the room.
     /// </summary>
-    private static void Kick(double x, double y, int faces)
+    private void Kick(double x, double y, int faces)
     {
-        var glims = Glims.Shared;
+        var glims = Worn.Glims;
         for (int i = 0; i < Math.Round(DustRun * Fx.Count); i++)
             glims.Add(Luminous.BootDust, x + glims.Between(-1.5, 1.5), y - 0.4, faces * glims.Between(-24, 6), -glims.Between(4, 15), y,
                 glims.Between(0.5, 0.85), glims.Between(0.45, 0.8));
@@ -407,7 +454,7 @@ public partial class Figure : Node2D
     /// </summary>
     private void Land(double x, double y, int grains, int fall)
     {
-        var glims = Glims.Shared;
+        var glims = Worn.Glims;
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
             // It spreads along the floor only as far as the floor runs open: in a shaft, hardly at all (0077).
@@ -426,7 +473,7 @@ public partial class Figure : Node2D
         }
         var (to, ms, alpha) = Motion.RingOf(fall);
         double ring = Math.Min(Motion.RingFrom + (to - Motion.RingFrom) * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
-        if (ring >= 6) Flares.Shared.Shock(x, y - 0.4, Motion.RingFrom, ring, ms, (236, 240, 248), alpha * Fx.Glow, 0.28, 0.16);
+        if (ring >= 6) Worn.Flares.Shock(x, y - 0.4, Motion.RingFrom, ring, ms, (236, 240, 248), alpha * Fx.Glow, 0.28, 0.16);
     }
 
     /// <summary>How far, in pixels, a landing's dust needs the floor open to spread its whole way.</summary>
@@ -455,9 +502,9 @@ public partial class Figure : Node2D
     /// Sparks off the gloves sliding down a ladder (0092): <paramref name="count"/> tiny hot streaks flicked up and out from
     /// either hand, at <paramref name="front"/> and <paramref name="back"/> in pixels of the world.
     /// </summary>
-    private static void Sparks(Vector2 front, Vector2 back, int count)
+    private void Sparks(Vector2 front, Vector2 back, int count)
     {
-        var glims = Glims.Shared;
+        var glims = Worn.Glims;
         for (int i = 0; i < Math.Round(count * Fx.Count); i++)
         {
             var at = i % 2 == 0 ? front : back;
@@ -718,6 +765,12 @@ public partial class Figure : Node2D
                 (_lamp.Position, _lampGlow.Position) = (lamp - Vector2.One / 2, lamp);
             }
             _held.Offset = -new Vector2((float)origin.X, (float)origin.Y);
+            _charged.Visible = item.Charged != null && Charge > 0;
+            if (_charged.Visible)
+            {
+                (_charged.Texture, _charged.Offset) = (Picture(item.Charged!), _held.Offset);
+                _charged.Modulate = new Color(1, 1, 1, (float)Charge);
+            }
             var mount = both ? TwoHand.PivotAt(_holdAngle) : fist;
             _held.Position = new Vector2((float)mount.X, (float)(-Rig.Shoulder + mount.Y));
             _held.Rotation = (float)(both ? _holdAngle : Rig.HeldTurn(frontArm, item));
@@ -726,6 +779,12 @@ public partial class Figure : Node2D
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
                 Muzzle = At(item.EdgeTo);
                 Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
+                if (_charged.Visible)
+                {
+                    // Lit from the gap between the rails, as it is held this frame.
+                    var gap = At(((item.EdgeFrom.X + item.EdgeTo.X) / 2, (item.EdgeFrom.Y + item.EdgeTo.Y) / 2));
+                    Held.Flares.Hold(_charged, gap.X, gap.Y, ChargeLight, 0.15 + 0.35 * Charge, 3, 0.85f, 0.2);
+                }
             }
         }
         // The axe's downstroke leaves its swipe of light, from the blade as drawn.
@@ -738,7 +797,12 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        _drillLight.Step(inHand && drill && item != null ? PartsOf(item) : null, _spin, _heldAt ??= HeldAt, elapsedMs);
+        // A drill crackles as it spins; a gun held to charge, as it fills.
+        bool charging = item?.Charged != null && Charge > 0;
+        var crackling = inHand && item != null && (drill || charging) ? PartsOf(item) : null;
+        // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
+        if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
+        _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>

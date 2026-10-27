@@ -6,12 +6,12 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Effects;
 
 /// <summary>
-/// Every particle the features emit (features/effects): the luminous ones of <see cref="Glims.Shared"/>, the glints,
-/// shock lines, trails and blooms of <see cref="Flares.Shared"/> and the arcs of <see cref="Bolts.Shared"/> (0075).
+/// One stage's particles (features/effects, effects-on-their-layer): the luminous ones of its <see cref="Glims"/>, the
+/// glints, shock lines, trails and blooms of its <see cref="Flares"/> and the arcs of its <see cref="Bolts"/> (0075).
 /// Light is added over the world, drawn at the screen's resolution with soft edges — streaks along their own path,
 /// white at the head, glints, rings, trails, arcs — and matter is lit by the room: motes, wisps, chips and grains,
-/// each catching a little light of its own. Over everything in the world, plans included; moved on every frame,
-/// after every feature, so what they stamped this frame is drawn this frame.
+/// each catching a little light of its own. Drawn at its stage's layer; moved on every frame, after every feature, so
+/// what they stamped this frame is drawn this frame.
 /// </summary>
 public partial class EffectsView : Node2D
 {
@@ -43,43 +43,32 @@ public partial class EffectsView : Node2D
     private readonly Glims _glims;
     private readonly Flares _flares;
     private readonly Bolts _bolts;
-    private readonly bool _matterDrawn;
-
-    /// <summary>The world's particles, over everything in it.</summary>
-    public EffectsView() : this(Glims.Shared, Flares.Shared, Bolts.Shared, matter: true) => ZIndex = Layers.Effects;
+    private readonly Stage _stage;
+    private bool _drewNothing;
 
     /// <summary>
-    /// Particles of their own sets, drawn wherever it is put: an item card's picture (<c>ToolPicture</c>). Without
-    /// <paramref name="matter"/> only light is drawn: dust and chips need a room's light, which a card has not.
+    /// Whether it draws in the world's pixels however its parent turns, flips or moves: a figure's held stage, a part of the
+    /// figure for the order it draws in, not for where (effects-on-their-layer).
     /// </summary>
-    public EffectsView(Glims glims, Flares flares, Bolts bolts, bool matter)
+    public bool InWorld { get; init; }
+
+    /// <summary>A stage's particles, its matter and its light, at the z it is given.</summary>
+    public EffectsView(Stage stage)
     {
-        (_glims, _flares, _bolts, _matterDrawn) = (glims, flares, bolts, matter);
+        (_stage, _glims, _flares, _bolts) = (stage, stage.Glims, stage.Flares, stage.Bolts);
         // After the features: a trail or a bloom they stamp this frame is drawn this frame.
         ProcessPriority = 100;
-        if (matter)
-        {
-            Lit.Set(_matter);
-            Lit.Set(_lowMatter);
-            AddChild(_lowMatter);
-            AddChild(_matter);
-            _matter.Draw += () => DrawMatter(_matter, low: false);
-            _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
-        }
-        else
-        {
-            // Never put in the tree, so never freed with it.
-            _matter.Free();
-            _lowMatter.Free();
-        }
+        Lit.Set(_matter);
+        Lit.Set(_lowMatter);
+        AddChild(_lowMatter);
+        AddChild(_matter);
+        _matter.Draw += () => DrawMatter(_matter, low: false);
+        _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
         AddChild(_light);
         AddChild(_strokes);
         _light.Draw += DrawLight;
         for (int n = 0; n < _points.Length; n++) (_points[n], _colours[n]) = (new Vector2[n], new Color[n]);
     }
-
-    /// <summary>The particles flying: what a recording checks.</summary>
-    public static int Count => Glims.Shared.Live.Count;
 
     /// <summary>The CPU time moving them and recording their drawing took a frame, on average since last asked, in ms: for <c>--measure</c>.</summary>
     public double TakeCostMs()
@@ -92,20 +81,22 @@ public partial class EffectsView : Node2D
     public override void _Process(double delta)
     {
         _clock.Restart();
+        if (InWorld) GlobalTransform = Transform2D.Identity;
         double ms = delta * 1000;
         _glims.Step(ms);
         _flares.Step(ms);
         _flares.TakeFrame();
         _bolts.Step(ms);
-        // A pixel of the world on the screen here: the camera's zoom in the world, the picture's scale on a card.
+        // An empty stage, drawn empty once, draws nothing more till something is thrown on it.
+        bool empty = _stage.Empty;
+        if (empty && _drewNothing) return;
+        _drewNothing = empty;
+        // A pixel of the world on the screen here: the camera's zoom.
         _zoom = Math.Max(0.01f, GetGlobalTransformWithCanvas().X.Length());
         _light.Scale = Vector2.One / _zoom;
-        if (_matterDrawn)
-        {
-            _matter.Scale = _lowMatter.Scale = _light.Scale;
-            _lowMatter.QueueRedraw();
-            _matter.QueueRedraw();
-        }
+        _matter.Scale = _lowMatter.Scale = _light.Scale;
+        _lowMatter.QueueRedraw();
+        _matter.QueueRedraw();
         _light.QueueRedraw();
         Stroke();
         _spentMs += _clock.Elapsed.TotalMilliseconds;
@@ -217,25 +208,10 @@ public partial class EffectsView : Node2D
             if (gl.Strength > 0.01) Blob(_light, PixelArt.Glow, gl.X, gl.Y, gl.Radius * 1.2, ColourOf(gl.Colour, gl.Strength * 0.6));
         foreach (var bloom in _flares.Blooms)
             Blob(_light, PixelArt.Glow, bloom.X, bloom.Y, bloom.Size, ColourOf(bloom.Colour, bloom.Alpha * Fx.Glow), bloom.Squash);
-        foreach (var bolt in _bolts.Live)
-            if (!bolt.Fine) Glow(bolt);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
 
     private readonly (double X, double Y)[] _bolt = new (double, double)[65];
-
-    /// <summary>An arc's glow, every other point of its lines, its branches dimmer.</summary>
-    private void Glow(Bolt bolt)
-    {
-        var (x0, y0, x1, y1, _) = bolt.Ends();
-        double size = 5 * bolt.Width * (0.7 + 0.3 * Math.Min(1, bolt.Intensity));
-        for (int line = 0; line < bolt.Lines; line++)
-        {
-            int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
-            var colour = ColourOf(bolt.Tint.Glow, 0.22 * bolt.Intensity * (line == 0 ? 1 : 0.6) * Fx.Glow * 0.7);
-            for (int i = 0; i < n; i += 2) Blob(_light, PixelArt.Glow, _bolt[i].X, _bolt[i].Y, size * (line == 0 ? 1 : 0.7), colour);
-        }
-    }
 
     /// <summary>Every stroke of light this frame into the one multimesh: streaks, trails, arcs, shock rings, glints' spikes.</summary>
     private void Stroke()
@@ -304,28 +280,35 @@ public partial class EffectsView : Node2D
     private readonly Vector2[] _arc = new Vector2[65];
     private readonly Color[] _arcColours = new Color[65];
 
-    /// <summary>An arc's rim, cyan, then its core, white, over it; its branches thinner.</summary>
+    /// <summary>
+    /// An arc (arcs-are-hairlines), in pixels of the screen whatever the zoom: its last shapes fading in its deeper colour, then a
+    /// thin haze and a hair of white over it; its branches thinner and dimmer.
+    /// </summary>
     private void Arc(Bolt bolt)
     {
         var (x0, y0, x1, y1, _) = bolt.Ends();
         double a = Math.Clamp(bolt.Intensity, 0, 1);
+        for (int back = bolt.Ghosts; back >= 1; back--)
+        {
+            int n = bolt.GhostOf(back, x0, y0, x1, y1, _bolt);
+            for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
+            Paint(n, ColourOf(bolt.Tint.Ghost, a * 0.35 * (1 - back / (Bolts.Ghosts + 1.0))), Core(Thinnest));
+        }
         for (int line = 0; line < bolt.Lines; line++)
         {
             int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
             for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
-            float thin = line == 0 ? 1 : 0.6f;
+            float thin = line == 0 ? 1 : 0.7f;
             if (bolt.Fine)
             {
                 // A hair of light, a streak's width, in a faint blue haze twice as wide.
-                float hair = Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom);
-                Paint(n, ColourOf(Bolts.FineHaze, a * 0.35), Core(Math.Max(Thinnest * 2.2f, hair * 2)));
-                Paint(n, ColourOf(Bolts.FineCore, a), Core(hair));
+                Paint(n, ColourOf(Bolts.FineHaze, a * 0.35), Core(Thinnest * 2.2f));
+                Paint(n, ColourOf(Bolts.FineCore, a), Core(Thinnest));
                 continue;
             }
-            Paint(n, ColourOf(bolt.Tint.Rim, a * 0.85), Core(Math.Max(Thinnest, (float)(Bolts.Rim * bolt.Width * thin) * _zoom)));
-            Paint(n, ColourOf(bolt.Tint.Core, a), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom)));
+            Paint(n, ColourOf(bolt.Tint.Rim, a * (line == 0 ? 0.3 : 0.18)), Core(Math.Max(Thinnest, (float)(Bolts.Haze * bolt.Width * thin))));
+            Paint(n, ColourOf(bolt.Tint.Core, a * (line == 0 ? 1 : 0.7)), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin))));
         }
-
         void Paint(int n, Color colour, float width)
         {
             for (int i = 0; i < n; i++) _arcColours[i] = colour;

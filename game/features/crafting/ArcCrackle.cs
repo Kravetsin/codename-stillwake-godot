@@ -44,7 +44,7 @@ public partial class ArcCrackle : Node2D
         double flutter = 0.5 + 0.5 * Math.Sin(_clock / 47 + 2 * Math.Sin(_clock / 173));
         _glow.Position = corner + new Vector2(size.X / 2, top);
         _glow.Colour = Light * (float)(Dim + (Bright - Dim) * flutter);
-        Flares.Shared.Bloom(corner.X + size.X / 2, corner.Y + top, size.X * 0.7, (200, 160, 255), (0.08 + 0.06 * flutter) * Fx.Glow, 0.6);
+        Stages.Of(Layers.Machines).Flares.Bloom(corner.X + size.X / 2, corner.Y + top, size.X * 0.7, (200, 160, 255), (0.08 + 0.06 * flutter) * Fx.Glow, 0.6);
         if (_clock < _next) return;
         _next = _clock + Between(LeastMs, MostMs);
         for (int n = _random.NextDouble() < Burst ? _random.Next(2, 4) : 1; n > 0; n--)
@@ -80,7 +80,7 @@ public partial class ArcCrackle : Node2D
             bow = (onRight ? -1 : 1) * Between(0.15, 0.45);
         }
         var (p, q) = (corner + a, corner + b);
-        Bolts.Shared.Add(() => (p.X, p.Y, q.X, q.Y, bow), _random.Next(2, 6), Between(0.85, 1), 0.65,
+        Stages.Of(Layers.Machines).Bolts.Add(() => (p.X, p.Y, q.X, q.Y, bow), _random.Next(2, 6), Between(0.85, 1), 0.65,
             branchy: _random.NextDouble() < 0.35, tint: BoltTint.Violet);
     }
 
@@ -92,6 +92,6 @@ public partial class ArcCrackle : Node2D
         var p = corner + new Vector2(x, top);
         var q = corner + new Vector2(x, (float)Between(top + (size.Y - top) * 0.6f, size.Y - 1));
         double bow = (right ? -1 : 1) * Between(0.2, 0.4);
-        Bolts.Shared.Add(() => (p.X, p.Y, q.X, q.Y, bow), _random.Next(4, 9), 1, 0.8, branchy: true, tint: BoltTint.Violet);
+        Stages.Of(Layers.Machines).Bolts.Add(() => (p.X, p.Y, q.X, q.Y, bow), _random.Next(4, 9), 1, 0.8, branchy: true, tint: BoltTint.Violet);
     }
 }

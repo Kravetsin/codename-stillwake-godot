@@ -42,8 +42,8 @@ public class TerrainTests
         var bedrock = Enumerable.Range(floor + Small.LavaRows, Small.BedrockRows).SelectMany(y => Enumerable.Range(0, l.Width).Select(x => (x, y)));
         // The lava under every column between the sides, solid, the bedrock under it: nothing falls out of the bottom.
         var lava = Enumerable.Range(floor, Small.LavaRows).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
-        // Nowhere else: the ground inside is soil and stone.
-        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(side, l.Width - 2 * side).Select(x => (x, y)));
+        // Nowhere else between the fog bands (fog-edges), which are bedrock: the ground inside is soil and stone.
+        var inside = Enumerable.Range(0, floor).SelectMany(y => Enumerable.Range(Small.Fog, l.Width - 2 * Small.Fog).Select(x => (x, y)));
         return Small.LavaRows > 0 && Small.BedrockRows > 0
             && sides.Concat(bedrock).All(c => Is(c.Item1, c.Item2, "bedrock")) && lava.All(c => Is(c.Item1, c.Item2, "lava"))
             && inside.All(c => l.Materials![c.Item2 * l.Width + c.Item1] is var m && m != Code("bedrock") && m != Code("lava"));
@@ -92,7 +92,7 @@ public class TerrainTests
     public Property SoilLiesOverStoneAtMostSixteenDeepAndTheSkyHasNoMaterial() => Prop.ForAll(Seeds, seed =>
     {
         var l = Terrain.Generate(BareType, seed);
-        for (int x = Small.BedrockSide; x < l.Width - Small.BedrockSide; x++)
+        for (int x = Small.Fog; x < l.Width - Small.Fog; x++)
         {
             int top = TopOf(l, x), soil = SoilAt(l, x, top);
             if (soil > Small.SoilMost) return false;
@@ -112,7 +112,7 @@ public class TerrainTests
         foreach (uint seed in Enumerable.Range(1, 6).Select(s => (uint)s))
         {
             var l = Terrain.Generate(PlanetTypes.First, seed);
-            int thin = Enumerable.Range(Planet.BedrockSide, l.Width - 2 * Planet.BedrockSide).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
+            int thin = Enumerable.Range(Planet.Fog, l.Width - 2 * Planet.Fog).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
             Assert.True(thin * 10 <= l.Width, $"seed {seed}: {thin} thin columns");
         }
     }
@@ -155,7 +155,8 @@ public class TerrainTests
         var l = Terrain.Generate(BareType, seed);
         static bool Open(char c) => c is ' ' or '.' or 'S';
         for (int y = 1; y < l.Height; y++)
-            for (int x = 1; x < l.Width - 1; x++)
+            // Inside the zone: the fog's hollow bands are no ground grown (fog-edges), their side a cut, not a post.
+            for (int x = Small.Fog + 1; x < l.Width - Small.Fog - 1; x++)
             {
                 char c = l.Rows[y][x], above = l.Rows[y - 1][x];
                 // No post a cell wide standing in the open.
@@ -176,7 +177,8 @@ public class TerrainTests
     private static bool SkyFadesUnderTheSurface(uint seed)
     {
         var l = Terrain.Generate(BareType, seed, out _, out var surface);
-        for (int x = 0; x < l.Width; x++)
+        // Inside the zone: the fog's hollow bands keep a back wall under their line wherever it is (fog-edges).
+        for (int x = Small.Fog; x < l.Width - Small.Fog; x++)
         {
             // Down each column: open sky, with no material, till its first solid cell or a few rows under its surface's line,
             // whichever comes first; every other open cell keeps its back wall, a shaft's deep down too.
@@ -256,7 +258,8 @@ public class TerrainTests
             int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] == '#');
             // A chasm: a column open nine cells in ten from the land beside it down half a chasm's greatest depth.
             int LandBy(int x) => Math.Min(TopOf(x - 20), TopOf(x + 20));
-            var chasms = Enumerable.Range(1, w - 2).Where(x => Enumerable.Range(LandBy(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
+            // Inside the zone, twenty columns in: the fog's hollow bands are no chasms (fog-edges).
+            var chasms = Enumerable.Range(Planet.Fog + 20, w - 2 * Planet.Fog - 40).Where(x => Enumerable.Range(LandBy(x), Planet.ChasmDeep / 2).Count(y => l.Rows[y][x] is ' ' or '.') * 10 >= Planet.ChasmDeep / 2 * 9).ToList();
             Assert.NotEmpty(chasms);
             Assert.All(chasms, x => Assert.True(Math.Abs(x - middle) > Planet.Clear, $"seed {seed}: a chasm at {x}"));
             Assert.True(chasms.Max() - chasms.Min() > w / 2, $"seed {seed}: chasms only from {chasms.Min()} to {chasms.Max()}");

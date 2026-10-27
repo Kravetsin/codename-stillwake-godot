@@ -75,9 +75,9 @@ public partial class BuildGlow : Node2D
         var look = inSpace ? Luminous.BuildSparkInSpace : Luminous.BuildSpark;
         // Fanned down-biased either way: the turns mirrored for a hero on the right.
         var fan = Math.Cos(heading) < 0 ? Fan : (-Fan.Item2, -Fan.Item1);
-        Glims.Shared.Spray(look, tip.X, tip.Y, bursts * BurstSparks, heading, fan, Speed, inSpace ? null : floor);
-        Flares.Shared.Glint(tip.X, tip.Y, 4.5, TipGlint, _random.Next(2) * 0.25);
-        Flares.Shared.Flash(tip.X, tip.Y, FlickerLight, 0.45 * Fx.Glow, 4, 0.548f, 0.7);
+        Stages.Of(Layers.PlanHands).Glims.Spray(look, tip.X, tip.Y, bursts * BurstSparks, heading, fan, Speed, inSpace ? null : floor);
+        Stages.Of(Layers.PlanHands).Flares.Glint(tip.X, tip.Y, 4.5, TipGlint, _random.Next(2) * 0.25);
+        Stages.Of(Layers.PlanHands).Flares.Flash(tip.X, tip.Y, FlickerLight, 0.45 * Fx.Glow, 4, 0.548f, 0.7);
     }
 
     /// <summary>Where plan <paramref name="plan"/>, over <paramref name="box"/>, turns real now; none before any work.</summary>
@@ -109,7 +109,7 @@ public partial class BuildGlow : Node2D
             at += b.Position;
             var away = (at - middle).Normalized();
             double s = Between((4, 12));
-            Glims.Shared.Add(Luminous.FinishMote, at.X, at.Y, away.X * s, away.Y * s - 3);
+            Stages.Of(Layers.PlanHands).Glims.Add(Luminous.FinishMote, at.X, at.Y, away.X * s, away.Y * s - 3);
         }
     }
 
@@ -132,7 +132,7 @@ public partial class BuildGlow : Node2D
             {
                 w.SmokeMs += ms;
                 for (; w.SmokeMs >= SmokeMs; w.SmokeMs -= SmokeMs)
-                    Glims.Shared.Add(Luminous.WeldSmoke, w.Tip.X + Between((-1, 1)), w.Tip.Y - 1, Between((-2, 2)), -Between((5, 10)), bright: w.Heat);
+                    Stages.Of(Layers.PlanHands).Glims.Add(Luminous.WeldSmoke, w.Tip.X + Between((-1, 1)), w.Tip.Y - 1, Between((-2, 2)), -Between((5, 10)), bright: w.Heat);
             }
             if (w.Heat > 0.02 || w.Shimmer != null)
             {
@@ -144,7 +144,7 @@ public partial class BuildGlow : Node2D
                 }
                 w.Shimmer.Box = new Rect2(w.Tip.X - 8, w.Tip.Y - 22, 16, 22);
                 w.Shimmer.Amplitude = (float)(0.4 * w.Heat);
-                Flares.Shared.Hold(w, w.Tip.X, w.Tip.Y, MoltenLight, 0.5 * w.Heat * Fx.Glow, 4, 0.548f, 0.6);
+                Stages.Of(Layers.PlanHands).Flares.Hold(w, w.Tip.X, w.Tip.Y, MoltenLight, 0.5 * w.Heat * Fx.Glow, 4, 0.548f, 0.6);
             }
             // Motes rising off the line where it turns real, shared among the plans being worked.
             if (working && cutting > 0 && w.Cut is { } cut && motes > 0)
@@ -154,7 +154,7 @@ public partial class BuildGlow : Node2D
                     var b = w.Box;
                     double x = cut.FromLeft ? cut.Line + Between((-0.5, 0.5)) : b.Position.X + _random.NextDouble() * b.Size.X;
                     double y = cut.FromLeft ? b.Position.Y + _random.NextDouble() * b.Size.Y : cut.Line + Between((-0.5, 0.5));
-                    Glims.Shared.Add(Luminous.EdgeMote, x, y, Between((-3, 3)), -Between((3, 9)));
+                    Stages.Of(Layers.PlanHands).Glims.Add(Luminous.EdgeMote, x, y, Between((-3, 3)), -Between((3, 9)));
                 }
             }
         }
@@ -165,7 +165,7 @@ public partial class BuildGlow : Node2D
             if (!f.Glinted && f.AgeMs >= GlintAfterMs)
             {
                 f.Glinted = true;
-                Flares.Shared.Glint(f.Box.End.X, f.Box.Position.Y, 6, (170, 230, 255));
+                Stages.Of(Layers.PlanHands).Flares.Glint(f.Box.End.X, f.Box.Position.Y, 6, (170, 230, 255));
             }
             if (f.AgeMs >= SweepMs && f.Glinted) _finished.RemoveAt(i);
             else _finished[i] = f;

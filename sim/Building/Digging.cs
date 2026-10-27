@@ -111,28 +111,60 @@ public sealed partial class BuildingModule
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, c.From);
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>.</summary>
-    private void HitWall(int peer, int cell, int hit)
+    /// <summary>
+    /// A hit of <paramref name="damage"/> on what stands solid in <paramref name="cell"/> alone, by peer <paramref name="peer"/>'s
+    /// shot (shots-are-the-sims): a wall that breaks, or a built piece, a floor too, as a <see cref="Hew"/>'s ray strikes it; what
+    /// it gives to the peer, or, its hero not on this surface (gone aboard, left, or none), falling there, anyone's. Nothing where
+    /// the surface's tools break nothing, nor on what never breaks (bedrock, lava). A shot stops only where it is solid, so never
+    /// here for a ladder, an open door, a back wall or a plant. True when what stood there broke (2026-10-27-shots-pierce).
+    /// </summary>
+    public bool Hit(int peer, int cell, int damage)
+    {
+        if (damage <= 0 || !ShotTakes(cell)) return false;
+        int? here = _crew.HeroOf(peer) != null ? peer : null;
+        return _grid.WallAt(cell) != null ? HitWall(here, cell, damage) : HitPiece(here, PieceAt(cell)!.Value.Head, damage);
+    }
+
+    /// <inheritdoc/>
+    // Nothing breaks in a planet's fog, where a shot already stops as at a wall.
+    public bool ShotTakes(int cell) =>
+        Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
+        && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
+
+    /// <inheritdoc/>
+    public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
+
+    /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
+    private void Yield(int? peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
+    {
+        if (peer is int p) _itemsOps.GiveOrDrop(p, cost, cell);
+        else _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
+    }
+
+    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>: true when it broke.</summary>
+    private bool HitWall(int? peer, int cell, int hit)
     {
         var wall = _grid.WallAt(cell)!;
-        if (!Cracked(cell, wall.Strength, hit)) return;
+        if (!Cracked(cell, wall.Strength, hit)) return false;
         _gridOps.Clear(cell, "structure");
-        _itemsOps.GiveOrDrop(peer, wall.Cost, cell);
+        Yield(peer, wall.Cost, cell);
         // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
         foreach (var plant in HeldBy(cell))
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, peer);
+        return true;
     }
 
     /// <summary>
     /// A hit of <paramref name="hit"/> on the built piece kept by <paramref name="head"/>: at its build's strength it comes apart
-    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost.
+    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost: true when it came apart.
     /// </summary>
-    private void HitPiece(int peer, int head, int hit)
+    private bool HitPiece(int? peer, int head, int hit)
     {
-        if (PieceAt(head) is not { } piece || !Cracked(head, piece.Build.Strength, hit)) return;
+        if (PieceAt(head) is not { } piece || !Cracked(head, piece.Build.Strength, hit)) return false;
         var cost = Costs.BuiltAt(_grid, head, "structure")!.Cost;
         foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
-        _itemsOps.GiveOrDrop(peer, cost, head);
+        Yield(peer, cost, head);
+        return true;
     }
 
     /// <summary>

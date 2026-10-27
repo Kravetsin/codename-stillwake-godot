@@ -13,14 +13,18 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// An item's card, from content: its name and kind; a tool's tiles and effects — a weapon's (the fire axe's,
-/// the drill's) damage a second, damage and seconds between hits, read from the sim's own fold (<see cref="ToolStats"/>), and
-/// with modules fitted (<see cref="Fitted"/>, 0098) each that differs marked by how; the harpoon's range, reload and reel speed; a
-/// worn item's one number, the helmet lamp's reach. Its words from the i18n table.
+/// the drill's) damage a second, damage, block damage and seconds between hits, read from the sim's own fold (<see cref="ToolStats"/>),
+/// and with modules fitted (<see cref="Fitted"/>, 0098) each that differs marked by how; the harpoon's range, reload and reel speed; a
+/// gun's damage and block damage with its first ammo, its reload and what it keeps through what it pierces, and its ammo's share
+/// of those (2026-10-27-shots-pierce); a worn item's one number, the helmet lamp's reach. Its words from the i18n table.
 /// </summary>
 public static class ItemCards
 {
-    /// <summary>Whether <paramref name="item"/> is a tool: a weapon (the fire axe, the drill) or the harpoon.</summary>
-    public static bool IsTool(string item) => Spec.Weapons.Of(item) != null || item == Spec.Harpoon.Item;
+    /// <summary>Whether <paramref name="item"/> is a tool: a weapon (the fire axe, the drill), a gun (the nailer) or the harpoon.</summary>
+    public static bool IsTool(string item) => Spec.Weapons.Of(item) != null || Spec.Shots.GunOf(item) != null || item == Spec.Harpoon.Item;
+
+    /// <summary>Whether <paramref name="item"/> is some gun's ammo (the nail): its card has tiles too, though it is no tool.</summary>
+    public static bool IsAmmo(string item) => Spec.Shots.Guns.Any(gun => gun.Ammo.Contains(item));
 
     /// <summary>
     /// Whether <paramref name="item"/> shows the violet "?" and its card the band: it needs analysis, being in
@@ -35,8 +39,9 @@ public static class ItemCards
     private static ItemCard Card(string item, bool unknown)
     {
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
-        // Anything used by a key of its own says so: a canister breathed, a jetpack worn (0047).
-        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key"), T($"item.{item}.hint")) : null;
+        // Anything used by a key of its own shows the key, and no words on what it does: the player finds out (0047).
+        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key")) : null;
+        if (IsAmmo(item)) return new ItemCard(item, name, kind, AmmoTiles(item), [], key, unknown);
         if (!IsTool(item))
         {
             var card = new ItemCard(item, name, kind, null, [], key, unknown);
@@ -44,6 +49,7 @@ public static class ItemCards
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
         if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, unknown);
+        if (Spec.Shots.GunOf(item) is { } gun) return new ItemCard(item, name, kind, GunTiles(gun), [], key, unknown);
         var weapon = Spec.Weapons.Of(item)!;
         return new ItemCard(
             item, name, kind, WeaponTiles(item, []),
@@ -67,20 +73,47 @@ public static class ItemCards
     }
 
     /// <summary>
-    /// A weapon's tiles, <paramref name="modules"/> fitted (none for the plain one): its damage a second, a hit's damage and the
-    /// seconds between hits, all from <see cref="ToolStats"/>, each that differs from the plain weapon's marked.
+    /// A weapon's tiles, <paramref name="modules"/> fitted (none for the plain one): its damage a second, a hit's damage off a body
+    /// and off a block, and the seconds between hits, all from <see cref="ToolStats"/>, each that differs from the plain weapon's marked.
     /// </summary>
     private static List<CardTile> WeaponTiles(string item, IReadOnlyList<Spec.ModuleSpec> modules)
     {
         var (plain, stats) = (ToolStats.Of(item, []), ToolStats.Of(item, modules));
+        var (block, plainBlock) = (ToolStats.BlockDamageOf(item, modules), ToolStats.BlockDamageOf(item, []));
         double every = (double)stats.Pace / World.TicksPerSecond, was = (double)plain.Pace / World.TicksPerSecond;
         int Damage(Spec.ModuleSpec m) => m.Adds(item, Spec.Stat.Damage);
         return
         [
             new(Number(stats.Damage / every), T("card.dps"), BoostOf(stats.Damage / every, plain.Damage / was, modules, Damage)),
             new(Number(stats.Damage), T("card.damage"), BoostOf(stats.Damage, plain.Damage, modules, Damage)),
+            new(Number(block), T("card.block"), BoostOf(block, plainBlock, modules, Damage)),
             new(T("card.seconds", ("n", Number(every))), T("card.hit"), BoostOf(every, was, modules, _ => 0)),
         ];
+    }
+
+    /// <summary>
+    /// A gun's tiles: a hit's damage off a body and off a block with the first of its ammo, the seconds between shots, and the share
+    /// of its damage a shot keeps through each thing it pierces (<see cref="Spec.Gun.PierceKeep"/>); and for a gun that takes the
+    /// belt's charge, the power-ticks a shot (2026-10-27-the-railgun).
+    /// </summary>
+    private static List<CardTile> GunTiles(Spec.Gun gun)
+    {
+        List<CardTile> tiles =
+        [
+            new(Number(Spec.Shots.DamageOf(gun.Item, gun.Ammo[0])), T("card.damage")),
+            new(Number(Spec.Shots.BlockDamageOf(gun.Item, gun.Ammo[0])), T("card.block")),
+            new(T("card.seconds", ("n", Number((double)gun.Pace / World.TicksPerSecond))), T("card.reload")),
+            new(T("card.percent", ("n", Number(gun.PierceKeep / 10.0))), T("card.pierce")),
+        ];
+        if (gun.Energy > 0) tiles.Add(new(Number(gun.Energy), T("card.energy")));
+        return tiles;
+    }
+
+    /// <summary>Ammo's tiles: what it adds to its gun's damage off a body and off a block, "+2".</summary>
+    private static List<CardTile> AmmoTiles(string item)
+    {
+        var projectile = Spec.Shots.Get(item);
+        return [new($"+{projectile.Damage}", T("card.damage")), new($"+{projectile.BlockDamage}", T("card.block"))];
     }
 
     /// <summary>

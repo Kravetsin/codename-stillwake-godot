@@ -70,6 +70,8 @@ public partial class Main : Node2D, ITogether
     private GridView? _grid;
     private LightView? _light;
     private ShipCamera _camera = null!;
+    /// <summary>The world's stages of effects, each drawn at its layer, kept last among the world's views (effects-on-their-layer).</summary>
+    private readonly StagesView _stages = new();
     private Stars _stars = null!;
     private string _role = "alone";
     private bool _cheat;
@@ -158,7 +160,7 @@ public partial class Main : Node2D, ITogether
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
         // Before everything else, so every button made after it clicks.
-        var sound = new SoundView(Floats, () => _title != null);
+        var sound = new SoundView(Floats, () => _title != null, Fogged);
         AddChild(sound);
 
         // The views of this player's hands, made first: the hero, its items and the debris share its Ui and mouse.
@@ -208,10 +210,10 @@ public partial class Main : Node2D, ITogether
             var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
-            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None, true), _hands.Ui);
+            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);
             AddChild(gauge);
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
-            AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
             IEnumerable<Rect2> Hud()
@@ -226,8 +228,7 @@ public partial class Main : Node2D, ITogether
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
         }
-        var effects = new EffectsView();
-        AddChild(effects);
+        AddChild(_stages);
         AddChild(_hands);
         AddChild(_shot);
         // The world pictured for its card as the menu opens, the way out of it.
@@ -288,12 +289,16 @@ public partial class Main : Node2D, ITogether
         AddChild(_updater);
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
-        AddDevDemos(menu, suits, debrisPage, effects);
+        AddDevDemos(menu, suits, debrisPage, _stages);
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
     // In a drop pod the hero hears as in air, the vacuum outside or not: the pod holds its own.
     private bool Floats() => _session != null && _hero is { Placed: true, Floats: true, InPod: false };
+
+    /// <summary>How deep in a planet's fog this player's placed hero is, 0 to 1 (fog-edges): the world dulls in it as in space.</summary>
+    private double Fogged() => _session != null && _hero is { Placed: true } hero && Shared.FogEdges.Of(_m.Grid, _m.Rules) is { } fog
+        ? Shared.FogShare.Column(fog, hero.Current.X / (double)Hero.Unit) : 0;
 
     private IReadOnlyList<Sim.Module> Modules()
     {
@@ -320,9 +325,7 @@ public partial class Main : Node2D, ITogether
         _hands.Ui.OpenComputer.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
-        Bolts.Shared.Clear();
-        Glims.Shared.Clear();
-        Flares.Shared.Clear();
+        Stages.Clear();
         Log($"on surface {surface} now");
     }
 
@@ -336,7 +339,9 @@ public partial class Main : Node2D, ITogether
         _faded.Clear();
         _light?.QueueFree();
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
-            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null }, _arrivals);
+            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
+            Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -359,6 +364,8 @@ public partial class Main : Node2D, ITogether
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
+        // Last of the world's views: at a shared z, a stage's effects over its layer's objects.
+        MoveChild(_stages, -1);
         MoveChild(_camera, -1);
         _shown = _m;
         double views = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;
@@ -433,7 +440,7 @@ public partial class Main : Node2D, ITogether
         if (client.World.Tick != before) SyncLight();
         if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
-        _hero?.Frame(client, _m, _camera, heard, session.Progress, delta * 1000);
+        _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Host != null, delta * 1000);
         _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);

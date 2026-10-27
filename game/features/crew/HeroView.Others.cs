@@ -83,12 +83,12 @@ public partial class HeroView
                 _air.Leak(new Vector2(cx, cy), rammedFrom);
                 _othersThud.Play(S.RamHits.GetValueOrDefault(rammer, S.RamThud), new Vector2(cx, cy));
             }
-            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat, out_), out_ ? 0 : seen.Look ?? 0,
+            shown.Figure.Show(hero, Poses.PoseOf(hero, afloat || ship.Glides(hero.X), out_), out_ ? 0 : seen.Look ?? 0,
                 seen.HoldsPlan, elapsedMs);
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
             // A friend's canister: its air rises round it, heard where it is (0081).
-            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Suit, breathing.Out))
+            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
                 var figure = shown.Figure;
                 _air.Vortex(() => figure.Stance);
@@ -241,7 +241,7 @@ public partial class HeroView
     /// <summary>The spring's breath leaving <paramref name="figure"/>'s muzzle with the rod, along its barrel, and its glint.</summary>
     private static void Puff(Figure figure)
     {
-        if (figure.Muzzle is { } at) RodLight.Fired(at, figure.Barrel);
+        if (figure.Muzzle is { } at) RodLight.Fired(figure.Held, at, figure.Barrel);
     }
 
     private void PaintLines(Sketch g)

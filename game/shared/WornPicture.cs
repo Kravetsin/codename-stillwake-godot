@@ -5,21 +5,31 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// A worn item's picture on its card (the item card mockup's medium card), in the window a tool's picture has
-/// (<see cref="ToolPicture.DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp on the helmet
-/// it is worn on, its warm beam reaching out across the window with motes drifting through it, as wide as the game's
+/// A worn item's picture on its card (the item card mockup's medium card), in a small dark window
+/// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp fixed on a helmet
+/// (<see cref="HeadLampArt"/>), its warm beam reaching out across the window with motes drifting through it, as wide as the game's
 /// (<see cref="Light.HeadLampHalfAngle"/>); a battery glowing green as much as it holds, slowly pulsing.
 /// </summary>
 public partial class WornPicture : Control
 {
     /// <summary>The window's side, and the helmet lamp's wider one, in screen pixels.</summary>
     private const int Side = 72, LampWidth = 132, HelmetLeft = 6;
-    /// <summary>Where the lamp's bulb is on the helmet's picture, and where the battery's glow sits on its icon, in their pixels.</summary>
-    private static readonly Vector2 Bulb = new(12.4f, 3.2f), Cell = new(8, 9.5f);
+    /// <summary>Where the battery's glow sits on its icon, in its pixels.</summary>
+    private static readonly Vector2 Cell = new(8, 9.5f);
     private static readonly Color BulbColour = new("fff4d6"), BulbGlow = new("ffd696"), MoteColour = new("ffecc8");
     private const float BeamAlpha = 0.42f, BeamMiddle = 0.15f, BulbGlowAcross = 24, ChargeGlowAcross = 36;
 
     private static readonly CanvasItemMaterial Added = new() { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    // The window's ground, the mockup's radial-gradient(#121c33, #080d19 75%) a little above the middle.
+    private static readonly GradientTexture2D Ground = new()
+    {
+        Width = 64,
+        Height = 64,
+        Fill = GradientTexture2D.FillEnum.Radial,
+        FillFrom = new Vector2(0.5f, 0.4f),
+        FillTo = new Vector2(1.4f, 0.4f),
+        Gradient = new Gradient { Offsets = [0f, 0.75f], Colors = [new Color("121c33"), new Color("080d19")] },
+    };
 
     private sealed class Mote
     {
@@ -56,7 +66,18 @@ public partial class WornPicture : Control
         });
         if (lamp)
         {
-            _bulb = origin + Bulb * scale;
+            var on = origin + HeadLampArt.On * scale;
+            AddChild(new TextureRect
+            {
+                Texture = HeadLampArt.Picture,
+                Position = on,
+                Size = HeadLampArt.Picture.GetSize() * scale,
+                ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+                StretchMode = TextureRect.StretchModeEnum.Scale,
+                TextureFilter = TextureFilterEnum.Nearest,
+                MouseFilter = MouseFilterEnum.Ignore,
+            });
+            _bulb = on + HeadLampArt.Lens * scale;
             _motes = new Mote[CardLook.Motes];
             for (int i = 0; i < _motes.Length; i++)
                 _motes[i] = new Mote
@@ -95,7 +116,19 @@ public partial class WornPicture : Control
 
     private float Between(float from, float to) => from + (to - from) * (float)_random.NextDouble();
 
-    public override void _Draw() => ToolPicture.DrawWindow(this, Size);
+    public override void _Draw() => DrawWindow(this, Size);
+
+    /// <summary>A card's picture window (the mockup's <c>.win</c>): its dark ground, a shadow along its top and left, a faint light along its bottom and right.</summary>
+    private static void DrawWindow(CanvasItem on, Vector2 size)
+    {
+        on.DrawTextureRect(Ground, new Rect2(Vector2.Zero, size), false);
+        var shade = new Color(0, 0, 0, 0.5f);
+        on.DrawRect(new Rect2(0, 0, size.X, 2), shade);
+        on.DrawRect(new Rect2(0, 2, 2, size.Y - 2), shade);
+        var lit = new Color(140 / 255f, 170 / 255f, 220 / 255f, 0.06f);
+        on.DrawRect(new Rect2(0, size.Y - 1, size.X, 1), lit);
+        on.DrawRect(new Rect2(size.X - 1, 0, 1, size.Y - 1), lit);
+    }
 
     public override void _Process(double delta)
     {
@@ -142,7 +175,8 @@ public partial class WornPicture : Control
             on.DrawRect(new Rect2(m.X - 0.5f, m.Y - 0.5f, 1, 1), MoteColour with { A = 0.7f * lit });
             on.DrawTextureRect(SoftDots.Dot, new Rect2(m.X - 2.2f, m.Y - 2.2f, 4.4f, 4.4f), false, BulbGlow with { A = 0.3f * lit });
         }
-        on.DrawRect(new Rect2(_bulb - Vector2.One * 2, Vector2.One * 4), BulbColour);
+        const int Lens = CardLook.HelmetScale;
+        on.DrawRect(new Rect2(_bulb - new Vector2(Lens / 2f, Lens), new Vector2(Lens, 2 * Lens)), BulbColour);
         on.DrawTextureRect(PixelArt.Glow, new Rect2(_bulb - Vector2.One * BulbGlowAcross / 2, Vector2.One * BulbGlowAcross), false, BulbGlow with { A = 0.7f });
     }
 }

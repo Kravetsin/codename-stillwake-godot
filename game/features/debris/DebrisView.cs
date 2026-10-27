@@ -26,8 +26,6 @@ public partial class DebrisView(Ui ui) : Node2D
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = DebrisModule.Unit;
-    /// <summary>A piece drawn as its item, with no pictures of its own: its size, in cells.</summary>
-    private const float ItemSize = 1.6f;
     /// <summary>A wreck rocks this far either way, in radians, once in <see cref="RockMs"/>.</summary>
     private const double Rock = 0.08, RockMs = 7000;
     /// <summary>A hit knocks a piece <see cref="JoltPixels"/> away from the nearest hero and turns it <see cref="JoltTurn"/>, settling over <see cref="JoltMs"/>.</summary>
@@ -119,7 +117,7 @@ public partial class DebrisView(Ui ui) : Node2D
         {
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
-            if (!_out.Contains(id) && Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
+            if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
                 Burst(gone.Picture, _own.Ran(id));
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
@@ -170,9 +168,8 @@ public partial class DebrisView(Ui ui) : Node2D
         var pool = wreck ? _wrecks : _small;
         var one = pool.Count > 0 ? pool.Pop() : Made(wreck);
         var picture = one.Picture;
-        var (texture, scale) = PictureOf(piece.Item, piece.Id);
-        picture.Texture = texture;
-        picture.Scale = Vector2.One * scale;
+        picture.Texture = PictureOf(piece.Item, piece.Id);
+        picture.Scale = Vector2.One;
         picture.Visible = true;
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(picture, piece);
@@ -211,7 +208,7 @@ public partial class DebrisView(Ui ui) : Node2D
         bool drill = HeldLook.IsDrill(tool);
         var point = drill && bit is { } on ? on.At : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
-        HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
+        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
         if (_own.Ran(piece.Id) && !drill)
         {
@@ -267,7 +264,7 @@ public partial class DebrisView(Ui ui) : Node2D
         var size = picture.Texture.GetSize() * picture.Scale;
         float big = Math.Clamp(size.Length() / 26f, 1f, 2f);
         AddChild(new BreakView(picture.Texture, at, picture.Rotation, picture.Scale.X));
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Effects).Glims;
         double spread = 3 * big;
         for (int i = 0; i < Math.Round(BreakSparks * big * Fx.Count); i++)
         {
@@ -286,9 +283,9 @@ public partial class DebrisView(Ui ui) : Node2D
             glims.Add(Luminous.Vapour, at.X + Math.Cos(a) * 3 * big, at.Y + Math.Sin(a) * 2 * big, Math.Cos(a) * s, Math.Sin(a) * s,
                 size: glims.Between(3, 4.5) * big);
         }
-        Flares.Shared.Glint(at.X, at.Y, 18 * Math.Sqrt(big), BreakGlint);
-        Flares.Shared.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
-        Flares.Shared.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
+        Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 18 * Math.Sqrt(big), BreakGlint);
+        Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
+        Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
         if (own) _break.PlayAt(at);
     }
 
@@ -317,14 +314,14 @@ public partial class DebrisView(Ui ui) : Node2D
     }
 
     /// <summary>
-    /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), a pixel of art a pixel of the
-    /// world, or its item's the size of a piece, and its scale; each loaded once.
+    /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), or its item's as the world draws it (a tool's
+    /// as it is held), a pixel of art a pixel of the world; each loaded once.
     /// </summary>
-    private static (Texture2D Texture, float Scale) PictureOf(string item, int id)
+    private static Texture2D PictureOf(string item, int id)
     {
-        if (!DebrisLooks.Of.ContainsKey(item)) return (ItemIcons.Icon(item), ItemSize * Cell / ItemIcons.Pixels);
+        if (!DebrisLooks.Of.ContainsKey(item)) return ItemIcons.Icon(item);
         var key = (item, Content.Looks.Of(item, id));
         if (!Textures.TryGetValue(key, out var texture)) Textures[key] = texture = GD.Load<Texture2D>(DebrisLooks.PictureOf(item, id));
-        return (texture, 1);
+        return texture;
     }
 }

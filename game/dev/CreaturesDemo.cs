@@ -147,7 +147,7 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
         if (m.Creatures.Creatures.Count == 0 || m.Crew.HeroOf(client.Id) is not { } hero) return;
         var c = m.Creatures.Creatures[0];
         int heroX = hero.Cell % m.Grid.Width * CreaturesModule.Unit + CreaturesModule.Unit / 2;
-        if (c.Posture != _ramWas) log($"creatures ram: tick {tick}, {c.Species} {c.Id} {c.Posture} at {c.X}, hero at {heroX}, suit {hero.Suit}");
+        if (c.Posture != _ramWas) log($"creatures ram: tick {tick}, {c.Species} {c.Id} {c.Posture} at {c.X}, hero at {heroX}, air {hero.Air}");
         _ramWas = c.Posture;
         _wound |= c.Posture == Posture.WindUp;
         string axe = Spec.Weapons.Axe.Item;

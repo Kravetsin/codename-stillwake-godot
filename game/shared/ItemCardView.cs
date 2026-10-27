@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using static Stillwake.Game.I18n.En;
@@ -9,8 +8,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// An <see cref="ItemCard"/> in Control nodes, by what the item is (the item card mockup), each a little screen of the
-/// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber: its
-/// held picture large and live on top (<see cref="ToolPicture"/>), its name and kind, its tiles, the first in amber, its
+/// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, no
+/// picture, its icon in the slot showing it (2026-10-27-tool-icons): its name and kind, its tiles, the first in amber, its
 /// draw, its key and hint. A worn item's, the medium card, edged green: its picture (<see cref="WornPicture"/>) beside its
 /// name, kind and one number, the hint under both. Anything else's, the compact card: its name and kind on one line. Under
 /// any of them what the open station does with it, by its slot's mark, with what it makes there; a violet band while
@@ -88,15 +87,14 @@ public static class ItemCardView
         return Screen(column, Style.Slate600, 1, card.Station != null ? Inside + 6 : 0);
     }
 
-    /// <summary>Layout A: the held picture on top, the name and kind, the tiles and the draw, the key and its hint.</summary>
+    /// <summary>
+    /// Layout A: no picture of a tool, its icon in the slot showing it; for what is never held (the nail) its icon large on top;
+    /// the name and kind, the tiles and the draw, the key and its hint.
+    /// </summary>
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
-        if (ToolPicture.Of(card.Item, [.. card.Fitted.Select(Content.Modules.Get)]) is { } picture)
-        {
-            picture.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
-            column.AddChild(Padded(picture, 5, 5, 7, 0));
-        }
+        if (HeldLook.Of(card.Item) == null) column.AddChild(Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0));
         column.AddChild(Padded(Title(card, ToolKindText), 8, 6, 10, 7));
         column.AddChild(Tiles(card.Tiles!, card.Draw, card.DrawBoost));
         if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 8, Pad, 0));
@@ -253,30 +251,42 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// The tiles in a row ruled above and below, each after the first ruled on its left, the first in amber; an electric tool's draw
-    /// last, a bolt and the number. A number its modules change (0098) is in their tech's colour, an arrow and "×2" beside it.
+    /// The tiles in rows ruled above and below, each after a row's first ruled on its left, the first in amber; an electric tool's
+    /// draw last, a bolt and the number. More than three go in rows as even as they come, three at most a row: five as three and two.
+    /// A number its modules change (0098) is in their tech's colour, an arrow and "×2" beside it.
     /// </summary>
     private static Control Tiles(IReadOnlyList<CardTile> tiles, int? draw, CardBoost? drawBoost)
     {
-        var rules = new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 };
-        var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        row.AddThemeConstantOverride("separation", 0);
+        var cells = new List<(Control Number, string Label, Color? Accent)>();
         for (int i = 0; i < tiles.Count; i++)
         {
             var accent = i == 0 ? Amber : (Color?)null;
             var boost = tiles[i].Boost;
             Control number = Text(tiles[i].Value, Style.Text(BoldMono, i == 0 ? 19 : 16, boost is { } b ? TechColour(b.Tech) : accent ?? Style.Slate100));
             if (boost != null) number = Boosted(number, boost);
-            row.AddChild(Tile(number, tiles[i].Label, first: i == 0, accent));
+            cells.Add((number, tiles[i].Label, accent));
         }
         if (draw is int power)
         {
             var drawn = Powered(power.ToString(CultureInfo.InvariantCulture), drawBoost is { } b ? Style.Text(BoldMono, 16, TechColour(b.Tech)) : DrawText);
             drawn.Alignment = BoxContainer.AlignmentMode.Center;
             if (drawBoost != null) drawn.AddChild(Mark(drawBoost));
-            row.AddChild(Tile(drawn, T("card.draw"), first: false, null));
+            cells.Add((drawn, T("card.draw"), null));
         }
-        return Boxed(rules, row);
+        // As even as they come: the first rows one longer where they cannot all match, seven as three, two and two.
+        int rows = (cells.Count + 2) / 3, from = 0;
+        var column = Column(0);
+        for (int r = 0; r < rows; r++)
+        {
+            int count = cells.Count / rows + (r < cells.Count % rows ? 1 : 0);
+            var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+            row.AddThemeConstantOverride("separation", 0);
+            for (int i = from; i < from + count; i++)
+                row.AddChild(Tile(cells[i].Number, cells[i].Label, first: i == from, cells[i].Accent));
+            from += count;
+            column.AddChild(r == 0 ? row : Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2 }, row));
+        }
+        return Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 }, column);
     }
 
     /// <summary>Technology <paramref name="tech"/>'s colour, its icon's rim: what its modules change on a tool's card is written in it.</summary>
@@ -358,7 +368,7 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// The key cap and its hint, centred (the mockup's <c>.use</c>): on a card <paramref name="card"/> px wide the hint
+    /// The key cap and its hint, if any, centred (the mockup's <c>.use</c>): on a card <paramref name="card"/> px wide the hint
     /// wraps, read from the left, past what the card leaves it; on a compact card it never does.
     /// </summary>
     private static Control UseRow(CardKey how, int? card)
@@ -367,6 +377,7 @@ public static class ItemCardView
         var cap = Cap(how.Key);
         cap.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         row.AddChild(cap);
+        if (how.Words == "") return Padded(row, Pad, 7, Pad, 8);
         var hint = Text(how.Words, HintText, HorizontalAlignment.Left);
         if (card is int wide)
         {
@@ -471,7 +482,7 @@ public static class ItemCardView
             made.AddChild(Text("→", YieldText));
             foreach (var (item, count) in output.Items)
             {
-                made.AddChild(Picture(ItemIcons.Icon(item), 16));
+                made.AddChild(Picture(ItemIcons.Icon(item, 16), 16));
                 made.AddChild(Text(T("card.many", ("n", count)), YieldText));
             }
             made.AddChild(Text($" · {output.Time}", TimeDim));
@@ -539,7 +550,7 @@ public static class ItemCardView
     {
         var line = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         var icon = new CenterContainer { CustomMinimumSize = new Vector2(18, 16), MouseFilter = Control.MouseFilterEnum.Ignore };
-        icon.AddChild(Picture(ItemIcons.Icon(row.Item), 16));
+        icon.AddChild(Picture(ItemIcons.Icon(row.Item, 16), 16));
         line.AddChild(icon);
         var name = Style.Gap(new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         name.AddChild(Text(row.Name, CostText));

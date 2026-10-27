@@ -222,7 +222,7 @@ public class HomesTests
         var room = Room((At(5, 3), Ruins.Resonator));
         Assert.True(room.M.Building.Zaps(room.At(6, 2)));
         var w = Resonating(near: (6, 2), far: (8, 2));
-        int Suit(int peer) => w.M.Crew.HeroOf(peer)!.Suit;
+        int Suit(int peer) => w.M.Crew.HeroOf(peer)!.Air;
         // Both breathe the room's thin air alike; the one beside it pays its zap besides, each breath.
         Assert.Equal(Suit(1) - Ruins.Zap, Suit(0));
         w.Run(Content.Crew.BreathEvery);
@@ -242,12 +242,12 @@ public class HomesTests
         Assert.Empty(w.M.Building.Plants);
         Assert.False(w.M.Building.Zaps(w.At(6, 2)));
         Assert.Equal((3, 2, 1, 2), (Count(w, "copper"), Count(w, "wire"), Count(w, "crystal"), Count(w, "alloyScrap")));
-        int gap = w.M.Crew.HeroOf(1)!.Suit - w.M.Crew.HeroOf(0)!.Suit;
+        int gap = w.M.Crew.HeroOf(1)!.Air - w.M.Crew.HeroOf(0)!.Air;
         w.Run(3 * Content.Crew.BreathEvery);
-        Assert.Equal(gap, w.M.Crew.HeroOf(1)!.Suit - w.M.Crew.HeroOf(0)!.Suit);
+        Assert.Equal(gap, w.M.Crew.HeroOf(1)!.Air - w.M.Crew.HeroOf(0)!.Air);
         var creative = Room((At(5, 3), Ruins.Resonator));
         creative.Do(new SetCreative(true)).Do(new Enter(creative.At(6, 2))).Run(3 * Content.Crew.BreathEvery);
-        Assert.Equal(Content.Crew.Suit, creative.M.Crew.HeroOf(0)!.Suit);
+        Assert.Equal(Scenario.Full, creative.M.Crew.HeroOf(0)!.Air);
     }
 
     [Fact]

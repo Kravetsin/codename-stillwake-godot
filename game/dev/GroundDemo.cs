@@ -62,12 +62,12 @@ public sealed class GroundDemo(string mode)
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
         var slots = new JsonArray();
-        int head = Spec.Inventory.Slots, belt = Spec.Inventory.Slots + 2;
+        int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount), belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? module != null ? Testbed.FittedDrill(module) : Stack(Spec.Weapons.Axe.Item)
                 : i == 1 ? Stack(Spec.Weapons.Drill.Item)
                 : i == 2 && module != null ? Stack(Spec.Weapons.Axe.Item)
-                : i == head ? Stack(Spec.HelmetLamp.Item)
+                : i == lamp ? Stack(Spec.HelmetLamp.Item)
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
@@ -111,10 +111,10 @@ public sealed class GroundDemo(string mode)
                 log($"ground demo: beamed down to ({spot % w}, {spot / w}), looking at ({look.X:F0}, {look.Y:F0}), seed {world.Surfaces[_planet.Value].Seed}");
                 return;
             }
-            int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : Homes(mode) ? HomeSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid)
+            int at = Spires(mode) ? SpireSpot(m, mode) ?? m.Crew.Spawn : Homes(mode) ? HomeSpot(m, mode) ?? m.Crew.Spawn : tunnel ? CaveUnder(m) ?? m.Crew.Spawn : mode == "mouth" ? RimNear(m) ?? m.Crew.Spawn : mode == "sprint" ? Features.Crew.HeroAutopilot.SprintStart(m.Grid) : mode is "fog" or "fog-cave" ? FogSpot(m, mode == "fog-cave")
                 : mode == "acacia" ? BesideAcacia(m) ?? m.Crew.Spawn : m.Crew.Spawn;
             // The shaft under the feet; the tunnel at head height the way the hero faces, right.
-            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("acacia" or "sprint" or "pit") && !Spires(mode) && !Homes(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
+            for (int i = 1; i <= (tunnel ? Along : Depth) && mode is not ("acacia" or "sprint" or "pit" or "fog" or "fog-cave") && !Spires(mode) && !Homes(mode); i++) _cells.Add(tunnel ? at - w + i : at + i * w);
             // pit: a pit under the feet, a block of its ground left standing on its floor (0088).
             for (int dy = 1; dy <= PitDepth && mode == "pit"; dy++)
                 for (int dx = -PitSide; dx <= PitSide; dx++)
@@ -298,6 +298,20 @@ public sealed class GroundDemo(string mode)
 
     private static int TopOf(Registry m, int x) =>
         Enumerable.Range(0, m.Grid.Height).First(y => m.Grid.StructureAt(y * m.Grid.Width + x) != Structure.Empty);
+
+    /// <summary>
+    /// With <c>fog</c>, the cell on the ground forty-eight columns inside the left band's zone side, past the fog, to walk into
+    /// it from; with <c>fog-cave</c>, one inside the left band four columns out of the zone, forty rows under its ground line,
+    /// as a tunnel out to it would leave the hero (fog-edges).
+    /// </summary>
+    private static int FogSpot(Registry m, bool cave)
+    {
+        int w = m.Grid.Width, fog = m.Grid.Zone.Left, x = cave ? fog - 4 : fog + 48;
+        int top = Enumerable.Range(0, m.Grid.Height).First(y => cave
+            ? m.Grid.BackLayer[y * w + x] != Stillwake.Sim.Grid.Back.None
+            : m.Grid.StructureAt(y * w + x) != Structure.Empty);
+        return (cave ? top + 40 : top - 1) * w + x;
+    }
 
     /// <summary>
     /// The open cell on the rim of the pit, chasm or cave mouth nearest the spawn: a column whose ground lies at least eight

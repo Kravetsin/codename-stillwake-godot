@@ -23,7 +23,8 @@ break some hulls and not others (see `docs/concept.md`). Ported from
 
 ## API
 
-- **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall.
+- **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
+  never breaks (bedrock, lava) or out of the grid's zone (a planet's fog).
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
   reads the grid's walls when it draws, where the TypeScript generator, which cannot see the grid,
   aims at the wreck's walls as drawn.

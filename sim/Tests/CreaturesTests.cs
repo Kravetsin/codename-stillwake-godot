@@ -291,6 +291,37 @@ public class CreaturesTests
     }
 
     [Fact]
+    public void OnAPlanetAFleeingLoperTurnsAtTheBuildZonesSideNeverRunningIntoTheFog()
+    {
+        // The zone ends at the course's middle, character 40 (cell 80 of 160): past it lies the fog (fog-edges), solid to creatures.
+        var w = CreaturesTesting.Planet(Course() with { Zone = new Box(0, 0, 39, 15) }, CreaturesTesting.Lifeless).Breathing().HeroAt(20, 8);
+        var c = w.Loper(30, 8).Walking(+1, Posture.Flee);
+        c.DriveLeft = 200;
+        bool turned = false;
+        for (int t = 0; t < 200; t++)
+        {
+            w.Run();
+            Assert.True(c.X + Loper.Body.Width * Unit / 2 <= 80 * Unit, $"tick {t}: in the fog");
+            turned |= c.VX < 0;
+        }
+        Assert.True(turned, "it never turned");
+    }
+
+    [Fact]
+    public void OnAPlanetAKnockTowardTheFogStopsAtTheBuildZonesSide()
+    {
+        // Struck from the left beside the zone's side, character 28 (cell 56): knocked and fleeing right, it never crosses into the fog.
+        var w = CreaturesTesting.Planet(Layout.Parse(Long) with { Zone = new Box(0, 0, 27, 4) }).HeroAt(20, 3).HeroAt(2, 3, peer: 1);
+        var c = w.Loper(23, 3).Still();
+        w.Do(new Strike(c.Id, Axe) { From = 1 });
+        for (int t = 0; t < Loper.FleeTicks(); t++)
+        {
+            w.Run();
+            Assert.True(c.X + Loper.Body.Width * Unit / 2 <= 56 * Unit, $"tick {t}: in the fog");
+        }
+    }
+
+    [Fact]
     public void AFleeingLoperTurnsAtAGapTooWideToLeap()
     {
         var (c, over, fell) = Flee(Course(gap: 22), 22);
@@ -646,6 +677,25 @@ public class CreaturesTests
     }
 
     [Fact]
+    public void OnAPlanetNothingSpawnsInTheFogPastTheBuildZone()
+    {
+        // The zone leaves 60 characters (120 cells) of fog at each side of the open ground (fog-edges); a hero stands by the left.
+        var w = CreaturesTesting.Planet(Wide(400, 12) with { Zone = new Box(60, 0, 339, 11) }).Breathing().HeroAt(70, 10);
+        int seen = 0;
+        for (int t = 0; t < 40 * Tune.Beat; t++)
+        {
+            w.Run();
+            foreach (var c in w.M.Creatures.Creatures)
+            {
+                int half = Tune.Get(c.Species).Body.Width * Unit / 2;
+                Assert.True(c.X - half >= 120 * Unit && c.X + half <= 680 * Unit, $"tick {w.World.Tick}: a {c.Species} in the fog");
+                seen++;
+            }
+        }
+        Assert.True(seen > 0, "nothing spawned");
+    }
+
+    [Fact]
     public void NoHerosKeepBoxGetsMoreThanItsShareFromSpawningNorTheSurfaceMoreThanItsCap()
     {
         // Three heroes far apart, their keep boxes apart: each fills its share and no more.
@@ -734,6 +784,10 @@ public class CreaturesTests
         }
         // The stream's pieces drift by, none a derelict: each looked at, none guarded.
         Assert.Equal(w.M.Debris.Pieces[^1].Id, ((CreaturesState)w.M.Creatures.Slice).Watermark);
+        // Shots the heroes fired fly in the slice too, and are counted: they are not the creatures.
+        var slice = (CreaturesState)w.M.Creatures.Slice;
+        Assert.True(slice.Fired > 0);
+        (slice.Fired, slice.Shots, slice.Arcs) = (0, [], []);
         Assert.Equal(before, CreaturesSlice(w));
         // This map holds no wrecks: off the grid nothing fits; on it a walker finds no gravity aboard, a clinger no piece.
         int cells = w.M.Grid.Width * w.M.Grid.Height;

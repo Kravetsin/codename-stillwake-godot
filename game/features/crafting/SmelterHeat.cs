@@ -51,7 +51,7 @@ public partial class SmelterHeat : Node2D
         // The glow pulses with the work: a slow swell, a quick flutter over it.
         double pulse = 0.5 - 0.5 * Math.Cos(_clock / PulseMs * Math.Tau), flutter = 0.85 + 0.15 * Math.Sin(_clock / 90 + 1.3 * Math.Sin(_clock / 230));
         var middle = corner + Window;
-        Flares.Shared.Bloom(middle.X, middle.Y, WindowSize.X * 1.3, Heat, (0.1 + 0.14 * pulse) * flutter * Fx.Glow, 0.75);
+        Stages.Of(Layers.Machines).Flares.Bloom(middle.X, middle.Y, WindowSize.X * 1.3, Heat, (0.1 + 0.14 * pulse) * flutter * Fx.Glow, 0.75);
         if (_clock >= _nextCrackle)
         {
             _nextCrackle = _clock + Between(CrackleLeastMs, CrackleMostMs);
@@ -62,7 +62,7 @@ public partial class SmelterHeat : Node2D
             _nextFleck = _clock + Between(FleckLeastMs, FleckMostMs);
             var (from, to) = Stacks[_random.Next(Stacks.Length)];
             var at = corner + new Vector2((float)Between(from, to), Edges[0].Y);
-            Glims.Shared.Add(Luminous.HeatSpark, at.X, at.Y, Between(-4, 4), -Between(8, 18));
+            Stages.Of(Layers.Machines).Glims.Add(Luminous.HeatSpark, at.X, at.Y, Between(-4, 4), -Between(8, 18));
         }
         if (_clock < _nextArc) return;
         _nextArc = _clock + Between(ArcLeastMs, ArcMostMs);
@@ -70,7 +70,7 @@ public partial class SmelterHeat : Node2D
         int pair = _random.Next(2);
         var a = corner + new Vector2(Contacts[pair * 2], ContactsY);
         var b = corner + new Vector2(Contacts[pair * 2 + 1], ContactsY);
-        Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, -0.5), 3 + _random.Next(3), 0.9, 0.3);
+        Stages.Of(Layers.Machines).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, -0.5), 3 + _random.Next(3), 0.9, 0.3);
     }
 
     /// <summary>
@@ -85,6 +85,6 @@ public partial class SmelterHeat : Node2D
         var a = corner + new Vector2((float)x, y + (float)Between(-0.3, 0.3));
         var b = corner + new Vector2((float)(x + Between(1.4, 2.6)), y + (float)Between(-0.3, 0.3));
         double bulge = bow * Between(0.15, 0.45);
-        Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, bulge), _random.Next(2, 5), Between(0.7, 1), width: 0.3, fine: true);
+        Stages.Of(Layers.Machines).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, bulge), _random.Next(2, 5), Between(0.7, 1), width: 0.3, fine: true);
     }
 }

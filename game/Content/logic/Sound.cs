@@ -400,12 +400,13 @@ public static class Sound
     };
 
     /// <summary>
-    /// A tick's sounds (the sentry, its audition page's picks): its alert's chirp, its wind-up's servo, the click as it lets go,
-    /// the clunk as it clamps on, a harpoon line it cuts snapping, its burner (the jetpack's loop, while it flies), a blow on it
-    /// (a wreck's chop, as metal), its death (a power-down over a heavy clatter). All on the Suit bus, the hero's, as a wreck's are:
-    /// it lives out in space, where the World bus is silent.
+    /// A tick's sounds (the sentry, its audition page's picks): its alert's chirp, its wind-up's servo, its arc's charge (a laser
+    /// charging up, the user's pick, 2026-10-27-sentry-arc), the click as it lets go, the clunk as it clamps on, a harpoon line it
+    /// cuts snapping, its burner (the jetpack's loop, while it flies), a blow on it (a wreck's chop, as metal), its death (a
+    /// power-down over a heavy clatter). All on the Suit bus, the hero's, as a wreck's are: it lives out in space, where the World
+    /// bus is silent.
     /// </summary>
-    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Unclamp, Cue Clamp, Cue Snap, Cue Thrust, Cue Hit, Cue Death);
+    public sealed record TickCues(Cue Alert, Cue WindUp, Cue Charge, Cue Unclamp, Cue Clamp, Cue Snap, Cue Thrust, Cue Hit, Cue Death);
 
     /// <summary>Each species drawn as a tick (<c>CreatureLooks.Ticks</c>): its cues, levelled alike on the audition page.</summary>
     public static readonly IReadOnlyDictionary<string, TickCues> Ticks = new Dictionary<string, TickCues>
@@ -413,6 +414,7 @@ public static class Sound
         [Stillwake.Content.Creatures.Sentry.Id] = new(
             Alert: new(Shots("creatures/sentry-alert", 1), -1.5f, Heard: ToolReach),
             WindUp: new(Shots("creatures/sentry-windup", 1), -1.5f, Heard: ToolReach),
+            Charge: new(Shots("creatures/sentry-charge", 1), -1.5f, Heard: ToolReach),
             Unclamp: new(Shots("creatures/sentry-unclamp", 1), -1.5f, Heard: ToolReach),
             Clamp: new(Shots("creatures/sentry-clamp", 1), -1.5f, Heard: ToolReach),
             Snap: new(Shots("creatures/sentry-snap", 1), -1.5f, Heard: ToolReach),
@@ -446,6 +448,37 @@ public static class Sound
     public static readonly Cue Shot = new(Shots("crew/harpoon-shot", 1), -6, Heard: ToolReach);
     public static readonly Cue Drum = new(["res://audio/crew/harpoon-reel-1.ogg"], -10, Loops: true, Heard: ToolReach);
     public static readonly Cue Ready = new(Shots("crew/harpoon-ready", 1), -10);
+
+    /// <summary>
+    /// The nailer (shots-are-the-sims), the user's picks: a nail fired, a real air nailer's single shot, heard where it is as a
+    /// friend's too (<see cref="NailShot"/>); a rifle's dry fire with no nails, the hand's alone (<see cref="DryClick"/>); a nail
+    /// meeting the ground or a wreck, a small bullet's soft hit, where it lands (<see cref="NailHit"/>), a creature's hit its own;
+    /// and a clip loaded as the hero's cooldown ends (<see cref="NailReady"/>).
+    /// </summary>
+    public static readonly Cue NailShot = new(Shots("crew/nailer-shot", 1), -8, Heard: ToolReach);
+    public static readonly Cue DryClick = new(Shots("crew/nailer-dry", 1), -12);
+    public static readonly Cue NailHit = new(Shots("crew/nailer-hit", 1), -6, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue NailReady = new(Shots("crew/nailer-ready", 1), -12);
+
+    /// <summary>
+    /// The railgun (2026-10-27-the-railgun): its charge as it is held, its pitch rising to full (<see cref="RailCharge"/>); a ping as it
+    /// comes full (<see cref="RailReady"/>); its shot, heard where it is as a friend's too (<see cref="RailShot"/>). The user's picks:
+    /// a synthesised laser's charge up, a pinball relay snapping shut, a sci-fi gun's dry crack.
+    /// </summary>
+    public static readonly Cue RailCharge = new(Shots("crew/railgun-charge", 1), -8, Pitch: 0);
+    public static readonly Cue RailReady = new(Shots("crew/railgun-ready", 1), -8, Pitch: 0);
+    public static readonly Cue RailShot = new(Shots("crew/railgun-shot", 1), -6, Heard: ToolReach);
+
+    /// <summary>The shot of the gun <paramref name="gun"/> heard fired: the railgun's its own, any other the nailer's.</summary>
+    public static Cue FiredBy(string? gun) => gun == Content.Shots.Railgun.Item ? RailShot : NailShot;
+
+    /// <summary>
+    /// The sentry's arc (2026-10-27-sentry-arc), the user's picks: struck, the resonator's crackle lower and louder, heard as far as a
+    /// tool where it leaves the sentry (<see cref="ArcStruck"/>); where it strikes, and through the suit of a hero it crossed, a
+    /// real stun gun's tenth of a second (<see cref="ArcHit"/>). Its charge is the sentry's own (<see cref="TickCues.Charge"/>).
+    /// </summary>
+    public static readonly Cue ArcStruck = Zap with { VolumeDb = -6, Tune = 0.8f, Heard = ToolReach };
+    public static readonly Cue ArcHit = new(Shots("creatures/sentry-arc-hit", 1), -1.5f, Heard: ToolReach);
 
     /// <summary>
     /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
@@ -517,7 +550,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];

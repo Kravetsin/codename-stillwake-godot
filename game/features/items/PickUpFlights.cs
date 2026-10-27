@@ -14,8 +14,8 @@ namespace Stillwake.Game.Features.Items;
 /// </summary>
 public partial class PickUpFlights : Node2D
 {
-    /// <summary>How long a flight takes, in 60 Hz frames, how high its arc rises, pixels, and the icon's size at the start.</summary>
-    private const double Frames = 13, Rise = 12, Size = 8;
+    /// <summary>How long a flight takes, in 60 Hz frames, and how high its arc rises, pixels; the picture starts as large as it lay.</summary>
+    private const double Frames = 13, Rise = 12;
     /// <summary>How many 60 Hz frames after the one before it each of a catch's icons sets off; how much higher it arcs, a share of <see cref="Rise"/>.</summary>
     private const double Stagger = 3, Higher = 0.35;
     /// <summary>The ribbon's points, one each 60th of a second.</summary>
@@ -81,16 +81,16 @@ public partial class PickUpFlights : Node2D
             }
             f.Trail[0] = (f.At.X, f.At.Y);
             int n = Math.Max(2, (int)Math.Round(f.Points * Math.Min(1, Fx.Length)));
-            if (f.Points > 1) Flares.Shared.Trail(f.Trail.AsSpan(0, Math.Min(n, f.Points)), Ribbon, 0.7, 0.85, 0.7);
-            Flares.Shared.Bloom(f.At.X, f.At.Y, 14, Ribbon, 0.35);
+            if (f.Points > 1) Stages.Of(Layers.Effects).Flares.Trail(f.Trail.AsSpan(0, Math.Min(n, f.Points)), Ribbon, 0.7, 0.85, 0.7);
+            Stages.Of(Layers.Effects).Flares.Bloom(f.At.X, f.At.Y, 14, Ribbon, 0.35);
             if (q < 1) continue;
             if (f.Nth == 0)
             {
-                Flares.Shared.Glint(chest.X, chest.Y, 6, Landed);
-                Flares.Shared.Shock(chest.X, chest.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
-                Flares.Shared.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
+                Stages.Of(Layers.Effects).Flares.Glint(chest.X, chest.Y, 6, Landed);
+                Stages.Of(Layers.Effects).Flares.Shock(chest.X, chest.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
+                Stages.Of(Layers.Effects).Flares.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
             }
-            else Flares.Shared.Glint(chest.X, chest.Y, 4, Landed);
+            else Stages.Of(Layers.Effects).Flares.Glint(chest.X, chest.Y, 4, Landed);
             _flights.RemoveAt(i);
         }
         _icons.QueueRedraw();
@@ -104,9 +104,10 @@ public partial class PickUpFlights : Node2D
         {
             if (f.Ms < 0) continue;
             double q = Math.Min(1, f.Ms / Glim.SampleMs / Frames);
-            float size = (float)(Size * (1 - 0.45 * q));
+            var picture = ItemIcons.Icon(f.Item);
+            var size = picture.GetSize() * (float)(1 - 0.45 * q);
             var colour = alpha < 1 ? new Color(0.81f, 0.92f, 1, alpha) : Colors.White;
-            on.DrawTextureRect(ItemIcons.Icon(f.Item), new Rect2(f.At - Vector2.One * size / 2, Vector2.One * size), false, colour);
+            on.DrawTextureRect(picture, new Rect2(f.At - size / 2, size), false, colour);
         }
     }
 }

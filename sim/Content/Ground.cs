@@ -128,6 +128,24 @@ public sealed record Ground(int Width, int Height)
     public required int BedrockRows { get; init; }
     public required int BedrockSide { get; init; }
 
+    /// <summary>
+    /// The columns at each side hidden in fog (fog-edges): bedrock from the ground's top down, sky over it, no landmark,
+    /// ruin or growth, and outside the build zone, so nothing is dug or built there and no creature goes in.
+    /// </summary>
+    public required int Fog { get; init; }
+
+    /// <summary>
+    /// Rows over a band's ground line beside the zone that a hero moved across the fog arrives at, its feet: it glides out
+    /// of the band and falls to the ground (fog-edges). At least the hero's height.
+    /// </summary>
+    public required int FogDrop { get; init; }
+
+    /// <summary>
+    /// Columns past a band, inside the zone, that the fog lies thick over and a hero moved across it glides on through before it
+    /// falls, so it is seen dropping out of the fog rather than in it (fog-edges). A hero walking in from the zone walks there.
+    /// </summary>
+    public required int FogOut { get; init; }
+
     /// <summary>The rows under the caves: the lava and the bedrock under it.</summary>
     public int CoreRows => LavaRows + BedrockRows;
 }

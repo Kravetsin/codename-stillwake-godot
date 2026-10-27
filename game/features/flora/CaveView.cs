@@ -402,7 +402,7 @@ public partial class CaveView : Node2D, ILightSource
             foreach (var (at, floor) in patch.Drips) if (view.HasPoint(at)) _sources.Add((1, at, default, floor));
             foreach (var at in patch.Embers) if (view.HasPoint(at)) _sources.Add((2, at, default, 0));
         }
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Flora).Glims;
         for (; _moteDue >= 1; _moteDue--)
         {
             if (_sources.Count == 0 || _motes.Count >= CaveLooks.MostMotes) continue;
@@ -441,11 +441,11 @@ public partial class CaveView : Node2D, ILightSource
             if (drip.AgeMs < drip.LifeMs)
             {
                 drip.AgeMs = drip.LifeMs;
-                Glims.Shared.Spray(CaveLooks.Splash, drip.X, floor - 0.5, CaveLooks.SplashDrops, -Math.PI / 2, (-1.1, 1.1), (14, 34), floor);
+                Stages.Of(Layers.Flora).Glims.Spray(CaveLooks.Splash, drip.X, floor - 0.5, CaveLooks.SplashDrops, -Math.PI / 2, (-1.1, 1.1), (14, 34), floor);
                 // Heard now and then, however many fall: a cave drips, it does not rain.
                 if (_dripQuietS <= 0)
                 {
-                    var glims = Glims.Shared;
+                    var glims = Stages.Of(Layers.Flora).Glims;
                     _dripQuietS = glims.Between(Game.Sound.CaveDripLeastS, Game.Sound.CaveDripMostS);
                     _drip.PlayAt(new Vector2((float)drip.X, floor), 1, (float)glims.Between(Game.Sound.CaveDripLowDb, 0));
                 }
@@ -474,7 +474,7 @@ public partial class CaveView : Node2D, ILightSource
         // Its block's middle and bottom: one on a floor stands up from its cell, any other hangs or lies down from it (0104).
         double x = (plant.Cell % w + kind.Across / 2.0) * Cell, bottom = (kind.On == Spec.Flora.Anchor.Floor ? row + 1 : row + kind.Tall) * Cell;
         double y = bottom - kind.Tall * Cell / 2.0;
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Flora).Glims;
         if (look.Light is { } c && plant.Kind != "moss" && plant.Kind != "heatCrack")
         {
             var ramp = new[] { (255, 255, 255), ((int)(c.R * 255), (int)(c.G * 255), (int)(c.B * 255)) };

@@ -220,7 +220,7 @@ public partial class SpiresView : Node2D, ILightSource
 
     private void Flash(Spire s, Vector2 at, double share)
     {
-        Flares.Shared.Flash(at.X, at.Y, RelicLooks.Hot, RelicLooks.FlashStrength * share, RelicLooks.FlashReach, RelicLooks.LightKeep, RelicLooks.FlashDecay);
+        Stages.Of(Layers.Flora).Flares.Flash(at.X, at.Y, RelicLooks.Hot, RelicLooks.FlashStrength * share, RelicLooks.FlashReach, RelicLooks.LightKeep, RelicLooks.FlashDecay);
         _zap.PlayAt(at, 0.8f + (float)_random.NextDouble() * 0.2f, 2);
     }
 

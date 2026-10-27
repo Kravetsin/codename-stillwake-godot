@@ -101,7 +101,7 @@ public partial class AirView : Node2D
         // The alarm is light (0075): each venting room lit red on the beat, its cells only faintly painted over.
         _pulse.Modulate = new Color(1, 1, 1, (float)(0.06 + 0.12 * pulse));
         foreach (var (room, at, reach) in _alarms)
-            Flares.Shared.Hold((Alarm, room), at.X, at.Y, AlarmLight, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.866f, 0.6);
+            Stages.Of(Layers.Effects).Flares.Hold((Alarm, room), at.X, at.Y, AlarmLight, (0.12 + 0.3 * pulse) * Fx.Glow, reach, 0.866f, 0.6);
         _vents.Step(_streams, elapsedMs);
         Breathe(elapsedMs);
         Nearest(_hiss, _streams.Select(s => new Vector2((float)s.X, (float)s.Y) * Cell));
@@ -161,7 +161,7 @@ public partial class AirView : Node2D
             double speed = Math.Sqrt(mote.Vx * mote.Vx + mote.Vy * mote.Vy);
             if (speed < WindFrom) continue;
             double length = Math.Min(14, speed * 0.075 * Fx.Length) / speed, a = 0.42 * Math.Min(1, (speed - WindFrom) / WindFrom) * Math.Max(0, mote.Alpha);
-            Flares.Shared.Trail(mote.X, mote.Y, mote.X - mote.Vx * length, mote.Y - mote.Vy * length, Wind, 0.4, a, 0.22);
+            Stages.Of(Layers.Effects).Flares.Trail(mote.X, mote.Y, mote.X - mote.Vx * length, mote.Y - mote.Vy * length, Wind, 0.4, a, 0.22);
         }
     }
 
@@ -177,7 +177,7 @@ public partial class AirView : Node2D
     {
         if (_fillingVents.Count == 0) return;
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewportRect();
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Effects).Glims;
         for (_breaths += BreathsPerSecond * Fx.Count * elapsedMs / 1000; _breaths >= 1; _breaths--)
             foreach (var (x, y) in _fillingVents)
             {

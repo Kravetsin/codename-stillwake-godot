@@ -70,7 +70,7 @@ public class FieldTests
             Assert.Equal(0, Cost(cell));
             var w = BroughtIn(cell);
             Breaths(w, 5);
-            Assert.Equal(Content.Crew.Suit - 5, HeroOf(w).Suit);
+            Assert.Equal(Scenario.Full - 5, HeroOf(w).Air);
         }
     }
 
@@ -81,8 +81,18 @@ public class FieldTests
         {
             Assert.Equal(1, Cost(cell));
             var w = Breaths(BroughtIn(cell), 1);
-            Assert.Equal(Content.Crew.Suit - 2, HeroOf(w).Suit);
+            Assert.Equal(Scenario.Full - 2, HeroOf(w).Air);
         }
+    }
+
+    [Fact]
+    public void ABareHeroPastTheFieldPaysItsOwnColdAndTheEdgesBoth()
+    {
+        var w = ToBreath(new Scenario(Layout.Parse(PodRoom).Doubled().InWorld()) { Bare = true }).Run();
+        w.Do(new Enter(At(Left - 1, MidY)) { From = 0 }).Run();
+        Breaths(w, 1);
+        Assert.Equal(Content.Crew.Lungs - 2 - Content.Crew.BareCold, HeroOf(w).Air);
+        Assert.Equal(1 + Content.Crew.BareCold, w.M.Crew.Cold(0));
     }
 
     [Fact]
@@ -93,7 +103,7 @@ public class FieldTests
         {
             Assert.Equal(12, Cost(cell));
             var w = Breaths(BroughtIn(cell), 1);
-            Assert.Equal(Content.Crew.Suit - 13, HeroOf(w).Suit);
+            Assert.Equal(Scenario.Full - 13, HeroOf(w).Air);
         }
     }
 
@@ -104,9 +114,9 @@ public class FieldTests
             Assert.Equal(FieldSpec.EdgeCost, Cost(cell));
         var w = World().Do(new Enter(At(0, MidY)) { From = 0 }).Run();
         ToBreath(w).Run();
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Suit, HeroOf(w).Out));
+        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
         w.Run(Content.Crew.PassOut);
-        Assert.Equal((w.M.Crew.Spawn, Content.Crew.Suit, 0), (HeroOf(w).Cell, HeroOf(w).Suit, HeroOf(w).Out));
+        Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0), (HeroOf(w).Cell, HeroOf(w).Air, HeroOf(w).Out));
         Assert.True(w.M.Crew.ByPod(HeroOf(w).Cell));
     }
 
@@ -114,9 +124,9 @@ public class FieldTests
     public void StopsDrainingOnTheTickTheReportFromInsideLands()
     {
         var w = Breaths(BroughtIn(At(Left / 2, MidY)), 1);
-        Assert.Equal(Content.Crew.Suit - 13, HeroOf(w).Suit);
+        Assert.Equal(Scenario.Full - 13, HeroOf(w).Air);
         ToBreath(w).Do(new Enter(At(Left + 10, MidY)) { From = 0 }).Run();
-        Assert.Equal(Content.Crew.Suit - 14, HeroOf(w).Suit);
+        Assert.Equal(Scenario.Full - 14, HeroOf(w).Air);
     }
 
     [Fact]
@@ -127,19 +137,19 @@ public class FieldTests
         w.Do(new Enter(cell) { From = 0 }).Do(new Enter(cell) { From = 1 }).Do(new Thrust(true) { From = 0 }).Run();
         Breaths(w, 1);
         // Hero 1 breathes and freezes; hero 0 too, and vents 20 ticks of thrust on top.
-        Assert.Equal(Content.Crew.Suit - 13, HeroOf(w, 1).Suit);
-        Assert.Equal(Content.Crew.Suit - 13 - Content.Crew.BreathEvery / JetpackSpec.TicksPerUnit, HeroOf(w, 0).Suit);
+        Assert.Equal(Scenario.Full - 13, HeroOf(w, 1).Air);
+        Assert.Equal(Scenario.Full - 13 - Content.Crew.BreathEvery / JetpackSpec.TicksPerUnit, HeroOf(w, 0).Air);
     }
 
     [Fact]
     public void DrainsACanisterBreathedPastTheField()
     {
         var w = BroughtIn(At(Left / 2, MidY)).GiveItems(0, (Content.Crew.Canister, 1));
-        HeroOf(w).Suit = 10;
+        HeroOf(w).Air = 10;
         w.Do(new Refill { From = 0 }).Run();
-        Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Suit);
+        Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Air);
         ToBreath(w).Run();
-        Assert.Equal(10 + Content.Crew.CanisterRefill - 13, HeroOf(w).Suit);
+        Assert.Equal(10 + Content.Crew.CanisterRefill - 13, HeroOf(w).Air);
     }
 
     [Fact]
@@ -149,7 +159,7 @@ public class FieldTests
         Assert.Equal(FieldSpec.EdgeCost, Cost(Width * Height));
         var w = World().Do(new Enter(-5) { From = 0 }).Run();
         ToBreath(w).Run();
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Suit, HeroOf(w).Out));
+        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
     }
 
     [Fact]
@@ -218,8 +228,8 @@ public class FieldTests
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
                 w.Run(s.Type == "wait" ? s.Ticks : 1);
                 foreach (var hero in w.Crew().Heroes)
-                    if (hero.Suit < 0 || hero.Suit > Content.Crew.Suit)
-                        return false.Label($"hero {hero.Id}'s suit holds {hero.Suit}");
+                    if (hero.Air < 0 || hero.Air > Scenario.Full)
+                        return false.Label($"hero {hero.Id}'s suit holds {hero.Air}");
             }
             return true.ToProperty();
         });

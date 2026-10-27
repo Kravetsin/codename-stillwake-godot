@@ -25,6 +25,13 @@ public static class Crafts
         new("screwdriver", [("scrap", 2)], Ticks: 20),
         // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
         new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
+        // The first gun (shots-are-the-sims): cheaper than the harpoon, after the first iron; the axe's time.
+        new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
+        // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
+        new("nail", [("scrap", 2)], Ticks: 4),
+        // Free, a convention: the hero has to go and take them (2026-10-27-suits-are-worn). Five seconds each at the pod.
+        new("helmet", [], Ticks: 20),
+        new("suit", [], Ticks: 20),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
         // A plate bent into a band, wire, and silicon from rock for its glowing bulb: cheap, so it comes before the first cave (0077).
@@ -52,6 +59,8 @@ public static class Crafts
         new("arcModule", [("arcShard", 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.
         new("accumulator", [("arcShard", 1), ("battery", 1), ("copper", 2), ("circuit", 1)], Ticks: 200),
+        // At the arc bench (2026-10-27-the-railgun): two rails of copper wound with coils round a sky shard, in ten seconds.
+        new("railgun", [("arcShard", 1), ("copper", 4), ("coil", 2), ("tube", 1), ("frame", 1), ("circuit", 2)], Ticks: 200),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);

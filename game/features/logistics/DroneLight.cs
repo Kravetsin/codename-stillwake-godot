@@ -98,12 +98,12 @@ public partial class DroneLight : Node2D
     /// <summary>A puff of dust either way and a faint flat ring where a drone sets down on or lifts off <paramref name="pad"/>.</summary>
     public static void Touched(Vector2 pad)
     {
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Drones).Glims;
         double floor = pad.Y + L.DockHeight / 2.0;
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
             for (int i = 0; i < 3; i++)
                 glims.Add(Luminous.WashDust, pad.X + side * glims.Between(2, 6), floor - 0.5, side * glims.Between(8, 22), -glims.Between(0, 4), floor);
-        Flares.Shared.Shock(pad.X, floor - 0.3, 2, 2 + 12 * Fx.Length, 9 * Glim.SampleMs, Ring, 0.22 * Fx.Glow, 0.26, 0.2);
+        Stages.Of(Layers.Drones).Flares.Shock(pad.X, floor - 0.3, 2, 2 + 12 * Fx.Length, 9 * Glim.SampleMs, Ring, 0.22 * Fx.Glow, 0.26, 0.2);
     }
 
     /// <summary>Each rotor's disc of blur and the glint running round its rim, as bright as it spins.</summary>
@@ -113,7 +113,7 @@ public partial class DroneLight : Node2D
         {
             double rx = i == 0 ? -RotorX : RotorX;
             var (cx, cy) = h.Body(rx, RotorY, bob);
-            Flares.Shared.Bloom(cx, cy, 10, Disc, (0.14 * Fx.Glow + 0.04) * spin, 0.26);
+            Stages.Of(Layers.Drones).Flares.Bloom(cx, cy, 10, Disc, (0.14 * Fx.Glow + 0.04) * spin, 0.26);
             // The rim's glint: four points a quarter of the way round an ellipse, turning at the blades' pace.
             double turn = clockMs / Glim.SampleMs * 1.7 * spin + i * 2.1;
             for (int k = 0; k < _rim.Length; k++)
@@ -121,7 +121,7 @@ public partial class DroneLight : Node2D
                 double u = turn - k * 0.28;
                 _rim[k] = h.Body(rx + Math.Cos(u) * 4.4, RotorY + Math.Sin(u) * 1.05, bob);
             }
-            Flares.Shared.Trail(_rim, Rim, 0.6, 0.5 * spin, 0.3);
+            Stages.Of(Layers.Drones).Flares.Trail(_rim, Rim, 0.6, 0.5 * spin, 0.3);
         }
     }
 
@@ -132,7 +132,7 @@ public partial class DroneLight : Node2D
     private void Wash(Seen s, Hover h, double spin, double? floor, double elapsedMs)
     {
         if (floor is not double f || f - h.Y > WashReach * ShipCamera.Cell) return;
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Drones).Glims;
         double near = 1 - Math.Max(0, f - h.Y) / (WashReach * ShipCamera.Cell), rate = spin * Fx.Count * (0.35 + 0.65 * near) * elapsedMs / 1000;
         for (s.Dust += DustPerSecond * rate; s.Dust >= 1; s.Dust--)
         {
@@ -161,6 +161,6 @@ public partial class DroneLight : Node2D
         if (speed < TrailFrom || s.Points < 3) return;
         int n = Math.Max(2, (int)Math.Round(s.Points * Math.Min(1, Fx.Length)));
         Array.Copy(s.Lamp, _trail, n);
-        Flares.Shared.Trail(_trail.AsSpan(0, n), Lamp, 0.5, Math.Min(0.5, speed / 90) * Fx.Glow, 0.7);
+        Stages.Of(Layers.Drones).Flares.Trail(_trail.AsSpan(0, n), Lamp, 0.5, Math.Min(0.5, speed / 90) * Fx.Glow, 0.7);
     }
 }

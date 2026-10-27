@@ -156,4 +156,24 @@ public class RamsTests
         for (int i = 0; i < 10; i++) m.Step(1000.0 / 60, 0, false, null);
         Assert.Equal(0, m.Brace);
     }
+
+    /// <summary>An arc as the sim lists it, from (<paramref name="x0"/>, <paramref name="y0"/>) to (<paramref name="x1"/>, <paramref name="y1"/>).</summary>
+    private static Arc ArcOf(int x0, int y0, int x1, int y1) =>
+        JsonSerializer.Deserialize<Arc>(JsonSerializer.Serialize(new { id = 1, projectile = "bolt", x0, y0, x1, y1, left = 10 }),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+    [Fact]
+    public void AnArcCrossesTheHeroItRunsThroughOrEndsInAndNoneThatPassesOrStopsShort()
+    {
+        // The body and margin span x 4750..7250, y 7450..13300; the arcs come from the right at the hero's middle height.
+        int y = Standing.Y - Spec.Hero.Height / 2, right = Standing.X + Spec.Hero.Width / 2 + Rams.Margin;
+        Assert.True(Rams.Crosses(ArcOf(40_000, y, 1_000, y), Standing));
+        Assert.True(Rams.Crosses(ArcOf(40_000, y, right - 1, y), Standing));
+        Assert.False(Rams.Crosses(ArcOf(40_000, y, right + 1, y), Standing));
+        // Over its head, and slanting down past its side: missed.
+        Assert.False(Rams.Crosses(ArcOf(40_000, Standing.Y - Spec.Hero.Height - Rams.Margin - 1, 1_000, Standing.Y - Spec.Hero.Height - Rams.Margin - 1), Standing));
+        Assert.False(Rams.Crosses(ArcOf(40_000, 0, right + 2_000, Standing.Y), Standing));
+        // A slant through its body.
+        Assert.True(Rams.Crosses(ArcOf(40_000, 0, Standing.X, Standing.Y - 100), Standing));
+    }
 }

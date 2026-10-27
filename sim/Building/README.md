@@ -17,7 +17,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
   does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110); `Research` (`Knows`, 0024);
-  `Crafting` (`Queue`: a station with crafts queued stands, 0057). The client reads `Registry.Building`.
+  `Crafting` (`Queue`: a station with crafts queued stands, 0057). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`. Derived (`Flora.cs`): the growths grown
@@ -25,9 +25,9 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 ## Rules
 
-- **Blueprint checks, in order:** `building.fixed` (the lifepod is never planned nor marked, 0028); `building.notHere`
+- **Blueprint checks, in order:** `building.fixed` (the lifepod, never planned nor marked, 0028); `building.notHere`
   (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock always, 0077); the
-  grid's `PlacementProblem` keys; its shaft keys for plans too; `building.planned`. Structure
+  grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`. Structure
   and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
   2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).
 - **Marks** (no ADR): one thing takes one mark and needs something in that layer; none at all where the surface's tools
@@ -36,26 +36,26 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
 - **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while the left button is held on a plan
-  with the screwdriver (0107); the sim checks no tool. Two heroes work twice as fast; stopped work keeps progress. A
-  blueprint takes its `BuildTicks`; a mark takes those
+  with the screwdriver (0107); the sim checks no tool. Two heroes work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
   down. The tick that starts an unpaid part takes from the sender the first item in cost order still lacking that they
-  carry, else is refused `items.notEnough`, what was put in staying. Within a paid part anyone works, carrying nothing.
-  Creative mode lacks and takes nothing.
-- **Instant** (`SetInstant`, dev panel): a blueprint is built as placed, free, no plan; new surfaces keep it.
+  carry, else is refused `items.notEnough`. Within a paid part anyone works, carrying nothing.
+  Creative mode lacks nothing and takes nothing.
+- **Instant** (`SetInstant`, dev): a blueprint is built as placed, free; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building runs before crew.
-  So does any last tick the grid refuses (a pod set down since).
+  So does a last tick the grid refuses (a pod set down since).
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (any material but bedrock and
   lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.
   `Struck` says what. Each takes `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths,
-  a piece whole for its cost. `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. Back
-  walls are no tool's: old back cracks heal.
+  a piece whole for its cost. `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. `Hit`,
+  a shot's, strikes one cell `ShotTakes` allows, true if it broke, its yield the shooter's here, else anyone's. No
+  tool hits back walls: old cracks heal.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
@@ -65,9 +65,9 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 - **Felled by nobody** (0085): built over or lost to a meteor, a growth drops its `Yields` at its cell for anyone.
 - **Ruins** (0085, 0091): caches, lenses and the homes' pieces are growths set by `Terrain`. `Behind` pieces have a
   layer of their own, the front hit first; `Fixed` ones no hit takes; a piece standing on another falls with it.
-- **The resonator** (0091): every breath, before crew breathes, a hero within `Ruins.ZapReach` of one pays `Ruins.Zap` (`Shock`).
-- **The relic** (0096): every `Hew` striking a cradle first shocks its sender once (`ShockOf`, a faster tool its pace's share of
-  the axe's, rounded up); its floor dug out fells it unshocked. `Relics` reads taken-ness from `Felled` alone.
+- **The resonator** (0091): every breath, before crew breathes, a hero within `Ruins.ZapReach` pays `Ruins.Zap` (`Shock`).
+- **The relic** (0096): every `Hew` striking a cradle first shocks its sender once (`ShockOf`, a faster tool its pace's
+  share); its floor dug out fells it unshocked. `Relics` reads taken-ness from `Felled` alone.
 
 ## Commands
 
@@ -90,9 +90,9 @@ Fuzz aims `Work` and hits so plans complete.
 
 - Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
-- Reach, a fan's hand and which plan is worked are the client's word.
-- Stale plans: plans claim their slots and only building fills the grid, so completing one over something throws.
-- A blueprint finished on its hero's cell puts the hero inside it. A tool dealing no damage throws: our bug.
+- Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's word.
+- Stale plans: only building fills the grid, so completing one over something throws.
+- A blueprint finished on its hero's cell puts the hero inside it. A tool of no damage throws.
 - Taking apart needs no knowledge of a thing (0024).
-- A part-built blueprint is nothing in the grid until its last tick (0063).
-- Creative mode turned off past what was paid: each later tick pays an item until caught up.
+- A part-built blueprint is nothing in the grid till its last tick (0063).
+- Creative mode turned off past what was paid: each later tick pays an item.

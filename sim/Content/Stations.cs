@@ -35,7 +35,7 @@ public static class Stations
     public static readonly IReadOnlyList<Station> All =
     [
         // The lifepod's Fabricator: every craft, at a fifth of full speed, the most basic bench (0046).
-        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "screwdriver", "harpoon", "drill"], ["jetpack", "battery", "helmetLamp"]]),
+        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "screwdriver", "harpoon", "drill"], ["helmet", "suit"], ["jetpack", "battery", "helmetLamp"], ["nailer", "nail"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
         // The first powered station: the pod's parts and components, five times as fast, twice the queue.
         new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil"], ["nozzle", "fuelPump"]]),
@@ -45,9 +45,9 @@ public static class Stations
         new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"], ["drone", "deckDrive"], ["processor", "display", "transceiver"], ["igniter"]]),
         // Grows what is planted in its input, on power (0060): a seed in 9600 ticks, eight minutes, at a full share.
         new("growCapsule", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "grow"),
-        // The arc branch's station (0099): every craft of a sky shard, the arc module and the accumulator, paid by hand, at full
-        // speed with no power, a queue of four.
-        new("arcBench", Speed: 1000, QueueMost: 4, Rows: [["arcModule", "accumulator"]]),
+        // The arc branch's station (0099): every craft of a sky shard, the arc module, the accumulator and the railgun, paid by
+        // hand, at full speed with no power, a queue of four.
+        new("arcBench", Speed: 1000, QueueMost: 4, Rows: [["arcModule", "accumulator"], ["railgun"]]),
     ];
 
     /// <summary>The most crafts a row holds: a panel's columns.</summary>

@@ -147,7 +147,7 @@ public sealed class HandbookScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new HandbookDemo(c.DebrisPage));
 }
 
-[Dev("--tool-cards", "the drill's card plain and fitted side by side (ToolCardsDemo)")]
+[Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]
 public sealed class ToolCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());

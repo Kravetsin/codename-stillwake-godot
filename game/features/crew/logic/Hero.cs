@@ -37,7 +37,7 @@ public readonly record struct HeroInput(
 /// </summary>
 public sealed class Ship(
     int width, int height, Func<int, int> structureAt, Func<int, bool> space, Func<int, bool>? hull = null,
-    int gravity = Spec.Gravity, int falling = Spec.FallGravity)
+    int gravity = Spec.Gravity, int falling = Spec.FallGravity, Shared.FogEdges? fog = null)
 {
     /// <summary>What a fall gains a step, in thousandths of a cell a step.</summary>
     public int Gravity => gravity;
@@ -59,6 +59,15 @@ public sealed class Ship(
 
     public bool Hull(int cell) => hull?.Invoke(cell) ?? structureAt(cell) != Structure.Empty;
 
+    /// <summary>A planet's fog at its sides (fog-edges), where the hero glides; none aboard.</summary>
+    public Shared.FogEdges? Fog => fog;
+
+    /// <summary>Whether a body centre at <paramref name="x"/>, in thousandths of a cell, glides: in a planet's fog.</summary>
+    public bool Glides(int x) => fog?.Outside(x) ?? false;
+
+    /// <summary>Whether a hero already gliding at <paramref name="x"/> glides on: in a band or the columns past it (<c>FogEdges.Carries</c>).</summary>
+    public bool Carries(int x) => fog?.Carries(x) ?? false;
+
     /// <summary>
     /// The ship as the sim's grid and rooms see it now, its cells' structure as <paramref name="structureAt"/>
     /// gives it when given: doors as this peer shows them, its own toggles in flight made (0014). Under the rules of
@@ -71,7 +80,7 @@ public sealed class Ship(
         var kind = rules ?? Stillwake.Content.Surfaces.Ship;
         return new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
             cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null,
-            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity);
+            kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind));
     }
 }
 
@@ -85,10 +94,14 @@ public sealed class Ship(
 /// <see cref="Rising"/>, a jump rising that letting go of Space cuts. <see cref="LetGo"/>, steps since the hands let go of a
 /// ladder by a jump or a walk, kept at most one past <c>Hero.Regrab</c>: up grabs none before then (0092). <see cref="Leaping"/>,
 /// in the air from a jump, off the floor or a ladder, till the feet stand: only a jump steps up onto a ledge it fell short of.
+/// <see cref="Gliding"/>, moved across a planet's fog (fog-edges): pulled inward, gliding on past the band while
+/// <see cref="Ship.Carries"/>. <see cref="Kx"/>, <see cref="Ky"/>, a kick out in space (a gun's recoil), thousandths of a cell a step it
+/// drifts besides its swim, fading by <c>Hero.KickKeep</c>; nothing anywhere else.
 /// </summary>
 public readonly record struct Hero(
     int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
-    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false)
+    int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false,
+    bool Gliding = false, int Kx = 0, int Ky = 0)
 {
     /// <summary>Thousandths of a cell: the unit of every length and speed in <see cref="Spec"/>.</summary>
     public const int Unit = 1000;
@@ -118,11 +131,18 @@ public readonly record struct Hero(
     public Point Middle => new(X, Y - MiddleUp);
 
     /// <summary>
+    /// This hero kicked by (<paramref name="x"/>, <paramref name="y"/>) thousandths of a cell a step, a gun's recoil: out in space it
+    /// drifts so, the kick fading as it goes; anywhere else it stands its ground.
+    /// </summary>
+    public Hero Kicked(int x, int y, Ship ship) =>
+        ship.Space(BodyCell(ship.Width)) ? this with { Kx = Kx + x, Ky = Ky + y } : this;
+
+    /// <summary>
     /// One controller step. Walls, closed doors and the grid's edges block; floors and the tops of
     /// ladders hold the hero up but let them through from below, and down drops through floors; ladders are
     /// climbed while held. With the body in space there is no gravity: the hero swims where the keys point and stops with them,
     /// on a tether that keeps the body's middle within <see cref="Spec.Tether"/> of where it left the ship;
-    /// with a jetpack worn, untethered and flying on (<see cref="HeroInput.Jetpack"/>).
+    /// with a jetpack worn, untethered and flying on (<see cref="HeroInput.Jetpack"/>); a kick drifts it on besides (<see cref="Kicked"/>).
     /// </summary>
     public Hero Step(HeroInput input, Ship ship)
     {
@@ -216,9 +236,15 @@ public readonly record struct Hero(
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
+        bool space = ship.Space(hero.BodyCell(ship.Width));
+        // A kick carries only out in space: anywhere else the feet, the ladder or the fog take it.
+        if (!space) hero = hero with { Kx = 0, Ky = 0 };
+        // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
+        if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero);
+        hero = hero with { Gliding = false };
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
-        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
+        if (space) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         if (input.Reeling)
         {
             // Knocked by a ram (0103): thrown by it, not walked, so the air's control does not eat the knock; the floor brakes it.
@@ -451,17 +477,35 @@ public readonly record struct Hero(
     }
 
     /// <summary>
+    /// A step in a planet's fog (fog-edges): weightless at the height the hero came in, pulled on at a walk the way it is
+    /// going, whatever the keys: out to the seam when it walked in, in out of the fog when it was moved across
+    /// (<see cref="Gliding"/>). A wall past the band, built across its glide, ends the glide there: it falls.
+    /// </summary>
+    private static Hero Glide(Ship ship, Hero hero)
+    {
+        int way = hero.X < ship.Width * Unit / 2 == hero.Gliding ? 1 : -1;
+        int nx = MoveX(ship, hero.X, hero.Y, Paced(hero.Vx, new HeroInput(way, 0, false), grounded: true));
+        bool stopped = nx == hero.X && !ship.Glides(hero.X);
+        return new Hero(nx, hero.Y, nx - hero.X, 0, false, way, Gliding: hero.Gliding && !stopped);
+    }
+
+    /// <summary>
     /// A step in space: where the keys point at <c>Hero.Swim</c>, stopping with them; with a jetpack worn,
     /// on at its speed (<see cref="Flown"/>). Walls stop it, and what a wall stops it loses.
     /// </summary>
     private static Hero Swim(Ship ship, Hero hero, HeroInput input, int facing)
     {
-        var (vx, vy) = input.Jetpack ? Flown(hero.Vx, hero.Vy, input) : (input.X * Spec.Swim, input.Y * Spec.Swim);
+        // A jetpack takes the kick into its flight, to drag off as any speed does; swimming, it drifts on besides, fading.
+        var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Spec.Swim + hero.Kx, input.Y * Spec.Swim + hero.Ky);
+        var (kx, ky) = input.Jetpack ? (0, 0) : (Faded(hero.Kx), Faded(hero.Ky));
         int nx = MoveX(ship, hero.X, hero.Y, vx);
         int ny = MoveY(ship, nx, hero.Y, vy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
-        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Kx: kx, Ky: ky);
     }
+
+    private static int Faded(int kick) => (int)((long)kick * Spec.KickKeep / Unit);
+
 
     /// <summary>
     /// A jetpack's speed after a step from (<paramref name="vx"/>, <paramref name="vy"/>), never past
@@ -725,6 +769,14 @@ public readonly record struct Hero(
     /// What a body stops in (<see cref="Trait.Blocks"/>, <see cref="Trait.BlocksFromBelow"/>: walls, shut doors and hatches), and
     /// everything past the grid's edge: a shut hatch lies in the deck, holding a walk from above and stopping a body from below.
     /// </summary>
+    /// <summary>The first row of <paramref name="column"/> a hero stands on or stops at, from the top: its ground's top; the grid's height for none.</summary>
+    public static int TopOf(Ship ship, int column)
+    {
+        for (int row = 0; row < ship.Height; row++)
+            if (Solid(ship, column, row)) return row;
+        return ship.Height;
+    }
+
     private static bool Solid(Ship ship, int x, int y) =>
         StructureAt(ship, x, y) is not int s || Structures.Is(s, Trait.Blocks | Trait.BlocksFromBelow);
 

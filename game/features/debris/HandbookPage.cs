@@ -365,8 +365,9 @@ public partial class HandbookPage : HBoxContainer
         var slot = new Panel { CustomMinimumSize = new Vector2(_at.Slot, _at.Slot), MouseFilter = MouseFilterEnum.Stop };
         slot.AddThemeStyleboxOverride("panel", loot.Seen ? SlotLooks.Of(Slots.TintOf(loot.Item), false, false) : Unfound);
         _loot.Add((slot, loot.Item));
-        var icon = Icon(ItemIcons.Icon(loot.Item), _at.Slot - 2 * Slots.Inset);
-        icon.Position = new Vector2(Slots.Inset, Slots.Inset);
+        var (at, side) = Slots.IconBox(loot.Item, _at.Slot);
+        var icon = Icon(ItemIcons.Icon(loot.Item, side), side);
+        icon.Position = new Vector2(at, at);
         icon.Modulate = loot.Seen ? Colors.White : Colors.Black;
         slot.AddChild(icon);
         if (loot.OneIn is int oneIn) slot.AddChild(Pie(oneIn));

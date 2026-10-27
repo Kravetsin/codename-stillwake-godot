@@ -69,6 +69,8 @@ public static class Terrain
             mouth[x] = (int)((long)Math.Max(0, Noise(seed, Mouths, x, g.MouthWave) - g.MouthOver) * Whole / (Whole - g.MouthOver));
             // None in the clear middle, so the heroes beam down on whole ground.
             if (Math.Abs(x - w / 2) <= g.Clear) mouth[x] = 0;
+            // None by the fog (fog-edges), a band's width from it: the walk into the fog meets no pit.
+            if (x < 2 * g.Fog || x >= w - 2 * g.Fog) mouth[x] = 0;
             caveFrom[x] = Math.Max(0, g.CaveFrom - (int)((long)mouth[x] * 2 * (g.CaveFrom + 1) / Whole));
         }
         Stairs(top);
@@ -153,6 +155,7 @@ public static class Terrain
             for (int y = 0; y < h && y < top[x] + fade && kind[y * w + x] != 1; y++)
                 (kind[y * w + x], codes[y * w + x]) = (0, 0);
         }
+        Seal(g, top, kind, codes, hall, bedrock);
         surface = top;
         PaintVeins(t, seed, kind, codes, stone);
 
@@ -171,7 +174,9 @@ public static class Terrain
         // Found column by column and row by row; kept by cell, as every list of cells is.
         flora.Sort((a, b) => a.Item1.CompareTo(b.Item1));
         rows[spawn / w][spawn % w] = 'S';
-        return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes) { Grown = true, Flora = flora };
+        // Nothing is dug or built in the fog (fog-edges): the build zone is the columns between the bands.
+        var zone = new Box(g.Fog, 0, w - 1 - g.Fog, h - 1);
+        return new Layout(w, h, [.. rows.Select(r => new string(r))], Materials: codes, Zone: zone) { Grown = true, Flora = flora };
     }
 
     /// <summary>
@@ -325,7 +330,8 @@ public static class Terrain
             lodes.Row(y, lode);
             // The rows round this one, read a row at a time: most of a planet's cells are stone, each asking its block's sides.
             char[] above = rows[y - 1], here = rows[y], below = rows[y + 1], under = y + 2 < h ? rows[y + 2] : below;
-            for (int x = g.BedrockSide; x < w - g.BedrockSide; x++)
+            // Off the fog (fog-edges): no growth stands in a band, nor faces its hollow from the zone's side.
+            for (int x = g.Fog + 1; x < w - g.Fog - 2; x++)
             {
                 int cell = y * w + x;
                 if (here[x] == '.')
@@ -411,10 +417,10 @@ public static class Terrain
         var spires = new List<(int X, int Y)>();
         var prefab = Content.Ruins.Spire;
         int w = g.Width, wide = Content.Ruins.SpireWide, tall = prefab.Count, rise = Math.Clamp(g.SpireRise, 0, tall);
-        int floor = g.Height - g.BedrockRows, middle = w / 2, from = g.BedrockSide + 1;
+        int floor = g.Height - g.BedrockRows, middle = w / 2, from = g.Fog + 1;
         // The left columns a spire may start at, the left side's then the right's, counted as one run the bands split.
         int left = Math.Max(0, middle - g.RuinClear - wide + 1 - from), rightFrom = middle + g.RuinClear;
-        int right = Math.Max(0, w - g.BedrockSide - 1 - wide + 1 - rightFrom);
+        int right = Math.Max(0, w - g.Fog - 1 - wide + 1 - rightFrom);
         int lowest = floor - (tall - rise);
         if (g.Spires <= 0 || left + right == 0 || lowest < rise) return spires;
         int band = (left + right) / g.Spires;
@@ -482,8 +488,8 @@ public static class Terrain
     /// <summary>
     /// The arc makers' homes (0091), stamped after the spires, last of all: <see cref="Ground.Homes"/> of them, their schemes in
     /// <see cref="Content.Ruins.Homes"/>' order from one the seed picks, each in a band of its own along the columns a home may
-    /// start at — inside the bedrock's sides, none within <see cref="Ground.HomeClear"/> of the middle — at the start nearest the
-    /// seed's pick in its band whose box, <see cref="HomeMargin"/> wider each side, meets no spire's columns; every band but the
+    /// start at — outside the fog (<see cref="Ground.Fog"/>), none within <see cref="Ground.HomeClear"/> of the middle — at the
+    /// start nearest the seed's pick in its band whose box, <see cref="HomeMargin"/> wider each side, meets no spire's columns; every band but the
     /// last a home's width short of its end, so the next starts past it. Its ceiling <see cref="Ground.HomeDeepLeast"/> to
     /// <see cref="Ground.HomeDeepMost"/> rows (by the seed) under the lowest surface across it, moved up only where the grid is too
     /// small. Its cells overwrite the rows and the materials but where it keeps the ground; what grew in its box, or lay in the
@@ -498,7 +504,7 @@ public static class Terrain
         if (g.Homes <= 0) return homes;
         int w = g.Width, floor = g.Height - g.CoreRows, middle = w / 2, wide = schemes.Max(s => s.Wide);
         var starts = new List<int>();
-        for (int x = g.BedrockSide + 1; x + wide <= w - g.BedrockSide - 1; x++)
+        for (int x = g.Fog + 1; x + wide <= w - g.Fog - 1; x++)
             if (g.HomeClear <= 0 || x + wide - 1 < middle - g.HomeClear || x >= middle + g.HomeClear) starts.Add(x);
         int band = starts.Count / g.Homes;
         if (band < 1) return homes;
@@ -568,7 +574,7 @@ public static class Terrain
         int w = g.Width, h = g.Height, floor = h - g.CoreRows;
         for (int k = 0; k < g.Chasms; k++)
         {
-            int cx = Column(g, seed, ChasmAt, k, g.Chasms, g.BedrockSide + g.ChasmWide + 6);
+            int cx = Column(g, seed, ChasmAt, k, g.Chasms, g.Fog + g.ChasmWide + 6);
             int deep = g.ChasmDeep / 2 + (int)((long)Lattice(seed, ChasmAt, k, 1) * (g.ChasmDeep / 2 + 1) / Whole);
             int wide = Math.Max(4, g.ChasmWide / 2 + (int)((long)Lattice(seed, ChasmAt, k, 2) * (g.ChasmWide / 2 + 1) / Whole));
             int bottom = Math.Min(floor - 1, top[cx] + deep);
@@ -584,7 +590,7 @@ public static class Terrain
         var row = new int[w];
         for (int k = 0; k < g.Halls; k++)
         {
-            int hx = Column(g, seed, HallAt, k, g.Halls, g.BedrockSide + g.HallWide + 2);
+            int hx = Column(g, seed, HallAt, k, g.Halls, g.Fog + g.HallWide + 2);
             int rx = g.HallWide / 2 + (int)((long)Lattice(seed, HallAt, k, 1) * (g.HallWide / 2 + 1) / Whole);
             int ry = g.HallTall / 2 + (int)((long)Lattice(seed, HallAt, k, 2) * (g.HallTall / 2 + 1) / Whole);
             int highest = top[hx] + g.HallFrom, lowest = floor - 4 - ry;
@@ -644,6 +650,24 @@ public static class Terrain
             if (Flat(middle + d)) return (TopOf(middle + d) - 1) * w + middle + d;
         }
         return Math.Max(0, TopOf(middle) - 1) * w + middle;
+    }
+
+    /// <summary>
+    /// The fog bands (fog-edges): in each of the <see cref="Ground.Fog"/> columns at either side, inside the bedrock columns,
+    /// hollow: the open sky down to the ground's line (<paramref name="top"/>, already a stair), open air from it to the core
+    /// before a bedrock back wall, dark and unbreakable as a cave's, and no hall. A hero glides through it at any height.
+    /// Nothing grows there after: no vein or plant finds stone or soil, and cave growth keeps off it.
+    /// </summary>
+    private static void Seal(Ground g, int[] top, byte[] kind, int[] codes, bool[] hall, int bedrock)
+    {
+        int w = g.Width, floor = g.Height - g.CoreRows;
+        foreach (var (from, to) in (ReadOnlySpan<(int, int)>)[(g.BedrockSide, g.Fog), (w - g.Fog, w - g.BedrockSide)])
+            for (int x = from; x < to; x++)
+                for (int y = 0; y < floor; y++)
+                {
+                    int cell = y * w + x;
+                    (kind[cell], codes[cell], hall[cell]) = y >= top[x] ? ((byte)2, bedrock, false) : ((byte)0, 0, false);
+                }
     }
 
     /// <summary>

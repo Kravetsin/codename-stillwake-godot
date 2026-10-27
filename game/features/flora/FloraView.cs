@@ -189,7 +189,7 @@ public partial class FloraView : Node2D, ILightSource
         int w = _grid.Width;
         double x = (cell % w + Spec.Get(kind).Across / 2.0) * Cell, ground = (cell / w + 1) * Cell, y = ground - Math.Min(tall, 6 * Cell) / 2;
         var look = kind == "rock" ? FloraLooks.Pebble : FloraLooks.Leaf;
-        Glims.Shared.Spray(look, x, y, (int)Math.Round(FloraLooks.Fallen * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 60), ground);
+        Stages.Of(Layers.Effects).Glims.Spray(look, x, y, (int)Math.Round(FloraLooks.Fallen * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 60), ground);
         if (GroundSounds.FallOf(kind) is { } fall) _falls.Play(fall, new Vector2((float)x, (float)y));
     }
 
@@ -205,7 +205,7 @@ public partial class FloraView : Node2D, ILightSource
         foreach (var light in _lights)
             if (view.HasPoint(light.At)) lit.Add(light);
         if (lit.Count == 0) return;
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Flora).Glims;
         _moteDue += delta * FloraLooks.MotesASecond;
         for (; _moteDue >= 1; _moteDue--)
         {

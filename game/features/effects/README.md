@@ -4,7 +4,8 @@
 
 | File | Purpose |
 | --- | --- |
-| `EffectsView.cs` | The layer: steps and draws every particle the features emit, glints, shock lines, arcs and shimmer. |
+| `EffectsView.cs` | One stage's view: steps and draws its particles, glints, shock lines, arcs and shimmer. |
+| `StagesView.cs` | The world's stages drawn: a view a stage at its layer's z, kept last among the world's views. |
 | `logic/Impacts.cs` | What a hit at a cell strikes and where on it (0094): the face toward the hero, its floor, a tool's share. |
 
 Particles without a word, in the luminous style (0075): what glows is light added over the world — streaks white-hot
@@ -12,7 +13,7 @@ at the head, stretched along their curling path, fading as they cool, lighting t
 and a faint shock line on key moments; heat shimmer behind hot things — and dust and smoke are matter, motes and
 wisps lit by the room. Drawn only, never part of the world: each peer emits its own from what it sees.
 
-Beside this folder: `render/logic/Luminous.cs` (`Glimmer`, `Luminous` and its presets, `Glims.Shared`, `LuminousMath`),
+Beside this folder: `render/logic/Luminous.cs` (`Glimmer`, `Luminous` and its presets, `Glims`, `LuminousMath`), `render/logic/Stages.cs` (a stage a layer),
 `render/logic/Flares.cs` (`Glint`, `Shock`, `Flash`, `Trail`, `Bloom`), `render/logic/Bolts.cs` (arcs), `render/SoftDots.cs`,
 `render/Strokes.cs` (every stroke in one multimesh), `render/Shimmer.cs`, `render/logic/HitBurst.cs` (throws a `HitLook`
 or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Content/logic/HitLooks.cs` (a hit's look by what it strikes).
@@ -29,9 +30,10 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
   the face off its corners; a growth's cell's middle a quarter cell toward the hero; a wreck at a running drill's bit,
   else its side facing the nearest hero. Chips fall to the floor under the face, within `HitLooks.FloorRows`. A hit's look is never drawn behind the walls.
 - **Looks by object** (0094): one table by the natural wall's material, one by the growth's kind (`HitLooks.Ground`,
-  `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone. Metal throws sparks, glint and
-  warm flash; stone fine sparks and chips; soil and plaster crumbs and dust; wood splinters; plants leaves; crystal and
-  glass cold glitter and shards; caps spores; cloth fibres; crockery glazed chips.
+  `HitLooks.Growths`), beside the sound's; what lies in the rock is struck as its stone; the ship's hull, never broken, as alloy, so a
+  shot is seen to land. Metal throws sparks, glint and warm flash; stone fine sparks and chips; soil and plaster crumbs
+  and dust; wood splinters; plants leaves; crystal and glass cold glitter and shards; caps spores; cloth fibres; crockery
+  glazed chips.
 - **A whole hit is the axe's** (0094): a faster tool throws its pace over the axe's (`Impacts.ShareOf`), so a second of
   drilling throws what a second of chopping does: each count by chance, rounded so it adds up, the glint and ring by
   the same chance, the light to the share's root. The hit that breaks or fells an object throws the whole, once.
@@ -40,17 +42,23 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
   of a second whatever the frame rate, its last 24 points, drawn back along them by speed times `Stretch`.
 - **Dust along the floor** (`Luminous.Low`, 0077) is drawn behind the walls (`Layers.LowDust`), giving no light, so a
   wall hides it.
-- **Drawn** at `Layers.Effects`, over the world and plans, under an overlay, a screen pixel a unit (0075): matter lit
-  (`Lit`), then light added (dots, halos, each mote again at 0.4), then every stroke in one multimesh (`Strokes`) —
-  streaks, rings, glints' spikes, trails and arcs — soft over the last screen pixel and at least 1.1 px across.
+- **Drawn on its maker's layer** ([effects-on-their-layer](../../../docs/decisions/2026-10-27-effects-on-their-layer.md)):
+  each emitter throws on its layer's stage (`Stages.Of(Layers.Fire)`), drawn there by its own view, a screen pixel a unit
+  (0075): matter lit (`Lit`), then light added (dots, halos, each mote again at 0.4), then every stroke in one multimesh
+  (`Strokes`) — streaks, rings, glints' spikes, trails and arcs — soft over the last screen pixel and at least 1.1 px
+  across. Over the heroes, at `Layers.Effects`: hits and what they break or kill, blows on a hero, venting air, pick-ups.
+  What a hero holds (the drill's coil, the harpoon's muzzle) draws on its figure's held stage, over the torso and the
+  tool, under the front arm. A particle keeps its stage for life.
 - **A glint** is whole on its first 60 Hz frame and gone after `Fx.GlintHold`, drawn at least once at any frame rate.
   A `Matter` streak is lit at its head as a mote, its smear light at 0.4.
 - **Trails and blooms** are stamped for one frame (`Flares.Trail`, `Bloom`) and taken once a frame
   (`Flares.TakeFrame`): the layer runs after every feature (`ProcessPriority` 100), so they draw the frame stamped.
-- **Arcs** (`Bolts`): a rim in their tint (`BoltTint`: cyan, or the arc module's violet, 0086), a white core, a glow
-  and a light, their shape kept along and across the line between their ends. A fine arc (an arc-fitted drill's coil)
-  is a hair of white-blue light in a blue haze, rolled anew every frame, with no glow and no light (no ADR).
-- **Light** (0019, 0029): flashes, then arcs, then luminous particles that give light, as spots of `LightView`, at most
+- **Arcs** (`Bolts`, [arcs-are-hairlines](../../../docs/decisions/2026-10-27-arcs-are-hairlines.md)): in pixels of the screen
+  whatever the zoom, a hair of white (`Bolts.Core`, 1.2 px) in a thin haze of their tint (`Bolts.Haze`, 4 px; `BoltTint`:
+  cyan, the arc module's violet, 0086, a tick's red), their last `Bolts.Ghosts` shapes fading behind in a deeper colour, and
+  a light; no glow sprites along them. Their shape is kept along and across the line between their ends. A fine arc (an
+  arc-fitted drill's coil) is the finest hair in a blue haze, rolled anew every frame, with no light (no ADR).
+- **Light** (0019, 0029): every stage's flashes, then arcs, then luminous particles that give light, as spots of `LightView`, at most
   `Fx.MostLights` together.
 - **Heat shimmer** (0075): a `Shimmer` per hot thing samples the screen under its box again, rows nudged sideways by
   waves and rising noise, faded to its edges; a texel with nothing drawn adds nothing, so it never darkens. Every

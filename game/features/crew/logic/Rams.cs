@@ -77,4 +77,29 @@ public static class Rams
         /// <summary>A hit went out on <paramref name="tick"/>.</summary>
         public void Sent(int tick) => _sentAt = tick;
     }
+
+    /// <summary>
+    /// Whether <paramref name="arc"/> (the sentry's, 2026-10-27-sentry-arc), from its creature to where it struck, crosses
+    /// <paramref name="hero"/>'s body and <see cref="Margin"/> round it: the line clipped to the box, as Liang and Barsky clip it.
+    /// </summary>
+    public static bool Crosses(Arc arc, Hero hero)
+    {
+        double x0 = arc.X0, y0 = arc.Y0, dx = arc.X1 - x0, dy = arc.Y1 - y0, from = 0, to = 1;
+        double left = hero.X - Spec.Width / 2 - Margin, right = hero.X + Spec.Width / 2 + Margin;
+        double top = hero.Y - Spec.Height - Margin, bottom = hero.Y + Margin;
+        // Each side's (p, q): the line is inside it where p * t <= q.
+        foreach (var (p, q) in new[] { (-dx, x0 - left), (dx, right - x0), (-dy, y0 - top), (dy, bottom - y0) })
+        {
+            if (p == 0)
+            {
+                if (q < 0) return false;
+                continue;
+            }
+            double t = q / p;
+            if (p < 0) from = Math.Max(from, t);
+            else to = Math.Min(to, t);
+            if (from > to) return false;
+        }
+        return true;
+    }
 }
