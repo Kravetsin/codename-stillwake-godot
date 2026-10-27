@@ -416,8 +416,9 @@ public sealed class HeroAutopilot
 
 
     /// <summary>
-    /// <c>-- --cape</c>: on the <see cref="Hall"/>'s floor a sprint, a stop, a walk back, a running jump, a turn and a jump
-    /// on the spot, for watching a cape trail, swing and settle.
+    /// <c>-- --cape</c>: on the <see cref="Hall"/>'s floor, the axe in hand (the hotbar's first slot), a sprint, a stop and
+    /// a walk back; then the drill (the second), a running jump, a turn and a jump on the spot: for watching a cape trail,
+    /// swing and settle, and the item carried behind on a run.
     /// </summary>
     public static HeroAutopilot CapeRun()
     {
@@ -425,13 +426,13 @@ public sealed class HeroAutopilot
         var walk = new HeroInput(1, 0, false);
         return new HeroAutopilot(
         [
-            Wait(60),
+            new(Still, (_, p) => p.Steps >= 60, Slot: 1),
             Hold(run, 50),
             Until(Still, (h, p) => p.Stopped(h)),
             Wait(60),
             Hold(walk with { X = -1 }, 70),
             Until(Still, (h, p) => p.Stopped(h)),
-            Wait(40),
+            new(Still, (_, p) => p.Steps >= 40, Slot: 2),
             Hold(run with { X = -1 }, 20),
             Jump(-1),
             Hold(run with { X = -1 }, 40),

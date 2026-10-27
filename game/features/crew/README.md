@@ -32,6 +32,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Suits.cs` | suit colours |
 | `Figure.cs` | the sprite rig, lit and posed; dust (0075, 0090) |
 | `logic/Cape.cs` | a cape of cloth (prototype) |
+| `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands: E, plans, axe, drill, aim |
@@ -48,8 +49,8 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Report.cs` | the `Enter` report (0050) |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
 | `logic/Danger.cs` | what the suit gauge reads |
-| `logic/AirCues.cs` | when air comes back (0081) |
-| `logic/CanistersSeen.cs` | a friend's canister |
+| `logic/AirCues.cs` | air coming back (0081) |
+| `logic/CanistersSeen.cs` | friends' canisters |
 | `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
 | `SuitColours.cs` | the menu's suit colours |
@@ -74,7 +75,7 @@ commands reach the sim. Other heroes come through the host.
 - **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a step-deep
   hole is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down.
-- **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
+- **Steps** (0106): a walk steps one cell up or down where the box fits; two up stop it. Drawn eased.
 - **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
 - **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
@@ -82,10 +83,10 @@ commands reach the sim. Other heroes come through the host.
   thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
-- **Camera** (`Camera.cs`): leads the way last moved, never the facing; eases height; snaps on a new place.
+- **Camera:** leads the way last moved, not the facing; eases height; snaps on a new place.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
   `Thrust` is sent while own thrust differs from the sim's.
-- **A canister** (0047, 0081): a right click sends `Refill` when the sim would take it.
+- **A canister** (0047, 0081): a right click sends `Refill` when the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the

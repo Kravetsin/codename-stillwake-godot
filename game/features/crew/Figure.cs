@@ -158,6 +158,9 @@ public partial class Figure : Node2D
     /// and the item's turn as drawn, settling toward the aim.
     /// </summary>
     private double _grasp, _holdAngle;
+    /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
+    private double _carry;
+    private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     private const double GraspMs = 120;
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly SwingSmear _smear = new();
@@ -738,6 +741,18 @@ public partial class Figure : Node2D
             swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
         frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
+        // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
+        // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
+        bool carried = inHand && swung == null && !working && !aiming;
+        _carry = Math.Clamp(_carry + (carried && pose == Pose.Run ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
+        double carry = _carry * _carry * (3 - 2 * _carry);
+        if (carried && item is { Both: null })
+        {
+            double bob = HeroMotion.Carry.Bob * Math.Sin((_travelled - _strideFrom) / Poses.Stride.Run * 4 * Math.PI);
+            frontArm = Mix(frontArm, Rig.Carried(bob), carry);
+            frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
+        }
+        else _armSpring.Hold(frontArm.Upper);
         var backArm = shown.BackArm;
         // Held in both hands (0078): turned toward the point at the chest, at rest aimed at nothing, the hands on its grips,
         // taking them from the pose over GraspMs.
@@ -745,7 +760,7 @@ public partial class Figure : Node2D
         if (both)
         {
             var (dx, dy) = aiming && Aim is { } bit ? FromShoulder(bit) : default;
-            double wanted = aiming ? TwoHand.AngleFor(item!, dx, dy) : TwoHand.Rest;
+            double wanted = aiming ? TwoHand.AngleFor(item!, dx, dy) : TwoHand.Rest + (HeroMotion.Carry.TwoHand - TwoHand.Rest) * carry;
             _holdAngle = _grasp == 0 ? wanted : Settle(_holdAngle, wanted, elapsedMs);
             _grasp = Math.Min(1, _grasp + elapsedMs / GraspMs);
             var (near, far) = TwoHand.Arms(item!, _holdAngle);
@@ -764,7 +779,8 @@ public partial class Figure : Node2D
         }
         bool awake = pose is not (Pose.Lie or Pose.Tumble);
         _head = Settle(_head, awake ? look : 0, elapsedMs, HeadSettleMs);
-        _helmet.Rotation = (float)_head;
+        // On the floor the head takes back some of the body's lean, so a run looks ahead, not at the floor.
+        _helmet.Rotation = (float)(_head - (pose is Pose.Stand or Pose.Walk or Pose.Run ? shown.Tilt * HeroMotion.Run.HeadSteady : 0));
         // The sheet is in the front hand, tilted to face the eyes: up toward them looking up, flatter
         // looking down at it.
         _plan.Visible = holding;
@@ -820,7 +836,8 @@ public partial class Figure : Node2D
             }
             var mount = both ? TwoHand.PivotAt(_holdAngle) : fist;
             _held.Position = new Vector2((float)mount.X, (float)(-Rig.Shoulder + mount.Y));
-            _held.Rotation = (float)(both ? _holdAngle : Rig.HeldTurn(frontArm, item));
+            // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
+            _held.Rotation = (float)(both ? _holdAngle : Rig.HeldTurn(frontArm, item) + item.Hold * carry);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);

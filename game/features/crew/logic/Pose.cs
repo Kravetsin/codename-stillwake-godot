@@ -85,6 +85,12 @@ public static class Poses
     }
 
     /// <summary>
+    /// Braking out of a run: the front leg planted straight ahead, the back one folding under, the arms thrown forward. Mixed
+    /// in as far as the body leans back from slowing (<see cref="Motion"/>).
+    /// </summary>
+    public static readonly Limbs Brake = new(B(0.7, 0.45), B(0.5, 0.6), B(0.55, -0.05), B(-0.3, -0.95), 0, 0, false);
+
+    /// <summary>
     /// Sitting on an edge in despair (the title, 2026-10-25-title-scene): the hips on it at the feet's point, the thighs out over
     /// it, the shins hanging alike, barely stirring; hunched forward by <see cref="Slump"/>, the arms hanging limp between the
     /// knees; a slow breath every <see cref="BreathMs"/>, the legs drifting once every <see cref="SwingMs"/>; every
@@ -217,7 +223,10 @@ public static class Poses
     {
         var body = BodyOf(pose, hero, moment);
         var motion = moment.Momentum ?? Momentum.AtRest;
+        // Slowing to a stop, the body brakes as far as it leans back from it.
+        if (pose is Pose.Stand or Pose.Walk && motion.Lean < 0) body = Mix(body, Brake, Math.Clamp(-motion.Lean / Feel.Lean.Back, 0, 1));
         var landed = pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(LandingOf(Leaned(body, motion), moment.Landing, motion.Depth)) : body;
+        if (pose == Pose.Run && moment.Landing is not > 0) landed = landed with { Lift = landed.Lift + Bounce(moment.Travelled) };
         if (moment.Plan is not double look || !HoldsIn(pose)) return landed;
         var front = PlanHand(look);
         double along = Hold.FarHand * Sheet.Length;
@@ -287,14 +296,15 @@ public static class Poses
                 {
                     double p = Phase(Stride.Run), s = Math.Sin(p);
                     double q = p / (2 * Math.PI);
-                    // Leaning in, elbows bent square and pumping against the legs; each leg pushes off
-                    // nearly straight under the body, then folds heel to seat and drives its knee high.
+                    // Leaning well in, the arms pumping hard against the legs, elbows opening as they swing back; each leg
+                    // pushes off nearly straight under the body, then folds heel to seat and drives its knee high.
+                    double c = Math.Cos(p);
                     return new Limbs(
-                        FrontArm: B(-0.8 * s, 1.4),
-                        BackArm: B(0.8 * s, 1.4),
+                        FrontArm: B(-Feel.Run.Pump * s, 1.5 + 0.2 * c),
+                        BackArm: B(Feel.Run.Pump * s, 1.5 - 0.2 * c),
                         FrontLeg: Running(q),
                         BackLeg: Running(q + 0.5),
-                        Tilt: 0.15, Lift: 0, Lying: false);
+                        Tilt: Feel.Run.Lean, Lift: 0, Lying: false);
                 }
             case Pose.Air:
                 return InTheAir(hero, moment);
@@ -492,6 +502,18 @@ public static class Poses
     private const double Stance = 0.42;
 
     /// <summary>
+    /// How far the running body rises <paramref name="travelled"/> cells into its run: nothing with a foot on the floor,
+    /// <see cref="Feel.Run.Bounce"/> pixels at the middle of each stride's flight, both feet off it.
+    /// </summary>
+    public static double Bounce(double travelled)
+    {
+        double half = travelled / Stride.Run * 2, h = half - Math.Floor(half);
+        // Each leg stands for Stance of its cycle, the other half a cycle behind: both are off the floor from 2 Stance of
+        // each half to its end, and the body rises and falls over that.
+        return h < 2 * Stance ? 0 : Feel.Run.Bounce * Math.Sin(Math.PI * (h - 2 * Stance) / (1 - 2 * Stance));
+    }
+
+    /// <summary>
     /// A running leg at <paramref name="cycle"/> through its stride: on the floor from under the hips to
     /// behind them, nearly straight; then off it, the heel kicked up and the knee brought through high.
     /// </summary>
@@ -501,8 +523,8 @@ public static class Poses
         if (p < Stance) return B(0.4 - 0.95 * p / Stance, -0.12);
         double u = (p - Stance) / (1 - Stance);
         // Back from behind to high ahead, then down to meet the floor under the hips again.
-        double thigh = u < 0.7 ? -0.55 + 1.65 * Math.Sin(u / 0.7 * Math.PI / 2) : 1.1 - 0.7 * (u - 0.7) / 0.3;
-        return B(thigh, -(0.12 + 1.9 * Math.Sin(u * Math.PI)));
+        double thigh = u < 0.7 ? -0.6 + 1.85 * Math.Sin(u / 0.7 * Math.PI / 2) : 1.25 - 0.85 * (u - 0.7) / 0.3;
+        return B(thigh, -(0.12 + 2.1 * Math.Sin(u * Math.PI)));
     }
 
     /// <summary>
