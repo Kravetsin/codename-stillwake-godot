@@ -131,3 +131,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
+| [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted |  |

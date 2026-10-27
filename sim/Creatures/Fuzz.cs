@@ -6,12 +6,14 @@ public sealed partial class CreaturesModule
     /// A strike with any weapon at a creature that is out most of the time, else one gone or never spawned, five times in eight; a
     /// hit by a charge, of a charging creature half the time, else of any or one gone, so it is refused not charging and gone too;
     /// else a release of a species at any cell, the grid's edge and past it too, so every refusal comes: aboard, full, blocked, no
-    /// piece; a clinger's half the time onto a wreck.
+    /// piece; a clinger's half the time onto a wreck; else a shot of a gun, or of a tool that is none, from about the hero, off the
+    /// grid now and then, any way.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         var all = State.Creatures;
-        uint pick = rng.Below(8);
+        uint pick = rng.Below(10);
+        if (pick >= 8) return FuzzFire(rng, from);
         int Any() => all.Count > 0 && rng.Below(4) != 0 ? all[(int)rng.Below((uint)all.Count)].Id : (int)rng.Below((uint)State.NextId + 2);
         if (pick < 5)
         {
@@ -30,6 +32,26 @@ public sealed partial class CreaturesModule
         if (species.Body is Content.Creatures.Clinger && rng.Below(2) == 0 && WreckCell(rng) is int onto) return new Release(species.Id, onto) { From = from };
         int cells = _grid.Width * _grid.Height;
         return new Release(species.Id, (int)rng.Below((uint)cells + 2) - 1) { From = from };
+    }
+
+    /// <summary>
+    /// A <see cref="Fire"/>: the nailer three times in four, else the axe (no gun); from within four cells of the hero, or anywhere
+    /// with none, a cell past the grid at most. A sender with no nailer half the time switches creative mode on or spawns one, and
+    /// one with no nails spawns some, so shots fly in the suites.
+    /// </summary>
+    private Command FuzzFire(Rng rng, int from)
+    {
+        string nailer = Content.Shots.Nailer.Item;
+        if (_held.ToolStack(from, nailer) == null && rng.Below(2) == 0)
+            return rng.Below(2) == 0 ? new Items.SetCreative(true) { From = from } : new Items.Spawn(nailer, 1) { From = from };
+        if (AmmoOf(from, Content.Shots.Nailer) == null && rng.Below(2) == 0)
+            return new Items.Spawn(Content.Shots.Nailer.Ammo[0], 20) { From = from };
+        string tool = rng.Below(4) == 0 ? Content.Weapons.Axe.Item : Content.Shots.Nailer.Item;
+        int x, y;
+        if (_crew.HeroOf(from)?.Cell is int cell && cell >= 0 && cell < _grid.Width * _grid.Height)
+            (x, y) = (cell % _grid.Width * Unit - 4 * Unit + (int)rng.Below(8 * Unit), cell / _grid.Width * Unit - 4 * Unit + (int)rng.Below(8 * Unit));
+        else (x, y) = ((int)rng.Below((uint)(_grid.Width + 2) * Unit) - Unit, (int)rng.Below((uint)(_grid.Height + 2) * Unit) - Unit);
+        return new Fire(tool, x, y, (int)rng.Below(Content.Headings.Turn)) { From = from };
     }
 
     /// <summary>A cell inside the box of a wreck out, drawn: the wreck, then the cell; null with none out.</summary>

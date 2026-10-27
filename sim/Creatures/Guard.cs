@@ -56,7 +56,7 @@ internal sealed class GuardDrive : DriveRule
         // Mid-pounce it flies on (a pounce is never cut short), its aim already taken.
         if (c.Act != null) return true;
         m.Claim(c, at, 0);
-        Pounce(m, c, spec, Ref.Hero(hit.Peer), m.Debris.Clock + 1);
+        Pounce(m, c, spec, Ref.Hero(hit.Peer), hit.Answered);
         return true;
     }
 

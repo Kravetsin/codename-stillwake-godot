@@ -56,3 +56,21 @@ public sealed class CreaturesScenario : DevScenario
 
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, log);
 }
+
+/// <summary>The nailer fired by script (shots-are-the-sims): on the strip with --strip, aboard without.</summary>
+[Dev("--nailer", "the nailer and nails in hand, fired up at 45°, at a loper and level, by script (NailerDemo)")]
+public sealed class NailerScenario : DevScenario
+{
+    private NailerDemo? _demo;
+
+    public override World Seed(World world, DevSeed seed) => NailerDemo.Seed(world, seed.Modules);
+
+    // With --manual the player fires: the loper let out, nothing else played.
+    public override void Attach(DevContext c)
+    {
+        _demo = new NailerDemo(c.Hero);
+        if (!Args.Has("--manual")) c.Add(_demo);
+    }
+
+    public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m);
+}

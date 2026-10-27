@@ -226,7 +226,7 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         _rod = NewRod();
         foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
-                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud })
+                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _ownShotEnds })
             AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
@@ -346,7 +346,11 @@ public partial class HeroView : Node2D
         bool moved = _placed && surface != _surface;
         _surface = surface;
         // Moved to another surface, the harpoon's rod is back in the gun: what it stuck in is another grid's (0076).
-        if (moved) _harpoon = new HarpoonShot();
+        if (moved)
+        {
+            _harpoon = new HarpoonShot();
+            _guns.Drop();
+        }
         // Waking from passing out, the sim has put the hero at the spawn: so does the client. Moved to another surface, it
         // stands where it arrived.
         if (moved && known != null)

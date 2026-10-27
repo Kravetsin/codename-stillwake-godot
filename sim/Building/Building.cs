@@ -37,11 +37,17 @@ public sealed record Work(int Plan) : Command;
 /// <summary>Switches instant building, from the dev panel: a blueprint placed is built at once, with no plan, work or cost.</summary>
 public sealed record SetInstant(bool On) : Command;
 
+/// <summary>How another module may change what stands on the grid.</summary>
+public interface IBuildingOps
+{
+    void Hit(int peer, int cell, int damage);
+}
+
 /// <summary>
 /// Plans, and the work that turns them into the ship (packages/sim/src/modules/building): blueprints
 /// built and marks taken apart through the grid's operations, paid from and refunded to the items.
 /// </summary>
-public sealed partial class BuildingModule : Module<BuildingState>
+public sealed partial class BuildingModule : Module<BuildingState>, IBuildingOps
 {
     private readonly IGridQueries _grid;
     private readonly IGridOps _gridOps;

@@ -5,6 +5,7 @@ public static partial class En
     private static readonly Strings Items = new()
     {
         ["item.scrap"] = "Scrap",
+        ["item.nail"] = "Nails",
         ["item.iron"] = "Iron",
         ["item.canister"] = "Oxygen canister",
         ["item.scrapChunk"] = "Scrap chunk",
@@ -66,6 +67,7 @@ public static partial class En
         ["item.screwdriver"] = "Screwdriver",
         ["item.fireAxe"] = "Fire axe",
         ["item.harpoon"] = "Harpoon",
+        ["item.nailer"] = "Nailer",
         ["item.drill"] = "Drill",
         ["item.jetpack"] = "Oxygen jetpack",
         ["item.helmetLamp"] = "Helmet lamp",
@@ -73,6 +75,7 @@ public static partial class En
         ["item.accumulator"] = "Accumulator",
         // An item's card: its kind under its name; a tool's key and how it is used, the tiles' labels.
         ["item.scrap.kind"] = "Material",
+        ["item.nail.kind"] = "Ammo · Nailer",
         ["item.iron.kind"] = "Material",
         ["item.canister.kind"] = "Supply",
         ["item.scrapChunk.kind"] = "Salvage",
@@ -146,6 +149,9 @@ public static partial class En
         ["item.drill.hint"] = "hold against debris or ground to drill it; RMB, a back wall",
         ["item.harpoon.key"] = "LMB",
         ["item.harpoon.hint"] = "shoot in space, click again to reel in",
+        ["item.nailer.kind"] = "Tool · Nailer",
+        ["item.nailer.key"] = "LMB",
+        ["item.nailer.hint"] = "shoot a nail, one every 3 s; it falls on a planet",
         ["item.jetpack.kind"] = "Equipment · Back",
         ["item.jetpack.key"] = "Shift",
         ["item.jetpack.hint"] = "thrust in space, on the suit's air; no lift under a planet's gravity",

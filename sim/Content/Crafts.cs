@@ -25,6 +25,10 @@ public static class Crafts
         new("screwdriver", [("scrap", 2)], Ticks: 20),
         // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
         new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
+        // The first gun (shots-are-the-sims): cheaper than the harpoon, after the first iron; the axe's time.
+        new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
+        // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
+        new("nail", [("scrap", 2)], Ticks: 4),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
         // A plate bent into a band, wire, and silicon from rock for its glowing bulb: cheap, so it comes before the first cave (0077).
