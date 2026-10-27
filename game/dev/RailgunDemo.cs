@@ -20,7 +20,7 @@ public partial class RailgunDemo(Func<Hero?> hero) : Node
     /// <summary>Each shot: when the button goes down and up, in seconds on the surface, and where it aims, in cells from the hero's middle.</summary>
     private static readonly (double Down, double Up, double X, double Y)[] Shots =
     [
-        (2.0, 3.2, -16, -0.5), (5.0, 5.4, -16, -0.5), (6.5, 7.7, 0.5, -16), (10.0, 11.2, -10, 8),
+        (2.0, 3.2, -16, -0.5), (5.6, 6.0, -16, -0.5), (6.5, 7.7, 0.5, -16), (10.0, 11.2, -10, 8),
     ];
 
     private double _since;

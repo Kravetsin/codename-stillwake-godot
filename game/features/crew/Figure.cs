@@ -771,8 +771,6 @@ public partial class Figure : Node2D
             {
                 (_charged.Texture, _charged.Offset) = (Picture(item.Charged!), _held.Offset);
                 _charged.Modulate = new Color(1, 1, 1, (float)Charge);
-                var gap = HeldAt(((item.EdgeFrom.X + item.EdgeTo.X) / 2, (item.EdgeFrom.Y + item.EdgeTo.Y) / 2));
-                Held.Flares.Hold(_charged, gap.X, gap.Y, ChargeLight, 0.15 + 0.35 * Charge, 3, 0.85f, 0.2);
             }
             var mount = both ? TwoHand.PivotAt(_holdAngle) : fist;
             _held.Position = new Vector2((float)mount.X, (float)(-Rig.Shoulder + mount.Y));
@@ -782,6 +780,12 @@ public partial class Figure : Node2D
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
                 Muzzle = At(item.EdgeTo);
                 Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
+                if (_charged.Visible)
+                {
+                    // Lit from the gap between the rails, as it is held this frame.
+                    var gap = At(((item.EdgeFrom.X + item.EdgeTo.X) / 2, (item.EdgeFrom.Y + item.EdgeTo.Y) / 2));
+                    Held.Flares.Hold(_charged, gap.X, gap.Y, ChargeLight, 0.15 + 0.35 * Charge, 3, 0.85f, 0.2);
+                }
             }
         }
         // The axe's downstroke leaves its swipe of light, from the blade as drawn.

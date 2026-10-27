@@ -27,13 +27,16 @@ public class ShotsInvariantTests
         from ticks in Gen.Choose(20, 200)
         select new Run(seed, strip, rail, ticks);
 
-    /// <summary>Walls a cell each, about one cell in six, of soil or stone (a railgun's shot breaks the one and passes the other), and a border.</summary>
-    private static Layout Walls(Rng rng, bool strip)
+    /// <summary>
+    /// Walls a cell each, about one cell in six, and a border: for the railgun of soil or stone, which its shot breaks or passes;
+    /// for the nailer of the default, weak enough for its nails to break and pierce.
+    /// </summary>
+    private static Layout Walls(Rng rng, bool strip, bool rail)
     {
         var rows = Enumerable.Range(0, Height).Select(y => new string([.. Enumerable.Range(0, Width).Select(x =>
             x == 0 || y == 0 || x == Width - 1 || y == Height - 1 || rng.Below(6) == 0 ? '#' : '.')])).ToArray();
-        var looks = rows.Select(r => new string([.. r.Select(c => c == '#' ? (rng.Below(2) == 0 ? 's' : 't') : '.')]));
-        var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks));
+        var layout = Layout.Parse(string.Join('\n', rows));
+        if (rail) layout = layout.WithMaterials(string.Join('\n', rows.Select(r => new string([.. r.Select(c => c == '#' ? (rng.Below(2) == 0 ? 's' : 't') : '.')]))));
         return strip ? layout with { Kind = Spec.Surfaces.TestStrip.Id } : layout;
     }
 
@@ -55,7 +58,7 @@ public class ShotsInvariantTests
             int solid = -1;
             Rays.Walk(Width, Height, from.X, from.Y, s.X - from.X, s.Y - from.Y, cell =>
             {
-                if (w.M.Grid.Solid(cell) && !s.Passed.Contains(new ShotPass(ShotTarget.Solid, cell))) solid = cell;
+                if (w.M.Grid.Solid(cell) && !s.Passed.Contains(new ShotPass(ShotTarget.Solid, w.M.Building.ShotKey(cell)))) solid = cell;
                 return solid >= 0;
             });
             if (solid >= 0) return $"shot {s.Id} flew through solid cell {solid}";
@@ -68,7 +71,7 @@ public class ShotsInvariantTests
     {
         var rng = new Rng(new RngState { S = (uint)run.Seed });
         string gun = (run.Rail ? Spec.Shots.Railgun : Spec.Shots.Nailer).Item;
-        var w = new Scenario(Walls(rng, run.Strip)).GiveItems(0, (gun, 1));
+        var w = new Scenario(Walls(rng, run.Strip, run.Rail)).GiveItems(0, (gun, 1));
         w.Do(new SetCreative(true)).Run();
         var hit = new HashSet<(int, int)>();
         for (int t = 0; t < run.Ticks; t++)

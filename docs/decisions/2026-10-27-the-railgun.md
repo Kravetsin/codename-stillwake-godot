@@ -20,10 +20,11 @@ charge held about 0.8 s, all or nothing. Nails now; a steel bolt later, once the
   ticks, then 40 till the next. Crafted at the arc bench of an arc shard, copper, coils, a tube, a frame and circuits.
 - **What its hit takes, it passes.** A creature, a wreck, a cell whose solid thing a shot may break (`IBuildingQueries
   .ShotTakes`: the surface's tools break things, the cell in the grid's zone, a breakable wall or a built piece). Bedrock and
-  lava, a planet's fog and everything aboard take nothing and stop it, listed as a hit of nothing; so does a target its kept
-  damage has run out for. `Pierced` counts every pierce and folds the damage.
+  lava, a planet's fog and everything aboard take nothing and stop it, listed as a hit of nothing (damage 0, any gun's);
+  so does a target its kept damage has run out for. `Pierced` counts every pierce and folds the damage.
 - **What it passed is remembered.** `Shot.Passed` holds what it hit and flew on through that still stands, never hit again: a
-  body spans cells, and a tick's last cell is asked again at the next. Saved, none written while none: no format bump.
+  body spans cells, and a tick's last cell is asked again at the next; a built piece is remembered by its first cell
+  (`ShotKey`), so a door over several cells is hit once. Saved, none written while none: no format bump.
   `ShotTarget` is saved by number in it.
 - **The charge is the client's, the energy the sim's.** `Fire` is refused `items.flat` when the belt cannot pay; applied, it
   spends the charge (nothing in creative). How long it was held is the client's word, as the pace is (0034): the sim has no
@@ -39,6 +40,8 @@ charge held about 0.8 s, all or nothing. Nails now; a steel bolt later, once the
 - Block damage is gone after three cells: a creature behind four cells of stone is out of reach.
 - Own walls and built pieces on a planet are scarred by a shot through them; machines, not solid to a shot, are passed.
 - A shot's heading is one of 256: at 300 cells it may land a few cells off.
+- Two-handed, the barrel turns as far as straight up and straight down: a point right over or under the hero's own shoulder
+  is aimed at straight, the shot passing a cell ahead of it.
 
 ## Rejected
 

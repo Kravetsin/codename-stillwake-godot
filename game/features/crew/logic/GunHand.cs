@@ -86,10 +86,11 @@ public sealed class GunHand
             if (held) _chargedMs = Math.Min(full, _chargedMs + elapsedMs);
             if (!held)
             {
-                if (was && ammo != null) step = step with { Fire = Fired(charging, muzzle!.Value, heading, ammo) };
+                // Full with nothing left to pay (the belt emptied mid-hold): it clicks dry.
+                if (was) step = ammo != null ? step with { Fire = Fired(charging, muzzle!.Value, heading, ammo) } : step with { Dry = true };
                 Uncharge();
             }
-            else step = step with { Charge = full > 0 ? _chargedMs / full : 1, Charged = !was && _chargedMs >= full };
+            else step = step with { Charge = _chargedMs / full, Charged = !was && _chargedMs >= full };
         }
         step = step with { Ready = Ready && !_wasReady && gun != null };
         _wasReady = Ready;

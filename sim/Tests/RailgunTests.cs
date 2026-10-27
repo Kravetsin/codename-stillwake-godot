@@ -83,14 +83,33 @@ public class RailgunTests
         var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Kind = Spec.PlanetTypes.First.Id };
         var w = CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 60 + 2))
             .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
-        var (_, end) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        var (hits, end) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
         Assert.Equal((17 * 60 + 30, true), (end.Cell, end.Met));
+        Assert.Equal((ShotTarget.Solid, 0, false), (hits.Single().What, hits.Single().Damage, hits.Single().Broke));
+        Assert.Equal("bedrock", w.M.Grid.WallAt(17 * 60 + 30)?.Id);
 
         var aboard = new Scenario(".....#....\n..........", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1), ("nail", 1))
             .Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
         var (_, at) = PierceTests.Flown(aboard, new Fire(Gun.Item, Unit + Unit / 2, Unit / 2, Right));
         Assert.Equal((5, true), (at.Cell, at.Met));
         Assert.NotNull(aboard.M.Grid.WallAt(5));
+    }
+
+    [Fact]
+    public void ABatteryOfExactlyAShotsChargePaysItEmptyAndNoNailsIsRefusedFirstForThem()
+    {
+        var w = ShotsTests.Space().GiveItems(0, (Gun.Item, 1)).Put(Belt, new Stack("battery", 1, Gun.Energy * Spec.Charge.Scale));
+        w.Do(Along(10)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(0, Charge(w));
+        // Neither nails nor a battery: refused for the nails first.
+        var bare = new Scenario(".....\n.....", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1)).Run();
+        bare.Do(new Fire(Gun.Item, Unit / 2, Unit / 2, Right)).Run();
+        Assert.Equal("items.notEnough", bare.Refusals.Single().Reason);
+        // In creative it fires with neither.
+        var creative = new Scenario(".....\n.....", cells: true).Do(new Crew.Enter(2)).GiveItems(0, (Gun.Item, 1)).Do(new SetCreative(true)).Run();
+        creative.Do(new Fire(Gun.Item, Unit / 2, Unit / 2, Right)).Run();
+        Assert.Empty(creative.Refusals);
     }
 
     [Fact]
@@ -110,11 +129,27 @@ public class RailgunTests
     }
 
     [Fact]
+    public void FiredLevelOnAPlanetItsNailGainsTwentyNineATickTheCopyFlyingAlike()
+    {
+        var w = Ground(58, 58);
+        var fire = new Fire(Gun.Item, 3 * Unit, 12 * Unit, Right);
+        var copy = ShotFlight.Launch(Gun, fire.X, fire.Y, fire.Heading);
+        w.Do(fire).Run();
+        for (int t = 1; t <= 3; t++)
+        {
+            var shot = w.M.Creatures.Shots.Single();
+            copy = w.M.Creatures.StepOf(copy, Spec.Shots.Nail, Gun.Item, []).Next;
+            Assert.Equal(29 * t, shot.VY);
+            Assert.Equal((shot.X, shot.Y, shot.VY), (copy.X, copy.Y, copy.VY));
+            w.Run();
+        }
+    }
+
+    [Fact]
     public void ItsNailFallsATenthOfTheNailersOnAPlanetAndNotAtAllAboard()
     {
         var planet = Spec.PlanetTypes.First;
         int nail = Spec.Shots.Nail.Weight * Spec.Creatures.Gravity;
-        Assert.Equal(planet.Fall(nail) * Gun.Fall / 1000, ShotFlight.Gravity(planet, Spec.Shots.Nail, Gun));
         Assert.Equal(29, ShotFlight.Gravity(planet, Spec.Shots.Nail, Gun));
         Assert.Equal(planet.Fall(nail), ShotFlight.Gravity(planet, Spec.Shots.Nail, Spec.Shots.Nailer));
         Assert.Equal(0, ShotFlight.Gravity(Spec.Surfaces.Ship, Spec.Shots.Nail, Gun));
@@ -144,9 +179,10 @@ public class RailgunTests
     [Fact]
     public void AClientsCopyFliesThroughTheWreckAndTheSoilAsTheSimDoes()
     {
-        foreach (var (w, fire) in new[] { (Space(), Along(10)), (Ground(30, 32), new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right)) })
+        var wrecked = Space();
+        PierceTests.Wreck(wrecked, 40, 180);
+        foreach (var (w, fire) in new[] { (wrecked, Along(10)), (Ground(30, 32), new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right)) })
         {
-            if (w.M.Debris.Pieces.Count == 0 && w.M.Grid.Width == 320) PierceTests.Wreck(w, 40, 180);
             var copy = ShotFlight.Launch(Gun, fire.X, fire.Y, fire.Heading);
             IReadOnlyList<ShotPass> passed = [];
             var predicted = new List<(ShotTarget, bool)>();
@@ -162,5 +198,99 @@ public class RailgunTests
             Assert.Equal(hits.Select(h => (h.What, h.Damage > 0)), predicted);
             Assert.Equal(end.Met ? end.Cell : -1, copyEnd);
         }
+    }
+
+    /// <summary>The test strip, a cell a character: <see cref="Ground"/>'s soil in columns 30 to 32, the hero with the railgun and nails.</summary>
+    private static Scenario Strip()
+    {
+        var rows = Enumerable.Range(0, 20).Select(_ => string.Concat(Enumerable.Range(0, 60).Select(x => x is >= 30 and <= 32 ? '#' : '.')))
+            .Concat(Enumerable.Repeat(new string('#', 60), 3));
+        var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', Enumerable.Repeat(new string('s', 60), 23)))
+            with
+        { Kind = Spec.Surfaces.TestStrip.Id };
+        return new Scenario(layout, doubled: false).Do(new Crew.Enter(19 * 60 + 2)).GiveItems(0, (Gun.Item, 1), ("nail", 10)).Run();
+    }
+
+    /// <summary>The first planet as <see cref="Ground"/>'s, with <paramref name="column"/> holding what <paramref name="at"/> draws instead of soil, rows 14 to 19.</summary>
+    private static Scenario Planet(int column, char at, char look, Box? zone = null)
+    {
+        var rows = Enumerable.Range(0, 20).Select(y => string.Concat(Enumerable.Range(0, 60).Select(x => (x == column || x == column + 1) && y >= 14 ? at : '.')))
+            .Concat(Enumerable.Repeat(new string('#', 60), 3));
+        var looks = Enumerable.Range(0, 20).Select(y => string.Concat(Enumerable.Range(0, 60).Select(x => (x == column || x == column + 1) && y >= 14 ? look : '.')))
+            .Concat(Enumerable.Repeat(new string('s', 60), 3));
+        var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Kind = Spec.PlanetTypes.First.Id };
+        if (zone is { } z) layout = layout with { Zone = z };
+        return CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 60 + 2))
+            .GiveItems(0, (Gun.Item, 1), ("nail", 10)).Put(Belt, new Stack("battery", 1, Spec.Charge.Battery)).Run();
+    }
+
+    [Fact]
+    public void ItHitsADoorOfSeveralCellsOnceAndTheLoperBehindForWhatIsKept()
+    {
+        var w = Planet(30, 'D', '.');
+        var loper = w.Let(Spec.Creatures.Loper, 40, 19);
+        var (hits, _) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        Assert.Single(hits, h => h.What == ShotTarget.Solid && h.Damage > 0);
+        Assert.Equal(15, loper.Damage);
+    }
+
+    [Fact]
+    public void ItStopsAtAPlanetsFogBreakingNothingThere()
+    {
+        var w = Planet(30, '#', 's', new Box(0, 0, 29, 22));
+        var (_, end) = PierceTests.Flown(w, new Fire(Gun.Item, 25 * Unit, 17 * Unit + Unit / 2, Right));
+        Assert.Equal((17 * 60 + 30, true), (end.Cell, end.Met));
+        Assert.Empty(w.M.Building.Cracks);
+    }
+
+    [Fact]
+    public void WhatItKeepsThroughEachPierceIs650RoundedDown()
+    {
+        Assert.Equal([24, 15, 9, 5, 3, 1, 0], Enumerable.Range(0, 7).Select(n => Spec.Shots.DamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
+        Assert.Equal([4, 2, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Gun.Item, Spec.Shots.Nail.Id, n)));
+    }
+
+    /// <summary>
+    /// Heroes armed with the railgun and a battery of five shots, firing every third tick any way from beside them, through the
+    /// strip's soil past two lopers or in space through wrecks: a world saved and loaded every tick plays on as the live one, shots
+    /// passing what stands and the belt refusing once flat. The generic suites never arm a hero so. On the test strip itself, not a
+    /// planet of CreaturesTesting's, whose creatures' surface a reload forgets.
+    /// </summary>
+    [Theory]
+    [InlineData(false, 3u)]
+    [InlineData(true, 5u)]
+    public void ArmedAndFiringAWorldSavedAndLoadedEveryTickPlaysOnAsTheLiveOne(bool space, uint seed)
+    {
+        Scenario Armed()
+        {
+            var w = space ? ShotsTests.Space().GiveItems(0, (Gun.Item, 1)) : Strip();
+            if (space) foreach (int column in (int[])[30, 50, 70, 90]) PierceTests.Wreck(w, column, 180);
+            else
+            {
+                w.Let(Spec.Creatures.Loper, 40, 19);
+                w.Let(Spec.Creatures.Loper, 46, 19);
+            }
+            return w.Put(Belt, new Stack("battery", 1, 5 * Gun.Energy * Spec.Charge.Scale));
+        }
+        var (live, loaded) = (Armed(), Armed());
+        var rng = new Rng(new RngState { S = seed });
+        int passing = 0;
+        for (int t = 0; t < 120; t++)
+        {
+            if (t % 3 == 0 && live.M.Crew.HeroOf(0)?.Cell is int cell)
+            {
+                int width = live.M.Grid.Width;
+                var fire = new Fire(Gun.Item, cell % width * Unit + (int)rng.Below(2 * Unit), (cell / width - 2) * Unit + (int)rng.Below(Unit),
+                    space ? (int)rng.Below(16) - 8 & 255 : (int)rng.Below(Spec.Headings.Turn));
+                live.Do(fire);
+                loaded.Do(fire);
+            }
+            live.Run();
+            loaded = loaded.Run().Reload();
+            Assert.Equal(live.World.Hash(), loaded.World.Hash());
+            if (live.M.Creatures.Shots.Any(s => s.Passed.Count > 0)) passing++;
+        }
+        Assert.True(passing > 0, "no shot passed anything");
+        Assert.Contains(live.Refusals, r => r.Reason == "items.flat");
     }
 }

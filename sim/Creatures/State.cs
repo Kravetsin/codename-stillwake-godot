@@ -191,7 +191,7 @@ public sealed class Shot
     [JsonInclude] public int VX { get; internal set; }
     [JsonInclude] public int VY { get; internal set; }
     [JsonInclude] public int Left { get; internal set; }
-    /// <summary>The things it broke or killed and flew on through (2026-10-27-shots-pierce), its damages kept through each; none written while none.</summary>
+    /// <summary>The things it flew on through (2026-10-27-shots-pierce), broken, killed or, for a gun that pierces all, still standing, its damages kept through each; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Pierced { get; internal set; }
     /// <summary>
     /// What a shot that pierces everything hit and flew on through that still stands, in the order hit (2026-10-27-the-railgun): never
@@ -212,8 +212,7 @@ public sealed class Shot
 /// </summary>
 public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);
 
-/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck.</summary>
-/// <summary>Saved by number in what a shot passed, so never renumber one.</summary>
+/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck. Saved by number in what a shot passed, so never renumber one.</summary>
 public enum ShotTarget
 {
     Solid = 0,

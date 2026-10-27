@@ -8,7 +8,7 @@ namespace Stillwake.Game;
 /// </summary>
 public sealed record ShotLook(double Length, double Width, string Tail, string Body, string Point, string? Glow = null);
 
-/// <summary>Every projectile's look, by its id (<c>Content.Shots</c>).</summary>
+/// <summary>Every shot's look (<c>Content.Shots</c>): by the gun that fired it till a projectile has a look of its own.</summary>
 public static class ShotLooks
 {
     /// <summary>

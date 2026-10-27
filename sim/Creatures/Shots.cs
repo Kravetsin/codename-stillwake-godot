@@ -70,7 +70,7 @@ public sealed partial class CreaturesModule
         var gun = Content.Shots.GunOf(c.Tool)!;
         var ammo = AmmoOf(c.From, gun)!;
         _items.Take(c.From, [(ammo.Id, 1)]);
-        if (gun.Energy > 0) _items.Drain(c.From, gun.Energy);
+        if (gun.Energy > 0 && !_items.Drain(c.From, gun.Energy)) throw new InvalidOperationException("creatures.fire: the belt could not pay what it could");
         var f = ShotFlight.Launch(gun, c.X, c.Y, c.Heading);
         State.Fired += 1;
         State.Shots.Add(new Shot
@@ -111,7 +111,8 @@ public sealed partial class CreaturesModule
     {
         var p = Content.Shots.Get(s.Projectile);
         var from = (s.X, s.Y);
-        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p, Content.Shots.GunOf(s.Gun)), _grid.Width, _grid.Height, cell => Meets(s, p, cell, from));
+        var gun = Content.Shots.GunOf(s.Gun);
+        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p, gun), _grid.Width, _grid.Height, cell => Meets(s, p, gun, cell, from));
         if (met >= 0)
         {
             _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true));
@@ -132,10 +133,9 @@ public sealed partial class CreaturesModule
     /// still stands then kept as passed, else it stops there, as it does at one it has nothing left for or that takes nothing,
     /// hitting nothing but listed, to show where it stopped. True where it stops.
     /// </summary>
-    private bool Meets(Shot s, Content.Projectile p, int cell, (int X, int Y) from)
+    private bool Meets(Shot s, Content.Projectile p, Content.Gun? gun, int cell, (int X, int Y) from)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        var gun = Content.Shots.GunOf(s.Gun);
         ShotPass? broken = null;
         while (TargetIn(cell, p, _wrecks, s.Passed) is { } target)
         {
@@ -172,7 +172,12 @@ public sealed partial class CreaturesModule
     /// </summary>
     private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
-        if (Solid(cell) && !passed.Contains(new ShotPass(ShotTarget.Solid, cell))) return new Target(new ShotPass(ShotTarget.Solid, cell), null);
+        if (Solid(cell))
+        {
+            // A built piece by its first cell, so one over several cells is met, and passed, as one.
+            var solid = new ShotPass(ShotTarget.Solid, _built.ShotKey(cell));
+            if (!passed.Contains(solid)) return new Target(solid, null);
+        }
         if (!p.HitsBodies) return null;
         if (CreatureIn(cell, passed) is { } creature) return new Target(new ShotPass(ShotTarget.Creature, creature.Id), creature);
         return WreckIn(cell, wrecks, passed) is { } wreck ? new Target(new ShotPass(ShotTarget.Wreck, wreck.Piece), null) : null;
@@ -231,7 +236,7 @@ public sealed partial class CreaturesModule
             }
             return false;
         }
-        var (next, met, last) = ShotFlight.Step(f, ShotFlight.Gravity(Rules, p, Content.Shots.GunOf(gun)), _grid.Width, _grid.Height, Judge);
+        var (next, met, last) = ShotFlight.Step(f, ShotFlight.Gravity(Rules, p, spec), _grid.Width, _grid.Height, Judge);
         return new ShotTick(next, met, last, hits, through);
     }
 

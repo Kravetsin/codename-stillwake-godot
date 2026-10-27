@@ -17,7 +17,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
   does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110); `Research` (`Knows`, 0024);
-  `Crafting` (`Queue`: a station with crafts queued stands, 0057). Creatures reads it (`ShotTakes`) and changes it (`Hit`: a shot).
+  `Crafting` (`Queue`: a station with crafts queued stands, 0057). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`. Derived (`Flora.cs`): the growths grown

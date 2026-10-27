@@ -45,6 +45,9 @@ public interface IBuildingQueries
     /// the cell is in the grid's zone, and a breakable wall or a built piece stands there; what <see cref="IBuildingOps.Hit"/> guards by.
     /// </summary>
     bool ShotTakes(int cell);
+
+    /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
+    int ShotKey(int cell);
 }
 
 /// <summary>How another module may change what stands on the grid.</summary>

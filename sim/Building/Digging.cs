@@ -131,6 +131,9 @@ public sealed partial class BuildingModule
         Rules.ToolsBreak && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)
         && (_grid.WallAt(cell) is { } wall ? wall.Strength != Material.Unbreakable : PieceAt(cell) != null);
 
+    /// <inheritdoc/>
+    public int ShotKey(int cell) => _grid.WallAt(cell) == null && PieceAt(cell) is { } piece ? piece.Head : cell;
+
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
     private void Yield(int? peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
