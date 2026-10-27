@@ -34,9 +34,11 @@ no re-entry fire or clouds, and a shorter descent.
   own pod arrives the frame its flight ends. Leaving the pod or flying off inside the hold lets it go at once.
 
 - **Heard by everyone on the surface.** A moving pod's engine, clamps and touchdown are placed on it on the World bus (as
-  far as `Sound.BreakReach`), so the host and every guest there hear a drop, a touchdown or a lift-off; the rider hears its
-  hull's rumble and a thump at the white on the Suit bus. No new files: the jetpack's thrust, a drone's clunk, a hard landing
-  and lava's bed, retuned (`Sound.Pod`). A moment's sound plays only if it passes while seen, never late after a load.
+  far as `Sound.BreakReach`), so the host and every guest there hear a drop, a touchdown, a lift-off or a docking aboard; as the
+  flame reaches the ground the engine swells and the blasted grit roars, briefly. The rider hears the engine from inside, the
+  hull's rumble and a thump at the white on the Suit bus, and hears as in air while in a pod: it holds its own. No new files:
+  the jetpack's thrust, a drone's clunk, a hard landing, the vent's hiss and lava's bed, retuned (`Sound.Pod`). A moment's sound
+  plays only if it passes while seen, never late after a load.
 
 ## Deliberately not handled
 

@@ -65,6 +65,14 @@ public class ArrivalsTests
         a.Frame(Ship, true, [], null, true, Frame);
         a.Frame(Ship, true, [(3, true)], ownLanded: 3, false, Frame);
         Assert.False(a.Holds(3));
+        // Docked back aboard: heard for a moment, never held back.
+        Assert.Equal(0, a.DockedSince(3));
+        for (int i = 0; i < FlightTimeline.DockS / Frame + 10; i++) a.Frame(Ship, true, [(3, true)], null, false, Frame);
+        Assert.Null(a.DockedSince(3));
+        // A friend's pod docking where this player stands aboard is heard too.
+        a.Frame(Ship, true, [(3, true), (4, true)], null, false, Frame);
+        Assert.Equal(0, a.DockedSince(4));
+        Assert.False(a.Holds(4));
     }
 
     [Fact]

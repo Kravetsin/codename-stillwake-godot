@@ -292,7 +292,8 @@ public partial class Main : Node2D, ITogether
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
-    private bool Floats() => _session != null && _hero is { Placed: true, Floats: true };
+    // In a drop pod the hero hears as in air, the vacuum outside or not: the pod holds its own.
+    private bool Floats() => _session != null && _hero is { Placed: true, Floats: true, InPod: false };
 
     private IReadOnlyList<Sim.Module> Modules()
     {

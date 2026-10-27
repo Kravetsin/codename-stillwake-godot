@@ -76,11 +76,20 @@ public partial class PodFlights : Node2D
     {
         var bottom = new Vector2(16, Tall);
         foreach (var (f, s) in _falling)
-            _sounds.Heard(PodSounds.Motion.Falling, f.Peer, PodAt(f.Home) + bottom + new Vector2(0, (float)Drop(s)), s, s >= DropFrom, delta);
+            _sounds.Heard(PodSounds.Motion.Falling, f.Peer, PodAt(f.Home) + bottom + new Vector2(0, (float)Drop(s)), s, s >= DropFrom, 0, delta);
         foreach (var (cell, a) in _coming)
-            _sounds.Heard(PodSounds.Motion.Coming, cell, PodAt(cell) + bottom - new Vector2(0, (float)Touchdown(a)), a, a < BounceFrom, delta);
+        {
+            double high = Touchdown(a);
+            _sounds.Heard(PodSounds.Motion.Coming, cell, PodAt(cell) + bottom - new Vector2(0, (float)high), a, a < BounceFrom,
+                a < BounceFrom ? Blast(high, Flame(high / FromPx * 22)) : 0, delta);
+        }
         foreach (var (cell, s) in _lifting)
-            _sounds.Heard(PodSounds.Motion.Lifting, cell, PodAt(cell) + bottom - new Vector2(0, (float)Lift(s)), s, true, delta);
+            _sounds.Heard(PodSounds.Motion.Lifting, cell, PodAt(cell) + bottom - new Vector2(0, (float)Lift(s)), s, true, Blast(Lift(s), Flame(18)), delta);
+        // Docked aboard, not drawn: a burst of its engine blasting the deck, cut as it settles.
+        if (_arrivals != null)
+            foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Seats))
+                if (_arrivals.DockedSince(pod.Id) is double d)
+                    _sounds.Heard(PodSounds.Motion.Docking, pod.Cell, PodAt(pod.Cell) + bottom, d, d < DockBurstS, d < DockBurstS ? 1 - d / DockBurstS : 0, delta);
         _sounds.Settle(delta);
     }
 
@@ -129,7 +138,7 @@ public partial class PodFlights : Node2D
             var at = PodAt(cell);
             double high = Touchdown(a);
             // The retro flame, long while it brakes high, short as it settles, out at the bounce.
-            if (a < BounceFrom) Thrust(g, at - new Vector2(0, (float)high), a, (float)(high / FromPx) * 22);
+            if (a < BounceFrom) Thrust(g, at - new Vector2(0, (float)high), a, (float)(high / FromPx * 22));
             // The dust it blows sideways near the ground, settling once it stands.
             if (high < 18 || a >= BounceFrom) Blow(g, at, a, a < BounceFrom ? 1 : 1 - (a - BounceFrom) / (Release - BounceFrom));
         }

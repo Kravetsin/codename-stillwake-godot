@@ -506,8 +506,16 @@ public static class Sound
     /// <summary>The rider's thump as the flight whites out over a planet's opening, on the Suit bus: a hard landing, very low.</summary>
     public static readonly Cue PodFlash = LandHard with { VolumeDb = 0, Tune = 0.42f, Pitch = 0, Heard = null };
 
+    /// <summary>
+    /// A pod's flame blasting the ground under it as it lands or lifts off: the venting hiss, far lower, a roar of grit placed on
+    /// the pod, its gain the blast's share; the engine swells <see cref="PodBlastDb"/> with it.
+    /// </summary>
+    public static readonly Cue PodBlast = Hiss with { VolumeDb = 0, Tune = 0.45f, Heard = BreakReach };
+
+    public const float PodBlastDb = 9;
+
     /// <summary>The descent's cues, made from others declared above.</summary>
-    public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash];
+    public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,

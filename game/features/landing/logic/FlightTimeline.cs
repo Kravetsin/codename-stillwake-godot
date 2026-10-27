@@ -30,6 +30,10 @@ public static class FlightTimeline
     public const double FromPx = 18 * 8;
     /// <summary>How high a pod lifting off has risen after <see cref="RiseS"/>: nine cells; it rises on, gathering speed.</summary>
     public const double RisePx = 9 * 8, RiseS = 1.0;
+    /// <summary>A pod docking aboard on a return is not drawn moving, only heard: its burst and clunk last this long.</summary>
+    public const double DockS = 1.5;
+    /// <summary>How long a docking pod's engine bursts, blasting the deck, before it is cut.</summary>
+    public const double DockBurstS = 0.35;
     /// <summary>How high the bounce lifts it, at most.</summary>
     public const double BouncePx = 2;
     /// <summary>A lift-off from a planet is seen this long, three times <see cref="RiseS"/>, the pod far overhead by then.</summary>
@@ -81,6 +85,15 @@ public static class FlightTimeline
         double k = Math.Clamp(s / RiseS, 0, LiftS / RiseS);
         return RisePx * k * k;
     }
+
+    /// <summary>
+    /// How hard a pod's flame <paramref name="flame"/> pixels long blasts the ground when its bottom is <paramref name="high"/>
+    /// pixels over it: nothing till the flame's tip is near it, rising to 1 as the flame splashes on it.
+    /// </summary>
+    public static double Blast(double high, double flame) => Clamp01((flame + 8 - high) / 16);
+
+    /// <summary>How long a pod's flame is drawn, on average, <paramref name="extra"/> pixels past its kick: what reaches the ground.</summary>
+    public static double Flame(double extra) => 8 + extra * 0.8;
 
     /// <summary>
     /// Whether a moment <paramref name="at"/> was passed between the last frame's <paramref name="last"/> and <paramref name="now"/>:

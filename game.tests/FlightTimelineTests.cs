@@ -77,6 +77,17 @@ public class FlightTimelineTests
     }
 
     [Fact]
+    public void BlastsTheGroundOnlyOnceTheFlamesTipIsNearItHardestAtContact()
+    {
+        Assert.Equal(0, T.Blast(high: 100, flame: T.Flame(10)));
+        Assert.Equal(0, T.Blast(high: 16, flame: T.Flame(0)));
+        Assert.Equal(1, T.Blast(high: 0, flame: T.Flame(0)));
+        // A lift-off: hardest as it leaves the ground, none once well up.
+        Assert.Equal(1, T.Blast(T.Lift(0), T.Flame(18)));
+        Assert.Equal(0, T.Blast(T.Lift(T.RiseS), T.Flame(18)));
+    }
+
+    [Fact]
     public void FindsThePodsCellFromItsRidersFloor()
     {
         const int width = 40;

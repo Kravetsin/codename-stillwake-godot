@@ -6,7 +6,8 @@ namespace Stillwake.Game.Features.Landing;
 
 /// <summary>
 /// Which drop pods have just come down on the surface this player sees, and how long ago (the descent's slice 2): a pod that is
-/// seated now and was not on this surface last frame, off the ship only, or this player's own pod the frame its flight ended.
+/// seated now and was not on this surface last frame, or this player's own pod the frame its flight ended. Off the ship it is held
+/// back and drawn coming down; aboard, docked back from a planet, it is only heard (<see cref="DockedSince"/>).
 /// The sim has the pod standing at once; the client holds it back from the grid for <see cref="FlightTimeline.Release"/> seconds
 /// and draws it coming down. Time here is frame time: the planet's opening freezes the ticks the touchdown would play in.
 /// </summary>
@@ -15,7 +16,7 @@ public sealed class Arrivals
     /// <summary>The longest frame counted: the freeze and the planet's first drawing would otherwise eat the touchdown.</summary>
     public const double MostDelta = 0.05;
 
-    private readonly Dictionary<int, double> _since = [];
+    private readonly Dictionary<int, double> _since = [], _docked = [];
     private HashSet<int> _last = [];
     private int? _surface;
 
@@ -29,6 +30,12 @@ public sealed class Arrivals
     public double? SecondsSince(int pod) => _since.TryGetValue(pod, out double s) ? s : null;
 
     /// <summary>
+    /// Seconds since pod <paramref name="pod"/> docked aboard, back from a planet: not drawn moving, only heard, for
+    /// <see cref="FlightTimeline.DockS"/>; null for none.
+    /// </summary>
+    public double? DockedSince(int pod) => _docked.TryGetValue(pod, out double s) ? s : null;
+
+    /// <summary>
     /// A frame <paramref name="delta"/> seconds on, on <paramref name="surface"/> (<paramref name="aboard"/> the ship), its pods and
     /// whether each is seated. <paramref name="ownLanded"/> is the pod this player sits in the frame its own flight ended;
     /// <paramref name="newWorld"/> a load or a resync: nothing arrives in a world just made.
@@ -39,7 +46,11 @@ public sealed class Arrivals
         bool switched = surface != _surface;
         _surface = surface;
         var here = pods.ToDictionary(p => p.Pod, p => p.Seated);
-        if (newWorld) _since.Clear();
+        if (newWorld)
+        {
+            _since.Clear();
+            _docked.Clear();
+        }
         else
         {
             delta = Math.Min(delta, MostDelta);
@@ -50,10 +61,20 @@ public sealed class Arrivals
                 if (switched || !here.GetValueOrDefault(pod) || s >= FlightTimeline.Release) _since.Remove(pod);
                 else _since[pod] = s;
             }
-            if (!aboard)
-                foreach (var (pod, seated) in pods)
-                    if (seated && !_since.ContainsKey(pod) && (switched ? pod == ownLanded : !_last.Contains(pod) || pod == ownLanded))
-                        _since[pod] = 0;
+            // Docked aboard: heard for a moment, never held back, as nothing is drawn moving there.
+            foreach (int pod in _docked.Keys.ToList())
+            {
+                double s = _docked[pod] + delta;
+                if ((switched && pod != ownLanded) || !here.ContainsKey(pod) || s >= FlightTimeline.DockS) _docked.Remove(pod);
+                else _docked[pod] = s;
+            }
+            foreach (var (pod, seated) in pods)
+            {
+                bool came = seated && (switched ? pod == ownLanded : !_last.Contains(pod) || pod == ownLanded);
+                if (!came) continue;
+                if (!aboard && !_since.ContainsKey(pod)) _since[pod] = 0;
+                else if (aboard && !_docked.ContainsKey(pod)) _docked[pod] = 0;
+            }
         }
         _last = [.. here.Keys];
         if (_since.Count != before || newWorld) Version++;

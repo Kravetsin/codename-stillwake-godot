@@ -48,10 +48,13 @@ socket are the power feature's (`PlatformLamps`).
   over half a second once the hero is on the surface it flew to; a flight ended any other way clears it at once.
 - **Heard** (`PodSounds`, `FlightOverlay`): a moving pod is placed on the World bus, so everyone on its surface hears it, a
   guest as the host, as far as `Sound.BreakReach`: its engine (`PodThrust`, the jetpack's loop lower and louder) through the
-  drop's kick, the touchdown's burn and the lift-off; its clamps (`PodRelease`) as it drops or lifts off; the thump as it
-  touches down and, softer, at its bounce (`PodTouchdown`). The rider, on the Suit bus: the hull's rumble (`PodRumble`) from the
-  cut, louder with the speed, and a thump (`PodFlash`) on the flight's last tick, under the white. A sound due at a moment
-  plays only if the moment passes while seen (`FlightTimeline.Crossed`): a world loaded mid-flight plays nothing late.
+  drop's kick, the touchdown's burn and the lift-off; as its flame reaches the ground (`FlightTimeline.Blast`) the engine swells
+  `PodBlastDb` and the blasted grit roars (`PodBlast`), briefly; its clamps (`PodRelease`) as it drops or lifts off; the thump
+  and its legs' clunk as it touches down, the engine cut, softer at its bounce (`PodTouchdown`). Docking aboard on a return
+  (`Arrivals.DockedSince`, not drawn): a short burst blasting the deck, a thump, the clamps closing. The rider, on the Suit bus:
+  the engine from inside from its firing and the hull's rumble (`PodRumble`) from the cut, louder with the speed, and a thump
+  (`PodFlash`) on the flight's last tick, under the white. In a pod a hero hears as in air (`HeroView.InPod`), vacuum outside or
+  not. A sound due at a moment plays only if it passes while seen (`FlightTimeline.Crossed`): none late after a load.
 
 ## Deliberately not handled
 
