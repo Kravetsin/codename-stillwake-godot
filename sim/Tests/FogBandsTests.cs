@@ -86,7 +86,7 @@ public class FogBandsTests
             ......
             .S....
             ######
-            """);
+            """) { Bare = true };
         w.Do(new Enter(w.M.Crew.Spawn)).Run();
         w.Do(new OpenSurface(PlanetTypes.Small.Id)).Run();
         return w.Do(new Transfer(1)).Run();

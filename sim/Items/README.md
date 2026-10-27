@@ -37,7 +37,7 @@ stacks on the floor; and creative mode, where nothing is ever taken (0008).
   `ToolStats.Of(stack)`, shared with the client, folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (`Stacks.Misfit`, 0047). Worn items
-  are never taken nor counted (`Totals`).
+  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there, a suit for Crew (2026-10-27-suits-are-worn).
 - **Give and take** all of a cost or none (0008; order no ADR): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full.

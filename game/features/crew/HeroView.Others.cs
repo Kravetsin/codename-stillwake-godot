@@ -88,7 +88,7 @@ public partial class HeroView
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
             // A friend's canister: its air rises round it, heard where it is (0081).
-            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Suit, breathing.Out))
+            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
                 var figure = shown.Figure;
                 _air.Vortex(() => figure.Stance);

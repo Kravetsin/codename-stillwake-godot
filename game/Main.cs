@@ -170,10 +170,10 @@ public partial class Main : Node2D, ITogether
             var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
-            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None, true), _hands.Ui);
+            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);
             AddChild(gauge);
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
-            AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
             IEnumerable<Rect2> Hud()

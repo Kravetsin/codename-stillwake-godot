@@ -19,7 +19,7 @@ public class HelmetLampTests
 
     private const int Pod = 1;
     private static readonly string Lamp = HelmetLamp.Item;
-    private static readonly int Head = Inventory.Slots, Back = Inventory.Slots + 1;
+    private static readonly int Head = Inventory.Slots, Back = Inventory.Slots + 1, LampSlot = Inventory.Slots + Inventory.Equipment.ToList().IndexOf(Content.Helmet.Fitting);
 
     [Fact]
     public void TheLifepodMakesOneOfAPlateTwoWireAndSiliconOnceTheyAreAnalysed()
@@ -37,12 +37,13 @@ public class HelmetLampTests
     }
 
     [Fact]
-    public void IsWornOnTheHeadAloneAndDrawsNothingThere()
+    public void IsWornInTheHelmetsLampSlotAloneAndDrawsNothingThere()
     {
         var w = new Scenario(Room).GiveItems(0, (Lamp, 1));
-        w.Do(new Move(new Items.Place(0), new Target(Back), 1)).Run();
-        Assert.Equal(["items.notEquipment"], w.Refusals.Select(r => r.Reason));
-        w.Do(new Move(new Items.Place(0), new Target(Head), 1)).Run(100);
+        // Neither on the back nor in the helmet's place: in the slot fixed onto any helmet (2026-10-27-suits-are-worn).
+        w.Do(new Move(new Items.Place(0), new Target(Back), 1)).Do(new Move(new Items.Place(0), new Target(Head), 1)).Run();
+        Assert.Equal(["items.notEquipment", "items.notEquipment"], w.Refusals.Select(r => r.Reason));
+        w.Do(new Move(new Items.Place(0), new Target(LampSlot), 1)).Run(100);
         Assert.True(w.M.Items.Equipped(0, Lamp));
         Assert.Null(w.M.Items.Running(0));
         Assert.Null(Content.Items.Get(Lamp).Draw);

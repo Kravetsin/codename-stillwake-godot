@@ -157,7 +157,7 @@ public class SentryTests
         Assert.Equal(ActPhase.Active, c.Act!.Phase);
         w.Do(new HitBy(c.Id)).Do(new HitBy(c.Id) { From = 1 }).Run();
         // Both breathe alike: only the one hit pays the pounce.
-        Assert.Equal(w.M.Crew.HeroOf(1)!.Suit - Pounce.Damage, w.M.Crew.HeroOf(0)!.Suit);
+        Assert.Equal(w.M.Crew.HeroOf(1)!.Air - Pounce.Damage, w.M.Crew.HeroOf(0)!.Air);
         Assert.Equal(["creatures.notAttacking"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(typeof(Tune.Return), Sentry.Brain[c.Drive].GetType());
     }
@@ -290,7 +290,7 @@ public class SentryTests
 
     private static int Down(int a) => CreaturesModule.Down(a, Unit);
 
-    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Suit;
+    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Air;
 
     /// <summary>Runs <paramref name="w"/> till <paramref name="c"/> is clamped on and idle again, at most <paramref name="ticks"/>.</summary>
     private static void Home(Scenario w, Creature c, int ticks = 300)

@@ -1,4 +1,3 @@
-using CrewSpec = Stillwake.Content.Crew;
 using Look = Stillwake.Game.WristLook;
 
 namespace Stillwake.Game.Features.Crew;
@@ -22,10 +21,10 @@ public sealed class AirCues
     /// A read: the suit's units, its danger and whether the hero breathes room air (or the pod's), <paramref name="seconds"/>
     /// after the last. The first read only learns where the hero is.
     /// </summary>
-    public AirBack Read(int suit, SuitDanger danger, bool inAir, double seconds)
+    public AirBack Read(int suit, int capacity, SuitDanger danger, bool inAir, double seconds)
     {
         _sinceAgain += seconds;
-        bool again = _read && inAir && !_inAir && suit < CrewSpec.Suit && danger != SuitDanger.Out && _sinceAgain >= Look.AgainGapS;
+        bool again = _read && inAir && !_inAir && suit < capacity && danger != SuitDanger.Out && _sinceAgain >= Look.AgainGapS;
         bool letsGo = _read && _danger == SuitDanger.Low && danger == SuitDanger.None;
         if (again) _sinceAgain = 0;
         (_read, _inAir, _danger) = (true, inAir, danger);

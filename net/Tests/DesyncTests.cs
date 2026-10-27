@@ -340,10 +340,10 @@ public class DesyncTests(ITestOutputHelper output)
                     {
                         if (suits.TryGetValue(h.Id, out var before))
                         {
-                            if (before.Out == 0 && h.Out == 0 && h.Suit > before.Suit) refilled = true;
+                            if (before.Out == 0 && h.Out == 0 && h.Air > before.Suit) refilled = true;
                             if (before.Out > 0 && h.Out == 0) woke = true;
                         }
-                        suits[h.Id] = (h.Suit, h.Out);
+                        suits[h.Id] = (h.Air, h.Out);
                     }
                 });
             // Breathing ran both ways: a suit refilled from room air, and a hero passed out and woke.

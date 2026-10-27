@@ -38,16 +38,20 @@ public static class Report
     /// </summary>
     public static int Every(bool threatened) => threatened ? Stillwake.Content.Crew.ReportThreatened : Stillwake.Content.Crew.ReportEvery;
 
+    /// <summary>The least frost on a bare hero in the cold (2026-10-27-suits-are-worn): seen at once, before the field's edge.</summary>
+    public const float BareFrost = 0.3f;
+
     /// <summary>
-    /// How hard the cold bites at <paramref name="cell"/>, the body's own, from 0 inside the field to 1 at
-    /// the world's edge: the crew's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, eased out (2s − s²) so the
-    /// frost shows a little past the line and is heavy well before the edge (0050). What the frost on the
-    /// screen is drawn at.
+    /// How hard the cold bites hero <paramref name="peer"/> at <paramref name="cell"/>, the body's own, from 0 inside the
+    /// field to 1 at the world's edge: the crew's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, eased out (2s − s²) so the
+    /// frost shows a little past the line and is heavy well before the edge (0050); at least <see cref="BareFrost"/> while
+    /// the sim says it is cold beyond the edge's, bare. What the frost on the screen is drawn at.
     /// </summary>
-    public static float Cold(ICrewQueries crew, int cell)
+    public static float Cold(ICrewQueries crew, int peer, int cell)
     {
         float share = Math.Clamp((float)crew.EdgeCost(cell) / Stillwake.Content.Field.EdgeCost, 0f, 1f);
-        return share * (2 - share);
+        bool bare = crew.HeroOf(peer) is { } hero && crew.Cold(peer) > crew.EdgeCost(hero.Cell);
+        return Math.Max(share * (2 - share), bare ? BareFrost : 0);
     }
 
     /// <summary>

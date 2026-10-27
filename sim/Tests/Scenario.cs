@@ -1,4 +1,5 @@
 using Stillwake.Sim.Building;
+using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Sim.Tests;
@@ -102,7 +103,38 @@ public sealed class Scenario
 
     /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left on a doubled map.</summary>
     public int At(int x, int y) => y * Scale * Layout.Width + x * Scale;
-    public Scenario Do(Command c) { _pending.Add(c); return this; }
+    /// <summary>
+    /// Heroes come in bare, as a peer's first hero does in the game. Otherwise (the default) a peer's first <see cref="Enter"/>
+    /// on the ship is preceded by <see cref="Suit"/>, so a scenario's heroes are suited, their air full, as before suits
+    /// were worn (2026-10-27-suits-are-worn).
+    /// </summary>
+    public bool Bare { get; init; }
+
+    private readonly HashSet<int> _dressed = [];
+
+    public Scenario Do(Command c)
+    {
+        // Only a peer seated aboard: one carried to another surface keeps what it carries there.
+        if (c is Enter && !Bare && World.SurfaceOf(c.From) == 0 && M.Crew.HeroOf(c.From) == null && _dressed.Add(c.From)) Suit(c.From);
+        _pending.Add(c);
+        return this;
+    }
+
+    /// <summary>The basic helmet's tank: a suited hero's full air.</summary>
+    public static int Full => Content.Items.Get(Content.Helmet.Basic).Tank;
+
+    /// <summary>
+    /// Peer <paramref name="peer"/> wears the basic helmet and body, put straight into their slots (<see cref="ItemsTesting.Wear"/>), its kit
+    /// given first as its first hero would get it. Before the peer's first <see cref="Enter"/>, that prints the hero suited, its
+    /// air full; after it, the air fills as a suit put on fills.
+    /// </summary>
+    public Scenario Suit(int peer)
+    {
+        _dressed.Add(peer);
+        M.Items.Kit(peer);
+        if (M.Items.WornIn(peer, Content.Helmet.Slot) == null) this.Wear(peer, Content.Helmet.Basic);
+        return M.Items.WornIn(peer, Content.Suit.Slot) == null ? this.Wear(peer, Content.Suit.Basic) : this;
+    }
 
     public Scenario Run(int ticks = 1)
     {
