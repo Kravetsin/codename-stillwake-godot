@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>The two-handed hold (0078): a drill held as a rifle is, both hands on its grips.</summary>
 public class TwoHandTests
 {
-    private static readonly HeldLook[] Held = [HeldLook.Drill];
+    private static readonly HeldLook[] Held = [HeldLook.Drill, HeldLook.Railgun];
 
     /// <summary>Every turn the hold takes, a hundredth of a radian apart.</summary>
     private static IEnumerable<double> Turns()
@@ -17,7 +17,7 @@ public class TwoHandTests
     }
 
     [Fact]
-    public void TheDrillIsHeldInBothHandsTheFarOnAForegripBeforeTheNearOnesGrip()
+    public void TheDrillAndTheRailgunAreHeldInBothHandsTheFarOnAForegripBeforeTheNearOnesGrip()
     {
         foreach (var look in Held)
         {
@@ -93,8 +93,8 @@ public class TwoHandTests
         Assert.Equal(TwoHand.Down, TwoHand.AngleFor(drill, 0, 100));
         Assert.Equal(-TwoHand.Up, TwoHand.AngleFor(drill, -100, -5));
         Assert.Equal(TwoHand.Down, TwoHand.AngleFor(drill, -100, 30));
-        Close(55, TwoHand.Up * 180 / Math.PI, 6);
-        Close(85, TwoHand.Down * 180 / Math.PI, 6);
+        Close(90, TwoHand.Up * 180 / Math.PI, 6);
+        Close(90, TwoHand.Down * 180 / Math.PI, 6);
     }
 
     [Fact]

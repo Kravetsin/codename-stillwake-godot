@@ -191,8 +191,17 @@ public sealed class Shot
     [JsonInclude] public int VX { get; internal set; }
     [JsonInclude] public int VY { get; internal set; }
     [JsonInclude] public int Left { get; internal set; }
-    /// <summary>The things it broke or killed and flew on through (2026-10-27-shots-pierce), its damages kept through each; none written while none.</summary>
+    /// <summary>The things it flew on through (2026-10-27-shots-pierce), broken, killed or, for a gun that pierces all, still standing, its damages kept through each; none written while none.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Pierced { get; internal set; }
+    /// <summary>
+    /// What a shot that pierces everything hit and flew on through that still stands, in the order hit (2026-10-27-the-railgun): never
+    /// hit again, a body spanning cells and ticks. Pierced counts these and what broke.
+    /// </summary>
+    [JsonIgnore] internal List<ShotPass> Passed { get; set; } = [];
+
+    /// <summary>What it passed, as saved: none written while none, so a shot that passed nothing saves as before.</summary>
+    [JsonInclude, JsonPropertyName("passed"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<ShotPass>? SavedPassed { get => Passed.Count > 0 ? Passed : null; set => Passed = value ?? []; }
 
     internal ShotMotion Motion => new(X, Y, VX, VY, Left);
 }
@@ -203,8 +212,13 @@ public sealed class Shot
 /// </summary>
 public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);
 
-/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck.</summary>
-public enum ShotTarget { Solid, Creature, Wreck }
+/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck. Saved by number in what a shot passed, so never renumber one.</summary>
+public enum ShotTarget
+{
+    Solid = 0,
+    Creature = 1,
+    Wreck = 2,
+}
 
 /// <summary>
 /// A hit of a shot this tick (2026-10-27-shots-pierce): the shot by its id, its shooter, projectile and gun; the cell it hit

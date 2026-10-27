@@ -168,4 +168,15 @@ public class HazardsTests
                 && w.Refusals.Count == refused && w.Refusals.All(r => r.Reason == "hazards.noWall");
         });
     }
+
+    [Fact]
+    public void AMeteorBreaksNoBedrockNorAnythingInAPlanetsFogButSoilInTheZone()
+    {
+        // Three walls, a cell a character: soil in the fog, bedrock and soil in the zone (columns 1 to 2).
+        var layout = Layout.Parse("###\n...").WithMaterials("sbs\n...") with { Zone = new Box(1, 0, 2, 1) };
+        var w = new Scenario(layout, doubled: false);
+        w.Do(new MeteorHit(0)).Do(new MeteorHit(1)).Do(new MeteorHit(2)).Do(new MeteorHit(3)).Run();
+        Assert.Equal(["hazards.neverBreaks", "hazards.neverBreaks", "hazards.noWall"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal((Structure.Wall, Structure.Wall, Structure.Empty), (w.M.Grid.StructureAt(0), w.M.Grid.StructureAt(1), w.M.Grid.StructureAt(2)));
+    }
 }

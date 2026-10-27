@@ -21,23 +21,23 @@
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling, leaping (0102, 0104, 0106). |
 
 Every creature, composed ([creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
-species (`Content.Creatures`) names a body, a life, a faction, a brain of ranked drives, its moves and yields, each record
-served by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Shots fly here
+species (`Content.Creatures`) names a body, life, faction, a brain of ranked drives, moves and yields, each record served
+by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Shots fly here
 ([shots-are-the-sims](../../docs/decisions/2026-10-26-shots-are-the-sims.md), [pierce](../../docs/decisions/2026-10-27-shots-pierce.md)).
 
-- **Depends on:** `Grid`; `Crew` (heroes' cells; `Shock`); `Items` (`Damage`, `WeaponProblem`, `ToolStack`, `ShortOf`,
-  `Take`, `DropAt`); `Debris` (queries, `Wrecks`, `Breaks`, `Unreel`, `Hit`); `Building` (`IBuildingOps.Hit`).
+- **Depends on:** `Grid`; `Crew` (heroes' cells; `Shock`); `Items` (queries, ops: weapons, ammo, drops, charge); `Debris`
+  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge (its brain
   place), `Step` its place in it, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its grudge (a `Ref`), `Mem`
   its rules' numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Fired`. Empty `Target`,
-  `Mem`, `Shots`, `Arcs`, `Pierced` 0 are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
+  `Mem`, `Shots`, `Arcs`, `Pierced` 0, `Passed` are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
 - **Runs** after `Crew` and `Debris` (simulation): heroes' cells and wrecks are this tick's; shots fly after.
 
 ## Adding a species or a rule
 
-- **A species:** a record in `Content.Creatures`, its art, its name. Some drive always wants it, one claims hits, a drive that
-  acts has its follow-up; a brain's order is saved and pinned (`CreatureContractTests`): change it with a format bump.
+- **A species:** a record in `Content.Creatures`, its art and name. A drive always wants it, one claims hits, an acting drive
+  has a follow-up; a brain's order is saved and pinned (`CreatureContractTests`): change it with a format bump.
 - **A rule:** a record and a class deriving `DriveRule`, `BodyRule` or `MoveRule`, found by `RuleBook`; rules hold no state.
 
 ## Rules
@@ -61,15 +61,16 @@ served by one rule here. Grazers live on planets (0102, 0103), the sentry on wre
   arc, from its perch only: aimed `Lock` before the wind-up ends (its grudge, else the nearest within reach), struck at
   once to the first wall, lingering `Lingers`. `CutTether` lets go of a reel `Ticks` after it bites. Its wreck gone, it dies.
 - **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked
-  (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order, the first claim wins.
-- **Shots:** `Fire` takes one ammo, adds a shot; each tick, in id order, it steps, hitting a cell's targets in turn (solid,
-  the lowest-id creature, a wreck) at its gun's keep after `Pierced`, through what breaks or dies, else ending.
+  (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order till one claims it.
+- **Shots:** `Fire` takes an ammo and its gun's `Energy` for a shot; each tick, in id order, it steps, hitting a cell's
+  targets in turn (solid, the lowest-id creature, a wreck), skipping `Passed`, at its gun's keep after `Pierced`: through what
+  its gun `Pierces` (`Broken` or `All`, what stands `Passed`), else ending.
 - **The dead** are gone to every command and cap from the blow, listed till swept.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: its suit pays the move's `Damage`, the act
   ends; or the arc's projectile's, once a hero.
 - **`Release(Species, Cell)`**, dev: its body's `ReleaseProblem` and `Place`.
-- **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
-- **Kept or gone** (0102): seen in some hero's keep box; out of every one gone `Linger` after, out of every hard box at once. **Spawning:** on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards** (`Kind.Guards`): each
+- **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew, reported each tick.
+- **Kept or gone** (0102): kept in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards** (`Kind.Guards`): each
   piece past `Watermark` with a perch draws once: sentries on half.
 
 ## Commands
@@ -77,7 +78,7 @@ served by one rule here. Grazers live on planets (0102, 0103), the sentry on wre
 `Strike`: `creatures.gone`, `items.flat`, `items.notRunning`. `HitBy`: `creatures.gone`, `creatures.notAttacking`. `Release`:
 `creatures.blocked` off the grid, `creatures.full`, then the body's: `creatures.notHere` (a walker with no gravity),
 `creatures.blocked` (in anything solid), `creatures.noPiece` (a clinger with no wreck). `Fire`: `creatures.noGun` (none
-carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`. `Bolted`: `creatures.gone`.
+carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`, `items.flat`. `Bolted`: `creatures.gone`.
 
 ## Guarantees
 
@@ -93,5 +94,5 @@ carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`. `Bol
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing.
 - **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow that breaks its wreck goes unanswered.
-- **A shot's muzzle and pace are the client's** (0002, 0034); aboard, shots fly straight.
-- **Pierce** (the ADR): only what breaks or dies; a guest's copy stops at blocks.
+- **Shots** (0034, the ADRs): muzzle, pace, charge the client's; aboard they fly straight; a guest's copy stops at blocks
+  the nailer breaks.

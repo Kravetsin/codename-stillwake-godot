@@ -42,23 +42,26 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
-    /// A <see cref="Fire"/>: the nailer three times in four, else the axe (no gun); from within four cells of the hero, or anywhere
-    /// with none, a cell past the grid at most. A sender with no nailer half the time switches creative mode on or spawns one, and
-    /// one with no nails spawns some, so shots fly in the suites.
+    /// A <see cref="Fire"/>: one of the guns three times in four, else the axe (no gun); from within four cells of the hero, or anywhere
+    /// with none, a cell past the grid at most, or a quarter of the time from beside a wreck at it, so hits land and pierce. A sender
+    /// without the gun drawn half the time switches creative mode on or spawns one; one with no ammo spawns some. A gun's draw on the
+    /// belt is met here only as creative pays it or as refused; RailgunTests arms heroes for a paid one.
     /// </summary>
     private Command FuzzFire(Rng rng, int from)
     {
-        string nailer = Content.Shots.Nailer.Item;
-        if (_held.ToolStack(from, nailer) == null && rng.Below(2) == 0)
-            return rng.Below(2) == 0 ? new Items.SetCreative(true) { From = from } : new Items.Spawn(nailer, 1) { From = from };
-        if (AmmoOf(from, Content.Shots.Nailer) == null && rng.Below(2) == 0)
-            return new Items.Spawn(Content.Shots.Nailer.Ammo[0], 20) { From = from };
-        string tool = rng.Below(4) == 0 ? Content.Weapons.Axe.Item : Content.Shots.Nailer.Item;
-        int x, y;
-        if (_crew.HeroOf(from)?.Cell is int cell && cell >= 0 && cell < _grid.Width * _grid.Height)
+        var gun = Content.Shots.Guns[(int)rng.Below((uint)Content.Shots.Guns.Count)];
+        if (_held.ToolStack(from, gun.Item) == null && rng.Below(2) == 0)
+            return rng.Below(2) == 0 ? new Items.SetCreative(true) { From = from } : new Items.Spawn(gun.Item, 1) { From = from };
+        if (AmmoOf(from, gun) == null && rng.Below(2) == 0)
+            return new Items.Spawn(gun.Ammo[0], 20) { From = from };
+        string tool = rng.Below(4) == 0 ? Content.Weapons.Axe.Item : gun.Item;
+        int x, y, heading = (int)rng.Below(Content.Headings.Turn);
+        if (rng.Below(4) == 0 && WreckCell(rng) is int at)
+            (x, y, heading) = (at % _grid.Width * Unit - 4 * Unit, at / _grid.Width * Unit + Unit / 2, 0);
+        else if (_crew.HeroOf(from)?.Cell is int cell && cell >= 0 && cell < _grid.Width * _grid.Height)
             (x, y) = (cell % _grid.Width * Unit - 4 * Unit + (int)rng.Below(8 * Unit), cell / _grid.Width * Unit - 4 * Unit + (int)rng.Below(8 * Unit));
         else (x, y) = ((int)rng.Below((uint)(_grid.Width + 2) * Unit) - Unit, (int)rng.Below((uint)(_grid.Height + 2) * Unit) - Unit);
-        return new Fire(tool, x, y, (int)rng.Below(Content.Headings.Turn)) { From = from };
+        return new Fire(tool, x, y, heading) { From = from };
     }
 
     /// <summary>A cell inside the box of a wreck out, drawn: the wreck, then the cell; null with none out.</summary>

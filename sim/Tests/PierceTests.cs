@@ -16,7 +16,7 @@ public class PierceTests
     private const int Right = 0, Down = 64;
 
     /// <summary>An engine block at <paramref name="column"/> of row 10 of <see cref="ShotsTests.Space"/>, <paramref name="left"/> hit points left of its 180.</summary>
-    private static Piece Wreck(Scenario w, int column, int left)
+    internal static Piece Wreck(Scenario w, int column, int left)
     {
         var debris = (DebrisState)w.M.Debris.Slice;
         var piece = new Piece
@@ -45,7 +45,7 @@ public class PierceTests
     private static Fire Along(int row) => new(Nailer, 10 * Unit + Unit / 2, row * Unit + Unit / 2, Right);
 
     /// <summary>The shot's flight after <paramref name="fire"/>, tick by tick: every hit it took, and the cell it ended in.</summary>
-    private static (List<ShotHit> Hits, ShotEnd End) Flown(Scenario w, Fire fire)
+    internal static (List<ShotHit> Hits, ShotEnd End) Flown(Scenario w, Fire fire)
     {
         w.Do(fire);
         var hits = new List<ShotHit>();

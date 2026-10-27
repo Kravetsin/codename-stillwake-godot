@@ -16,12 +16,13 @@ namespace Stillwake.Game;
 /// <see cref="Both"/> hands is held as a rifle is (<c>TwoHand</c>, 0078): <see cref="Grip"/> in the near hand, its
 /// foregrip in the far one, <see cref="Hold"/> unused. On an arc bench (0099) its picture lies as held, the point
 /// <see cref="Clamp"/> between the vise's jaws (<see cref="BenchLook.Clamp"/>): where a tool is clamped is its own, so any
-/// tool sits on the bench with nothing drawn for it.
+/// tool sits on the bench with nothing drawn for it. A gun held to charge lays its <see cref="Charged"/> picture, the same size, over
+/// it as it fills (2026-10-27-the-railgun).
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
-    TwoHands? Both = null, (double X, double Y)? Clamp = null)
+    TwoHands? Both = null, (double X, double Y)? Clamp = null, string? Charged = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -65,6 +66,16 @@ public sealed record HeldLook(
     /// </summary>
     public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (3, 2), System.Math.PI / 2, (13, 2), (16, 2), Clamp: (4, 2));
 
+    /// <summary>
+    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red
+    /// band, three capacitor cans standing on it in copper bands, the arc shard at its rear, short heavy rails clamped twice; held as
+    /// the drill is, in both hands, the near on its pistol grip, the far on the foregrip under the rails; the edge the gap between
+    /// the rails, the nail leaving their ends. Charged, the cans, the gap and the shard light (<c>hero_railgun_charged.png</c>).
+    /// </summary>
+    public static readonly HeldLook Railgun = new(
+        "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Both: new TwoHands((20.5, 10), (16.5, 10)), Clamp: (21.5, 6.5),
+        Charged: "res://art/hero_railgun_charged.png");
+
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
@@ -77,7 +88,8 @@ public sealed record HeldLook(
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
         item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
-        : item == Content.Shots.Nailer.Item ? Nailer : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
+        : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun
+        : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
     /// <summary>Whether <paramref name="item"/> is the drill, a module in it or not: aimed, run on the belt, drilling what its bit touches.</summary>
     public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item;

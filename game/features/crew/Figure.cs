@@ -141,6 +141,11 @@ public partial class Figure : Node2D
     private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
     /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
     private readonly Sprite2D _held;
+    /// <summary>A gun's charged picture, its lit pixels alone, over the held one as bright as its charge (<see cref="Charge"/>), lit as it is.</summary>
+    private readonly Sprite2D _charged = new() { Centered = false, Visible = false, UseParentMaterial = true };
+
+    /// <summary>The charge's own light on the held stage, held while it charges, the brighter the fuller (2026-10-27-the-railgun).</summary>
+    private static readonly (int R, int G, int B) ChargeLight = (95, 216, 255);
     /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
     private (Vector2 At, double Phase)? _chop;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
@@ -234,6 +239,7 @@ public partial class Figure : Node2D
         Lit.Set(_held);
         _held.AddChild(_lamp);
         _held.AddChild(_lampGlow);
+        _held.AddChild(_charged);
         _lampGlow.Colour = LampColour * LampLight;
         for (int i = 0; i < BeamsMost; i++)
         {
@@ -353,6 +359,9 @@ public partial class Figure : Node2D
 
     /// <summary>Whether the harpoon held shows its rod in the barrel: ready to fire.</summary>
     public bool Loaded { get; set; } = true;
+
+    /// <summary>How full the charge of the gun held is, 0..1 (2026-10-27-the-railgun): its charged picture laid over it that bright.</summary>
+    public double Charge { get; set; }
 
     /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
     public bool Spinning { get; set; }
@@ -757,6 +766,12 @@ public partial class Figure : Node2D
                 (_lamp.Position, _lampGlow.Position) = (lamp - Vector2.One / 2, lamp);
             }
             _held.Offset = -new Vector2((float)origin.X, (float)origin.Y);
+            _charged.Visible = item.Charged != null && Charge > 0;
+            if (_charged.Visible)
+            {
+                (_charged.Texture, _charged.Offset) = (Picture(item.Charged!), _held.Offset);
+                _charged.Modulate = new Color(1, 1, 1, (float)Charge);
+            }
             var mount = both ? TwoHand.PivotAt(_holdAngle) : fist;
             _held.Position = new Vector2((float)mount.X, (float)(-Rig.Shoulder + mount.Y));
             _held.Rotation = (float)(both ? _holdAngle : Rig.HeldTurn(frontArm, item));
@@ -765,6 +780,12 @@ public partial class Figure : Node2D
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
                 Muzzle = At(item.EdgeTo);
                 Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
+                if (_charged.Visible)
+                {
+                    // Lit from the gap between the rails, as it is held this frame.
+                    var gap = At(((item.EdgeFrom.X + item.EdgeTo.X) / 2, (item.EdgeFrom.Y + item.EdgeTo.Y) / 2));
+                    Held.Flares.Hold(_charged, gap.X, gap.Y, ChargeLight, 0.15 + 0.35 * Charge, 3, 0.85f, 0.2);
+                }
             }
         }
         // The axe's downstroke leaves its swipe of light, from the blade as drawn.

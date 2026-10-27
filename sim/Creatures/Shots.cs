@@ -8,8 +8,9 @@ namespace Stillwake.Sim.Creatures;
 /// Fires the sender's gun <c>Tool</c> (<c>Content.Shots</c>) from its muzzle at (<c>X</c>, <c>Y</c>), in thousandths of a cell,
 /// along <c>Heading</c> (<see cref="Content.Headings"/>): one of its ammo spent, none in creative, and a shot flying from the next
 /// step on (shots-are-the-sims). Refused with no such gun carried (<c>creatures.noGun</c>), the muzzle off the grid
-/// (<c>creatures.blocked</c>) and no ammo (<c>items.notEnough</c>). Where the muzzle is and how often it fires is the client's
-/// word (0034).
+/// (<c>creatures.blocked</c>), no ammo (<c>items.notEnough</c>) and, for a gun that takes the belt's charge, too little of it
+/// (<c>items.flat</c>), which it spends (2026-10-27-the-railgun). Where the muzzle is, how often it fires and how long it is held are
+/// the client's word (0034).
 /// </summary>
 public sealed record Fire(string Tool, int X, int Y, int Heading) : Command;
 
@@ -49,7 +50,8 @@ public sealed partial class CreaturesModule
     {
         if (Content.Shots.GunOf(tool) is not { } gun || _held.ToolStack(peer, gun.Item) == null) return "creatures.noGun";
         if (!ShotFlight.OnGrid(x, y, _grid.Width, _grid.Height)) return "creatures.blocked";
-        return AmmoOf(peer, gun) == null ? "items.notEnough" : null;
+        if (AmmoOf(peer, gun) == null) return "items.notEnough";
+        return gun.Energy > 0 && !_held.CanDrain(peer, gun.Energy) ? "items.flat" : null;
     }
 
     /// <summary>
@@ -68,6 +70,7 @@ public sealed partial class CreaturesModule
         var gun = Content.Shots.GunOf(c.Tool)!;
         var ammo = AmmoOf(c.From, gun)!;
         _items.Take(c.From, [(ammo.Id, 1)]);
+        if (gun.Energy > 0 && !_items.Drain(c.From, gun.Energy)) throw new InvalidOperationException("creatures.fire: the belt could not pay what it could");
         var f = ShotFlight.Launch(gun, c.X, c.Y, c.Heading);
         State.Fired += 1;
         State.Shots.Add(new Shot
@@ -108,7 +111,8 @@ public sealed partial class CreaturesModule
     {
         var p = Content.Shots.Get(s.Projectile);
         var from = (s.X, s.Y);
-        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Meets(s, p, cell, from));
+        var gun = Content.Shots.GunOf(s.Gun);
+        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p, gun), _grid.Width, _grid.Height, cell => Meets(s, p, gun, cell, from));
         if (met >= 0)
         {
             _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true));
@@ -125,25 +129,33 @@ public sealed partial class CreaturesModule
 
     /// <summary>
     /// What <paramref name="s"/> meets in <paramref name="cell"/>, as it walks there: every target in it in turn (<see cref="TargetIn"/>),
-    /// each hit with what the shot has kept; one it breaks or kills it flies on through, else it stops there, as it does at one it
-    /// has nothing left for, hitting nothing but listed, to show where it stopped. True where it stops.
+    /// past what it passed, each hit with what the shot has kept; it flies on through what it pierces (<see cref="Pierces"/>), what
+    /// still stands then kept as passed, else it stops there, as it does at one it has nothing left for or that takes nothing,
+    /// hitting nothing but listed, to show where it stopped. True where it stops.
     /// </summary>
-    private bool Meets(Shot s, Content.Projectile p, int cell, (int X, int Y) from)
+    private bool Meets(Shot s, Content.Projectile p, Content.Gun? gun, int cell, (int X, int Y) from)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
         ShotPass? broken = null;
-        while (TargetIn(cell, p, _wrecks, []) is { } target)
+        while (TargetIn(cell, p, _wrecks, s.Passed) is { } target)
         {
             if (target.Pass == broken) throw new InvalidOperationException($"creatures.shot: {target.Pass} still in {cell} once broken");
             int damage = DamageOf(s.Gun, p, target.Pass.What, s.Pierced);
-            bool broke = damage > 0 && HitAt(s, peer, target, damage);
-            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, damage, broke));
-            if (!broke) return true;
+            bool takes = Takes(target.Pass, damage), broke = takes && HitAt(s, peer, target, damage);
+            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, takes ? damage : 0, broke));
+            if (!Pierces(gun, takes, broke)) return true;
             s.Pierced += 1;
-            broken = target.Pass;
+            if (broke) broken = target.Pass;
+            else s.Passed.Add(target.Pass);
         }
         return false;
     }
+
+    /// <summary>Whether a hit of <paramref name="damage"/> on <paramref name="target"/> takes anything: some left, and what is solid there breakable by a shot (<see cref="IBuildingQueries.ShotTakes"/>).</summary>
+    private bool Takes(ShotPass target, int damage) => damage > 0 && (target.What != ShotTarget.Solid || _built.ShotTakes(target.Id));
+
+    /// <summary>Whether a shot of <paramref name="gun"/> flies on through what its hit took (<paramref name="takes"/>) and broke or killed (<paramref name="broke"/>): everything it takes for a gun that pierces all, else what broke.</summary>
+    private static bool Pierces(Content.Gun? gun, bool takes, bool broke) => gun?.Pierces == Content.Pierce.All ? takes : broke;
 
     /// <summary>What a shot of <paramref name="p"/> from <paramref name="gun"/> takes off <paramref name="what"/> after it <paramref name="pierced"/> that many: block damage off what is solid.</summary>
     private static int DamageOf(string? gun, Content.Projectile p, ShotTarget what, int pierced) => what == ShotTarget.Solid
@@ -160,7 +172,12 @@ public sealed partial class CreaturesModule
     /// </summary>
     private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
-        if (Solid(cell)) return new Target(new ShotPass(ShotTarget.Solid, cell), null);
+        if (Solid(cell))
+        {
+            // A built piece by its first cell, so one over several cells is met, and passed, as one.
+            var solid = new ShotPass(ShotTarget.Solid, _built.ShotKey(cell));
+            if (!passed.Contains(solid)) return new Target(solid, null);
+        }
         if (!p.HitsBodies) return null;
         if (CreatureIn(cell, passed) is { } creature) return new Target(new ShotPass(ShotTarget.Creature, creature.Id), creature);
         return WreckIn(cell, wrecks, passed) is { } wreck ? new Target(new ShotPass(ShotTarget.Wreck, wreck.Piece), null) : null;
@@ -191,8 +208,9 @@ public sealed partial class CreaturesModule
     /// <summary>
     /// A tick of a client's copy of a shot of <paramref name="p"/> from <paramref name="gun"/> flying as <paramref name="f"/>, past
     /// what it has flown through, <paramref name="passed"/>, on this world as it stands: the sim's walk, judged by what each hit
-    /// would do and changing nothing. A wreck or a creature its hit would break or kill it flies on through; what is solid stops it.
-    /// For the shooter's client to fly its own shot ahead of the sim's (shots-are-the-sims, 2026-10-27-shots-pierce).
+    /// would do and changing nothing. A wreck or a creature its hit would break or kill it flies on through, and for a gun that
+    /// pierces all whatever its hit would take; else what is solid stops it. Every pierce goes into <c>Passed</c>, which counts
+    /// them, as <see cref="Shot.Pierced"/> does: a copy starts with none. For the shooter's client to fly its own shot ahead of the sim's (shots-are-the-sims, 2026-10-27-shots-pierce).
     /// </summary>
     public ShotTick StepOf(ShotMotion f, Content.Projectile p, string? gun, IReadOnlyList<ShotPass> passed)
     {
@@ -200,24 +218,25 @@ public sealed partial class CreaturesModule
         var hits = new List<ShotHit>();
         var through = new List<ShotPass>(passed);
         var from = (f.X, f.Y);
+        var spec = Content.Shots.GunOf(gun);
         bool Judge(int cell)
         {
             while (TargetIn(cell, p, wrecks, through) is { } target)
             {
                 int damage = DamageOf(gun, p, target.Pass.What, through.Count);
-                bool breaks = damage > 0 && target.Pass.What switch
+                bool takes = Takes(target.Pass, damage), breaks = takes && target.Pass.What switch
                 {
                     ShotTarget.Creature => Dies(target.Creature!, damage),
                     ShotTarget.Wreck => _debris.Breaks(target.Pass.Id, damage),
                     _ => false,
                 };
-                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, damage, breaks));
-                if (!breaks) return true;
+                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, takes ? damage : 0, breaks));
+                if (!Pierces(spec, takes, breaks)) return true;
                 through.Add(target.Pass);
             }
             return false;
         }
-        var (next, met, last) = ShotFlight.Step(f, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, Judge);
+        var (next, met, last) = ShotFlight.Step(f, ShotFlight.Gravity(Rules, p, spec), _grid.Width, _grid.Height, Judge);
         return new ShotTick(next, met, last, hits, through);
     }
 

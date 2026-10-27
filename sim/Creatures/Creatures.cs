@@ -45,15 +45,17 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private readonly IItemsOps _items;
     private readonly IDebrisQueries _debris;
     private readonly IDebrisOps _debrisOps;
+    private readonly IBuildingQueries _built;
     private readonly IBuildingOps _building;
 
     public override string Id => "creatures";
 
     public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
-        IBuildingOps building)
+        IBuildingQueries built, IBuildingOps building)
     {
         _debris = debris;
         _debrisOps = debrisOps;
+        _built = built;
         _building = building;
         _grid = grid;
         _crew = crew;

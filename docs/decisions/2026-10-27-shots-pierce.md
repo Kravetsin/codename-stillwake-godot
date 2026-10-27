@@ -1,6 +1,6 @@
 # Shots pierce what they break
 
-- Status: accepted; built: the nailer. Amends [shots are the sim's](2026-10-26-shots-are-the-sims.md): a hit no longer always ends a shot, and the host draws its own shots as the sim's
+- Status: accepted; built: the nailer. Amends [shots are the sim's](2026-10-26-shots-are-the-sims.md): a hit no longer always ends a shot, and the host draws its own shots as the sim's; its pierce of everything and the memory of what a shot passed built with [the railgun](2026-10-27-the-railgun.md)
 - Date: 2026-10-27
 
 ## Context

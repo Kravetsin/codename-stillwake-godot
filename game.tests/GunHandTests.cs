@@ -118,4 +118,85 @@ public class GunHandTests
         Assert.Contains(w.M.Creatures.Hits, hit => hit.What == ShotTarget.Creature && hit.Broke && hit.By == Ref.Hero(0));
         Assert.Single(w.M.Creatures.Shots);
     }
+
+    private static readonly Spec.Gun Rail = Spec.Shots.Railgun;
+
+    [Fact]
+    public void ARailgunHeldFullFiresOnceLetGoAndLetGoSoonerFiresNothing()
+    {
+        var hand = new GunHand();
+        double full = GunHand.ChargeMs(Rail);
+        var begun = hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        Assert.Null(begun.Fire);
+        Assert.InRange(begun.Charge, 0, 0.1);
+        // Let go at half: nothing fired, nothing to wait for.
+        Assert.Null(hand.Step(full / 2, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Fire);
+        var early = hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false);
+        Assert.Equal((null, 0.0), (early.Fire, early.Charge));
+        Assert.True(hand.Ready);
+        // Held full: full once, staying full however long, then fired let go.
+        hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        var charged = hand.Step(full, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        Assert.Equal((1.0, true), (charged.Charge, charged.Charged));
+        var still = hand.Step(5000, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        Assert.Equal((1.0, false, null), (still.Charge, still.Charged, still.Fire));
+        var fired = hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false);
+        Assert.Equal(Rail.Item, fired.Fire!.Tool);
+        Assert.False(hand.Ready);
+    }
+
+    [Fact]
+    public void ARailgunWithNothingToPayClicksDryAndAChargeIsLostPutAway()
+    {
+        var hand = new GunHand();
+        var dry = hand.Step(16, pressed: true, Rail, (500, 500), 0, ammo: null, held: true);
+        Assert.Equal((true, 0.0), (dry.Dry, dry.Charge));
+        hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Step(GunHand.ChargeMs(Rail), pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        // Put away full, then out again and let go: nothing fires.
+        Assert.Equal(0.0, hand.Step(16, pressed: false, null, null, 0, null, held: true).Charge);
+        Assert.Null(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false).Fire);
+    }
+
+    [Fact]
+    public void ARailgunFullWhoseBeltWasEmptiedMidHoldClicksDryLetGo()
+    {
+        var hand = new GunHand();
+        hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Step(GunHand.ChargeMs(Rail), pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        // The battery taken off the belt: nothing to pay, so nothing to fire.
+        var let = hand.Step(16, pressed: false, Rail, (500, 500), 0, ammo: null, held: false);
+        Assert.Equal((null, true), (let.Fire, let.Dry));
+        Assert.True(hand.Ready);
+    }
+
+    [Fact]
+    public void ARailgunChargesOnlyWithTheCooldownOutFiresOnceAndLosesItsChargeWithNoMuzzleOrDropped()
+    {
+        var hand = new GunHand();
+        double full = GunHand.ChargeMs(Rail);
+        Fire(hand, full);
+        // One frame after firing nothing fires again; pressed in the cooldown it does not charge.
+        Assert.Null(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false).Fire);
+        Assert.Equal(0.0, hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charge);
+        hand.Step(GunHand.PaceMs(Rail), pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false);
+        // Full, then no longer held up for a frame (no muzzle): let go, nothing.
+        hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Step(full, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Step(16, pressed: false, Rail, null, 0, Spec.Shots.Nail, held: true);
+        Assert.Null(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false).Fire);
+        // Full, then dropped (a change of surface): let go, nothing.
+        hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Step(full, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Drop();
+        Assert.Null(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false).Fire);
+    }
+
+    /// <summary>A full charge of the railgun let go: its <c>Fire</c>.</summary>
+    private static void Fire(GunHand hand, double full)
+    {
+        hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        hand.Step(full, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        Assert.NotNull(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false).Fire);
+    }
 }

@@ -17,7 +17,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
   does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110); `Research` (`Knows`, 0024);
-  `Crafting` (`Queue`: a station with crafts queued stands, 0057). Creatures changes it (`IBuildingOps.Hit`: a shot).
+  `Crafting` (`Queue`: a station with crafts queued stands, 0057). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`. Derived (`Flora.cs`): the growths grown
@@ -53,8 +53,8 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.
   `Struck` says what. Each takes `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths,
   a piece whole for its cost. `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. `Hit`,
-  a shot's, strikes one solid cell so, true if it broke, its yield the shooter's here, else anyone's; the
-  unbreakable stops it. No tool hits back walls: old cracks heal.
+  a shot's, strikes one cell `ShotTakes` allows, true if it broke, its yield the shooter's here, else anyone's. No
+  tool hits back walls: old cracks heal.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).

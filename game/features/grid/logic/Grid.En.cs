@@ -17,5 +17,6 @@ public static partial class En
         ["grid.noSuchLayer"] = "No such layer",
         ["grid.noDoor"] = "There is no door here",
         ["hazards.noWall"] = "There is no wall here",
+        ["hazards.neverBreaks"] = "This never breaks",
     };
 }

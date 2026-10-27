@@ -228,7 +228,8 @@ public partial class HeroView : Node2D
         AddChild(_lines);
         _rod = NewRod();
         foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
-                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _ownShotEnds })
+                     _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady,
+                     _ownShotEnds })
             AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
