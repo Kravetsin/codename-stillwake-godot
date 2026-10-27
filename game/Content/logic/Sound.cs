@@ -459,6 +459,19 @@ public static class Sound
     public static readonly Cue NailReady = new(Shots("crew/nailer-ready", 1), -12);
 
     /// <summary>
+    /// The sentry's bolt (shots-are-the-sims), placeholders till the user picks: fired, the resonator's crackle lower and louder
+    /// and heard as far as a tool (<see cref="BoltFired"/>); ending on a wall, the same crackle higher (<see cref="BoltHit"/>).
+    /// </summary>
+    public static readonly Cue BoltFired = Zap with { VolumeDb = -6, Tune = 0.8f, Heard = ToolReach };
+    public static readonly Cue BoltHit = Zap with { VolumeDb = -9, Tune = 1.5f, Heard = ToolReach };
+
+    /// <summary>What a shot of <paramref name="projectile"/> sounds as fired, as a friend's or a creature's is heard.</summary>
+    public static Cue FiredOf(string projectile) => projectile == Content.Shots.Bolt.Id ? BoltFired : NailShot;
+
+    /// <summary>What a shot of <paramref name="projectile"/> sounds as it ends on what it met.</summary>
+    public static Cue HitOf(string projectile) => projectile == Content.Shots.Bolt.Id ? BoltHit : NailHit;
+
+    /// <summary>
     /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
     /// band climbing as it fills. This player's own on the Helmet bus, in the helmet's air, so floating out in space never
     /// muffles it away (on Suit its band was all but cut there); a friend's on World where its hero is, a tool's reach.
@@ -496,7 +509,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, BoltFired, BoltHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values];

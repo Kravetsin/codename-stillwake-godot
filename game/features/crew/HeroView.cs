@@ -376,7 +376,11 @@ public partial class HeroView : Node2D
         int steps = _clock.Advance(elapsedMs);
         if (steps > 0) _thrust = null;
         if (passedOut || moved) _reel = 0;
-        else Rammed(client, m);
+        else
+        {
+            Rammed(client, m);
+            Bolted(client, m);
+        }
         for (int due = steps; due > 0; due--)
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
@@ -510,6 +514,28 @@ public partial class HeroView : Node2D
         var (x, y) = Chest(_current);
         _air.Leak(new Vector2(x, y), -away);
         _thud.Play(S.RamHits.GetValueOrDefault(c.Species, S.RamThud), default);
+    }
+
+    /// <summary>The bolts this hero's client has said it was hit by: each sent once, forgotten once it is out of flight.</summary>
+    private readonly HashSet<int> _boltsSent = [];
+
+    /// <summary>
+    /// A creature's bolt touching this hero (shots-are-the-sims), as this client sees them: <c>Bolted</c> sent once, and at once,
+    /// as a ram's, the hero thrown the bolt's way and reeling, flinching, its suit's air knocked out, a thud through the suit.
+    /// </summary>
+    private void Bolted(Client client, Registry m)
+    {
+        _boltsSent.RemoveWhere(id => !m.Creatures.Shots.Any(s => s.Id == id));
+        if (Rams.BoltContact(m.Creatures.Shots, _current) is not { } bolt || _boltsSent.Contains(bolt.Id) || m.Creatures.BoltedProblem(bolt.Id) != null) return;
+        _boltsSent.Add(bolt.Id);
+        client.Send(new Stillwake.Sim.Creatures.Bolted(bolt.Id));
+        int away = bolt.VX >= 0 ? 1 : -1;
+        _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(bolt.Gun, bolt.Projectile));
+        _reel = Spec.Reel;
+        _figure.Flinch(-away);
+        var (x, y) = Chest(_current);
+        _air.Leak(new Vector2(x, y), -away);
+        _thud.Play(S.HitOf(bolt.Projectile), default);
     }
 
     /// <summary>

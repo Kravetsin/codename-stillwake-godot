@@ -105,6 +105,14 @@ public static class Creatures
     /// </summary>
     public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage) : Move(Damage);
 
+    /// <summary>
+    /// A shot from where it clings (shots-are-the-sims): crouched <paramref name="WindUp"/> ticks, its eye flickering, then
+    /// <paramref name="Projectile"/> (<c>Content.Shots</c>) leaves its middle toward its target at <paramref name="Speed"/> a tick on
+    /// the longer axis, gone after <paramref name="Reach"/> cells' worth of flight; then <paramref name="Recover"/> ticks before it
+    /// moves again. The shot hits, the body never: its damage is the projectile's.
+    /// </summary>
+    public sealed record Shoot(int WindUp, int Recover, string Projectile, int Speed, int Reach) : Move(Damage: 0);
+
     /// <summary>The ram of the loper and the sixleg: three units of a suit; at 28 cells a second, past a hero's sprint of 26.4.</summary>
     private static readonly Lunge LightRam = new(WindUp: 8, Speed: 1400, Ticks: 40, Past: 6, Damage: 3);
 
@@ -173,16 +181,20 @@ public static class Creatures
 
     /// <summary>
     /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
-    /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. A hero within 24 cells alerts it (the user's
-    /// word: it sees far, strikes near); alerted a second and a hero within twelve, it pounces: a crouch of 0.8 s, then a flight
-    /// of 0.85 s at 24 cells a second, some twenty cells, six units of a suit if it hits. Struck, or its wreck struck, it crouches
-    /// at once. It flies home at 40 cells a second, past a jetpack, so a hero cannot lead it far. Forty hit points, never
-    /// knocked. A harpoon on its wreck is cut 0.8 s after it bites. It dies with its wreck. Placeholder numbers, for a play pass.
+    /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. A hero within 40 cells alerts it (the user's
+    /// word: it sees far); alerted a second, a hero within twenty and it pounces: a crouch of 0.8 s, then a flight of half a
+    /// second at 40 cells a second, its return's, some twenty cells, six units of a suit if it hits; farther, within its notice,
+    /// it shoots (shots-are-the-sims): its eye flickers 0.6 s, then a bolt flies straight at 30 cells a second, up to 60 cells,
+    /// stopped by walls, four units of a suit if it hits, and it waits 2 s. Struck, or its wreck struck, it answers the striker
+    /// at once the same way, by how far it is. It flies home at 40 cells a second, past a jetpack. Thirty hit points, five of the
+    /// nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites. It dies with its wreck. Placeholder
+    /// numbers, for a play pass.
     /// </summary>
     public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2, Crawl: 40),
-        Life: new(Hp: 40, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
-        Brain: [new CutTether(Ticks: 16), new Return(Speed: 2000), new Guard(Notice: 24, Strike: 12, AlertTicks: 20)],
-        Moves: [new Pounce(WindUp: 16, Speed: 1200, Ticks: 17, Damage: 6)], Yields: [new("scrapChunk", 3, 5)]);
+        Life: new(Hp: 30, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
+        Brain: [new CutTether(Ticks: 16), new Return(Speed: 2000), new Guard(Notice: 40, Strike: 20, AlertTicks: 20)],
+        Moves: [new Pounce(WindUp: 16, Speed: 2000, Ticks: 10, Damage: 6), new Shoot(WindUp: 12, Recover: 40, Projectile: "bolt", Speed: 1500, Reach: 60)],
+        Yields: [new("scrapChunk", 3, 5)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
 

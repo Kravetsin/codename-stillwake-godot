@@ -30,7 +30,14 @@ public static class Shots
     /// </summary>
     public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 1, Knock: 10, Speed: 3000, Reach: 288, Pace: 60);
 
-    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail];
+    /// <summary>
+    /// The guard's bolt, fired by a <see cref="Creatures.Shoot"/>: four units of a suit off the hero it touches, as that
+    /// hero's client sees it; weightless, so straight; nothing stops it but a solid cell, and it breaks none. Its launch is the
+    /// move's.
+    /// </summary>
+    public static readonly Projectile Bolt = new("bolt", Damage: 4, BlockDamage: 0, Weight: 0, HitsBodies: false);
+
+    public static readonly IReadOnlyList<Projectile> Projectiles = [Nail, Bolt];
 
     public static readonly IReadOnlyList<Gun> Guns = [Nailer];
 

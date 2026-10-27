@@ -59,7 +59,7 @@ public partial class HeroView
         int tick = client.World.Tick;
         if (_gunTick < 0 || _gunTick > tick) _gunTick = tick;
         for (; _gunTick < tick; _gunTick++) _guns.Tick(m.Creatures.StepOf, m.Grid.Width, m.Grid.Height);
-        foreach (var ended in _guns.TakeEnded())
+        foreach (var ended in _guns.TakeEnded().Where(e => e.Met))
             ShotEnds.Show(m, _ownShotEnds, ended.Gun.Item, ended.Projectile.Id, ended.EndCell!.Value, (ended.Was.X / 1000.0, ended.Was.Y / 1000.0));
         _ownShots.Show(_guns.Shots.Select(s =>
         {

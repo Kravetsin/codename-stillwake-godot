@@ -77,4 +77,24 @@ public static class Rams
         /// <summary>A hit went out on <paramref name="tick"/>.</summary>
         public void Sent(int tick) => _sentAt = tick;
     }
+
+    /// <summary>
+    /// The first creature's shot (no gun: the sentry's bolt, shots-are-the-sims), in id order, whose last tick's way crosses
+    /// <paramref name="hero"/>'s body and <see cref="Margin"/> round it: sampled at four points from where it was a tick ago to
+    /// where it is, so one passing a cell and a half a tick never skips a body; none for none.
+    /// </summary>
+    public static Shot? BoltContact(IReadOnlyList<Shot> shots, Hero hero)
+    {
+        foreach (var s in shots)
+        {
+            if (s.Gun != null) continue;
+            for (int i = 0; i <= 3; i++)
+            {
+                long x = s.X - (long)s.VX * (3 - i) / 3, y = s.Y - (long)s.VY * (3 - i) / 3;
+                if (x > hero.X - Spec.Width / 2 - Margin && x < hero.X + Spec.Width / 2 + Margin && y > hero.Y - Spec.Height - Margin && y < hero.Y + Margin)
+                    return s;
+            }
+        }
+        return null;
+    }
 }

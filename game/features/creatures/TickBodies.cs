@@ -243,7 +243,10 @@ public partial class TickBodies : Node2D
         var spec = Spec.Creatures.Get(c.Species);
         bool clamped = CreaturesModule.Clamped(c);
         var act = c.Act;
-        bool winding = act is { Phase: ActPhase.WindUp }, pouncing = act is { Phase: ActPhase.Active };
+        // A shot is no pounce: it crouches to aim, its eye flickering the bolt's colour, and recovers clamped on.
+        bool shoots = act != null && spec.Moves[act.Move] is Spec.Creatures.Shoot;
+        bool winding = act is { Phase: ActPhase.WindUp } && !shoots, pouncing = act is { Phase: ActPhase.Active } && !shoots;
+        bool aiming = act is { Phase: ActPhase.WindUp } && shoots;
         double windUpS = 0;
         if (winding && spec.Moves[act!.Move] is Spec.Creatures.Pounce pounce)
             windUpS = (pounce.WindUp - act.Left + Math.Clamp(progress, 0, 1)) / World.TicksPerSecond;
@@ -256,7 +259,7 @@ public partial class TickBodies : Node2D
         (double, double)? line = cutting && LineEnd(debris, one.Piece) is { } end ? (end.X - middle.X, end.Y - middle.Y) : null;
         double done = cutting ? Math.Clamp((cutOf - cutLeft + Math.Clamp(progress, 0, 1)) / cutOf, 0, 1) : 0;
         return new TickMotion.Seen(clamped, CreaturesModule.Alerted(c), winding, windUpS, pouncing, pouncing ? act!.Left : 0,
-            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line);
+            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming);
     }
 
     /// <summary>

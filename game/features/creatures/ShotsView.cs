@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.Features.Light;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
@@ -13,7 +14,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// drawn a tick behind, between where it was and is, heard fired where it first shows, and its end shown and heard as what it met
 /// (<see cref="ShotEnds"/>).
 /// </summary>
-public partial class ShotsView : Node2D
+public partial class ShotsView : Node2D, ILightSource
 {
     private readonly Registry _m;
     private readonly Func<double> _progress;
@@ -24,6 +25,10 @@ public partial class ShotsView : Node2D
     /// <summary>Each shot drawn, by id: where it was a tick ago and is now.</summary>
     private readonly Dictionary<int, (ShotMotion Was, ShotMotion Now)> _seen = [];
     private int _shownTick = -1;
+    private readonly List<LightSource> _lights = [];
+
+    /// <summary>The lights of the bolts in flight this frame.</summary>
+    public IReadOnlyList<LightSource> Lights => _lights;
 
     public ShotsView(Registry m, Func<double> progress, Func<int> own, Func<int> tick)
     {
@@ -51,13 +56,22 @@ public partial class ShotsView : Node2D
                 streaks.Add((at, way, ShotLooks.Of(shot.Projectile)));
             }
         _streaks.Show(streaks);
+        // A bolt lights its way, a little cyan, flickering as it crackles; a nail gives none.
+        _lights.Clear();
+        foreach (var shot in creatures.Shots)
+            if (shot.Projectile == Content.Shots.Bolt.Id && _seen.TryGetValue(shot.Id, out var lit))
+            {
+                var (at, _) = ShotStreaks.Between(lit.Was, lit.Now, progress);
+                _lights.Add(new LightSource(at.X, at.Y, (0.55f, 0.9f, 1f), 0.8f + 0.2f * (float)Random.Shared.NextDouble(), 4, 0.4f, 1));
+            }
     }
 
     /// <summary>A tick of the world seen: the shots that ended shown ending, those new heard fired, each moved on a step.</summary>
     private void Ticked(CreaturesModule creatures, Ref own)
     {
         foreach (var end in creatures.Ended)
-            if (_seen.Remove(end.Id, out var flew))
+            // A shot that ran out shows nothing: it met nothing.
+            if (_seen.Remove(end.Id, out var flew) && end.Met)
                 ShotEnds.Show(_m, _ends, end.Gun, end.Projectile, end.Cell, (flew.Now.X / 1000.0, flew.Now.Y / 1000.0));
         var flying = new HashSet<int>();
         foreach (var shot in creatures.Shots)
@@ -70,7 +84,7 @@ public partial class ShotsView : Node2D
             {
                 // Seen first a step out of the muzzle: drawn from where it was fired, a step back.
                 _seen[shot.Id] = (motion with { X = motion.X - motion.VX, Y = motion.Y - motion.VY }, motion);
-                _fired.Play(S.NailShot, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
+                _fired.Play(S.FiredOf(shot.Projectile), new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         foreach (var id in new List<int>(_seen.Keys))

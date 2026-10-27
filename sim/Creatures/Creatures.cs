@@ -64,6 +64,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         Handles<Release>(c => ReleaseProblem(c.Species, c.Cell), Apply);
         Handles<HitBy>(c => HitByProblem(c.Creature), Apply);
         Handles<Fire>(c => FireProblem(c.From, c.Tool, c.X, c.Y), Apply);
+        Handles<Bolted>(c => BoltedProblem(c.Shot), Apply);
         // After crew in the simulation phase: where heroes are is this tick's.
         System(Phase.Simulation, Live);
         // After the creatures move, and after the debris drifts (registered before): a shot meets them where they are now.

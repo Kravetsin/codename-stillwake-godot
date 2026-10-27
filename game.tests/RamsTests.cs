@@ -156,4 +156,22 @@ public class RamsTests
         for (int i = 0; i < 10; i++) m.Step(1000.0 / 60, 0, false, null);
         Assert.Equal(0, m.Brace);
     }
+
+    /// <summary>A shot as the sim lists it: <paramref name="id"/>, at (<paramref name="x"/>, <paramref name="y"/>) after a tick's step of <paramref name="vx"/>, a gun's or a creature's.</summary>
+    private static Shot ShotAt(int id, int x, int y, int vx, string? gun = null) =>
+        JsonSerializer.Deserialize<Shot>(
+            JsonSerializer.Serialize(new { id, projectile = gun == null ? "bolt" : "nail", gun, x, y, vx, vy = 0, left = 10 }),
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+    [Fact]
+    public void ABoltTouchesTheHeroItsLastTicksWayCrossedAndNoneThatStoppedShortOrAGunsShot()
+    {
+        // Its body and margin span x 4750..7250; a bolt runs 1500 a tick, rightward here, at the hero's middle height.
+        int y = Standing.Y - Spec.Hero.Height / 2, right = Standing.X + Spec.Hero.Width / 2 + Rams.Margin;
+        Assert.Equal(1, Rams.BoltContact([ShotAt(1, right + 650, y, 1500)], Standing)?.Id);
+        Assert.Null(Rams.BoltContact([ShotAt(1, right + 1501, y, 1500)], Standing));
+        Assert.Null(Rams.BoltContact([ShotAt(1, Standing.X, Standing.Y - Spec.Hero.Height - Rams.Margin - 1, 1500)], Standing));
+        Assert.Null(Rams.BoltContact([ShotAt(1, Standing.X, y, 1500, gun: Spec.Shots.Nailer.Item)], Standing));
+        Assert.Equal(2, Rams.BoltContact([ShotAt(1, Standing.X, y, 1500, gun: Spec.Shots.Nailer.Item), ShotAt(2, Standing.X, y, 1500), ShotAt(3, Standing.X, y, 1500)], Standing)?.Id);
+    }
 }

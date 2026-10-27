@@ -14,6 +14,13 @@ namespace Stillwake.Sim.Creatures;
 public sealed record Fire(string Tool, int X, int Y, int Heading) : Command;
 
 /// <summary>
+/// The sender's hero was hit by creature shot <c>Shot</c> (the sentry's bolt), as its client saw them touch (the ADR: hits on a
+/// hero are that hero's): its suit pays the projectile's damage and the shot ends, so one bolt hurts one hero. Refused for one no
+/// longer in flight, or a gun's (<c>creatures.gone</c>). A bolt whose sentry has died flies and hurts on.
+/// </summary>
+public sealed record Bolted(int Shot) : Command;
+
+/// <summary>
 /// Shots (shots-are-the-sims): fired by heroes' guns, flown by the sim, a tick at a time, meeting the first thing in their way:
 /// a solid cell, then a creature, then a wreck.
 /// </summary>
@@ -69,6 +76,61 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
+    /// <paramref name="c"/>'s <paramref name="shoot"/> fired from its middle at the middle of cell (<paramref name="x"/>,
+    /// <paramref name="y"/>): its speed on the longer axis, the other its share, rounded toward none, as a pounce's; no gun, so its
+    /// damage is its projectile's alone; its flight's ticks rounded down. False, and nothing fired, with its target on its own middle.
+    /// </summary>
+    internal bool Launch(Creature c, Spec.Species spec, Spec.Shoot shoot, int x, int y)
+    {
+        int fromY = c.Y - spec.Body.Height * Unit / 2;
+        int dx = Middle(x) - c.X, dy = Middle(y) - fromY, far = Math.Max(Math.Abs(dx), Math.Abs(dy));
+        if (far == 0) return false;
+        State.Fired += 1;
+        State.Shots.Add(new Shot
+        {
+            Id = State.Fired,
+            Projectile = shoot.Projectile,
+            By = Ref.None,
+            X = c.X,
+            Y = fromY,
+            VX = (int)((long)shoot.Speed * dx / far),
+            VY = (int)((long)shoot.Speed * dy / far),
+            Left = shoot.Reach * Unit / shoot.Speed,
+        });
+        return true;
+    }
+
+    /// <summary>
+    /// Why the sender's hero being hit by shot <paramref name="id"/> (<see cref="Bolted"/>) would be refused: it is no creature's
+    /// shot in flight, ended or never fired, or a gun's (<c>creatures.gone</c>). What the client asks before it sends.
+    /// </summary>
+    public string? BoltedProblem(int id) => ShotIndex(id) is int at && State.Shots[at].Gun == null ? null : "creatures.gone";
+
+    private void Apply(Bolted c)
+    {
+        int at = ShotIndex(c.Shot)!.Value;
+        var shot = State.Shots[at];
+        // It may take the suit's last unit: the hero passes out, as a ram would leave it.
+        _crewOps.Shock(c.From, Content.Shots.DamageOf(null, shot.Projectile));
+        State.Shots.RemoveAt(at);
+    }
+
+    /// <summary>Where shot <paramref name="id"/> is among the shots in flight, in id order; null for none.</summary>
+    private int? ShotIndex(int id)
+    {
+        var shots = State.Shots;
+        int lo = 0, hi = shots.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = lo + (hi - lo) / 2;
+            if (shots[mid].Id == id) return mid;
+            if (shots[mid].Id < id) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return null;
+    }
+
+    /// <summary>
     /// Every shot's step, in id order, those fired this tick too: one that met something hits it and ends, as one that ran out or
     /// left the grid. The wrecks are taken once, the debris having drifted. Those its hits killed are swept out at the end, as the
     /// creatures' system sweeps a command's: the tick saves no creature dead and still listed.
@@ -94,12 +156,12 @@ public sealed partial class CreaturesModule
         if (met >= 0)
         {
             HitAt(s, p, met);
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true));
             return false;
         }
         if (next.Left <= 0 || !ShotFlight.OnGrid(next.X, next.Y, _grid.Width, _grid.Height))
         {
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last, Met: false));
             return false;
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);
