@@ -85,6 +85,15 @@ public partial class Figure : Node2D
     }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
     private readonly Sprite2D _jetpack;
+    /// <summary>The cape (a prototype): its pieces behind everything, laid along its rope, and the mantle over the shoulders.</summary>
+    private readonly Node2D _capeView = new() { Visible = false };
+    private readonly Sprite2D[] _capePieces = new Sprite2D[Cape.Count];
+    private readonly Sprite2D _mantle;
+    private readonly Cape _cape = new();
+    /// <summary>Where a cape piece hangs from in its picture, its top right: the inside of the cloth, against the back.</summary>
+    private static readonly Vector2 CapePivot = new(7, 1);
+    /// <summary>The mantle's top left, from the feet: over the air pack, the shoulders and the near arm's top.</summary>
+    private static readonly Vector2 MantleAt = new(-10, (float)-Rig.Neck);
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
@@ -255,6 +264,17 @@ public partial class Figure : Node2D
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
         foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
+        for (int i = 0; i < Cape.Count; i++)
+        {
+            _capePieces[i] = new Sprite2D { Texture = GD.Load<Texture2D>($"res://art/hero_cape_{i}.png"), Centered = false, Offset = -CapePivot };
+            Lit.Set(_capePieces[i]);
+            _capeView.AddChild(_capePieces[i]);
+        }
+        parts.AddChild(_capeView);
+        parts.MoveChild(_capeView, 0);
+        _mantle = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_mantle.png"), Centered = false, Position = MantleAt, Visible = false };
+        Lit.Set(_mantle);
+        parts.AddChild(_mantle);
         _smear.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
@@ -330,6 +350,34 @@ public partial class Figure : Node2D
     {
         get => _jetpack.Visible;
         set => _jetpack.Visible = value;
+    }
+
+    /// <summary>Whether the hero wears the cape (a prototype for cloth and hair that move): a heavy rope of cloth from the shoulders to the floor.</summary>
+    public bool WearsCape
+    {
+        get => _capeView.Visible;
+        set
+        {
+            if (value == _capeView.Visible) return;
+            _capeView.Visible = _mantle.Visible = value;
+            _cape.Reset();
+        }
+    }
+
+    /// <summary>The cape moved on with the body as it now stands, its pieces laid along it; behind the air pack, the jetpack when worn.</summary>
+    private void LayCape(double elapsedMs)
+    {
+        _cape.Step(
+            elapsedMs,
+            p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
+            p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); },
+            _jetpack.Visible ? Back + 2.2 : Back + 0.2);
+        var pieces = _cape.Pieces;
+        for (int i = 0; i < pieces.Length; i++)
+        {
+            _capePieces[i].Position = new Vector2((float)pieces[i].X, (float)pieces[i].Y);
+            _capePieces[i].Rotation = (float)pieces[i].Turn;
+        }
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
@@ -644,6 +692,7 @@ public partial class Figure : Node2D
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = (OnPixels ?? new Vector2((float)feetX, (float)feetY)) + new Vector2(0, (float)lift);
         Scale = new Vector2(hero.Facing, 1);
+        if (_capeView.Visible) LayCape(elapsedMs);
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;
         double thrust = holding && _beamMs > 0 ? (t < 0.3 ? t / 0.3 : (1 - t) / 0.7) : 0;

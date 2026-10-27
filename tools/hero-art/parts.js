@@ -36,6 +36,8 @@ const FIXED = {
   K: '#14171d', g: '#262b35', G: '#3d4452', h: '#6a7385', H: '#9aa3ad',
   e: '#16121a', w: '#e9e4de', m: '#7a3b34',
   v: '#1d2836/80', V: '#8fb6d6/210', y: '#cfe6f5/235',
+  // the cape's wool: light, own, shade, outline
+  p: '#c49a68', q: '#9a7148', r: '#6e4f33', t: '#3b2a1b',
 };
 
 // The head's slot shares the helmet's template: 13x12, turning at the neck, (6.5, 12), its bottom middle. Every
@@ -264,4 +266,31 @@ const jumpsuit = {
   ],
 };
 
-module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit };
+// The cape (a prototype, Cape.cs): pieces top to hem, each 8x9 hanging from its top right pixel (7, 1), the inside of
+// the cloth against the back on the right, widening toward the hem; a fold down every other piece, the hem in shade.
+const CAPE_W = 8, CAPE_H = 9, CAPE_WIDTHS = [3, 4, 5, 6, 7];
+const cape = CAPE_WIDTHS.slice(0, -1).map((w0, j) => Array.from({ length: CAPE_H }, (_, r) => {
+  const w = Math.round(w0 + ((CAPE_WIDTHS[j + 1] - w0) * r) / (CAPE_H - 1)), left = CAPE_W - w, last = j === CAPE_WIDTHS.length - 2;
+  if (last && r === CAPE_H - 1) return '.'.repeat(left) + 't'.repeat(w);
+  return [...Array(CAPE_W)].map((_, x) => {
+    if (x < left) return '.';
+    if (x === left) return 't';
+    if (x === CAPE_W - 1) return 'r';
+    if (last && r === CAPE_H - 2) return 'r';
+    if (x === left + 1) return j < 2 ? 'p' : 'q';
+    if (j % 2 === 1 && x === left + 2 && w >= 5) return 'r';
+    return 'q';
+  }).join('');
+}));
+// The mantle over the shoulders and the air pack, 15x7 from (-10, -Neck) of the figure, a clasp at the throat.
+const mantle = [
+  '...tttttttttt..',
+  '..tpppppppppHt.',
+  '.tpqqqqqqqqqqqt',
+  'tqqqqqqqqqqqqrt',
+  'trqqqqqqqqqqrrt',
+  '.trrqqqqqqqrrt.',
+  '..ttttttttttt..',
+];
+
+module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape, mantle };

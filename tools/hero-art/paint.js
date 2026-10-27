@@ -9,7 +9,7 @@ const A = require('./parts.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ART = path.join(ROOT, 'game', 'art');
-const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11] };
+const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [8, 9], mantle: [15, 7] };
 
 const rgba = s => { const [hex, a] = s.split('/'); const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255, a ? +a : 255]; };
 const keys = { ...A.FIXED };
@@ -54,6 +54,8 @@ const shell = { w: helmet.w, h: helmet.h, data: Buffer.from(helmet.data) };
 for (let i = 0; i < shell.w * shell.h; i++) if (made.hero_visor.data[i * 4 + 3]) shell.data.fill(0, i * 4, i * 4 + 4);
 made.hero_helmet_shell = shell;
 for (const [part, rows] of Object.entries(A.jumpsuit)) made[`hero_jumpsuit_${part}`] = picture(rows, SIZES[part], part);
+A.cape.forEach((rows, i) => (made[`hero_cape_${i}`] = picture(rows, SIZES.cape, 'cape')));
+made.hero_mantle = picture(A.mantle, SIZES.mantle, 'mantle');
 
 fs.mkdirSync(out, { recursive: true });
 for (const [name, img] of Object.entries(made)) P.encode(img, path.join(out, name + '.png'));

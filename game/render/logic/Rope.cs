@@ -48,6 +48,8 @@ public sealed class Rope
     private readonly (double X, double Y)[] _before;
     /// <summary>The time owed to the rope, at most 0 after an update: how far ahead of the clock its last step ran.</summary>
     private double _time, _owed;
+    /// <summary>Whether it hangs from its first point, its last free (<see cref="Hang"/>), rather than spanning two ends.</summary>
+    private bool _hanging;
 
     /// <param name="start">Where its points start, moving on as they were (each <c>Px</c>, <c>Py</c> where it was a step before); straight from one end to the other when not given.</param>
     public Rope(RopeStyle style, (double X, double Y) from, (double X, double Y) to, int seed = 0, IReadOnlyList<Knot>? start = null)
@@ -79,7 +81,7 @@ public sealed class Rope
     public (double X, double Y) DrawnAt(int i)
     {
         var k = _knots[i];
-        if (i == 0 || i == _knots.Length - 1) return (k.X, k.Y);
+        if (i == 0 || (i == _knots.Length - 1 && !_hanging)) return (k.X, k.Y);
         double t = Shown;
         var (bx, by) = _before[i];
         return (bx + (k.X - bx) * t, by + (k.Y - by) * t);
@@ -114,14 +116,31 @@ public sealed class Rope
     /// </summary>
     public void Update((double X, double Y) a, (double X, double Y) b, double elapsedMs, Func<double, double> lengthFor, IReadOnlyList<Body>? bodies = null)
     {
+        _hanging = false;
+        double span = Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
+        Run(a, b, elapsedMs, Math.Max(lengthFor(span), 0), bodies ?? [], null);
+    }
+
+    /// <summary>
+    /// Moves on by <paramref name="elapsedMs"/> a rope <paramref name="length"/> long hanging from <paramref name="a"/>, its
+    /// other end free: a cape, a tail of hair. <paramref name="keep"/> moves a point out of where it may not be, the body
+    /// it hangs from, on every pass, so the rope lies against it rather than through it.
+    /// </summary>
+    public void Hang((double X, double Y) a, double elapsedMs, double length, Action<Knot>? keep = null)
+    {
+        _hanging = true;
+        Run(a, a, elapsedMs, length, [], keep);
+    }
+
+    private void Run((double X, double Y) a, (double X, double Y) b, double elapsedMs, double length, IReadOnlyList<Body> bodies, Action<Knot>? keep)
+    {
         _owed += elapsedMs;
         int steps = 0;
         // A step as soon as any time is owed: the rope runs ahead of the clock, and is drawn back between steps.
         while (_owed > 0 && steps < MostSteps)
         {
             for (int i = 0; i < _knots.Length; i++) _before[i] = (_knots[i].X, _knots[i].Y);
-            double span = Math.Sqrt((b.X - a.X) * (b.X - a.X) + (b.Y - a.Y) * (b.Y - a.Y));
-            Step(a, b, Math.Max(lengthFor(span), 0), bodies ?? []);
+            Step(a, b, length, bodies, keep);
             _owed -= StepMs;
             steps += 1;
         }
@@ -132,18 +151,19 @@ public sealed class Rope
     private void Pin((double X, double Y) a, (double X, double Y) b)
     {
         var first = _knots[0];
-        var last = _knots[^1];
         first.X = first.Px = a.X;
         first.Y = first.Py = a.Y;
+        if (_hanging) return;
+        var last = _knots[^1];
         last.X = last.Px = b.X;
         last.Y = last.Py = b.Y;
     }
 
-    private void Step((double X, double Y) a, (double X, double Y) b, double length, IReadOnlyList<Body> bodies)
+    private void Step((double X, double Y) a, (double X, double Y) b, double length, IReadOnlyList<Body> bodies, Action<Knot>? keep)
     {
-        int links = _style.Links;
+        int links = _style.Links, free = _hanging ? links + 1 : links;
         _time += 1;
-        for (int i = 1; i < links; i++)
+        for (int i = 1; i < free; i++)
         {
             var k = _knots[i];
             double angle = _time * _style.DriftSpeed + _phases[i];
@@ -175,13 +195,16 @@ public sealed class Rope
                 if (d <= link || d == 0) continue;
                 double pull = (d - link) / d;
                 // A pinned end stays; the other end of its link takes the whole pull.
-                double atP = i == 0 ? 0 : i + 1 == links ? 1 : 0.5;
-                double atQ = i + 1 == links ? 0 : i == 0 ? 1 : 0.5;
+                bool pinnedQ = i + 1 == links && !_hanging;
+                double atP = i == 0 ? 0 : pinnedQ ? 1 : 0.5;
+                double atQ = pinnedQ ? 0 : i == 0 ? 1 : 0.5;
                 p.X += dx * pull * atP;
                 p.Y += dy * pull * atP;
                 q.X -= dx * pull * atQ;
                 q.Y -= dy * pull * atQ;
             }
+            if (keep != null)
+                for (int i = 1; i < free; i++) keep(_knots[i]);
         }
         Pin(a, b);
     }

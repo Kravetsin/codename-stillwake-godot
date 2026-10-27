@@ -416,6 +416,34 @@ public sealed class HeroAutopilot
 
 
     /// <summary>
+    /// <c>-- --cape</c>: on the <see cref="Hall"/>'s floor a sprint, a stop, a walk back, a running jump, a turn and a jump
+    /// on the spot, for watching a cape trail, swing and settle.
+    /// </summary>
+    public static HeroAutopilot CapeRun()
+    {
+        var run = new HeroInput(1, 0, false, Sprint: true);
+        var walk = new HeroInput(1, 0, false);
+        return new HeroAutopilot(
+        [
+            Wait(60),
+            Hold(run, 50),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(60),
+            Hold(walk with { X = -1 }, 70),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(40),
+            Hold(run with { X = -1 }, 20),
+            Jump(-1),
+            Hold(run with { X = -1 }, 40),
+            Hold(run, 30),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(60),
+            Jump(),
+            Wait(90),
+        ]);
+    }
+
+    /// <summary>
     /// The <see cref="Hall"/>'s script (0090), its hands empty (the hotbar's empty third slot): a sprint started, reversed
     /// and stopped, a tap and a held jump, the floor eight characters up walked off, the one twenty-one up walked off, then the drill
     /// taken out and held aimed ahead through a jump on the spot and a running one.

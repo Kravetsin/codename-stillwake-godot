@@ -30,7 +30,8 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Remote.cs` | what is sent of heroes, and kept |
 | `logic/RemoteRod.cs` | another hero's harpoon rod played out here (0065) |
 | `logic/Suits.cs` | suit colours |
-| `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) |
+| `Figure.cs` | the sprite rig, lit and posed; dust (0075, 0090) |
+| `logic/Cape.cs` | a cape on a rope (prototype) |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim |
 | `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
@@ -43,17 +44,17 @@ commands reach the sim. Other heroes come through the host.
 | `FaceRim.cs` | a tool's aim glow |
 | `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
-| `logic/Report.cs` | the `Enter` report (0050), exert, thrust, refill, cold |
+| `logic/Report.cs` | the `Enter` report (0050) |
 | `Frost.cs` | the frost past the field, by `Report.Cold` (0050) |
 | `logic/Danger.cs` | what the suit gauge reads |
 | `logic/AirCues.cs` | when air comes back (0081) |
 | `logic/CanistersSeen.cs` | a friend's canister |
-| `AirSwirl.cs` | a vortex, a breath, a ram's leak (0081, 0103) |
+| `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
 | `SuitColours.cs` | the menu's suit colours |
 | `logic/Markers.cs` | the markers' list and geometry |
 | `MarkerLayer.cs` | edge arrows |
-| `logic/Bodies.cs` | bodies read from floor stacks' tags (0061) |
+| `logic/Bodies.cs` | bodies from floor stacks (0061) |
 | `BodyView.cs` | each body drawn, its beacon (0061) |
 | `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
 | `logic/Crew.En.cs` | its player text |
