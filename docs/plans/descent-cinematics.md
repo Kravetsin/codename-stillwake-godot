@@ -131,3 +131,6 @@ ADR. About 900 lines: 2a the world pictures and the hold-back (~500), 2b the fli
   splits at its middle cell, each half's shut pieces sliding outward clipped to the run. `FlightOverlay` reads the whole
   flight (`Up`, `TicksLeft`), not ticks alone. `Arrivals` drops a pod the moment its seat or machine goes (arrive, E, E,
   Return inside the hold). A mate under the landing pod is not pushed: the touchdown is a picture.
+- **Shortened by the user (after slice 2b):** the descent's flight screen is star lines alone, no re-entry fire, bow shock,
+  plasma or clouds; `DescentTicks` 160 → 100 (5 s: the fall, three seconds of lines, the white). The return keeps its blue sky
+  and clouds leaving the planet.

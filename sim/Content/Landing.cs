@@ -10,7 +10,7 @@ public static class Landing
     public const int FallTicks = 20;
 
     /// <summary>Ticks from a launch aboard until the pod lands on the planet.</summary>
-    public const int DescentTicks = 160;
+    public const int DescentTicks = 100;
 
     /// <summary>Ticks from a launch off the ship until the pod docks aboard.</summary>
     public const int AscentTicks = 100;

@@ -57,11 +57,11 @@ public static class FlightTimeline
     /// <summary>The flight screen's fraction, 0 at the dip to 1 at the white, the flight <paramref name="length"/> seconds long.</summary>
     public static double Fraction(double s, double length) => Clamp01((s - DipFrom) / (length - 2));
 
-    /// <summary>The fire of re-entry at fraction <paramref name="k"/>: none on the way up.</summary>
-    public static double Heat(double k, bool up) => up ? 0 : Ease((k - 0.22) / 0.18) * (1 - Ease((k - 0.8) / 0.18));
-
-    /// <summary>How deep in the air the pod is at fraction <paramref name="k"/>: rising into it down, leaving it up.</summary>
-    public static double Air(double k, bool up) => up ? 1 - Ease((k - 0.1) / 0.5) : Ease((k - 0.5) / 0.4);
+    /// <summary>
+    /// How deep in a planet's air the pod is at fraction <paramref name="k"/>: leaving it on the way up; down, the flight is space
+    /// alone, star lines to the white (the user cut the re-entry for a shorter flight).
+    /// </summary>
+    public static double Air(double k, bool up) => up ? 1 - Ease((k - 0.1) / 0.5) : 0;
 
     /// <summary>How high over its cell an arriving pod is drawn, <paramref name="a"/> seconds after it was seen: slowing, then a bounce.</summary>
     public static double Touchdown(double a)

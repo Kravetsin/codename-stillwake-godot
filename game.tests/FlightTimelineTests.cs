@@ -40,15 +40,12 @@ public class FlightTimelineTests
     }
 
     [Fact]
-    public void DipsToBlackAtTheCutAndBurnsOnlyOnTheWayDown()
+    public void DipsToBlackAtTheCutAndFliesDownThroughSpaceAloneUpOutOfTheAir()
     {
         Assert.Equal(0, T.Dip(T.DipFrom));
         Assert.Equal(1, T.Dip(T.DipPeak), 9);
         Assert.Equal(0, T.Dip(T.DipTo), 9);
-        Assert.Equal(1, T.Heat(0.5, up: false));
-        Assert.Equal(0, T.Heat(0.1, up: false));
-        Assert.All(new[] { 0.0, 0.3, 0.5, 0.7, 1.0 }, k => Assert.Equal(0, T.Heat(k, up: true)));
-        Assert.True(T.Air(1, up: false) > 0.99 && T.Air(0, up: false) == 0);
+        Assert.All(new[] { 0.0, 0.3, 0.5, 0.7, 1.0 }, k => Assert.Equal(0, T.Air(k, up: false)));
         Assert.True(T.Air(0, up: true) > 0.99 && T.Air(1, up: true) == 0);
     }
 
@@ -83,7 +80,7 @@ public class FlightTimelineTests
             var (s, up) = t;
             double k = T.Fraction(s, 8);
             bool unit(double v) => v >= 0 && v <= 1;
-            return (unit(T.Open(s)) && unit(T.Dip(s)) && unit(k) && unit(T.Heat(k, up)) && unit(T.Air(k, up))
+            return (unit(T.Open(s)) && unit(T.Dip(s)) && unit(k) && unit(T.Air(k, up))
                 && T.Drop(s) >= 0 && T.Drop(s) <= T.DropPx && T.Touchdown(s) >= 0 && T.Touchdown(s) <= T.FromPx
                 && T.Lift(s) >= 0 && T.Lift(s) <= T.FromPx).Label($"s {s} up {up}");
         });

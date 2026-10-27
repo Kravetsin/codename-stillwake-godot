@@ -7,18 +7,23 @@ namespace Stillwake.Game.Features.Landing;
 
 /// <summary>
 /// What the rider sees of its flight (the descent's slice 2, its storyboard): no planet, only speed. The pod held in the middle at
-/// the world's scale, everything torn past it: stars drawn into lines in space, then the air catching fire under the hull with a
-/// bow shock and plasma streaming up both sides, then a hard blue sky with clouds ripped through the frame; on the way up the
-/// same without the fire, the lines rushing down. Every mark is placed from the flight's seconds alone, in one draw.
+/// the world's scale, the stars torn past it into lines, faster and longer as it goes; on the way up it leaves a planet's blue sky
+/// first, clouds ripped past, the lines rushing down. Every mark is placed from the flight's seconds alone, in one draw.
 /// </summary>
 public partial class FlightScreen : Control
 {
-    private const int Lines = 400, Tongues = 120, Clouds = 10;
+    private const int Lines = 400, Clouds = 10;
     private static readonly Texture2D Pod = PixelArt.Picture("machine_dropPod");
-    /// <summary>A soft round light, white at its middle to nothing at its rim, tinted where it is drawn: the glow and the bow.</summary>
-    private static readonly GradientTexture2D Soft = Radial(new Color(1, 1, 1, 1), new Color(1, 1, 1, 0));
     /// <summary>The vignette: nothing in the middle to black at the rim.</summary>
-    private static readonly GradientTexture2D Rim = Radial(new Color(0, 0, 0, 0), new Color(0, 0, 0, 1));
+    private static readonly GradientTexture2D Rim = new()
+    {
+        Gradient = new Gradient { Colors = [new Color(0, 0, 0, 0), new Color(0, 0, 0, 1)], Offsets = [0, 1] },
+        Fill = GradientTexture2D.FillEnum.Radial,
+        FillFrom = new Vector2(0.5f, 0.5f),
+        FillTo = new Vector2(1, 0.5f),
+        Width = 128,
+        Height = 128,
+    };
     private readonly Vector2[] _quad = new Vector2[4];
     private readonly Color[] _colours = new Color[4];
     private double _s, _length;
@@ -42,23 +47,23 @@ public partial class FlightScreen : Control
     {
         float z = Math.Max(_zoom, 0.5f), w = Size.X / z, h = Size.Y / z;
         double s = _s, k = Fraction(s, _length);
-        float heat = (float)Heat(k, _up), air = (float)Air(k, _up);
-        // Pixels a second the world rushes past, slowing as the air bites; up, it rushes down.
-        float speed = (float)(Lerp(900, 2600, Smooth(k / 0.3)) * (1 - air * 0.35)), way = _up ? -1 : 1;
+        float air = (float)Air(k, _up);
+        // Pixels a second the stars rush past, quickly at full speed; up, they rush down.
+        float speed = (float)(Lerp(900, 2600, Smooth(k / 0.3)) * (1 - air * 0.35));
         DrawSetTransform(Vector2.Zero, 0, new Vector2(z, z));
 
-        // Ground: black space, a red-orange furnace while the hull burns, then a hard blue.
-        var top = Mix(Mix(new Color(0.012f, 0.016f, 0.03f), new Color(0.27f, 0.086f, 0.047f), heat), new Color(0.07f, 0.27f, 0.59f), air);
-        var low = Mix(Mix(new Color(0.024f, 0.03f, 0.055f), new Color(0.59f, 0.2f, 0.08f), heat), new Color(0.27f, 0.55f, 0.84f), air);
+        // Ground: black space, a planet's blue while still in its air on the way up.
+        var top = new Color(0.012f, 0.016f, 0.03f).Lerp(new Color(0.07f, 0.27f, 0.59f), air);
+        var low = new Color(0.024f, 0.03f, 0.055f).Lerp(new Color(0.27f, 0.55f, 0.84f), air);
         Quad(0, 0, w, h, top, top, low, low);
 
-        float shake = 0.6f + heat * 3.2f + air * 0.8f;
+        float shake = 0.6f + air * 0.8f;
         var jolt = new Vector2((float)(Hash(Math.Floor(s * 60)) - 0.5) * shake, (float)(Hash(Math.Floor(s * 60) + 7) - 0.5) * shake);
         DrawSetTransform(jolt * z, 0, new Vector2(z, z));
 
         // Speed lines: as many as fit the screen at the storyboard's density; the near ones longer, brighter, faster.
         int count = Math.Min(Lines, (int)(220 * w * h / (320 * 180)));
-        var tint = heat > 0.05f ? new Color(1, Mathf.Lerp(0.9f, 0.59f, heat), Mathf.Lerp(0.86f, 0.31f, heat)) : new Color(0.86f, 0.91f, 1);
+        var tint = new Color(0.86f, 0.91f, 1);
         for (int i = 0; i < count; i++)
         {
             bool near = Hash(i + 2200) > 0.82;
@@ -67,7 +72,7 @@ public partial class FlightScreen : Control
             float y = h + 60 - (float)((s * v / span + Hash(i + 1300)) % 1) * span;
             if (_up) y = h - y - len;
             float a = (0.25f + (float)Hash(i + 1900) * 0.75f) * (near ? 0.9f : 0.5f) * (air > 0.5f ? 0.55f : 1);
-            // Bright at the end toward which the world rushes: the trailing end fades.
+            // Bright at the end the stars rush toward: the trailing end fades.
             var faint = tint with { A = 0 };
             var bright = tint with { A = a };
             if (_up) Quad(x, y, near ? 2 : 1, len, bright, bright, faint, faint);
@@ -76,39 +81,17 @@ public partial class FlightScreen : Control
 
         if (air > 0) for (int i = 0; i < Clouds - 3; i++) Cloud(i, false, s, speed, w, h, air);
 
-        float cx = w / 2, py = h / 2 - 40, bottom = py + 52;
-        if (heat > 0)
-        {
-            // The glow under the hull, white at the bow to red at its edge.
-            Glow(cx, bottom + 6, 70, new Color(1, 0.35f, 0.12f, 0.35f * heat));
-            Glow(cx, bottom + 6, 36, new Color(1, 0.75f, 0.35f, 0.75f * heat));
-            Glow(cx, bottom + 6, 14, new Color(1, 0.98f, 0.88f, 0.9f * heat));
-            for (int i = 0; i < Tongues; i++)
-            {
-                int side = i % 2 == 1 ? 1 : -1;
-                double life = (s * (5 + Hash(i + 3000) * 3) + Hash(i + 3100)) % 1;
-                float spread = (float)(14 + life * (18 + Hash(i + 3200) * 26)), y = (float)(bottom + 4 - life * (110 + Hash(i + 3300) * 60));
-                float x = cx + side * spread + Mathf.Sin((float)((s * 40 + i) * 0.7)) * 1.5f, len = (float)(16 + life * 44);
-                float a = Math.Min(1, (float)((1 - life) * heat * (0.75 + Hash(i) * 0.5)));
-                var colour = new Color(1, Mathf.Lerp(0.9f, 0.27f, (float)life), Mathf.Lerp(0.63f, 0.08f, (float)life), a);
-                Quad(x, y, life < 0.4 ? 3 : 2, len, colour, colour, colour, colour);
-            }
-            // The bow itself, hugging the hull's bottom.
-            DrawArc(new Vector2(cx, bottom - 2), 22, 0.15f, Mathf.Pi - 0.15f, 16, new Color(1, 1, 0.94f, 0.95f * heat), 1.5f);
-        }
-
-        // The pod, held still against it all but for the buffeting.
-        float tilt = (float)(Hash(Math.Floor(s * 12)) - 0.5) * 0.06f * (heat + air * 0.5f);
+        // The pod, held still against it all but for a little buffeting in the air.
+        float cx = w / 2, py = h / 2 - 40, tilt = (float)(Hash(Math.Floor(s * 12)) - 0.5) * 0.03f * air;
         DrawSetTransform((jolt + new Vector2(cx, py + 28)) * z, tilt, new Vector2(z, z));
         DrawTexture(Pod, new Vector2(-16, -28));
-        if (heat > 0) Quad(-16, -8, 32, 34, new Color(1, 0.47f, 0.16f, 0), new Color(1, 0.47f, 0.16f, 0), new Color(1, 0.59f, 0.24f, 0.55f * heat), new Color(1, 0.59f, 0.24f, 0.55f * heat));
         DrawSetTransform(jolt * z, 0, new Vector2(z, z));
 
         if (air > 0) for (int i = Clouds - 3; i < Clouds; i++) Cloud(i, true, s, speed, w, h, air);
 
-        // The vignette, pulling the eye to the pod, darker in the fire.
+        // The vignette, pulling the eye to the pod.
         DrawSetTransform(Vector2.Zero, 0, Vector2.One);
-        DrawTextureRect(Rim, new Rect2(-Size.X * 0.25f, -Size.Y * 0.25f, Size.X * 1.5f, Size.Y * 1.5f), false, new Color(1, 1, 1, 0.35f + heat * 0.25f));
+        DrawTextureRect(Rim, new Rect2(-Size.X * 0.25f, -Size.Y * 0.25f, Size.X * 1.5f, Size.Y * 1.5f), false, new Color(1, 1, 1, 0.35f));
     }
 
     /// <summary>A cloud sheet ripped through the frame: some behind the pod, the fastest in front of it.</summary>
@@ -125,9 +108,6 @@ public partial class FlightScreen : Control
         Quad(x, y + tall * 0.6f, width, tall * 0.4f, white, white, clear, clear);
     }
 
-    private void Glow(float x, float y, float radius, Color colour) =>
-        DrawTextureRect(Soft, new Rect2(x - radius, y - radius, radius * 2, radius * 2), false, colour);
-
     /// <summary>A rectangle with a colour at each corner: top-left, top-right, bottom-left, bottom-right.</summary>
     private void Quad(float x, float y, float w, float h, Color tl, Color tr, Color bl, Color br)
     {
@@ -139,18 +119,8 @@ public partial class FlightScreen : Control
         DrawPolygon(_quad, _colours);
     }
 
-    private static GradientTexture2D Radial(Color inner, Color outer) => new()
-    {
-        Gradient = new Gradient { Colors = [inner, outer], Offsets = [0, 1] },
-        Fill = GradientTexture2D.FillEnum.Radial,
-        FillFrom = new Vector2(0.5f, 0.5f),
-        FillTo = new Vector2(1, 0.5f),
-        Width = 128,
-        Height = 128,
-    };
-
-    private static Color Mix(Color a, Color b, float t) => a.Lerp(b, t);
     private static double Lerp(double a, double b, double t) => a + (b - a) * t;
+
     private static double Smooth(double x)
     {
         x = Math.Clamp(x, 0, 1);

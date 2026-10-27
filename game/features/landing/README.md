@@ -12,7 +12,7 @@ socket are the power feature's (`PlatformLamps`).
 | `PodSeats.cs` | each drop pod with a hero in it: its skirt's lamps lit and the glint on its glass, over the pod and the hero | yes |
 | `LaunchKey.cs` | a pod's key under its slot: Descend aboard, Return off the ship, dim with the sim's refusal in its tooltip | yes |
 | `FlightOverlay.cs` | over the rider's screen while it flies, kept across a surface switch: the flight, the dip to black, the white | yes |
-| `FlightScreen.cs` | the rider's flight at the world's scale, no planet: speed lines, re-entry fire and plasma, clouds ripped past | yes |
+| `FlightScreen.cs` | the rider's flight at the world's scale, no planet: star lines rushing past; up, out of a blue sky first | yes |
 | `PodFlights.cs` | a pod in the air from this surface: the deck's halves sliding apart and shut, the pod falling through on its thruster | yes |
 | `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
@@ -35,8 +35,8 @@ socket are the power feature's (`PlatformLamps`).
   kick and the deck slide shut by `FallTicks` (`PodFlights`, over the grid, which draws the run open and no pod); the rider's view
   shakes through the camera's nudge.
 - **The rider's flight** (`FlightScreen`) cuts in through a dip to black and fills the screen at the world's scale, the pod in the
-  middle: no planet, only speed. Down: star lines, then re-entry (fire, a bow shock, plasma up both sides, shaking), then blue sky
-  and clouds; up: the same without the fire, blue to black, the world rushing down. Drawn in one `_Draw` from the flight's seconds.
+  middle: no planet, only speed. Down: star lines alone, ever faster, to the white; up: a planet's blue sky and clouds first, to
+  black, the lines rushing down. Drawn in one `_Draw` from the flight's seconds.
 - The white rises over a flight's last second, is full on its last tick (the frame frozen while a planet opens) and falls
   over half a second once the hero is on the surface it flew to; a flight ended any other way clears it at once.
 
