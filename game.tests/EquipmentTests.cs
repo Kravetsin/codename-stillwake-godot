@@ -23,6 +23,13 @@ public class EquipmentTests
     }
 
     [Fact]
+    public void LaysTheSlotsOutByTheBodyTheHeadsThenTheBodysThenTheBeltEveryKindOnce()
+    {
+        Assert.Equal([["head", "mount"], ["suit", "back", "cape"], ["belt"]], Equipment.Rows);
+        Assert.Equal(Spec.Inventory.Equipment.Distinct().Order(StringComparer.Ordinal), Equipment.Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
     public void LightsOnlyTheSlotsThatWouldWearWhatIsCarriedAndDimsTheRest()
     {
         Assert.Equal(SlotGlow.Takes, Equipment.GlowOf(Back, "jetpack"));
