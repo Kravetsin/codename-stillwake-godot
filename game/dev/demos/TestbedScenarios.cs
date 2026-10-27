@@ -17,7 +17,7 @@ public class TestbedScenario : DevScenario
 [Dev("--jetpack", "the testbed's hero with a jetpack put on, flown out of the airlock (JetpackDemo)", Order = 1)]
 public sealed class JetpackScenario : TestbedScenario
 {
-    public override World Seed(World world, DevSeed seed) => JetpackDemo.Seed(world, seed.Modules);
+    public override World Seed(World world, DevSeed seed) => JetpackDemo.Seed(world, seed.Modules, Args.Has("--caped"));
 
     public override HeroAutopilot? Script => HeroAutopilot.Jetpack();
 

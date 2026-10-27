@@ -19,7 +19,7 @@ public sealed record ClothStyle(double Keep, double Gravity, double Shear, doubl
 /// </summary>
 public sealed class Cloth
 {
-    private readonly ClothStyle _style;
+    private ClothStyle _style;
     private readonly int _cols, _rows;
     private readonly double[] _x, _y, _px, _py, _bx, _by;
     private readonly bool[] _pinned;
@@ -45,6 +45,12 @@ public sealed class Cloth
                 if (c + 1 < cols && r + 1 < rows) { Link(i, i + cols + 1, style.Shear, style.Shear); Link(i + 1, i + cols, style.Shear, style.Shear); }
             }
     }
+
+    /// <summary>
+    /// How it moves from its next step: what it keeps of its speed, its gravity, its passes. Its links keep the hold they
+    /// were made with (<see cref="ClothStyle.Shear"/>, <see cref="ClothStyle.Squash"/>): the same cloth, out in space.
+    /// </summary>
+    public ClothStyle Style { get => _style; set => _style = value; }
 
     public int Cols => _cols;
     public int Rows => _rows;
@@ -73,10 +79,10 @@ public sealed class Cloth
     /// <summary>
     /// Moves the cloth on by <paramref name="elapsedMs"/>, the points <paramref name="pinned"/> names (each by its index)
     /// held at <paramref name="pins"/>. <paramref name="keep"/> moves a free point (by its index) out of where it may not be, on every
-    /// pass, its speed kept: the body it hangs on, the floor. <paramref name="wind"/> adds to every free point's speed a
-    /// step: the air it moves through, beyond the drag <see cref="ClothStyle.Keep"/> takes.
+    /// pass, its speed kept: the body it hangs on, the floor. <paramref name="force"/> adds to a free point's speed (by its
+    /// index, where it is) a step: the air it moves through, beyond the drag <see cref="ClothStyle.Keep"/> takes.
     /// </summary>
-    public void Update(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, double elapsedMs, Func<int, double, double, (double X, double Y)>? keep = null, (double X, double Y) wind = default)
+    public void Update(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, double elapsedMs, Func<int, double, double, (double X, double Y)>? keep = null, Func<int, double, double, (double X, double Y)>? force = null)
     {
         _owed += elapsedMs;
         int steps = 0;
@@ -84,7 +90,7 @@ public sealed class Cloth
         {
             Array.Copy(_x, _bx, _x.Length);
             Array.Copy(_y, _by, _y.Length);
-            Step(pinned, pins, keep, wind);
+            Step(pinned, pins, keep, force);
             _owed -= Rope.StepMs;
             steps += 1;
         }
@@ -101,7 +107,7 @@ public sealed class Cloth
         }
     }
 
-    private void Step(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, Func<int, double, double, (double X, double Y)>? keep, (double X, double Y) wind)
+    private void Step(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, Func<int, double, double, (double X, double Y)>? keep, Func<int, double, double, (double X, double Y)>? force)
     {
         var isPinned = _pinned;
         Array.Clear(isPinned);
@@ -109,6 +115,7 @@ public sealed class Cloth
         for (int i = 0; i < _x.Length; i++)
         {
             if (isPinned[i]) continue;
+            var wind = force?.Invoke(i, _x[i], _y[i]) ?? default;
             double vx = (_x[i] - _px[i]) * _style.Keep + wind.X, vy = (_y[i] - _py[i]) * _style.Keep + _style.Gravity + wind.Y;
             (_px[i], _py[i]) = (_x[i], _y[i]);
             _x[i] += vx;

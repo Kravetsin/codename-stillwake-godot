@@ -55,6 +55,7 @@ public static class DevModes
         // The hero.
         new("--autopilot", DevShape.Flag, "plays the hero by a script, the map's own (HeroAutopilot)"),
         new("--manual", DevShape.Flag, "with a scripted demo, plays it by hand"),
+        new("--caped", DevShape.Flag, "with --jetpack, the hero wears a cape"),
         new("--aside", DevShape.Flag, "steps the hero off the spawn, so another peer's window sees it whole there"),
         new("--edge", DevShape.Equals, "the hero starts N cells past the field's left line on the middle row, to see the cold (0050)"),
         new("--far", DevShape.Equals, "with --fly, N pieces of the far field out round the start at once, to measure the view"),

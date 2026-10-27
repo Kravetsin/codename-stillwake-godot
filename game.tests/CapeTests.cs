@@ -30,13 +30,13 @@ public class CapeTests
 
     private static readonly int Points = Cape.Cols * Cape.Rows;
 
-    /// <summary>A cape stepped <paramref name="steps"/> times, the feet moving <paramref name="by"/> pixels a step.</summary>
-    private static void Move(Cape cape, Frame f, int steps, double by = 0)
+    /// <summary>A cape stepped <paramref name="steps"/> times, the feet moving <paramref name="by"/> pixels a step, weightless if <paramref name="afloat"/>.</summary>
+    private static void Move(Cape cape, Frame f, int steps, double by = 0, bool afloat = false)
     {
         for (int i = 0; i < steps; i++)
         {
             f.Feet += by;
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
+            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, afloat);
         }
     }
 
@@ -182,5 +182,63 @@ public class CapeTests
             cut += Cape.Rest(r * Cape.Cols).Y - Cape.Rest((r - 1) * Cape.Cols).Y;
         }
         Assert.True(along > cut * 0.85, $"its front edge hangs {along:F1} of {cut:F1}");
+    }
+
+    [Fact]
+    public void AfloatItOpensOutBehindAndRipplesWithoutComingToRest()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        Move(cape, f, 600, afloat: true);
+        var hem = cape.Points[^1];
+        Assert.True(hem.X < Cape.Rest(Points - 1).X - 3, $"the hem only {Cape.Rest(Points - 1).X - hem.X:F1} back of its hang");
+        Assert.True(hem.Y < Cape.Rest(Points - 1).Y - 1, $"the hem only {Cape.Rest(Points - 1).Y - hem.Y:F1} up from its hang");
+        double least = double.MaxValue, most = double.MinValue;
+        for (int step = 0; step < 200; step++)
+        {
+            Move(cape, f, 1, afloat: true);
+            Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
+            (least, most) = (Math.Min(least, cape.Points[^1].X), Math.Max(most, cape.Points[^1].X));
+        }
+        Assert.InRange(most - least, 0.3, 6);
+    }
+
+    [Fact]
+    public void AfloatAPushOffLeavesItBehindAndAStopCarriesItOn()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 600, afloat: true);
+        double start = cape.Points[^1].X;
+        double Off() => cape.Points[^1].X - start;
+        double behind = 0, ahead = 0;
+        for (int step = 0; step < 60; step++)
+        {
+            Move(cape, f, 1, 2, afloat: true);
+            behind = Math.Min(behind, Off());
+        }
+        for (int step = 0; step < 120; step++)
+        {
+            Move(cape, f, 1, afloat: true);
+            ahead = Math.Max(ahead, Off());
+        }
+        Assert.True(behind < -2, $"the hem only trailed {-behind:F1}");
+        Assert.True(ahead > 1, $"the hem only carried on {ahead:F1}");
+        Move(cape, f, 600, afloat: true);
+        Assert.InRange(Off(), -4, 4);
+        for (int i = 0; i < Points; i++) Assert.True(cape.Points[i].X <= Cape.Rest(i).X + 1.01);
+    }
+
+    [Fact]
+    public void BackInGravityAfterFloatingItHangsAsCutAgain()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 600, afloat: true);
+        Move(cape, f, 300);
+        for (int i = 0; i < Points; i++)
+        {
+            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+            Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
+        }
+        Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
     }
 }
