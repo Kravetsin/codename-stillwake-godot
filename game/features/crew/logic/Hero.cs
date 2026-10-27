@@ -95,12 +95,13 @@ public sealed class Ship(
 /// ladder by a jump or a walk, kept at most one past <c>Hero.Regrab</c>: up grabs none before then (0092). <see cref="Leaping"/>,
 /// in the air from a jump, off the floor or a ladder, till the feet stand: only a jump steps up onto a ledge it fell short of.
 /// <see cref="Gliding"/>, moved across a planet's fog (fog-edges): pulled inward, gliding on past the band while
-/// <see cref="Ship.Carries"/>.
+/// <see cref="Ship.Carries"/>. <see cref="Kx"/>, <see cref="Ky"/>, a kick out in space (a gun's recoil), thousandths of a cell a step it
+/// drifts besides its swim, fading by <c>Hero.KickKeep</c>; nothing anywhere else.
 /// </summary>
 public readonly record struct Hero(
     int X, int Y, int Vx, int Vy, bool Climbing, int Facing, Point? Anchor = null,
     int Airborne = Spec.Coyote + 1, int Buffered = 0, bool Rising = false, int LetGo = Spec.Regrab + 1, bool Leaping = false,
-    bool Gliding = false)
+    bool Gliding = false, int Kx = 0, int Ky = 0)
 {
     /// <summary>Thousandths of a cell: the unit of every length and speed in <see cref="Spec"/>.</summary>
     public const int Unit = 1000;
@@ -130,11 +131,18 @@ public readonly record struct Hero(
     public Point Middle => new(X, Y - MiddleUp);
 
     /// <summary>
+    /// This hero kicked by (<paramref name="x"/>, <paramref name="y"/>) thousandths of a cell a step, a gun's recoil: out in space it
+    /// drifts so, the kick fading as it goes; anywhere else it stands its ground.
+    /// </summary>
+    public Hero Kicked(int x, int y, Ship ship) =>
+        ship.Space(BodyCell(ship.Width)) ? this with { Kx = Kx + x, Ky = Ky + y } : this;
+
+    /// <summary>
     /// One controller step. Walls, closed doors and the grid's edges block; floors and the tops of
     /// ladders hold the hero up but let them through from below, and down drops through floors; ladders are
     /// climbed while held. With the body in space there is no gravity: the hero swims where the keys point and stops with them,
     /// on a tether that keeps the body's middle within <see cref="Spec.Tether"/> of where it left the ship;
-    /// with a jetpack worn, untethered and flying on (<see cref="HeroInput.Jetpack"/>).
+    /// with a jetpack worn, untethered and flying on (<see cref="HeroInput.Jetpack"/>); a kick drifts it on besides (<see cref="Kicked"/>).
     /// </summary>
     public Hero Step(HeroInput input, Ship ship)
     {
@@ -228,12 +236,15 @@ public readonly record struct Hero(
     private static Hero Move(Hero hero, HeroInput input, Ship ship)
     {
         int facing = input.Face ?? (input.X == 0 ? hero.Facing : input.X);
+        bool space = ship.Space(hero.BodyCell(ship.Width));
+        // A kick carries only out in space: anywhere else the feet, the ladder or the fog take it.
+        if (!space) hero = hero with { Kx = 0, Ky = 0 };
         // In a planet's fog the hero glides, the harpoon let go as it went in (fog-edges).
         if (ship.Glides(hero.X) || hero.Gliding && ship.Carries(hero.X)) return Glide(ship, hero);
         hero = hero with { Gliding = false };
         if (input.Pull is Point to) return Pulled(ship, hero, to, facing);
         // Swimming, the hero faces the way it swims, whatever the pointer does, unless it swings the axe.
-        if (ship.Space(hero.BodyCell(ship.Width))) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
+        if (space) return Swim(ship, hero, input, input.X == 0 || input.Swings ? facing : input.X);
         if (input.Reeling)
         {
             // Knocked by a ram (0103): thrown by it, not walked, so the air's control does not eat the knock; the floor brakes it.
@@ -484,12 +495,17 @@ public readonly record struct Hero(
     /// </summary>
     private static Hero Swim(Ship ship, Hero hero, HeroInput input, int facing)
     {
-        var (vx, vy) = input.Jetpack ? Flown(hero.Vx, hero.Vy, input) : (input.X * Spec.Swim, input.Y * Spec.Swim);
+        // A jetpack takes the kick into its flight, to drag off as any speed does; swimming, it drifts on besides, fading.
+        var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Spec.Swim + hero.Kx, input.Y * Spec.Swim + hero.Ky);
+        var (kx, ky) = input.Jetpack ? (0, 0) : (Faded(hero.Kx), Faded(hero.Ky));
         int nx = MoveX(ship, hero.X, hero.Y, vx);
         int ny = MoveY(ship, nx, hero.Y, vy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
-        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing);
+        return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Kx: kx, Ky: ky);
     }
+
+    private static int Faded(int kick) => (int)((long)kick * Spec.KickKeep / Unit);
+
 
     /// <summary>
     /// A jetpack's speed after a step from (<paramref name="vx"/>, <paramref name="vy"/>), never past

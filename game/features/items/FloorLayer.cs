@@ -19,10 +19,10 @@ public partial class FloorLayer : Node2D
 {
     private const int Unit = 1000;
     private const float Cell = ShipCamera.Cell;
-    /// <summary>How big a stack is drawn, as a share of a cell, and its rim round it, as a share of the picture.</summary>
-    private const float Size = 1.2f, RimSize = 1.18f;
+    /// <summary>A stack's rim round its picture, drawn a pixel of it a pixel of the world, as a share of the picture.</summary>
+    private const float RimSize = 1.18f;
     /// <summary>How far apart stacks at rest in one cell are drawn, as a share of a cell.</summary>
-    private const float Spread = 0.7f;
+    private const float Spread = 1.2f;
     /// <summary>A stack at rest rises this many pixels off the line it lies on and back, over this many ms: alive, not part of the floor.</summary>
     private const float Bob = 1.5f;
     private const double BobMs = 1600;
@@ -126,11 +126,11 @@ public partial class FloorLayer : Node2D
     /// <summary>An item's picture with a pale rim behind it, standing on the origin: its rim's lowest pixel on it.</summary>
     private static Shown PictureOf(string item)
     {
-        float scale = Size * Cell / ItemIcons.Pixels;
-        var rim = new Sprite2D { Texture = ItemIcons.Silhouette(item), Scale = Vector2.One * (scale * RimSize), Material = Glowing };
-        var body = new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * scale, Material = Unlit };
+        var texture = ItemIcons.Icon(item);
+        var rim = new Sprite2D { Texture = ItemIcons.Silhouette(item), Scale = Vector2.One * RimSize, Material = Glowing };
+        var body = new Sprite2D { Texture = texture, Material = Unlit };
         // Turned about its middle, raised by its rim's half height less the clear rows under the picture.
-        float half = (ItemIcons.Pixels / 2f - ItemIcons.ClearBelow(item)) * scale * RimSize;
+        float half = (texture.GetHeight() / 2f - ItemIcons.ClearBelow(item)) * RimSize;
         var picture = new Node2D { Position = new Vector2(0, -half) };
         picture.AddChild(rim);
         picture.AddChild(body);

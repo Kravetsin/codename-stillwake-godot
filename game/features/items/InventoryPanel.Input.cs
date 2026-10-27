@@ -239,22 +239,22 @@ public partial class InventoryPanel
         if (_reading is not { } after || (from ?? RectOf(flight.From)) is not { } src) return;
         var stack = flight.From is SlotSpot { Place: var place } ? before.At(place) : flight.From is SocketSpot s ? new Stack(s.Module, 1) : null;
         if (stack == null) return;
-        var icon = ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
+        var picture = Charges.Picture(stack.Item, stack.Charge);
         var start = src.GetCenter();
         switch (flight.To)
         {
             case SocketSpot socket when SocketAt(socket) is { } to:
-                _flights.Fly(icon, start, to.GetGlobalRect(), socket, true);
+                _flights.Fly(picture, start, to.GetGlobalRect(), socket, true);
                 return;
             case SlotSpot slot when BoxAt(slot.Place) is { } to:
-                _flights.Fly(icon, start, to.GetGlobalRect(), slot, before.At(slot.Place) == null);
+                _flights.Fly(picture, start, to.GetGlobalRect(), slot, before.At(slot.Place) == null);
                 return;
             case null when flight.From is SlotSpot { Place: var at }:
                 var shown = _slots.Where(b => b.IsVisibleInTree()).Select(b => b.Place).ToList();
                 var landed = Clicks.Landed(at, stack.Item, before.At, after.At, shown).ToList();
                 if (landed.Count == 0) BoxAt(at)?.Shake();
                 for (int i = 0; i < landed.Count; i++)
-                    if (BoxAt(landed[i]) is { } box) _flights.Fly(icon, start, box.GetGlobalRect(), new SlotSpot(landed[i]), before.At(landed[i]) == null, i);
+                    if (BoxAt(landed[i]) is { } box) _flights.Fly(picture, start, box.GetGlobalRect(), new SlotSpot(landed[i]), before.At(landed[i]) == null, i);
                 return;
         }
     }

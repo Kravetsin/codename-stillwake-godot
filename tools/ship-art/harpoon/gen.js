@@ -149,7 +149,8 @@ fs.writeFileSync(path.join(DIR, 'harpoon.json'), JSON.stringify({
 const uri = f => 'data:image/png;base64,' + fs.readFileSync(path.join(DIR, f)).toString('base64');
 const IMG = {};
 for (const id of ids) for (const f of [`icon_${id}`, `held_${id}`, `held_${id}_loaded`, `rod_${id}`, `scene_${id}`]) IMG[f] = uri(f + '.png');
-for (const f of ['fireAxe', 'wire', 'plate', 'scrap']) IMG['item_' + f] = 'data:image/png;base64,' + fs.readFileSync(ART + `items/${f}.png`).toString('base64');
+// A tool has no icon drawn (2026-10-27-tool-icons): the axe's slot shows its held picture.
+for (const [f, file] of [['fireAxe', 'hero_axe'], ['wire', 'items/wire'], ['plate', 'items/plate'], ['scrap', 'items/scrap']]) IMG['item_' + f] = 'data:image/png;base64,' + fs.readFileSync(ART + file + '.png').toString('base64');
 IMG.hero_axe = 'data:image/png;base64,' + fs.readFileSync(ART + 'hero_axe.png').toString('base64');
 const sizes = {};
 for (const id of ids) { const s = P.read(path.join(DIR, `scene_${id}.png`)); sizes[id] = [s.w / SC, s.h / SC]; }

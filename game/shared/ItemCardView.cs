@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using static Stillwake.Game.I18n.En;
@@ -9,8 +8,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// An <see cref="ItemCard"/> in Control nodes, by what the item is (the item card mockup), each a little screen of the
-/// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber: its
-/// held picture large and live on top (<see cref="ToolPicture"/>), its name and kind, its tiles, the first in amber, its
+/// wrist computer: dark, a faint sheen across its top, a shadow inside its edge. A tool's (layout A) edged amber, no
+/// picture, its icon in the slot showing it (2026-10-27-tool-icons): its name and kind, its tiles, the first in amber, its
 /// draw, its key and hint. A worn item's, the medium card, edged green: its picture (<see cref="WornPicture"/>) beside its
 /// name, kind and one number, the hint under both. Anything else's, the compact card: its name and kind on one line. Under
 /// any of them what the open station does with it, by its slot's mark, with what it makes there; a violet band while
@@ -89,18 +88,13 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// Layout A: the held picture on top, or for what is never held (the nail) its icon large; the name and kind, the tiles and the
-    /// draw, the key and its hint.
+    /// Layout A: no picture of a tool, its icon in the slot showing it; for what is never held (the nail) its icon large on top;
+    /// the name and kind, the tiles and the draw, the key and its hint.
     /// </summary>
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
-        if (ToolPicture.Of(card.Item, [.. card.Fitted.Select(Content.Modules.Get)]) is { } picture)
-        {
-            picture.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
-            column.AddChild(Padded(picture, 5, 5, 7, 0));
-        }
-        else column.AddChild(Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0));
+        if (HeldLook.Of(card.Item) == null) column.AddChild(Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0));
         column.AddChild(Padded(Title(card, ToolKindText), 8, 6, 10, 7));
         column.AddChild(Tiles(card.Tiles!, card.Draw, card.DrawBoost));
         if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 8, Pad, 0));
@@ -374,7 +368,7 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// The key cap and its hint, centred (the mockup's <c>.use</c>): on a card <paramref name="card"/> px wide the hint
+    /// The key cap and its hint, if any, centred (the mockup's <c>.use</c>): on a card <paramref name="card"/> px wide the hint
     /// wraps, read from the left, past what the card leaves it; on a compact card it never does.
     /// </summary>
     private static Control UseRow(CardKey how, int? card)
@@ -383,6 +377,7 @@ public static class ItemCardView
         var cap = Cap(how.Key);
         cap.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         row.AddChild(cap);
+        if (how.Words == "") return Padded(row, Pad, 7, Pad, 8);
         var hint = Text(how.Words, HintText, HorizontalAlignment.Left);
         if (card is int wide)
         {
@@ -487,7 +482,7 @@ public static class ItemCardView
             made.AddChild(Text("→", YieldText));
             foreach (var (item, count) in output.Items)
             {
-                made.AddChild(Picture(ItemIcons.Icon(item), 16));
+                made.AddChild(Picture(ItemIcons.Icon(item, 16), 16));
                 made.AddChild(Text(T("card.many", ("n", count)), YieldText));
             }
             made.AddChild(Text($" · {output.Time}", TimeDim));
@@ -555,7 +550,7 @@ public static class ItemCardView
     {
         var line = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         var icon = new CenterContainer { CustomMinimumSize = new Vector2(18, 16), MouseFilter = Control.MouseFilterEnum.Ignore };
-        icon.AddChild(Picture(ItemIcons.Icon(row.Item), 16));
+        icon.AddChild(Picture(ItemIcons.Icon(row.Item, 16), 16));
         line.AddChild(icon);
         var name = Style.Gap(new HBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         name.AddChild(Text(row.Name, CostText));

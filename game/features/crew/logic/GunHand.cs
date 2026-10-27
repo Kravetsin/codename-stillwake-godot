@@ -29,17 +29,20 @@ public sealed class OwnShot(Projectile projectile, Gun gun, ShotMotion launched)
 public readonly record struct GunStep(Sim.Creatures.Fire? Fire = null, bool Dry = false, bool Ready = false, double Charge = 0, bool Charged = false);
 
 /// <summary>
-/// The guns in this player's hand (shots-are-the-sims): a fresh click fires one when the hero's cooldown is out, its gun's
-/// <c>Pace</c> as real time, which every gun it holds waits for, as the harpoon's (0044); with no ammo it clicks dry, the
-/// cooldown untouched. Where it <see cref="Flies"/> them, a guest's, each shot fired flies here from the muzzle drawn, a tick at
+/// The guns in this player's hand (shots-are-the-sims): a fresh click fires one when its own cooldown is out, its
+/// <c>Pace</c> as real time from its last shot; another gun taken up meanwhile waits for none of it; with no ammo it clicks dry,
+/// the cooldown untouched. Where it <see cref="Flies"/> them, a guest's, each shot fired flies here from the muzzle drawn, a tick at
 /// a time by the step the sim flies it by, till it meets something or runs out: the shooter sees it at once, a round trip
 /// before the sim's, which is never drawn there. A gun held to charge (its <c>Charge</c>, 2026-10-27-the-railgun) begins on a fresh press
 /// with the cooldown out and fires only when let go full: let go sooner, put away or no longer held up, it fires nothing.
 /// </summary>
 public sealed class GunHand
 {
-    private double _cooldownMs;
-    private bool _wasReady = true;
+    /// <summary>Each gun's cooldown still to run, in ms, by its item; one run out is gone.</summary>
+    private readonly Dictionary<string, double> _cooldownMs = new();
+    private readonly List<string> _cooling = [];
+    /// <summary>The gun held at the last frame, whose cooldown <see cref="Ready"/> tells.</summary>
+    private string? _held;
     private readonly List<OwnShot> _shots = [];
     private readonly List<ShotHit> _hits = [];
     /// <summary>The gun being charged and how long it has been held, in ms; none while none is.</summary>
@@ -52,8 +55,8 @@ public sealed class GunHand
     /// <summary>Whether a shot fired is flown here (<see cref="Shared.ShotDraws.FliesOwn"/>): not on the host, which draws the sim's.</summary>
     public bool Flies { get; set; } = true;
 
-    /// <summary>Whether the hero may fire: its cooldown out.</summary>
-    public bool Ready => _cooldownMs <= 0;
+    /// <summary>Whether the hero may fire the gun held: its cooldown out.</summary>
+    public bool Ready => _held == null || !_cooldownMs.ContainsKey(_held);
 
     /// <summary>A gun's pace in milliseconds: its ticks of the world as real time.</summary>
     public static double PaceMs(Gun gun) => gun.Pace * 1000.0 / Sim.World.TicksPerSecond;
@@ -66,11 +69,24 @@ public sealed class GunHand
     /// wielded and its muzzle drawn at <paramref name="muzzle"/> (thousandths of a cell) fires <paramref name="ammo"/> along
     /// <paramref name="heading"/> if the hero is ready and has some (the sim's <c>AmmoOf</c>, null too for a belt that cannot pay its
     /// charge), else clicks dry. A gun held to charge begins so instead, charges while <paramref name="held"/>, and fires let go full.
-    /// Ready again it says so, while the gun is held.
+    /// Its cooldown run out while it is held, it says so.
     /// </summary>
     public GunStep Step(double elapsedMs, bool pressed, Gun? gun, (int X, int Y)? muzzle, int heading, Projectile? ammo, bool held = false)
     {
-        _cooldownMs = Math.Max(0, _cooldownMs - elapsedMs);
+        _held = gun?.Item;
+        bool cameReady = false;
+        _cooling.Clear();
+        _cooling.AddRange(_cooldownMs.Keys);
+        foreach (var item in _cooling)
+        {
+            double left = _cooldownMs[item] - elapsedMs;
+            if (left > 0) _cooldownMs[item] = left;
+            else
+            {
+                _cooldownMs.Remove(item);
+                cameReady |= item == _held;
+            }
+        }
         var step = new GunStep();
         if (_charging != null && (_charging != gun || muzzle == null)) Uncharge();
         if (pressed && gun != null && muzzle != null && Ready && _charging == null)
@@ -92,15 +108,13 @@ public sealed class GunHand
             }
             else step = step with { Charge = _chargedMs / full, Charged = !was && _chargedMs >= full };
         }
-        step = step with { Ready = Ready && !_wasReady && gun != null };
-        _wasReady = Ready;
-        return step;
+        return step with { Ready = cameReady };
     }
 
     /// <summary>A shot of <paramref name="gun"/> fired from <paramref name="at"/> along <paramref name="heading"/>: the cooldown begun, flown here if this hand flies its shots.</summary>
     private Sim.Creatures.Fire Fired(Gun gun, (int X, int Y) at, int heading, Projectile ammo)
     {
-        _cooldownMs = PaceMs(gun);
+        _cooldownMs[gun.Item] = PaceMs(gun);
         if (Flies) _shots.Add(new OwnShot(ammo, gun, ShotFlight.Launch(gun, at.X, at.Y, heading)));
         return new Sim.Creatures.Fire(gun.Item, at.X, at.Y, heading);
     }

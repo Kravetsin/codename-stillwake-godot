@@ -26,11 +26,12 @@ public static class ShotFlight
     /// <summary>
     /// What <paramref name="p"/> fired from <paramref name="gun"/> gains falling a tick on a surface of <paramref name="kind"/>:
     /// <see cref="Creatures.Gravity"/> times its weight under the kind's gravity, times the gun's <c>Fall</c> thousandths, rounded down
-    /// (2026-10-27-the-railgun), a unit at least as the kind's fall is; no gun, the whole; none where it floats (the ship's, open space
-    /// to a shot) or for no weight.
+    /// (2026-10-27-the-railgun), a unit at least as the kind's fall is; no gun, the whole; none <paramref name="afloat"/>, where a hero
+    /// would float (open space, <c>Rooms.Afloat</c>), or for no weight. Aboard the ship it falls by the ship's own gravity, the
+    /// whole, harder than on a planet (2026-10-27-shots-fall-aboard).
     /// </summary>
-    public static int Gravity(Surfaces.Kind kind, Projectile p, Gun? gun) =>
-        p.Weight == 0 || kind.Floats ? 0 : Math.Max(1, kind.Fall(Creatures.Gravity * p.Weight) * (gun?.Fall ?? 1000) / 1000);
+    public static int Gravity(Surfaces.Kind kind, Projectile p, Gun? gun, bool afloat) =>
+        p.Weight == 0 || afloat ? 0 : Math.Max(1, kind.Fall(Creatures.Gravity * p.Weight) * (gun?.Fall ?? 1000) / 1000);
 
     /// <summary>
     /// A tick of <paramref name="f"/>: a tick less left, then the walk from its point to the new one (<see cref="Rays.Walk"/>), its

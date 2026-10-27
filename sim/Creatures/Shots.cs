@@ -112,7 +112,7 @@ public sealed partial class CreaturesModule
         var p = Content.Shots.Get(s.Projectile);
         var from = (s.X, s.Y);
         var gun = Content.Shots.GunOf(s.Gun);
-        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p, gun), _grid.Width, _grid.Height, cell => Meets(s, p, gun, cell, from));
+        var (next, met, last) = ShotFlight.Step(s.Motion, GravityAt(s.X, s.Y, p, gun), _grid.Width, _grid.Height, cell => Meets(s, p, gun, cell, from));
         if (met >= 0)
         {
             _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true));
@@ -236,9 +236,13 @@ public sealed partial class CreaturesModule
             }
             return false;
         }
-        var (next, met, last) = ShotFlight.Step(f, ShotFlight.Gravity(Rules, p, spec), _grid.Width, _grid.Height, Judge);
+        var (next, met, last) = ShotFlight.Step(f, GravityAt(f.X, f.Y, p, spec), _grid.Width, _grid.Height, Judge);
         return new ShotTick(next, met, last, hits, through);
     }
+
+    /// <summary>What a shot of <paramref name="p"/> from <paramref name="gun"/> at (<paramref name="x"/>, <paramref name="y"/>) gains falling this tick: by the cell it starts the tick in, none afloat.</summary>
+    private int GravityAt(int x, int y, Content.Projectile p, Content.Gun? gun) =>
+        ShotFlight.Gravity(Rules, p, gun, _rooms.Afloat(y / Unit * _grid.Width + x / Unit));
 
     /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>
     private IReadOnlyList<WreckBox> _wrecks = [];

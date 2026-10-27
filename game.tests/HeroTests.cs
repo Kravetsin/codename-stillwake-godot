@@ -1033,6 +1033,28 @@ public class HeroTests
     }
 
     [Fact]
+    public void InSpaceAShotKicksTheHeroBackTheKickFadingAndAboardItIsNothing()
+    {
+        var opened = Opened();
+        var adrift = Hero.At(opened, 80 * opened.Width + 240);
+        // Kicked left: it drifts left with nothing pressed, slower each step, then stops.
+        var h = adrift.Kicked(-200, 0, opened).Step(Still, opened);
+        Assert.Equal(adrift.X - 200, h.X);
+        int before = h.Vx;
+        h = h.Step(Still, opened);
+        Assert.InRange(h.Vx, before + 1, -1);
+        for (int i = 0; i < 600; i++) h = h.Step(Still, opened);
+        Assert.Equal(0, h.Vx);
+        Assert.InRange(adrift.X - h.X, 2000, 5000);
+        // Swimming against it, the hero gains on it at once and the kick still fades.
+        var against = adrift.Kicked(-200, 0, opened).Step(new HeroInput(1, 0, false), opened);
+        Assert.Equal(adrift.X - 200 + Spec.Swim, against.X);
+        // Aboard, under gravity, a shot kicks no one.
+        var woke = Hero.At(opened, Spawn);
+        Assert.Equal(woke, woke.Kicked(-200, 0, opened));
+    }
+
+    [Fact]
     public void InSpaceWakesInTheShipUnderGravityAgainOnNoTether()
     {
         var opened = Opened();

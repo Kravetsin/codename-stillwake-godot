@@ -197,7 +197,7 @@ public partial class DevPanel : CanvasLayer
         foreach (var item in ItemPicker.Matching(""))
         {
             var row = Toggle(ItemPicker.NameOf(item.Id), Style.Slate300);
-            row.Icon = ItemIcons.Icon(item.Id);
+            row.Icon = ItemIcons.Icon(item.Id, 2 * ItemIcons.Pixels);
             row.TooltipText = $"{item.Id} · stack {item.Stack}";
             row.TextureFilter = CanvasItem.TextureFilterEnum.Nearest;
             row.AddThemeConstantOverride("icon_max_width", 2 * ItemIcons.Pixels);
