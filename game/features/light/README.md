@@ -69,13 +69,12 @@ the reaches of fire, particles, screens.
   `CanvasModulate` of `Light.Ambient` tints only what is drawn without `Lit`, not unshaded things.
 - **Lit:** cells, machines, cables, floor stacks, debris, heroes; not fire, glows, particles, plans, overlays.
 - **Helmet lamps** (0077, `LightView.HeadLamps` from `HeroView.HeadLamps()`): a `HeadLamp` beam within
-  `HeadLampHalfAngle` of the head's way, plus `HeadGlow` all round, from inside the hero
-  (`Sources.HeadLamp`) so a bulb in a wall still lights the open. A beam is a `LightSource` with a
-  `Toward` (`beam_cos`, `beam_soft`).
+  `HeadLampHalfAngle` of the head's way, plus `HeadGlow` round, both from its lens, or in a wall the open
+  point next to it toward the neck (`Sources.HeadLamp`). A beam is a `LightSource` with a `Toward` (`beam_cos`, `beam_soft`).
 - **Underground is black** (0077): no ambient (`Lit.Ambient` from the sky; the ship keeps `Light.Ambient`).
   Daylight keeps `GroundKeep` a cell of air in from the open, `GroundDownKeep` down a shaft. Lamps and
   beams enter solid ground by `wall_keep` a cell (`through`), aboard too; on a planet
-  (`Lightmap.SoakThrough`, 0080) they go on out past rock, still by `wall_keep` a cell crossed. Aboard,
+  (`Lightmap.SoakThrough`, 0080) they go on past rock, by `wall_keep` a cell crossed. Aboard,
   walls stop light.
 - **Daylight soaks into the ground** (0079): wall to wall downward it keeps `GroundSoak`, so the top cells
   under the sun are lit; sideways and up `WallDeep`, out into a cave `WallOut`: caves stay dark.
