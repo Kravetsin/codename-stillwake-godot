@@ -3,6 +3,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content.Creatures;
 
 namespace Stillwake.Sim.Creatures;
@@ -47,12 +48,14 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     private readonly IDebrisOps _debrisOps;
     private readonly IBuildingQueries _built;
     private readonly IBuildingOps _building;
+    private readonly IRoomsQueries _rooms;
 
     public override string Id => "creatures";
 
     public CreaturesModule(IGridQueries grid, ICrewQueries crew, ICrewOps crewOps, IItemsQueries held, IItemsOps items, IDebrisQueries debris, IDebrisOps debrisOps,
-        IBuildingQueries built, IBuildingOps building)
+        IBuildingQueries built, IBuildingOps building, IRoomsQueries rooms)
     {
+        _rooms = rooms;
         _debris = debris;
         _debrisOps = debrisOps;
         _built = built;

@@ -116,6 +116,31 @@ public class ShotsTests
     }
 
     [Fact]
+    public void AboardANailFiredLevelFallsHarderThanOnAPlanetToTheFloor()
+    {
+        // A room of hull 60 cells by 12, a cell a character: the ship's gravity holds in it, as it holds the hero.
+        var rows = new List<string> { new string('#', 60) };
+        for (int y = 0; y < 10; y++) rows.Add("#" + new string('.', 58) + "#");
+        rows.Add(new string('#', 60));
+        var w = new Scenario(string.Join('\n', rows), cells: true).Do(new Crew.Enter(10 * 60 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Run();
+        Assert.False(w.M.Rooms.Afloat(2 * 60 + 2));
+        w.Do(new Fire(Nailer, 2 * Unit + Unit / 2, 2 * Unit + Unit / 2, Right)).Run();
+        int aboard = w.M.Creatures.Shots.Single().VY;
+        Assert.Equal(Spec.Creatures.Gravity * Nail.Weight, aboard);
+        Assert.True(aboard > ShotFlight.Gravity(Spec.Surfaces.TestStrip, Nail, Gun, afloat: false));
+        var ends = new List<ShotEnd>();
+        for (int i = 0; i < 20 && ends.Count == 0; i++)
+        {
+            w.Run();
+            ends.AddRange(w.M.Creatures.Ended);
+        }
+        // Down on the floor, the hull's bottom row, well short of the far wall.
+        int cell = ends.Single().Cell;
+        Assert.Equal(11, cell / 60);
+        Assert.InRange(cell % 60, 10, 40);
+    }
+
+    [Fact]
     public void OnTheFirstPlanetANailFiredUpAt45DegreesFallsBackToTheGroundAbout30CellsOut()
     {
         var w = Ground();
