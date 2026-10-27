@@ -1,5 +1,3 @@
-| `PodFlights.cs` | a pod in the air from this surface: the deck's halves sliding apart and shut, the pod falling through on its thruster | yes |
-| `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
 # landing (client): the drop pod's seats and flights
 
 What the launch platform and the drop pod show beyond the grid's own drawing (ADRs `2026-10-25-the-drop-pod`,
@@ -14,6 +12,8 @@ socket are the power feature's (`PlatformLamps`).
 | `PodSeats.cs` | each drop pod with a hero in it: its skirt's lamps lit and the glint on its glass, over the pod and the hero | yes |
 | `LaunchKey.cs` | a pod's key under its slot: Descend aboard, Return off the ship, dim with the sim's refusal in its tooltip | yes |
 | `FlightOverlay.cs` | the white over the rider's screen at a flight's end, over the HUD, kept across a surface switch | yes |
+| `PodFlights.cs` | a pod in the air from this surface: the deck's halves sliding apart and shut, the pod falling through on its thruster | yes |
+| `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
 | `logic/Landing.En.cs` | Its player text (`En`): the landing refusals and the key's two words | no |
 
