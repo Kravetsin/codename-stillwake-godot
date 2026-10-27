@@ -71,7 +71,7 @@ public partial class HeroView
         _ownShots.Show(_guns.Shots.Select(s =>
         {
             var (point, way) = ShotStreaks.Between(s.Was, s.Now, _progress);
-            return (point, way, ShotLooks.Of(s.Projectile.Id));
+            return (point, way, ShotLooks.Of(s.Projectile.Id, s.Gun.Item));
         }));
     }
 

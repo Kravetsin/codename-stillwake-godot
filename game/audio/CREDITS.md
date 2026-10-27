@@ -80,6 +80,9 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `crew/nailer-hit-1.wav` | Freesound, "Small_Bullet_Very_Soft_Hit_07" (0.3 s from its attack), https://freesound.org/people/BlondPanda/sounds/778028/ | BlondPanda | CC0 |
 | `crew/nailer-ready-1.wav` | Freesound, "ClipLoad2.wav" (all of it from its attack), https://freesound.org/people/BMacZero/sounds/94119/ | BMacZero | CC0 |
 | `crew/nailer-shot-1.wav` | Freesound, "air_nailer_single_shot_1.wav" (0.55 s from its attack), https://freesound.org/people/reg7783/sounds/131304/ | reg7783 | CC0 |
+| `crew/railgun-charge-1.wav` | Freesound, "Laser Charge Up" (all of it from its attack, the last 0.16 s faded), https://freesound.org/people/magnuswaker/sounds/588242/ | magnuswaker | CC0 |
+| `crew/railgun-ready-1.wav` | Freesound, "A relay switch being activated." (all of it), https://freesound.org/people/bassmosphere/sounds/384698/ | bassmosphere | CC0 |
+| `crew/railgun-shot-1.wav` | Freesound, "Sci FI Gun.wav" (all of it from its attack), https://freesound.org/people/michael_grinnell/sounds/512480/ | michael_grinnell | CC0 |
 | `crew/inhale-1.wav` | generated for Stillwake: white noise (mulberry32 seed 81) through two band-passes, Q 0.9, their centre rising from 0.9 to 1.7 kHz, 0.5 s under a sine swell, to −3 dBFS peak (a placeholder till an audition) | Stillwake team | CC0 |
 | `crew/jump-1.wav` | Freesound, "Jump_Metal_3.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421139/ | GiocoSound | CC0 |
 | `crew/jump-2.wav` | Freesound, "Jump_Metal_1.wav" (the push-off), https://freesound.org/people/GiocoSound/sounds/421141/ | GiocoSound | CC0 |

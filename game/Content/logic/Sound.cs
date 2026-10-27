@@ -462,12 +462,12 @@ public static class Sound
 
     /// <summary>
     /// The railgun (2026-10-27-the-railgun): its charge as it is held, its pitch rising to full (<see cref="RailCharge"/>); a ping as it
-    /// comes full (<see cref="RailReady"/>); its shot, heard where it is as a friend's too (<see cref="RailShot"/>). Placeholders of
-    /// the sentry's charge, the charger's full and the arc's strike till the user's picks.
+    /// comes full (<see cref="RailReady"/>); its shot, heard where it is as a friend's too (<see cref="RailShot"/>). The user's picks:
+    /// a synthesised laser's charge up, a pinball relay snapping shut, a sci-fi gun's dry crack.
     /// </summary>
-    public static readonly Cue RailCharge = new(Shots("creatures/sentry-charge", 1), -6, Pitch: 0);
-    public static readonly Cue RailReady = new(Shots("power/charge-full", 1), -10, Pitch: 0);
-    public static readonly Cue RailShot = Zap with { VolumeDb = -4, Tune = 1.2f, Heard = ToolReach };
+    public static readonly Cue RailCharge = new(Shots("crew/railgun-charge", 1), -8, Pitch: 0);
+    public static readonly Cue RailReady = new(Shots("crew/railgun-ready", 1), -8, Pitch: 0);
+    public static readonly Cue RailShot = new(Shots("crew/railgun-shot", 1), -6, Heard: ToolReach);
 
     /// <summary>The shot of the gun <paramref name="gun"/> heard fired: the railgun's its own, any other the nailer's.</summary>
     public static Cue FiredBy(string? gun) => gun == Content.Shots.Railgun.Item ? RailShot : NailShot;
@@ -518,7 +518,7 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values];

@@ -72,7 +72,7 @@ public partial class ShotsView : Node2D
             if (_seen.TryGetValue(shot.Id, out var flight))
             {
                 var (at, way) = ShotStreaks.Between(flight.Was, flight.Now, progress);
-                streaks.Add((at, way, ShotLooks.Of(shot.Projectile)));
+                streaks.Add((at, way, ShotLooks.Of(shot.Projectile, shot.Gun)));
             }
         _streaks.Show(streaks);
     }

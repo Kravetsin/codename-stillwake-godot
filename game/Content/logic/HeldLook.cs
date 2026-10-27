@@ -67,12 +67,13 @@ public sealed record HeldLook(
     public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (3, 2), System.Math.PI / 2, (13, 2), (16, 2), Clamp: (4, 2));
 
     /// <summary>
-    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun): two rails clamped over a housing, the arc shard on it;
-    /// held as the drill is, in both hands, the near on its pistol grip, the far on the foregrip under the rails; the edge the gap
-    /// between the rails, the nail leaving their ends. Charged, the gap and the shard light (<c>hero_railgun_charged.png</c>).
+    /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red
+    /// band, three capacitor cans standing on it in copper bands, the arc shard at its rear, short heavy rails clamped twice; held as
+    /// the drill is, in both hands, the near on its pistol grip, the far on the foregrip under the rails; the edge the gap between
+    /// the rails, the nail leaving their ends. Charged, the cans, the gap and the shard light (<c>hero_railgun_charged.png</c>).
     /// </summary>
     public static readonly HeldLook Railgun = new(
-        "res://art/hero_railgun.png", (11, 9.5), 0, (15, 5.5), (38, 5.5), Aimed: true, Both: new TwoHands((20, 9), (16, 9)), Clamp: (21.5, 6),
+        "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Both: new TwoHands((20.5, 10), (16.5, 10)), Clamp: (21.5, 6.5),
         Charged: "res://art/hero_railgun_charged.png");
 
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>

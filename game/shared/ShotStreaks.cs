@@ -47,9 +47,10 @@ public partial class ShotStreaks : Node2D
                 _colours[i] = k < 0.25f ? back.Lerp(body, k / 0.25f) : body.Lerp(point, (k - 0.25f) / 0.75f);
             }
             float w = (float)look.Width;
-            // A dark rim under it, so it reads on a pale sky as on a cave's dark.
-            for (int i = 0; i <= Fade; i++) _rim[i] = Rim with { A = Rim.A * _colours[i].A };
-            DrawPolylineColors(_points, _rim, w + 2);
+            // A dark rim under it, so it reads on a pale sky as on a cave's dark; one that glows, its glow instead.
+            var under = look.Glow is { } glow ? new Color(glow) with { A = 0.35f } : Rim;
+            for (int i = 0; i <= Fade; i++) _rim[i] = under with { A = under.A * _colours[i].A };
+            DrawPolylineColors(_points, _rim, look.Glow != null ? w * 3 : w + 2);
             DrawPolylineColors(_points, _colours, w);
             DrawRect(new Rect2(at - new Vector2(w, w) / 2, new Vector2(w, w)), point);
         }
