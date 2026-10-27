@@ -6,8 +6,8 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// A worn item's picture on its card (the item card mockup's medium card), in a small dark window
-/// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp fixed on a
-/// helmet (<see cref="HeadLampArt"/>), its warm beam reaching out across the window with motes drifting through it, as wide as the game's
+/// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp fixed on a helmet
+/// (<see cref="HeadLampArt"/>), its warm beam reaching out across the window with motes drifting through it, as wide as the game's
 /// (<see cref="Light.HeadLampHalfAngle"/>); a battery glowing green as much as it holds, slowly pulsing.
 /// </summary>
 public partial class WornPicture : Control
