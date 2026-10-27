@@ -11,9 +11,9 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// The sim's shots (shots-are-the-sims), every peer's but this player's own, which its hero's hands fly ahead of the sim's: each
-/// drawn a tick behind, between where it was and is, heard fired where it first shows, and its end shown and heard as what it met
-/// (<see cref="ShotEnds"/>). And the creatures' arcs (2026-10-27-sentry-arc), each shown once the tick it struck: an electric arc
+/// The sim's shots (shots-are-the-sims), every peer's but a guest's own, which its hero's hands fly ahead of the sim's
+/// (<see cref="ShotDraws"/>): each drawn a tick behind, between where it was and is, heard fired where it first shows but the
+/// host's own, heard at the click, and every hit shown and heard as what it met (<see cref="ShotEnds"/>, 2026-10-27-shots-pierce). And the creatures' arcs (2026-10-27-sentry-arc), each shown once the tick it struck: an electric arc
 /// as the relic's, a flash and sparks where it struck, heard where it left and where it struck.
 /// </summary>
 public partial class ShotsView : Node2D
@@ -21,8 +21,11 @@ public partial class ShotsView : Node2D
     private readonly Registry _m;
     private readonly Func<double> _progress;
     private readonly Func<int> _own, _tick;
+    private readonly Func<bool> _hosts;
     private readonly ShotStreaks _streaks = new();
     private readonly Voices _fired = new(S.World, voices: 3), _ends = new(S.World, voices: 4);
+    // The host's own hits are its suit's, heard in space too, as a guest's copy's are.
+    private readonly Voices _ownEnds = new(S.Suit, voices: 3);
     // Arcs strike in space, where the World bus is silent: heard on the Suit bus, as the sentry is.
     private readonly Voices _arcs = new(S.Suit, voices: 4);
 
@@ -43,12 +46,13 @@ public partial class ShotsView : Node2D
         Halo = 2,
     };
 
-    public ShotsView(Registry m, Func<double> progress, Func<int> own, Func<int> tick)
+    public ShotsView(Registry m, Func<double> progress, Func<int> own, Func<int> tick, Func<bool> hosts)
     {
-        (_m, _progress, _own, _tick) = (m, progress, own, tick);
+        (_m, _progress, _own, _tick, _hosts) = (m, progress, own, tick, hosts);
         AddChild(_streaks);
         AddChild(_fired);
         AddChild(_ends);
+        AddChild(_ownEnds);
         AddChild(_arcs);
     }
 
@@ -59,7 +63,7 @@ public partial class ShotsView : Node2D
         if (tick != _shownTick)
         {
             _shownTick = tick;
-            Ticked(creatures, Ref.Hero(_own()));
+            Ticked(creatures, _own(), _hosts());
             Struck(creatures.Arcs);
         }
         double progress = _progress();
@@ -73,17 +77,28 @@ public partial class ShotsView : Node2D
         _streaks.Show(streaks);
     }
 
-    /// <summary>A tick of the world seen: the shots that ended shown ending, those new heard fired, each moved on a step.</summary>
-    private void Ticked(CreaturesModule creatures, Ref own)
+    /// <summary>
+    /// A tick of the world seen: every hit of a shot drawn here shown, the own hero's on its suit; one born and ended this tick
+    /// heard fired where it left, another's; those new heard fired, each moved on a step.
+    /// </summary>
+    private void Ticked(CreaturesModule creatures, int own, bool hosts)
     {
-        foreach (var end in creatures.Ended)
-            // A shot that ran out shows nothing: it met nothing.
-            if (_seen.Remove(end.Id, out var flew) && end.Met)
-                ShotEnds.Show(_m, _ends, end.Gun, end.Projectile, end.Cell, (flew.Now.X / 1000.0, flew.Now.Y / 1000.0));
+        var mine = Ref.Hero(own);
+        int bornAndEnded = -1;
+        foreach (var hit in creatures.Hits)
+        {
+            if (!ShotDraws.DrawsSims(hit.By, own, hosts)) continue;
+            ShotEnds.Show(_m, hit.By == mine ? _ownEnds : _ends, hit);
+            if (hit.By != mine && hit.Shot != bornAndEnded && !_seen.ContainsKey(hit.Shot) && !Flying(creatures, hit.Shot))
+            {
+                bornAndEnded = hit.Shot;
+                _fired.Play(S.NailShot, new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
+            }
+        }
         var flying = new HashSet<int>();
         foreach (var shot in creatures.Shots)
         {
-            if (shot.By == own) continue;
+            if (!ShotDraws.DrawsSims(shot.By, own, hosts)) continue;
             flying.Add(shot.Id);
             var motion = new ShotMotion(shot.X, shot.Y, shot.VX, shot.VY, shot.Left);
             if (_seen.TryGetValue(shot.Id, out var was)) _seen[shot.Id] = (was.Now, motion);
@@ -91,11 +106,18 @@ public partial class ShotsView : Node2D
             {
                 // Seen first a step out of the muzzle: drawn from where it was fired, a step back.
                 _seen[shot.Id] = (motion with { X = motion.X - motion.VX, Y = motion.Y - motion.VY }, motion);
-                _fired.Play(S.NailShot, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
+                if (shot.By != Ref.Hero(own)) _fired.Play(S.NailShot, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         foreach (var id in new List<int>(_seen.Keys))
             if (!flying.Contains(id)) _seen.Remove(id);
+    }
+
+    private static bool Flying(CreaturesModule creatures, int id)
+    {
+        foreach (var shot in creatures.Shots)
+            if (shot.Id == id) return true;
+        return false;
     }
 
     /// <summary>Each arc new this tick shown striking: its arc, a flash and sparks where it struck.</summary>

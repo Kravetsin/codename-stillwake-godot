@@ -116,18 +116,15 @@ public sealed partial class BuildingModule
     /// shot (shots-are-the-sims): a wall that breaks, or a built piece, a floor too, as a <see cref="Hew"/>'s ray strikes it; what
     /// it gives to the peer, or, its hero not on this surface (gone aboard, left, or none), falling there, anyone's. Nothing where
     /// the surface's tools break nothing, nor on what never breaks (bedrock, lava). A shot stops only where it is solid, so never
-    /// here for a ladder, an open door, a back wall or a plant.
+    /// here for a ladder, an open door, a back wall or a plant. True when what stood there broke (2026-10-27-shots-pierce).
     /// </summary>
-    public void Hit(int peer, int cell, int damage)
+    public bool Hit(int peer, int cell, int damage)
     {
-        if (!Rules.ToolsBreak || damage <= 0) return;
+        // Nothing breaks in a planet's fog, where a shot already stops as at a wall.
+        if (!Rules.ToolsBreak || damage <= 0 || !_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return false;
         int? here = _crew.HeroOf(peer) != null ? peer : null;
-        if (_grid.WallAt(cell) is { } wall)
-        {
-            if (wall.Strength != Material.Unbreakable) HitWall(here, cell, damage);
-            return;
-        }
-        if (PieceAt(cell) is { } piece) HitPiece(here, piece.Head, damage);
+        if (_grid.WallAt(cell) is { } wall) return wall.Strength != Material.Unbreakable && HitWall(here, cell, damage);
+        return PieceAt(cell) is { } piece && HitPiece(here, piece.Head, damage);
     }
 
     /// <summary>Gives <paramref name="cost"/> to peer <paramref name="peer"/>, what does not fit falling at <paramref name="cell"/>; for none, all of it there, anyone's.</summary>
@@ -137,28 +134,30 @@ public sealed partial class BuildingModule
         else _itemsOps.DropAt(FloorStack.Nobody, cost, cell);
     }
 
-    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>.</summary>
-    private void HitWall(int? peer, int cell, int hit)
+    /// <summary>A hit of <paramref name="hit"/> on <paramref name="cell"/>'s wall: broken at its strength, for <paramref name="peer"/>: true when it broke.</summary>
+    private bool HitWall(int? peer, int cell, int hit)
     {
         var wall = _grid.WallAt(cell)!;
-        if (!Cracked(cell, wall.Strength, hit)) return;
+        if (!Cracked(cell, wall.Strength, hit)) return false;
         _gridOps.Clear(cell, "structure");
         Yield(peer, wall.Cost, cell);
         // What the wall held goes to its digger now; the sweep would fell it the same tick, giving nothing.
         foreach (var plant in HeldBy(cell))
             if (_plantOwn.GetValueOrDefault(plant.Cell) == plant) Fell(plant, peer);
+        return true;
     }
 
     /// <summary>
     /// A hit of <paramref name="hit"/> on the built piece kept by <paramref name="head"/>: at its build's strength it comes apart
-    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost.
+    /// whole, as a mark takes it (0104), and gives <paramref name="peer"/> what it cost: true when it came apart.
     /// </summary>
-    private void HitPiece(int? peer, int head, int hit)
+    private bool HitPiece(int? peer, int head, int hit)
     {
-        if (PieceAt(head) is not { } piece || !Cracked(head, piece.Build.Strength, hit)) return;
+        if (PieceAt(head) is not { } piece || !Cracked(head, piece.Build.Strength, hit)) return false;
         var cost = Costs.BuiltAt(_grid, head, "structure")!.Cost;
         foreach (int cell in _grid.PieceOf(head)) _gridOps.Clear(cell, "structure");
         Yield(peer, cost, head);
+        return true;
     }
 
     /// <summary>

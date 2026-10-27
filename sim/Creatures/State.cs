@@ -191,6 +191,8 @@ public sealed class Shot
     [JsonInclude] public int VX { get; internal set; }
     [JsonInclude] public int VY { get; internal set; }
     [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The things it broke or killed and flew on through (2026-10-27-shots-pierce), its damages kept through each; none written while none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Pierced { get; internal set; }
 
     internal ShotMotion Motion => new(X, Y, VX, VY, Left);
 }
@@ -200,6 +202,17 @@ public sealed class Shot
 /// whether it met something there or ran out of reach or grid.
 /// </summary>
 public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);
+
+/// <summary>What a shot hits in a cell: what is solid there, a creature, or a wreck.</summary>
+public enum ShotTarget { Solid, Creature, Wreck }
+
+/// <summary>
+/// A hit of a shot this tick (2026-10-27-shots-pierce): the shot by its id, its shooter, projectile and gun; the cell it hit
+/// <see cref="What"/> in, from (<see cref="From"/>), the shot's point as the tick began, in thousandths of a cell; and
+/// what it took (block damage off what is solid) and whether it broke or killed it, the shot then flying on. One with nothing
+/// left to take is listed too, taking nothing.
+/// </summary>
+public readonly record struct ShotHit(int Shot, Ref By, string Projectile, string? Gun, int Cell, (int X, int Y) From, ShotTarget What, int Damage, bool Broke);
 
 /// <summary>
 /// An arc a creature struck (2026-10-27-sentry-arc): what it carries (<see cref="Content.Shots.Projectile"/>), from its creature's

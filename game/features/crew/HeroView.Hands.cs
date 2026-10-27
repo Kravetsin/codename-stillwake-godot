@@ -112,7 +112,7 @@ public partial class HeroView
         // A gun of the sim's shots, aimed at the pointer anywhere; its shot fires from the muzzle as last drawn.
         bool wieldsShooter = acts && shooter != null && Poses.HoldsIn(pose);
         _aimsGun = (wieldsGun || wieldsShooter) && pointer != null;
-        Shoot(client, m, shooter, wieldsShooter, clicked && !grabbed, elapsedMs);
+        Shoot(client, m, shooter, wieldsShooter, clicked && !grabbed, _hosts, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
             (middle.X, middle.Y), _letsGo);

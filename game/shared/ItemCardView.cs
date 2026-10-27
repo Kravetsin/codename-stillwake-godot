@@ -88,7 +88,10 @@ public static class ItemCardView
         return Screen(column, Style.Slate600, 1, card.Station != null ? Inside + 6 : 0);
     }
 
-    /// <summary>Layout A: the held picture on top, the name and kind, the tiles and the draw, the key and its hint.</summary>
+    /// <summary>
+    /// Layout A: the held picture on top, or for what is never held (the nail) its icon large; the name and kind, the tiles and the
+    /// draw, the key and its hint.
+    /// </summary>
     private static Control ToolCard(ItemCard card)
     {
         var column = Column(0);
@@ -97,6 +100,7 @@ public static class ItemCardView
             picture.SizeFlagsHorizontal = Control.SizeFlags.ShrinkCenter;
             column.AddChild(Padded(picture, 5, 5, 7, 0));
         }
+        else column.AddChild(Padded(Picture(ItemIcons.Icon(card.Item), 64), 5, 8, 7, 0));
         column.AddChild(Padded(Title(card, ToolKindText), 8, 6, 10, 7));
         column.AddChild(Tiles(card.Tiles!, card.Draw, card.DrawBoost));
         if (card.Effects.Count > 0) column.AddChild(Padded(Effects(card.Effects), Pad, 8, Pad, 0));
@@ -253,30 +257,42 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// The tiles in a row ruled above and below, each after the first ruled on its left, the first in amber; an electric tool's draw
-    /// last, a bolt and the number. A number its modules change (0098) is in their tech's colour, an arrow and "×2" beside it.
+    /// The tiles in rows ruled above and below, each after a row's first ruled on its left, the first in amber; an electric tool's
+    /// draw last, a bolt and the number. More than three go in rows as even as they come, three at most a row: five as three and two.
+    /// A number its modules change (0098) is in their tech's colour, an arrow and "×2" beside it.
     /// </summary>
     private static Control Tiles(IReadOnlyList<CardTile> tiles, int? draw, CardBoost? drawBoost)
     {
-        var rules = new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 };
-        var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        row.AddThemeConstantOverride("separation", 0);
+        var cells = new List<(Control Number, string Label, Color? Accent)>();
         for (int i = 0; i < tiles.Count; i++)
         {
             var accent = i == 0 ? Amber : (Color?)null;
             var boost = tiles[i].Boost;
             Control number = Text(tiles[i].Value, Style.Text(BoldMono, i == 0 ? 19 : 16, boost is { } b ? TechColour(b.Tech) : accent ?? Style.Slate100));
             if (boost != null) number = Boosted(number, boost);
-            row.AddChild(Tile(number, tiles[i].Label, first: i == 0, accent));
+            cells.Add((number, tiles[i].Label, accent));
         }
         if (draw is int power)
         {
             var drawn = Powered(power.ToString(CultureInfo.InvariantCulture), drawBoost is { } b ? Style.Text(BoldMono, 16, TechColour(b.Tech)) : DrawText);
             drawn.Alignment = BoxContainer.AlignmentMode.Center;
             if (drawBoost != null) drawn.AddChild(Mark(drawBoost));
-            row.AddChild(Tile(drawn, T("card.draw"), first: false, null));
+            cells.Add((drawn, T("card.draw"), null));
         }
-        return Boxed(rules, row);
+        // As even as they come: the first rows one longer where they cannot all match, seven as three, two and two.
+        int rows = (cells.Count + 2) / 3, from = 0;
+        var column = Column(0);
+        for (int r = 0; r < rows; r++)
+        {
+            int count = cells.Count / rows + (r < cells.Count % rows ? 1 : 0);
+            var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+            row.AddThemeConstantOverride("separation", 0);
+            for (int i = from; i < from + count; i++)
+                row.AddChild(Tile(cells[i].Number, cells[i].Label, first: i == from, cells[i].Accent));
+            from += count;
+            column.AddChild(r == 0 ? row : Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2 }, row));
+        }
+        return Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 }, column);
     }
 
     /// <summary>Technology <paramref name="tech"/>'s colour, its icon's rim: what its modules change on a tool's card is written in it.</summary>

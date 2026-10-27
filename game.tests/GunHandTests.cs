@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
 using Xunit;
@@ -50,5 +51,71 @@ public class GunHandTests
         }
         Assert.NotNull(simEnd);
         Assert.Equal(simEnd, hand.TakeEnded().Single().EndCell);
+    }
+
+    [Fact]
+    public void AHostDrawsEveryShotAsTheSimsAGuestItsOwnAsCopiesAndTheOthersAsTheSims()
+    {
+        var (mine, theirs) = (Ref.Hero(0), Ref.Hero(1));
+        Assert.Equal((false, true, true), (ShotDraws.FliesOwn(hosts: true), ShotDraws.DrawsSims(mine, 0, hosts: true), ShotDraws.DrawsSims(theirs, 0, hosts: true)));
+        Assert.Equal((true, false, true), (ShotDraws.FliesOwn(hosts: false), ShotDraws.DrawsSims(mine, 0, hosts: false), ShotDraws.DrawsSims(theirs, 0, hosts: false)));
+    }
+
+    [Fact]
+    public void AGuestsCopyFliesOnThroughALoperItWouldKillHittingTheNextAsTheSimDoes()
+    {
+        string open = new('.', 60), ground = new('#', 60);
+        var layout = Layout.Parse([.. Enumerable.Repeat(open, 20), ground, ground]) with { Kind = Spec.Surfaces.TestStrip.Id };
+        var w = new TestWorld(layout).Step(new Sim.Crew.Enter(19 * 60 + 2)).Give(0, (Nailer.Item, 1), (Spec.Shots.Nail.Id, 5))
+            .Step(new Release(Spec.Creatures.Loper.Id, 19 * 60 + 30)).Step(new Release(Spec.Creatures.Loper.Id, 19 * 60 + 34));
+        var first = w.M.Creatures.Creatures[0];
+        (int x, int y) = (first.X - 3000, first.Y - 2000);
+        // A nail of the sim's alone first: 6 of the loper's 12, so the next kills it.
+        w.Step(new Fire(Nailer.Item, x, y, 0));
+        var hand = new GunHand { Flies = ShotDraws.FliesOwn(hosts: false) };
+        var fire = hand.Step(16, pressed: true, Nailer, (x, y), 0, Spec.Shots.Nail).Fire!;
+        var drawn = new List<(ShotTarget, bool)>();
+        // As a guest's frame runs, its copy a round trip ahead: flown on the world before its Fire even applies.
+        for (int t = 0; t < 40 && hand.Shots.Count > 0; t++)
+        {
+            hand.Tick(w.M.Creatures.StepOf, w.M.Grid.Width, w.M.Grid.Height);
+            drawn.AddRange(hand.TakeHits().Select(h => (h.What, h.Broke)));
+            if (hand.Shots.Count > 0 && hand.Shots[0].EndCell == null) Assert.True(hand.Shots[0].Passed.Count <= 1);
+            hand.TakeEnded();
+        }
+        w.Step(fire);
+        var sims = new List<(ShotTarget, bool)>(w.M.Creatures.Hits.Select(h => (h.What, h.Broke)));
+        for (int t = 0; t < 40 && w.M.Creatures.Shots.Count > 0; t++)
+        {
+            w.Step();
+            sims.AddRange(w.M.Creatures.Hits.Select(h => (h.What, h.Broke)));
+        }
+        Assert.Equal([(ShotTarget.Creature, true), (ShotTarget.Creature, false)], sims);
+        Assert.Equal(sims, drawn);
+    }
+
+    [Fact]
+    public void TheHostDrawsTheSimsOwnShotNotACopyANailThatKillsFlyingOnWithItsHitShown()
+    {
+        string open = new('.', 60), ground = new('#', 60);
+        var layout = Layout.Parse([.. Enumerable.Repeat(open, 20), ground, ground]) with { Kind = Spec.Surfaces.TestStrip.Id };
+        var w = new TestWorld(layout).Step(new Sim.Crew.Enter(19 * 60 + 2)).Give(0, (Nailer.Item, 1), (Spec.Shots.Nail.Id, 5))
+            .Step(new Release(Spec.Creatures.Loper.Id, 19 * 60 + 30));
+        var loper = w.M.Creatures.Creatures.Single();
+        (int x, int y) = (loper.X - 3000, loper.Y - 2000);
+        w.Step(new Fire(Nailer.Item, x, y, 0));
+        var hand = new GunHand { Flies = ShotDraws.FliesOwn(hosts: true) };
+        var fire = hand.Step(16, pressed: true, Nailer, (x, y), 0, Spec.Shots.Nail).Fire!;
+        // As the host's frame runs: the world's tick, then this hand's shots flown to it.
+        w.Step(fire);
+        Assert.Empty(w.M.Creatures.Creatures);
+        hand.Tick(w.M.Creatures.StepOf, w.M.Grid.Width, w.M.Grid.Height);
+        // No copy flown on the host: one stepped now would meet a world its own hit already changed, flying on past the loper unhit.
+        Assert.Empty(hand.Shots);
+        Assert.Empty(hand.TakeHits());
+        // The host draws the sim's own shot instead, flying on through the loper it killed, its hit shown.
+        Assert.True(ShotDraws.DrawsSims(Ref.Hero(0), own: 0, hosts: true));
+        Assert.Contains(w.M.Creatures.Hits, hit => hit.What == ShotTarget.Creature && hit.Broke && hit.By == Ref.Hero(0));
+        Assert.Single(w.M.Creatures.Shots);
     }
 }

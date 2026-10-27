@@ -177,15 +177,16 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
 
     /// <summary>
     /// The hit path (2026-10-26-creatures-are-composed): <paramref name="damage"/> taken; at its hit points it dies; else knocked,
-    /// its act cut short, and its drives told in brain order till one claims it.
+    /// its act cut short, and its drives told in brain order till one claims it. True when it died.
     /// </summary>
-    private void Hurt(Creature c, Spec.Species spec, int damage, in Hit hit)
+    private bool Hurt(Creature c, Spec.Species spec, int damage, in Hit hit)
     {
+        bool dies = Dies(c, damage);
         c.Damage += damage;
-        if (c.Damage >= spec.Life.Hp)
+        if (dies)
         {
             Kill(c, spec);
-            return;
+            return true;
         }
         // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
         // A body never knocked (no knock, no hop) keeps its way: a sentry in flight flies on.
@@ -195,8 +196,12 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         if (spec.Life.Hop > 0 && c.VY >= 0) c.VY = -spec.Life.Hop * hit.Pace / Spec.KnockPace;
         if (c.Act is { } act && RuleBook.Move(spec.Moves[act.Move]).Interruptible) c.Act = null;
         for (int i = 0; i < spec.Brain.Count; i++)
-            if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) return;
+            if (RuleBook.Drive(spec.Brain[i]).Hurt(this, c, spec, spec.Brain[i], i, hit)) break;
+        return false;
     }
+
+    /// <summary>Whether <paramref name="damage"/> more kills <paramref name="c"/>: what <see cref="Hurt"/> decides by.</summary>
+    private static bool Dies(Creature c, int damage) => c.Damage + damage >= Spec.Get(c.Species).Life.Hp;
 
     /// <summary><paramref name="c"/> dies, giving what it gives: struck down, or gone with the wreck it clung to.</summary>
     internal void Kill(Creature c, Spec.Species spec)

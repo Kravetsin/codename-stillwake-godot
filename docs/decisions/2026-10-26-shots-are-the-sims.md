@@ -1,6 +1,6 @@
 # Shots are the sim's
 
-- Status: accepted; built: the nail, the nailer in hand. The sentry's bolt, built, is superseded by [the sentry's arc](2026-10-27-sentry-arc.md)
+- Status: accepted; built: the nail, the nailer in hand. The sentry's bolt, built, is superseded by [the sentry's arc](2026-10-27-sentry-arc.md); a hit ending every shot, and the host's copy, by [shots pierce](2026-10-27-shots-pierce.md)
 - Date: 2026-10-26
 
 ## Context

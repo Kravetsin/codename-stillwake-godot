@@ -23,9 +23,24 @@ public class ItemCardTests
         double every = (double)Spec.Weapons.Axe.Pace / World.TicksPerSecond;
         Assert.Equal(ItemCards.Number(Spec.Weapons.Axe.Damage / every), tiles[0].Value);
         Assert.Equal(Spec.Weapons.Axe.Damage.ToString(), tiles[1].Value);
-        Assert.Equal($"{ItemCards.Number(every)}s", tiles[2].Value);
-        // As content stands: 2 damage every 10 ticks of 20 a second.
-        Assert.Equal([new CardTile("4", "DPS"), new CardTile("2", "DMG"), new CardTile("0.5s", "HIT")], tiles);
+        Assert.Equal(Spec.Weapons.Axe.BlockDamage.ToString(), tiles[2].Value);
+        Assert.Equal($"{ItemCards.Number(every)}s", tiles[3].Value);
+        // As content stands: 2 damage, 4 on blocks, every 10 ticks of 20 a second.
+        Assert.Equal([new CardTile("4", "DPS"), new CardTile("2", "DMG"), new CardTile("4", "BLOCK"), new CardTile("0.5s", "HIT")], tiles);
+    }
+
+    [Fact]
+    public void TileAGunsDamageOffBodiesAndBlocksWithItsAmmoItsReloadAndPierceAndItsAmmosShare()
+    {
+        var gun = ItemCards.Of(Spec.Shots.Nailer.Item, unknown: false);
+        Assert.Equal(Spec.Shots.DamageOf(Spec.Shots.Nailer.Item, Spec.Shots.Nail.Id).ToString(), gun.Tiles![0].Value);
+        // As content stands: the nailer's 4 and the nail's 2, 1 off a block, a shot every 60 ticks, half kept through a pierce.
+        Assert.Equal([new CardTile("6", "DMG"), new CardTile("1", "BLOCK"), new CardTile("3s", "RELOAD"), new CardTile("50%", "PIERCE")], gun.Tiles);
+        Assert.True(gun.Tool && ItemCards.IsTool(Spec.Shots.Nailer.Item));
+        var nail = ItemCards.Of(Spec.Shots.Nail.Id, unknown: false);
+        Assert.Equal([new CardTile("+2", "DMG"), new CardTile("+0", "BLOCK")], nail.Tiles);
+        // A tile card, though no tool: its slot is not tinted as one.
+        Assert.False(ItemCards.IsTool(Spec.Shots.Nail.Id));
     }
 
     [Fact]
@@ -249,11 +264,11 @@ public class ItemCardTests
         Assert.Equal(stats.Damage.ToString(), fitted.Tiles[1].Value);
         Assert.Equal(stats.Draw, fitted.Draw);
         var up = new CardBoost("arc", true, "×2");
-        Assert.Equal([new CardTile("20", "DPS", up), new CardTile("2", "DMG", up), new CardTile("0.1s", "HIT")], fitted.Tiles);
+        Assert.Equal([new CardTile("20", "DPS", up), new CardTile("2", "DMG", up), new CardTile("8", "BLOCK", up), new CardTile("0.1s", "HIT")], fitted.Tiles);
         Assert.Equal((6, up), (fitted.Draw, fitted.DrawBoost));
         Assert.Equal([arc], fitted.Fitted);
         // The plain drill's, unmarked: no stale draw of 3 on the fitted one, nor a mark on the plain.
-        Assert.Equal([new CardTile("10", "DPS"), new CardTile("1", "DMG"), new CardTile("0.1s", "HIT")], plain.Tiles);
+        Assert.Equal([new CardTile("10", "DPS"), new CardTile("1", "DMG"), new CardTile("4", "BLOCK"), new CardTile("0.1s", "HIT")], plain.Tiles);
         Assert.Equal((3, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
         Assert.Empty(plain.Fitted);
         Assert.Null(fitted.Tech);
@@ -274,7 +289,7 @@ public class ItemCardTests
         // On the axe, 2 × 1500 / 1000 = 3, a gain alone: it draws nothing.
         Assert.Equal(new ToolStats(3, 10, 0), ToolStats.Of(Spec.Weapons.Axe.Item, [Fake]));
         var card = ItemCards.Fitted(ItemCards.Of(Spec.Weapons.Axe.Item, unknown: false), [Fake]);
-        Assert.Equal([new CardTile("6", "DPS", new CardBoost("arc", true, "×1.5")), new CardTile("3", "DMG", new CardBoost("arc", true, "×1.5")), new CardTile("0.5s", "HIT")], card.Tiles);
+        Assert.Equal([new CardTile("6", "DPS", new CardBoost("arc", true, "×1.5")), new CardTile("3", "DMG", new CardBoost("arc", true, "×1.5")), new CardTile("6", "BLOCK", new CardBoost("arc", true, "×1.5")), new CardTile("0.5s", "HIT")], card.Tiles);
         Assert.Null(card.Draw);
         // A cost that falls is marked down.
         var lighter = ItemCards.Fitted(ItemCards.Of(drill, unknown: false), [new Spec.ModuleSpec("lighter", "arc", [new(["drill"], [new Spec.Trade(Spec.Stat.Draw, -500)])])]);

@@ -33,8 +33,9 @@ public static class ShotFlight
     /// A tick of <paramref name="f"/>: a tick less left, then the walk from its point to the new one (<see cref="Rays.Walk"/>), its
     /// own cell first, falling by its fall and half of <paramref name="gravity"/> (rounded down), its fall then gaining the whole: the
     /// tick's mean, so its arc is the parabola's at every tick. <c>Met</c> is the first cell <paramref name="stops"/> says true of, the
-    /// x one first at an exact corner, -1 for none; <c>Last</c> the last cell the walk asked of, on the grid. Cells are asked only,
-    /// never changed, so the caller applies a hit after.
+    /// x one first at an exact corner, -1 for none; <c>Last</c> the last cell the walk asked of, on the grid. Each cell is asked
+    /// once, none after <c>Met</c>: the sim's <paramref name="stops"/> hits what it meets there as it is asked, the walk going on
+    /// over the world so changed (2026-10-27-shots-pierce); a client's copy only asks.
     /// </summary>
     public static (ShotMotion Next, int Met, int Last) Step(ShotMotion f, int gravity, int width, int height, Func<int, bool> stops)
     {

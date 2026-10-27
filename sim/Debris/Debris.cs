@@ -43,6 +43,9 @@ public interface IDebrisQueries
     Piece? PieceById(int id);
 
     IReadOnlyList<WreckBox> Wrecks();
+
+    /// <summary>Whether a hit of <paramref name="damage"/> on wreck <paramref name="piece"/> breaks it: what <see cref="IDebrisOps.Hit"/> decides by.</summary>
+    bool Breaks(int piece, int damage);
 }
 
 /// <summary>
@@ -65,7 +68,8 @@ public interface IDebrisOps
     /// <summary>Piece <paramref name="id"/>'s reel let go, if it has one: it drifts on from where it is. A piece gone is let be.</summary>
     void Unreel(int id);
 
-    void Hit(int peer, int id, int damage);
+    /// <summary>Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: true when it broke.</summary>
+    bool Hit(int peer, int id, int damage);
 }
 
 public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, IDebrisOps
@@ -126,23 +130,28 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     /// <summary>
     /// Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: the blow stamped with the
     /// debris clock (<see cref="Piece.Struck"/>), and at its hit points broken into its loot, floating where it was, anyone's. What
-    /// a <see cref="HewWrecks"/> does to each wreck it strikes, and a shot to the one it meets. A piece gone is let be.
+    /// a <see cref="HewWrecks"/> does to each wreck it strikes, and a shot to the ones it meets. A piece gone is let be. True when it broke.
     /// </summary>
-    public void Hit(int peer, int id, int damage)
+    public bool Hit(int peer, int id, int damage)
     {
         int at = IndexOf(id);
-        if (at < 0) return;
+        if (at < 0) return false;
         var piece = State.Pieces[at];
-        int hp = Content.Wreckage.HpOf(piece.Item) ?? throw new InvalidOperationException($"debris.hit: {piece.Item} is no wreck");
+        bool breaks = Breaks(id, damage);
         piece.Damage += damage;
         piece.Struck = new Blow { By = peer, At = State.Clock };
-        if (piece.Damage < hp) return;
+        if (!breaks) return false;
         State.Pieces.RemoveAt(at);
         var loot = LootOf(piece.Item, Random);
         Record(piece, loot);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
+        return true;
     }
+
+    /// <inheritdoc/>
+    public bool Breaks(int piece, int damage) =>
+        PieceById(piece) is { } p && p.Damage + damage >= (Content.Wreckage.HpOf(p.Item) ?? throw new InvalidOperationException($"debris.hit: {p.Item} is no wreck"));
 
     /// <summary>
     /// What catching piece <paramref name="id"/> put into its catcher's inventory, by item, or null when no catch of it

@@ -2,47 +2,45 @@ using Godot;
 using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
+using Stillwake.Sim.Creatures;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// Where a shot ends (shots-are-the-sims), heard as its hit and shown as what it met: the ground's chips, a wreck's; a creature's
-/// is its own.
+/// A shot's hit (shots-are-the-sims, 2026-10-27-shots-pierce), heard and shown as what it met: the ground's chips, a wreck's; a
+/// creature's is its own.
 /// </summary>
 public static class ShotEnds
 {
     /// <summary>
-    /// A shot of <paramref name="projectile"/> from <paramref name="gun"/> ended in <paramref name="cell"/>, coming from
-    /// <paramref name="from"/> (cells), its hit heard on <paramref name="voices"/>: on a wall or a built piece thrown off the face
-    /// turned toward it; on a wreck, off its side.
+    /// <paramref name="hit"/>, heard on <paramref name="voices"/>: on a wall or a built piece thrown off the face turned toward
+    /// where the shot came from, its share by what the hit took, chips only while something stands there; on a wreck, off its
+    /// side, unless it broke, its breaking showing itself. Drawn by what the sim met, not the grid now, where what broke is gone;
+    /// a planet's fog, solid to a shot but standing empty, is not heard.
     /// </summary>
-    public static void Show(Registry m, Voices voices, string? gun, string projectile, int cell, (double X, double Y) from)
+    public static void Show(Registry m, Voices voices, ShotHit hit)
     {
         var grid = m.Grid;
-        int damage = Content.Shots.BlockDamageOf(gun, projectile);
-        if (grid.Solid(cell))
+        int cell = hit.Cell;
+        (double X, double Y) from = (hit.From.X / 1000.0, hit.From.Y / 1000.0);
+        switch (hit.What)
         {
-            var at = Impacts.On(grid, cell, from.X, from.Y);
-            var point = new Vector2((float)(at.X * Camera.Cell), (float)(at.Y * Camera.Cell));
-            voices.Play(S.NailHit, point);
-            if (Impacts.At(grid, m.Building, cell) is { } impact)
-                Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareAt(grid, m.Building, cell, projectile, damage),
-                    Impacts.FloorUnder(grid, at) * Camera.Cell);
-            return;
+            case ShotTarget.Solid:
+                if (!hit.Broke && !grid.Solid(cell)) return;
+                var at = Impacts.On(grid, cell, from.X, from.Y);
+                var point = new Vector2((float)(at.X * Camera.Cell), (float)(at.Y * Camera.Cell));
+                voices.Play(S.NailHit, point);
+                if (Impacts.At(grid, m.Building, cell) is { } impact)
+                    Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny,
+                        Impacts.ShareAt(grid, m.Building, cell, hit.Projectile, hit.Damage), Impacts.FloorUnder(grid, at) * Camera.Cell);
+                return;
+            case ShotTarget.Wreck:
+                var middle = new Vector2((float)((cell % grid.Width + 0.5) * Camera.Cell), (float)((cell / grid.Width + 0.5) * Camera.Cell));
+                voices.Play(S.NailHit, middle);
+                if (!hit.Broke)
+                    Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], middle.X, middle.Y, from.X < cell % grid.Width ? -1 : 1, 0, 1);
+                return;
         }
-        var middle = new Vector2((float)((cell % grid.Width + 0.5) * Camera.Cell), (float)((cell / grid.Width + 0.5) * Camera.Cell));
-        if (IsWreck(m, cell))
-        {
-            voices.Play(S.NailHit, middle);
-            Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], middle.X, middle.Y, from.X < cell % grid.Width ? -1 : 1, 0, 1);
-        }
-    }
-
-    private static bool IsWreck(Registry m, int cell)
-    {
-        foreach (var w in m.Debris.Wrecks())
-            if (w.Covers(cell, m.Grid.Width)) return true;
-        return false;
     }
 }

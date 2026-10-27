@@ -33,8 +33,8 @@ commands reach the sim. Other heroes come through the host.
 | `Figure.cs` | the sprite rig in a suit, lit and posed; dust (0075, 0090) |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim |
-| `HeroView.Guns.cs` | its gun fired, its own shots flown and drawn |
-| `logic/GunHand.cs` | a gun's cooldown, dry click, own shots (shots-are-the-sims) |
+| `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
+| `logic/GunHand.cs` | a gun's cooldown, dry click, a guest's own shots |
 | `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers |
 | `logic/CameraFollow.cs` | where the camera looks |
 | `JetPlume.cs` | a jetpack's plume (0075) |
@@ -112,7 +112,7 @@ commands reach the sim. Other heroes come through the host.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.
   E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
-- **A gun** (shots-are-the-sims): a click sends `Fire` from the muzzle drawn; its shot flown here (`StepOf`).
+- **A gun:** a click sends `Fire` from the muzzle drawn; a guest flies its shot here (`StepOf`), a host draws the sim's.
 - **The drill** (0054, 0055, 0078): held as a rifle; left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
