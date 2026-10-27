@@ -23,8 +23,8 @@ at, with no flight, striking at once, drawn with the electric arcs the game alre
   an arc a hero (`Paid`). An arc walked into afterwards is past. The client is the word on contact, as for a ram (0103).
 - **It lingers `Lingers` ticks** (0.5 s) only to take that word across the network; a later word is refused
   `creatures.gone`.
-- **Drawn as a chain of arcs** (`Bolts`), each link at most 40 px of the world: one long arc's folds stray by a share of
-  its length and would hide where it struck. A flash and cyan sparks where it struck, a smaller flash where it left.
+- **Drawn as a chain of arcs** (`Bolts`, hairlines with an afterimage, [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md)),
+  each link at most 40 px of the world: one long arc's folds stray by a share of its length and would hide where it struck. A flash and cyan sparks where it struck, a smaller flash where it left.
 - **Sounds, the user's picks:** its charge a laser charging up, through its wind-up; the strike the resonator's crackle,
   lower; where it strikes and through the hit hero's suit, a stun gun's tenth of a second. On the Suit bus: it is in space.
 

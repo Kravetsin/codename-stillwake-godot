@@ -98,7 +98,7 @@ public partial class ShotsView : Node2D
             if (!flying.Contains(id)) _seen.Remove(id);
     }
 
-    /// <summary>Each arc new this tick shown striking: its arc and a thinner two along it, a flash and sparks where it struck.</summary>
+    /// <summary>Each arc new this tick shown striking: its arc, a flash and sparks where it struck.</summary>
     private void Struck(IReadOnlyList<Arc> arcs)
     {
         _arcsShown.RemoveWhere(id => !Lingers(arcs, id));
@@ -107,8 +107,7 @@ public partial class ShotsView : Node2D
         {
             if (!_arcsShown.Add(arc.Id)) continue;
             var (from, to) = (new Vector2(arc.X0, arc.Y0) * k, new Vector2(arc.X1, arc.Y1) * k);
-            Chain(from, to, 9, 1.3, 1);
-            Chain(from, to, 6, 0.8, 0.5);
+            Chain(from, to, 9, 1.2, 1);
             Flares.Shared.Flash(to.X, to.Y, Cyan, 1.0 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
             Flares.Shared.Flash(from.X, from.Y, Cyan, 0.6 * Fx.Glow, 6, CreatureLooks.LightKeep, 0.8);
             Flares.Shared.Glint(to.X, to.Y, 5, (232, 251, 255));

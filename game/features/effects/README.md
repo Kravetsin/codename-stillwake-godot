@@ -47,9 +47,11 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
   A `Matter` streak is lit at its head as a mote, its smear light at 0.4.
 - **Trails and blooms** are stamped for one frame (`Flares.Trail`, `Bloom`) and taken once a frame
   (`Flares.TakeFrame`): the layer runs after every feature (`ProcessPriority` 100), so they draw the frame stamped.
-- **Arcs** (`Bolts`): a rim in their tint (`BoltTint`: cyan, or the arc module's violet, 0086), a white core, a glow
-  and a light, their shape kept along and across the line between their ends. A fine arc (an arc-fitted drill's coil)
-  is a hair of white-blue light in a blue haze, rolled anew every frame, with no glow and no light (no ADR).
+- **Arcs** (`Bolts`, [arcs-are-hairlines](../../../docs/decisions/2026-10-27-arcs-are-hairlines.md)): in pixels of the screen
+  whatever the zoom, a hair of white (`Bolts.Core`, 1.2 px) in a thin haze of their tint (`Bolts.Haze`, 4 px; `BoltTint`:
+  cyan, the arc module's violet, 0086, a tick's red), their last `Bolts.Ghosts` shapes fading behind in a deeper colour, and
+  a light; no glow sprites along them. Their shape is kept along and across the line between their ends. A fine arc (an
+  arc-fitted drill's coil) is the finest hair in a blue haze, rolled anew every frame, with no light (no ADR).
 - **Light** (0019, 0029): flashes, then arcs, then luminous particles that give light, as spots of `LightView`, at most
   `Fx.MostLights` together.
 - **Heat shimmer** (0075): a `Shimmer` per hot thing samples the screen under its box again, rows nudged sideways by
