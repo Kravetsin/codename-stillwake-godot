@@ -69,7 +69,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - трос / tether → f/crew `Tether` → Crew
 - скафандр / suit → helmet `helmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` (`Content.Suit`, slot `suit`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
 - голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
-- фонарик на шлем / helmet lamp → `helmetLamp`, slot `lamp` (`Helmet.Fitting`) → Items
+- фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 
 ## World

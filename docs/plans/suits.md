@@ -65,7 +65,7 @@ skin and hair reference ramps and the seven skin and six hair ramps, as the pain
 ### S-1 — The suit is an item; the hero breathes from one pool ✅
 
 **Changed before merging (the user's word):** a suit is two pieces, a helmet in the head slot holding the air (`Tank`) and
-a body in the `suit` slot keeping the cold out; the lamp has its own slot, `lamp`, on any helmet. Both are free at the pod.
+a body in the `suit` slot keeping the cold out; the lamp has its own slot, `mount`, on any helmet (later a sensor or the like there instead). Both are free at the pod.
 A body's move speed and screwdriver pace wait for the first body that differs. Below, "the suit" means both, "bare" neither.
 
 **Built, but:** `Cold(peer)` leaves the lava out (the frost is not drawn on lava), the breath adds it. Scenarios suit a

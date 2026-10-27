@@ -26,6 +26,6 @@ public static class Helmet
     /// <summary>The kind of equipment slot a helmet is worn in: the head.</summary>
     public static readonly string Slot = "head";
 
-    /// <summary>The kind of slot for what is fixed onto any helmet: the lamp.</summary>
-    public static readonly string Fitting = "lamp";
+    /// <summary>The kind of slot for what is fixed onto whatever helmet is worn: a lamp now, later a sensor or the like.</summary>
+    public static readonly string Mount = "mount";
 }

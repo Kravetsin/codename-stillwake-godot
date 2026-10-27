@@ -62,7 +62,7 @@ public sealed class GroundDemo(string mode)
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
         var slots = new JsonArray();
-        int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Fitting), belt = Spec.Inventory.Slots + 2;
+        int lamp = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount), belt = Spec.Inventory.Slots + 2;
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? module != null ? Testbed.FittedDrill(module) : Stack(Spec.Weapons.Axe.Item)
                 : i == 1 ? Stack(Spec.Weapons.Drill.Item)

@@ -26,7 +26,7 @@ public class EquipmentTests
     [Fact]
     public void EveryInventoryHasItsOwnSlotsThenAHeadABackThreeBeltSlotsTheBodyAndTheLampLast()
     {
-        Assert.Equal(["head", "back", "belt", "belt", "belt", "suit", "lamp"], Inventory.Equipment);
+        Assert.Equal(["head", "back", "belt", "belt", "belt", "suit", "mount"], Inventory.Equipment);
         Assert.Equal(Inventory.Slots + 7, Inventory.Total);
         Assert.Equal(Inventory.Total, Slots(new Scenario(Layout.Empty), 3).Count);
         Assert.Equal("back", Content.Items.Get(Jetpack).Equip);
