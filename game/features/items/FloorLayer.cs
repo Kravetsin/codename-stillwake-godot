@@ -126,11 +126,15 @@ public partial class FloorLayer : Node2D
     /// <summary>An item's picture with a pale rim behind it, standing on the origin: its rim's lowest pixel on it.</summary>
     private static Shown PictureOf(string item)
     {
-        float scale = Size * Cell / ItemIcons.Pixels;
-        var rim = new Sprite2D { Texture = ItemIcons.Silhouette(item), Scale = Vector2.One * (scale * RimSize), Material = Glowing };
-        var body = new Sprite2D { Texture = ItemIcons.Icon(item), Scale = Vector2.One * scale, Material = Unlit };
+        var texture = ItemIcons.Icon(item);
+        int side = texture.GetWidth();
+        float scale = Size * Cell / side;
+        // A tool's icon is larger than its pixels on the floor (2026-10-27-tool-icons): filtered, mipmapped, at any zoom.
+        var filter = HeldLook.Of(item) != null ? TextureFilterEnum.LinearWithMipmaps : TextureFilterEnum.ParentNode;
+        var rim = new Sprite2D { Texture = ItemIcons.Silhouette(item), Scale = Vector2.One * (scale * RimSize), Material = Glowing, TextureFilter = filter };
+        var body = new Sprite2D { Texture = texture, Scale = Vector2.One * scale, Material = Unlit, TextureFilter = filter };
         // Turned about its middle, raised by its rim's half height less the clear rows under the picture.
-        float half = (ItemIcons.Pixels / 2f - ItemIcons.ClearBelow(item)) * scale * RimSize;
+        float half = (side / 2f - ItemIcons.ClearBelow(item)) * scale * RimSize;
         var picture = new Node2D { Position = new Vector2(0, -half) };
         picture.AddChild(rim);
         picture.AddChild(body);

@@ -173,6 +173,8 @@ public partial class DebrisView(Ui ui) : Node2D
         var (texture, scale) = PictureOf(piece.Item, piece.Id);
         picture.Texture = texture;
         picture.Scale = Vector2.One * scale;
+        // A tool's icon is larger than its pixels in space (2026-10-27-tool-icons): filtered, mipmapped, as it turns.
+        picture.TextureFilter = HeldLook.Of(piece.Item) != null ? CanvasItem.TextureFilterEnum.LinearWithMipmaps : CanvasItem.TextureFilterEnum.ParentNode;
         picture.Visible = true;
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(picture, piece);
@@ -322,7 +324,11 @@ public partial class DebrisView(Ui ui) : Node2D
     /// </summary>
     private static (Texture2D Texture, float Scale) PictureOf(string item, int id)
     {
-        if (!DebrisLooks.Of.ContainsKey(item)) return (ItemIcons.Icon(item), ItemSize * Cell / ItemIcons.Pixels);
+        if (!DebrisLooks.Of.ContainsKey(item))
+        {
+            var icon = ItemIcons.Icon(item);
+            return (icon, ItemSize * Cell / icon.GetWidth());
+        }
         var key = (item, Content.Looks.Of(item, id));
         if (!Textures.TryGetValue(key, out var texture)) Textures[key] = texture = GD.Load<Texture2D>(DebrisLooks.PictureOf(item, id));
         return (texture, 1);

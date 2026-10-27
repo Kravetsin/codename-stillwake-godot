@@ -195,7 +195,7 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>The hotbar, the inventory, the equipment and the stack in hand, at the slot size chosen now.</summary>
     private void Build()
     {
-        int size = _ui.Slot, icon = size - 2 * Slots.Inset;
+        int size = _ui.Slot;
         var top = Style.Gap(new HBoxContainer(), 8);
         top.AddChild(Grid(Enumerable.Range(0, Hotbar.Row).Select(i => new Place(i)), keys: true));
         top.AddChild(_creative = new Label
@@ -230,8 +230,6 @@ public partial class InventoryPanel : CanvasLayer
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.Scale,
             TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-            Position = new Vector2(Slots.Inset, Slots.Inset),
-            Size = new Vector2(icon, icon),
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
         _held.AddChild(_heldMark = SlotBox.Corner(MarkLooks.Unknown, size));
@@ -471,13 +469,13 @@ public partial class InventoryPanel : CanvasLayer
         {
             var stack = reading.At(h.Place)!;
             var item = stack.Item;
-            _heldIcon.Texture = ItemIcons.Icon(Charges.Picture(item, stack.Charge));
+            FitHeld(Charges.Picture(item, stack.Charge));
             _heldMark.Visible = reading.Unknown(item);
             _heldCount.Text = h.Count > 1 ? h.Count.ToString() : "";
         }
         else if (_unfitting is { } coming)
         {
-            _heldIcon.Texture = ItemIcons.Icon(coming.Module);
+            FitHeld(coming.Module);
             _heldMark.Visible = false;
             _heldCount.Text = "";
         }
@@ -485,5 +483,14 @@ public partial class InventoryPanel : CanvasLayer
         // A machine open under the bag squares the display's bottom edge, where the machine's module meets it (0074).
         _inventory.Piece = _built != null ? WristPieces.DisplayDocked : WristPieces.Display;
         Power(0);
+    }
+
+    /// <summary>The stack in hand's icon, placed in its slot-sized box as a slot places it (<see cref="Slots.IconBox"/>).</summary>
+    private void FitHeld(string item)
+    {
+        var (at, side) = Slots.IconBox(item, _ui.Slot);
+        _heldIcon.Texture = ItemIcons.Icon(item, side);
+        _heldIcon.Position = new Vector2(at, at);
+        _heldIcon.Size = new Vector2(side, side);
     }
 }

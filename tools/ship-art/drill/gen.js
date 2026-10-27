@@ -186,7 +186,8 @@ for (const d of data) {
   IMG['scene_' + d.id] = b64(path.join(DIR, `scene_${d.id}.png`));
   d.spin.forEach((f, k) => { IMG[`spin_${d.id}_${k}`] = b64(path.join(DIR, f)); });
 }
-for (const f of ['fireAxe', 'harpoon', 'battery', 'drill']) IMG['item_' + f] = b64(ART + `items/${f}.png`);
+// A tool has no icon drawn (2026-10-27-tool-icons): its slot shows its held picture.
+for (const [f, file] of [['fireAxe', 'hero_axe'], ['harpoon', 'hero_harpoon'], ['battery', 'items/battery'], ['drill', 'hero_drill']]) IMG['item_' + f] = b64(ART + file + '.png');
 for (const f of ['hero_axe', 'hero_harpoon', 'hero_drill']) IMG[f] = b64(ART + f + '.png');
 const GAME = {
   hero_axe: { w: 28, h: 14, grip: [7.5, 7], name: 'топор' },
