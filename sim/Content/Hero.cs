@@ -71,6 +71,12 @@ public static class Hero
     public const int Tether = 24000;
     public const int Swim = 60;
 
+    /// <summary>
+    /// Thousandths of a kick out in space (a gun's <c>Recoil</c>) kept each step, rounded toward zero: the railgun's 220 carries the
+    /// hero some four cells, over about a second and a half; swimming adds to it, a jetpack takes it into its flight.
+    /// </summary>
+    public const int KickKeep = 950;
+
     /// <summary>Steps after the feet leave the ground in which a jump still pushes off it (coyote time): 100 ms.</summary>
     public const int Coyote = 6;
 

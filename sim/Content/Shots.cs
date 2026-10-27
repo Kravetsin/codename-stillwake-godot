@@ -17,11 +17,12 @@ public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weig
 /// flies on with both damages times <paramref name="PierceKeep"/> thousandths, rounded down, at each (2026-10-27-shots-pierce); its
 /// projectile pulled by <paramref name="Fall"/> thousandths of its weight; <paramref name="Energy"/> power-ticks of the belt's charge a
 /// shot, none for 0; held <paramref name="Charge"/> ticks before it fires, the client's word as the pace is, 0 firing on the click
-/// (2026-10-27-the-railgun).
+/// (2026-10-27-the-railgun); out in space each shot kicks the hero back along its barrel by <paramref name="Recoil"/> thousandths of a
+/// cell a step, fading by <see cref="Hero.KickKeep"/>, the client's alone as its movement is.
 /// </summary>
 public sealed record Gun(
     string Item, IReadOnlyList<string> Ammo, int Damage, int BlockDamage, int Knock, int Speed, int Reach, int Pace, int PierceKeep,
-    Pierce Pierces = Pierce.Broken, int Fall = 1000, int Energy = 0, int Charge = 0);
+    Pierce Pierces = Pierce.Broken, int Fall = 1000, int Energy = 0, int Charge = 0, int Recoil = 0);
 
 /// <summary>What a gun's shot flies on through: only what its hit breaks or kills (the nailer's), or everything it hits.</summary>
 public enum Pierce { Broken, All }
@@ -35,18 +36,19 @@ public static class Shots
     /// <summary>
     /// The nailer: 4 and its nail's 2, 6 a hit; 1 off a block; a full knock; 60 cells a second, a nail at 45° on the first planet
     /// landing about 30 cells out; gone at 288 cells, a screen's half and a whole screen past it at the farthest zoom (192 cells
-    /// across); a shot every 3 s; half kept through what a nail breaks: 6, 3, 1.
+    /// across); a shot every 3 s; half kept through what a nail breaks: 6, 3, 1; in space a kick of 60, about a cell.
     /// </summary>
-    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 1, Knock: 10, Speed: 3000, Reach: 288, Pace: 60, PierceKeep: 500);
+    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 1, Knock: 10, Speed: 3000, Reach: 288, Pace: 60, PierceKeep: 500,
+        Recoil: 60);
 
     /// <summary>
     /// The railgun (2026-10-27-the-railgun): 22 and its nail's 2, 24 a hit, then 15, 9, 5, 3, 1 through everything it passes; 4 off a
     /// block, then 2, 1; a full knock; 300 cells a second, gone at 384 cells' worth, 25 ticks; a tenth of the nail's pull, 29 a tick
     /// on the first planet, under a cell's drop across 100; 120 of the belt's charge a shot, fifteen a battery; held 0.8 s to
-    /// fire, then 2 s till the next.
+    /// fire, then 2 s till the next; in space a kick of 220, some four cells back.
     /// </summary>
     public static readonly Gun Railgun = new("railgun", ["nail"], Damage: 22, BlockDamage: 4, Knock: 10, Speed: 15000, Reach: 384, Pace: 40,
-        PierceKeep: 650, Pierces: Pierce.All, Fall: 100, Energy: 120, Charge: 16);
+        PierceKeep: 650, Pierces: Pierce.All, Fall: 100, Energy: 120, Charge: 16, Recoil: 220);
 
     /// <summary>
     /// The guard's bolt, struck by a <see cref="Creatures.Shoot"/> as an arc, never flown: four units of a suit off each hero it

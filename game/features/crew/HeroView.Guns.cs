@@ -36,7 +36,8 @@ public partial class HeroView
     /// step by the sim's own (<c>CreaturesModule.StepOf</c>), each hit it would take shown as what it met (<see cref="ShotEnds"/>).
     /// A host flies none (<see cref="ShotDraws"/>): its shots are drawn as the sim flies them, the fire heard here at the click. A gun
     /// held to charge (2026-10-27-the-railgun) charges while <paramref name="held"/>, heard rising, pinged full, its coils lit as it
-    /// fills (<see cref="Figure.Charge"/>); a belt that cannot pay its charge clicks dry, as no ammo does.
+    /// fills (<see cref="Figure.Charge"/>); a belt that cannot pay its charge clicks dry, as no ammo does. Out in space a shot kicks the
+    /// hero back along the barrel by its gun's <c>Recoil</c> (<see cref="Hero.Kicked"/>).
     /// </summary>
     private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, bool held, bool hosts, double elapsedMs)
     {
@@ -57,6 +58,8 @@ public partial class HeroView
         if (step.Fire is { } fire)
         {
             client.Send(fire);
+            if (gun != null && _ship != null)
+                _current = _current.Kicked(Mathf.RoundToInt(-_figure.Barrel.X * gun.Recoil), Mathf.RoundToInt(-_figure.Barrel.Y * gun.Recoil), _ship);
             (fire.Tool == Content.Shots.Railgun.Item ? _railShot : _nailShot).Play();
             Puff(_figure);
         }
