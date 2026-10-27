@@ -56,13 +56,13 @@ public sealed record HeldParts(HeldLook Look, IReadOnlyList<HeldLayer> Layers, I
     /// <summary>
     /// <paramref name="look"/> with modules fitted whose <paramref name="overlays"/> are these, a list a module, in the modules'
     /// order: its mounts in the order the tool declares them, and on each the modules' overlays for its kind in the modules'
-    /// order, each over the one before. An overlay for a mount the tool lacks shows nowhere.
+    /// order, each over the one before. An overlay for a mount the tool lacks shows nowhere. The tool's own arcs crackle first.
     /// </summary>
     public static HeldParts Overlaid(HeldLook look, IReadOnlyList<IReadOnlyList<ModuleOverlay>> overlays)
     {
-        if (overlays.Count == 0 || look.Mounts is not { Count: > 0 } mounts) return new HeldParts(look, [], []);
+        var crackles = new List<(double, double, double, double)>(look.Arcs ?? []);
+        if (overlays.Count == 0 || look.Mounts is not { Count: > 0 } mounts) return new HeldParts(look, [], crackles);
         var layers = new List<HeldLayer>();
-        var crackles = new List<(double, double, double, double)>();
         foreach (var mount in mounts)
             for (int i = 0; i < overlays.Count; i++)
                 foreach (var overlay in overlays[i])

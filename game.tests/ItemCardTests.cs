@@ -329,6 +329,12 @@ public class ItemCardTests
         Assert.Equal([(3.0, 3.5, 11.0, 6.5)], fitted.Crackles);
         Assert.Empty(HeldParts.Of(HeldLook.Drill, []).Layers);
         Assert.Empty(HeldParts.Of(HeldLook.FireAxe, [Spec.Modules.Arc]).Layers);
+        // The railgun crackles along its own barrel with no module, and nothing is laid over it.
+        var rail = HeldParts.Of(HeldLook.Railgun, []);
+        Assert.Equal(HeldLook.Railgun.Arcs, rail.Crackles);
+        Assert.Equal(3, rail.Crackles.Count);
+        Assert.Empty(rail.Layers);
+        Assert.Empty(HeldParts.Of(HeldLook.Drill, []).Crackles);
         // Two mounts and two modules: by mount as the tool declares them, then by module as fitted; a mount it lacks shows nothing.
         var tool = HeldLook.Drill with { Mounts = [new ToolMount("grip", 1, 9, (0, 8, 4, 12)), new ToolMount("coil", 4, 4, (3, 3.5, 11, 6.5))] };
         IReadOnlyList<ModuleOverlay> second = [new("coil", "second_coil.png"), new("grip", "second_grip.png"), new("barrel", "second_barrel.png")];

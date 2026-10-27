@@ -798,10 +798,12 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        var drilling = inHand && drill && item != null ? PartsOf(item) : null;
-        // Its stage made only once a drill runs in this hand: a body, a seated hero or the title's figures never need one.
-        if (drilling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
-        _drillLight?.Step(drilling, _spin, _heldAt ??= HeldAt, elapsedMs);
+        // A drill crackles as it spins; a gun held to charge, as it fills.
+        bool charging = item?.Charged != null && Charge > 0;
+        var crackling = inHand && item != null && (drill || charging) ? PartsOf(item) : null;
+        // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
+        if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
+        _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
