@@ -25,7 +25,7 @@ public sealed partial class ItemsModule
         if (rng.Below(10) == 0) return RunOrStop(rng, from);
         var own = State.Inventories.Find(h => h.Id == from)?.Slots;
         if (rng.Below(10) == 0) return FitOrUnfit(rng, from, own);
-        if (rng.Below(12) == 0 && SuitOnOrOff(from, own) is { } dress) return dress;
+        if (rng.Below(12) == 0 && SuitOnOrOff(rng, from, own) is { } dress) return dress;
         // Mostly a machine that holds something; the wreck's other machines and missing ids otherwise.
         int AnyCrate() => State.Crates.Count > 0 && rng.Below(4) != 0
             ? State.Crates[(int)rng.Below((uint)State.Crates.Count)].Id
@@ -71,15 +71,23 @@ public sealed partial class ItemsModule
         return new Move(src, dst, count) { From = from };
     }
 
-    private static readonly int SuitSlot = Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(Suit.Slot);
+    private static readonly int[] SuitSlots = [SlotOf(Helmet.Slot), SlotOf(Suit.Slot)];
 
-    /// <summary>A suit carried in the bag put on, else the one worn taken off into the bag; none when neither, so suits change outside creative.</summary>
-    private static Move? SuitOnOrOff(int from, Stack?[]? own)
+    private static int SlotOf(string kind) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(kind);
+
+    /// <summary>
+    /// A helmet or a body carried in the bag put on, else the one worn taken off into the bag's first empty slot; none when
+    /// neither, so suits change outside creative mode too.
+    /// </summary>
+    private static Move? SuitOnOrOff(Rng rng, int from, Stack?[]? own)
     {
         if (own == null) return null;
+        int slot = SuitSlots[(int)rng.Below((uint)SuitSlots.Length)];
+        string kind = Content.Inventory.Equipment[slot - Content.Inventory.Slots];
         for (int i = 0; i < Content.Inventory.Slots; i++)
-            if (own[i] is { } s && Content.Items.Get(s.Item).Equip == Suit.Slot) return new Move(new Place(i), new Target(SuitSlot), 1) { From = from };
-        return own[SuitSlot] != null ? new Move(new Place(SuitSlot), new Target(Crate: null), 1) { From = from } : null;
+            if (own[i] is { } s && Content.Items.Get(s.Item).Equip == kind) return new Move(new Place(i), new Target(slot), 1) { From = from };
+        int free = Array.IndexOf(own, null);
+        return own[slot] != null && free >= 0 && free < Content.Inventory.Slots ? new Move(new Place(slot), new Target(free), 1) { From = from } : null;
     }
 
     private static readonly ItemSpec[] Electric = [.. Content.Items.All.Where(i => i.Draw != null)];

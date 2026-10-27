@@ -63,10 +63,13 @@ public static class Migrations
     }
 
     /// <summary>
-    /// 34 to 35: the suit is an item in a new last equipment slot (2026-10-27-suits-are-worn), every hero having worn one.
-    /// Every peer's inventory gains the slot; a hero's, on its surface, the basic suit in it, made for a hero with none
+    /// 34 to 35: the suit is a helmet on the head and a body (2026-10-27-suits-are-worn), every hero having worn one, and the
+    /// head's lamp has a slot of its own. Every peer's inventory gains the body's and the lamp's slots, last, its lamp moved
+    /// from the head to its own; a hero's, on its surface, the basic helmet and body, an inventory made for a hero with none
     /// saved; a peer with no hero, its ship's inventory, so it comes back suited. A hero's <c>suit</c> is its <c>air</c>.
     /// </summary>
+    private static readonly int Head = Content.Inventory.Slots;
+
     private static JsonObject SuitsWorn(JsonObject save)
     {
         var all = new List<JsonObject> { save["slices"]!.AsObject() };
@@ -75,7 +78,14 @@ public static class Migrations
         for (int i = 0; i < all.Count; i++)
         {
             var inventories = all[i]["items"]!["inventories"]!.AsArray();
-            foreach (var held in inventories) held!["slots"]!.AsArray().Add(null);
+            foreach (var held in inventories)
+            {
+                var slots = held!["slots"]!.AsArray();
+                var lamp = slots[Head]?.DeepClone();
+                slots[Head] = null;
+                slots.Add(null);
+                slots.Add(lamp);
+            }
             var suited = all[i]["crew"]!["heroes"]!.AsArray().Select(h => h!["id"]!.GetValue<int>()).ToList();
             // The ship suits the peers without a hero anywhere whose inventory it keeps.
             if (i == 0) suited.AddRange(inventories.Select(h => h!["id"]!.GetValue<int>()).Where(id => !heroes.Contains(id)));
@@ -90,7 +100,8 @@ public static class Migrations
                     int at = inventories.Count(h => h!["id"]!.GetValue<int>() < peer);
                     inventories.Insert(at, held);
                 }
-                held["slots"]![Content.Inventory.Total - 1] = new JsonObject { ["item"] = Content.Suit.Basic, ["count"] = 1 };
+                held["slots"]![Head] = new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 };
+                held["slots"]![Content.Inventory.Total - 2] = new JsonObject { ["item"] = Content.Suit.Basic, ["count"] = 1 };
             }
             foreach (var hero in all[i]["crew"]!["heroes"]!.AsArray().Select(h => h!.AsObject()))
             {

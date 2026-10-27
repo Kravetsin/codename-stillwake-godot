@@ -21,8 +21,8 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 ## Rules
 
 - A hero is named by its peer: the sender the host stamps on its commands (`From`) (no ADR).
-- **Air** (2026-10-27-suits-are-worn): `Hero.Air`, below "the suit"; capacity `CapacityOf`: the worn suit's `Tank`,
-  or `Crew.Lungs` bare. Each tick, first, a conscious hero's air is cut to it. Every hero made starts full to it.
+- **Air** (2026-10-27-suits-are-worn): `Hero.Air`, below "the suit"; capacity `CapacityOf`: the worn helmet's `Tank`,
+  or `Crew.Lungs`. Each tick, first, a conscious hero's air is cut to it. Every hero made starts full to it.
 - **Enter and report** (0050): `Enter(Cell)` puts the sender's hero at `Cell`, making it (full; bare on
   a peer's first, its inventory empty) when there is none; later ones never refill it. The client sends it when the sim lacks its hero or puts it in another room
   or across the air's edge than its body (compared by cell: doors rename rooms), and as a report every
@@ -61,7 +61,7 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
   build zone grown by `Field.Margin`. `EdgeCost(cell)` is 0 inside, past it the square of the depth by the deeper
   axis toward `Field.EdgeCost` at the grid's edge and off it (rounded up; its summary has the formula). Each breath, after breath
   and refill, the suit alone pays it for the reported cell, never below nothing. No zone (a planet, 0076): no cold.
-  Bare where `AiredAt` is false it pays `Crew.BareCold` more, on thin air on the shortfall's beat; `Cold(peer)` says it.
+  With no body, where `AiredAt` is false, it pays `Crew.BareCold` more, on thin air on the shortfall's beat; `Cold(peer)` says it.
 - **Lava burns** ([0087](../../docs/decisions/0087-the-planets-core-is-lava.md)): `Burns(cell)`: lava
   (`Content.Lava.Material`) at the reported cell or up to `Lava.Reach` rows under it. Each breath the suit alone
   pays `Lava.Burn` more, with the cold.

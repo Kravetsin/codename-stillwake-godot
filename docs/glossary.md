@@ -67,8 +67,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew
-- скафандр / suit → item `suit` (`Content.Suit`, slot `suit`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
-- голый, без скафандра / bare → `Crew.Lungs`, `Crew.BareCold` → Crew
+- скафандр / suit → helmet `helmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` (`Content.Suit`, slot `suit`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
+- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
+- фонарик на шлем / helmet lamp → `helmetLamp`, slot `lamp` (`Helmet.Fitting`) → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 
 ## World

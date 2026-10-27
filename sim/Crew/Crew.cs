@@ -51,13 +51,13 @@ public interface ICrewQueries
     /// <summary>Every hero, in id order: live and read-only, for counting who breathes where.</summary>
     IReadOnlyList<Hero> Heroes { get; }
     /// <summary>
-    /// The most air hero <paramref name="peer"/> holds: the <c>Tank</c> of the suit it wears, or <c>Crew.Lungs</c> bare
+    /// The most air hero <paramref name="peer"/> holds: the <c>Tank</c> of the helmet it wears, or <c>Crew.Lungs</c> without one
     /// (2026-10-27-suits-are-worn). Its air is cut to it each tick.
     /// </summary>
     int CapacityOf(int peer);
     /// <summary>
     /// What the cold takes from hero <paramref name="peer"/>'s air a breath where it was last reported: the edge's cold, and
-    /// bare where the air is not aired <c>Crew.BareCold</c> (on thin air paid on fewer breaths than this says); 0 with no
+    /// with no body worn where the air is not aired <c>Crew.BareCold</c> (on thin air paid on fewer breaths than this says); 0 with no
     /// hero. What the frost is drawn at; the lava burns besides.
     /// </summary>
     int Cold(int peer);
@@ -112,7 +112,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             Add(hero);
             _playersOps.Dress(c.From);
             _itemsOps.Kit(c.From);
-            // Printed full in what it wears: bare as a peer's first hero, in its kept suit coming back after Leave.
+            // Printed full in what it wears: bare as a peer's first hero, in its kept helmet coming back after Leave.
             hero.Air = CapacityOf(c.From);
         });
         Handles<Leave>(
@@ -158,7 +158,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     }
                     continue;
                 }
-                // A suit taken off loses what the lungs cannot hold; one put on keeps the air, which then fills.
+                // A helmet taken off loses what the lungs cannot hold; one put on keeps the air, which then fills.
                 int capacity = CapacityOf(hero.Id);
                 hero.Air = Math.Min(hero.Air, capacity);
                 Thrusts(hero);
@@ -178,7 +178,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
                 int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
                 int net = pod + taken - breathes;
-                // Thin air (0076): what the air falls short of the breath, and a bare hero's cold, paid one breath in ThinAir.
+                // Thin air (0076): what the air falls short of the breath, and the cold without a body, paid one breath in ThinAir.
                 bool beat = Rules.ThinAir is not int every || State.Clock / Content.Crew.BreathEvery % every == 0;
                 if (net < 0 && !beat) net = 0;
                 int cold = ColdAt(hero.Id, hero.Cell, bare: beat) + (Burns(hero.Cell) ? Content.Lava.Burn : 0);
@@ -305,7 +305,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     /// <summary>
     /// What the cold at <paramref name="cell"/> takes from <paramref name="peer"/>'s air a breath: the edge's, and, when
-    /// <paramref name="bare"/> counts, <c>Crew.BareCold</c> bare where the cell is not aired.
+    /// <paramref name="bare"/> counts, <c>Crew.BareCold</c> with no body worn where the cell is not aired.
     /// </summary>
     private int ColdAt(int peer, int cell, bool bare)
     {
@@ -331,7 +331,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public IReadOnlyList<Hero> Heroes => State.Heroes;
 
     public int CapacityOf(int peer) =>
-        _items.WornIn(peer, Content.Suit.Slot) is { } suit ? Content.Items.Get(suit).Tank : Content.Crew.Lungs;
+        _items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs;
 
     public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true) : 0;
 

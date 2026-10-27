@@ -115,7 +115,7 @@ public class ItemCardTests
         Assert.Equal("BEAM 60°", lamp.Detail);
         // It draws nothing: the card shows a bolt and 0 rather than saying so.
         Assert.Null(lamp.Draw);
-        Assert.Equal("a soft light round your head, for caves", lamp.Use!.Words);
+        Assert.Equal("a soft light on any helmet, for caves", lamp.Use!.Words);
         // A battery's number is its charge, set per stack; the jetpack has none.
         Assert.True(ItemCards.Of("battery", false).Worn);
         Assert.Null(ItemCards.Of("battery", false).Headline);

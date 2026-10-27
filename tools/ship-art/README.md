@@ -23,7 +23,7 @@ was redrawn later, and the painter is the source of the earlier look.
 | `drill/gen.js` (uses `weapons/`) | candidates; `icon_tube` is `items/drill`, `held_tube(_spin1-3)` was `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `items/drill` exact; `hero_drill*` drifted (re-posed) |
 | `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod`; `held_spring(_loaded)`, `icon_spring` were `hero_harpoon(_loaded)`, `items/harpoon` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
 | `screwdriver/screwdriver.js` | `hero_screwdriver`, `tool_screwdriver` | none | `node tools/ship-art/screwdriver/screwdriver.js <outDir>` | exact 2/2 |
-| `suit/suit.gd` (Godot) | `items/suit` | none | as `jetpack.gd` | exact |
+| `suit/suit.gd` (Godot) | `items/helmet`, `suit` | none | as jetpack's | exact |
 | `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `godot --headless --script tools/ship-art/jetpack/jetpack.gd -- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |
 | `computer/computer.gd` (Godot) | `*computer*`, `*radarAntenna*`; `items/` `processor`, `display`, `transceiver` | none | `godot --headless --script tools/ship-art/computer/computer.gd -- <artDir> [preview]` | exact 29/29 |
 | `debris-v1/gen.js` | `debris/` `crate_01-08`, `hull_01-12`, `pod_01-04`, `scrap_01-12` | none | `node tools/ship-art/debris-v1/gen.js [outDir]` | exact 36/36 |
@@ -50,7 +50,7 @@ candidates write pick pages and previews beside themselves, ignored by git. "Sce
 
 ## Not painted here
 
-No painter is kept for:
+No painter for:
 
 - The ship's tiles, doors, pipes, wall edges, back walls, `floor`, `ladder`, `fire_0-2`, valves, sockets, `wall_iron` and `wall_scrap`.
 - `machine_generator`, `vent`, `solarPanel`, `furnace`, `crate`, `lamp` and `analyzer`.

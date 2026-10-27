@@ -53,8 +53,8 @@ A living document: what is decided about the game and what is still open. Techni
   never taken apart. Heroes are made at its hatch, at the start bare and after dying in what they wore,
   their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space,
   and the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
-- **Suits are worn** and taken off: the basic one free at the pod, more to come; bare, a hero holds less air and
-  the cold bites wherever the air is gone ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)).
+- **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
+  keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a tube, a coil and its line of wire

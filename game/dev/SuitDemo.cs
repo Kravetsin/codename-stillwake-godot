@@ -14,10 +14,10 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --suit</c>: the suit worn and taken off (2026-10-27-suits-are-worn), for recording. The hero is printed bare at the
-/// pod, the gauge at its lungs' 20; with the inventory open it makes the free suit at the pod and puts it on, the gauge
-/// growing to the suit's 45 and filling from the room; takes it off again, the gauge back to 20; then walks through the door
-/// into the torn room open to space, bare: the frost at once, the gauge emptying two units a breath.
+/// <c>-- --suit</c>: the helmet and the body worn and taken off (2026-10-27-suits-are-worn), for recording. The hero is
+/// printed bare at the pod, the gauge at its lungs' 20; with the inventory open it makes the free helmet and body at the pod
+/// and puts them on, the gauge growing to the helmet's 45 and filling from the room; takes them off again, the gauge back to
+/// 20; then walks through the door into the torn room open to space, bare: the frost at once, the gauge emptying two a breath.
 /// </summary>
 public partial class SuitDemo : Control
 {
@@ -41,20 +41,27 @@ public partial class SuitDemo : Control
     {
         (_view, _world) = (view, world);
         MouseFilter = MouseFilterEnum.Ignore;
-        int suit = Spec.Inventory.Total - 1;
+        int head = Spec.Inventory.Slots, body = Spec.Inventory.Total - 2;
         At(1.0, () => Press(Key.Tab));
-        At(1.4, () => _target = _view.Panel.CenterOf(new Place(suit)));
-        At(1.6, () => Send((m, pod) => new Craft(pod, Spec.Suit.Basic, 1)));
-        // Five seconds at the pod's fifth of speed; then out of its slot onto the body.
-        At(7.2, () => Send((m, pod) => new Move(new Place(m.Items.Crate(pod).ToList().FindIndex(s => s?.Item == Spec.Suit.Basic), pod), new Target(suit), 1)));
-        // Filled from the room, three units a breath; then off into the bag.
-        At(17.0, () => Send((m, _) => new Move(new Place(suit), new Target(m.Items.Inventory(Id(m)).ToList().IndexOf(null)), 1)));
-        At(19.0, () => Press(Key.Tab));
+        At(1.4, () => _target = _view.Panel.CenterOf(new Place(head)));
+        At(1.6, () => Send((m, pod) => new Craft(pod, Spec.Helmet.Basic, 1)));
+        At(1.7, () => Send((m, pod) => new Craft(pod, Spec.Suit.Basic, 1)));
+        // Five seconds each at the pod's fifth of speed; each out of its slot onto the hero.
+        At(7.2, () => Send((m, pod) => TakeFrom(m, pod, Spec.Helmet.Basic, head)));
+        At(12.4, () => _target = _view.Panel.CenterOf(new Place(body)));
+        At(12.6, () => Send((m, pod) => TakeFrom(m, pod, Spec.Suit.Basic, body)));
+        // Filled from the room, three units a breath; then both off into the bag.
+        At(18.0, () => Send((m, _) => new Move(new Place(head), new Target(m.Items.Inventory(Id(m)).ToList().IndexOf(null)), 1)));
+        At(19.0, () => Send((m, _) => new Move(new Place(body), new Target(m.Items.Inventory(Id(m)).ToList().IndexOf(null)), 1)));
+        At(20.5, () => Press(Key.Tab));
         // To the door of the torn room, left of the hatch; opened; out into it, open to space.
-        At(19.6, () => Walk(Key.A, x => x <= Hatch().X - 5));
-        At(21.0, () => Send((m, _) => new SetDoor(DoorOf(m), true)));
-        At(21.6, () => Walk(Key.A, x => x <= Hatch().X - 15));
+        At(21.0, () => Walk(Key.A, x => x <= Hatch().X - 5));
+        At(22.4, () => Send((m, _) => new SetDoor(DoorOf(m), true)));
+        At(23.0, () => Walk(Key.A, x => x <= Hatch().X - 15));
     }
+
+    private static Move TakeFrom(Registry m, int pod, string item, int slot) =>
+        new(new Place(m.Items.Crate(pod).ToList().FindIndex(s => s?.Item == item), pod), new Target(slot), 1);
 
     private int Id(Registry m) => _world() is var (client, _) ? client.Id : 0;
 

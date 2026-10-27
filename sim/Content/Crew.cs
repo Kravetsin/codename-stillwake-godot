@@ -3,7 +3,7 @@ namespace Stillwake.Content;
 /// <summary>
 /// A hero's breathing, in oxygen units and ticks (20 a second). Every <see cref="BreathEvery"/> ticks a
 /// hero takes a breath of one unit, from an aired room's air or else from its own air, which holds the worn
-/// suit's <c>Tank</c>, or <see cref="Lungs"/> bare (2026-10-27-suits-are-worn); in an aired room that air also
+/// helmet's <c>Tank</c>, or <see cref="Lungs"/> without one (2026-10-27-suits-are-worn); in an aired room that air also
 /// refills by up to <see cref="Refill"/> units a breath. No air left passes the hero out for <see cref="PassOut"/> ticks. Heroes wear one of
 /// <see cref="Colours"/> suit colours, each taken by one hero at most while there are colours to go round.
 /// Running, a hero is out of breath and breathes <see cref="Exerted"/> units a breath:
@@ -12,9 +12,9 @@ namespace Stillwake.Content;
 /// </summary>
 public static class Crew
 {
-    /// <summary>The air a hero holds bare, with no suit worn: what the pod prints a new hero with.</summary>
+    /// <summary>The air a hero holds with no helmet worn: what the pod prints a new hero with.</summary>
     public const int Lungs = 20;
-    /// <summary>What a breath costs a bare hero more where the air is not aired: the cold, at once (2026-10-27-suits-are-worn).</summary>
+    /// <summary>What a breath costs a hero with no body worn more where the air is not aired: the cold, at once (2026-10-27-suits-are-worn).</summary>
     public const int BareCold = 1;
     public const int BreathEvery = 20;
     public const int Refill = 3;

@@ -21,10 +21,10 @@ namespace Stillwake.Game.Dev;
 public static class Testbed
 {
     /// <summary>
-    /// Every item a hero can carry but the kit it comes aboard with (0107) and suits, free at the pod: wreckage is an item only
+    /// Every item a hero can carry but the kit it comes aboard with (0107) and suits' helmets and bodies, free at the pod: wreckage is an item only
     /// to drift and burst, never held (0041).
     /// </summary>
-    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Tank == 0);
+    public static IEnumerable<ItemSpec> Carried => Items.All.Where(i => Wreckage.HpOf(i.Id) == null && !Inventory.Kit.Any(k => k.Item == i.Id) && i.Equip != Suit.Slot && i.Equip != Helmet.Slot);
 
     /// <summary>The farm's items (0060), in the second crate by the grow capsule with rock and planks: the first is full.</summary>
     public static readonly IReadOnlyList<string> Farm = ["seed", "soil", "biomass", "biofuel"];

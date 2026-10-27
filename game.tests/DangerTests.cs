@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>Suit danger: apps/game/src/features/crew/danger.test.ts, one for one.</summary>
 public class DangerTests
 {
-    private static readonly int Full = Stillwake.Content.Items.Get(Stillwake.Content.Suit.Basic).Tank;
+    private static readonly int Full = Stillwake.Content.Items.Get(Stillwake.Content.Helmet.Basic).Tank;
     private static readonly int Low = (int)Math.Ceiling(Full * Danger.Low) - 1;
 
     [Fact]

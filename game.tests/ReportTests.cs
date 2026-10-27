@@ -186,10 +186,10 @@ public class ReportTests
     }
 
     [Fact]
-    public void DrawsThinFrostOnABareHeroInTheColdAtOnceAndNoneOnceItIsSuited()
+    public void DrawsThinFrostOnAHeroWithNoBodyInTheColdAtOnceAndNoneOnceItWearsOne()
     {
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
-        int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Total - 1;
+        int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Total - 2;
         w.Step(new Enter(spawn) { From = 0 });
         Assert.Equal(Report.BareFrost, Report.Cold(w.M.Crew, 0, spawn));
         w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Suit.Basic, 1) { From = 0 });

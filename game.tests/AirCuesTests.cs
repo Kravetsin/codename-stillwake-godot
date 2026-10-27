@@ -11,7 +11,7 @@ public class AirCuesTests
 {
     private const double Read = 0.25;
     /// <summary>The basic suit's tank: a suited hero's capacity.</summary>
-    private static readonly int Full = Stillwake.Content.Items.Get(Stillwake.Content.Suit.Basic).Tank;
+    private static readonly int Full = Stillwake.Content.Items.Get(Stillwake.Content.Helmet.Basic).Tank;
 
     [Fact]
     public void BreathesACanisterOnceUntilTheFirstHasLanded()

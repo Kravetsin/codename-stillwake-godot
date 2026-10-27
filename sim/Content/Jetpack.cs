@@ -11,7 +11,7 @@ public static class Jetpack
     /// <summary>The item that is the jetpack, crafted at the lifepod.</summary>
     public static readonly string Item = "jetpack";
 
-    /// <summary>Ticks of thrust a unit of the hero's air lasts: the basic suit's tank thrusts some 22 seconds, bare lungs ten.</summary>
+    /// <summary>Ticks of thrust a unit of the hero's air lasts: the basic helmet's tank thrusts some 22 seconds, bare lungs ten.</summary>
     public const int TicksPerUnit = 10;
 
     /// <summary>What thrust adds to the hero's speed a step: full speed in about half a second.</summary>

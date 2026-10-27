@@ -31,6 +31,7 @@ public static class DieDemo
             var stack = i < own.Length ? own[i]
                 : worn >= 0 && Spec.Inventory.Equipment[worn] == "back" ? (Spec.Jetpack.Item, 1)
                 : worn >= 0 && Spec.Inventory.Equipment[worn] == Spec.Suit.Slot ? (Spec.Suit.Basic, 1)
+                : worn >= 0 && Spec.Inventory.Equipment[worn] == Spec.Helmet.Slot ? (Spec.Helmet.Basic, 1)
                 : worn >= 0 && Spec.Inventory.Equipment[worn] == "belt" && (worn == 0 || Spec.Inventory.Equipment[worn - 1] != "belt") ? ("battery", 1)
                 : ((string, int)?)null;
             slots.Add(stack is var (item, count) ? new JsonObject { ["item"] = item, ["count"] = count } : null);

@@ -34,7 +34,7 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Group">Where a sort puts it (0008): its group first, in <see cref="ItemGroup"/>'s order, then its id.</param>
 /// <param name="Tank">
-/// A suit: the air it holds, in units, the hero's whole pool while worn (2026-10-27-suits-are-worn); 0 for anything else.
+/// A helmet: the air it holds, in units, the hero's whole pool while worn (2026-10-27-suits-are-worn); 0 for anything else.
 /// </param>
 public sealed record ItemSpec(
     string Id,
@@ -184,13 +184,15 @@ public static class Items
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // A soft warm light round the head (0077): free, drawing no power.
-        new("helmetLamp", 1, Equip: "head", Gear: true, Group: ItemGroup.Wearable),
+        new("helmetLamp", 1, Equip: Helmet.Fitting, Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
         new("accumulator", 1, Equip: "belt", Capacity: Charge.Accumulator, Gear: true, Group: ItemGroup.Wearable),
-        // The basic suit (2026-10-27-suits-are-worn): its tank the hero's air while worn; free at the pod.
-        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
+        // The basic suit (2026-10-27-suits-are-worn): the helmet's tank the hero's air while worn, the body keeping the cold
+        // out; both free at the pod.
+        new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
+        new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);
@@ -203,8 +205,8 @@ public static class Items
 
 /// <summary>
 /// A hero's inventory, which starts empty: <see cref="Slots"/> slots of its own, the first row the hotbar,
-/// then its equipment, a slot for each kind in <see cref="Equipment"/>: the head, the back, three on the belt, and
-/// the suit, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
+/// then its equipment, a slot for each kind in <see cref="Equipment"/>: the head (a helmet), the back, three on the belt,
+/// then the body and the helmet's lamp, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
 /// whose <c>Equip</c> is its kind.
 /// </summary>
 public static class Inventory
@@ -218,7 +220,7 @@ public static class Inventory
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
-    public static readonly IReadOnlyList<string> Equipment = ["head", "back", "belt", "belt", "belt", Suit.Slot];
+    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Fitting];
 
     /// <summary>Every slot of an inventory: its own, then its equipment.</summary>
     public static readonly int Total = Slots + Equipment.Count;

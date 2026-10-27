@@ -89,4 +89,14 @@ public partial class ContentTests
         Assert.True(Content.Crew.PodRefill > 1);
         Assert.True(Content.Crew.PodRefill >= Content.Crew.Exerted);
     }
+
+    [Fact]
+    public void OnlyHelmetsHoldAirEachMoreThanTheLungsAndTheEdgeEndsAnyInABreath()
+    {
+        foreach (var item in Content.Items.All)
+            Assert.True((item.Equip == Content.Helmet.Slot) == (item.Tank > Content.Crew.Lungs) && item.Tank >= 0, item.Id);
+        Assert.True(Content.Field.EdgeCost >= Content.Items.All.Max(i => i.Tank));
+        // The 1 is the breath: a bare hero resting by the pod in vacuum holds.
+        Assert.True(1 + Content.Crew.BareCold <= Content.Crew.PodRefill);
+    }
 }

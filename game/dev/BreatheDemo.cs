@@ -35,7 +35,8 @@ public partial class BreatheDemo : Control
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 }
-                : i == Spec.Inventory.Total - 1 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 } : null);
+                : i == Spec.Inventory.Total - 2 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
+                : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 } : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         root["slices"]!["crew"]!["heroes"] = new JsonArray(new JsonObject
         {

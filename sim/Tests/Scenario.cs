@@ -120,11 +120,11 @@ public sealed class Scenario
         return this;
     }
 
-    /// <summary>The basic suit's tank: a suited hero's full air.</summary>
-    public static int Full => Content.Items.Get(Content.Suit.Basic).Tank;
+    /// <summary>The basic helmet's tank: a suited hero's full air.</summary>
+    public static int Full => Content.Items.Get(Content.Helmet.Basic).Tank;
 
     /// <summary>
-    /// Peer <paramref name="peer"/> wears the basic suit, put straight into its suit slot (<see cref="ItemsTesting.Wear"/>), its kit
+    /// Peer <paramref name="peer"/> wears the basic helmet and body, put straight into their slots (<see cref="ItemsTesting.Wear"/>), its kit
     /// given first as its first hero would get it. Before the peer's first <see cref="Enter"/>, that prints the hero suited, its
     /// air full; after it, the air fills as a suit put on fills.
     /// </summary>
@@ -132,6 +132,7 @@ public sealed class Scenario
     {
         _dressed.Add(peer);
         M.Items.Kit(peer);
+        if (M.Items.WornIn(peer, Content.Helmet.Slot) == null) this.Wear(peer, Content.Helmet.Basic);
         return M.Items.WornIn(peer, Content.Suit.Slot) == null ? this.Wear(peer, Content.Suit.Basic) : this;
     }
 
