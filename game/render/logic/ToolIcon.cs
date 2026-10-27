@@ -7,7 +7,7 @@ namespace Stillwake.Game.Render;
 /// A tool's icon (2026-10-27-tool-icons): its held picture, its head along +x, turned to point up-right and fitted to a square
 /// with <see cref="HeldLook.IconMargin"/> round it, the diagonal of its drawn pixels across the square. Drawn off the pixel grid:
 /// each output pixel the mean of sub-samples, each the nearest source pixel, so a source pixel is a crisp turned square
-/// with its edges by area. Plain C#: a 64 px bake is some quarter of a million lookups, once per tool and side.
+/// with its edges by area. Plain C#: a 56 px bake is some two hundred thousand lookups, once per tool and side.
 /// </summary>
 public static class ToolIcon
 {

@@ -85,9 +85,6 @@ public sealed record HeldLook(
     /// <summary>The clear pixels round a tool's icon, its held picture turned and fitted (2026-10-27-tool-icons), at any side.</summary>
     public const int IconMargin = 2;
 
-    /// <summary>The side of a tool's icon as the world draws it, on the floor and in space, filtered at the camera's zoom.</summary>
-    public const int IconWorldSide = 64;
-
     /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand.</summary>
     public const string LampColour = "9dff8a";
 

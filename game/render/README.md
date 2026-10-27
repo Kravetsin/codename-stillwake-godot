@@ -86,8 +86,8 @@ features' READMEs) and in its own `///` summaries.
   redraws only when the screen reaches past the tiles drawn (a tile of margin each way) or the zoom changes.
 
 - **A tool's icon** (2026-10-27-tool-icons): an item with a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes
-  its held picture for the side it is drawn at (`ToolIcon`), drawn 1:1; `Icon(item)`, the world's, is 64 px with mipmaps,
-  filtered on the floor and in space. Held pictures are read back at load with the silhouettes.
+  its held picture for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size, a
+  pixel a pixel of the world: a tool's plain held picture, any other's 16 px one. Held pictures are read back at load.
 
 ## Deliberately not handled
 
