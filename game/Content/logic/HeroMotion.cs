@@ -29,15 +29,15 @@ public static class HeroMotion
     }
 
     /// <summary>
-    /// Running with an item in one hand, it is carried trailing: the arm <see cref="Upper"/> radians back of hanging, the
-    /// elbow bent as far as turns the item <see cref="Angle"/> (down behind the hero), within <see cref="LowerLeast"/> and
-    /// <see cref="LowerMost"/>; bobbing <see cref="Bob"/> radians each step; two-handed, it is held turned
-    /// <see cref="TwoHand"/>, low across the legs. Carried, a one-handed item lies along the fist, the axe too. It comes and goes over <see cref="BlendMs"/>. A held item's arm swings on a
-    /// spring of <see cref="SpringHz"/> damped <see cref="SpringDamping"/>, so it lags a start and swings on past a stop.
+    /// Running with an item in hand, it is carried trailing: the arm <see cref="Upper"/> radians back of hanging, the elbow
+    /// bent as far as turns the item <see cref="Angle"/> (down behind the hero), within <see cref="LowerLeast"/> and
+    /// <see cref="LowerMost"/>; bobbing <see cref="Bob"/> radians each step; the item turned along the fist, the axe too.
+    /// It comes and goes over <see cref="BlendMs"/>. A held item's arm swings on a spring of <see cref="SpringHz"/> damped
+    /// <see cref="SpringDamping"/>, so it lags a start and swings on past a stop.
     /// </summary>
     public static class Carry
     {
-        public const double Upper = -0.6, Angle = 2.25, LowerLeast = 0.05, LowerMost = 2.2, Bob = 0.06, TwoHand = 0.8, BlendMs = 160;
+        public const double Upper = -0.6, Angle = 2.25, LowerLeast = 0.05, LowerMost = 2.2, Bob = 0.06, BlendMs = 160;
         public const double SpringHz = 2.2, SpringDamping = 0.35;
     }
 

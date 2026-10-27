@@ -66,7 +66,9 @@ public class CreatureAimTests
         var at = new Point(hero.X + 2_000, 12 * Unit);
         var w = With((hero.X + 1_200 + Unit, 13 * Unit));
         Assert.Equal([1], Aiming.TouchedCreatures(w.M, hero, at).Select(c => c.Id));
-        Assert.Empty(Aiming.TouchedCreatures(With((hero.X + 5_000, 13 * Unit)).M, hero, at));
+        // Held in one hand at arm's length (2026-10-27-one-arm-holds) the bit reaches about a cell past where the two-handed
+        // hold's did: six cells off it touches nothing.
+        Assert.Empty(Aiming.TouchedCreatures(With((hero.X + 6_000, 13 * Unit)).M, hero, at));
         // No battery on the belt: the bit touches it, but no strike goes, as the sim would refuse it (items.flat).
         Assert.Empty(Aiming.StrikesOf(w.M, 0, Aiming.TouchedCreatures(w.M, hero, at), Spec.Weapons.Drill.Item));
     }

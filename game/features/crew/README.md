@@ -17,7 +17,6 @@ commands reach the sim. Other heroes come through the host.
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
 | `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) |
-| `logic/TwoHand.cs` | the two-handed hold, aimed any way (0078) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
 | `logic/Seating.cs` | a hero in a drop pod |
@@ -34,6 +33,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Cape.cs` | a cape of cloth (prototype) |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |
+| `CapeMask.cs` | what it hides behind it |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands: E, plans, axe, drill, aim |
 | `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
@@ -115,7 +115,7 @@ commands reach the sim. Other heroes come through the host.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun:** a click sends `Fire` from the muzzle, each gun its own cooldown; one with `Charge` fires let go full; afloat
   a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
-- **The drill** (0054, 0055, 0078): held as a rifle; left held sends `Run` until the sim runs it, and hits every
+- **The drill** (0054, 0055): held in one hand (one-arm-holds); left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump short of a ledge by the foot's lift is mantled.

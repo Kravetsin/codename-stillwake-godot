@@ -87,9 +87,9 @@ public partial class Figure : Node2D
     private readonly Sprite2D _jetpack;
     /// <summary>The cape (a prototype): its inside behind the hero, its outside over it, arms and all.</summary>
     private readonly Cape _cape = new();
-    /// <summary>The air pack on the back: under a cape, so not drawn while one is worn.</summary>
-    private readonly Sprite2D _pack;
     private readonly CapeView _capeInside, _capeOutside;
+    /// <summary>The figure's parts are drawn through it: while the cape is worn, nothing shows behind its back edge.</summary>
+    private readonly CapeMask _capeMask;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
@@ -155,15 +155,9 @@ public partial class Figure : Node2D
     private (Vector2 At, double Phase)? _chop;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
-    /// <summary>
-    /// Held in both hands (0078): how far the hands have gone from the pose to the grips, 0 to 1 over <see cref="GraspMs"/>,
-    /// and the item's turn as drawn, settling toward the aim.
-    /// </summary>
-    private double _grasp, _holdAngle;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
     private double _carry;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
-    private const double GraspMs = 120;
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly SwingSmear _smear = new();
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
@@ -206,7 +200,7 @@ public partial class Figure : Node2D
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
         backArm.Position = frontArm.Position = new Vector2(0, (float)-Rig.Shoulder);
         var torso = new Node2D();
-        var pack = _pack = Part("pack");
+        var pack = Part("pack");
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
         var chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
@@ -262,7 +256,10 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
+        // All of them through the cape's mask, which hides what shows behind it while it is worn.
+        _capeMask = new CapeMask(_cape);
+        parts.AddChild(_capeMask);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) _capeMask.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -356,27 +353,19 @@ public partial class Figure : Node2D
         {
             if (value == _capeOutside.Visible) return;
             _capeInside.Visible = _capeOutside.Visible = value;
-            _pack.Visible = !value;
+            _capeMask.Cutting = value;
             _cape.Reset();
         }
     }
 
-    /// <summary>The air pack's height, and a jetpack's: the cape's back edge lies over it from its top to here, then over the legs.</summary>
-    private const double PackTall = 12;
-
     /// <summary>How far behind the middle the back of the torso and of the legs is: what a cape lies against.</summary>
     private const double TorsoBack = 6.3, LegsBack = 5;
 
-    /// <summary>How far behind the middle the back is at a height from the feet: the helmet's above the air pack, the pack's (the jetpack's when worn), then the legs'.</summary>
+    /// <summary>How far behind the middle the back is at a height from the feet, what the cape lies against: the torso's, then the legs'.</summary>
     private double BackAt(double y)
     {
-        // The air pack lies under the cape, not drawn: it lies on the back itself. A jetpack stays, and the cape over it.
-        if (!_jetpack.Visible) return y < -Rig.Hip ? TorsoBack : LegsBack;
-        double packTop = -Rig.Shoulder - Rig.H * 0.02, packBottom = packTop + PackTall, pack = Back + 2.5;
-        // Up over the shoulder to the jetpack and down off it gently: the cape slopes over it rather than humping.
-        if (y < packTop) return Math.Max(7.5, pack - (packTop - y) * 1.2);
-        if (y <= packBottom) return pack;
-        return Math.Max(LegsBack, pack - (y - packBottom) * 0.35);
+        // The air pack and a jetpack lie under the cape, hidden by its mask: it lies on the back itself.
+        return y < -Rig.Hip ? TorsoBack : LegsBack;
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
@@ -436,8 +425,8 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
-            _frame.AddChild(_heldView);
-            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
+            _capeMask.AddChild(_heldView);
+            _capeMask.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;
         }
     }
@@ -700,6 +689,7 @@ public partial class Figure : Node2D
                 BackAt);
             _capeInside.Refresh();
             _capeOutside.Refresh();
+            _capeMask.Refresh();
         }
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;
@@ -742,19 +732,19 @@ public partial class Figure : Node2D
             double drawn = _bit ? AxeSwing.Shown(phase) : phase;
             swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(drawn), drawn);
         }
-        else if (aiming && Aim is { } target && item is { Both: null })
+        else if (aiming && Aim is { } target && item != null)
         {
             // The gun: the arm straight, turned so the barrel's line, not the arm's, runs through the point; eased in as a swing is.
             var (dx, dy) = FromShoulder(target);
             swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
-        frontArm = _swingArm.Next(frontArm, swung, elapsedMs);
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, item?.Elbow ?? 0);
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
         // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
         bool carried = inHand && swung == null && !working && !aiming;
         _carry = Math.Clamp(_carry + (carried && pose == Pose.Run ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
         double carry = _carry * _carry * (3 - 2 * _carry);
-        if (carried && item is { Both: null })
+        if (carried && item != null)
         {
             double bob = HeroMotion.Carry.Bob * Math.Sin((_travelled - _strideFrom) / Poses.Stride.Run * 4 * Math.PI);
             frontArm = Mix(frontArm, Rig.Carried(bob), carry);
@@ -762,20 +752,6 @@ public partial class Figure : Node2D
         }
         else _armSpring.Hold(frontArm.Upper);
         var backArm = shown.BackArm;
-        // Held in both hands (0078): turned toward the point at the chest, at rest aimed at nothing, the hands on its grips,
-        // taking them from the pose over GraspMs.
-        bool both = inHand && item?.Both != null;
-        if (both)
-        {
-            var (dx, dy) = aiming && Aim is { } bit ? FromShoulder(bit) : default;
-            double wanted = aiming ? TwoHand.AngleFor(item!, dx, dy) : TwoHand.Rest + (HeroMotion.Carry.TwoHand - TwoHand.Rest) * carry;
-            _holdAngle = _grasp == 0 ? wanted : Settle(_holdAngle, wanted, elapsedMs);
-            _grasp = Math.Min(1, _grasp + elapsedMs / GraspMs);
-            var (near, far) = TwoHand.Arms(item!, _holdAngle);
-            double g = _grasp * _grasp * (3 - 2 * _grasp);
-            (frontArm, backArm) = (Mix(frontArm, near, g), Mix(backArm, far, g));
-        }
-        else _grasp = 0;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
         _frontLeg.Bend(shown.FrontLeg);
@@ -827,8 +803,8 @@ public partial class Figure : Node2D
             _held.Texture = item.Loaded != null && Loaded ? Picture(item.Loaded) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
             bool lit = Spinning && item.Lamp != null;
             _lamp.Visible = _lampGlow.Visible = lit;
-            // Held by its grip in the fist, or in both hands by its mount on the pivot.
-            var origin = item.Both?.Mount ?? item.Grip;
+            // Held by its grip in the fist.
+            var origin = item.Grip;
             // The frames draw the lamp dim; lit, its pixel is drawn over them.
             if (item.Lamp is { } at)
             {
@@ -842,10 +818,9 @@ public partial class Figure : Node2D
                 (_charged.Texture, _charged.Offset) = (Picture(item.Charged!), _held.Offset);
                 _charged.Modulate = new Color(1, 1, 1, (float)Charge);
             }
-            var mount = both ? TwoHand.PivotAt(_holdAngle) : fist;
-            _held.Position = new Vector2((float)mount.X, (float)(-Rig.Shoulder + mount.Y));
+            _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(both ? _holdAngle : Rig.HeldTurn(frontArm, item) + item.Hold * carry);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + item.Hold * carry);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
