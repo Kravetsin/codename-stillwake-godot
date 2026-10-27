@@ -416,6 +416,41 @@ public sealed class HeroAutopilot
 
 
     /// <summary>
+    /// <c>-- --cape</c>: on the <see cref="Hall"/>'s floor, the axe in hand (the hotbar's first slot), a sprint, a stop and
+    /// a walk back; then the drill (the second), a running jump, a turn and a jump on the spot; last, up the ladder to the
+    /// floor twenty-one up and off its end: for watching a cape trail, swing and settle, thrown up by a long fall, and the
+    /// item carried behind on a run.
+    /// </summary>
+    public static HeroAutopilot CapeRun()
+    {
+        var run = new HeroInput(1, 0, false, Sprint: true);
+        var walk = new HeroInput(1, 0, false);
+        return new HeroAutopilot(
+        [
+            new(Still, (_, p) => p.Steps >= 60, Slot: 1),
+            Hold(run, 50),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(60),
+            Hold(walk with { X = -1 }, 70),
+            Until(Still, (h, p) => p.Stopped(h)),
+            new(Still, (_, p) => p.Steps >= 40, Slot: 2),
+            Hold(run with { X = -1 }, 20),
+            Jump(-1),
+            Hold(run with { X = -1 }, 40),
+            Hold(run, 30),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(60),
+            Jump(),
+            Wait(90),
+            Walk(1, h => Block(h) >= 32),
+            Until(new HeroInput(0, -1, false), (h, p) => p.Steps > 2 && !h.Climbing),
+            Walk(1, h => Block(h) >= 42),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Wait(60),
+        ]);
+    }
+
+    /// <summary>
     /// The <see cref="Hall"/>'s script (0090), its hands empty (the hotbar's empty third slot): a sprint started, reversed
     /// and stopped, a tap and a held jump, the floor eight characters up walked off, the one twenty-one up walked off, then the drill
     /// taken out and held aimed ahead through a jump on the spot and a running one.

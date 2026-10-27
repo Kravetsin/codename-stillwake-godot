@@ -18,6 +18,7 @@ The artifacts were found by the pages' titles among the published ones; no page 
 | [`zero-g`](zero-g) | [Руки в невесомости](https://claude.ai/artifact/PHHDuwuvs9hokvf548c7mw) | the hands in zero gravity | as `movement`, whose `engine.js` and `render.js` it shares |
 | [`hero-redesign`](hero-redesign) | [Новый облик героя](https://claude.ai/artifact/SmAXrGwUdzqqTyzqys9FG3) | the hero's new look | `node tools/build.js` reads `game/art` and four screenshots (`shot-deck.png`, `shot-planet.png`, `cmp-real.png`, `cmp-mine.png`, not kept) |
 | [`arc-icon`](arc-icon) | [Значок дуги](https://claude.ai/artifact/M3Ua1GzFic9MpMqz4ptZdz) | the arc technology's icon, ported by hand into `game/Content/logic/TechLooks.cs` and `game/render/TechCanvas.cs` | `node tools/build.js` fills `template.html` with `tools/icons.txt` and `tools/crops.txt` (not kept: game screenshots as base64) |
+| [`hero-looks`](hero-looks) | [Герой без скафандра](https://claude.ai/artifact/2vevr2KwPjQGcaur2dvi7r) | the hero without a suit: jumpsuit, head, faces, hair, the face behind the visor, painted by [`tools/hero-art`](../hero-art) | `node build.js <out.html> [artDir]` inlines `game/art`, `parts.js`, `compose.js`, `hd.js` (the trial head at 2×), `page.js` and `live.js` (hair and cape on chains) into `page.html`; `node check.js <out.png> <scale> <looks> [dark]` and `node check-live.js <out.png> [style]` draw without a browser |
 
 The screenshot scripts (`shoot.cjs`, `dbg.cjs`) load Playwright from the old TypeScript repo's `node_modules`; point them
 at any Playwright to use them.
@@ -33,3 +34,4 @@ at any Playwright to use them.
 | zero-g | the built `index.html`, `local.html`, `probe.html` (0.13 MB each), `dom.txt` (a DOM dump), `art/`, 66 shots (3.4 MB), a Chrome profile, `shot.sh`, `mont.sh` |
 | hero-redesign | the built `hero-redesign.html`, `local.html`, `probe.html` (0.27 MB each) and `sheet.html`, `game-copy/` (a copy of `game/art`), 693 PNGs (109 MB: shots, frames, the screenshots its build inlines), 4 WAVs (12 MB), `real/*.log`, `tools/*.sh` |
 | arc-icon | the built `arc-icon.html`, `tools/crops.txt` (64 KB of base64 screenshots), the check pages in `tools/`, `tools/shot.sh`, 12 PNGs |
+| hero-looks | the built page (46 KB) |

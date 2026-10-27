@@ -73,6 +73,19 @@ public static class Rig
     }
 
     /// <summary>
+    /// The arm carrying an item in one hand on a run (<see cref="HeroMotion.Carry"/>): back of hanging, its elbow bent as
+    /// far as turns the item down behind the hero, within the elbow's reach; <paramref name="bob"/> radians more swing.
+    /// Carried, the item lies along the fist, as the hand turns an axe to trail it: its hold is the figure's to take back.
+    /// </summary>
+    public static Bend Carried(double bob)
+    {
+        double upper = HeroMotion.Carry.Upper + bob;
+        // An item along the fist turns π/2 less the arm's whole turn (HeldTurn): the elbow that turns it to Angle.
+        double lower = Math.Clamp(Math.PI / 2 - HeroMotion.Carry.Angle - upper, HeroMotion.Carry.LowerLeast, HeroMotion.Carry.LowerMost);
+        return new Bend(upper, lower);
+    }
+
+    /// <summary>
     /// Where <paramref name="pixel"/> of <paramref name="look"/>'s picture is, from the shoulder, held in
     /// the fist of an arm bent as <paramref name="arm"/>: its grip on the fist's middle, turned by <see cref="HeldTurn"/>.
     /// </summary>

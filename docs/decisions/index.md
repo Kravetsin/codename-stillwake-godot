@@ -83,7 +83,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
 | [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs (in part) |
-| [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | accepted |  |
+| [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
 | [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md) | The wrist is one column: segmented gauges that never step, and hardware keys | accepted |  |
@@ -135,6 +135,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
+| [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted |  |
 | [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |

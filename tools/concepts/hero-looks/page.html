@@ -1,0 +1,226 @@
+<title>Герой без скафандра</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jura:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column of dark "decks" (stages where the art stands), each pixel shown at 1:1 beside its enlargement. */
+:root {
+  --bg: #0b0e14;
+  --deck: #121720;
+  --deck-edge: #1e2531;
+  --ink: #dde3ec;
+  --muted: #8b95a7;
+  --lamp: #ffe2a0;
+  --cold: #8fb6d6;
+  --display: "Jura", "Segoe UI", system-ui, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+html { background: var(--bg); }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); }
+main { max-width: 1080px; margin: 0 auto; padding-block: 40px 80px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 64px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: 0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.1; }
+h2 { font-size: 26px; line-height: 1.2; }
+h3 { font-size: 17px; font-weight: 500; color: var(--ink); }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--lamp); }
+section { display: grid; gap: 20px; min-width: 0; }
+section > header { display: grid; gap: 10px; }
+code, .mono { font-family: var(--mono); font-size: 13px; }
+code { color: var(--cold); }
+
+.deck { background: var(--deck); border: 1px solid var(--deck-edge); border-radius: 6px; padding: 20px; overflow-x: auto; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; max-width: none; }
+.big { max-width: 100%; height: auto; }
+.pair { display: grid; gap: 10px; justify-items: start; }
+.one { display: flex; align-items: flex-end; gap: 10px; color: var(--muted); font: 12px/1 var(--mono); }
+.row { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-end; }
+.cell { display: grid; gap: 8px; justify-items: center; min-width: 0; }
+.cell .label { white-space: pre-line; font: 12px/1.3 var(--mono); color: var(--muted); text-align: center; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.grid2 > * { min-width: 0; }
+
+/* the look editor */
+.editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px; align-items: start; }
+@media (max-width: 760px) { .editor { grid-template-columns: minmax(0, 1fr); } }
+.controls { display: grid; gap: 18px; }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
+legend { font: 500 12px/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 0 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { appearance: none; border: 1px solid var(--deck-edge); background: var(--bg); color: var(--ink); border-radius: 4px; padding: 4px; cursor: pointer; display: grid; place-items: center; min-width: 34px; min-height: 34px; font: 12px var(--mono); }
+.chip[aria-pressed="true"] { border-color: var(--lamp); box-shadow: 0 0 0 1px var(--lamp); }
+.chip:focus-visible { outline: 2px solid var(--cold); outline-offset: 2px; }
+.swatch { width: 24px; height: 24px; border-radius: 3px; display: block; }
+.chip canvas { width: 26px; height: 24px; }
+.stages { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; }
+button.action { appearance: none; border: 1px solid var(--deck-edge); background: transparent; color: var(--lamp); font: 500 13px var(--mono); padding: 8px 12px; border-radius: 4px; cursor: pointer; justify-self: start; }
+button.action:hover { border-color: var(--lamp); }
+
+.ramps { display: grid; gap: 10px; }
+.ramp { display: grid; grid-template-columns: 9.5em repeat(4, minmax(0, 1fr)); gap: 6px; align-items: center; font: 12px/1.2 var(--mono); }
+.ramp .sw { height: 24px; border-radius: 3px; display: flex; align-items: flex-end; padding: 3px 5px; font-size: 11px; }
+.ramp .name { color: var(--muted); }
+table { border-collapse: collapse; font-size: 14px; width: 100%; }
+td, th { text-align: left; padding: 7px 12px 7px 0; border-bottom: 1px solid var(--deck-edge); vertical-align: top; }
+th { font: 500 12px var(--mono); color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+td:first-child { white-space: nowrap; }
+.scroll { overflow-x: auto; }
+ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 72ch; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main>
+  <header style="display:grid;gap:16px">
+    <div class="eyebrow">Stillwake · облик героя</div>
+    <h1>Герой без скафандра</h1>
+    <p>Скафандр станет предметом. Под ним человек: комбинезон в цвете игрока, голова, руки. В шлеме лицо видно за стеклом, его освещает лампа на шлеме. Здесь только рисунки и их шаблоны; к игре они ещё не подключены.</p>
+    <div class="deck"><div class="pair" id="hero"></div></div>
+  </header>
+
+  <section>
+    <header>
+      <div class="eyebrow">Демо техники</div>
+      <h2>Живые волосы и плащ</h2>
+      <p class="muted">Хвост и длинные пряди висят на цепочках точек (verlet): первая прибита к голове, остальные отстают под тяжестью и не заходят в тело. Каждый кадр цепочка заново заливается пикселями, по умолчанию на сетке тела, как в мире; для сравнения можно включить сетку головы, вдвое мельче. Плащ тяжёлый: оплечье с застёжкой поверх плеч и ткань до пола. Его наружный край тоже цепочка, но с сильной тяжестью и малым сопротивлением воздуха, поэтому он висит и лишь отстаёт на бегу, а внутренний край лежит на спине. Только у клиента: в симуляцию и сеть не идёт.</p>
+    </header>
+    <div class="deck pair">
+      <p class="muted" style="font-size:13px">Герой бегает сам. Щёлкните по сцене, чтобы управлять: ←/→ или A/D бег, с Shift шаг, ↑/W/пробел прыжок, G невесомость (в ней ↑/↓ тоже двигают).</p>
+      <div class="chips" id="live-style"></div>
+      <div class="chips" id="live-cape"></div>
+      <div class="chips" id="live-grid"></div>
+      <div class="chips" id="live-zoom"></div>
+      <div id="live" tabindex="0" style="outline-offset:4px"><div id="live-view" style="display:grid;gap:10px;justify-items:start;overflow-x:auto;min-height:220px"></div></div>
+    </div>
+  </section>
+
+  <section id="trial">
+    <header>
+      <div class="eyebrow">Проба</div>
+      <h2>Голова с пикселем вдвое мельче</h2>
+      <p class="muted">Голова и лица нарисованы 26×24 в той же рамке шлема и уменьшены вдвое: в мире они того же размера, но пикселей у лица вчетверо больше. Лица в три четверти, без шеи: стык прячет воротник. Волосы больше шлема, 38×40, и в скафандре не рисуются, шлем их прячет. Тело пока прежнее. Слева в каждой паре голова сейчас, справа проба.</p>
+    </header>
+    <div class="deck pair"><h3>Головы одного размера</h3><div id="trial-heads" class="row"></div></div>
+    <div class="deck pair">
+      <h3>На пикселях экрана</h3>
+      <p class="muted" style="font-size:13px">Нарисовано так, как камера покажет на мониторе: один пиксель картинки здесь равен пикселю вашего экрана. Дальний зум на 1080p самый трудный: пиксель пробы меньше пикселя экрана.</p>
+      <div id="trial-screen" style="display:grid;gap:18px"></div>
+    </div>
+    <div class="deck pair">
+      <h3>В движении</h3>
+      <p class="muted" style="font-size:13px">Голова поворачивается за курсором, тело медленно идёт: так видно мерцание. Резко рисует игра сейчас; сглаживание с mipmaps стоит включить только для головы.</p>
+      <div class="chips" id="trial-zoom"></div>
+      <div class="chips" id="trial-filter"></div>
+      <div id="trial-live" style="min-height:120px;display:grid;gap:10px;justify-items:start;overflow-x:auto"></div>
+    </div>
+  </section>
+
+  <section id="editor">
+    <header>
+      <h2>Редактор облика</h2>
+      <p class="muted">На пробной голове. Кожа, причёска, цвет волос и лицо: столько же вариантов, сколько будет в игре. Цвет комбинезона берётся из уже выбранного цвета игрока, здесь он только для примера. Облик применяется, когда капсула печатает героя заново.</p>
+    </header>
+    <div class="deck editor">
+      <div class="controls">
+        <fieldset><legend>Кожа · 7</legend><div class="chips" id="c-skin"></div></fieldset>
+        <fieldset><legend>Причёска · 5</legend><div class="chips" id="c-hair"></div></fieldset>
+        <fieldset><legend>Цвет волос · 6</legend><div class="chips" id="c-hairColour"></div></fieldset>
+        <fieldset><legend>Лицо · 3</legend><div class="chips" id="c-face"></div></fieldset>
+        <fieldset><legend>Цвет игрока · 4</legend><div class="chips" id="c-suit"></div></fieldset>
+        <button class="action" id="shuffle" type="button">Случайный облик</button>
+      </div>
+      <div class="stages" id="edit-stages"></div>
+    </div>
+  </section>
+
+  <section>
+    <header>
+      <div class="eyebrow">Первый вариант</div>
+      <h2>Голова в пикселях мира</h2>
+      <p class="muted">Всё ниже нарисовано по прежнему правилу, пиксель картинки равен пикселю мира. Отклонено: лицам не хватает пикселей, причёски одинаковые.</p>
+    </header>
+  </section>
+
+  <section>
+    <header>
+      <h2>Шаблоны</h2>
+      <p class="muted">Все варианты одного слота делят шаблон: размер и точку поворота. Голова, лица и волосы лежат в шаблоне шлема, 13×12 с поворотом у шеи (6.5, 12), и не выходят за его контур, поэтому в шлеме видны только через визор. Комбинезон повторяет шаблоны и шарниры частей скафандра.</p>
+    </header>
+    <div class="grid2">
+      <div class="deck pair"><h3>Слот головы, 13×12</h3><div id="tpl-head" class="row"></div>
+        <p class="muted" style="font-size:13px">Пунктир: контур шлема. Голубая рамка: окно визора, 4×4 пикселя. Крест: шея, точка поворота.</p></div>
+      <div class="deck pair"><h3>Скафандр и комбинезон</h3><div id="tpl-suit" class="row"></div>
+        <p class="muted" style="font-size:13px">Сверху часть скафандра, снизу комбинезон в том же шаблоне. Крест: шарнир.</p></div>
+    </div>
+    <div class="deck ramps" id="ramps"></div>
+  </section>
+
+  <section>
+    <header>
+      <h2>Варианты</h2>
+      <p class="muted">Каждая картинка нарисована в одной опорной гамме; цвет меняется заменой оттенка на тот же оттенок другой гаммы, как сейчас у скафандров.</p>
+    </header>
+    <div class="deck pair"><h3>Кожа</h3><div id="v-skin" class="row"></div></div>
+    <div class="deck pair"><h3>Причёски</h3><div id="v-hair" class="row"></div></div>
+    <div class="deck pair"><h3>Цвет волос</h3><div id="v-hairColour" class="row"></div></div>
+    <div class="deck pair"><h3>Лица</h3><div id="v-face" class="row"></div>
+      <p class="muted" style="font-size:13px">Спокойное, хмурое, весёлое. Брови берут цвет волос, рот и веснушки цвет кожи.</p></div>
+  </section>
+
+  <section>
+    <header>
+      <h2>Комбинезон в четырёх цветах</h2>
+      <p class="muted">На палубе при свете, в позе покоя на нынешнем скелете. Комбинезон чуть уже скафандра; ботинки те же.</p>
+    </header>
+    <div class="deck pair" id="crew"></div>
+  </section>
+
+  <section>
+    <header>
+      <h2>В шлеме, в темноте</h2>
+      <p class="muted">Слева шлем сегодня, визор глухой. Справа визор стеклянный: под ним голова героя, лицо освещено лампой шлема. Блик стекла сдвинут в задний верхний угол, чтобы не закрывать глаз. Шлем не двигается ни на пиксель.</p>
+    </header>
+    <div class="deck pair" id="dark"></div>
+    <div class="deck pair"><h3>Крупно</h3><div id="visor-close" class="row"></div></div>
+  </section>
+
+  <section>
+    <header>
+      <h2>Аквариум</h2>
+      <p class="muted">Будущий шлем: большой стеклянный пузырь, в нём видна вся голова с причёской. Только иллюстрация, чтобы проверить, что голова читается крупным планом. Пузырю нужен свой шаблон, больше нынешнего шлема.</p>
+    </header>
+    <div class="deck pair" id="bubble"></div>
+  </section>
+
+  <section>
+    <header>
+      <h2>Файлы и слои</h2>
+      <p class="muted">Художник <code>tools/hero-art/paint.js</code> пишет картинки в <code>game/art</code> и каждый раз получает те же байты. Он падает, если голова вылезла за шлем или две гаммы делят цвет.</p>
+    </header>
+    <div class="deck scroll">
+      <table>
+        <thead><tr><th>Файл</th><th>Размер · шарнир</th><th>Гамма</th></tr></thead>
+        <tbody id="files"></tbody>
+      </table>
+    </div>
+    <div class="deck pair">
+      <h3>Порядок слоёв головы</h3>
+      <p>Без скафандра: <code>head</code> → <code>face</code> → <code>hair</code>. В скафандре сверху ещё <code>helmet_shell</code> → <code>visor</code>. Всё на узле шлема, поворачивается у шеи.</p>
+    </div>
+    <div class="deck pair">
+      <h3>Вопросы к коду, не к рисункам</h3>
+      <ul>
+        <li>Лицо под стеклом освещено лампой: в игре это слой со своим тёплым светом, иначе в темноте его не видно.</li>
+        <li>Дальняя рука темнеет на 0.7, как скафандр: кожу кисти нужно затемнять так же.</li>
+        <li>Без скафандра нет воздушного ранца; как держится реактивный ранец без него, решит задача про предметы.</li>
+        <li>Розовый цвет волос стоит шестым как «крашеный»; его легко заменить.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<script>
+/*CODE*/
+</script>
