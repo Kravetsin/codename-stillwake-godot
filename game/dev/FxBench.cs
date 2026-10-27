@@ -29,7 +29,7 @@ public partial class FxBench : Node2D
     private readonly Features.Logistics.DroneLight _drones = new();
     private readonly Features.Logistics.Hover[] _hovers = [new(1), new(2), new(3)];
     private readonly Features.Crafting.SmelterHeat _smelter = new();
-    private readonly DrillLight _drill = new();
+    private readonly DrillLight _drill = new(Stages.Of(Layers.Effects).Glims, Stages.Of(Layers.Effects).Flares, Stages.Of(Layers.Effects).Bolts);
     /// <summary>The drill with the arc module fitted, as the hand draws it.</summary>
     private static readonly HeldParts ArcDrill = HeldParts.Of(HeldLook.Drill, [Stillwake.Content.Modules.Arc]);
     private readonly Features.Light.LampSparks _lamp = new();
@@ -76,7 +76,7 @@ public partial class FxBench : Node2D
         // Its hits on a wreck at its bit, at its pace (0094).
         var bit = grip + new Vector2(29, -5);
         for (_drillMs += ms; _drillMs >= DrillPaceMs; _drillMs -= DrillPaceMs)
-            HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], bit.X, bit.Y, -1, 0, Features.Effects.Impacts.ShareOf(Content.Weapons.Drill.Item));
+            Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], bit.X, bit.Y, -1, 0, Features.Effects.Impacts.ShareOf(Content.Weapons.Drill.Item));
         var chest = middle + new Vector2(150, -40);
         for (_catchMs += ms; _catchMs >= 1500; _catchMs -= 1500)
         {
@@ -93,7 +93,7 @@ public partial class FxBench : Node2D
         double ms = delta * 1000;
         var middle = GetViewport().GetCamera2D()?.GetScreenCenterPosition() ?? Vector2.Zero;
         Slice2(middle, ms);
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Effects).Glims;
         _embers += 9 * Fires * ms / 1000;
         _ash += 7.2 * Fires * ms / 1000;
         _bursts += 0.42 * 20 * Sites * ms / 1000;
@@ -126,14 +126,14 @@ public partial class FxBench : Node2D
             _crackMs -= 110;
             var at = middle + new Vector2(-200 + _random.Next(Fires) * 50, 40);
             for (int i = 0; i < 6; i++) glims.Add(Luminous.CrackSpark, at.X, at.Y - 2, Between(-28, 28), -Between(55, 95), at.Y + 13);
-            Flares.Shared.Glint(at.X, at.Y, 6, (255, 190, 110));
+            Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 6, (255, 190, 110));
         }
         for (; _bursts >= 1; _bursts--)
         {
             var tip = middle + new Vector2(-120 + _random.Next(Sites) * 80, -60);
             glims.Spray(Luminous.BuildSpark, tip.X, tip.Y, 3, Math.PI, (-1.15, 0.9), (55, 150), tip.Y + 30);
-            Flares.Shared.Glint(tip.X, tip.Y, 4.5, (255, 200, 120));
-            Flares.Shared.Flash(tip.X, tip.Y, (255, 170, 80), 0.45, 2, 0.3f, 0.7);
+            Stages.Of(Layers.Effects).Flares.Glint(tip.X, tip.Y, 4.5, (255, 200, 120));
+            Stages.Of(Layers.Effects).Flares.Flash(tip.X, tip.Y, (255, 170, 80), 0.45, 2, 0.3f, 0.7);
         }
         if (_breakMs >= 1000)
         {
@@ -154,9 +154,9 @@ public partial class FxBench : Node2D
                 double a = Between(0, Math.Tau), s = Between(4, 14);
                 glims.Add(Luminous.Vapour, at.X, at.Y, Math.Cos(a) * s, Math.Sin(a) * s);
             }
-            Flares.Shared.Glint(at.X, at.Y, 18, (255, 214, 150));
-            Flares.Shared.Shock(at.X, at.Y, 4, 44, 14 * 1000.0 / 60, (255, 236, 210), 0.4);
-            Flares.Shared.Flash(at.X, at.Y, (255, 226, 180), 0.55, 4, 0.45f, 0.9);
+            Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 18, (255, 214, 150));
+            Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 44, 14 * 1000.0 / 60, (255, 236, 210), 0.4);
+            Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 226, 180), 0.55, 4, 0.45f, 0.9);
         }
     }
 }

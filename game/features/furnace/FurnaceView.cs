@@ -198,7 +198,7 @@ public partial class FurnaceView : Node2D
     /// <summary>The embers and ash a fire at <paramref name="at"/> owes this frame, and a cracking coal's sparks and glint.</summary>
     private void Throw(Fire fire, Vector2 at, float floor, double elapsedMs, bool cracks)
     {
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Fire).Glims;
         var from = at + EmbersFrom;
         fire.Embers += EmbersPerSecond * Fx.Count * elapsedMs / 1000;
         for (; fire.Embers >= 1; fire.Embers--)
@@ -210,7 +210,7 @@ public partial class FurnaceView : Node2D
         int sparks = (int)Math.Round(Between(CrackLeast, CrackMost) * Fx.Count);
         for (int i = 0; i < sparks; i++)
             glims.Add(Luminous.CrackSpark, from.X + Between(-2, 2), from.Y - 2, Between(-28, 28), -Between(55, 95), floor);
-        Flares.Shared.Glint(at.X + CrackAt.X, at.Y + CrackAt.Y, 6, CrackGlint);
+        Stages.Of(Layers.Fire).Flares.Glint(at.X + CrackAt.X, at.Y + CrackAt.Y, 6, CrackGlint);
     }
 
     private static Texture2D Picture(int frame) => PixelArt.Picture($"fire_{frame % Frames}");

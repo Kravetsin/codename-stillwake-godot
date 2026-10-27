@@ -263,30 +263,35 @@ public partial class LightView : Node2D
             for (int i = 0; i < lights.Count; i++) _main.Add(lights[i]);
         }
         // Flashes first, the brightest moments; then the particles that give light, while the cap lasts (Fx.MostLights).
-        foreach (var f in Flares.Shared.Flashes)
-        {
-            if (_spots.Count >= Fx.MostLights) break;
-            _spots.Add(new LightSource(f.X, f.Y, Rgb(f.Colour), (float)f.Strength, f.Reach, f.Keep, 1));
-        }
+        // Every stage's alike, merged (effects-on-their-layer): all flashes, then all arcs, then all particles.
+        var stages = Stages.All;
+        foreach (var stage in stages)
+            foreach (var f in stage.Flares.Flashes)
+            {
+                if (_spots.Count >= Fx.MostLights) break;
+                _spots.Add(new LightSource(f.X, f.Y, Rgb(f.Colour), (float)f.Strength, f.Reach, f.Keep, 1));
+            }
         // Each arc lights round its middle in its cyan, the light changing only as its shape does.
-        foreach (var bolt in Bolts.Shared.Live)
-        {
-            if (_spots.Count >= Fx.MostLights) break;
-            if (bolt.Fine) continue;
-            var (x0, y0, x1, y1, _) = bolt.Ends();
-            // A short arc lights less than a long one: a crawl over a coil barely, a leap to a wall the room round it.
-            double length = Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
-            float strength = (float)(Fx.BoltLight * bolt.Intensity * Math.Min(1, length / 10 + 0.3) * Fx.Glow);
-            _spots.Add(new LightSource((float)(x0 + x1) / 2, (float)(y0 + y1) / 2, Rgb(bolt.Tint.Glow), strength, ParticleReach + 1, L.ParticleKeep, 1));
-        }
-        foreach (var g in Glims.Shared.Live)
-        {
-            if (_spots.Count >= Fx.MostLights) break;
-            if (!g.Look.Light) continue;
-            var c = LuminousMath.RampAt(g.Look.Ramp, g.Age);
-            float strength = L.Particle * Fx.ParticleLight * (float)(LuminousMath.Brightness(g) * Fx.Glow);
-            _spots.Add(new LightSource(g.X, g.Y, ((float)c.R / 255, (float)c.G / 255, (float)c.B / 255), strength, ParticleReach, L.ParticleKeep, 1));
-        }
+        foreach (var stage in stages)
+            foreach (var bolt in stage.Bolts.Live)
+            {
+                if (_spots.Count >= Fx.MostLights) break;
+                if (bolt.Fine) continue;
+                var (x0, y0, x1, y1, _) = bolt.Ends();
+                // A short arc lights less than a long one: a crawl over a coil barely, a leap to a wall the room round it.
+                double length = Math.Sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+                float strength = (float)(Fx.BoltLight * bolt.Intensity * Math.Min(1, length / 10 + 0.3) * Fx.Glow);
+                _spots.Add(new LightSource((float)(x0 + x1) / 2, (float)(y0 + y1) / 2, Rgb(bolt.Tint.Glow), strength, ParticleReach + 1, L.ParticleKeep, 1));
+            }
+        foreach (var stage in stages)
+            foreach (var g in stage.Glims.Live)
+            {
+                if (_spots.Count >= Fx.MostLights) break;
+                if (!g.Look.Light) continue;
+                var c = LuminousMath.RampAt(g.Look.Ramp, g.Age);
+                float strength = L.Particle * Fx.ParticleLight * (float)(LuminousMath.Brightness(g) * Fx.Glow);
+                _spots.Add(new LightSource(g.X, g.Y, ((float)c.R / 255, (float)c.G / 255, (float)c.B / 255), strength, ParticleReach, L.ParticleKeep, 1));
+            }
         foreach (var g in Glow.All)
         {
             if (!g.IsVisibleInTree()) continue;

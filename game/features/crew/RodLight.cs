@@ -23,11 +23,11 @@ public sealed class RodLight
     private double _wake, _beadMs = -1, _zipMs = -1;
     private Vector2 _zipFrom;
 
-    /// <summary>The shot leaving <paramref name="muzzle"/> along <paramref name="barrel"/>, a unit vector: a glint and the gas.</summary>
-    public static void Fired(Vector2 muzzle, Vector2 barrel)
+    /// <summary>The shot leaving <paramref name="muzzle"/> along <paramref name="barrel"/>, a unit vector: a glint and the gas, on <paramref name="stage"/>, its figure's held one.</summary>
+    public static void Fired(Stage stage, Vector2 muzzle, Vector2 barrel)
     {
-        Flares.Shared.Glint(muzzle.X + barrel.X, muzzle.Y + barrel.Y, 5, Muzzle);
-        var glims = Glims.Shared;
+        stage.Flares.Glint(muzzle.X + barrel.X, muzzle.Y + barrel.Y, 5, Muzzle);
+        var glims = stage.Glims;
         foreach (var (look, count, heading, spread, speed, ahead) in HarpoonShot.Puff((barrel.X, barrel.Y)))
             for (int i = 0; i < Math.Round(count * Fx.Count); i++)
             {
@@ -42,10 +42,10 @@ public sealed class RodLight
     /// </summary>
     public static void Bit(Vector2 tip, Vector2 heading, bool metal)
     {
-        Flares.Shared.Shock(tip.X, tip.Y, 1.5, 9.5, 9 * Glim.SampleMs, BiteRing, 0.3 * Fx.Glow, 0.26);
+        Stages.Of(Layers.Effects).Flares.Shock(tip.X, tip.Y, 1.5, 9.5, 9 * Glim.SampleMs, BiteRing, 0.3 * Fx.Glow, 0.26);
         if (!metal) return;
-        Flares.Shared.Glint(tip.X, tip.Y, 7, BiteGlint);
-        Glims.Shared.Spray(Luminous.BiteSpark, tip.X, tip.Y, (int)Math.Round(8 * Fx.Count), Math.Atan2(-heading.Y, -heading.X), (-1.3, 1.3), (40, 110));
+        Stages.Of(Layers.Effects).Flares.Glint(tip.X, tip.Y, 7, BiteGlint);
+        Stages.Of(Layers.Effects).Glims.Spray(Luminous.BiteSpark, tip.X, tip.Y, (int)Math.Round(8 * Fx.Count), Math.Atan2(-heading.Y, -heading.X), (-1.3, 1.3), (40, 110));
     }
 
     /// <summary>
@@ -66,8 +66,8 @@ public sealed class RodLight
     private void Fly(Vector2 tip, Vector2 pointing, Vector2 eye, double elapsedMs)
     {
         var back = eye - pointing * (float)(26 * Fx.Length);
-        Flares.Shared.Trail([(tip.X - pointing.X * 4, tip.Y - pointing.Y * 4), (eye.X, eye.Y), (back.X, back.Y)], Warm, 0.6, 0.75, 0.45);
-        var glims = Glims.Shared;
+        Stages.Of(Layers.Tethers).Flares.Trail([(tip.X - pointing.X * 4, tip.Y - pointing.Y * 4), (eye.X, eye.Y), (back.X, back.Y)], Warm, 0.6, 0.75, 0.45);
+        var glims = Stages.Of(Layers.Tethers).Glims;
         _wake += WakePerSecond * Fx.Count * elapsedMs / 1000;
         for (; _wake >= 1; _wake--)
             glims.Add(Luminous.Wake, eye.X, eye.Y, glims.Between(-4, 4) - pointing.X * 6, glims.Between(-4, 4) - pointing.Y * 6);
@@ -85,8 +85,8 @@ public sealed class RodLight
         }
         var at = eye.Lerp(gun, (float)(q * q));
         var behind = at + (eye - gun).Normalized() * 7;
-        Flares.Shared.Bloom(at.X, at.Y, 6, Warm, 0.8);
-        Flares.Shared.Trail(at.X, at.Y, behind.X, behind.Y, Bead, 0.7, 0.9, 0.35);
+        Stages.Of(Layers.Tethers).Flares.Bloom(at.X, at.Y, 6, Warm, 0.8);
+        Stages.Of(Layers.Tethers).Flares.Trail(at.X, at.Y, behind.X, behind.Y, Bead, 0.7, 0.9, 0.35);
     }
 
     /// <summary>A reel over: a streak zipping from where the rod was home to the gun, then a glint, a ring and a flash at the hand.</summary>
@@ -97,9 +97,9 @@ public sealed class RodLight
         if (q >= 1)
         {
             _zipMs = -1;
-            Flares.Shared.Glint(gun.X, gun.Y, 6, HomeGlint);
-            Flares.Shared.Shock(gun.X, gun.Y, 2, 11, 12 * Glim.SampleMs, HomeGlint, 0.35 * Fx.Glow, 0.28);
-            Flares.Shared.Flash(gun.X, gun.Y, (160, 220, 255), 0.3 * Fx.Glow, 2, 0.45f, 0.85);
+            Stages.Of(Layers.Tethers).Flares.Glint(gun.X, gun.Y, 6, HomeGlint);
+            Stages.Of(Layers.Tethers).Flares.Shock(gun.X, gun.Y, 2, 11, 12 * Glim.SampleMs, HomeGlint, 0.35 * Fx.Glow, 0.28);
+            Stages.Of(Layers.Tethers).Flares.Flash(gun.X, gun.Y, (160, 220, 255), 0.3 * Fx.Glow, 2, 0.45f, 0.85);
             return;
         }
         double e = q * q;
@@ -107,7 +107,7 @@ public sealed class RodLight
         var way = (gun - _zipFrom).Normalized();
         float length = (float)((10 + 30 * Math.Sin(Math.PI * e)) * Fx.Length);
         var tail = head - way * Math.Min(length, head.DistanceTo(_zipFrom));
-        Flares.Shared.Trail(head.X, head.Y, tail.X, tail.Y, Home, 0.75, 1, 0.5);
-        Flares.Shared.Bloom(head.X, head.Y, 7, HomeGlint, 0.9);
+        Stages.Of(Layers.Tethers).Flares.Trail(head.X, head.Y, tail.X, tail.Y, Home, 0.75, 1, 0.5);
+        Stages.Of(Layers.Tethers).Flares.Bloom(head.X, head.Y, 7, HomeGlint, 0.9);
     }
 }

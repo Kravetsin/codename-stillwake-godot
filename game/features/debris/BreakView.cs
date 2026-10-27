@@ -95,7 +95,7 @@ public partial class BreakView : Node2D
             if (_ageMs >= TrailMs || !body.Visible) continue;
             p.TrailMs += ms;
             for (; p.TrailMs >= TrailEveryMs; p.TrailMs -= TrailEveryMs)
-                Glims.Shared.Add(Luminous.ShardEmber, body.Position.X + Between(-1, 1), body.Position.Y + Between(-1, 1),
+                Stages.Of(Layers.Effects).Glims.Add(Luminous.ShardEmber, body.Position.X + Between(-1, 1), body.Position.Y + Between(-1, 1),
                     -p.Velocity.X * 0.3 + Between(-6, 6), -p.Velocity.Y * 0.3 + Between(-6, 6));
         }
         if (!any)

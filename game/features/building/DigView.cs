@@ -95,7 +95,7 @@ public partial class DigView : Node2D
         var (chip, dust, cloud) = LooksOf(material.Id);
         var (x, y, floor) = Where(cell);
         if (GroundSounds.BreakOf(material) is { } broke) _breaks.Play(broke, new Vector2((float)x, (float)y));
-        var glims = Glims.Shared;
+        var glims = Render.Stages.Of(Layers.Effects).Glims;
         for (int i = 0; i < System.Math.Round(GroundLooks.BreakDust * Fx.Count); i++)
         {
             double a = glims.Between(0, System.Math.Tau), s = glims.Between(4, 24);

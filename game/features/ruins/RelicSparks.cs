@@ -54,12 +54,12 @@ public sealed class RelicSparks
         Halo = 2,
     };
 
-    private void Sparks(Vector2 at, int count, double up)
+    private void Sparks(Stage stage, Vector2 at, int count, double up)
     {
         for (int i = 0; i < count; i++)
         {
             double a = Between(0, Math.Tau), s = Between(25, 80);
-            Glims.Shared.Add(Spark, at.X, at.Y, Math.Cos(a) * s, Math.Sin(a) * s - up, _floor);
+            stage.Glims.Add(Spark, at.X, at.Y, Math.Cos(a) * s, Math.Sin(a) * s - up, _floor);
         }
     }
 
@@ -79,27 +79,27 @@ public sealed class RelicSparks
             {
                 var to = At(Pick(_art.Metal));
                 var (f, t) = (Jit(from, 0.6), Jit(to, 0.7));
-                Bolts.Shared.Add(() => (f.X, f.Y, t.X, t.Y, Between(-0.18, 0.18)), Frames(Between(2, 5)), 0.8, _small ? 0.45 : 0.6, tint: BoltTint.Violet);
+                Stages.Of(Layers.Flora).Bolts.Add(() => (f.X, f.Y, t.X, t.Y, Between(-0.18, 0.18)), Frames(Between(2, 5)), 0.8, _small ? 0.45 : 0.6, tint: BoltTint.Violet);
             }
             else
             {
                 double angle = Between(0, Math.Tau), reach = Between(4, 9) * (_small ? 0.7 : 1.5);
                 var f = Jit(from, 0.4);
                 var t = from + new Vector2((float)(Math.Cos(angle) * reach), (float)(Math.Sin(angle) * reach));
-                Bolts.Shared.Add(() => (f.X, f.Y, t.X, t.Y, 0), Frames(Between(2, 3)), 0.6, 0.4, tint: BoltTint.Violet);
+                Stages.Of(Layers.Flora).Bolts.Add(() => (f.X, f.Y, t.X, t.Y, 0), Frames(Between(2, 3)), 0.6, 0.4, tint: BoltTint.Violet);
             }
-            if (_random.NextDouble() < 0.4) Glims.Shared.Add(Spark, from.X, from.Y, Between(-25, 25), Between(-40, 0), _floor);
+            if (_random.NextDouble() < 0.4) Stages.Of(Layers.Flora).Glims.Add(Spark, from.X, from.Y, Between(-25, 25), Between(-40, 0), _floor);
         }
         if (_far.Count > 0 && _random.NextDouble() < rate * RelicLooks.FarShare)
         {
             var (f, t) = (Jit(At(Pick(src)), 0.5), Jit(Pick(_far), 1));
-            Bolts.Shared.Add(() => (f.X, f.Y, t.X, t.Y, Between(-0.15, 0.15)), Frames(Between(3, 5)), 1, 0.7, branchy: true, tint: BoltTint.Violet);
-            Sparks(t, 3, 25);
+            Stages.Of(Layers.Flora).Bolts.Add(() => (f.X, f.Y, t.X, t.Y, Between(-0.15, 0.15)), Frames(Between(3, 5)), 1, 0.7, branchy: true, tint: BoltTint.Violet);
+            Sparks(Stages.Of(Layers.Flora), t, 3, 25);
         }
         if (_random.NextDouble() < (_small ? RelicLooks.SmallDrip : RelicLooks.Drip) * Fade)
         {
             var d = At(Pick(src));
-            Glims.Shared.Add(Spark, d.X + Between(-1, 1), d.Y, Between(-8, 8), Between(-6, 10), _floor);
+            Stages.Of(Layers.Flora).Glims.Add(Spark, d.X + Between(-1, 1), d.Y, Between(-8, 8), Between(-6, 10), _floor);
         }
         if (Fade < 1 || seconds < _next) return false;
         var big = _small ? RelicLooks.SmallBig : RelicLooks.Big;
@@ -113,26 +113,26 @@ public sealed class RelicSparks
     {
         var core = Core;
         var (c, t) = (Jit(core, 1), Jit(target, 1.2));
-        Bolts.Shared.Add(() => (c.X, c.Y, t.X, t.Y, Between(-0.2, 0.2)), Frames(8), 1.4, _small ? 0.9 : 1.35, branchy: true, tint: BoltTint.Violet);
+        Stages.Of(Layers.Flora).Bolts.Add(() => (c.X, c.Y, t.X, t.Y, Between(-0.2, 0.2)), Frames(8), 1.4, _small ? 0.9 : 1.35, branchy: true, tint: BoltTint.Violet);
         for (int i = 0; i < 3; i++)
         {
             var n = _random.Next(_art.Metal.Length + _far.Count) is var k && k < _art.Metal.Length ? At(_art.Metal[k]) : _far[k - _art.Metal.Length];
             var (a, b) = (Jit(core, 1), Jit(n, 1));
-            Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), Frames(Between(3, 6)), 1, 0.8, branchy: true, tint: BoltTint.Violet);
+            Stages.Of(Layers.Flora).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), Frames(Between(3, 6)), 1, 0.8, branchy: true, tint: BoltTint.Violet);
         }
         Flash = 1;
-        Sparks(t, _small ? 8 : 16, 35);
-        Sparks(core, 8, 10);
-        Flares.Shared.Glint(t.X, t.Y, _small ? 4 : 6, RelicLooks.Hot);
+        Sparks(Stages.Of(Layers.Flora), t, _small ? 8 : 16, 35);
+        Sparks(Stages.Of(Layers.Flora), core, 8, 10);
+        Stages.Of(Layers.Flora).Flares.Glint(t.X, t.Y, _small ? 4 : 6, RelicLooks.Hot);
     }
 
-    /// <summary>An arc from its heart to a hero that struck it (the sim's shock), crackling.</summary>
+    /// <summary>An arc from its heart to a hero that struck it (the sim's shock), crackling: over the hero, as every blow on one.</summary>
     public void Zap(Vector2 hero)
     {
         var core = Core;
-        Bolts.Shared.Add(() => (core.X, core.Y, hero.X, hero.Y, Between(-0.25, 0.25)), RelicLooks.ZapLife, 1.3, 1.1, branchy: true, tint: BoltTint.Violet);
-        Sparks(hero, 10, 20);
-        Flares.Shared.Glint(hero.X, hero.Y, 5, RelicLooks.Core);
+        Stages.Of(Layers.Effects).Bolts.Add(() => (core.X, core.Y, hero.X, hero.Y, Between(-0.25, 0.25)), RelicLooks.ZapLife, 1.3, 1.1, branchy: true, tint: BoltTint.Violet);
+        Sparks(Stages.Of(Layers.Effects), hero, 10, 20);
+        Stages.Of(Layers.Effects).Flares.Glint(hero.X, hero.Y, 5, RelicLooks.Core);
         Flash = Math.Max(Flash, 0.6);
     }
 }

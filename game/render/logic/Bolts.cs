@@ -112,8 +112,6 @@ public sealed class Bolts(Func<double>? random = null)
     /// <summary>A fine arc's core and the haze either side of it (<see cref="Bolt.Fine"/>).</summary>
     public static readonly (int R, int G, int B) FineCore = (222, 244, 255), FineHaze = (90, 170, 255);
 
-    public static Bolts Shared { get; } = new();
-
     private readonly Func<double> _random = random ?? Random.Shared.NextDouble;
     private readonly List<Bolt> _live = [];
     private double _owedMs;

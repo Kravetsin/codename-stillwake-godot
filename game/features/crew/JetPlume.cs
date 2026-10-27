@@ -58,13 +58,13 @@ public partial class JetPlume : Node2D
             var (tx, ty) = toward!.Value;
             _way = tx == 0 && ty == 0 ? Vector2.Down : new Vector2((float)-tx, (float)-ty).Normalized();
             _nozzle = nozzle!.Value;
-            if (!_on) Flares.Shared.Shock(_nozzle.X + _way.X * 3, _nozzle.Y + _way.Y * 3, 1.5, 10.5, 12 * Glim.SampleMs, Ring, 0.35 * Fx.Glow, 0.3);
+            if (!_on) Stages.Of(Layers.Tethers).Flares.Shock(_nozzle.X + _way.X * 3, _nozzle.Y + _way.Y * 3, 1.5, 10.5, 12 * Glim.SampleMs, Ring, 0.35 * Fx.Glow, 0.3);
             Emit(elapsedMs);
             double want = (CoreLength + CoreFlicker * (LuminousMath.Noise(_clock / 1000 * 21, 3.1) * 2 - 1)) * Fx.Length;
             _length += (want - _length) * (1 - Math.Pow(0.5, frames));
             var light = _nozzle + _way * 4;
-            Flares.Shared.Hold(this, light.X, light.Y, Blue, 0.3 * (1 + 0.2 * Math.Sin(_clock / 1000 * 54)) * Fx.Glow, 3, 0.5f, 0.6);
-            Flares.Shared.Bloom(_nozzle.X + _way.X * 2, _nozzle.Y + _way.Y * 2, 12, Bloomed, 0.5);
+            Stages.Of(Layers.Tethers).Flares.Hold(this, light.X, light.Y, Blue, 0.3 * (1 + 0.2 * Math.Sin(_clock / 1000 * 54)) * Fx.Glow, 3, 0.5f, 0.6);
+            Stages.Of(Layers.Tethers).Flares.Bloom(_nozzle.X + _way.X * 2, _nozzle.Y + _way.Y * 2, 12, Bloomed, 0.5);
         }
         else _length *= Math.Pow(0.6, frames);
         _on = on;
@@ -77,7 +77,7 @@ public partial class JetPlume : Node2D
 
     private void Emit(double elapsedMs)
     {
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Tethers).Glims;
         double heading = Math.Atan2(_way.Y, _way.X);
         _streaks += StreaksPerSecond * Fx.Count * elapsedMs / 1000;
         for (; _streaks >= 1; _streaks--)

@@ -27,7 +27,7 @@ public static class ShotEnds
             var point = new Vector2((float)(at.X * Camera.Cell), (float)(at.Y * Camera.Cell));
             voices.Play(S.NailHit, point);
             if (Impacts.At(grid, m.Building, cell) is { } impact)
-                HitBurst.Shared.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareAt(grid, m.Building, cell, projectile, damage),
+                Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareAt(grid, m.Building, cell, projectile, damage),
                     Impacts.FloorUnder(grid, at) * Camera.Cell);
             return;
         }
@@ -35,7 +35,7 @@ public static class ShotEnds
         if (IsWreck(m, cell))
         {
             voices.Play(S.NailHit, middle);
-            HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], middle.X, middle.Y, from.X < cell % grid.Width ? -1 : 1, 0, 1);
+            Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], middle.X, middle.Y, from.X < cell % grid.Width ? -1 : 1, 0, 1);
         }
     }
 

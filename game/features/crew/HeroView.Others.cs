@@ -241,7 +241,7 @@ public partial class HeroView
     /// <summary>The spring's breath leaving <paramref name="figure"/>'s muzzle with the rod, along its barrel, and its glint.</summary>
     private static void Puff(Figure figure)
     {
-        if (figure.Muzzle is { } at) RodLight.Fired(at, figure.Barrel);
+        if (figure.Muzzle is { } at) RodLight.Fired(figure.Held, at, figure.Barrel);
     }
 
     private void PaintLines(Sketch g)

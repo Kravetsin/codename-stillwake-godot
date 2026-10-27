@@ -24,6 +24,6 @@ public static class Crackle
     {
         double Between(double from, double to) => from + (to - from) * random.NextDouble();
         int life = (int)Math.Round(e.Life * Between(1, 1.8) * 2.5);
-        Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), life, 1, Math.Max(0.35, e.Width), branchy: true, tint: tint);
+        Stages.Of(Layers.Machines).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, Between(-0.15, 0.15)), life, 1, Math.Max(0.35, e.Width), branchy: true, tint: tint);
     }
 }

@@ -6,12 +6,12 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Effects;
 
 /// <summary>
-/// Every particle the features emit (features/effects): the luminous ones of <see cref="Glims.Shared"/>, the glints,
-/// shock lines, trails and blooms of <see cref="Flares.Shared"/> and the arcs of <see cref="Bolts.Shared"/> (0075).
+/// One stage's particles (features/effects, effects-on-their-layer): the luminous ones of its <see cref="Glims"/>, the
+/// glints, shock lines, trails and blooms of its <see cref="Flares"/> and the arcs of its <see cref="Bolts"/> (0075).
 /// Light is added over the world, drawn at the screen's resolution with soft edges — streaks along their own path,
 /// white at the head, glints, rings, trails, arcs — and matter is lit by the room: motes, wisps, chips and grains,
-/// each catching a little light of its own. Over everything in the world, plans included; moved on every frame,
-/// after every feature, so what they stamped this frame is drawn this frame.
+/// each catching a little light of its own. Drawn at its stage's layer; moved on every frame, after every feature, so
+/// what they stamped this frame is drawn this frame.
 /// </summary>
 public partial class EffectsView : Node2D
 {
@@ -44,9 +44,17 @@ public partial class EffectsView : Node2D
     private readonly Flares _flares;
     private readonly Bolts _bolts;
     private readonly bool _matterDrawn;
+    private readonly Stage? _stage;
+    private bool _drewNothing;
 
-    /// <summary>The world's particles, over everything in it.</summary>
-    public EffectsView() : this(Glims.Shared, Flares.Shared, Bolts.Shared, matter: true) => ZIndex = Layers.Effects;
+    /// <summary>
+    /// Whether it draws in the world's pixels however its parent turns, flips or moves: a figure's held stage, a part of the
+    /// figure for the order it draws in, not for where (effects-on-their-layer).
+    /// </summary>
+    public bool InWorld { get; init; }
+
+    /// <summary>A stage's particles, its matter and its light, at the z it is given.</summary>
+    public EffectsView(Stage stage) : this(stage.Glims, stage.Flares, stage.Bolts, matter: true) => _stage = stage;
 
     /// <summary>
     /// Particles of their own sets, drawn wherever it is put: an item card's picture (<c>ToolPicture</c>). Without
@@ -78,9 +86,6 @@ public partial class EffectsView : Node2D
         for (int n = 0; n < _points.Length; n++) (_points[n], _colours[n]) = (new Vector2[n], new Color[n]);
     }
 
-    /// <summary>The particles flying: what a recording checks.</summary>
-    public static int Count => Glims.Shared.Live.Count;
-
     /// <summary>The CPU time moving them and recording their drawing took a frame, on average since last asked, in ms: for <c>--measure</c>.</summary>
     public double TakeCostMs()
     {
@@ -92,11 +97,16 @@ public partial class EffectsView : Node2D
     public override void _Process(double delta)
     {
         _clock.Restart();
+        if (InWorld) GlobalTransform = Transform2D.Identity;
         double ms = delta * 1000;
         _glims.Step(ms);
         _flares.Step(ms);
         _flares.TakeFrame();
         _bolts.Step(ms);
+        // An empty stage, drawn empty once, draws nothing more till something is thrown on it.
+        bool empty = _stage?.Empty == true;
+        if (empty && _drewNothing) return;
+        _drewNothing = empty;
         // A pixel of the world on the screen here: the camera's zoom in the world, the picture's scale on a card.
         _zoom = Math.Max(0.01f, GetGlobalTransformWithCanvas().X.Length());
         _light.Scale = Vector2.One / _zoom;

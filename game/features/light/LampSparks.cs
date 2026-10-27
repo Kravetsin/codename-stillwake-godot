@@ -55,7 +55,7 @@ public sealed class LampSparks
         if (shines <= Catches)
         {
             s.DarkMs += elapsedMs;
-            Flares.Shared.Bloom(bulb.X, bulb.Y - 0.3, 3.2, Ember, 0.85 * Math.Max(0, 1 - s.DarkMs / EmberMs) * (1 - shines));
+            Stages.Of(Layers.Machines).Flares.Bloom(bulb.X, bulb.Y - 0.3, 3.2, Ember, 0.85 * Math.Max(0, 1 - s.DarkMs / EmberMs) * (1 - shines));
         }
         s.Last = shines;
     }
@@ -72,10 +72,10 @@ public sealed class LampSparks
     /// <summary>The lamp catching: a glint, a shower more often than not, half the time an arc or two at its socket.</summary>
     private void Caught(Vector2 at, Vector2 bulb, double floor)
     {
-        Flares.Shared.Glint(bulb.X, bulb.Y - 0.5, 5, Filament);
+        Stages.Of(Layers.Machines).Flares.Glint(bulb.X, bulb.Y - 0.5, 5, Filament);
         if (_random.NextDouble() < ShowerChance)
         {
-            var glims = Glims.Shared;
+            var glims = Stages.Of(Layers.Machines).Glims;
             int sparks = (int)Math.Round(Between(3, 6) * Fx.Count);
             for (int i = 0; i < sparks; i++)
                 glims.Add(Luminous.LampSpark, bulb.X + Between(-2, 2), bulb.Y + 2.5, Between(-28, 28), Between(-15, 25), floor);
@@ -95,6 +95,6 @@ public sealed class LampSparks
             : at + Bulb + new Vector2(side * (float)Between(4, 7), (float)Between(-2, 3));
         float jx = (float)Between(-0.5, 0.5), kx = (float)Between(-1, 1);
         double bulge = side * 0.2;
-        Bolts.Shared.Add(() => (from.X + jx, from.Y, to.X + kx, to.Y, bulge), 4 + _random.Next(6), 1, 0.28, branchy: true);
+        Stages.Of(Layers.Machines).Bolts.Add(() => (from.X + jx, from.Y, to.X + kx, to.Y, bulge), 4 + _random.Next(6), 1, 0.28, branchy: true);
     }
 }

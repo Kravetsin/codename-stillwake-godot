@@ -262,7 +262,7 @@ public partial class HomesView : Node2D, ILightSource
     {
         _cracks.Remove(s.Plant.Cell);
         var middle = s.Bounds.GetCenter();
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Effects).Glims;
         glims.Spray(Luminous.BreakDust, middle.X, middle.Y, (int)Math.Round(8 * Fx.Count), -Math.PI / 2, (-Math.PI, Math.PI), (6, 22));
         glims.Spray(Chip, middle.X, middle.Y, (int)Math.Round(6 * Fx.Count), -Math.PI / 2, (-1.4, 1.4), (20, 60), s.Box.Y + s.Art.BoxH);
         if (s.Lit && s.Art.Lights.Length > 0) glims.Spray(Luminous.ArcSpark, middle.X, middle.Y, 6, -Math.PI / 2, (-Math.PI, Math.PI), (30, 90));
@@ -303,7 +303,7 @@ public partial class HomesView : Node2D, ILightSource
         {
             if (sparks.Step(_seconds))
             {
-                Flares.Shared.Flash(sparks.Core.X, sparks.Core.Y, RelicLooks.Hot, RelicLooks.FlashStrength * RelicLooks.SmallFlash, RelicLooks.FlashReach, RelicLooks.LightKeep, RelicLooks.FlashDecay);
+                Stages.Of(Layers.Flora).Flares.Flash(sparks.Core.X, sparks.Core.Y, RelicLooks.Hot, RelicLooks.FlashStrength * RelicLooks.SmallFlash, RelicLooks.FlashReach, RelicLooks.LightKeep, RelicLooks.FlashDecay);
                 _zap.PlayAt(sparks.Core, 0.9f + (float)Between(0, 0.2), -4);
             }
             // Arcs crawl along its cable, leading the eye from the lamp to the niche.
@@ -311,7 +311,7 @@ public partial class HomesView : Node2D, ILightSource
             {
                 int j = _random.Next(heart.Cable.Count - 4);
                 var (a, b) = (heart.Cable[j] - new Vector2(0, 1), heart.Cable[Math.Min(heart.Cable.Count - 1, j + 2 + _random.Next(10))] - new Vector2(0, 1));
-                Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, 0), (int)Math.Round(Between(2, 4) * 2.5), 0.6, 0.45, tint: BoltTint.Violet);
+                Stages.Of(Layers.Flora).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, 0), (int)Math.Round(Between(2, 4) * 2.5), 0.6, 0.45, tint: BoltTint.Violet);
             }
         }
         var tint = s.Fed ? BoltTint.Violet : null;
@@ -349,7 +349,7 @@ public partial class HomesView : Node2D, ILightSource
                         {
                             var a = s.Box + new Vector2(e.From.X, e.From.Y);
                             var b = s.Box + new Vector2(e.X2 + (float)Between(-1, 1), e.Y2 + (float)Between(0, 2));
-                            Bolts.Shared.Add(() => (a.X, a.Y, b.X, b.Y, 0), 5, 0.8, 0.5);
+                            Stages.Of(Layers.Flora).Bolts.Add(() => (a.X, a.Y, b.X, b.Y, 0), 5, 0.8, 0.5);
                         }
                     }
                     else
@@ -363,11 +363,11 @@ public partial class HomesView : Node2D, ILightSource
                     break;
                 case Emits.Spore:
                     if (_random.NextDouble() < e.Count * 0.012)
-                        Glims.Shared.Add(SporeOf(e.Colour), s.Box.X + e.X + Between(-10, 10), s.Box.Y + e.Y + Between(-3, 3), Between(-1.5, 1.5), -Between(4, 9), bright: Between(0.5, 0.9));
+                        Stages.Of(Layers.Flora).Glims.Add(SporeOf(e.Colour), s.Box.X + e.X + Between(-10, 10), s.Box.Y + e.Y + Between(-3, 3), Between(-1.5, 1.5), -Between(4, 9), bright: Between(0.5, 0.9));
                     break;
                 case Emits.Embers:
                     if (_random.NextDouble() < 0.22)
-                        Glims.Shared.Add(Ember, s.Box.X + e.X + Between(-e.Width / 2, e.Width / 2), s.Box.Y + e.Y, Between(-5, 5), -Between(14, 26), bright: Between(0.5, 0.9));
+                        Stages.Of(Layers.Flora).Glims.Add(Ember, s.Box.X + e.X + Between(-e.Width / 2, e.Width / 2), s.Box.Y + e.Y, Between(-5, 5), -Between(14, 26), bright: Between(0.5, 0.9));
                     break;
             }
         }
@@ -399,9 +399,9 @@ public partial class HomesView : Node2D, ILightSource
             var e = s.Art.Emitters[i];
             var at = s.Box + new Vector2(e.X, e.Y);
             if (e.Kind == Emits.Pulse && s.State[i].Value - 1 is var d and > 0)
-                Flares.Shared.Bloom(at.X, at.Y, e.Radius, s.Fed && e.Colour.B > e.Colour.R ? RelicLooks.Glow : e.Colour, Math.Min(0.6, d * 2.2) * Fx.Glow);
+                Stages.Of(Layers.Flora).Flares.Bloom(at.X, at.Y, e.Radius, s.Fed && e.Colour.B > e.Colour.R ? RelicLooks.Glow : e.Colour, Math.Min(0.6, d * 2.2) * Fx.Glow);
             else if (e.Kind == Emits.Sputter && s.State[i].On)
-                Flares.Shared.Bloom(at.X, at.Y, e.Radius * 0.9, (120, 200, 255), 0.45 * Fx.Glow);
+                Stages.Of(Layers.Flora).Flares.Bloom(at.X, at.Y, e.Radius * 0.9, (120, 200, 255), 0.45 * Fx.Glow);
         }
     }
 
@@ -463,7 +463,7 @@ public partial class HomesView : Node2D, ILightSource
                 if (_random.NextDouble() < delta / 0.12)
                 {
                     var to = hero + new Vector2((float)Between(-4, 4), (float)Between(-8, 6));
-                    Bolts.Shared.Add(() => (sphere.X, sphere.Y, to.X, to.Y, Between(-0.25, 0.25)), _random.Next(4, 9), 1, 1, branchy: true);
+                    Stages.Of(Layers.Effects).Bolts.Add(() => (sphere.X, sphere.Y, to.X, to.Y, Between(-0.25, 0.25)), _random.Next(4, 9), 1, 1, branchy: true);
                 }
                 if (_zapHeard <= 0)
                 {

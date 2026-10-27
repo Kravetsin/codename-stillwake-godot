@@ -44,16 +44,17 @@ public partial class AirSwirl : Node
 
     private readonly List<Spun> _spun = [];
     private readonly List<Throw> _throws = [];
-    private readonly Glims _glims = Glims.Shared;
+    /// <summary>Where its air spins: the hero's own layer, round its body (effects-on-their-layer).</summary>
+    private static Glims Spinning => Stages.Of(Layers.Hero).Glims;
 
     /// <summary>A canister's air rising round the body that <paramref name="body"/> gives each frame: its feet and the way up.</summary>
     public void Vortex(Func<(Vector2 Feet, Vector2 Up)> body)
     {
-        var t = new Throw(body, _glims.Between(0, 1) < 0.5 ? -1 : 1);
+        var t = new Throw(body, Spinning.Between(0, 1) < 0.5 ? -1 : 1);
         _throws.Add(t);
         var (feet, up) = t.At;
         var ring = feet + up * 1.5f;
-        Flares.Shared.Shock(ring.X, ring.Y, 3, Fx.VortexRing, 380, Air, 0.4 * Fx.Glow, 0.3, Fx.VortexRingSquash);
+        Stages.Of(Layers.Hero).Flares.Shock(ring.X, ring.Y, 3, Fx.VortexRing, 380, Air, 0.4 * Fx.Glow, 0.3, Fx.VortexRingSquash);
     }
 
     /// <summary>A breath of room air: a few pale motes drifting off the visor at <paramref name="visor"/>, mostly up.</summary>
@@ -61,8 +62,8 @@ public partial class AirSwirl : Node
     {
         for (int i = 0; i < Fx.VisorMotes; i++)
         {
-            double a = -Math.PI / 2 + _glims.Between(-1.1, 1.1), s = _glims.Between(0.4, 1) * Fx.VisorDrift;
-            _glims.Add(Luminous.VisorMote, visor.X + _glims.Between(-1.5, 1.5), visor.Y + _glims.Between(-1, 1), Math.Cos(a) * s, Math.Sin(a) * s);
+            double a = -Math.PI / 2 + Spinning.Between(-1.1, 1.1), s = Spinning.Between(0.4, 1) * Fx.VisorDrift;
+            Spinning.Add(Luminous.VisorMote, visor.X + Spinning.Between(-1.5, 1.5), visor.Y + Spinning.Between(-1, 1), Math.Cos(a) * s, Math.Sin(a) * s);
         }
     }
 
@@ -72,17 +73,19 @@ public partial class AirSwirl : Node
     /// </summary>
     public void Leak(Vector2 chest, int from)
     {
+        // A blow knocked it out: over the hero, as every blow on one (effects-on-their-layer).
+        var glims = Stages.Of(Layers.Effects).Glims;
         for (int i = 0; i < Fx.LeakStreaks * Fx.Count; i++)
         {
-            double a = (from > 0 ? 0 : Math.PI) - from * _glims.Between(0.1, 1.2), s = _glims.Between(60, 150);
-            _glims.Add(Luminous.SuitLeak, chest.X + from * 2, chest.Y + _glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
+            double a = (from > 0 ? 0 : Math.PI) - from * glims.Between(0.1, 1.2), s = glims.Between(60, 150);
+            glims.Add(Luminous.SuitLeak, chest.X + from * 2, chest.Y + glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
         }
         for (int i = 0; i < Fx.LeakMotes * Fx.Count; i++)
         {
-            double a = -Math.PI / 2 + from * _glims.Between(0.2, 1.4), s = _glims.Between(0.5, 1) * Fx.VisorDrift * 2;
-            _glims.Add(Luminous.VisorMote, chest.X + _glims.Between(-2, 2), chest.Y + _glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
+            double a = -Math.PI / 2 + from * glims.Between(0.2, 1.4), s = glims.Between(0.5, 1) * Fx.VisorDrift * 2;
+            glims.Add(Luminous.VisorMote, chest.X + glims.Between(-2, 2), chest.Y + glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s);
         }
-        Flares.Shared.Shock(chest.X + from * 2, chest.Y, 2, Fx.LeakRing, 260, Air, 0.5 * Fx.Glow, 0.3);
+        Stages.Of(Layers.Effects).Flares.Shock(chest.X + from * 2, chest.Y, 2, Fx.LeakRing, 260, Air, 0.5 * Fx.Glow, 0.3);
     }
 
     public override void _Process(double delta)
@@ -102,7 +105,7 @@ public partial class AirSwirl : Node
             // A faint pale light round the body while the air rises, fading as it goes.
             var middle = t.At.Feet + t.At.Up * (float)(Rig.H / 2);
             double light = Fx.VortexLight * Math.Max(0, 1 - t.Ms / (Fx.VortexEmitMs + 500));
-            if (light > 0) Flares.Shared.Hold(t, middle.X, middle.Y, Air, light, 3, 0.5f, 0.7);
+            if (light > 0) Stages.Of(Layers.Hero).Flares.Hold(t, middle.X, middle.Y, Air, light, 3, 0.5f, 0.7);
             if (due >= 1 && t.Flying == 0) _throws.RemoveAt(i);
         }
         // Steered before the effects layer moves them this frame: each heads for where its helix is when the frame ends.
@@ -129,9 +132,9 @@ public partial class AirSwirl : Node
         for (; thrown < want; thrown++)
         {
             // The first ones start at the feet, the later ones anywhere up to a third of the body: the column fills from below.
-            double from = _glims.Between(0, Fx.VortexStartShare * (0.3 + 0.7 * due)), angle = _glims.Between(0, Math.Tau);
+            double from = Spinning.Between(0, Fx.VortexStartShare * (0.3 + 0.7 * due)), angle = Spinning.Between(0, Math.Tau);
             var start = Place(t, from, angle, 0);
-            if (_glims.Add(look, start.X, start.Y, 0, 0) is not { } g) continue;
+            if (Spinning.Add(look, start.X, start.Y, 0, 0) is not { } g) continue;
             _spun.Add(new Spun(g, t, from, angle));
             t.Flying++;
         }
