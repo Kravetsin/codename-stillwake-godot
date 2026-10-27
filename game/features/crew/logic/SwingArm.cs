@@ -26,11 +26,11 @@ public struct SwingArm
     /// <summary>
     /// The arm to draw <paramref name="elapsedMs"/> after the last: swung to <paramref name="swing"/>'s
     /// angle from straight ahead of the shoulder, as far through as its phase says, or at
-    /// <paramref name="rest"/> between swings.
+    /// <paramref name="rest"/> between swings; the elbow bent <paramref name="elbow"/> as the item held wants.
     /// </summary>
-    public Bend Next(Bend rest, (double Angle, double Phase)? swing, double elapsedMs)
+    public Bend Next(Bend rest, (double Angle, double Phase)? swing, double elapsedMs, double elbow = 0)
     {
-        var wanted = swing is { Angle: var angle } ? AxeSwing.ArmAt(angle) : rest;
+        var wanted = swing is { Angle: var angle } ? AxeSwing.ArmAt(angle, elbow) : rest;
         // A swing begun or ended, or the next begun while held: its phase starts again.
         bool handOver = (swing is null) != (_phase is null) || swing?.Phase < _phase;
         _phase = swing?.Phase;

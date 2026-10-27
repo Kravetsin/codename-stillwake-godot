@@ -1,6 +1,6 @@
 # 0078 — Two-handed items are held as a rifle
 
-- Status: accepted
+- Status: superseded by [2026-10-27-one-arm-holds](2026-10-27-one-arm-holds.md)
 - Date: 2026-10-20
 - Amended: 2026-10-20, the tuned hold (variant F of `exp/drill-poses`, without its crouch): a wider turn, a keyed pivot
 - Supersedes: the drill held "Terraria's way" in [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md)

@@ -360,12 +360,12 @@ public static class Aiming
         return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay) ? enter : null;
     }
 
-    /// <summary>The bit of <paramref name="look"/> held by <paramref name="hero"/> aimed at <paramref name="at"/>, turned at the chest as far as it turns, as the figure draws it.</summary>
+    /// <summary>The bit of <paramref name="look"/> held by <paramref name="hero"/> aimed at <paramref name="at"/>, the arm turned at the shoulder, as the figure draws it.</summary>
     private static (double Ax, double Ay, double Bx, double By) BitOf(Hero hero, Point at, HeldLook look)
     {
         double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        double angle = TwoHand.AngleFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        var (a, b) = (TwoHand.At(look, angle, look.EdgeFrom), TwoHand.At(look, angle, look.EdgeTo));
+        double angle = HarpoonShot.ArmFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
+        var (a, b) = AxeSwing.EdgeAt(look, angle);
         return (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
     }
 

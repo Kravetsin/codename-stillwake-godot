@@ -128,9 +128,10 @@ public struct AxeSwing
 
     /// <summary>
     /// The front arm swinging, <paramref name="angle"/> radians from straight ahead of the shoulder, down
-    /// positive: straight, turned about the shoulder as one piece, the elbow never bent (0040).
+    /// positive: turned about the shoulder as one piece, the elbow bent <paramref name="elbow"/> as the item held wants,
+    /// straight for the axe (0040, 2026-10-27-one-arm-holds).
     /// </summary>
-    public static Bend ArmAt(double angle) => new(Math.PI / 2 - angle, 0);
+    public static Bend ArmAt(double angle, double elbow = 0) => new(Math.PI / 2 - angle, elbow);
 
     /// <summary>
     /// Where the ends of <paramref name="look"/>'s edge are, in pixels from the shoulder, swung with the
@@ -138,7 +139,7 @@ public struct AxeSwing
     /// </summary>
     public static (Vec From, Vec To) EdgeAt(HeldLook look, double angle)
     {
-        var arm = ArmAt(angle);
+        var arm = ArmAt(angle, look.Elbow);
         return (Rig.HeldAt(arm, look, look.EdgeFrom), Rig.HeldAt(arm, look, look.EdgeTo));
     }
 
