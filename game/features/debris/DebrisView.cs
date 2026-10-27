@@ -211,7 +211,7 @@ public partial class DebrisView(Ui ui) : Node2D
         bool drill = HeldLook.IsDrill(tool);
         var point = drill && bit is { } on ? on.At : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
-        HitBurst.Shared.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
+        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
         if (_own.Ran(piece.Id) && !drill)
         {
@@ -267,7 +267,7 @@ public partial class DebrisView(Ui ui) : Node2D
         var size = picture.Texture.GetSize() * picture.Scale;
         float big = Math.Clamp(size.Length() / 26f, 1f, 2f);
         AddChild(new BreakView(picture.Texture, at, picture.Rotation, picture.Scale.X));
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Effects).Glims;
         double spread = 3 * big;
         for (int i = 0; i < Math.Round(BreakSparks * big * Fx.Count); i++)
         {
@@ -286,9 +286,9 @@ public partial class DebrisView(Ui ui) : Node2D
             glims.Add(Luminous.Vapour, at.X + Math.Cos(a) * 3 * big, at.Y + Math.Sin(a) * 2 * big, Math.Cos(a) * s, Math.Sin(a) * s,
                 size: glims.Between(3, 4.5) * big);
         }
-        Flares.Shared.Glint(at.X, at.Y, 18 * Math.Sqrt(big), BreakGlint);
-        Flares.Shared.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
-        Flares.Shared.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
+        Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 18 * Math.Sqrt(big), BreakGlint);
+        Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
+        Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
         if (own) _break.PlayAt(at);
     }
 

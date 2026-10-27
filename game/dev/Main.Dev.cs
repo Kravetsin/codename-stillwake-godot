@@ -63,7 +63,7 @@ public partial class Main
     }
 
     /// <summary>The scenarios' nodes, made last, over every panel and menu they work, and the measuring tools.</summary>
-    private void AddDevDemos(GameMenu menu, SuitColours suits, HandbookPage debrisPage, EffectsView effects)
+    private void AddDevDemos(GameMenu menu, SuitColours suits, HandbookPage debrisPage, StagesView effects)
     {
         var context = new Dev.DevContext
         {
@@ -91,7 +91,7 @@ public partial class Main
             AddChild(new Dev.PerfReadout(() =>
             {
                 var (caves, lava, homes, spires) = (View<Features.Flora.CaveView>(), View<Features.Grid.LavaView>(), View<Features.Ruins.HomesView>(), View<Features.Ruins.SpiresView>());
-                return $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Glims.Shared.Live.Count} cave-lights={caves?.Lights.Count} lava-lights={lava?.Lights.Count} glints={caves?.Glinting} caves={caves?.TakeCostMs():F3}ms home-lights={homes?.Lights.Count} homes={homes?.TakeCostMs():F3}ms spire-lights={spires?.Lights.Count} spires={spires?.TakeCostMs():F3}ms";
+                return $"sync-worst={_worstSyncMs:F2}ms lamps={_light?.LampCount} lights={_light?.LightCount} effects={effects.TakeCostMs():F3}ms glims={Stages.Count} cave-lights={caves?.Lights.Count} lava-lights={lava?.Lights.Count} glints={caves?.Glinting} caves={caves?.TakeCostMs():F3}ms home-lights={homes?.Lights.Count} homes={homes?.TakeCostMs():F3}ms spire-lights={spires?.Lights.Count} spires={spires?.TakeCostMs():F3}ms";
             }));
     }
 

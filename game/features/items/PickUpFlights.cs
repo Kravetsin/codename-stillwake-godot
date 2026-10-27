@@ -81,16 +81,16 @@ public partial class PickUpFlights : Node2D
             }
             f.Trail[0] = (f.At.X, f.At.Y);
             int n = Math.Max(2, (int)Math.Round(f.Points * Math.Min(1, Fx.Length)));
-            if (f.Points > 1) Flares.Shared.Trail(f.Trail.AsSpan(0, Math.Min(n, f.Points)), Ribbon, 0.7, 0.85, 0.7);
-            Flares.Shared.Bloom(f.At.X, f.At.Y, 14, Ribbon, 0.35);
+            if (f.Points > 1) Stages.Of(Layers.Effects).Flares.Trail(f.Trail.AsSpan(0, Math.Min(n, f.Points)), Ribbon, 0.7, 0.85, 0.7);
+            Stages.Of(Layers.Effects).Flares.Bloom(f.At.X, f.At.Y, 14, Ribbon, 0.35);
             if (q < 1) continue;
             if (f.Nth == 0)
             {
-                Flares.Shared.Glint(chest.X, chest.Y, 6, Landed);
-                Flares.Shared.Shock(chest.X, chest.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
-                Flares.Shared.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
+                Stages.Of(Layers.Effects).Flares.Glint(chest.X, chest.Y, 6, Landed);
+                Stages.Of(Layers.Effects).Flares.Shock(chest.X, chest.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
+                Stages.Of(Layers.Effects).Flares.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
             }
-            else Flares.Shared.Glint(chest.X, chest.Y, 4, Landed);
+            else Stages.Of(Layers.Effects).Flares.Glint(chest.X, chest.Y, 4, Landed);
             _flights.RemoveAt(i);
         }
         _icons.QueueRedraw();

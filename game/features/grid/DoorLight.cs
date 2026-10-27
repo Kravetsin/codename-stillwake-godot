@@ -39,15 +39,15 @@ public static class DoorLight
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
             var end = middle + along * side;
-            Flares.Shared.Trail(middle.X, middle.Y, end.X, end.Y, Edge, 0.3, 0.75 * lit, 0.27);
+            Stages.Of(Layers.Doors).Flares.Trail(middle.X, middle.Y, end.X, end.Y, Edge, 0.3, 0.75 * lit, 0.27);
         }
-        Flares.Shared.Bloom(middle.X, middle.Y, 10, Warm, 0.25 * lit);
+        Stages.Of(Layers.Doors).Flares.Bloom(middle.X, middle.Y, 10, Warm, 0.25 * lit);
     }
 
     /// <summary>The panel come to rest, <paramref name="open"/> or shut: the slot's motes, or the seal's ring, glint, dust and hiss.</summary>
     public static void Rested(Vector2 corner, int length, bool hatch, bool open)
     {
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Doors).Glims;
         float span = length * Cell;
         if (open)
         {
@@ -59,13 +59,13 @@ public static class DoorLight
                     size: glims.Between(0.4, 0.6));
             }
             var slot = hatch ? corner + new Vector2(0.8f, HatchThick / 2f) : corner + new Vector2(Thick / 2f, 0.8f);
-            Flares.Shared.Glint(slot.X, slot.Y, 5, Seal);
+            Stages.Of(Layers.Doors).Flares.Glint(slot.X, slot.Y, 5, Seal);
             return;
         }
         // Shut: where the panel meets the frame, a door's floor, a hatch's right end.
         var seal = hatch ? corner + new Vector2(span - 0.4f, HatchThick / 2f) : corner + new Vector2(Thick / 2f, span - 0.4f);
-        Flares.Shared.Glint(seal.X, seal.Y, 5, Seal);
-        if (!hatch) Flares.Shared.Shock(seal.X, seal.Y + 0.1, 4, 4 + 18 * Fx.Length, 11 * Glim.SampleMs, Floor, 0.32 * Fx.Glow, 0.26, 0.12);
+        Stages.Of(Layers.Doors).Flares.Glint(seal.X, seal.Y, 5, Seal);
+        if (!hatch) Stages.Of(Layers.Doors).Flares.Shock(seal.X, seal.Y + 0.1, 4, 4 + 18 * Fx.Length, 11 * Glim.SampleMs, Floor, 0.32 * Fx.Glow, 0.26, 0.12);
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
             for (int i = 0; i < Math.Round(4 * Fx.Count); i++)

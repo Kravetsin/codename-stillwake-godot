@@ -148,7 +148,7 @@ public partial class PodView : Node2D
         _afterglow = Afterglow;
         int hatch = _crew.Spawn;
         // The hatch breathes out: a few puffs of vapour rolling up and out (0075), over the waking cell's right edge.
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Machines).Glims;
         double hx = (hatch % _grid.Width + 1) * Cell, hy = (hatch / _grid.Width + 0.2) * Cell;
         for (int i = 0; i < 5; i++)
         {

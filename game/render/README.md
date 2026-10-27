@@ -28,7 +28,7 @@
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `ItemIcons.cs` | Each item's 16 px picture and its white silhouette. |
-| `Layers.cs` | Where each thing in the world is drawn, back to front. |
+| `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
@@ -47,6 +47,7 @@
 | `ShipTiles.cs` | Every picture of the ship's cells in one atlas with one normal map, built once (`Shared`) for every view and surface. |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
+| `logic/Stages.cs` | The effects of each draw layer, a stage a z, and the figures' held stages (effects-on-their-layer). |
 | `Stars.cs` | Space behind the ship: a tile of stars over the whole screen; its sprite also drawn behind the title. |
 | `WorldShot.cs` | A small picture of the world as the camera sees it, no HUD in it: the title's world cards. |
 | `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |

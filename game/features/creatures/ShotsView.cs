@@ -108,13 +108,13 @@ public partial class ShotsView : Node2D
             if (!_arcsShown.Add(arc.Id)) continue;
             var (from, to) = (new Vector2(arc.X0, arc.Y0) * k, new Vector2(arc.X1, arc.Y1) * k);
             Chain(from, to, 9, 1.2, 1);
-            Flares.Shared.Flash(to.X, to.Y, Cyan, 1.0 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
-            Flares.Shared.Flash(from.X, from.Y, Cyan, 0.6 * Fx.Glow, 6, CreatureLooks.LightKeep, 0.8);
-            Flares.Shared.Glint(to.X, to.Y, 5, (232, 251, 255));
+            Stages.Of(Layers.Effects).Flares.Flash(to.X, to.Y, Cyan, 1.0 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
+            Stages.Of(Layers.Effects).Flares.Flash(from.X, from.Y, Cyan, 0.6 * Fx.Glow, 6, CreatureLooks.LightKeep, 0.8);
+            Stages.Of(Layers.Effects).Flares.Glint(to.X, to.Y, 5, (232, 251, 255));
             for (int i = 0; i < 12; i++)
             {
                 double a = Between(0, Math.Tau), s = Between(30, 110);
-                Glims.Shared.Add(Spark, to.X, to.Y, Math.Cos(a) * s, Math.Sin(a) * s);
+                Stages.Of(Layers.Effects).Glims.Add(Spark, to.X, to.Y, Math.Cos(a) * s, Math.Sin(a) * s);
             }
             _arcs.Play(S.ArcStruck, from);
             _arcs.Play(S.ArcHit, to);
@@ -138,7 +138,7 @@ public partial class ShotsView : Node2D
         {
             var b = i == links ? to : from + way * i / links + across * (float)Between(-3, 3);
             var (p, q) = (a, b);
-            Bolts.Shared.Add(() => (p.X, p.Y, q.X, q.Y, 0), life, intensity, width, branchy: true);
+            Stages.Of(Layers.Effects).Bolts.Add(() => (p.X, p.Y, q.X, q.Y, 0), life, intensity, width, branchy: true);
             a = b;
         }
     }

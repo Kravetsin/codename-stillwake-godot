@@ -18,9 +18,6 @@ public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
     private readonly Flares _flares = flares;
     private readonly Bolts _bolts = bolts;
 
-    /// <summary>Thrown into the world's particles, which the effects layer draws.</summary>
-    public DrillLight() : this(Glims.Shared, Flares.Shared, Bolts.Shared) { }
-
     /// <summary>
     /// Over a running drill's arc-fitted mount a second at full speed, on average, times <see cref="Fx.Crackle"/>: fine arcs between
     /// its turns, sparks set crawling along it, sparks leaping off it, micro-glints.

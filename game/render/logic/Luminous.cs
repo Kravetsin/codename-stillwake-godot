@@ -279,9 +279,6 @@ public sealed class Glims(int limit, Func<double>? random = null)
     /// <summary>At most this many fly at once: a big break thins out rather than costing frames.</summary>
     public const int Limit = 1600;
 
-    /// <summary>The game's, one set: features emit into it, the effects layer moves and draws it, the light lights it.</summary>
-    public static Glims Shared { get; } = new(Limit);
-
     private readonly Func<double> _random = random ?? Random.Shared.NextDouble;
     private readonly List<Glim> _live = [];
     private double _seconds;

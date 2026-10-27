@@ -255,7 +255,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         one.Motion.Hit(away, share);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
         var side = middle + new Vector2(-away * spec.Body.Width * Cell * 0.4f * one.Body.Size, Mathf.Clamp(hero.Y - middle.Y, -6, 6));
-        HitBurst.Shared.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, share, floor: one.Drawn.Y);
+        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], side.X, side.Y, -away, -0.25, share, floor: one.Drawn.Y);
         if (S.Creatures.TryGetValue(one.Species, out var cues))
         {
             var voices = own ? _ownHits : _worldHits;
@@ -356,7 +356,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         if (c.Posture == Posture.WindUp && one.ModeWas != Posture.WindUp)
         {
             var snout = feet + new Vector2(facing * wide * 0.5f, -spec.Body.Height * Cell * 0.45f * one.Body.Size);
-            var glims = Glims.Shared;
+            var glims = Stages.Of(Layers.Creatures).Glims;
             for (int i = 0; i < 6; i++)
                 glims.Add(Puff, snout.X, snout.Y, facing * glims.Between(10, 28), glims.Between(-8, 2), size: glims.Between(2, 3.5));
             _worldHits.Play(S.Snort, snout, S.Snort.Tune, 0);
@@ -369,7 +369,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         bool charging = c.Posture == Posture.Charge;
         one.ScrapeMs = charging ? ChargeDustMs : ScrapeEveryMs;
         var heel = feet + new Vector2(-facing * wide * 0.32f, -0.5f);
-        var dust = Glims.Shared;
+        var dust = Stages.Of(Layers.Creatures).Glims;
         for (int i = 0; i < (charging ? 2 : 3); i++)
             dust.Add(Luminous.LandDust, heel.X + dust.Between(-1.5, 1.5), heel.Y, -facing * dust.Between(18, charging ? 40 : 60), -dust.Between(4, 16), feet.Y);
     }
@@ -421,8 +421,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         var spec = Spec.Creatures.Get(one.Species);
         var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
-        HitBurst.Shared.Throw(HitLooks.Of[impact], middle.X, middle.Y, 0, -1, 1, floor: one.Drawn.Y);
-        var glims = Glims.Shared;
+        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], middle.X, middle.Y, 0, -1, 1, floor: one.Drawn.Y);
+        var glims = Stages.Of(Layers.Effects).Glims;
         for (int i = 0; i < 14; i++)
         {
             double a = glims.Between(0, Math.Tau), s = glims.Between(10, 46);
@@ -433,8 +433,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             double a = glims.Between(0, Math.Tau), s = glims.Between(4, 14);
             glims.Add(Puff, middle.X + Math.Cos(a) * 6, middle.Y + Math.Sin(a) * 5, Math.Cos(a) * s, Math.Sin(a) * s - 4, size: glims.Between(3, 5));
         }
-        Flares.Shared.Glint(middle.X, middle.Y, 12, (255, 255, 255));
-        Flares.Shared.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
+        Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
+        Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
         if (S.Creatures.TryGetValue(one.Species, out var cues))
             (_clockMs - one.OwnAt < OwnMs * 2 ? _ownHits : _worldHits).Play(cues.Death, middle, cues.Death.Tune, 0);
         one.Body.Dying = 0;

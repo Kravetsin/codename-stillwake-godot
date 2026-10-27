@@ -15,7 +15,7 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
   corner, 3.5 px to either side) on curling paths (`Luminous.Ember`: drifting up, turned by noise,
   flickering), white-hot at the head and cooling through amber to a dull red as they fade, each lighting
   the wall a little; 3.6 motes of ash a second drift up with them (`Luminous.Ash`). Owed between frames,
-  emitted into `Glims.Shared`, drawn and lit by the effects feature.
+  emitted on the fire's stage (`Stages.Of(Layers.Fire)`), under a hero before it, drawn and lit by the effects feature.
 - **Crackle:** with each new picture its fire draws how brightly it burns (`Flames.Blaze`): from
   `Flames.Low` to whole, or one picture in ten a coal cracks: it flares to `Flames.Crack`, throws 2 to 4
   fast sparks that arc and fall, bouncing off the machine's floor (`Luminous.CrackSpark`), and glints once

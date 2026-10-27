@@ -76,7 +76,7 @@ public partial class VentLight : Node2D
     /// <summary>A stream's streaks and condensation, from anywhere across its opening, its owed share carried over.</summary>
     private void Emit(AirStream s, Vector2 at, ref double jets, ref double puffs, double elapsedMs)
     {
-        var glims = Glims.Shared;
+        var glims = Stages.Of(Layers.Effects).Glims;
         double perMs = s.PerSecond * Fx.Count / 1000;
         for (jets += perMs * elapsedMs; jets >= 1; jets--)
         {
@@ -102,7 +102,7 @@ public partial class VentLight : Node2D
         {
             if (_openings.Contains((cell.X + (int)Math.Round(-way.Y * side), cell.Y + (int)Math.Round(way.X * side)))) continue;
             var (inner, outer) = (at + across * side - way * Cell * 0.5f, at + across * side + way * Cell * 0.5f);
-            Flares.Shared.Trail(inner.X, inner.Y, outer.X, outer.Y, Frost, 0.3, 0.3, 0.3);
+            Stages.Of(Layers.Effects).Flares.Trail(inner.X, inner.Y, outer.X, outer.Y, Frost, 0.3, 0.3, 0.3);
         }
     }
 
@@ -116,6 +116,6 @@ public partial class VentLight : Node2D
         var way = Vector2.FromAngle((float)heading);
         var across = new Vector2(-way.Y, way.X) * (Cell * 0.48f) * (_random.NextDouble() < 0.5 ? -1 : 1);
         var at = new Vector2((float)s.X, (float)s.Y) * Cell + across + way * (float)(Between(-0.4, 0.5) * Cell);
-        Flares.Shared.Glint(at.X, at.Y, 2.8, FrostGlint);
+        Stages.Of(Layers.Effects).Flares.Glint(at.X, at.Y, 2.8, FrostGlint);
     }
 }

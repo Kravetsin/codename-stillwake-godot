@@ -70,6 +70,8 @@ public partial class Main : Node2D, ITogether
     private GridView? _grid;
     private LightView? _light;
     private ShipCamera _camera = null!;
+    /// <summary>The world's stages of effects, each drawn at its layer, kept last among the world's views (effects-on-their-layer).</summary>
+    private readonly StagesView _stages = new();
     private Stars _stars = null!;
     private string _role = "alone";
     private bool _cheat;
@@ -186,8 +188,7 @@ public partial class Main : Node2D, ITogether
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
         }
-        var effects = new EffectsView();
-        AddChild(effects);
+        AddChild(_stages);
         AddChild(_hands);
         AddChild(_shot);
         // The world pictured for its card as the menu opens, the way out of it.
@@ -248,7 +249,7 @@ public partial class Main : Node2D, ITogether
         AddChild(_updater);
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
-        AddDevDemos(menu, suits, debrisPage, effects);
+        AddDevDemos(menu, suits, debrisPage, _stages);
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
@@ -283,9 +284,7 @@ public partial class Main : Node2D, ITogether
         _hands.Ui.OpenComputer.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
-        Bolts.Shared.Clear();
-        Glims.Shared.Clear();
-        Flares.Shared.Clear();
+        Stages.Clear();
         Log($"on surface {surface} now");
     }
 
@@ -323,6 +322,8 @@ public partial class Main : Node2D, ITogether
         });
         // A planet's sky behind its ground, its land's foot at the spawn's ground; space aboard (0076, 0079).
         _stars.Show(_m.Rules.Sky != null ? PlanetLooks.Of[_m.Rules.Id].Backdrop : null, (_m.Crew.Spawn / _m.Grid.Width + 1) * ShipCamera.Cell);
+        // Last of the world's views: at a shared z, a stage's effects over its layer's objects.
+        MoveChild(_stages, -1);
         MoveChild(_camera, -1);
         _shown = _m;
         double views = System.Diagnostics.Stopwatch.GetElapsedTime(made).TotalMilliseconds;

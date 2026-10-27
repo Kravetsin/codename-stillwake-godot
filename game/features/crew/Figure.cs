@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -157,6 +158,8 @@ public partial class Figure : Node2D
     private double _lastPhase;
     /// <summary>The node the body's parts hang from: where a shoulder is, the arms' own frame.</summary>
     private readonly Node2D _frame;
+    /// <summary>The near arm's node among the parts: the held stage's view goes just under it.</summary>
+    private readonly Node2D _frontArmNode;
     private Vector2? _workAt;
     private double _workMs;
     private static readonly Color BeamColour = new(0.49f, 0.83f, 0.99f);
@@ -179,11 +182,13 @@ public partial class Figure : Node2D
     /// <param name="own">Whether it is this player's hero, heard the same anywhere rather than from where it is.</param>
     public Figure(int colour, bool own)
     {
+        _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
+        _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
         backArm.Position = frontArm.Position = new Vector2(0, (float)-Rig.Shoulder);
@@ -352,8 +357,42 @@ public partial class Figure : Node2D
     /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
     public bool Spinning { get; set; }
 
-    private readonly DrillLight _drillLight = new();
+    /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
+    private DrillLight? _drillLight;
     private Func<(double X, double Y), Vector2>? _heldAt;
+
+    private readonly bool _own;
+
+    /// <summary>What the figure itself throws, its boots' dust, its landing, its gloves' sparks: on its hero's layer.</summary>
+    private Stage Worn => Stages.Of(_own ? Layers.Hero : Layers.OtherHeroes);
+
+    private Stage? _heldStage;
+    private EffectsView? _heldView;
+
+    /// <summary>
+    /// What the held tool throws (effects-on-their-layer), the drill's coil and the harpoon's muzzle: over the torso and the tool,
+    /// under the front arm, its view a part of the figure between them. Made on first use, let go of as the figure leaves.
+    /// </summary>
+    public Stage Held
+    {
+        get
+        {
+            if (_heldStage != null) return _heldStage;
+            _heldStage = Stages.Held();
+            _heldView = new EffectsView(_heldStage) { InWorld = true };
+            _frame.AddChild(_heldView);
+            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
+            return _heldStage;
+        }
+    }
+
+    public override void _ExitTree()
+    {
+        if (_heldStage == null) return;
+        Stages.Drop(_heldStage);
+        _heldView!.QueueFree();
+        (_heldStage, _heldView, _drillLight) = (null, null, null);
+    }
 
     /// <summary>How fast the bit turns, from still (0) to full (1), and how far through its frames the picture is, in frames.</summary>
     private double _spin, _spinFrame;
@@ -389,9 +428,9 @@ public partial class Figure : Node2D
     /// A running boot's dust at (<paramref name="x"/>, <paramref name="y"/>), the floor (0075): fine motes kicked back
     /// against the way it <paramref name="faces"/>, settling, and a thin veil drifting back; matter, lit by the room.
     /// </summary>
-    private static void Kick(double x, double y, int faces)
+    private void Kick(double x, double y, int faces)
     {
-        var glims = Glims.Shared;
+        var glims = Worn.Glims;
         for (int i = 0; i < Math.Round(DustRun * Fx.Count); i++)
             glims.Add(Luminous.BootDust, x + glims.Between(-1.5, 1.5), y - 0.4, faces * glims.Between(-24, 6), -glims.Between(4, 15), y,
                 glims.Between(0.5, 0.85), glims.Between(0.45, 0.8));
@@ -407,7 +446,7 @@ public partial class Figure : Node2D
     /// </summary>
     private void Land(double x, double y, int grains, int fall)
     {
-        var glims = Glims.Shared;
+        var glims = Worn.Glims;
         foreach (int side in (ReadOnlySpan<int>)[-1, 1])
         {
             // It spreads along the floor only as far as the floor runs open: in a shaft, hardly at all (0077).
@@ -426,7 +465,7 @@ public partial class Figure : Node2D
         }
         var (to, ms, alpha) = Motion.RingOf(fall);
         double ring = Math.Min(Motion.RingFrom + (to - Motion.RingFrom) * Fx.Length, Math.Min(FloorRoom.Left, FloorRoom.Right));
-        if (ring >= 6) Flares.Shared.Shock(x, y - 0.4, Motion.RingFrom, ring, ms, (236, 240, 248), alpha * Fx.Glow, 0.28, 0.16);
+        if (ring >= 6) Worn.Flares.Shock(x, y - 0.4, Motion.RingFrom, ring, ms, (236, 240, 248), alpha * Fx.Glow, 0.28, 0.16);
     }
 
     /// <summary>How far, in pixels, a landing's dust needs the floor open to spread its whole way.</summary>
@@ -455,9 +494,9 @@ public partial class Figure : Node2D
     /// Sparks off the gloves sliding down a ladder (0092): <paramref name="count"/> tiny hot streaks flicked up and out from
     /// either hand, at <paramref name="front"/> and <paramref name="back"/> in pixels of the world.
     /// </summary>
-    private static void Sparks(Vector2 front, Vector2 back, int count)
+    private void Sparks(Vector2 front, Vector2 back, int count)
     {
-        var glims = Glims.Shared;
+        var glims = Worn.Glims;
         for (int i = 0; i < Math.Round(count * Fx.Count); i++)
         {
             var at = i % 2 == 0 ? front : back;
@@ -738,7 +777,10 @@ public partial class Figure : Node2D
         else _smear.Follow(null, null, false, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
-        _drillLight.Step(inHand && drill && item != null ? PartsOf(item) : null, _spin, _heldAt ??= HeldAt, elapsedMs);
+        var drilling = inHand && drill && item != null ? PartsOf(item) : null;
+        // Its stage made only once a drill runs in this hand: a body, a seated hero or the title's figures never need one.
+        if (drilling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
+        _drillLight?.Step(drilling, _spin, _heldAt ??= HeldAt, elapsedMs);
     }
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>
