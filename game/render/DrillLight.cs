@@ -6,7 +6,8 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// A drill's own light (0054, 0075, 0094), one a figure: while it runs, the arc's crackle over every mount of it an arc module
-/// is fitted at (<see cref="HeldParts.Crackles"/>, 0098), the drill's coil, as fine as a fire's embers
+/// is fitted at (<see cref="HeldParts.Crackles"/>, 0098), the drill's coil, and over a tool's own arcs (the railgun's barrel, as
+/// it charges, its charge for the spin), as fine as a fire's embers
 /// (slice 3): hair-thin arcs flicking between its turns, sparks crawling along it and now and then leaping a little way off,
 /// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; a plain drill has none. What its
 /// hits knock out of what they strike is that object's (<see cref="HitBurst"/>), thrown where it is struck, never at the bit.

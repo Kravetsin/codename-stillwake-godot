@@ -117,7 +117,7 @@ public partial class DebrisView(Ui ui) : Node2D
         {
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
-            if (!_out.Contains(id) && Fading.Broken(gone.Damage, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
+            if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
                 Burst(gone.Picture, _own.Ran(id));
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);

@@ -17,12 +17,14 @@ namespace Stillwake.Game;
 /// foregrip in the far one, <see cref="Hold"/> unused. On an arc bench (0099) its picture lies as held, the point
 /// <see cref="Clamp"/> between the vise's jaws (<see cref="BenchLook.Clamp"/>): where a tool is clamped is its own, so any
 /// tool sits on the bench with nothing drawn for it. A gun held to charge lays its <see cref="Charged"/> picture, the same size, over
-/// it as it fills (2026-10-27-the-railgun).
+/// it as it fills (2026-10-27-the-railgun), and the arc crackles over its own <see cref="Arcs"/> as a drill's coil does, more
+/// as it fills.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
-    TwoHands? Both = null, (double X, double Y)? Clamp = null, string? Charged = null)
+    TwoHands? Both = null, (double X, double Y)? Clamp = null, string? Charged = null,
+    IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -70,11 +72,12 @@ public sealed record HeldLook(
     /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red
     /// band, three capacitor cans standing on it in copper bands, the arc shard at its rear, short heavy rails clamped twice; held as
     /// the drill is, in both hands, the near on its pistol grip, the far on the foregrip under the rails; the edge the gap between
-    /// the rails, the nail leaving their ends. Charged, the cans, the gap and the shard light (<c>hero_railgun_charged.png</c>).
+    /// the rails, the nail leaving their ends. Charged, the cans, the gap and the shard light (<c>hero_railgun_charged.png</c>), and
+    /// the arc crackles along the whole barrel, a box each third of it.
     /// </summary>
     public static readonly HeldLook Railgun = new(
         "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Both: new TwoHands((20.5, 10), (16.5, 10)), Clamp: (21.5, 6.5),
-        Charged: "res://art/hero_railgun_charged.png");
+        Charged: "res://art/hero_railgun_charged.png", Arcs: [(17, 4, 24, 8), (24, 4, 31, 8), (31, 4, 38, 8)]);
 
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;

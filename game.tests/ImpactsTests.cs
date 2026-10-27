@@ -48,6 +48,17 @@ public class ImpactsTests
     }
 
     [Fact]
+    public void AHitOnTheShipsHullSparksAsMetalThoughItNeverBreaks()
+    {
+        var m = new TestWorld(Layout.Parse("""
+            ...
+            ###
+            """)).M;
+        Assert.Equal(Impact.Alloy, Impacts.At(m.Grid, m.Building, 4));
+        Assert.Equal(Impacts.ShareOf(Axe), Impacts.ShareAt(m.Grid, m.Building, 4, Axe, 99));
+    }
+
+    [Fact]
     public void AHitOnAGrowthLooksAsTheGrowthAndTheRockAroundAGrowthInItLooksAsItsStone()
     {
         var layout = Layout.Parse("""

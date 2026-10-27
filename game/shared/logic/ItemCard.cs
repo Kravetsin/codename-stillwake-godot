@@ -10,8 +10,8 @@ public sealed record CardEffect(string Name, string About, string Colour, string
 /// <summary>A module's technology (0086), by the id of its icon, and what it does in one short line: "×2 speed · ×2 power".</summary>
 public sealed record CardTech(string Tech, string About);
 
-/// <summary>A key cap and what it does: "LMB" and "craft".</summary>
-public sealed record CardKey(string Key, string Words);
+/// <summary>A key cap and what it does: "LMB" and "craft"; an item's own key alone, the player finding out what it does.</summary>
+public sealed record CardKey(string Key, string Words = "");
 
 /// <summary>
 /// One of a tool's tiles: its number as written and its label; the first, its accent, in amber. With modules fitted (0098), how it
