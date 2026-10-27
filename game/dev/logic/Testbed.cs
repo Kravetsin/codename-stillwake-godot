@@ -55,6 +55,9 @@ public static class Testbed
     /// <summary>What the engine's tank holds at the start: biofuel, so it draws its power.</summary>
     public const int Fuelled = 10;
 
+    /// <summary>What the drop pod's slot holds at the start: biofuel for two descents (the descent's <c>DescentFuel</c> each).</summary>
+    public const int PodFuel = 2 * Landing.DescentFuel;
+
     /// <summary>A drill with <paramref name="module"/> fitted, as a save writes its stack (0098): a dev world's, the bench to come.</summary>
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
@@ -63,7 +66,8 @@ public static class Testbed
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
     /// furnace, the Former, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
     /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
-    /// antenna stands on the roof at the bow, the drop pod further aft on a launch platform laid in the roof, out in space. Twelve panels on the roof: the first and the third feed the
+    /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
+    /// cabled to the panel over the airlock, biofuel for two descents in its slot. Twelve panels on the roof: the first and the third feed the
     /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
     /// computer and the antenna, the fourth the analyzer,
     /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
@@ -77,15 +81,15 @@ public static class Testbed
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
-            "                      ZZ" + new string(' ', 72),
-            "   NN                 ZZ",
-            "   NN  PPP  PPPPPP PPPZZ PPP PPP PPP PPP PPP PPP PPP PPP",
-            "  ####################__#########################",
-            "  #.......LUUU...#....L.........J.......L...#.L.#",
-            "  #.OOOQQ..UUU.RRD..............gg...GG.....D...D",
-            "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBD...D",
-            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBD...D",
-            "  #o#############################################",
+            new string(' ', 96),
+            "   NN",
+            "   NN  PPP  PPPPPP PPP   PPP PPP PPP PPP PPP PPP PPP PPP",
+            "  ###############################################",
+            "  #.......LUUU...#....L.........J.......L...#..L#",
+            "  #.OOOQQ..UUU.RRD..............gg...GG.....DZZ.D",
+            "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
+            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBDZZ.D",
+            "  #o#########################################__##",
             "  #XXXL#",
             "  #XXX.#",
             "  ######",
@@ -102,10 +106,10 @@ public static class Testbed
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
-            ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (46, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
+            ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
-            ((7, 5), (3, 9)), ((3, 9), (6, 9)),
+            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)),
         ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
@@ -192,6 +196,7 @@ public static class Testbed
             new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
+            new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
             new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },

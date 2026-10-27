@@ -38,6 +38,8 @@ public sealed class World
     private readonly SortedDictionary<int, int> _where = new();
     // Moves asked by modules while the surfaces ran, made once they all have, in the order asked.
     private readonly List<(int Peer, int Surface)> _sends = [];
+    // The planet a descent asked for this tick (ISurfaces.OpenPlanet), opened before the sends; never saved, empty between steps.
+    private string? _opening;
     private readonly RngState _rng;
     private readonly Rng _rngOver;
     // The world's own commands, which no surface's modules handle.
@@ -171,16 +173,24 @@ public sealed class World
                 foreach (var m in _surfaces[i].Modules)
                     foreach (var (p, run) in m.Systems)
                         if (p == phase) run();
+        // Opened by the ship, after every surface ran this tick: it runs from the next.
+        if (_opening != null) Open(_opening, 0);
+        _opening = null;
         foreach (var (peer, surface) in _sends) Move(peer, surface, null);
         _sends.Clear();
         Tick += 1;
         return refused;
     }
 
-    /// <summary>A surface of <paramref name="c"/>'s kind, made from its map and seeded from the world's random numbers.</summary>
-    private void Open(OpenSurface c)
+    private void Open(OpenSurface c) => Open(c.Kind, SurfaceOf(c.From));
+
+    /// <summary>
+    /// A surface of kind <paramref name="kindId"/>, made from its map and seeded from the world's random numbers, keeping what
+    /// surface <paramref name="opener"/> keeps for a new one (its creative flag).
+    /// </summary>
+    private void Open(string kindId, int opener)
     {
-        var kind = Content.Surfaces.Get(c.Kind);
+        var kind = Content.Surfaces.Get(kindId);
         var ship = _surfaces[0].Modules as IModules ?? throw new InvalidOperationException("This world cannot open surfaces.");
         uint seed = _rngOver.Below(1UL << 32);
         var layout = kind is Content.PlanetType type ? Terrain.Generate(type, seed) : Layout.Parse(kind.Rows).Doubled();
@@ -188,7 +198,7 @@ public sealed class World
         var surface = Attach(new Surface(_surfaces.Count, kind.Id, seed), modules);
         foreach (var m in modules) m.Create(layout);
         // What the opener's surface keeps for the new one: its twin of each module.
-        var from = _surfaces[SurfaceOf(c.From)].Modules;
+        var from = _surfaces[opener].Modules;
         foreach (var m in modules)
             if (from.FirstOrDefault(f => f.Id == m.Id) is { } twin) m.Inherit(twin);
         foreach (var m in modules) m.Rebuild();
@@ -344,8 +354,21 @@ public sealed class World
 
         public void Send(int peer, int surface)
         {
-            if (surface < 0 || surface >= world._surfaces.Count) throw new ArgumentOutOfRangeException(nameof(surface));
+            // A planet opening this tick takes the next id, and is there by the time the sends are made.
+            int count = world._surfaces.Count + (world._opening != null ? 1 : 0);
+            if (surface < 0 || surface >= count) throw new ArgumentOutOfRangeException(nameof(surface));
             world._sends.Add((peer, surface));
+        }
+
+        public bool CanOpen => world.CanOpen;
+
+        public int OpenPlanet()
+        {
+            for (int i = 1; i < world._surfaces.Count; i++)
+                if (Content.Surfaces.Get(world._surfaces[i].Surface.Kind) is Content.PlanetType) return i;
+            if (!world.CanOpen) throw new InvalidOperationException("This world cannot open a planet.");
+            world._opening = Content.Landing.Planet;
+            return world._surfaces.Count;
         }
     }
 

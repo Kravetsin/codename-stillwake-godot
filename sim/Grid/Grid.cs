@@ -128,6 +128,12 @@ public interface IGridQueries
     /// </summary>
     IReadOnlyList<int> PieceOf(int cell);
     string? PlacementProblem(int cell, Placement placement);
+    /// <summary>Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands over a launch platform's run, every cell under it a platform's, shut or open.</summary>
+    bool OnRun(string kind, int cell);
+    /// <summary>Whether something solid stands at <paramref name="cell"/>, a structure or a machine: what a platform's shaft must be empty of.</summary>
+    bool Taken(int cell);
+    /// <summary>Whether every cell under <paramref name="cell"/> in its column, to the grid's edge, is empty of anything solid: a platform's shaft.</summary>
+    bool ClearBelow(int cell);
     /// <summary>
     /// The structure codes of the cells the <see cref="SetDoor"/>s among <paramref name="toggles"/> would change, in order, each as its command would apply it and skipped
     /// where it would be refused: what a client shows of its own toggles before their tick runs (0014). Every
@@ -556,7 +562,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (covers.Any(c => State.Structure[c] != Structure.Empty)) return "grid.occupied";
                 if (covers.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 if (Structures.ByBuild(p.Kind)?.Has(Trait.Terrain) == true && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
-                return null;
+                return ShaftProblem(p.Kind, covers);
             case "back":
                 if (State.Back[cell] != Back.None) return "grid.occupied";
                 return Materials.TryGet(p.Material ?? "", out _) ? null : "grid.noSuchMaterial";
@@ -567,25 +573,59 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!cells.All(InZone)) return "grid.outsideZone";
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
+                if (cells.Any(UnderPlatform)) return "grid.underPlatform";
                 if (Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach))
                     return "grid.noExhaust";
-                return Content.Machines.Is(p.Kind, MachineTrait.Lands) && !OnPlatform(p.Kind, cell) ? "grid.noPlatform" : null;
+                if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
+                // Off the ship a pod is only ever landed by its module, on the ground.
+                if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
+                return OnRun(p.Kind, cell) ? null : "grid.noPlatform";
             default:
                 return "grid.noSuchLayer";
         }
     }
 
+    public bool OnRun(string kind, int cell) => RowUnder(kind, cell, c => Doorways.IsPlatform(State.Structure[c]));
+
+    public bool Taken(int cell) => State.Structure[cell] != Structure.Empty || State.Occupancy[cell] != 0;
+
+    public bool ClearBelow(int cell)
+    {
+        for (int c = cell + State.Width; c < State.Structure.Length; c += State.Width)
+            if (Taken(c)) return false;
+        return true;
+    }
+
+    /// <summary>Whether a launch platform stands above <paramref name="cell"/> in its column, however far up: the cell is in its shaft.</summary>
+    private bool UnderPlatform(int cell)
+    {
+        for (int c = cell - State.Width; c >= 0; c -= State.Width)
+            if (Doorways.IsPlatform(State.Structure[c])) return true;
+        return false;
+    }
+
     /// <summary>
-    /// Whether a machine of <paramref name="kind"/> from <paramref name="cell"/> stands on a launch platform: every cell of the row
-    /// under its footprint a platform's, shut or open, so it stands over one run (<see cref="MachineTrait.Lands"/>).
+    /// Why a structure of <paramref name="kind"/> may not cover <paramref name="covers"/> for the shafts the pod falls through: in one
+    /// (<c>grid.underPlatform</c>), or a platform over one not empty to the edge (<c>grid.shaftBlocked</c>); null when it may.
     /// </summary>
-    private bool OnPlatform(string kind, int cell)
+    private string? ShaftProblem(string kind, IReadOnlyList<int> covers)
+    {
+        if (covers.Any(UnderPlatform)) return "grid.underPlatform";
+        return Structures.Placed(kind) is int code && Doorways.IsPlatform(code) && !covers.All(ClearBelow) ? "grid.shaftBlocked" : null;
+    }
+
+    /// <summary>
+    /// Whether every cell of the row under the footprint of a machine of <paramref name="kind"/> from <paramref name="cell"/> is
+    /// <paramref name="under"/>: aboard a launch platform's, shut or open, so it stands over one run; off the ship, ground
+    /// (<see cref="MachineTrait.Lands"/>).
+    /// </summary>
+    private bool RowUnder(string kind, int cell, Func<int, bool> under)
     {
         var spec = Content.Machines.Get(kind);
         int x = cell % State.Width, below = cell / State.Width + spec.Height;
         if (below >= State.Height) return false;
         for (int dx = 0; dx < spec.Width; dx++)
-            if (!Doorways.IsPlatform(State.Structure[below * State.Width + x + dx])) return false;
+            if (!under(below * State.Width + x + dx)) return false;
         return true;
     }
 

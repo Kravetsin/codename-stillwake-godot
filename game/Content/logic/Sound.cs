@@ -518,10 +518,42 @@ public static class Sound
 
     public const double SpaceInS = 2.5, SpaceOutS = 2;
 
+    /// <summary>
+    /// A drop pod's engine (the descent's sounds): the jetpack's thrust, lower and louder, placed on the pod and heard far on the
+    /// World bus by everyone on its surface: the drop's kick, the touchdown's braking burn, the lift-off. Its envelope rises over
+    /// <see cref="PodThrustAttackS"/> and falls over <see cref="PodThrustReleaseS"/>.
+    /// </summary>
+    public static readonly Cue PodThrust = Thrust with { VolumeDb = 2, Tune = 0.62f, Heard = BreakReach };
+
+    public const double PodThrustAttackS = 0.15, PodThrustReleaseS = 0.6;
+
+    /// <summary>A pod's clamps letting go as it drops or lifts off: a drone's docking clunk, lower, heard as far as its engine.</summary>
+    public static readonly Cue PodRelease = DroneDock with { VolumeDb = -2, Tune = 0.72f, Heard = BreakReach };
+
+    /// <summary>A pod touching down: a hard landing, much lower, heard as far as its engine; again, quieter, at its bounce.</summary>
+    public static readonly Cue PodTouchdown = LandHard with { VolumeDb = 2, Tune = 0.6f, Pitch = 0.03f, Heard = BreakReach };
+
+    /// <summary>What the rider feels through the hull in flight, on the Suit bus: lava's low bed, lower, rising with the speed.</summary>
+    public static readonly Cue PodRumble = LavaBed with { VolumeDb = -2, Tune = 0.75f, Heard = null };
+
+    /// <summary>The rider's thump as the flight whites out over a planet's opening, on the Suit bus: a hard landing, very low.</summary>
+    public static readonly Cue PodFlash = LandHard with { VolumeDb = 0, Tune = 0.42f, Pitch = 0, Heard = null };
+
+    /// <summary>
+    /// A pod's flame blasting the ground under it as it lands or lifts off: the venting hiss, far lower, a roar of grit placed on
+    /// the pod, its gain the blast's share; the engine swells <see cref="PodBlastDb"/> with it.
+    /// </summary>
+    public static readonly Cue PodBlast = Hiss with { VolumeDb = 0, Tune = 0.45f, Heard = BreakReach };
+
+    public const float PodBlastDb = 9;
+
+    /// <summary>The descent's cues, made from others declared above.</summary>
+    public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
+
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values];
+        LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

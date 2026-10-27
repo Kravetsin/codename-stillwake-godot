@@ -162,6 +162,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A machine's drone badge (0062), the logistics feature's, put at the right of its frame's header; null where drones have no work. Set by <c>Main</c>.</summary>
     public Func<int, Control?>? Served { get; set; }
 
+    /// <summary>A drop pod's Descend or Return key, the landing feature's, put under its slot; null for any other machine. Set by <c>Main</c>.</summary>
+    public Func<int, Control?>? Launch { get; set; }
+
     /// <summary>The item drones keep a machine's slot full of, while drones serve it (0062); null for none. Set by <c>Main</c>.</summary>
     public Func<Place, string?>? Kept { get; set; }
 

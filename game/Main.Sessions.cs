@@ -37,7 +37,9 @@ public partial class Main
     private void Host(string? name)
     {
         if (Has("--perf")) _layout = PerfLayout();
-        var world = World.Create(1, _layout, Modules());
+        // A scenario that makes its own world (the testbed) makes it when hosting too, as it does alone.
+        var modules = Modules();
+        var world = _scenarios.Select(s => s.Create(modules)).FirstOrDefault(w => w != null) ?? World.Create(1, _layout, modules);
         // The debris and wreck scenarios are played hosting too, so a guest sees a catch, or the host chop.
         foreach (var scenario in _scenarios.Where(s => s.Hosted)) world = scenario.Seed(world, new Dev.DevSeed(Modules, _m));
         _roster = Roster.Empty();

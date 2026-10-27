@@ -57,6 +57,12 @@ public partial class BuildingView : Node2D
         _cancelOutline = new(Layers.PlanMarks) { Modulate = AsciiArt.Colour(0xffc94d, 0.95f) };
     /// <summary>What a middle drag would take, before it is let go: drawn as its marks will be, a red ghost in dashes.</summary>
     private readonly PlanTiles _taking = new(tint: 0.6f) { ZIndex = Layers.PlanGhost, Modulate = Mark with { A = GhostAlpha } };
+    /// <summary>The shafts under launch platforms, kept clear for the pod's fall, while building on the plan.</summary>
+    private readonly Shafts _shafts = new();
+    /// <summary>The cells of the platform card's ghost, gathered as it is laid; the platforms built and planned, by the grid's version and the plans' count.</summary>
+    private readonly List<int> _ghostPlatform = [];
+    private (int Version, int Plans) _platformsOf = (-1, -1);
+    private int[] _platforms = [];
 
     private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
@@ -84,7 +90,7 @@ public partial class BuildingView : Node2D
         _ui = ui;
         _hand = hand;
         _plans = new(BackAlpha, backZ: Layers.PlanBacks, built: _built) { ZIndex = Layers.Plans, Modulate = Plan };
-        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _fits, _refused, _screwdriver, _glow]) AddChild(node);
+        foreach (var node in (Node2D[])[_built, _plans, _backOutline, _marked, _outline, _markOutline, _taking, _takingOutline, _keptOutline, _cancelOutline, _badges, _shafts, _fits, _refused, _screwdriver, _glow]) AddChild(node);
         _badges.Paint = PaintBadges;
     }
 
@@ -154,6 +160,8 @@ public partial class BuildingView : Node2D
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
         ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
         Ghost(tool, pointer, onGrid, grid, building, _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null);
+        bool shafts = _hand.PlanOut.Get() && _hand.Builds;
+        _shafts.Show(shafts ? grid : null, shafts ? PlatformsOf(grid, building) : [], shafts ? _ghostPlatform : []);
     }
 
     /// <summary>
@@ -403,6 +411,19 @@ public partial class BuildingView : Node2D
         _ui.CostTip.Set(tip);
     }
 
+    /// <summary>Every launch platform cell built or planned, scanned again only when the grid or the plans change.</summary>
+    private int[] PlatformsOf(IGridQueries grid, BuildingModule building)
+    {
+        if ((grid.Version, building.Plans.Count) == _platformsOf) return _platforms;
+        _platformsOf = (grid.Version, building.Plans.Count);
+        var cells = new List<int>();
+        var structure = grid.StructureLayer;
+        for (int c = 0; c < structure.Length; c++) if (Doorways.IsPlatform(structure[c])) cells.Add(c);
+        foreach (var plan in building.Plans)
+            if (plan.Place is { } place && Tools.IsPlatform(place)) cells.AddRange(grid.Footprint(place.Kind, plan.Cell) ?? [plan.Cell]);
+        return _platforms = [.. cells];
+    }
+
     /// <summary>The ghost of the card along a drag, or of a removal: its own pictures, green where the sim would take it and red where not.</summary>
     private void Ghost(Tool? tool, (double X, double Y)? pointer, bool onGrid, IGridQueries grid, BuildingModule building, Act? hovered)
     {
@@ -436,6 +457,7 @@ public partial class BuildingView : Node2D
     {
         int width = grid.Width, height = grid.Height;
         _ui.Reason.Set(null);
+        _ghostPlatform.Clear();
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
@@ -458,6 +480,8 @@ public partial class BuildingView : Node2D
                     foreach (int c in grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell]) doorCodes[c] = Tools.CodeOf(place.Placement.Kind);
             }
             var doorLinks = doorCodes != null ? Tools.DoorLinks(grid, doorCodes) : null;
+            if (Tools.IsPlatform(place.Placement))
+                foreach (var v in verdicts) _ghostPlatform.AddRange(grid.Footprint(place.Placement.Kind, v.Cell) ?? [v.Cell]);
             foreach (var v in verdicts)
             {
                 var into = v.Problem != null ? _refused : _fits;

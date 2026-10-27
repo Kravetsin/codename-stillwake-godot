@@ -57,6 +57,8 @@ public partial class InventoryPanel
         });
         // Its module sockets under its body, for a machine that takes any (0086).
         if (Sockets(crate, kind) is { } sockets) _frame.Add(sockets);
+        // A drop pod's key under its slot: Descend, or Return off the ship.
+        if (Launch?.Invoke(crate) is { } launch) _frame.Add(launch);
         _shown.AddChild(_frame);
     }
 

@@ -73,4 +73,20 @@ public class DropPodTests
         Assert.Equal((8 * Hero.Unit, 10 * Hero.Unit), (held.X, held.Y));
         Assert.Equal("[E] Leave drop pod", I18n.En.T(Prompts.Seated.Action));
     }
+
+    [Fact]
+    public void HoldsAHeroFlyingWhereItsPodStoodTheFloorItHasNoSeatOn()
+    {
+        // The same room under a panel in space, cabled to its run.
+        var w = new TestWorld(Layout.Parse(["PPP       ", .. Rows], null, [((0, 0), (3, 6))]).Doubled());
+        int pod = w.M.Grid.MachinesWith(MachineTrait.Seats).Single().Id;
+        w.Step(new Enter(At(11, 11))).Give(0, ("biofuel", 5));
+        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "biofuel");
+        w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(slot), new Stillwake.Sim.Items.Target(null, pod), 5), new Board(pod));
+        int seat = Seating.SeatOf(w.M, 0)!.Value;
+        w.Step(new Launch());
+        Assert.Null(w.M.Landing.SeatOf(0));
+        Assert.NotNull(w.M.Landing.FlightOf(0));
+        Assert.Equal(seat, Seating.SeatOf(w.M, 0));
+    }
 }

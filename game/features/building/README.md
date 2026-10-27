@@ -8,12 +8,13 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 
 | File | Purpose |
 | --- | --- |
-| `logic/Tools.cs` | The tabs and cards from content's menu slots (0114), focus and removal, the overlay shown, search, hints, `CardAt` (the pipette), how a plan joins (`LinksOf`, `DoorLinks`). |
-| `logic/PlanHand.cs` | The card in hand and the plan out, in step with `Ui.Hand` and `Ui.OverlayOn`; the focused layer. |
+| `logic/Tools.cs` | Tabs and cards from menu slots (0114), focus, removal, overlay, search, hints, `CardAt` (pipette), joins (`LinksOf`, `DoorLinks`). |
+| `logic/PlanHand.cs` | Card in hand and plan out, in step with `Ui.Hand`, `Ui.OverlayOn`; the focused layer. |
 | `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
 | `BuildingView.cs` | Plans and marks drawn (ghosts, dashes, cuts), the tips, the buttons, the pipette, plan work. |
-| `BuildGlow.cs` | The light of work on plans (0075): sparks, glints, the molten spot, the cut's line, a finished plan's sweep. |
-| `logic/Catalogue.cs` | The menu's fixed frame (0073): size by slot size, rows scrolled, card under the pointer, scrollbar. |
+| `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut line, finish sweep. |
+| `Shafts.cs` | Platform shafts kept clear: a red hatch while building, a platform ghost's green or red. |
+| `logic/Catalogue.cs` | The menu's frame (0073): size by slot, rows scrolled, card hovered, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`, Z X C. |
 | `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud, behind the walls. |
 | `PlanKey.cs` | A key in a wing: a layer's (0110), a mode's (plan-modes). |

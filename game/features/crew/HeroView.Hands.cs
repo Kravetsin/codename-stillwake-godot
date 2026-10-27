@@ -27,6 +27,8 @@ public partial class HeroView
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
         double elapsedMs, bool handFree)
     {
+        // Flying in a drop pod, the hands do nothing, as passed out: E is no one's until it lands.
+        passedOut |= m.Landing.FlightOf(client.Id) != null;
         bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
         var shooter = GunInHand(handFree);

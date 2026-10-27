@@ -254,6 +254,9 @@ public static class Tools
     public static bool LaysDoor(Placement place) =>
         place.Layer == "structure" && Doorways.IsDoorway(CodeOf(place.Kind)) && Structures.Of(CodeOf(place.Kind)).Draw == StructureDraw.Door;
 
+    /// <summary>Whether <paramref name="place"/> lays a launch platform piece: what keeps a shaft clear under it (the descent's).</summary>
+    public static bool IsPlatform(Placement place) => place.Layer == "structure" && Doorways.IsPlatform(CodeOf(place.Kind));
+
     /// <summary>The structure code a placement of <paramref name="kind"/> is built as, as the grid stores it.</summary>
     public static int CodeOf(string kind) => Structures.Placed(kind) ?? Structure.Empty;
 
