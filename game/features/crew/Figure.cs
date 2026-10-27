@@ -87,6 +87,8 @@ public partial class Figure : Node2D
     private readonly Sprite2D _jetpack;
     /// <summary>The cape (a prototype): its inside behind the hero, its outside over it, arms and all.</summary>
     private readonly Cape _cape = new();
+    /// <summary>The air pack on the back: under a cape, so not drawn while one is worn.</summary>
+    private readonly Sprite2D _pack;
     private readonly CapeView _capeInside, _capeOutside;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
@@ -204,7 +206,7 @@ public partial class Figure : Node2D
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
         backArm.Position = frontArm.Position = new Vector2(0, (float)-Rig.Shoulder);
         var torso = new Node2D();
-        var pack = Part("pack");
+        var pack = _pack = Part("pack");
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
         var chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
@@ -354,21 +356,27 @@ public partial class Figure : Node2D
         {
             if (value == _capeOutside.Visible) return;
             _capeInside.Visible = _capeOutside.Visible = value;
+            _pack.Visible = !value;
             _cape.Reset();
         }
     }
 
-    /// <summary>The air pack's height: the cape's back edge lies over it from its top to here, then over the legs.</summary>
+    /// <summary>The air pack's height, and a jetpack's: the cape's back edge lies over it from its top to here, then over the legs.</summary>
     private const double PackTall = 12;
+
+    /// <summary>How far behind the middle the back of the torso and of the legs is: what a cape lies against.</summary>
+    private const double TorsoBack = 6.3, LegsBack = 5;
 
     /// <summary>How far behind the middle the back is at a height from the feet: the helmet's above the air pack, the pack's (the jetpack's when worn), then the legs'.</summary>
     private double BackAt(double y)
     {
-        double packTop = -Rig.Shoulder - Rig.H * 0.02, packBottom = packTop + PackTall, pack = _jetpack.Visible ? Back + 2.5 : Back + 0.5;
-        // Up over the shoulder to the pack and down off it gently: the cape slopes over it rather than humping.
+        // The air pack lies under the cape, not drawn: it lies on the back itself. A jetpack stays, and the cape over it.
+        if (!_jetpack.Visible) return y < -Rig.Hip ? TorsoBack : LegsBack;
+        double packTop = -Rig.Shoulder - Rig.H * 0.02, packBottom = packTop + PackTall, pack = Back + 2.5;
+        // Up over the shoulder to the jetpack and down off it gently: the cape slopes over it rather than humping.
         if (y < packTop) return Math.Max(7.5, pack - (packTop - y) * 1.2);
         if (y <= packBottom) return pack;
-        return Math.Max(5, pack - (y - packBottom) * 0.35);
+        return Math.Max(LegsBack, pack - (y - packBottom) * 0.35);
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>

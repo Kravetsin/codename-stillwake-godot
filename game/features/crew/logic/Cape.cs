@@ -28,7 +28,7 @@ public sealed class Cape
     private const double WrapAtShoulders = 2, WrapAtHem = 4;
     /// <summary>Where the top is pinned, front to back, from the feet: round the top of the neck and over the shoulder.</summary>
     private static readonly (double X, double Y)[] Pins =
-        [(1.5, -(Rig.Neck - 1)), (-1.5, -(Rig.Neck - 0.5)), (-5, -(Rig.Neck - 1.2)), (-8, -(Rig.Neck - 3))];
+        [(1.5, -(Rig.Neck - 1)), (-1.5, -(Rig.Neck - 0.6)), (-4.4, -(Rig.Neck - 1)), (-6.4, -(Rig.Neck - 2.2))];
 
     private Cloth? _cloth;
     private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows];
@@ -43,14 +43,15 @@ public sealed class Cape
     /// <summary>Its inside as last drawn: the same sheet, its front edge carried forward round the far side of the body.</summary>
     public ReadOnlySpan<(double X, double Y)> Inside => _inside;
 
-    /// <summary>Where point <paramref name="i"/> hangs as cut, in the figure's frame: from its pin down to the hem, flaring back.</summary>
+    /// <summary>Where point <paramref name="i"/> hangs as cut, in the figure's frame: from its pin down to the hem, close to the back and flaring below.</summary>
     public static (double X, double Y) Rest(int i)
     {
         int c = i % Cols;
         double u = (double)c / (Cols - 1), v = (double)(i / Cols) / (Rows - 1);
         var top = Pins[c];
         double hemX = -1.5 - u * 14.5, hemY = -1.5;
-        return (top.X + (hemX - top.X) * v, top.Y + (hemY - top.Y) * v);
+        // Close over the shoulders and the back, flaring out from the hips down.
+        return (top.X + (hemX - top.X) * v * v, top.Y + (hemY - top.Y) * v);
     }
 
     /// <summary>Where point <paramref name="i"/> lies on the cape's picture, 0 to 1 across (front edge to back) and down.</summary>

@@ -28,8 +28,8 @@ public class CapeTests
         public (double X, double Y) ToFrame((double X, double Y) p) => ((p.X - Feet) * Facing, p.Y);
     }
 
-    /// <summary>A back like the hero's: the air pack behind the shoulders to the hips, the legs below.</summary>
-    private static double Back(double y) => y < -27 ? 6.5 : y < -14 ? 9.9 : 5;
+    /// <summary>A back like the hero's under a cape: the torso's down to the hips, the legs' below.</summary>
+    private static double Back(double y) => y < -17.6 ? 6.3 : 5;
 
     private static double HemOffRest(Cape cape) => cape.Points[^1].X - Cape.Rest(Cape.Cols * Cape.Rows - 1).X;
 
@@ -42,7 +42,7 @@ public class CapeTests
         // The flared cut falls a little straighter under its own weight.
         Assert.InRange(HemOffRest(cape), -3.5, 3.5);
         // Its back edge lies over the pack, not standing off it: no hump; below the pack it flares as it was cut.
-        for (int r = 1; r < 4; r++)
+        for (int r = 1; r < 3; r++)
         {
             var p = cape.Points[r * Cape.Cols + Cape.Cols - 1];
             Assert.InRange(p.X, -Back(p.Y) - 1.5, -Back(p.Y) + 0.01);
