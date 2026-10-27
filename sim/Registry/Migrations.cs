@@ -19,7 +19,8 @@ namespace Stillwake.Sim;
 /// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel. Format 32 added
 /// the landing module (the launch platform), its slice empty. Format 33 renamed the fauna module creatures
 /// (2026-10-26-creatures-are-composed); format 34 composed its species, dropping the creatures out, which planets reached only
-/// from the dev panel held. Format 35 made the suit an item worn in its own slot (2026-10-27-suits-are-worn).
+/// from the dev panel held. Format 35 made the suit an item worn in its own slot (2026-10-27-suits-are-worn); format 36 added
+/// the cape's slot (2026-10-27-the-cape-is-worn).
 /// </summary>
 public static class Migrations
 {
@@ -27,7 +28,7 @@ public static class Migrations
     public const int Oldest = 31;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed, CreaturesComposed, SuitsWorn];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed, CreaturesComposed, SuitsWorn, CapeSlot];
 
     /// <summary>31 to 32: the landing module (the launch platform) joins every surface, holding nothing yet.</summary>
     private static JsonObject LandingJoins(JsonObject save)
@@ -70,6 +71,9 @@ public static class Migrations
     /// </summary>
     private static readonly int Head = Content.Inventory.Slots;
 
+    /// <summary>A peer's inventory's slots in format 35, the body's slot before the lamp's last: later formats add more.</summary>
+    private static readonly int SuitsTotal = Content.Inventory.Slots + 7;
+
     private static JsonObject SuitsWorn(JsonObject save)
     {
         var all = new List<JsonObject> { save["slices"]!.AsObject() };
@@ -95,13 +99,13 @@ public static class Migrations
                 if (held == null)
                 {
                     var slots = new JsonArray();
-                    for (int s = 0; s < Content.Inventory.Total; s++) slots.Add(null);
+                    for (int s = 0; s < SuitsTotal; s++) slots.Add(null);
                     held = new JsonObject { ["id"] = peer, ["slots"] = slots };
                     int at = inventories.Count(h => h!["id"]!.GetValue<int>() < peer);
                     inventories.Insert(at, held);
                 }
                 held["slots"]![Head] = new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 };
-                held["slots"]![Content.Inventory.Total - 2] = new JsonObject { ["item"] = Content.Suit.Basic, ["count"] = 1 };
+                held["slots"]![SuitsTotal - 2] = new JsonObject { ["item"] = Content.Suit.Basic, ["count"] = 1 };
             }
             foreach (var hero in all[i]["crew"]!["heroes"]!.AsArray().Select(h => h!.AsObject()))
             {
@@ -110,6 +114,16 @@ public static class Migrations
                 hero["air"] = air;
             }
         }
+        return save;
+    }
+
+    /// <summary>35 to 36: every peer's inventory, on the ship and every surface, gains the cape's slot, last and empty.</summary>
+    private static JsonObject CapeSlot(JsonObject save)
+    {
+        var all = new List<JsonObject> { save["slices"]!.AsObject() };
+        if (save["surfaces"] is JsonArray surfaces) all.AddRange(surfaces.Select(s => s!["slices"]!.AsObject()));
+        foreach (var slices in all)
+            foreach (var held in slices["items"]!["inventories"]!.AsArray()) held!["slots"]!.AsArray().Add(null);
         return save;
     }
 

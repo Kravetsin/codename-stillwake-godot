@@ -16,7 +16,7 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
   `ShortOf`, `Creative`; ops `Take`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`).
 - **State** (`CrewState`, all saved): `Spawn` — the first lifepod's hatch (`Content.Crew.PodHatch`), else the
   first `S`, else cell 0; `Pod` — that pod's top-left, or null (`Fixed`); `Clock`; `Heroes` — by peer id, in id
-  order (`Hero`): cell, air, ticks out, exerting, thrusting, thrust ticks toward the next unit.
+  order (`Hero`): cell, air, ticks out, exerting, thrusting, thrust ticks toward the next unit, the cape's `Spared`.
 
 ## Rules
 
@@ -45,35 +45,37 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
   the spawn. A hero waking off the ship wakes aboard, its body left behind.
 - **Exertion** (no ADR): `Exert(On)`, sent on a change of running by speed (not for a swim, 0047). Exerting, a
   breath costs `Crew.Exerted` units, room air or suit alike. Passing out ends it.
-- **The jetpack** ([0047](../../docs/decisions/0047-equipment-the-jetpack-and-the-slower-swim.md)): `Thrust(On)`
+- **The jetpack** (0047): `Thrust(On)`
   is sent while the client's thrust differs from the sim's. Each tick, before the breath, a conscious hero
   thrusting with a jetpack `Equipped` counts a tick; every `Jetpack.TicksPerUnit` its suit pays a unit, never
   below nothing, the remainder kept. Thrust stops when the jetpack is off, on a planet (nothing floats, 0076)
   or on passing out, a thrust landing on a hero out cleared that tick. The flight is the client's.
 - **Electric tools** (0055): `Items` owns runs; crew stops one (`StopRunning`) every tick a hero is out.
 - **A canister** (no ADR): `Refill` takes one (`Take`; none in creative) and adds `Crew.CanisterRefill` to the
-  suit, up to capacity: an absolute amount.
-- **Passing out is death** ([0061](../../docs/decisions/0061-death-leaves-a-body.md)): a suit at zero passes the
+  air, up to capacity.
+- **Passing out is death** (0061): a suit at zero passes the
   hero out for `Crew.PassOut` ticks, then it is made again at the spawn, full, in what it wore. That tick crew calls
   `LeaveBody(peer, cell)` at the reported cell, or the spawn if off the grid; `Items` leaves all but gear there.
   The client moves its hero there when it wakes.
-- **The cold past the field** ([0050](../../docs/decisions/0050-the-edge-is-made-of-oxygen.md)): the field is the
+- **The cold past the field** (0050): the field is the
   build zone grown by `Field.Margin`. `EdgeCost(cell)` is 0 inside, past it the square of the depth by the deeper
   axis toward `Field.EdgeCost` at the grid's edge and off it (rounded up; its summary has the formula). Each breath, after breath
   and refill, the suit alone pays it for the reported cell, never below nothing. No zone (a planet, 0076): no cold.
   With no body, where `AiredAt` is false, it pays `Crew.BareCold` more, on thin air on the shortfall's beat; `Cold(peer)` says it.
-- **Lava burns** ([0087](../../docs/decisions/0087-the-planets-core-is-lava.md)): `Burns(cell)`: lava
+- **Lava burns** (0087): `Burns(cell)`: lava
   (`Content.Lava.Material`) at the reported cell or up to `Lava.Reach` rows under it. Each breath the suit alone
   pays `Lava.Burn` more, with the cold.
-- **A shock** (0091, 0103): `ICrewOps.Shock(peer, units)` takes units from a conscious hero's suit at once,
-  passing it out as an empty suit does; nothing in creative. `Building` (ruins) and `Creatures` (a ram) call it.
+- **A shock** (0091): `ICrewOps.Shock(peer, units)` takes units from a conscious hero's air at once, passing it out at
+  nothing; nothing in creative. Ruins call it. **A blow** (0103): `Blow`, from `Creatures` (a ram, a bolt), the same.
+- **The cape** (2026-10-27-the-cape-is-worn) spares `Cape.Guard`‰ of a blow, `Cape.Warmth`‰ of the cold (not the
+  breath or lava), rounded down, the rest in `Hero.Spared` for either; a blow lands before the breath.
 - **Creative mode** (no ADR, `Items`' switch): each tick a conscious hero's air is full; it takes no pod or
   room air. A hero already out wakes as ever.
 - **Order** (no ADR): breaths run in the simulation phase after `Atmosphere`'s, so they read this tick's air.
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `Cold(peer)` (the frost);
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `Cold(peer)`, `Warmth(peer)` (the frost);
   `HeroOf(id)` — `Hero` (`Id`, `Cell`, `Air`, `Out`) or null; `Heroes` — live, read-only, in id order. On the
   module: `Burns(cell)`; `RefillProblem(peer)`, so the client sends no `Refill` the sim would refuse.
 - **Commands:** `Enter(Cell)`, never refused (off the grid or in a wall is no air); `PickColour(Colour)` —

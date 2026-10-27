@@ -41,7 +41,7 @@ public partial class SuitDemo : Control
     {
         (_view, _world) = (view, world);
         MouseFilter = MouseFilterEnum.Ignore;
-        int head = Spec.Inventory.Slots, body = Spec.Inventory.Total - 2;
+        int head = Spec.Inventory.Slots, body = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot);
         At(1.0, () => Press(Key.Tab));
         At(1.4, () => _target = _view.Panel.CenterOf(new Place(head)));
         At(1.6, () => Send((m, pod) => new Craft(pod, Spec.Helmet.Basic, 1)));

@@ -474,6 +474,7 @@ public partial class HeroView : Node2D
         _figure.Wear(Suits.Of(m.Players, client.Id));
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
+        _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
         _figure.Ledge = LedgeOf(ship, drawn);

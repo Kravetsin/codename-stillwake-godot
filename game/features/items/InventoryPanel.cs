@@ -310,19 +310,18 @@ public partial class InventoryPanel : CanvasLayer
     }
 
     /// <summary>
-    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058): the head's slot
-    /// with the helmet mount's beside it, over the back's, the belt's three and the body's, each kind under its name;
-    /// no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so the hands have no slot.
+    /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058), in rows by where it
+    /// is worn (<see cref="Equipment.Rows"/>): the head with the helmet's mount, the body with the back and the cape, the
+    /// belt's three; each kind under its name, no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so
+    /// the hands have no slot.
     /// </summary>
     private WristScreen Body(int size)
     {
         var column = Style.Gap(new VBoxContainer(), 2);
-        foreach (var kind in Content.Inventory.Equipment.Distinct().Where(k => k != Content.Helmet.Mount))
+        foreach (var kinds in Equipment.Rows)
         {
             var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-            row.AddChild(Kind(kind));
-            // What is fixed onto the helmet sits beside it.
-            if (kind == Content.Helmet.Slot) row.AddChild(Kind(Content.Helmet.Mount));
+            foreach (var kind in kinds) row.AddChild(Kind(kind));
             column.AddChild(row);
         }
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);

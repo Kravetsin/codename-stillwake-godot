@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Nodes;
 using Godot;
 using Stillwake.Net;
@@ -43,7 +44,7 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == Spec.Inventory.Slots + 1 ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
-                : i == Spec.Inventory.Total - 2 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
+                : i == Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot) ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
                 : i == 0 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 20 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });

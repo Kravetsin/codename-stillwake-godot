@@ -339,7 +339,7 @@ public partial class Figure : Node2D
         set => _jetpack.Visible = value;
     }
 
-    /// <summary>Whether the hero wears the cape (a prototype for cloth and hair that move): a sheet of cloth from the shoulders to the floor.</summary>
+    /// <summary>Whether the hero wears a cape (2026-10-27-the-cape-is-worn): a sheet of cloth from the shoulders to the floor.</summary>
     public bool WearsCape
     {
         get => _capeOutside.Visible;

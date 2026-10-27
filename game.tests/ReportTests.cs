@@ -186,10 +186,25 @@ public class ReportTests
     }
 
     [Fact]
+    public void DrawsTheFrostAtTheEdgeAFifthLighterOnAHeroInACapeItsBareFloorAsItWas()
+    {
+        // At the grid's corner the edge's whole cold: 1 bare of a cape, 0.8 eased out to 0.96 in one (2026-10-27-the-cape-is-worn).
+        var w = new TestWorld(Layout.Parse(["S"]).InWorld());
+        int spawn = w.M.Crew.Spawn, cape = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Cape.Slot);
+        w.Step(new Enter(spawn) { From = 0 });
+        Assert.Equal(1f, Report.Cold(w.M.Crew, 0, 0));
+        w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Cape.Item, 1) { From = 0 });
+        int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Stillwake.Content.Cape.Item);
+        w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(bag), new Stillwake.Sim.Items.Target(cape), 1) { From = 0 });
+        Assert.Equal(0.96f, Report.Cold(w.M.Crew, 0, 0), 4);
+        Assert.Equal(Report.BareFrost, Report.Cold(w.M.Crew, 0, spawn));
+    }
+
+    [Fact]
     public void DrawsThinFrostOnAHeroWithNoBodyInTheColdAtOnceAndNoneOnceItWearsOne()
     {
         var w = new TestWorld(Layout.Parse(["S"]).InWorld());
-        int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Total - 2;
+        int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Slots + Stillwake.Content.Inventory.Equipment.ToList().IndexOf(Stillwake.Content.Suit.Slot);
         w.Step(new Enter(spawn) { From = 0 });
         Assert.Equal(Report.BareFrost, Report.Cold(w.M.Crew, 0, spawn));
         w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Suit.Basic, 1) { From = 0 });

@@ -61,6 +61,11 @@ public interface ICrewQueries
     /// hero. What the frost is drawn at; the lava burns besides.
     /// </summary>
     int Cold(int peer);
+    /// <summary>
+    /// Thousandths of <see cref="Cold"/> hero <paramref name="peer"/>'s wear spares: its cape's <c>Cape.Warmth</c>, else 0
+    /// (2026-10-27-the-cape-is-worn). The frost is drawn that much lighter.
+    /// </summary>
+    int Warmth(int peer);
 }
 
 /// <summary>How another module may change a hero.</summary>
@@ -71,6 +76,12 @@ public interface ICrewOps
     /// a ruin's resonator zapping it (0091). Air run dry passes it out; nothing in creative mode, nor for a hero out or none.
     /// </summary>
     void Shock(int peer, int units);
+
+    /// <summary>
+    /// An enemy's blow of <paramref name="units"/> on hero <paramref name="peer"/>: a creature's ram or pounce, its bolt. A worn
+    /// cape spares its share (<c>Cape.Guard</c>); the rest is paid as <see cref="Shock"/> pays (2026-10-27-the-cape-is-worn).
+    /// </summary>
+    void Blow(int peer, int units);
 }
 
 /// <summary>
@@ -181,7 +192,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 // Thin air (0076): what the air falls short of the breath, and the cold without a body, paid one breath in ThinAir.
                 bool beat = Rules.ThinAir is not int every || State.Clock / Content.Crew.BreathEvery % every == 0;
                 if (net < 0 && !beat) net = 0;
-                int cold = ColdAt(hero.Id, hero.Cell, bare: beat) + (Burns(hero.Cell) ? Content.Lava.Burn : 0);
+                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat), Content.Cape.Warmth) + (Burns(hero.Cell) ? Content.Lava.Burn : 0);
                 hero.Air = Math.Max(0, hero.Air + net - cold);
                 if (hero.Air == 0 && (net < 0 || cold > 0)) PassOut(hero);
             }
@@ -204,6 +215,25 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
         hero.Air = Math.Max(0, hero.Air - units);
         if (hero.Air == 0) PassOut(hero);
+    }
+
+    public void Blow(int peer, int units)
+    {
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
+        Shock(peer, Soften(hero, units, Content.Cape.Guard));
+    }
+
+    /// <summary>
+    /// What is left of <paramref name="units"/> once <paramref name="hero"/>'s cape has spared its <paramref name="share"/> of
+    /// them, in thousandths: spared units rounded down, the rest of one kept in <see cref="Hero.Spared"/> for the next. All of
+    /// them without a cape, the remainder untouched (2026-10-27-the-cape-is-worn).
+    /// </summary>
+    private int Soften(Hero hero, int units, int share)
+    {
+        if (units <= 0 || !_items.Equipped(hero.Id, Content.Cape.Item)) return units;
+        int thousandths = units * share + hero.Spared;
+        hero.Spared = thousandths % 1000;
+        return units - thousandths / 1000;
     }
 
     /// <summary>
@@ -334,6 +364,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         _items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs;
 
     public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true) : 0;
+
+    public int Warmth(int peer) => _items.Equipped(peer, Content.Cape.Item) ? Content.Cape.Warmth : 0;
 
     // Carried between surfaces (0076).
 

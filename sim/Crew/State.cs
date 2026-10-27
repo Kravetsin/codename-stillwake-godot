@@ -25,6 +25,11 @@ public sealed class Hero
     [JsonInclude] public bool Thrusting { get; internal set; }
     /// <summary>Ticks of thrust toward the next unit its air pays, kept between bursts so short taps add up.</summary>
     [JsonInclude] public int ThrustTicks { get; internal set; }
+    /// <summary>
+    /// Thousandths of a unit its cape has spared short of a whole one, 0 to 999, kept for the next cold or blow so the cape's
+    /// share is exact over time (2026-10-27-the-cape-is-worn).
+    /// </summary>
+    [JsonInclude] public int Spared { get; internal set; }
 }
 
 /// <summary>

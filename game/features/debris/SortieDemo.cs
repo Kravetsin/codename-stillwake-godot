@@ -54,7 +54,7 @@ public partial class SortieDemo : CanvasLayer
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i is 9 or 10 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
-                : i == Spec.Inventory.Total - 2 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
+                : i == Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot) ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
                 : i == belt || i == belt + 1 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);

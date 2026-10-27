@@ -78,7 +78,7 @@ public sealed partial class CreaturesModule
     {
         var arc = State.Arcs[ArcIndex(c.Arc)!.Value];
         // It may take the suit's last unit: the hero passes out, as a ram would leave it.
-        _crewOps.Shock(c.From, Content.Shots.DamageOf(null, arc.Projectile));
+        _crewOps.Blow(c.From, Content.Shots.DamageOf(null, arc.Projectile));
         arc.Paid ??= [];
         arc.Paid.Add(c.From);
     }

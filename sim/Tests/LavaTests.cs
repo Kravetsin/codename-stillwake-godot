@@ -75,6 +75,15 @@ public class LavaTests
     }
 
     [Fact]
+    public void ACapeSparesNoneOfTheLavasBurnItIsHeatNotCold()
+    {
+        var w = World().Wear(0, Content.Cape.Item);
+        while (w.Crew().Clock % Content.Crew.BreathEvery != Content.Crew.BreathEvery - 1) w.Run();
+        w.Do(new Enter(OnLava) { From = 0 }).Run();
+        Assert.Equal((Scenario.Full - 1 - LavaSpec.Burn, 0), (HeroOf(w).Air, HeroOf(w).Spared));
+    }
+
+    [Fact]
     public void StandingOnLavaEmptiesAFullSuitOnTheThirdBreathAndTheHeroWakesAtTheSpawn()
     {
         // A third of a suit a breath, the breath itself besides: 45, 29, 13, gone within three seconds of ticks.

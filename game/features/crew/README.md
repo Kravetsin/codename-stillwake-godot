@@ -30,7 +30,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
 | `logic/Suits.cs` | suit colours |
 | `Figure.cs` | the sprite rig, lit and posed; dust (0075, 0090) |
-| `logic/Cape.cs` | a cape of cloth (prototype) |
+| `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |

@@ -5,7 +5,7 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// A cape (a prototype for cloth that moves): a <see cref="Cloth"/> pinned along the top of the neck and the shoulders,
+/// A cape (2026-10-27-the-cape-is-worn), as drawn: a <see cref="Cloth"/> pinned along the top of the neck and the shoulders,
 /// down to the floor, flaring toward the hem. Its outside is drawn over the hero; its inside is the same sheet drawn
 /// behind it, its front edge carried forward as the cape wraps round the far side of the body (<see cref="Inside"/>),
 /// so the two always meet at the back edge and the hem. It keeps its cut: no point of it comes more than

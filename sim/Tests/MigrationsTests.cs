@@ -67,13 +67,33 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void AFormat35SaveLoadsEveryInventoryWithAnEmptyCapeSlotLastItsSuitWhereItWas()
+    {
+        // 2026-10-27-the-cape-is-worn: a slot appended, nothing worn in it.
+        var save = JsonNode.Parse(File.ReadAllText(Fixture(35)))!.AsObject();
+        var was = save["slices"]!["items"]!["inventories"]!.AsArray()
+            .Select(h => (Id: h!["id"]!.GetValue<int>(), Slots: h["slots"]!.AsArray().Select(s => s?["item"]?.GetValue<string>()).ToList())).ToList();
+        Assert.NotEmpty(was);
+        Assert.All(was, h => Assert.Equal(Content.Inventory.Total - 1, h.Slots.Count));
+
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(save.ToJsonString()), m.All);
+        foreach (var (id, slots) in was)
+        {
+            var now = m.Items.Inventory(id).Select(s => s?.Item).ToList();
+            Assert.Equal([.. slots, null], now);
+            Assert.Null(m.Items.WornIn(id, Content.Cape.Slot));
+        }
+    }
+
+    [Fact]
     public void AFormat34SaveLoadsEveryHeroAndEveryPeerWithoutOneSuitedTheirAirAsItWasAndTheLampOffTheHead()
     {
         // The fixture with peer 9 gone, its inventory kept for its seat (2026-10-27-suits-are-worn).
         var save = JsonNode.Parse(File.ReadAllText(Fixture(34)))!.AsObject();
         var inventories = save["slices"]!["items"]!["inventories"]!.AsArray();
         var gone = new JsonArray();
-        for (int i = 0; i < Content.Inventory.Total - 2; i++) gone.Add(i == Content.Inventory.Slots ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 } : null);
+        for (int i = 0; i < Content.Inventory.Slots + 5; i++) gone.Add(i == Content.Inventory.Slots ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 } : null);
         inventories.Add(new JsonObject { ["id"] = 9, ["slots"] = gone });
         var heroes = save["slices"]!["crew"]!["heroes"]!.AsArray().Select(h => (Id: h!["id"]!.GetValue<int>(), Suit: h["suit"]!.GetValue<int>())).ToList();
         Assert.NotEmpty(heroes);

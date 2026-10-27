@@ -96,6 +96,19 @@ public class FieldTests
     }
 
     [Fact]
+    public void ACapeSparesAFifthOfTheEdgesColdTheRestCarried()
+    {
+        // Half way to the edge, 12 a breath: 2400 thousandths spared, two units and 400 kept; then two more, 800 kept (2026-10-27-the-cape-is-worn).
+        var w = ToBreath(World().Wear(0, Content.Cape.Item)).Run();
+        w.Do(new Enter(At(Left / 2, MidY)) { From = 0 }).Run();
+        Breaths(w, 1);
+        Assert.Equal((Scenario.Full - 1 - 10, 400), (HeroOf(w).Air, HeroOf(w).Spared));
+        Breaths(w, 1);
+        Assert.Equal((Scenario.Full - 2 - 20, 800), (HeroOf(w).Air, HeroOf(w).Spared));
+        Assert.Equal(12, w.M.Crew.Cold(0));
+    }
+
+    [Fact]
     public void ChargesTwelveMoreHalfWayToTheEdgeByTheDeeperAxis()
     {
         // 192 of 384 cells sideways, 64 of 128 up or down: 500 thousandths, 45 × ¼ rounded up.

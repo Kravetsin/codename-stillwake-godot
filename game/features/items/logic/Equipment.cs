@@ -28,6 +28,13 @@ public static class Equipment
     /// <summary>The kind of equipment slot <paramref name="place"/> is (head, back, belt); none for any other slot.</summary>
     public static string? KindOf(Place place) => Is(place) ? Spec.Inventory.Equipment[place.Slot - Spec.Inventory.Slots] : null;
 
+    /// <summary>
+    /// The kinds of equipment slot as the panel lays them out, a row each by where they are worn: the head and what is fixed
+    /// onto the helmet; the body, the back and the cape; the belt. Every kind once.
+    /// </summary>
+    public static readonly IReadOnlyList<IReadOnlyList<string>> Rows =
+        [[Spec.Helmet.Slot, Spec.Helmet.Mount], [Spec.Suit.Slot, "back", Spec.Cape.Slot], ["belt"]];
+
     /// <summary>The equipment slots of one <paramref name="kind"/>, in slot order.</summary>
     public static IEnumerable<Place> Of(string kind)
     {

@@ -71,6 +71,7 @@ public partial class HeroView
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);
             shown.Figure.HeadLamp = m.Items.Equipped(id, Content.HelmetLamp.Item);
+            shown.Figure.WearsCape = m.Items.Equipped(id, Content.Cape.Item);
             shown.Figure.FloorRoom = FloorRoom(m.Grid, hero);
             shown.Figure.Footing = FootingOf(m, hero, shown.Figure.Footing);
             shown.Figure.Ledge = LedgeOf(ship, hero);

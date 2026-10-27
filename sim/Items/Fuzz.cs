@@ -71,12 +71,12 @@ public sealed partial class ItemsModule
         return new Move(src, dst, count) { From = from };
     }
 
-    private static readonly int[] SuitSlots = [SlotOf(Helmet.Slot), SlotOf(Suit.Slot)];
+    private static readonly int[] SuitSlots = [SlotOf(Helmet.Slot), SlotOf(Suit.Slot), SlotOf(Cape.Slot)];
 
     private static int SlotOf(string kind) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(kind);
 
     /// <summary>
-    /// A helmet or a body carried in the bag put on, else the one worn taken off into the bag's first empty slot; none when
+    /// A helmet, a body or a cape carried in the bag put on, else the one worn taken off into the bag's first empty slot; none when
     /// neither, so suits change outside creative mode too.
     /// </summary>
     private static Move? SuitOnOrOff(Rng rng, int from, Stack?[]? own)
