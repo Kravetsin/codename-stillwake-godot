@@ -85,8 +85,8 @@ public partial class Figure : Node2D
     }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
     private readonly Sprite2D _jetpack;
-    /// <summary>The cape (a prototype): one sheet of cloth over the body and the far limbs, under the head and the near arm.</summary>
-    private readonly CapeView _capeView = new() { Visible = false };
+    /// <summary>The cape (a prototype): its inside behind the hero, its outside over it, arms and all.</summary>
+    private readonly CapeView _capeInside = new(inside: true) { Visible = false }, _capeOutside = new(inside: false) { Visible = false };
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
@@ -257,9 +257,13 @@ public partial class Figure : Node2D
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
         foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
-        Lit.Set(_capeView);
-        parts.AddChild(_capeView);
-        parts.MoveChild(_capeView, torso.GetIndex() + 1);
+        Lit.Set(_capeInside);
+        Lit.Set(_capeOutside);
+        parts.AddChild(_capeInside);
+        parts.MoveChild(_capeInside, 0);
+        // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
+        _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
+        parts.AddChild(_capeOutside);
         _smear.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
@@ -340,13 +344,26 @@ public partial class Figure : Node2D
     /// <summary>Whether the hero wears the cape (a prototype for cloth and hair that move): a sheet of cloth from the shoulders to the floor.</summary>
     public bool WearsCape
     {
-        get => _capeView.Visible;
+        get => _capeOutside.Visible;
         set
         {
-            if (value == _capeView.Visible) return;
-            _capeView.Visible = value;
-            _capeView.Reset();
+            if (value == _capeOutside.Visible) return;
+            _capeInside.Visible = _capeOutside.Visible = value;
+            _capeInside.Reset();
+            _capeOutside.Reset();
         }
+    }
+
+    /// <summary>The air pack's height: the cape's back edge lies over it from its top to here, then over the legs.</summary>
+    private const double PackTall = 12;
+
+    /// <summary>How far behind the middle the back is at a height from the feet: the helmet's above the air pack, the pack's (the jetpack's when worn), then the legs'.</summary>
+    private double BackAt(double y)
+    {
+        double packTop = -Rig.Shoulder - Rig.H * 0.02, packBottom = packTop + PackTall, pack = _jetpack.Visible ? Back + 2.5 : Back + 0.5;
+        if (y < packTop) return 6.5;
+        if (y <= packBottom) return pack;
+        return Math.Max(5, pack - (y - packBottom) * 1.2);
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
@@ -661,7 +678,11 @@ public partial class Figure : Node2D
         _body.Position = new Vector2(0, (float)((shown.Lying ? -(Rig.H / 2) * c - Back * s : -Rig.H / 2) - shown.Lift));
         Position = (OnPixels ?? new Vector2((float)feetX, (float)feetY)) + new Vector2(0, (float)lift);
         Scale = new Vector2(hero.Facing, 1);
-        if (_capeView.Visible) _capeView.Step(elapsedMs, _frame);
+        if (_capeOutside.Visible)
+        {
+            _capeInside.Step(elapsedMs, _frame, BackAt);
+            _capeOutside.Step(elapsedMs, _frame, BackAt);
+        }
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;
         double thrust = holding && _beamMs > 0 ? (t < 0.3 ? t / 0.3 : (1 - t) / 0.7) : 0;

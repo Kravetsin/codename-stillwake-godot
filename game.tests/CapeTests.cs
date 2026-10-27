@@ -28,20 +28,29 @@ public class CapeTests
         public (double X, double Y) ToFrame((double X, double Y) p) => ((p.X - Feet) * Facing, p.Y);
     }
 
-    private static double HemOffRest(Cape cape) => cape.Points[^1].X - Cape.Rest(Cape.Cols * Cape.Rows - 1).X;
+    /// <summary>A back like the hero's: the air pack behind the shoulders to the hips, the legs below.</summary>
+    private static double Back(double y) => y < -27 ? 6.5 : y < -14 ? 9.9 : 5;
+
+    private static double HemOffRest(Cape cape) => cape.Points[^1].X - cape.Rest(Cape.Cols * Cape.Rows - 1).X;
 
     [Fact]
     public void ACapeHangsAsItWasCutAndOnARunTrailsBack()
     {
         var f = new Frame();
-        var cape = new Cape();
-        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
-        Assert.InRange(HemOffRest(cape), -2, 2);
+        var cape = new Cape(inside: false);
+        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
+        Assert.InRange(HemOffRest(cape), -2.5, 2.5);
+        // Its back edge lies over the pack, not standing off it: no hump; below the pack it flares as it was cut.
+        for (int r = 1; r < 4; r++)
+        {
+            var p = cape.Points[r * Cape.Cols + Cape.Cols - 1];
+            Assert.InRange(p.X, -Back(p.Y) - 1.5, -Back(p.Y) + 0.01);
+        }
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
         for (int i = 0; i < 90; i++)
         {
             f.Feet += 211.0 / 60;
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
+            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
         }
         Assert.True(HemOffRest(cape) < -4, $"the hem only {HemOffRest(cape)} back of where it hangs");
     }
@@ -50,14 +59,14 @@ public class CapeTests
     public void TurningSwingsItRoundTheBackShowingItsLiningNeverThroughTheChest()
     {
         var f = new Frame();
-        var cape = new Cape();
-        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
+        var cape = new Cape(inside: false);
+        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
         f.Facing = -1;
         bool lined = false;
-        double shoulders = Cape.Rest(Cape.Cols).Y, most = double.MinValue;
+        double shoulders = cape.Rest(Cape.Cols).Y, most = double.MinValue;
         for (int i = 0; i < 120; i++)
         {
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
+            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
             lined |= Enumerable.Range(0, Cape.Triangles.Length / 3).Any(cape.Flipped);
             foreach (var p in cape.Points.ToArray().Where(p => p.Y > shoulders)) most = Math.Max(most, p.X);
         }

@@ -60,10 +60,10 @@ public sealed class Cloth
 
     /// <summary>
     /// Moves the cloth on by <paramref name="elapsedMs"/>, the points <paramref name="pinned"/> names (each by its index)
-    /// held at <paramref name="pins"/>. <paramref name="keep"/> moves a free point out of where it may not be, on every
+    /// held at <paramref name="pins"/>. <paramref name="keep"/> moves a free point (by its index) out of where it may not be, on every
     /// pass, its speed kept: the body it hangs on, the floor.
     /// </summary>
-    public void Update(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, double elapsedMs, Func<double, double, (double X, double Y)>? keep = null)
+    public void Update(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, double elapsedMs, Func<int, double, double, (double X, double Y)>? keep = null)
     {
         _owed += elapsedMs;
         int steps = 0;
@@ -88,7 +88,7 @@ public sealed class Cloth
         }
     }
 
-    private void Step(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, Func<double, double, (double X, double Y)>? keep)
+    private void Step(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, Func<int, double, double, (double X, double Y)>? keep)
     {
         var isPinned = _pinned;
         Array.Clear(isPinned);
@@ -121,7 +121,7 @@ public sealed class Cloth
             for (int i = 0; i < _x.Length; i++)
             {
                 if (isPinned[i]) continue;
-                var (x, y) = keep(_x[i], _y[i]);
+                var (x, y) = keep(i, _x[i], _y[i]);
                 _px[i] += x - _x[i];
                 _py[i] += y - _y[i];
                 (_x[i], _y[i]) = (x, y);
