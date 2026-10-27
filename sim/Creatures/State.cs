@@ -188,5 +188,8 @@ public sealed class Shot
     internal ShotMotion Motion => new(X, Y, VX, VY, Left);
 }
 
-/// <summary>A shot that ended this tick: its id, its projectile, its gun (none for a creature's) and the cell it met or last flew in.</summary>
-public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell);
+/// <summary>
+/// A shot that ended this tick: its id, its projectile, its gun (none for a creature's), the cell it met or last flew in, and
+/// whether it met something there or ran out of reach or grid.
+/// </summary>
+public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);

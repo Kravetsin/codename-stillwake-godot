@@ -78,7 +78,7 @@ public sealed partial class CreaturesModule
     /// <summary>
     /// <paramref name="c"/>'s <paramref name="shoot"/> fired from its middle at the middle of cell (<paramref name="x"/>,
     /// <paramref name="y"/>): its speed on the longer axis, the other its share, rounded toward none, as a pounce's; no gun, so its
-    /// damage is its projectile's alone. False, and nothing fired, with its target on its own middle.
+    /// damage is its projectile's alone; its flight's ticks rounded down. False, and nothing fired, with its target on its own middle.
     /// </summary>
     internal bool Launch(Creature c, Spec.Species spec, Spec.Shoot shoot, int x, int y)
     {
@@ -156,12 +156,12 @@ public sealed partial class CreaturesModule
         if (met >= 0)
         {
             HitAt(s, p, met);
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true));
             return false;
         }
         if (next.Left <= 0 || !ShotFlight.OnGrid(next.X, next.Y, _grid.Width, _grid.Height))
         {
-            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last));
+            _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, last, Met: false));
             return false;
         }
         (s.X, s.Y, s.VY, s.Left) = (next.X, next.Y, next.VY, next.Left);

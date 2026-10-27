@@ -4,7 +4,7 @@ namespace Stillwake.Sim.Creatures;
 
 /// <summary>
 /// The shot (the sentry's bolt, shots-are-the-sims): crouched its wind-up where it clings, its eye flickering; then its
-/// projectile leaves its middle at its target's reported cell as it is then — its grudge if within reach, else the nearest awake
+/// projectile leaves its middle at its target's reported cell as it is then — its grudge wherever it is, else the nearest awake
 /// hero within it — at its speed on the longer axis, the other its share, rounded toward none; none within reach, no shot. Then
 /// it recovers, still clamped; never cut short by a blow. However it ends, the drive that began it is told.
 /// </summary>
@@ -31,13 +31,22 @@ internal sealed class ShootMove : MoveRule
             return;
         }
         var shoot = (Spec.Shoot)mv;
-        if (PounceMove.Aim(m, c, shoot.Reach) is not var (hx, hy) || !m.Launch(c, spec, shoot, hx, hy))
+        if (AimOf(m, c, shoot.Reach) is not var (hx, hy) || !m.Launch(c, spec, shoot, hx, hy))
         {
             m.EndAct(c, spec, 0, hop: false);
             return;
         }
         (act.Phase, act.Left) = (ActPhase.Active, shoot.Recover);
     }
+
+    /// <summary>
+    /// The cell <paramref name="c"/> shoots at: its grudge's hero wherever it is, the bolt falling short of one past its reach, so a
+    /// blow from afar is answered at the striker and never at a friend nearer; else the nearest awake hero within
+    /// <paramref name="reach"/>; null for none.
+    /// </summary>
+    private static (int X, int Y)? AimOf(CreaturesModule m, Creature c, int reach) =>
+        c.Target is { Kind: RefKind.Hero } target && m.HeroAt(target.Id, awake: true) is { } grudge ? grudge
+        : m.Nearest(c, awake: true) is ({ } hero, int far) && far <= reach ? hero : null;
 
     internal override void Steer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Move mv) { }
 

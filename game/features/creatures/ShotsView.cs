@@ -70,7 +70,8 @@ public partial class ShotsView : Node2D, ILightSource
     private void Ticked(CreaturesModule creatures, Ref own)
     {
         foreach (var end in creatures.Ended)
-            if (_seen.Remove(end.Id, out var flew))
+            // A shot that ran out shows nothing: it met nothing.
+            if (_seen.Remove(end.Id, out var flew) && end.Met)
                 ShotEnds.Show(_m, _ends, end.Gun, end.Projectile, end.Cell, (flew.Now.X / 1000.0, flew.Now.Y / 1000.0));
         var flying = new HashSet<int>();
         foreach (var shot in creatures.Shots)

@@ -73,17 +73,19 @@ internal sealed class GuardDrive : DriveRule
 
     /// <summary>
     /// A move begun at <paramref name="target"/> (none: the nearest awake hero): a pounce at one within its strike, or with no shot
-    /// of its own; else its shot. Every blow on its wreck up to this tick answered with it, so one swing that hits the sentry and
-    /// its wreck answers once; a blow while it is away is answered once it is home. A blow is stamped with the debris clock of the
-    /// commands it came with, and the debris clock moves on as the simulation runs: from a hit (commands)
-    /// <paramref name="answered"/> is the clock and one, from the system the clock.
+    /// of its own, or off its perch (flying home, a shot would hang it in the air); else its shot. Every blow on its wreck up to
+    /// this tick answered with it, so one swing that hits the sentry and its wreck answers once; a blow while it is away is
+    /// answered once it is home. A blow is stamped with the debris clock of the commands it came with, and the debris clock moves
+    /// on as the simulation runs: from a hit (commands) <paramref name="answered"/> is the clock and one, from the system the clock.
     /// </summary>
     private static void Answer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Guard guard, Ref target, int answered)
     {
         c.Keep(Answered, answered);
         (c.Step, c.DriveLeft, c.Target) = (Watching, 0, target);
         int shot = ShotOf(spec);
-        int move = shot < 0 || DistanceTo(m, c, target) is not int far || far <= guard.Strike ? 0 : shot;
+        // Shooting is from its perch: off it, flying home, it pounces as before.
+        bool clamped = c.Recall(ClingerBody.Mounted) == 1;
+        int move = shot < 0 || !clamped || DistanceTo(m, c, target) is not int far || far <= guard.Strike ? 0 : shot;
         RuleBook.Move(spec.Moves[move]).Begin(m, c, spec, move);
     }
 

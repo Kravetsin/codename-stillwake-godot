@@ -56,10 +56,11 @@ to wrecks in space: creatures run wherever one is let out or a habitat spawns. S
   drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
 - **The sentry:** `Guard` watches; a hero within `Notice` alerts it; `AlertTicks` on, one within `Strike` and it pounces,
   one farther it shoots. A blow on it, or on its wreck since it last answered (`Piece.Struck` against a hit's `Answered`),
-  and it answers the striker (`Target`) the same way by its distance; a blow while away is answered home. The pounce
-  crouches `WindUp`, then flies straight at its grudge, else the nearest awake hero within its run, `Ticks` moves at `Speed`,
-  then hangs; `Return` flies it home. The shot crouches, fires its projectile at its target as `Launch` does, recovers
-  clamped. `CutTether` lets go of a reel on its wreck `Ticks` after it bites. Its wreck gone, it dies.
+  and it answers the striker (`Target`) so, by its distance; one while away, once home. The pounce
+  crouches `WindUp`, then flies at its grudge, else the nearest awake hero within its run, `Ticks` moves at `Speed`,
+  then hangs; `Return` flies it home. The shot, from its perch only, crouches, fires at its grudge wherever it is, else the
+  nearest within reach; recovers clamped. `CutTether` lets go of a reel on its wreck `Ticks` after it bites. Its wreck gone, it
+  dies.
 - **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked by a
   `Life.Knock` and `Hop` above none, its act cut if interruptible, its drives told in brain order, the first claim winning.
 - **Shots** (the ADR): `Fire` takes one ammo and adds a shot; each tick, in id order, each `ShotFlight.Step`s, and the
