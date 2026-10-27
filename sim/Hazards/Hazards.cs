@@ -19,11 +19,22 @@ public sealed class HazardsModule : Module<HazardsState>
     public HazardsModule(IGridQueries grid, IGridOps ops)
     {
         _grid = grid;
-        Handles<MeteorHit>(c => grid.WallAt(c.Cell) != null ? null : "hazards.noWall", c =>
+        Handles<MeteorHit>(c => HitProblem(c.Cell), c =>
         {
             // The wall goes; pipes are spans, running through it untouched (0109).
             ops.Clear(c.Cell, "structure");
         });
+    }
+
+    /// <summary>
+    /// Why a meteor at <paramref name="cell"/> breaks nothing: no wall there (<c>hazards.noWall</c>), or one that never breaks, bedrock
+    /// or lava, or in a planet's fog, out of the grid's zone (<c>hazards.neverBreaks</c>).
+    /// </summary>
+    private string? HitProblem(int cell)
+    {
+        if (_grid.WallAt(cell) is not { } wall) return "hazards.noWall";
+        bool zone = _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width);
+        return wall.Strength == Content.Material.Unbreakable || !zone ? "hazards.neverBreaks" : null;
     }
 
     protected override HazardsState Init(Layout layout) => new();
