@@ -51,9 +51,12 @@ function make(A) {
   function headLayers(look, get, glass = true) {
     look = lookOf(look);
     const sw = swapsOf(look, false);
-    // fine: the trial head drawn twice as fine (hd.js), its own pixels and joint.
-    const [p, density, joint] = look.fine ? ['hd_', 2, [13, 24]] : ['hero_', 1, JOINTS.helmet];
-    const layers = [p + 'head', p + 'face_' + look.face, p + 'hair_' + look.hair].map(n => ({ img: recolour(get(n), sw), face: true, density, joint }));
+    // fine: the trial head drawn twice as fine (hd.js), each picture with its own joint; its hair, bigger than the
+    // helmet, is hidden under it.
+    const [p, density] = look.fine ? ['hd_', 2] : ['hero_', 1];
+    const names = [p + 'head', p + 'face_' + look.face];
+    if (!(look.fine && look.suited && glass)) names.push(p + 'hair_' + look.hair);
+    const layers = names.map(n => ({ img: recolour(get(n), sw), face: true, density, joint: get(n).joint || JOINTS.helmet }));
     if (look.suited && glass) layers.push({ img: recolour(get('hero_helmet_shell'), sw) }, { img: get('hero_visor') });
     return layers;
   }

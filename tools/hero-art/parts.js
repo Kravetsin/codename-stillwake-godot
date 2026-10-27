@@ -196,8 +196,8 @@ const visor = [
 // The jumpsuit: the suit's parts' templates and joints, cloth in the suit's ramp, hands in the skin's, shoes in gear.
 const jumpsuit = {
   torso: [ // joint (6, 0)
-    '....oSSo....',
-    '..oodSDdoo..',
+    '...olllsdo..',
+    '.oodddddddo.',
     '.ollddddsdo.',
     '.ollsssssdo.',
     '.olsssssdso.',

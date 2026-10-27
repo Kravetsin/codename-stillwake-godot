@@ -144,6 +144,13 @@ const CREW = [
   { suit: 3, skin: 4, hair: 3, hairColour: 3, face: 1 },
 ];
 
+/** The trial head, its hair and face, in a cell 40×42 with the neck at (20, 34). */
+function fineHead(look) {
+  const img = C.blank(40, 42);
+  for (const l of C.headLayers({ ...look, fine: true }, get, false)) C.over(img, l.img, 20 - l.joint[0], 34 - l.joint[1]);
+  return img;
+}
+
 function headOf(look, { glass = true, cw = 15, ch = 14 } = {}) {
   const img = C.blank(cw, ch);
   for (const l of C.headLayers(look, get, glass)) C.over(img, l.img, 1, 1);
@@ -186,15 +193,15 @@ function editor() {
         s.style.background = key === 'skin' ? A.SKINS[i][1] : key === 'hairColour' ? A.HAIRS[i][1] : hex(A.SUITS[i]);
         b.append(s);
       } else {
-        const c = canvasOf(crop(headOf({ ...state, [key]: i }, { glass: false }), 1, 1, 13, 12), 2);
+        const c = canvasOf(fineHead({ ...state, [key]: i }), 1);
         c.className = '';
         b.append(c);
       }
     });
     const stages = $('edit-stages');
     stages.replaceChildren(
-      pair(lineup([state], { cw: 30 }), 7, 'без скафандра'),
-      pair(lineup([{ ...state, suited: true }], { cw: 36, dark: true }), 7, 'в шлеме, темно'),
+      pair(lineup([{ ...state, fine: true }], { cw: 30 }), 7, 'без скафандра'),
+      pair(lineup([{ ...state, suited: true, fine: true }], { cw: 36, dark: true }), 7, 'в шлеме, темно'),
     );
   }
   render();
@@ -344,8 +351,8 @@ function files() {
 const TRIAL = [
   { suit: 0, skin: 1, hair: 0, hairColour: 1, face: 0 },
   { suit: 1, skin: 5, hair: 2, hairColour: 0, face: 1 },
-  { suit: 2, skin: 0, hair: 0, hairColour: 3, face: 1 },
-  { suit: 3, skin: 6, hair: 1, hairColour: 4, face: 2 },
+  { suit: 2, skin: 0, hair: 3, hairColour: 3, face: 2 },
+  { suit: 3, skin: 6, hair: 4, hairColour: 4, face: 0 },
   { suit: 0, skin: 3, hair: 1, hairColour: 2, face: 2 },
 ];
 // The camera's zooms (ShipCamera): the farthest shows 192×108 cells, the nearest twice as close.
@@ -379,14 +386,14 @@ function trialScene(looks, z, smooth, t) {
 
 function trial() {
   // The heads side by side at one size: today's 13×12, the trial's 26×24.
-  const now = C.blank(15 * TRIAL.length, 14, 0x1b212b), fine = C.blank(28 * TRIAL.length, 26, 0x1b212b);
+  const now = C.blank(15 * TRIAL.length, 14, 0x1b212b), fine = C.blank(40 * TRIAL.length, 42, 0x1b212b);
   TRIAL.forEach((l, i) => {
     for (const x of C.headLayers(l, get, false)) C.over(now, x.img, i * 15 + 1, 1);
-    for (const x of C.headLayers({ ...l, fine: true }, get, false)) C.over(fine, x.img, i * 28 + 1, 1);
+    for (const x of C.headLayers({ ...l, fine: true }, get, false)) C.over(fine, x.img, i * 40 + 20 - x.joint[0], 34 - x.joint[1]);
   });
   $('trial-heads').append(
     pair(now, 10, 'сейчас: 13×12'),
-    pair(fine, 5, 'проба: 26×24, пиксель вдвое мельче'),
+    pair(fine, 5, 'проба: голова 26×24, волосы 38×40, пиксель вдвое мельче'),
   );
   for (const { z, label } of ZOOMS) {
     const cell = el('div', 'pair');
