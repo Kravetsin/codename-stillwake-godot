@@ -36,6 +36,26 @@ public class RunTests
     }
 
     [Fact]
+    public void RunningBackwardAFootOnTheFloorSlidesForwardAndACockedLegSwingsBack()
+    {
+        var back = Running with { Vx = -440 };
+        double step = Stride.Back / 400;
+        int stanceForward = 0, stanceBack = 0, swingForward = 0, swingBack = 0;
+        for (double at = 0; at < Stride.Back; at += step)
+        {
+            var now = LimbsOf(Pose.Run, back, At(-at)).FrontLeg;
+            var next = LimbsOf(Pose.Run, back, At(-at - step)).FrontLeg;
+            double change = next.Upper - now.Upper;
+            // A leg bent at the knee is off the floor, a straight one on it.
+            bool straight = now.Lower > -0.16 && next.Lower > -0.16, bent = now.Lower < -0.5 && next.Lower < -0.5;
+            if (straight) (change > 0 ? ref stanceForward : ref stanceBack)++;
+            if (bent) (change > 0 ? ref swingForward : ref swingBack)++;
+        }
+        Assert.True(stanceForward > 0 && stanceBack == 0, $"on the floor the thigh went forward {stanceForward} times, back {stanceBack}");
+        Assert.True(swingBack > 0 && swingForward == 0, $"off it the thigh went back {swingBack} times, forward {swingForward}");
+    }
+
+    [Fact]
     public void StoppingFromARunTheFrontLegPlantsAheadAndTheArmsGoForward()
     {
         var still = Running with { Vx = 0 };

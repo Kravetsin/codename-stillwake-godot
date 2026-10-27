@@ -294,7 +294,8 @@ public static class Poses
                 }
             case Pose.Run:
                 {
-                    if (Backward(hero)) return Backpedal(Phase(Stride.Back));
+                    // Travelled runs down as the hero backs away; the legs' cycle runs up, or the foot on the floor slides back.
+                    if (Backward(hero)) return Backpedal(-Phase(Stride.Back));
                     double p = Phase(Stride.Run), s = Math.Sin(p);
                     double q = p / (2 * Math.PI);
                     // Leaning well in, the arms pumping hard against the legs, elbows opening as they swing back; each leg
@@ -506,7 +507,7 @@ public static class Poses
     public static bool Backward(Hero hero) => hero.Vx * hero.Facing < 0;
 
     /// <summary>
-    /// Running backward, <paramref name="p"/> radians through the stride (running back as the hero moves back): the body
+    /// Running backward, <paramref name="p"/> radians through the stride (growing as the hero moves back): the body
     /// leans back by <see cref="Feel.Run.BackLean"/>, the legs reach behind in short steps, knees lifting, the arms held out
     /// a little for balance. No flight between steps.
     /// </summary>
