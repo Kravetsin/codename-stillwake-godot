@@ -6,14 +6,15 @@ namespace Stillwake.Game.Render;
 /// <summary>
 /// How a cloth moves, in its caller's units and steps of 1/60 of a second: what each point <see cref="Keep"/>s of its
 /// speed a step, what <see cref="Gravity"/> adds to its downward speed, 0 out in space; how hard its diagonal links hold
-/// (<see cref="Shear"/>, 0 to 1), so it keeps its shape rather than folding flat; passes over the links a step.
+/// (<see cref="Shear"/>, 0 to 1), so it keeps its shape rather than folding flat; how hard its threads down push back
+/// when squeezed (<see cref="Squash"/>, 0 to 1), so it bunches but straightens again; passes over the links a step.
 /// </summary>
-public sealed record ClothStyle(double Keep, double Gravity, double Shear, int Passes);
+public sealed record ClothStyle(double Keep, double Gravity, double Shear, double Squash, int Passes);
 
 /// <summary>
 /// A sheet of cloth (a cape): a grid of points, <c>cols</c> across and <c>rows</c> down, joined across, down and
-/// diagonally at the lengths they start at (down only pulling, as a thread does), carried on by their speed and pulled by gravity, its pinned points held
-/// where they are told. Stepped up to a step ahead of the clock and drawn between its last two steps, as a
+/// diagonally at the lengths they start at, the threads down giving when squeezed, carried on by their speed and pulled
+/// by gravity, its pinned points held where they are told. Stepped up to a step ahead of the clock and drawn between its last two steps, as a
 /// <see cref="Rope"/> is. Drawn only, never simulated: every peer moves its own.
 /// </summary>
 public sealed class Cloth
@@ -22,7 +23,7 @@ public sealed class Cloth
     private readonly int _cols, _rows;
     private readonly double[] _x, _y, _px, _py, _bx, _by;
     private readonly bool[] _pinned;
-    private readonly List<(int A, int B, double Length, double Stiff, bool PullOnly)> _links = [];
+    private readonly List<(int A, int B, double Length, double Pull, double Push)> _links = [];
     private double _owed;
 
     /// <param name="start">Every point where it starts, row by row from the top, at rest: the lengths it keeps.</param>
@@ -34,14 +35,14 @@ public sealed class Cloth
         (_x, _y, _px, _py, _bx, _by) = (new double[n], new double[n], new double[n], new double[n], new double[n], new double[n]);
         _pinned = new bool[n];
         for (int i = 0; i < n; i++) (_x[i], _y[i], _px[i], _py[i], _bx[i], _by[i]) = (start[i].X, start[i].Y, start[i].X, start[i].Y, start[i].X, start[i].Y);
-        void Link(int a, int b, double stiff, bool pullOnly = false) => _links.Add((a, b, Math.Sqrt((_x[a] - _x[b]) * (_x[a] - _x[b]) + (_y[a] - _y[b]) * (_y[a] - _y[b])), stiff, pullOnly));
+        void Link(int a, int b, double pull, double push) => _links.Add((a, b, Math.Sqrt((_x[a] - _x[b]) * (_x[a] - _x[b]) + (_y[a] - _y[b]) * (_y[a] - _y[b])), pull, push));
         for (int r = 0; r < rows; r++)
             for (int c = 0; c < cols; c++)
             {
                 int i = r * cols + c;
-                if (c + 1 < cols) Link(i, i + 1, 1);
-                if (r + 1 < rows) Link(i, i + cols, 1, pullOnly: true);
-                if (c + 1 < cols && r + 1 < rows) { Link(i, i + cols + 1, style.Shear); Link(i + 1, i + cols, style.Shear); }
+                if (c + 1 < cols) Link(i, i + 1, 1, 1);
+                if (r + 1 < rows) Link(i, i + cols, 1, style.Squash);
+                if (c + 1 < cols && r + 1 < rows) { Link(i, i + cols + 1, style.Shear, style.Shear); Link(i + 1, i + cols, style.Shear, style.Shear); }
             }
     }
 
@@ -104,13 +105,12 @@ public sealed class Cloth
         for (int pass = 0; pass < _style.Passes; pass++)
         {
             Pin(pinned, pins);
-            foreach (var (a, b, length, stiff, pullOnly) in _links)
+            foreach (var (a, b, length, pull, push) in _links)
             {
                 double dx = _x[b] - _x[a], dy = _y[b] - _y[a], d = Math.Sqrt(dx * dx + dy * dy);
-                if (d == 0 || (pullOnly && d <= length)) continue;
-                // Across held both ways, so the sheet keeps its width; down only pulled, so it bunches and folds. A pinned
-                // point stays, the other takes the whole of it.
-                double move = (d - length) / d * stiff;
+                if (d == 0) continue;
+                // A pinned point stays, the other takes the whole of it.
+                double move = (d - length) / d * (d > length ? pull : push);
                 double atA = isPinned[a] ? 0 : isPinned[b] ? 1 : 0.5, atB = isPinned[b] ? 0 : isPinned[a] ? 1 : 0.5;
                 _x[a] += dx * move * atA;
                 _y[a] += dy * move * atA;

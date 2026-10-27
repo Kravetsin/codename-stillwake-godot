@@ -4,11 +4,12 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// One layer of a cape (a prototype for cloth that moves): a <see cref="Cloth"/> pinned along the top of the neck and
-/// the shoulders, down to the floor, flaring toward the hem. The outside is drawn over the hero, the inside behind it,
-/// each its own sheet: the inside heavier, so it hangs lower and shows under the outside as that lifts. Its back edge
-/// lies over the back and the air pack (<c>backAt</c>), so it drapes rather than stands off; none of it swings in
-/// front of the body's middle or under the feet. A picture is laid over the grid (<see cref="Uv"/>); a triangle turned
+/// A cape (a prototype for cloth that moves): a <see cref="Cloth"/> pinned along the top of the neck and the shoulders,
+/// down to the floor, flaring toward the hem. Its outside is drawn over the hero; its inside is the same sheet drawn
+/// behind it, its front edge carried forward as the cape wraps round the far side of the body (<see cref="Inside"/>),
+/// so the two always meet at the back edge and the hem. Its back edge lies over the back and the air pack
+/// (<c>backAt</c>), so it drapes rather than stands off; it never swings through the chest, only round the legs, and
+/// never under the feet. A picture is laid over the grid (<see cref="Uv"/>); a triangle turned
 /// over shows the lining (<see cref="Flipped"/>). Drawn only, never simulated: every peer moves its own.
 /// </summary>
 public sealed class Cape
@@ -16,25 +17,22 @@ public sealed class Cape
     /// <summary>Points across, from its front edge at the neck to its back edge, and down, from the shoulders to the hem.</summary>
     public const int Cols = 4, Rows = 9;
     /// <summary>
-    /// How each layer moves a step: the air drags the outside back a twentieth of its speed a step against a light pull
-    /// down, so on a run it trails about 30° and lifts on a jump; the inside is pulled down harder and dragged less. Their
-    /// diagonals hold only a little, so they swing back from the shoulders.
+    /// How it moves a step: the air drags it back a twentieth of its speed a step against a light pull down, so on a run
+    /// it trails about 30° and lifts on a jump; its diagonals hold only a little, so it swings back from the shoulders;
+    /// its threads give a third when squeezed, so it bunches and straightens again.
     /// </summary>
-    private static readonly ClothStyle OutsideStyle = new(Keep: 0.95, Gravity: 0.3, Shear: 0.08, Passes: 10);
-    private static readonly ClothStyle InsideStyle = new(Keep: 0.97, Gravity: 0.45, Shear: 0.08, Passes: 10);
-    /// <summary>The farthest forward it goes, from the middle, below the shoulders: it hangs round the back, not through the chest.</summary>
-    private const double Front = 1;
+    private static readonly ClothStyle Style = new(Keep: 0.95, Gravity: 0.3, Shear: 0.08, Squash: 0.35, Passes: 10);
+    /// <summary>The farthest forward it goes, from the middle: at the shoulders, so not through the chest, and at the hem, round the legs.</summary>
+    private const double FrontAtShoulders = 1, FrontAtHem = 4;
+    /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem: the cape round the far side.</summary>
+    private const double WrapAtShoulders = 2, WrapAtHem = 4;
     /// <summary>Where the top is pinned, front to back, from the feet: round the top of the neck and over the shoulder.</summary>
     private static readonly (double X, double Y)[] Pins =
-        [(1.5, -(Rig.Neck - 1)), (-1.5, -(Rig.Neck - 0.5)), (-4.5, -(Rig.Neck - 1)), (-6.5, -(Rig.Neck - 2.5))];
+        [(1.5, -(Rig.Neck - 1)), (-1.5, -(Rig.Neck - 0.5)), (-5, -(Rig.Neck - 1.2)), (-8, -(Rig.Neck - 3))];
 
-    private readonly bool _inside;
     private Cloth? _cloth;
-    private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows];
+    private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows];
     private static readonly int[] Top = [0, 1, 2, 3];
-
-    /// <param name="inside">The inside layer, drawn behind the hero; else the outside, drawn over it.</param>
-    public Cape(bool inside) => _inside = inside;
 
     /// <summary>The triangles of its sheet, three points each, turned the same way as the grid at rest.</summary>
     public static readonly int[] Triangles = MakeTriangles();
@@ -42,14 +40,16 @@ public sealed class Cape
     /// <summary>Its points as last drawn, row by row from the top, in the figure's frame (+x the way it faces, from the feet).</summary>
     public ReadOnlySpan<(double X, double Y)> Points => _points;
 
+    /// <summary>Its inside as last drawn: the same sheet, its front edge carried forward round the far side of the body.</summary>
+    public ReadOnlySpan<(double X, double Y)> Inside => _inside;
+
     /// <summary>Where point <paramref name="i"/> hangs as cut, in the figure's frame: from its pin down to the hem, flaring back.</summary>
-    public (double X, double Y) Rest(int i)
+    public static (double X, double Y) Rest(int i)
     {
         int c = i % Cols;
         double u = (double)c / (Cols - 1), v = (double)(i / Cols) / (Rows - 1);
         var top = Pins[c];
-        // The inside is cut a little shorter and narrower, so it lies within the outside at rest.
-        double hemX = -1.5 - u * (_inside ? 12 : 14.5), hemY = _inside ? -2.5 : -1.5;
+        double hemX = -1.5 - u * 14.5, hemY = -1.5;
         return (top.X + (hemX - top.X) * v, top.Y + (hemY - top.Y) * v);
     }
 
@@ -75,17 +75,23 @@ public sealed class Cape
         {
             var start = new (double X, double Y)[Cols * Rows];
             for (int i = 0; i < start.Length; i++) start[i] = toWorld(Rest(i));
-            _cloth = new Cloth(_inside ? InsideStyle : OutsideStyle, Cols, Rows, start);
+            _cloth = new Cloth(Style, Cols, Rows, start);
         }
-        double shoulders = Pins[0].Y + 1;
+        double shoulders = Pins[0].Y + 1, hem = Rest(Cols * Rows - 1).Y;
         _cloth.Update(Top, i => toWorld(Pins[i]), elapsedMs, (i, x, y) =>
         {
             var (fx, fy) = toFrame((x, y));
-            if (fy > shoulders) fx = Math.Min(fx, i % Cols == Cols - 1 ? -backAt(fy) : Front);
+            double down = Math.Clamp((fy - shoulders) / (hem - shoulders), 0, 1);
+            if (fy > shoulders) fx = Math.Min(fx, i % Cols == Cols - 1 ? -backAt(fy) : FrontAtShoulders + (FrontAtHem - FrontAtShoulders) * down);
             fy = Math.Min(fy, -0.3);
             return toWorld((fx, fy));
         });
-        for (int i = 0; i < _points.Length; i++) _points[i] = toFrame(_cloth.DrawnAt(i));
+        for (int i = 0; i < _points.Length; i++)
+        {
+            _points[i] = toFrame(_cloth.DrawnAt(i));
+            var (u, v) = Uv(i);
+            _inside[i] = (_points[i].X + (1 - u) * (WrapAtShoulders + (WrapAtHem - WrapAtShoulders) * v), _points[i].Y);
+        }
     }
 
     /// <summary>Forgets where it hung, so it falls from the shoulders afresh: a respawn, a cape put on.</summary>

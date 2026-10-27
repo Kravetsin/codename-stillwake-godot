@@ -86,7 +86,8 @@ public partial class Figure : Node2D
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
     private readonly Sprite2D _jetpack;
     /// <summary>The cape (a prototype): its inside behind the hero, its outside over it, arms and all.</summary>
-    private readonly CapeView _capeInside = new(inside: true) { Visible = false }, _capeOutside = new(inside: false) { Visible = false };
+    private readonly Cape _cape = new();
+    private readonly CapeView _capeInside, _capeOutside;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
@@ -257,6 +258,7 @@ public partial class Figure : Node2D
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
         foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
+        (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
         parts.AddChild(_capeInside);
@@ -349,8 +351,7 @@ public partial class Figure : Node2D
         {
             if (value == _capeOutside.Visible) return;
             _capeInside.Visible = _capeOutside.Visible = value;
-            _capeInside.Reset();
-            _capeOutside.Reset();
+            _cape.Reset();
         }
     }
 
@@ -361,9 +362,10 @@ public partial class Figure : Node2D
     private double BackAt(double y)
     {
         double packTop = -Rig.Shoulder - Rig.H * 0.02, packBottom = packTop + PackTall, pack = _jetpack.Visible ? Back + 2.5 : Back + 0.5;
-        if (y < packTop) return 6.5;
+        // Up over the shoulder to the pack and down off it gently: the cape slopes over it rather than humping.
+        if (y < packTop) return Math.Max(7.5, pack - (packTop - y) * 1.2);
         if (y <= packBottom) return pack;
-        return Math.Max(5, pack - (y - packBottom) * 1.2);
+        return Math.Max(5, pack - (y - packBottom) * 0.35);
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
@@ -680,8 +682,13 @@ public partial class Figure : Node2D
         Scale = new Vector2(hero.Facing, 1);
         if (_capeOutside.Visible)
         {
-            _capeInside.Step(elapsedMs, _frame, BackAt);
-            _capeOutside.Step(elapsedMs, _frame, BackAt);
+            _cape.Step(
+                elapsedMs,
+                p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
+                p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); },
+                BackAt);
+            _capeInside.Refresh();
+            _capeOutside.Refresh();
         }
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;
