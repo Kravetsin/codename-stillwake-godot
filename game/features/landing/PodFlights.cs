@@ -57,7 +57,7 @@ public partial class PodFlights : Node2D
         {
             if (_landing.FlightOf(hero.Id) is not { } f) continue;
             double s = Seconds(f, progress);
-            if (!f.Up && s < DropTo) _falling.Add((f, s));
+            if (!f.Up && s < FallShownTo) _falling.Add((f, s));
             else if (f.Up && s < LiftS) _lifting.Add((PodCellOf(f.Floor, _grid.Width), s));
         }
         if (_arrivals != null)
@@ -76,7 +76,7 @@ public partial class PodFlights : Node2D
         foreach (var (f, s) in _falling)
         {
             g.DrawTexture(Pod, PodAt(f.Home) + new Vector2(0, (float)Drop(s)));
-            Deck(g, f.Home + LandingModule.PodSpec.Height * _grid.Width, Open(s));
+            if (s < DropTo) Deck(g, f.Home + LandingModule.PodSpec.Height * _grid.Width, Open(s));
         }
         foreach (var (cell, a) in _coming) g.DrawTexture(Pod, PodAt(cell) - new Vector2(0, (float)Touchdown(a)));
         foreach (var (cell, s) in _lifting) g.DrawTexture(Pod, PodAt(cell) - new Vector2(0, (float)Lift(s)));
@@ -115,13 +115,13 @@ public partial class PodFlights : Node2D
             // The retro flame, long while it brakes high, short as it settles, out at the bounce.
             if (a < BounceFrom) Thrust(g, at - new Vector2(0, (float)high), a, (float)(high / FromPx) * 22);
             // The dust it blows sideways near the ground, settling once it stands.
-            if (high < FromPx * 0.25 || a >= BounceFrom) Blow(g, at, a, a < BounceFrom ? 1 : 1 - (a - BounceFrom) / (Release - BounceFrom));
+            if (high < 18 || a >= BounceFrom) Blow(g, at, a, a < BounceFrom ? 1 : 1 - (a - BounceFrom) / (Release - BounceFrom));
         }
         foreach (var (cell, s) in _lifting)
         {
             var at = PodAt(cell);
             Thrust(g, at - new Vector2(0, (float)Lift(s)), s, 18);
-            Blow(g, at, s, 1 - s / LiftS);
+            Blow(g, at, s, 1 - s / RiseS);
         }
     }
 

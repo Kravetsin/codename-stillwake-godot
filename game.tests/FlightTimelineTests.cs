@@ -37,6 +37,11 @@ public class FlightTimelineTests
         // The pod is below the deck, its 56 px clear, when the deck starts to shut: 62 px down.
         Assert.InRange(T.Drop(T.ShutFrom), 56, 64);
         Assert.Equal(T.DropPx, T.Drop(T.DropTo));
+        // It falls on three times as long as it takes to clear the deck, gathering speed, far under the ship.
+        Assert.Equal(9 * T.DropPx, T.Drop(T.FallShownTo), 6);
+        Assert.Equal(9 * T.DropPx, T.Drop(T.FallShownTo + 5), 6);
+        Assert.Equal(T.RisePx, T.Lift(T.RiseS), 6);
+        Assert.Equal(9 * T.RisePx, T.Lift(T.LiftS), 6);
     }
 
     [Fact]
@@ -81,8 +86,8 @@ public class FlightTimelineTests
             double k = T.Fraction(s, 8);
             bool unit(double v) => v >= 0 && v <= 1;
             return (unit(T.Open(s)) && unit(T.Dip(s)) && unit(k) && unit(T.Air(k, up))
-                && T.Drop(s) >= 0 && T.Drop(s) <= T.DropPx && T.Touchdown(s) >= 0 && T.Touchdown(s) <= T.FromPx
-                && T.Lift(s) >= 0 && T.Lift(s) <= T.FromPx).Label($"s {s} up {up}");
+                && T.Drop(s) >= 0 && T.Drop(s) <= 9 * T.DropPx && T.Touchdown(s) >= 0 && T.Touchdown(s) <= T.FromPx
+                && T.Lift(s) >= 0 && T.Lift(s) <= 9 * T.RisePx).Label($"s {s} up {up}");
         });
     }
 }

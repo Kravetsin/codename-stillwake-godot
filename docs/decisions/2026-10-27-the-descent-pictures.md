@@ -19,11 +19,14 @@ no re-entry fire or clouds, and a shorter descent.
   frames from when it was first seen, a frame at most 0.05 s (`Arrivals.MostDelta`): the planet's opening freezes the ticks
   the touchdown would play in.
 - **Who sees what.** Aboard, everyone: the deck's halves sliding apart (0–0.3 s), the pod falling through on a thruster's kick
-  (0.3–1.0 s), the halves sliding shut by `FallTicks`; the rider's camera shakes through `ShipCamera.Nudge` (`PodFlights`). The
+  (0.3–1.0 s) and on, gathering speed, till 2.4 s far under the ship, the halves sliding shut by `FallTicks`; the rider's
+  camera shakes through `ShipCamera.Nudge` (`PodFlights`). The
   rider: a dip to black, then the flight at the world's scale, the pod in the middle, stars torn into lines ever faster, to the
-  white (`FlightScreen` under `Whiteout` in `FlightOverlay`). On the planet, everyone: the pod lowered from nine cells on its
+  white (`FlightScreen` under `Whiteout` in `FlightOverlay`). On the planet, everyone: the pod lowered from eighteen cells over
+  3 s on its
   retro flame into blown dust, with a bounce, held out of the grid, the porthole and the lamps till it stands (`Arrivals`,
-  `GridView.HeldBack`). A return: a lift-off on its flame out of dust, the rider's climb out of a blue sky with clouds into
+  `GridView.HeldBack`). A return: a lift-off on its flame out of dust, seen rising for 3 s, the rider's climb out of a blue sky
+  with clouds into
   black, the white falling over the pod already home.
 - **Drawn in code, not an AnimationPlayer:** the project has none, and every mark is a function of time, ported from the
   storyboard. The flight screen is one `_Draw` of at most 400 quads, for the rider alone.

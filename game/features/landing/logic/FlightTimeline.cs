@@ -18,18 +18,22 @@ public static class FlightTimeline
     public const double DropFrom = 0.3, DropTo = 1.0;
     /// <summary>The deck slides shut from here to <see cref="DropTo"/>, the pod already below it.</summary>
     public const double ShutFrom = 0.75;
-    /// <summary>How far the pod has fallen by <see cref="DropTo"/>: out of the hull, out of sight under it.</summary>
+    /// <summary>How far the pod has fallen by <see cref="DropTo"/>: out of the hull, the deck shut over it.</summary>
     public const double DropPx = 150;
+    /// <summary>It keeps falling, gathering speed, till here: three times its fall to <see cref="DropTo"/>, far under the ship.</summary>
+    public const double FallShownTo = DropFrom + 3 * (DropTo - DropFrom);
     /// <summary>The rider's dip to black from the ship to the flight screen, darkest at its peak.</summary>
     public const double DipFrom = 1.0, DipPeak = 1.15, DipTo = 1.3;
     /// <summary>A touchdown: down from <see cref="FromPx"/> over <see cref="Descend"/>, a bounce, held until <see cref="Release"/>.</summary>
-    public const double Descend = 1.5, BounceFrom = 1.5, BounceTo = 1.85, Release = 2.0;
-    /// <summary>How high over its cell a pod lands from, and rises to as it lifts off: nine cells.</summary>
-    public const double FromPx = 9 * 8;
+    public const double Descend = 3.0, BounceFrom = 3.0, BounceTo = 3.35, Release = 3.5;
+    /// <summary>How high over its cell a pod lands from: eighteen cells.</summary>
+    public const double FromPx = 18 * 8;
+    /// <summary>How high a pod lifting off has risen after <see cref="RiseS"/>: nine cells; it rises on, gathering speed.</summary>
+    public const double RisePx = 9 * 8, RiseS = 1.0;
     /// <summary>How high the bounce lifts it, at most.</summary>
     public const double BouncePx = 2;
-    /// <summary>A lift-off from a planet lasts this long before the pod is out of sight.</summary>
-    public const double LiftS = 1.0;
+    /// <summary>A lift-off from a planet is seen this long, three times <see cref="RiseS"/>, the pod far overhead by then.</summary>
+    public const double LiftS = 3 * RiseS;
 
     /// <summary>The flight's length in ticks: a descent's or a return's.</summary>
     public static int Total(Flight f) => f.Up ? Content.Landing.AscentTicks : Content.Landing.DescentTicks;
@@ -46,7 +50,7 @@ public static class FlightTimeline
     /// <summary>How far the pod has fallen below its home, in pixels, gathering speed.</summary>
     public static double Drop(double s)
     {
-        double k = Clamp01((s - DropFrom) / (DropTo - DropFrom));
+        double k = Math.Clamp((s - DropFrom) / (DropTo - DropFrom), 0, (FallShownTo - DropFrom) / (DropTo - DropFrom));
         return DropPx * k * k;
     }
 
@@ -74,8 +78,8 @@ public static class FlightTimeline
     /// <summary>How high a pod lifting off is drawn over its cell, gathering speed.</summary>
     public static double Lift(double s)
     {
-        double k = Clamp01(s / LiftS);
-        return FromPx * k * k;
+        double k = Math.Clamp(s / RiseS, 0, LiftS / RiseS);
+        return RisePx * k * k;
     }
 
     /// <summary>Where a pod whose rider is held at <paramref name="floor"/> stands from, its top-left: the inverse of <see cref="LandingModule.FloorOf"/>.</summary>

@@ -32,7 +32,7 @@ public class ArrivalsTests
         a.Frame(Planet, false, [(7, true)], null, false, Frame);
         Assert.True(a.Holds(7));
         Assert.Equal(0, a.SecondsSince(7));
-        for (int i = 0; i < 200 && a.Holds(7); i++) a.Frame(Planet, false, [(7, true)], null, false, Frame);
+        for (int i = 0; i < FlightTimeline.Release / Frame + 10 && a.Holds(7); i++) a.Frame(Planet, false, [(7, true)], null, false, Frame);
         Assert.False(a.Holds(7));
         Assert.Null(a.SecondsSince(7));
     }
