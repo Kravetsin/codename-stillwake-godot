@@ -58,7 +58,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - **Content by id**: `grep -rn '"<id>"' sim/Content`. Systems ask a machine's `MachineTrait` (0113) or a structure's `Trait` (0112), never its kind. Items `Items.cs`, machines `Machines.cs`, materials `Materials.cs`,
   creatures `Creatures.cs`, planet types `PlanetTypes.cs`, builds `Builds.cs`, recipes `Crafts.cs`, stations `Stations.cs`.
   ASCII map characters: `Legend.cs`. A content file is named after its module or catalogue.
-- **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png`,
+- **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png` (none for a tool, 2026-10-27-tool-icons),
   `debris/<look>_<nn>.png`, `creatures/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`;
   `_glow`/`_lit` suffixes for light. Loaded by `PixelArt.Picture(name)` = `res://art/<name>.png`.
 - **i18n** (core `game/i18n/logic/En.cs`; a feature's strings are in its `logic/<Name>.En.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),

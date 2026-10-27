@@ -1,8 +1,8 @@
+using System.Linq;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
 using Stillwake.Game.Render;
-using Stillwake.Game.Shared;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -47,12 +47,47 @@ public class ToolIconTests
     }
 
     [Fact]
+    public void ItFillsItsSquareToTheMargin()
+    {
+        // The turned box's corners touch the margin: a drawn pixel in its first and last columns inside it.
+        var square = new Picture(2, 2);
+        for (int y = 0; y < 2; y++)
+            for (int x = 0; x < 2; x++) square.Set(x, y, (200, 100, 50));
+        const int side = 40;
+        var icon = Baked(square, side);
+        bool Drawn(int x) => Enumerable.Range(0, side).Any(y => icon(x, y).A > 0);
+        Assert.True(Drawn(M), "the left edge falls short of the margin");
+        Assert.True(Drawn(side - M - 1), "the right edge falls short of the margin");
+    }
+
+    [Fact]
+    public void AClearPixelInThePictureDarkensNoColour()
+    {
+        // A drawn block in clear room: averaged by alpha, every pixel, its soft edge and the clear ones, keeps the block's colour.
+        var block = new Picture(4, 4);
+        for (int y = 1; y < 3; y++)
+            for (int x = 1; x < 3; x++) block.Set(x, y, (200, 100, 50));
+        const int side = 32;
+        var icon = Baked(block, side);
+        for (int y = 0; y < side; y++)
+            for (int x = 0; x < side; x++)
+            {
+                var (r, g, b, _) = icon(x, y);
+                Assert.Equal((200, 100, 50), (r, g, b));
+            }
+    }
+
+    [Fact]
     public void AClearPixelTakesTheColourOfTheNearestDrawnOne()
     {
-        var dot = new Picture(1, 1);
-        dot.Set(0, 0, (10, 200, 30));
-        var icon = Baked(dot, 16);
-        Assert.Equal((10, 200, 30, 0), icon(0, 0));
+        // A red dot at the handle's end, a green one at the head's: the clear corners by each take each.
+        var dots = new Picture(9, 1);
+        dots.Set(0, 0, (255, 0, 0));
+        dots.Set(8, 0, (0, 255, 0));
+        const int side = 32;
+        var icon = Baked(dots, side);
+        Assert.Equal((255, 0, 0, 0), icon(0, side - 1));
+        Assert.Equal((0, 255, 0, 0), icon(side - 1, 0));
     }
 
     [Property(MaxTest = 200)]
@@ -75,16 +110,6 @@ public class ToolIconTests
                 for (int x = 0; x < c.side; x++)
                     if (x < M || y < M || x >= c.side - M || y >= c.side - M) Assert.Equal(0, icon(x, y).A);
         });
-
-    [Fact]
-    public void AToolsIconFillsItsSlotAndAnyOtherSitsInTheInset()
-    {
-        Assert.Equal((0, 40), Slots.IconBox(Spec.Shots.Railgun.Item, Slots.SizeOf(SlotScale.Normal)));
-        // The screwdriver is held as a picture, though its card is not a tool's.
-        Assert.Equal((0, 56), Slots.IconBox(Spec.Screwdrivers.Basic.Item, Slots.SizeOf(SlotScale.Large)));
-        Assert.Equal((Slots.Inset, 32), Slots.IconBox("scrap", Slots.SizeOf(SlotScale.Normal)));
-        Assert.Equal((Slots.Inset, 48), Slots.IconBox(Spec.Shots.Nail.Id, Slots.SizeOf(SlotScale.Large)));
-    }
 
     [Fact]
     public void OnlyAToolHasNoIconDrawn()

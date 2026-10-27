@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using static Stillwake.Game.I18n.En;

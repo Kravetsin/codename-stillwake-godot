@@ -58,7 +58,7 @@ public static class Slots
     /// <summary>A slot's side in pixels.</summary>
     public static int SizeOf(SlotScale scale) => scale == SlotScale.Large ? 56 : 40;
 
-    /// <summary>An icon's side in pixels: a whole multiple of the 16 px art, so no pixel is drawn wider than its neighbour.</summary>
+    /// <summary>A 16 px icon's side in pixels: a whole multiple of the art, so no pixel is drawn wider than its neighbour; a tool's fills the slot (<see cref="IconBox"/>).</summary>
     public static int IconOf(SlotScale scale) => SizeOf(scale) - 2 * Inset;
 
     /// <summary>

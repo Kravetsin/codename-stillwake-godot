@@ -158,10 +158,11 @@ public partial class Outline : CanvasGroup
         if (cut is { } c) mask.RegionRect = c;
     }
 
-    /// <summary><paramref name="picture"/> centred on <paramref name="centre"/>, turned and scaled as it is drawn there.</summary>
-    public void Add(Texture2D picture, Vector2 centre, float rotation, float scale, Color colour)
+    /// <summary><paramref name="picture"/> centred on <paramref name="centre"/>, turned, scaled and filtered as it is drawn there.</summary>
+    public void Add(Texture2D picture, Vector2 centre, float rotation, float scale, Color colour, TextureFilterEnum filter = TextureFilterEnum.ParentNode)
     {
         var mask = Take(picture, colour);
+        mask.TextureFilter = filter;
         mask.Centered = true;
         mask.Position = centre;
         mask.Rotation = rotation;
@@ -200,6 +201,7 @@ public partial class Outline : CanvasGroup
         mask.Modulate = colour;
         mask.Rotation = 0;
         mask.Scale = Vector2.One;
+        mask.TextureFilter = TextureFilterEnum.ParentNode;
         mask.Visible = true;
         return mask;
     }

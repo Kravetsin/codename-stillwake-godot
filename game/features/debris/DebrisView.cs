@@ -155,7 +155,7 @@ public partial class DebrisView(Ui ui) : Node2D
                 : _clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id;
             picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
             if (aimed is { } a && a.Id == piece.Id)
-                _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A });
+                _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A }, picture.TextureFilter);
         }
         _aimed.End();
     }
@@ -173,8 +173,7 @@ public partial class DebrisView(Ui ui) : Node2D
         var (texture, scale) = PictureOf(piece.Item, piece.Id);
         picture.Texture = texture;
         picture.Scale = Vector2.One * scale;
-        // A tool's icon is larger than its pixels in space (2026-10-27-tool-icons): filtered, mipmapped, as it turns.
-        picture.TextureFilter = HeldLook.Of(piece.Item) != null ? CanvasItem.TextureFilterEnum.LinearWithMipmaps : CanvasItem.TextureFilterEnum.ParentNode;
+        picture.TextureFilter = ItemIcons.WorldFilter(piece.Item);
         picture.Visible = true;
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(picture, piece);

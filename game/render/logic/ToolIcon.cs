@@ -80,14 +80,18 @@ public static class ToolIcon
         while (next.Count > 0)
         {
             int i = next.Dequeue(), x = i % side, y = i / side;
-            foreach (var (nx, ny) in new[] { (x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1) })
-            {
-                if (nx < 0 || ny < 0 || nx >= side || ny >= side || filled[ny * side + nx]) continue;
-                int n = ny * side + nx;
-                filled[n] = true;
-                Array.Copy(icon, i * 4, icon, n * 4, 3);
-                next.Enqueue(n);
-            }
+            if (x > 0) Spread(i, i - 1);
+            if (x < side - 1) Spread(i, i + 1);
+            if (y > 0) Spread(i, i - side);
+            if (y < side - 1) Spread(i, i + side);
+        }
+
+        void Spread(int from, int to)
+        {
+            if (filled[to]) return;
+            filled[to] = true;
+            Array.Copy(icon, from * 4, icon, to * 4, 3);
+            next.Enqueue(to);
         }
     }
 }

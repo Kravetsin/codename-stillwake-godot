@@ -25,13 +25,20 @@ public static class ItemIcons
     /// </summary>
     public static Texture2D Icon(string item) => HeldLook.Of(item) != null ? Bake(item, HeldLook.IconWorldSide) : Drawn(item);
 
+    /// <summary>
+    /// How the world draws <paramref name="item"/>'s <see cref="Icon(string)"/>: a tool's, larger than its pixels there, filtered
+    /// through its mipmaps at any zoom and turn; any other's as its node's parent, pixel for pixel.
+    /// </summary>
+    public static CanvasItem.TextureFilterEnum WorldFilter(string item) =>
+        HeldLook.Of(item) != null ? CanvasItem.TextureFilterEnum.LinearWithMipmaps : CanvasItem.TextureFilterEnum.ParentNode;
+
     /// <summary>The picture of <paramref name="item"/> where it is drawn <paramref name="side"/> px wide: a tool's icon baked at that side, drawn 1:1; any other item's 16 px picture.</summary>
     public static Texture2D Icon(string item, int side) => HeldLook.Of(item) != null ? Bake(item, side) : Drawn(item);
 
     /// <summary>
     /// Makes every item's silhouette now, while the game loads: one is read back from the GPU, which waits for
     /// the frames in flight, two refreshes of a 240 Hz screen, if left until a stack first lies on the floor.
-    /// A tool's held picture is read back here too, for its icons.
+    /// A tool's held picture is read back here too, for its icons, and its icon for the world baked.
     /// </summary>
     public static void MakeSilhouettes()
     {
@@ -49,6 +56,7 @@ public static class ItemIcons
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
         bool tool = HeldLook.Of(item) != null;
         var image = tool ? BakedImage(item, HeldLook.IconWorldSide) : Readable(Drawn(item));
+        if (tool && !Baked.ContainsKey((item, HeldLook.IconWorldSide))) Keep(item, HeldLook.IconWorldSide, (Image)image.Duplicate());
         int lowest = -1;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
@@ -76,11 +84,12 @@ public static class ItemIcons
         return icon;
     }
 
+    private static Texture2D Bake(string item, int side) =>
+        Baked.TryGetValue((item, side), out var icon) ? icon : Keep(item, side, BakedImage(item, side));
+
     // Only the world's side is mipmapped: every other is drawn 1:1.
-    private static Texture2D Bake(string item, int side)
+    private static Texture2D Keep(string item, int side, Image image)
     {
-        if (Baked.TryGetValue((item, side), out var icon)) return icon;
-        var image = BakedImage(item, side);
         if (side == HeldLook.IconWorldSide) image.GenerateMipmaps();
         return Baked[(item, side)] = ImageTexture.CreateFromImage(image);
     }

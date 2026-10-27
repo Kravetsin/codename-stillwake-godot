@@ -129,8 +129,7 @@ public partial class FloorLayer : Node2D
         var texture = ItemIcons.Icon(item);
         int side = texture.GetWidth();
         float scale = Size * Cell / side;
-        // A tool's icon is larger than its pixels on the floor (2026-10-27-tool-icons): filtered, mipmapped, at any zoom.
-        var filter = HeldLook.Of(item) != null ? TextureFilterEnum.LinearWithMipmaps : TextureFilterEnum.ParentNode;
+        var filter = ItemIcons.WorldFilter(item);
         var rim = new Sprite2D { Texture = ItemIcons.Silhouette(item), Scale = Vector2.One * (scale * RimSize), Material = Glowing, TextureFilter = filter };
         var body = new Sprite2D { Texture = texture, Scale = Vector2.One * scale, Material = Unlit, TextureFilter = filter };
         // Turned about its middle, raised by its rim's half height less the clear rows under the picture.

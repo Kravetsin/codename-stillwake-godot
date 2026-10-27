@@ -88,7 +88,7 @@ public sealed record HeldLook(
     /// <summary>The side of a tool's icon as the world draws it, on the floor and in space, filtered at the camera's zoom.</summary>
     public const int IconWorldSide = 64;
 
-    /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand and on its card.</summary>
+    /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand.</summary>
     public const string LampColour = "9dff8a";
 
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
