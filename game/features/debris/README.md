@@ -47,7 +47,7 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 - **Own hits** (`OwnHits`: a `Hit` of this peer's in flight one frame and gone the next, read after this frame's hits
   are sent): the view nudges (`ShipCamera.Nudge`) and `Sound.Chop` plays, but not for the drill, whose strikes the crew
   plays; on the Suit bus, dulled while floating (0042).
-- **Broken** (`Fading.Broken`): a wreck gone with hits in it before the end of its path, counting ticks since last
+- **Broken** (`Fading.Broken`): a wreck gone before the end of its path, not caught by hand (`CaughtFrom`), counting ticks since last
   seen, so one drifting off its end only fades, as does one broken past its end while a hero's view keeps it there
   (0052), its loot falling all the same. It flies apart in six tumbling wedges with glowing torn edges and
   embers (`BreakView`), with sparks, dust, a cloud, glint, ring and flash, more for a derelict (0075); `Sound.Break`
