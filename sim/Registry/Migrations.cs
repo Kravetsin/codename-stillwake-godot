@@ -19,7 +19,7 @@ namespace Stillwake.Sim;
 /// planet's edits laid on ground that now grows differently, and planets reached only from the dev panel. Format 32 added
 /// the landing module (the launch platform), its slice empty. Format 33 renamed the fauna module creatures
 /// (2026-10-26-creatures-are-composed); format 34 composed its species, dropping the creatures out, which planets reached only
-/// from the dev panel held.
+/// from the dev panel held. Format 35 made the suit an item worn in its own slot (2026-10-27-suits-are-worn).
 /// </summary>
 public static class Migrations
 {
@@ -27,7 +27,7 @@ public static class Migrations
     public const int Oldest = 31;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed, CreaturesComposed];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [LandingJoins, CreaturesRenamed, CreaturesComposed, SuitsWorn];
 
     /// <summary>31 to 32: the landing module (the launch platform) joins every surface, holding nothing yet.</summary>
     private static JsonObject LandingJoins(JsonObject save)
@@ -59,6 +59,46 @@ public static class Migrations
         save["slices"]!["creatures"]!["creatures"] = new JsonArray();
         if (save["surfaces"] is JsonArray surfaces)
             foreach (var surface in surfaces) surface!["slices"]!["creatures"]!["creatures"] = new JsonArray();
+        return save;
+    }
+
+    /// <summary>
+    /// 34 to 35: the suit is an item in a new last equipment slot (2026-10-27-suits-are-worn), every hero having worn one.
+    /// Every peer's inventory gains the slot; a hero's, on its surface, the basic suit in it, made for a hero with none
+    /// saved; a peer with no hero, its ship's inventory, so it comes back suited. A hero's <c>suit</c> is its <c>air</c>.
+    /// </summary>
+    private static JsonObject SuitsWorn(JsonObject save)
+    {
+        var all = new List<JsonObject> { save["slices"]!.AsObject() };
+        if (save["surfaces"] is JsonArray surfaces) all.AddRange(surfaces.Select(s => s!["slices"]!.AsObject()));
+        var heroes = all.SelectMany(s => s["crew"]!["heroes"]!.AsArray()).Select(h => h!["id"]!.GetValue<int>()).ToHashSet();
+        for (int i = 0; i < all.Count; i++)
+        {
+            var inventories = all[i]["items"]!["inventories"]!.AsArray();
+            foreach (var held in inventories) held!["slots"]!.AsArray().Add(null);
+            var suited = all[i]["crew"]!["heroes"]!.AsArray().Select(h => h!["id"]!.GetValue<int>()).ToList();
+            // The ship suits the peers without a hero anywhere whose inventory it keeps.
+            if (i == 0) suited.AddRange(inventories.Select(h => h!["id"]!.GetValue<int>()).Where(id => !heroes.Contains(id)));
+            foreach (int peer in suited.Order())
+            {
+                var held = inventories.FirstOrDefault(h => h!["id"]!.GetValue<int>() == peer);
+                if (held == null)
+                {
+                    var slots = new JsonArray();
+                    for (int s = 0; s < Content.Inventory.Total; s++) slots.Add(null);
+                    held = new JsonObject { ["id"] = peer, ["slots"] = slots };
+                    int at = inventories.Count(h => h!["id"]!.GetValue<int>() < peer);
+                    inventories.Insert(at, held);
+                }
+                held["slots"]![Content.Inventory.Total - 1] = new JsonObject { ["item"] = Content.Suit.Basic, ["count"] = 1 };
+            }
+            foreach (var hero in all[i]["crew"]!["heroes"]!.AsArray().Select(h => h!.AsObject()))
+            {
+                var air = hero["suit"];
+                hero.Remove("suit");
+                hero["air"] = air;
+            }
+        }
         return save;
     }
 

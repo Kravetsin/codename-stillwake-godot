@@ -34,7 +34,7 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         : Math.Max(0, m.Grid.Built.Top - Above) * m.Grid.Width + m.Crew.Spawn % m.Grid.Width;
 
     /// <summary>
-    /// <paramref name="world"/>, read through <paramref name="m"/>, with a jetpack on peer 0's back and canisters in its first
+    /// <paramref name="world"/>, read through <paramref name="m"/>, with a suit and a jetpack on peer 0 and canisters in its first
     /// slot, and <paramref name="pieces"/> pieces of the far field out round the start, mostly right of it so the drift brings them by.
     /// </summary>
     public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, int pieces)
@@ -43,6 +43,7 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == Spec.Inventory.Slots + 1 ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
+                : i == Spec.Inventory.Total - 1 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == 0 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 20 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         var debris = root["slices"]!["debris"]!;
@@ -54,7 +55,7 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         {
             ["id"] = 0,
             ["cell"] = start,
-            ["suit"] = Spec.Crew.Suit,
+            ["air"] = Spec.Items.Get(Spec.Suit.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
@@ -89,7 +90,7 @@ public partial class FarDemo(DebrisView view, Func<(Client Client, Registry M)?>
         _seconds += delta;
         if (world() is not var (client, m)) return;
         var hero = m.Crew.HeroOf(client.Id);
-        if (hero != null && hero.Suit < Spec.Crew.Suit / 2 && _seconds - _breathed > 2)
+        if (hero != null && hero.Air < m.Crew.CapacityOf(client.Id) / 2 && _seconds - _breathed > 2)
         {
             client.Send(new Sim.Crew.Refill());
             _breathed = _seconds;

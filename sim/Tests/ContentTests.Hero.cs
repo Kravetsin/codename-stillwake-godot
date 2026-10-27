@@ -61,7 +61,7 @@ public partial class ContentTests
         Assert.Contains(Inventory.Equipment, kind => kind == "back");
         // Everything worn names a kind of slot there is.
         Assert.All(Content.Items.All.Where(i => i.Equip != null), i => Assert.Contains(i.Equip, Inventory.Equipment));
-        Assert.InRange(Content.Crew.CanisterRefill, 1, Content.Crew.Suit - 1);
+        Assert.InRange(Content.Crew.CanisterRefill, 1, Scenario.Full - 1);
         Assert.Contains(Crafts.Get(Jetpack.Item).Cost, c => c.Item == Content.Crew.Canister);
     }
 
@@ -84,7 +84,7 @@ public partial class ContentTests
     public void CrewBreathesInWholeUnitsAndTicksWithASuitThatLastsSomeBreaths()
     {
         AllPositive(typeof(Content.Crew));
-        Assert.True(Content.Crew.Refill < Content.Crew.Suit);
+        Assert.True(Content.Crew.Refill < Scenario.Full);
         // By the pod a calm breath gains, even in vacuum; running there holds the suit at worst.
         Assert.True(Content.Crew.PodRefill > 1);
         Assert.True(Content.Crew.PodRefill >= Content.Crew.Exerted);

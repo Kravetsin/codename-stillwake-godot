@@ -62,7 +62,13 @@ by the user on a concept page. **Its PR holds:** `game/art/hero_head.png`, `hero
 skin and hair reference ramps and the seven skin and six hair ramps, as the painter's data. S-2 moves the ramps into
 `game/Content/logic`: they are client data, since the sim checks no index.
 
-### S-1 — The suit is an item; the hero breathes from one pool
+### S-1 — The suit is an item; the hero breathes from one pool ✅
+
+**Built, but:** `Cold(peer)` leaves the lava out (the frost is not drawn on lava), the breath adds it. Scenarios suit a
+peer on its first `Enter` aboard unless `Bare` (`Scenario.Suit`, straight into the slot), so old tests read as before.
+The gauge counts a hit only above the dearest breath (bare lungs are small); the frost's floor is `Report.BareFrost`.
+The testbed's crates hold no suit. `--suit` sends its craft and moves as commands, not clicks.
+
 
 **Content.**
 - `ItemSpec` gains `Tank` (0 for none). `Inventory.Equipment` gains `"suit"`, appended last, so old slots keep their

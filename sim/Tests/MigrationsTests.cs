@@ -67,6 +67,28 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void AFormat34SaveLoadsEveryHeroAndEveryPeerWithoutOneSuitedTheirAirAsItWas()
+    {
+        // The fixture with peer 9 gone, its inventory kept for its seat (2026-10-27-suits-are-worn).
+        var save = JsonNode.Parse(File.ReadAllText(Fixture(34)))!.AsObject();
+        var inventories = save["slices"]!["items"]!["inventories"]!.AsArray();
+        var gone = new JsonArray();
+        for (int i = 0; i < Content.Inventory.Total - 1; i++) gone.Add(null);
+        inventories.Add(new JsonObject { ["id"] = 9, ["slots"] = gone });
+        var heroes = save["slices"]!["crew"]!["heroes"]!.AsArray().Select(h => (Id: h!["id"]!.GetValue<int>(), Suit: h["suit"]!.GetValue<int>())).ToList();
+        Assert.NotEmpty(heroes);
+
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(save.ToJsonString()), m.All);
+        foreach (var (id, suit) in heroes)
+        {
+            Assert.Equal(Content.Suit.Basic, m.Items.WornIn(id, Content.Suit.Slot));
+            Assert.Equal(suit, m.Crew.HeroOf(id)!.Air);
+        }
+        Assert.Equal(Content.Suit.Basic, m.Items.WornIn(9, Content.Suit.Slot));
+    }
+
+    [Fact]
     public void AFormat33SaveLetsItsCreaturesGoAndKeepsTheirIdsAndClock()
     {
         // The fixture's strip holding a loper in its old mode (2026-10-26-creatures-are-composed).

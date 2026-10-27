@@ -37,7 +37,7 @@ public class CreaturesRamTests
     private static readonly string Long = string.Join('\n',
         [new string('#', 48), .. Enumerable.Repeat("#" + new string('.', 46) + "#", 3), new string('#', 48)]);
 
-    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Suit;
+    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Air;
 
     private static bool Clear(Scenario w, Creature c) => !w.M.Creatures.Overlaps(Tune.Get(c.Species).Body, c.X, c.Y);
 
@@ -342,7 +342,7 @@ public class CreaturesRamTests
         var c = w.Let(Tapir, 6, 3).Charging(-1);
         w.Do(new HitBy(c.Id)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(Spec.Crew.Suit, Suit(w, 0));
+        Assert.Equal(Scenario.Full, Suit(w, 0));
         Assert.Equal(Posture.Escape, c.Posture);
     }
 
@@ -351,11 +351,11 @@ public class CreaturesRamTests
     {
         var w = CreaturesTesting.Planet(Pen).HeroAt(3, 3).GiveItems(0, ("scrap", 4));
         var c = w.Let(Tapir, 6, 3).Charging(-1);
-        w.M.Crew.HeroOf(0)!.Suit = Tapir.Ram() - 1;
+        w.M.Crew.HeroOf(0)!.Air = Tapir.Ram() - 1;
         w.Do(new HitBy(c.Id)).Run();
         var hero = w.M.Crew.HeroOf(0)!;
         Assert.True(hero.Out > 0);
-        Assert.Equal(0, hero.Suit);
+        Assert.Equal(0, hero.Air);
         var body = Assert.Single(w.M.Items.Floor);
         Assert.Equal(("scrap", 4, 0), (body.Item, body.Count, body.Body!.Peer));
     }

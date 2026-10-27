@@ -345,7 +345,7 @@ public partial class HeroView : Node2D
         int? seat = Seating.SeatOf(m, client.Id);
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
-        bool canThrust = !passedOut && jetpack && known is { Suit: > 0 };
+        bool canThrust = !passedOut && jetpack && known is { Air: > 0 };
         int surface = client.World.SurfaceOf(client.Id);
         bool moved = _placed && surface != _surface;
         _surface = surface;

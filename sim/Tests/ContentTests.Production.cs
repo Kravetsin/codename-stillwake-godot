@@ -226,7 +226,8 @@ public partial class ContentTests
         foreach (var craft in Crafts.All)
         {
             Assert.True(Content.Items.TryGet(craft.Item, out _), craft.Item);
-            Assert.NotEmpty(craft.Cost);
+            // The basic suit alone is free (2026-10-27-suits-are-worn).
+            if (craft.Item != Content.Suit.Basic) Assert.NotEmpty(craft.Cost);
             foreach (var (item, amount) in craft.Cost)
             {
                 Assert.True(Content.Items.TryGet(item, out _), item);

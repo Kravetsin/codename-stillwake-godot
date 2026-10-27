@@ -25,7 +25,7 @@ public class ArcTests
         return (w, c, w.M.Creatures.Arcs.Single());
     }
 
-    private static int Suit(Scenario w, int peer = 0) => w.M.Crew.HeroOf(peer)!.Suit;
+    private static int Suit(Scenario w, int peer = 0) => w.M.Crew.HeroOf(peer)!.Air;
 
     /// <summary>The middle of the cell hero <paramref name="peer"/> is reported in, in thousandths of a cell.</summary>
     private static (int X, int Y) Reported(Scenario w, int peer = 0)

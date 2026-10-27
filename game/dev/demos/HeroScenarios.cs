@@ -94,6 +94,17 @@ public sealed class DieScenario : DevScenario
     public override Func<Registry, int>? Start => DieDemo.StartOf;
 }
 
+[Dev("--suit", "printed bare, the free suit made at the pod, worn and taken off, then out into space bare (SuitDemo)")]
+public sealed class SuitScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed) => SuitDemo.Seed(world, seed.Modules);
+
+    public override void Attach(DevContext c)
+    {
+        if (c.Items != null) c.Add(new SuitDemo(c.Items, c.World));
+    }
+}
+
 [Dev("--breathe", "a canister breathed and the pod's air breathed again (BreatheDemo)")]
 [Dev("--breathe-air", "the pod's air breathed only (BreatheDemo)")]
 public sealed class BreatheScenario : DevScenario

@@ -54,6 +54,7 @@ public partial class SortieDemo : CanvasLayer
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i is 9 or 10 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
+                : i == Spec.Inventory.Total - 1 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == belt || i == belt + 1 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
@@ -62,7 +63,7 @@ public partial class SortieDemo : CanvasLayer
         {
             ["id"] = 0,
             ["cell"] = start,
-            ["suit"] = Spec.Crew.Suit,
+            ["air"] = Spec.Items.Get(Spec.Suit.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
@@ -148,7 +149,7 @@ public partial class SortieDemo : CanvasLayer
     public override void _Process(double delta)
     {
         _t += delta;
-        if (_world() is var (client, m) && m.Crew.HeroOf(client.Id) is { } hero && hero.Suit < Spec.Crew.Suit / 2 && _t - _breathed > 2)
+        if (_world() is var (client, m) && m.Crew.HeroOf(client.Id) is { } hero && hero.Air < m.Crew.CapacityOf(client.Id) / 2 && _t - _breathed > 2)
         {
             client.Send(new Sim.Crew.Refill());
             _breathed = _t;

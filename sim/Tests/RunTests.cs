@@ -27,7 +27,7 @@ public class RunTests
     private static Stack Battery(int charge) => new("battery", 1, charge);
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
     private static int?[] BeltOf(Scenario w, int peer = 0) =>
-        [.. w.M.Items.Inventory(peer).Skip(Belt).Select(s => s?.Charge)];
+        [.. w.M.Items.Inventory(peer).Skip(Belt).Take(3).Select(s => s?.Charge)];
 
     /// <summary>Hero 0 aboard with the drill in its bag and <paramref name="batteries"/> on its belt, left to right.</summary>
     private static Scenario Holding(params int[] batteries)

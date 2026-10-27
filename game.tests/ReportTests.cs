@@ -186,17 +186,30 @@ public class ReportTests
     }
 
     [Fact]
+    public void DrawsThinFrostOnABareHeroInTheColdAtOnceAndNoneOnceItIsSuited()
+    {
+        var w = new TestWorld(Layout.Parse(["S"]).InWorld());
+        int spawn = w.M.Crew.Spawn, suit = Stillwake.Content.Inventory.Total - 1;
+        w.Step(new Enter(spawn) { From = 0 });
+        Assert.Equal(Report.BareFrost, Report.Cold(w.M.Crew, 0, spawn));
+        w.Step(new Stillwake.Sim.Items.SetCreative(true), new Stillwake.Sim.Items.Spawn(Stillwake.Content.Suit.Basic, 1) { From = 0 });
+        int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Stillwake.Content.Suit.Basic);
+        w.Step(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(bag), new Stillwake.Sim.Items.Target(suit), 1) { From = 0 });
+        Assert.Equal(0, Report.Cold(w.M.Crew, 0, spawn));
+    }
+
+    [Fact]
     public void DrawsNoFrostInsideTheFieldAndFullFrostAtTheEdgeEasedOutBetween()
     {
         var m = new Registry();
         World.Create(1, Layout.Parse(["S"]).InWorld(), m.All);
         int width = m.Grid.Width, midY = m.Grid.Height / 2;
         // The field's left edge is 384 cells from the grid's: the zone's 512 less the field's 128.
-        float Cold(int x) => Report.Cold(m.Crew, midY * width + x);
+        float Cold(int x) => Report.Cold(m.Crew, 0, midY * width + x);
         Assert.Equal(0, Cold(384));
         Assert.Equal(0, Cold(width / 2));
         Assert.Equal(1, Cold(0));
-        Assert.Equal(1, Report.Cold(m.Crew, -1));
+        Assert.Equal(1, Report.Cold(m.Crew, 0, -1));
         // A unit of 45 a breath, eased out, shows a little; 12 of 45 at half depth nearly half.
         Assert.InRange(Cold(383), 0.04f, 0.05f);
         Assert.InRange(Cold(192), 0.45f, 0.47f);

@@ -75,7 +75,7 @@ public sealed class Registry
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere, Grid, Items, Items, Players, Players);
+        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players);
         // Building reads where heroes are only as its commands apply, never in a system, so it keeps its place in the run
         // order and the saves', before crew (0077: a wall does not finish on a hero).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting, Crew, Crew);

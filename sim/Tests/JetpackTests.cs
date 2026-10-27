@@ -23,7 +23,7 @@ public class JetpackTests
     }
 
     /// <summary>What hero 0's thrust has cost its suit: the units it has below hero 1's.</summary>
-    private static int Thrusted(Scenario w) => HeroOf(w, 1).Suit - HeroOf(w, 0).Suit;
+    private static int Thrusted(Scenario w) => HeroOf(w, 1).Air - HeroOf(w, 0).Air;
 
     [Fact]
     public void ThrustVentsAUnitOfTheSuitEveryTenTicksOfThrust()
@@ -84,7 +84,7 @@ public class JetpackTests
         Assert.False(HeroOf(w).Thrusting);
         w.Do(new Thrust(true) { From = 0 }).Run();
         Assert.False(HeroOf(w).Thrusting);
-        Assert.Equal(0, HeroOf(w).Suit);
+        Assert.Equal(0, HeroOf(w).Air);
     }
 
     // Canisters.
@@ -95,7 +95,7 @@ public class JetpackTests
         var w = new Scenario(Vacuum);
         if (canisters > 0) w.GiveItems(0, ("canister", canisters));
         w.Do(new Enter(1) { From = 0 }).Run();
-        HeroOf(w).Suit = suit;
+        HeroOf(w).Air = suit;
         if (w.Crew().Clock % Content.Crew.BreathEvery == Content.Crew.BreathEvery - 1) w.Run();
         return w;
     }
@@ -104,10 +104,10 @@ public class JetpackTests
     public void BreathesACanisterIntoTheSuitTwentyUnitsUpToFull()
     {
         var w = Breathing(10, 2).Do(new Refill { From = 0 }).Run();
-        Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Suit);
+        Assert.Equal(10 + Content.Crew.CanisterRefill, HeroOf(w).Air);
         Assert.Equal(1, Canisters(w));
-        w = Breathing(Content.Crew.Suit - 5, 2).Do(new Refill { From = 0 }).Run();
-        Assert.Equal(Content.Crew.Suit, HeroOf(w).Suit);
+        w = Breathing(Scenario.Full - 5, 2).Do(new Refill { From = 0 }).Run();
+        Assert.Equal(Scenario.Full, HeroOf(w).Air);
         Assert.Equal(1, Canisters(w));
         Assert.Empty(w.Refusals);
     }
@@ -115,12 +115,12 @@ public class JetpackTests
     [Fact]
     public void RefusesACanisterIntoAFullSuitWithNoneCarriedOrWithNoHero()
     {
-        var w = Breathing(Content.Crew.Suit, 2).Do(new Refill { From = 0 }).Do(new Refill { From = 4 }).Run();
+        var w = Breathing(Scenario.Full, 2).Do(new Refill { From = 0 }).Do(new Refill { From = 4 }).Run();
         Assert.Equal(["crew.suitFull", "crew.noHero"], Reasons(w));
         Assert.Equal(2, Canisters(w));
         w = Breathing(10, 0).Do(new Refill { From = 0 }).Run();
         Assert.Equal(["items.notEnough"], Reasons(w));
-        Assert.Equal(10, HeroOf(w).Suit);
+        Assert.Equal(10, HeroOf(w).Air);
         Assert.Equal("items.notEnough", w.M.Crew.RefillProblem(0));
     }
 
@@ -129,12 +129,12 @@ public class JetpackTests
     {
         var w = Breathing(10, 0).Do(new SetCreative(true)).Do(new Refill { From = 0 }).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(Content.Crew.Suit, HeroOf(w).Suit);
+        Assert.Equal(Scenario.Full, HeroOf(w).Air);
         w.Do(new Exert(true) { From = 0 }).Run(Content.Crew.BreathEvery * 100);
-        Assert.Equal((Content.Crew.Suit, 0), (HeroOf(w).Suit, HeroOf(w).Out));
+        Assert.Equal((Scenario.Full, 0), (HeroOf(w).Air, HeroOf(w).Out));
         w.Do(new Refill { From = 0 }).Run();
         Assert.Equal(["crew.suitFull"], Reasons(w));
         w.Do(new SetCreative(false)).Run(Content.Crew.BreathEvery);
-        Assert.True(HeroOf(w).Suit < Content.Crew.Suit);
+        Assert.True(HeroOf(w).Air < Scenario.Full);
     }
 }

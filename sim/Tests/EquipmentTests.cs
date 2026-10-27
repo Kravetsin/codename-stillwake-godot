@@ -24,10 +24,10 @@ public class EquipmentTests
     private static Scenario Carrying() => new Scenario("#KK....#").GiveItems(0, (Jetpack, 1), ("scrap", 30));
 
     [Fact]
-    public void EveryInventoryHasItsOwnSlotsThenAHeadABackAndThreeBeltSlots()
+    public void EveryInventoryHasItsOwnSlotsThenAHeadABackThreeBeltSlotsAndTheSuitLast()
     {
-        Assert.Equal(["head", "back", "belt", "belt", "belt"], Inventory.Equipment);
-        Assert.Equal(Inventory.Slots + 5, Inventory.Total);
+        Assert.Equal(["head", "back", "belt", "belt", "belt", "suit"], Inventory.Equipment);
+        Assert.Equal(Inventory.Slots + 6, Inventory.Total);
         Assert.Equal(Inventory.Total, Slots(new Scenario(Layout.Empty), 3).Count);
         Assert.Equal("back", Content.Items.Get(Jetpack).Equip);
     }

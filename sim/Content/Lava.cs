@@ -12,8 +12,8 @@ public static class Lava
     public static readonly string Material = "lava";
 
     /// <summary>
-    /// What touching it costs a suit a breath: a third of a full suit (<see cref="Crew.Suit"/>), so with the breath itself a
-    /// full suit is gone on the third breath, some three seconds.
+    /// What touching it costs a suit a breath: a third of the basic suit's tank, so with the breath itself a
+    /// full basic suit is gone on the third breath, some three seconds.
     /// </summary>
     public const int Burn = 15;
 

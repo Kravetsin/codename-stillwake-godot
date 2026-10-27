@@ -36,9 +36,11 @@ public class PlanetRulesTests
     private const int Ground = 30;
 
     /// <summary>The ship of <see cref="Ship"/> with the strip opened and hero 0 beamed down to it, carrying <paramref name="items"/>.</summary>
-    private static Scenario Down(params (string Item, int Count)[] items)
+    private static Scenario Down(params (string Item, int Count)[] items) => Down(bare: false, items);
+
+    private static Scenario Down(bool bare, params (string Item, int Count)[] items)
     {
-        var w = new Scenario(Ship);
+        var w = new Scenario(Ship) { Bare = bare };
         w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip.Id)).Run();
         if (items.Length > 0) w.GiveItems(0, items);
         return w.Do(new Transfer(1)).Run();
@@ -94,20 +96,32 @@ public class PlanetRulesTests
     }
 
     [Fact]
+    public void OutsideOnAPlanetBareTheColdIsPaidOnTheThinAirsBeatOnly()
+    {
+        int every = Strip.ThinAir!.Value, span = every * Content.Crew.BreathEvery;
+        var w = Down(bare: true);
+        var hero = w.On(1).Crew.HeroOf(0)!;
+        w.Run(span);
+        Assert.Equal(Content.Crew.Lungs - 1 - Content.Crew.BareCold, hero.Air);
+        w.Run(2 * span);
+        Assert.Equal(Content.Crew.Lungs - 3 * (1 + Content.Crew.BareCold), hero.Air);
+    }
+
+    [Fact]
     public void OutsideOnAPlanetTheSuitPaysOneBreathInItsThinAirsEvery()
     {
         int every = Strip.ThinAir!.Value, span = every * Content.Crew.BreathEvery;
         var w = Down();
         var hero = w.On(1).Crew.HeroOf(0)!;
         w.Run(span);
-        Assert.Equal(Content.Crew.Suit - 1, hero.Suit);
+        Assert.Equal(Scenario.Full - 1, hero.Air);
         w.Run(3 * span);
-        Assert.Equal(Content.Crew.Suit - 4, hero.Suit);
+        Assert.Equal(Scenario.Full - 4, hero.Air);
 
         // Out in the ship's space, a breath every breath.
         var ship = new Scenario(Ship);
         ship.Do(new Enter(0)).Run(span);
-        Assert.Equal(Content.Crew.Suit - every, ship.M.Crew.HeroOf(0)!.Suit);
+        Assert.Equal(Scenario.Full - every, ship.M.Crew.HeroOf(0)!.Air);
     }
 
     [Fact]
@@ -116,7 +130,7 @@ public class PlanetRulesTests
         int span = Strip.ThinAir!.Value * Content.Crew.BreathEvery;
         var w = Down();
         w.Do(new Exert(true)).Run(span);
-        Assert.Equal(Content.Crew.Suit - Content.Crew.Exerted, w.On(1).Crew.HeroOf(0)!.Suit);
+        Assert.Equal(Scenario.Full - Content.Crew.Exerted, w.On(1).Crew.HeroOf(0)!.Air);
     }
 
     [Fact]
@@ -141,7 +155,7 @@ public class PlanetRulesTests
         m = w.Reload().On(1);
         // In its middle, where its air lasts longest as it leaks through the walls: a paying breath and four more.
         w.Do(new Enter(Cell(43, 23))).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
-        Assert.Equal(Content.Crew.Suit, m.Crew.HeroOf(0)!.Suit);
+        Assert.Equal(Scenario.Full, m.Crew.HeroOf(0)!.Air);
     }
 
     [Fact]
@@ -153,7 +167,7 @@ public class PlanetRulesTests
         Assert.All(Enumerable.Range(0, cells), cell => Assert.Equal(0, crew.EdgeCost(cell)));
         // At the strip's very corner, outside, the suit still pays its thin air alone.
         w.Do(new Enter(0)).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
-        Assert.Equal(Content.Crew.Suit - 1, crew.HeroOf(0)!.Suit);
+        Assert.Equal(Scenario.Full - 1, crew.HeroOf(0)!.Air);
     }
 
     [Fact]
@@ -170,7 +184,7 @@ public class PlanetRulesTests
         var on = Thrusting(true).On(1).Crew.HeroOf(0)!;
         var off = Thrusting(false).On(1).Crew.HeroOf(0)!;
         Assert.Equal((false, 0), (on.Thrusting, on.ThrustTicks));
-        Assert.Equal(off.Suit, on.Suit);
+        Assert.Equal(off.Air, on.Air);
     }
 
     [Fact]

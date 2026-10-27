@@ -136,4 +136,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
 | [sentry-arc](2026-10-27-sentry-arc.md) | The sentry strikes with an arc | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |
+| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |

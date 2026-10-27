@@ -34,13 +34,14 @@ public partial class BreatheDemo : Control
         items["creative"] = false;
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 } : null);
+            slots.Add(i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 }
+                : i == Spec.Inventory.Total - 1 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 } : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         root["slices"]!["crew"]!["heroes"] = new JsonArray(new JsonObject
         {
             ["id"] = 0,
             ["cell"] = (int)root["slices"]!["crew"]!["spawn"]! - 15,
-            ["suit"] = suit,
+            ["air"] = suit,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
