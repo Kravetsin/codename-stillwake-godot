@@ -162,7 +162,14 @@ public sealed class CreaturesState
     /// <summary>The shots as saved: none written while none fly, so a world that never fired saves as before shots.</summary>
     [JsonInclude, JsonPropertyName("shots"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     internal List<Shot>? SavedShots { get => Shots.Count > 0 ? Shots : null; set => Shots = value ?? []; }
-    /// <summary>The shots ever fired: the next one's id is one more. Ids are never reused.</summary>
+    /// <summary>The arcs struck and still taking heroes' word they were crossed, in id order (2026-10-27-sentry-arc).</summary>
+    [JsonIgnore] internal List<Arc> Arcs { get; set; } = [];
+
+    /// <summary>The arcs as saved: none written while none linger.</summary>
+    [JsonInclude, JsonPropertyName("arcs"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<Arc>? SavedArcs { get => Arcs.Count > 0 ? Arcs : null; set => Arcs = value ?? []; }
+
+    /// <summary>The shots ever fired and arcs ever struck: the next one's id is one more. Ids are never reused.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int Fired { get; set; }
 }
 
@@ -193,3 +200,22 @@ public sealed class Shot
 /// whether it met something there or ran out of reach or grid.
 /// </summary>
 public readonly record struct ShotEnd(int Id, string Projectile, string? Gun, int Cell, bool Met);
+
+/// <summary>
+/// An arc a creature struck (2026-10-27-sentry-arc): what it carries (<see cref="Content.Shots.Projectile"/>), from its creature's
+/// middle (<see cref="X0"/>, <see cref="Y0"/>) to where it struck (<see cref="X1"/>, <see cref="Y1"/>), in thousandths of a cell;
+/// the ticks it still takes a hero's word it crossed them, and the heroes, by peer, it has hurt.
+/// </summary>
+public sealed class Arc
+{
+    [JsonInclude] public int Id { get; internal set; }
+    /// <summary>Its projectile, by its id in <c>Shots.Projectiles</c>.</summary>
+    [JsonInclude] public string Projectile { get; internal set; } = "";
+    [JsonInclude] public int X0 { get; internal set; }
+    [JsonInclude] public int Y0 { get; internal set; }
+    [JsonInclude] public int X1 { get; internal set; }
+    [JsonInclude] public int Y1 { get; internal set; }
+    [JsonInclude] public int Left { get; internal set; }
+    /// <summary>The peers whose heroes it has hurt, in order; none written while none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Paid { get; set; }
+}

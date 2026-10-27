@@ -13,7 +13,7 @@
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
 | `logic/Creatures.En.cs` | Its player text (`En`) |
 | `TickBodies.cs` | The tick (the sentry): sprite, lamp, arcs, burner, sparks, death, sounds. |
-| `ShotsView.cs` | Every peer's shots but this player's own, drawn a tick behind; heard fired; their ends. |
+| `ShotsView.cs` | Every peer's shots but this player's own, drawn a tick behind; heard fired; their ends; the sentry's arcs. |
 | `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |
 | `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |
 
@@ -44,14 +44,13 @@ axe's blade and the drill's bit are tested against each creature's body as again
   view's `Creatures`).
 - **Each its own** (`CreatureVariety`, `CreatureLooks.Varieties`, 0102): from its id and the surface's seed by an integer
   hash, the same on every peer, never the world's random stream. Size, coat shade and tone, morphs and markings vary,
-  drawn only, scaled about its feet; the sim's box, hit points and speed are the species'. A look's pictures are made once
-  and kept.
+  drawn only, scaled about its feet; the sim's box, hit points and speed are the species'.
 - **Its legs** (`CreatureGait`, 0102) go by the ground the sim moved it on its last tick, eased by time, never a frame's
   step: `MostStrides · tanh(v / (MostStrides · Stride))` strides a second, capped by `CreatureLooks.Runs`, so any frame rate
-  draws alike. Fast, the pose blends into a gallop (six legs keep their tripods; the fluff hops). Tucked in the air.
+  draws alike. Fast, the pose blends into a gallop. Tucked in the air.
 - **A blow** (`CreatureMotion`, 0102): this player's own strike reacts the frame it is sent, a friend's as the sim's
   `Damage` rises (an own strike's damage is not shown twice). A white flash, a squash springing back past round, a flinch
-  the way it is knocked, wide eye and pinned ears, a shake; never holding its place. A drill's hit is its share of the
+  the way it is knocked, wide eye and pinned ears, a shake. A drill's hit is its share of the
   axe's (`Impacts.ShareOf`). Fleeing it leans forward and stretches long.
 - **A ram's tell** (0103), read off the sim's `WindUp` and `Charge`: winding up it faces the hero however far and crouches
   (`CreatureMotion.Bracing`), nose down, ears pinned, trembling, hind feet scraping dust; it snorts as it begins (a puff
@@ -66,7 +65,8 @@ axe's blade and the drill's bit are tested against each creature's body as again
 - **The tick** (the sentry page's «Клещ»): its sprite drawn each frame from its pose (`TickArt`), lit; eye, cracks and a blow's
   white over it unlit. `TickMotion` reads the sim: `Clamped` grips (legs down, magnets aglow, a bounce), else legs folded, nose
   along its flight; X moving along its wreck while clamped steps its legs. Eye teal, yellow `Alerted` or flying home, red from
-  its crouch on, lighting the wreck. Winding up: trembling, red arcs between its legs. Flying: an amber burner, sparks and smoke.
+  its crouch on, lighting the wreck. Winding up: trembling, red arcs between its legs. Aiming an arc: eye cyan, flickering,
+  held once aimed, its charge heard. Flying: an amber burner, sparks and smoke.
   Struck: flash, shake, fine sparks. `CutLeft`: it faces the line (its reel's hero), rears, saws with its claw and mandible,
   sparks thickening; `LastCut`: sparks and a whip of light down the line, a recoil. Killed (its wreck gone too): cracks 0.32 s,
   then a burst and hot plates. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.

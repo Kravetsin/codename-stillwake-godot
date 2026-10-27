@@ -76,7 +76,7 @@ commands reach the sim. Other heroes come through the host.
 - **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
 - **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
-- **Rammed** (0103), **or bolted** (`Rams.BoltContact`): the client's word, sending `HitBy`/`Bolted`;
+- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): the client's word, sending `HitBy`/`Bolted`;
   thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).

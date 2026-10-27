@@ -234,7 +234,7 @@ public class SentryTests
     }
 
     [Fact]
-    public void NoticingAHeroPastItsStrikeItShootsABoltAtItAndStaysOnItsWreck()
+    public void NoticingAHeroPastItsStrikeItWindsUpThenStrikesAnArcAtItStayingOnItsWreck()
     {
         var (w, _, c) = OnAWreck();
         // Thirty cells off: within its notice, past its strike.
@@ -242,41 +242,11 @@ public class SentryTests
         Assert.True(Alerted(c));
         w.Run(Guard.AlertTicks);
         Assert.Equal((ActPhase.WindUp, (Tune.Shoot)Sentry.Moves[c.Act!.Move]), (c.Act.Phase, Shoot));
-        Assert.Empty(w.M.Creatures.Shots);
-        w.Run(Shoot.WindUp);
-        var bolt = w.M.Creatures.Shots.Single();
-        // From its middle, left at its speed, a little down toward the hero's reported cell.
-        Assert.Equal((Shoot.Projectile, (string?)null, -Shoot.Speed), (bolt.Projectile, bolt.Gun, bolt.VX));
-        Assert.InRange(bolt.VY, 0, Shoot.Speed / 4);
+        w.Run(Shoot.WindUp - 2);
+        Assert.Empty(w.M.Creatures.Arcs);
+        w.Run();
+        Assert.Single(w.M.Creatures.Arcs);
         Assert.True(Mounted(c));
-        w.Run(Shoot.Recover);
-        Assert.True(Mounted(c));
-    }
-
-    [Fact]
-    public void ABoltFliesTillItsReachRunsOutAndAWallStopsIt()
-    {
-        var (w, _, c) = OnAWreck();
-        HeroAt(w, 80 - 35, 36).Run(Guard.AlertTicks + Shoot.WindUp + 1);
-        var bolt = w.M.Creatures.Shots.Single();
-        int ticks = Shoot.Reach * Unit / Shoot.Speed;
-        // The hero gone, so nothing reports it touched; the bolt flies on past where it was.
-        w.Do(new Crew.Enter(10 * 160 + 150)).Run(ticks - 4);
-        Assert.Contains(bolt, w.M.Creatures.Shots);
-        w.Run(4);
-        Assert.DoesNotContain(bolt, w.M.Creatures.Shots);
-
-        var walled = new Scenario(string.Join('\n', Enumerable.Range(0, 80).Select(y => new string('.', 60) + "#" + new string('.', 99))), cells: true)
-            .Do(new Crew.Enter(40 * 160 + 4)).Run();
-        var debris = (DebrisState)walled.M.Debris.Slice;
-        debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 80_000, Y = 40_000, Start = 80_000, SeenAt = debris.Clock });
-        Guarded(walled);
-        walled.Do(new Release(Sentry.Id, 38 * 160 + 80)).Run();
-        HeroAt(walled, 80 - 30, 36).Run(Guard.AlertTicks + Shoot.WindUp + 1);
-        Assert.Single(walled.M.Creatures.Shots);
-        // The wall at column 60 is some fourteen ticks off; its reach forty.
-        walled.Run(20);
-        Assert.Empty(walled.M.Creatures.Shots);
     }
 
     [Fact]
@@ -383,7 +353,7 @@ public class SentryTests
         {
             w.Run();
             Assert.True(Mounted(c));
-            if (t == Shoot.WindUp) Assert.Single(w.M.Creatures.Shots);
+            if (t == Shoot.WindUp) Assert.Single(w.M.Creatures.Arcs);
         }
         Assert.Null(c.Act);
         Assert.Equal(Ref.None, c.Target);
@@ -590,7 +560,7 @@ public class SentryInvariantTests
         select new Run(seed, ticks);
 
     [Property(MaxTest = 40)]
-    public Property SentriesStayOnTheGridWithinTheirClocksAndHurtOncePerPounceOrBolt() =>
+    public Property SentriesStayOnTheGridWithinTheirClocksAndHurtOncePerPounceOrArc() =>
         Prop.ForAll(Runs().ToArbitrary(), run =>
         {
             var rng = new Rng(new RngState { S = (uint)run.Seed });
@@ -609,7 +579,7 @@ public class SentryInvariantTests
             w.Run();
             string? broken = null;
             var hits = new Dictionary<(int Creature, int Peer), int>();
-            var paid = new HashSet<int>();
+            var paid = new HashSet<(int Arc, int Peer)>();
             for (int t = 0; t < run.Ticks && broken == null; t++)
             {
                 var all = w.M.Creatures.Creatures;
@@ -625,9 +595,9 @@ public class SentryInvariantTests
                     for (int h = 0; h < 2; h++)
                         if (rng.Below(3) == 0) sent.Add(new HitBy(c.Id) { From = h });
                 var bolts = new List<Bolted>();
-                foreach (var s in w.M.Creatures.Shots)
+                foreach (var arc in w.M.Creatures.Arcs)
                     for (int h = 0; h < 2; h++)
-                        if (rng.Below(4) == 0) bolts.Add(new Bolted(s.Id) { From = h });
+                        if (rng.Below(4) == 0) bolts.Add(new Bolted(arc.Id) { From = h });
                 foreach (var hit in sent) w.Do(hit);
                 foreach (var bolt in bolts) w.Do(bolt);
                 int refused = w.Refusals.Count;
@@ -636,9 +606,13 @@ public class SentryInvariantTests
                 foreach (var hit in sent.Where(h => !turnedDown.Contains(h)))
                     hits[(hit.Creature, hit.From)] = hits.GetValueOrDefault((hit.Creature, hit.From)) + 1;
                 foreach (var bolt in bolts.Where(b => !turnedDown.Contains(b)))
-                    if (!paid.Add(bolt.Shot)) broken ??= $"bolt {bolt.Shot} hurt twice";
-                foreach (var s in w.M.Creatures.Shots)
-                    if (s.Left > SentryTests.Shoot.Reach * CreaturesModule.Unit / SentryTests.Shoot.Speed) broken ??= $"bolt {s.Id} {s.Left} left";
+                    if (!paid.Add((bolt.Arc, bolt.From))) broken ??= $"arc {bolt.Arc} hurt hero {bolt.From} twice";
+                foreach (var arc in w.M.Creatures.Arcs)
+                {
+                    if (arc.Left > SentryTests.Shoot.Lingers) broken ??= $"arc {arc.Id} {arc.Left} left";
+                    if (Math.Max(Math.Abs(arc.X1 - arc.X0), Math.Abs(arc.Y1 - arc.Y0)) > SentryTests.Shoot.Reach * CreaturesModule.Unit)
+                        broken ??= $"arc {arc.Id} past its reach";
+                }
                 foreach (var c in w.M.Creatures.Creatures)
                 {
                     if (c.Act is not { Phase: ActPhase.Active }) foreach (var key in hits.Keys.Where(k => k.Creature == c.Id).ToList()) hits.Remove(key);

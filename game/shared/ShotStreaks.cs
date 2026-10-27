@@ -45,7 +45,6 @@ public partial class ShotStreaks : Node2D
                 _points[i] = tail.Lerp(at, k);
                 // A quarter of the way along the tail gives way to the body, which runs on to the point.
                 _colours[i] = k < 0.25f ? back.Lerp(body, k / 0.25f) : body.Lerp(point, (k - 0.25f) / 0.75f);
-                if (look.Fades) _colours[i] = _colours[i] with { A = k * k };
             }
             float w = (float)look.Width;
             // A dark rim under it, so it reads on a pale sky as on a cave's dark.

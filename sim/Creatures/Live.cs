@@ -44,6 +44,7 @@ public sealed partial class CreaturesModule
     private void Live()
     {
         var s = State;
+        Linger();
         // Those killed by this tick's commands go first, as if gone the moment they died.
         s.Creatures.RemoveAll(c => c.Dead);
         if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();

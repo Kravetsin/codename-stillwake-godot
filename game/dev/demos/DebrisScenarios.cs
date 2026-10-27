@@ -67,7 +67,7 @@ public sealed class SortieScenario : DevScenario
     }
 }
 
-[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102); =fight: its line reeled and cut, struck once, its wreck hewn apart under it; =crawl: the hero jets off out of its notice and it crawls its perch",
+[Dev("--sentry", "the sortie's derelicts, a sentry let out on the engine block beside the hero: watching, alerted, pouncing (0102); =fight: its line reeled and cut, struck once, its wreck hewn apart under it; =crawl: the hero jets off out of its notice and it crawls its perch; =arc: let out on a wreck some thirty cells off, past its pounce, it strikes the hero standing still with arcs (2026-10-27-sentry-arc)",
     Shape = DevShape.Either)]
 public sealed class SentryScenario : DevScenario
 {
@@ -87,9 +87,18 @@ public sealed class SentryScenario : DevScenario
 
     public override HeroAutopilot? Script => Args.Given("--sentry") == "crawl" ? HeroAutopilot.Away() : null;
 
+    /// <summary>Where the sentry is let out: the engine block beside the hero, or for =arc the wreck nearest thirty cells off it.</summary>
+    private Sim.Debris.Piece? PerchOf(Client client, Registry m)
+    {
+        if (Args.Given("--sentry") != "arc") return m.Debris.Pieces.FirstOrDefault(p => p.Item == "engineBlock");
+        if (m.Crew.HeroOf(client.Id) is not { } hero) return null;
+        int hx = hero.Cell % m.Grid.Width, hy = hero.Cell / m.Grid.Width;
+        return m.Debris.Pieces.OrderBy(p => Math.Abs(Math.Max(Math.Abs(p.X / 1000 - hx), Math.Abs(p.Y / 1000 - hy)) - 30)).FirstOrDefault();
+    }
+
     public override void Frame(Client client, Registry m, Action<string> log)
     {
-        if (!_let && client.World.Tick >= 5 && m.Debris.Pieces.FirstOrDefault(p => p.Item == "engineBlock") is { } block)
+        if (!_let && client.World.Tick >= 5 && PerchOf(client, m) is { } block)
         {
             _let = true;
             client.Send(new Sim.Creatures.Release(Content.Creatures.Sentry.Id, Sim.Debris.DebrisModule.CellOf(block.X, block.Y, m.Grid.Width)));
