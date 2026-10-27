@@ -36,24 +36,25 @@ public class CapeTests
     }
 
     [Fact]
-    public void ACapeHangsBehindTheBackAndOnARunOnlyTrailsALittle()
+    public void ACapeLiesAgainstTheBackAndOnARunOnlyTrailsALittle()
     {
         // The figure's frame is the world's, moved by its feet: standing, then running at a sprint (211 px a second).
         double feet = 0;
         (double X, double Y) ToWorld((double X, double Y) p) => (p.X + feet, p.Y);
         (double X, double Y) ToFrame((double X, double Y) p) => (p.X - feet, p.Y);
         var cape = new Cape();
-        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, ToWorld, ToFrame, back: 9.6);
+        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, ToWorld, ToFrame, _ => 9.6);
         // The top piece slants from the neck back over the air pack; the rest hang behind it.
         foreach (var piece in cape.Pieces[1..])
         {
-            Assert.True(piece.X <= -9.6 + 0.01, $"a piece at {piece.X} is not behind the back");
+            // Against the back: neither in it nor hanging off it.
+            Assert.InRange(piece.X, -9.6 - 0.5, -9.6 + 0.01);
             Assert.InRange(piece.Turn, -0.35, 0.35);
         }
         for (int i = 0; i < 120; i++)
         {
             feet += 211.0 / 60;
-            cape.Step(Rope.StepMs, ToWorld, ToFrame, back: 9.6);
+            cape.Step(Rope.StepMs, ToWorld, ToFrame, _ => 9.6);
         }
         // Trailing: the hem's piece turns back, away from the way it runs (+x), but a heavy cape not past 45°.
         double hem = cape.Pieces[^1].Turn;

@@ -85,13 +85,13 @@ public partial class Figure : Node2D
     }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
     private readonly Sprite2D _jetpack;
-    /// <summary>The cape (a prototype): its pieces behind everything, laid along its rope, and the mantle over the shoulders.</summary>
+    /// <summary>The cape (a prototype): its pieces over the air pack, laid along its rope, and the mantle over the shoulders.</summary>
     private readonly Node2D _capeView = new() { Visible = false };
     private readonly Sprite2D[] _capePieces = new Sprite2D[Cape.Count];
     private readonly Sprite2D _mantle;
     private readonly Cape _cape = new();
-    /// <summary>Where a cape piece hangs from in its picture, its top right: the inside of the cloth, against the back.</summary>
-    private static readonly Vector2 CapePivot = new(7, 1);
+    /// <summary>Where a cape piece hangs from in its picture, past its top right pixel: the inside of the cloth, touching the back.</summary>
+    private static readonly Vector2 CapePivot = new(9, 1);
     /// <summary>The mantle's top left, from the feet: over the air pack, the shoulders and the near arm's top.</summary>
     private static readonly Vector2 MantleAt = new(-10, (float)-Rig.Neck);
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
@@ -270,8 +270,9 @@ public partial class Figure : Node2D
             Lit.Set(_capePieces[i]);
             _capeView.AddChild(_capePieces[i]);
         }
-        parts.AddChild(_capeView);
-        parts.MoveChild(_capeView, 0);
+        // Over the air pack and the far limbs, under the jetpack and the chest: it drapes over the pack, against the back.
+        torso.AddChild(_capeView);
+        torso.MoveChild(_capeView, 1);
         _mantle = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_mantle.png"), Centered = false, Position = MantleAt, Visible = false };
         Lit.Set(_mantle);
         parts.AddChild(_mantle);
@@ -364,20 +365,32 @@ public partial class Figure : Node2D
         }
     }
 
-    /// <summary>The cape moved on with the body as it now stands, its pieces laid along it; behind the air pack, the jetpack when worn.</summary>
+    /// <summary>The cape moved on with the body as it now stands, its pieces laid along it, lying against the back (<see cref="BackAt"/>).</summary>
     private void LayCape(double elapsedMs)
     {
         _cape.Step(
             elapsedMs,
             p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
             p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); },
-            _jetpack.Visible ? Back + 2.2 : Back + 0.2);
+            BackAt);
         var pieces = _cape.Pieces;
         for (int i = 0; i < pieces.Length; i++)
         {
             _capePieces[i].Position = new Vector2((float)pieces[i].X, (float)pieces[i].Y);
             _capePieces[i].Rotation = (float)pieces[i].Turn;
         }
+    }
+
+    /// <summary>The air pack's height: down to here the cape drapes over it, lying on the back; then it curves in to the legs.</summary>
+    private const double PackTall = 12;
+
+    /// <summary>How far behind the middle the back is at a height from the feet: the helmet's above the air pack, the back's over it (the jetpack's when worn), then the legs'.</summary>
+    private double BackAt(double y)
+    {
+        double packTop = -Rig.Shoulder - Rig.H * 0.02, packBottom = packTop + PackTall, pack = _jetpack.Visible ? Back + 2 : 6;
+        if (y < packTop) return 6.5;
+        if (y <= packBottom) return pack;
+        return Math.Max(4.5, pack - (y - packBottom) * 1.2);
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>

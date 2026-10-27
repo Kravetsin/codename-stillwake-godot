@@ -9,7 +9,7 @@ const A = require('./parts.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ART = path.join(ROOT, 'game', 'art');
-const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [8, 9], mantle: [15, 7] };
+const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [9, 9], mantle: [15, 7] };
 
 const rgba = s => { const [hex, a] = s.split('/'); const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255, a ? +a : 255]; };
 const keys = { ...A.FIXED };

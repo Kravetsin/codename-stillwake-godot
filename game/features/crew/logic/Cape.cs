@@ -23,8 +23,8 @@ public sealed class Cape
     public static readonly (double X, double Y) From = (-6, -(Rig.Neck - 1));
     public const double Length = Rig.Neck - 1.5;
     private static readonly RopeStyle Style = new(Links: Count * 2, Keep: 0.965, Gravity: 0.65, Drift: 0.012, DriftSpeed: 0.03, Wave: 0.7);
-    /// <summary>How far behind the middle its inside lies, at the hips and at the hem: it flares toward the floor.</summary>
-    private const double FlareAtHem = 2.5;
+    /// <summary>How hard, a pass, the cloth is drawn back against the body where it hangs off it: it clings rather than tents.</summary>
+    private const double Cling = 0.005;
 
     private Rope? _rope;
     private readonly CapePiece[] _pieces = new CapePiece[Count];
@@ -34,20 +34,19 @@ public sealed class Cape
 
     /// <summary>
     /// Moves it on by <paramref name="elapsedMs"/>. <paramref name="toWorld"/> and <paramref name="toFrame"/> turn a point
-    /// of the figure's frame into the world's pixels and back; <paramref name="back"/> is how far behind the middle the
-    /// back lies, the air pack's back when worn.
+    /// of the figure's frame into the world's pixels and back; <paramref name="backAt"/> is how far behind the middle the
+    /// back lies at a height of the frame: the air pack's back where it is worn, the legs' below.
     /// </summary>
-    public void Step(double elapsedMs, Func<(double X, double Y), (double X, double Y)> toWorld, Func<(double X, double Y), (double X, double Y)> toFrame, double back)
+    public void Step(double elapsedMs, Func<(double X, double Y), (double X, double Y)> toWorld, Func<(double X, double Y), (double X, double Y)> toFrame, Func<double, double> backAt)
     {
         var top = toWorld(From);
         _rope ??= new Rope(Style, top, toWorld((From.X, From.Y + Length)));
         _rope.Hang(top, elapsedMs, Length, knot =>
         {
             var (x, y) = toFrame((knot.X, knot.Y));
-            // Behind the back, further toward the hem; never under the feet.
-            double down = Math.Clamp((y - From.Y) / Length, 0, 1), most = -(back + FlareAtHem * down);
-            if (x <= most && y <= -0.5) return;
-            var (wx, wy) = toWorld((Math.Min(x, most), Math.Min(y, -0.5)));
+            // Against the back, never in it nor under the feet; drawn a little toward it where it hangs off.
+            double most = -backAt(y), lies = x > most ? most : x + (most - x) * Cling;
+            var (wx, wy) = toWorld((lies, Math.Min(y, -0.5)));
             // Moved with its speed kept, so it slides along the back rather than bouncing off.
             knot.Px += wx - knot.X;
             knot.Py += wy - knot.Y;

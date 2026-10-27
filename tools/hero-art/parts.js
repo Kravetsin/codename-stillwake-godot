@@ -266,9 +266,9 @@ const jumpsuit = {
   ],
 };
 
-// The cape (a prototype, Cape.cs): pieces top to hem, each 8x9 hanging from its top right pixel (7, 1), the inside of
+// The cape (a prototype, Cape.cs): pieces top to hem, each 9x9 hanging from past its top right pixel (9, 1), the inside of
 // the cloth against the back on the right, widening toward the hem; a fold down every other piece, the hem in shade.
-const CAPE_W = 8, CAPE_H = 9, CAPE_WIDTHS = [3, 4, 5, 6, 7];
+const CAPE_W = 9, CAPE_H = 9, CAPE_WIDTHS = [5, 6, 6, 7, 8];
 const cape = CAPE_WIDTHS.slice(0, -1).map((w0, j) => Array.from({ length: CAPE_H }, (_, r) => {
   const w = Math.round(w0 + ((CAPE_WIDTHS[j + 1] - w0) * r) / (CAPE_H - 1)), left = CAPE_W - w, last = j === CAPE_WIDTHS.length - 2;
   if (last && r === CAPE_H - 1) return '.'.repeat(left) + 't'.repeat(w);
