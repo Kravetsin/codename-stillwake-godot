@@ -88,8 +88,6 @@ public partial class Figure : Node2D
     /// <summary>The cape (a prototype): its inside behind the hero, its outside over it, arms and all.</summary>
     private readonly Cape _cape = new();
     private readonly CapeView _capeInside, _capeOutside;
-    /// <summary>The figure's parts are drawn through it: while the cape is worn, nothing shows behind its back edge.</summary>
-    private readonly CapeMask _capeMask;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
@@ -256,10 +254,7 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        // All of them through the cape's mask, which hides what shows behind it while it is worn.
-        _capeMask = new CapeMask(_cape);
-        parts.AddChild(_capeMask);
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) _capeMask.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -353,19 +348,8 @@ public partial class Figure : Node2D
         {
             if (value == _capeOutside.Visible) return;
             _capeInside.Visible = _capeOutside.Visible = value;
-            _capeMask.Cutting = value;
             _cape.Reset();
         }
-    }
-
-    /// <summary>How far behind the middle the back of the torso and of the legs is: what a cape lies against.</summary>
-    private const double TorsoBack = 6.3, LegsBack = 5;
-
-    /// <summary>How far behind the middle the back is at a height from the feet, what the cape lies against: the torso's, then the legs'.</summary>
-    private double BackAt(double y)
-    {
-        // The air pack and a jetpack lie under the cape, hidden by its mask: it lies on the back itself.
-        return y < -Rig.Hip ? TorsoBack : LegsBack;
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
@@ -425,8 +409,8 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
-            _capeMask.AddChild(_heldView);
-            _capeMask.MoveChild(_heldView, _frontArmNode.GetIndex());
+            _frame.AddChild(_heldView);
+            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;
         }
     }
@@ -685,11 +669,9 @@ public partial class Figure : Node2D
             _cape.Step(
                 elapsedMs,
                 p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
-                p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); },
-                BackAt);
+                p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); });
             _capeInside.Refresh();
             _capeOutside.Refresh();
-            _capeMask.Refresh();
         }
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;

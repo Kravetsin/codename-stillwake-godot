@@ -28,72 +28,80 @@ public class CapeTests
         public (double X, double Y) ToFrame((double X, double Y) p) => ((p.X - Feet) * Facing, p.Y);
     }
 
-    /// <summary>A back like the hero's under a cape: the torso's down to the hips, the legs' below.</summary>
-    private static double Back(double y) => y < -17.6 ? 6.3 : 5;
+    private static readonly int Points = Cape.Cols * Cape.Rows;
 
-    private static double HemOffRest(Cape cape) => cape.Points[^1].X - Cape.Rest(Cape.Cols * Cape.Rows - 1).X;
+    /// <summary>A cape stepped <paramref name="steps"/> times, the feet moving <paramref name="by"/> pixels a step.</summary>
+    private static void Move(Cape cape, Frame f, int steps, double by = 0)
+    {
+        for (int i = 0; i < steps; i++)
+        {
+            f.Feet += by;
+            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
+        }
+    }
+
+    private const double Sprint = 211.0 / 60;
 
     [Fact]
     public void ACapeHangsAsItWasCutAndOnARunTrailsBack()
     {
-        var f = new Frame();
-        var cape = new Cape();
-        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
-        // The flared cut falls a little straighter under its own weight.
-        Assert.InRange(HemOffRest(cape), -3.5, 3.5);
-        // Its back edge lies over the pack, not standing off it: no hump; below the pack it flares as it was cut.
-        for (int r = 1; r < 3; r++)
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        for (int i = 0; i < Points; i++)
         {
-            var p = cape.Points[r * Cape.Cols + Cape.Cols - 1];
-            Assert.InRange(p.X, -Back(p.Y) - 1.5, -Back(p.Y) + 0.01);
+            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+            Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
         }
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
-        for (int i = 0; i < 90; i++)
-        {
-            f.Feet += 211.0 / 60;
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
-        }
-        Assert.True(HemOffRest(cape) < -4, $"the hem only {HemOffRest(cape)} back of where it hangs");
+        Move(cape, f, 90, Sprint);
+        double hem = cape.Points[^1].X - Cape.Rest(Points - 1).X;
+        Assert.True(hem < -4, $"the hem only {hem} back of its cut");
     }
 
     [Fact]
-    public void TurningSwingsItRoundTheBackShowingItsLiningNeverThroughTheChest()
+    public void WalkingBackwardItKeepsItsCutRoundTheBackRatherThanWrappingTheHero()
     {
-        var f = new Frame();
-        var cape = new Cape();
-        for (int i = 0; i < 300; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
-        f.Facing = -1;
-        bool lined = false;
-        double shoulders = Cape.Rest(Cape.Cols).Y, most = double.MinValue;
-        for (int i = 0; i < 120; i++)
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 120);
+        double most = double.MinValue;
+        for (int step = 0; step < 120; step++)
         {
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
-            lined |= Enumerable.Range(0, Cape.Triangles.Length / 3).Any(cape.Flipped);
-            foreach (var p in cape.Points.ToArray().Where(p => p.Y > shoulders && p.Y < shoulders + 6)) most = Math.Max(most, p.X);
+            Move(cape, f, 1, -Sprint);
+            for (int i = 0; i < Points; i++) most = Math.Max(most, cape.Points[i].X - Cape.Rest(i).X);
         }
-        Assert.True(lined, "it never turned its lining to the eye");
-        Assert.True(most <= 2, $"a point came to {most}, in front of the chest");
+        Assert.True(most <= 1.01, $"a point came {most} forward of its cut");
+    }
+
+    [Fact]
+    public void FacingLeftItHangsAndTrailsAsFacingRightMirrored()
+    {
+        Cape Run(int facing)
+        {
+            var (f, cape) = (new Frame { Facing = facing }, new Cape());
+            Move(cape, f, 120);
+            Move(cape, f, 90, facing * Sprint);
+            return cape;
+        }
+        var (right, left) = (Run(1), Run(-1));
+        for (int i = 0; i < Points; i++)
+        {
+            Assert.InRange(left.Points[i].X - right.Points[i].X, -0.01, 0.01);
+            Assert.InRange(left.Points[i].Y - right.Points[i].Y, -0.01, 0.01);
+        }
     }
 
     [Fact]
     public void StoppedAfterARunItStraightensRatherThanStayingBunched()
     {
-        var f = new Frame();
-        var cape = new Cape();
-        for (int i = 0; i < 120; i++)
-        {
-            f.Feet += 211.0 / 60;
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
-        }
-        for (int i = 0; i < 240; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, Back);
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 120, Sprint);
+        Move(cape, f, 240);
         // Its front edge, top to hem, as long as it was cut: hanging, not folded up against the legs.
         double along = 0, cut = 0;
         for (int r = 1; r < Cape.Rows; r++)
         {
-            var (a, b) = (cape.Points[(r - 1) * Cape.Cols], cape.Points[r * Cape.Cols]);
-            var (ra, rb) = (Cape.Rest((r - 1) * Cape.Cols), Cape.Rest(r * Cape.Cols));
-            along += b.Y - a.Y;
-            cut += rb.Y - ra.Y;
+            along += cape.Points[r * Cape.Cols].Y - cape.Points[(r - 1) * Cape.Cols].Y;
+            cut += Cape.Rest(r * Cape.Cols).Y - Cape.Rest((r - 1) * Cape.Cols).Y;
         }
         Assert.True(along > cut * 0.85, $"its front edge hangs {along:F1} of {cut:F1}");
     }

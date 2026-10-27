@@ -33,7 +33,6 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Cape.cs` | a cape of cloth (prototype) |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |
-| `CapeMask.cs` | what it hides behind it |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands: E, plans, axe, drill, aim |
 | `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
