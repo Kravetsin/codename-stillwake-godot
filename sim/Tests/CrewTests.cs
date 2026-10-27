@@ -56,7 +56,7 @@ public class CrewTests
 
     /// <summary>A hero as TypeScript's <c>toEqual</c> compares it: every field.</summary>
     private static (int Id, int Cell, int Suit, int Out, int Colour)? All(Scenario w, Hero? h) =>
-        h == null ? null : (h.Id, h.Cell, h.Suit, h.Out, w.M.Players.ColourOf(h.Id) ?? -1);
+        h == null ? null : (h.Id, h.Cell, h.Air, h.Out, w.M.Players.ColourOf(h.Id) ?? -1);
 
     private static IReadOnlyList<int> Aired(Scenario w) => w.M.Atmosphere.AiredCells;
     private static int AirClock(Scenario w) => w.Air().Clock;
@@ -87,11 +87,11 @@ public class CrewTests
     {
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1), 2)).Run();
-        Assert.Equal((2, At(4, 1), Content.Crew.Suit, 0, 0), All(w, HeroOf(w, 2)));
+        Assert.Equal((2, At(4, 1), Scenario.Full, 0, 0), All(w, HeroOf(w, 2)));
         Breaths(w, 3);
         w.Do(EnterAt(At(6, 2), 2)).Run();
         Assert.Equal(At(6, 2), HeroOf(w, 2)?.Cell);
-        Assert.Equal(Content.Crew.Suit - 3, HeroOf(w, 2)?.Suit);
+        Assert.Equal(Scenario.Full - 3, HeroOf(w, 2)?.Air);
     }
 
     [Fact]
@@ -100,7 +100,7 @@ public class CrewTests
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1))).Run();
         Breaths(w, 5);
-        Assert.Equal(Content.Crew.Suit - 5, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full - 5, HeroOf(w)?.Air);
     }
 
     [Fact]
@@ -109,11 +109,11 @@ public class CrewTests
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
         Breaths(w, 5);
-        Assert.Equal(Content.Crew.Suit - 5 * Content.Crew.Exerted, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full - 5 * Content.Crew.Exerted, HeroOf(w)?.Air);
         w.Do(new Exert(false) { From = 0 }).Run();
-        int suit = HeroOf(w)!.Suit;
+        int suit = HeroOf(w)!.Air;
         Breaths(w, 3);
-        Assert.Equal(suit - 3, HeroOf(w)?.Suit);
+        Assert.Equal(suit - 3, HeroOf(w)?.Air);
     }
 
     [Fact]
@@ -121,9 +121,9 @@ public class CrewTests
     {
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
-        Breaths(w, (Content.Crew.Suit + 1) / Content.Crew.Exerted);
+        Breaths(w, (Scenario.Full + 1) / Content.Crew.Exerted);
         var hero = HeroOf(w)!;
-        Assert.Equal((0, Content.Crew.PassOut, false), (hero.Suit, hero.Out, hero.Exerting));
+        Assert.Equal((0, Content.Crew.PassOut, false), (hero.Air, hero.Out, hero.Exerting));
     }
 
     [Fact]
@@ -138,13 +138,13 @@ public class CrewTests
     {
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(7, 3))).Run();
-        Breaths(w, Content.Crew.Suit);
+        Breaths(w, Scenario.Full);
         var hero = HeroOf(w)!;
-        Assert.Equal((0, Content.Crew.PassOut, At(7, 3)), (hero.Suit, hero.Out, hero.Cell));
+        Assert.Equal((0, Content.Crew.PassOut, At(7, 3)), (hero.Air, hero.Out, hero.Cell));
         w.Run(Content.Crew.PassOut - 1);
         Assert.Equal(1, HeroOf(w)?.Out);
         w.Run();
-        Assert.Equal((0, At(4, 1) + 18, Content.Crew.Suit, 0, 0), All(w, HeroOf(w)));
+        Assert.Equal((0, At(4, 1) + 18, Scenario.Full, 0, 0), All(w, HeroOf(w)));
     }
 
     [Fact]
@@ -155,11 +155,11 @@ public class CrewTests
         Breaths(w, 10);
         AirUp(w, room);
         w.Do(EnterAt(At(4, 1))).Run();
-        int suit = HeroOf(w)?.Suit ?? 0;
+        int suit = HeroOf(w)?.Air ?? 0;
         int oxygen = w.M.Atmosphere.OxygenIn(tank);
         int clock = AirClock(w);
         Breaths(w, 2);
-        Assert.Equal(suit + 2 * Content.Crew.Refill, HeroOf(w)?.Suit);
+        Assert.Equal(suit + 2 * Content.Crew.Refill, HeroOf(w)?.Air);
         // The tank pays for the breaths, and its leak on a leak beat; the room stays whole.
         Assert.Equal(
             oxygen - 2 * (1 + Content.Crew.Refill) - AirTesting.Leaked(Leak, clock, AirClock(w)),
@@ -167,7 +167,7 @@ public class CrewTests
         Assert.Equal(84, Aired(w).Count);
         // Full, it takes only its breath.
         Breaths(w, 10);
-        Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
     }
 
     [Fact]
@@ -181,7 +181,7 @@ public class CrewTests
         // Counted from here: the leak of the ticks since the cut, a fifth of a cell a tick, is the room's already.
         int clock = AirClock(w), aired = Aired(w).Count;
         Breaths(w, 1);
-        Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
         // The corner farthest from the vent went first; the back walls leak the room's air too.
         Assert.DoesNotContain(Far, Aired(w));
         Assert.Equal(aired - 1 - AirTesting.Leaked(Leak, clock, AirClock(w)), Aired(w).Count);
@@ -197,9 +197,9 @@ public class CrewTests
         w.Do(EnterAt(Far)).Run();
         for (int i = 0; i < 30 && Aired(w).Contains(Far); i++) Breaths(w, 1);
         Assert.DoesNotContain(Far, Aired(w));
-        int suit = HeroOf(w)?.Suit ?? 0;
+        int suit = HeroOf(w)?.Air ?? 0;
         Breaths(w, 2);
-        Assert.Equal(suit - 2, HeroOf(w)?.Suit);
+        Assert.Equal(suit - 2, HeroOf(w)?.Air);
         // The room still holds air nearer the vent.
         Assert.True(Aired(w).Count > 40, $"{Aired(w).Count} aired");
     }
@@ -215,7 +215,7 @@ public class CrewTests
         w.Run();
         Assert.Equal(RoomStatus.Venting, w.M.Atmosphere.StatusOf(room));
         Breaths(w, 2);
-        Assert.Equal(Content.Crew.Suit - 2, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full - 2, HeroOf(w)?.Air);
     }
 
     // The lifepod.
@@ -248,7 +248,7 @@ public class CrewTests
     {
         Assert.Equal(Hatch, new Scenario(PodRoom).M.Crew.Spawn);
         var w = new Scenario(PodRoom).Do(EnterAt(Hatch, 3)).Run();
-        Assert.Equal((3, Hatch, Content.Crew.Suit, 0, 0), All(w, HeroOf(w, 3)));
+        Assert.Equal((3, Hatch, Scenario.Full, 0, 0), All(w, HeroOf(w, 3)));
     }
 
     [Fact]
@@ -266,7 +266,7 @@ public class CrewTests
     {
         var w = PodWorld(Hatch);
         Breaths(w, 20);
-        Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
         Assert.Empty(w.M.Atmosphere.AiredCells);
     }
 
@@ -275,15 +275,15 @@ public class CrewTests
     {
         var w = PodWorld(Beyond);
         Breaths(w, 20);
-        Assert.Equal(Content.Crew.Suit - 20, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full - 20, HeroOf(w)?.Air);
         w.Do(EnterAt(Reached)).Run();
-        int suit = HeroOf(w)!.Suit;
+        int suit = HeroOf(w)!.Air;
         Breaths(w, 5);
-        Assert.Equal(suit + 5 * (Content.Crew.PodRefill - 1), HeroOf(w)?.Suit);
+        Assert.Equal(suit + 5 * (Content.Crew.PodRefill - 1), HeroOf(w)?.Air);
         w.Do(EnterAt(Beyond)).Run();
-        suit = HeroOf(w)!.Suit;
+        suit = HeroOf(w)!.Air;
         Breaths(w, 5);
-        Assert.Equal(suit - 5, HeroOf(w)?.Suit);
+        Assert.Equal(suit - 5, HeroOf(w)?.Air);
     }
 
     [Fact]
@@ -292,22 +292,22 @@ public class CrewTests
         var w = PodWorld(Beyond);
         Breaths(w, 10);
         w.Do(EnterAt(Hatch)).Do(new Exert(true) { From = 0 }).Run();
-        int suit = HeroOf(w)!.Suit;
+        int suit = HeroOf(w)!.Air;
         Breaths(w, 5);
-        Assert.Equal(suit + 5 * (Content.Crew.PodRefill - Content.Crew.Exerted), HeroOf(w)?.Suit);
+        Assert.Equal(suit + 5 * (Content.Crew.PodRefill - Content.Crew.Exerted), HeroOf(w)?.Air);
     }
 
     [Fact]
     public void WakesAHeroThatPassedOutPastPodReachAtTheHatchWithAFullSuit()
     {
         var w = PodWorld(Beyond);
-        Breaths(w, Content.Crew.Suit);
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w)!.Suit, HeroOf(w)!.Out));
+        Breaths(w, Scenario.Full);
+        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w)!.Air, HeroOf(w)!.Out));
         w.Run(Content.Crew.PassOut);
-        Assert.Equal((0, Hatch, Content.Crew.Suit, 0, 0), All(w, HeroOf(w)));
+        Assert.Equal((0, Hatch, Scenario.Full, 0, 0), All(w, HeroOf(w)));
         // Made at the pod, it breathes there in vacuum on a full suit.
         Breaths(w, 10);
-        Assert.Equal(Content.Crew.Suit, HeroOf(w)?.Suit);
+        Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
     }
 
     // Suit colours.
@@ -382,8 +382,8 @@ public class CrewTests
         w.Do(EnterAt(Outside, 3)).Do(EnterAt(At(4, 1), 1)).Run();
         Assert.Equal([1, 3], w.Crew().Heroes.Select(h => h.Id));
         Breaths(w, 4);
-        Assert.Equal(Content.Crew.Suit, HeroOf(w, 1)?.Suit);
-        Assert.Equal(Content.Crew.Suit - 4, HeroOf(w, 3)?.Suit);
+        Assert.Equal(Scenario.Full, HeroOf(w, 1)?.Air);
+        Assert.Equal(Scenario.Full - 4, HeroOf(w, 3)?.Air);
     }
 
     private sealed record Step(string Type, int Hero = 0, int Cell = 0, int Ticks = 0);
@@ -426,8 +426,8 @@ public class CrewTests
                 var heroes = w.Crew().Heroes;
                 for (int i = 0; i < heroes.Count; i++)
                 {
-                    if (heroes[i].Suit < 0 || heroes[i].Suit > Content.Crew.Suit)
-                        return false.Label($"hero {heroes[i].Id}'s suit holds {heroes[i].Suit}");
+                    if (heroes[i].Air < 0 || heroes[i].Air > Scenario.Full)
+                        return false.Label($"hero {heroes[i].Id}'s suit holds {heroes[i].Air}");
                     if (i > 0 && heroes[i].Id <= heroes[i - 1].Id) return false.Label("heroes are not in id order");
                 }
             }

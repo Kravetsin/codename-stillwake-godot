@@ -258,7 +258,7 @@ public class DrillArcTests
     {
         var w = new Scenario(Layout.Parse(["##########", "#S.......#", "#........#", "##########"]), doubled: true).Put(0, Fitted).GiveItems(0, ("scrap", 5));
         w.Do(new Enter(w.At(5, 1))).Run();
-        for (int i = 0; i < 2 * Spec.Crew.Suit * Spec.Crew.BreathEvery && w.M.Crew.HeroOf(0)!.Out == 0; i++) w.Run();
+        for (int i = 0; i < 2 * Scenario.Full * Spec.Crew.BreathEvery && w.M.Crew.HeroOf(0)!.Out == 0; i++) w.Run();
         Assert.Equal([("scrap", 5)], w.M.Items.Floor.Select(s => (s.Item, s.Count)));
         Assert.Equal(Fitted, At(w, 0));
     }

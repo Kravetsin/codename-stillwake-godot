@@ -35,13 +35,14 @@ public class LavaTests
     /// <summary>Where a hero standing on the lava at column 4 is reported: its body's middle, Lava.Reach rows over the lava's top.</summary>
     private static readonly int OnLava = At(4, 2);
 
-    private static Scenario World(bool planet = false) => new(planet ? Layout.Parse(Map).WithMaterials(Ground).OnPlanet() : Layout.Parse(Map).WithMaterials(Ground), doubled: true);
+    private static Scenario World(bool planet = false, bool bare = false) =>
+        new(planet ? Layout.Parse(Map).WithMaterials(Ground).OnPlanet() : Layout.Parse(Map).WithMaterials(Ground), doubled: true) { Bare = bare };
     private static Hero HeroOf(Scenario w) => w.M.Crew.HeroOf(0)!;
 
     /// <summary>A world with hero 0 brought in at <paramref name="cell"/> with a full suit on a breath's tick, run through it.</summary>
-    private static Scenario BroughtIn(int cell)
+    private static Scenario BroughtIn(int cell, bool bare = false)
     {
-        var w = World();
+        var w = World(bare: bare);
         while (w.Crew().Clock % Content.Crew.BreathEvery != Content.Crew.BreathEvery - 1) w.Run();
         // Brought in on a breath's tick, before the crew's system runs: that breath is the first it pays, and a whole breath later the next.
         w.Do(new Enter(cell) { From = 0 }).Run();
@@ -65,21 +66,30 @@ public class LavaTests
     }
 
     [Fact]
+    public void BareTheLavaBurnsTheSameAndTheColdBesidesSoTheLungsGoOnTheSecondBreath()
+    {
+        var w = BroughtIn(OnLava, bare: true);
+        Assert.Equal(Content.Crew.Lungs - 1 - LavaSpec.Burn - Content.Crew.BareCold, HeroOf(w).Air);
+        w.Run(Content.Crew.BreathEvery);
+        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
+    }
+
+    [Fact]
     public void StandingOnLavaEmptiesAFullSuitOnTheThirdBreathAndTheHeroWakesAtTheSpawn()
     {
         // A third of a suit a breath, the breath itself besides: 45, 29, 13, gone within three seconds of ticks.
-        Assert.Equal(Content.Crew.Suit, 3 * LavaSpec.Burn);
+        Assert.Equal(3 * LavaSpec.Burn, Scenario.Full);
         var w = BroughtIn(OnLava);
-        Assert.Equal(Content.Crew.Suit - 1 - LavaSpec.Burn, HeroOf(w).Suit);
+        Assert.Equal(Scenario.Full - 1 - LavaSpec.Burn, HeroOf(w).Air);
         w.Run(Content.Crew.BreathEvery);
-        Assert.Equal(Content.Crew.Suit - 2 * (1 + LavaSpec.Burn), HeroOf(w).Suit);
+        Assert.Equal(Scenario.Full - 2 * (1 + LavaSpec.Burn), HeroOf(w).Air);
         Assert.Equal(0, HeroOf(w).Out);
         w.Run(Content.Crew.BreathEvery);
-        Assert.Equal(0, HeroOf(w).Suit);
+        Assert.Equal(0, HeroOf(w).Air);
         Assert.Equal(Content.Crew.PassOut, HeroOf(w).Out);
         // Passing out is death as anywhere: it wakes at the spawn with a full suit.
         w.Run(Content.Crew.PassOut);
-        Assert.Equal((w.M.Crew.Spawn, Content.Crew.Suit, 0), (HeroOf(w).Cell, HeroOf(w).Suit, HeroOf(w).Out));
+        Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0), (HeroOf(w).Cell, HeroOf(w).Air, HeroOf(w).Out));
     }
 
     [Fact]
@@ -107,7 +117,7 @@ public class LavaTests
         {
             var w = BroughtIn(cell);
             w.Run(4 * Content.Crew.BreathEvery);
-            Assert.Equal((Content.Crew.Suit - 5, 0), (HeroOf(w).Suit, HeroOf(w).Out));
+            Assert.Equal((Scenario.Full - 5, 0), (HeroOf(w).Air, HeroOf(w).Out));
         }
     }
 
@@ -116,7 +126,7 @@ public class LavaTests
     {
         var w = World();
         w.Do(new Items.SetCreative(true)).Do(new Enter(OnLava) { From = 0 }).Run(5 * Content.Crew.BreathEvery);
-        Assert.Equal((Content.Crew.Suit, 0), (HeroOf(w).Suit, HeroOf(w).Out));
+        Assert.Equal((Scenario.Full, 0), (HeroOf(w).Air, HeroOf(w).Out));
     }
 
     [Fact]

@@ -38,7 +38,7 @@ public partial class SuitGauge : CanvasLayer
 
     private static readonly StringName Tint = "tint";
 
-    private readonly Func<(int Suit, SuitDanger Danger, bool InAir)> _read;
+    private readonly Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> _read;
     private readonly WristGauge _gauge = new(
         ItemIcons.Icon(CrewSpec.Canister), new Rect2(8, 7, 16, 16), Look.SuitMeterLeft, Look.SuitCells,
         AsciiArt.Colour(Look.Suit), AsciiArt.Colour(Look.SuitLow));
@@ -56,7 +56,7 @@ public partial class SuitGauge : CanvasLayer
 
     /// <param name="read">This player's suit and its danger, as <see cref="Danger.Read"/> gives them.</param>
     /// <param name="ui">The slots' size, which the hotbar's size and so the gauge's place and width follow (0058).</param>
-    public SuitGauge(Func<(int Suit, SuitDanger Danger, bool InAir)> read, Ui ui)
+    public SuitGauge(Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> read, Ui ui)
     {
         _read = read;
         ui.Refilled += _gauge.Surge;
@@ -96,10 +96,11 @@ public partial class SuitGauge : CanvasLayer
         _sinceRead += delta;
         if (_sinceRead >= RefreshS)
         {
-            (int suit, _danger, bool inAir) = _read();
-            var back = _cues.Read(suit, _danger, inAir, _sinceRead);
+            (int suit, int capacity, _danger, bool inAir) = _read();
+            var back = _cues.Read(suit, capacity, _danger, inAir, _sinceRead);
             _sinceRead = 0;
-            _gauge.Motion.Read((double)suit / CrewSpec.Suit);
+            // A hit is more than the dearest breath, running bare in the cold: bare lungs are small enough for a breath to look like one.
+            _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
             _gauge.Low = _danger != SuitDanger.None;
             if (back.BreathesAgain)
             {

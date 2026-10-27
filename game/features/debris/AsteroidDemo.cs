@@ -44,6 +44,8 @@ public partial class AsteroidDemo : CanvasLayer
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i == 9 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
+                : i == Spec.Inventory.Total - 2 ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
+                : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * Charge }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
@@ -52,7 +54,7 @@ public partial class AsteroidDemo : CanvasLayer
         {
             ["id"] = 0,
             ["cell"] = start,
-            ["suit"] = Spec.Crew.Suit,
+            ["air"] = Spec.Items.Get(Spec.Suit.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,
@@ -146,7 +148,7 @@ public partial class AsteroidDemo : CanvasLayer
     {
         _t += delta;
         // Out in space the suit runs low over a long recording: a canister breathed whenever it is half empty.
-        if (_world() is var (client, m) && m.Crew.HeroOf(client.Id) is { } hero && hero.Suit < Spec.Crew.Suit / 2 && _t - _breathed > 2)
+        if (_world() is var (client, m) && m.Crew.HeroOf(client.Id) is { } hero && hero.Air < m.Crew.CapacityOf(client.Id) / 2 && _t - _breathed > 2)
         {
             client.Send(new Sim.Crew.Refill());
             _breathed = _t;

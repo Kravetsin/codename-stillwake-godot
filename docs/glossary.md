@@ -30,7 +30,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 ## Air, power, pipes
 
-- баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (suit) → Atmosphere, Crew
+- баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (the hero's air) → Atmosphere, Crew
 - провод / cable **≠** → `Cable`, `tool.cable` (laid by the plan, wiring); item `wire` is the crafted part → Power
 - проводка / wiring (plan mode, X) → `PlanMode.Wiring`, f/power `PowerHands` → Power
 - труба / pipe → spans: `LayPipe`, `CutPipe`, `PipeNetworks`, `tool.pipe` → Pipes
@@ -67,7 +67,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew
-- скафандр / suit → `SuitGauge`, `Suits`, `Danger` (f/crew) → Crew
+- скафандр / suit → helmet `helmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` (`Content.Suit`, slot `suit`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
+- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
+- фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 
 ## World

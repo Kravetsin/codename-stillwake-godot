@@ -34,7 +34,7 @@ public class DeathTests
     private static Scenario DieAt(Scenario w, int cell, int peer = 0)
     {
         w.Do(new Enter(cell) { From = peer }).Run();
-        for (int i = 0; i < 2 * Content.Crew.Suit * Content.Crew.BreathEvery && HeroOf(w, peer).Out == 0; i++) w.Run();
+        for (int i = 0; i < 2 * Scenario.Full * Content.Crew.BreathEvery && HeroOf(w, peer).Out == 0; i++) w.Run();
         Assert.Equal(Content.Crew.PassOut, HeroOf(w, peer).Out);
         return w;
     }
@@ -100,8 +100,8 @@ public class DeathTests
     public void NeverDiesInCreativeModeAndLeavesNoBodyWithNothingButGear()
     {
         var creative = Laden(Room()).Do(new SetCreative(true)).Do(new Enter(Inside) { From = 0 });
-        creative.Run(2 * Content.Crew.Suit * Content.Crew.BreathEvery);
-        Assert.Equal((0, Content.Crew.Suit), (HeroOf(creative).Out, HeroOf(creative).Suit));
+        creative.Run(2 * Scenario.Full * Content.Crew.BreathEvery);
+        Assert.Equal((0, Scenario.Full), (HeroOf(creative).Out, HeroOf(creative).Air));
         Assert.Empty(Floor(creative));
         Assert.Equal(30, Count(creative, 0, "scrap"));
 

@@ -29,6 +29,9 @@ public static class Crafts
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
         // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
         new("nail", [("scrap", 2)], Ticks: 4),
+        // Free, a convention: the hero has to go and take them (2026-10-27-suits-are-worn). Five seconds each at the pod.
+        new("helmet", [], Ticks: 20),
+        new("suit", [], Ticks: 20),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
         // A plate bent into a band, wire, and silicon from rock for its glowing bulb: cheap, so it comes before the first cave (0077).

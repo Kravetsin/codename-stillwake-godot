@@ -1,6 +1,5 @@
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crew;
-using CrewSpec = Stillwake.Content.Crew;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -14,25 +13,26 @@ public static class Danger
     public const double Low = 0.25;
 
     /// <summary>
-    /// <see cref="SuitDanger.Out"/> while passed out, <see cref="SuitDanger.Low"/> while the suit is low
-    /// with no air to refill it. In an aired room or by the lifepod a low suit fills again, so it is no danger.
+    /// <see cref="SuitDanger.Out"/> while passed out, <see cref="SuitDanger.Low"/> while the hero's air is low, by its
+    /// capacity, with no air to refill it. In an aired room or by the lifepod low air fills again, so it is no danger.
     /// </summary>
-    public static SuitDanger Of((int Suit, int Out)? hero, bool inRoomAir)
+    public static SuitDanger Of((int Air, int Capacity, int Out)? hero, bool inRoomAir)
     {
-        if (hero is not var (suit, @out)) return SuitDanger.None;
+        if (hero is not var (air, capacity, @out)) return SuitDanger.None;
         if (@out > 0) return SuitDanger.Out;
-        return (double)suit / CrewSpec.Suit < Low && !inRoomAir ? SuitDanger.Low : SuitDanger.None;
+        return (double)air / capacity < Low && !inRoomAir ? SuitDanger.Low : SuitDanger.None;
     }
 
     /// <summary>
-    /// Hero <paramref name="id"/>'s suit, full while the sim does not know it, its danger, and whether it breathes room air
-    /// or the pod's: what the gauge shows.
+    /// Hero <paramref name="id"/>'s air and capacity (the suit's tank, or its lungs bare), full while the sim does not know
+    /// it, its danger, and whether it breathes room air or the pod's: what the gauge shows.
     /// </summary>
-    public static (int Suit, SuitDanger Danger, bool InAir) Read(ICrewQueries crew, IAtmosphereQueries air, int id)
+    public static (int Air, int Capacity, SuitDanger Danger, bool InAir) Read(ICrewQueries crew, IAtmosphereQueries air, int id)
     {
         var hero = crew.HeroOf(id);
-        // The pod's air refills a suit as room air does.
+        int capacity = crew.CapacityOf(id);
+        // The pod's air refills a hero as room air does.
         bool inRoomAir = hero != null && (air.AiredAt(hero.Cell) || crew.ByPod(hero.Cell));
-        return (hero?.Suit ?? CrewSpec.Suit, Of(hero == null ? null : (hero.Suit, hero.Out), inRoomAir), inRoomAir);
+        return (hero?.Air ?? capacity, capacity, Of(hero == null ? null : (hero.Air, capacity, hero.Out), inRoomAir), inRoomAir);
     }
 }
