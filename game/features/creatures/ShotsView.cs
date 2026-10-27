@@ -24,6 +24,8 @@ public partial class ShotsView : Node2D
     private readonly Func<bool> _hosts;
     private readonly ShotStreaks _streaks = new();
     private readonly Voices _fired = new(S.World, voices: 3), _ends = new(S.World, voices: 4);
+    // The host's own hits are its suit's, heard in space too, as a guest's copy's are.
+    private readonly Voices _ownEnds = new(S.Suit, voices: 3);
     // Arcs strike in space, where the World bus is silent: heard on the Suit bus, as the sentry is.
     private readonly Voices _arcs = new(S.Suit, voices: 4);
 
@@ -50,6 +52,7 @@ public partial class ShotsView : Node2D
         AddChild(_streaks);
         AddChild(_fired);
         AddChild(_ends);
+        AddChild(_ownEnds);
         AddChild(_arcs);
     }
 
@@ -75,13 +78,23 @@ public partial class ShotsView : Node2D
     }
 
     /// <summary>
-    /// A tick of the world seen: every hit of a shot drawn here shown, one born and ended this tick too; those new heard fired, each
-    /// moved on a step.
+    /// A tick of the world seen: every hit of a shot drawn here shown, the own hero's on its suit; one born and ended this tick
+    /// heard fired where it left, another's; those new heard fired, each moved on a step.
     /// </summary>
     private void Ticked(CreaturesModule creatures, int own, bool hosts)
     {
+        var mine = Ref.Hero(own);
+        int bornAndEnded = -1;
         foreach (var hit in creatures.Hits)
-            if (ShotDraws.DrawsSims(hit.By, own, hosts)) ShotEnds.Show(_m, _ends, hit);
+        {
+            if (!ShotDraws.DrawsSims(hit.By, own, hosts)) continue;
+            ShotEnds.Show(_m, hit.By == mine ? _ownEnds : _ends, hit);
+            if (hit.By != mine && hit.Shot != bornAndEnded && !_seen.ContainsKey(hit.Shot) && !Flying(creatures, hit.Shot))
+            {
+                bornAndEnded = hit.Shot;
+                _fired.Play(S.NailShot, new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
+            }
+        }
         var flying = new HashSet<int>();
         foreach (var shot in creatures.Shots)
         {
@@ -98,6 +111,13 @@ public partial class ShotsView : Node2D
         }
         foreach (var id in new List<int>(_seen.Keys))
             if (!flying.Contains(id)) _seen.Remove(id);
+    }
+
+    private static bool Flying(CreaturesModule creatures, int id)
+    {
+        foreach (var shot in creatures.Shots)
+            if (shot.Id == id) return true;
+        return false;
     }
 
     /// <summary>Each arc new this tick shown striking: its arc, a flash and sparks where it struck.</summary>

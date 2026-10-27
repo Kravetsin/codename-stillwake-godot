@@ -176,7 +176,8 @@ public class ShotsTests
         // The nail that breaks it flies on through, nothing left for a block: the soil it falls onto stays uncracked.
         int past = EndOf(w, At(80, 20, Right));
         Assert.Null(w.M.Grid.WallAt(pillar));
-        Assert.NotEqual(pillar, past);
+        // Falling on past it into the soil below its foot, on the next row of the ground.
+        Assert.Equal((pillar + 100, true, "soil"), (past, w.M.Creatures.Ended.Single().Met, w.M.Grid.WallAt(past)?.Id));
         Assert.Null(CrackAt(w, past));
         Assert.Equal(1, w.M.Items.Totals(0).Where(t => t.Item == "soil").Sum(t => t.Count));
         int bedrock = EndOf(w, At(92, 20, Right));

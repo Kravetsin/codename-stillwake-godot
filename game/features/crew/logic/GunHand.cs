@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// A shot this player's gun fired, flown here ahead of the sim's by the sim's own step (shots-are-the-sims): where it was a tick
 /// ago and is now, in thousandths of a cell, to draw it between, the gun it left and what it has flown on through
-/// (2026-10-27-shots-pierce); once ended, the cell it met or last flew in, and whether it met something there.
+/// (2026-10-27-shots-pierce); once ended, the cell it met or last flew in.
 /// </summary>
 public sealed class OwnShot(Projectile projectile, Gun gun, ShotMotion launched)
 {
@@ -19,7 +19,6 @@ public sealed class OwnShot(Projectile projectile, Gun gun, ShotMotion launched)
     public ShotMotion Now { get; internal set; } = launched;
     public IReadOnlyList<ShotPass> Passed { get; internal set; } = [];
     public int? EndCell { get; internal set; }
-    public bool Met { get; internal set; }
 }
 
 /// <summary>What a frame of the gun in hand did: fired (the sim's <see cref="Sim.Creatures.Fire"/> to send), clicked dry, or came ready again.</summary>
@@ -90,7 +89,7 @@ public sealed class GunHand
             var next = step(shot.Now, shot.Projectile, shot.Gun.Item, shot.Passed);
             (shot.Was, shot.Passed) = (shot.Now, next.Passed);
             _hits.AddRange(next.Hits);
-            if (next.Met >= 0) (shot.EndCell, shot.Met) = (next.Met, true);
+            if (next.Met >= 0) shot.EndCell = next.Met;
             else if (next.Next.Left <= 0 || !ShotFlight.OnGrid(next.Next.X, next.Next.Y, width, height)) shot.EndCell = next.Last;
             else shot.Now = next.Next;
         }

@@ -99,6 +99,40 @@ public class PierceTests
     }
 
     [Fact]
+    public void ANailAtSoilInAPlanetsFogStopsThereBreakingNothing()
+    {
+        var rows = Enumerable.Repeat(new string('.', 90) + new string('#', 10), 20).Concat(Enumerable.Repeat(new string('#', 100), 3));
+        var looks = Enumerable.Repeat(new string('s', 100), 23);
+        var layout = Layout.Parse(string.Join('\n', rows)).WithMaterials(string.Join('\n', looks)) with { Zone = new Box(0, 0, 89, 22), Kind = Spec.PlanetTypes.First.Id };
+        var w = CreaturesTesting.Planet(layout, CreaturesTesting.Lifeless, cells: true).Do(new Crew.Enter(19 * 100 + 2)).GiveItems(0, (Nailer, 1), ("nail", 9)).Run();
+        int wall = 18 * 100 + 90;
+        for (int i = 0; i < 8; i++)
+        {
+            var (_, end) = Flown(w, new Fire(Nailer, 87 * Unit, 18 * Unit + Unit / 4, Right));
+            Assert.Equal((wall, true), (end.Cell, end.Met));
+        }
+        Assert.NotNull(w.M.Grid.WallAt(wall));
+        Assert.Empty(w.M.Building.Cracks);
+    }
+
+    [Fact]
+    public void AKillAndTheCreatureBehindInTheSameCellAreBothHitThatTick()
+    {
+        var w = CreaturesTesting.Planet(string.Join('\n', Enumerable.Repeat(new string('.', 80), 20).Append(new string('#', 80))), CreaturesTesting.Lifeless, cells: true)
+            .Do(new Crew.Enter(19 * 80 + 2)).GiveItems(0, (Nailer, 1), ("nail", 5)).Run();
+        var first = w.Let(Spec.Creatures.Loper, 40, 19);
+        var second = w.Let(Spec.Creatures.Loper, 40, 19);
+        first.Damage = Spec.Creatures.Loper.Life.Hp - 6;
+        // From beside them, so the nail meets them on the tick it flies.
+        w.Do(new Fire(Nailer, first.X - 3 * Unit, first.Y - 2 * Unit, Right)).Run();
+        Assert.Equal([(ShotTarget.Creature, true), (ShotTarget.Creature, false)], w.M.Creatures.Hits.Select(h => (h.What, h.Broke)));
+        Assert.Single(w.M.Creatures.Hits.Select(h => h.Cell).Distinct());
+        Assert.Equal(3, second.Damage);
+        w.Run();
+        Assert.Empty(w.M.Creatures.Hits);
+    }
+
+    [Fact]
     public void AShotThatPiercedFliesOnFromWhereAnUnhinderedOneWould()
     {
         var pierced = ShotsTests.Space();
@@ -128,8 +162,10 @@ public class PierceTests
         Assert.Equal(kept.World.Hash(), loaded.World.Hash());
     }
 
-    [Fact]
-    public void AClientsCopyPredictsTheChainAsTheSimFliesItEachWreckOnceAcrossItsCellsAndChangesNothing()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void AClientsCopyPredictsTheChainAsTheSimFliesItEachWreckOnceAcrossItsCellsAndChangesNothing(int ahead)
     {
         var (w, _) = Chain();
         var gun = Spec.Shots.Nailer;
@@ -139,7 +175,7 @@ public class PierceTests
         var predicted = new List<(ShotTarget, bool)>();
         int? copyEnd = null;
         w.Do(fire);
-        // As a guest's copy flies, a step ahead of the sim's: each on the world before the tick that flies the sim's.
+        // As a guest's copy flies, ahead of the sim's by <ahead> ticks of its round trip: the wreck it breaks still whole there.
         var simHits = new List<(ShotTarget, bool)>();
         int? simEnd = null;
         for (int t = 0; t < 200 && (copyEnd == null || simEnd == null); t++)
@@ -153,6 +189,7 @@ public class PierceTests
                 (copy, passed) = (step.Next, step.Passed);
                 if (step.Met >= 0) copyEnd = step.Met;
             }
+            if (t < ahead) continue;
             w.Run();
             simHits.AddRange(w.M.Creatures.Hits.Select(h => (h.What, h.Broke)));
             if (w.M.Creatures.Ended.Count > 0) simEnd = w.M.Creatures.Ended.Single().Cell;

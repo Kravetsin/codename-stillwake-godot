@@ -5,17 +5,17 @@
 | File | Purpose |
 | --- | --- |
 | `Arcs.cs` | Arcs: `Bolted`, `StrikeArc`, `Linger`; `Arcs`. |
-| `Clinger.cs` | The clinger's rule (the sentry): on a perch of a wreck's top, crawling, riding it, flying off it. |
+| `Clinger.cs` | The clinger's rule (the sentry): perched on a wreck's top, crawling, riding, flying off. |
 | `Creatures.cs` | The commands (`Strike`, `HitBy`, `Release`), the queries, and the hit path every hit takes. |
 | `Drives.cs` | The grazers' drives' rules: `Graze`, `Flee`, `Retaliate`, `Escape`. |
-| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Fuzz.cs` | The `Fuzz` override: commands the desync suite draws. |
 | `Guard.cs` | The sentry's drives' rules: `Guard`, `Return`, and the `CutTether` reflex. |
 | `Live.cs` | The system: the killed swept out; each creature kept or gone, then its tick; the brain's shared steps. |
 | `Lunge.cs` | The lunge's rule: a ram along the ground in phases (0103). |
 | `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short. |
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
 | `Shoot.cs` | The arc's rule (the sentry's): crouched, its aim held, an arc struck at once, a recovery. |
-| `Shots.cs` | Shots: `Fire`, the flight system, what a shot hits and pierces; `Shots`, `Ended`, `Hits`. |
+| `Shots.cs` | Shots: `Fire`, the flight, hits, pierces; `Shots`, `Ended`, `Hits`, `StepOf`. |
 | `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of view, where a habitat is; guards on derelicts. |
 | `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `Shot`, `CreaturesState`; the derived `Posture`. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling, leaping (0102, 0104, 0106). |
@@ -32,7 +32,7 @@ served by one rule here. Grazers live on planets (0102, 0103), the sentry on wre
   place), `Step` its place in it, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its grudge (a `Ref`), `Mem`
   its rules' numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Fired`. Empty `Target`,
   `Mem`, `Shots`, `Arcs`, `Pierced` 0 are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
-- **Runs** after `Crew` and `Debris` in the simulation phase: heroes' cells and wrecks are this tick's; shots fly after.
+- **Runs** after `Crew` and `Debris` (simulation): heroes' cells and wrecks are this tick's; shots fly after.
 
 ## Adding a species or a rule
 
@@ -61,11 +61,10 @@ served by one rule here. Grazers live on planets (0102, 0103), the sentry on wre
   arc, from its perch only: aimed `Lock` before the wind-up ends (its grudge, else the nearest within reach), struck at
   once to the first wall, lingering `Lingers`. `CutTether` lets go of a reel `Ticks` after it bites. Its wreck gone, it dies.
 - **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked
-  (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order, the first claim winning.
+  (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order, the first claim wins.
 - **Shots:** `Fire` takes one ammo, adds a shot; each tick, in id order, it steps, hitting a cell's targets in turn (solid,
-  the lowest-id creature, a wreck) at its gun's keep after `Pierced`, on through what breaks or dies, else ending; `StepOf`
-  judges a copy so.
-- **The dead** are gone to every command and cap from the blow, listed till the sweep.
+  the lowest-id creature, a wreck) at its gun's keep after `Pierced`, through what breaks or dies, else ending.
+- **The dead** are gone to every command and cap from the blow, listed till swept.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: its suit pays the move's `Damage`, the act
   ends; or the arc's projectile's, once a hero.
 - **`Release(Species, Cell)`**, dev: its body's `ReleaseProblem` and `Place`.
@@ -95,3 +94,4 @@ carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`. `Bol
 - **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow that breaks its wreck goes unanswered.
 - **A shot's muzzle and pace are the client's** (0002, 0034); aboard, shots fly straight.
+- **Pierce** (the ADR): only what breaks or dies; a guest's copy stops at blocks.

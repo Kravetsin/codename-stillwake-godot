@@ -15,8 +15,9 @@ public static class ShotEnds
 {
     /// <summary>
     /// <paramref name="hit"/>, heard on <paramref name="voices"/>: on a wall or a built piece thrown off the face turned toward
-    /// where the shot came from, chips only while something stands there to throw them, what broke showing its own breaking; on a
-    /// wreck, off its side. Drawn by what the sim met, not the grid now, where what broke is gone.
+    /// where the shot came from, its share by what the hit took, chips only while something stands there; on a wreck, off its
+    /// side, unless it broke, its breaking showing itself. Drawn by what the sim met, not the grid now, where what broke is gone;
+    /// a planet's fog, solid to a shot but standing empty, is not heard.
     /// </summary>
     public static void Show(Registry m, Voices voices, ShotHit hit)
     {
@@ -26,18 +27,19 @@ public static class ShotEnds
         switch (hit.What)
         {
             case ShotTarget.Solid:
+                if (!hit.Broke && !grid.Solid(cell)) return;
                 var at = Impacts.On(grid, cell, from.X, from.Y);
                 var point = new Vector2((float)(at.X * Camera.Cell), (float)(at.Y * Camera.Cell));
                 voices.Play(S.NailHit, point);
                 if (Impacts.At(grid, m.Building, cell) is { } impact)
                     Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny,
-                        Impacts.ShareAt(grid, m.Building, cell, hit.Projectile, Content.Shots.BlockDamageOf(hit.Gun, hit.Projectile)),
-                        Impacts.FloorUnder(grid, at) * Camera.Cell);
+                        Impacts.ShareAt(grid, m.Building, cell, hit.Projectile, hit.Damage), Impacts.FloorUnder(grid, at) * Camera.Cell);
                 return;
             case ShotTarget.Wreck:
                 var middle = new Vector2((float)((cell % grid.Width + 0.5) * Camera.Cell), (float)((cell / grid.Width + 0.5) * Camera.Cell));
                 voices.Play(S.NailHit, middle);
-                Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], middle.X, middle.Y, from.X < cell % grid.Width ? -1 : 1, 0, 1);
+                if (!hit.Broke)
+                    Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], middle.X, middle.Y, from.X < cell % grid.Width ? -1 : 1, 0, 1);
                 return;
         }
     }

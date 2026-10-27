@@ -137,7 +137,7 @@ public sealed partial class CreaturesModule
             if (target.Pass == broken) throw new InvalidOperationException($"creatures.shot: {target.Pass} still in {cell} once broken");
             int damage = DamageOf(s.Gun, p, target.Pass.What, s.Pierced);
             bool broke = damage > 0 && HitAt(s, peer, target, damage);
-            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, broke));
+            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, damage, broke));
             if (!broke) return true;
             s.Pierced += 1;
             broken = target.Pass;
@@ -211,7 +211,7 @@ public sealed partial class CreaturesModule
                     ShotTarget.Wreck => _debris.Breaks(target.Pass.Id, damage),
                     _ => false,
                 };
-                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, breaks));
+                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, damage, breaks));
                 if (!breaks) return true;
                 through.Add(target.Pass);
             }
@@ -238,10 +238,11 @@ public sealed partial class CreaturesModule
         int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
         foreach (var c in State.Creatures)
         {
-            if (c.Dead || passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) continue;
+            if (c.Dead) continue;
             var body = Spec.Get(c.Species).Body;
             int half = body.Width * Unit / 2;
-            if (c.X - half < left + Unit && c.X + half > left && c.Y - body.Height * Unit < top + Unit && c.Y > top) return c;
+            if (c.X - half < left + Unit && c.X + half > left && c.Y - body.Height * Unit < top + Unit && c.Y > top
+                && !passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) return c;
         }
         return null;
     }

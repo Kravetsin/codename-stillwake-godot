@@ -120,7 +120,8 @@ public sealed partial class BuildingModule
     /// </summary>
     public bool Hit(int peer, int cell, int damage)
     {
-        if (!Rules.ToolsBreak || damage <= 0) return false;
+        // Nothing breaks in a planet's fog, where a shot already stops as at a wall.
+        if (!Rules.ToolsBreak || damage <= 0 || !_grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width)) return false;
         int? here = _crew.HeroOf(peer) != null ? peer : null;
         if (_grid.WallAt(cell) is { } wall) return wall.Strength != Material.Unbreakable && HitWall(here, cell, damage);
         return PieceAt(cell) is { } piece && HitPiece(here, piece.Head, damage);

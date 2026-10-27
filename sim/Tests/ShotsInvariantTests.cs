@@ -10,7 +10,7 @@ namespace Stillwake.Sim.Tests;
 /// <summary>
 /// What shots must always keep (shots-are-the-sims), over random walls on the test strip's gravity and in open space, fired any
 /// way from anywhere a few at a tick: every shot on the grid, its flight within its reach, ids growing, and none flown through
-/// a solid cell.
+/// a cell left solid after its tick: one it broke it may pierce (2026-10-27-shots-pierce).
 /// </summary>
 public class ShotsInvariantTests
 {

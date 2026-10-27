@@ -28,8 +28,10 @@ about 65–70% and passes everything it hits. And the cards of guns and weapons 
   counts it and looks again in the same cell, and with nothing left there walks on in the same tick, its point and arc as if
   nothing had been there. A hit that does not break ends the shot there, `Met`. One it has nothing left for ends it too,
   the op not called (no blow stamped, no knock, no draw from the Rng). A knock is the gun's whole, every hit.
+- **Nothing breaks in a planet's fog.** A shot stops at a fog column as at a wall, so Building's `Hit` breaks nothing there:
+  a wall broken there would be passed and still met as solid.
 - **Hits are told.** `CreaturesModule.Hits`, derived, lists every hit of the tick, `ShotHit { Shot, By, Projectile, Gun,
-  Cell, From, What, Broke }`, the last of an ended shot's too and one of nothing left; the client shows hits by these, by
+  Cell, From, What, Damage, Broke }`, the last of an ended shot's too and one of nothing left; the client shows hits by these, by
   what the sim met, not by the grid after the tick, where what broke is gone.
 - **The host draws its own shots as the sim's** and flies no copy (`ShotDraws`); its fire is heard at the click. A guest
   flies its copy a round trip ahead, as before, by `CreaturesModule.StepOf(motion, projectile, gun, passed)`: the sim's walk

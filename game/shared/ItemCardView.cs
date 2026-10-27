@@ -279,14 +279,17 @@ public static class ItemCardView
             if (drawBoost != null) drawn.AddChild(Mark(drawBoost));
             cells.Add((drawn, T("card.draw"), null));
         }
-        int rows = (cells.Count + 2) / 3, each = (cells.Count + rows - 1) / rows;
+        // As even as they come: the first rows one longer where they cannot all match, seven as three, two and two.
+        int rows = (cells.Count + 2) / 3, from = 0;
         var column = Column(0);
         for (int r = 0; r < rows; r++)
         {
+            int count = cells.Count / rows + (r < cells.Count % rows ? 1 : 0);
             var row = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
             row.AddThemeConstantOverride("separation", 0);
-            for (int i = r * each; i < System.Math.Min(cells.Count, (r + 1) * each); i++)
-                row.AddChild(Tile(cells[i].Number, cells[i].Label, first: i == r * each, cells[i].Accent));
+            for (int i = from; i < from + count; i++)
+                row.AddChild(Tile(cells[i].Number, cells[i].Label, first: i == from, cells[i].Accent));
+            from += count;
             column.AddChild(r == 0 ? row : Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2 }, row));
         }
         return Boxed(new StyleBoxFlat { BgColor = Colors.Transparent, BorderColor = Rule, BorderWidthTop = 2, BorderWidthBottom = 2 }, column);
