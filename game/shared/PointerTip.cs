@@ -164,7 +164,7 @@ public partial class PointerTip : CanvasLayer
         }
         if (line.Icon == null) return text;
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, gap);
-        var picture = Icon(ItemIcons.Icon(line.Icon), icon);
+        var picture = Icon(ItemIcons.Icon(line.Icon, icon), icon);
         if (line.Faded) picture.Modulate = new Color(1, 1, 1, 0.4f);
         row.AddChild(picture);
         row.AddChild(text);

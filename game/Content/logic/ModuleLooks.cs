@@ -22,7 +22,7 @@ public sealed record ModuleOverlay(string Mount, string Picture, MountFx Fx = Mo
 
 /// <summary>
 /// How each module looks fitted into a tool (0098), by its item: an overlay for each kind of mount it shows on. A tool's
-/// held look and its card's picture are put together from these and its own (<see cref="HeldParts"/>), so no combination
+/// held look, in the hand and on a bench, is put together from these and its own (<see cref="HeldParts"/>), so no combination
 /// of tool and modules is ever drawn by hand.
 /// </summary>
 public static class ModuleLooks

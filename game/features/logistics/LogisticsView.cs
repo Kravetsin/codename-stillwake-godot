@@ -513,7 +513,7 @@ public partial class LogisticsView : Node2D
             var (x, y) = f.Hover.Cargo(bob);
             var icon = new Vector2(Mathf.Round((float)x), Mathf.Round((float)y));
             _flying.DrawLine(new Vector2((float)cx, (float)cy), icon + new Vector2(0, -5), Tether, 1);
-            _flying.DrawTextureRect(ItemIcons.Icon(item), new Rect2(icon - new Vector2(4, 4), new Vector2(8, 8)), false);
+            _flying.DrawTextureRect(ItemIcons.Icon(item, 8), new Rect2(icon - new Vector2(4, 4), new Vector2(8, 8)), false);
             _flying.DrawRect(new Rect2(icon + new Vector2(-3, -5), new Vector2(6, 1)), Jaw);
             _flying.DrawRect(new Rect2(icon + new Vector2(-3, -4), Vector2.One), JawShade);
             _flying.DrawRect(new Rect2(icon + new Vector2(2, -4), Vector2.One), JawShade);

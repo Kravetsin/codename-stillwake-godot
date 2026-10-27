@@ -82,7 +82,10 @@ public sealed record HeldLook(
     /// <summary>How many of its frames a spinning picture goes through a second at full speed, the picture itself among them.</summary>
     public const double SpinFps = 18;
 
-    /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand and on its card.</summary>
+    /// <summary>The clear pixels round a tool's icon, its held picture turned and fitted (2026-10-27-tool-icons), at any side.</summary>
+    public const int IconMargin = 2;
+
+    /// <summary>The colour of a running item's <see cref="Lamp"/>, "rrggbb": in the hand.</summary>
     public const string LampColour = "9dff8a";
 
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>

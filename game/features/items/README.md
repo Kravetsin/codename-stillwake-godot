@@ -68,6 +68,8 @@ and tested in `game.tests/`.
 - **Module sockets** (0086): one per module a host takes, empty showing its tech's ghost, glowing while one that fits
   is carried; fit by drop, click or shift; take out by press. Slots holding a fitting module show its tech icon.
 - **Icons** (0097): glowing line icons, hexagon for a tech, ring for a station's work; only seen ones move.
+- **A tool in a slot** (2026-10-27-tool-icons): its icon fills the slot, its margin baked in (`Slots.IconBox`); any other
+  item sits in the inset. The stack in hand and a flight between slots place it the same way.
 - **Station marks** (0097): with a fed station or fire open, slots it processes show its mark (`Smelts`, `Burns`,
   `Grows`) and the card says "Smelts here" and what it makes; an empty station slot shows its mark's ghost, lit while a
   fitting stack is carried. Not analysed: a violet "?" (`ItemCards.Unknown`, 0027), never in creative mode.
