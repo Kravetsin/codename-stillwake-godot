@@ -93,48 +93,72 @@ function rasterChain(points, radii, density, ramp, feet, capsules) {
   return { img, at: [x0 - feet[0], y0 - feet[1]], turn: 0, joint: [0, 0], density };
 }
 
-/**
- * The cape seen from the side: the area between the body's back (back, top to bottom) and the cloth's chain (edge, from
- * the neck), with a band of cloth round the chain itself; lit along the edge, folds from the chain's points to the hip,
- * an outline outside and a softer line where it lies on the back. On the world's own grid: an op for C.draw.
- */
-function rasterCape(edge, back, ramp, feet) {
-  const poly = [...edge, ...back.slice().reverse()];
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const [x, y] of poly) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
-  x0 = Math.floor(x0) - 3; y0 = Math.floor(y0) - 3;
-  const w = Math.ceil(x1 - x0) + 6, h = Math.ceil(y1 - y0) + 6;
-  const near = (px, py, a, b, r) => {
-    const vx = b[0] - a[0], vy = b[1] - a[1], t = Math.max(0, Math.min(1, ((px - a[0]) * vx + (py - a[1]) * vy) / (vx * vx + vy * vy || 1)));
-    return Math.hypot(px - a[0] - vx * t, py - a[1] - vy * t) <= r;
-  };
-  const inPoly = (px, py) => {
+// ---- the cape: one heavy chain, its outer edge; its inner edge is the line of the back
+
+/** Pixels inside a polygon (a list of [x, y]), on a grid from (x0, y0), w×h. */
+function polyMask(poly, x0, y0, w, h) {
+  return Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => {
+    const px = x0 + x + 0.5, py = y0 + y + 0.5;
     let inside = false;
     for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
       const [xi, yi] = poly[i], [xj, yj] = poly[j];
       if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
     }
     return inside;
-  };
-  const cloth = Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => {
-    const px = x0 + x + 0.5, py = y0 + y + 0.5;
-    return inPoly(px, py) || edge.some((p, i) => i > 0 && near(px, py, edge[i - 1], p, 1.4));
   }));
-  const hip = back[back.length - 1];
+}
+const nearSeg = (px, py, a, b) => {
+  const vx = b[0] - a[0], vy = b[1] - a[1], t = Math.max(0, Math.min(1, ((px - a[0]) * vx + (py - a[1]) * vy) / (vx * vx + vy * vy || 1)));
+  return Math.hypot(px - a[0] - vx * t, py - a[1] - vy * t);
+};
+const nearLine = (px, py, line) => Math.min(...line.slice(1).map((p, k) => nearSeg(px, py, line[k], p)));
+
+/**
+ * A shape in the cloth's ramp, on the world's grid: an op for C.draw. key(px, py) picks the shade inside (0 light, 1 own,
+ * 2 shade), the outline is the darkest; extra pixels of a fixed colour (a clasp) are laid over.
+ */
+function rasterCloth(poly, key, ramp, feet, extra = []) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const [x, y] of poly) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  x0 = Math.floor(x0) - 1; y0 = Math.floor(y0) - 1;
+  const w = Math.ceil(x1 - x0) + 3, h = Math.ceil(y1 - y0) + 3, mask = polyMask(poly, x0, y0, w, h);
   const img = C.blank(w, h);
-  const set = (x, y, k) => { const n = parseInt(ramp[k].slice(1), 16); img.data.set([n >> 16, (n >> 8) & 255, n & 255, 255], (y * w + x) * 4); };
+  const set = (x, y, hex) => { const n = parseInt(hex.slice(1), 16); img.data.set([n >> 16, (n >> 8) & 255, n & 255, 255], (y * w + x) * 4); };
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    if (!cloth[y][x]) continue;
-    const px = x0 + x + 0.5, py = y0 + y + 0.5;
-    const on = (dx, dy) => cloth[y + dy] && cloth[y + dy][x + dx];
-    const outside = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => !on(dx, dy));
-    let k = 1;
-    if (edge.some((p, i) => i > 0 && near(px, py, edge[i - 1], p, 1.6))) k = 0;
-    if ([3, 5, 7].some(i => edge[i] && near(px, py, edge[i], hip, 0.5))) k = 2;
-    if (outside.length) k = outside.every(([dx, dy]) => back.some((p, i) => i > 0 && near(px + dx, py + dy, back[i - 1], p, 1.2))) ? 2 : 3;
-    set(x, y, k);
+    if (!mask[y][x]) continue;
+    const edge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !(mask[y + dy] && mask[y + dy][x + dx]));
+    set(x, y, ramp[edge ? 3 : key(x0 + x + 0.5, y0 + y + 0.5)]);
+  }
+  for (const [px, py, hex] of extra) {
+    const x = Math.floor(px - x0), y = Math.floor(py - y0);
+    if (x >= 0 && y >= 0 && x < w && y < h) set(x, y, hex);
   }
   return { img, at: [x0 - feet[0], y0 - feet[1]], turn: 0, joint: [0, 0], density: 1 };
+}
+
+/**
+ * The cape behind the body: between the chain of its outer edge (from the shoulders) and the line of the back down to the
+ * heels (back, top to bottom), the hem from the chain's end to the heels; lit along the outer edge's top, a fold down the
+ * middle, the hem in shade.
+ */
+function capeOp(edge, back, ramp, feet) {
+  const poly = [...edge, ...back.slice().reverse()];
+  const n = edge.length, heel = back[back.length - 1];
+  const fold = edge.slice(2).map((p, k) => { const q = back[Math.min(back.length - 1, Math.round(((k + 2) / (n - 1)) * (back.length - 1)))]; return [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2]; });
+  return rasterCloth(poly, (px, py) => {
+    if (nearSeg(px, py, edge[n - 1], heel) < 1.2) return 2;
+    if (nearLine(px, py, fold) < 0.5) return 2;
+    if (nearLine(px, py, edge.slice(0, 7)) < 1.3) return 0;
+    return 1;
+  }, ramp, feet);
+}
+
+/** The mantle over the shoulders and the near arm's top, held by a clasp at the throat. */
+function mantleOp(at, ramp, feet) {
+  const N = -C.Neck;
+  const poly = [[-6.4, N + 2.4], [-4, N + 0.3], [0, N + 0.2], [2.4, N + 1.2], [3.3, N + 3.6], [2.5, N + 5.6], [-0.5, N + 6.2], [-3.5, N + 5.8], [-6.4, N + 5.2]].map(at);
+  const clasp = at([1.8, N + 1.1]);
+  return rasterCloth(poly, (px, py) => (py < at([0, N + 1.6])[1] ? 0 : py > at([0, N + 4.4])[1] ? 2 : 1), ramp, feet, [[clasp[0], clasp[1], '#9aa3ad']]);
 }
 
 // ---- the hero and its hair and cape
@@ -150,12 +174,13 @@ const STYLES = {
 
 /** The demo on the page; headless, its simulation and drawing alone, for check-live.js. */
 function live(headless) {
-  const opts = { style: 'ponytail', cape: true, zoom: 2.5, manual: false, weightless: false };
+  const opts = { style: 'ponytail', cape: true, zoom: 2.5, weightless: false, hairGrid: 1 };
   const h = { x: 60, y: 0, vx: 0, vy: 0, ground: true, float: false, facing: 1, trav: 0, turn: 0 };
   let chains = [], cape = null;
   const reset = () => {
     chains = STYLES[opts.style].strands.map(s => new Chain(s.n, s.seg, { damp: 0.9, gravity: 700, back: 40, stiff: s.stiff || 0 }));
-    cape = new Chain(11, 2.4, { damp: 0.93, gravity: 900, back: 25, stiff: 0.08 });
+    // Heavy: strong gravity and little air drag, so it hangs and swings a little rather than flies.
+    cape = new Chain(12, (C.Neck - 2.5) / 11, { damp: 0.95, gravity: 2400, back: 6, stiff: 0 });
   };
   reset();
 
@@ -229,7 +254,8 @@ function live(headless) {
       if (p[1] > -0.5) p[1] = -0.5;
     };
     style.strands.forEach((s, i) => chains[i].step(world(C.onHead(look, s.at, [19, 30], 2)), dt, { weightless: h.float, facing: f, solid: body(4.5, 3) }));
-    if (opts.cape) cape.step(world(C.bodied([-3.5, -C.Neck + 2], look.pose)), dt, { weightless: h.float, facing: f, solid: body(6.3, 5) });
+    // It hangs a hand's breadth off the back, flaring toward the hem.
+    if (opts.cape) cape.step(world(C.bodied([-6, -C.Neck + 2.5], look.pose)), dt, { weightless: h.float, facing: f, solid: (p, i) => body(8 + i * 0.25, 7 + i * 0.25)(p) });
     return { look, feet, f };
   }
 
@@ -250,12 +276,15 @@ function live(headless) {
     const img = { w: bg.w, h: bg.h, data: new Uint8ClampedArray(bg.data) };
     const floorY = STAGE.h - 5;
     const style = STYLES[opts.style];
-    const hairRamp = A.HAIRS[look.hairColour], capeRamp = C.shadesOf(C.shade(A.SUITS[look.suit], 0.78)).map(n => '#' + n.toString(16).padStart(6, '0'));
-    const strands = style.strands.map((s, i) => rasterChain(chains[i].p, chains[i].p.map((_, j) => s.r[0] + (s.r[1] - s.r[0]) * (j / (s.n - 1))), 2, hairRamp, feet, style.smooth));
-    // The cape's inner side lies on the back, from the neck to the hip.
-    const back = [[-3.5, -C.Neck + 2], [-4.8, -C.Neck + 5], [-4.8, -C.Hip + 1]].map(p => { const [x, y] = C.bodied(p, look.pose); return [feet[0] + f * x, feet[1] + y]; });
-    const behind = opts.cape ? [rasterCape(cape.p, back, capeRamp, feet)] : [];
-    const ops = C.figure({ ...look, flip: f < 0 }, get, { behind, beforeHead: strands });
+    // A heavy wool cape of its own colour; in the suit's it melts into the jumpsuit.
+    const hairRamp = A.HAIRS[look.hairColour], capeRamp = ['#c49a68', '#9a7148', '#6e4f33', '#3b2a1c'];
+    const strands = style.strands.map((s, i) => rasterChain(chains[i].p, chains[i].p.map((_, j) => s.r[0] + (s.r[1] - s.r[0]) * (j / (s.n - 1))), opts.hairGrid, hairRamp, feet, style.smooth));
+    const onBody = p => { const [x, y] = C.bodied(p, look.pose); return [feet[0] + f * x, feet[1] + y]; };
+    // The cape's inner edge: the back from the shoulders to the hips, then down behind the heels.
+    const back = [[-6, -C.Neck + 2.5], [-5.6, -C.Shoulder], [-5.6, -C.Hip], [-4.4, -C.Hip / 2], [-4, -0.5]].map(onBody);
+    const behind = opts.cape ? [capeOp(cape.p, back, capeRamp, feet)] : [];
+    const mantle = opts.cape ? [mantleOp(onBody, capeRamp, feet)] : [];
+    const ops = C.figure({ ...look, flip: f < 0 }, get, { behind, beforeHead: strands, front: mantle });
     C.draw(img, ops, [feet[0] * z, (floorY + feet[1]) * z], null, { zoom: z });
     return img;
   }
@@ -283,6 +312,8 @@ function live(headless) {
     chip('live-style', 'кудри, без цепочек', () => opts.style === 'still', () => { opts.style = 'still'; reset(); }),
     chip('live-cape', 'с плащом', () => opts.cape, () => (opts.cape = true)),
     chip('live-cape', 'без плаща', () => !opts.cape, () => (opts.cape = false)),
+    chip('live-grid', 'волосы на сетке тела', () => opts.hairGrid === 1, () => (opts.hairGrid = 1)),
+    chip('live-grid', 'волосы на сетке головы, вдвое мельче', () => opts.hairGrid === 2, () => (opts.hairGrid = 2)),
     chip('live-zoom', '1080p · ближний', () => opts.zoom === 2.5, () => (opts.zoom = 2.5)),
     chip('live-zoom', '1080p · дальний', () => opts.zoom === 1.25, () => (opts.zoom = 1.25)),
     chip('live-zoom', '1440p · ближний', () => opts.zoom === 10 / 3, () => (opts.zoom = 10 / 3)),

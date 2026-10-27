@@ -87,7 +87,8 @@ function make(A) {
    * look: { suit: 0-3, suited, skin: 0-6, hair: 0-4, hairColour: 0-5, face: 0-2, closed, bubble, fine, crown, turn,
    * pose, flip }; closed draws today's helmet, its visor opaque; bubble the suit with the head bare, for a glass bubble
    * drawn round it; crown the trial hair without what a chain draws (hd_crown_n); pose the limbs' bends, tilt and lift;
-   * flip faces −x. extra: { behind, beforeHead } ops placed at the back and under the head, already in the world's way.
+   * flip faces −x. extra: { behind, beforeHead, front } ops placed at the back, under the head and over all, already in
+   * the world's way.
    */
   function figure(look, get, extra = {}) {
     look = lookOf(look);
@@ -115,6 +116,7 @@ function make(A) {
       for (const l of layers) put(l.img, neck, look.turn || 0, l.joint || JOINTS.helmet, { face: l.face, density: l.density });
     }
     limb('upperArm', 'forearm', shoulder, Arm, pose.fa, false);
+    ops.push(...(extra.front || []));
     return ops;
   }
 
