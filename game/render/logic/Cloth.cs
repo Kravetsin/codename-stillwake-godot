@@ -59,12 +59,24 @@ public sealed class Cloth
     /// <summary>Point <paramref name="i"/> as it last stepped.</summary>
     public (double X, double Y) At(int i) => (_x[i], _y[i]);
 
+    /// <summary>Carries every point, its speed with it, to where <paramref name="to"/> puts it: the body it hangs on turned about.</summary>
+    public void Carry(Func<(double X, double Y), (double X, double Y)> to)
+    {
+        for (int i = 0; i < _x.Length; i++)
+        {
+            (_x[i], _y[i]) = to((_x[i], _y[i]));
+            (_px[i], _py[i]) = to((_px[i], _py[i]));
+            (_bx[i], _by[i]) = to((_bx[i], _by[i]));
+        }
+    }
+
     /// <summary>
     /// Moves the cloth on by <paramref name="elapsedMs"/>, the points <paramref name="pinned"/> names (each by its index)
     /// held at <paramref name="pins"/>. <paramref name="keep"/> moves a free point (by its index) out of where it may not be, on every
-    /// pass, its speed kept: the body it hangs on, the floor.
+    /// pass, its speed kept: the body it hangs on, the floor. <paramref name="wind"/> adds to every free point's speed a
+    /// step: the air it moves through, beyond the drag <see cref="ClothStyle.Keep"/> takes.
     /// </summary>
-    public void Update(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, double elapsedMs, Func<int, double, double, (double X, double Y)>? keep = null)
+    public void Update(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, double elapsedMs, Func<int, double, double, (double X, double Y)>? keep = null, (double X, double Y) wind = default)
     {
         _owed += elapsedMs;
         int steps = 0;
@@ -72,7 +84,7 @@ public sealed class Cloth
         {
             Array.Copy(_x, _bx, _x.Length);
             Array.Copy(_y, _by, _y.Length);
-            Step(pinned, pins, keep);
+            Step(pinned, pins, keep, wind);
             _owed -= Rope.StepMs;
             steps += 1;
         }
@@ -89,7 +101,7 @@ public sealed class Cloth
         }
     }
 
-    private void Step(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, Func<int, double, double, (double X, double Y)>? keep)
+    private void Step(IReadOnlyList<int> pinned, Func<int, (double X, double Y)> pins, Func<int, double, double, (double X, double Y)>? keep, (double X, double Y) wind)
     {
         var isPinned = _pinned;
         Array.Clear(isPinned);
@@ -97,7 +109,7 @@ public sealed class Cloth
         for (int i = 0; i < _x.Length; i++)
         {
             if (isPinned[i]) continue;
-            double vx = (_x[i] - _px[i]) * _style.Keep, vy = (_y[i] - _py[i]) * _style.Keep + _style.Gravity;
+            double vx = (_x[i] - _px[i]) * _style.Keep + wind.X, vy = (_y[i] - _py[i]) * _style.Keep + _style.Gravity + wind.Y;
             (_px[i], _py[i]) = (_x[i], _y[i]);
             _x[i] += vx;
             _y[i] += vy;

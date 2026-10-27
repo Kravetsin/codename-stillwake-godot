@@ -36,6 +36,16 @@ public interface ISurfaces
     /// every surface has run this tick, in the order asked: no module sees another surface change under it.
     /// </summary>
     void Send(int peer, int surface);
+
+    /// <summary>Whether this world can open surfaces: one whose modules cannot make another set is the ship alone.</summary>
+    bool CanOpen { get; }
+
+    /// <summary>
+    /// The planet a descent lands on, opened if need be — a change to the world, so called only by a system on its tick: the lowest-id
+    /// open surface of a planet's kind, else one opening this tick, else one of <c>Content.Landing.Planet</c> opened once every
+    /// surface has run, before the sends. Returns its id, to <see cref="Send"/> to.
+    /// </summary>
+    int OpenPlanet();
 }
 
 /// <summary>

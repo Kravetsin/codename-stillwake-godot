@@ -25,18 +25,18 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 ## Rules
 
-- **Blueprint checks, in order:** `building.fixed` (the lifepod is never planned nor marked, 0028); `building.notHere`
-  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (not known but in creative mode, 0024; bedrock always, 0077); the
-  grid's `PlacementProblem` keys; `building.planned`. Structure and machines share one solid slot, a
-  back wall has its own. A machine's blueprint covers its footprint; a ladder's or door segment's 2×2, a hatch's 2×1
-  (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints like any (0084).
+- **Blueprint checks, in order:** `building.fixed` (the lifepod, never planned nor marked, 0028); `building.notHere`
+  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock always, 0077); the
+  grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`. Structure
+  and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
+  2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).
 - **Marks** (no ADR): one thing takes one mark and needs something in that layer; none at all where the surface's tools
   break things (`ToolsBreak`, a planet: `building.notHere`, its old marks not worked, fan-of-rays). A
   machine holding items, a fitted module (0086) or queued crafts (0057) is marked only empty, `building.notEmpty`,
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
 - **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while the left button is held on a plan
-  with the screwdriver (0107); the sim checks no tool. Two heroes work twice as fast. A blueprint takes its build's `BuildTicks` (`Materials`, `Builds`, `Machines`); a mark takes those
+  with the screwdriver (0107); the sim checks no tool. Two heroes work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
@@ -45,9 +45,10 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   Creative mode lacks nothing and takes nothing.
 - **Instant** (`SetInstant`, dev): a blueprint is built as placed, free; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
-  or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing (no ADR).
+  or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
-  while a hero's reported cell, or the one above or under, is the plan's. Building keeps its run order before crew.
+  while a hero's reported cell, or the one above or under, is the plan's. Building runs before crew.
+  So does a last tick the grid refuses (a pod set down since).
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (any material but bedrock and
   lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.

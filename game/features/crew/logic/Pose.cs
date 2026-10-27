@@ -38,10 +38,10 @@ public readonly record struct Moment(double Travelled, double TimeMs, double? La
 /// <summary>The limbs for each pose (apps/game/src/features/crew/pose.ts), and where the head looks.</summary>
 public static class Poses
 {
-    /// <summary>Cells walked per full cycle of the legs: two steps. A climb's is <c>Ladder.Stride</c> cells (<see cref="Ladder"/>).</summary>
+    /// <summary>Cells walked per full cycle of the legs: two steps; <c>Back</c> running backward. A climb's is <c>Ladder.Stride</c> cells (<see cref="Ladder"/>).</summary>
     public static class Stride
     {
-        public const double Walk = 5.6, Run = 9.2;
+        public const double Walk = 5.6, Run = 9.2, Back = 6.4;
     }
 
     /// <summary>
@@ -226,7 +226,7 @@ public static class Poses
         // Slowing to a stop, the body brakes as far as it leans back from it.
         if (pose is Pose.Stand or Pose.Walk && motion.Lean < 0) body = Mix(body, Brake, Math.Clamp(-motion.Lean / Feel.Lean.Back, 0, 1));
         var landed = pose is Pose.Stand or Pose.Walk or Pose.Run ? Grounded(LandingOf(Leaned(body, motion), moment.Landing, motion.Depth)) : body;
-        if (pose == Pose.Run && moment.Landing is not > 0) landed = landed with { Lift = landed.Lift + Bounce(moment.Travelled) };
+        if (pose == Pose.Run && !Backward(hero) && moment.Landing is not > 0) landed = landed with { Lift = landed.Lift + Bounce(moment.Travelled) };
         if (moment.Plan is not double look || !HoldsIn(pose)) return landed;
         var front = PlanHand(look);
         double along = Hold.FarHand * Sheet.Length;
@@ -294,6 +294,7 @@ public static class Poses
                 }
             case Pose.Run:
                 {
+                    if (Backward(hero)) return Backpedal(Phase(Stride.Back));
                     double p = Phase(Stride.Run), s = Math.Sin(p);
                     double q = p / (2 * Math.PI);
                     // Leaning well in, the arms pumping hard against the legs, elbows opening as they swing back; each leg
@@ -500,6 +501,25 @@ public static class Poses
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>
     private const double Stance = 0.42;
+
+    /// <summary>Whether <paramref name="hero"/> moves away from the way it faces: running backward, facing what it aims at.</summary>
+    public static bool Backward(Hero hero) => hero.Vx * hero.Facing < 0;
+
+    /// <summary>
+    /// Running backward, <paramref name="p"/> radians through the stride (running back as the hero moves back): the body
+    /// leans back by <see cref="Feel.Run.BackLean"/>, the legs reach behind in short steps, knees lifting, the arms held out
+    /// a little for balance. No flight between steps.
+    /// </summary>
+    private static Limbs Backpedal(double p)
+    {
+        double s = Math.Sin(p), c = Math.Cos(p);
+        return new Limbs(
+            FrontArm: B(0.35 + 0.25 * s, 0.9),
+            BackArm: B(0.25 - 0.25 * s, 0.9),
+            FrontLeg: B(-0.55 * s, -(0.15 + 0.9 * Positive(c))),
+            BackLeg: B(0.55 * s, -(0.15 + 0.9 * Positive(-c))),
+            Tilt: -Feel.Run.BackLean, Lift: 0, Lying: false);
+    }
 
     /// <summary>
     /// How far the running body rises <paramref name="travelled"/> cells into its run: nothing with a foot on the floor,

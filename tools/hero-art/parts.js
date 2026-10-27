@@ -40,6 +40,8 @@ const FIXED = {
   p: '#c49a68', q: '#9a7148', r: '#6e4f33', t: '#3b2a1b',
   // the cape's lining
   a: '#6f9e98', b: '#4f7a75', c: '#375752', f: '#1f3330',
+  // the fur of its collar
+  u: '#e2d6bf', x: '#bfae8e', z: '#8a7a60', n: '#4e4436',
 };
 
 // The head's slot shares the helmet's template: 13x12, turning at the neck, (6.5, 12), its bottom middle. Every
@@ -286,5 +288,29 @@ function capeSide(light, own, shade, line, lining) {
   }).join(''));
 }
 const cape = { outside: capeSide('p', 'q', 'r', 't', true), lining: capeSide('a', 'b', 'c', 'f', false) };
+// The hood, down on the back (Cape.cs): a bag of the wool laid over its own small cloth, its opening (row 0) under the
+// collar, front edge (column 0) at the neck; lit from above and in front, rounding into shade at its back and its tip.
+const hood = [
+  'tttttttttt',
+  'tpppppqqqt',
+  'tppppqqqqt',
+  'tppqqqqqrt',
+  'tpqqqqqqrt',
+  'tqqqqqqrrt',
+  '.tqqqrqqrt',
+  '.tqqqrqrt.',
+  '..trrrrt..',
+  '...tttt...',
+];
+// The fur collar round the neck over the cape's top, back (column 0) to the throat, where it is clasped: tufted on
+// top, thickest at the back, thinning toward the clasp. Its top left at (-10.5, -Neck - 1.5) of the figure.
+const collar = [
+  '..n.nn.n.n.....',
+  '.nunuunuunn....',
+  'nuuuxuuuxuunn..',
+  'nuxuxxuxxuuuun.',
+  'nxxzxxzxxzxxxzn',
+  '.nzznzznzznnnn.',
+];
 
-module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape };
+module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape, hood, collar };

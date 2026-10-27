@@ -84,8 +84,6 @@ public partial class Figure : Node2D
     /// <summary>The cape (a prototype): its inside behind the hero, its outside over it, arms and all.</summary>
     private readonly Cape _cape = new();
     private readonly CapeView _capeInside, _capeOutside;
-    /// <summary>The figure's parts are drawn through it: while the cape is worn, nothing shows behind its back edge.</summary>
-    private readonly CapeMask _capeMask;
     /// <summary>Where the jetpack's nozzle is in its picture: what the plume leaves from.</summary>
     private static readonly Vector2 NozzleAt = new(3, 14);
     private readonly Sprite2D _plan;
@@ -152,7 +150,7 @@ public partial class Figure : Node2D
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
-    private double _carry;
+    private double _carry, _sinceCarryMs = double.PositiveInfinity;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly SwingSmear _smear = new();
@@ -255,10 +253,7 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        // All of them through the cape's mask, which hides what shows behind it while it is worn.
-        _capeMask = new CapeMask(_cape);
-        parts.AddChild(_capeMask);
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) _capeMask.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -352,19 +347,8 @@ public partial class Figure : Node2D
         {
             if (value == _capeOutside.Visible) return;
             _capeInside.Visible = _capeOutside.Visible = value;
-            _capeMask.Cutting = value;
             _cape.Reset();
         }
-    }
-
-    /// <summary>How far behind the middle the back of the torso and of the legs is: what a cape lies against.</summary>
-    private const double TorsoBack = 6.3, LegsBack = 5;
-
-    /// <summary>How far behind the middle the back is at a height from the feet, what the cape lies against: the torso's, then the legs'.</summary>
-    private double BackAt(double y)
-    {
-        // The air pack and a jetpack lie under the cape, hidden by its mask: it lies on the back itself.
-        return y < -Rig.Hip ? TorsoBack : LegsBack;
     }
 
     /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow.</summary>
@@ -424,8 +408,8 @@ public partial class Figure : Node2D
             if (_heldStage != null) return _heldStage;
             _heldStage = Stages.Held();
             _heldView = new EffectsView(_heldStage) { InWorld = true };
-            _capeMask.AddChild(_heldView);
-            _capeMask.MoveChild(_heldView, _frontArmNode.GetIndex());
+            _frame.AddChild(_heldView);
+            _frame.MoveChild(_heldView, _frontArmNode.GetIndex());
             return _heldStage;
         }
     }
@@ -684,11 +668,9 @@ public partial class Figure : Node2D
             _cape.Step(
                 elapsedMs,
                 p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
-                p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); },
-                BackAt);
+                p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); });
             _capeInside.Refresh();
             _capeOutside.Refresh();
-            _capeMask.Refresh();
         }
         // Placing plans, the planner thrusts at them: out fast, back slower.
         double t = 1 - _beamMs / BeamMs;
@@ -741,14 +723,16 @@ public partial class Figure : Node2D
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
         // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
         bool carried = inHand && swung == null && !working && !aiming;
-        _carry = Math.Clamp(_carry + (carried && pose == Pose.Run ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
+        _carry = Math.Clamp(_carry + (carried && pose == Pose.Run && !Poses.Backward(hero) ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
         double carry = _carry * _carry * (3 - 2 * _carry);
+        _sinceCarryMs = _carry > 0 ? 0 : _sinceCarryMs + elapsedMs;
         if (carried && item != null)
         {
             double bob = HeroMotion.Carry.Bob * Math.Sin((_travelled - _strideFrom) / Poses.Stride.Run * 4 * Math.PI);
             frontArm = Mix(frontArm, Rig.Carried(bob), carry);
-            frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         }
+        // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
+        if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);

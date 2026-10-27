@@ -18,9 +18,11 @@ namespace Stillwake.Game;
 /// <param name="HomesMood">The homes' mood held lit or dark (<c>--homes</c>); their own by the hour with none.</param>
 /// <param name="Peer">This player's peer, and the world's tick (<paramref name="Tick"/>): what a view of the sim's shots reads.</param>
 /// <param name="Hosts">Whether this peer hosts its world, so draws its own shots as the sim flies them (<c>ShotDraws</c>).</param>
+/// <param name="Arrivals">The drop pods still coming down on this surface (the landing feature's): held out of the grid's drawing till they stand.</param>
 public sealed record SurfaceContext(
     Registry M, Hands Hands, Func<double> Progress, Func<IReadOnlyList<(Vector2 At, Vector2 Toward, Vector2 Head)>> HeadLamps,
-    Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts);
+    Func<IReadOnlyList<Vector2>> HeroBodies, bool Homes, bool? HomesMood, Func<int> Peer, Func<int> Tick, Func<bool> Hosts,
+    Features.Landing.Arrivals Arrivals);
 
 /// <summary>One view of a surface: how it is made, null where it has nothing to draw; whether it fades with the plan's front layer.</summary>
 public sealed record SurfaceView(Func<SurfaceContext, Node?> Make, bool Fades = false);
@@ -34,7 +36,7 @@ public static class SurfaceViews
 {
     public static readonly IReadOnlyList<SurfaceView> All =
     [
-        new(c => new GridView(c.M.Grid)),
+        new(c => new GridView(c.M.Grid) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building)),
         // A planet's caves: their stone tinted by depth under their growth (0080).
@@ -51,8 +53,10 @@ public static class SurfaceViews
         new(c => new Features.Power.StoreLights(c.M.Grid, c.M.Power), Fades: true),
         new(c => new Features.Power.PlatformLamps(c.M.Grid, c.M.Power), Fades: true),
         // A seated hero behind its pod's porthole, then the pod's lamps and the glint on its glass over it.
-        new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players), Fades: true),
-        new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing), Fades: true),
+        new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players, c.Arrivals.Holds), Fades: true),
+        new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing, c.Arrivals), Fades: true),
+        // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
+        new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),

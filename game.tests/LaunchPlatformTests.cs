@@ -85,6 +85,15 @@ public class LaunchPlatformTests
     }
 
     [Fact]
+    public void KnowsAPlatformPieceForTheShaftItKeepsAndNothingElse()
+    {
+        Assert.True(Tools.IsPlatform(new Placement("structure", Builds.Platform)));
+        Assert.False(Tools.IsPlatform(new Placement("structure", Builds.Hatch)));
+        Assert.False(Tools.IsPlatform(Placement.Wall("iron")));
+        Assert.False(Tools.IsPlatform(new Placement("machine", "dropPod")));
+    }
+
+    [Fact]
     public void RunsEveryCableToARunIntoItsSocketAtItsLeftEnd()
     {
         var w = new TestWorld(Layout.Parse(Rows, [], [((0, 0), (4, 4))]).Doubled());

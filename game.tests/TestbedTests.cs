@@ -58,6 +58,20 @@ public class TestbedTests
     }
 
     [Fact]
+    public void LaunchesItsPodFromTheAirlockFloorOverSpace()
+    {
+        var m = new Registry();
+        var world = Testbed.Create(m.All);
+        int pod = IdOf(m, "dropPod");
+        Assert.Equal(Testbed.PodFuel, m.Items.HeldFor(pod, "biofuel"));
+        // A hero in the airlock boards it; its run is powered and its shaft clear, so it flies.
+        world.Step([new Stillwake.Sim.Crew.Enter(Testbed.Map.Width * 15 + 94), new Stillwake.Sim.Landing.Board(pod)]);
+        Assert.Null(m.Landing.LaunchProblem(0));
+        Assert.Empty(world.Step([new Stillwake.Sim.Landing.Launch()]));
+        Assert.NotNull(m.Landing.FlightOf(0));
+    }
+
+    [Fact]
     public void IsReadyTheMomentItOpens()
     {
         var m = Built.Value;
