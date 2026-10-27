@@ -9,7 +9,7 @@ const A = require('./parts.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ART = path.join(ROOT, 'game', 'art');
-const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [14, 30], hood: [9, 8] };
+const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [14, 30] };
 
 const rgba = s => { const [hex, a] = s.split('/'); const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255, a ? +a : 255]; };
 const keys = { ...A.FIXED };
@@ -56,7 +56,6 @@ made.hero_helmet_shell = shell;
 for (const [part, rows] of Object.entries(A.jumpsuit)) made[`hero_jumpsuit_${part}`] = picture(rows, SIZES[part], part);
 made.hero_cape = picture(A.cape.outside, SIZES.cape, 'cape');
 made.hero_cape_lining = picture(A.cape.lining, SIZES.cape, 'cape lining');
-made.hero_cape_hood = picture(A.hood, SIZES.hood, 'hood');
 
 fs.mkdirSync(out, { recursive: true });
 for (const [name, img] of Object.entries(made)) P.encode(img, path.join(out, name + '.png'));

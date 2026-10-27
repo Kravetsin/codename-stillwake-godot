@@ -270,8 +270,10 @@ const jumpsuit = {
 
 // The cape (a prototype, Cape.cs): its outside and its lining, laid over its grid of cloth, 14x30, across from its
 // front edge at the neck (column 0) to its back edge, down from the shoulders to the hem. The outside shows a strip of
-// lining down its front edge, where it opens; folds run down from a third of the way, longer toward the back.
+// lining down its front edge, where it opens, and its hood down across its top: lit wool, the lining at its opening
+// behind the neck, its rim sagging lowest mid-back and shading the cape below. Folds run down from under the rim.
 const CAPE_W = 14, CAPE_H = 30;
+const hoodRim = x => (x <= 4 ? 4 : x <= 10 ? 6 : 5);
 function capeSide(light, own, shade, line, lining) {
   return Array.from({ length: CAPE_H }, (_, r) => [...Array(CAPE_W)].map((_, x) => {
     if (r === 0 || r === CAPE_H - 1 || x === CAPE_W - 1) return line;
@@ -279,6 +281,11 @@ function capeSide(light, own, shade, line, lining) {
     if (lining && x === 1) return 'b';
     if (lining && x === 2) return line;
     if (r === CAPE_H - 2) return shade;
+    if (lining && r <= hoodRim(x)) {
+      if (r === 1 && x >= 7) return 'c';
+      if (r === 2 && x >= 9) return 'b';
+      return r === hoodRim(x) ? shade : r === hoodRim(x) - 1 ? own : light;
+    }
     if (r <= 2) return light;
     if ((x === 6 && r >= 9) || (x === 10 && r >= 6) || (x === 8 && r >= 18)) return shade;
     if ((x === 3 || x === 4) && r < 12) return light;
@@ -286,17 +293,5 @@ function capeSide(light, own, shade, line, lining) {
   }).join(''));
 }
 const cape = { outside: capeSide('p', 'q', 'r', 't', true), lining: capeSide('a', 'b', 'c', 'f', false) };
-// The cape's hood, down, lying on the back behind the neck: a fold of the wool, lit on top, the crescent of its lining
-// toward the head, its foot running on into the cape. 9x8, its top left at (-12.5, -Neck - 2) of the figure.
-const hood = [
-  '...tttt..',
-  '..tpppqt.',
-  '.tppqqcft',
-  'tpqqqcbft',
-  'tqqqqqbbt',
-  'tqqqqqqqt',
-  'trqqqqqrt',
-  '.rrqqqrr.',
-];
 
-module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape, hood };
+module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape };

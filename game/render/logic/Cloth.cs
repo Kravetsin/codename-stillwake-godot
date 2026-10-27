@@ -59,6 +59,17 @@ public sealed class Cloth
     /// <summary>Point <paramref name="i"/> as it last stepped.</summary>
     public (double X, double Y) At(int i) => (_x[i], _y[i]);
 
+    /// <summary>Carries every point, its speed with it, to where <paramref name="to"/> puts it: the body it hangs on turned about.</summary>
+    public void Carry(Func<(double X, double Y), (double X, double Y)> to)
+    {
+        for (int i = 0; i < _x.Length; i++)
+        {
+            (_x[i], _y[i]) = to((_x[i], _y[i]));
+            (_px[i], _py[i]) = to((_px[i], _py[i]));
+            (_bx[i], _by[i]) = to((_bx[i], _by[i]));
+        }
+    }
+
     /// <summary>
     /// Moves the cloth on by <paramref name="elapsedMs"/>, the points <paramref name="pinned"/> names (each by its index)
     /// held at <paramref name="pins"/>. <paramref name="keep"/> moves a free point (by its index) out of where it may not be, on every

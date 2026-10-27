@@ -105,6 +105,24 @@ public class CapeTests
     }
 
     [Fact]
+    public void TurnedAboutStandingItSwingsRoundToHangBehindAgain()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        for (int turn = 0; turn < 4; turn++)
+        {
+            f.Facing = -f.Facing;
+            Move(cape, f, 120);
+            for (int i = 0; i < Points; i++)
+            {
+                Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+                Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
+            }
+            Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
+        }
+    }
+
+    [Fact]
     public void StoppedAfterARunItStraightensRatherThanStayingBunched()
     {
         var (f, cape) = (new Frame(), new Cape());

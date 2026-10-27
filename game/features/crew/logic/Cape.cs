@@ -35,10 +35,10 @@ public sealed class Cape
     private const double WrapAtShoulders = 2, WrapAtHem = 4;
     /// <summary>
     /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
-    /// the neck and over the shoulder to the back, where its hood lies.
+    /// the neck and over the shoulder to the back, rising behind the neck where its hood lies down across its top.
     /// </summary>
     private static readonly (double X, double Y)[] Pins =
-        [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -Rig.Neck), (-7, -(Rig.Neck - 1.5))];
+        [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -(Rig.Neck + 1)), (-7, -(Rig.Neck - 0.5))];
 
     /// <summary>Where its clasp is, from the feet: its front pin, at the throat.</summary>
     public static (double X, double Y) Clasp => Pins[0];
@@ -46,6 +46,7 @@ public sealed class Cape
     private Cloth? _cloth;
     private (double X, double Y)? _shoulders;
     private double _speedX, _speedY, _steps;
+    private int _facing;
     private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows];
     private static readonly int[] Top = [0, 1, 2, 3];
 
@@ -91,6 +92,11 @@ public sealed class Cape
             for (int i = 0; i < start.Length; i++) start[i] = toWorld(Rest(i));
             _cloth = new Cloth(Style, Cols, Rows, start);
         }
+        // Turned about, the cape turns with the hero: left where it was, it would fold through the body and catch.
+        int facing = Math.Sign(toWorld((1, 0)).X - toWorld((0, 0)).X);
+        if (_facing != 0 && facing != _facing)
+            _cloth.Carry(p => { var (x, y) = toFrame(p); return toWorld((-x, y)); });
+        _facing = facing;
         // The hero's speed, from how its shoulders moved, in pixels a step.
         var at = toWorld(Pins[0]);
         double steps = elapsedMs / Rope.StepMs;
@@ -119,7 +125,7 @@ public sealed class Cape
     }
 
     /// <summary>Forgets where it hung, so it falls from the shoulders afresh: a respawn, a cape put on.</summary>
-    public void Reset() => (_cloth, _shoulders, _speedX, _speedY) = (null, null, 0, 0);
+    public void Reset() => (_cloth, _shoulders, _speedX, _speedY, _facing) = (null, null, 0, 0, 0);
 
     private static int[] MakeTriangles()
     {
