@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Features.Crew;
@@ -10,7 +11,8 @@ namespace Stillwake.Game.Features.Crew;
 /// so the two always meet at the back edge and the hem. It keeps its cut: no point of it comes more than
 /// <see cref="Give"/> forward of where it hangs as cut, so walking backward it stays round the back rather than wrapping
 /// the hero, and it swings back from that freely; never under the feet. What the hero wears on its back does not shape it. A picture is laid over the grid (<see cref="Uv"/>); a triangle turned
-/// over shows the lining (<see cref="Flipped"/>). Drawn only, never simulated: every peer moves its own.
+/// over shows the lining (<see cref="Flipped"/>). Its hood, down on the back under a fur collar, is a small cloth of its
+/// own (<see cref="Hood"/>), so it bobs and swings as the cape does. Drawn only, never simulated: every peer moves its own.
 /// </summary>
 public sealed class Cape
 {
@@ -35,23 +37,54 @@ public sealed class Cape
     private const double WrapAtShoulders = 2, WrapAtHem = 4;
     /// <summary>
     /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
-    /// the neck and over the shoulder to the back, rising behind the neck where its hood lies down across its top.
+    /// the neck and over the shoulder to the back, under its collar.
     /// </summary>
     private static readonly (double X, double Y)[] Pins =
-        [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -(Rig.Neck + 1)), (-7, -(Rig.Neck - 0.5))];
+        [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -Rig.Neck), (-7, -(Rig.Neck - 1.5))];
+
+    /// <summary>The hood's points across, front to back, and down, from its opening under the collar to its tip.</summary>
+    public const int HoodCols = 3, HoodRows = 3;
+    /// <summary>The hood, down on the back: a bag of the same wool, its diagonals firmer than the cape's so it keeps its fullness, its threads down giving
+    /// almost freely when squeezed, so it tosses up as the hero stops rising and drops back.</summary>
+    private static readonly ClothStyle HoodStyle = new(Keep: 0.9, Gravity: 0.3, Shear: 0.4, Squash: 0.1, Passes: 10);
+    /// <summary>
+    /// Where the hood hangs as cut, row by row from its opening, pinned under the collar: full at its middle, its tip lowest
+    /// at the back.
+    /// </summary>
+    private static readonly (double X, double Y)[] HoodCut =
+    [
+        (-1.5, -(Rig.Neck - 1)), (-5, -(Rig.Neck - 0.5)), (-8.5, -(Rig.Neck - 1.5)),
+        (-2.5, -(Rig.Neck - 5)), (-6, -(Rig.Neck - 5.5)), (-10.5, -(Rig.Neck - 5)),
+        (-4, -(Rig.Neck - 8.5)), (-7.5, -(Rig.Neck - 10.5)), (-10, -(Rig.Neck - 8.5)),
+    ];
+    /// <summary>The hood's share of the air on the cape: it lies on the cape, out of most of it.</summary>
+    private const double HoodWind = 0.4;
 
     /// <summary>Where its clasp is, from the feet: its front pin, at the throat.</summary>
     public static (double X, double Y) Clasp => Pins[0];
 
-    private Cloth? _cloth;
+    private Cloth? _cloth, _hood;
     private (double X, double Y)? _shoulders;
     private double _speedX, _speedY, _steps;
     private int _facing;
-    private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows];
-    private static readonly int[] Top = [0, 1, 2, 3];
+    private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows],
+        _hoodPoints = new (double, double)[HoodCols * HoodRows];
+    private static readonly int[] Top = [0, 1, 2, 3], HoodTop = [0, 1, 2];
 
     /// <summary>The triangles of its sheet, three points each, turned the same way as the grid at rest.</summary>
-    public static readonly int[] Triangles = MakeTriangles();
+    public static readonly int[] Triangles = MakeTriangles(Cols, Rows);
+
+    /// <summary>The triangles of its hood, as <see cref="Triangles"/>.</summary>
+    public static readonly int[] HoodTriangles = MakeTriangles(HoodCols, HoodRows);
+
+    /// <summary>Its hood's points as last drawn, as <see cref="Points"/>.</summary>
+    public ReadOnlySpan<(double X, double Y)> Hood => _hoodPoints;
+
+    /// <summary>Where the hood's point <paramref name="i"/> hangs as cut, in the figure's frame.</summary>
+    public static (double X, double Y) HoodRest(int i) => HoodCut[i];
+
+    /// <summary>Where the hood's point <paramref name="i"/> lies on its picture, as <see cref="Uv"/>.</summary>
+    public static (double U, double V) HoodUv(int i) => ((double)(i % HoodCols) / (HoodCols - 1), (double)(i / HoodCols) / (HoodRows - 1));
 
     /// <summary>Its points as last drawn, row by row from the top, in the figure's frame (+x the way it faces, from the feet).</summary>
     public ReadOnlySpan<(double X, double Y)> Points => _points;
@@ -91,11 +124,13 @@ public sealed class Cape
             var start = new (double X, double Y)[Cols * Rows];
             for (int i = 0; i < start.Length; i++) start[i] = toWorld(Rest(i));
             _cloth = new Cloth(Style, Cols, Rows, start);
+            _hood = new Cloth(HoodStyle, HoodCols, HoodRows, [.. HoodCut.Select(toWorld)]);
         }
         // Turned about, the cape turns with the hero: left where it was, it would fold through the body and catch.
         int facing = Math.Sign(toWorld((1, 0)).X - toWorld((0, 0)).X);
         if (_facing != 0 && facing != _facing)
-            _cloth.Carry(p => { var (x, y) = toFrame(p); return toWorld((-x, y)); });
+            foreach (var cloth in new[] { _cloth, _hood! })
+                cloth.Carry(p => { var (x, y) = toFrame(p); return toWorld((-x, y)); });
         _facing = facing;
         // The hero's speed, from how its shoulders moved, in pixels a step.
         var at = toWorld(Pins[0]);
@@ -116,6 +151,12 @@ public sealed class Cape
             var (fx, fy) = toFrame((x, y));
             return toWorld((Math.Min(fx, Rest(i).X + Give), Math.Min(fy, -0.3)));
         }, wind);
+        _hood!.Update(HoodTop, i => toWorld(HoodCut[i]), elapsedMs, (i, x, y) =>
+        {
+            var (fx, fy) = toFrame((x, y));
+            return toWorld((Math.Min(fx, HoodCut[i].X + Give), fy));
+        }, (wind.Item1 * HoodWind, wind.Item2 * HoodWind));
+        for (int i = 0; i < _hoodPoints.Length; i++) _hoodPoints[i] = toFrame(_hood.DrawnAt(i));
         for (int i = 0; i < _points.Length; i++)
         {
             _points[i] = toFrame(_cloth.DrawnAt(i));
@@ -125,17 +166,17 @@ public sealed class Cape
     }
 
     /// <summary>Forgets where it hung, so it falls from the shoulders afresh: a respawn, a cape put on.</summary>
-    public void Reset() => (_cloth, _shoulders, _speedX, _speedY, _facing) = (null, null, 0, 0, 0);
+    public void Reset() => (_cloth, _hood, _shoulders, _speedX, _speedY, _facing) = (null, null, null, 0, 0, 0);
 
-    private static int[] MakeTriangles()
+    private static int[] MakeTriangles(int cols, int rows)
     {
-        var t = new int[(Cols - 1) * (Rows - 1) * 6];
+        var t = new int[(cols - 1) * (rows - 1) * 6];
         int k = 0;
-        for (int r = 0; r + 1 < Rows; r++)
-            for (int c = 0; c + 1 < Cols; c++)
+        for (int r = 0; r + 1 < rows; r++)
+            for (int c = 0; c + 1 < cols; c++)
             {
-                int i = r * Cols + c;
-                (t[k], t[k + 1], t[k + 2], t[k + 3], t[k + 4], t[k + 5]) = (i, i + 1, i + Cols, i + 1, i + Cols + 1, i + Cols);
+                int i = r * cols + c;
+                (t[k], t[k + 1], t[k + 2], t[k + 3], t[k + 4], t[k + 5]) = (i, i + 1, i + cols, i + 1, i + cols + 1, i + cols);
                 k += 6;
             }
         return t;

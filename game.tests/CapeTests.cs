@@ -20,12 +20,12 @@ public class CapeTests
         Assert.InRange(left.Y, 11, 13.5);
     }
 
-    /// <summary>The figure's frame is the world's, its feet at <c>Feet</c>, turned by <c>Facing</c>.</summary>
+    /// <summary>The figure's frame is the world's, its feet at <c>Feet</c> and <c>Down</c>, turned by <c>Facing</c>.</summary>
     private sealed class Frame
     {
-        public double Feet, Facing = 1;
-        public (double X, double Y) ToWorld((double X, double Y) p) => (Feet + p.X * Facing, p.Y);
-        public (double X, double Y) ToFrame((double X, double Y) p) => ((p.X - Feet) * Facing, p.Y);
+        public double Feet, Down, Facing = 1;
+        public (double X, double Y) ToWorld((double X, double Y) p) => (Feet + p.X * Facing, p.Y + Down);
+        public (double X, double Y) ToFrame((double X, double Y) p) => ((p.X - Feet) * Facing, p.Y - Down);
     }
 
     private static readonly int Points = Cape.Cols * Cape.Rows;
@@ -121,6 +121,36 @@ public class CapeTests
             Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
         }
     }
+
+    [Fact]
+    public void ItsHoodHangsAsCutAndTossesUpWhenTheHeroStopsRising()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        var hood = Enumerable.Range(0, Cape.HoodCols * Cape.HoodRows).ToArray();
+        foreach (int i in hood)
+        {
+            Assert.InRange(cape.Hood[i].X - Cape.HoodRest(i).X, -1.5, 1.01);
+            Assert.InRange(cape.Hood[i].Y - Cape.HoodRest(i).Y, -1.5, 1.5);
+        }
+        // Rising, as from a jump or the bounce of a run, then stopped: the tip goes on up, bunching, and drops back.
+        for (int i = 0; i < 20; i++)
+        {
+            f.Down -= 2;
+            Move(cape, f, 1);
+        }
+        double most = 0;
+        for (int i = 0; i < 60; i++)
+        {
+            Move(cape, f, 1);
+            most = Math.Max(most, Cape.HoodRest(HoodTip).Y - cape.Hood[^2].Y);
+        }
+        Assert.True(most > 0.5, $"the tip only rose {most:F2}");
+        Move(cape, f, 240);
+        Assert.InRange(cape.Hood[^2].Y - Cape.HoodRest(HoodTip).Y, -1, 1);
+    }
+
+    private static readonly int HoodTip = Cape.HoodCols * Cape.HoodRows - 2;
 
     [Fact]
     public void StoppedAfterARunItStraightensRatherThanStayingBunched()
