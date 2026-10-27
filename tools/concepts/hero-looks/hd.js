@@ -88,14 +88,16 @@ function inside(p, x, y) {
   return d <= r ? [px / r, py / r] : null;
 }
 const FACE = e(27, 24.5, 6.8, 8.6), EAR = e(16.8, 21.2, 1.7, 1.9);
-function hair({ parts, cuts = [], lines = [] }) {
+/** Volumes shaded into key rows (1 2 3 4) on a w×h grid; at: where the head lies in it, its skin edged softer, or null. */
+function shade({ parts, cuts = [], lines = [], w = HW, h = HH, at = AT }) {
+  const HW = w, HH = h;
   const own = Array.from({ length: HH }, () => new Array(HW).fill(-1)), normal = [];
   for (let y = 0; y < HH; y++) for (let x = 0; x < HW; x++) {
     const px = x + 0.5, py = y + 0.5;
     if (cuts.some(k => inside(k, px, py))) continue;
     parts.forEach((p, i) => { const n = inside(p, px, py); if (n) { own[y][x] = i; normal[y * HW + x] = n; } });
   }
-  const headAt = (x, y) => { const r = head[y - AT[1]]; return r ? r[x - AT[0]] && r[x - AT[0]] !== '.' : false; };
+  const headAt = (x, y) => { if (!at) return false; const r = head[y - at[1]]; return r ? r[x - at[0]] && r[x - at[0]] !== '.' : false; };
   const rows = [];
   for (let y = 0; y < HH; y++) {
     let row = '';
@@ -118,6 +120,8 @@ function hair({ parts, cuts = [], lines = [] }) {
   }
   return rows;
 }
+
+const hair = shade;
 
 const ring = (cx, cy, rx, ry, n, r, from = 0, to = 2 * Math.PI) => Array.from({ length: n }, (_, i) => {
   const a = from + ((to - from) * i) / (n - 1 || 1);
@@ -151,6 +155,12 @@ const hairs = [
   }),
 ];
 
+// What stays of the ponytail and the long hair when chains draw what hangs (the live demo).
+const crowns = [
+  shade({ parts: [e(18.5, 16.8, 11.4, 9.2), e(9.5, 11.5, 2.8, 2.6), e(27.5, 13.2, 4, 2.4)], cuts: [FACE, EAR], lines: [c(14, 10, 22, 13, 0.5)] }),
+  shade({ parts: [e(13, 22, 6.5, 6.5), e(18.5, 16, 12.4, 10.6), e(27.5, 15.2, 4.6, 2.8)], cuts: [e(27.5, 25.5, 6.4, 8)], lines: [c(20, 11, 26, 14, 0.5)] }),
+];
+
 /** The pictures as images in the drawn ramps, each with the joint it turns at: hd_head, hd_face_0-2, hd_hair_0-4. */
 function pictures(A) {
   const keys = { ...A.FIXED };
@@ -169,7 +179,8 @@ function pictures(A) {
   const out = { hd_head: image(head, [13, 24]) };
   faces.forEach((f, i) => (out['hd_face_' + i] = image(f, [13, 24])));
   hairs.forEach((h, i) => (out['hd_hair_' + i] = image(h, [19, 30])));
+  crowns.forEach((h, i) => (out['hd_crown_' + i] = image(h, [19, 30])));
   return out;
 }
 
-if (typeof module !== 'undefined') module.exports = { head, faces, hairs, pictures };
+if (typeof module !== 'undefined') module.exports = { head, faces, hairs, crowns, pictures, shade, e, c };

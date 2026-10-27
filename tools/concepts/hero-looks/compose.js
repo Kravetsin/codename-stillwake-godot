@@ -66,26 +66,55 @@ function make(A) {
    * look: { suit: 0-3, suited, skin: 0-6, hair: 0-4, hairColour: 0-5, face: 0-2, closed, bubble }; closed draws
    * today's helmet, its visor opaque; bubble the suit with the head bare, for a glass bubble drawn round it.
    */
-  function figure(look, get) {
+  // Stand at rest (Pose.cs): each limb's [upper, lower] bend; a pose may also tilt the body and lift it.
+  const STAND = { fa: [0, 0.18], ba: [0, 0.22], fl: [0.02, -0.04], bl: [-0.02, -0.04], tilt: 0, lift: 0 };
+  const rot = ([x, y], t) => [x * Math.cos(t) - y * Math.sin(t), x * Math.sin(t) + y * Math.cos(t)];
+  /** A point of the body at rest, from the feet, where the pose's tilt round the middle and its lift put it. */
+  function bodied(p, pose) {
+    const r = rot([p[0], p[1] + H / 2], pose.tilt || 0);
+    return [r[0], r[1] - H / 2 - (pose.lift || 0)];
+  }
+  /** A pixel p of a picture on the head (joint and density its own) in the world, from the feet, facing +x. */
+  function onHead(look, p, joint, density) {
+    const pose = { ...STAND, ...look.pose };
+    const v = rot([(p[0] - joint[0]) / density, (p[1] - joint[1]) / density], (look.turn || 0) + (pose.tilt || 0));
+    const neck = bodied([0, -Neck], pose);
+    return [neck[0] + v[0], neck[1] + v[1]];
+  }
+
+  /**
+   * The parts of a hero, back to front, each { img, at: [x, y] from the feet, turn, joint, face, flip }.
+   * look: { suit: 0-3, suited, skin: 0-6, hair: 0-4, hairColour: 0-5, face: 0-2, closed, bubble, fine, crown, turn,
+   * pose, flip }; closed draws today's helmet, its visor opaque; bubble the suit with the head bare, for a glass bubble
+   * drawn round it; crown the trial hair without what a chain draws (hd_crown_n); pose the limbs' bends, tilt and lift;
+   * flip faces −x. extra: { behind, beforeHead } ops placed at the back and under the head, already in the world's way.
+   */
+  function figure(look, get, extra = {}) {
     look = lookOf(look);
-    const ops = [];
-    const put = (img, at, turn, joint, face) => ops.push({ img, at, turn, joint, face });
+    const pose = { ...STAND, ...look.pose };
+    const ops = [...(extra.behind || [])];
+    const put = (img, at, turn, joint, more) => ops.push({ img, at: bodied(at, pose), turn: turn + pose.tilt, joint, flip: look.flip, ...more });
     const part = (name, far) => recolour(get((look.suited ? 'hero_' : 'hero_jumpsuit_') + name), swapsOf(look, far));
-    // Stand at rest (Pose.cs): front arm (0, .18), back arm (0, .22), legs (±.02, -.04). Rotations run clockwise.
+    // Rotations run clockwise.
     const limb = (upper, lower, at, size, [u, l], far) => {
       const elbow = [at[0] + Math.sin(u) * size, at[1] + Math.cos(u) * size];
       put(part(lower, far), elbow, -(u + l), JOINTS[lower]);
       put(part(upper, far), at, -u, JOINTS[upper]);
     };
     const shoulder = [0, -Shoulder], neck = [0, -Neck];
-    limb('upperArm', 'forearm', shoulder, Arm, [0, 0.22], true);
-    limb('thigh', 'shin', [-HipApart, -Hip], Leg, [-0.02, -0.04], true);
-    limb('thigh', 'shin', [HipApart, -Hip], Leg, [0.02, -0.04], false);
+    limb('upperArm', 'forearm', shoulder, Arm, pose.ba, true);
+    limb('thigh', 'shin', [-HipApart, -Hip], Leg, pose.bl, true);
+    limb('thigh', 'shin', [HipApart, -Hip], Leg, pose.fl, false);
     if (look.suited) put(part('pack', false), [-Back, -Shoulder - H * 0.02], 0, [0, 0]);
     put(part('torso', false), neck, 0, JOINTS.torso);
+    ops.push(...(extra.beforeHead || []));
     if (look.closed) put(part('helmet', false), neck, 0, JOINTS.helmet);
-    else for (const l of headLayers(look, get, !look.bubble)) ops.push({ img: l.img, at: neck, turn: look.turn || 0, joint: l.joint || JOINTS.helmet, face: l.face, density: l.density });
-    limb('upperArm', 'forearm', shoulder, Arm, [0, 0.18], false);
+    else {
+      const layers = headLayers(look, get, !look.bubble);
+      if (look.crown != null) layers[2] = { ...layers[0], img: recolour(get('hd_crown_' + look.crown), swapsOf(look, false)), joint: get('hd_crown_' + look.crown).joint };
+      for (const l of layers) put(l.img, neck, look.turn || 0, l.joint || JOINTS.helmet, { face: l.face, density: l.density });
+    }
+    limb('upperArm', 'forearm', shoulder, Arm, pose.fa, false);
     return ops;
   }
 
@@ -98,15 +127,16 @@ function make(A) {
   function draw(img, ops, origin, light, { zoom = 1, smooth = false } = {}) {
     const n = smooth ? 4 : 1;
     for (const op of ops) {
-      const { img: src, at, turn, joint } = op, d = op.density || 1;
+      // flip mirrors the op round the origin's column, as a hero facing −x is drawn.
+      const { img: src, at, turn, joint } = op, d = op.density || 1, f = op.flip ? -1 : 1;
       const c = Math.cos(turn), s = Math.sin(turn);
-      const ox = origin[0] + at[0] * zoom, oy = origin[1] + at[1] * zoom;
+      const ox = origin[0] + f * at[0] * zoom, oy = origin[1] + at[1] * zoom;
       const r = (Math.hypot(src.w, src.h) / d + 2) * zoom;
       for (let y = Math.floor(oy - r); y <= oy + r; y++) for (let x = Math.floor(ox - r); x <= ox + r; x++) {
         if (x < 0 || y < 0 || x >= img.w || y >= img.h) continue;
         let sr = 0, sg = 0, sb = 0, sa = 0;
         for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
-          const dx = (x + (i + 0.5) / n - ox) / zoom, dy = (y + (j + 0.5) / n - oy) / zoom;
+          const dx = f * (x + (i + 0.5) / n - ox) / zoom, dy = (y + (j + 0.5) / n - oy) / zoom;
           const u = Math.floor((c * dx + s * dy) * d + joint[0]), v = Math.floor((-s * dx + c * dy) * d + joint[1]);
           if (u < 0 || v < 0 || u >= src.w || v >= src.h) continue;
           const si = (v * src.w + u) * 4, a = src.data[si + 3] / 255;
@@ -148,7 +178,7 @@ function make(A) {
     return o;
   }
 
-  return { H, W, Neck, JOINTS, LAMP_ON, A, shade, shadesOf, darker, blank, recolour, headLayers, figure, draw, over, scale };
+  return { H, W, Neck, Shoulder, Hip, JOINTS, LAMP_ON, A, STAND, shade, shadesOf, darker, blank, recolour, headLayers, figure, bodied, onHead, draw, over, scale };
 }
 
 if (typeof module !== 'undefined') module.exports = make;

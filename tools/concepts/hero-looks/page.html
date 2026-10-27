@@ -80,6 +80,21 @@ ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 72ch; }
     <div class="deck"><div class="pair" id="hero"></div></div>
   </header>
 
+  <section>
+    <header>
+      <div class="eyebrow">Демо техники</div>
+      <h2>Живые волосы и плащ</h2>
+      <p class="muted">Хвост, длинные пряди и плащ висят на цепочках точек (verlet): первая прибита к голове или к плечам, остальные отстают под тяжестью и не заходят в тело. Каждый кадр цепочка заново заливается пикселями: волосы на сетке головы, вдвое мельче, плащ на сетке тела, в гамме цвета игрока, складки там, где звенья перекрываются. Неподвижная часть причёски остаётся картинкой. Только у клиента: в симуляцию и сеть не идёт.</p>
+    </header>
+    <div class="deck pair">
+      <p class="muted" style="font-size:13px">Герой бегает сам. Щёлкните по сцене, чтобы управлять: ←/→ или A/D бег, с Shift шаг, ↑/W/пробел прыжок, G невесомость (в ней ↑/↓ тоже двигают).</p>
+      <div class="chips" id="live-style"></div>
+      <div class="chips" id="live-cape"></div>
+      <div class="chips" id="live-zoom"></div>
+      <div id="live" tabindex="0" style="outline-offset:4px"><div id="live-view" style="display:grid;gap:10px;justify-items:start;overflow-x:auto;min-height:220px"></div></div>
+    </div>
+  </section>
+
   <section id="trial">
     <header>
       <div class="eyebrow">Проба</div>

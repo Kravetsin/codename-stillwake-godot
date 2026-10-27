@@ -1,7 +1,7 @@
 'use strict';
 // Builds the page: node tools/concepts/hero-looks/build.js <out.html> [artDir]
 // Inlines the hero's pictures (the new ones from artDir, game/art by default, as tools/hero-art/paint.js writes them),
-// the deck's tiles, parts.js, compose.js and page.js into page.html.
+// the deck's tiles, parts.js, compose.js, hd.js, page.js and live.js into page.html.
 const fs = require('fs'), path = require('path');
 const ROOT = path.join(__dirname, '..', '..', '..');
 const ART = path.join(ROOT, 'game', 'art');
@@ -23,6 +23,7 @@ const code = [
   asModule(path.join(__dirname, 'hd.js'), 'HD'),
   `const PICTURES = ${JSON.stringify(pictures)};`,
   fs.readFileSync(path.join(__dirname, 'page.js'), 'utf8'),
+  fs.readFileSync(path.join(__dirname, 'live.js'), 'utf8'),
 ].join('\n');
 const page = fs.readFileSync(path.join(__dirname, 'page.html'), 'utf8').replace('/*CODE*/', () => code);
 fs.writeFileSync(out, page);

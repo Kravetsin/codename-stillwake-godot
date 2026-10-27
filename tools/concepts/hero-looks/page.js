@@ -439,6 +439,6 @@ function trial() {
 if (typeof document !== 'undefined')
   Promise.all(Object.entries(PICTURES).map(([n, src]) => decode(src).then(img => (IMG[n] = img)))).then(() => {
     Object.assign(IMG, HD.pictures(A));
-    for (const f of [hero, trial, editor, templates, variants, crew, dark, bubble, files]) f();
+    for (const f of [hero, live, trial, editor, templates, variants, crew, dark, bubble, files]) f();
   });
 else module.exports = { IMG, C, CREW, lineup, crop, headOf };
