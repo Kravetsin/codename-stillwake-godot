@@ -19,7 +19,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `MachineScenarios.cs` | machines and items: `--furnace`, `--items`, `--menu-demo`, `--open`, `--near`, `--marks`, `--card`, `--charger`, `--arc`, `--bench`, `--pod`, `--handbook`, `--tool-cards` |
 | `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--layer-demo`, `--shimmer-demo` |
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie` |
-| `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer` |
+| `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 
 ## How a run is put together

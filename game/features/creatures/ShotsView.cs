@@ -92,7 +92,7 @@ public partial class ShotsView : Node2D
             if (hit.By != mine && hit.Shot != bornAndEnded && !_seen.ContainsKey(hit.Shot) && !Flying(creatures, hit.Shot))
             {
                 bornAndEnded = hit.Shot;
-                _fired.Play(S.NailShot, new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
+                _fired.Play(S.FiredBy(hit.Gun), new Vector2(hit.From.X, hit.From.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         var flying = new HashSet<int>();
@@ -106,7 +106,7 @@ public partial class ShotsView : Node2D
             {
                 // Seen first a step out of the muzzle: drawn from where it was fired, a step back.
                 _seen[shot.Id] = (motion with { X = motion.X - motion.VX, Y = motion.Y - motion.VY }, motion);
-                if (shot.By != Ref.Hero(own)) _fired.Play(S.NailShot, new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
+                if (shot.By != Ref.Hero(own)) _fired.Play(S.FiredBy(shot.Gun), new Vector2(motion.X, motion.Y) * (float)(Camera.Cell / 1000.0));
             }
         }
         foreach (var id in new List<int>(_seen.Keys))

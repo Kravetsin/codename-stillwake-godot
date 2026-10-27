@@ -41,6 +41,9 @@ public class ItemCardTests
         Assert.Equal([new CardTile("+2", "DMG"), new CardTile("+0", "BLOCK")], nail.Tiles);
         // A tile card, though no tool: its slot is not tinted as one.
         Assert.False(ItemCards.IsTool(Spec.Shots.Nail.Id));
+        // The railgun's: 22 and the nail's 2, 4 off a block, 2 s between shots, 65% kept, 120 of the belt's charge a shot.
+        Assert.Equal([new CardTile("24", "DMG"), new CardTile("4", "BLOCK"), new CardTile("2s", "RELOAD"), new CardTile("65%", "PIERCE"), new CardTile("120", "ENERGY")],
+            ItemCards.Of(Spec.Shots.Railgun.Item, unknown: false).Tiles);
     }
 
     [Fact]

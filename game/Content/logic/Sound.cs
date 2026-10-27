@@ -461,6 +461,18 @@ public static class Sound
     public static readonly Cue NailReady = new(Shots("crew/nailer-ready", 1), -12);
 
     /// <summary>
+    /// The railgun (2026-10-27-the-railgun): its charge as it is held, its pitch rising to full (<see cref="RailCharge"/>); a ping as it
+    /// comes full (<see cref="RailReady"/>); its shot, heard where it is as a friend's too (<see cref="RailShot"/>). Placeholders of
+    /// the sentry's charge, the charger's full and the arc's strike till the user's picks.
+    /// </summary>
+    public static readonly Cue RailCharge = new(Shots("creatures/sentry-charge", 1), -6, Pitch: 0);
+    public static readonly Cue RailReady = new(Shots("power/charge-full", 1), -10, Pitch: 0);
+    public static readonly Cue RailShot = Zap with { VolumeDb = -4, Tune = 1.2f, Heard = ToolReach };
+
+    /// <summary>The shot of the gun <paramref name="gun"/> heard fired: the railgun's its own, any other the nailer's.</summary>
+    public static Cue FiredBy(string? gun) => gun == Content.Shots.Railgun.Item ? RailShot : NailShot;
+
+    /// <summary>
     /// The sentry's arc (2026-10-27-sentry-arc), the user's picks: struck, the resonator's crackle lower and louder, heard as far as a
     /// tool where it leaves the sentry (<see cref="ArcStruck"/>); where it strikes, and through the suit of a hero it crossed, a
     /// real stun gun's tenth of a second (<see cref="ArcHit"/>). Its charge is the sentry's own (<see cref="TickCues.Charge"/>).

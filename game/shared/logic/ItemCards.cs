@@ -93,15 +93,21 @@ public static class ItemCards
 
     /// <summary>
     /// A gun's tiles: a hit's damage off a body and off a block with the first of its ammo, the seconds between shots, and the share
-    /// of its damage a shot keeps through each thing it breaks or kills (<see cref="Spec.Gun.PierceKeep"/>).
+    /// of its damage a shot keeps through each thing it pierces (<see cref="Spec.Gun.PierceKeep"/>); and for a gun that takes the
+    /// belt's charge, the power-ticks a shot (2026-10-27-the-railgun).
     /// </summary>
-    private static List<CardTile> GunTiles(Spec.Gun gun) =>
-    [
-        new(Number(Spec.Shots.DamageOf(gun.Item, gun.Ammo[0])), T("card.damage")),
-        new(Number(Spec.Shots.BlockDamageOf(gun.Item, gun.Ammo[0])), T("card.block")),
-        new(T("card.seconds", ("n", Number((double)gun.Pace / World.TicksPerSecond))), T("card.reload")),
-        new(T("card.percent", ("n", Number(gun.PierceKeep / 10.0))), T("card.pierce")),
-    ];
+    private static List<CardTile> GunTiles(Spec.Gun gun)
+    {
+        List<CardTile> tiles =
+        [
+            new(Number(Spec.Shots.DamageOf(gun.Item, gun.Ammo[0])), T("card.damage")),
+            new(Number(Spec.Shots.BlockDamageOf(gun.Item, gun.Ammo[0])), T("card.block")),
+            new(T("card.seconds", ("n", Number((double)gun.Pace / World.TicksPerSecond))), T("card.reload")),
+            new(T("card.percent", ("n", Number(gun.PierceKeep / 10.0))), T("card.pierce")),
+        ];
+        if (gun.Energy > 0) tiles.Add(new(Number(gun.Energy), T("card.energy")));
+        return tiles;
+    }
 
     /// <summary>Ammo's tiles: what it adds to its gun's damage off a body and off a block, "+2".</summary>
     private static List<CardTile> AmmoTiles(string item)

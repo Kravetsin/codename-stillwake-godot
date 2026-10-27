@@ -11,6 +11,7 @@ public static partial class En
         ["card.damage"] = "DMG",
         ["card.block"] = "BLOCK",
         ["card.pierce"] = "PIERCE",
+        ["card.energy"] = "ENERGY",
         ["card.hit"] = "HIT",
         ["card.seconds"] = "{n}s",
         ["card.range"] = "RANGE",

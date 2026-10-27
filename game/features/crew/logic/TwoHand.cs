@@ -16,16 +16,18 @@ public static class TwoHand
 
     /// <summary>
     /// Where the mount rests at each key turn (radians, clockwise from straight ahead), from the shoulder; between two keys
-    /// it moves in a straight line. Aimed up it comes forward and up, so the chuck stays clear of the helmet; level it sits
-    /// across the middle of the chest; aimed down it rises and comes out, so the drill stands before the legs, its stock
-    /// clear of the helmet and both grips in reach.
+    /// it moves in a straight line. Aimed up it comes forward and up, so the chuck stays clear of the helmet, straight up before
+    /// the face, the far fist at the shoulder's height; level it sits across the middle of the chest; aimed down it rises and
+    /// comes out, so the drill stands before the legs, its stock clear of the helmet and both grips in reach. Straight up and
+    /// down are in reach, so a gun aims at any point before the hero (2026-10-27-the-railgun).
     /// </summary>
     public static readonly (double Turn, Vec Pivot)[] Keys =
     [
-        (-55 * Degree, new Vec(5, 5.5)), (0, new Vec(2.5, 8)), (35 * Degree, new Vec(3, 6)), (85 * Degree, new Vec(5.5, 3.5)),
+        (-90 * Degree, new Vec(6, 1)), (-55 * Degree, new Vec(5, 5.5)), (0, new Vec(2.5, 8)), (35 * Degree, new Vec(3, 6)),
+        (90 * Degree, new Vec(5.5, 3.5)),
     ];
 
-    /// <summary>How far the item turns from straight ahead, in radians, up (55°) and down (85°) at most: the first and last keys. Past them it points as far as it turns.</summary>
+    /// <summary>How far the item turns from straight ahead, in radians, up and down at most, straight up and straight down: the first and last keys. Past them it points as far as it turns.</summary>
     public static readonly double Up = -Keys[0].Turn, Down = Keys[^1].Turn;
 
     /// <summary>The turn it rests at when aimed at nothing, a little down: a friend's hero holding it idle.</summary>
