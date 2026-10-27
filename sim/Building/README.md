@@ -26,10 +26,10 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 ## Rules
 
 - **Blueprint checks, in order:** `building.fixed` (the lifepod is never planned nor marked, 0028); `building.notHere`
-  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (not known but in creative mode, 0024; bedrock always, 0077); the
-  grid's `PlacementProblem` keys; `building.planned`. Structure and machines share one solid slot, a
-  back wall has its own. A machine's blueprint covers its footprint; a ladder's or door segment's 2×2, a hatch's 2×1
-  (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints like any (0084).
+  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock always, 0077); the
+  grid's `PlacementProblem` keys; its shaft keys for plans too; `building.planned`. Structure
+  and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
+  2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).
 - **Marks** (no ADR): one thing takes one mark and needs something in that layer; none at all where the surface's tools
   break things (`ToolsBreak`, a planet: `building.notHere`, its old marks not worked, fan-of-rays). A
   machine holding items, a fitted module (0086) or queued crafts (0057) is marked only empty, `building.notEmpty`,

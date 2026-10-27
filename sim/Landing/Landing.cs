@@ -109,8 +109,9 @@ public sealed class LandingModule : Module<LandingState>, ICarries
 
     /// <summary>
     /// Why <paramref name="peer"/>'s hero cannot launch: in no pod (<c>landing.notSeated</c>); aboard, its pod no longer on a run
-    /// (<c>landing.noPlatform</c>), the run without power enough (<c>landing.unpowered</c>), its slot short of
-    /// <see cref="Content.Landing.DescentFuel"/> biofuel (<c>landing.noFuel</c>), or a world that cannot open a planet
+    /// (<c>landing.noPlatform</c>), anything solid under its run to the grid's edge (<c>landing.shaftBlocked</c>), the run without
+    /// power enough (<c>landing.unpowered</c>), its slot short of <see cref="Content.Landing.DescentFuel"/> biofuel
+    /// (<c>landing.noFuel</c>), or a world that cannot open a planet
     /// (<c>landing.cannotLeave</c>); off the ship, a pod it did not come down in (<c>landing.notYours</c>). Null when it can.
     /// </summary>
     public string? LaunchProblem(int peer)
@@ -120,6 +121,9 @@ public sealed class LandingModule : Module<LandingState>, ICarries
         if (Surfaces.Here != 0) return OwnerOf(pod) == peer ? null : "landing.notYours";
         // Built over a run, it may have been taken apart since.
         if (!_grid.OnRun(m.Kind, m.Cell)) return "landing.noPlatform";
+        // Something built under its run before shafts were kept clear, in an older save: the pod would fall through it.
+        for (int dx = 0; dx < Content.Machines.Get(m.Kind).Width; dx++)
+            if (!_grid.ClearBelow(Under(m) + dx)) return "landing.shaftBlocked";
         if (!Powered(Under(m))) return "landing.unpowered";
         if (_items.HeldFor(pod, Fuel) < Content.Landing.DescentFuel) return "landing.noFuel";
         return Surfaces.CanOpen ? null : "landing.cannotLeave";

@@ -14,6 +14,8 @@ public static partial class En
         ["grid.noExhaust"] = "Its nozzle must go out through the hull into space",
         ["grid.noPlatform"] = "Stands only on a launch platform",
         ["grid.noGround"] = "Needs flat ground under it",
+        ["grid.underPlatform"] = "Not under a launch platform: the pod falls through here",
+        ["grid.shaftBlocked"] = "Must be empty under it, down to the edge",
         // Not in the TypeScript: its types kept a placement to the layers there are.
         ["grid.noSuchLayer"] = "No such layer",
         ["grid.noDoor"] = "There is no door here",

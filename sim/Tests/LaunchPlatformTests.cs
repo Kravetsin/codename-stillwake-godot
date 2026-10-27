@@ -13,7 +13,10 @@ namespace Stillwake.Sim.Tests;
 /// </summary>
 public class LaunchPlatformTests
 {
-    /// <summary>Twelve cells across and ten down, a cell a character: a room with a floor to lay a deck along.</summary>
+    /// <summary>
+    /// Twelve cells across and ten down, a cell a character: a room to lay a deck along its last row inside, open to space under it,
+    /// so every piece's shaft is clear to the edge.
+    /// </summary>
     private const string Room = """
         ############
         #..........#
@@ -24,7 +27,7 @@ public class LaunchPlatformTests
         #..........#
         #..........#
         #..........#
-        ############
+        #          #
         """;
 
     private const int Width = 12;

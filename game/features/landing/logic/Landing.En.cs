@@ -13,6 +13,7 @@ public static partial class En
         ["landing.noFuel"] = "Needs {fuel} biofuel",
         ["landing.notYours"] = "Not your pod",
         ["landing.cannotLeave"] = "There is nowhere to land",
+        ["landing.shaftBlocked"] = "Something is built under the platform",
         ["landing.descend"] = "Descend",
         ["landing.return"] = "Return",
     };

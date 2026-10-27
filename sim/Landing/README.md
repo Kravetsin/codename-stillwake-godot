@@ -55,7 +55,8 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
   `FlightOf(peer)`; `Returns` — the key's Return; `FloorOf(cell, width)` (static) — where a pod's rider sits.
 - **Commands:** `SetPlatform(cell, open)` — `landing.noPlatform`, `landing.unpowered`. `Board(pod)` — `landing.noPod`,
   `landing.seated` (in a pod or flying), `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`;
-  aboard `landing.noPlatform`, `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave` (a world that cannot open
+  aboard `landing.noPlatform`, `landing.shaftBlocked` (anything solid under its run to the edge, from an older save),
+  `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave` (a world that cannot open
   surfaces); off the ship `landing.notYours` (another's pod, or one nobody came down in).
 - **Fuzz:** one turn in 8: a launch, half of them from a seated hero, an eighth from others; else a board or a leave a third,
   a set of a platform the rest.
@@ -63,6 +64,7 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 ## Invariants
 
 - A run is all shut or all open after any `SetPlatform`; a shut run never opens without power enough.
+- A platform's shaft, under it to the grid's edge, is kept empty of anything solid, built or planned (Grid, Building).
 - A pod has at most one rider and a hero at most one pod; every seat's pod stands and its hero is awake after a tick.
 - Every pod is in one place: standing on one surface or in one flight; a hero flies one at most, seated in none meanwhile.
   Every owned pod stands by its owner, or its owner flies. Biofuel goes only by a descent's five; a twin fed the same, saved

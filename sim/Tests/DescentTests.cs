@@ -156,6 +156,9 @@ public class DescentTests
         // A pod drawn over the floor beside a run: nothing to drop through.
         string[] off = [.. Rows[..7], "#####__##__#####", .. Rows[8..]];
         Assert.Equal("landing.noPlatform", Ready(rows: off).M.Landing.LaunchProblem(0));
+        // A wall far under its run, from before shafts were kept clear: it would fall through it.
+        string[] walled = [.. Rows[..9], "   ##           "];
+        Assert.Equal("landing.shaftBlocked", Ready(rows: walled).M.Landing.LaunchProblem(0));
     }
 
     /// <summary>A world whose ship cannot open surfaces, as the generic suites build one; or, <c>Here</c> 1, a surface off the ship.</summary>

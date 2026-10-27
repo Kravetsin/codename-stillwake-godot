@@ -36,6 +36,12 @@ is its first slice, the sim with a button and a white-out, the pictures of the f
   is sent all the same: its pod lands, owned, and follows it home when it wakes aboard.
 - **Its rider is one hero, awake.** A flying hero boards no other pod (`landing.seated`), and a hero gone or out on the tick
   it launches launches nothing (`landing.notSeated`): its seat lasts till the derivation phase, its fuel unburnt.
+- **A platform keeps its shaft clear.** The column under each platform cell, to the grid's edge, is the pod's way out: a
+  platform is placed only over one empty of anything solid (`grid.shaftBlocked`), and no structure or machine goes in one
+  (`grid.underPlatform`), built or planned (Building checks plans as the grid checks what is built). Back walls, cables and
+  pipes are behind the fall and stay allowed. A platform taken apart frees its shaft. While building, every shaft shows a
+  red hatch and a platform's ghost its own, green where empty and red where not (`Shafts`). A run built before this, over
+  something, launches nothing (`landing.shaftBlocked`).
 - **A pod minds the grid, not plans.** A plan a pod docks or lands over waits on its last tick while the grid refuses it
   (Building), as a wall's does on a hero, rather than building into the pod.
 - **The rider's client** holds its hero where the pod stood on the surface it is on (`Flight.Floor`), hidden for every peer,

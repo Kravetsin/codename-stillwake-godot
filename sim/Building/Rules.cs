@@ -95,6 +95,27 @@ public sealed partial class BuildingModule
     /// does not allow (0076), a blueprint not known (ADR 0024), what the grid says, a plan already claiming its slot in a cell it covers,
     /// then, building instantly, a wall on a hero.
     /// </summary>
+    /// <summary>
+    /// Why <paramref name="place"/> may not be planned at <paramref name="cell"/> for the shafts planned platforms keep, as the grid
+    /// keeps built ones': under one (<c>grid.underPlatform</c>), or a platform over a solid plan (<c>grid.shaftBlocked</c>). Back walls
+    /// are behind the fall.
+    /// </summary>
+    private string? PlannedShaftProblem(int cell, Placement place)
+    {
+        if (place.Layer == "back") return null;
+        static bool Platform(Placement p) => p.Layer == "structure" && Structures.Placed(p.Kind) is int code && Doorways.IsPlatform(code);
+        int width = _grid.Width;
+        var wanted = Covers(cell, place);
+        foreach (var plan in State.Plans)
+        {
+            if (plan.Place is not { } other || other.Layer == "back") continue;
+            var theirs = Covers(plan);
+            if (Platform(other) && wanted.Any(c => theirs.Any(t => t % width == c % width && t < c))) return "grid.underPlatform";
+            if (Platform(place) && theirs.Any(t => wanted.Any(c => c % width == t % width && t > c))) return "grid.shaftBlocked";
+        }
+        return null;
+    }
+
     private string? PlaceProblem(int cell, Placement place)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
@@ -102,6 +123,7 @@ public sealed partial class BuildingModule
         if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;
+        if (PlannedShaftProblem(cell, place) is { } shaft) return shaft;
         string slot = SlotOf(place.Layer);
         var wanted = Covers(cell, place);
         bool taken = State.Plans.Exists(p =>
