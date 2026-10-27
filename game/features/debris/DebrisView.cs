@@ -26,8 +26,6 @@ public partial class DebrisView(Ui ui) : Node2D
 {
     private const float Cell = ShipCamera.Cell;
     private const int Unit = DebrisModule.Unit;
-    /// <summary>A piece drawn as its item, with no pictures of its own: its size, in cells.</summary>
-    private const float ItemSize = 1.6f;
     /// <summary>A wreck rocks this far either way, in radians, once in <see cref="RockMs"/>.</summary>
     private const double Rock = 0.08, RockMs = 7000;
     /// <summary>A hit knocks a piece <see cref="JoltPixels"/> away from the nearest hero and turns it <see cref="JoltTurn"/>, settling over <see cref="JoltMs"/>.</summary>
@@ -170,9 +168,8 @@ public partial class DebrisView(Ui ui) : Node2D
         var pool = wreck ? _wrecks : _small;
         var one = pool.Count > 0 ? pool.Pop() : Made(wreck);
         var picture = one.Picture;
-        var (texture, scale) = PictureOf(piece.Item, piece.Id);
-        picture.Texture = texture;
-        picture.Scale = Vector2.One * scale;
+        picture.Texture = PictureOf(piece.Item, piece.Id);
+        picture.Scale = Vector2.One;
         picture.Visible = true;
         (one.Damage, one.JoltMs, one.Away, one.Flash) = (piece.Damage, 0, Vector2.Zero, 0);
         if (wreck) ShowCracks(picture, piece);
@@ -317,14 +314,14 @@ public partial class DebrisView(Ui ui) : Node2D
     }
 
     /// <summary>
-    /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), a pixel of art a pixel of the
-    /// world, or its item's the size of a piece, and its scale; each loaded once.
+    /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), or its item's as the world draws it (a tool's
+    /// as it is held), a pixel of art a pixel of the world; each loaded once.
     /// </summary>
-    private static (Texture2D Texture, float Scale) PictureOf(string item, int id)
+    private static Texture2D PictureOf(string item, int id)
     {
-        if (!DebrisLooks.Of.ContainsKey(item)) return (ItemIcons.Icon(item), ItemSize * Cell / ItemIcons.Pixels);
+        if (!DebrisLooks.Of.ContainsKey(item)) return ItemIcons.Icon(item);
         var key = (item, Content.Looks.Of(item, id));
         if (!Textures.TryGetValue(key, out var texture)) Textures[key] = texture = GD.Load<Texture2D>(DebrisLooks.PictureOf(item, id));
-        return (texture, 1);
+        return texture;
     }
 }

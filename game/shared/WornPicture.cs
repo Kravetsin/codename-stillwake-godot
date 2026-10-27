@@ -5,8 +5,8 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// A worn item's picture on its card (the item card mockup's medium card), in the window a tool's picture has
-/// (<see cref="ToolPicture.DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp on the helmet
+/// A worn item's picture on its card (the item card mockup's medium card), in a small dark window
+/// (<see cref="DrawWindow"/>): its icon <see cref="CardLook.WornScale"/> times; the helmet lamp on the helmet
 /// it is worn on, its warm beam reaching out across the window with motes drifting through it, as wide as the game's
 /// (<see cref="Light.HeadLampHalfAngle"/>); a battery glowing green as much as it holds, slowly pulsing.
 /// </summary>
@@ -20,6 +20,16 @@ public partial class WornPicture : Control
     private const float BeamAlpha = 0.42f, BeamMiddle = 0.15f, BulbGlowAcross = 24, ChargeGlowAcross = 36;
 
     private static readonly CanvasItemMaterial Added = new() { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    // The window's ground, the mockup's radial-gradient(#121c33, #080d19 75%) a little above the middle.
+    private static readonly GradientTexture2D Ground = new()
+    {
+        Width = 64,
+        Height = 64,
+        Fill = GradientTexture2D.FillEnum.Radial,
+        FillFrom = new Vector2(0.5f, 0.4f),
+        FillTo = new Vector2(1.4f, 0.4f),
+        Gradient = new Gradient { Offsets = [0f, 0.75f], Colors = [new Color("121c33"), new Color("080d19")] },
+    };
 
     private sealed class Mote
     {
@@ -95,7 +105,19 @@ public partial class WornPicture : Control
 
     private float Between(float from, float to) => from + (to - from) * (float)_random.NextDouble();
 
-    public override void _Draw() => ToolPicture.DrawWindow(this, Size);
+    public override void _Draw() => DrawWindow(this, Size);
+
+    /// <summary>A card's picture window (the mockup's <c>.win</c>): its dark ground, a shadow along its top and left, a faint light along its bottom and right.</summary>
+    private static void DrawWindow(CanvasItem on, Vector2 size)
+    {
+        on.DrawTextureRect(Ground, new Rect2(Vector2.Zero, size), false);
+        var shade = new Color(0, 0, 0, 0.5f);
+        on.DrawRect(new Rect2(0, 0, size.X, 2), shade);
+        on.DrawRect(new Rect2(0, 2, 2, size.Y - 2), shade);
+        var lit = new Color(140 / 255f, 170 / 255f, 220 / 255f, 0.06f);
+        on.DrawRect(new Rect2(0, size.Y - 1, size.X, 1), lit);
+        on.DrawRect(new Rect2(size.X - 1, 0, 1, size.Y - 1), lit);
+    }
 
     public override void _Process(double delta)
     {

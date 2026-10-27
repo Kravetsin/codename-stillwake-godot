@@ -20,8 +20,8 @@ was redrawn later, and the painter is the source of the earlier look.
 | `machines/parts.js` | `items/rotor`; also `wire`, `plate`, `gear` | none | `node tools/ship-art/machines/parts.js [itemsDir]` | `rotor` exact; others drifted (`resource-icons`) |
 | `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | none; writes `.raw`, then `ffmpeg -f rawvideo -pix_fmt rgba -s WxH -i x.raw x.png` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; drill ones drifted (`drill/`) |
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
-| `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` is `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | exact 2/2 |
-| `drill/gen.js` (uses `weapons/`) | candidates; `icon_tube` is `items/drill`, `held_tube(_spin1-3)` was `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `items/drill` exact; `hero_drill*` drifted (re-posed) |
+| `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` was `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | 1/2; icon gone |
+| `drill/gen.js` (uses `weapons/`) | candidates; `icon_tube` was `items/drill`, `held_tube(_spin1-3)` was `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `hero_drill*` drifted; icon gone |
 | `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod`; `held_spring(_loaded)`, `icon_spring` were `hero_harpoon(_loaded)`, `items/harpoon` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
 | `screwdriver/screwdriver.js` | `hero_screwdriver`, `tool_screwdriver` | none | `node tools/ship-art/screwdriver/screwdriver.js <outDir>` | exact 2/2 |
 | `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `godot --headless --script tools/ship-art/jetpack/jetpack.gd -- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |

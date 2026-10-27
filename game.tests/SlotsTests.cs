@@ -1,5 +1,6 @@
 using Stillwake.Game.Shared;
 using Xunit;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
@@ -106,5 +107,15 @@ public class SlotsTests
         Assert.Equal(40, ui.Slot);
         ui.SlotScale.Set(SlotScale.Large);
         Assert.Equal(56, ui.Slot);
+    }
+
+    [Fact]
+    public void AToolsIconFillsItsSlotAndAnyOtherSitsInTheInset()
+    {
+        Assert.Equal((0, 40), Slots.IconBox(Spec.Shots.Railgun.Item, Slots.SizeOf(SlotScale.Normal)));
+        // The screwdriver is held as a picture, though its card is not a tool's.
+        Assert.Equal((0, 56), Slots.IconBox(Spec.Screwdrivers.Basic.Item, Slots.SizeOf(SlotScale.Large)));
+        Assert.Equal((Slots.Inset, 32), Slots.IconBox("scrap", Slots.SizeOf(SlotScale.Normal)));
+        Assert.Equal((Slots.Inset, 48), Slots.IconBox(Spec.Shots.Nail.Id, Slots.SizeOf(SlotScale.Large)));
     }
 }

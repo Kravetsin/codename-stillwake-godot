@@ -11,7 +11,6 @@ namespace Stillwake.Game.Render;
 /// (slice 3): hair-thin arcs flicking between its turns, sparks crawling along it and now and then leaping a little way off,
 /// micro-glints, a faint blue haze and light pulsing over it, all of it coming in bursts; a plain drill has none. What its
 /// hits knock out of what they strike is that object's (<see cref="HitBurst"/>), thrown where it is struck, never at the bit.
-/// A figure's throws into the world's particles; an item card's into its own (<c>ToolPicture</c>).
 /// </summary>
 public sealed class DrillLight(Glims glims, Flares flares, Bolts bolts)
 {

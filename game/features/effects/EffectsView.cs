@@ -43,8 +43,7 @@ public partial class EffectsView : Node2D
     private readonly Glims _glims;
     private readonly Flares _flares;
     private readonly Bolts _bolts;
-    private readonly bool _matterDrawn;
-    private readonly Stage? _stage;
+    private readonly Stage _stage;
     private bool _drewNothing;
 
     /// <summary>
@@ -54,32 +53,17 @@ public partial class EffectsView : Node2D
     public bool InWorld { get; init; }
 
     /// <summary>A stage's particles, its matter and its light, at the z it is given.</summary>
-    public EffectsView(Stage stage) : this(stage.Glims, stage.Flares, stage.Bolts, matter: true) => _stage = stage;
-
-    /// <summary>
-    /// Particles of their own sets, drawn wherever it is put: an item card's picture (<c>ToolPicture</c>). Without
-    /// <paramref name="matter"/> only light is drawn: dust and chips need a room's light, which a card has not.
-    /// </summary>
-    public EffectsView(Glims glims, Flares flares, Bolts bolts, bool matter)
+    public EffectsView(Stage stage)
     {
-        (_glims, _flares, _bolts, _matterDrawn) = (glims, flares, bolts, matter);
+        (_stage, _glims, _flares, _bolts) = (stage, stage.Glims, stage.Flares, stage.Bolts);
         // After the features: a trail or a bloom they stamp this frame is drawn this frame.
         ProcessPriority = 100;
-        if (matter)
-        {
-            Lit.Set(_matter);
-            Lit.Set(_lowMatter);
-            AddChild(_lowMatter);
-            AddChild(_matter);
-            _matter.Draw += () => DrawMatter(_matter, low: false);
-            _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
-        }
-        else
-        {
-            // Never put in the tree, so never freed with it.
-            _matter.Free();
-            _lowMatter.Free();
-        }
+        Lit.Set(_matter);
+        Lit.Set(_lowMatter);
+        AddChild(_lowMatter);
+        AddChild(_matter);
+        _matter.Draw += () => DrawMatter(_matter, low: false);
+        _lowMatter.Draw += () => DrawMatter(_lowMatter, low: true);
         AddChild(_light);
         AddChild(_strokes);
         _light.Draw += DrawLight;
@@ -104,18 +88,15 @@ public partial class EffectsView : Node2D
         _flares.TakeFrame();
         _bolts.Step(ms);
         // An empty stage, drawn empty once, draws nothing more till something is thrown on it.
-        bool empty = _stage?.Empty == true;
+        bool empty = _stage.Empty;
         if (empty && _drewNothing) return;
         _drewNothing = empty;
-        // A pixel of the world on the screen here: the camera's zoom in the world, the picture's scale on a card.
+        // A pixel of the world on the screen here: the camera's zoom.
         _zoom = Math.Max(0.01f, GetGlobalTransformWithCanvas().X.Length());
         _light.Scale = Vector2.One / _zoom;
-        if (_matterDrawn)
-        {
-            _matter.Scale = _lowMatter.Scale = _light.Scale;
-            _lowMatter.QueueRedraw();
-            _matter.QueueRedraw();
-        }
+        _matter.Scale = _lowMatter.Scale = _light.Scale;
+        _lowMatter.QueueRedraw();
+        _matter.QueueRedraw();
         _light.QueueRedraw();
         Stroke();
         _spentMs += _clock.Elapsed.TotalMilliseconds;
