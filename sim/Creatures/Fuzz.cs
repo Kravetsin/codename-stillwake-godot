@@ -23,6 +23,13 @@ public sealed partial class CreaturesModule
         }
         if (pick == 5)
         {
+            // Half the time a hit by a creature's shot in flight, else by any, so it is refused gone too.
+            if (rng.Below(2) == 0)
+            {
+                var bolts = State.Shots.Where(s => s.Gun == null).ToList();
+                int shot = bolts.Count > 0 && rng.Below(2) == 0 ? bolts[(int)rng.Below((uint)bolts.Count)].Id : (int)rng.Below((uint)State.Fired + 2);
+                return new Bolted(shot) { From = from };
+            }
             var charging = all.Where(c => c.Posture == Posture.Charge).ToList();
             int id = charging.Count > 0 && rng.Below(2) == 0 ? charging[(int)rng.Below((uint)charging.Count)].Id : Any();
             return new HitBy(id) { From = from };

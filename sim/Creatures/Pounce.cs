@@ -49,7 +49,7 @@ internal sealed class PounceMove : MoveRule
     }
 
     /// <summary>The cell <paramref name="c"/> pounces at: its grudge's hero within <paramref name="run"/> cells, else the nearest within it; null for none.</summary>
-    private static (int X, int Y)? Aim(CreaturesModule m, Creature c, int run)
+    internal static (int X, int Y)? Aim(CreaturesModule m, Creature c, int run)
     {
         int x = CreaturesModule.Down(c.X, CreaturesModule.Unit), y = CreaturesModule.Down(c.Y - 1, CreaturesModule.Unit);
         if (c.Target is { Kind: RefKind.Hero } target && m.HeroAt(target.Id, awake: true) is { } grudge && Math.Max(Math.Abs(grudge.X - x), Math.Abs(grudge.Y - y)) <= run)

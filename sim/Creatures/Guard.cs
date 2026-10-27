@@ -4,8 +4,9 @@ namespace Stillwake.Sim.Creatures;
 
 /// <summary>
 /// Guarding a wreck (the sentry): watching, crawling along its perch; a hero within its notice alerts it, and alerted its
-/// notice through it pounces; a hero gone from its notice calms it. Struck, or its wreck struck since it last looked, it turns on the striker and crouches
-/// at once. Its pounce over, <see cref="ReturnDrive"/>, above it, wants the creature till it is clamped on again.
+/// notice through it pounces at one within its strike, or shoots at one farther (<see cref="ShootMove"/>); a hero gone from its
+/// notice calms it. Struck, or its wreck struck since it last looked, it answers the striker at once the same way, by how far
+/// the striker is. Its pounce over, <see cref="ReturnDrive"/>, above it, wants the creature till it is clamped on again.
 /// </summary>
 internal sealed class GuardDrive : DriveRule
 {
@@ -30,7 +31,7 @@ internal sealed class GuardDrive : DriveRule
         var guard = (Spec.Guard)d;
         if (m.Debris.PieceById(c.Recall(ClingerBody.Piece))?.Struck is { } blow && blow.At + 1 > c.Recall(Answered))
         {
-            Pounce(m, c, spec, Ref.Hero(blow.By), m.Debris.Clock);
+            Answer(m, c, spec, guard, Ref.Hero(blow.By), m.Debris.Clock);
             return true;
         }
         bool near = Within(m, c, guard.Notice);
@@ -40,11 +41,12 @@ internal sealed class GuardDrive : DriveRule
         return true;
     }
 
-    /// <summary>Alerted long enough: it pounces once an awake hero is within its strike, and waits for one till then.</summary>
+    /// <summary>Alerted long enough: it pounces at an awake hero within its strike, else shoots at one within its notice, and waits for one till then.</summary>
     internal override bool Next(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d)
     {
         if (c.Step != Alerted) return true;
-        if (Within(m, c, ((Spec.Guard)d).Strike)) Pounce(m, c, spec, Ref.None, m.Debris.Clock);
+        var guard = (Spec.Guard)d;
+        if (Within(m, c, guard.Strike) || Within(m, c, guard.Notice) && ShotOf(spec) >= 0) Answer(m, c, spec, guard, Ref.None, m.Debris.Clock);
         else c.DriveLeft = 1;
         return true;
     }
@@ -53,14 +55,14 @@ internal sealed class GuardDrive : DriveRule
 
     internal override bool Hurt(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int at, in Hit hit)
     {
-        // Mid-pounce it flies on (a pounce is never cut short), its aim already taken.
+        // Mid-move it goes on (neither a pounce nor a shot is cut short), its aim already taken.
         if (c.Act != null) return true;
         m.Claim(c, at, 0);
-        Pounce(m, c, spec, Ref.Hero(hit.Peer), hit.Answered);
+        Answer(m, c, spec, (Spec.Guard)d, Ref.Hero(hit.Peer), hit.Answered);
         return true;
     }
 
-    /// <summary>Its pounce over: it hangs where it stopped; one that never left lets its grudge go, one away flies home first.</summary>
+    /// <summary>Its move over: it hangs where it stopped; one that never left lets its grudge go, one away flies home first.</summary>
     internal override void Ended(CreaturesModule m, Creature c, Spec.Species spec, Spec.Drive d, int way, bool hop)
     {
         (c.VX, c.VY) = (0, 0);
@@ -70,16 +72,35 @@ internal sealed class GuardDrive : DriveRule
     internal override Gait GaitOf(Creature c) => Gait.Still;
 
     /// <summary>
-    /// A pounce begun at <paramref name="target"/>: every blow on its wreck up to this tick answered with it, so one swing that hits
-    /// the sentry and its wreck pounces once; a blow while it is away is answered once it is home. A blow is stamped with the
-    /// debris clock of the commands it came with, and the debris clock moves on as the simulation runs: from a hit (commands)
+    /// A move begun at <paramref name="target"/> (none: the nearest awake hero): a pounce at one within its strike, or with no shot
+    /// of its own; else its shot. Every blow on its wreck up to this tick answered with it, so one swing that hits the sentry and
+    /// its wreck answers once; a blow while it is away is answered once it is home. A blow is stamped with the debris clock of the
+    /// commands it came with, and the debris clock moves on as the simulation runs: from a hit (commands)
     /// <paramref name="answered"/> is the clock and one, from the system the clock.
     /// </summary>
-    private static void Pounce(CreaturesModule m, Creature c, Spec.Species spec, Ref target, int answered)
+    private static void Answer(CreaturesModule m, Creature c, Spec.Species spec, Spec.Guard guard, Ref target, int answered)
     {
         c.Keep(Answered, answered);
         (c.Step, c.DriveLeft, c.Target) = (Watching, 0, target);
-        RuleBook.Move(spec.Moves[0]).Begin(m, c, spec, 0);
+        int shot = ShotOf(spec);
+        int move = shot < 0 || DistanceTo(m, c, target) is not int far || far <= guard.Strike ? 0 : shot;
+        RuleBook.Move(spec.Moves[move]).Begin(m, c, spec, move);
+    }
+
+    /// <summary>How far <paramref name="target"/>'s hero is from <paramref name="c"/> by box distance in cells, or the nearest awake one with none; null with none on the grid.</summary>
+    private static int? DistanceTo(CreaturesModule m, Creature c, Ref target)
+    {
+        if (target.Kind == RefKind.Hero && m.HeroAt(target.Id) is { } at)
+            return Math.Max(Math.Abs(at.X - CreaturesModule.Down(c.X, CreaturesModule.Unit)), Math.Abs(at.Y - CreaturesModule.Down(c.Y - 1, CreaturesModule.Unit)));
+        return m.Nearest(c, awake: true) is ({ }, int far) ? far : null;
+    }
+
+    /// <summary>The place among <paramref name="spec"/>'s moves of its shot; -1 for none.</summary>
+    private static int ShotOf(Spec.Species spec)
+    {
+        for (int i = 0; i < spec.Moves.Count; i++)
+            if (spec.Moves[i] is Spec.Shoot) return i;
+        return -1;
     }
 }
 

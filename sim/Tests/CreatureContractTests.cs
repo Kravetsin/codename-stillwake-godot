@@ -88,7 +88,8 @@ public class CreatureContractTests
         { "tapir", "Retaliate Flee Escape Graze | Lunge" },
         { "sixleg", "Retaliate Flee Escape Graze | Lunge" },
         { "fluff", "Flee Graze | " },
-        { "sentry", "CutTether Return Guard | Pounce" },
+        // The shot added after the pounce (shots-are-the-sims): every place a save holds keeps its meaning, so no bump.
+        { "sentry", "CutTether Return Guard | Pounce Shoot" },
     };
 
     [Fact]

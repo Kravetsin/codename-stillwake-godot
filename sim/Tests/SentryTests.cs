@@ -15,6 +15,7 @@ public class SentryTests
     private const int Unit = CreaturesModule.Unit;
     private static readonly Tune.Species Sentry = Tune.Sentry;
     private static readonly Tune.Pounce Pounce = (Tune.Pounce)Sentry.Moves[0];
+    private static readonly Tune.Shoot Shoot = (Tune.Shoot)Sentry.Moves[1];
     private static readonly Tune.Guard Guard = Sentry.Brain.OfType<Tune.Guard>().Single();
     private static readonly Tune.Return Return = Sentry.Brain.OfType<Tune.Return>().Single();
     private static readonly Tune.CutTether Cut = Sentry.Brain.OfType<Tune.CutTether>().Single();
@@ -24,7 +25,7 @@ public class SentryTests
     private static readonly string Space = string.Join('\n', Enumerable.Repeat(new string('.', 160), 80));
 
     /// <summary>An engine block (10 by 6 cells) still at (80, 40), hero 0 far left, and a sentry let out on its top middle.</summary>
-    private static (Scenario W, Piece Piece, Creature Sentry) OnAWreck(int speed = 0)
+    internal static (Scenario W, Piece Piece, Creature Sentry) OnAWreck(int speed = 0)
     {
         var w = new Scenario(Space, cells: true).Do(new Crew.Enter(40 * 160 + 4)).Run();
         var debris = (DebrisState)w.M.Debris.Slice;
@@ -36,7 +37,7 @@ public class SentryTests
         return (w, piece, w.M.Creatures.Creatures.Single());
     }
 
-    private static Scenario HeroAt(Scenario w, int x, int y, int peer = 0) => w.Do(new Crew.Enter(y * 160 + x) { From = peer });
+    internal static Scenario HeroAt(Scenario w, int x, int y, int peer = 0) => w.Do(new Crew.Enter(y * 160 + x) { From = peer });
 
     /// <summary>The pieces put out by hand have drawn whether a sentry comes with them, and none came: the tests let theirs out.</summary>
     internal static void Guarded(Scenario w) => ((CreaturesState)w.M.Creatures.Slice).Watermark = ((DebrisState)w.M.Debris.Slice).NextId - 1;
@@ -74,7 +75,7 @@ public class SentryTests
         Assert.False(Alerted(c));
         HeroAt(w, 80 - Guard.Notice + 1, 36).Run(2);
         Assert.True(Alerted(c));
-        HeroAt(w, 40, 36).Run(2);
+        HeroAt(w, 80 - Guard.Notice - 10, 36).Run(2);
         Assert.False(Alerted(c));
         Assert.Null(c.Act);
     }
@@ -233,17 +234,49 @@ public class SentryTests
     }
 
     [Fact]
-    public void NoticingAHeroFarItWaitsAlertedTillOneComesWithinItsStrike()
+    public void NoticingAHeroPastItsStrikeItShootsABoltAtItAndStaysOnItsWreck()
     {
         var (w, _, c) = OnAWreck();
-        // Twenty cells off: within its notice, past its strike.
-        HeroAt(w, 60, 36).Run();
+        // Thirty cells off: within its notice, past its strike.
+        HeroAt(w, 80 - 30, 36).Run();
         Assert.True(Alerted(c));
-        w.Run(3 * Guard.AlertTicks);
-        Assert.True(Alerted(c));
-        Assert.Null(c.Act);
-        HeroAt(w, 80 - Guard.Strike, 36).Run();
-        Assert.Equal(ActPhase.WindUp, c.Act!.Phase);
+        w.Run(Guard.AlertTicks);
+        Assert.Equal((ActPhase.WindUp, (Tune.Shoot)Sentry.Moves[c.Act!.Move]), (c.Act.Phase, Shoot));
+        Assert.Empty(w.M.Creatures.Shots);
+        w.Run(Shoot.WindUp);
+        var bolt = w.M.Creatures.Shots.Single();
+        // From its middle, left at its speed, a little down toward the hero's reported cell.
+        Assert.Equal((Shoot.Projectile, (string?)null, -Shoot.Speed), (bolt.Projectile, bolt.Gun, bolt.VX));
+        Assert.InRange(bolt.VY, 0, Shoot.Speed / 4);
+        Assert.True(Mounted(c));
+        w.Run(Shoot.Recover);
+        Assert.True(Mounted(c));
+    }
+
+    [Fact]
+    public void ABoltFliesStraightTillItsReachRunsOutAndAWallStopsIt()
+    {
+        var (w, _, c) = OnAWreck();
+        HeroAt(w, 80 - 35, 36).Run(Guard.AlertTicks + Shoot.WindUp + 1);
+        var bolt = w.M.Creatures.Shots.Single();
+        int ticks = Shoot.Reach * Unit / Shoot.Speed;
+        // The hero gone, so nothing reports it touched; the bolt flies on past where it was.
+        w.Do(new Crew.Enter(10 * 160 + 150)).Run(ticks - 4);
+        Assert.Contains(bolt, w.M.Creatures.Shots);
+        w.Run(4);
+        Assert.DoesNotContain(bolt, w.M.Creatures.Shots);
+
+        var walled = new Scenario(string.Join('\n', Enumerable.Range(0, 80).Select(y => new string('.', 60) + "#" + new string('.', 99))), cells: true)
+            .Do(new Crew.Enter(40 * 160 + 4)).Run();
+        var debris = (DebrisState)walled.M.Debris.Slice;
+        debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 80_000, Y = 40_000, Start = 80_000, SeenAt = debris.Clock });
+        Guarded(walled);
+        walled.Do(new Release(Sentry.Id, 38 * 160 + 80)).Run();
+        HeroAt(walled, 80 - 30, 36).Run(Guard.AlertTicks + Shoot.WindUp + 1);
+        Assert.Single(walled.M.Creatures.Shots);
+        // The wall at column 60 is some fourteen ticks off; its reach forty.
+        walled.Run(20);
+        Assert.Empty(walled.M.Creatures.Shots);
     }
 
     [Fact]
@@ -340,19 +373,25 @@ public class SentryTests
     }
 
     [Fact]
-    public void StruckByAHeroBeyondItsRunItCrouchesThenLetsBeNeverLeavingItsWreck()
+    public void StruckByAHeroBeyondItsRunItShootsAtItNeverLeavingItsWreckAndFromNearItPounces()
     {
         var (w, _, c) = OnAWreck();
         HeroAt(w, 80 - 30, 36).Run();
         w.Do(new Strike(c.Id, Axe)).Run();
-        Assert.Equal(Ref.Hero(0), c.Target);
-        for (int t = 0; t < Pounce.WindUp + 5; t++)
+        Assert.Equal((Ref.Hero(0), (Tune.Move)Shoot), (c.Target, Sentry.Moves[c.Act!.Move]));
+        for (int t = 0; t < Shoot.WindUp + Shoot.Recover + 2; t++)
         {
             w.Run();
             Assert.True(Mounted(c));
+            if (t == Shoot.WindUp) Assert.Single(w.M.Creatures.Shots);
         }
         Assert.Null(c.Act);
         Assert.Equal(Ref.None, c.Target);
+
+        var (near, _, d) = OnAWreck();
+        HeroAt(near, 80 - 15, 36).Run();
+        near.Do(new Strike(d.Id, Axe)).Run();
+        Assert.Equal((Tune.Move)Pounce, Sentry.Moves[d.Act!.Move]);
     }
 
     [Fact]
@@ -532,6 +571,13 @@ public class SentryInvariantTests
     private static readonly Tune.Species Sentry = Tune.Sentry;
     private static readonly Tune.Pounce Pounce = (Tune.Pounce)Sentry.Moves[0];
 
+    /// <summary>The most ticks <paramref name="act"/>'s phase lasts: a pounce's crouch and flight, a shot's crouch and recovery.</summary>
+    private static int Longest(Act act) => Sentry.Moves[act.Move] switch
+    {
+        Tune.Shoot s => act.Phase == ActPhase.WindUp ? s.WindUp : s.Recover,
+        _ => act.Phase == ActPhase.WindUp ? Pounce.WindUp : Pounce.Ticks,
+    };
+
     public sealed record Run(int Seed, int Ticks);
 
     private static Gen<Run> Runs() =>
@@ -586,7 +632,7 @@ public class SentryInvariantTests
                     if (c.X - half < 0 || c.X + half > Width * 1000 || c.Y - Sentry.Body.Height * 1000 < 0 || c.Y > Height * 1000)
                         broken ??= $"sentry {c.Id} off the grid at ({c.X}, {c.Y})";
                     if (c.Damage >= Sentry.Life.Hp) broken ??= $"sentry {c.Id} alive at {c.Damage}";
-                    if (c.Act is { } act && act.Left > (act.Phase == ActPhase.WindUp ? Pounce.WindUp : Pounce.Ticks)) broken ??= $"sentry {c.Id} act {act.Phase} {act.Left} left";
+                    if (c.Act is { } act && act.Left > Longest(act)) broken ??= $"sentry {c.Id} act {act.Phase} {act.Left} left";
                     if (c.Act == null && c.DriveLeft > Sentry.Brain.OfType<Tune.Guard>().Single().AlertTicks) broken ??= $"sentry {c.Id} drive {c.DriveLeft} left";
                 }
                 if (hits.Values.Any(n => n > 1)) broken ??= "a pounce hurt one hero twice";

@@ -1,6 +1,6 @@
 # Shots are the sim's
 
-- Status: accepted; the nail built and the nailer in hand (N-1, N-2 of `docs/plans/nailer.md`); the sentry's bolt to come
+- Status: accepted; built: the nail, the nailer in hand, the sentry's bolt. Placeholders till the user picks: the bolt's look and sounds
 - Date: 2026-10-26
 
 ## Context
@@ -43,6 +43,10 @@ come with their first user ("hero guns will send their `Fire` here").
   projectile's added, whole numbers; the gun gives the launch (speed, reach), the knock and the pace, and fires the first of
   its `Ammo` the hero carries; the projectile its weight, what it hits and its look. A shot keeps its gun, none for a
   creature's, whose damage is its projectile's alone. So a railgun to come fires the same nail faster, farther, harder.
+- **A creature's shot** (the sentry's bolt): its move gives the launch (`Shoot`'s speed and reach), from its middle at its
+  target's reported cell, its speed on the longer axis as a pounce's; no gun, so its damage is its projectile's alone. It
+  meets solid cells only and passes heroes: the hit hero's client sends `Bolted` (the shot then ended, so one bolt hurts one
+  hero), as it sends `HitBy` for a ram. Appended to the sentry's moves, it leaves every saved move's place: no format bump.
 - **The nail and the nailer:** the nailer 4 and 1, the nail 2 and 0: 6 off a creature or a wreck, 1 off a block; 60 cells a
   second; weight 7, so 294 a tick on the first planet and about 30 cells at 45°; gone at 288 cells, half a screen and a whole
   one past it at the farthest zoom (192 cells); a full knock. The nailer: 1 tube, 2 plates, 2 wire, 15 s at the pod; nails 2

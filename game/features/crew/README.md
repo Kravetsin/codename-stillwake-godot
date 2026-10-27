@@ -1,7 +1,7 @@
 # crew (client): the heroes
 
 This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here, and
-only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `Run`, `HitBy` and the hands'
+only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `Run`, `HitBy`, `Bolted` and the hands'
 commands reach the sim. Other heroes come through the host.
 
 ## Files
@@ -69,22 +69,22 @@ commands reach the sim. Other heroes come through the host.
   nearest fit, carrying no speed (0089).
 - Doors are walked as this peer shows them, own toggles in flight made (0014). A press asks for the other state
   (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
-- **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a hole a step
-  deep is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
+- **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a step-deep
+  hole is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down. No crouch.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
 - **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
 - **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
-- **Rammed** (0103): contact is this client's word (`Rams.Contact`), sending `HitBy`; thrown at once, keys masked
-  `Hero.Reel` steps.
+- **Rammed** (0103), **or bolted** (`Rams.BoltContact`): the client's word, sending `HitBy`/`Bolted`;
+  thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
 - **Camera** (`Camera.cs`): leads the way last moved, never the facing; eases height; snaps
   on a new place; on whole pixels.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
-  `Thrust` is sent while own thrust differs from the sim's. The plume shows at once (0014).
-- **A canister** (0047, 0081): a right click sends `Refill` when the sim would take it and none is in flight.
+  `Thrust` is sent while own thrust differs from the sim's; the plume shows at once.
+- **A canister** (0047, 0081): a right click sends `Refill` when the sim would take it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the

@@ -17,6 +17,12 @@ public static class ShotLooks
     /// </summary>
     public static readonly ShotLook Nail = new(8, 2, Tail: "f4f7fa", Body: "8a94a2", Point: "c9ced6");
 
+    /// <summary>
+    /// The sentry's bolt, a placeholder till the user picks: a streak of cyan-white light two cells long, fading behind, its point
+    /// white.
+    /// </summary>
+    public static readonly ShotLook Bolt = new(16, 2, Tail: "1e8fff", Body: "5fd8ff", Point: "e8fbff", Fades: true);
+
     /// <summary>The look of projectile <paramref name="id"/>: the nail's for any with none of its own yet.</summary>
-    public static ShotLook Of(string id) => Nail;
+    public static ShotLook Of(string id) => id == Content.Shots.Bolt.Id ? Bolt : Nail;
 }

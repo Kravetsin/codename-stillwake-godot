@@ -92,7 +92,12 @@ A living document: what is decided about the game and what is still open. Techni
   screen's edge. Anyone may pick it up, as any stack; out in space it drifts with the rest and leaves the world
   at its edge, and wherever it is, it is gone ten minutes after the death
   ([0061](decisions/0061-death-leaves-a-body.md)).
-- **Dangers:** yes — the game can hurt you. Which ones is open.
+- **Dangers:** yes — the game can hurt you: the cold and the vacuum, lava, grazers that ram when struck, and sentries on
+  the far field's derelicts, which pounce at a hero near and shoot a bolt at one farther. Which others is open.
+- **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
+  two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
+  the gun's damage and its projectile's added, so guns to come fire the same nails their own way
+  ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.
 - **Characters** are assembled from parts with simple keyframed movement; the parts exist mainly for
