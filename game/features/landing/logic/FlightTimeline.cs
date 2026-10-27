@@ -82,6 +82,12 @@ public static class FlightTimeline
         return RisePx * k * k;
     }
 
+    /// <summary>
+    /// Whether a moment <paramref name="at"/> was passed between the last frame's <paramref name="last"/> and <paramref name="now"/>:
+    /// a sound due then. None on the frame first seen (<paramref name="last"/> NaN), so a world loaded mid-flight plays nothing late.
+    /// </summary>
+    public static bool Crossed(double last, double now, double at) => !double.IsNaN(last) && last < at && now >= at;
+
     /// <summary>Where a pod whose rider is held at <paramref name="floor"/> stands from, its top-left: the inverse of <see cref="LandingModule.FloorOf"/>.</summary>
     public static int PodCellOf(int floor, int width)
     {

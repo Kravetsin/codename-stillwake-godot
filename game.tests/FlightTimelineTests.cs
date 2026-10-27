@@ -67,6 +67,16 @@ public class FlightTimelineTests
     }
 
     [Fact]
+    public void PlaysAMomentOnceWhenPassedAndNeverOnTheFrameFirstSeen()
+    {
+        Assert.True(T.Crossed(0.29, 0.31, T.DropFrom));
+        Assert.True(T.Crossed(0.29, T.DropFrom, T.DropFrom));
+        Assert.False(T.Crossed(T.DropFrom, 0.4, T.DropFrom));
+        Assert.False(T.Crossed(0.1, 0.2, T.DropFrom));
+        Assert.False(T.Crossed(double.NaN, 0.5, T.DropFrom));
+    }
+
+    [Fact]
     public void FindsThePodsCellFromItsRidersFloor()
     {
         const int width = 40;

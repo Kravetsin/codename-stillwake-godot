@@ -33,10 +33,15 @@ no re-entry fire or clouds, and a shorter descent.
 - **Arrivals are off the ship only** and never in a world just made (a new `client.World`: a load or a resync); the rider's
   own pod arrives the frame its flight ends. Leaving the pod or flying off inside the hold lets it go at once.
 
+- **Heard by everyone on the surface.** A moving pod's engine, clamps and touchdown are placed on it on the World bus (as
+  far as `Sound.BreakReach`), so the host and every guest there hear a drop, a touchdown or a lift-off; the rider hears its
+  hull's rumble and a thump at the white on the Suit bus. No new files: the jetpack's thrust, a drone's clunk, a hard landing
+  and lava's bed, retuned (`Sound.Pod`). A moment's sound plays only if it passes while seen, never late after a load.
+
 ## Deliberately not handled
 
 - The docking aboard: no rising pod, no deck drawn opening over the shut one.
-- Sound; light cast by the flames; the hero behind the porthole while its pod moves.
+- Light cast by the flames; the hero behind the porthole while its pod moves.
 - A touchdown in a world loaded or joined during it: the pod shows standing.
 - A run opened by hand before the launch: its pieces show shut then slide; a friend toggling the run in the first second
   disagrees with the picture. Two pods launched off one run within a second: the second falls through a deck drawn shut.

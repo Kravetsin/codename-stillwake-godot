@@ -1,7 +1,9 @@
 using System;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim.Landing;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Landing;
 
@@ -19,6 +21,9 @@ public partial class FlightOverlay : CanvasLayer
     private readonly FlightScreen _screen = new() { Visible = false };
     private readonly ColorRect _dip = new() { Color = Colors.Black, MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _rect = new() { Color = Colors.White, MouseFilter = Control.MouseFilterEnum.Ignore };
+    /// <summary>The rider's hearing of its flight, on the Suit bus: the hull's rumble rising with the speed, a thump at the white.</summary>
+    private readonly AudioStreamPlayer _rumble = Cues.Player(S.PodRumble, S.Suit), _flash = Cues.Player(S.PodFlash, S.Suit);
+    private bool _flashed;
 
     /// <param name="read">The surface this player's hero is on and its own flight; null outside a session.</param>
     /// <param name="progress">The share of the next tick drawn, so the pictures move between ticks.</param>
@@ -31,6 +36,8 @@ public partial class FlightOverlay : CanvasLayer
         AddChild(_screen);
         AddChild(_dip);
         AddChild(_rect);
+        AddChild(_rumble);
+        AddChild(_flash);
     }
 
     public override void _Process(double delta)
@@ -47,5 +54,20 @@ public partial class FlightOverlay : CanvasLayer
         float dip = flight != null ? (float)FlightTimeline.Dip(s) : 0;
         _dip.Visible = dip > 0;
         _dip.Modulate = new Color(1, 1, 1, dip);
+        Hear(flight, s);
+    }
+
+    /// <summary>
+    /// The rumble from the cut to the flight's end, louder as it speeds; the thump once, on the flight's last tick, the screen
+    /// white and about to freeze on a planet's opening. A flight ended any other way stops the rumble.
+    /// </summary>
+    private void Hear(Flight? flight, double s)
+    {
+        bool flies = flight != null && s >= FlightTimeline.DipPeak;
+        if (flies && !_rumble.Playing) _rumble.Play();
+        else if (!flies && _rumble.Playing) _rumble.Stop();
+        if (flies) _rumble.VolumeDb = S.PodRumble.VolumeDb + Mathf.LinearToDb(0.3f + 0.7f * (float)FlightTimeline.Fraction(s, FlightTimeline.Length(flight!)));
+        if (flight is { TicksLeft: <= 1 } && !_flashed) _flash.Play();
+        _flashed = flight is { TicksLeft: <= 1 } || (_flashed && flight != null);
     }
 }

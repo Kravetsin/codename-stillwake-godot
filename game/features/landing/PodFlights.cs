@@ -34,6 +34,7 @@ public partial class PodFlights : Node2D
     private readonly List<(Flight Flight, double S)> _falling = [];
     private readonly List<(int Cell, double A)> _coming = [];
     private readonly List<(int Cell, double S)> _lifting = [];
+    private readonly PodSounds _sounds = new();
 
     public PodFlights(IGridQueries grid, LandingModule landing, CrewModule crew, Func<double> progress, Arrivals? arrivals = null)
     {
@@ -43,6 +44,7 @@ public partial class PodFlights : Node2D
         _flames = new Sketch(Layers.Screens) { Paint = PaintFlames };
         AddChild(_lit);
         AddChild(_flames);
+        AddChild(_sounds);
     }
 
     public override void _Process(double delta)
@@ -63,9 +65,23 @@ public partial class PodFlights : Node2D
         if (_arrivals != null)
             foreach (var pod in _grid.MachinesWith(Content.MachineTrait.Seats))
                 if (_arrivals.SecondsSince(pod.Id) is double a) _coming.Add((pod.Cell, a));
+        Hear(delta);
         if (!were && _falling.Count + _coming.Count + _lifting.Count == 0) return;
         _lit.QueueRedraw();
         _flames.QueueRedraw();
+    }
+
+    /// <summary>Each moving pod's engine and knocks, placed at its bottom, where its flame comes out.</summary>
+    private void Hear(double delta)
+    {
+        var bottom = new Vector2(16, Tall);
+        foreach (var (f, s) in _falling)
+            _sounds.Heard(PodSounds.Motion.Falling, f.Peer, PodAt(f.Home) + bottom + new Vector2(0, (float)Drop(s)), s, s >= DropFrom, delta);
+        foreach (var (cell, a) in _coming)
+            _sounds.Heard(PodSounds.Motion.Coming, cell, PodAt(cell) + bottom - new Vector2(0, (float)Touchdown(a)), a, a < BounceFrom, delta);
+        foreach (var (cell, s) in _lifting)
+            _sounds.Heard(PodSounds.Motion.Lifting, cell, PodAt(cell) + bottom - new Vector2(0, (float)Lift(s)), s, true, delta);
+        _sounds.Settle(delta);
     }
 
     /// <summary>Where a pod standing from <paramref name="cell"/> is drawn: its picture rises a cell over its footprint (0099).</summary>

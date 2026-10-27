@@ -14,6 +14,7 @@ socket are the power feature's (`PlatformLamps`).
 | `FlightOverlay.cs` | over the rider's screen while it flies, kept across a surface switch: the flight, the dip to black, the white | yes |
 | `FlightScreen.cs` | the rider's flight at the world's scale, no planet: star lines rushing past; up, out of a blue sky first | yes |
 | `PodFlights.cs` | a pod moving in the world: the deck sliding and the fall aboard; on a planet the touchdown and the lift-off | yes |
+| `PodSounds.cs` | a moving pod heard by everyone on its surface: its engine, its clamps letting go, its touchdown's thump | yes |
 | `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
 | `logic/Arrivals.cs` | the pods just come down on the surface seen and for how long, held back from the grid till they stand | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
@@ -45,10 +46,16 @@ socket are the power feature's (`PlatformLamps`).
   off lets it go at once. A return lifts off on its flame out of a cloud of dust before the rider's screen cuts to the climb.
 - The white rises over a flight's last second, is full on its last tick (the frame frozen while a planet opens) and falls
   over half a second once the hero is on the surface it flew to; a flight ended any other way clears it at once.
+- **Heard** (`PodSounds`, `FlightOverlay`): a moving pod is placed on the World bus, so everyone on its surface hears it, a
+  guest as the host, as far as `Sound.BreakReach`: its engine (`PodThrust`, the jetpack's loop lower and louder) through the
+  drop's kick, the touchdown's burn and the lift-off; its clamps (`PodRelease`) as it drops or lifts off; the thump as it
+  touches down and, softer, at its bounce (`PodTouchdown`). The rider, on the Suit bus: the hull's rumble (`PodRumble`) from the
+  cut, louder with the speed, and a thump (`PodFlash`) on the flight's last tick, under the white. A sound due at a moment
+  plays only if the moment passes while seen (`FlightTimeline.Crossed`): a world loaded mid-flight plays nothing late.
 
 ## Deliberately not handled
 
 - What the seated hero wears or holds: the figure behind the glass is its suit alone.
 - The docking aboard: the white falls over the pod already standing at home. The hero behind the porthole while its pod moves.
-- Sound: the flight is silent until a sound pass.
+- Sounds of their own: the pod borrows the jetpack's thrust, a drone's clunk, a hard landing and lava's bed, retuned.
 - A touchdown in a world loaded or joined during it: the pod shows standing.
