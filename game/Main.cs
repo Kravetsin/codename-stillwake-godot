@@ -99,6 +99,18 @@ public partial class Main : Node2D, ITogether
     /// <summary>The world played and kept by this machine; none for a dev world or a friend's.</summary>
     private string? _worldId;
     private int _lastSaveTick;
+
+    /// <summary>
+    /// The rider's view shaken as its pod drops through the deck (the descent's pictures): a knock every third tick of the fall,
+    /// a random way each, through the camera's own nudge.
+    /// </summary>
+    private void ShakeFalling(Client client)
+    {
+        if (_m.Landing.FlightOf(client.Id) is not { Up: false } own || client.World.Tick % 3 != 0) return;
+        double s = Features.Landing.FlightTimeline.Seconds(own, 0);
+        if (s >= Features.Landing.FlightTimeline.DropFrom && s < Features.Landing.FlightTimeline.DropTo)
+            _camera.Nudge(new Vector2(Random.Shared.Next(2) * 2 - 1, Random.Shared.Next(2) * 2 - 1));
+    }
     private DateTime? _savedAt;
     private string? _saveProblem;
     private TitleScreen? _title;
@@ -395,6 +407,7 @@ public partial class Main : Node2D, ITogether
         ShowWorld();
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
+        if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
         _hero?.Frame(client, _m, _camera, heard, session.Progress, delta * 1000);
         _frameLog?.Mark("hero");

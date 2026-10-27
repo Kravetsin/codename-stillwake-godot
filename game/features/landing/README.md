@@ -1,3 +1,5 @@
+| `PodFlights.cs` | a pod in the air from this surface: the deck's halves sliding apart and shut, the pod falling through on its thruster | yes |
+| `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
 # landing (client): the drop pod's seats and flights
 
 What the launch platform and the drop pod show beyond the grid's own drawing (ADRs `2026-10-25-the-drop-pod`,
@@ -27,6 +29,10 @@ socket are the power feature's (`PlatformLamps`).
   `Launch` only while the sim would take it. The panel closes on a launch and on a surface switch; E, E brings it back.
 - While its pod flies the hero is hidden for every peer and held where the pod stood on the surface it left (`Flight.Floor`);
   its hands take nothing, as passed out.
+- **The flight's pictures** take their time from its ticks (`FlightTimeline`), never a clock of their own, so a save loaded or a
+  guest joining mid-flight sees the right moment. Aboard, everyone sees the deck slide open, the pod drop through on a thruster's
+  kick and the deck slide shut by `FallTicks` (`PodFlights`, over the grid, which draws the run open and no pod); the rider's view
+  shakes through the camera's nudge.
 - The white rises over a flight's last second, is full on its last tick (the frame frozen while a planet opens) and falls
   over half a second once the hero is on the surface it flew to; a flight ended any other way clears it at once.
 
