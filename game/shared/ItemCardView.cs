@@ -374,7 +374,7 @@ public static class ItemCardView
     }
 
     /// <summary>
-    /// The key cap and its hint, centred (the mockup's <c>.use</c>): on a card <paramref name="card"/> px wide the hint
+    /// The key cap and its hint, if any, centred (the mockup's <c>.use</c>): on a card <paramref name="card"/> px wide the hint
     /// wraps, read from the left, past what the card leaves it; on a compact card it never does.
     /// </summary>
     private static Control UseRow(CardKey how, int? card)
@@ -383,6 +383,7 @@ public static class ItemCardView
         var cap = Cap(how.Key);
         cap.SizeFlagsVertical = Control.SizeFlags.ShrinkBegin;
         row.AddChild(cap);
+        if (how.Words == "") return Padded(row, Pad, 7, Pad, 8);
         var hint = Text(how.Words, HintText, HorizontalAlignment.Left);
         if (card is int wide)
         {

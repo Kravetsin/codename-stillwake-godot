@@ -81,12 +81,13 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void NameTheAxeItsKindAndHowItIsUsedButNotWhatItBreaks()
+    public void NameTheAxeItsKindAndItsKeyButNotWhatItBreaks()
     {
         var card = ItemCards.Of("fireAxe", unknown: false);
         Assert.True(card.Tool);
         Assert.Equal(("Fire axe", "Tool · Axe"), (card.Name, card.Kind));
-        Assert.Equal(new CardKey("LMB / RMB", "hold on debris or ground to break it; RMB, a back wall"), card.Use);
+        // Its key alone, no words on what it does: the player finds out.
+        Assert.Equal(new CardKey("LMB"), card.Use);
         Assert.Empty(card.Effects);
     }
 
@@ -115,7 +116,8 @@ public class ItemCardTests
         Assert.Equal("BEAM 60°", lamp.Detail);
         // It draws nothing: the card shows a bolt and 0 rather than saying so.
         Assert.Null(lamp.Draw);
-        Assert.Equal("a soft light round your head, for caves", lamp.Use!.Words);
+        // Worn, it takes no key.
+        Assert.Null(lamp.Use);
         // A battery's number is its charge, set per stack; the jetpack has none.
         Assert.True(ItemCards.Of("battery", false).Worn);
         Assert.Null(ItemCards.Of("battery", false).Headline);
@@ -156,11 +158,11 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void SayHowACanisterIsBreathedAndAJetpackWornThoughNeitherIsATool()
+    public void ShowTheKeyACanisterAndAJetpackAreUsedByThoughNeitherIsATool()
     {
         var canister = ItemCards.Of("canister", false);
         Assert.False(canister.Tool);
-        Assert.Equal(new CardKey("RMB", "breathe"), canister.Use);
+        Assert.Equal(new CardKey("RMB"), canister.Use);
         Assert.False(canister.Worn);
         var jetpack = ItemCards.Of("jetpack", false);
         Assert.False(jetpack.Tool);
