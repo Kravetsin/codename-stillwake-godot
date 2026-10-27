@@ -59,6 +59,20 @@ public class CapeTests
     }
 
     [Fact]
+    public void ARunLiftsItFarMoreThanAWalk()
+    {
+        double Trail(double speed)
+        {
+            var (f, cape) = (new Frame(), new Cape());
+            Move(cape, f, 120);
+            Move(cape, f, 120, speed);
+            return Cape.Rest(Points - 1).X - cape.Points[^1].X;
+        }
+        double walk = Trail(115.0 / 60), run = Trail(Sprint);
+        Assert.True(run > walk * 1.8, $"the hem trails {run:F1} running, {walk:F1} walking");
+    }
+
+    [Fact]
     public void WalkingBackwardItKeepsItsCutRoundTheBackRatherThanWrappingTheHero()
     {
         var (f, cape) = (new Frame(), new Cape());

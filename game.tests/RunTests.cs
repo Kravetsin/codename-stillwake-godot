@@ -23,6 +23,19 @@ public class RunTests
     }
 
     [Fact]
+    public void RunningBackwardItLeansBackAndKeepsAFootDown()
+    {
+        var back = Running with { Vx = -440 };
+        Assert.True(Backward(back));
+        for (double at = 0; at < Stride.Back; at += 0.4)
+        {
+            var l = LimbsOf(Pose.Run, back, At(-at));
+            Assert.True(l.Tilt < 0, $"leaning {l.Tilt} at {at}");
+            Assert.True(l.Lift <= 0, $"off the floor at {at}");
+        }
+    }
+
+    [Fact]
     public void StoppingFromARunTheFrontLegPlantsAheadAndTheArmsGoForward()
     {
         var still = Running with { Vx = 0 };

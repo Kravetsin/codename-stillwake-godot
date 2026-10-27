@@ -22,6 +22,13 @@ public sealed class Cape
     /// its threads give a third when squeezed, so it bunches and straightens again.
     /// </summary>
     private static readonly ClothStyle Style = new(Keep: 0.95, Gravity: 0.3, Shear: 0.08, Squash: 0.35, Passes: 10);
+    /// <summary>
+    /// The air on it beyond the plain drag, growing with the square of the hero's speed, so a run lifts it far more than a
+    /// walk: pushed against the way it goes <see cref="Push"/> and lifted by a run across <see cref="Lift"/> pixels a step a step at a sprint's speed
+    /// (<see cref="Sprint"/> pixels a step), the lift fluttering by <see cref="Flutter"/> of itself every
+    /// <see cref="FlutterSteps"/> steps; the hero's speed read from its shoulders, eased over <see cref="Ease"/> of a step.
+    /// </summary>
+    private const double Push = 0.1, Lift = 0.055, Sprint = 211.0 / 60, Flutter = 0.5, FlutterSteps = 9, Ease = 0.2;
     /// <summary>The farthest forward of its cut any point of it goes, in pixels.</summary>
     private const double Give = 1;
     /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem: the cape round the far side.</summary>
@@ -31,6 +38,8 @@ public sealed class Cape
         [(1.5, -(Rig.Neck - 1)), (-1.5, -(Rig.Neck - 0.6)), (-4.4, -(Rig.Neck - 1)), (-6.4, -(Rig.Neck - 2.2))];
 
     private Cloth? _cloth;
+    private (double X, double Y)? _shoulders;
+    private double _speedX, _speedY, _steps;
     private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows];
     private static readonly int[] Top = [0, 1, 2, 3];
 
@@ -76,11 +85,25 @@ public sealed class Cape
             for (int i = 0; i < start.Length; i++) start[i] = toWorld(Rest(i));
             _cloth = new Cloth(Style, Cols, Rows, start);
         }
+        // The hero's speed, from how its shoulders moved, in pixels a step.
+        var at = toWorld(Pins[0]);
+        double steps = elapsedMs / Rope.StepMs;
+        if (_shoulders is var (sx, sy) && steps > 0)
+        {
+            _speedX += ((at.X - sx) / steps - _speedX) * Math.Min(1, Ease * steps);
+            _speedY += ((at.Y - sy) / steps - _speedY) * Math.Min(1, Ease * steps);
+        }
+        _shoulders = at;
+        _steps += steps;
+        // Against the way the hero moves, as the air it goes through; lifted by a run across, not by a fall.
+        double speed = Math.Sqrt(_speedX * _speedX + _speedY * _speedY), push = Push * (speed / Sprint) * (speed / Sprint);
+        double across = _speedX / Sprint, flutter = 1 + Flutter * Math.Sin(_steps / FlutterSteps * 2 * Math.PI);
+        var wind = speed == 0 ? default : (-_speedX / speed * push, -_speedY / speed * push - Lift * across * across * flutter);
         _cloth.Update(Top, i => toWorld(Pins[i]), elapsedMs, (i, x, y) =>
         {
             var (fx, fy) = toFrame((x, y));
             return toWorld((Math.Min(fx, Rest(i).X + Give), Math.Min(fy, -0.3)));
-        });
+        }, wind);
         for (int i = 0; i < _points.Length; i++)
         {
             _points[i] = toFrame(_cloth.DrawnAt(i));
@@ -90,7 +113,7 @@ public sealed class Cape
     }
 
     /// <summary>Forgets where it hung, so it falls from the shoulders afresh: a respawn, a cape put on.</summary>
-    public void Reset() => _cloth = null;
+    public void Reset() => (_cloth, _shoulders, _speedX, _speedY) = (null, null, 0, 0);
 
     private static int[] MakeTriangles()
     {

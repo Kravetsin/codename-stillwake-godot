@@ -154,7 +154,7 @@ public partial class Figure : Node2D
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
-    private double _carry;
+    private double _carry, _sinceCarryMs = double.PositiveInfinity;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
     private readonly SwingSmear _smear = new();
@@ -724,14 +724,16 @@ public partial class Figure : Node2D
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
         // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
         bool carried = inHand && swung == null && !working && !aiming;
-        _carry = Math.Clamp(_carry + (carried && pose == Pose.Run ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
+        _carry = Math.Clamp(_carry + (carried && pose == Pose.Run && !Poses.Backward(hero) ? 1 : -1) * elapsedMs / HeroMotion.Carry.BlendMs, 0, 1);
         double carry = _carry * _carry * (3 - 2 * _carry);
+        _sinceCarryMs = _carry > 0 ? 0 : _sinceCarryMs + elapsedMs;
         if (carried && item != null)
         {
             double bob = HeroMotion.Carry.Bob * Math.Sin((_travelled - _strideFrom) / Poses.Stride.Run * 4 * Math.PI);
             frontArm = Mix(frontArm, Rig.Carried(bob), carry);
-            frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         }
+        // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
+        if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);

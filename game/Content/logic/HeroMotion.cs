@@ -21,24 +21,26 @@ public static class HeroMotion
     /// <summary>
     /// The run: the body leans <see cref="Lean"/> radians in and rises <see cref="Bounce"/> pixels in each stride's flight,
     /// both feet off the floor; the free arms pump <see cref="Pump"/> radians either way; the head takes back
-    /// <see cref="HeadSteady"/> of the body's lean on the floor, so it looks ahead rather than at the floor.
+    /// <see cref="HeadSteady"/> of the body's lean on the floor, so it looks ahead rather than at the floor. Running backward
+    /// it leans back <see cref="BackLean"/>.
     /// </summary>
     public static class Run
     {
-        public const double Lean = 0.3, Bounce = 1.5, Pump = 1.0, HeadSteady = 0.5;
+        public const double Lean = 0.3, Bounce = 1.5, Pump = 1.0, HeadSteady = 0.5, BackLean = 0.15;
     }
 
     /// <summary>
     /// Running with an item in hand, it is carried trailing: the arm <see cref="Upper"/> radians back of hanging, the elbow
     /// bent as far as turns the item <see cref="Angle"/> (down behind the hero), within <see cref="LowerLeast"/> and
     /// <see cref="LowerMost"/>; bobbing <see cref="Bob"/> radians each step; the item turned along the fist, the axe too.
-    /// It comes and goes over <see cref="BlendMs"/>. A held item's arm swings on a spring of <see cref="SpringHz"/> damped
-    /// <see cref="SpringDamping"/>, so it lags a start and swings on past a stop.
+    /// It comes and goes over <see cref="BlendMs"/>. Carrying it and for <see cref="SpringAfterMs"/> after, the arm swings on a
+    /// spring of <see cref="SpringHz"/> damped <see cref="SpringDamping"/>, so it lags a start and swings on past a stop; a
+    /// landing moves it as the pose does.
     /// </summary>
     public static class Carry
     {
         public const double Upper = -0.6, Angle = 2.25, LowerLeast = 0.05, LowerMost = 2.2, Bob = 0.06, BlendMs = 160;
-        public const double SpringHz = 2.2, SpringDamping = 0.35;
+        public const double SpringHz = 2.2, SpringDamping = 0.45, SpringAfterMs = 450;
     }
 
     /// <summary>How long the figure takes to close a step of a cell, up or down, the controller made whole (<c>StepEase</c>, 0106), in milliseconds.</summary>
