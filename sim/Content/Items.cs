@@ -184,7 +184,7 @@ public static class Items
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // A soft warm light round the head (0077): free, drawing no power.
-        new("helmetLamp", 1, Equip: Helmet.Fitting, Gear: true, Group: ItemGroup.Wearable),
+        new("helmetLamp", 1, Equip: Helmet.Mount, Gear: true, Group: ItemGroup.Wearable),
         // Holds charge for any electric tool, worn on the belt; filled at a charging station.
         new("battery", 1, Equip: "belt", Capacity: Charge.Battery, Gear: true, Group: ItemGroup.Wearable),
         // A battery wound round a sky shard at the arc bench (0099): three batteries' charge, worn and filled as one is.
@@ -208,7 +208,7 @@ public static class Items
 /// <summary>
 /// A hero's inventory, which starts empty: <see cref="Slots"/> slots of its own, the first row the hotbar,
 /// then its equipment, a slot for each kind in <see cref="Equipment"/>: the head (a helmet), the back, three on the belt,
-/// then the body, the helmet's lamp and the cape, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
+/// then the body, the helmet's mount (its lamp) and the cape, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
 /// whose <c>Equip</c> is its kind.
 /// </summary>
 public static class Inventory
@@ -222,7 +222,7 @@ public static class Inventory
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
-    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Fitting, Cape.Slot];
+    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Mount, Cape.Slot];
 
     /// <summary>Every slot of an inventory: its own, then its equipment.</summary>
     public static readonly int Total = Slots + Equipment.Count;

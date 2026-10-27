@@ -107,7 +107,7 @@ public class MigrationsTests
         }
         Assert.Equal(Content.Suit.Basic, m.Items.WornIn(9, Content.Suit.Slot));
         // The lamp the head held moved to its own slot.
-        Assert.Equal(Content.HelmetLamp.Item, m.Items.WornIn(9, Content.Helmet.Fitting));
+        Assert.Equal(Content.HelmetLamp.Item, m.Items.WornIn(9, Content.Helmet.Mount));
     }
 
     [Fact]

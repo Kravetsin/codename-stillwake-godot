@@ -16,7 +16,7 @@ air, the body deciding where the hero can go (the cold, later heat, how fast it 
 ## Decision
 
 - **A suit is two items:** a helmet (`Content.Helmet`, the item `helmet`) in the head slot and a body (`Content.Suit`, the
-  item `suit`) in a new `suit` slot. The helmet lamp leaves the head for a slot of its own, `lamp`, fixed onto whatever helmet
+  item `suit`) in a new `suit` slot. The helmet lamp leaves the head for a slot of its own, `mount`, fixed onto whatever helmet
   is worn. Both new slots are appended last, so the older ones keep their indices. On and off is the ordinary `Move`. A
   helmet's `Tank` is the air it holds; later helmets and bodies are rows of `Items`, adding fields when they need them: a
   body's move speed (data the client's controller reads, 0002) and its screwdriver pace come with the first body that differs.

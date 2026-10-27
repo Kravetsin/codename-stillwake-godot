@@ -65,7 +65,7 @@ public static class Migrations
 
     /// <summary>
     /// 34 to 35: the suit is a helmet on the head and a body (2026-10-27-suits-are-worn), every hero having worn one, and the
-    /// head's lamp has a slot of its own. Every peer's inventory gains the body's and the lamp's slots, last, its lamp moved
+    /// head's lamp has a slot of its own. Every peer's inventory gains the body's and the helmet mount's slots, last, its lamp moved
     /// from the head to its own; a hero's, on its surface, the basic helmet and body, an inventory made for a hero with none
     /// saved; a peer with no hero, its ship's inventory, so it comes back suited. A hero's <c>suit</c> is its <c>air</c>.
     /// </summary>
