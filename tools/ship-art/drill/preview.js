@@ -1,10 +1,10 @@
 // A zoomed contact sheet for checking the pixels by eye: per direction the icon, the held sprite and its
-// spin frames, at 8x; the game's drill, harpoon and axe first for scale.
+// spin frames, at 8x; the game's drill, harpoon and axe first for scale, held (their icons are, 2026-10-27-tool-icons).
 const P = require('../weapons/png.js'), B = require('./build.js'), path = require('path');
 const ART = path.join(__dirname, '..', '..', '..', 'game', 'art') + '/';
 const S = +(process.argv[2] || 8), gap = 14;
 const g = f => P.read(ART + f + '.png');
-const rows = [[g('items/drill'), g('hero_drill'), g('items/harpoon'), g('hero_harpoon'), g('hero_axe')],
+const rows = [[g('hero_drill'), g('hero_harpoon'), g('hero_axe')],
   ...Object.values(B).map(d => [d.icon, d.heldIm, ...d.spinIms])];
 const W = Math.max(...rows.map(r => r.reduce((a, im) => a + im.w * S + gap, gap)));
 const H = rows.reduce((a, r) => a + Math.max(...r.map(im => im.h)) * S + gap, gap);

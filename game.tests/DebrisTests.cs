@@ -15,14 +15,16 @@ namespace Stillwake.Game.Tests;
 public class DebrisTests
 {
     [Fact]
-    public void AWreckGoneWithHitsShortOfItsPathsEndWasBrokenAndOneThatDriftedOffWasNot()
+    public void AWreckGoneShortOfItsPathsEndWasBrokenEvenByOneHitAndOneThatDriftedOffOrWasCaughtWasNot()
     {
         // Last seen at 10 400, drifting 300 a tick to an end at 10 000.
-        Assert.True(Fading.Broken(damage: 14, x: 10_400, speed: 300, end: 10_000, ticks: 1));
-        Assert.False(Fading.Broken(damage: 0, x: 10_400, speed: 300, end: 10_000, ticks: 1));
-        Assert.False(Fading.Broken(damage: 14, x: 10_200, speed: 300, end: 10_000, ticks: 1));
+        Assert.True(Fading.Broken(wreck: true, caught: false, x: 10_400, speed: 300, end: 10_000, ticks: 1));
+        // Not a wreck, so nothing breaks it; caught by hand, it was taken.
+        Assert.False(Fading.Broken(wreck: false, caught: false, x: 10_400, speed: 300, end: 10_000, ticks: 1));
+        Assert.False(Fading.Broken(wreck: true, caught: true, x: 10_400, speed: 300, end: 10_000, ticks: 1));
+        Assert.False(Fading.Broken(wreck: true, caught: false, x: 10_200, speed: 300, end: 10_000, ticks: 1));
         // A stall of two ticks between frames: it drifted off, though one tick on it would still be out.
-        Assert.False(Fading.Broken(damage: 14, x: 10_400, speed: 300, end: 10_000, ticks: 2));
+        Assert.False(Fading.Broken(wreck: true, caught: false, x: 10_400, speed: 300, end: 10_000, ticks: 2));
     }
 
     // The debris this peer is grabbing (predicted.test.ts).

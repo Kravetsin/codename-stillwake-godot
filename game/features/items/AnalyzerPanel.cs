@@ -105,14 +105,16 @@ public partial class AnalyzerPanel : VBoxContainer
     {
         var box = new Panel { CustomMinimumSize = new Vector2(_size, _size), MouseFilter = MouseFilterEnum.Ignore };
         box.AddThemeStyleboxOverride("panel", lesson.Opened ? Opened : Closed);
+        var placement = lesson.Recipe.Placement;
+        var (at, side) = placement != null ? (Slots.Inset, _size - 2 * Slots.Inset) : Slots.IconBox(lesson.Recipe.Id, _size);
         var picture = new TextureRect
         {
-            Texture = lesson.Recipe.Placement is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(lesson.Recipe.Id),
+            Texture = placement is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(lesson.Recipe.Id, side),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             TextureFilter = TextureFilterEnum.Nearest,
-            Position = new Vector2(Slots.Inset, Slots.Inset),
-            Size = new Vector2(_size - 2 * Slots.Inset, _size - 2 * Slots.Inset),
+            Position = new Vector2(at, at),
+            Size = new Vector2(side, side),
             MouseFilter = MouseFilterEnum.Ignore,
             Material = lesson.Opened ? null : Greyed,
         };

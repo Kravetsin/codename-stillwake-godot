@@ -146,13 +146,15 @@ public class RailgunTests
     }
 
     [Fact]
-    public void ItsNailFallsATenthOfTheNailersOnAPlanetAndNotAtAllAboard()
+    public void ItsNailFallsATenthOfTheNailersOnAPlanetOrAboardAndNotAtAllAfloat()
     {
         var planet = Spec.PlanetTypes.First;
         int nail = Spec.Shots.Nail.Weight * Spec.Creatures.Gravity;
-        Assert.Equal(29, ShotFlight.Gravity(planet, Spec.Shots.Nail, Gun));
-        Assert.Equal(planet.Fall(nail), ShotFlight.Gravity(planet, Spec.Shots.Nail, Spec.Shots.Nailer));
-        Assert.Equal(0, ShotFlight.Gravity(Spec.Surfaces.Ship, Spec.Shots.Nail, Gun));
+        Assert.Equal(29, ShotFlight.Gravity(planet, Spec.Shots.Nail, Gun, afloat: false));
+        Assert.Equal(planet.Fall(nail), ShotFlight.Gravity(planet, Spec.Shots.Nail, Spec.Shots.Nailer, afloat: false));
+        // Afloat in open space nothing falls; aboard the ship, the ship's own gravity, the whole.
+        Assert.Equal(0, ShotFlight.Gravity(Spec.Surfaces.Ship, Spec.Shots.Nail, Gun, afloat: true));
+        Assert.Equal(nail * Gun.Fall / 1000, ShotFlight.Gravity(Spec.Surfaces.Ship, Spec.Shots.Nail, Gun, afloat: false));
     }
 
     [Fact]

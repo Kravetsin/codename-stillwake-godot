@@ -22,11 +22,11 @@
 
 Every creature, composed ([creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
 species (`Content.Creatures`) names a body, life, faction, a brain of ranked drives, moves and yields, each record served
-by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Shots fly here
-([shots-are-the-sims](../../docs/decisions/2026-10-26-shots-are-the-sims.md), [pierce](../../docs/decisions/2026-10-27-shots-pierce.md)).
+by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Shots fly here (shots-are-the-sims,
+shots-pierce, shots-fall-aboard).
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells; `Shock`); `Items` (queries, ops: weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`).
+  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`); `Rooms` (`Afloat`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge (its brain
   place), `Step` its place in it, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its grudge (a `Ref`), `Mem`
@@ -48,8 +48,8 @@ by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Sh
 - **The walker** (0102, 0104, 0106): under the surface's gravity; solid is a wall, floor, closed door, the grid's
   edge and a planet's fog. It steps `StepUp`; at a wall it cannot step or a drop of `Drop` it tries a leap (`Lands`),
   else its drive may act (`Blocked`), else it turns.
-- **The clinger:** clamped to its wreck's top, `along` from its middle, riding its drift; off it, it flies straight, through
-  walls, on the grid. Its wreck gone, it holds the last point.
+- **The clinger:** clamped to its wreck's top, `along` from its middle, riding its drift; off it, it flies straight through
+  walls. Its wreck gone, it holds the last point.
 - **Grazers:** `Graze` idles and wanders by turns, lengths drawn. `Flee` runs its ticks; cornered with a hero near it may
   lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
@@ -64,11 +64,12 @@ by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Sh
   (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order till one claims it.
 - **Shots:** `Fire` takes an ammo and its gun's `Energy` for a shot; each tick, in id order, it steps, hitting a cell's
   targets in turn (solid, the lowest-id creature, a wreck), skipping `Passed`, at its gun's keep after `Pierced`: through what
-  its gun `Pierces` (`Broken` or `All`, what stands `Passed`), else ending.
+  its gun `Pierces` (`Broken` or `All`, what stands `Passed`), else ending. Falling by its cell
+  (`ShotFlight.Gravity`, shots-fall-aboard): none `Afloat`, aboard by the ship's gravity, on a planet by its kind's.
 - **The dead** are gone to every command and cap from the blow, listed till swept.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: its suit pays the move's `Damage`, the act
   ends; or the arc's projectile's, once a hero.
-- **`Release(Species, Cell)`**, dev: its body's `ReleaseProblem` and `Place`.
+- **`Release`** (dev): `ReleaseProblem`, `Place`.
 - **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew, reported each tick.
 - **Kept or gone** (0102): kept in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards** (`Kind.Guards`): each
   piece past `Watermark` with a perch draws once: sentries on half.
@@ -92,7 +93,6 @@ carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`, `ite
 
 - **No collisions** (0006); senses through rock; despawning loses damage.
 - **A ram aims where the hero was reported** (0103); a second hero pays nothing.
-- **No hit-stun** until a species needs one. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
+- **No hit-stun** yet. **Lifetime** is the keep box's for all: a wreck goes before its sentry.
 - **A derelict escorted aboard** brings its sentry; its pounce passes walls. A blow that breaks its wreck goes unanswered.
-- **Shots** (0034, the ADRs): muzzle, pace, charge the client's; aboard they fly straight; a guest's copy stops at blocks
-  the nailer breaks.
+- **Shots** (0034, the ADRs): muzzle, pace, charge the client's; a guest's copy stops at blocks the nailer breaks.

@@ -51,6 +51,8 @@ public partial class SlotBox : Panel
     public event Action<Place, bool, bool>? Pressed;
 
     private readonly int _size;
+    /// <summary>The icon's offset from the slot's top-left, where a shake settles.</summary>
+    private int _iconAt = Slots.Inset;
     private readonly TextureRect _icon = new()
     {
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -208,8 +210,8 @@ public partial class SlotBox : Panel
             _ => hovered ? EquipHover : stack != null ? Worn : Unworn,
         };
         AddThemeStyleboxOverride("panel", box);
-        _icon.Texture = stack == null ? null : ItemIcons.Icon(Charges.Picture(stack.Item, stack.Charge));
-        _kept.Texture = stack == null && Kept != null ? ItemIcons.Icon(Kept) : null;
+        _iconAt = Fit(_icon, stack == null ? null : Charges.Picture(stack.Item, stack.Charge));
+        Fit(_kept, stack == null ? Kept : null);
         _keptDot.Visible = Kept != null;
         ShowCharge(stack);
         _count.Text = stack is { Count: > 1 } ? stack.Count.ToString() : "";
@@ -245,7 +247,24 @@ public partial class SlotBox : Panel
         _shake?.Kill();
         _shake = CreateTween();
         _shake.TweenMethod(Callable.From<float>(q =>
-            _icon.Position = new Vector2(Slots.Inset + 2.5f * Mathf.Sin(q * Mathf.Tau * 3) * (1 - q), Slots.Inset)), 0f, 1f, 0.22);
+            _icon.Position = new Vector2(_iconAt + 2.5f * Mathf.Sin(q * Mathf.Tau * 3) * (1 - q), _iconAt)), 0f, 1f, 0.22);
+    }
+
+    /// <summary>
+    /// Shows <paramref name="item"/>'s icon in <paramref name="rect"/>, or none, by <see cref="Slots.IconBox"/>: a tool's fills
+    /// the slot, its margin in the icon; any other sits in the inset. Gives the icon's offset.
+    /// </summary>
+    private int Fit(TextureRect rect, string? item)
+    {
+        if (item == null)
+        {
+            rect.Texture = null;
+            return Slots.Inset;
+        }
+        var (at, side) = Slots.IconBox(item, _size);
+        rect.Texture = ItemIcons.Icon(item, side);
+        (rect.OffsetLeft, rect.OffsetTop, rect.OffsetRight, rect.OffsetBottom) = (at, at, -at, -at);
+        return at;
     }
 
     /// <summary>The left button acts as it goes down, so a press can begin a drag; a click is a press let go.</summary>

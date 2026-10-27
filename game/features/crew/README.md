@@ -34,7 +34,7 @@ commands reach the sim. Other heroes come through the host.
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands at the pointer: E, plans, axe, drill, aim |
 | `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
-| `logic/GunHand.cs` | a gun's cooldown, dry click, a guest's own shots |
+| `logic/GunHand.cs` | each gun's cooldown, dry click, own shots |
 | `HeroView.Others.cs` | other heroes, plumes, rods, lines, tethers |
 | `logic/CameraFollow.cs` | where the camera looks |
 | `JetPlume.cs` | a jetpack's plume (0075) |
@@ -65,13 +65,13 @@ commands reach the sim. Other heroes come through the host.
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
   (`Net.Clock`) at any frame rate and is drawn between its last two steps. Floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
-  stays within `Hero.Tether` of its anchor (FsCheck). A door shut on the hero pushes it `Hero.PushStep` a step to the
+  stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089).
 - Doors are walked as this peer shows them, own toggles in flight made (0014). A press asks for the other state
   (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
 - **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a step-deep
   hole is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
-  ladder under the feet holds; jump wins over down. No crouch.
+  ladder under the feet holds; jump wins over down.
 - **Steps** (0106): a walk steps up or down one cell where the box fits; two up stop it. Drawn eased, as a ramp.
 - **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
@@ -80,10 +80,9 @@ commands reach the sim. Other heroes come through the host.
   thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
-- **Camera** (`Camera.cs`): leads the way last moved, never the facing; eases height; snaps
-  on a new place; on whole pixels.
+- **Camera** (`Camera.cs`): leads the way last moved, never the facing; eases height; snaps on a new place.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
-  `Thrust` is sent while own thrust differs from the sim's; the plume shows at once.
+  `Thrust` is sent while own thrust differs from the sim's.
 - **A canister** (0047, 0081): a right click sends `Refill` when the sim would take it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
@@ -110,9 +109,9 @@ commands reach the sim. Other heroes come through the host.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
   strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.
-  E never chops.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
-- **A gun:** a click sends `Fire` from the muzzle; one with `Charge` fires let go full; a guest flies its shot (`StepOf`).
+- **A gun:** a click sends `Fire` from the muzzle, each gun its own cooldown; one with `Charge` fires let go full; afloat
+  a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
 - **The drill** (0054, 0055, 0078): held as a rifle; left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor

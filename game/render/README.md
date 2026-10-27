@@ -26,8 +26,9 @@
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
 | `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
+| `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
-| `ItemIcons.cs` | Each item's 16 px picture and its white silhouette. |
+| `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon at each side, and their white silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
@@ -83,6 +84,10 @@ features' READMEs) and in its own `///` summaries.
   the same; the stars keep their local stream.
 - **Drawn once** (no ADR): a plane is drawn into its canvas item and carried by the node's position and scale; it
   redraws only when the screen reaches past the tiles drawn (a tile of margin each way) or the zoom changes.
+
+- **A tool's icon** (2026-10-27-tool-icons): an item with a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes
+  its held picture for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size, a
+  pixel a pixel of the world: a tool's plain held picture, any other's 16 px one. Held pictures are read back at load.
 
 ## Deliberately not handled
 

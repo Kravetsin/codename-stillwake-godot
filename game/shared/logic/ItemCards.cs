@@ -39,8 +39,8 @@ public static class ItemCards
     private static ItemCard Card(string item, bool unknown)
     {
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
-        // Anything used by a key of its own says so: a canister breathed, a jetpack worn (0047).
-        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key"), T($"item.{item}.hint")) : null;
+        // Anything used by a key of its own shows the key, and no words on what it does: the player finds out (0047).
+        var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key")) : null;
         if (IsAmmo(item)) return new ItemCard(item, name, kind, AmmoTiles(item), [], key, unknown);
         if (!IsTool(item))
         {

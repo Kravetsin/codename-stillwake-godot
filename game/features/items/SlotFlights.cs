@@ -28,9 +28,11 @@ public partial class SlotFlights : Node2D
     private const int Kept = 8;
     private static readonly Color Ribbon = Rgb(150, 215, 255), Landed = Rgb(170, 225, 255);
 
-    private sealed class Flight(Texture2D icon, Vector2 from, Rect2 to, Spot spot, bool fresh, int nth)
+    private sealed class Flight(Texture2D icon, int side, Vector2 from, Rect2 to, Spot spot, bool fresh, int nth)
     {
         public Texture2D Icon { get; } = icon;
+        /// <summary>Its icon's side as it lands, by <see cref="Slots.IconBox"/>: a tool's the whole slot.</summary>
+        public int Side { get; } = side;
         public Vector2 From { get; } = from;
         public Rect2 To { get; } = to;
         public Spot Spot { get; } = spot;
@@ -76,12 +78,14 @@ public partial class SlotFlights : Node2D
     public bool Busy => _flights.Count > 0 || _landings.Count > 0;
 
     /// <summary>
-    /// A stack shown as <paramref name="icon"/> flying from <paramref name="from"/> to the slot or socket <paramref name="spot"/>, at <paramref name="to"/>, the
+    /// A stack of <paramref name="item"/>, the picture it shows, flying from <paramref name="from"/> to the slot or socket <paramref name="spot"/>, at <paramref name="to"/>, the
     /// <paramref name="nth"/> landing of one move; <paramref name="fresh"/> when it was empty. None past the cap.
     /// </summary>
-    public void Fly(Texture2D icon, Vector2 from, Rect2 to, Spot spot, bool fresh, int nth = 0)
+    public void Fly(string item, Vector2 from, Rect2 to, Spot spot, bool fresh, int nth = 0)
     {
-        if (_flights.Count < Fx.MostRibbons) _flights.Add(new Flight(icon, from, to, spot, fresh, nth));
+        if (_flights.Count >= Fx.MostRibbons) return;
+        int side = Slots.IconBox(item, (int)to.Size.X).Side;
+        _flights.Add(new Flight(ItemIcons.Icon(item, side), side, from, to, spot, fresh, nth));
     }
 
     /// <summary>A landing's pulse round the slot at <paramref name="slot"/> with nothing flying to it: a canister breathed from it (0081).</summary>
@@ -169,7 +173,7 @@ public partial class SlotFlights : Node2D
         {
             if (f.Ms < 0) continue;
             double q = Math.Min(1, f.Ms / FlightMs);
-            float size = (float)((f.To.Size.X - 2 * Slots.Inset) * (1 + Lift * Math.Sin(Math.PI * q)));
+            float size = (float)(f.Side * (1 + Lift * Math.Sin(Math.PI * q)));
             on.DrawTextureRect(f.Icon, new Rect2(f.At - Vector2.One * size / 2, Vector2.One * size), false, colour);
         }
     }

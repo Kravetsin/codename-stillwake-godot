@@ -58,8 +58,14 @@ public static class Slots
     /// <summary>A slot's side in pixels.</summary>
     public static int SizeOf(SlotScale scale) => scale == SlotScale.Large ? 56 : 40;
 
-    /// <summary>An icon's side in pixels: a whole multiple of the 16 px art, so no pixel is drawn wider than its neighbour.</summary>
+    /// <summary>A 16 px icon's side in pixels: a whole multiple of the art, so no pixel is drawn wider than its neighbour; a tool's fills the slot (<see cref="IconBox"/>).</summary>
     public static int IconOf(SlotScale scale) => SizeOf(scale) - 2 * Inset;
+
+    /// <summary>
+    /// Where the icon of <paramref name="item"/> lies in a slot <paramref name="slot"/> px wide, its offset from the slot's
+    /// top-left and its side: a tool's fills the slot, its margin in the icon (2026-10-27-tool-icons); any other is inset.
+    /// </summary>
+    public static (int Offset, int Side) IconBox(string item, int slot) => HeldLook.Of(item) != null ? (0, slot) : (Inset, slot - 2 * Inset);
 
     /// <summary>The top of the suit's and the energy gauges: under the hotbar's panel (a slot and 4 px of padding round it) with 8 px between.</summary>
     public static float GaugeTop(int slot) => Margin + slot + 2 * 4 + 8;

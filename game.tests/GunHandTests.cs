@@ -28,6 +28,23 @@ public class GunHandTests
     }
 
     [Fact]
+    public void EachGunWaitsForItsOwnCooldownNotTheOneFiredBefore()
+    {
+        var hand = new GunHand();
+        Assert.NotNull(hand.Step(16, pressed: true, Nailer, (500, 500), 0, Spec.Shots.Nail).Fire);
+        // The railgun taken up at once charges, the nailer still cooling; taking it up says nothing of coming ready.
+        var taken = hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true);
+        Assert.False(taken.Ready);
+        Assert.True(hand.Ready);
+        Assert.True(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charge > 0);
+        hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false);
+        // The nailer taken up again still waits out its own pace, then comes ready.
+        Assert.Null(hand.Step(16, pressed: true, Nailer, (500, 500), 0, Spec.Shots.Nail).Fire);
+        Assert.False(hand.Ready);
+        Assert.True(hand.Step(GunHand.PaceMs(Nailer), pressed: false, Nailer, (500, 500), 0, Spec.Shots.Nail).Ready);
+    }
+
+    [Fact]
     public void ItsOwnShotFliesWhereTheSimsFliesAndEndsInTheCellTheSimsEnds()
     {
         string open = new('.', 60), ground = new('#', 60);

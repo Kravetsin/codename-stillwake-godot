@@ -10,15 +10,19 @@ public readonly record struct HitPoint(double X, double Y, double Nx, double Ny)
 
 /// <summary>
 /// Where a hit lands and what it strikes (0094), chosen from what the sim says is there, as <c>GroundSounds</c> chooses its
-/// sound: the natural wall at the cell, else the growth the hit takes; the point on the cell's face toward the hero, the share of
+/// sound: the natural wall at the cell, a built one's metal, else the growth the hit takes; the point on the cell's face toward the hero, the share of
 /// a whole hit a tool's hit throws. The looks are <see cref="HitLooks"/>'; this picks from them.
 /// </summary>
 public static class Impacts
 {
-    /// <summary>A hit at <paramref name="cell"/>: the natural wall's material there decides, else the growth's kind; none for what is never struck.</summary>
+    /// <summary>
+    /// A hit at <paramref name="cell"/>: the natural wall's material there decides; the ship's hull, never broken, sparks as metal,
+    /// so a shot is seen to land; else the growth's kind; none for what is never struck.
+    /// </summary>
     public static Impact? At(IGridQueries grid, BuildingModule building, int cell)
     {
-        if (grid.WallAt(cell) is { Natural: true } wall) return HitLooks.Ground.TryGetValue(wall.Id, out var ground) ? ground : null;
+        if (grid.WallAt(cell) is { } wall)
+            return !wall.Natural ? Impact.Alloy : HitLooks.Ground.TryGetValue(wall.Id, out var ground) ? ground : null;
         return building.PlantAt(cell) is { } plant && HitLooks.Growths.TryGetValue(plant.Kind, out var growth) ? growth : null;
     }
 
