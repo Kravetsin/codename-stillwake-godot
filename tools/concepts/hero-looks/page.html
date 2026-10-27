@@ -80,6 +80,35 @@ ul { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; max-width: 72ch; }
     <div class="deck"><div class="pair" id="hero"></div></div>
   </header>
 
+  <section id="trial">
+    <header>
+      <div class="eyebrow">Проба</div>
+      <h2>Голова с пикселем вдвое мельче</h2>
+      <p class="muted">Голова, лица и волосы нарисованы 26×24 в той же рамке шлема и уменьшены вдвое: в мире они того же размера, но пикселей у лица вчетверо больше. Тело пока прежнее. Слева в каждой паре голова сейчас, справа проба.</p>
+    </header>
+    <div class="deck pair"><h3>Головы одного размера</h3><div id="trial-heads" class="row"></div></div>
+    <div class="deck pair">
+      <h3>На пикселях экрана</h3>
+      <p class="muted" style="font-size:13px">Нарисовано так, как камера покажет на мониторе: один пиксель картинки здесь равен пикселю вашего экрана. Дальний зум на 1080p самый трудный: пиксель пробы меньше пикселя экрана.</p>
+      <div id="trial-screen" style="display:grid;gap:18px"></div>
+    </div>
+    <div class="deck pair">
+      <h3>В движении</h3>
+      <p class="muted" style="font-size:13px">Голова поворачивается за курсором, тело медленно идёт: так видно мерцание. Резко рисует игра сейчас; сглаживание с mipmaps стоит включить только для головы.</p>
+      <div class="chips" id="trial-zoom"></div>
+      <div class="chips" id="trial-filter"></div>
+      <div id="trial-live" style="min-height:120px;display:grid;gap:10px;justify-items:start;overflow-x:auto"></div>
+    </div>
+  </section>
+
+  <section>
+    <header>
+      <div class="eyebrow">Первый вариант</div>
+      <h2>Голова в пикселях мира</h2>
+      <p class="muted">Всё ниже нарисовано по прежнему правилу, пиксель картинки равен пикселю мира. Отклонено: лицам не хватает пикселей, причёски одинаковые.</p>
+    </header>
+  </section>
+
   <section id="editor">
     <header>
       <h2>Редактор облика</h2>

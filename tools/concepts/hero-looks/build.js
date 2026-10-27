@@ -20,6 +20,7 @@ const asModule = (file, name) => `const ${name} = (function () { const module = 
 const code = [
   asModule(path.join(ROOT, 'tools', 'hero-art', 'parts.js'), 'PARTS'),
   asModule(path.join(__dirname, 'compose.js'), 'MAKE'),
+  asModule(path.join(__dirname, 'hd.js'), 'HD'),
   `const PICTURES = ${JSON.stringify(pictures)};`,
   fs.readFileSync(path.join(__dirname, 'page.js'), 'utf8'),
 ].join('\n');

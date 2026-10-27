@@ -153,7 +153,7 @@ function headOf(look, { glass = true, cw = 15, ch = 14 } = {}) {
 // ---- sections
 function hero() {
   const box = $('hero');
-  box.append(pair(lineup([...CREW.slice(0, 4), { ...CREW[4], suited: true }], { cw: 26 }), 5, 'палуба при свете'));
+  box.append(pair(lineup(TRIAL.map(l => ({ ...l, fine: true })), { cw: 26 }), 5, 'палуба при свете, проба: голова с пикселем вдвое мельче'));
 }
 
 const state = { suit: 0, skin: 2, hair: 1, hairColour: 1, face: 0 };
@@ -340,9 +340,98 @@ function files() {
   }
 }
 
+// ---- the trial: the head twice as fine, on the screen's own pixels
+const TRIAL = [
+  { suit: 0, skin: 1, hair: 0, hairColour: 1, face: 0 },
+  { suit: 1, skin: 5, hair: 2, hairColour: 0, face: 1 },
+  { suit: 2, skin: 0, hair: 0, hairColour: 3, face: 1 },
+  { suit: 3, skin: 6, hair: 1, hairColour: 4, face: 2 },
+  { suit: 0, skin: 3, hair: 1, hairColour: 2, face: 2 },
+];
+// The camera's zooms (ShipCamera): the farthest shows 192×108 cells, the nearest twice as close.
+const ZOOMS = [
+  { z: 1.25, label: '1080p · дальний' },
+  { z: 2.5, label: '1080p · ближний' },
+  { z: 5 / 3, label: '1440p · дальний' },
+  { z: 10 / 3, label: '1440p · ближний' },
+];
+
+/** A canvas showing img on the screen's own pixels, one image pixel a device pixel. */
+function devCanvas(img) {
+  const c = canvasOf(img, 1);
+  c.style.width = img.w / (window.devicePixelRatio || 1) + 'px';
+  return c;
+}
+
+/** Each look twice, with today's head and with the fine one, drawn by the camera at zoom z; t animates the head and a slow walk. */
+function trialScene(looks, z, smooth, t) {
+  const slot = 28, h = Math.round(50 * z), w = Math.round(looks.length * 2 * slot * z);
+  const img = C.blank(w, h, 0x1b212b);
+  const floor = h - Math.round(4 * z);
+  for (let y = floor; y < h; y++) for (let x = 0; x < w; x++) img.data.set([0x3a, 0x40, 0x4c, 255], (y * w + x) * 4);
+  const turn = t == null ? 0 : 0.32 * Math.sin(t * 1.3), drift = t == null ? 0 : (t * 2.2) % 6;
+  looks.forEach((look, i) => [false, true].forEach((fine, j) => {
+    const ops = C.figure({ ...look, fine, turn }, get);
+    C.draw(img, ops, [((2 * i + j) * slot + slot / 2 + drift - 3) * z, floor], null, { zoom: z, smooth });
+  }));
+  return img;
+}
+
+function trial() {
+  // The heads side by side at one size: today's 13×12, the trial's 26×24.
+  const now = C.blank(15 * TRIAL.length, 14, 0x1b212b), fine = C.blank(28 * TRIAL.length, 26, 0x1b212b);
+  TRIAL.forEach((l, i) => {
+    for (const x of C.headLayers(l, get, false)) C.over(now, x.img, i * 15 + 1, 1);
+    for (const x of C.headLayers({ ...l, fine: true }, get, false)) C.over(fine, x.img, i * 28 + 1, 1);
+  });
+  $('trial-heads').append(
+    pair(now, 10, 'сейчас: 13×12'),
+    pair(fine, 5, 'проба: 26×24, пиксель вдвое мельче'),
+  );
+  for (const { z, label } of ZOOMS) {
+    const cell = el('div', 'pair');
+    cell.append(el('div', 'one', label + ` · ×${z.toFixed(2).replace(/\.?0+$/, '')}`), devCanvas(trialScene(TRIAL, z, false)));
+    $('trial-screen').append(cell);
+  }
+
+  // Live: the head turning and the body walking slowly, as in play.
+  const live = { z: ZOOMS[0].z, smooth: false };
+  const zoomRow = $('trial-zoom'), filterRow = $('trial-filter');
+  const chip = (row, text, on, pick) => {
+    const b = el('button', 'chip', text);
+    b.type = 'button';
+    b.style.padding = '6px 10px';
+    b.addEventListener('click', () => { pick(); sync(); });
+    row.append(b);
+    return [b, on];
+  };
+  const chips = [
+    ...ZOOMS.map(({ z, label }) => chip(zoomRow, label, () => live.z === z, () => (live.z = z))),
+    chip(filterRow, 'резко (как сейчас)', () => !live.smooth, () => (live.smooth = false)),
+    chip(filterRow, 'сглажено (mipmaps)', () => live.smooth, () => (live.smooth = true)),
+  ];
+  chips.forEach(([b], i) => (b.id = 'trial-chip-' + i));
+  function sync() { for (const [b, on] of chips) b.setAttribute('aria-pressed', String(on())); }
+  sync();
+  const stage = $('trial-live'), looks = [TRIAL[1], TRIAL[3]];
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let last = -1;
+  function frame(ms) {
+    if (ms - last > 45) {
+      last = ms;
+      const img = trialScene(looks, live.z, live.smooth, still ? 1.2 : ms / 1000), big = canvasOf(img, 3 / (window.devicePixelRatio || 1));
+      big.className = '';
+      stage.replaceChildren(devCanvas(img), el('div', 'one', 'то же втрое крупнее'), big);
+    }
+    if (!still) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
 // In Node (check.js) the scenes are drawn without the page.
 if (typeof document !== 'undefined')
   Promise.all(Object.entries(PICTURES).map(([n, src]) => decode(src).then(img => (IMG[n] = img)))).then(() => {
-    for (const f of [hero, editor, templates, variants, crew, dark, bubble, files]) f();
+    Object.assign(IMG, HD.pictures(A));
+    for (const f of [hero, trial, editor, templates, variants, crew, dark, bubble, files]) f();
   });
 else module.exports = { IMG, C, CREW, lineup, crop, headOf };

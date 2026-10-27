@@ -51,7 +51,9 @@ function make(A) {
   function headLayers(look, get, glass = true) {
     look = lookOf(look);
     const sw = swapsOf(look, false);
-    const layers = ['hero_head', 'hero_face_' + look.face, 'hero_hair_' + look.hair].map(n => ({ img: recolour(get(n), sw), face: true }));
+    // fine: the trial head drawn twice as fine (hd.js), its own pixels and joint.
+    const [p, density, joint] = look.fine ? ['hd_', 2, [13, 24]] : ['hero_', 1, JOINTS.helmet];
+    const layers = [p + 'head', p + 'face_' + look.face, p + 'hair_' + look.hair].map(n => ({ img: recolour(get(n), sw), face: true, density, joint }));
     if (look.suited && glass) layers.push({ img: recolour(get('hero_helmet_shell'), sw) }, { img: get('hero_visor') });
     return layers;
   }
@@ -79,31 +81,39 @@ function make(A) {
     if (look.suited) put(part('pack', false), [-Back, -Shoulder - H * 0.02], 0, [0, 0]);
     put(part('torso', false), neck, 0, JOINTS.torso);
     if (look.closed) put(part('helmet', false), neck, 0, JOINTS.helmet);
-    else for (const l of headLayers(look, get, !look.bubble)) put(l.img, neck, 0, JOINTS.helmet, l.face);
+    else for (const l of headLayers(look, get, !look.bubble)) ops.push({ img: l.img, at: neck, turn: look.turn || 0, joint: l.joint || JOINTS.helmet, face: l.face, density: l.density });
     limb('upperArm', 'forearm', shoulder, Arm, [0, 0.18], false);
     return ops;
   }
 
   /**
    * Draws ops onto img with the feet at origin, sampling each part at the pixel's middle as a GPU does. light(x, y,
-   * op) gives [r, g, b] multipliers for a pixel drawn at x, y; none leaves colours as they are.
+   * op) gives [r, g, b] multipliers for a pixel drawn at x, y in pixels of the world; none leaves colours as they are.
+   * zoom: screen pixels a pixel of the world, as the camera's; an op's density: its pixels a pixel of the world (2 for
+   * a picture drawn twice as fine), its joint in its own pixels. smooth averages 4×4 samples a pixel, as mipmaps would.
    */
-  function draw(img, ops, origin, light) {
+  function draw(img, ops, origin, light, { zoom = 1, smooth = false } = {}) {
+    const n = smooth ? 4 : 1;
     for (const op of ops) {
-      const { img: src, at, turn, joint } = op;
+      const { img: src, at, turn, joint } = op, d = op.density || 1;
       const c = Math.cos(turn), s = Math.sin(turn);
-      const ox = origin[0] + at[0], oy = origin[1] + at[1];
-      const r = Math.hypot(src.w, src.h) + 2;
+      const ox = origin[0] + at[0] * zoom, oy = origin[1] + at[1] * zoom;
+      const r = (Math.hypot(src.w, src.h) / d + 2) * zoom;
       for (let y = Math.floor(oy - r); y <= oy + r; y++) for (let x = Math.floor(ox - r); x <= ox + r; x++) {
         if (x < 0 || y < 0 || x >= img.w || y >= img.h) continue;
-        const dx = x + 0.5 - ox, dy = y + 0.5 - oy;
-        const u = Math.floor(c * dx + s * dy + joint[0]), v = Math.floor(-s * dx + c * dy + joint[1]);
-        if (u < 0 || v < 0 || u >= src.w || v >= src.h) continue;
-        const si = (v * src.w + u) * 4, a = src.data[si + 3] / 255;
-        if (!a) continue;
-        const m = light ? light(x + 0.5, y + 0.5, op) : [1, 1, 1];
+        let sr = 0, sg = 0, sb = 0, sa = 0;
+        for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+          const dx = (x + (i + 0.5) / n - ox) / zoom, dy = (y + (j + 0.5) / n - oy) / zoom;
+          const u = Math.floor((c * dx + s * dy) * d + joint[0]), v = Math.floor((-s * dx + c * dy) * d + joint[1]);
+          if (u < 0 || v < 0 || u >= src.w || v >= src.h) continue;
+          const si = (v * src.w + u) * 4, a = src.data[si + 3] / 255;
+          sr += src.data[si] * a; sg += src.data[si + 1] * a; sb += src.data[si + 2] * a; sa += a;
+        }
+        if (!sa) continue;
+        const a = sa / (n * n), col = [sr / sa, sg / sa, sb / sa];
+        const m = light ? light((x + 0.5) / zoom, (y + 0.5) / zoom, op) : [1, 1, 1];
         const di = (y * img.w + x) * 4, da = img.data[di + 3] / 255, oa = a + da * (1 - a);
-        for (let k = 0; k < 3; k++) img.data[di + k] = Math.round((Math.min(255, src.data[si + k] * m[k]) * a + img.data[di + k] * da * (1 - a)) / oa);
+        for (let k = 0; k < 3; k++) img.data[di + k] = Math.round((Math.min(255, col[k] * m[k]) * a + img.data[di + k] * da * (1 - a)) / oa);
         img.data[di + 3] = Math.round(oa * 255);
       }
     }
