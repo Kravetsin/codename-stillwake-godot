@@ -299,7 +299,8 @@ public partial class Main : Node2D, ITogether
         _light?.QueueFree();
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
-            Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0);
+            Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
+            Hosts: () => (_session as Session)?.Host != null);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -396,7 +397,7 @@ public partial class Main : Node2D, ITogether
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
         _frameLog?.Mark("light");
-        _hero?.Frame(client, _m, _camera, heard, session.Progress, delta * 1000);
+        _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Host != null, delta * 1000);
         _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);

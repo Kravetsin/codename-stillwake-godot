@@ -13,20 +13,36 @@ namespace Stillwake.Sim.Creatures;
 /// </summary>
 public sealed record Fire(string Tool, int X, int Y, int Heading) : Command;
 
+/// <summary>A thing a shot flew on through, by what it is and its id (a creature's, a wreck's piece): what a client's copy skips after.</summary>
+public readonly record struct ShotPass(ShotTarget What, int Id);
+
 /// <summary>
-/// Shots (shots-are-the-sims): fired by heroes' guns, flown by the sim, a tick at a time, meeting the first thing in their way:
-/// a solid cell, then a creature, then a wreck.
+/// A tick of a client's copy of a shot (<see cref="CreaturesModule.StepOf"/>): its motion next, the cell it met (-1 for none) or last
+/// flew in, the hits it would take there and on the way, and everything it would have flown on through by then.
+/// </summary>
+public sealed record ShotTick(ShotMotion Next, int Met, int Last, IReadOnlyList<ShotHit> Hits, IReadOnlyList<ShotPass> Passed);
+
+/// <summary>
+/// Shots (shots-are-the-sims): fired by heroes' guns, flown by the sim, a tick at a time, meeting what is in their way: a solid
+/// cell, then a creature, then a wreck; flying on through what a hit breaks or kills, their damage kept by their gun
+/// (2026-10-27-shots-pierce).
 /// </summary>
 public sealed partial class CreaturesModule
 {
     /// <summary>The shots that ended this tick, in id order; derived, emptied as the next tick's shots fly.</summary>
     private readonly List<ShotEnd> _ended = [];
 
+    /// <summary>The hits shots took this tick, in order; derived, emptied as the next tick's shots fly.</summary>
+    private readonly List<ShotHit> _hits = [];
+
     /// <summary>The shots in flight, in id order; live and read-only.</summary>
     public IReadOnlyList<Shot> Shots => State.Shots;
 
     /// <summary>The shots that ended this tick, where each met something or ran out: what the client shows an end by.</summary>
     public IReadOnlyList<ShotEnd> Ended => _ended;
+
+    /// <summary>Every hit a shot took this tick, in the order taken, the last of each ended shot's too: what the client shows a hit by.</summary>
+    public IReadOnlyList<ShotHit> Hits => _hits;
 
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Fire"/> of <paramref name="tool"/> from (<paramref name="x"/>, <paramref name="y"/>) would be refused.</summary>
     public string? FireProblem(int peer, string tool, int x, int y)
@@ -69,13 +85,14 @@ public sealed partial class CreaturesModule
     }
 
     /// <summary>
-    /// Every shot's step, in id order, those fired this tick too: one that met something hits it and ends, as one that ran out or
-    /// left the grid. The wrecks are taken once, the debris having drifted. Those its hits killed are swept out at the end, as the
-    /// creatures' system sweeps a command's: the tick saves no creature dead and still listed.
+    /// Every shot's step, in id order, those fired this tick too: one that met something it did not break ends, as one that ran
+    /// out or left the grid. The wrecks are taken once, the debris having drifted. Those its hits killed are swept out at the end,
+    /// as the creatures' system sweeps a command's: the tick saves no creature dead and still listed.
     /// </summary>
     private void Fly()
     {
         _ended.Clear();
+        _hits.Clear();
         var shots = State.Shots;
         if (shots.Count == 0) return;
         _wrecks = _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
@@ -90,10 +107,10 @@ public sealed partial class CreaturesModule
     private bool Step(Shot s)
     {
         var p = Content.Shots.Get(s.Projectile);
-        var (next, met, last) = StepOf(s.Motion, p, _wrecks);
+        var from = (s.X, s.Y);
+        var (next, met, last) = ShotFlight.Step(s.Motion, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Meets(s, p, cell, from));
         if (met >= 0)
         {
-            HitAt(s, p, met);
             _ended.Add(new ShotEnd(s.Id, s.Projectile, s.Gun, met, Met: true));
             return false;
         }
@@ -106,63 +123,122 @@ public sealed partial class CreaturesModule
         return true;
     }
 
-    /// <summary>Whether a shot of <paramref name="p"/> stops in <paramref name="cell"/>: solid as for a body, or holding a creature or a wreck it may hit.</summary>
-    private bool Stops(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks) =>
-        Solid(cell) || p.HitsBodies && (CreatureIn(cell) != null || WreckIn(cell, wrecks) != null);
-
-    /// <summary>A tick of a shot of <paramref name="p"/> flying as <paramref name="f"/> (<see cref="ShotFlight.Step"/>), meeting what <paramref name="wrecks"/> holds.</summary>
-    private (ShotMotion Next, int Met, int Last) StepOf(ShotMotion f, Content.Projectile p, IReadOnlyList<WreckBox> wrecks) =>
-        ShotFlight.Step(f, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, cell => Stops(cell, p, wrecks));
-
     /// <summary>
-    /// A tick of a shot of <paramref name="p"/> flying as <paramref name="f"/>, on this world as it stands: the step the sim flies it by,
-    /// for the shooter's client to fly its own shot ahead of the sim's (shots-are-the-sims).
+    /// What <paramref name="s"/> meets in <paramref name="cell"/>, as it walks there: every target in it in turn (<see cref="TargetIn"/>),
+    /// each hit with what the shot has kept; one it breaks or kills it flies on through, else it stops there, as it does at one it
+    /// has nothing left for, hitting nothing but listed, to show where it stopped. True where it stops.
     /// </summary>
-    public (ShotMotion Next, int Met, int Last) StepOf(ShotMotion f, Content.Projectile p) =>
-        StepOf(f, p, p.HitsBodies && _debris.Pieces.Count > 0 ? _debris.Wrecks() : []);
-
-    /// <summary>
-    /// <paramref name="s"/>'s hit in <paramref name="cell"/>, the first it meets there, its gun's and its own added: what is solid takes
-    /// its block damage, where tools break things; else the lowest-id creature in it takes its damage, knocked by its gun along the
-    /// shot's way; else the first wreck.
-    /// </summary>
-    private void HitAt(Shot s, Content.Projectile p, int cell)
+    private bool Meets(Shot s, Content.Projectile p, int cell, (int X, int Y) from)
     {
         int peer = s.By.Kind == RefKind.Hero ? s.By.Id : FloorStack.Nobody;
-        if (Solid(cell))
+        ShotPass? broken = null;
+        while (TargetIn(cell, p, _wrecks, []) is { } target)
         {
-            if (Content.Shots.BlockDamageOf(s.Gun, p.Id) is int block and > 0) _building.Hit(peer, cell, block);
-            return;
+            if (target.Pass == broken) throw new InvalidOperationException($"creatures.shot: {target.Pass} still in {cell} once broken");
+            int damage = DamageOf(s.Gun, p, target.Pass.What, s.Pierced);
+            bool broke = damage > 0 && HitAt(s, peer, target, damage);
+            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, broke));
+            if (!broke) return true;
+            s.Pierced += 1;
+            broken = target.Pass;
         }
-        if (CreatureIn(cell) is { } creature)
+        return false;
+    }
+
+    /// <summary>What a shot of <paramref name="p"/> from <paramref name="gun"/> takes off <paramref name="what"/> after it <paramref name="pierced"/> that many: block damage off what is solid.</summary>
+    private static int DamageOf(string? gun, Content.Projectile p, ShotTarget what, int pierced) => what == ShotTarget.Solid
+        ? Content.Shots.BlockDamageOf(gun, p.Id, pierced)
+        : Content.Shots.DamageOf(gun, p.Id, pierced);
+
+    /// <summary>What a shot may hit in a cell: what it is, by <see cref="ShotPass"/>, and the creature, for one.</summary>
+    private readonly record struct Target(ShotPass Pass, Creature? Creature);
+
+    /// <summary>
+    /// The first thing a shot of <paramref name="p"/> meets in <paramref name="cell"/>, past those in <paramref name="passed"/>: what is
+    /// solid as for a body, else, for a projectile that hits bodies, the lowest-id live creature in it, else the first wreck of
+    /// <paramref name="wrecks"/> still out; null for none.
+    /// </summary>
+    private Target? TargetIn(int cell, Content.Projectile p, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
+    {
+        if (Solid(cell)) return new Target(new ShotPass(ShotTarget.Solid, cell), null);
+        if (!p.HitsBodies) return null;
+        if (CreatureIn(cell, passed) is { } creature) return new Target(new ShotPass(ShotTarget.Creature, creature.Id), creature);
+        return WreckIn(cell, wrecks, passed) is { } wreck ? new Target(new ShotPass(ShotTarget.Wreck, wreck.Piece), null) : null;
+    }
+
+    /// <summary>
+    /// <paramref name="s"/>'s hit of <paramref name="damage"/> on <paramref name="target"/>: what is solid takes it as block damage,
+    /// where tools break things; a creature through the hit path, knocked by the gun's whole knock along the shot's way; a wreck
+    /// through Debris. True when it broke or died.
+    /// </summary>
+    private bool HitAt(Shot s, int peer, Target target, int damage)
+    {
+        switch (target.Pass.What)
         {
-            int away = s.VX != 0 ? Math.Sign(s.VX) : AwayFrom(creature, HeroCell(peer));
-            // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
-            int knock = Math.Min(Spec.KnockPace, Content.Shots.GunOf(s.Gun)?.Knock ?? 0);
-            Hurt(creature, Spec.Get(creature.Species), Content.Shots.DamageOf(s.Gun, p.Id), new Hit(peer, away, knock, _debris.Clock));
-            return;
+            case ShotTarget.Solid:
+                return _building.Hit(peer, target.Pass.Id, damage);
+            case ShotTarget.Creature:
+                var creature = target.Creature!;
+                int away = s.VX != 0 ? Math.Sign(s.VX) : AwayFrom(creature, HeroCell(peer));
+                // From a system: the debris has drifted this tick, so its clock already stamps this tick's blows.
+                int knock = Math.Min(Spec.KnockPace, Content.Shots.GunOf(s.Gun)?.Knock ?? 0);
+                return Hurt(creature, Spec.Get(creature.Species), damage, new Hit(peer, away, knock, _debris.Clock));
+            default:
+                return _debrisOps.Hit(peer, target.Pass.Id, damage);
         }
-        if (WreckIn(cell, _wrecks) is { } wreck) _debrisOps.Hit(peer, wreck.Piece, Content.Shots.DamageOf(s.Gun, p.Id));
+    }
+
+    /// <summary>
+    /// A tick of a client's copy of a shot of <paramref name="p"/> from <paramref name="gun"/> flying as <paramref name="f"/>, past
+    /// what it has flown through, <paramref name="passed"/>, on this world as it stands: the sim's walk, judged by what each hit
+    /// would do and changing nothing. A wreck or a creature its hit would break or kill it flies on through; what is solid stops it.
+    /// For the shooter's client to fly its own shot ahead of the sim's (shots-are-the-sims, 2026-10-27-shots-pierce).
+    /// </summary>
+    public ShotTick StepOf(ShotMotion f, Content.Projectile p, string? gun, IReadOnlyList<ShotPass> passed)
+    {
+        var wrecks = p.HitsBodies && _debris.Pieces.Count > 0 ? _debris.Wrecks() : [];
+        var hits = new List<ShotHit>();
+        var through = new List<ShotPass>(passed);
+        var from = (f.X, f.Y);
+        bool Judge(int cell)
+        {
+            while (TargetIn(cell, p, wrecks, through) is { } target)
+            {
+                int damage = DamageOf(gun, p, target.Pass.What, through.Count);
+                bool breaks = damage > 0 && target.Pass.What switch
+                {
+                    ShotTarget.Creature => Dies(target.Creature!, damage),
+                    ShotTarget.Wreck => _debris.Breaks(target.Pass.Id, damage),
+                    _ => false,
+                };
+                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, breaks));
+                if (!breaks) return true;
+                through.Add(target.Pass);
+            }
+            return false;
+        }
+        var (next, met, last) = ShotFlight.Step(f, ShotFlight.Gravity(Rules, p), _grid.Width, _grid.Height, Judge);
+        return new ShotTick(next, met, last, hits, through);
     }
 
     /// <summary>The wrecks a shot may meet this tick (<see cref="IDebrisQueries.Wrecks"/>), taken as the shots fly.</summary>
     private IReadOnlyList<WreckBox> _wrecks = [];
 
-    /// <summary>The first wreck of <paramref name="wrecks"/>, in spawn order, still out, whose box covers part of <paramref name="cell"/>; null for none.</summary>
-    private WreckBox? WreckIn(int cell, IReadOnlyList<WreckBox> wrecks)
+    /// <summary>The first wreck of <paramref name="wrecks"/>, in spawn order, still out and not in <paramref name="passed"/>, whose box covers part of <paramref name="cell"/>; null for none.</summary>
+    private WreckBox? WreckIn(int cell, IReadOnlyList<WreckBox> wrecks, IReadOnlyList<ShotPass> passed)
     {
         foreach (var w in wrecks)
-            if (w.Covers(cell, _grid.Width) && _debris.PieceById(w.Piece) != null) return w;
+            if (w.Covers(cell, _grid.Width) && _debris.PieceById(w.Piece) != null && !passed.Contains(new ShotPass(ShotTarget.Wreck, w.Piece))) return w;
         return null;
     }
 
-    /// <summary>The lowest-id live creature whose body's box overlaps <paramref name="cell"/>; null for none.</summary>
-    private Creature? CreatureIn(int cell)
+    /// <summary>The lowest-id live creature not in <paramref name="passed"/> whose body's box overlaps <paramref name="cell"/>; null for none.</summary>
+    private Creature? CreatureIn(int cell, IReadOnlyList<ShotPass> passed)
     {
         int left = cell % _grid.Width * Unit, top = cell / _grid.Width * Unit;
         foreach (var c in State.Creatures)
         {
-            if (c.Dead) continue;
+            if (c.Dead || passed.Contains(new ShotPass(ShotTarget.Creature, c.Id))) continue;
             var body = Spec.Get(c.Species).Body;
             int half = body.Width * Unit / 2;
             if (c.X - half < left + Unit && c.X + half > left && c.Y - body.Height * Unit < top + Unit && c.Y > top) return c;

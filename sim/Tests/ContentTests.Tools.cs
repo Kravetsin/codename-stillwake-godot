@@ -27,7 +27,7 @@ public partial class ContentTests
         Assert.All(Shots.Projectiles, p => Assert.True(p.Damage >= 0 && p.BlockDamage >= 0 && p.Weight >= 0, p.Id));
         foreach (var gun in Shots.Guns)
         {
-            Assert.True(gun.Speed > 0 && gun.Reach > 0 && gun.Pace > 0 && gun.Damage >= 0 && gun.BlockDamage >= 0 && gun.Knock >= 0, gun.Item);
+            Assert.True(gun.Speed > 0 && gun.Reach > 0 && gun.Pace > 0 && gun.Damage >= 0 && gun.BlockDamage >= 0 && gun.Knock >= 0 && gun.PierceKeep is >= 0 and <= 1000, gun.Item);
             Assert.Equal(1, Content.Items.Get(gun.Item).Stack);
             Assert.Null(Weapons.Of(gun.Item));
             Assert.True(Crafts.TryGet(gun.Item, out _), gun.Item);

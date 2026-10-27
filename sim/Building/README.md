@@ -53,8 +53,8 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.
   `Struck` says what. Each takes `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths,
   a piece whole for its cost. `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. `Hit`,
-  a shot's, strikes one solid cell so, its yield to the shooter, or with none here anyone's; what never breaks stops it. Back
-  walls are no tool's: old back cracks heal.
+  a shot's, strikes one solid cell so, true if it broke, its yield the shooter's here, else anyone's; the
+  unbreakable stops it. No tool hits back walls: old cracks heal.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).

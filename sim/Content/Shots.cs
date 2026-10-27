@@ -13,9 +13,10 @@ public sealed record Projectile(string Id, int Damage, int BlockDamage, int Weig
 /// hit takes <paramref name="Damage"/> and <paramref name="BlockDamage"/> with its projectile's added (as Terraria's), and knocks by
 /// <paramref name="Knock"/> as a melee weapon's pace does (<see cref="Creatures.KnockPace"/>); the shot leaves at
 /// <paramref name="Speed"/> thousandths of a cell a tick, gone after <paramref name="Reach"/> cells' worth of flight; a shot every
-/// <paramref name="Pace"/> ticks, the client's pace, which the sim does not check (0034).
+/// <paramref name="Pace"/> ticks, the client's pace, which the sim does not check (0034); a shot that breaks or kills what it hits flies on
+/// with both damages times <paramref name="PierceKeep"/> thousandths, rounded down, at each (2026-10-27-shots-pierce).
 /// </summary>
-public sealed record Gun(string Item, IReadOnlyList<string> Ammo, int Damage, int BlockDamage, int Knock, int Speed, int Reach, int Pace);
+public sealed record Gun(string Item, IReadOnlyList<string> Ammo, int Damage, int BlockDamage, int Knock, int Speed, int Reach, int Pace, int PierceKeep);
 
 /// <summary>Everything fired, and the guns that fire it.</summary>
 public static class Shots
@@ -26,9 +27,9 @@ public static class Shots
     /// <summary>
     /// The nailer: 4 and its nail's 2, 6 a hit; 1 off a block; a full knock; 60 cells a second, a nail at 45° on the first planet
     /// landing about 30 cells out; gone at 288 cells, a screen's half and a whole screen past it at the farthest zoom (192 cells
-    /// across); a shot every 3 s.
+    /// across); a shot every 3 s; half kept through what a nail breaks: 6, 3, 1.
     /// </summary>
-    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 1, Knock: 10, Speed: 3000, Reach: 288, Pace: 60);
+    public static readonly Gun Nailer = new("nailer", ["nail"], Damage: 4, BlockDamage: 1, Knock: 10, Speed: 3000, Reach: 288, Pace: 60, PierceKeep: 500);
 
     /// <summary>
     /// The guard's bolt, struck by a <see cref="Creatures.Shoot"/> as an arc, never flown: four units of a suit off each hero it
@@ -56,9 +57,22 @@ public static class Shots
         return null;
     }
 
-    /// <summary>What a hit of <paramref name="projectile"/> fired from <paramref name="gun"/> (none: a creature's, its own alone) takes off a creature or a wreck.</summary>
-    public static int DamageOf(string? gun, string projectile) => (GunOf(gun)?.Damage ?? 0) + Get(projectile).Damage;
+    /// <summary>
+    /// What a hit of <paramref name="projectile"/> fired from <paramref name="gun"/> (none: a creature's, its own alone) takes off a
+    /// creature or a wreck, after it <paramref name="pierced"/> that many things (<see cref="Pierce"/>).
+    /// </summary>
+    public static int DamageOf(string? gun, string projectile, int pierced = 0) =>
+        Pierce(GunOf(gun), (GunOf(gun)?.Damage ?? 0) + Get(projectile).Damage, pierced);
 
-    /// <summary>What a hit of <paramref name="projectile"/> fired from <paramref name="gun"/> takes off a wall or a built piece.</summary>
-    public static int BlockDamageOf(string? gun, string projectile) => (GunOf(gun)?.BlockDamage ?? 0) + Get(projectile).BlockDamage;
+    /// <summary>What a hit of <paramref name="projectile"/> fired from <paramref name="gun"/> takes off a wall or a built piece, after it <paramref name="pierced"/> that many things.</summary>
+    public static int BlockDamageOf(string? gun, string projectile, int pierced = 0) =>
+        Pierce(GunOf(gun), (GunOf(gun)?.BlockDamage ?? 0) + Get(projectile).BlockDamage, pierced);
+
+    /// <summary><paramref name="damage"/> kept through <paramref name="pierced"/> things: times the gun's keep each, rounded down; no gun, no fold.</summary>
+    private static int Pierce(Gun? gun, int damage, int pierced)
+    {
+        if (gun == null) return damage;
+        for (int i = 0; i < pierced && damage > 0; i++) damage = damage * gun.PierceKeep / 1000;
+        return damage;
+    }
 }

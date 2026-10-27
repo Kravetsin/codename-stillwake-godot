@@ -43,7 +43,7 @@ public class ShotsTests
     }
 
     /// <summary>Open space aboard the ship's surface, a cell a character: 320 cells by 20, no hull, so no stream of debris.</summary>
-    private static Scenario Space() =>
+    internal static Scenario Space() =>
         new Scenario(string.Join('\n', Enumerable.Repeat(new string('.', 320), 20)), cells: true)
             .Do(new Crew.Enter(10 * 320 + 2)).GiveItems(0, (Nailer, 1), ("nail", 20)).Run();
 
@@ -66,6 +66,14 @@ public class ShotsTests
         Assert.Equal((Ref.Hero(0), Nailer, Nail.Id), (shot.By, shot.Gun, shot.Projectile));
         // A hit is the gun's and the nail's added; a creature's shot, with no gun, its projectile's alone.
         Assert.Equal((Gun.Damage + Nail.Damage, Nail.Damage), (Spec.Shots.DamageOf(Nailer, Nail.Id), Spec.Shots.DamageOf(null, Nail.Id)));
+    }
+
+    [Fact]
+    public void WhatAShotKeepsThroughWhatItPiercedIsItsGunsKeepRoundedDownEachTimeAndNoGunKeepsAll()
+    {
+        Assert.Equal([6, 3, 1, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.DamageOf(Nailer, Nail.Id, n)));
+        Assert.Equal([1, 0, 0, 0], Enumerable.Range(0, 4).Select(n => Spec.Shots.BlockDamageOf(Nailer, Nail.Id, n)));
+        Assert.Equal(Nail.Damage, Spec.Shots.DamageOf(null, Nail.Id, 3));
     }
 
     [Fact]
@@ -164,8 +172,12 @@ public class ShotsTests
         int pillar = EndOf(w, At(80, 20, Right));
         Assert.Equal(90, pillar % 100);
         Assert.Equal(BlockHit, CrackAt(w, pillar));
-        for (int i = 1; i < Spec.Materials.Get("soil").Strength; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
+        for (int i = 1; i < Spec.Materials.Get("soil").Strength - 1; i++) Assert.Equal(pillar, EndOf(w, At(80, 20, Right)));
+        // The nail that breaks it flies on through, nothing left for a block: the soil it falls onto stays uncracked.
+        int past = EndOf(w, At(80, 20, Right));
         Assert.Null(w.M.Grid.WallAt(pillar));
+        Assert.NotEqual(pillar, past);
+        Assert.Null(CrackAt(w, past));
         Assert.Equal(1, w.M.Items.Totals(0).Where(t => t.Item == "soil").Sum(t => t.Count));
         int bedrock = EndOf(w, At(92, 20, Right));
         Assert.Equal("bedrock", w.M.Grid.WallAt(bedrock)?.Id);
@@ -181,8 +193,8 @@ public class ShotsTests
     public void WithItsShooterGoneFromTheSurfaceWhatItBreaksFallsThereAnyones()
     {
         var w = Ground().GiveItems(1, (Nailer, 1), ("nail", 4));
-        int pillar = -1;
-        for (int i = 0; i < 4; i++) pillar = EndOf(w, At(80, 20, Right) with { From = 1 });
+        int pillar = EndOf(w, At(80, 20, Right) with { From = 1 });
+        for (int i = 1; i < 4; i++) EndOf(w, At(80, 20, Right) with { From = 1 });
         Assert.Null(w.M.Grid.WallAt(pillar));
         var soil = w.M.Items.Floor.Single(f => f.Item == "soil");
         Assert.Equal(FloorStack.Nobody, soil.By);

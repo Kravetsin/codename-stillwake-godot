@@ -9,6 +9,8 @@ public static partial class En
         ["world.there"] = "You are there already",
         ["card.dps"] = "DPS",
         ["card.damage"] = "DMG",
+        ["card.block"] = "BLOCK",
+        ["card.pierce"] = "PIERCE",
         ["card.hit"] = "HIT",
         ["card.seconds"] = "{n}s",
         ["card.range"] = "RANGE",

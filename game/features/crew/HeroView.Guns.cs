@@ -32,10 +32,12 @@ public partial class HeroView
     /// The gun in hand, <paramref name="wields"/>, aimed as the figure was last drawn: a fresh <paramref name="clicked"/> fires from its
     /// muzzle along its barrel when the hero is ready (<see cref="GunHand"/>), sent as the sim's <c>Fire</c> and flown here at once;
     /// with no ammo it clicks dry; with the muzzle off the grid it does nothing. Every tick of the world flies this player's shots a
-    /// step by the sim's own (<c>CreaturesModule.StepOf</c>), and one that ends is shown ending as what it met (<see cref="ShotEnds"/>).
+    /// step by the sim's own (<c>CreaturesModule.StepOf</c>), each hit it would take shown as what it met (<see cref="ShotEnds"/>).
+    /// A host flies none (<see cref="ShotDraws"/>): its shots are drawn as the sim flies them, the fire heard here at the click.
     /// </summary>
-    private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, double elapsedMs)
+    private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, bool hosts, double elapsedMs)
     {
+        _guns.Flies = ShotDraws.FliesOwn(hosts);
         (int X, int Y)? muzzle = null;
         int heading = 0;
         Content.Projectile? ammo = null;
@@ -59,8 +61,8 @@ public partial class HeroView
         int tick = client.World.Tick;
         if (_gunTick < 0 || _gunTick > tick) _gunTick = tick;
         for (; _gunTick < tick; _gunTick++) _guns.Tick(m.Creatures.StepOf, m.Grid.Width, m.Grid.Height);
-        foreach (var ended in _guns.TakeEnded().Where(e => e.Met))
-            ShotEnds.Show(m, _ownShotEnds, ended.Gun.Item, ended.Projectile.Id, ended.EndCell!.Value, (ended.Was.X / 1000.0, ended.Was.Y / 1000.0));
+        _guns.TakeEnded();
+        foreach (var hit in _guns.TakeHits()) ShotEnds.Show(m, _ownShotEnds, hit);
         _ownShots.Show(_guns.Shots.Select(s =>
         {
             var (point, way) = ShotStreaks.Between(s.Was, s.Now, _progress);

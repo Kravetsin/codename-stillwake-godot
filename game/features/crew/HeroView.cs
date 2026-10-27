@@ -170,6 +170,8 @@ public partial class HeroView : Node2D
     private Registry? _m;
     private Client? _client;
     private double _progress;
+    /// <summary>Whether this peer hosts its world: its shots drawn as the sim flies them, none flown here (<see cref="ShotDraws"/>).</summary>
+    private bool _hosts;
     /// <summary>The ship as this frame's steps met it, doors as this peer shows them: what the rod grips.</summary>
     private Ship? _ship;
     /// <summary>Whether the player jumped or held a movement key in this frame's steps: a hanging hero lets go.</summary>
@@ -325,11 +327,12 @@ public partial class HeroView : Node2D
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
     /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
     /// client took since the last frame, each drawn where it stood a little while ago; <paramref name="progress"/> is
-    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn.
+    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn;
+    /// <paramref name="hosts"/>, whether this peer hosts, so draws its shots as the sim flies them.
     /// </summary>
-    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, double elapsedMs)
+    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, bool hosts, double elapsedMs)
     {
-        (_m, _client, _progress) = (m, client, progress);
+        (_m, _client, _progress, _hosts) = (m, client, progress, hosts);
         var grid = m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.
