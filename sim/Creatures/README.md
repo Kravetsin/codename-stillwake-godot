@@ -25,7 +25,7 @@ species (`Content.Creatures`) names a body, life, faction, a brain of ranked dri
 by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Shots fly here (shots-are-the-sims,
 shots-pierce, shots-fall-aboard).
 
-- **Depends on:** `Grid`; `Crew` (heroes' cells; `Shock`); `Items` (queries, ops: weapons, ammo, drops, charge); `Debris`
+- **Depends on:** `Grid`; `Crew` (heroes' cells; `Blow`); `Items` (queries, ops: weapons, ammo, drops, charge); `Debris`
   (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`); `Rooms` (`Afloat`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge (its brain
@@ -67,8 +67,8 @@ shots-pierce, shots-fall-aboard).
   its gun `Pierces` (`Broken` or `All`, what stands `Passed`), else ending. Falling by its cell
   (`ShotFlight.Gravity`, shots-fall-aboard): none `Afloat`, aboard by the ship's gravity, on a planet by its kind's.
 - **The dead** are gone to every command and cap from the blow, listed till swept.
-- **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: its suit pays the move's `Damage`, the act
-  ends; or the arc's projectile's, once a hero.
+- **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
+  the arc's projectile's, once a hero.
 - **`Release`** (dev): `ReleaseProblem`, `Place`.
 - **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew, reported each tick.
 - **Kept or gone** (0102): kept in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards** (`Kind.Guards`): each

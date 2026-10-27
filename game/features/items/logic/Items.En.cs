@@ -74,6 +74,7 @@ public static partial class En
         ["item.helmetLamp"] = "Helmet lamp",
         ["item.helmet"] = "Helmet",
         ["item.suit"] = "Suit",
+        ["item.cape"] = "Cape",
         ["item.battery"] = "Battery",
         ["item.accumulator"] = "Accumulator",
         // An item's card: its kind under its name; a tool's key and how it is used, the tiles' labels.
@@ -157,6 +158,7 @@ public static partial class En
         ["item.helmetLamp.kind"] = "Equipment · Lamp",
         ["item.helmet.kind"] = "Equipment · Head",
         ["item.suit.kind"] = "Equipment · Suit",
+        ["item.cape.kind"] = "Equipment · Cape",
         ["item.battery.kind"] = "Equipment · Belt",
         ["item.accumulator.kind"] = "Equipment · Belt",
         ["item.canister.key"] = "RMB",
@@ -166,6 +168,7 @@ public static partial class En
         ["equip.belt"] = "BELT",
         ["equip.suit"] = "SUIT",
         ["equip.lamp"] = "LAMP",
+        ["equip.cape"] = "CAPE",
         ["module.socket"] = "Module",
         ["module.empty"] = "Module socket",
         ["items.notModule"] = "That module does not fit here",

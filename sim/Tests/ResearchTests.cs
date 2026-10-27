@@ -108,6 +108,18 @@ public class ResearchTests
     }
 
     [Fact]
+    public void AnalysedClothOpensTheCapeMadeAtTheFormer()
+    {
+        // The ruins' cloth needs analysis because the cape is made of it (2026-10-27-the-cape-is-worn).
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("cloth", 1));
+        Assert.Equal(["cloth"], RecipeOf(w, Content.Cape.Item).Unanalysed);
+        Analyse(w, id, "cloth");
+        Assert.True(w.M.Research.Knows(Content.Cape.Item));
+        Assert.Contains(Content.Stations.Get("former").Rows, row => row.Contains(Content.Cape.Item));
+    }
+
+    [Fact]
     public void AnAnalysedArcLampOpensTheArcLampAboardWhichIsBuiltOfOne()
     {
         // A whole lamp of the arc makers' homes (0091): analysed, it stays, and its blueprint opens; hung aboard, it is the cost.

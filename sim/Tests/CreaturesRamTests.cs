@@ -310,6 +310,21 @@ public class CreaturesRamTests
     }
 
     [Fact]
+    public void ACapePutOnTheTickARamLandsSparesAFifthOfIt()
+    {
+        // Commands apply in order: the cape moved on first, the ram after it (2026-10-27-the-cape-is-worn). The tapir's 5 less a fifth.
+        var w = CreaturesTesting.Planet(Pen).HeroAt(3, 3).HeroAt(3, 3, peer: 1).GiveItems(0, (Spec.Cape.Item, 1));
+        var c = w.Let(Tapir, 6, 3).Charging(-1);
+        int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == Spec.Cape.Item);
+        int slot = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Cape.Slot);
+        w.Do(new Items.Move(new Items.Place(bag), new Items.Target(slot), 1)).Do(new HitBy(c.Id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(5, Tapir.Ram());
+        Assert.Equal(Tapir.Ram() - 1, Suit(w, 1) - Suit(w, 0));
+        Assert.Equal(0, w.M.Crew.HeroOf(0)!.Spared);
+    }
+
+    [Fact]
     public void AChargeHitsOnceTheSecondHeroItTouchedPaysNothing()
     {
         var w = CreaturesTesting.Planet(Pen).HeroAt(3, 3).HeroAt(3, 3, peer: 1).HeroAt(3, 3, peer: 2);

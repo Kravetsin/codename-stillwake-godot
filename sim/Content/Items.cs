@@ -193,6 +193,8 @@ public static class Items
         // out; both free at the pod.
         new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
         new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable),
+        // Softens enemies' blows and the cold a fifth (2026-10-27-the-cape-is-worn).
+        new(Cape.Item, 1, Equip: Cape.Slot, Gear: true, Group: ItemGroup.Wearable),
     ];
 
     private static readonly Dictionary<string, ItemSpec> ById = All.ToDictionary(i => i.Id, StringComparer.Ordinal);
@@ -206,7 +208,7 @@ public static class Items
 /// <summary>
 /// A hero's inventory, which starts empty: <see cref="Slots"/> slots of its own, the first row the hotbar,
 /// then its equipment, a slot for each kind in <see cref="Equipment"/>: the head (a helmet), the back, three on the belt,
-/// then the body and the helmet's lamp, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
+/// then the body, the helmet's lamp and the cape, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
 /// whose <c>Equip</c> is its kind.
 /// </summary>
 public static class Inventory
@@ -220,7 +222,7 @@ public static class Inventory
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
-    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Fitting];
+    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Fitting, Cape.Slot];
 
     /// <summary>Every slot of an inventory: its own, then its equipment.</summary>
     public static readonly int Total = Slots + Equipment.Count;

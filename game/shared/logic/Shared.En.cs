@@ -29,6 +29,8 @@ public static partial class En
         // The helmet lamp's card: how far its light reaches, and its beam across.
         ["card.reach"] = "CELLS REACH",
         ["card.beam"] = "BEAM {n}°",
+        ["card.guard"] = "% OFF BLOWS",
+        ["card.warmth"] = "{n}% OFF THE COLD",
         // What a battery holds, on its card: the share of full, and what it holds of full in power-ticks.
         ["card.charge"] = "Charge",
         ["card.percent"] = "{n}%",

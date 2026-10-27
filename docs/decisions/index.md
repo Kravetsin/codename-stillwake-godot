@@ -139,5 +139,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |
 | [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted |  |
 | [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
+| [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |

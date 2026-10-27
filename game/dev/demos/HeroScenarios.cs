@@ -38,14 +38,14 @@ public sealed class LaddersScenario : DevScenario
         !Args.Has("--autopilot") ? null : Args.Has("--strip") ? HeroAutopilot.StripLaddersRun() : HeroAutopilot.LaddersRun();
 }
 
-[Dev("--cape", "the hero in a heavy cape hung on a rope from its shoulders, run about the hall; --manual by hand (CapeDemo)")]
+[Dev("--cape", "the hero puts on a cape by commands and runs about the hall; --manual by hand (CapeDemo)")]
 public sealed class CapeScenario : DevScenario
 {
     public override Layout? Map => HeroAutopilot.Hall;
 
     public override HeroAutopilot? Script => Args.Has("--manual") ? null : HeroAutopilot.CapeRun();
 
-    public override void Attach(DevContext c) => c.Add(new CapeDemo());
+    public override void Attach(DevContext c) => c.Add(new CapeDemo(c.World));
 }
 
 [Dev("--feel", "the hero's jumps and runs traced step by step (HeroAutopilot.Feel, 0089)")]

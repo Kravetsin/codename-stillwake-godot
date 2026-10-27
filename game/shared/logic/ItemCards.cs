@@ -164,10 +164,18 @@ public static class ItemCards
 
     /// <summary>
     /// A worn item's card: the helmet lamp's reach in cells and its beam across, in degrees, from the light it gives
-    /// (<see cref="Light.HeadLampReach"/>); a battery's number is its charge, set per stack; the jetpack has none.
+    /// (<see cref="Light.HeadLampReach"/>); the cape's share off enemies' blows and off the cold, in percent; a battery's number
+    /// is its charge, set per stack; the jetpack has none.
     /// </summary>
     private static ItemCard Worn(ItemCard card)
     {
+        if (card.Item == Spec.Cape.Item)
+            return card with
+            {
+                Worn = true,
+                Headline = new CardTile((Spec.Cape.Guard / 10).ToString(CultureInfo.InvariantCulture), T("card.guard")),
+                Detail = T("card.warmth", ("n", Spec.Cape.Warmth / 10)),
+            };
         if (card.Item != Spec.HelmetLamp.Item) return card with { Worn = true };
         int beam = (int)Math.Round(Light.HeadLampHalfAngle * 2 * 180 / Math.PI);
         return card with

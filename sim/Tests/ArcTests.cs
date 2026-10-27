@@ -122,6 +122,19 @@ public class ArcTests
     }
 
     [Fact]
+    public void ACapeSparesAFifthOfABoltTheRestCarried()
+    {
+        // A bolt of 4 is 800 thousandths spared: with 200 kept from before, a whole unit (2026-10-27-the-cape-is-worn).
+        var (w, _, arc) = Struck();
+        w.Wear(0, Spec.Cape.Item);
+        w.M.Crew.HeroOf(0)!.Spared = 200;
+        int suit = Suit(w);
+        w.Do(new Bolted(arc.Id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((suit - Damage + 1, 0), (Suit(w), w.M.Crew.HeroOf(0)!.Spared));
+    }
+
+    [Fact]
     public void TwoHeroesSayingOneArcCrossedThemOnOneTickBothPay()
     {
         var (w, _, arc) = Struck();

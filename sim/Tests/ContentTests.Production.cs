@@ -137,12 +137,13 @@ public partial class ContentTests
     /// <summary>
     /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
     /// going to machines (0057): the electronics, circuits, solar cells and the deck drive, to the circuit assembler alone, and soil to
-    /// the Former alone (0060), as the motor of a planet's copper; the arc crafts to the arc bench (0099, 2026-10-27-the-railgun).
+    /// the Former alone (0060), as the motor of a planet's copper and the cape of its cloth (2026-10-27-the-cape-is-worn); the arc crafts to
+    /// the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
-    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilAndMotorsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilMotorsAndTheCapeAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], formed = ["soil", "motor", "nozzle", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
+        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], formed = ["soil", "motor", "nozzle", "fuelPump", "cape"], arc = ["arcModule", "accumulator", "railgun"];
         Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));

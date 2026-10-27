@@ -25,7 +25,7 @@ public sealed record Release(string Species, int Cell) : Command;
 
 /// <summary>
 /// The sender's hero was hit by creature <c>Creature</c>'s charge (0103), as its client saw them touch: its suit pays the species'
-/// <c>Ram</c> (<see cref="ICrewOps.Shock"/>) and the creature recoils, fleeing, so a charge hits once. Refused for a creature gone
+/// <c>Ram</c> (<see cref="ICrewOps.Blow"/>, a cape sparing its share) and the creature recoils, fleeing, so a charge hits once. Refused for a creature gone
 /// (<c>creatures.gone</c>) or not charging (<c>creatures.notAttacking</c>): a second hero it touched on the same charge pays nothing.
 /// </summary>
 public sealed record HitBy(int Creature) : Command;
@@ -221,7 +221,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         var creature = State.Creatures[Alive(c.Creature)];
         var spec = Spec.Get(creature.Species);
         // A ram may take the suit's last unit: the hero passes out, as the cold or the lava would leave it.
-        _crewOps.Shock(c.From, spec.Moves[creature.Act!.Move].Damage);
+        _crewOps.Blow(c.From, spec.Moves[creature.Act!.Move].Damage);
         // It recoils off the hero it struck, hopping back the way it came, its act spent: the hero thrown on, the two part at
         // once. Read from the creature alone.
         EndAct(creature, spec, creature.VX >= 0 ? -1 : 1, hop: true);

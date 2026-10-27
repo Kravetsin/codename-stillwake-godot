@@ -105,6 +105,17 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void TheCapesCardShowsItsShareOffBlowsAndOffTheCold()
+    {
+        // From content (2026-10-27-the-cape-is-worn): a fifth of each.
+        var cape = ItemCards.Of(Spec.Cape.Item, false);
+        Assert.True(cape.Worn);
+        Assert.Equal(new CardTile("20", "% OFF BLOWS"), cape.Headline);
+        Assert.Equal("20% OFF THE COLD", cape.Detail);
+        Assert.Null(cape.Use);
+    }
+
+    [Fact]
     public void WearEquipmentOnTheMediumCardTheHelmetLampWithItsReachFromItsLight()
     {
         var lamp = ItemCards.Of(Spec.HelmetLamp.Item, false);
