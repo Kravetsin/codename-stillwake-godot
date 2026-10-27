@@ -70,6 +70,9 @@ public sealed class LandingModule : Module<LandingState>, ICarries
     private readonly IItemsOps _itemsOps;
 
     private static readonly Placement Pod = new("machine", "dropPod");
+
+    /// <summary>The drop pod's spec: what the client's pictures of a flight size and place it by, the pod being off the grid then.</summary>
+    public static MachineSpec PodSpec => Content.Machines.Get(Pod.Kind);
     /// <summary>What its one slot takes and a descent burns.</summary>
     private static readonly string Fuel = Content.Machines.Get(Pod.Kind).Takes!;
 

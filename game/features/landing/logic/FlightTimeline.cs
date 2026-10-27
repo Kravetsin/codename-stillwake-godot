@@ -81,7 +81,7 @@ public static class FlightTimeline
     /// <summary>Where a pod whose rider is held at <paramref name="floor"/> stands from, its top-left: the inverse of <see cref="LandingModule.FloorOf"/>.</summary>
     public static int PodCellOf(int floor, int width)
     {
-        var spec = Content.Machines.Get("dropPod");
+        var spec = LandingModule.PodSpec;
         return floor - (spec.Height - 1) * width - (spec.Width / 2 - 1);
     }
 

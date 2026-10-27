@@ -131,3 +131,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [compact-wire](2026-10-26-compact-wire.md) | A compact wire | accepted |  |
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
+| [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |

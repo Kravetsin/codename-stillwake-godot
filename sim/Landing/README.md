@@ -73,7 +73,8 @@ return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 ## Deliberately not handled
 
 - A run open when its power fails stays open; a piece added to a run's left moves its plug.
-- No slide as it opens; no picture of a flight yet (slice 2): the rider's screen whites out.
+- No picture here: the deck's slide, the fall, the rider's flight and the touchdown are the client's, from the flight's ticks
+  (ADR `2026-10-27-the-descent-pictures`).
 - Boarding asks no reach: peers are trusted (0002).
 - A launch shuts a run opened by hand before it. A descent leaves its room without air: crewmates in it breathe their
   suits; a hero standing on the run when it opens falls out of the ship.

@@ -100,6 +100,27 @@ public partial class Main : Node2D, ITogether
     private string? _worldId;
     private int _lastSaveTick;
 
+    /// <summary>The drop pods coming down on the surface this player sees (the descent's pictures), one for the session, kept across switches.</summary>
+    private readonly Features.Landing.Arrivals _arrivals = new();
+    private bool _flewLast;
+    private World? _arrivalsWorld;
+
+    /// <summary>
+    /// Tells the arrivals this frame's pods: a world loaded or resynced (a new <c>World</c>) shows nothing coming down; this
+    /// player's own pod comes down the frame its flight is gone and it sits in one.
+    /// </summary>
+    private void SeeArrivals(Client client, double delta)
+    {
+        int surface = client.World.SurfaceOf(client.Id);
+        bool newWorld = !ReferenceEquals(client.World, _arrivalsWorld);
+        _arrivalsWorld = client.World;
+        bool flies = _m.Landing.FlightOf(client.Id) != null;
+        int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
+        _flewLast = flies;
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Seats).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
+    }
+
     /// <summary>
     /// The rider's view shaken as its pod drops through the deck (the descent's pictures): a knock every third tick of the fall,
     /// a random way each, through the camera's own nudge.
@@ -314,7 +335,7 @@ public partial class Main : Node2D, ITogether
         _faded.Clear();
         _light?.QueueFree();
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
-            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null });
+            Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null }, _arrivals);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -406,6 +427,7 @@ public partial class Main : Node2D, ITogether
         _heroes += heard.Count;
         DevTick(client, before);
         ShowWorld();
+        SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
         if (client.World.Tick != before) ShakeFalling(client);

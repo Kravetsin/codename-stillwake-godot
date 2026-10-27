@@ -29,7 +29,7 @@ public sealed class PlatformScenario : DevScenario
     /// <summary>Ticks it sits before it leaves again with <c>--platform-seat</c>: the porthole seen emptying as it steps out.</summary>
     private const int LeaveAfter = 40;
     /// <summary>Ticks seated on the planet before <c>--descent</c> flies back: the landed pod seen first.</summary>
-    private const int StayFor = 40;
+    private const int StayFor = 60;
     private int? _landedAt;
     private int _readAt = -1;
 

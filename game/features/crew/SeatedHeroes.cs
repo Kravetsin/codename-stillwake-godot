@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -25,8 +26,12 @@ public partial class SeatedHeroes : Node2D
     /// <summary>Each pod sat in: its porthole, the figure in it and whose it is, made again for another hero.</summary>
     private readonly Dictionary<int, (Sprite2D Porthole, Figure Figure, int Peer)> _shown = [];
 
-    public SeatedHeroes(IGridQueries grid, LandingModule landing, IPlayersQueries players)
+    /// <summary>A pod still coming down, drawn by the landing feature: nobody shows in it till it stands.</summary>
+    private readonly Func<int, bool> _held;
+
+    public SeatedHeroes(IGridQueries grid, LandingModule landing, IPlayersQueries players, Func<int, bool>? held = null)
     {
+        _held = held ?? (_ => false);
         _grid = grid;
         _landing = landing;
         _players = players;
@@ -38,7 +43,7 @@ public partial class SeatedHeroes : Node2D
         var seated = new HashSet<int>();
         foreach (var seat in _landing.Seats)
         {
-            if (_grid.MachineById(seat.Pod) is not { } pod) continue;
+            if (_grid.MachineById(seat.Pod) is not { } pod || _held(seat.Pod)) continue;
             seated.Add(seat.Pod);
             if (_shown.TryGetValue(seat.Pod, out var was) && was.Peer != seat.Peer) Free(seat.Pod);
             int colour = Suits.Of(_players, seat.Peer);

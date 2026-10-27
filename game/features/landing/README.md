@@ -1,7 +1,7 @@
 # landing (client): the drop pod's seats and flights
 
 What the launch platform and the drop pod show beyond the grid's own drawing (ADRs `2026-10-25-the-drop-pod`,
-`2026-10-26-the-descent`). The sim's `sim/Landing` decides: the client reads `Seats`, `SeatOf`, `FlightOf` and
+`2026-10-26-the-descent`, `2026-10-27-the-descent-pictures`). The sim's `sim/Landing` decides: the client reads `Seats`, `SeatOf`, `FlightOf` and
 `LaunchProblem`, the crew feature sends `Board` and `Alight` from E, and the pod's key sends `Launch`. The platform's lamps and
 socket are the power feature's (`PlatformLamps`).
 
@@ -13,8 +13,9 @@ socket are the power feature's (`PlatformLamps`).
 | `LaunchKey.cs` | a pod's key under its slot: Descend aboard, Return off the ship, dim with the sim's refusal in its tooltip | yes |
 | `FlightOverlay.cs` | over the rider's screen while it flies, kept across a surface switch: the flight, the dip to black, the white | yes |
 | `FlightScreen.cs` | the rider's flight at the world's scale, no planet: star lines rushing past; up, out of a blue sky first | yes |
-| `PodFlights.cs` | a pod in the air from this surface: the deck's halves sliding apart and shut, the pod falling through on its thruster | yes |
+| `PodFlights.cs` | a pod moving in the world: the deck sliding and the fall aboard; on a planet the touchdown and the lift-off | yes |
 | `logic/FlightTimeline.cs` | when each picture of a flight plays and how far along: seconds from the flight's ticks, the curves | no |
+| `logic/Arrivals.cs` | the pods just come down on the surface seen and for how long, held back from the grid till they stand | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
 | `logic/Landing.En.cs` | Its player text (`En`): the landing refusals and the key's two words | no |
 
@@ -37,10 +38,17 @@ socket are the power feature's (`PlatformLamps`).
 - **The rider's flight** (`FlightScreen`) cuts in through a dip to black and fills the screen at the world's scale, the pod in the
   middle: no planet, only speed. Down: star lines alone, ever faster, to the white; up: a planet's blue sky and clouds first, to
   black, the lines rushing down. Drawn in one `_Draw` from the flight's seconds.
+- **On a planet** a pod just come down (`Arrivals`: seated now and not there last frame, or the rider's own the frame its flight
+  ends; off the ship only, nothing in a world just loaded) is held out of the grid, the porthole and the lamps for
+  `FlightTimeline.Release` and drawn lowered from above on its retro flame into its dust, with a bounce (`PodFlights`); time here is
+  frame time, a frame counted at most `Arrivals.MostDelta`, so the planet's freeze does not eat it. Leaving the pod or flying
+  off lets it go at once. A return lifts off on its flame out of a cloud of dust before the rider's screen cuts to the climb.
 - The white rises over a flight's last second, is full on its last tick (the frame frozen while a planet opens) and falls
   over half a second once the hero is on the surface it flew to; a flight ended any other way clears it at once.
 
 ## Deliberately not handled
 
 - What the seated hero wears or holds: the figure behind the glass is its suit alone.
-- The fall, the streaks and glow of a flight, the touchdown and the docking: slice 2. Peers aboard see the pod vanish.
+- The docking aboard: the white falls over the pod already standing at home. The hero behind the porthole while its pod moves.
+- Sound: the flight is silent until a sound pass.
+- A touchdown in a world loaded or joined during it: the pod shows standing.
