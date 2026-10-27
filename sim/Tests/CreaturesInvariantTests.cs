@@ -63,7 +63,7 @@ public class CreaturesInvariantTests
             if (c.Left < 1 || c.Left > LongestOf(c.Posture, spec)) return $"creature {c.Id} {c.Posture} with {c.Left} ticks left";
         }
         foreach (var hero in w.M.Crew.Heroes)
-            if (hero.Suit < 0 || hero.Suit > Content.Crew.Suit) return $"hero {hero.Id}'s suit at {hero.Suit}";
+            if (hero.Air < 0 || hero.Air > Scenario.Full) return $"hero {hero.Id}'s suit at {hero.Air}";
         return null;
     }
 

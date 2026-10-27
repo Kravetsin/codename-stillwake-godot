@@ -64,23 +64,19 @@ public partial class Figure : Node2D
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _body, _helmet;
-    private readonly Sprite2D _headLamp;
-
-    /// <summary>Where the helmet lamp sits on the helmet, from the neck it turns at, facing +x: on its brow, ahead of the visor.</summary>
-    private static readonly Vector2 HeadLampOn = new(4, -9);
+    private readonly Sprite2D _headLamp, _lens;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
     private static readonly Vector2 VisorOn = new(4, -5);
 
-    /// <summary>The lamp's bulb, a few warm pixels, a placeholder till its art is picked: each figure's own, freed with it.</summary>
-    private readonly Texture2D _bulb = MakeBulb();
+    /// <summary>The helmet lamp's lens, its two warm pixels drawn again unlit: each figure's own, freed with it.</summary>
+    private readonly Texture2D _lensPicture = MakeLens();
 
-    private static Texture2D MakeBulb()
+    private static Texture2D MakeLens()
     {
-        var image = Image.CreateEmpty(3, 2, false, Image.Format.Rgba8);
-        image.Fill(new Color(1f, 0.9f, 0.62f));
-        image.SetPixel(0, 1, new Color(0.55f, 0.48f, 0.4f));
-        image.SetPixel(2, 1, new Color(0.55f, 0.48f, 0.4f));
+        var image = Image.CreateEmpty(1, 2, false, Image.Format.Rgba8);
+        image.SetPixel(0, 0, new Color("fff6ce"));
+        image.SetPixel(0, 1, new Color("f0be5a"));
         return ImageTexture.CreateFromImage(image);
     }
     /// <summary>The jetpack worn on the back over the air pack (0047), a placeholder picture till its art is picked.</summary>
@@ -211,8 +207,11 @@ public partial class Figure : Node2D
         // The helmet turns at the neck.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
         _helmet.AddChild(Part("helmet"));
-        // The helmet lamp's bulb on its brow (0077), drawn unlit: it is the light.
-        _headLamp = new Sprite2D { Texture = _bulb, Position = HeadLampOn, Visible = false, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+        // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
+        _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
+        Lit.Set(_headLamp);
+        _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+        _headLamp.AddChild(_lens);
         _helmet.AddChild(_headLamp);
         _plan = Part("sheet");
         _plan.Visible = false;
@@ -352,15 +351,15 @@ public partial class Figure : Node2D
         }
     }
 
-    /// <summary>Whether the hero wears the helmet lamp (0077): its bulb shows on the helmet's brow.</summary>
+    /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow.</summary>
     public bool HeadLamp
     {
         get => _headLamp.Visible;
         set => _headLamp.Visible = value;
     }
 
-    /// <summary>The helmet lamp's bulb as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
-    public Vector2 HeadLampAt => _headLamp.GlobalPosition;
+    /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
+    public Vector2 HeadLampAt => _lens.GlobalPosition;
 
     /// <summary>The visor's middle as drawn, in pixels of the world, turning with the head: where a breath of room air puffs off (0081).</summary>
     public Vector2 Visor => _helmet.ToGlobal(VisorOn);

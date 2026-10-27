@@ -163,6 +163,35 @@ public class SurfacesTests
         Assert.False(w.On(2).Building.Instant);
     }
 
+    /// <summary>
+    /// A planet a descent asks for twice in a tick opens once, after every surface ran, by the ship (its creative mode kept), and
+    /// a hero sent to its id lands there. The one slow test here: it grows the first planet.
+    /// </summary>
+    [Fact]
+    public void APlanetAskedForOpensOnceByTheShipAndTakesWhoIsSentToIt()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new SetCreative(true)).Run();
+        var where = w.M.Landing.Where;
+        int id = where.OpenPlanet();
+        Assert.Equal(id, where.OpenPlanet());
+        where.Send(0, id);
+        w.Run();
+        Assert.Equal([Surface.Ship, Content.Landing.Planet], w.World.Surfaces.Select(s => s.Kind));
+        Assert.Equal(id, w.World.SurfaceOf(0));
+        Assert.True(w.On(id).Items.Creative);
+    }
+
+    [Fact]
+    public void APlanetAlreadyOpenIsTheOneAskedForAndNoneOpens()
+    {
+        var w = new Scenario(Ship);
+        w.Do(new OpenSurface(Strip)).Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+        Assert.Equal(2, w.M.Landing.Where.OpenPlanet());
+        w.Run();
+        Assert.Equal(3, w.World.Surfaces.Count);
+    }
+
     [Fact]
     public void CarriesTheHerosSuitAndThrustTheInventoryAndARunningDrillAcross()
     {
@@ -170,13 +199,13 @@ public class SurfacesTests
         w.GiveItems(0, (Drill, 1), ("scrap", 30)).Put(Belt, new Stack("battery", 1, 500_000)).Wear(0, Content.Jetpack.Item);
         w.Do(new Exert(true)).Do(new Run(Drill, true)).Run(Content.Crew.BreathEvery);
         var hero = w.M.Crew.HeroOf(0)!;
-        var before = (hero.Suit, hero.Exerting, hero.ThrustTicks);
+        var before = (hero.Air, hero.Exerting, hero.ThrustTicks);
         var inventory = w.M.Items.Inventory(0).ToList();
 
         w.Do(new Transfer(1)).Run();
         var m = w.On(1);
         var there = m.Crew.HeroOf(0)!;
-        Assert.Equal(before, (there.Suit, there.Exerting, there.ThrustTicks));
+        Assert.Equal(before, (there.Air, there.Exerting, there.ThrustTicks));
         Assert.Equal(Drill, m.Items.Running(0));
         // The drill drew its tick on the strip: the battery paid it there, everything else as it was.
         Assert.Equal(inventory.Where((_, i) => i != Belt), m.Items.Inventory(0).Where((_, i) => i != Belt));
@@ -223,7 +252,7 @@ public class SurfacesTests
         // Up in the sky, its suit all but empty: the next breath its thin air makes it pay passes it out.
         int sky = 10 * StripWidth + 28;
         w.Do(new Enter(sky) { Surface = 1 }).Run();
-        m.Crew.HeroOf(0)!.Suit = 1;
+        m.Crew.HeroOf(0)!.Air = 1;
         w.Run(Content.Surfaces.TestStrip.ThinAir!.Value * Content.Crew.BreathEvery);
         Assert.True(m.Crew.HeroOf(0)!.Out > 0);
         var body = Assert.Single(m.Items.Floor);
@@ -233,7 +262,7 @@ public class SurfacesTests
         Assert.Equal(0, w.World.SurfaceOf(0));
         Assert.Null(m.Crew.HeroOf(0));
         var hero = w.M.Crew.HeroOf(0)!;
-        Assert.Equal((w.M.Crew.Spawn, Content.Crew.Suit, 0), (hero.Cell, hero.Suit, hero.Out));
+        Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0), (hero.Cell, hero.Air, hero.Out));
         // The gear it kept came with it; the body stays on the strip.
         Assert.Equal(new Stack(Content.Weapons.Axe.Item, 1), w.M.Items.Inventory(0).First(s => s?.Item == Content.Weapons.Axe.Item));
         Assert.Contains(new Stack(Content.Screwdrivers.Basic.Item, 1), w.M.Items.Inventory(0));

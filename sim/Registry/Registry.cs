@@ -75,7 +75,7 @@ public sealed class Registry
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
-        Crew = new CrewModule(Atmosphere, Grid, Items, Items, Players, Players);
+        Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players);
         // Building reads where heroes are only as its commands apply, never in a system, so it keeps its place in the run
         // order and the saves', before crew (0077: a wall does not finish on a hero).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting, Crew, Crew);
@@ -86,7 +86,7 @@ public sealed class Registry
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
         Creatures = new CreaturesModule(Grid, Crew, Crew, Items, Items, Debris, Debris, Building, Building, Rooms);
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
-        Landing = new LandingModule(Grid, Grid, Power, Crew);
+        Landing = new LandingModule(Grid, Grid, Power, Crew, Items, Items);
         Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }

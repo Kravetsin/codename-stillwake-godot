@@ -4,62 +4,80 @@
 
 | File | Purpose |
 | --- | --- |
-| `Landing.cs` | The launch platform opened and shut with power; the drop pod boarded and left; its landers to come. |
+| `Landing.cs` | The launch platform opened and shut with power; the drop pod boarded, left, flown down to the planet and back. |
 
-The launch platform (ADR `2026-10-24-the-launch-platform`) and the drop pod (ADR `2026-10-25-the-drop-pod`), and later the
-landers that stand on the platform and drop through it to a planet. For now a platform's run opens and shuts by hand,
-gated by power, and a hero sits in a pod and gets out again: nothing launches.
+The launch platform (ADR `2026-10-24-the-launch-platform`), the drop pod (ADR `2026-10-25-the-drop-pod`) and its descent and
+return (ADR `2026-10-26-the-descent`); later the landers that drop with it.
 
-- **Depends on:** `Grid` (`IGridQueries`: the platform cells and the pods; `IGridOps.SetDoorway`: opening a run), `Power`
-  (`IPowerQueries.Feeds`: whether a run has power enough), `Crew` (`ICrewQueries.HeroOf`: whether a seated hero is here and
-  awake).
-- **State** (`LandingState`, saved): `Seats` — `Seat(Pod, Peer)` by pod id, each pod one hero, each hero one pod. New to save
-  format 32, its slice made empty by the migration step; the seats added later with an initializer, none.
+- **Depends on:** `Grid` (`IGridQueries`: the platform cells and the pods; `IGridOps`: opening a run, a pod lifted and placed),
+  `Power` (`IPowerQueries.Feeds`: whether a run has power enough), `Crew` (`ICrewQueries`: whether a hero is here and awake,
+  the spawn), `Items` (the pod's slot: fuel burnt, its load lifted, put back or laid).
+- **State** (`LandingState`, saved): `Seats` — `Seat(Pod, Peer)` by pod id; `Flights` — `Flight(Peer, Up, TicksLeft, Home,
+  Floor, Load)` by peer, in the slice of the surface the pod left; `Owners` — `Owner(Pod, Peer, Home)` by pod id, the pods
+  standing off the ship. Seats new to format 32; flights and owners added later with initializers, none.
 
 ## Rules
 
 - A platform piece (`Structure.PlatformClosed`, `_`; open `PlatformOpen`, `~`) is a doorway of its own group
-  (`StructureGroup.Platform`): the pieces side by side along a row are one doorway (`Join.Run`), so a run opens and shuts
-  whole, from any of its cells.
-- `SetPlatform(cell, open)` sets the run at `cell` as asked, whole; already as asked, it changes nothing. Opening needs the
-  run to have power enough: its plug fed (`Feeds`: its network makes or stores power and covers its demand). Every cable
-  to a run plugs in at its left end, opposite its lamp (`StructureSpec.Plug`, `PowerNodes.NodeAt`), laid where it may on
-  it. Shutting needs none, so a run left open on a network gone dark can still be shut.
-- Open, the deck is a hole (no trait): no room's edge runs through it, so space under a hull's floor comes in and its room
-  turns to space, air and gravity gone, as with a floor torn open. Heroes pass it both ways. A stack on the deck stays,
-  afloat before its back wall (Items drifts only what lies out past the hull). An open door, an `Opening`, leaves its room
-  a room that vents; a platform is a hole on purpose, the pod's way out.
-- `SetDoor` refuses a platform (`grid.noDoor`): only this module opens one.
-- **The drop pod** (`dropPod`, a machine that `Seats` and `Lands`): Grid lets it stand only on a platform, shut or open, the
-  row under it all a run's (`grid.noPlatform`). `Board(pod)` seats the sender's hero in it; `Alight` takes it out. Its one
-  slot takes biofuel only (`MachineSpec.Takes`, Items' `items.notTaken`), put in by hand: drones never feed it.
-- A seat holds while its pod stands and its hero is on the surface and awake: a pod taken apart, a peer gone (`Leave`) or a
-  hero passed out frees it in the derivation phase.
-- Where a seated hero is, its client says (0002): it holds the hero at the pod's floor, in its middle, and draws it behind
-  the porthole. The sim keeps no position of its own.
+  (`StructureGroup.Platform`): the pieces side by side along a row are one doorway (`Join.Run`), opened and shut whole.
+- `SetPlatform(cell, open)` sets the run at `cell` as asked, whole. Opening needs its plug fed (`Feeds`); every cable to a run
+  plugs in at its left end (`StructureSpec.Plug`, `PowerNodes.NodeAt`). Shutting needs none. `SetDoor` refuses a platform.
+- Open, the deck is a hole (no trait): space under a hull's floor comes in and its room turns to space, air and gravity
+  gone. Heroes pass it both ways. A stack on the deck stays.
+- **The drop pod** (`dropPod`, `Seats` and `Lands`): aboard only on a platform (`grid.noPlatform`), off the ship only on
+  solid ground, where only this module places one (`grid.noGround`). `Board(pod)` seats the sender's hero; `Alight` takes it
+  out. Its one slot takes biofuel only, by hand.
+- A seat holds while its pod stands and its hero is here and awake.
+- **`Launch`** flies the sender's pod: from the ship down, burning `Content.Landing.DescentFuel` biofuel and opening its run
+  under it; from anywhere else back to its home aboard, free. Its machine and seat go; its slot's stack flies as its load.
+  A hero gone or out on the tick it launches launches nothing (its seat lasts till derivation); a flying hero boards none.
+- Flights count down in the construction phase (the grid changes only in commands or construction). A descent shuts its
+  run `FallTicks` after its launch, whether or not it was open before; one whose hero is gone or out ends at once, docked
+  home empty, no planet opened; one passing out after it on its last tick is sent all the same. At zero a descent sends its
+  hero to `ISurfaces.OpenPlanet()` (an open planet, else the first, opened once every surface ran), a return aboard. A dev
+  transfer mid-fall shuts the run the descent opened.
+- **A pod goes where its hero goes** (`ICarries`, after Crew and Items): its flight, or, off the ship, the pod it owns,
+  whatever moved the hero — a flight ending, `Leave`, a wake aboard, a load, a dev transfer.
+  - Aboard it **docks** at home, its load put back; home built over or its run gone, its build cost and load are laid there.
+  - Off the ship it **lands** by the spawn: from the spawn's column outward, left first, the first anchor whose four column
+    tops are level and where it fits; it is its rider's (`Owners`). Nowhere, it is laid at the spawn as its cost and load.
+  - Its hero is seated in it when it rode (a flight, not a pod following its owner) and is here and awake.
+  - It minds the grid, not plans: a plan under it waits on its last tick (Building) till the pod is gone.
+- Off the ship only its owner boards or launches a pod (`landing.notYours`). Nothing takes a pod apart there: Building marks
+  nothing where tools break.
+- The hero arrives at the surface's spawn (`Send` carries no cell, and the pod is placed after Crew arrives); its client
+  holds it at the pod's floor (`Floor`, `FloorOf`) and reports it there within a round trip. The sim keeps no seated position.
 
 ## API
 
-- **Queries:** `Problem(cell, open)` — why `SetPlatform` would be refused, what E shows; `Powered(cell)` — its run's lamp;
-  `RunOf(grid, cell)` (static) — its run, shut and open alike, what the client's lamps and E's outline find;
-  `BoardProblem(peer, pod)`; `SeatOf(peer)`, `RiderOf(pod)`, `Seats`.
-- **Commands:** `SetPlatform(cell, open)` — refused `landing.noPlatform` with no platform at `cell`, `landing.unpowered` when
-  opening a run without power enough. `Board(pod)` — `landing.noPod` (no machine that `Seats`), `landing.seated` (the
-  sender sits in a pod), `landing.taken` (another hero in it). `Alight` — `landing.notSeated`.
-- **Fuzz:** one turn in 8: a third of them a board (a pod mostly, any id otherwise) or a leave, the rest a set of a platform
-  cell mostly, of any cell (off the grid too) otherwise, open or shut at random.
+- **Queries:** `Problem(cell, open)`, `Powered(cell)`, `RunOf(grid, cell)` (static); `BoardProblem(peer, pod)`,
+  `LaunchProblem(peer)` — what the pod's panel greys its button with; `SeatOf(peer)`, `RiderOf(pod)`, `Seats`;
+  `FlightOf(peer)`; `Returns` — the key's Return; `FloorOf(cell, width)` (static) — where a pod's rider sits.
+- **Commands:** `SetPlatform(cell, open)` — `landing.noPlatform`, `landing.unpowered`. `Board(pod)` — `landing.noPod`,
+  `landing.seated` (in a pod or flying), `landing.taken`, `landing.notYours`. `Alight` — `landing.notSeated`. `Launch` — `landing.notSeated`;
+  aboard `landing.noPlatform`, `landing.shaftBlocked` (anything solid under its run to the edge, from an older save),
+  `landing.unpowered`, `landing.noFuel`, `landing.cannotLeave` (a world that cannot open
+  surfaces); off the ship `landing.notYours` (another's pod, or one nobody came down in).
+- **Fuzz:** one turn in 8: a launch, half of them from a seated hero, an eighth from others; else a board or a leave a third,
+  a set of a platform the rest.
 
 ## Invariants
 
 - A run is all shut or all open after any `SetPlatform`; a shut run never opens without power enough.
+- A platform's shaft, under it to the grid's edge, is kept empty of anything solid, built or planned (Grid, Building).
 - A pod has at most one rider and a hero at most one pod; every seat's pod stands and its hero is awake after a tick.
+- Every pod is in one place: standing on one surface or in one flight; a hero flies one at most, seated in none meanwhile.
+  Every owned pod stands by its owner, or its owner flies. Biofuel goes only by a descent's five; a twin fed the same, saved
+  and loaded, hashes alike (`DescentTests`).
 
 ## Deliberately not handled
 
-- A run open when its power fails stays open: shutting it is the player's, as a door's is.
-- A piece added to a run's left moves its plug: a cable left on the old end no longer feeds it, and is plugged again by
-  hand. Building a run is rare and the lamp shows it red.
-- No slide as it opens: the client shows it open or shut, its door sounds playing.
-- Boarding asks no reach: the client sends it only for a pod within reach, and peers are trusted (0002).
-- A pod over a platform taken apart stays where it stands; a platform opened under it holds it. Nothing falls yet.
-- The fuel is not burnt: it waits for the launch.
+- A run open when its power fails stays open; a piece added to a run's left moves its plug.
+- No picture here: the deck's slide, the fall, the rider's flight and the touchdown are the client's, from the flight's ticks
+  (ADR `2026-10-27-the-descent-pictures`).
+- Boarding asks no reach: peers are trusted (0002).
+- A launch shuts a run opened by hand before it. A descent leaves its room without air: crewmates in it breathe their
+  suits; a hero standing on the run when it opens falls out of the ship.
+- A pod whose home was built over while it was down is laid as its cost on return; one that finds nowhere to land likewise.
+- A pod over ground dug away under it stays standing. Opening the first planet freezes every peer for its tick (~1.7 s).
+- A flying hero breathes the room it was held in, its suit covering the flight.

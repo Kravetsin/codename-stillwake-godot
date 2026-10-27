@@ -13,15 +13,17 @@ public sealed class Hero
     /// behind the body. What it breathes, and what anything else reading where heroes are reads.
     /// </summary>
     [JsonInclude] public int Cell { get; internal set; }
-    /// <summary>The oxygen its suit holds, from nothing to <c>Crew.Suit</c>.</summary>
-    [JsonInclude] public int Suit { get; internal set; }
+    /// <summary>
+    /// Its air, from nothing to its capacity: the worn suit's <c>Tank</c>, or <c>Crew.Lungs</c> bare (2026-10-27-suits-are-worn).
+    /// </summary>
+    [JsonInclude] public int Air { get; internal set; }
     /// <summary>Ticks left passed out; 0 while conscious.</summary>
     [JsonInclude] public int Out { get; internal set; }
     /// <summary>Whether it runs, as its client last said: it breathes <c>Crew.Exerted</c> a breath.</summary>
     [JsonInclude] public bool Exerting { get; internal set; }
-    /// <summary>Whether it thrusts with its jetpack, as its client last said, and wears one, awake: the suit pays <c>Jetpack.TicksPerUnit</c> ticks a unit.</summary>
+    /// <summary>Whether it thrusts with its jetpack, as its client last said, and wears one, awake: its air pays <c>Jetpack.TicksPerUnit</c> ticks a unit.</summary>
     [JsonInclude] public bool Thrusting { get; internal set; }
-    /// <summary>Ticks of thrust toward the next unit the suit pays, kept between bursts so short taps add up.</summary>
+    /// <summary>Ticks of thrust toward the next unit its air pays, kept between bursts so short taps add up.</summary>
     [JsonInclude] public int ThrustTicks { get; internal set; }
 }
 

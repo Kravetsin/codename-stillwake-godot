@@ -58,7 +58,9 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
   `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.noPlatform` (a machine that `Lands` with the row
-  under it not all launch platform).
+  under it not all launch platform), `grid.noGround` (off the ship, where only Landing places a pod, the row under it not all
+  solid), `grid.underPlatform` (a structure or machine in a launch platform's shaft: under it, to the grid's edge),
+  `grid.shaftBlocked` (a platform over a shaft not empty). `Taken(cell)`, `ClearBelow(cell)`: the shaft's test; `OnRun`.
 
 ## Maps
 

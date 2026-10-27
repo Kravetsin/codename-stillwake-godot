@@ -76,7 +76,7 @@ public class RuinsTests
         return w.Do(new Enter(w.At(2, 3)) { From = 0 }).Do(new Enter(w.At(6, 2)) { From = 1 }).Run();
     }
 
-    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Suit;
+    private static int Suit(Scenario w, int peer) => w.M.Crew.HeroOf(peer)!.Air;
     private static bool Taken(Scenario w, string kind) => w.M.Building.Relics.Single(r => r.Kind == kind).Taken;
 
     [Fact]

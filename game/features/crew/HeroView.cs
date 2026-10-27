@@ -296,6 +296,9 @@ public partial class HeroView : Node2D
     /// <summary>Whether the hero floats out in space, weightless, as drawn this frame.</summary>
     public bool Floats { get; private set; }
 
+    /// <summary>Whether the hero sits in a drop pod or flies in one this frame: it hears as in air there, the pod holding its own.</summary>
+    public bool InPod { get; private set; }
+
     /// <summary>Whether this machine's hero holds the plan in its hands, drawn and sent to the others: the hand not free (0022).</summary>
     public bool HoldsPlan => _ui.Hand.Get() != Holding.Free;
 
@@ -343,9 +346,10 @@ public partial class HeroView : Node2D
         bool passedOut = (known?.Out ?? 0) > 0;
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
+        InPod = seat != null;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
-        bool canThrust = !passedOut && jetpack && known is { Suit: > 0 };
+        bool canThrust = !passedOut && jetpack && known is { Air: > 0 };
         int surface = client.World.SurfaceOf(client.Id);
         bool moved = _placed && surface != _surface;
         _surface = surface;

@@ -131,8 +131,21 @@ public partial class GridView : Node2D
     /// Slides the panels of doors that moved on a step, redrawing only the cells whose step changed; each doorway's slide
     /// lit from its leading cell (<see cref="DoorLight"/>).
     /// </summary>
+    /// <summary>A machine held out of the drawing while another view draws it moving (a pod coming down, the landing feature's).</summary>
+    public Func<int, bool> HeldBack { get; init; } = _ => false;
+
+    /// <summary>Changes whenever <see cref="HeldBack"/>'s answers do: the machines are drawn again then.</summary>
+    public Func<int> HeldBackVersion { get; init; } = () => 0;
+
+    private int _heldBackVersion;
+
     public override void _Process(double delta)
     {
+        if (HeldBackVersion() is var held && held != _heldBackVersion)
+        {
+            _heldBackVersion = held;
+            DrawMachines();
+        }
         long revealed = Game.Dev.FrameLog.Begin();
         Reveal();
         _shadows.Flush();
@@ -519,6 +532,7 @@ public partial class GridView : Node2D
         _drawnMachines = _grid.Machines.ToArray();
         foreach (var m in _drawnMachines)
         {
+            if (HeldBack(m.Id)) continue;
             Put(_machines, CellOf(m.Cell), $"machine_{m.Kind}");
             // A socket where power plugs in, on every machine that makes or draws it.
             if (Machines.TryGet(m.Kind, out var spec) && spec.Plug is { } plug)

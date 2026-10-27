@@ -81,19 +81,27 @@ public static class Sources
     }
 
     /// <summary>
-    /// A helmet lamp's two lights (0077): its beam from the <paramref name="bulb"/> the way it points, and its glow round the
-    /// head from halfway between the bulb and the <paramref name="neck"/> — inside the hero, so never in a wall, for a light in
-    /// one lights nothing in the open, and the bulb pokes into a wall the hero stands against. The beam from there too then.
+    /// A helmet lamp's two lights (0077): its beam the way it points and a faint glow round it, both from its
+    /// <paramref name="bulb"/>, the lamp's lens. A light in a wall lights nothing in the open, and the lamp pokes into a wall
+    /// the hero stands under or against: then both shine from the first open point back toward the <paramref name="neck"/>,
+    /// inside the hero, so never in a wall.
     /// </summary>
     public static (LightSource Beam, LightSource Glow) HeadLamp(
         (double X, double Y) bulb, (double X, double Y) toward, (double X, double Y) neck, Func<double, double, bool> blocks)
     {
-        var head = ((bulb.X + neck.X) / 2, (bulb.Y + neck.Y) / 2);
-        var beamAt = blocks(bulb.X, bulb.Y) ? head : bulb;
+        var at = bulb;
+        for (int i = 1; i <= LampBackSteps && blocks(at.X, at.Y); i++)
+        {
+            double t = (double)i / LampBackSteps;
+            at = (bulb.X + (neck.X - bulb.X) * t, bulb.Y + (neck.Y - bulb.Y) * t);
+        }
         return (
-            new LightSource(beamAt.Item1, beamAt.Item2, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize, toward),
-            new LightSource(head.Item1, head.Item2, L.HeadLamp, L.HeadGlow, L.HeadGlowReach, L.HeadGlowKeep, L.LampMost));
+            new LightSource(at.X, at.Y, L.HeadLamp, 1, L.HeadLampReach, L.HeadLampKeep, L.LampMost, L.HeadLampSize, toward),
+            new LightSource(at.X, at.Y, L.HeadLamp, L.HeadGlow, L.HeadGlowReach, L.HeadGlowKeep, L.LampMost));
     }
+
+    /// <summary>How finely a helmet lamp in a wall looks back toward the neck for open air: a pixel or two a step.</summary>
+    private const int LampBackSteps = 8;
 
     /// <summary>
     /// Packs each of <paramref name="lights"/> whose reach touches <paramref name="view"/> (pixels) into

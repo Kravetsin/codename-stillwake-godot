@@ -20,21 +20,27 @@ public partial class PodSeats : Node2D
     private readonly Dictionary<int, Sprite2D> _shown = [];
     private Seat[] _seen = [];
 
-    public PodSeats(IGridQueries grid, LandingModule landing)
+    private readonly Arrivals? _arrivals;
+    private int _heldVersion;
+
+    /// <param name="arrivals">The pods still coming down: their lamps light once they stand.</param>
+    public PodSeats(IGridQueries grid, LandingModule landing, Arrivals? arrivals = null)
     {
         _grid = grid;
         _landing = landing;
+        _arrivals = arrivals;
         ZIndex = Layers.Screens;
     }
 
     public override void _Process(double delta)
     {
-        if (_landing.Seats.SequenceEqual(_seen)) return;
-        _seen = [.. _landing.Seats];
+        int held = _arrivals?.Version ?? 0;
+        if (_landing.Seats.SequenceEqual(_seen) && held == _heldVersion) return;
+        (_seen, _heldVersion) = ([.. _landing.Seats], held);
         var seated = new HashSet<int>();
         foreach (var seat in _seen)
         {
-            if (_grid.MachineById(seat.Pod) is not { } pod) continue;
+            if (_grid.MachineById(seat.Pod) is not { } pod || _arrivals?.Holds(seat.Pod) == true) continue;
             seated.Add(seat.Pod);
             if (!_shown.TryGetValue(seat.Pod, out var sprite))
             {

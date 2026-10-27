@@ -225,7 +225,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// </summary>
     private void Complete(Plan plan, int from)
     {
-        // Plans claim their slots, so nothing can fill one first: a refusal here is our bug.
+        // Plans claim their slots, and a last tick waits on what a pod set down there since: a refusal here is our bug.
         if (plan.Place is { } place) Build(plan.Cell, place);
         else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
         {

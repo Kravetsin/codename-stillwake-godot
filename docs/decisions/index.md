@@ -132,6 +132,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [creatures-are-composed](2026-10-26-creatures-are-composed.md) | Creatures are composed | accepted |  |
 | [fog-edges](2026-10-26-fog-edges.md) | Fog at a planet's edges | accepted |  |
 | [shots-are-the-sims](2026-10-26-shots-are-the-sims.md) | Shots are the sim's | accepted | sentry-arc, shots-pierce (in part) |
+| [the-descent](2026-10-26-the-descent.md) | The drop pod flies its rider down to the planet and back | accepted |  |
 | [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md) | Arcs are hairlines | accepted |  |
 | [effects-on-their-layer](2026-10-27-effects-on-their-layer.md) | Effects on their layer | accepted |  |
 | [one-arm-holds](2026-10-27-one-arm-holds.md) | Every item is held in one hand | accepted |  |
@@ -139,5 +140,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [shots-fall-aboard](2026-10-27-shots-fall-aboard.md) | Shots fall aboard | accepted |  |
 | [shots-pierce](2026-10-27-shots-pierce.md) | Shots pierce what they break | accepted |  |
 | [space-recoil](2026-10-27-space-recoil.md) | Space recoil | accepted |  |
+| [suits-are-worn](2026-10-27-suits-are-worn.md) | Suits are worn | accepted |  |
+| [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |

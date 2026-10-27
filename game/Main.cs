@@ -101,6 +101,39 @@ public partial class Main : Node2D, ITogether
     /// <summary>The world played and kept by this machine; none for a dev world or a friend's.</summary>
     private string? _worldId;
     private int _lastSaveTick;
+
+    /// <summary>The drop pods coming down on the surface this player sees (the descent's pictures), one for the session, kept across switches.</summary>
+    private readonly Features.Landing.Arrivals _arrivals = new();
+    private bool _flewLast;
+    private World? _arrivalsWorld;
+
+    /// <summary>
+    /// Tells the arrivals this frame's pods: a world loaded or resynced (a new <c>World</c>) shows nothing coming down; this
+    /// player's own pod comes down the frame its flight is gone and it sits in one.
+    /// </summary>
+    private void SeeArrivals(Client client, double delta)
+    {
+        int surface = client.World.SurfaceOf(client.Id);
+        bool newWorld = !ReferenceEquals(client.World, _arrivalsWorld);
+        _arrivalsWorld = client.World;
+        bool flies = _m.Landing.FlightOf(client.Id) != null;
+        int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
+        _flewLast = flies;
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Seats).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
+    }
+
+    /// <summary>
+    /// The rider's view shaken as its pod drops through the deck (the descent's pictures): a knock every third tick of the fall,
+    /// a random way each, through the camera's own nudge.
+    /// </summary>
+    private void ShakeFalling(Client client)
+    {
+        if (_m.Landing.FlightOf(client.Id) is not { Up: false } own || client.World.Tick % 3 != 0) return;
+        double s = Features.Landing.FlightTimeline.Seconds(own, 0);
+        if (s >= Features.Landing.FlightTimeline.DropFrom && s < Features.Landing.FlightTimeline.DropTo)
+            _camera.Nudge(new Vector2(Random.Shared.Next(2) * 2 - 1, Random.Shared.Next(2) * 2 - 1));
+    }
     private DateTime? _savedAt;
     private string? _saveProblem;
     private TitleScreen? _title;
@@ -165,15 +198,22 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Kept = p => p.Crate is int id && _m.Logistics.Served(id) ? _m.Items.KeptAt(id, p.Slot) : null;
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
+            // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
+            Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Seats)
+                ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
+                : null;
+            _items.Panel.Launch = LaunchOf;
+            AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
+                () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
             // suit's gauge, so the red edges and the dark of passing out cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
-            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (Content.Crew.Suit, SuitDanger.None, true), _hands.Ui);
+            var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);
             AddChild(gauge);
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
-            AddChild(new Frost(() => _session != null && _hero is { Placed: true } h ? Report.Cold(_m.Crew, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
             IEnumerable<Rect2> Hud()
@@ -253,7 +293,8 @@ public partial class Main : Node2D, ITogether
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
-    private bool Floats() => _session != null && _hero is { Placed: true, Floats: true };
+    // In a drop pod the hero hears as in air, the vacuum outside or not: the pod holds its own.
+    private bool Floats() => _session != null && _hero is { Placed: true, Floats: true, InPod: false };
 
     /// <summary>How deep in a planet's fog this player's placed hero is, 0 to 1 (fog-edges): the world dulls in it as in space.</summary>
     private double Fogged() => _session != null && _hero is { Placed: true } hero && Shared.FogEdges.Of(_m.Grid, _m.Rules) is { } fog
@@ -300,7 +341,7 @@ public partial class Main : Node2D, ITogether
         var context = new SurfaceContext(_m, _hands, () => (_session as Session)?.Progress ?? 0, () => _hero?.HeadLamps() ?? [], HeroBodies,
             Homes: !Has("--no-homes"), HomesMood: Arg("--homes") switch { "lit" => true, "dark" => false, _ => null },
             Peer: () => (_session as Session)?.Client.Id ?? 0, Tick: () => (_session as Session)?.Client.World.Tick ?? 0,
-            Hosts: () => (_session as Session)?.Host != null);
+            Hosts: () => (_session as Session)?.Host != null, Arrivals: _arrivals);
         foreach (var each in SurfaceViews.All)
         {
             if (each.Make(context) is not { } view) continue;
@@ -394,8 +435,10 @@ public partial class Main : Node2D, ITogether
         _heroes += heard.Count;
         DevTick(client, before);
         ShowWorld();
+        SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
+        if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
         _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Host != null, delta * 1000);
         _frameLog?.Mark("hero");

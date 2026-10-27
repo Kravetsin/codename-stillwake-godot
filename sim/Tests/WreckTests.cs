@@ -119,7 +119,7 @@ public class WreckTests
         w.Do(new SetDoor(DoorToB, true)).Do(new Enter(w.M.Crew.Spawn) { From = 1 }).Run(10);
         Assert.Equal(0, AiredIn(w, A));
         w.Run(30 * CrewSpec.BreathEvery);
-        Assert.Equal(CrewSpec.Suit, w.M.Crew.HeroOf(1)?.Suit);
+        Assert.Equal(Scenario.Full, w.M.Crew.HeroOf(1)?.Air);
         // Its Fabricator works with no power and no air.
         w.GiveItems(1, ("scrap", 2));
         w.Do(new Sim.Crafting.Craft(pod, "wire", 1) { From = 1 }).Run(PodTicks("wire"));
@@ -227,12 +227,12 @@ public class WreckTests
         var w = AiredWreck();
         w.Do(new Enter(At(49, 21)) { From = 1 });
         w.Do(new Enter(Space) { From = 2 }).Run();
-        w.Run((CrewSpec.Suit - 3) * CrewSpec.BreathEvery);
-        Assert.True(w.M.Crew.HeroOf(2)?.Suit <= 3);
+        w.Run((Scenario.Full - 3) * CrewSpec.BreathEvery);
+        Assert.True(w.M.Crew.HeroOf(2)?.Air <= 3);
         w.Do(new Enter(At(51, 21)) { From = 2 }).Run();
         w.Run(5 * 60 * 20);
         Assert.Equal(A.Length, AiredIn(w, A));
-        Assert.Equal((CrewSpec.Suit, CrewSpec.Suit), (w.M.Crew.HeroOf(1)?.Suit, w.M.Crew.HeroOf(2)?.Suit));
+        Assert.Equal((Scenario.Full, Scenario.Full), (w.M.Crew.HeroOf(1)?.Air, w.M.Crew.HeroOf(2)?.Air));
     }
 
     [Fact]

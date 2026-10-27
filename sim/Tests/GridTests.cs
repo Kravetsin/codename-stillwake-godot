@@ -299,7 +299,7 @@ public class GridTests
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
             var layout = Layout.Parse(Enumerable.Repeat(new string(' ', t.width), t.height).ToArray()) with { Zone = t.zone };
-            var w = new Scenario(layout, (uint)t.seed);
+            var w = new Scenario(layout, (uint)t.seed) { Bare = true };
             var rng = new Rng(new RngState { S = (uint)t.seed });
             for (int i = 0; i < t.ticks; i++)
             {

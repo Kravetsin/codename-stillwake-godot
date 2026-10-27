@@ -123,7 +123,7 @@ public static class Light
     /// <summary>
     /// The helmet lamp (0077): a beam of warm light the way the head looks, <see cref="HeadLampHalfAngle"/> either side of
     /// it (60° across), keeping <see cref="HeadLampKeep"/> a cell out to <see cref="HeadLampReach"/> cells, its bulb small;
-    /// and a faint glow round the head, <see cref="HeadGlow"/> of it out to <see cref="HeadGlowReach"/> cells, so the wearer
+    /// and a faint glow round the lamp, <see cref="HeadGlow"/> of it out to <see cref="HeadGlowReach"/> cells, so the wearer
     /// is never pitch black behind it.
     /// </summary>
     public static readonly (float R, float G, float B) HeadLamp = (0.95f, 0.82f, 0.6f);

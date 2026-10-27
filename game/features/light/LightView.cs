@@ -250,7 +250,7 @@ public partial class LightView : Node2D
             glow.Modulate = FireGlowColour with { A = Math.Min(1, FireGlowAlpha * burns) };
             _main.Add(new LightSource(at.X, at.Y, L.Fire, burns, FireReach, L.FireKeep, 1, L.FireSize));
         }
-        // A helmet lamp: its beam the way the head looks, and a faint glow round the head.
+        // A helmet lamp: its beam the way the head looks, and a faint glow round it, both from its lens.
         foreach (var (at, toward, head) in HeadLamps())
         {
             var (beam, glow) = Sources.HeadLamp((at.X, at.Y), (toward.X, toward.Y), (head.X, head.Y), _blocks ??= Blocks);

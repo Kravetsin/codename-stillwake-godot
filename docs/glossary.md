@@ -14,7 +14,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - двигатель / engine → machine `engine` (`Exhaust`, `Takes`: biofuel), its nozzle out through the stern's wall (`grid.noExhaust`); сопло / nozzle, топливный насос / fuel pump, запал / igniter → items `nozzle`, `fuelPump` (Former), `igniter` (circuit assembler) → Crafting
 - платформа / platform **≠** → `Structure.Floor`, `tool.floor`, build `"floor"` → Grid
 - открывающаяся (посадочная) платформа / launch platform **≠** → `Structure.PlatformClosed`, `Structure.PlatformOpen`, build `Builds.Platform` = `"launchPlatform"`, a run doorway (`StructureGroup.Platform`, `Join.Run`), command `SetPlatform`; f/power `PlatformLamps`; item `deckDrive` → Landing, Grid
-- капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `LandingModule.Seats`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
+- капсула / посадочная капсула / колокол / drop pod **≠** → machine `"dropPod"` (`MachineTrait.Seats`, `Lands`), commands `Board`, `Alight`, `Launch` (descend / return), `LandingModule.Seats`, `Flights`, `Owners`; art `machine_dropPod.png`, `dropPod_porthole.png`, `dropPod_lit.png`; f/landing `PodSeats`, f/crew `SeatedHeroes` → Landing
+- шахта под платформой / platform shaft → the column under a launch platform to the grid's edge, kept empty: `grid.underPlatform`, `grid.shaftBlocked`, `IGridQueries.ClearBelow`, `Taken`, `landing.shaftBlocked`; f/building `Shafts` → Grid, Building
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid
 - задняя стена / back wall → `Back.Wall`, layer `"back"`, `tool.backWall` → Grid
 - обшивка / hull **≠** → the ship's walls (`Structure.Wall`; "hull wall" in `tool.wallScrap.about`); item `hullPlate`, `hullSection` are salvage → Grid, Debris
@@ -30,7 +31,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 ## Air, power, pipes
 
-- баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (suit) → Atmosphere, Crew
+- баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (the hero's air) → Atmosphere, Crew
 - провод / cable **≠** → `Cable`, `tool.cable` (laid by the plan, wiring); item `wire` is the crafted part → Power
 - проводка / wiring (plan mode, X) → `PlanMode.Wiring`, f/power `PowerHands` → Power
 - труба / pipe → spans: `LayPipe`, `CutPipe`, `PipeNetworks`, `tool.pipe` → Pipes
@@ -67,7 +68,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - топор / fire axe → item `fireAxe`, f/crew `AxeSwing`, `HeldLook.FireAxe` → Crew
 - бур / drill → item `drill`, `c/Weapons.cs`, f/crew `DrillPace`, `Motor` → Crew
 - трос / tether → f/crew `Tether` → Crew
-- скафандр / suit → `SuitGauge`, `Suits`, `Danger` (f/crew) → Crew
+- скафандр / suit → helmet `helmet` (`Content.Helmet`, slot `head`, `Tank`) + body `suit` (`Content.Suit`, slot `suit`), `Hero.Air`, `CapacityOf`; `SuitGauge`, `Suits` (colours), `Danger` (f/crew) → Crew, Items
+- голый, без скафандра / bare → no helmet: `Crew.Lungs`; no body: `Crew.BareCold` → Crew
+- фонарик на шлем / helmet lamp → `helmetLamp`, slot `mount` (`Helmet.Mount`), for whatever sits on a helmet → Items
 - смерть, тело / death, body → `Bodies`, `BodyView` (0061) → Crew, Items
 
 ## World

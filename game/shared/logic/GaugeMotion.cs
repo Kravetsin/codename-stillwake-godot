@@ -26,8 +26,11 @@ public sealed class GaugeMotion
     /// <summary>The refill's light: 1 while the fill rises, fading to 0 over <see cref="Look.GainS"/> after.</summary>
     public double Gain { get; private set; }
 
-    /// <summary>A read of the sim: <paramref name="share"/> of full. The first is shown at once.</summary>
-    public void Read(double share)
+    /// <summary>
+    /// A read of the sim: <paramref name="share"/> of full. The first is shown at once. A drop of <paramref name="hit"/> or
+    /// more is a hit, <see cref="Look.BigDrop"/> unless the reader's steady steps are as big.
+    /// </summary>
+    public void Read(double share, double hit = Look.BigDrop)
     {
         share = Math.Clamp(share, 0, 1);
         if (!_read)
@@ -40,7 +43,7 @@ public sealed class GaugeMotion
         // The same read again keeps the slide's pace: it arrives as the sim's next breath does.
         if (drop == 0) return;
         _target = share;
-        if (drop >= Look.BigDrop)
+        if (drop >= hit)
         {
             Trail = _trailing ? Math.Max(Trail, Fill) : Fill;
             Fill = share;

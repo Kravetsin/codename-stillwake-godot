@@ -79,7 +79,7 @@ public class ChargeTests
         Assert.Equal(["items.notEquipment", "items.notEquipment"], Reasons(w));
         for (int i = 0; i < 3; i++) Move(w, new Slot(i), new Target(Belt + i));
         Assert.Equal(2, w.Refusals.Count);
-        Assert.Equal([Charged(10), Charged(20), Charged(30)], w.M.Items.Inventory(0).Skip(Belt));
+        Assert.Equal([Charged(10), Charged(20), Charged(30)], w.M.Items.Inventory(0).Skip(Belt).Take(3));
     }
 
     // The charging station.
@@ -223,13 +223,13 @@ public class ChargeTests
         Assert.Equal((12 * S, 2 * Full), w.M.Items.BeltCharge(0));
         // The first holds too little for 3: the second pays it whole.
         Assert.True(w.M.Items.Drain(0, 3));
-        Assert.Equal([Charged(2 * S), Charged(7 * S), null], w.M.Items.Inventory(0).Skip(Belt));
+        Assert.Equal([Charged(2 * S), Charged(7 * S), null], w.M.Items.Inventory(0).Skip(Belt).Take(3));
         Assert.True(w.M.Items.Drain(0, 1));
-        Assert.Equal([Charged(S), Charged(7 * S), null], w.M.Items.Inventory(0).Skip(Belt));
+        Assert.Equal([Charged(S), Charged(7 * S), null], w.M.Items.Inventory(0).Skip(Belt).Take(3));
         Assert.True(w.M.Items.Drain(0, 7));
         // Neither holds 3 now; the full battery in the bag is not worn, so it pays nothing.
         Assert.False(w.M.Items.Drain(0, 3));
-        Assert.Equal([Charged(S), Charged(0), null], w.M.Items.Inventory(0).Skip(Belt));
+        Assert.Equal([Charged(S), Charged(0), null], w.M.Items.Inventory(0).Skip(Belt).Take(3));
         Assert.Equal(Charged(Full), w.M.Items.Inventory(0)[0]);
         Assert.Equal((S, 2 * Full), w.M.Items.BeltCharge(0));
         Assert.False(w.M.Items.Drain(1, 1));

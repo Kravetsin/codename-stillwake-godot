@@ -21,6 +21,8 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
 
 ## Rules
 
+- **A machine held back** (`HeldBack`, `HeldBackVersion`, set by `SurfaceViews`): one another view draws moving, a pod coming down,
+  is left out of the machines' layer till it is let go; the layer is drawn again when the held set changes.
 - **Draws** a `TileMapLayer` per kind of picture, back to front: back walls (scrap cut from its picture, iron a panel with
   a grille in about one 16 px cell of seven), walls cut from their material's picture with edges on every side facing no
   wall (`ShipTiles.WallName`, `EdgeName`; every wall whole, 0106), floors and ladders, doors and hatches (shut or slid; a

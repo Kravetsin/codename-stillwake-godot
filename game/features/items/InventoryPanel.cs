@@ -162,6 +162,9 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A machine's drone badge (0062), the logistics feature's, put at the right of its frame's header; null where drones have no work. Set by <c>Main</c>.</summary>
     public Func<int, Control?>? Served { get; set; }
 
+    /// <summary>A drop pod's Descend or Return key, the landing feature's, put under its slot; null for any other machine. Set by <c>Main</c>.</summary>
+    public Func<int, Control?>? Launch { get; set; }
+
     /// <summary>The item drones keep a machine's slot full of, while drones serve it (0062); null for none. Set by <c>Main</c>.</summary>
     public Func<Place, string?>? Kept { get; set; }
 
@@ -308,22 +311,34 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>
     /// The equipment at the screen's right edge, its top level with the inventory's (0047, 0058): the head's slot
-    /// over the back's over the belt's three, each row under its name; no silhouettes in empty slots. The screwdriver is
-    /// a hotbar item (0107), so the hands have no slot.
+    /// with the helmet mount's beside it, over the back's, the belt's three and the body's, each kind under its name;
+    /// no silhouettes in empty slots. The screwdriver is a hotbar item (0107), so the hands have no slot.
     /// </summary>
     private WristScreen Body(int size)
     {
         var column = Style.Gap(new VBoxContainer(), 2);
-        foreach (var kind in Content.Inventory.Equipment.Distinct())
+        foreach (var kind in Content.Inventory.Equipment.Distinct().Where(k => k != Content.Helmet.Mount))
         {
-            column.AddChild(Caption(kind));
             var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
-            foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
+            row.AddChild(Kind(kind));
+            // What is fixed onto the helmet sits beside it.
+            if (kind == Content.Helmet.Slot) row.AddChild(Kind(Content.Helmet.Mount));
             column.AddChild(row);
         }
         var body = new WristScreen(WristPieces.Body, WristArt.Screen, 4, lit: true);
         body.AddChild(column);
         return body;
+    }
+
+    /// <summary>One kind's slots in a row under its name.</summary>
+    private VBoxContainer Kind(string kind)
+    {
+        var column = Style.Gap(new VBoxContainer(), 2);
+        column.AddChild(Caption(kind));
+        var row = Style.Gap(new HBoxContainer { Alignment = BoxContainer.AlignmentMode.Center }, Slots.Gap);
+        foreach (var place in Equipment.Of(kind)) row.AddChild(Box(place));
+        column.AddChild(row);
+        return column;
     }
 
     private static Label Caption(string kind) => new()

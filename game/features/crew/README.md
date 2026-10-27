@@ -19,7 +19,7 @@ commands reach the sim. Other heroes come through the host.
 | `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
-| `logic/Seating.cs` | a hero in a drop pod |
+| `logic/Seating.cs` | a hero in or flying a drop pod |
 | `logic/FogMove.cs` | across a planet's fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | the prompt at the bottom middle |
@@ -65,7 +65,7 @@ commands reach the sim. Other heroes come through the host.
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`) at any frame rate and is drawn between its last two steps. Floats only in drawing.
+  (`Net.Clock`) at any frame rate, drawn between its last two steps. Floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089).

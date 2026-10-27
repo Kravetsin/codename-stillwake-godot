@@ -86,6 +86,35 @@ public class DropPodTests
         Assert.Null(open.M.Grid.PlacementProblem(At(6, 4), Pod));
     }
 
+    /// <summary>A surface off the ship as the grid sees it: where only Landing places a pod, on the ground.</summary>
+    private sealed class OffShip : ISurfaces
+    {
+        public int Here => 1;
+        public Content.Surfaces.Kind Kind => PlanetTypes.Small;
+        public void Send(int peer, int surface) => throw new NotSupportedException();
+        public bool CanOpen => false;
+        public int OpenPlanet() => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public void OffTheShipStandsOnGroundUnderAllOfItsBottomRowAndNoPlatformIsNeeded()
+    {
+        // Ground with a gap two characters wide: the pod's four columns stand on it whole, or not at all.
+        var w = new Scenario(Layout.Parse([
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "###  #####",
+            "##########",
+        ]), doubled: true);
+        w.M.Grid.Where = new OffShip();
+        Assert.Null(w.M.Grid.PlacementProblem(At(10, 4), Pod));
+        Assert.Equal("grid.noGround", w.M.Grid.PlacementProblem(At(6, 4), Pod));
+        Assert.Equal("grid.noGround", w.M.Grid.PlacementProblem(At(10, 3), Pod));
+    }
+
     [Fact]
     public void SeatsTheHeroThatBoardsItAndLetsItLeave()
     {

@@ -48,7 +48,7 @@ public partial class HeroView
             }
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
-            shown.Figure.Visible = m.Landing.SeatOf(id) == null;
+            shown.Figure.Visible = m.Landing.SeatOf(id) == null && m.Landing.FlightOf(id) == null;
             shown.Figure.Wear(Suits.Of(m.Players, id));
             var (axe, chop) = _heardChops.GetValueOrDefault(id);
             if (!axe) shown.Swing.Stop();
@@ -88,7 +88,7 @@ public partial class HeroView
             for (int burnt = shown.Burns.Due(elapsedMs, Burns(m, crew.HeroOf(id)), 1 / S.LavaBurnEveryS); burnt > 0; burnt--)
                 _othersBurn.PlayAt(shown.Figure.GlobalPosition);
             // A friend's canister: its air rises round it, heard where it is (0081).
-            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Suit, breathing.Out))
+            if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
                 var figure = shown.Figure;
                 _air.Vortex(() => figure.Stance);
