@@ -21,8 +21,8 @@ public partial class JetpackDemo : Control
     /// <summary>Where the jetpack and the canisters lie in the hero's inventory at the start.</summary>
     public const int JetpackSlot = 9, CanisterSlot = 0;
 
-    /// <summary>The testbed's world with the jetpack and canisters in peer 0's inventory and creative mode off, so a canister is spent.</summary>
-    public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
+    /// <summary>The testbed's world with the jetpack and canisters in peer 0's inventory and creative mode off, so a canister is spent; a cape worn if <paramref name="cape"/>.</summary>
+    public static World Seed(World world, Func<IReadOnlyList<Module>> modules, bool cape = false)
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
@@ -30,7 +30,8 @@ public partial class JetpackDemo : Control
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == JetpackSlot ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
-                : i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 } : null);
+                : i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 }
+                : cape && i == CapeDemo.CapeSlot ? new JsonObject { ["item"] = Spec.Cape.Item, ["count"] = 1 } : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), modules());
     }

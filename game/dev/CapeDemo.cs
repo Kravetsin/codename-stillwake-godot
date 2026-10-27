@@ -17,7 +17,8 @@ namespace Stillwake.Game.Dev;
 /// </summary>
 public partial class CapeDemo : Node
 {
-    private static readonly int CapeSlot = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Cape.Slot);
+    /// <summary>The cape slot, its place in the inventory.</summary>
+    public static readonly int CapeSlot = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Cape.Slot);
 
     private readonly HeroAutopilot? _script;
     private readonly Func<(Client Client, Registry M)?> _world;
