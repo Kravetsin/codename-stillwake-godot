@@ -43,13 +43,17 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
             var into = !inside && cape.Flipped(t) ? _back : _front;
             for (int k = 0; k < 3; k++) into.Add(Cape.Triangles[t * 3 + k]);
         }
-        // The lining first: where the sheet folds over itself its outside lies over it.
-        if (_back.Count > 0) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), [.. _back], _points, Colours, Uvs, texture: Lining.GetRid());
+        // The lining first: where the sheet folds over itself its outside lies over it. Thrown up over the shoulders, its
+        // turned part lies over the collar, as the collar lies on its outside.
+        bool up = !inside && cape.TurnedUp;
+        if (_back.Count > 0 && !up) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), [.. _back], _points, Colours, Uvs, texture: Lining.GetRid());
         if (_front.Count > 0) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), [.. _front], _points, Colours, Uvs, texture: (inside ? Lining : Outside).GetRid());
         if (inside) return;
-        // The hood on the back, the collar over its opening and the cape's top, the clasp at the throat.
-        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: Hood.GetRid());
+        // The hood on the back, gone up with the cape behind it when it is thrown up; the collar over its opening and the
+        // cape's top, the clasp at the throat.
+        if (!up) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: Hood.GetRid());
         DrawTexture(Collar, CollarAt);
+        if (_back.Count > 0 && up) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), [.. _back], _points, Colours, Uvs, texture: Lining.GetRid());
         var (cx, cy) = Cape.Clasp;
         DrawRect(new Rect2((float)Math.Floor(cx) - 1, (float)Math.Floor(cy), 2, 2), Brass);
     }

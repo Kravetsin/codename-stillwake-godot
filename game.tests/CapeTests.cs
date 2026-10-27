@@ -150,6 +150,22 @@ public class CapeTests
         Assert.InRange(cape.Hood[^2].Y - Cape.HoodRest(HoodTip).Y, -1, 1);
     }
 
+    [Fact]
+    public void AFallThrowsItUpOverTheShoulders()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        Assert.False(cape.TurnedUp);
+        bool up = false;
+        for (int i = 0; i < 40 && !up; i++)
+        {
+            f.Down += 5;
+            Move(cape, f, 1);
+            up = cape.TurnedUp;
+        }
+        Assert.True(up);
+    }
+
     private static readonly int HoodTip = Cape.HoodCols * Cape.HoodRows - 2;
 
     [Fact]

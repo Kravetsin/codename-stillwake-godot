@@ -113,6 +113,17 @@ public sealed class Cape
         return Turn(a, b, c) * Turn(Rest(Triangles[t * 3]), Rest(Triangles[t * 3 + 1]), Rest(Triangles[t * 3 + 2])) < 0;
     }
 
+    /// <summary>Whether it is thrown up over the shoulders: turned over in its top row, under the collar, as a fall throws it.</summary>
+    public bool TurnedUp
+    {
+        get
+        {
+            for (int t = 0; t < (Cols - 1) * 2; t++)
+                if (Flipped(t)) return true;
+            return false;
+        }
+    }
+
     /// <summary>
     /// Moves it on by <paramref name="elapsedMs"/>. <paramref name="toWorld"/> and <paramref name="toFrame"/> turn a point
     /// of the figure's frame into the world's pixels and back: it hangs in the world and is pinned in the frame.
