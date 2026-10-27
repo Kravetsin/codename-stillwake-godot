@@ -516,26 +516,30 @@ public partial class HeroView : Node2D
         _thud.Play(S.RamHits.GetValueOrDefault(c.Species, S.RamThud), default);
     }
 
-    /// <summary>The bolts this hero's client has said it was hit by: each sent once, forgotten once it is out of flight.</summary>
-    private readonly HashSet<int> _boltsSent = [];
+    /// <summary>The arcs this hero's client has looked at: each judged once, the tick it is first seen, forgotten once it is gone.</summary>
+    private readonly HashSet<int> _arcsSeen = [];
 
     /// <summary>
-    /// A creature's bolt touching this hero (shots-are-the-sims), as this client sees them: <c>Bolted</c> sent once, and at once,
-    /// as a ram's, the hero thrown the bolt's way and reeling, flinching, its suit's air knocked out, a thud through the suit.
+    /// A creature's arc crossing this hero (2026-10-27-sentry-arc), as this client sees it the tick it struck: <c>Bolted</c> sent,
+    /// and at once, as a ram's, the hero thrown the arc's way and reeling, flinching, its suit's air knocked out, a shock through the
+    /// suit. An arc it walks into after is past: it struck once.
     /// </summary>
     private void Bolted(Client client, Registry m)
     {
-        _boltsSent.RemoveWhere(id => !m.Creatures.Shots.Any(s => s.Id == id));
-        if (Rams.BoltContact(m.Creatures.Shots, _current) is not { } bolt || _boltsSent.Contains(bolt.Id) || m.Creatures.BoltedProblem(bolt.Id) != null) return;
-        _boltsSent.Add(bolt.Id);
-        client.Send(new Stillwake.Sim.Creatures.Bolted(bolt.Id));
-        int away = bolt.VX >= 0 ? 1 : -1;
-        _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(bolt.Gun, bolt.Projectile));
-        _reel = Spec.Reel;
-        _figure.Flinch(-away);
-        var (x, y) = Chest(_current);
-        _air.Leak(new Vector2(x, y), -away);
-        _thud.Play(S.HitOf(bolt.Projectile), default);
+        var arcs = m.Creatures.Arcs;
+        _arcsSeen.RemoveWhere(id => !arcs.Any(a => a.Id == id));
+        foreach (var arc in arcs)
+        {
+            if (!_arcsSeen.Add(arc.Id) || !Rams.Crosses(arc, _current) || m.Creatures.BoltedProblem(client.Id, arc.Id) != null) continue;
+            client.Send(new Stillwake.Sim.Creatures.Bolted(arc.Id));
+            int away = arc.X1 >= arc.X0 ? 1 : -1;
+            _current = Rams.Knocked(_current, away, Content.Shots.DamageOf(null, arc.Projectile));
+            _reel = Spec.Reel;
+            _figure.Flinch(-away);
+            var (x, y) = Chest(_current);
+            _air.Leak(new Vector2(x, y), -away);
+            _thud.Play(S.ArcHit, default);
+        }
     }
 
     /// <summary>

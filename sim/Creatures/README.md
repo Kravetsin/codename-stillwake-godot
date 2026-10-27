@@ -4,6 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
+| `Arcs.cs` | Arcs: `Bolted`, `StrikeArc`, `Linger`; `Arcs`. |
 | `Clinger.cs` | The clinger's rule (the sentry): on a perch of a wreck's top, crawling, riding it, flying off it. |
 | `Creatures.cs` | The commands (`Strike`, `HitBy`, `Release`), the queries, and the hit path every hit takes. |
 | `Drives.cs` | The grazers' drives' rules: `Graze`, `Flee`, `Retaliate`, `Escape`. |
@@ -13,25 +14,24 @@
 | `Lunge.cs` | The lunge's rule: a ram along the ground in phases (0103). |
 | `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short. |
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
-| `Shoot.cs` | The shot's rule (the sentry's bolt): crouched, a projectile fired at a hero, a recovery, clamped on. |
-| `Shots.cs` | Shots: `Fire`, `Bolted`, the flight system, what a shot hits; `Shots`, `Ended`. |
+| `Shoot.cs` | The arc's rule (the sentry's): crouched, its aim held, an arc struck at once, a recovery. |
+| `Shots.cs` | Shots: `Fire`, the flight system, what a shot hits; `Shots`, `Ended`. |
 | `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of view, where a habitat is; guards on derelicts. |
 | `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `Shot`, `CreaturesState`; the derived `Posture`. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling, leaping (0102, 0104, 0106). |
 
-Every creature, composed ([2026-10-26-creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
-species (`Content.Creatures`) names a body, a life, a faction, a brain of drives ranked from the top, its moves and yields,
-each record served by one rule here; its `Lifetime` is not read yet. Grazers live on planets (0102, 0103); the sentry clings
-to wrecks in space: creatures run wherever one is let out or a habitat spawns. Shots fly here too
-([shots-are-the-sims](../../docs/decisions/2026-10-26-shots-are-the-sims.md)).
+Every creature, composed ([creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
+species (`Content.Creatures`) names a body, a life, a faction, a brain of ranked drives, its moves and yields, each record
+served by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks in space; creatures run where one is
+let out or a habitat spawns. Shots fly here too ([shots-are-the-sims](../../docs/decisions/2026-10-26-shots-are-the-sims.md)).
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells; `Shock`); `Items` (`Damage`, `WeaponProblem`, `ToolStack`, `ShortOf`,
   `Take`, `DropAt`); `Debris` (queries, `Wrecks`, `Unreel`, `Hit`); `Building` (`IBuildingOps.Hit`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
   Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge by its place in
   the brain, `Step` where that drive is within itself, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its
-  grudge (a `Ref`), `Mem` its rules' numbers by key in ordinal order; `NextId`; `Clock`; `Shots`, `Fired`. Empty `Target`,
-  `Mem` and `Shots` are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`.
+  grudge (a `Ref`), `Mem` its rules' numbers by key in ordinal order; `NextId`; `Clock`; `Shots`, `Arcs`, `Fired`. Empty `Target`,
+  `Mem`, `Shots`, `Arcs` are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`.
 - **Runs** after `Crew` and `Debris` in the simulation phase: heroes' cells and wrecks are this tick's; shots fly after.
 
 ## Adding a species or a rule
@@ -54,20 +54,19 @@ to wrecks in space: creatures run wherever one is let out or a habitat spawns. S
   lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
   drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
-- **The sentry:** `Guard` watches; a hero within `Notice` alerts it; `AlertTicks` on, one within `Strike` and it pounces,
-  one farther it shoots. A blow on it, or on its wreck since it last answered (`Piece.Struck` against a hit's `Answered`),
-  and it answers the striker (`Target`) so, by its distance; one while away, once home. The pounce
-  crouches `WindUp`, then flies at its grudge, else the nearest awake hero within its run, `Ticks` moves at `Speed`,
-  then hangs; `Return` flies it home. The shot, from its perch only, crouches, fires at its grudge wherever it is, else the
-  nearest within reach; recovers clamped. `CutTether` lets go of a reel on its wreck `Ticks` after it bites. Its wreck gone, it
-  dies.
+- **The sentry:** `Guard` watches; one within `Notice` alerts it; `AlertTicks` on, one within `Strike` and it pounces,
+  one farther it strikes an arc. A blow on it, or on its wreck since it last answered (`Piece.Struck` against a hit's
+  `Answered`): it answers the striker (`Target`) so, by distance; one while away, once home. The pounce crouches `WindUp`,
+  then flies at its grudge, else the nearest awake hero within its run, `Ticks` at `Speed`; `Return` flies it home. The
+  arc, from its perch only: aimed `Lock` before the wind-up ends (its grudge, else the nearest within reach), struck at
+  once to the first wall, lingering `Lingers`. `CutTether` lets go of a reel `Ticks` after it bites. Its wreck gone, it dies.
 - **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked by a
   `Life.Knock` and `Hop` above none, its act cut if interruptible, its drives told in brain order, the first claim winning.
 - **Shots** (the ADR): `Fire` takes one ammo and adds a shot; each tick, in id order, each `ShotFlight.Step`s, and the
   first cell met takes its hit: solid (`IBuildingOps.Hit`), else the lowest-id creature, else a wreck (`IDebrisOps.Hit`).
-- **The dead** are gone to every command and cap from the blow; the list holds them till the sweep.
-- **`HitBy(Creature)`** (0103), **`Bolted(Shot)`**, as the hit hero's client saw it: its suit pays the move's `Damage`, the act
-  ends; or the bolt's projectile's, the shot ends.
+- **The dead** are gone to every command and cap from the blow, listed till the sweep.
+- **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: its suit pays the move's `Damage`, the act
+  ends; or the arc's projectile's, once a hero.
 - **`Release(Species, Cell)`**, dev: its body's `ReleaseProblem` and `Place`.
 - **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew; its client reports each tick.
 - **Kept or gone** (0102): seen in some hero's keep box; out of every one gone `Linger` after, out of every hard box at once. **Spawning:** on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards** (`Kind.Guards`): each
@@ -83,7 +82,7 @@ carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`. `Bol
 ## Guarantees
 
 - Every creature is on the grid, a walker out of everything solid; damage below hit points; ids only grow; never more than
-  `Max`; a drive's or act's ticks never past its length; a charge hurts at most once; suits within range
+  `Max`; a drive's or act's ticks never past its length; a charge, or an arc a hero, hurts at most once; suits in range
   (`CreaturesInvariantTests`). Every shot on the grid, within its reach, never through a solid cell (`ShotsInvariantTests`).
   A world saved and loaded every tick plays on as one never saved.
 - No habitats, creatures or new guarded piece: nothing drawn; only `Watermark` moves.

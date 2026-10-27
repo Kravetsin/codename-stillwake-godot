@@ -787,7 +787,7 @@ public class CreaturesTests
         // Shots the heroes fired fly in the slice too, and are counted: they are not the creatures.
         var slice = (CreaturesState)w.M.Creatures.Slice;
         Assert.True(slice.Fired > 0);
-        (slice.Fired, slice.Shots) = (0, []);
+        (slice.Fired, slice.Shots, slice.Arcs) = (0, [], []);
         Assert.Equal(before, CreaturesSlice(w));
         // This map holds no wrecks: off the grid nothing fits; on it a walker finds no gravity aboard, a clinger no piece.
         int cells = w.M.Grid.Width * w.M.Grid.Height;

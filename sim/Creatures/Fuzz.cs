@@ -7,7 +7,7 @@ public sealed partial class CreaturesModule
     /// hit by a charge, of a charging creature half the time, else of any or one gone, so it is refused not charging and gone too;
     /// else a release of a species at any cell, the grid's edge and past it too, so every refusal comes: aboard, full, blocked, no
     /// piece; a clinger's half the time onto a wreck; else a shot of a gun, or of a tool that is none, from about the hero, off the
-    /// grid now and then, any way. A hit by a charge gives way half the time to a bolt's touch, mostly of one in flight.
+    /// grid now and then, any way. A hit by a charge gives way half the time to an arc's touch, mostly of one lingering.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
@@ -23,12 +23,12 @@ public sealed partial class CreaturesModule
         }
         if (pick == 5)
         {
-            // Half the time a bolt's touch, of one in flight three times in four, else of any, so it is refused gone too.
+            // Half the time an arc's touch, of one lingering three times in four, else of any, so it is refused gone too.
             if (rng.Below(2) == 0)
             {
-                var bolts = State.Shots.Where(s => s.Gun == null).ToList();
-                int shot = bolts.Count > 0 && rng.Below(4) != 0 ? bolts[(int)rng.Below((uint)bolts.Count)].Id : (int)rng.Below((uint)State.Fired + 2);
-                return new Bolted(shot) { From = from };
+                var arcs = State.Arcs;
+                int arc = arcs.Count > 0 && rng.Below(4) != 0 ? arcs[(int)rng.Below((uint)arcs.Count)].Id : (int)rng.Below((uint)State.Fired + 2);
+                return new Bolted(arc) { From = from };
             }
             var charging = all.Where(c => c.Posture == Posture.Charge).ToList();
             int id = charging.Count > 0 && rng.Below(2) == 0 ? charging[(int)rng.Below((uint)charging.Count)].Id : Any();

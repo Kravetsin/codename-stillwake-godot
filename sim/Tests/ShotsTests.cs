@@ -103,7 +103,8 @@ public class ShotsTests
         w.Run();
         Assert.Empty(w.M.Creatures.Shots);
         // From 2.5 cells, its reach's 96 ticks at 3 cells a tick: it ends over cell 290.
-        Assert.Equal(10 * 320 + 290, w.M.Creatures.Ended.Single().Cell);
+        // Its last cell, met nothing: no hit is shown where it stopped.
+        Assert.Equal((10 * 320 + 290, false), (w.M.Creatures.Ended.Single().Cell, w.M.Creatures.Ended.Single().Met));
     }
 
     [Fact]
@@ -130,7 +131,7 @@ public class ShotsTests
         var w = Ground();
         w.Do(At(10, 31, Right)).Run();
         Assert.Empty(w.M.Creatures.Shots);
-        Assert.Equal(31 * 100 + 10, w.M.Creatures.Ended.Single().Cell);
+        Assert.Equal((31 * 100 + 10, true), (w.M.Creatures.Ended.Single().Cell, w.M.Creatures.Ended.Single().Met));
         Assert.Equal(BlockHit, CrackAt(w, 31 * 100 + 10));
     }
 

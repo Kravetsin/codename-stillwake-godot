@@ -243,10 +243,12 @@ public partial class TickBodies : Node2D
         var spec = Spec.Creatures.Get(c.Species);
         bool clamped = CreaturesModule.Clamped(c);
         var act = c.Act;
-        // A shot is no pounce: it crouches to aim, its eye flickering the bolt's colour, and recovers clamped on.
+        // An arc is no pounce: it crouches to aim, its eye flickering the arc's colour, held once its aim is taken, and recovers
+        // clamped on.
         bool shoots = act != null && spec.Moves[act.Move] is Spec.Creatures.Shoot;
         bool winding = act is { Phase: ActPhase.WindUp } && !shoots, pouncing = act is { Phase: ActPhase.Active } && !shoots;
         bool aiming = act is { Phase: ActPhase.WindUp } && shoots;
+        bool locked = aiming && spec.Moves[act!.Move] is Spec.Creatures.Shoot shot && act.Left <= shot.Lock;
         double windUpS = 0;
         if (winding && spec.Moves[act!.Move] is Spec.Creatures.Pounce pounce)
             windUpS = (pounce.WindUp - act.Left + Math.Clamp(progress, 0, 1)) / World.TicksPerSecond;
@@ -259,7 +261,7 @@ public partial class TickBodies : Node2D
         (double, double)? line = cutting && LineEnd(debris, one.Piece) is { } end ? (end.X - middle.X, end.Y - middle.Y) : null;
         double done = cutting ? Math.Clamp((cutOf - cutLeft + Math.Clamp(progress, 0, 1)) / cutOf, 0, 1) : 0;
         return new TickMotion.Seen(clamped, CreaturesModule.Alerted(c), winding, windUpS, pouncing, pouncing ? act!.Left : 0,
-            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming);
+            c.VX * perTick, c.VY * perTick, crawl, hero, cutting, done, line, aiming, locked);
     }
 
     /// <summary>
@@ -325,6 +327,7 @@ public partial class TickBodies : Node2D
             if (cues != null) _suit.Play(cues.Alert, eye);
         }
         if (m.HasFlag(TickMotion.Moment.WindUp) && cues != null) _suit.Play(cues.WindUp, eye);
+        if (m.HasFlag(TickMotion.Moment.Aim) && cues != null) _suit.Play(cues.Charge, eye);
         if (m.HasFlag(TickMotion.Moment.Unclamp))
         {
             Clack(one);

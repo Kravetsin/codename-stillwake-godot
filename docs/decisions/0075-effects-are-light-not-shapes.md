@@ -1,6 +1,6 @@
 # 0075 — Effects are light, not shapes
 
-- Status: accepted
+- Status: accepted; the arcs' look superseded by [arcs-are-hairlines](2026-10-27-arcs-are-hairlines.md)
 - Date: 2026-10-19
 
 ## Context

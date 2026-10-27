@@ -16,13 +16,14 @@ public sealed class TickMotion(Func<double> random)
     /// What the sim says of it this frame: clamped on, alerted, winding up (<paramref name="WindUpS"/> seconds into it), flying a
     /// pounce (<paramref name="FlightLeft"/> of its ticks still to go, none at 0), its speed, how fast it crawls along its wreck,
     /// the way to the hero nearest it from its middle (none for no hero); cutting a harpoon line on its wreck,
-    /// <paramref name="CutDone"/> of the way through it, the line going off toward <paramref name="Line"/> from its middle; aiming a
-    /// shot (<paramref name="Aiming"/>, shots-are-the-sims), its eye flickering the bolt's cyan.
+    /// <paramref name="CutDone"/> of the way through it, the line going off toward <paramref name="Line"/> from its middle; aiming an
+    /// arc (<paramref name="Aiming"/>, 2026-10-27-sentry-arc), its eye flickering the arc's cyan, held bright once its aim is taken
+    /// (<paramref name="Locked"/>).
     /// </summary>
     public readonly record struct Seen(
         bool Clamped, bool Alerted, bool WindingUp, double WindUpS, bool Pouncing, int FlightLeft,
         double Vx, double Vy, double Crawl, (double X, double Y)? Hero, bool Cutting = false, double CutDone = 0,
-        (double X, double Y)? Line = null, bool Aiming = false);
+        (double X, double Y)? Line = null, bool Aiming = false, bool Locked = false);
 
     /// <summary>Its moments, seen and heard once each as it comes.</summary>
     [Flags]
@@ -36,6 +37,8 @@ public sealed class TickMotion(Func<double> random)
         Brake = 16,
         /// <summary>Its pounce stopped short: it struck a hero.</summary>
         HeroHit = 32,
+        /// <summary>It began winding up an arc: its charge heard.</summary>
+        Aim = 64,
     }
 
     public static readonly TickArt.Rgb Watching = new(64, 242, 217), Alerted = new(255, 209, 51), Attacking = new(255, 56, 46), Aiming = new(170, 240, 255);
@@ -175,6 +178,7 @@ public sealed class TickMotion(Func<double> random)
             : Watching;
         _eye = TickArt.Rgb.Mix(_eye, eye, Follow(dt, s.Alerted && _sinceAlert < 0.1 ? 0.03 : 0.04));
         double amp = sawing ? 1.05 + 0.45 * Stroke * (0.5 + 0.5 * s.CutDone) + random() * 0.15
+            : s.Locked ? 1.9
             : s.Aiming ? 0.6 + random() * 1.2
             : s.WindingUp ? (s.WindUpS < 0.45 ? (random() < 0.35 ? 0.3 : 1.4) : 1.6)
             : s.Pouncing ? 1.5
@@ -204,6 +208,7 @@ public sealed class TickMotion(Func<double> random)
             _sinceAlert = 0;
         }
         if (s.WindingUp && !_was.WindingUp) m |= Moment.WindUp;
+        if (s.Aiming && !_was.Aiming) m |= Moment.Aim;
         if (!s.Clamped && _was.Clamped)
         {
             m |= Moment.Unclamp;

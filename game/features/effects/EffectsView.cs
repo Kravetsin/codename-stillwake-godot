@@ -217,25 +217,10 @@ public partial class EffectsView : Node2D
             if (gl.Strength > 0.01) Blob(_light, PixelArt.Glow, gl.X, gl.Y, gl.Radius * 1.2, ColourOf(gl.Colour, gl.Strength * 0.6));
         foreach (var bloom in _flares.Blooms)
             Blob(_light, PixelArt.Glow, bloom.X, bloom.Y, bloom.Size, ColourOf(bloom.Colour, bloom.Alpha * Fx.Glow), bloom.Squash);
-        foreach (var bolt in _bolts.Live)
-            if (!bolt.Fine) Glow(bolt);
         _spentMs += Stopwatch.GetElapsedTime(began).TotalMilliseconds;
     }
 
     private readonly (double X, double Y)[] _bolt = new (double, double)[65];
-
-    /// <summary>An arc's glow, every other point of its lines, its branches dimmer.</summary>
-    private void Glow(Bolt bolt)
-    {
-        var (x0, y0, x1, y1, _) = bolt.Ends();
-        double size = 5 * bolt.Width * (0.7 + 0.3 * Math.Min(1, bolt.Intensity));
-        for (int line = 0; line < bolt.Lines; line++)
-        {
-            int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
-            var colour = ColourOf(bolt.Tint.Glow, 0.22 * bolt.Intensity * (line == 0 ? 1 : 0.6) * Fx.Glow * 0.7);
-            for (int i = 0; i < n; i += 2) Blob(_light, PixelArt.Glow, _bolt[i].X, _bolt[i].Y, size * (line == 0 ? 1 : 0.7), colour);
-        }
-    }
 
     /// <summary>Every stroke of light this frame into the one multimesh: streaks, trails, arcs, shock rings, glints' spikes.</summary>
     private void Stroke()
@@ -304,28 +289,35 @@ public partial class EffectsView : Node2D
     private readonly Vector2[] _arc = new Vector2[65];
     private readonly Color[] _arcColours = new Color[65];
 
-    /// <summary>An arc's rim, cyan, then its core, white, over it; its branches thinner.</summary>
+    /// <summary>
+    /// An arc (arcs-are-hairlines), in pixels of the screen whatever the zoom: its last shapes fading in its deeper colour, then a
+    /// thin haze and a hair of white over it; its branches thinner and dimmer.
+    /// </summary>
     private void Arc(Bolt bolt)
     {
         var (x0, y0, x1, y1, _) = bolt.Ends();
         double a = Math.Clamp(bolt.Intensity, 0, 1);
+        for (int back = bolt.Ghosts; back >= 1; back--)
+        {
+            int n = bolt.GhostOf(back, x0, y0, x1, y1, _bolt);
+            for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
+            Paint(n, ColourOf(bolt.Tint.Ghost, a * 0.35 * (1 - back / (Bolts.Ghosts + 1.0))), Core(Thinnest));
+        }
         for (int line = 0; line < bolt.Lines; line++)
         {
             int n = bolt.PointsOf(line, x0, y0, x1, y1, _bolt);
             for (int i = 0; i < n; i++) _arc[i] = Screen(_bolt[i].X, _bolt[i].Y);
-            float thin = line == 0 ? 1 : 0.6f;
+            float thin = line == 0 ? 1 : 0.7f;
             if (bolt.Fine)
             {
                 // A hair of light, a streak's width, in a faint blue haze twice as wide.
-                float hair = Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom);
-                Paint(n, ColourOf(Bolts.FineHaze, a * 0.35), Core(Math.Max(Thinnest * 2.2f, hair * 2)));
-                Paint(n, ColourOf(Bolts.FineCore, a), Core(hair));
+                Paint(n, ColourOf(Bolts.FineHaze, a * 0.35), Core(Thinnest * 2.2f));
+                Paint(n, ColourOf(Bolts.FineCore, a), Core(Thinnest));
                 continue;
             }
-            Paint(n, ColourOf(bolt.Tint.Rim, a * 0.85), Core(Math.Max(Thinnest, (float)(Bolts.Rim * bolt.Width * thin) * _zoom)));
-            Paint(n, ColourOf(bolt.Tint.Core, a), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin) * _zoom)));
+            Paint(n, ColourOf(bolt.Tint.Rim, a * (line == 0 ? 0.3 : 0.18)), Core(Math.Max(Thinnest, (float)(Bolts.Haze * bolt.Width * thin))));
+            Paint(n, ColourOf(bolt.Tint.Core, a * (line == 0 ? 1 : 0.7)), Core(Math.Max(Thinnest, (float)(Bolts.Core * bolt.Width * thin))));
         }
-
         void Paint(int n, Color colour, float width)
         {
             for (int i = 0; i < n; i++) _arcColours[i] = colour;

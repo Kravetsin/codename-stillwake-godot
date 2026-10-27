@@ -1,6 +1,6 @@
 # Shots are the sim's
 
-- Status: accepted; built: the nail, the nailer in hand, the sentry's bolt. Placeholders till the user picks: the bolt's look and sounds
+- Status: accepted; built: the nail, the nailer in hand. The sentry's bolt, built, is superseded by [the sentry's arc](2026-10-27-sentry-arc.md)
 - Date: 2026-10-26
 
 ## Context
@@ -43,7 +43,7 @@ come with their first user ("hero guns will send their `Fire` here").
   projectile's added, whole numbers; the gun gives the launch (speed, reach), the knock and the pace, and fires the first of
   its `Ammo` the hero carries; the projectile its weight, what it hits and its look. A shot keeps its gun, none for a
   creature's, whose damage is its projectile's alone. So a railgun to come fires the same nail faster, farther, harder.
-- **A creature's shot** (the sentry's bolt): its move gives the launch (`Shoot`'s speed and reach), from its middle at its
+- **A creature's shot** (the sentry's bolt; superseded by [an arc](2026-10-27-sentry-arc.md)): its move gave the launch (`Shoot`'s speed and reach), from its middle at its
   target's reported cell, its speed on the longer axis as a pounce's; no gun, so its damage is its projectile's alone. It
   meets solid cells only and passes heroes: the hit hero's client sends `Bolted` (the shot then ended, so one bolt hurts one
   hero), as it sends `HitBy` for a ram. Appended to the sentry's moves, it leaves every saved move's place: no format bump.

@@ -157,21 +157,23 @@ public class RamsTests
         Assert.Equal(0, m.Brace);
     }
 
-    /// <summary>A shot as the sim lists it: <paramref name="id"/>, at (<paramref name="x"/>, <paramref name="y"/>) after a tick's step of <paramref name="vx"/>, a gun's or a creature's.</summary>
-    private static Shot ShotAt(int id, int x, int y, int vx, string? gun = null) =>
-        JsonSerializer.Deserialize<Shot>(
-            JsonSerializer.Serialize(new { id, projectile = gun == null ? "bolt" : "nail", gun, x, y, vx, vy = 0, left = 10 }),
+    /// <summary>An arc as the sim lists it, from (<paramref name="x0"/>, <paramref name="y0"/>) to (<paramref name="x1"/>, <paramref name="y1"/>).</summary>
+    private static Arc ArcOf(int x0, int y0, int x1, int y1) =>
+        JsonSerializer.Deserialize<Arc>(JsonSerializer.Serialize(new { id = 1, projectile = "bolt", x0, y0, x1, y1, left = 10 }),
             new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
 
     [Fact]
-    public void ABoltTouchesTheHeroItsLastTicksWayCrossedAndNoneThatStoppedShortOrAGunsShot()
+    public void AnArcCrossesTheHeroItRunsThroughOrEndsInAndNoneThatPassesOrStopsShort()
     {
-        // Its body and margin span x 4750..7250; a bolt runs 1500 a tick, rightward here, at the hero's middle height.
+        // The body and margin span x 4750..7250, y 7450..13300; the arcs come from the right at the hero's middle height.
         int y = Standing.Y - Spec.Hero.Height / 2, right = Standing.X + Spec.Hero.Width / 2 + Rams.Margin;
-        Assert.Equal(1, Rams.BoltContact([ShotAt(1, right + 650, y, 1500)], Standing)?.Id);
-        Assert.Null(Rams.BoltContact([ShotAt(1, right + 1501, y, 1500)], Standing));
-        Assert.Null(Rams.BoltContact([ShotAt(1, Standing.X, Standing.Y - Spec.Hero.Height - Rams.Margin - 1, 1500)], Standing));
-        Assert.Null(Rams.BoltContact([ShotAt(1, Standing.X, y, 1500, gun: Spec.Shots.Nailer.Item)], Standing));
-        Assert.Equal(2, Rams.BoltContact([ShotAt(1, Standing.X, y, 1500, gun: Spec.Shots.Nailer.Item), ShotAt(2, Standing.X, y, 1500), ShotAt(3, Standing.X, y, 1500)], Standing)?.Id);
+        Assert.True(Rams.Crosses(ArcOf(40_000, y, 1_000, y), Standing));
+        Assert.True(Rams.Crosses(ArcOf(40_000, y, right - 1, y), Standing));
+        Assert.False(Rams.Crosses(ArcOf(40_000, y, right + 1, y), Standing));
+        // Over its head, and slanting down past its side: missed.
+        Assert.False(Rams.Crosses(ArcOf(40_000, Standing.Y - Spec.Hero.Height - Rams.Margin - 1, 1_000, Standing.Y - Spec.Hero.Height - Rams.Margin - 1), Standing));
+        Assert.False(Rams.Crosses(ArcOf(40_000, 0, right + 2_000, Standing.Y), Standing));
+        // A slant through its body.
+        Assert.True(Rams.Crosses(ArcOf(40_000, 0, Standing.X, Standing.Y - 100), Standing));
     }
 }
