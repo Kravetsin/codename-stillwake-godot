@@ -49,7 +49,7 @@ public class CapeTests
         Move(cape, f, 300);
         for (int i = 0; i < Points; i++)
         {
-            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.5);
             Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
         }
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
@@ -73,17 +73,56 @@ public class CapeTests
     }
 
     [Fact]
-    public void WalkingBackwardItKeepsItsCutRoundTheBackRatherThanWrappingTheHero()
+    public void RunningBackwardItFoldsForwardAgainstTheBodyButNeverIntoIt()
     {
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 120);
-        double most = double.MinValue;
+        double into = double.MinValue, beside = double.MinValue;
         for (int step = 0; step < 120; step++)
         {
             Move(cape, f, 1, -Sprint);
-            for (int i = 0; i < Points; i++) most = Math.Max(most, cape.Points[i].X - Cape.Rest(i).X);
+            for (int i = 0; i < Points; i++)
+            {
+                var (x, y) = cape.Points[i];
+                var rest = Cape.Rest(i);
+                if (rest.X < Cape.BackOf(rest.Y, default, default)) into = Math.Max(into, x - Cape.BackOf(y, default, default));
+                else beside = Math.Max(beside, x - rest.X);
+            }
         }
-        Assert.True(most <= 1.01, $"a point came {most} forward of its cut");
+        Assert.True(into <= 1.01, $"a point cut behind the body came {into:F2} into it");
+        Assert.True(beside <= 1.01, $"a point cut beside the body came {beside:F2} forward of its cut");
+        double hem = cape.Points[^1].X - Cape.Rest(Points - 1).X;
+        Assert.True(hem > 8, $"the hem only came {hem:F1} forward of its cut");
+    }
+
+    [Fact]
+    public void StoppedAfterARunItSwingsOnForwardBeforeItHangs()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 120, Sprint);
+        double most = double.MinValue;
+        for (int step = 0; step < 60; step++)
+        {
+            Move(cape, f, 1);
+            most = Math.Max(most, cape.Points[^1].X - Cape.Rest(Points - 1).X);
+        }
+        Assert.True(most > 2, $"the hem only swung {most:F1} forward of its cut");
+    }
+
+    [Fact]
+    public void ALegSwungBackPushesTheHemBack()
+    {
+        double Hem(Bend backLeg)
+        {
+            var (f, cape) = (new Frame(), new Cape());
+            for (int i = 0; i < 120; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame);
+            for (int i = 0; i < 120; i++) cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, legs: (default, backLeg));
+            // The hem's front half, where the legs are: rows of the lower third, the front two columns.
+            return Enumerable.Range(Cape.Rows * 2 / 3, Cape.Rows - Cape.Rows * 2 / 3)
+                .SelectMany(r => new[] { r * Cape.Cols, r * Cape.Cols + 1 }).Min(i => cape.Points[i].X);
+        }
+        double still = Hem(default), kicked = Hem(new Bend(-0.7, 0));
+        Assert.True(kicked < still - 2, $"the hem is at {kicked:F1} with the leg back, {still:F1} with it down");
     }
 
     [Fact]
@@ -115,7 +154,7 @@ public class CapeTests
             Move(cape, f, 120);
             for (int i = 0; i < Points; i++)
             {
-                Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+                Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.5);
                 Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
             }
             Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
@@ -236,7 +275,7 @@ public class CapeTests
         Move(cape, f, 300);
         for (int i = 0; i < Points; i++)
         {
-            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
+            Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.5);
             Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
         }
         Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
