@@ -64,14 +64,18 @@ public sealed class Cape
     private const double Follow = 0.7;
     /// <summary>The farthest forward of its cut any point of it goes, in pixels.</summary>
     private const double Give = 1;
-    /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem: the cape round the far side.</summary>
+    /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem, hanging: the cape round the far side; less as it swings away, none swung level.</summary>
     private const double WrapAtShoulders = 2, WrapAtHem = 4;
+    /// <summary>How fast the wrap goes as it leaves hanging straight down: as the power of how nearly straight down it runs, so at 45° it is all but gone.</summary>
+    private const double Tuck = 8;
     /// <summary>
     /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
     /// the neck and over the shoulder to the back, under its collar.
     /// </summary>
     /// <summary>Where it swings about, between its pins: one point for the whole sheet, so swung far it turns as one and never folds.</summary>
-    private static readonly (double X, double Y) Nape = (-1.75, -Rig.Neck);
+    private static readonly (double X, double Y) Nape = (-10, -(Rig.Neck - 1.5));
+    /// <summary>How the swing grows down it, as a power of how far down: under 1 the sheet turns more nearly whole, so swung far its back edge, inside the curl, is not squeezed.</summary>
+    private const double Curl = 0.7;
     private static readonly (double X, double Y)[] Pins =
         [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -Rig.Neck), (-7, -(Rig.Neck - 1.5))];
 
@@ -124,7 +128,7 @@ public sealed class Cape
     /// <summary>Its points as last drawn, row by row from the top, in the figure's frame (+x the way it faces, from the feet).</summary>
     public ReadOnlySpan<(double X, double Y)> Points => _points;
 
-    /// <summary>Its inside as last drawn: the same sheet, its front edge carried forward round the far side of the body.</summary>
+    /// <summary>Its inside as last drawn: the same sheet, its front edge carried forward round the far side of the body as far as it hangs.</summary>
     public ReadOnlySpan<(double X, double Y)> Inside => _inside;
 
     /// <summary>Where point <paramref name="i"/> hangs as cut, in the figure's frame: from its pin down to the hem, flaring back from the shoulders.</summary>
@@ -142,7 +146,7 @@ public sealed class Cape
     /// Where point <paramref name="i"/> flows to with the cape swung by <paramref name="swing"/> radians, in the figure's frame:
     /// its cut turned back and up about its <see cref="Nape"/>, by the swing at the hem and less toward the shoulders, so it curves.
     /// </summary>
-    public static (double X, double Y) Flow(int i, double swing) => Swung(Nape, Rest(i), swing * Uv(i).V);
+    public static (double X, double Y) Flow(int i, double swing) => Swung(Nape, Rest(i), swing * Math.Pow(Uv(i).V, Curl));
 
     /// <summary>Where point <paramref name="i"/> drifts to afloat: its <see cref="Flow"/> swung by <see cref="Spread"/>.</summary>
     public static (double X, double Y) AfloatRest(int i) => Flow(i, Spread);
@@ -164,17 +168,6 @@ public sealed class Cape
     {
         var (a, b, c) = (_points[Triangles[t * 3]], _points[Triangles[t * 3 + 1]], _points[Triangles[t * 3 + 2]]);
         return Turn(a, b, c) * Turn(Rest(Triangles[t * 3]), Rest(Triangles[t * 3 + 1]), Rest(Triangles[t * 3 + 2])) < 0;
-    }
-
-    /// <summary>Whether it is thrown up over the shoulders: turned over in its top row, under the collar, as a fall throws it.</summary>
-    public bool TurnedUp
-    {
-        get
-        {
-            for (int t = 0; t < (Cols - 1) * 2; t++)
-                if (Flipped(t)) return true;
-            return false;
-        }
     }
 
     /// <summary>
@@ -250,11 +243,16 @@ public sealed class Cape
             return toWorld((Math.Min(fx, HoodCut[i].X + Give), fy));
         }, hood);
         for (int i = 0; i < _hoodPoints.Length; i++) _hoodPoints[i] = toFrame(_hood.DrawnAt(i));
+        for (int i = 0; i < _points.Length; i++) _points[i] = toFrame(_cloth.DrawnAt(i));
         for (int i = 0; i < _points.Length; i++)
         {
-            _points[i] = toFrame(_cloth.DrawnAt(i));
             var (u, v) = Uv(i);
-            _inside[i] = (_points[i].X + (1 - u) * (WrapAtShoulders + (WrapAtHem - WrapAtShoulders) * v), _points[i].Y);
+            // Swung away from the body it no longer wraps round it: its far side lies behind its near side, not past its edge.
+            // How far it hangs: how nearly straight down it runs from the row above (the top row, to the row below).
+            int below = i < Cols ? i + Cols : i;
+            double dx = _points[below].X - _points[below - Cols].X, dy = _points[below].Y - _points[below - Cols].Y, d = Math.Sqrt(dx * dx + dy * dy);
+            double hangs = d == 0 ? 1 : Math.Pow(Math.Max(0, dy / d), Tuck);
+            _inside[i] = (_points[i].X + (1 - u) * (WrapAtShoulders + (WrapAtHem - WrapAtShoulders) * v) * hangs, _points[i].Y);
         }
     }
 

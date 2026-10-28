@@ -30,9 +30,8 @@ public class CapeTests
 
     private static readonly int Points = Cape.Cols * Cape.Rows;
 
-    /// <summary>Whether it is turned over below its top three rows: under the collar and the hood, a fold over the shoulder is hidden.</summary>
-    private static bool FoldedBelowTheHood(Cape cape) =>
-        Enumerable.Range((Cape.Cols - 1) * 6, Cape.Triangles.Length / 3 - (Cape.Cols - 1) * 6).Any(cape.Flipped);
+    /// <summary>Whether it is turned over anywhere, its lining toward the eye.</summary>
+    private static bool Folded(Cape cape) => Enumerable.Range(0, Cape.Triangles.Length / 3).Any(cape.Flipped);
 
     /// <summary>A cape stepped <paramref name="steps"/> times, the feet moving <paramref name="by"/> pixels a step, weightless if <paramref name="afloat"/>.</summary>
     private static void Move(Cape cape, Frame f, int steps, double by = 0, bool afloat = false)
@@ -90,7 +89,6 @@ public class CapeTests
             {
                 Move(cape, f, 1, by);
                 for (int i = 0; i < Points; i++) Assert.True(cape.Points[i].X - Cape.Rest(i).X <= 1.01, $"point {i} came forward of its cut");
-                Assert.False(FoldedBelowTheHood(cape), $"folded {by:F1} a step, step {step}");
             }
             return cape;
         }
@@ -98,6 +96,18 @@ public class CapeTests
         double hem = Cape.Rest(Points - 1).X - backward.Points[^1].X;
         Assert.True(hem > 5, $"going backward the hem streams only {hem:F1} behind its cut");
         Assert.InRange(backward.Points[^1].Y - forward.Points[^1].Y, -3, 3);
+    }
+
+    [Fact]
+    public void ItsInsideWrapsTheBodyHangingButNotSwungAwayOnARun()
+    {
+        // Its lower half: by the shoulders it lies on the body even swung, its inside hidden behind it.
+        double Wrap(Cape cape) => Enumerable.Range(Points / 2, Points - Points / 2).Max(i => Math.Abs(cape.Inside[i].X - cape.Points[i].X));
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        Assert.True(Wrap(cape) > 3, $"hanging, its inside wraps only {Wrap(cape):F1}");
+        Move(cape, f, 120, Sprint);
+        Assert.True(Wrap(cape) < 1.5, $"swung away on a run, its inside still shows {Wrap(cape):F1} past it");
     }
 
     [Fact]
@@ -179,19 +189,18 @@ public class CapeTests
     }
 
     [Fact]
-    public void AFallThrowsItUpOverTheShoulders()
+    public void AFallThrowsItUpBehind()
     {
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 300);
-        Assert.False(cape.TurnedUp);
-        bool up = false;
-        for (int i = 0; i < 40 && !up; i++)
+        double most = 0;
+        for (int i = 1; i <= 60; i++)
         {
-            f.Down += 5;
+            f.Down += Math.Min(6, i * 0.25);
             Move(cape, f, 1);
-            up = cape.TurnedUp;
+            most = Math.Max(most, Cape.Rest(Points - 1).Y - cape.Points[^1].Y);
         }
-        Assert.True(up);
+        Assert.True(most > 15, $"the hem only rose {most:F1}");
     }
 
     private static readonly int HoodTip = Cape.HoodCols * Cape.HoodRows - 2;
@@ -225,7 +234,7 @@ public class CapeTests
         for (int step = 0; step < 200; step++)
         {
             Move(cape, f, 1, afloat: true);
-            Assert.False(FoldedBelowTheHood(cape));
+            Assert.False(Folded(cape));
             (least, most) = (Math.Min(least, cape.Points[^1].X), Math.Max(most, cape.Points[^1].X));
         }
         Assert.InRange(most - least, 0.3, 6);
