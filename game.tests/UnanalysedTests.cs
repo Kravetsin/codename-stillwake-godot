@@ -45,9 +45,9 @@ public class UnanalysedTests
     [Fact]
     public void TipAStationTooColdForWhatItHoldsByTheStationHotEnoughForIt()
     {
-        // Silicon smelts into glass only at heat 2: the electric smelter, the first fed station that hot (0057).
-        Assert.Equal(new Tip("Needs more heat · Electric smelter"), Reading.TooColdTip("silicon"));
-        Assert.Equal(T("crafting.tooCold", ("station", T("station.smelter"))), Reading.TooColdTip("silicon").Name);
+        // Quartz smelts into silicon only at heat 2: the electric smelter, the first fed station that hot (0057).
+        Assert.Equal(new Tip("Needs more heat · Electric smelter"), Reading.TooColdTip("quartz"));
+        Assert.Equal(T("crafting.tooCold", ("station", T("station.smelter"))), Reading.TooColdTip("quartz").Name);
     }
 
     [Fact]

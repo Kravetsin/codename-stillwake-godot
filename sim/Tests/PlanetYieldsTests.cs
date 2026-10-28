@@ -252,13 +252,15 @@ public class PlanetYieldsTests
         ["PPP   PPP      ", "               ", "###############", "#OOO..........#", "#OOO.MM.YY....#", "#OOO.MM.YY....#", "###############"],
         null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]), doubled: true);
 
+    private static readonly IReadOnlyList<(string Item, int Count)> Motor = Content.Crafts.Get("motor").Cost;
+
     [Fact]
-    public void AMotorIsPressedOfARotorTwoCopperAndAMagnetiteAtTheFormerAlone()
+    public void AMotorIsPressedOfARotorCopperAndMagnetiteAtTheFormerAlone()
     {
-        var w = Workshop().GiveItems(0, ("rotor", 1), ("copper", 2), ("magnetite", 1));
+        var w = Workshop().GiveItems(0, Motor.ToArray());
         int former = w.M.Grid.MachinesOf("former").Single().Id, pod = w.M.Grid.MachinesOf("lifepod").Single().Id;
         int ticks = Content.Crafts.Get("motor").Ticks;
-        Assert.Equal([("rotor", 1), ("copper", 2), ("magnetite", 1)], Content.Crafts.Get("motor").Cost);
+        Assert.Equal(["rotor", "copper", "magnetite"], Motor.Select(c => c.Item));
         w.Do(new Craft(pod, "motor", 1)).Run();
         Assert.Equal(["crafting.notHere"], w.Refusals.Select(r => r.Reason));
         w.Do(new Craft(former, "motor", 1)).Run();
@@ -273,12 +275,10 @@ public class PlanetYieldsTests
     [Fact]
     public void AFormerPressesAMotorFromItsInputs()
     {
-        var w = Workshop().GiveItems(0, ("rotor", 1), ("copper", 2), ("magnetite", 1));
+        var w = Workshop().GiveItems(0, Motor.ToArray());
         int former = w.M.Grid.MachinesOf("former").Single().Id;
         Assert.True(Machines.Get("former").Inputs >= 3);
-        Put(w, former, "rotor", 1, 0);
-        Put(w, former, "copper", 2, 1);
-        Put(w, former, "magnetite", 1, 2);
+        for (int i = 0; i < Motor.Count; i++) Put(w, former, Motor[i].Item, Motor[i].Count, i);
         w.Do(new Craft(former, "motor", 1, FromInputs: true)).Run(Content.Crafts.Get("motor").Ticks + 1);
         Assert.Empty(w.Refusals);
         Assert.Equal((1, 0, 0, 0), (Held(w, former, "motor"), Held(w, former, "rotor"), Held(w, former, "copper"), Held(w, former, "magnetite")));

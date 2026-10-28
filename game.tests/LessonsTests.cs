@@ -104,7 +104,7 @@ public class LessonsTests
         Assert.DoesNotContain("wire", expected);
         // Granted and opened alike are open: since the solar panel is built of solar cells (0057), nothing iron goes into waits for more.
         Assert.DoesNotContain(lessons.Recipes, l => !l.Opened);
-        Assert.True(lessons.Recipes.Single(l => l.Recipe.Id == "crate").Opened);
+        Assert.True(lessons.Recipes.Single(l => l.Recipe.Id == "fireAxe").Opened);
     }
 
     [Fact]

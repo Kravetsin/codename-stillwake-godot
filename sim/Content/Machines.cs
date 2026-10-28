@@ -132,54 +132,56 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [(0, 2)], [("plate", 4), ("tube", 1)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
-        new("generator", 4, 4, [(0, 2)], [("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
-        new("solarPanel", 6, 2, [], [("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
-        new("vent", 2, 2, [(0, 0)], [("plate", 1), ("tube", 1)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
-        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 1)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
+        new("tank", 4, 4, [(0, 2)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("generator", 4, 4, [(0, 2)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
+        new("vent", 2, 2, [(0, 0)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
+        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
         new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
-        new("analyzer", 4, 4, [], [("plate", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1, Menu: new(MenuTabs.Production, 20), Char: 'A', Means: "analyzer: draw its whole footprint"),
-        new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
+        new("analyzer", 4, 4, [], [("plate", 4), ("wire", 8), ("coil", 1)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1, Menu: new(MenuTabs.Production, 20), Char: 'A', Means: "analyzer: draw its whole footprint"),
+        new("crate", 4, 2, [], [("planks", 8), ("plate", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
         new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),
         // Its input, its fuel, then three outputs.
         new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
         // power comes before the Former.
-        new("burnerGenerator", 4, 4, [], [("plate", 3), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
+        new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
-        new("charger", 2, 4, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
+        new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
         // a minute at its most taken in fills it, two of a spare panel's. Basic infrastructure, not arc-gated; a bigger arc store may come later.
-        new("capacitorBank", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 2), ("circuit", 1)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60), Char: 'Q', Means: "capacitor bank: draw its whole footprint (0101)"),
+        new("capacitorBank", 4, 4, [], [("frame", 2), ("coil", 6), ("plate", 6), ("circuit", 2)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60), Char: 'Q', Means: "capacitor bank: draw its whole footprint (0101)"),
         // Presses and turns parts at full speed while it draws (Stations): six inputs, a jetpack's, then three outputs. Rests idle. Of the
         // workbench's parts and a salvaged circuit, never a frame, which only it makes.
-        new("former", 4, 4, [], [("plate", 4), ("rotor", 1), ("gear", 4), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 9, Inputs: 6, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
+        new("former", 4, 4, [], [("plate", 6), ("rotor", 2), ("gear", 6), ("tube", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 9, Inputs: 6, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
+        // Crushes rock and asteroid ore on power (Stations): its input, then three outputs, room for gravel, iron ore and quartz. Rests idle.
+        new("crusher", 4, 4, [], [("frame", 2), ("gear", 8), ("plate", 6), ("rotor", 2), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (27, 6), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 35), Char: 'k', Means: "crusher: draw its whole footprint"),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
-        new("smelter", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40), Char: 'E', Means: "electric smelter: draw its whole footprint"),
+        new("smelter", 4, 4, [], [("frame", 3), ("coil", 4), ("plate", 8), ("tube", 4), ("circuit", 2)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40), Char: 'E', Means: "electric smelter: draw its whole footprint"),
         // Assembles electronics at full speed while it draws (Stations): four inputs, a drone's, then three outputs. Rests idle.
-        new("assembler", 4, 4, [], [("frame", 1), ("rotor", 1), ("glass", 1), ("wire", 2), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
+        new("assembler", 4, 4, [], [("frame", 3), ("rotor", 2), ("glass", 4), ("coil", 2), ("wire", 10), ("circuit", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
-        new("growCapsule", 4, 6, [], [("frame", 1), ("glass", 2), ("soil", 4), ("circuit", 1), ("wire", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
+        new("growCapsule", 4, 6, [], [("frame", 2), ("glass", 6), ("soil", 8), ("circuit", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
-        new("droneBay", 4, 4, [], [("frame", 2), ("plate", 4), ("circuit", 2), ("wire", 2)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
+        new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
         new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
-        new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 1), ("plate", 2), ("gear", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
+        new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
         // The ship's computer and the radar antenna on its roof (the radar its program): of what space gives, the last built before a planet.
-        new("computer", 6, 4, [], [("frame", 2), ("plate", 4), ("processor", 2), ("display", 1), ("coil", 2), ("wire", 6)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
-        new("radarAntenna", 4, 4, [], [("frame", 1), ("plate", 3), ("tube", 2), ("rotor", 1), ("gear", 2), ("transceiver", 1), ("solarCell", 1)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
+        new("computer", 6, 4, [], [("frame", 4), ("plate", 12), ("processor", 3), ("display", 2), ("coil", 6), ("wire", 20)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
+        new("radarAntenna", 4, 4, [], [("frame", 3), ("plate", 8), ("tube", 4), ("rotor", 2), ("gear", 6), ("transceiver", 2), ("solarCell", 2)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
         // The engine (2026-10-25-the-engine-through-the-hull): the last thing built, of a planet's parts; its nozzle out through
         // the stern's wall, its tank of biofuel, its pumps and igniter kept ready on power. It does not run yet: the jump is to come.
-        new("engine", 6, 4, [], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 2), ("plate", 4)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, Takes: "biofuel", Exhaust: 3, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),
+        new("engine", 6, 4, [], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 4), ("plate", 12), ("motor", 1)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, Takes: "biofuel", Exhaust: 3, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),
         // The drop pod, the bell (the capsule concepts' 2C): a dome with a round porthole on a wide skirt, standing on a launch platform
         // two pieces wide. A hero sits in it; its one slot holds the biofuel it will burn going down. Guided by a processor and a display.
-        new("dropPod", 4, 6, [], [("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: "biofuel", Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
+        new("dropPod", 4, 6, [], [("frame", 6), ("plate", 16), ("glass", 8), ("tube", 6), ("processor", 1), ("display", 1)], BuildTicks: 240, Slots: 1, Takes: "biofuel", Has: MachineTrait.Seats | MachineTrait.Lands, Menu: new(MenuTabs.Ship, 105), Char: 'Z', Means: "drop pod: draw its whole footprint, on a launch platform"),
     ];
 
     private static readonly Dictionary<string, MachineSpec> ByKind = All.ToDictionary(m => m.Kind, StringComparer.Ordinal);

@@ -46,7 +46,7 @@ public class StoreGaugeTests
         int bank = m.Grid.MachinesOf("capacitorBank")[0].Id, smelter = m.Grid.MachinesOf("smelter")[0].Id;
         world.Step([]);
         Assert.Equal((StoreWorld.Holds + 3, 3), (m.Power.Store(bank)!.Energy, m.Power.Store(bank)!.Flow));
-        world.Step([new Move(new Place(StoreWorld.RockSlot), new Target(0, smelter), StoreWorld.Rock)]);
+        world.Step([new Move(new Place(StoreWorld.QuartzSlot), new Target(0, smelter), StoreWorld.Quartz)]);
         for (int i = 0; i < 20; i++) world.Step([]);
         Assert.Equal(-5, m.Power.Store(bank)!.Flow);
         Assert.Equal(1000, m.Power.Satisfaction(smelter));

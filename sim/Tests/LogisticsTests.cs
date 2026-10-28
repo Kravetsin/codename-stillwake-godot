@@ -536,13 +536,13 @@ public class LogisticsTests
     [Fact]
     public void AnInputEmptiedByTheWriteThatTakesItsOnlyItemStillRemembersIt()
     {
-        // A smelter writes its slots only as a smelt completes: its one rock gone, nothing wrote it there before.
+        // A smelter writes its slots only as a smelt completes: its one quartz gone, nothing wrote it there before.
         string[] rows = [.. Pressing.Select(r => r.Replace("MM", "EE"))];
         var w = Aired(rows, PressingUnder, cables: [((0, 0), (14, 4))]);
         int smelter = w.M.Grid.MachinesOf("smelter").Single().Id;
-        w.Put(0, new Stack("rock", 1), crate: smelter);
+        w.Put(0, new Stack("quartz", 1), crate: smelter);
         Assert.True(RunUntil(w, () => w.M.Items.Crate(smelter)[0] == null, 600));
-        Assert.Equal("rock", w.M.Items.KeptAt(smelter, 0));
+        Assert.Equal("quartz", w.M.Items.KeptAt(smelter, 0));
     }
 
     [Fact]

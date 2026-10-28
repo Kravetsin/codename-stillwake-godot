@@ -27,19 +27,19 @@ public class AssemblerTests
     private static int Made(Scenario w, string item) => w.M.Items.Crate(Assembler(w)).Sum(s => s?.Item == item ? s.Count : 0);
     private static int Carried(Scenario w, string item) => w.M.Items.Inventory(0).Sum(s => s?.Item == item ? s.Count : 0);
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
+    private static int CostOf(string craft, string item) => Crafts.Get(craft).Cost.Single(c => c.Item == item).Count;
     private static readonly int Circuit = Crafts.Get("circuit").Ticks * 1000;
     private static readonly int Draws = Machines.Get("assembler").Draws!.Value;
 
     [Fact]
-    public void MakesACircuitOfSiliconAndWireInEightyTicksAtFullPowerDrawingWhileItWorks()
+    public void MakesACircuitOfSiliconAndWireInItsTicksAtFullPowerDrawingWhileItWorks()
     {
         var w = World();
         int assembler = Assembler(w);
         Assert.Equal((1000, 8, 2), (Content.Stations.Get("assembler").Speed, Content.Stations.Get("assembler").QueueMost, Draws));
-        Assert.Equal(80, Crafts.Get("circuit").Ticks);
         // Paid when queued; the tick of the craft is the first of its work, at the share the network gave it resting.
         w.Do(new Craft(assembler, "circuit", 2)).Run();
-        Assert.Equal((8, 16), (Carried(w, "silicon"), Carried(w, "wire")));
+        Assert.Equal((10 - 2 * CostOf("circuit", "silicon"), 20 - 2 * CostOf("circuit", "wire")), (Carried(w, "silicon"), Carried(w, "wire")));
         Assert.Equal(1000, w.M.Crafting.Progress(assembler));
         Assert.True(w.M.Crafting.Works(assembler));
         w.Run();
@@ -83,13 +83,13 @@ public class AssemblerTests
     }
 
     [Fact]
-    public void MakesASolarCellOfSiliconGlassAndWireInAHundredTicks()
+    public void MakesASolarCellOfSiliconGlassAndWireInItsTicks()
     {
         var w = World();
         int assembler = Assembler(w);
-        Assert.Equal([("silicon", 1), ("glass", 1), ("wire", 1)], Crafts.Get("solarCell").Cost);
+        Assert.Equal(["silicon", "glass", "wire"], Crafts.Get("solarCell").Cost.Select(c => c.Item));
         w.Do(new Craft(assembler, "solarCell", 1)).Run();
-        Assert.Equal((9, 3, 19), (Carried(w, "silicon"), Carried(w, "glass"), Carried(w, "wire")));
+        Assert.Equal((10 - CostOf("solarCell", "silicon"), 4 - CostOf("solarCell", "glass"), 20 - CostOf("solarCell", "wire")), (Carried(w, "silicon"), Carried(w, "glass"), Carried(w, "wire")));
         w.Run(Crafts.Get("solarCell").Ticks - 2);
         Assert.Equal(0, Made(w, "solarCell"));
         w.Run();

@@ -147,11 +147,11 @@ public class FormerTests
     }
 
     [Fact]
-    public void OpensOnceAPlateARotorAGearAndACircuitAreAnalysed()
+    public void OpensOnceAPlateARotorAGearATubeAndACircuitAreAnalysed()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
         var former = w.M.Research.Recipes().Single(r => r.Id == "former");
-        Assert.Equal(["plate", "rotor", "gear", "circuit"], former.Unanalysed);
+        Assert.Equal(["plate", "rotor", "gear", "tube", "circuit"], former.Unanalysed);
         Assert.False(former.Known);
     }
 }

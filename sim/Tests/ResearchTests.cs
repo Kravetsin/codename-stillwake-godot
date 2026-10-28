@@ -142,8 +142,8 @@ public class ResearchTests
         // The relic (0096): its blueprint opens by analysing a shard, the rest of its cost known; the shard stays for the module.
         // The arc bench, a shard in its cost, opens with it (0099).
         var (w, id) = SetUp();
-        w.GiveItems(0, (Content.Ruins.Shard, 2), ("coil", 1), ("circuit", 1), ("frame", 1));
-        foreach (string part in (string[])["coil", "circuit", "frame", "plate", "gear"]) Analyse(w, id, part);
+        w.GiveItems(0, (Content.Ruins.Shard, 2), ("coil", 1), ("circuit", 1), ("frame", 1), ("crystal", 1), ("mica", 1), ("motor", 1));
+        foreach (string part in (string[])["coil", "circuit", "frame", "plate", "crystal", "mica", "motor"]) Analyse(w, id, part);
         var bench = new Placement("machine", "arcBench");
         Assert.False(w.M.Research.Knows("arcModule"));
         Assert.False(w.M.Research.Knows(bench));
@@ -202,15 +202,15 @@ public class ResearchTests
         Assert.True(w.M.Research.Knows(bank));
     }
 
-    /// <summary>The circuit assembler (0057): a frame, a rotor, glass, wire and a circuit; and its circuit craft, silicon and wire.</summary>
+    /// <summary>The circuit assembler (0057): a frame, a rotor, glass, a coil, wire and a circuit; and its circuit craft, silicon and wire.</summary>
     [Fact]
-    public void OpensTheCircuitAssemblerOnceFrameRotorGlassWireAndCircuitAreAnalysedAndCircuitsOfSiliconAndWire()
+    public void OpensTheCircuitAssemblerOnceFrameRotorGlassCoilWireAndCircuitAreAnalysedAndCircuitsOfSiliconAndWire()
     {
         var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 1), ("rotor", 1), ("glass", 1), ("circuit", 1), ("silicon", 1));
+        w.GiveItems(0, ("frame", 1), ("rotor", 1), ("glass", 1), ("coil", 1), ("circuit", 1), ("silicon", 1));
         var assembler = new Placement("machine", "assembler");
-        Assert.Equal(["frame", "rotor", "glass", "wire", "circuit"], RecipeOf(w, "assembler").Unanalysed);
-        foreach (var item in new[] { "frame", "rotor", "glass", "wire" }) Analyse(w, id, item);
+        Assert.Equal(["frame", "rotor", "glass", "coil", "wire", "circuit"], RecipeOf(w, "assembler").Unanalysed);
+        foreach (var item in new[] { "frame", "rotor", "glass", "coil", "wire" }) Analyse(w, id, item);
         Assert.Equal(["circuit"], RecipeOf(w, "assembler").Unanalysed);
         Assert.False(w.M.Research.Knows(assembler));
         Assert.Equal(["silicon"], RecipeOf(w, "circuit").Unanalysed);
@@ -221,12 +221,12 @@ public class ResearchTests
         Assert.True(w.M.Research.Knows("circuit"));
     }
 
-    /// <summary>The grow capsule (0060): a frame, glass, soil, a circuit and wire; and soil's craft, rock and planks.</summary>
+    /// <summary>The grow capsule (0060): a frame, glass, soil, a circuit and wire; and soil's craft, gravel and planks.</summary>
     [Fact]
-    public void OpensTheGrowCapsuleOnceFrameGlassSoilCircuitAndWireAreAnalysedAndSoilOfRockAndPlanks()
+    public void OpensTheGrowCapsuleOnceFrameGlassSoilCircuitAndWireAreAnalysedAndSoilOfGravelAndPlanks()
     {
         var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 1), ("glass", 1), ("soil", 1), ("circuit", 1), ("rock", 1));
+        w.GiveItems(0, ("frame", 1), ("glass", 1), ("soil", 1), ("circuit", 1), ("gravel", 1));
         var capsule = new Placement("machine", "growCapsule");
         Assert.Equal(["frame", "glass", "soil", "circuit", "wire"], RecipeOf(w, "growCapsule").Unanalysed);
         foreach (var item in new[] { "frame", "glass", "circuit", "wire" }) Analyse(w, id, item);
@@ -234,8 +234,8 @@ public class ResearchTests
         Assert.False(w.M.Research.Knows(capsule));
         Analyse(w, id, "soil");
         Assert.True(w.M.Research.Knows(capsule));
-        Assert.Equal(["rock", "planks"], RecipeOf(w, "soil").Unanalysed);
-        Analyse(w, id, "rock");
+        Assert.Equal(["gravel", "planks"], RecipeOf(w, "soil").Unanalysed);
+        Analyse(w, id, "gravel");
         Analyse(w, id, "planks");
         Assert.True(w.M.Research.Knows("soil"));
     }
@@ -246,8 +246,12 @@ public class ResearchTests
         // Held back by nothing (0041): a frame, solar cells, wire and a circuit, analysed as any blueprint is (0057).
         var (w, id) = SetUp();
         var panel = new Placement("machine", "solarPanel");
-        Assert.Equal([("frame", 1), ("solarCell", 4), ("wire", 2), ("circuit", 1)], Content.Machines.Get("solarPanel").Cost);
-        w.GiveItems(0, ("frame", 1), ("solarCell", 4), ("circuit", 1));
+        var cost = Content.Machines.Get("solarPanel").Cost;
+        Assert.Equal(["frame", "solarCell", "wire", "circuit"], cost.Select(c => c.Item));
+        // The wire is what the hero carries from the start.
+        int wire = cost.Single(c => c.Item == "wire").Count;
+        Assert.True(wire <= 5);
+        w.GiveItems(0, [.. cost.Where(c => c.Item != "wire")]);
         Assert.Equal(["frame", "solarCell", "wire", "circuit"], RecipeOf(w, "solarPanel").Unanalysed);
         foreach (var item in new[] { "frame", "solarCell", "wire" }) Analyse(w, id, item);
         Assert.Equal(["circuit"], RecipeOf(w, "solarPanel").Unanalysed);
@@ -263,7 +267,7 @@ public class ResearchTests
         Assert.Empty(w.Refusals);
         Assert.Equal("solarPanel", w.M.Grid.MachineAt(At(4, 0))?.Kind);
         Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item is "circuit" or "solarCell" or "frame" ? s.Count : 0));
-        Assert.Equal(3, w.M.Items.Inventory(0).Sum(s => s?.Item == "wire" ? s.Count : 0));
+        Assert.Equal(5 - wire, w.M.Items.Inventory(0).Sum(s => s?.Item == "wire" ? s.Count : 0));
     }
 
     [Fact]
@@ -386,10 +390,10 @@ public class ResearchTests
         Assert.False(furnace.Granted);
         Assert.Empty(furnace.Unanalysed);
         Assert.True(furnace.Known && w.M.Research.Knows("furnace"));
-        // The wreck's grants: the crate's iron and planks still wait for the analyzer for what else they go into.
+        // The wreck's grants: the crate's planks and plates still wait for the analyzer for what else they go into.
         var start = new Scenario(StartMap(), doubled: true);
         Assert.Empty(RecipeOf(start, "furnace").Unanalysed);
-        Assert.Equal(["planks", "iron"], RecipeOf(start, "crate").Unanalysed);
+        Assert.Equal(["planks", "plate"], RecipeOf(start, "crate").Unanalysed);
     }
 
     [Fact]

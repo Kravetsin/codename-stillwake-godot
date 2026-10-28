@@ -150,16 +150,19 @@ public class ArcBenchTests
     }
 
     [Fact]
-    public void CraftsTheArcBranchPaidByHandAnAccumulatorOfAShardABatteryCopperAndACircuitInTenSeconds()
+    public void CraftsTheArcBranchPaidByHandAnAccumulatorRoundAShardInTenSeconds()
     {
-        var w = World().GiveItems(0, (Spec.Ruins.Shard, 2), ("copper", 2), ("circuit", 3), ("coil", 2), ("frame", 1));
+        var accumulator = Spec.Crafts.Get(Accumulator).Cost;
+        var cost = accumulator.Concat(Spec.Crafts.Get(Arc).Cost).GroupBy(c => c.Item).Select(g => (g.Key, g.Sum(c => c.Count))).ToList();
+        Assert.Contains((Spec.Ruins.Shard, 1), accumulator);
+        Assert.Contains("battery", accumulator.Select(c => c.Item));
+        var w = World().GiveItems(0, [.. cost.Select(c => c.Key == "battery" ? (c.Key, c.Item2 - 1) : c).Where(c => c.Item2 > 0)]);
         // A battery holding charge, wound into it: made empty, as a crafted battery is, its charge lost there.
         w.Put(20, new Stack("battery", 1, Spec.Charge.Battery));
         int bench = Bench(w);
-        Assert.Equal([(Spec.Ruins.Shard, 1), ("battery", 1), ("copper", 2), ("circuit", 1)], Spec.Crafts.Get(Accumulator).Cost);
         w.Do(new Craft(bench, Accumulator, 1)).Do(new Craft(bench, Arc, 1)).Do(new Craft(bench, Accumulator, 1, FromInputs: true)).Run();
         Assert.Equal(["crafting.noInputs"], Reasons(w));
-        Assert.Equal(0, w.M.Items.Totals(0).Where(t => t.Item is "battery" or "copper" or "coil" or "frame" || t.Item == Spec.Ruins.Shard).Sum(t => t.Count));
+        Assert.All(cost, c => Assert.Equal(0, w.M.Items.Totals(0).Where(t => t.Item == c.Key).Sum(t => t.Count)));
         // Unpowered, at full speed: a unit in its 200 ticks, the first begun on the tick it was queued.
         Assert.Equal(1000, w.M.Crafting.Progress(bench));
         w.Run(Spec.Crafts.Get(Accumulator).Ticks - 1);

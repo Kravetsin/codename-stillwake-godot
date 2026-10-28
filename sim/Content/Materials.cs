@@ -69,7 +69,7 @@ public static class Materials
 {
     public static readonly IReadOnlyList<Material> All =
     [
-        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110)),
+        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110)),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120)),
         // A planet's ground (0077), leakier than any hull. Soil breaks at a swing of the axe, stone at three; a shovelful
         // of soil and a lump of rock, the asteroids' own, come out of it, and build it back.

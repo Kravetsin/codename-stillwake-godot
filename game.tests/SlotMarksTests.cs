@@ -16,22 +16,23 @@ public class SlotMarksTests
     public void MarkWhatTheOpenFurnaceSmeltsAndBurnsAFlameBeforeTheQuestionMark()
     {
         var furnace = Open("furnace");
-        // Rock waits for an analyzer, yet the furnace's flame goes first: the friend saw it smelts.
-        Assert.True(furnace.Unknown("rock"));
-        Assert.Equal(SlotMark.Smelts, furnace.MarkOf("rock"));
+        Assert.Equal(SlotMark.Smelts, furnace.MarkOf("ironOre"));
         Assert.Equal(SlotMark.Smelts, furnace.MarkOf("hullPlate"));
         Assert.Equal(SlotMark.Smelts, furnace.MarkOf("scrapChunk"));
         Assert.Equal(SlotMark.Burns, furnace.MarkOf("planks"));
         // Too hot for it: no flame, only what it shows anyway.
-        Assert.Equal(SlotMark.Unknown, furnace.MarkOf("silicon"));
-        Assert.Equal(SlotMark.None, Open("furnace", "silicon").MarkOf("silicon"));
+        Assert.Equal(SlotMark.Unknown, furnace.MarkOf("gravel"));
+        Assert.Equal(SlotMark.None, Open("furnace", "gravel").MarkOf("gravel"));
         Assert.Equal(SlotMark.None, furnace.MarkOf("fireAxe"));
     }
 
     [Fact]
     public void MarkWhatTheSmelterSmeltsAndTheGrowCapsuleGrowsAndTheBurnersFuel()
     {
-        Assert.Equal(SlotMark.Smelts, Open("smelter").MarkOf("silicon"));
+        Assert.Equal(SlotMark.Smelts, Open("smelter").MarkOf("quartz"));
+        // Gravel waits for an analyzer, yet the smelter's crucible goes first: the friend saw it smelts.
+        Assert.True(Open("smelter").Unknown("gravel"));
+        Assert.Equal(SlotMark.Smelts, Open("smelter").MarkOf("gravel"));
         // The smelter runs on power: planks are no fuel there.
         Assert.Equal(SlotMark.Unknown, Open("smelter").MarkOf("planks"));
         Assert.Equal(SlotMark.Grows, Open("growCapsule").MarkOf("seed"));
@@ -51,7 +52,7 @@ public class SlotMarksTests
     [Fact]
     public void SayInTheTipWhatTheOpenStationDoesWithIt()
     {
-        var stack = new Stack("rock", 3);
+        var stack = new Stack("ironOre", 3);
         Assert.Equal(SlotMark.Smelts, Open("furnace").HereTipOf(stack).Card!.Here);
         Assert.Equal(SlotMark.Burns, Open("furnace").HereTipOf(new Stack("planks", 1)).Card!.Here);
         Assert.Equal(SlotMark.None, Open(null).HereTipOf(stack).Card!.Here);
@@ -93,12 +94,12 @@ public class SlotMarksTests
     public void ACarriedItemLightsTheGhostOfTheSlotItGoesIn()
     {
         var furnace = Open("furnace");
-        Assert.True(furnace.Lights(SlotMark.Smelts, "rock"));
-        Assert.False(furnace.Lights(SlotMark.Burns, "rock"));
+        Assert.True(furnace.Lights(SlotMark.Smelts, "ironOre"));
+        Assert.False(furnace.Lights(SlotMark.Burns, "ironOre"));
         Assert.True(furnace.Lights(SlotMark.Burns, "planks"));
         // Too hot for it: no glow, as no mark.
-        Assert.False(furnace.Lights(SlotMark.Smelts, "silicon"));
-        Assert.True(Open("smelter").Lights(SlotMark.Smelts, "silicon"));
+        Assert.False(furnace.Lights(SlotMark.Smelts, "gravel"));
+        Assert.True(Open("smelter").Lights(SlotMark.Smelts, "gravel"));
         Assert.True(Open("growCapsule").Lights(SlotMark.Grows, "seed"));
         Assert.False(Open("growCapsule").Lights(SlotMark.Grows, "rock"));
         Assert.True(Open("analyzer").Lights(SlotMark.Unknown, "rock"));

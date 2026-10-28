@@ -55,8 +55,7 @@ public class ChargeTests
         Assert.Equal((1, "belt"), (spec.Stack, spec.Equip));
         // What a machine drawing 3 uses in 600 ticks, stored scaled.
         Assert.Equal(1800 * S, Full);
-        Assert.Equal([("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Crafts.Get(Battery).Cost);
-        Assert.Equal(60, Crafts.Get(Battery).Ticks);
+        Assert.Equal(["plate", "coil", "wire", "circuit"], Crafts.Get(Battery).Cost.Select(c => c.Item));
         Assert.DoesNotContain(Battery, Content.Research.StartKnown);
     }
 
@@ -66,7 +65,7 @@ public class ChargeTests
         // At a Former cabled to a panel, as the Former's tests power one.
         string[] rows = ["PPP      ", "         ", "#########", "#MM.....#", "#MM.....#", "#########"];
         var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true)
-            .GiveItems(0, ("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1));
+            .GiveItems(0, Crafts.Get(Battery).Cost.ToArray());
         int former = w.M.Grid.MachinesOf("former").Single().Id;
         w.Do(new Stillwake.Sim.Crafting.Craft(former, Battery, 1) { From = 0 }).Run(Crafts.Get(Battery).Ticks * 1000 / Content.Stations.Get("former").Speed);
         Assert.Empty(w.Refusals);
@@ -93,7 +92,7 @@ public class ChargeTests
         var spec = Machines.Get("charger");
         // One by two as a map draws it, a character a 16 px cell (0104).
         Assert.Equal((1, 2, 3, 1, true), (spec.Width / 2, spec.Height / 2, spec.Draws, spec.Slots, spec.Charges));
-        Assert.Equal([("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], spec.Cost);
+        Assert.Equal(["frame", "coil", "wire", "circuit"], spec.Cost.Select(c => c.Item));
         Assert.DoesNotContain("charger", Content.Research.StartKnown);
         Assert.Equal(600, Full / PerTick);
     }

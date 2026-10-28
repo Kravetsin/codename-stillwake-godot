@@ -50,7 +50,7 @@ public class DropPodTests
     {
         var spec = Machines.Get("dropPod");
         Assert.Equal((4, 6), (spec.Width, spec.Height));
-        Assert.Equal([("frame", 4), ("plate", 8), ("glass", 2), ("tube", 3), ("processor", 1), ("display", 1)], spec.Cost);
+        Assert.Equal(["frame", "plate", "glass", "tube", "processor", "display"], spec.Cost.Select(c => c.Item));
         Assert.Equal(MachineTrait.Seats | MachineTrait.Lands, spec.Traits);
         Assert.Equal(1, spec.Slots);
         Assert.Equal("biofuel", spec.Takes);
