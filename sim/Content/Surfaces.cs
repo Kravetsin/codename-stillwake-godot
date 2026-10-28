@@ -39,6 +39,9 @@ public static class Surfaces
         /// <summary>The creatures that come with its debris, clamped on (<see cref="Creatures.OnDebris"/>).</summary>
         public IReadOnlyList<Creatures.OnDebris> Guards { get; init; } = [];
 
+        /// <summary>The meteors that strike its hull (2026-10-28-hull-meteors); none on a planet.</summary>
+        public Meteors.Shower? Meteors { get; init; }
+
         /// <summary>
         /// Whether its tools break what stands on its grid, and nothing on it is taken apart by a mark (a planet: the fan of rays);
         /// else the plan alone takes things apart and its tools break nothing of its grid (the ship).
@@ -61,8 +64,8 @@ public static class Surfaces
         public bool Allows(string kind) => Builds == null || Builds.Contains(kind, StringComparer.Ordinal);
     }
 
-    /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was, and sentries on the derelicts.</summary>
-    public static readonly Kind Ship = new("ship", []) { Guards = [Creatures.Derelicts] };
+    /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was, sentries on the derelicts and the starting space's meteors.</summary>
+    public static readonly Kind Ship = new("ship", []) { Guards = [Creatures.Derelicts], Meteors = Content.Meteors.StartingSpace };
 
     /// <summary>
     /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip, a character a 16 px cell and doubled as it opens (0104): under

@@ -79,7 +79,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## World
 
 - обломок / debris piece **≠** → `Piece`, `Hit`, `Reel` (sim/Debris); a wreck is debris of kind wreckage → Debris
-- метеор / meteor → `MeteorHit` → Hazards
+- метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core

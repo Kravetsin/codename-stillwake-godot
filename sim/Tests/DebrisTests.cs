@@ -142,7 +142,8 @@ public class DebrisTests
     [Fact]
     public void SpawnsByTheWreckInTheBigWorldInItsHullsBandAsOnItsOwnGrid()
     {
-        var w = new Scenario(Registry.Wreck).Run(3 * DebrisSpec.Every);
+        // Calm as the wreck drawn on its own grid is: the meteors' draws would move the debris' on.
+        var w = new Scenario(Registry.Wreck with { Meteors = false }).Run(3 * DebrisSpec.Every);
         var grid = w.M.Grid;
         var walls = Enumerable.Range(0, grid.Width * grid.Height).Where(c => grid.StructureAt(c) != Structure.Empty).ToList();
         int left = walls.Min(c => c % grid.Width), right = walls.Max(c => c % grid.Width);

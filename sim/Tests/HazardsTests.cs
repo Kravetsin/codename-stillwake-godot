@@ -15,7 +15,7 @@ namespace Stillwake.Sim.Tests;
 /// <summary>
 /// packages/sim/src/modules/hazards/hazards.test.ts, ported one for one.
 /// </summary>
-public class HazardsTests
+public partial class HazardsTests
 {
     /// <summary>Nine wide: a sealed room with a vent above a tank and a valve between them.</summary>
     private const string Room = """
@@ -70,14 +70,14 @@ public class HazardsTests
         Assert.Equal(cut, w.M.Atmosphere.OxygenIn(tank));
     }
 
-    /// <summary>"stop venting once a wall planned on the hole is built", in creative mode as there.</summary>
+    /// <summary>"stop venting once a wall planned on the hole is built", in creative mode as there: the hole keeps its wall planned.</summary>
     [Fact]
     public void StopVentingOnceAWallPlannedOnTheHoleIsBuilt()
     {
         var (w, tank, room) = Aired();
         w.Do(new SetCreative(true)).Run();
         Breach(w).Run();
-        w.Do(new PlacePlan(w.At(8, 2), Placement.Wall("scrap"))).Do(new PlacePlan(w.At(8, 2) + 1, Placement.Wall("scrap"))).Run();
+        Assert.Equal(2, w.M.Building.Plans.Count);
         foreach (int plan in w.M.Building.Plans.Select(p => p.Id).ToArray())
             for (int i = 0; i <= Content.Materials.Get("scrap").BuildTicks; i++) w.Do(new Work(plan)).Run();
         Assert.Equal((Structure.Wall, Structure.Wall), (w.M.Grid.StructureAt(w.At(8, 2)), w.M.Grid.StructureAt(w.At(8, 2) + 1)));
@@ -88,11 +88,11 @@ public class HazardsTests
     }
 
     [Fact]
-    public void TakeADeconstructionMarkWithTheWallTheyBreak()
+    public void TakeADeconstructionMarkWithTheWallTheyBreakLeavingItsGhost()
     {
         var w = new Scenario(Room).Do(new Deconstruct(RoomCell(8, 2), "structure")).Run();
         w.Do(new MeteorHit(w.At(8, 2))).Run();
-        Assert.Empty(w.M.Building.Plans);
+        Assert.Equal(Placement.Wall("scrap"), Assert.Single(w.M.Building.Plans).Place);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public class HazardsTests
         var held = w.M.Items.Inventory(0).ToArray();
         w.Do(new MeteorHit(w.At(8, 2))).Do(new Work(plan)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Empty(w.M.Building.Plans);
+        Assert.NotNull(Assert.Single(w.M.Building.Plans).Place);
         Assert.Equal(held, w.M.Items.Inventory(0));
     }
 
