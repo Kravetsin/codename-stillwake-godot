@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
-using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 
 namespace Stillwake.Sim.Hazards;
@@ -29,16 +28,16 @@ public sealed record MeteorHit(int Cell) : Command;
 public sealed class HazardsModule : Module<HazardsState>
 {
     private readonly IGridQueries _grid;
-    private readonly IBuildingOps _building;
+    private readonly IGridOps _ops;
     private readonly List<int> _targets = [], _blast = [];
 
     public override string Id => "hazards";
 
-    public HazardsModule(IGridQueries grid, IBuildingOps building)
+    public HazardsModule(IGridQueries grid, IGridOps ops)
     {
         _grid = grid;
-        _building = building;
-        Handles<MeteorHit>(c => HitProblem(c.Cell), c => building.Breach(c.Cell));
+        _ops = ops;
+        Handles<MeteorHit>(c => HitProblem(c.Cell), c => Break(c.Cell));
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
         System(Phase.Construction, Fall);
     }
@@ -92,7 +91,7 @@ public sealed class HazardsModule : Module<HazardsState>
     /// <summary>
     /// <paramref name="meteor"/> strikes: if the wall it meets still stands and its power reaches the wall's strength, it breaks every wall
     /// within its <see cref="Reach"/> of it, each by its own strength (2026-10-28-meteor-blast); a wall that holds stops it whole. All
-    /// are found before any breaks, then breached in cell order.
+    /// are found before any breaks, then broken in cell order.
     /// </summary>
     private void Strike(Meteor meteor, Meteors.Shower shower)
     {
@@ -107,8 +106,14 @@ public sealed class HazardsModule : Module<HazardsState>
                 int reach = Reach(meteor.Power, _grid.WallAt(cell)!.Strength, shower);
                 if (reach > 0 && (x - cx) * (x - cx) + (y - cy) * (y - cy) < reach * reach) _blast.Add(cell);
             }
-        foreach (int cell in _blast) _building.Breach(cell);
+        foreach (int cell in _blast) Break(cell);
     }
+
+    /// <summary>
+    /// The wall at <paramref name="cell"/> broken (2026-10-29-holes-not-planned): lost, refunding nothing, and left unplanned, for the
+    /// player to patch with what they have. Pipes are spans, running through it untouched (0109); a mark on it is dropped by building.
+    /// </summary>
+    private void Break(int cell) => _ops.Clear(cell, "structure");
 
     /// <summary>
     /// How far from where it strikes, in cells, a meteor of <paramref name="power"/> breaks a wall of <paramref name="strength"/>: the

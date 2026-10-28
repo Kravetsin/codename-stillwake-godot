@@ -70,14 +70,15 @@ public partial class HazardsTests
         Assert.Equal(cut, w.M.Atmosphere.OxygenIn(tank));
     }
 
-    /// <summary>"stop venting once a wall planned on the hole is built", in creative mode as there: the hole keeps its wall planned.</summary>
+    /// <summary>"stop venting once a wall planned on the hole is built", in creative mode as there.</summary>
     [Fact]
     public void StopVentingOnceAWallPlannedOnTheHoleIsBuilt()
     {
         var (w, tank, room) = Aired();
         w.Do(new SetCreative(true)).Run();
         Breach(w).Run();
-        Assert.Equal(2, w.M.Building.Plans.Count);
+        Assert.Empty(w.M.Building.Plans);
+        w.Do(new PlacePlan(w.At(8, 2), Placement.Wall("scrap"))).Do(new PlacePlan(w.At(8, 2) + 1, Placement.Wall("scrap"))).Run();
         foreach (int plan in w.M.Building.Plans.Select(p => p.Id).ToArray())
             for (int i = 0; i <= Content.Materials.Get("scrap").BuildTicks; i++) w.Do(new Work(plan)).Run();
         Assert.Equal((Structure.Wall, Structure.Wall), (w.M.Grid.StructureAt(w.At(8, 2)), w.M.Grid.StructureAt(w.At(8, 2) + 1)));
@@ -88,11 +89,11 @@ public partial class HazardsTests
     }
 
     [Fact]
-    public void TakeADeconstructionMarkWithTheWallTheyBreakLeavingItsGhost()
+    public void TakeADeconstructionMarkWithTheWallTheyBreak()
     {
         var w = new Scenario(Room).Do(new Deconstruct(RoomCell(8, 2), "structure")).Run();
         w.Do(new MeteorHit(w.At(8, 2))).Run();
-        Assert.Equal(Placement.Wall("scrap"), Assert.Single(w.M.Building.Plans).Place);
+        Assert.Empty(w.M.Building.Plans);
     }
 
     [Fact]
@@ -103,7 +104,7 @@ public partial class HazardsTests
         var held = w.M.Items.Inventory(0).ToArray();
         w.Do(new MeteorHit(w.At(8, 2))).Do(new Work(plan)).Run();
         Assert.Empty(w.Refusals);
-        Assert.NotNull(Assert.Single(w.M.Building.Plans).Place);
+        Assert.Empty(w.M.Building.Plans);
         Assert.Equal(held, w.M.Items.Inventory(0));
     }
 

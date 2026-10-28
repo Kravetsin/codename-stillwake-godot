@@ -6,13 +6,13 @@
 | --- | --- |
 | `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
-Meteors breaking the hull ([hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md)): a place's shower
+Meteors breaking the hull ([hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md),
+[holes-not-planned](../../docs/decisions/2026-10-29-holes-not-planned.md)): a place's shower
 (`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself from the start, a steady cost of repair; the dev panel
 strikes one by hand, to try a breach and its repair. Ported from `packages/sim/src/modules/hazards`; its rules hold
 here unchanged.
 
-- **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built); `Building`, through `IBuildingOps`
-  (`Breach`: the wall cleared, its hole planned). Registered after Building.
+- **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them).
 - **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no meteors
   (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
   `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`).
@@ -29,13 +29,12 @@ here unchanged.
   met first shields its row.
 - **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Strength` (scrap 2,
   iron 5), every wall nearer than its `Reach`, `Hole + (power − its strength) × Blast` cells, breaks, each by its own
-  strength (Euclidean, compared squared); all found first, then breached in cell order. A struck wall that holds stops it
+  strength (Euclidean, compared squared); all found first, then broken in cell order. A struck wall that holds stops it
   whole. Then the next interval is drawn. `Farthest(power, shower)` bounds the area, for the client too.
-- **A wall broken** (`Breach`) is lost, refunding nothing, its pipes left whole (0109), and its hole planned as a
-  blueprint of the same wall, known or not: repair is the screwdriver, paid part by part. The hole is an opening of its
-  room: `atmosphere` vents it and drains its vents' networks until a valve cuts them off or the wall is built again. A
-  deconstruction mark on it is dropped by `building`.
-- `MeteorHit(cell)` (dev) breaches the one wall at `cell` whatever its strength.
+- **A wall broken** is cleared, lost, refunding nothing, its pipes left whole (0109), and nothing is planned in its place:
+  the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
+  vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
+- `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its strength.
 
 ## API
 
@@ -48,7 +47,7 @@ here unchanged.
 
 ## Invariants
 
-- A meteor only ever turns a wall into an empty cell, planned as the wall it was; it adds nothing else.
+- A meteor only ever turns a wall into an empty cell; it adds nothing, a plan neither.
 
 ## Deliberately not handled
 

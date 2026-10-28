@@ -4,8 +4,8 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// The new game's wreck with its first meteor seen coming at once, not in minutes: flying in, striking, its hole planned.
-/// <c>--meteors=N</c> gives it power N (1 to 6), a blast as wide as that power makes.
+/// The new game's wreck with its first meteor seen coming at once, not in minutes: flying in and striking.
+/// <c>--meteors=N</c> gives it power N (the shower's 2 to 7; 1 shows a held hit on scrap), a blast as wide as that power makes.
 /// </summary>
 [Dev("--meteors", "the wreck's first meteor seen coming at once, of power N with =N (MeteorScenario)", Shape = DevShape.Either)]
 public sealed class MeteorScenario : DevScenario
