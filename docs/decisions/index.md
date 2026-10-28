@@ -149,3 +149,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
+| [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |

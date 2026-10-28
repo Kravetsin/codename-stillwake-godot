@@ -224,8 +224,8 @@ is a fuel source. Both are a planet's, so neither goes into anything before the 
 
 ## Steps, simplest and most rewarding first
 
-1. Stacks raised, spores a crop, the space-only reachability test. (This branch.)
-2. The workbench, the pod cut to the suit, the costs of the burner generator and the Former moved to bench parts.
+1. Stacks raised, spores a crop, the space-only reachability test. Done (#255).
+2. The workbench, the pod cut to the suit, the costs of the burner generator and the Former moved to bench parts. Done.
 3. The crusher with asteroid ore, iron ore, gravel and quartz; chance yields and several units a smelt in code.
 4. Costs and craft times across the tree, checked with the calculator against the target time.
 5. Meteors from the start, walls kept planned.

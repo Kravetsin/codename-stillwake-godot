@@ -127,7 +127,7 @@ public class LessonsTests
         Assert.Equal(new Tip(T("item.plate"), new TipLine(T("research.opened"), Tone.Good)),
             lessons.Recipes.Single(l => l.Recipe.Id == "plate").Tip);
         Analyse(w, analyzer, 1);
-        Assert.Equal(new Tip(T("tool.burnerGenerator"), new TipLine("Frame not analysed", Tone.Unknown, "frame"), new TipLine("Rotor not analysed", Tone.Unknown, "rotor"), new TipLine("Coil not analysed", Tone.Unknown, "coil")),
+        Assert.Equal(new Tip(T("tool.burnerGenerator"), new TipLine("Plate not analysed", Tone.Unknown, "plate"), new TipLine("Rotor not analysed", Tone.Unknown, "rotor"), new TipLine("Coil not analysed", Tone.Unknown, "coil")),
             Lessons.Of(w.M.Research, "scrap", null).Recipes.Single(l => l.Recipe.Id == "burnerGenerator").Tip);
     }
 

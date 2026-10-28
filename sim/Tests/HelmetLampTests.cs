@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The helmet lamp (0077): crafted at the lifepod of a plate, wire and silicon, worn on the head, drawing nothing.</summary>
+/// <summary>The helmet lamp (0077): crafted at the workbench of a plate, wire and a coil, worn on the head, drawing nothing.</summary>
 public class HelmetLampTests
 {
     private const string Room = """
@@ -13,26 +13,26 @@ public class HelmetLampTests
         #........#
         #.OOO....#
         #.OOO....#
-        #.OOO....#
+        #.OOOII..#
         ##########
         """;
 
-    private const int Pod = 1;
+    private const int Bench = 2;
     private static readonly string Lamp = HelmetLamp.Item;
     private static readonly int Head = Inventory.Slots, Back = Inventory.Slots + 1, Mount = Inventory.Slots + Inventory.Equipment.ToList().IndexOf(Content.Helmet.Mount);
 
     [Fact]
-    public void TheLifepodMakesOneOfAPlateTwoWireAndSiliconOnceTheyAreAnalysed()
+    public void TheWorkbenchMakesOneOfAPlateTwoWireAndACoilOnceTheyAreAnalysed()
     {
-        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true).GiveItems(0, ("plate", 1), ("wire", 2), ("silicon", 1));
-        Assert.Contains(Lamp, Stations.Get("lifepod").Rows.SelectMany(r => r));
-        Assert.Equal([("plate", 1), ("wire", 2), ("silicon", 1)], Crafts.Get(Lamp).Cost);
+        var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true).GiveItems(0, ("plate", 1), ("wire", 2), ("coil", 1));
+        Assert.Contains(Lamp, Stations.Get("workbench").Rows.SelectMany(r => r));
+        Assert.Equal([("plate", 1), ("wire", 2), ("coil", 1)], Crafts.Get(Lamp).Cost);
         Assert.False(w.M.Research.Knows(Lamp));
-        foreach (var item in new[] { "plate", "wire", "silicon" }) w.M.Knowledge.Learn(item);
+        foreach (var item in new[] { "plate", "wire", "coil" }) w.M.Knowledge.Learn(item);
         Assert.True(w.M.Research.Knows(Lamp));
-        w.Do(new Crafting.Craft(Pod, Lamp, 1)).Run(Crafts.Get(Lamp).Ticks * 1000 / Stations.Get("lifepod").Speed + 1);
+        w.Do(new Crafting.Craft(Bench, Lamp, 1)).Run(Crafts.Get(Lamp).Ticks * 1000 / Stations.Get("workbench").Speed + 1);
         Assert.Empty(w.Refusals);
-        Assert.Equal(new Stack(Lamp, 1), w.M.Items.Crate(Pod)[0]);
+        Assert.Equal(new Stack(Lamp, 1), w.M.Items.Crate(Bench)[0]);
         Assert.Empty(w.M.Items.Totals(0));
     }
 

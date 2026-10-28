@@ -63,11 +63,14 @@ public class ChargeTests
     [Fact]
     public void ABatteryIsCraftedEmpty()
     {
-        var w = new Scenario("##########\n#.OOO....#\n#.OOO....#\n#.OOO....#\n##########")
+        // At a Former cabled to a panel, as the Former's tests power one.
+        string[] rows = ["PPP      ", "         ", "#########", "#MM.....#", "#MM.....#", "#########"];
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true)
             .GiveItems(0, ("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1));
-        w.Do(new Stillwake.Sim.Crafting.Craft(1, Battery, 1) { From = 0 }).Run(Crafts.Get(Battery).Ticks * 1000 / Content.Stations.Get("lifepod").Speed);
+        int former = w.M.Grid.MachinesOf("former").Single().Id;
+        w.Do(new Stillwake.Sim.Crafting.Craft(former, Battery, 1) { From = 0 }).Run(Crafts.Get(Battery).Ticks * 1000 / Content.Stations.Get("former").Speed);
         Assert.Empty(w.Refusals);
-        Assert.Equal(new Stack(Battery, 1, 0), w.M.Items.Crate(1)[0]);
+        Assert.Equal(new Stack(Battery, 1, 0), w.M.Items.Crate(former)[Machines.Get("former").Inputs!.Value]);
     }
 
     [Fact]

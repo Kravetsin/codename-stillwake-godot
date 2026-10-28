@@ -9,7 +9,7 @@
 | `State.cs` | The saved slice: `Entry`, `Smelt`, `CraftingState`. |
 
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every crafting machine
-on one model. A **queued** station (pod, Former, circuit assembler, arc bench) makes crafts from a queue shared by the
+on one model. A **queued** station (pod, workbench, Former, circuit assembler, arc bench) makes crafts from a queue shared by the
 crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into yields by its process, "smelt" or
 "grow" (0060). Not part of `Items`: it asks `Research`, which depends on items.
 
@@ -32,7 +32,7 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
   `Speed × (1000 + their Speed) / 1000`, rounded down, and add their heat to a fed one's; a queued one's heat stays 0.
   Slots are the machine's (`MachineSpec.Slots`, `Inputs`), read by `Items`.
 - **Energy** (0057): one that `Draws` works at its network's satisfaction; one with a `FuelSlot` at full while its fire
-  burns, not at all while out; one with neither (the pod) at full. Work a tick is `Speed × share / 1000`, rounded down.
+  burns, not at all while out; one with neither (the pod, the workbench) at full. Work a tick is `Speed × share / 1000`, rounded down.
   Stations work in the simulation phase, after power's derivation, by machine id.
 - **Idle** (nothing it can work, or no room) a station that draws is told to `Rest` from the next tick, and works at
   once when told to work (0057).
@@ -41,9 +41,11 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
   `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters and numbers are content's; the
-  pod's list stops growing (0057); electronics are the assembler's, sky-shard crafts the arc bench's (0099).
-- **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod has
-  none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
+  pod gives only the suit and the screwdriver, the workbench the basic parts and first tools
+  ([the-workbench](../../docs/decisions/2026-10-28-the-workbench.md)); electronics are the assembler's, sky-shard crafts
+  the arc bench's (0099).
+- **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod and the
+  workbench have none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs)`**: paid (the default) takes all `Count` units' cost from the sender at
   once (nothing in creative mode); fed from the inputs takes nothing. Either appends an entry by the sender with the
   queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (no craft or not known), `crafting.notHere`

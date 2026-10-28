@@ -17,6 +17,7 @@ public static partial class En
         ["crafting.tooCold"] = "Needs more heat · {station}",
         ["crafts.queue"] = "Queue",
         ["station.lifepod"] = "Fabricator",
+        ["station.workbench"] = "Workbench",
         ["station.former"] = "Former",
         ["station.smelter"] = "Electric smelter",
         ["station.assembler"] = "Circuit assembler",

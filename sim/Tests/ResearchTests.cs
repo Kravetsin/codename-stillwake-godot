@@ -173,13 +173,13 @@ public class ResearchTests
     }
 
     [Fact]
-    public void OpensTheBurnerGeneratorOnceFrameRotorCoilAndScrapAreAnalysed()
+    public void OpensTheBurnerGeneratorOncePlateRotorCoilAndScrapAreAnalysed()
     {
         var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 1), ("rotor", 1), ("coil", 1));
+        w.GiveItems(0, ("rotor", 1), ("coil", 1));
         var generator = new Placement("machine", "burnerGenerator");
-        Assert.Equal(["frame", "rotor", "coil", "scrap"], RecipeOf(w, "burnerGenerator").Unanalysed);
-        foreach (var item in new[] { "frame", "coil", "scrap" }) Analyse(w, id, item);
+        Assert.Equal(["plate", "rotor", "coil", "scrap"], RecipeOf(w, "burnerGenerator").Unanalysed);
+        foreach (var item in new[] { "plate", "coil", "scrap" }) Analyse(w, id, item);
         Assert.Equal(["rotor"], RecipeOf(w, "burnerGenerator").Unanalysed);
         Assert.False(w.M.Research.Knows(generator));
         Analyse(w, id, "rotor");

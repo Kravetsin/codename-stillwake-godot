@@ -34,11 +34,14 @@ public static class Stations
 {
     public static readonly IReadOnlyList<Station> All =
     [
-        // The lifepod's Fabricator: every craft, at a fifth of full speed, the most basic bench (0046).
-        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor"], ["fireAxe", "screwdriver", "harpoon", "drill"], ["helmet", "suit"], ["jetpack", "battery", "helmetLamp"], ["nailer", "nail"]]),
+        // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046).
+        new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"]]),
+        // The workbench, of raw salvage: the basic parts and the first tools by hand, at the pod's speed and with no power.
+        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
-        // The first powered station: the pod's parts and components, five times as fast, twice the queue.
-        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "cape"], ["nozzle", "fuelPump"]]),
+        // The first powered station: the bench's parts five times as fast, twice the queue, and what only it makes: frames,
+        // motors, the jetpack, the battery and the drill.
+        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "cape"], ["nozzle", "fuelPump"], ["jetpack", "battery", "drill"]]),
         // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: silicon into glass.
         new("smelter", Speed: 2000, QueueMost: 0, Rows: [], Heat: 2),
         // The electronics bench: circuits and solar cells, and drones of them, at full speed on power, a queue of eight.

@@ -21,8 +21,8 @@ public static class Crafts
         new("frame", [("plate", 2)], Ticks: 80),
         new("coil", [("wire", 3)], Ticks: 60),
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
-        // Made again of scrap should one be lost: without it nothing is built (0107).
-        new("screwdriver", [("scrap", 2)], Ticks: 20),
+        // Free at the pod, made again should one be lost: without it nothing is built (0107), not even the furnace.
+        new("screwdriver", [], Ticks: 20),
         // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
         new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
         // The first gun (shots-are-the-sims): cheaper than the harpoon, after the first iron; the axe's time.
@@ -36,8 +36,8 @@ public static class Crafts
         new("cape", [("cloth", 3)], Ticks: 60),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
-        // A plate bent into a band, wire, and silicon from rock for its glowing bulb: cheap, so it comes before the first cave (0077).
-        new("helmetLamp", [("plate", 1), ("wire", 2), ("silicon", 1)], Ticks: 60),
+        // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
+        new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
         new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Ticks: 160),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 2)], Ticks: 80),
