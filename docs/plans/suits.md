@@ -9,7 +9,7 @@ each player choose that person's appearance, which the lifepod prints the next t
 the user on 2026-10-27, after a design and its review; the design's reasoning goes into S-1's ADR. One pool of air
 rather than lungs beside a suit: every danger already drains one pool, and the user wants nothing else to change.
 
-**Order and PRs.** S-0 is under way in the session `hero-look-art`; S-1 needs nothing from it; S-2 needs S-0 merged;
+**Order and PRs.** S-0 is done; S-1 needs nothing from it; S-2 needs S-0 merged;
 S-3 needs S-2. Each task is its own branch and PR. S-1 touches `sim/Crew`, `sim/Items` and many tests through
 `Crew.Suit`: whoever takes it tells the other developer, who keeps out of `sim/Crew` until it merges.
 
@@ -18,7 +18,8 @@ S-3 needs S-2. Each task is its own branch and PR. S-1 touches `sim/Crew`, `sim/
   when *bare* (nothing in the `suit` slot).
 - *Aired* is Atmosphere's `AiredAt(cell)`: the cell holds room air. Space, a vented room and a planet's open air
   (thin or none) are not aired; the pod's air does not make a cell aired.
-- A *look* is the four indices a player picks: skin, hair, hair colour, face. Look 0 is `Look(0, 0, 0, 0)`.
+- A *look* is the five indices a player picks: skin, hair, hair colour, face, beard (0 none). Look 0 is
+  `Look(0, 0, 0, 0, 0)`.
 - The pod *prints* a hero whenever Crew makes one: an `Enter` from a peer with no hero (its first, or after `Leave`),
   and waking after passing out. Moving between surfaces (`Arrive`) carries the hero as it is: not a print.
 - The *figure* is the drawn hero (`game/features/crew/Figure.cs`), a *body* the one left where a hero died (0061); the
@@ -48,18 +49,20 @@ S-3 needs S-2. Each task is its own branch and PR. S-1 touches `sim/Crew`, `sim/
   this plan.
 - Bare, the figure wears a jumpsuit in its player colour, a bare head (skin, hair, a face of a few pixels) and skin
   hands. Suited, its face shows behind the visor, lit by the helmet lamp.
-- The look editor: skin 7, hair 5, hair colour 6, face 3; colours stay the player colour (`PickColour`). It opens any
+- The look editor: skin 7, hair 6, hair colour 6, face 5, beard 3 (none, short, full); colours stay the player
+  colour (`PickColour`). It opens any
   time; a new look shows only from the next print.
 
 ## Tasks
 
-### S-0 — The art (session `hero-look-art`)
+### S-0 — The art ✅
 
-Templates fixed: the bare head inside today's 13×12 helmet frame on the same neck pivot; skin and hair each drawn in one
-reference ramp and recoloured by shade swap as `SuitArt.Of` does. Painted by a script in `tools/hero-art/`, approved
-by the user on a concept page. **Its PR holds:** `game/art/hero_head.png`, `hero_face_0..2.png`, `hero_hair_0..4.png`,
-`hand` and jumpsuit parts in the `hero_*` family (names as the session settles them, listed in its README row); the
-skin and hair reference ramps and the seven skin and six hair ramps, as the painter's data. S-2 moves the ramps into
+Painted by [`tools/hero-art`](../../tools/hero-art), whose README holds the templates, ramps and rules; picked on the
+concept page [`tools/concepts/hero-styles`](../../tools/concepts/hero-styles). One head for everyone inside today's 13×12
+helmet frame on the same neck pivot, at the body's pixel; six hairs in their own 16×18 template, bigger than the helmet;
+five faces; two beards in the hair's template and colour; the jumpsuit and skin hands. In `game/art`: `hero_head`,
+`hero_face_0..4`, `hero_hair_0..5`, `hero_beard_0..1`, `hero_jumpsuit_*`, `hero_helmet_shell`, `hero_visor`. The
+skin and hair reference ramps and the seven skin and six hair ramps are the painter's data; S-2 moves them into
 `game/Content/logic`: they are client data, since the sim checks no index.
 
 ### S-1 — The suit is an item; the hero breathes from one pool ✅
@@ -136,9 +139,9 @@ worn, taken off in the starting room, a walk out bare: frost at once, the gauge 
 
 ### S-2 — The person under the suit
 
-- The figure gains head, face, hair and hand parts from S-0, a jumpsuit in place of the suit's torso, arms and legs
-  while bare (the helmet and air pack gone), and the face behind the visor while suited, lit by the helmet lamp where
-  one is worn.
+- The figure gains head, face, hair, beard and hand parts from S-0 (hair and beard on their own pivot, drawn only
+  bare), a jumpsuit in place of the suit's torso, arms and legs while bare (the helmet and air pack gone), and the
+  face behind the visor while suited, lit by the helmet lamp where one is worn.
 - Skin and hair recoloured by shade swap from their ramps, made once a part and colour, as `SuitArt` does; the ramps
   and counts in `game/Content/logic`. Until S-3, every figure wears look 0.
 - Bodies drawn the same way, suited or bare as their peer is now (a body keeps no record of its gear).
@@ -148,7 +151,7 @@ worn, taken off in the starting room, a walk out bare: frost at once, the gauge 
 ### S-3 — Looks, chosen and printed
 
 **Sim.**
-- `Look(Skin, Hair, HairColour, Face)`, a record in `Players`. `PlayersState.Looks`, a list separate from `Colours`:
+- `Look(Skin, Hair, HairColour, Face, Beard)`, a record in `Players`. `PlayersState.Looks`, a list separate from `Colours`:
   `(Peer, Worn, Next)` in peer order; an entry may wait with no hero. Added with an empty initializer: no save bump.
 - `IPlayersOps.Choose(peer, look)` sets `Next`, inserting the entry in peer order; `IPlayersOps.Print(peer)` sets
   `Worn = Next`; `IPlayersQueries.LookOf(peer)` returns `Worn`, look 0 with no entry (an old save, a peer gone).
@@ -161,7 +164,7 @@ worn, taken off in the starting room, a walk out bare: frost at once, the gauge 
   save → look 0. Invariant: a worn look changes only on a print.
 
 **Client.**
-- The look editor, a Control panel with the figure turning in it: four pickers, its text in `logic/LookEditor.En.cs`,
+- The look editor, a Control panel with the figure turning in it: five pickers, its text in `logic/LookEditor.En.cs`,
   a line saying the pod prints the new look next time. Opened from the game menu at any time.
 - Local settings keep the look. On a first launch with none, the crew feature holds its first `Enter` until the editor
   closes; on every join, it sends `ChooseLook` before its first `Enter`.

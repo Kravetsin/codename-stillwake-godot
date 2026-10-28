@@ -7,7 +7,7 @@ function make(A) {
   const H = 5.25 * 8, W = 1.9 * 8;
   const Hip = H * 0.42, Shoulder = H * 0.61, Neck = H * 0.71, HipApart = W * 0.14, Back = W * 0.62;
   const Arm = H * 0.145, Leg = Hip * 0.5;
-  const JOINTS = { helmet: [6.5, 12], torso: [6, 0], pack: [0, 0], upperArm: [2.5, 2.5], forearm: [2.5, 2.9], thigh: [3, 2.5], shin: [3, 2.18] };
+  const JOINTS = { helmet: [6.5, 12], hair: A.HAIR_JOINT || [6.5, 12], torso: [6, 0], pack: [0, 0], upperArm: [2.5, 2.5], forearm: [2.5, 2.9], thigh: [3, 2.5], shin: [3, 2.18] };
   // Figure.cs: the far limbs in the suit darkened by this; the lamp's bulb on the helmet's brow, from the neck.
   const FAR = 0.7, LAMP_ON = [4, -9];
 
@@ -55,8 +55,10 @@ function make(A) {
     // helmet, is hidden under it.
     const [p, density] = look.fine ? ['hd_', 2] : ['hero_', 1];
     const names = [p + 'head', p + 'face_' + look.face];
-    if (!(look.fine && look.suited && glass)) names.push(p + 'hair_' + look.hair);
-    const layers = names.map(n => ({ img: recolour(get(n), sw), face: true, density, joint: get(n).joint || JOINTS.helmet }));
+    // Beards and hair are bigger than the helmet, which hides them; beard 0 is none.
+    if (look.beard && !(look.suited && glass)) names.push(p + 'beard_' + (look.beard - 1));
+    if (!(look.suited && glass)) names.push(p + 'hair_' + look.hair);
+    const layers = names.map(n => ({ img: recolour(get(n), sw), face: true, density, joint: get(n).joint || (/^hero_(hair|beard)_/.test(n) ? JOINTS.hair : JOINTS.helmet) }));
     if (look.suited && glass) layers.push({ img: recolour(get('hero_helmet_shell'), sw) }, { img: get('hero_visor') });
     return layers;
   }

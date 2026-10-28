@@ -1,15 +1,16 @@
 'use strict';
 // Paints the hero without a suit and the face behind the visor into game/art (or <artDir>):
 //   node tools/hero-art/paint.js [artDir]
-// Reads hero_helmet.png from game/art to cut its visor out. Fails if a head picture leaves the helmet's outline
-// or two ramps share a colour, either of which would break the shade swap or show the head through the helmet.
+// Reads hero_helmet.png from game/art to cut its visor out. Fails if the head or a face leaves the helmet's outline
+// or two ramps share a colour, either of which would show the head through the helmet or break the shade swap. Hair
+// and beards have their own, bigger template: the figure hides them under a helmet.
 const fs = require('fs'), path = require('path');
 const P = require(path.join(__dirname, '..', 'planet-art', 'png.js'));
 const A = require('./parts.js');
 
 const ROOT = path.join(__dirname, '..', '..');
 const ART = path.join(ROOT, 'game', 'art');
-const SIZES = { head: [13, 12], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [14, 30], hood: [10, 10], collar: [15, 6] };
+const SIZES = { head: [13, 12], hair: [16, 18], torso: [12, 15], upperArm: [5, 9], forearm: [5, 10], thigh: [6, 12], shin: [9, 11], cape: [14, 30], hood: [10, 10], collar: [15, 6] };
 
 const rgba = s => { const [hex, a] = s.split('/'); const n = parseInt(hex.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255, a ? +a : 255]; };
 const keys = { ...A.FIXED };
@@ -48,7 +49,8 @@ const head = (name, rows) => {
 };
 head('hero_head', A.head);
 A.faces.forEach((f, i) => head(`hero_face_${i}`, f));
-A.hairs.forEach((f, i) => head(`hero_hair_${i}`, f));
+A.hairs.forEach((f, i) => (made[`hero_hair_${i}`] = picture(f, SIZES.hair, `hero_hair_${i}`)));
+A.beards.forEach((f, i) => (made[`hero_beard_${i}`] = picture(f, SIZES.hair, `hero_beard_${i}`)));
 made.hero_visor = picture(A.visor, SIZES.head, 'hero_visor');
 const shell = { w: helmet.w, h: helmet.h, data: Buffer.from(helmet.data) };
 for (let i = 0; i < shell.w * shell.h; i++) if (made.hero_visor.data[i * 4 + 3]) shell.data.fill(0, i * 4, i * 4 + 4);
