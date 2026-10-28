@@ -1,11 +1,13 @@
 // Writes every candidate of the workbench, the crusher and the new items' icons into outDir, and pick.html to
 // choose from: the machines at rest and at work beside their neighbours, the icons in inventory slots.
-// node tools/ship-art/economy/build.js [outDir, default economy/out]; pick.js copies the picked ones (picks.json).
+// node tools/ship-art/economy/build.js [outDir, default economy/out] [kinds, e.g. workbench or crusher,items: only those];
+// pick.js copies the picked ones (picks.json).
 const fs = require('fs'), path = require('path');
 const { encode } = require('../part-icons/png.js');
 const { Cv } = require('./lib.js');
-const machines = [['workbench', 'Верстак', require('./bench.js').D], ['crusher', 'Дробилка', require('./crusher.js').D]];
-const { items } = require('./icons.js');
+const ONLY = process.argv[3] ? process.argv[3].split(',') : null;
+const machines = [['workbench', 'Верстак', require('./bench.js').D], ['crusher', 'Дробилка', require('./crusher.js').D]].filter(([k]) => !ONLY || ONLY.includes(k));
+const items = !ONLY || ONLY.includes('items') ? require('./icons.js').items : [];
 const ART = path.join(__dirname, '..', '..', '..', 'game', 'art');
 const OUT = process.argv[2] || path.join(__dirname, 'out');
 
@@ -104,9 +106,14 @@ function deck(k, parts) {
   const draw = (t) => {
     g.clearRect(0, 0, c.width, c.height); g.fillStyle = '#1a1e25'; g.fillRect(0, (h - 2) * k, c.width, 2 * k);
     let x = 4;
-    for (const p of parts) { const y = h - 2 - p.h; g.drawImage(img(p.rest), x * k, y * k, p.w * k, p.h * k); if (p.work) g.drawImage(img(p.work[Math.floor(t / p.step) % 4]), x * k, y * k, p.w * k, p.h * k); x += p.w + 4; }
+    for (const p of parts) { const y = h - 2 - p.h; if (p.hero) { hero(g, x, y, k); x += p.w + 4; continue; } g.drawImage(img(p.rest), x * k, y * k, p.w * k, p.h * k); if (p.work) g.drawImage(img(p.work[Math.floor(t / p.step) % 4]), x * k, y * k, p.w * k, p.h * k); x += p.w + 4; }
   };
   anims.push(draw); return c;
+}
+// A hero's outline for scale, 40 px tall (5 cells).
+function hero(g, x, y, k) {
+  g.fillStyle = '#56607a';
+  for (const [a, b, w, hh] of [[3, 0, 6, 7], [1, 7, 10, 14], [2, 21, 3, 19], [7, 21, 3, 19]]) g.fillRect((x + a) * k, (y + b) * k, w * k, hh * k);
 }
 function machineCard(m, d) {
   const c = el('div', 'card' + (picks[m.kind] === d.id ? ' on' : ''));
@@ -117,8 +124,8 @@ function machineCard(m, d) {
   v.append(deck(6, [{ ...d, work: null }]), deck(6, [{ ...d, step: m.kind === 'crusher' ? 120 : 160 }]));
   c.append(v);
   const nb = NEAR[m.kind].map((n) => ({ rest: n.src, w: 32, h: 32 }));
-  c.append(deck(3, [nb[0], { ...d, step: m.kind === 'crusher' ? 120 : 160 }, ...nb.slice(1)]));
-  c.append(el('div', 'desc', d.what + (d.rise ? ' (картинка 32×32, встаёт над футпринтом)' : '')));
+  c.append(deck(3, [nb[0], { hero: true, w: 12, h: 40 }, { ...d, step: m.kind === 'crusher' ? 120 : 160 }, ...nb.slice(1)]));
+  c.append(el('div', 'desc', d.what + (d.rise ? ' (картинка ' + d.w + '×' + d.h + ', встаёт над футпринтом на ' + d.rise + ' кл.)' : '')));
   return c;
 }
 const slot = (src, cls, title) => { const s = el('div', 'slot' + (cls ? ' ' + cls : '')); if (title) s.title = title; const i = new Image(); i.src = src; s.append(i); return s; };
