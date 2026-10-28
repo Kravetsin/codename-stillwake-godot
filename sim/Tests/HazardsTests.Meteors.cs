@@ -1,3 +1,4 @@
+using System.Text.Json.Nodes;
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
@@ -51,24 +52,17 @@ public partial class HazardsTests
         return (strikes, seen);
     }
 
-    /// <summary>Twenty-four rows of a scrap hull four thick, its right face iron in every other row, built at once; a tick run.</summary>
-    private static Scenario Hull()
-    {
-        const int width = 8, rows = 24;
-        var w = new Scenario(Layout.Parse(string.Join('\n', Enumerable.Repeat("..####..", rows))) with { Meteors = true });
-        w.Do(new SetInstant(true));
-        for (int y = 0; y < rows; y += 2) w.Do(new PlacePlan(y * width + 6, Placement.Wall("iron")));
-        w.Do(new SetInstant(false)).Run();
-        Assert.Empty(w.Refusals);
-        return w;
-    }
+    /// <summary>Twenty-four rows of an alloy hull four thick, which no meteor here breaks: they keep striking it.</summary>
+    private static Scenario Hull() =>
+        new(Layout.Parse(string.Join('\n', Enumerable.Repeat("..####..", 24))).WithMaterials(string.Join('\n', Enumerable.Repeat("aaaaaaaa", 24)))
+            with
+        { Meteors = true });
 
     [Fact]
     public void ComeEveryFourToSixMinutesSeenThreeSecondsBeforeTheyStrike()
     {
         var (strikes, seen) = Fall(Hull(), 6);
-        // Hull ran the first tick: Fall counts from the second.
-        Assert.InRange(seen[0] + 1, Shower.EveryMin, Shower.EveryMax);
+        Assert.InRange(seen[0], Shower.EveryMin, Shower.EveryMax);
         for (int i = 0; i < strikes.Count; i++)
         {
             Assert.Equal(seen[i] + Shower.Warning, strikes[i].Tick);
@@ -76,28 +70,72 @@ public partial class HazardsTests
         }
     }
 
-    [Fact]
-    public void BreakEveryWallWithinTheirBlastWhenTheyBreakTheOneTheyStrike()
+    /// <summary>
+    /// A meteor of <paramref name="power"/> striking <paramref name="cell"/> on the next tick, set through the save, and that tick run:
+    /// the walls and the back walls it broke, ascending.
+    /// </summary>
+    private static (List<int> Walls, List<int> Backs) StrikeAt(Scenario w, int cell, int power)
     {
-        var w = Hull();
-        var (strikes, _) = Fall(w, 10);
-        int width = w.Layout.Width;
-        foreach (var s in strikes)
-        {
-            Assert.InRange(s.Power, 2, 7);
-            // A wall nearer the struck one than Hole + (power - its strength) × Blast cells goes; a struck wall that holds stops it whole.
-            int cx = s.Cell % width, cy = s.Cell / width;
-            var blast = s.Before.Where(b =>
-            {
-                int dx = b.Cell % width - cx, dy = b.Cell / width - cy;
-                int reach = s.Power < b.Wall.Strength ? 0 : Shower.Hole + (s.Power - b.Wall.Strength) * Shower.Blast;
-                return reach > 0 && dx * dx + dy * dy < reach * reach;
-            }).Select(b => b.Cell);
-            Assert.Equal(s.Power >= s.Strength ? blast : [], s.Gone);
-        }
-        Assert.Contains(strikes, s => s.Gone.Count > 1);
-        Assert.Contains(strikes, s => !s.Broke);
-        // The holes are left unplanned (holes-not-planned).
+        var grid = w.M.Grid;
+        var cells = Enumerable.Range(0, grid.Width * grid.Height).ToList();
+        var walls = cells.Where(c => grid.WallAt(c) != null).ToList();
+        var backs = cells.Where(c => grid.BackAt(c) != null).ToList();
+        var root = JsonNode.Parse(w.World.Save())!;
+        root["slices"]!["hazards"]!["incoming"] = new JsonObject { ["cell"] = cell, ["power"] = power, ["left"] = 1 };
+        w.Reload(root.ToJsonString()).Run();
+        var after = w.M.Grid;
+        return ([.. walls.Where(c => after.WallAt(c) == null)], [.. backs.Where(c => after.BackAt(c) == null)]);
+    }
+
+    /// <summary>One row of <paramref name="row"/> as drawn, a cell a character, meteors falling; iron built at once over <paramref name="iron"/>.</summary>
+    private static Scenario Row(string row, params int[] iron)
+    {
+        var w = new Scenario(Layout.Parse(row) with { Meteors = true }).Do(new SetInstant(true));
+        foreach (int cell in iron) w.Do(new PlacePlan(cell, Placement.Wall("iron")));
+        w.Do(new SetInstant(false)).Run();
+        Assert.Empty(w.Refusals);
+        return w;
+    }
+
+    [Fact]
+    public void TearAScrapHullAsFarAsTheirBlastPaysForBreakingTheBackWallsItLeavesSomethingFor()
+    {
+        // The struck wall costs 4 of the blast, each wall more a step and its strength, 6: 22 at power 2 pays for four.
+        var weak = StrikeAt(Row("..##############"), 15, 2);
+        Assert.Equal([12, 13, 14, 15], weak.Walls);
+        Assert.Equal([13, 14, 15], weak.Backs);
+        // 52 at power 7 pays for nine; a back wall breaks where 4 of it is left.
+        var strong = StrikeAt(Row("..##############"), 15, 7);
+        Assert.Equal([7, 8, 9, 10, 11, 12, 13, 14, 15], strong.Walls);
+        Assert.Equal([8, 9, 10, 11, 12, 13, 14, 15], strong.Backs);
+    }
+
+    [Fact]
+    public void HaveTheirBlastSoakedUpByIronSparingWhatLiesBehindIt()
+    {
+        // Scrap face, then six iron: each iron costs 12, so the 52 of power 7 dies three into it, where all scrap went nine deep.
+        var w = Row("..######......##", 8, 9, 10, 11, 12, 13);
+        Assert.Equal([11, 12, 13, 14, 15], StrikeAt(w, 15, 7).Walls);
+        Assert.Equal("iron", w.M.Grid.WallAt(10)?.Id);
+    }
+
+    [Fact]
+    public void BreakNothingWhenTheWallTheyStrikeIsStrongerThanTheirPower()
+    {
+        var held = StrikeAt(Row("..###.", 5), 5, 4);
+        Assert.Empty(held.Walls);
+        Assert.Empty(held.Backs);
+        Assert.Contains(5, StrikeAt(Row("..###.", 5), 5, 5).Walls);
+    }
+
+    [Fact]
+    public void StopAtADoorItsBlastBreakingTheBackWallsBeforeIt()
+    {
+        var w = Row("....D...#");
+        var (walls, backs) = StrikeAt(w, 8, 7);
+        Assert.Equal([8], walls);
+        Assert.Equal([5, 6, 7, 8], backs);
+        Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(4));
         Assert.Empty(w.M.Building.Plans);
     }
 
@@ -107,7 +145,7 @@ public partial class HazardsTests
     {
         var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
         var seen = string.Join("; ", strikes.Select(s => $"power {s.Power} at {s.Cell} (strength {s.Strength}): {s.Gone.Count} gone"));
-        Assert.True(strikes.All(s => s.Gone.Count >= 6), seen);
+        Assert.True(strikes.All(s => s.Gone.Count >= 5), seen);
     }
 
     [Fact]
@@ -169,7 +207,7 @@ public partial class HazardsTests
         Assert.Equal((coming.Cell, coming.Power), (strikes[0].Cell, strikes[0].Power));
     }
 
-    /// <summary>The README's invariant, for meteors falling by themselves: a wall turned empty, nothing else touched, nothing planned.</summary>
+    /// <summary>The README's invariant, for meteors falling by themselves: a wall or a back wall turned empty, nothing else touched, nothing planned.</summary>
     [Property(MaxTest = 25)]
     public Property FallingMeteorsOnlyEverTurnAWallIntoAnEmptyCell()
     {
@@ -197,7 +235,10 @@ public partial class HazardsTests
                 if (grid.StructureAt(c) == structure[c]) continue;
                 if (structure[c] != Structure.Wall || grid.StructureAt(c) != Structure.Empty) return false;
             }
-            return w.M.Building.Plans.Count == 0 && grid.BackLayer.SequenceEqual(back) && grid.Machines.SequenceEqual(machines)
+            // A back wall may go, as a wall may; none comes.
+            for (int c = 0; c < size; c++)
+                if (grid.BackLayer[c] != back[c] && grid.BackLayer[c] != Back.None) return false;
+            return w.M.Building.Plans.Count == 0 && grid.Machines.SequenceEqual(machines)
                 && w.M.Pipes.Spans.SequenceEqual(spans) && w.Refusals.Count == 0;
         });
     }

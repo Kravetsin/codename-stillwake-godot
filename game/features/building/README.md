@@ -8,17 +8,18 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 
 | File | Purpose |
 | --- | --- |
-| `logic/Tools.cs` | Tabs and cards from menu slots (0114), focus, removal, overlay, search, hints, `CardAt` (pipette), joins (`LinksOf`, `DoorLinks`). |
+| `logic/Tools.cs` | Tabs and cards from menu slots (0114), focus, removal, overlay, search, hints, `CardAt` (pipette), joins (`LinksOf`). |
 | `logic/PlanHand.cs` | Card in hand and plan out, in step with `Ui.Hand`, `Ui.OverlayOn`; the focused layer. |
 | `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
-| `BuildingView.cs` | Plans and marks drawn (ghosts, dashes, cuts), the tips, the buttons, the pipette, plan work. |
-| `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut line, finish sweep. |
-| `Shafts.cs` | Platform shafts kept clear: a red hatch while building, a platform ghost's green or red. |
-| `logic/Catalogue.cs` | The menu's frame (0073): size by slot, rows scrolled, card hovered, scrollbar. |
-| `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip; B, `/`, Z X C. |
-| `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud, behind the walls. |
+| `BuildingView.cs` | Plans and marks drawn, the tips, the buttons, the pipette, plan work. |
+| `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut, sweep. |
+| `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
+| `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
+| `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip. |
+| `logic/WallStats.cs` | A wall's card numbers: leak, meteor resistance, share of meteors breaking it. |
+| `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud. |
 | `PlanKey.cs` | A key in a wing: a layer's (0110), a mode's (plan-modes). |
-| `PlanWing.cs` | The tablet's metal wings the keys sit in: modes left, layers right. |
+| `PlanWing.cs` | The tablet's metal wings for the keys: modes left, layers right. |
 | `logic/Building.En.cs` | Its player text (`En`) |
 
 Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,

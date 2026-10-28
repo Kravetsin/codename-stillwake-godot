@@ -9,7 +9,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship building**
 - Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries, `MachinesWith`; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); c/`Machines.cs` (`MachineSpec`, `MachineTrait`, 0113); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
-- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`; c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
+- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`, `WallStats.cs` (a wall card's leak and meteor numbers); c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
 - Rooms — sim/Rooms: `Rooms.cs` RoomsModule (rooms from walls and doors). Drawn: r/`ShipTiles.cs`, `BlueprintArt.cs`, `DoorShape.cs`
 
 **Air** — Atmosphere — sim/Atmosphere · f/atmosphere: `Atmosphere.cs` AtmosphereModule, `LoadCanister`; `Air.cs`; `Order.cs`; `AirView.cs`, `TankLooks.cs`, `VentLight.cs`; c/`Air.cs`
