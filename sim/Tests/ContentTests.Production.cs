@@ -60,7 +60,9 @@ public partial class ContentTests
         foreach (var spec in fuels)
         {
             Assert.True(spec.BurnTicks > 0, spec.Id);
-            Assert.Null(spec.Yields);
+            Assert.NotEqual(ItemGroup.Salvage, spec.Group);
+            // A fuel that smelts (fat) smelts into a fuel burning longer, so smelting it is worth the fire.
+            foreach (var (made, _) in spec.Yields ?? []) Assert.True(Content.Items.Get(made).BurnTicks > spec.BurnTicks, spec.Id);
         }
         int fastest = Content.Items.All.Min(s => s.SmeltTicks ?? int.MaxValue);
         Assert.True(fuels.Max(s => s.BurnTicks!.Value) > fastest);
@@ -253,8 +255,9 @@ public partial class ContentTests
         foreach (var item in Content.Items.All)
             foreach (var (made, _) in item.Yields ?? []) had.Add(made);
         foreach (var craft in Crafts.All) had.Add(craft.Item);
-        // What a planet's growth gives (0080).
+        // What a planet's growth gives (0080), and what creatures drop.
         foreach (var (item, _) in Flora.Every.SelectMany(k => k.Yields)) had.Add(item);
+        foreach (var entry in Content.Creatures.All.SelectMany(s => s.Yields)) had.Add(entry.Item);
         var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
         foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
     }
@@ -290,14 +293,18 @@ public partial class ContentTests
 
     /// <summary>
     /// <see cref="Reachable(IReadOnlyList{Station}, string[])"/>, and with <paramref name="planet"/> what a planet's ground
-    /// and growth give besides (0077, 0080), dug and felled with the axe the wreck starts knowing.
+    /// and growth give besides (0077, 0080), dug and felled with the axe the wreck starts knowing, and what the creatures living
+    /// on a planet type drop.
     /// </summary>
     private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, bool planet, params string[] never)
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
         if (planet)
-            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.Every.SelectMany(k => k.Yields)))
+        {
+            var hunted = PlanetTypes.All.SelectMany(t => t.Creatures).SelectMany(h => Content.Creatures.Get(h.Species).Yields).Select(y => (y.Item, 0));
+            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.Every.SelectMany(k => k.Yields)).Concat(hunted))
                 if (!never.Contains(item)) had.Add(item);
+        }
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Where(k => !never.Contains(k.Item)))
         {
             had.Add(item);
@@ -368,6 +375,28 @@ public partial class ContentTests
         var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
         Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
         Assert.All(magnetic, k => Assert.Equal([0, 0, 0], k.Chances.Take(PlanetTypes.First.Bands.Count)));
+    }
+
+    /// <summary>
+    /// Hide and fat come off a planet's grazers alone, so nothing before the first landing is made of them: aboard neither,
+    /// nor the cape of the hide; on a planet both, and the cape. Without its hide, no cape; fat smelts into biofuel there.
+    /// </summary>
+    [Fact]
+    public void HideAndFatComeOffAPlanetsGrazersAloneAndTheCapeNeedsTheHide()
+    {
+        var (aboard, opened) = Reachable(Stations.All);
+        Assert.DoesNotContain("hide", aboard);
+        Assert.DoesNotContain("fat", aboard);
+        Assert.DoesNotContain(Cape.Item, opened);
+        var (down, known) = Reachable(Stations.All, planet: true);
+        Assert.Contains("hide", down);
+        Assert.Contains("fat", down);
+        Assert.Contains(Cape.Item, known);
+        Assert.DoesNotContain(Cape.Item, Reachable(Stations.All, planet: true, "hide").Items);
+        Assert.Equal([("biofuel", 1)], Content.Items.Get("fat").Yields);
+        // The grazers drop them, the sentry its scrap.
+        Assert.All(Content.Creatures.All.Where(s => s.Faction == Content.Creatures.Grazer), s => Assert.Equal(2, s.Yields.Count(y => y.Item is "hide" or "fat")));
+        Assert.DoesNotContain(Content.Creatures.Sentry.Yields, y => y.Item is "hide" or "fat");
     }
 
     /// <summary>

@@ -108,13 +108,15 @@ public class ResearchTests
     }
 
     [Fact]
-    public void AnalysedClothOpensTheCapeMadeAtTheFormer()
+    public void AnalysedClothAndHideOpenTheCapeMadeAtTheFormer()
     {
-        // The ruins' cloth needs analysis because the cape is made of it (2026-10-27-the-cape-is-worn).
+        // The ruins' cloth and a grazer's hide need analysis because the cape is made of them (2026-10-27-the-cape-is-worn).
         var (w, id) = SetUp();
-        w.GiveItems(0, ("cloth", 1));
-        Assert.Equal(["cloth"], RecipeOf(w, Content.Cape.Item).Unanalysed);
+        w.GiveItems(0, ("cloth", 1), ("hide", 1));
+        Assert.Equal(["cloth", "hide"], RecipeOf(w, Content.Cape.Item).Unanalysed);
         Analyse(w, id, "cloth");
+        Assert.False(w.M.Research.Knows(Content.Cape.Item));
+        Analyse(w, id, "hide");
         Assert.True(w.M.Research.Knows(Content.Cape.Item));
         Assert.Contains(Content.Stations.Get("former").Rows, row => row.Contains(Content.Cape.Item));
     }

@@ -38,7 +38,7 @@ once, and smelting has moved to `Crafting`.
     cell of it; a furnace also only with what it can smelt (`ICraftingQueries.CanSmelt`: salvage in its
     input, hot enough, room for its yields; never for what is too hot for it, which stays in its input).
     One fuel is used up (`IItemsOps.Consume`), worth its
-    `BurnTicks`;
+    `BurnTicks`. An item that is both (fat) burns in the fuel slot and smelts in the input, by where it was put;
   - **burning**, it breathes `Content.Furnace.Breath` from its first aired cell every
     `Content.Furnace.BreathEvery` ticks of fuel (`IAtmosphereOps.Breathe`, as a hero does); given
     less, its fire goes out and the fuel left is lost. Otherwise it burns a tick of fuel, smelting or
