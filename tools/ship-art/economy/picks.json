@@ -1,4 +1,4 @@
 {
-  "machines": { "workbench": "board", "crusher": "rollers" },
+  "machines": { "workbench": "boardLocker", "crusher": "rollers" },
   "items": { "asteroidOre": 3, "ironOre": 1, "gravel": 3, "quartz": 2, "alloyPlate": 1, "hide": 1, "fat": 2 }
 }
