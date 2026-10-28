@@ -20,7 +20,8 @@ namespace Stillwake.Sim.Tests;
 /// <summary>packages/sim/src/modules/wreck.test.ts, ported: the world every new game starts in.</summary>
 public class WreckTests
 {
-    private static readonly Layout Wreck = Registry.Wreck;
+    /// <summary>The new game's wreck, calm: its rooms' air is the subject here, and a meteor's blast would open them (meteor-blast).</summary>
+    private static readonly Layout Wreck = Registry.Wreck with { Meteors = false };
     /// <summary>Where the wreck's drawing lies in the world: its top-left cell, centred.</summary>
     private static readonly (int X, int Y) Drawn = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
     /// <summary>The world's cell at (<paramref name="x"/>, <paramref name="y"/>) of the wreck as content draws it: its block's top-left, doubled (0104).</summary>

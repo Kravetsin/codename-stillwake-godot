@@ -161,11 +161,11 @@ A living document: what is decided about the game and what is still open. Techni
   and starlight through windows light the ship; a dark room means no light, never no air. Air is
   seen in its own view, as in Oxygen Not Included: the air overlay, cell by cell.
 - **Meteors belong to places.** Each place throws meteors of some power at the hull from the side the
-  drift comes from, seen as a streak a moment before they strike; a hull cell breaks only if the power
-  reaches its material's strength. The starting space throws light ones from the start, every few
-  minutes: scrap gives way often, iron seldom, concrete never, and the hole stays planned, so repair is
-  a steady cost. Harder places, such as the rings around a planet, throw stronger ones, which asks for
-  a better hull (hull-meteors).
+  drift comes from, seen flying in a moment before they strike; a hull cell breaks only if the power
+  reaches its material's strength, and a strong one tears out the walls round it too. The starting
+  space throws light ones from the start, every few minutes: scrap gives way often, iron seldom, concrete
+  never, and the hole stays planned, so repair is a steady cost. Harder places, such as the rings round
+  a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-blast).
 
 ## Open
 

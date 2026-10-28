@@ -15,39 +15,56 @@ public partial class HazardsTests
 {
     private static readonly Content.Meteors.Shower Shower = Content.Meteors.StartingSpace;
 
-    /// <summary>A meteor's strike seen from outside: where, how hard, the strength of the wall it met, whether it broke, its tick.</summary>
-    private sealed record Strike(int Cell, int Power, int Strength, bool Broke, int Tick);
+    /// <summary>
+    /// A meteor's strike seen from outside: where, how hard, its tick; the walls standing round it just before, ascending, and the
+    /// cells of those gone after.
+    /// </summary>
+    private sealed record Strike(int Cell, int Power, int Tick, IReadOnlyList<(int Cell, Content.Material Wall)> Before, IReadOnlyList<int> Gone)
+    {
+        public int Strength => Before.FirstOrDefault(b => b.Cell == Cell).Wall?.Strength ?? 0;
+        public bool Broke => Gone.Contains(Cell);
+    }
 
     /// <summary>Runs <paramref name="w"/> till <paramref name="count"/> meteors have struck; with the ticks each was first seen coming.</summary>
     private static (List<Strike> Strikes, List<int> Seen) Fall(Scenario w, int count)
     {
         var strikes = new List<Strike>();
         var seen = new List<int>();
+        var grid = w.M.Grid;
         for (int tick = 1; strikes.Count < count; tick++)
         {
             Assert.True(tick < count * (Shower.EveryMax + Shower.Warning + 2), "meteors stopped falling");
             var coming = w.M.Hazards.Incoming;
-            int strength = coming is { } m ? w.M.Grid.WallAt(m.Cell)?.Strength ?? 0 : 0;
+            var before = new List<(int Cell, Content.Material Wall)>();
+            if (coming is { Left: 1 } m)
+            {
+                int most = HazardsModule.Farthest(m.Power, Shower.Blast), cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
+                for (int y = Math.Max(0, cy - most); y <= Math.Min(grid.Height - 1, cy + most); y++)
+                    for (int x = Math.Max(0, cx - most); x <= Math.Min(grid.Width - 1, cx + most); x++)
+                        if (grid.WallAt(y * grid.Width + x) is { } wall) before.Add((y * grid.Width + x, wall));
+            }
             w.Run();
             if (coming == null && w.M.Hazards.Incoming != null) seen.Add(tick);
-            if (coming is { Left: 1 } hit) strikes.Add(new Strike(hit.Cell, hit.Power, strength, w.M.Grid.WallAt(hit.Cell) == null, tick));
+            if (coming is { Left: 1 } hit)
+                strikes.Add(new Strike(hit.Cell, hit.Power, tick, before, [.. before.Where(b => grid.WallAt(b.Cell) == null).Select(b => b.Cell)]));
         }
         return (strikes, seen);
     }
 
-    /// <summary>Eight rows of scrap at x 2, iron built before it at once at x 3 in every other row, open to the right; a tick run.</summary>
+    /// <summary>Twenty-four rows of a scrap hull four thick, its right face iron in every other row, built at once; a tick run.</summary>
     private static Scenario Hull()
     {
-        var w = new Scenario(Layout.Parse(string.Join('\n', Enumerable.Repeat("..#..", 8))) with { Meteors = true });
+        const int width = 8, rows = 24;
+        var w = new Scenario(Layout.Parse(string.Join('\n', Enumerable.Repeat("..####..", rows))) with { Meteors = true });
         w.Do(new SetInstant(true));
-        for (int y = 0; y < 8; y += 2) w.Do(new PlacePlan(y * 5 + 3, Placement.Wall("iron")));
+        for (int y = 0; y < rows; y += 2) w.Do(new PlacePlan(y * width + 6, Placement.Wall("iron")));
         w.Do(new SetInstant(false)).Run();
         Assert.Empty(w.Refusals);
         return w;
     }
 
     [Fact]
-    public void ComeEveryFourToSixMinutesSeenTwoSecondsBeforeTheyStrike()
+    public void ComeEveryFourToSixMinutesSeenThreeSecondsBeforeTheyStrike()
     {
         var (strikes, seen) = Fall(Hull(), 6);
         // Hull ran the first tick: Fall counts from the second.
@@ -60,20 +77,29 @@ public partial class HazardsTests
     }
 
     [Fact]
-    public void BreakAWallOnlyWhenTheirPowerReachesItsStrengthLeavingItPlanned()
+    public void BreakEveryWallWithinTheirBlastWhenTheyBreakTheOneTheyStrikeLeavingEachPlanned()
     {
         var w = Hull();
         var (strikes, _) = Fall(w, 10);
-        Assert.All(strikes, s => Assert.Equal(s.Power >= s.Strength, s.Broke));
-        Assert.All(strikes, s => Assert.InRange(s.Power, 1, 6));
-        Assert.Contains(strikes, s => s.Broke);
+        int width = w.Layout.Width;
+        foreach (var s in strikes)
+        {
+            Assert.InRange(s.Power, 1, 6);
+            // A wall within (power - its strength + 1) × Blast cells of the struck one goes; a struck wall that holds stops it whole.
+            int cx = s.Cell % width, cy = s.Cell / width;
+            var blast = s.Before.Where(b =>
+            {
+                int dx = b.Cell % width - cx, dy = b.Cell / width - cy, reach = (s.Power - b.Wall.Strength + 1) * Shower.Blast;
+                return reach > 0 && dx * dx + dy * dy < reach * reach;
+            }).Select(b => b.Cell);
+            Assert.Equal(s.Power >= s.Strength ? blast : [], s.Gone);
+        }
+        Assert.Contains(strikes, s => s.Gone.Count > 1);
         Assert.Contains(strikes, s => !s.Broke);
         // Each wall broken is planned again as it was; nothing else is planned.
-        var broken = strikes.Where(s => s.Broke).ToList();
-        Assert.Equal(broken.Count, w.M.Building.Plans.Count);
-        Assert.All(broken, s => Assert.Equal(
-            Placement.Wall(s.Strength == Content.Materials.Get("iron").Strength ? "iron" : "scrap"),
-            Assert.Single(w.M.Building.PlansAt(s.Cell)).Place));
+        var gone = strikes.SelectMany(s => s.Before.Where(b => s.Gone.Contains(b.Cell))).ToList();
+        Assert.Equal(gone.Count, w.M.Building.Plans.Count);
+        Assert.All(gone, b => Assert.Equal(Placement.Wall(b.Wall.Id), Assert.Single(w.M.Building.PlansAt(b.Cell)).Place));
     }
 
     [Fact]

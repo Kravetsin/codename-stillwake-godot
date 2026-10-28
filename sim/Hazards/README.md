@@ -6,7 +6,7 @@
 | --- | --- |
 | `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
-Meteors breaking the hull ([hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md)): a place's shower
+Meteors breaking the hull ([hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md)): a place's shower
 (`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself from the start, a steady cost of repair; the dev panel
 strikes one by hand, to try a breach and its repair. Ported from `packages/sim/src/modules/hazards`; its rules hold
 here unchanged.
@@ -27,17 +27,19 @@ here unchanged.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
   met first shields its row.
-- **`Warning` ticks later it strikes:** a wall still standing there breaks iff power ≥ its material's `Strength` (scrap 2,
-  iron 5); else nothing happens. Then the next interval is drawn.
+- **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Strength` (scrap 2,
+  iron 5), every wall within `(power − its strength + 1) × Blast` cells of it breaks, each by its own strength (Euclidean,
+  compared squared); all found first, then breached in cell order. A struck wall that holds stops it whole. Then the next
+  interval is drawn. `Farthest(power, blast)` bounds the area, for the client too.
 - **A wall broken** (`Breach`) is lost, refunding nothing, its pipes left whole (0109), and its hole planned as a
   blueprint of the same wall, known or not: repair is the screwdriver, paid part by part. The hole is an opening of its
   room: `atmosphere` vents it and drains its vents' networks until a valve cuts them off or the wall is built again. A
   deconstruction mark on it is dropped by `building`.
-- `MeteorHit(cell)` (dev) breaches the wall at `cell` whatever its strength.
+- `MeteorHit(cell)` (dev) breaches the one wall at `cell` whatever its strength.
 
 ## API
 
-- **Queries:** `Incoming`, the meteor seen coming, for its streak.
+- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Farthest`, how far a blast may reach.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
   never breaks (bedrock, lava) or out of the grid's zone (a planet's fog).
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
@@ -52,7 +54,8 @@ here unchanged.
 
 - Meteors hit walls only, never doors, windows, machines, solar panels or heroes; they come only from the right, never
   through an open door.
-- A hit breaks or does nothing: no damage adds up. Showers do not change with where the ship goes yet.
+- A hit breaks or does nothing: no damage adds up. A blast ignores what stands between, breaking floors and inner walls in
+  reach, and leaves doors and machines in it whole. Showers do not change with where the ship goes yet.
 - A client joining between a strike and its next frame misses the strike's look.
 
 ## Tests not yet ported

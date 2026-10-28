@@ -148,6 +148,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
 | [hull-meteors](2026-10-28-hull-meteors.md) | Meteors from the start | accepted |  |
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
+| [meteor-blast](2026-10-28-meteor-blast.md) | A meteor breaks an area | accepted |  |
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [smelt-chances](2026-10-28-smelt-chances.md) | Byproducts by chance and smelts of several | accepted |  |
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
