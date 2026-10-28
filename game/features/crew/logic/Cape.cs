@@ -8,11 +8,13 @@ namespace Stillwake.Game.Features.Crew;
 /// A cape (2026-10-27-the-cape-is-worn), as drawn: a <see cref="Cloth"/> pinned along the top of the neck and the shoulders,
 /// down to the floor, flaring toward the hem. Its outside is drawn over the hero; its inside is the same sheet drawn
 /// behind it, its front edge carried forward as the cape wraps round the far side of the body (<see cref="Inside"/>),
-/// so the two always meet at the back edge and the hem. It keeps its cut: no point of it comes more than
-/// <see cref="Give"/> forward of where it hangs as cut, so walking backward it stays round the back rather than wrapping
-/// the hero, and it swings back from that freely; never under the feet but afloat. What the hero wears on its back does not shape it. A picture is laid over the grid (<see cref="Uv"/>); a triangle turned
-/// over shows the lining (<see cref="Flipped"/>). Afloat it drifts: no gravity, no air, its cut opening out behind as a slow
-/// wave runs down it (<see cref="AfloatRest"/>). Its hood, down on the back under a fur collar, is a small cloth of its
+/// so the two always meet at the back edge and the hem. It is drawn for show, not for truth (2026-10-28-the-cape-flows): it
+/// flows toward a shape set by how the hero moves (<see cref="Flow"/>), behind the hero whichever way it goes, swept up the
+/// faster it goes and as it falls, a breeze always running down it; the cloth only lags and ripples about that shape. No
+/// point of it comes more than <see cref="Give"/> forward of where it hangs as cut, so it never wraps the hero; never
+/// under the feet but afloat. What the hero wears on its back does not shape it. A picture is laid over the grid
+/// (<see cref="Uv"/>); a triangle turned over shows the lining (<see cref="Flipped"/>). Afloat it drifts: no gravity, no air,
+/// opening out behind as a slow wave runs down it (<see cref="AfloatRest"/>). Its hood, down on the back under a fur collar, is a small cloth of its
 /// own (<see cref="Hood"/>), so it bobs and swings as the cape does. Drawn only, never simulated: every peer moves its own.
 /// </summary>
 public sealed class Cape
@@ -20,11 +22,26 @@ public sealed class Cape
     /// <summary>Points across, from its front edge at the neck to its back edge, and down, from the shoulders to the hem.</summary>
     public const int Cols = 4, Rows = 9;
     /// <summary>
-    /// How it moves a step: the air drags it back a twentieth of its speed a step against a light pull down, so on a run
-    /// it trails about 30° and lifts on a jump; its diagonals hold only a little, so it swings back from the shoulders;
-    /// its threads give a third when squeezed, so it bunches and straightens again.
+    /// How it moves a step: a twentieth of its speed lost, so it lags behind the hero and swings past where it heads; a light
+    /// pull down, which the shape it flows toward mostly holds up; its diagonals hold only a little, so it bends from the
+    /// shoulders; its threads give a third when squeezed, so it bunches and straightens again.
     /// </summary>
-    private static readonly ClothStyle Style = new(Keep: 0.95, Gravity: 0.3, Shear: 0.08, Squash: 0.35, Passes: 10);
+    private static readonly ClothStyle Style = new(Keep: 0.95, Gravity: 0.06, Shear: 0.08, Squash: 0.35, Passes: 10);
+    /// <summary>
+    /// The shape it flows toward (2026-10-28-the-cape-flows, <see cref="Flow"/>): its cut swung back and up from its pins, the
+    /// more toward the hem, by <see cref="Calm"/> radians standing, up to <see cref="Sweep"/> at a sprint, and
+    /// <see cref="Soar"/> more falling at <see cref="Plunge"/> pixels a step or faster, <see cref="Most"/> at most, where the
+    /// sheet would begin to fold; the swing eased as a spring,
+    /// <see cref="Spring"/> of the gap a step a step and <see cref="Damp"/> of its speed kept, so it overshoots a little and
+    /// settles. Each point is drawn toward its place in it <see cref="Pull"/> of the way a step a step.
+    /// </summary>
+    private const double Calm = 0.1, Sweep = 1.0, Soar = 0.7, Most = 1.6, Plunge = 5, Spring = 0.02, Damp = 0.9, Pull = 0.03;
+    /// <summary>
+    /// The hero's breeze: a wave runs down it always, <see cref="Ripple"/> pixels a step a step at the hem standing and
+    /// <see cref="RippleRun"/> at a sprint, once every <see cref="WaveSteps"/> steps standing and <see cref="RunWaveSteps"/>
+    /// at a sprint, so it stirs at rest and streams on a run.
+    /// </summary>
+    private const double Ripple = 0.03, RippleRun = 0.04, RunWaveSteps = 18;
     /// <summary>
     /// How it moves afloat: no gravity and no air, so it keeps nearly all its speed, trailing a push off and carrying on
     /// past a stop; only the wool's own stiffness calms it.
@@ -39,12 +56,12 @@ public sealed class Cape
     /// </summary>
     private const double Spread = 0.7, Hold = 0.004, Wave = 0.012, WaveSteps = 100, WaveLag = 0.75;
     /// <summary>
-    /// The air on it beyond the plain drag, growing with the square of the hero's speed, so a run lifts it far more than a
-    /// walk: pushed against the way it goes <see cref="Push"/> and lifted by a run across <see cref="Lift"/> pixels a step a step at a sprint's speed
-    /// (<see cref="Sprint"/> pixels a step), the lift fluttering by <see cref="Flutter"/> of itself every
-    /// <see cref="FlutterSteps"/> steps; the hero's speed read from its shoulders, eased over <see cref="Ease"/> of a step.
+    /// A sprint's speed, <see cref="Sprint"/> pixels a step: the hero's speed, read from its shoulders and eased over
+    /// <see cref="Ease"/> of a step, against it.
     /// </summary>
-    private const double Push = 0.1, Lift = 0.055, Sprint = 211.0 / 60, Flutter = 0.5, FlutterSteps = 9, Ease = 0.2;
+    private const double Sprint = 211.0 / 60, Ease = 0.2;
+    /// <summary>How much of the hero's move across aboard it is carried along by, its speed kept: the rest it lags behind.</summary>
+    private const double Follow = 0.7;
     /// <summary>The farthest forward of its cut any point of it goes, in pixels.</summary>
     private const double Give = 1;
     /// <summary>How far its inside's front edge is carried forward of the outside's, at the shoulders and at the hem: the cape round the far side.</summary>
@@ -53,6 +70,8 @@ public sealed class Cape
     /// Where the top is pinned, front to back, from the feet: clasped at the throat under the chin (<see cref="Clasp"/>), round
     /// the neck and over the shoulder to the back, under its collar.
     /// </summary>
+    /// <summary>Where it swings about, between its pins: one point for the whole sheet, so swung far it turns as one and never folds.</summary>
+    private static readonly (double X, double Y) Nape = (-1.75, -Rig.Neck);
     private static readonly (double X, double Y)[] Pins =
         [(3.5, -(Rig.Neck - 0.6)), (0.5, -(Rig.Neck + 0.2)), (-3.5, -Rig.Neck), (-7, -(Rig.Neck - 1.5))];
 
@@ -60,7 +79,7 @@ public sealed class Cape
     public const int HoodCols = 3, HoodRows = 3;
     /// <summary>The hood, down on the back: a bag of the same wool, its diagonals firmer than the cape's so it keeps its fullness, its threads down giving
     /// almost freely when squeezed, so it tosses up as the hero stops rising and drops back.</summary>
-    private static readonly ClothStyle HoodStyle = new(Keep: 0.9, Gravity: 0.3, Shear: 0.4, Squash: 0.1, Passes: 10);
+    private static readonly ClothStyle HoodStyle = new(Keep: 0.9, Gravity: 0.06, Shear: 0.4, Squash: 0.1, Passes: 10);
     /// <summary>The hood afloat: no gravity, more of its speed kept, as the cape's.</summary>
     private static readonly ClothStyle HoodAfloatStyle = HoodStyle with { Keep = 0.97, Gravity = 0 };
     /// <summary>
@@ -73,7 +92,7 @@ public sealed class Cape
         (-2.5, -(Rig.Neck - 5)), (-6, -(Rig.Neck - 5.5)), (-10.5, -(Rig.Neck - 5)),
         (-4, -(Rig.Neck - 8.5)), (-7.5, -(Rig.Neck - 10.5)), (-10, -(Rig.Neck - 8.5)),
     ];
-    /// <summary>The hood's share of the air on the cape: it lies on the cape, out of most of it.</summary>
+    /// <summary>The hood's share of the cape's swing and breeze: it lies on the cape, out of most of it.</summary>
     private const double HoodWind = 0.4;
 
     /// <summary>Where its clasp is, from the feet: its front pin, at the throat.</summary>
@@ -81,7 +100,7 @@ public sealed class Cape
 
     private Cloth? _cloth, _hood;
     private (double X, double Y)? _shoulders;
-    private double _speedX, _speedY, _steps;
+    private double _speedX, _speedY, _swing = Calm, _swingSpeed, _phase;
     private int _facing;
     private readonly (double X, double Y)[] _points = new (double, double)[Cols * Rows], _inside = new (double, double)[Cols * Rows],
         _hoodPoints = new (double, double)[HoodCols * HoodRows];
@@ -119,11 +138,21 @@ public sealed class Cape
         return (top.X + (hemX - top.X) * Math.Pow(v, 1.2), top.Y + (hemY - top.Y) * v);
     }
 
-    /// <summary>Where point <paramref name="i"/> drifts to afloat, in the figure's frame: its cut swung back and up from its pin, the more the lower.</summary>
-    public static (double X, double Y) AfloatRest(int i)
+    /// <summary>
+    /// Where point <paramref name="i"/> flows to with the cape swung by <paramref name="swing"/> radians, in the figure's frame:
+    /// its cut turned back and up about its <see cref="Nape"/>, by the swing at the hem and less toward the shoulders, so it curves.
+    /// </summary>
+    public static (double X, double Y) Flow(int i, double swing) => Swung(Nape, Rest(i), swing * Uv(i).V);
+
+    /// <summary>Where point <paramref name="i"/> drifts to afloat: its <see cref="Flow"/> swung by <see cref="Spread"/>.</summary>
+    public static (double X, double Y) AfloatRest(int i) => Flow(i, Spread);
+
+    /// <summary>Where the hood's point <paramref name="i"/> flows to, swung as <see cref="Flow"/> about its opening.</summary>
+    private static (double X, double Y) HoodFlow(int i, double swing) => Swung(HoodCut[i % HoodCols], HoodCut[i], swing * HoodUv(i).V);
+
+    private static (double X, double Y) Swung((double X, double Y) top, (double X, double Y) point, double angle)
     {
-        var (top, (x, y)) = (Pins[i % Cols], Rest(i));
-        double angle = Spread * Uv(i).V, dx = x - top.X, dy = y - top.Y;
+        double dx = point.X - top.X, dy = point.Y - top.Y;
         return (top.X + dx * Math.Cos(angle) - dy * Math.Sin(angle), top.Y + dx * Math.Sin(angle) + dy * Math.Cos(angle));
     }
 
@@ -175,34 +204,39 @@ public sealed class Cape
         {
             _speedX += ((at.X - sx) / steps - _speedX) * Math.Min(1, Ease * steps);
             _speedY += ((at.Y - sy) / steps - _speedY) * Math.Min(1, Ease * steps);
+            // Aboard it goes mostly with the hero across, so the shape it flows toward, not the world it lags in, says how
+            // fast; up and down it lags in full, tossed by a jump and thrown up by a fall.
+            if (!afloat)
+                foreach (var cloth in new[] { _cloth, _hood! })
+                    cloth.Carry(p => (p.X + (at.X - sx) * Follow, p.Y));
         }
         _shoulders = at;
-        _steps += steps;
         (_cloth.Style, _hood!.Style) = afloat ? (AfloatStyle, HoodAfloatStyle) : (Style, HoodStyle);
-        Func<int, double, double, (double X, double Y)> cape, hood;
-        if (afloat)
+        // Afloat it opens to its spread on a slow wave; aboard it swings back the faster the hero goes, whichever way, and
+        // up as it falls, streaming on a quicker, wider wave.
+        double run = afloat ? 0 : Math.Pow(Math.Min(1, Math.Abs(_speedX) / Sprint), 1.5), fall = afloat ? 0 : Math.Clamp(_speedY / Plunge, 0, 1);
+        double goal = afloat ? Spread : Math.Min(Most, Calm + (Sweep - Calm) * run + Soar * fall);
+        for (double left = steps; left > 0; left -= 1)
         {
-            // In the frame, turned into the world's: what moves a point of the frame by (x, y).
-            var origin = toWorld((0, 0));
-            (double X, double Y) World((double X, double Y) f) { var w = toWorld(f); return (w.X - origin.X, w.Y - origin.Y); }
-            (double X, double Y) Drift((double X, double Y) cut, double v, double x, double y)
-            {
-                var (fx, fy) = toFrame((x, y));
-                double wave = Math.Sin((_steps / WaveSteps - WaveLag * v) * 2 * Math.PI) * Wave * v;
-                return World(((cut.X - fx) * Hold + wave, (cut.Y - fy) * Hold + wave / 2));
-            }
-            cape = (i, x, y) => Drift(AfloatRest(i), Uv(i).V, x, y);
-            hood = (i, x, y) => Drift(HoodCut[i], HoodUv(i).V * HoodWind, x, y);
+            double k = Math.Min(1, left);
+            _swingSpeed = (_swingSpeed + (goal - _swing) * Spring * k) * Math.Pow(Damp, k);
+            _swing += _swingSpeed * k;
+            if (_swing > Most) (_swing, _swingSpeed) = (Most, 0);
         }
-        else
+        double hold = afloat ? Hold : Pull, wave = afloat ? Wave : Ripple + (RippleRun - Ripple) * run;
+        _phase += steps / (afloat ? WaveSteps : WaveSteps + (RunWaveSteps - WaveSteps) * run);
+        // In the frame, turned into the world's: what moves a point of the frame by (x, y).
+        var origin = toWorld((0, 0));
+        (double X, double Y) World((double X, double Y) f) { var w = toWorld(f); return (w.X - origin.X, w.Y - origin.Y); }
+        // Toward its place in the shape, and across it on the wave, the wave running from the shoulders to the hem.
+        (double X, double Y) Drift((double X, double Y) to, double v, double x, double y)
         {
-            // Against the way the hero moves, as the air it goes through; lifted by a run across, not by a fall.
-            double speed = Math.Sqrt(_speedX * _speedX + _speedY * _speedY), push = Push * (speed / Sprint) * (speed / Sprint);
-            double across = _speedX / Sprint, flutter = 1 + Flutter * Math.Sin(_steps / FlutterSteps * 2 * Math.PI);
-            (double X, double Y) wind = speed == 0 ? default : (-_speedX / speed * push, -_speedY / speed * push - Lift * across * across * flutter);
-            cape = (_, _, _) => wind;
-            hood = (_, _, _) => (wind.X * HoodWind, wind.Y * HoodWind);
+            var (fx, fy) = toFrame((x, y));
+            double across = Math.Sin((_phase - WaveLag * v) * 2 * Math.PI) * wave * v, turn = _swing * v;
+            return World(((to.X - fx) * hold + across * Math.Cos(turn), (to.Y - fy) * hold + across * Math.Sin(turn)));
         }
+        Func<int, double, double, (double X, double Y)> cape = (i, x, y) => Drift(Flow(i, _swing), Uv(i).V, x, y),
+            hood = (i, x, y) => Drift(HoodFlow(i, _swing * HoodWind), HoodUv(i).V * HoodWind, x, y);
         // Afloat there is no floor to keep it off.
         double floor = afloat ? double.MaxValue : -0.3;
         _cloth.Update(Top, i => toWorld(Pins[i]), elapsedMs, (i, x, y) =>
@@ -225,7 +259,7 @@ public sealed class Cape
     }
 
     /// <summary>Forgets where it hung, so it falls from the shoulders afresh: a respawn, a cape put on.</summary>
-    public void Reset() => (_cloth, _hood, _shoulders, _speedX, _speedY, _facing) = (null, null, null, 0, 0, 0);
+    public void Reset() => (_cloth, _hood, _shoulders, _speedX, _speedY, _facing, _swing, _swingSpeed) = (null, null, null, 0, 0, 0, Calm, 0);
 
     private static int[] MakeTriangles(int cols, int rows)
     {

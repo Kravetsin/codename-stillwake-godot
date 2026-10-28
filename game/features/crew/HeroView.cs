@@ -394,12 +394,12 @@ public partial class HeroView : Node2D
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
             var taken = _autopilot?.Next(_current) ?? Take();
             // Swinging, it faces where the swing began toward, swimming too: the blade comes down there. Aiming
-            // the harpoon, it faces the pointer, swimming the other way too.
+            // the harpoon, it faces the pointer, swimming the other way too. With no pointer, a script faces where it says.
             bool swinging = _swing.Phase != null;
             _letsGo |= taken.Jump || taken.X != 0 || taken.Y != 0;
             // Pulled by the grapple or hanging from it, the line moves the hero, not the keys; pulled, it faces the hook.
             var pull = passedOut ? null : _harpoon.PullTo;
-            int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face;
+            int? faces = _harpoon.Rod == Rod.Pulling ? (_harpoon.Tip.X < _current.X ? -1 : 1) : swinging ? _swingFace : face ?? taken.Face;
             // Shift in space with a jetpack thrusts where the keys point, or with none toward the pointer.
             bool afloat = ship.Space(_current.BodyCell(ship.Width));
             var thrust = canThrust && afloat && taken.Sprint && pull == null

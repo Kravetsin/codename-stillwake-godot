@@ -30,6 +30,10 @@ public class CapeTests
 
     private static readonly int Points = Cape.Cols * Cape.Rows;
 
+    /// <summary>Whether it is turned over below its top three rows: under the collar and the hood, a fold over the shoulder is hidden.</summary>
+    private static bool FoldedBelowTheHood(Cape cape) =>
+        Enumerable.Range((Cape.Cols - 1) * 6, Cape.Triangles.Length / 3 - (Cape.Cols - 1) * 6).Any(cape.Flipped);
+
     /// <summary>A cape stepped <paramref name="steps"/> times, the feet moving <paramref name="by"/> pixels a step, weightless if <paramref name="afloat"/>.</summary>
     private static void Move(Cape cape, Frame f, int steps, double by = 0, bool afloat = false)
     {
@@ -59,31 +63,55 @@ public class CapeTests
     }
 
     [Fact]
-    public void ARunLiftsItFarMoreThanAWalk()
+    public void ARunLiftsItFarHigherThanAWalk()
     {
-        double Trail(double speed)
+        double Lift(double speed)
         {
             var (f, cape) = (new Frame(), new Cape());
             Move(cape, f, 120);
             Move(cape, f, 120, speed);
-            return Cape.Rest(Points - 1).X - cape.Points[^1].X;
+            return Cape.Rest(Points - 1).Y - cape.Points[^1].Y;
         }
-        double walk = Trail(115.0 / 60), run = Trail(Sprint);
-        Assert.True(run > walk * 1.8, $"the hem trails {run:F1} running, {walk:F1} walking");
+        double walk = Lift(115.0 / 60), run = Lift(Sprint);
+        Assert.True(run > walk * 1.8, $"the hem rises {run:F1} running, {walk:F1} walking");
+        Assert.True(run > 12, $"the hem only rises {run:F1} running");
+    }
+
+    [Theory]
+    [InlineData(115.0 / 60)]
+    [InlineData(211.0 / 60)]
+    public void GoingBackwardItStreamsBehindAsGoingForwardRatherThanWrappingTheHero(double speed)
+    {
+        Cape Go(double by)
+        {
+            var (f, cape) = (new Frame(), new Cape());
+            Move(cape, f, 120);
+            for (int step = 0; step < 120; step++)
+            {
+                Move(cape, f, 1, by);
+                for (int i = 0; i < Points; i++) Assert.True(cape.Points[i].X - Cape.Rest(i).X <= 1.01, $"point {i} came forward of its cut");
+                Assert.False(FoldedBelowTheHood(cape), $"folded {by:F1} a step, step {step}");
+            }
+            return cape;
+        }
+        var (forward, backward) = (Go(speed), Go(-speed));
+        double hem = Cape.Rest(Points - 1).X - backward.Points[^1].X;
+        Assert.True(hem > 5, $"going backward the hem streams only {hem:F1} behind its cut");
+        Assert.InRange(backward.Points[^1].Y - forward.Points[^1].Y, -3, 3);
     }
 
     [Fact]
-    public void WalkingBackwardItKeepsItsCutRoundTheBackRatherThanWrappingTheHero()
+    public void StandingItStirsInTheBreezeWithoutComingToRest()
     {
         var (f, cape) = (new Frame(), new Cape());
-        Move(cape, f, 120);
-        double most = double.MinValue;
+        Move(cape, f, 300);
+        double least = double.MaxValue, most = double.MinValue;
         for (int step = 0; step < 120; step++)
         {
-            Move(cape, f, 1, -Sprint);
-            for (int i = 0; i < Points; i++) most = Math.Max(most, cape.Points[i].X - Cape.Rest(i).X);
+            Move(cape, f, 1);
+            (least, most) = (Math.Min(least, cape.Points[^1].X), Math.Max(most, cape.Points[^1].X));
         }
-        Assert.True(most <= 1.01, $"a point came {most} forward of its cut");
+        Assert.InRange(most - least, 0.5, 5);
     }
 
     [Fact]
@@ -197,7 +225,7 @@ public class CapeTests
         for (int step = 0; step < 200; step++)
         {
             Move(cape, f, 1, afloat: true);
-            Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
+            Assert.False(FoldedBelowTheHood(cape));
             (least, most) = (Math.Min(least, cape.Points[^1].X), Math.Max(most, cape.Points[^1].X));
         }
         Assert.InRange(most - least, 0.3, 6);
