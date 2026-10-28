@@ -6,7 +6,7 @@
 | --- | --- |
 | `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
-Meteors breaking the hull ([hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md),
+Meteors breaking the hull ([meteor-wave](../../docs/decisions/2026-10-29-meteor-wave.md), [hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md),
 [holes-not-planned](../../docs/decisions/2026-10-29-holes-not-planned.md)): a place's shower
 (`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself from the start, a steady cost of repair; the dev panel
 strikes one by hand, to try a breach and its repair. Ported from `packages/sim/src/modules/hazards`; its rules hold
@@ -28,9 +28,11 @@ here unchanged.
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
   met first shields its row.
 - **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Strength` (scrap 2,
-  iron 5), every wall nearer than its `Reach`, `Hole + (power − its strength) × Blast` cells, breaks, each by its own
-  strength (Euclidean, compared squared); all found first, then broken in cell order. A struck wall that holds stops it
-  whole. Then the next interval is drawn. `Farthest(power, shower)` bounds the area, for the client too.
+  iron 5), a blast of `Charge(power)` spreads from it as a wave, cheapest way first: a cell costs `Meteors.Step` (aslant
+  `Diagonal`), a wall `PerStrength` a point of its strength more, and breaks; what is left goes on, so walls soak it. It goes
+  through open cells and breakable walls; anything else stops it. A back wall behind a cell reached breaks where what is left
+  pays for its strength, spending nothing. All found, then broken in cell order. A struck wall that holds stops it whole.
+  Then the next interval is drawn. `Farthest(power, shower)` bounds the area, for the client too.
 - **A wall broken** is cleared, lost, refunding nothing, its pipes left whole (0109), and nothing is planned in its place:
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
@@ -38,7 +40,7 @@ here unchanged.
 
 ## API
 
-- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Reach` and `Farthest`, how far a blast breaks a wall and any.
+- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Charge` and `Farthest`, a blast's charge and bound.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
   never breaks (bedrock, lava) or out of the grid's zone (a planet's fog).
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
@@ -47,14 +49,14 @@ here unchanged.
 
 ## Invariants
 
-- A meteor only ever turns a wall into an empty cell; it adds nothing, a plan neither.
+- A meteor only ever turns a wall into an empty cell and takes back walls away; it adds nothing, a plan neither.
 
 ## Deliberately not handled
 
 - Meteors hit walls only, never doors, windows, machines, solar panels or heroes; they come only from the right, never
   through an open door.
-- A hit breaks or does nothing: no damage adds up. A blast ignores what stands between, breaking floors and inner walls in
-  reach, and leaves doors and machines in it whole. Showers do not change with where the ship goes yet.
+- A hit breaks or does nothing: no damage adds up. A blast slips aslant between two walls meeting at a corner, and leaves
+  doors and machines it meets whole. Showers do not change with where the ship goes yet.
 - A client joining between a strike and its next frame misses the strike's look.
 
 ## Tests not yet ported

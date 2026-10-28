@@ -547,7 +547,7 @@ public partial class BuildMenu : CanvasLayer
         return box;
     }
 
-    /// <summary>The one tooltip over the card the pointer is on: its name, each item of its cost carried against needed, and what it does.</summary>
+    /// <summary>The one tooltip over the card the pointer is on: its name, each item of its cost carried against needed, what it does, a wall's numbers.</summary>
     private void ShowTooltip(Registry m)
     {
         if (_hovered is not { } tool)
@@ -558,6 +558,9 @@ public partial class BuildMenu : CanvasLayer
         var lines = CostLine.Lacking(Tools.CostOf(tool, m.Building.CostFor), [], _ui.Carried)
             .Select(c => new TipLine($"{c.Count} {En.T($"item.{c.Item}")}", c.Tone, c.Item))
             .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
+        // A wall's numbers: what it leaks, how it stands up to the meteors here.
+        if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } place })
+            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Rules.Meteors).Select(s => new TipLine(s)));
         _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
 }

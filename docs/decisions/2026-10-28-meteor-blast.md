@@ -1,6 +1,6 @@
 # A meteor breaks an area
 
-- Status: accepted; its holes unplanned since [holes-not-planned](2026-10-29-holes-not-planned.md)
+- Status: accepted; its holes unplanned since [holes-not-planned](2026-10-29-holes-not-planned.md), its radius a wave since [meteor-wave](2026-10-29-meteor-wave.md)
 - Date: 2026-10-28
 - Amends [hull-meteors](2026-10-28-hull-meteors.md): a meteor broke one wall cell, now every wall within its blast
 

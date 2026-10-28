@@ -163,10 +163,11 @@ A living document: what is decided about the game and what is still open. Techni
   seen in its own view, as in Oxygen Not Included: the air overlay, cell by cell.
 - **Meteors belong to places.** Each place throws meteors of some power at the hull from the side the
   drift comes from, seen flying in a moment before they strike; a hull cell breaks only if the power
-  reaches its material's strength, and a strong one tears out the walls round it too. The starting
-  space throws light ones from the start, every few minutes: scrap gives way every time, iron seldom, concrete
-  never; the player patches the hole with what they have, so repair is a steady cost. Harder places, such
-  as the rings round a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-blast).
+  reaches its material's strength, and its blast tears on through the walls round it and behind until
+  they soak it up: a strong outer layer spares what lies inside. The starting space throws light ones
+  from the start, every few minutes: scrap gives way every time, iron seldom, concrete never; the player
+  patches the hole with what they have, so repair is a steady cost. Harder places, such as the rings round
+  a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-wave).
 
 ## Open
 

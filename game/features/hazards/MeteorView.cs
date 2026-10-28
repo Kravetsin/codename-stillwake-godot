@@ -5,7 +5,6 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
-using Material = Stillwake.Content.Material;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Hazards;
@@ -35,8 +34,8 @@ public partial class MeteorView : Node2D
     private readonly Func<int> _tick;
     private int _read = -1;
     private Meteor? _coming;
-    /// <summary>The walls round the meteor coming, as the last tick left them: those gone at its strike are what it broke.</summary>
-    private readonly List<(int Cell, Material Wall)> _round = [];
+    /// <summary>The walls and back walls round the meteor coming, as the last tick left them: those gone at its strike are what it broke.</summary>
+    private readonly List<(int Cell, bool Back)> _round = [];
     private (double X, double Y, double Radius)? _head;
     private readonly Voices _strikes = new(S.World, voices: 2);
 
@@ -83,7 +82,7 @@ public partial class MeteorView : Node2D
     /// <summary>The wall's face toward the drift, where a meteor at <paramref name="cell"/> lands, in pixels of the world.</summary>
     private (double X, double Y) Face(int cell) => ((cell % _grid.Width + 1) * Cell, (cell / _grid.Width + 0.5) * Cell);
 
-    /// <summary>The walls within reach of <paramref name="meteor"/>'s blast, as they stand this tick.</summary>
+    /// <summary>The walls and back walls within reach of <paramref name="meteor"/>'s blast, as they stand this tick.</summary>
     private void Look(Meteor meteor)
     {
         _round.Clear();
@@ -91,7 +90,11 @@ public partial class MeteorView : Node2D
         int most = _hazards.Rules.Meteors is { } shower ? HazardsModule.Farthest(meteor.Power, shower) : 0;
         for (int y = Math.Max(0, cy - most); y <= Math.Min(_grid.Height - 1, cy + most); y++)
             for (int x = Math.Max(0, cx - most); x <= Math.Min(width - 1, cx + most); x++)
-                if (_grid.WallAt(y * width + x) is { } wall) _round.Add((y * width + x, wall));
+            {
+                int cell = y * width + x;
+                if (_grid.WallAt(cell) != null) _round.Add((cell, false));
+                if (_grid.BackAt(cell) != null) _round.Add((cell, true));
+            }
     }
 
     /// <summary>The rock's head and size, the share of the warning still to run; its light, trail, embers and smoke stamped.</summary>
@@ -120,7 +123,7 @@ public partial class MeteorView : Node2D
 
     /// <summary>
     /// The strike at <paramref name="meteor"/>'s wall: the wreck's bite thrown back toward the drift and a shock ring as wide as what
-    /// broke; out of each wall gone, chunks and dust flung on the way it flew.
+    /// broke; out of each wall and back wall gone, chunks and dust flung on the way it flew.
     /// </summary>
     private void Strike(Meteor meteor)
     {
@@ -131,13 +134,14 @@ public partial class MeteorView : Node2D
         int broke = 0;
         double farthest = 0;
         var way = Way.Normalized();
-        foreach (var (cell, _) in _round)
+        foreach (var (cell, isBack) in _round)
         {
-            if (_grid.WallAt(cell) != null) continue;
+            if ((isBack ? _grid.BackAt(cell) : _grid.WallAt(cell)) != null) continue;
             broke++;
             double cx = (cell % _grid.Width + 0.5) * Cell, cy = (cell / _grid.Width + 0.5) * Cell;
             farthest = Math.Max(farthest, Math.Sqrt((cx - x) * (cx - x) + (cy - y) * (cy - y)));
-            for (int i = 0; i < 3; i++)
+            // A back wall gone throws a chunk where a wall throws three.
+            for (int i = 0; i < (isBack ? 1 : 3); i++)
             {
                 double s = glims.Between(40, 140), a = Math.Atan2(way.Y, way.X) + glims.Between(-0.9, 0.9);
                 glims.Add(Chunk, cx + glims.Between(-3, 3), cy + glims.Between(-3, 3), Math.Cos(a) * s, Math.Sin(a) * s, size: glims.Between(1.4, 2.6));
