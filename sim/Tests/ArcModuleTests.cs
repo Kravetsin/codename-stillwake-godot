@@ -129,7 +129,7 @@ public class ArcModuleTests
         // A bag with no room left: it stays fitted.
         var full = new Scenario(Layout.Parse(Rows, null, Cables), doubled: true).GiveItems(0, (Arc, 1));
         FitArc(full, Id(full, "smelter"));
-        full.GiveItems(0, ("iron", 500 * Spec.Inventory.Slots));
+        full.GiveItems(0, ("iron", Spec.Items.Get("iron").Stack * Spec.Inventory.Slots));
         full.Do(new Unfit(Id(full, "smelter"), Arc)).Run();
         Assert.Equal(["items.full"], Reasons(full));
         Assert.Equal([Arc], full.M.Items.FittedTo(Id(full, "smelter")));

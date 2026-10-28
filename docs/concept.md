@@ -72,7 +72,8 @@ A living document: what is decided about the game and what is still open. Techni
   seeds and a little soil; soil is pressed at the Former of asteroid ore and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
   a circuit and wire, grows a planted seed under its pink lamp on power in eight minutes, the plant rising through
   four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
-  them. Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
+  them; a planet's spores grow the same way into 3 biomass and 1.1 spores on average, a farm that keeps itself.
+  Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
   ([0060](decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)).
 - **The engine** is the last thing built, of a planet's parts: a nozzle of the ruins' alloy and copper, a fuel pump round a
   motor of the deepest magnetite, an igniter of a crystal. It stands at the stern, its nozzle out through the hull into

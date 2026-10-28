@@ -46,6 +46,7 @@ public class FarmTests
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
     private static readonly int Crop = Content.Items.Get("seed").SmeltTicks!.Value * 1000;
     private static readonly int Draws = Machines.Get("growCapsule").Draws!.Value;
+    private static int StackOf(string item) => Content.Items.Get(item).Stack;
 
     /// <summary>Moves <paramref name="count"/> of what peer 0 carries of <paramref name="item"/> into slot <paramref name="slot"/> of <paramref name="machine"/>, and runs the tick.</summary>
     private static Scenario Put(Scenario w, int machine, string item, int count = 1, int slot = 0)
@@ -153,7 +154,7 @@ public class FarmTests
         Put(w, capsule, "seed").Run(99);
         Assert.Equal(100 * 1000, w.M.Crafting.Progress(capsule));
         // Room for the biomass but not for two seeds more: it pauses as if there were none.
-        Stock(w, capsule, new Stack("seed", 1), new Stack("biomass", 16), new Stack("seed", 9)).Run(3);
+        Stock(w, capsule, new Stack("seed", 1), new Stack("biomass", StackOf("biomass") - 4), new Stack("seed", StackOf("seed") - 1)).Run(3);
         Assert.False(w.M.Crafting.CanSmelt(capsule));
         Assert.False(w.M.Crafting.Works(capsule));
         Assert.Equal(0, Demand(w));
@@ -163,7 +164,7 @@ public class FarmTests
         Assert.Equal(Draws, Demand(w));
         Assert.Equal(102 * 1000, w.M.Crafting.Progress(capsule));
         // Its outputs full of what is never grown: it waits again.
-        Stock(w, capsule, new Stack("seed", 1), new Stack("canister", 5), new Stack("canister", 5)).Run(3);
+        Stock(w, capsule, new Stack("seed", 1), new Stack("canister", StackOf("canister")), new Stack("canister", StackOf("canister"))).Run(3);
         Assert.Equal(0, Demand(w));
         Assert.Equal(102 * 1000, w.M.Crafting.Progress(capsule));
     }
