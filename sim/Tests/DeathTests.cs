@@ -23,6 +23,7 @@ public class DeathTests
     private const int Width = 20;
     private static int At(int x, int y) => y * Width + x;
     private static readonly int Spawn = At(11, 1), Inside = At(15, 1), InSpace = At(4, 1);
+    private static int StackOf(string item) => Content.Items.Get(item).Stack;
 
     private static Scenario Room() => new(Layout.Parse(Map));
     private static IReadOnlyList<FloorStack> Floor(Scenario w) => w.M.Items.Floor;
@@ -41,7 +42,7 @@ public class DeathTests
 
     /// <summary>A hero carrying resources and every kind of gear, some of it worn.</summary>
     private static Scenario Laden(Scenario w, int peer = 0) =>
-        w.GiveItems(peer, ("scrap", 30), ("canister", 3), ("fireAxe", 1), ("harpoon", 1), ("drill", 1), ("jetpack", 1), ("iron", 600))
+        w.GiveItems(peer, ("scrap", 30), ("canister", 3), ("fireAxe", 1), ("harpoon", 1), ("drill", 1), ("jetpack", 1), ("iron", StackOf("iron") + 100))
             .Wear(peer, "jetpack").Wear(peer, "battery");
 
     [Fact]
@@ -51,7 +52,7 @@ public class DeathTests
         var body = new Body(0, Ticks(w));
         // Iron in a full stack and the rest, scrap and canisters: slot order, each stack as it was.
         Assert.Equal(
-            [("scrap", 30), ("canister", 3), ("iron", 500), ("iron", 100)],
+            [("scrap", 30), ("canister", 3), ("iron", StackOf("iron")), ("iron", 100)],
             Floor(w).Select(s => (s.Item, s.Count)));
         Assert.All(Floor(w), s => Assert.Equal((body, FloorStack.Nobody, Inside), (s.Body, s.By, s.Cell)));
         var slots = w.M.Items.Inventory(0);
@@ -129,13 +130,13 @@ public class DeathTests
     {
         var w = DieAt(Laden(Room()), Inside);
         int[] ids = [.. Floor(w).Select(s => s.Id)];
-        // Peer 1 has room for 20 iron more: its own slots full of canisters but one, half of it iron.
-        w.GiveItems(1, ("canister", 5 * (Content.Inventory.Slots - 1)), ("iron", 480));
+        // Peer 1 has room for 20 iron more: its own slots full of canisters but one, of iron twenty short of a stack.
+        w.GiveItems(1, ("canister", StackOf("canister") * (Content.Inventory.Slots - 1)), ("iron", StackOf("iron") - 20));
         w.Do(new PickUp(ids[0]) { From = 0 }).Do(new PickUp(ids[2]) { From = 1 }).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(30, Count(w, 0, "scrap"));
-        Assert.Equal(500, Count(w, 1, "iron"));
-        Assert.Equal([3, 480, 100], Floor(w).Select(s => s.Count));
+        Assert.Equal(StackOf("iron"), Count(w, 1, "iron"));
+        Assert.Equal([3, StackOf("iron") - 20, 100], Floor(w).Select(s => s.Count));
         w.Do(new PickUp(ids[2]) { From = 1 }).Do(new PickUp(ids[0]) { From = 1 }).Run();
         Assert.Equal(["items.full", "items.gone"], w.Refusals.Select(r => r.Reason));
         w.Do(new PickUp(ids[1]) { From = 0 }).Do(new PickUp(ids[2]) { From = 0 }).Do(new PickUp(ids[3]) { From = 0 }).Run();
@@ -235,7 +236,7 @@ public class DeathTests
         return Prop.ForAll(runs.ToArbitrary(), run =>
         {
             // Peer 1 has room for ten scrap and no slot free: what it picks up of a body, it picks up in part.
-            var w = Laden(Room()).GiveItems(0, ("planks", 20)).GiveItems(1, ("scrap", 490), ("canister", 5 * (Content.Inventory.Slots - 2)), ("harpoon", 1));
+            var w = Laden(Room()).GiveItems(0, ("planks", 20)).GiveItems(1, ("scrap", StackOf("scrap") - 10), ("canister", StackOf("canister") * (Content.Inventory.Slots - 2)), ("harpoon", 1));
             w.Do(new Enter(run.First) { From = 0 });
             var total = Total(w);
             foreach (var s in run.Steps)

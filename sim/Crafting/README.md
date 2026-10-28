@@ -69,7 +69,7 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
   is kept while the item stays (0057).
 - **Too cold / wrong process** (0057): such an item is taken in and sits unworked, the station resting, a furnace
   never lit for it; `TooCold` tells the too-hot case.
-- **A crop** (0060) uses its seed and gives its yields and none, one or two seeds by the seed's `Returns` weights,
+- **A crop** (0060) uses its seed or spore and gives its yields and none, one or two of itself by its `Returns` weights,
   drawn from the world `Rng` as it completes, stations in machine id order; an item without `Returns` draws nothing.
   It grows only with room for the yields and the most seeds it may give, so no draw overflows.
 - **A furnace smelts while its fire burns at the tick's start** (0057): `Furnace` calls `Heat` in construction from

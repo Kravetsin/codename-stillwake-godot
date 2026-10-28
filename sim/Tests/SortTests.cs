@@ -12,6 +12,7 @@ public class SortTests
 {
     private static readonly int Bag = Inventory.Hotbar;
     private static readonly int CrateSlots = Machines.Get("crate").Slots!.Value;
+    private static int StackOf(string item) => Content.Items.Get(item).Stack;
 
     /// <summary>A crate at the left and a furnace at the right.</summary>
     private static Scenario Store() => new(Layout.Parse(["#KK.FF#", "#...FF#"]), doubled: true);
@@ -37,11 +38,12 @@ public class SortTests
     [Fact]
     public void MergesHalfEmptyStacksOfTheBagUpToTheirLimitAndFillsItFromItsFirstSlot()
     {
+        int scrap = StackOf("scrap");
         var w = PutAll(new Scenario(Layout.Empty),
-            [(12, new Stack("scrap", 100)), (20, new Stack("scrap", 200)), (30, new Stack("scrap", 450)), (15, new Stack("iron", 5)), (35, new Stack("wire", 7))]);
+            [(12, new Stack("scrap", 100)), (20, new Stack("scrap", 200)), (30, new Stack("scrap", scrap - 50)), (15, new Stack("iron", 5)), (35, new Stack("wire", 7))]);
         w.Do(new Sort()).Run();
         Assert.Empty(w.Refusals);
-        Stack?[] want = [new("iron", 5), new("scrap", 500), new("scrap", 250), new("wire", 7)];
+        Stack?[] want = [new("iron", 5), new("scrap", scrap), new("scrap", 250), new("wire", 7)];
         Same([.. want, .. new Stack?[Inventory.Slots - Bag - want.Length]], BagOf(w));
     }
 
@@ -76,10 +78,11 @@ public class SortTests
     {
         var w = Store();
         int crate = CrateOf(w);
-        PutAll(w, [(26, new Stack("iron", 40)), (3, new Stack("scrapChunk", 40)), (10, new Stack("iron", 470)), (0, new Stack("planks", 9)), (5, new Stack("scrapChunk", 19))], crate: crate);
+        int iron = StackOf("iron"), chunks = StackOf("scrapChunk");
+        PutAll(w, [(26, new Stack("iron", 40)), (3, new Stack("scrapChunk", chunks - 10)), (10, new Stack("iron", iron - 30)), (0, new Stack("planks", 9)), (5, new Stack("scrapChunk", 19))], crate: crate);
         w.Do(new Sort(crate)).Run();
         Assert.Empty(w.Refusals);
-        Stack?[] want = [new("iron", 500), new("iron", 10), new("planks", 9), new("scrapChunk", 50), new("scrapChunk", 9)];
+        Stack?[] want = [new("iron", iron), new("iron", 10), new("planks", 9), new("scrapChunk", chunks), new("scrapChunk", 9)];
         Same([.. want, .. new Stack?[CrateSlots - want.Length]], w.M.Items.Crate(crate));
         // The sender's own bag is not touched by a crate's sort.
         Assert.Empty(w.Stored().Inventories);
@@ -120,14 +123,14 @@ public class SortTests
         {
             var w = Store();
             int crate = CrateOf(w);
-            PutAll(w, [(7, new Stack("wire", 30)), (2, new Stack("wire", 90)), (19, new Stack("gear", 1))], crate: crate);
+            PutAll(w, [(7, new Stack("wire", 30)), (2, new Stack("wire", StackOf("wire") - 10)), (19, new Stack("gear", 1))], crate: crate);
             w.Put(20, new Stack("scrap", 5), peer: 1).Put(10, new Stack("scrap", 5), peer: 1);
             return w.Do(new Sort(crate) { From = 0 }).Do(new Sort(crate) { From = 1 }).Do(new Sort() { From = 1 }).Run();
         }
         var a = Played();
         Assert.Empty(a.Refusals);
         // The second sort finds the crate sorted already and changes nothing.
-        Stack?[] want = [new("gear", 1), new("wire", 100), new("wire", 20)];
+        Stack?[] want = [new("gear", 1), new("wire", StackOf("wire")), new("wire", 20)];
         Same([.. want, .. new Stack?[CrateSlots - want.Length]], a.M.Items.Crate(CrateOf(a)));
         Assert.Equal(new Stack("scrap", 10), a.M.Items.Inventory(1)[Bag]);
         Assert.Equal(a.World.Save(), Played().World.Save());

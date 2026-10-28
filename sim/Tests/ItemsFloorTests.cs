@@ -254,19 +254,20 @@ public class ItemsFloorTests
     [Fact]
     public void GathersStacksOfOneItemAtRestInACellIntoOneUpToTheStackLimit()
     {
-        var w = Room().GiveItems(0, ("scrap", 10), ("canister", 5));
+        int canisters = Content.Items.Get("canister").Stack;
+        var w = Room().GiveItems(0, ("scrap", 10), ("canister", canisters));
         Drop(w, Own(0), 3, At(2, 1));
         w.Run(40);
         // Falling onto the first, already at rest on the floor.
         Drop(w, Own(0), 4, At(2, 1));
-        Drop(w, Own(1), 5, At(2, 1));
+        Drop(w, Own(1), canisters, At(2, 1));
         w.Run(40);
-        Assert.Equal(new[] { ("scrap", 7, At(2, 3)), ("canister", 5, At(2, 3)) }, Floor(w).Select(s => (s.Item, s.Count, s.Cell)));
+        Assert.Equal(new[] { ("scrap", 7, At(2, 3)), ("canister", canisters, At(2, 3)) }, Floor(w).Select(s => (s.Item, s.Count, s.Cell)));
         var more = w.GiveItems(1, ("canister", 5));
         Drop(more, Own(0), 2, At(2, 1), 1);
         more.Run(40);
         // A full stack takes no more: the two lie side by side.
-        Assert.Equal(new[] { ("scrap", 7), ("canister", 5), ("canister", 2) }, Floor(more).Select(s => (s.Item, s.Count)));
+        Assert.Equal(new[] { ("scrap", 7), ("canister", canisters), ("canister", 2) }, Floor(more).Select(s => (s.Item, s.Count)));
     }
 
     [Fact]
@@ -292,7 +293,7 @@ public class ItemsFloorTests
         Drop(w, Own(0), 20, At(2, 3));
         int id = Assert.Single(Floor(w)).Id;
         // Peer 1 has room for 15 more: its inventory is canisters but for one slot of scrap.
-        w.GiveItems(1, ("canister", 5 * (36 - 1)), ("scrap", Content.Items.Get("scrap").Stack - 15));
+        w.GiveItems(1, ("canister", Content.Items.Get("canister").Stack * (36 - 1)), ("scrap", Content.Items.Get("scrap").Stack - 15));
         Assert.Equal(15, w.M.Items.PickUpAmount(1, id));
         w.Do(new PickUp(id) { From = 1 }).Run();
         var left = Assert.Single(Floor(w));

@@ -104,7 +104,8 @@ public class EngineTests
         Assert.Equal(["items.notTaken", "items.notTaken", "items.notTaken"], Reasons(w));
         Assert.Equal(new Stack("biofuel", 5), w.M.Items.Crate(engine)[0]);
         // A drone brings it biofuel to a full stack, and nothing else.
-        Assert.Equal(15, w.M.Items.RoomFor(engine, new Stack("biofuel", 20)));
+        int stack = Content.Items.Get("biofuel").Stack;
+        Assert.Equal(stack - 5, w.M.Items.RoomFor(engine, new Stack("biofuel", stack)));
         Assert.Equal(0, w.M.Items.RoomFor(engine, new Stack("planks", 5)));
         Assert.Equal(0, w.M.Items.HeldFor(engine, "planks"));
     }
