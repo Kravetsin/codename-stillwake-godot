@@ -46,6 +46,7 @@ public static partial class En
         ["card.fromInputs"] = "craft from the inputs",
         ["card.craftIt"] = "craft",
         ["card.many"] = "×{n}",
+        ["card.oneIn"] = "1 in {n}",
         ["card.goTo"] = "go to what is missing",
         ["card.take"] = "take",
         ["card.trade.speed"] = "×{n} speed",

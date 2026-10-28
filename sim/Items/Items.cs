@@ -77,7 +77,7 @@ public interface IItemsOps
 {
     IReadOnlyList<(string Item, int Count)> Take(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Give(int peer, IReadOnlyList<(string Item, int Count)> cost);
-    void Smelt(int id, int back = 0);
+    void Smelt(int id, IReadOnlyList<(string Item, int Count)> besides);
     void Consume(int id, int slot);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
@@ -194,8 +194,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public IReadOnlyList<Stack?> Crate(int id) => Stacks.CrateOf(State, id, HolderOf(id)?.Slots ?? 0);
 
     /// <summary>
-    /// Whether fed station <paramref name="id"/> has in its input what smelts or grows, its yields fitting its outputs
-    /// with the most of itself it may give back (<c>ItemSpec.Returns</c>).
+    /// Whether fed station <paramref name="id"/> has in its input what smelts or grows, as many as one smelt takes
+    /// (<c>ItemSpec.SmeltTakes</c>), the most one may make fitting its outputs (<see cref="MostMade"/>).
     /// </summary>
     public bool CanSmelt(int id) => HolderOf(id)?.Inputs is int inputs && Smelted(Crate(id), inputs) != null;
 
@@ -397,16 +397,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     }
 
     /// <summary>
-    /// Turns one of what fed station <paramref name="id"/> holds in its input into its yields and <paramref name="back"/>
-    /// of itself, a crop's seeds, put into its outputs. The caller checks <see cref="CanSmelt"/> first, and gives back
-    /// no more than the item's <c>Returns</c> allow.
+    /// Turns one smelt of what fed station <paramref name="id"/> holds in its input, its <c>SmeltTakes</c>, into its yields
+    /// and <paramref name="besides"/>, what was drawn (a crop's seeds, byproducts), put into its outputs. The caller checks
+    /// <see cref="CanSmelt"/> first, and gives besides no more than <see cref="MostMade"/> allows.
     /// </summary>
-    public void Smelt(int id, int back = 0)
+    public void Smelt(int id, IReadOnlyList<(string Item, int Count)> besides)
     {
         int inputs = HolderOf(id)?.Inputs ?? 0;
         var slots = Crate(id);
-        var outputs = Smelted(slots, inputs, back);
-        if (outputs == null || Stacks.TakenFrom(slots, 0, 1, out var left, out _) != null)
+        var outputs = Smelted(slots, inputs, besides);
+        if (outputs == null || Stacks.TakenFrom(slots, 0, Content.Items.Get(slots[0]!.Item).SmeltTakes, out var left, out _) != null)
             throw new InvalidOperationException("items.smelt: nothing to smelt; check CanSmelt");
         SetMachine(id, [.. left.Take(inputs), .. outputs]);
     }
@@ -817,17 +817,30 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
 
     /// <summary>
-    /// A fed station's outputs after working one of its input: its yields and <paramref name="back"/> of itself placed,
-    /// by default the most its <c>Returns</c> allow; null when its input holds nothing worked or they do not fit.
+    /// A fed station's outputs after one smelt of its input: its yields and <paramref name="besides"/> placed, by default
+    /// the most it may make (<see cref="MostMade"/>); null when its input holds nothing worked, fewer than one smelt
+    /// takes, or they do not fit.
     /// </summary>
-    private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs, int? back = null)
+    private static Stack?[]? Smelted(IReadOnlyList<Stack?> slots, int inputs, IReadOnlyList<(string Item, int Count)>? besides = null)
     {
         if (slots.Count == 0 || slots[0] is not { } input) return null;
         var spec = Content.Items.Get(input.Item);
-        if (spec.Yields == null) return null;
-        // Fewer of it fit wherever more do, so room for the most is room for any draw.
-        int returned = back ?? (spec.Returns is { } weights ? weights.Count - 1 : 0);
-        IReadOnlyList<(string Item, int Count)> made = returned > 0 ? [.. spec.Yields, (input.Item, returned)] : spec.Yields;
+        if (spec.Yields == null || input.Count < spec.SmeltTakes) return null;
+        // Fewer of anything fit wherever more do, so room for the most is room for any draw.
+        IReadOnlyList<(string Item, int Count)> made = besides == null ? MostMade(spec) : [.. spec.Yields, .. besides];
         return Stacks.Placed(slots.Skip(inputs).ToList(), made);
+    }
+
+    /// <summary>
+    /// The most one smelt of <paramref name="spec"/> makes: its yields, the most of itself its <c>Returns</c> give back,
+    /// every byproduct at its <c>Max</c>. What a fed station's outputs must have room for before it works.
+    /// </summary>
+    public static IReadOnlyList<(string Item, int Count)> MostMade(ItemSpec spec)
+    {
+        var made = new List<(string Item, int Count)>(spec.Yields ?? []);
+        if (spec.Returns is { Count: > 1 } weights) made.Add((spec.Id, weights.Count - 1));
+        foreach (var by in spec.Byproducts ?? [])
+            if (by.Max > 0) made.Add((by.Item, by.Max));
+        return made;
     }
 }

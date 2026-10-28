@@ -100,7 +100,7 @@ public sealed partial class LogisticsModule
     /// <summary>
     /// What machine <paramref name="t"/> wants brought now, into <see cref="_wants"/>, each item once. An input or fuel
     /// slot holding an item, or remembering one it burnt down to nothing (<c>KeptAt</c>), wants it kept at a stack: short
-    /// when what it holds and what drones bring is under half. A
+    /// when what it holds and what drones bring is under half, or under one smelt's (<c>SmeltTakes</c>). A
     /// queued station's head entry fed from its inputs wants its units' cost, at most a stack of each: short under half
     /// that, or under one unit's. An empty input remembering nothing, or a head entry paid, wants nothing.
     /// </summary>
@@ -121,7 +121,8 @@ public sealed partial class LogisticsModule
         var slots = _items.Crate(t.Id);
         int inputs = Machines.Get(t.Kind).Inputs ?? slots.Count;
         for (int i = 0; i < inputs; i++)
-            if ((slots[i]?.Item ?? _items.KeptAt(t.Id, i)) is { } item) Short(t, item, Content.Items.Get(item).Stack, 1);
+            if ((slots[i]?.Item ?? _items.KeptAt(t.Id, i)) is { } item)
+                Short(t, item, Content.Items.Get(item).Stack, Content.Items.Get(item).SmeltTakes);
     }
 
     /// <summary>Adds <paramref name="item"/> to what <paramref name="t"/> wants, once, when what it holds and what drones bring is under half <paramref name="keep"/> or one <paramref name="unit"/>.</summary>

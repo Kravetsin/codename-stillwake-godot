@@ -187,18 +187,21 @@ public static class ItemCards
     }
 
     /// <summary>
-    /// What fed <paramref name="station"/> makes of one <paramref name="item"/>: its yields, and the time one takes there,
-    /// <c>SmeltTicks</c> at the station's speed, in seconds or past a minute in minutes, one decimal at most; null for an
-    /// item it makes nothing of.
+    /// What fed <paramref name="station"/> makes of one smelt of <paramref name="item"/>: what it takes, its yields and
+    /// byproducts, and the time one takes there, <c>SmeltTicks</c> at the station's speed, in seconds or past a minute in
+    /// minutes, one decimal at most; null for an item it makes nothing of.
     /// </summary>
-    public static CardOutput? OutputAt(string item, Spec.Station station)
+    public static CardOutput? OutputAt(string item, Spec.Station station) => OutputAt(Spec.Items.Get(item), station);
+
+    /// <summary>What fed <paramref name="station"/> makes of one smelt of the item <paramref name="spec"/> is, as <see cref="OutputAt(string, Spec.Station)"/>.</summary>
+    public static CardOutput? OutputAt(Spec.ItemSpec spec, Spec.Station station)
     {
-        var spec = Spec.Items.Get(item);
         if (spec.Yields is not { Count: > 0 } yields || spec.SmeltTicks is not int ticks) return null;
         // Speed is in thousandths of full speed, as a craft's time at a station is worked out.
         double seconds = (double)ticks * 1000 / station.Speed / World.TicksPerSecond;
         string time = seconds < 60 ? T("card.seconds", ("n", Number(seconds))) : T("card.minutes", ("n", Number(seconds / 60)));
-        return new CardOutput(yields, time);
+        var chances = spec.Byproducts?.Select(b => (b.Item, b.Max, b.OneIn ?? 1)).ToList();
+        return new CardOutput(yields, time, spec.SmeltTakes, chances);
     }
 
     /// <summary>The harpoon's tiles: how far its rod flies, in cells; the seconds till it fires again; the cells a second it reels.</summary>

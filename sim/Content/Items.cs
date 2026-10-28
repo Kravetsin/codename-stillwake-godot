@@ -18,6 +18,11 @@ namespace Stillwake.Content;
 /// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
 /// seeds. Drawn from the world's Rng as the work completes; its outputs must take the most. None for anything else.
 /// </param>
+/// <param name="Byproducts">
+/// What one gives besides its yields only by chance, each entry a loot roll (<see cref="LootEntry"/>, its <c>OneIn</c> the
+/// chance): ore's quartz. Drawn after <paramref name="Returns"/> as the work completes; its outputs must take every entry's most.
+/// </param>
+/// <param name="SmeltTakes">How many of it one smelt works, all taken as it completes: a fed station waits for them in its input.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 /// <param name="Capacity">
@@ -44,6 +49,8 @@ public sealed record ItemSpec(
     int Heat = 1,
     string Process = "smelt",
     IReadOnlyList<int>? Returns = null,
+    IReadOnlyList<LootEntry>? Byproducts = null,
+    int SmeltTakes = 1,
     int? BurnTicks = null,
     string? Equip = null,
     int? Capacity = null,

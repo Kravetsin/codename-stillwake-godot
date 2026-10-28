@@ -10,20 +10,40 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     /// <summary>
-    /// Every fed station's outputs take what any one item of its process makes, with the most of itself it may give
-    /// back: a grow capsule's two, biomass and a seed's stack (0060).
+    /// Every fed station's outputs take the most any one smelt of its process makes, with the most of itself it may give
+    /// back and every byproduct at its most (<c>ItemsModule.MostMade</c>): a grow capsule's two, biomass and a seed's stack (0060).
     /// </summary>
     [Fact]
-    public void ItemsSmeltAtEveryFedStationOfTheirProcessWhoseOutputsTakeAnyOneItemsYieldsAndReturns()
+    public void ItemsSmeltAtEveryFedStationOfTheirProcessWhoseOutputsTakeTheMostOneSmeltMakes()
     {
         foreach (var station in Stations.All.Where(s => s.Fed))
         {
             var spec = Machines.Get(station.Machine);
             int outputs = spec.Slots!.Value - spec.Inputs!.Value;
             foreach (var item in Content.Items.All.Where(i => i.Yields != null && i.Process == station.Process))
+                Assert.True(SlotsFor(Sim.Items.ItemsModule.MostMade(item)) <= outputs, $"{station.Machine}: {item.Id}");
+        }
+    }
+
+    /// <summary>
+    /// A smelt takes from one up to a stack of its input, its input slot holding them all; byproducts are loot rolls of
+    /// what is worked, a one-in of two or more where given (one in one is a yield), a count never negative.
+    /// </summary>
+    [Fact]
+    public void SmeltsTakeAtMostAStackAndByproductsAreRollsOfWhatIsWorked()
+    {
+        foreach (var item in Content.Items.All)
+        {
+            Assert.InRange(item.SmeltTakes, 1, item.Stack);
+            if (item.SmeltTakes > 1) Assert.NotNull(item.Yields);
+            if (item.Byproducts is not { } byproducts) continue;
+            Assert.NotNull(item.Yields);
+            foreach (var by in byproducts)
             {
-                IReadOnlyList<(string Item, int Count)> made = item.Returns is { } back ? [.. item.Yields!, (item.Id, back.Count - 1)] : item.Yields!;
-                Assert.True(SlotsFor(made) <= outputs, $"{station.Machine}: {item.Id}");
+                Assert.True(Content.Items.TryGet(by.Item, out _), $"{item.Id}: {by.Item}");
+                Assert.InRange(by.Min, 0, by.Max);
+                Assert.True(by.Max > 0, $"{item.Id}: {by.Item}");
+                Assert.True(by.OneIn is null or >= 2, $"{item.Id}: {by.Item}");
             }
         }
     }
