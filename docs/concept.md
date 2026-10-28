@@ -21,9 +21,9 @@ A living document: what is decided about the game and what is still open. Techni
   inside one, and every place is drifted through like the first. From then on the ship is improved
   and production automated, to bring the technology that fends off what is out there and reaches
   further places.
-- **Places and their dangers:** the starting space is safe — debris only, now and then a random
-  event such as a great cluster of debris or another wreck; rare meteors may come once the ship has
-  grown. Harder places bring their own dangers (see meteors below).
+- **Places and their dangers:** the starting space is mild — debris, light meteors every few minutes
+  that break a weak hull now and then, and now and then a random event such as a great cluster of
+  debris or another wreck. Harder places bring their own dangers (see meteors below).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
@@ -152,10 +152,12 @@ A living document: what is decided about the game and what is still open. Techni
 - **Light comes from sources, air has a view of its own.** Lamps on the power network, helmet lamps
   and starlight through windows light the ship; a dark room means no light, never no air. Air is
   seen in its own view, as in Oxygen Not Included: the air overlay, cell by cell.
-- **Meteors belong to places.** The starting space is calm; meteors come where the ship goes, such as
-  the rings around a planet. A place throws meteors of some power, and a hull cell breaks only if the
-  power reaches its material's strength: a strong hull is safe early and gives way in harder places,
-  which asks for a better one.
+- **Meteors belong to places.** Each place throws meteors of some power at the hull from the side the
+  drift comes from, seen as a streak a moment before they strike; a hull cell breaks only if the power
+  reaches its material's strength. The starting space throws light ones from the start, every few
+  minutes: scrap gives way often, iron seldom, concrete never, and the hole stays planned, so repair is
+  a steady cost. Harder places, such as the rings around a planet, throw stronger ones, which asks for
+  a better hull (hull-meteors).
 
 ## Open
 

@@ -146,6 +146,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
+| [hull-meteors](2026-10-28-hull-meteors.md) | Meteors from the start | accepted |  |
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |

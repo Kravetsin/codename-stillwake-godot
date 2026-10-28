@@ -79,7 +79,7 @@ public sealed class Registry
         // Building reads where heroes are only as its commands apply, never in a system, so it keeps its place in the run
         // order and the saves', before crew (0077: a wall does not finish on a hero).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting, Crew, Crew);
-        Hazards = new HazardsModule(Grid, Grid);
+        Hazards = new HazardsModule(Grid, Building);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
@@ -114,5 +114,5 @@ public sealed class Registry
         Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under, Content.Wreck.Cables).Doubled() with { Known = Content.Research.StartKnown, DebrisAtStart = Content.Debris.AtStart };
 
     /// <summary>The world every new game starts in: the wreck centred in a world of <c>Content.World</c>'s size, inside its build zone (0048).</summary>
-    public static readonly Layout Wreck = WreckMap.InWorld();
+    public static readonly Layout Wreck = WreckMap.InWorld() with { Meteors = true };
 }
