@@ -29,8 +29,8 @@ public static class Testbed
     /// <summary>The farm's items (0060), in the second crate by the grow capsule with rock and planks: the first is full.</summary>
     public static readonly IReadOnlyList<string> Farm = ["seed", "soil", "biomass", "biofuel"];
 
-    /// <summary>What a planet's caves and ruins give (0080, 0085, 0091), the motor made of their copper and the cape of their cloth, in the farm's crate too: the first is full.</summary>
-    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "arcLamp", Cape.Item];
+    /// <summary>What a planet's caves and ruins give (0080, 0085, 0091), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
+    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
 
     /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of rock and planks for soil, and of what a planet gives.</summary>
     public static IEnumerable<string> FarmCrate => [.. Farm, "rock", "planks", .. Planet];

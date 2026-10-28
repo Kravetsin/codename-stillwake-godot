@@ -109,6 +109,26 @@ public class FurnaceTests
         Assert.Equal(new Smelting(true), w.M.Furnace.At(id));
     }
 
+    /// <summary>A grazer's fat (Creatures) both ways: in the input it smelts into biofuel as biomass does, in the fuel slot it burns twice a plank.</summary>
+    [Fact]
+    public void FatSmeltsIntoBiofuelOnAFireOfFatAndBurnsTwiceAPlank()
+    {
+        var fat = ItemSpecs.Get("fat");
+        Assert.Equal(2 * Plank.BurnTicks, fat.BurnTicks);
+        var (w, id) = SetUp(("fat", 3));
+        Put(w, id, "fat", Fuel);
+        Put(w, id, "fat", 0, 2);
+        Assert.Equal(new Smelting(true, "fat", 0, fat.SmeltTicks!.Value * 1000), w.M.Furnace.At(id));
+        w.Run(2 * fat.SmeltTicks!.Value);
+        Assert.Null(w.M.Items.Crate(id)[0]);
+        Assert.Equal(new Stack("biofuel", 2), w.M.Items.Crate(id)[2]);
+        Assert.Empty(w.Refusals);
+        // One fat smelted both and burns on, out only once its own burning is done.
+        Assert.Equal(0, FuelOf(w, id));
+        w.Run(fat.BurnTicks!.Value - 2 * fat.SmeltTicks!.Value - 1);
+        Assert.Equal(new Smelting(false), w.M.Furnace.At(id));
+    }
+
     [Fact]
     public void BurnsItsFuelDownWithNothingLeftToSmeltAndLightsNoMore()
     {

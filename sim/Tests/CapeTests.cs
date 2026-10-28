@@ -159,6 +159,28 @@ public class CapeTests
         Assert.Equal(600, HeroOf(w).Spared);
     }
 
+    /// <summary>A lifepod and a Former on a panel of its own.</summary>
+    private static Scenario Workshop() => new(Layout.Parse(
+        ["PPP      ", "         ", "#########", "#OOO....#", "#OOO.MM.#", "#OOO.MM.#", "#########"], null, [((0, 0), (5, 4))]), doubled: true);
+
+    private static int Carried(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
+
+    /// <summary>The cape of two cloth and two of a grazer's hides, at the Former alone: with one hide short, refused, nothing taken.</summary>
+    [Fact]
+    public void TheCapeIsPressedOfTwoClothAndTwoHidesAtTheFormer()
+    {
+        Assert.Equal([("cloth", 2), ("hide", 2)], Content.Crafts.Get(Cape).Cost);
+        var w = Workshop().GiveItems(0, ("cloth", 2), ("hide", 1));
+        int former = w.M.Grid.MachinesOf("former").Single().Id;
+        w.Do(new Crafting.Craft(former, Cape, 1)).Run();
+        Assert.Equal(["items.notEnough"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal((2, 1), (Carried(w, "cloth"), Carried(w, "hide")));
+        w.GiveItems(0, ("hide", 1)).Do(new Crafting.Craft(former, Cape, 1)).Run(Content.Crafts.Get(Cape).Ticks + 1);
+        Assert.Single(w.Refusals);
+        Assert.Equal((0, 0), (Carried(w, "cloth"), Carried(w, "hide")));
+        Assert.Equal(1, w.M.Items.Crate(former).Sum(s => s?.Item == Cape ? s.Count : 0));
+    }
+
     [Fact]
     public void ItsSharesAreAFifthEachWithinAWhole()
     {

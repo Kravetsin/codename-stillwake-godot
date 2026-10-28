@@ -178,6 +178,10 @@ public static class Items
         // The engine's fuel, the one item its tank takes; till the engine runs, the furnace and the burner generator burn it four times
         // as long as a plank.
         new("biofuel", 100, BurnTicks: 1600),
+        // What a planet's grazers give besides biomass (Creatures): hide for the cape; fat, a fuel burning twice a plank, or
+        // smelted at the furnace into biofuel as biomass is, so hunting fuels the ship. Fed or shift-clicked in it is fuel.
+        new("hide", 100),
+        new("fat", 100, Yields: [("biofuel", 1)], SmeltTicks: 160, BurnTicks: 800),
         // Tools, made as parts are.
         // Every hero comes aboard with one (Inventory.Kit, 0107): it builds plans and takes marks apart.
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),
