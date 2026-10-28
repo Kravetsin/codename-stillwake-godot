@@ -668,7 +668,6 @@ public partial class Figure : Node2D
             _cape.Step(
                 elapsedMs,
                 p => { var g = _frame.ToGlobal(new Vector2((float)p.X, (float)p.Y)); return (g.X, g.Y); },
-                p => { var l = _frame.ToLocal(new Vector2((float)p.X, (float)p.Y)); return (l.X, l.Y); },
                 pose is Pose.Float or Pose.Tumble);
             _capeInside.Refresh();
             _capeOutside.Refresh();

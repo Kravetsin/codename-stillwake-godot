@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using Godot;
 
@@ -7,9 +6,8 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// A side of a cape on a figure (a prototype, <see cref="Cape"/>): its sheet drawn as one mesh of triangles. The outside
-/// shows its picture all over, a part folded over drawn under the rest (2026-10-28-the-cape-flows): thrown up past the
-/// shoulders it reads as cloth swept up, not as its lining turned on top. The inside, the same sheet wrapped round the far
-/// side of the body, shows the lining all over. A child of the figure's frame, so its points are drawn where the cape
+/// shows its picture all over: posed, it never folds over itself (2026-10-28-the-cape-flows). The inside, the same sheet
+/// wrapped round the far side of the body, shows the lining all over. A child of the figure's frame, so its points are drawn where the cape
 /// gives them; lit as the figure is. The outside wears its hood, its fur collar and its clasp.
 /// </summary>
 public partial class CapeView(Cape cape, bool inside) : Node2D
@@ -24,7 +22,6 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
     private static readonly Vector2[] HoodUvs = MakeHoodUvs();
     private static readonly Color[] Colours = [.. Uvs.Select(_ => Colors.White)], HoodColours = [.. HoodUvs.Select(_ => Colors.White)];
     private readonly Vector2[] _points = new Vector2[Cape.Cols * Cape.Rows], _hood = new Vector2[Cape.HoodCols * Cape.HoodRows];
-    private readonly List<int> _front = [], _back = [];
 
     /// <summary>Takes the cape's points as it last moved, to draw them.</summary>
     public void Refresh()
@@ -37,16 +34,7 @@ public partial class CapeView(Cape cape, bool inside) : Node2D
 
     public override void _Draw()
     {
-        _front.Clear();
-        _back.Clear();
-        for (int t = 0; t < Cape.Triangles.Length / 3; t++)
-        {
-            var into = !inside && cape.Flipped(t) ? _back : _front;
-            for (int k = 0; k < 3; k++) into.Add(Cape.Triangles[t * 3 + k]);
-        }
-        // A folded part first, under the rest: where the sheet folds over itself the unfolded part lies over it.
-        if (_back.Count > 0) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), [.. _back], _points, Colours, Uvs, texture: Outside.GetRid());
-        if (_front.Count > 0) RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), [.. _front], _points, Colours, Uvs, texture: (inside ? Lining : Outside).GetRid());
+        RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.Triangles, _points, Colours, Uvs, texture: (inside ? Lining : Outside).GetRid());
         if (inside) return;
         // The hood on the back; the collar over its opening and the cape's top, the clasp at the throat.
         RenderingServer.CanvasItemAddTriangleArray(GetCanvasItem(), Cape.HoodTriangles, _hood, HoodColours, HoodUvs, texture: Hood.GetRid());

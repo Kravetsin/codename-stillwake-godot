@@ -6,26 +6,14 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A sheet of cloth (<see cref="Cloth"/>) and the cape made of one (<see cref="Cape"/>).</summary>
+/// <summary>The cape (<see cref="Cape"/>), posed by how the hero moves.</summary>
 public class CapeTests
 {
-    [Fact]
-    public void AClothHungFromItsTopRowHangsBelowItKeepingItsWidth()
-    {
-        var start = Enumerable.Range(0, 12).Select(i => ((double)(i % 3) * 4, (double)(i / 3) * 4)).ToArray();
-        var cloth = new Cloth(new ClothStyle(Keep: 0.98, Gravity: 0.4, Shear: 0.5, Squash: 0.3, Passes: 10), 3, 4, start);
-        for (int i = 0; i < 600; i++) cloth.Update([0, 1, 2], p => start[p], Rope.StepMs);
-        var (left, right) = (cloth.At(9), cloth.At(11));
-        Assert.InRange(right.X - left.X, 7.5, 8.5);
-        Assert.InRange(left.Y, 11, 13.5);
-    }
-
     /// <summary>The figure's frame is the world's, its feet at <c>Feet</c> and <c>Down</c>, turned by <c>Facing</c>.</summary>
     private sealed class Frame
     {
         public double Feet, Down, Facing = 1;
         public (double X, double Y) ToWorld((double X, double Y) p) => (Feet + p.X * Facing, p.Y + Down);
-        public (double X, double Y) ToFrame((double X, double Y) p) => ((p.X - Feet) * Facing, p.Y - Down);
     }
 
     private static readonly int Points = Cape.Cols * Cape.Rows;
@@ -39,7 +27,7 @@ public class CapeTests
         for (int i = 0; i < steps; i++)
         {
             f.Feet += by;
-            cape.Step(Rope.StepMs, f.ToWorld, f.ToFrame, afloat);
+            cape.Step(Rope.StepMs, f.ToWorld, afloat);
         }
     }
 
@@ -147,21 +135,23 @@ public class CapeTests
     {
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 300);
+        var still = cape.Points.ToArray();
         for (int turn = 0; turn < 4; turn++)
         {
             f.Facing = -f.Facing;
-            Move(cape, f, 120);
+            Move(cape, f, 300);
+            // As it hung before the turn, but for the breeze.
             for (int i = 0; i < Points; i++)
             {
-                Assert.InRange(cape.Points[i].X - Cape.Rest(i).X, -2.5, 1.01);
-                Assert.InRange(cape.Points[i].Y - Cape.Rest(i).Y, -2.5, 2.5);
+                Assert.InRange(cape.Points[i].X - still[i].X, -2, 2);
+                Assert.InRange(cape.Points[i].Y - still[i].Y, -2, 2);
             }
             Assert.DoesNotContain(true, Enumerable.Range(0, Cape.Triangles.Length / 3).Select(cape.Flipped));
         }
     }
 
     [Fact]
-    public void ItsHoodHangsAsCutAndTossesUpWhenTheHeroStopsRising()
+    public void ItsHoodHangsAsCutAndSwingsBackWithTheCapeOnARun()
     {
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 300);
@@ -171,21 +161,71 @@ public class CapeTests
             Assert.InRange(cape.Hood[i].X - Cape.HoodRest(i).X, -1.5, 1.01);
             Assert.InRange(cape.Hood[i].Y - Cape.HoodRest(i).Y, -1.5, 1.5);
         }
-        // Rising, as from a jump or the bounce of a run, then stopped: the tip goes on up, bunching, and drops back.
-        for (int i = 0; i < 20; i++)
+        Move(cape, f, 120, Sprint);
+        double back = Cape.HoodRest(HoodTip).X - cape.Hood[^2].X;
+        Assert.True(back > 1, $"the tip only swung {back:F2} back");
+    }
+
+    [Fact]
+    public void RisingFromAJumpItTrailsDownBelowAFlatRun()
+    {
+        double Hem(double up)
         {
-            f.Down -= 2;
-            Move(cape, f, 1);
+            var (f, cape) = (new Frame(), new Cape());
+            Move(cape, f, 120, Sprint);
+            for (int i = 0; i < 20; i++)
+            {
+                f.Down -= up;
+                Move(cape, f, 1, Sprint);
+            }
+            return cape.Points[^1].Y;
         }
-        double most = 0;
-        for (int i = 0; i < 60; i++)
+        double flat = Hem(0), rising = Hem(4);
+        Assert.True(rising > flat + 4, $"rising, the hem is at {rising:F1}, on the flat at {flat:F1}");
+    }
+
+    [Fact]
+    public void ASprintRunsDownItAsAWhipTheShouldersFirst()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        Move(cape, f, 300);
+        var still = cape.Points.ToArray();
+        Move(cape, f, 300, Sprint);
+        var swept = cape.Points.ToArray();
+        var (f2, early) = (new Frame(), new Cape());
+        Move(early, f2, 300);
+        Move(early, f2, 15, Sprint);
+        // How far along from still to swept the back edge is, at a third of the way down and at the hem.
+        double Along(int i) => (early.Points[i].Y - still[i].Y) / (swept[i].Y - still[i].Y);
+        int third = Cape.Rows / 3 * Cape.Cols + Cape.Cols - 1;
+        Assert.True(Along(third) > Along(Points - 1) + 0.1, $"a third down it has come {Along(third):F2} of the way, the hem {Along(Points - 1):F2}");
+    }
+
+    [Fact]
+    public void ItNeverFoldsHoweverTheHeroMoves()
+    {
+        var (f, cape) = (new Frame(), new Cape());
+        void Go(int steps, double by, double up, bool afloat = false)
         {
-            Move(cape, f, 1);
-            most = Math.Max(most, Cape.HoodRest(HoodTip).Y - cape.Hood[^2].Y);
+            for (int i = 0; i < steps; i++)
+            {
+                (f.Feet, f.Down) = (f.Feet + by, f.Down - up);
+                cape.Step(Rope.StepMs, f.ToWorld, afloat);
+                Assert.False(Folded(cape), $"folded going {by:F1}, {up:F1} up");
+            }
         }
-        Assert.True(most > 0.5, $"the tip only rose {most:F2}");
-        Move(cape, f, 240);
-        Assert.InRange(cape.Hood[^2].Y - Cape.HoodRest(HoodTip).Y, -1, 1);
+        Go(120, 0, 0);
+        Go(90, Sprint, 0);
+        Go(30, Sprint, 4);
+        Go(40, Sprint, -6);
+        f.Facing = -1;
+        Go(60, Sprint, 0);
+        Go(60, -Sprint, 0);
+        Go(60, 0, -6);
+        Go(60, Sprint, -6);
+        Go(120, 0, 0);
+        Go(120, 2, 2, afloat: true);
+        Go(120, 0, 0, afloat: true);
     }
 
     [Fact]
@@ -241,27 +281,21 @@ public class CapeTests
     }
 
     [Fact]
-    public void AfloatAPushOffLeavesItBehindAndAStopCarriesItOn()
+    public void AfloatAPushOffSweepsItBackAndAStopLetsItOpenAgain()
     {
         var (f, cape) = (new Frame(), new Cape());
         Move(cape, f, 600, afloat: true);
         double start = cape.Points[^1].X;
         double Off() => cape.Points[^1].X - start;
-        double behind = 0, ahead = 0;
+        double behind = 0;
         for (int step = 0; step < 60; step++)
         {
             Move(cape, f, 1, 2, afloat: true);
             behind = Math.Min(behind, Off());
         }
-        for (int step = 0; step < 120; step++)
-        {
-            Move(cape, f, 1, afloat: true);
-            ahead = Math.Max(ahead, Off());
-        }
-        Assert.True(behind < -2, $"the hem only trailed {-behind:F1}");
-        Assert.True(ahead > 1, $"the hem only carried on {ahead:F1}");
+        Assert.True(behind < -2, $"the hem only swept {-behind:F1} back");
         Move(cape, f, 600, afloat: true);
-        Assert.InRange(Off(), -4, 4);
+        Assert.InRange(Off(), -2, 2);
         for (int i = 0; i < Points; i++) Assert.True(cape.Points[i].X <= Cape.Rest(i).X + 1.01);
     }
 
