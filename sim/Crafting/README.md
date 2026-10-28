@@ -69,10 +69,10 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
   (`IItemsOps.Smelt`). Work stopped (fire out, outputs full, too few, power cut) is kept while the item stays (0057).
 - **Too cold / wrong process / too few** (0057): such an item is taken in and sits unworked, the station resting, a
   furnace never lit for it; `TooCold` and `TooFew` tell those cases.
-- **Drawn as a smelt completes** from the world `Rng`, stations in machine id order
-  ([smelt-chances](../../docs/decisions/2026-10-28-smelt-chances.md)): a crop's none, one or two seeds by its `Returns`
-  weights (0060), then each of its `Byproducts` as loot is rolled (`Loots.Roll`). An item without either draws nothing.
-  It works only with room for the yields, the most seeds and every byproduct at its `Max` (`ItemsModule.MostMade`).
+- **Drawn as a smelt completes** from the world `Rng`, stations by machine id
+  ([smelt-chances](../../docs/decisions/2026-10-28-smelt-chances.md)): a crop's (seed, spore) none, one or two of itself
+  by its `Returns` weights (0060), then each `Byproducts` entry as loot is rolled (`Loots.Roll`); none for an item
+  without either. It works only with room for its yields, the most of itself and each byproduct's `Max` (`MostMade`).
 - **A furnace smelts while its fire burns at the tick's start** (0057): `Furnace` calls `Heat` in construction from
   the fire as the last tick left it, so it starts the tick after lighting and smelts on the tick it goes out.
 
@@ -89,7 +89,7 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 - A queue holds at most `QueueMost` entries; the head's progress stays below its work but while its unit waits for
   room; ids within a queue only grow.
 - Items are conserved: what a craft took comes back as units or a refund; a smelt turns its `SmeltTakes` into its
-  yields and at most each byproduct's most, a crop a seed into its yields and 0–2 seeds (`CraftingTests`,
+  yields and at most each byproduct's most, a crop one of itself into its yields and 0–2 of itself (`CraftingTests`,
   `StationsTests`, `SmeltChancesTests`).
 - Every item is reachable from the wreck (`ContentTests`).
 

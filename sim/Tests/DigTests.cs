@@ -127,7 +127,7 @@ public class DigTests
     [Fact]
     public void WhatAFullInventoryCannotTakeFallsWhereTheWallStood()
     {
-        var w = World().GiveItems(0, ("scrap", 500 * Inventory.Slots));
+        var w = World().GiveItems(0, ("scrap", Content.Items.Get("scrap").Stack * Inventory.Slots));
         int cell = At(1, 3);
         w.Do(HewTesting.Dig(w, cell, Axe)).Run();
         Assert.Null(w.M.Grid.WallAt(cell));

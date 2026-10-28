@@ -271,10 +271,10 @@ public class ItemsTests
     [Fact]
     public void CratesStackOntoTheSameItemUpToItsLimitLeavingTheRestWhereItWas()
     {
-        var w = Crates().GiveItems(0, ("scrap", 400));
+        var w = Crates().GiveItems(0, ("scrap", StackOf("scrap") - 100));
         DoMove(w, In(1, 0), new Target(0), 999);
         Assert.Equal(new Stack("scrap", StackOf("scrap")), w.M.Items.Inventory(0)[0]);
-        Assert.Equal(new Stack("scrap", 400 + Scrap - StackOf("scrap")), Crate(w, 1)[0]);
+        Assert.Equal(new Stack("scrap", Scrap - 100), Crate(w, 1)[0]);
         DoMove(w, In(1, 0), new Target(0), 1);
         Assert.Equal(new[] { "items.full" }, Reasons(w));
     }
@@ -293,11 +293,11 @@ public class ItemsTests
     [Fact]
     public void CratesWithNoSlotFillTheOtherSidesStacksOfTheItemThenItsEmptySlots()
     {
-        var w = Crates().GiveItems(0, ("scrap", 200));
+        var w = Crates().GiveItems(0, ("scrap", StackOf("scrap") - 300));
         DoMove(w, Own(0), new Target(Crate: 1), 999);
         Assert.Empty(w.Refusals);
         Assert.Equal(new Stack("scrap", StackOf("scrap")), Crate(w, 1)[0]);
-        Assert.Equal(new Stack("scrap", 200 + Scrap - StackOf("scrap")), Crate(w, 1)[3]);
+        Assert.Equal(new Stack("scrap", Scrap - 300), Crate(w, 1)[3]);
         Assert.Null(w.M.Items.Inventory(0)[0]);
         DoMove(w, In(1, 2), new Target(), 999, 1);
         Assert.Equal(new Stack("canister", Canisters), w.M.Items.Inventory(1)[0]);
@@ -459,8 +459,9 @@ public class ItemsTests
         DoMove(w, Own(0), new Target(2, 1), 1);
         Assert.Equal(new[] { "items.takeOnly", "items.takeOnly", "items.takeOnly" }, Reasons(w));
         Assert.Equal(new Stack?[3], Crate(w, 1));
-        Assert.Null(w.M.Items.OutputFull(1, [("wire", 250)]));
-        Assert.Equal("items.full", w.M.Items.OutputFull(1, [("wire", 301)]));
+        int room = Crate(w, 1).Count * StackOf("wire");
+        Assert.Null(w.M.Items.OutputFull(1, [("wire", room)]));
+        Assert.Equal("items.full", w.M.Items.OutputFull(1, [("wire", room + 1)]));
         w.FillCrate(1, ("wire", 2));
         DoMove(w, In(1, 0), new Target(), 2);
         Assert.Equal(3, w.Refusals.Count);
@@ -500,8 +501,8 @@ public class ItemsTests
         Assert.Throws<InvalidOperationException>(() => w.M.Items.Consume(1, 4));
 
         // Outputs too full for its yields: nothing to smelt.
-        var full = new Scenario("FF\nFF").FillCrate(1, ("hullPlate", 1), ("planks", 1), ("canister", 15));
-        Assert.Equal(new Stack("canister", 5), Crate(full, 1)[2]);
+        var full = new Scenario("FF\nFF").FillCrate(1, ("hullPlate", 1), ("planks", 1), ("canister", 3 * StackOf("canister")));
+        Assert.Equal(new Stack("canister", StackOf("canister")), Crate(full, 1)[2]);
         Assert.False(full.M.Items.CanSmelt(1));
         Assert.Throws<InvalidOperationException>(() => full.M.Items.Smelt(1, []));
         // Not a furnace, or no salvage in it.
@@ -520,8 +521,9 @@ public class ItemsTests
         var lying = Assert.Single(w.M.Items.Floor);
         Assert.Equal(("scrap", 7, w.At(2, 0), 0, 0, 0), (lying.Item, lying.Count, lying.Cell, lying.Vx, lying.Vy, lying.By));
         // A stack of the limit at most each, and none of nothing.
-        w.M.Items.DropAt(3, [("canister", 12), ("iron", 0)], w.At(4, 0));
-        Assert.Equal(new[] { 7, 5, 5, 2 }, w.M.Items.Floor.Select(s => s.Count));
+        int canisters = StackOf("canister");
+        w.M.Items.DropAt(3, [("canister", 2 * canisters + 2), ("iron", 0)], w.At(4, 0));
+        Assert.Equal(new[] { 7, canisters, canisters, 2 }, w.M.Items.Floor.Select(s => s.Count));
         Assert.All(w.M.Items.Floor.Skip(1), s => Assert.Equal(3, s.By));
         // A dropper of its own stack may not take it back at once.
         Assert.Equal("items.tooSoon", w.M.Items.PickUpProblem(3, w.M.Items.Floor[1].Id));

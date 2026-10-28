@@ -66,7 +66,7 @@ public partial class ContentTests
             Assert.All(weights, w => Assert.True(w >= 0, item.Id));
             Assert.True(weights.Sum() > 0, item.Id);
         }
-        Assert.Equal(["seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
+        Assert.Equal(["spore", "seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
         Assert.Equal(["growCapsule"], Stations.All.Where(s => s.Process == "grow").Select(s => s.Machine));
     }
 
@@ -410,6 +410,24 @@ public partial class ContentTests
             .Concat(Builds.All.Where(b => b.Menu?.Tab == MenuTabs.Ship).Select(b => b.Menu!.Order)).ToList();
         Assert.Equal(ship.Max(), Machines.Get("engine").Menu!.Order);
         Assert.Single(Machines.All, m => m.Menu?.Order == ship.Max() && m.Menu.Tab == MenuTabs.Ship);
+    }
+
+    /// <summary>
+    /// The way down is had aboard: every blueprint and craft opens from what space gives alone but those named here, made of
+    /// a planet's things, and the drop pod and its platform among the rest. A recipe that comes to need a planet's item before
+    /// the first landing, a softlock, shows as a change to this list.
+    /// </summary>
+    [Fact]
+    public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
+    {
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy"];
+        var (_, known) = Reachable(Stations.All);
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
+        var locked = recipes.Where(id => !known.Contains(id)).Distinct().Order(StringComparer.Ordinal).ToArray();
+        // The whole list in the message, so a failure names every recipe that moved, not the first few.
+        Assert.True(locked.SequenceEqual(planetary.Order(StringComparer.Ordinal)), $"opened only on a planet: {string.Join(", ", locked.Select(id => $"\"{id}\""))}");
+        Assert.Contains("dropPod", known);
+        Assert.Contains(Builds.Platform, known);
     }
 
     /// <summary>
