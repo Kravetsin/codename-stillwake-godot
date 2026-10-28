@@ -35,7 +35,7 @@ public partial class LookEditor : CanvasLayer
     private readonly Figure _figure;
     private double _shownS;
 
-    /// <param name="colour">This player's suit colour, 0xRRGGBB, the jumpsuit's.</param>
+    /// <param name="colour">This player's suit colour, 0xRRGGBB, the jumpsuit's; asked only while open, in a world.</param>
     /// <param name="chosen">Keeps and sends the look, once the editor closes.</param>
     public LookEditor(Func<int> colour, Action<Look> chosen)
     {
@@ -63,7 +63,8 @@ public partial class LookEditor : CanvasLayer
         var view = new SubViewport { Size = new Vector2I(ViewW, ViewH), TransparentBg = true, CanvasItemDefaultTextureFilter = Viewport.DefaultCanvasItemTextureFilter.Nearest };
         window.AddChild(view);
         row.AddChild(Style.Panel(Style.Slate700, window));
-        _figure = new Figure(colour(), own: false);
+        // Made on the title, before any world has a player colour to ask for: it gets its own on opening.
+        _figure = new Figure(Suits.All[0], own: false);
         Unlit(_figure);
         view.AddChild(_figure);
         view.AddChild(new Camera2D { Zoom = new Vector2(Zoom, Zoom), Position = new Vector2(0, (float)(-Rig.H / 2)), Enabled = true });
