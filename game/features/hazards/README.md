@@ -21,8 +21,9 @@ once a tick. Made only where the surface's kind has a shower (`SurfaceViews`).
 - **The strike**, as the meteor leaves the sim: the wreck's bite (`HitLooks.Of[Impact.Wreck]`) thrown back toward the drift
   out of the face. Out of every wall gone, hot chunks cooling as they fly on its way, and dust; a shock ring as wide as the
   farthest gone and a flash. Heard on World where it struck: the wreck's break (`Sound.Break`) if any went, its chop
-  (`Sound.Chop`) if the wall held.
-- `-- --meteors` plays the new game's wreck with its first meteor seen coming at once; `--meteors=N` gives it power N.
+  (`Sound.Chop`) if the wall held, the rock shattering on it: glowing shards flung back the way it came, a glint, a small ring
+  and a flash.
+- `-- --meteors` plays the new game's wreck with its first meteor seen coming at once; `--meteors=N` gives it power N (1 shows a held hit on scrap).
 
 ## Deliberately not handled
 

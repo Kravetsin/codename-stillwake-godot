@@ -79,7 +79,7 @@ public sealed class Registry
         // Building reads where heroes are only as its commands apply, never in a system, so it keeps its place in the run
         // order and the saves', before crew (0077: a wall does not finish on a hero).
         Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting, Crew, Crew);
-        Hazards = new HazardsModule(Grid, Building);
+        Hazards = new HazardsModule(Grid, Grid);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);

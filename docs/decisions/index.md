@@ -154,3 +154,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
 | [the-crusher](2026-10-28-the-crusher.md) | The crusher and the first cost pass | accepted |  |
 | [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |
+| [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |

@@ -17,7 +17,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
   does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110); `Research` (`Knows`, 0024);
-  `Crafting` (`Queue`, 0057). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`), Hazards (`Breach`).
+  `Crafting` (`Queue`, 0057). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`. Derived (`Flora.cs`): the growths grown
@@ -45,7 +45,7 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
   Creative mode lacks nothing and takes nothing.
 - **Instant** (`SetInstant`, dev): a blueprint is built as placed, free; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
-  or work any plan. A wall a meteor broke (`Breach`) is planned again as itself, known or not; a mark on it is dropped.
+  or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building runs before crew.
   So does a last tick the grid refuses (a pod set down since).

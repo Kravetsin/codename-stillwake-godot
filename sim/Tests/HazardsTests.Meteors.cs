@@ -38,7 +38,7 @@ public partial class HazardsTests
             var before = new List<(int Cell, Content.Material Wall)>();
             if (coming is { Left: 1 } m)
             {
-                int most = HazardsModule.Farthest(m.Power, Shower.Blast), cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
+                int most = HazardsModule.Farthest(m.Power, Shower), cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
                 for (int y = Math.Max(0, cy - most); y <= Math.Min(grid.Height - 1, cy + most); y++)
                     for (int x = Math.Max(0, cx - most); x <= Math.Min(grid.Width - 1, cx + most); x++)
                         if (grid.WallAt(y * grid.Width + x) is { } wall) before.Add((y * grid.Width + x, wall));
@@ -77,29 +77,37 @@ public partial class HazardsTests
     }
 
     [Fact]
-    public void BreakEveryWallWithinTheirBlastWhenTheyBreakTheOneTheyStrikeLeavingEachPlanned()
+    public void BreakEveryWallWithinTheirBlastWhenTheyBreakTheOneTheyStrike()
     {
         var w = Hull();
         var (strikes, _) = Fall(w, 10);
         int width = w.Layout.Width;
         foreach (var s in strikes)
         {
-            Assert.InRange(s.Power, 1, 6);
-            // A wall within (power - its strength + 1) × Blast cells of the struck one goes; a struck wall that holds stops it whole.
+            Assert.InRange(s.Power, 2, 7);
+            // A wall nearer the struck one than Hole + (power - its strength) × Blast cells goes; a struck wall that holds stops it whole.
             int cx = s.Cell % width, cy = s.Cell / width;
             var blast = s.Before.Where(b =>
             {
-                int dx = b.Cell % width - cx, dy = b.Cell / width - cy, reach = (s.Power - b.Wall.Strength + 1) * Shower.Blast;
+                int dx = b.Cell % width - cx, dy = b.Cell / width - cy;
+                int reach = s.Power < b.Wall.Strength ? 0 : Shower.Hole + (s.Power - b.Wall.Strength) * Shower.Blast;
                 return reach > 0 && dx * dx + dy * dy < reach * reach;
             }).Select(b => b.Cell);
             Assert.Equal(s.Power >= s.Strength ? blast : [], s.Gone);
         }
         Assert.Contains(strikes, s => s.Gone.Count > 1);
         Assert.Contains(strikes, s => !s.Broke);
-        // Each wall broken is planned again as it was; nothing else is planned.
-        var gone = strikes.SelectMany(s => s.Before.Where(b => s.Gone.Contains(b.Cell))).ToList();
-        Assert.Equal(gone.Count, w.M.Building.Plans.Count);
-        Assert.All(gone, b => Assert.Equal(Placement.Wall(b.Wall.Id), Assert.Single(w.M.Building.PlansAt(b.Cell)).Place));
+        // The holes are left unplanned (holes-not-planned).
+        Assert.Empty(w.M.Building.Plans);
+    }
+
+    /// <summary>The bug from play: on the new game's wreck, its hull scrap, meteors broke one cell or none.</summary>
+    [Fact]
+    public void TearAnAreaOutOfTheStartingWrecksScrapHullOnEveryStrike()
+    {
+        var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
+        var seen = string.Join("; ", strikes.Select(s => $"power {s.Power} at {s.Cell} (strength {s.Strength}): {s.Gone.Count} gone"));
+        Assert.True(strikes.All(s => s.Gone.Count >= 6), seen);
     }
 
     [Fact]
@@ -114,22 +122,23 @@ public partial class HazardsTests
         Assert.DoesNotContain(strikes, s => s.Broke);
     }
 
+    /// <summary>An iron wall broken is left a hole, unplanned, and refunds nothing: the player may patch it with scrap for now.</summary>
     [Fact]
-    public void KeepTheHolePlannedAsTheWallItWasKnownOrNotAndRefundNothing()
+    public void LeaveTheHoleUnplannedForThePlayerToPatchWithWhatTheyHaveAndRefundNothing()
     {
-        var w = new Scenario(Layout.Parse(Room).Doubled() with { Known = [] });
-        var held = w.M.Items.Inventory(0).ToArray();
         int hole = RoomCell(8, 2);
-        Assert.Equal("building.unknown", w.M.Building.Problem(RoomCell(4, 2), Placement.Wall("scrap")));
+        var w = new Scenario(Room).Do(new SetInstant(true)).Do(new MeteorHit(hole)).Run();
+        w.Do(new PlacePlan(hole, Placement.Wall("iron"))).Do(new SetInstant(false)).Run();
+        Assert.Equal("iron", w.M.Grid.WallAt(hole)?.Id);
+        var held = w.M.Items.Inventory(0).ToArray();
         w.Do(new MeteorHit(hole)).Run();
-        var ghost = Assert.Single(w.M.Building.Plans);
-        Assert.Equal((hole, Placement.Wall("scrap")), (ghost.Cell, ghost.Place));
+        Assert.Null(w.M.Grid.WallAt(hole));
+        Assert.Empty(w.M.Building.Plans);
         Assert.Equal(held, w.M.Items.Inventory(0));
         Assert.Empty(w.M.Items.Floor);
-        w.Do(new SetCreative(true));
-        for (int i = 0; i < Content.Materials.Get("scrap").BuildTicks; i++) w.Do(new Work(ghost.Id)).Run();
+        w.Do(new PlacePlan(hole, Placement.Wall("scrap"))).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(hole));
+        Assert.Equal(Placement.Wall("scrap"), Assert.Single(w.M.Building.Plans).Place);
     }
 
     [Fact]
@@ -160,9 +169,9 @@ public partial class HazardsTests
         Assert.Equal((coming.Cell, coming.Power), (strikes[0].Cell, strikes[0].Power));
     }
 
-    /// <summary>The README's invariant, for meteors falling by themselves: a wall turned empty and planned as it was, nothing else touched.</summary>
+    /// <summary>The README's invariant, for meteors falling by themselves: a wall turned empty, nothing else touched, nothing planned.</summary>
     [Property(MaxTest = 25)]
-    public Property FallingMeteorsOnlyEverTurnAWallIntoAnEmptyCellPlannedAsItWas()
+    public Property FallingMeteorsOnlyEverTurnAWallIntoAnEmptyCell()
     {
         var gen =
             from width in Gen.Choose(1, 10)
@@ -179,20 +188,16 @@ public partial class HazardsTests
             var grid = w.M.Grid;
             int size = t.width * t.height;
             var structure = grid.StructureLayer.ToArray();
-            var walls = Enumerable.Range(0, size).Select(grid.WallAt).ToArray();
             var spans = w.M.Pipes.Spans.ToArray();
             var back = grid.BackLayer.ToArray();
             var machines = grid.Machines.ToArray();
             w.Run(3 * (Shower.EveryMax + Shower.Warning));
-            int broken = 0;
             for (int c = 0; c < size; c++)
             {
                 if (grid.StructureAt(c) == structure[c]) continue;
                 if (structure[c] != Structure.Wall || grid.StructureAt(c) != Structure.Empty) return false;
-                if (w.M.Building.PlansAt(c) is not [{ Progress: 0 } plan] || plan.Place != Placement.Wall(walls[c]!.Id)) return false;
-                broken++;
             }
-            return w.M.Building.Plans.Count == broken && grid.BackLayer.SequenceEqual(back) && grid.Machines.SequenceEqual(machines)
+            return w.M.Building.Plans.Count == 0 && grid.BackLayer.SequenceEqual(back) && grid.Machines.SequenceEqual(machines)
                 && w.M.Pipes.Spans.SequenceEqual(spans) && w.Refusals.Count == 0;
         });
     }

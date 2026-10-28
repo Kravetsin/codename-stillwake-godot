@@ -1,3 +1,3 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup><ProjectReference Include="../Building/Building.csproj" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="../Grid/Grid.csproj" /></ItemGroup>
 </Project>

@@ -55,12 +55,6 @@ public interface IBuildingOps
 {
     /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
     bool Hit(int peer, int cell, int damage);
-
-    /// <summary>
-    /// A meteor breaks the wall at <paramref name="cell"/>, which the caller checked stands there (2026-10-28-hull-meteors): it is lost,
-    /// refunding nothing, and its hole planned as a blueprint of the same wall, known or not: no blueprint holds a standing wall's slot.
-    /// </summary>
-    void Breach(int cell);
 }
 
 /// <summary>
@@ -242,16 +236,6 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }
         State.Plans.RemoveAll(p => p.Id == plan.Id);
-    }
-
-    /// <inheritdoc/>
-    public void Breach(int cell)
-    {
-        var wall = Placement.Wall(_grid.WallAt(cell)!.Id);
-        // The wall goes; pipes are spans, running through it untouched (0109). A mark on it is dropped in derivation.
-        _gridOps.Clear(cell, "structure");
-        State.Plans.Add(Plan.Blueprint(State.NextPlanId, cell, wall));
-        State.NextPlanId += 1;
     }
 
     /// <summary>Puts <paramref name="place"/> into the grid at <paramref name="cell"/>, a slot validation found free.</summary>

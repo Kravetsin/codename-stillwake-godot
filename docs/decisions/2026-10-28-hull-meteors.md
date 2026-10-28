@@ -1,6 +1,6 @@
 # Meteors from the start
 
-- Status: accepted; a meteor breaks an area since [meteor-blast](2026-10-28-meteor-blast.md)
+- Status: accepted; a meteor breaks an area since [meteor-blast](2026-10-28-meteor-blast.md), its hole unplanned since [holes-not-planned](2026-10-29-holes-not-planned.md)
 - Date: 2026-10-28
 - Changes the concept's "the starting space is calm"; meteors by hand stay as the dev panel's
 
@@ -13,7 +13,7 @@ steady sink of scrap and plates, and give a material's strength its meaning for 
 ## Decision
 
 - **A shower belongs to a place:** `Surfaces.Kind.Meteors` (`Content/Meteors.cs`), the ship's `StartingSpace`, a planet's
-  none. A meteor every 4–6 minutes, drawn evenly; its power 1–6 by weight, mostly weak.
+  none. A meteor every 4–6 minutes, drawn evenly; its power 2–7 by weight, mostly weak (1–6 before meteor-blast).
 - **From the drift's side:** the target is, among the rows of what is built inside the zone, the first thing met
   walking left from the right, kept only when it is a breakable wall (a door, window, machine or ladder first: no
   candidate). One drawn evenly among the candidates.
