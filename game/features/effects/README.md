@@ -23,7 +23,7 @@ or a share of it); `Content/logic/Fx.cs` (the knobs, the lights' cap) and `Conte
 - **Emitters:** the furnace and burner (`FurnaceView`), building (`BuildGlow`), debris (`DebrisView`, `BreakView`),
   the crew's hits (`HeroView.Struck`), the hero's figure (steps, landings), the jetpack (`JetPlume`), the harpoon
   (`RodLight`), an arc-fitted drill (`render/DrillLight`), the air (`AirView`, `VentLight`), a pod's hatch (`PodView`),
-  drones (`DroneLight`), doors (`DoorLight`), lamps short of power (`LampSparks`), the electric smelter (`SmelterHeat`)
+  drones (`DroneLight`), doors (`DoorLight`), lamps short of power (`LampSparks`), the electric smelter (`SmelterHeat`), meteors (`MeteorView`)
   and pick-ups (`PickUpFlights`).
 - **Hits look as what they strike** (0094), whatever the tool, as they sound (0093), thrown where the object is struck:
   a wall's open face toward the striking hero (else its closed face toward it), at the point nearest the hero, 0.15 of

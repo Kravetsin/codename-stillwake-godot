@@ -38,6 +38,9 @@ public sealed record Layout(
     /// </summary>
     public string Kind { get; init; } = Surface.Ship;
 
+    /// <summary>Whether its surface's meteors fall (2026-10-28-hull-meteors): a new game's wreck; a test's or dev world's map is calm.</summary>
+    public bool Meteors { get; init; }
+
     /// <summary>The build zone of a world of <c>Content.World</c>'s size: <c>ZoneWidth</c> × <c>ZoneHeight</c> in its middle.</summary>
     public static Box WorldZone
     {

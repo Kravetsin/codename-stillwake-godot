@@ -4,25 +4,40 @@
 
 | File | Purpose |
 | --- | --- |
-| `Hazards.cs` | Meteors breaking the hull. |
+| `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
-Meteors breaking the hull. For now struck by hand, from the dev panel, to try a breach and its
-repair: random meteors arrive with locations, rings around planets whose rocks hit hard enough to
-break some hulls and not others (see `docs/concept.md`). Ported from
-`packages/sim/src/modules/hazards`; its rules hold here unchanged.
+Meteors breaking the hull ([hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md)): a place's shower
+(`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself from the start, a steady cost of repair; the dev panel
+strikes one by hand, to try a breach and its repair. Ported from `packages/sim/src/modules/hazards`; its rules hold
+here unchanged.
 
-- **Depends on:** `Grid`, through `IGridQueries` (reads walls) and `IGridOps` (clears cells).
-- **State:** none (`HazardsState` is empty).
+- **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built); `Building`, through `IBuildingOps`
+  (`Breach`: the wall cleared, its hole planned). Registered after Building.
+- **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no meteors
+  (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
+  `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`).
 
 ## Rules
 
-- `MeteorHit(cell)` breaks the wall at `cell`: its structure is cleared, the pipes through it left whole (0109),
-  with no refund. The hole is an opening of its room: `atmosphere` vents it and drains its vents'
-  networks until a valve cuts them off or a wall is built on it. A deconstruction mark on the broken
-  wall is dropped by `building`.
+- **A shower** falls where the surface's kind has one (the ship's `StartingSpace`; a planet none) and the world is not
+  `Calm`. A system in construction, as a command would apply: building and the rooms see the hole on its tick.
+- **Every `EveryMin` to `EveryMax` ticks**, drawn evenly from the world's `Rng`, a meteor is seen coming: its power by
+  the shower's weights (1–6, mostly weak), its target one of the walls open to the drift, drawn evenly. None open: the
+  interval is drawn again.
+- **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
+  met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
+  met first shields its row.
+- **`Warning` ticks later it strikes:** a wall still standing there breaks iff power ≥ its material's `Strength` (scrap 2,
+  iron 5); else nothing happens. Then the next interval is drawn.
+- **A wall broken** (`Breach`) is lost, refunding nothing, its pipes left whole (0109), and its hole planned as a
+  blueprint of the same wall, known or not: repair is the screwdriver, paid part by part. The hole is an opening of its
+  room: `atmosphere` vents it and drains its vents' networks until a valve cuts them off or the wall is built again. A
+  deconstruction mark on it is dropped by `building`.
+- `MeteorHit(cell)` (dev) breaches the wall at `cell` whatever its strength.
 
 ## API
 
+- **Queries:** `Incoming`, the meteor seen coming, for its streak.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
   never breaks (bedrock, lava) or out of the grid's zone (a planet's fog).
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
@@ -31,13 +46,14 @@ break some hulls and not others (see `docs/concept.md`). Ported from
 
 ## Invariants
 
-- A meteor only ever turns a wall into an empty cell; it never adds anything.
+- A meteor only ever turns a wall into an empty cell, planned as the wall it was; it adds nothing else.
 
 ## Deliberately not handled
 
-- Meteors hit walls only, never doors, windows or machines.
-- No meteor falls by itself, and a hit ignores the wall's `strength`: both come with locations, where
-  a meteor's power set against a material's strength decides whether it breaks.
+- Meteors hit walls only, never doors, windows, machines, solar panels or heroes; they come only from the right, never
+  through an open door.
+- A hit breaks or does nothing: no damage adds up. Showers do not change with where the ship goes yet.
+- A client joining between a strike and its next frame misses the strike's look.
 
 ## Tests not yet ported
 

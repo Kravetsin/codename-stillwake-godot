@@ -32,8 +32,8 @@ public static class Crafts
         // Free, a convention: the hero has to go and take them (2026-10-27-suits-are-worn). Five seconds each at the pod.
         new("helmet", [], Ticks: 20),
         new("suit", [], Ticks: 20),
-        // Of the ruins' cloth, at the Former (2026-10-27-the-cape-is-worn): none before the first planet.
-        new("cape", [("cloth", 3)], Ticks: 60),
+        // Of the ruins' cloth and a grazer's hide, at the Former (2026-10-27-the-cape-is-worn): none before the first planet.
+        new("cape", [("cloth", 2), ("hide", 2)], Ticks: 60),
         new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
         new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).

@@ -502,12 +502,46 @@ public class CreaturesTests
         w.Run(30);
         var biomass = w.M.Items.Floor.Where(s => s.Item == "biomass").ToList();
         Assert.InRange(biomass.Sum(s => s.Count), 2, 3);
+        Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "hide").Sum(s => s.Count), 1, 2);
+        Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "fat").Sum(s => s.Count), 1, 2);
         Assert.All(w.M.Items.Floor, s =>
         {
             Assert.Equal(FloorStack.Nobody, s.By);
             Assert.Equal(4 * Cell, s.Y);
             Assert.Equal(6 * Cell + Unit / 2, s.X);
         });
+    }
+
+    /// <summary>
+    /// Every grazer drops hide and fat with its biomass, by its size: the tapir the most, the fluff the least, a fat only now
+    /// and then; the sentry none.
+    /// </summary>
+    [Theory]
+    [InlineData("tapir", 2, 3, 2, 3)]
+    [InlineData("loper", 1, 2, 1, 2)]
+    [InlineData("sixleg", 1, 2, 1, 2)]
+    [InlineData("fluff", 1, 1, 0, 1)]
+    public void AGrazerKilledDropsHideAndFatByItsSize(string species, int hideLeast, int hideMost, int fatLeast, int fatMost)
+    {
+        const int kills = 20;
+        var w = CreaturesTesting.Planet(Room).HeroAt(1, 3);
+        var spec = Tune.Get(species);
+        int On(string item) => w.M.Items.Floor.Where(s => s.Item == item).Sum(s => s.Count);
+        var fats = new List<int>();
+        for (int k = 0; k < kills; k++)
+        {
+            var c = w.Let(spec, 5, 3).Still();
+            c.Damage = spec.Life.Hp - 1;
+            int hide = On("hide"), fat = On("fat");
+            w.Do(new Strike(c.Id, Axe)).Run(30);
+            Assert.Empty(w.M.Creatures.Creatures);
+            Assert.InRange(On("hide") - hide, hideLeast, hideMost);
+            fats.Add(On("fat") - fat);
+            Assert.InRange(fats[^1], fatLeast, fatMost);
+        }
+        // Drawn: in twenty kills both ends of its range come up.
+        Assert.Contains(fatLeast, fats);
+        Assert.Contains(fatMost, fats);
     }
 
     [Fact]

@@ -15,9 +15,9 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 
 - **Depends on:** `Grid` (`Machines`, `MachineById`); `Items` (queries `Crate`, `CanSmelt`, `ShortOf`, `FullFor`,
   `OutputFull`, `InputsLack`, `Boost`; ops `Take`, `Give`, `Output`, `Smelt`, `TakeInputs`); `Research` (`Knows`);
-  `Power` (`Satisfaction`; `Rest`); the world's `Rng`, for a crop's seeds. Runs after `Research`, before `Building`.
+  `Power` (`Satisfaction`; `Rest`); the world's `Rng`, for seeds and byproducts. Runs after `Research`, before `Building`.
 - **Depended on by:** `Building` (`Queue`: a station with crafts queued is not taken apart); `Furnace` (`CanSmelt`,
-  `TooCold`, `WorkOf`, `Progress`; op `Heat`); `Logistics`' drones read `Queue` and `Progress` (0062).
+  `TooCold`, `TooFew`, `WorkOf`, `Progress`; op `Heat`); `Logistics`' drones read `Queue` and `Progress` (0062).
 - **State** (`CraftingState`, saved): `Queues`, each queued station ever crafted at, by machine id: `Machine`, `Next`
   (next entry id), `Progress` (the head's unit, thousandths of a tick) and `Entries`, `Entry(Id, Recipe, Count, By,
   FromInputs, Endless)` in queue order, `Count` the units left with the one at work; an emptied queue is kept so ids
@@ -66,20 +66,21 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 ### Fed stations
 
 - The input slot is the queue. Each tick, work on another item than the input holds is dropped; then an item with
-  `Yields` of the station's `Process`, `Heat` at most the station's, and yields that fit (`CanSmelt`) gains work; at
-  its `SmeltTicks × 1000` one becomes its yields (`IItemsOps.Smelt`). Work stopped (fire out, outputs full, power cut)
-  is kept while the item stays (0057).
-- **Too cold / wrong process** (0057): such an item is taken in and sits unworked, the station resting, a furnace
-  never lit for it; `TooCold` tells the too-hot case.
-- **A crop** (0060) uses its seed or spore and gives its yields and none, one or two of itself by its `Returns` weights,
-  drawn from the world `Rng` as it completes, stations in machine id order; an item without `Returns` draws nothing.
-  It grows only with room for the yields and the most seeds it may give, so no draw overflows.
+  `Yields` of the station's `Process`, `Heat` at most the station's, at least its `SmeltTakes` (default 1) and room for
+  the most a smelt makes (`CanSmelt`) gains work; at its `SmeltTicks × 1000` its `SmeltTakes` become its yields
+  (`IItemsOps.Smelt`). Work stopped (fire out, outputs full, too few, power cut) is kept while the item stays (0057).
+- **Too cold / wrong process / too few** (0057): such an item is taken in and sits unworked, the station resting, a
+  furnace never lit for it; `TooCold` and `TooFew` tell those cases.
+- **Drawn as a smelt completes** from the world `Rng`, stations by machine id
+  ([smelt-chances](../../docs/decisions/2026-10-28-smelt-chances.md)): a crop's (seed, spore) none, one or two of itself
+  by its `Returns` weights (0060), then each `Byproducts` entry as loot is rolled (`Loots.Roll`); none for an item
+  without either. It works only with room for its yields, the most of itself and each byproduct's `Max` (`MostMade`).
 - **A furnace smelts while its fire burns at the tick's start** (0057): `Furnace` calls `Heat` in construction from
   the fire as the last tick left it, so it starts the tick after lighting and smelts on the tick it goes out.
 
 ## API
 
-- **Queries** (`ICraftingQueries`): `StationOf`, `Queue` (live, read-only), `Progress`, `CanSmelt`, `TooCold`,
+- **Queries** (`ICraftingQueries`): `StationOf`, `Queue` (live, read-only), `Progress`, `CanSmelt`, `TooCold`, `TooFew`,
   `WorkOf` (null for nothing of its process). Module only: `Works` (a furnace reads idle between ticks), `Lacks`.
   Static: `Processes(station, item)`, of its process and no hotter, room aside.
 - **Operations** (`ICraftingOps`): `Heat(machine)`.
@@ -89,8 +90,9 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 
 - A queue holds at most `QueueMost` entries; the head's progress stays below its work but while its unit waits for
   room; ids within a queue only grow.
-- Items are conserved: what a craft took comes back as units or a refund; a smelt turns one item into its yields, a
-  crop a seed into its yields and 0–2 seeds (`CraftingTests`, `StationsTests`).
+- Items are conserved: what a craft took comes back as units or a refund; a smelt turns its `SmeltTakes` into its
+  yields and at most each byproduct's most, a crop one of itself into its yields and 0–2 of itself (`CraftingTests`,
+  `StationsTests`, `SmeltChancesTests`).
 - Every item is reachable from the wreck (`ContentTests`).
 
 ## Deliberately not handled

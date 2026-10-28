@@ -49,6 +49,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - модуль / machine module **≠** → `ModuleSpec` (`c/Modules.cs`), `Fit`, `Unfit` (`sim/Items/Modules.cs`), item `arcModule` → Items. Not a sim module (`Module<T>`).
 - плавильня / electric smelter → machine `smelter` (station in `c/Stations.cs`), f/crafting `SmelterHeat` → Crafting
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
+- побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
 - анализатор / analyzer → machine `analyzer`, `ResearchModule`, `Analysable`; f/items `AnalyzerPanel`, `Lessons` → Research
 - чертёж / blueprint → `Blueprint`, `Blueprints` → Research
@@ -79,7 +80,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## World
 
 - обломок / debris piece **≠** → `Piece`, `Hit`, `Reel` (sim/Debris); a wreck is debris of kind wreckage → Debris
-- метеор / meteor → `MeteorHit` → Hazards
+- метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core

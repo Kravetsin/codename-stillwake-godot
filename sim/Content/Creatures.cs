@@ -137,7 +137,8 @@ public static class Creatures
     /// hit-stun: neutral, it bolts at the first blow, and the drill cannot pin it (the user's word). It jumps (the user's word:
     /// pinned to a wall it could do nothing): at 880 a tick up, on the first planet's gravity some 8.8 cells high, clearing a wall
     /// of eight, and 800 across, some 34 cells long landing level, clearing a gap of two dozen and more. Twelve hit points: six of the
-    /// axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four.
+    /// axe's hits. Its yields are placeholders (the user's word, 2026-10-22): two or three biomass, a seed one time in four, and one
+    /// or two each of hide and fat (the economy rework: a grazer drops what it is made of).
     /// Struck, it mostly turns back and rams (0103, the user's word after playing): seven times in ten, three units of a suit.
     /// </summary>
     public static readonly Species Loper = new("loper", Look: "classic",
@@ -145,21 +146,22 @@ public static class Creatures
         Faction: Grazer, Lifetime: Lifetime.Wild,
         Brain: [new Retaliate(Chance: 700, Reach: 24, FleeLeast: 12, FleeMost: 20), new Flee(FleeTicks, CorneredChance: 700, CorneredReach: 12),
             new Escape(FleeTicks), new Graze()],
-        Moves: [LightRam], Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4)]);
+        Moves: [LightRam], Yields: [new("biomass", 2, 3), new("seed", 1, 1, OneIn: 4), new("hide", 1, 2), new("fat", 1, 2)]);
 
     /// <summary>
     /// The tapir («Тапирчик»): a round, dark-coated walker of the open ground, a glowing seed pod on its snout; the loper's life
     /// in a heavier body. Sixteen hit points (eight of the axe's); a blow knocks it three quarters as far and hops it lower; it
     /// ambles at 3.2 cells a second and bolts at 28, still past a sprint; its jump of 800 up and 720 across is lower and shorter,
-    /// 7.2 cells high on the first planet: a wall of six, not of eight. It gives more: three or four biomass, a seed one time in
-    /// three (placeholders). Struck, it rams the most often and the hardest (0103): nine times in ten, five units of a suit.
+    /// 7.2 cells high on the first planet: a wall of six, not of eight. It gives the most: three or four biomass, a seed one time in
+    /// three, two or three each of hide and fat (placeholders). Struck, it rams the most often and the hardest (0103): nine times
+    /// in ten, five units of a suit.
     /// </summary>
     public static readonly Species Tapir = new("tapir", Look: "tapir",
         Body: new Walker(Width: 4, Height: 4, Walk: 160, Run: 1400, Jump: 800, JumpAcross: 720), Life: new(Hp: 16, Knock: 300, Hop: 280),
         Faction: Grazer, Lifetime: Lifetime.Wild,
         Brain: [new Retaliate(Chance: 900, Reach: 24, FleeLeast: 12, FleeMost: 20), new Flee(FleeTicks, CorneredChance: 900, CorneredReach: 12),
             new Escape(FleeTicks), new Graze()],
-        Moves: [LightRam with { Damage = 5 }], Yields: [new("biomass", 3, 4), new("seed", 1, 1, OneIn: 3)]);
+        Moves: [LightRam with { Damage = 5 }], Yields: [new("biomass", 3, 4), new("seed", 1, 1, OneIn: 3), new("hide", 2, 3), new("fat", 2, 3)]);
 
     /// <summary>
     /// The sixleg («Шестиног»): a barrel-bodied grazer of the open ground on six hooves, its tail a stem hung with glowing
@@ -173,12 +175,12 @@ public static class Creatures
     /// the upper caves and the garden band, where its glow lights the dark. Small and light: eight hit points (four of the
     /// axe's); a blow knocks it a fifth farther and hops it higher; it potters at 3.2 cells a second and bolts at 28; its hop is
     /// smaller, 760 up and 720 across, 6.4 cells high on the first planet, still over a ledge of six. One or two biomass, a
-    /// seed one time in four (placeholders). It never rams.
+    /// seed one time in four, a hide and at most one fat (placeholders). It never rams.
     /// </summary>
     public static readonly Species Fluff = new("fluff", Look: "fluff",
         Body: new Walker(Width: 4, Height: 4, Walk: 160, Run: 1400, Jump: 760, JumpAcross: 720), Life: new(Hp: 8, Knock: 480, Hop: 440),
         Faction: Grazer, Lifetime: Lifetime.Wild, Brain: [new Flee(FleeTicks), new Graze()], Moves: [],
-        Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4)]);
+        Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4), new("hide", 1, 1), new("fat", 0, 1)]);
 
     /// <summary>
     /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
