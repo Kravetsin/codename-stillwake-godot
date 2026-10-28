@@ -39,4 +39,10 @@ public static class HeroLooks
 
     /// <summary>The pictures of each kind: <c>hero_hair_*</c>, <c>hero_face_*</c> and <c>hero_beard_*</c>; a look's beard 0 is none.</summary>
     public const int HairStyles = 6, Faces = 5, Beards = 2;
+
+    /// <summary>
+    /// A look's index <paramref name="i"/> among <paramref name="count"/>: wrapped, never negative, so an index the sim kept as
+    /// sent from a stale or altered client still draws (2026-10-28-looks-are-printed).
+    /// </summary>
+    public static int Wrap(int i, int count) => (i % count + count) % count;
 }

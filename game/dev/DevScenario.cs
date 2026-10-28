@@ -82,6 +82,7 @@ public sealed class DevContext
     public FabricatorPanel? Fabricator { get; init; }
     public required GameMenu Menu { get; init; }
     public required SuitColours Suits { get; init; }
+    public Features.Crew.LookEditor? Looks { get; init; }
     /// <summary>The Handbook's debris section.</summary>
     public required HandbookPage DebrisPage { get; init; }
     /// <summary>The map played.</summary>

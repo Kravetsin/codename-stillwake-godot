@@ -119,6 +119,19 @@ public sealed class SuitScenario : DevScenario
     }
 }
 
+[Dev("--looks", "a look chosen in the editor, then a death and the hero printed in it (LooksDemo)")]
+public sealed class LooksScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed) => LooksDemo.Seed(world, seed.Modules);
+
+    public override Func<Registry, int>? Start => DieDemo.StartOf;
+
+    public override void Attach(DevContext c)
+    {
+        if (c.Looks != null) c.Add(new LooksDemo(c.Looks));
+    }
+}
+
 [Dev("--breathe", "a canister breathed and the pod's air breathed again (BreatheDemo)")]
 [Dev("--breathe-air", "the pod's air breathed only (BreatheDemo)")]
 public sealed class BreatheScenario : DevScenario

@@ -21,6 +21,13 @@ public sealed record Leave : Command;
 /// <summary>The sender's hero puts on suit colour <c>Colour</c>, if no other hero wears it, on any surface.</summary>
 public sealed record PickColour(int Colour) : Command;
 
+/// <summary>
+/// The sender chooses <c>Look</c> for its hero, worn from the pod's next print of it (2026-10-28-looks-are-printed): with a
+/// hero or none yet, never refused. Its client sends it before its first <see cref="Enter"/> and whenever its player
+/// changes the look.
+/// </summary>
+public sealed record ChooseLook(Look Look) : Command;
+
 /// <summary>The sender's hero starts running (<c>On</c>), or stops: sent when it changes.</summary>
 public sealed record Exert(bool On) : Command;
 
@@ -122,6 +129,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             hero = new Hero { Id = c.From, Cell = c.Cell };
             Add(hero);
             _playersOps.Dress(c.From);
+            _playersOps.Print(c.From);
             _itemsOps.Kit(c.From);
             // Printed full in what it wears: bare as a peer's first hero, in its kept helmet coming back after Leave.
             hero.Air = CapacityOf(c.From);
@@ -138,6 +146,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 if (Surfaces.Here != 0) Surfaces.Send(c.From, 0);
             });
         Handles<PickColour>(c => ColourProblem(c.From, c.Colour), c => _playersOps.Wear(c.From, c.Colour));
+        Handles<ChooseLook>(_ => null, c => _playersOps.Choose(c.From, c.Look));
         Handles<Exert>(c => HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.Exerting = c.On);
         Handles<Thrust>(ThrustProblem, c => HeroOf(c.From)!.Thrusting = c.On);
         Handles<Refill>(c => RefillProblem(c.From), c =>
@@ -162,6 +171,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                     if (hero.Out == 0)
                     {
                         hero.Cell = State.Spawn;
+                        _playersOps.Print(hero.Id);
                         // Printed again in what it died in: the suit is gear (2026-10-27-suits-are-worn).
                         hero.Air = CapacityOf(hero.Id);
                         // Off the ship a hero wakes aboard, at the pod; its body stays where it fell (0076).

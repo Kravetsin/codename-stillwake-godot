@@ -84,6 +84,9 @@ public partial class Main : Node2D, ITogether
     /// <summary>The map a dev run plays: the wreck as drawn, small and with no zone, its cells those the demos and scripts name.</summary>
     private Layout _layout = Registry.WreckMap;
     private HeroView? _hero;
+    /// <summary>The look this player chose (2026-10-28-looks-are-printed): null on a first run till the look editor closes; look 0 in a dev run.</summary>
+    private Sim.Players.Look? _look;
+    private Features.Crew.LookEditor? _lookEditor;
     private ItemsView? _items;
     private FabricatorPanel? _fabricator;
     private DebrisView _debris = null!;
@@ -155,6 +158,7 @@ public partial class Main : Node2D, ITogether
         _scenarios = DevScenarios.Active(_dev);
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
+        _look = Settings.Look() ?? (_dev.None ? null : Sim.Players.Look.Zero);
         if (PoseSheetOnly() || DressSheetOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
@@ -185,7 +189,7 @@ public partial class Main : Node2D, ITogether
         if (!Has("--perf") && !Has("--gallery"))
         {
             var script = DevScript();
-            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script));
+            AddChild(_hero = new HeroView(_hands.Ui, _hands.Mouse, script) { Look = () => _look });
             PlaceHero(_hero);
             AddChild(_items = new ItemsView(_hands.Ui));
             // A queued station's inputs are the items feature's slots, laid out in the crafting feature's panel.
@@ -270,8 +274,16 @@ public partial class Main : Node2D, ITogether
         });
         AddChild(computer);
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
+        var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
+        {
+            _look = look;
+            // A dev run's look is its own: the player's kept one stays.
+            if (_dev.None) Settings.KeepLook(look);
+            _session?.Client.Send(new Sim.Crew.ChooseLook(look));
+        });
+        AddChild(lookEditor);
         var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || lookEditor.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
                 // A search in the build menu or the dev panel goes first, what else is open staying so.
@@ -279,9 +291,11 @@ public partial class Main : Node2D, ITogether
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
+                lookEditor.Close();
                 _hands.Plan.PutPlanAway();
             },
             handbook: handbook.Open,
+            look: () => lookEditor.Open(_look ?? Sim.Players.Look.Zero),
             suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
@@ -332,6 +346,8 @@ public partial class Main : Node2D, ITogether
     /// <summary>The views drawing the current registry's world, made again when a load brings a new one.</summary>
     private void ShowWorld()
     {
+        // A first run: the hero waits at the pod, unprinted, till its player picks a look.
+        if (_session != null && _look == null && !(_lookEditor?.Shown ?? true)) _lookEditor.Open(Sim.Players.Look.Zero);
         if (_shown == _m) return;
         long made = System.Diagnostics.Stopwatch.GetTimestamp();
         foreach (var view in _views) view.QueueFree();

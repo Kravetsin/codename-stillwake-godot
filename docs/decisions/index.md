@@ -8,7 +8,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | --- | --- | --- | --- |
 | [0001](0001-stack-and-platform.md) | Stack and platform | superseded | 0025 |
 | [0002](0002-coop-model.md) | Co-op model | accepted | 0006, 0062 (in part) |
-| [0003](0003-character-rig.md) | Characters: modular cutout with keyframed animation | accepted |  |
+| [0003](0003-character-rig.md) | Characters: modular cutout with keyframed animation | accepted | looks-are-printed (in part) |
 | [0004](0004-modules-and-tests.md) | Modules and tests | accepted |  |
 | [0005](0005-terraria-scale.md) | Terraria scale | accepted | 0104, 0105 (in part) |
 | [0006](0006-debris-in-the-simulation.md) | Debris drifts in the simulation | accepted |  |
@@ -146,5 +146,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
 | [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
+| [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |

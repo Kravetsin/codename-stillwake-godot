@@ -46,4 +46,12 @@ public class HeroLooksTests
         Assert.All(Enumerable.Range(0, count), i => Assert.True(Painted(i), $"hero_{kind}_{i}.png"));
         Assert.False(Painted(count), $"hero_{kind}_{count}.png is painted but not counted");
     }
+
+    [Theory]
+    [InlineData(0, 6, 0)]
+    [InlineData(5, 6, 5)]
+    [InlineData(6, 6, 0)]
+    [InlineData(-1, 6, 5)]
+    [InlineData(-13, 6, 5)]
+    public void AnIndexOutOfThePaletteIsWrappedNeverNegative(int i, int count, int drawn) => Assert.Equal(drawn, HeroLooks.Wrap(i, count));
 }

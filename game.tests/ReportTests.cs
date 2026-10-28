@@ -1,7 +1,9 @@
 using Stillwake.Game.Features.Crew;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Players;
 using Xunit;
+using ChooseLook = Stillwake.Sim.Crew.ChooseLook;
 using Enter = Stillwake.Sim.Crew.Enter;
 
 namespace Stillwake.Game.Tests;
@@ -48,6 +50,20 @@ public class ReportTests
         Assert.Equal(At(2, 3), HeroIn(2, 4).BodyCell(18));
         // The middle a thousandth above the line between rows 2 and 3.
         Assert.Equal(At(2, 2), (HeroIn(2, 4) with { Y = 3 * Block + Hero.MiddleUp - 1 }).BodyCell(18));
+    }
+
+    [Fact]
+    public void ChoosesTheLookOnceAJoinBeforeTheEnterThatPrintsTheHeroAndHoldsItWithNone()
+    {
+        var s = TwoRooms();
+        var look = new Look(4, 3, 2, 1, 1);
+        Assert.Equal((null, true), Report.LookFirst(s.M.Crew, 0, null, sent: false));
+        Assert.Equal((new ChooseLook(look), false), Report.LookFirst(s.M.Crew, 0, look, sent: false));
+        Assert.Equal((null, false), Report.LookFirst(s.M.Crew, 0, look, sent: true));
+        s.World.Step([new ChooseLook(look), ReportOf(s.M, HeroIn(1, 4))!]);
+        Assert.Equal(look, s.M.Players.LookOf(0));
+        // Its hero made, nothing more goes before its reports, nor holds them.
+        Assert.Equal((null, false), Report.LookFirst(s.M.Crew, 0, null, sent: false));
     }
 
     [Fact]

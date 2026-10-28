@@ -5,6 +5,16 @@ public static partial class En
     private static readonly Strings Crew = new()
     {
         ["crew.noHero"] = "You are not aboard",
+        ["look.title"] = "Your look",
+        ["look.skin"] = "Skin",
+        ["look.hair"] = "Hair",
+        ["look.hairColour"] = "Hair colour",
+        ["look.face"] = "Face",
+        ["look.beard"] = "Beard",
+        ["look.none"] = "None",
+        ["look.next"] = "The lifepod prints you in this look the next time it makes your hero.",
+        ["look.done"] = "Done",
+        ["menu.look"] = "Look",
         ["crew.noSuchColour"] = "There is no such colour",
         ["crew.colourTaken"] = "Someone wears that colour",
         ["crew.noJetpack"] = "You wear no jetpack",

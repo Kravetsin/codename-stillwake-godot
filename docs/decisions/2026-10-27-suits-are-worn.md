@@ -1,6 +1,7 @@
 # Suits are worn
 
-- Status: accepted; built (the sim, the gauge, the frost and the person under the suit; the looks come next, `docs/plans/suits.md`)
+- Status: accepted; built, with the person under the suit ([one-head](2026-10-28-one-head.md)) and its look
+  ([looks-are-printed](2026-10-28-looks-are-printed.md))
 - Date: 2026-10-27
 - Supersedes [0028](0028-the-lifepod-and-crafting-by-machine-only.md)'s "heroes are made with a full suit" and, for the
   suit, [0057](0057-stations-one-model-for-every-crafting-machine.md)'s "the pod's list stops growing"
@@ -49,6 +50,10 @@ air, the body deciding where the hero can go (the cold, later heat, how fast it 
 - **Running bare by the pod in vacuum** drains a unit a breath (2 + 1 against the pod's 2); standing, it holds a unit short.
 - **The cold is paid up to a second late**, as the edge's is: the reported cell (0050).
 - **Free helmets and bodies pile up** if crafted over and over: they are worth nothing.
+- **No softlock bare:** the pod's Fabricator is never taken apart and works unpowered (0046), so a suit is always five
+  seconds away.
+- **Not yet:** more suits (light, heavy, thermal, the glass helmet), suit stats beyond `Tank`, a mode losing gear on
+  death, suit wear and repair.
 - **Heat** (lava) is not yet a body's to stop: it burns as before, whatever is worn.
 - **The start room is not aired at once:** a new hero, bare, sees the frost for its first seconds by the pod, which holds
   its air.
