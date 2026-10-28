@@ -1,6 +1,6 @@
 # Meteors from the start
 
-- Status: accepted
+- Status: accepted; a meteor breaks an area since [meteor-blast](2026-10-28-meteor-blast.md)
 - Date: 2026-10-28
 - Changes the concept's "the starting space is calm"; meteors by hand stay as the dev panel's
 
