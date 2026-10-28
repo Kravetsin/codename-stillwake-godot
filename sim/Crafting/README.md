@@ -32,7 +32,7 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
   `Speed × (1000 + their Speed) / 1000`, rounded down, and add their heat to a fed one's; a queued one's heat stays 0.
   Slots are the machine's (`MachineSpec.Slots`, `Inputs`), read by `Items`.
 - **Energy** (0057): one that `Draws` works at its network's satisfaction; one with a `FuelSlot` at full while its fire
-  burns, not at all while out; one with neither (the pod, the workbench) at full. Work a tick is `Speed × share / 1000`, rounded down.
+  burns, not at all while out; one with neither (the pod) at full. Work a tick is `Speed × share / 1000`, rounded down.
   Stations work in the simulation phase, after power's derivation, by machine id.
 - **Idle** (nothing it can work, or no room) a station that draws is told to `Rest` from the next tick, and works at
   once when told to work (0057).
@@ -40,10 +40,9 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 ### Queued stations
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
-  `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters and numbers are content's; the
-  pod gives only the suit and the screwdriver, the workbench the basic parts and first tools
-  ([the-workbench](../../docs/decisions/2026-10-28-the-workbench.md)); electronics are the assembler's, sky-shard crafts
-  the arc bench's (0099).
+  `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's
+  the suit and screwdriver, the workbench's first parts and tools (the-workbench), the assembler's electronics, the arc
+  bench's sky-shard crafts (0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod and the
   workbench have none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs)`**: paid (the default) takes all `Count` units' cost from the sender at
@@ -101,9 +100,7 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 - A finished unit waits in the station, never dropped, so crafting needs no `crew`.
 - A cancel refunds the canceller, not the payer: no record of who paid; `By` only marks whose order it is.
 - In creative mode a cancel gives back what was never taken. A recipe queued twice is two entries.
-- An empty queue left by a station taken apart stays: machine ids are never reused.
 - A smelt's work past the item's on its last tick is dropped.
 - Nothing stops a too-hot or wrong-process item entering a station: the player moves it (0057).
-- A crop is not grown without power (0060).
 - No skip rule: a head waiting for inputs, or endless, holds up the queue; the player cancels it (0057).
 - What a cancelled fed entry left in the inputs stays.
