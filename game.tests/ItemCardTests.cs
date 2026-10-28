@@ -155,6 +155,19 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void SayHowManyASmeltTakesAndWhatItMayMakeBesidesByChance()
+    {
+        // No content has either yet: an item made up for it, as the crusher's gravel and ore will be.
+        var gravel = new Spec.ItemSpec("gravel", 50, Yields: [("glass", 1)], SmeltTicks: 20, SmeltTakes: 4);
+        var ore = new Spec.ItemSpec("ore", 50, Yields: [("iron", 1)], SmeltTicks: 20, Byproducts: [new("crystal", 1, 2, OneIn: 3), new("scrap", 1, 1)]);
+        var furnace = Spec.Stations.Get("furnace");
+        Assert.Equal(new CardOutput([("glass", 1)], "1s", 4), ItemCards.OutputAt(gravel, furnace));
+        Assert.Equal(new CardOutput([("iron", 1)], "1s", 1, [("crystal", 2, 3), ("scrap", 1, 1)]), ItemCards.OutputAt(ore, furnace));
+        Assert.NotEqual(new CardOutput([("iron", 1)], "1s"), ItemCards.OutputAt(ore, furnace));
+        Assert.NotEqual(new CardOutput([("glass", 1)], "1s"), ItemCards.OutputAt(gravel, furnace));
+    }
+
+    [Fact]
     public void PutWhatTheOpenFurnaceMakesOnTheCardOfWhatItSmeltsButNothingOnFuel()
     {
         var furnace = new Reading([], null, false, "furnace", null, []);

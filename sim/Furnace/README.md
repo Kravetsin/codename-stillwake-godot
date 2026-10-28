@@ -63,7 +63,8 @@ once, and smelting has moved to `Crafting`.
 
 - **Queries:** `At(id)` — furnace or generator `id` as its panel shows it, a `Smelting(Burning, Item,
   Progress, Work, Problem)`: whether it burns, and why it stands still: `crafting.tooCold` (a furnace
-  only, what its input holds needs more heat: `ICraftingQueries.TooCold`), `furnace.full` (a furnace
+  only, what its input holds needs more heat: `ICraftingQueries.TooCold`), `crafting.tooFew` (a furnace only,
+  fewer than one smelt takes: `TooFew`), `furnace.full` (a furnace
   only, nothing it can smelt fits), `furnace.noFuel`, `furnace.noAir` or `furnace.unneeded` (a generator only, cold with
   fuel its network does not want); for a furnace with salvage in
   its input, also what it smelts, how far, out of how much work, in thousandths of a tick (crafting's

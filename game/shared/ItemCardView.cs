@@ -463,7 +463,8 @@ public static class ItemCardView
 
     /// <summary>
     /// What the open station does with the item, in the mark's colour: its slot's mark, then "Smelts here" or the like,
-    /// then what it makes there, "→" each yield's icon and "×N", and how long one takes, dim.
+    /// then what it makes there, "×N" it takes, "→" each yield's icon and "×N", each byproduct's with "1 in N" dim, and how
+    /// long one takes, dim.
     /// </summary>
     private static Control HereStrip(SlotMark here, CardOutput? output)
     {
@@ -479,11 +480,18 @@ public static class ItemCardView
         if (output != null)
         {
             var made = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 3);
+            if (output.Takes > 1) made.AddChild(Text(T("card.many", ("n", output.Takes)), YieldText));
             made.AddChild(Text("→", YieldText));
             foreach (var (item, count) in output.Items)
             {
                 made.AddChild(Picture(ItemIcons.Icon(item, 16), 16));
                 made.AddChild(Text(T("card.many", ("n", count)), YieldText));
+            }
+            foreach (var (item, count, oneIn) in output.Chances ?? [])
+            {
+                made.AddChild(Picture(ItemIcons.Icon(item, 16), 16));
+                made.AddChild(Text(T("card.many", ("n", count)), YieldText));
+                if (oneIn > 1) made.AddChild(Text(T("card.oneIn", ("n", oneIn)), TimeDim));
             }
             made.AddChild(Text($" · {output.Time}", TimeDim));
             row.AddChild(made);

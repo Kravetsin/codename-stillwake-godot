@@ -30,7 +30,8 @@ unless marked.
 - **What is wanted** (`Wants`), of a served machine in the flood:
   - a fed station (furnace, smelter, grow capsule) or one with a fire (burner generator): each item its inputs
     hold, fuel slot included, or remember (`KeptAt`) once burnt down, kept at its stack: wanted when what it holds
-    where a delivery goes (`HeldFor`) plus what drones bring is under half that; the rest of a stack;
+    where a delivery goes (`HeldFor`) plus what drones bring is under half that, or under one smelt's
+    (`SmeltTakes`); the rest of a stack;
   - a queued station with inputs (Former, assembler), when its head entry is fed from inputs: each item of the
     craft's cost × units not begun (endless: no end), at most a stack, wanted under half that or under one unit's
     cost. A paid head entry, or none, wants nothing;

@@ -6,7 +6,8 @@
   [0041](0041-wreckage-of-many-kinds-and-circuits.md) that no craft makes a circuit and the solar panel's cost; the Former and the smelter heard at work by
   [0059](0059-machines-heard-at-work.md); a fed station's process, the grow capsule, added by
   [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md); input slots for the Former and the assembler, and
-  entries fed from them, amended here (2026-10-18, drone logistics slice 1)
+  entries fed from them, amended here (2026-10-18, drone logistics slice 1); byproducts by chance and smelts of
+  several added by [smelt-chances](2026-10-28-smelt-chances.md)
 - Date: 2026-10-17
 - Design: "powered production stations" (approved), all four slices built
 

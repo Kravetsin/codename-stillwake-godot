@@ -50,18 +50,26 @@ public sealed record StationBlock(string? Seconds, IReadOnlyList<CraftRow> Rows,
 }
 
 /// <summary>
-/// What a fed station makes of one item, as the card says it under "Smelts here": its yields, then how long one takes
-/// at that station, as written. Equal by what it says.
+/// What a fed station makes of one smelt of an item, as the card says it under "Smelts here": how many it takes, its
+/// yields, its byproducts by chance, then how long one takes at that station, as written. Equal by what it says.
 /// </summary>
-public sealed record CardOutput(IReadOnlyList<(string Item, int Count)> Items, string Time)
+/// <param name="Takes">How many of the item one smelt takes; "×N" before the arrow above 1.</param>
+/// <param name="Chances">Byproducts, each at its most, and one in how many smelts it comes: 1 for every one.</param>
+public sealed record CardOutput(
+    IReadOnlyList<(string Item, int Count)> Items, string Time, int Takes = 1,
+    IReadOnlyList<(string Item, int Count, int OneIn)>? Chances = null)
 {
-    public bool Equals(CardOutput? other) => other is not null && Time == other.Time && Items.SequenceEqual(other.Items);
+    public bool Equals(CardOutput? other) =>
+        other is not null && Time == other.Time && Takes == other.Takes && Items.SequenceEqual(other.Items)
+        && (Chances ?? []).SequenceEqual(other.Chances ?? []);
 
     public override int GetHashCode()
     {
         var hash = new HashCode();
         hash.Add(Time);
+        hash.Add(Takes);
         foreach (var item in Items) hash.Add(item);
+        foreach (var chance in Chances ?? []) hash.Add(chance);
         return hash.ToHashCode();
     }
 }

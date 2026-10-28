@@ -493,7 +493,7 @@ public class ItemsTests
         DoMove(w, Own(0), new Target(Crate: 1), 2);
         DoMove(w, Own(1), new Target(1, 1), 2);
         Assert.True(w.M.Items.CanSmelt(1));
-        w.M.Items.Smelt(1);
+        w.M.Items.Smelt(1, []);
         Assert.Equal(new Stack?[] { new("hullPlate", 1), new("planks", 2), new("iron", 2), new("scrap", 1), null }, Crate(w, 1));
         w.M.Items.Consume(1, 1);
         Assert.Equal(new Stack("planks", 1), Crate(w, 1)[1]);
@@ -503,7 +503,7 @@ public class ItemsTests
         var full = new Scenario("FF\nFF").FillCrate(1, ("hullPlate", 1), ("planks", 1), ("canister", 15));
         Assert.Equal(new Stack("canister", 5), Crate(full, 1)[2]);
         Assert.False(full.M.Items.CanSmelt(1));
-        Assert.Throws<InvalidOperationException>(() => full.M.Items.Smelt(1));
+        Assert.Throws<InvalidOperationException>(() => full.M.Items.Smelt(1, []));
         // Not a furnace, or no salvage in it.
         Assert.False(new Scenario("KK").FillCrate(1, ("scrapChunk", 1)).M.Items.CanSmelt(1));
         Assert.False(new Scenario("FF\nFF").FillCrate(1, ("planks", 1)).M.Items.CanSmelt(1));

@@ -235,14 +235,17 @@ public partial class InventoryPanel
         _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : burning ? FireOn : FireOut);
         if (_progress != null) _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
         _frame?.Light(burning);
-        _problem.Text = at?.Problem is { } problem ? T(problem) : "";
+        _problem.Text = at?.Problem is { } problem ? T(problem, ("n", Takes(at.Item))) : "";
         _problem.Visible = at?.Problem != null && _tooCold == null;
     }
 
+    /// <summary>How many of <paramref name="item"/> one smelt takes, what "crafting.tooFew" names; 1 for nothing.</summary>
+    private static int Takes(string? item) => item != null ? Content.Items.Get(item).SmeltTakes : 1;
+
     /// <summary>
     /// The open smelter's or grow capsule's: its mark lit while it works (the coils' orange, the lamp's pink) and cold
-    /// blue while it is too cold, its bar, the frame's bolt lit while it works, and under it when it has no room for
-    /// what it makes. What it does not work (rock in a capsule, a seed in a smelter) fills no bar and says nothing.
+    /// blue while it is too cold, its bar, the frame's bolt lit while it works, and under it when it waits for more of its
+    /// input or has no room for what it makes. What it does not work (rock in a capsule, a seed in a smelter) fills no bar and says nothing.
     /// </summary>
     private void ShowFed(Reading reading, int id)
     {
@@ -257,8 +260,9 @@ public partial class InventoryPanel
         // What it draws with its modules: an arc fitted doubles it (0086).
         if (Draw?.Invoke(id) is int draw) _frame?.Describe(T($"tool.{reading.Kind}"), draw);
         _frame?.Light(works);
-        bool full = work != null && _tooCold == null && !crafting.CanSmelt(id);
-        _problem.Text = full ? T("furnace.full") : "";
-        _problem.Visible = full;
+        bool few = crafting.TooFew(id);
+        bool full = work != null && _tooCold == null && !few && !crafting.CanSmelt(id);
+        _problem.Text = few ? T("crafting.tooFew", ("n", Takes(input))) : full ? T("furnace.full") : "";
+        _problem.Visible = few || full;
     }
 }
