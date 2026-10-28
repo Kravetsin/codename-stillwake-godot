@@ -41,7 +41,6 @@
 | `PlanTiles.cs` | The ship's tile layers again, for plans and ghosts. |
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
 | `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
-| `logic/Cloth.cs` | A sheet of cloth: a grid of points under speed and gravity, pinned where told. |
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |

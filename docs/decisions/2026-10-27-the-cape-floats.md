@@ -1,6 +1,6 @@
 # The cape floats
 
-- Status: accepted; built
+- Status: accepted; built; the cloth it floats in superseded by [2026-10-28-the-cape-flows](2026-10-28-the-cape-flows.md), a pose
 - Date: 2026-10-27
 - Builds on [2026-10-27-the-cape-is-worn](2026-10-27-the-cape-is-worn.md)
 

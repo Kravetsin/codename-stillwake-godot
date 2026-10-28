@@ -417,7 +417,8 @@ public sealed class HeroAutopilot
 
     /// <summary>
     /// <c>-- --cape</c>: on the <see cref="Hall"/>'s floor, the axe in hand (the hotbar's first slot), a sprint, a stop and
-    /// a walk back; then the drill (the second), a running jump, a turn and a jump on the spot; last, up the ladder to the
+    /// a walk back, a walk and a run backward still facing left; then the drill (the second), a running jump, a turn and a
+    /// jump on the spot; last, up the ladder to the
     /// floor twenty-one up and off its end: for watching a cape trail, swing and settle, thrown up by a long fall, and the
     /// item carried behind on a run.
     /// </summary>
@@ -432,6 +433,12 @@ public sealed class HeroAutopilot
             Until(Still, (h, p) => p.Stopped(h)),
             Wait(60),
             Hold(walk with { X = -1 }, 70),
+            Until(Still, (h, p) => p.Stopped(h)),
+            Hold(walk with { X = 1, Face = -1 }, 90),
+            Until(Still with { Face = -1 }, (h, p) => p.Stopped(h)),
+            Hold(run with { Face = -1 }, 50),
+            Until(Still with { Face = -1 }, (h, p) => p.Stopped(h)),
+            Wait(40),
             Until(Still, (h, p) => p.Stopped(h)),
             new(Still, (_, p) => p.Steps >= 40, Slot: 2),
             Hold(run with { X = -1 }, 20),
