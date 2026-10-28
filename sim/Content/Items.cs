@@ -18,6 +18,11 @@ namespace Stillwake.Content;
 /// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
 /// seeds. Drawn from the world's Rng as the work completes; its outputs must take the most. None for anything else.
 /// </param>
+/// <param name="Byproducts">
+/// What one gives besides its yields only by chance, each entry a loot roll (<see cref="LootEntry"/>, its <c>OneIn</c> the
+/// chance): ore's quartz. Drawn after <paramref name="Returns"/> as the work completes; its outputs must take every entry's most.
+/// </param>
+/// <param name="SmeltTakes">How many of it one smelt works, all taken as it completes: a fed station waits for them in its input.</param>
 /// <param name="BurnTicks">Ticks a fire, a furnace's or a burner generator's, burns on one: a fuel.</param>
 /// <param name="Equip">Equipment: the kind of a hero's equipment slot it is worn in, of <c>Inventory.Equipment</c>; none for anything else.</param>
 /// <param name="Capacity">
@@ -44,6 +49,8 @@ public sealed record ItemSpec(
     int Heat = 1,
     string Process = "smelt",
     IReadOnlyList<int>? Returns = null,
+    IReadOnlyList<LootEntry>? Byproducts = null,
+    int SmeltTakes = 1,
     int? BurnTicks = null,
     string? Equip = null,
     int? Capacity = null,
@@ -74,35 +81,36 @@ public static class Items
 {
     public static readonly IReadOnlyList<ItemSpec> All =
     [
-        new("scrap", 500),
+        new("scrap", 999),
         // What the nailer fires (Content.Shots), made of scrap at the pod.
-        new("nail", 100),
-        new("iron", 500),
-        new("canister", 5),
-        new("planks", 50, BurnTicks: 400),
-        new("scrapChunk", 50, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
-        new("hullPlate", 20, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
+        new("nail", 250),
+        new("iron", 999),
+        new("canister", 20),
+        new("planks", 200, BurnTicks: 400),
+        new("scrapChunk", 250, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
+        new("hullPlate", 250, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
         // Broken out of asteroids (0054) and dug out of a planet's stone (0077); smelted into silicon at a furnace or the
         // electric smelter. Players see "Rock".
-        new("rock", 50, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
+        new("rock", 999, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         // Dug out of a planet's caves (0080): copper ore from its veins, an ingot an ore at the furnace's heat, as slow as rock.
-        new("copperOre", 50, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
-        new("copper", 100),
+        new("copperOre", 250, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
+        new("copper", 250),
         // From ice veins and crystals; nothing melts it yet: the jump's and the engine's cost to come.
-        new("ice", 50),
+        new("ice", 250),
         // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
-        new("crystal", 50),
-        // Off the violet glowcaps: for the spore bed to come.
-        new("spore", 50),
+        new("crystal", 100),
+        // Off the violet glowcaps: the farm's second crop, grown as a seed is into less biomass but giving back 1.1 spores on
+        // average, so a farm of them keeps itself where seeds slowly run out (0060). Had only on a planet.
+        new("spore", 250, Yields: [("biomass", 3)], SmeltTicks: 9600, Process: "grow", Returns: [20, 50, 30]),
         // Flakes out of the glinting mica in cave walls: for sensors and the radar to come.
-        new("mica", 50),
+        new("mica", 250),
         // Lodestone, a natural magnet, out of the heat's cracks over the bedrock: a motor's magnet.
-        new("magnetite", 50),
+        new("magnetite", 250),
         // Out of the ruins (0085): scrap of their alloy, a cell of wall dug or a spire cache opened; walls of it built.
-        new("alloyScrap", 50),
+        new("alloyScrap", 250),
         // What the arc makers' homes give (0091): the cloth of their rugs and banners, which burns till the ship makes things of
         // it; a whole lamp of theirs, kept till its blueprint comes.
-        new("cloth", 50, BurnTicks: 200),
+        new("cloth", 200, BurnTicks: 200),
         new("arcLamp", 10),
         // A shard of the sky the arc makers built round (0096): four from a spire's cradle, one from a home's niche; each is an
         // arc module (0086). Kept, as tools are, when a hero dies.
@@ -131,45 +139,49 @@ public static class Items
         new("cargoHold", 1, Group: ItemGroup.Other),
         new("podCluster", 1, Group: ItemGroup.Other),
         // Parts, made at the Fabricator (Crafts) of materials; then assemblies, of parts.
-        new("wire", 100),
-        new("plate", 100),
-        new("gear", 50),
-        new("tube", 100),
-        new("rotor", 20),
+        new("wire", 250),
+        new("plate", 250),
+        new("gear", 250),
+        new("tube", 250),
+        new("rotor", 100),
         // A rotor wound with copper round a lodestone, at the Former: what radar and the engine will be built of.
-        new("motor", 20),
-        new("frame", 20),
-        new("coil", 50),
+        new("motor", 50),
+        new("frame", 100),
+        new("coil", 200),
         // Smelted from rock, and smelted on into glass only where it is hot enough: the electric smelter (0057).
-        new("silicon", 100, Yields: [("glass", 1)], SmeltTicks: 120, Heat: 2),
-        new("glass", 50),
+        new("silicon", 250, Yields: [("glass", 1)], SmeltTicks: 120, Heat: 2),
+        new("glass", 250),
         // Salvaged from cable racks and derelicts (Loot), and made at the circuit assembler of silicon and wire (0057).
-        new("circuit", 20),
+        new("circuit", 100),
         // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
-        new("solarCell", 20),
+        new("solarCell", 100),
         // Two circuits driving a rotor through a coil, made at the circuit assembler: what slides a launch platform's deck
         // open, the last part built of what space gives (the drop pod's, to come).
-        new("deckDrive", 20),
+        new("deckDrive", 50),
         // The ship computer's and the radar's parts, at the circuit assembler of what space gives: the last made before a planet.
-        new("processor", 10),
-        new("display", 10),
-        new("transceiver", 10),
+        new("processor", 50),
+        new("display", 50),
+        new("transceiver", 50),
         // The engine's parts, of what a planet gives (ruins' alloy, the deepest band's magnetite in a motor, the deep's crystal):
         // the last made. A nozzle and a fuel pump at the Former, an igniter at the circuit assembler.
-        new("nozzle", 10),
-        new("fuelPump", 10),
-        new("igniter", 10),
+        new("nozzle", 20),
+        new("fuelPump", 20),
+        new("igniter", 20),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
         // average, so the farm slowly eats seeds and supply pods refill it. Biomass smelts into biofuel.
-        new("seed", 10, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
+        new("seed", 100, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
-        new("soil", 20),
-        new("biomass", 20, Yields: [("biofuel", 1)], SmeltTicks: 160),
+        new("soil", 999),
+        new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160),
         // The engine's fuel, the one item its tank takes; till the engine runs, the furnace and the burner generator burn it four times
         // as long as a plank.
-        new("biofuel", 20, BurnTicks: 1600),
+        new("biofuel", 100, BurnTicks: 1600),
+        // What a planet's grazers give besides biomass (Creatures): hide for the cape; fat, a fuel burning twice a plank, or
+        // smelted at the furnace into biofuel as biomass is, so hunting fuels the ship. Fed or shift-clicked in it is fuel.
+        new("hide", 100),
+        new("fat", 100, Yields: [("biofuel", 1)], SmeltTicks: 160, BurnTicks: 800),
         // Tools, made as parts are.
         // Every hero comes aboard with one (Inventory.Kit, 0107): it builds plans and takes marks apart.
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),

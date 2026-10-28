@@ -10,20 +10,40 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     /// <summary>
-    /// Every fed station's outputs take what any one item of its process makes, with the most of itself it may give
-    /// back: a grow capsule's two, biomass and a seed's stack (0060).
+    /// Every fed station's outputs take the most any one smelt of its process makes, with the most of itself it may give
+    /// back and every byproduct at its most (<c>ItemsModule.MostMade</c>): a grow capsule's two, biomass and a seed's stack (0060).
     /// </summary>
     [Fact]
-    public void ItemsSmeltAtEveryFedStationOfTheirProcessWhoseOutputsTakeAnyOneItemsYieldsAndReturns()
+    public void ItemsSmeltAtEveryFedStationOfTheirProcessWhoseOutputsTakeTheMostOneSmeltMakes()
     {
         foreach (var station in Stations.All.Where(s => s.Fed))
         {
             var spec = Machines.Get(station.Machine);
             int outputs = spec.Slots!.Value - spec.Inputs!.Value;
             foreach (var item in Content.Items.All.Where(i => i.Yields != null && i.Process == station.Process))
+                Assert.True(SlotsFor(Sim.Items.ItemsModule.MostMade(item)) <= outputs, $"{station.Machine}: {item.Id}");
+        }
+    }
+
+    /// <summary>
+    /// A smelt takes from one up to a stack of its input, its input slot holding them all; byproducts are loot rolls of
+    /// what is worked, a one-in of two or more where given (one in one is a yield), a count never negative.
+    /// </summary>
+    [Fact]
+    public void SmeltsTakeAtMostAStackAndByproductsAreRollsOfWhatIsWorked()
+    {
+        foreach (var item in Content.Items.All)
+        {
+            Assert.InRange(item.SmeltTakes, 1, item.Stack);
+            if (item.SmeltTakes > 1) Assert.NotNull(item.Yields);
+            if (item.Byproducts is not { } byproducts) continue;
+            Assert.NotNull(item.Yields);
+            foreach (var by in byproducts)
             {
-                IReadOnlyList<(string Item, int Count)> made = item.Returns is { } back ? [.. item.Yields!, (item.Id, back.Count - 1)] : item.Yields!;
-                Assert.True(SlotsFor(made) <= outputs, $"{station.Machine}: {item.Id}");
+                Assert.True(Content.Items.TryGet(by.Item, out _), $"{item.Id}: {by.Item}");
+                Assert.InRange(by.Min, 0, by.Max);
+                Assert.True(by.Max > 0, $"{item.Id}: {by.Item}");
+                Assert.True(by.OneIn is null or >= 2, $"{item.Id}: {by.Item}");
             }
         }
     }
@@ -46,7 +66,7 @@ public partial class ContentTests
             Assert.All(weights, w => Assert.True(w >= 0, item.Id));
             Assert.True(weights.Sum() > 0, item.Id);
         }
-        Assert.Equal(["seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
+        Assert.Equal(["spore", "seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
         Assert.Equal(["growCapsule"], Stations.All.Where(s => s.Process == "grow").Select(s => s.Machine));
     }
 
@@ -60,7 +80,9 @@ public partial class ContentTests
         foreach (var spec in fuels)
         {
             Assert.True(spec.BurnTicks > 0, spec.Id);
-            Assert.Null(spec.Yields);
+            Assert.NotEqual(ItemGroup.Salvage, spec.Group);
+            // A fuel that smelts (fat) smelts into a fuel burning longer, so smelting it is worth the fire.
+            foreach (var (made, _) in spec.Yields ?? []) Assert.True(Content.Items.Get(made).BurnTicks > spec.BurnTicks, spec.Id);
         }
         int fastest = Content.Items.All.Min(s => s.SmeltTicks ?? int.MaxValue);
         Assert.True(fuels.Max(s => s.BurnTicks!.Value) > fastest);
@@ -253,8 +275,9 @@ public partial class ContentTests
         foreach (var item in Content.Items.All)
             foreach (var (made, _) in item.Yields ?? []) had.Add(made);
         foreach (var craft in Crafts.All) had.Add(craft.Item);
-        // What a planet's growth gives (0080).
+        // What a planet's growth gives (0080), and what creatures drop.
         foreach (var (item, _) in Flora.Every.SelectMany(k => k.Yields)) had.Add(item);
+        foreach (var entry in Content.Creatures.All.SelectMany(s => s.Yields)) had.Add(entry.Item);
         var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
         foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
     }
@@ -290,14 +313,18 @@ public partial class ContentTests
 
     /// <summary>
     /// <see cref="Reachable(IReadOnlyList{Station}, string[])"/>, and with <paramref name="planet"/> what a planet's ground
-    /// and growth give besides (0077, 0080), dug and felled with the axe the wreck starts knowing.
+    /// and growth give besides (0077, 0080), dug and felled with the axe the wreck starts knowing, and what the creatures living
+    /// on a planet type drop.
     /// </summary>
     private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, bool planet, params string[] never)
     {
         var had = new HashSet<string>(StringComparer.Ordinal);
         if (planet)
-            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.Every.SelectMany(k => k.Yields)))
+        {
+            var hunted = PlanetTypes.All.SelectMany(t => t.Creatures).SelectMany(h => Content.Creatures.Get(h.Species).Yields).Select(y => (y.Item, 0));
+            foreach (var (item, _) in Materials.All.Where(m => m.Breaks).SelectMany(m => m.Cost).Concat(Flora.Every.SelectMany(k => k.Yields)).Concat(hunted))
                 if (!never.Contains(item)) had.Add(item);
+        }
         foreach (var (item, _) in DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Where(k => !never.Contains(k.Item)))
         {
             had.Add(item);
@@ -371,6 +398,28 @@ public partial class ContentTests
     }
 
     /// <summary>
+    /// Hide and fat come off a planet's grazers alone, so nothing before the first landing is made of them: aboard neither,
+    /// nor the cape of the hide; on a planet both, and the cape. Without its hide, no cape; fat smelts into biofuel there.
+    /// </summary>
+    [Fact]
+    public void HideAndFatComeOffAPlanetsGrazersAloneAndTheCapeNeedsTheHide()
+    {
+        var (aboard, opened) = Reachable(Stations.All);
+        Assert.DoesNotContain("hide", aboard);
+        Assert.DoesNotContain("fat", aboard);
+        Assert.DoesNotContain(Cape.Item, opened);
+        var (down, known) = Reachable(Stations.All, planet: true);
+        Assert.Contains("hide", down);
+        Assert.Contains("fat", down);
+        Assert.Contains(Cape.Item, known);
+        Assert.DoesNotContain(Cape.Item, Reachable(Stations.All, planet: true, "hide").Items);
+        Assert.Equal([("biofuel", 1)], Content.Items.Get("fat").Yields);
+        // The grazers drop them, the sentry its scrap.
+        Assert.All(Content.Creatures.All.Where(s => s.Faction == Content.Creatures.Grazer), s => Assert.Equal(2, s.Yields.Count(y => y.Item is "hide" or "fat")));
+        Assert.DoesNotContain(Content.Creatures.Sentry.Yields, y => y.Item is "hide" or "fat");
+    }
+
+    /// <summary>
     /// The engine is the last thing opened (2026-10-25-the-engine-through-the-hull): never aboard, only of a planet's
     /// parts, and with any one of the ruins' alloy, the deepest band's magnetite or the deep's crystal missing, neither it nor
     /// the part made of it. Its card is the ship tab's last.
@@ -390,6 +439,24 @@ public partial class ContentTests
             .Concat(Builds.All.Where(b => b.Menu?.Tab == MenuTabs.Ship).Select(b => b.Menu!.Order)).ToList();
         Assert.Equal(ship.Max(), Machines.Get("engine").Menu!.Order);
         Assert.Single(Machines.All, m => m.Menu?.Order == ship.Max() && m.Menu.Tab == MenuTabs.Ship);
+    }
+
+    /// <summary>
+    /// The way down is had aboard: every blueprint and craft opens from what space gives alone but those named here, made of
+    /// a planet's things, and the drop pod and its platform among the rest. A recipe that comes to need a planet's item before
+    /// the first landing, a softlock, shows as a change to this list.
+    /// </summary>
+    [Fact]
+    public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
+    {
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy"];
+        var (_, known) = Reachable(Stations.All);
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
+        var locked = recipes.Where(id => !known.Contains(id)).Distinct().Order(StringComparer.Ordinal).ToArray();
+        // The whole list in the message, so a failure names every recipe that moved, not the first few.
+        Assert.True(locked.SequenceEqual(planetary.Order(StringComparer.Ordinal)), $"opened only on a planet: {string.Join(", ", locked.Select(id => $"\"{id}\""))}");
+        Assert.Contains("dropPod", known);
+        Assert.Contains(Builds.Platform, known);
     }
 
     /// <summary>

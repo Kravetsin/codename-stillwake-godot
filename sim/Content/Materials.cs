@@ -6,7 +6,7 @@ namespace Stillwake.Content;
 /// <param name="Code">Stored in saves instead of the name: never reuse or renumber a code.</param>
 /// <param name="Strength">
 /// A natural wall's hit points: the damage of weapons' hits (0054) that breaks it out (0077). <see cref="Unbreakable"/>
-/// for one nothing breaks, bedrock and lava. Unused for hull, which is taken apart with marks.
+/// for one nothing breaks, bedrock and lava. A hull wall's: the least power of a meteor that breaks it (2026-10-28-hull-meteors).
 /// </param>
 /// <param name="Leak">
 /// Oxygen units lost every <see cref="Air.LeakEvery"/> ticks (ten minutes) through one cell of it that an

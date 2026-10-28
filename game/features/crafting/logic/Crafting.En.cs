@@ -15,6 +15,7 @@ public static partial class En
         ["crafting.noInputs"] = "This station has no inputs: it is paid by hand",
         ["crafting.paid"] = "Only a craft from the inputs repeats",
         ["crafting.tooCold"] = "Needs more heat · {station}",
+        ["crafting.tooFew"] = "Takes {n} at a time",
         ["crafts.queue"] = "Queue",
         ["station.lifepod"] = "Fabricator",
         ["station.former"] = "Former",

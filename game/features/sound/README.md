@@ -77,6 +77,7 @@ Each feature owns its players as children, never in a static.
   friend's from `Items.Running` and its `Busy` bit; lava's hiss (`LavaBurn`). `building/DigView.cs` a wall broken, by
   material. `flora/FloraView.cs`, `flora/CaveView.cs`, `ruins/HomesView.cs` a growth felled, by kind (`Sound.Unheard`
   none); cave drips. `grid/LavaView.cs` the rumble at the nearest open lava and its bubbles.
+- `hazards/MeteorView.cs`: a meteor, `Break` or `Chop`.
 - `atmosphere/AirView.cs` (0033): the hiss at the nearest venting stream, the hum at the nearest vent with oxygen
   behind it (the vents', not the air's).
 

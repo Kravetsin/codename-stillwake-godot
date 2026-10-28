@@ -39,9 +39,14 @@ public interface ICraftingQueries
     int Progress(int machine);
     /// <summary>
     /// Whether fed station <paramref name="machine"/> has what it can work: an item of its process in its input, at
-    /// most as hot as it is, its yields fitting its outputs. What lights a furnace's fire.
+    /// most as hot as it is, as many as one smelt takes, the most it may make fitting its outputs. What lights a furnace's fire.
     /// </summary>
     bool CanSmelt(int machine);
+    /// <summary>
+    /// Whether fed station <paramref name="machine"/>'s input holds what it works, hot enough, but fewer than one smelt
+    /// takes (<c>ItemSpec.SmeltTakes</c>): it waits for more. What its panel says.
+    /// </summary>
+    bool TooFew(int machine);
     /// <summary>
     /// The work one of what fed station <paramref name="machine"/>'s input holds takes there, in thousandths of a tick
     /// at full speed, hot enough or not; null when it holds nothing, or nothing of the station's process. What its
@@ -119,6 +124,11 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     public bool TooCold(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input
         && Worked(station, input) is { } spec && spec.Heat > station.Heat;
+
+    public bool TooFew(int machine) =>
+        _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station
+        && _items.Crate(machine) is [{ } input, ..] && Processes(station, input.Item)
+        && input.Count < Content.Items.Get(input.Item).SmeltTakes;
 
     public int? WorkOf(int machine) =>
         _grid.MachineById(machine) is { } m && StationOf(m) is { Fed: true } station && InputOf(machine) is { } input
@@ -284,9 +294,8 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     /// <summary>
     /// A fed station a tick on from <paramref name="was"/>: work on another item, or none, begins again; with
-    /// what it can work and its energy, it works a tick, and at the item's work turns one of it into its yields
-    /// (<c>IItemsOps.Smelt</c>), a crop giving back the seeds the world's Rng draws (<see cref="Returned"/>).
-    /// Null when nothing is part-way.
+    /// what it can work and its energy, it works a tick, and at the item's work turns one smelt of it into its yields
+    /// (<c>IItemsOps.Smelt</c>) and what the world's Rng draws besides (<see cref="Drawn"/>). Null when nothing is part-way.
     /// </summary>
     private Smelt? Smelt(Machine m, Station station, Smelt? was)
     {
@@ -299,15 +308,27 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         int progress = (kept?.Progress ?? 0) + gain;
         var spec = Content.Items.Get(input!);
         if (progress < spec.SmeltTicks!.Value * 1000) return new Smelt(m.Id, input!, progress);
-        _itemsOps.Smelt(m.Id, Returned(spec));
+        _itemsOps.Smelt(m.Id, Drawn(spec));
         // Rested at once when that was its last: it draws nothing from the next tick, as it did by its empty input.
         Rest(m, !(InputOf(m.Id) is { } next && CanSmelt(m, station, next)));
         return null;
     }
 
     /// <summary>
+    /// What one smelt of <paramref name="spec"/> makes besides its yields as its work completes, drawn from the world's
+    /// Rng, stations in machine id order: the seeds its <c>Returns</c> give back (<see cref="Returned"/>), then its
+    /// <c>Byproducts</c> entry by entry, as loot is (<see cref="Loots.Roll"/>). No draw for an item without either.
+    /// </summary>
+    private IReadOnlyList<(string Item, int Count)> Drawn(ItemSpec spec)
+    {
+        int back = Returned(spec);
+        var by = spec.Byproducts is { } entries ? Loots.Roll(entries, Random) : [];
+        return back > 0 ? [(spec.Id, back), .. by] : by;
+    }
+
+    /// <summary>
     /// How many of <paramref name="spec"/> one gives back as its work completes: drawn from the world's Rng by its
-    /// <c>Returns</c> weights, stations in machine id order; none, and no draw, for an item without them.
+    /// <c>Returns</c> weights; none, and no draw, for an item without them.
     /// </summary>
     private int Returned(ItemSpec spec)
     {

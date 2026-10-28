@@ -21,9 +21,9 @@ A living document: what is decided about the game and what is still open. Techni
   inside one, and every place is drifted through like the first. From then on the ship is improved
   and production automated, to bring the technology that fends off what is out there and reaches
   further places.
-- **Places and their dangers:** the starting space is safe — debris only, now and then a random
-  event such as a great cluster of debris or another wreck; rare meteors may come once the ship has
-  grown. Harder places bring their own dangers (see meteors below).
+- **Places and their dangers:** the starting space is mild — debris, light meteors every few minutes
+  that break a weak hull now and then, and now and then a random event such as a great cluster of
+  debris or another wreck. Harder places bring their own dangers (see meteors below).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
@@ -72,7 +72,8 @@ A living document: what is decided about the game and what is still open. Techni
   seeds and a little soil; soil is pressed at the Former of asteroid ore and planks; a grow capsule, a glass capsule on a base built of soil, glass, a frame,
   a circuit and wire, grows a planted seed under its pink lamp on power in eight minutes, the plant rising through
   four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
-  them. Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
+  them; a planet's spores grow the same way into 3 biomass and 1.1 spores on average, a farm that keeps itself.
+  Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
   ([0060](decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)).
 - **The engine** is the last thing built, of a planet's parts: a nozzle of the ruins' alloy and copper, a fuel pump round a
   motor of the deepest magnetite, an igniter of a crystal. It stands at the stern, its nozzle out through the hull into
@@ -97,6 +98,10 @@ A living document: what is decided about the game and what is still open. Techni
 - **Dangers:** yes — the game can hurt you: the cold and the vacuum, lava, grazers that ram when struck, and sentries on
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once. Which others is open.
+- **Hunting:** a planet's grazers drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
+  sentries, scrap. Fat burns twice as long as a plank, or smelts at the furnace into biofuel as biomass does, so hunting
+  fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and of the cold. Both are a
+  planet's, so nothing needed before the first landing is made of them.
 - **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
   two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
   the gun's damage and its projectile's added, so guns to come fire the same nails their own way
@@ -152,10 +157,12 @@ A living document: what is decided about the game and what is still open. Techni
 - **Light comes from sources, air has a view of its own.** Lamps on the power network, helmet lamps
   and starlight through windows light the ship; a dark room means no light, never no air. Air is
   seen in its own view, as in Oxygen Not Included: the air overlay, cell by cell.
-- **Meteors belong to places.** The starting space is calm; meteors come where the ship goes, such as
-  the rings around a planet. A place throws meteors of some power, and a hull cell breaks only if the
-  power reaches its material's strength: a strong hull is safe early and gives way in harder places,
-  which asks for a better one.
+- **Meteors belong to places.** Each place throws meteors of some power at the hull from the side the
+  drift comes from, seen as a streak a moment before they strike; a hull cell breaks only if the power
+  reaches its material's strength. The starting space throws light ones from the start, every few
+  minutes: scrap gives way often, iron seldom, concrete never, and the hole stays planned, so repair is
+  a steady cost. Harder places, such as the rings around a planet, throw stronger ones, which asks for
+  a better hull (hull-meteors).
 
 ## Open
 
