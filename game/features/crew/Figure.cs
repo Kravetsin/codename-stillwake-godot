@@ -10,17 +10,16 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// A hero's figure (apps/game/src/features/crew/figure.ts): helmet and visor, body, air pack, two arms
+/// A hero's figure (apps/game/src/features/crew/figure.ts): a head with its face and hair, body, two arms
 /// and two legs that bend at shoulders and elbows, hips and knees, each part a picture from
-/// <c>art/hero_*.png</c> recoloured into its suit (<see cref="Wear"/>), lit where it stands as everything
+/// <c>art/hero_*.png</c> recoloured into its suit and skin (<see cref="Wear"/>): in a suit's helmet, the face behind its
+/// glass, and its body with the air pack, or bare, the hair and a jumpsuit. Lit where it stands as everything
 /// in the ship is, the rig moving and turning the parts smoothly. <see cref="Show"/> places it at the
 /// hero's feet and poses it, its boots heard stepping, jumping and landing and kicking up dust: this
 /// player's own hero heard the same anywhere, any other from where it is in the world; neither while floating.
 /// </summary>
 public partial class Figure : Node2D
 {
-    /// <summary>The far arm and leg, in the suit's colour darkened by this much, so the body reads as round.</summary>
-    private const double FarShade = 0.7;
     /// <summary>Milliseconds for a limb to settle into a new angle: a pose change eases, a stride barely lags.</summary>
     private const double SettleMs = 30;
     /// <summary>Slower for the head, so it follows the pointer rather than snapping to it.</summary>
@@ -43,6 +42,7 @@ public partial class Figure : Node2D
     private static readonly Dictionary<string, Vector2> Joints = new()
     {
         ["helmet"] = new(6.5f, 12),
+        ["hair"] = new(8.5f, 14),
         ["torso"] = new(6, 0),
         ["pack"] = new(0, 0),
         ["upperArm"] = new(2.5f, 2.5f),
@@ -65,6 +65,16 @@ public partial class Figure : Node2D
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp, _lens;
+    /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
+    private readonly Sprite2D _pack, _shell, _visor, _hair, _beard, _headPart, _facePart;
+    /// <summary>The head and face again, added unlit under the helmet's glass while its lamp is on: the face lit by its spill.</summary>
+    private readonly Sprite2D _headLit, _faceLit;
+    private readonly Node2D _faceLight;
+    private const float FaceLight = 0.6f;
+    private static readonly Material Added = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    /// <summary>Every figure wears look 0 until players pick theirs (docs/plans/suits.md, S-3).</summary>
+    private static readonly (int Skin, int Hair, int HairColour, int Face, int Beard) Look = default;
+    private bool _helmetWorn, _bodyWorn, _lampWorn;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
     private static readonly Vector2 VisorOn = new(4, -5);
@@ -194,7 +204,7 @@ public partial class Figure : Node2D
         frontLeg.Position = new Vector2((float)Rig.HipApart, (float)-Rig.Hip);
         backArm.Position = frontArm.Position = new Vector2(0, (float)-Rig.Shoulder);
         var torso = new Node2D();
-        var pack = Part("pack");
+        var pack = _pack = Part("pack");
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
         var chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
@@ -204,9 +214,15 @@ public partial class Figure : Node2D
         torso.AddChild(pack);
         torso.AddChild(_jetpack);
         torso.AddChild(chest);
-        // The helmet turns at the neck.
+        // The head turns at the neck: its face shows through the helmet's glass; bare, the hair over it.
         _helmet = new Node2D { Position = new Vector2(0, (float)-Rig.Neck) };
-        _helmet.AddChild(Part("helmet"));
+        (_headPart, _facePart) = (Part("head", joint: "helmet"), Part("face", joint: "helmet"));
+        _faceLight = new Node2D { Modulate = new Color(new Color("fff6ce") * FaceLight, 1) };
+        _faceLight.AddChild(_headLit = new Sprite2D { Centered = false, Offset = _headPart.Offset, Material = Added });
+        _faceLight.AddChild(_faceLit = new Sprite2D { Centered = false, Offset = _facePart.Offset, Material = Added });
+        (_beard, _hair) = (Part("beard", joint: "hair"), Part("hair", joint: "hair"));
+        (_shell, _visor) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"));
+        foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair, _shell, _visor }) _helmet.AddChild(n);
         // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
         _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
         Lit.Set(_headLamp);
@@ -351,11 +367,15 @@ public partial class Figure : Node2D
         }
     }
 
-    /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow.</summary>
+    /// <summary>Whether the hero wears the helmet lamp (0077): it shows on the helmet's brow and shines, only on a helmet.</summary>
     public bool HeadLamp
     {
         get => _headLamp.Visible;
-        set => _headLamp.Visible = value;
+        set
+        {
+            _lampWorn = value;
+            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn;
+        }
     }
 
     /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
@@ -532,19 +552,38 @@ public partial class Figure : Node2D
         }
     }
 
-    /// <summary>The figure in a suit of <paramref name="colour"/>, 0xRRGGBB: its pictures recoloured, when it changes.</summary>
-    public void Wear(int colour)
+    /// <summary>
+    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> and
+    /// <paramref name="body"/> or not (2026-10-27-suits-are-worn): its pictures recoloured, when any of it changes.
+    /// </summary>
+    public void Wear(int colour, bool helmet = true, bool body = true)
     {
-        if (_colour == colour) return;
-        _colour = colour;
-        int far = Suits.Shade(colour, FarShade);
-        foreach (var (sprite, part, isFar) in _parts) sprite.Texture = SuitArt.Of(part, isFar ? far : colour);
+        if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body) return;
+        (_colour, _helmetWorn, _bodyWorn) = (colour, helmet, body);
+        foreach (var (sprite, part, isFar) in _parts) sprite.Texture = SuitArt.Of(PictureOf(part), colour, Look.Skin, Look.HairColour, isFar);
+        _pack.Visible = body;
+        _shell.Visible = _visor.Visible = helmet;
+        _hair.Visible = !helmet;
+        _beard.Visible = !helmet && Look.Beard > 0;
+        (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
+        HeadLamp = _lampWorn;
     }
 
-    /// <summary>A part of the pixel-art hero, its joint at the origin, lit where it stands.</summary>
-    private Sprite2D Part(string name, bool far = false)
+    /// <summary>The picture a part is drawn with: bare, the jumpsuit's in place of the suit's; the look's face, hair and beard.</summary>
+    private string PictureOf(string part) => part switch
     {
-        var sprite = new Sprite2D { Centered = false, Offset = -Joints[name] };
+        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when !_bodyWorn => "jumpsuit_" + part,
+        "face" => $"face_{Look.Face}",
+        "hair" => $"hair_{Look.Hair}",
+        "beard" => $"beard_{Math.Max(Look.Beard - 1, 0)}",
+        "shell" => "helmet_shell",
+        _ => part,
+    };
+
+    /// <summary>A part of the pixel-art hero, its joint (its own or <paramref name="joint"/>'s) at the origin, lit where it stands.</summary>
+    private Sprite2D Part(string name, bool far = false, string? joint = null)
+    {
+        var sprite = new Sprite2D { Centered = false, Offset = -Joints[joint ?? name] };
         Lit.Set(sprite);
         _parts.Add((sprite, name, far));
         return sprite;
@@ -843,29 +882,40 @@ public partial class Figure : Node2D
 }
 
 /// <summary>
-/// The hero's pictures in any suit (<c>textureOf</c> of art.ts): <c>art/hero_*.png</c> are drawn in
-/// <see cref="Suits.Drawn"/>, and each of its shades becomes the same shade of another; gear, visor, pack and
-/// the plan's sheet keep their colours. Made once a part and colour.
+/// The hero's pictures in any suit and skin (<c>textureOf</c> of art.ts): <c>art/hero_*.png</c> are drawn in
+/// <see cref="Suits.Drawn"/>, <see cref="HeroLooks.SkinDrawn"/> and <see cref="HeroLooks.HairDrawn"/>, and each of their
+/// shades becomes the same shade of another; gear, eyes, glass and the plan's sheet keep their colours. Made once a
+/// part, colour, skin and hair.
 /// </summary>
 public static class SuitArt
 {
-    private static readonly Dictionary<(string Part, int Colour), Texture2D> Made = new();
+    /// <summary>The far arm and leg, in the suit's colour and skin darkened by this much, so the body reads as round.</summary>
+    public const double FarShade = 0.7;
 
-    public static Texture2D Of(string part, int colour)
+    private static readonly Dictionary<(string Part, int Colour, int Skin, int Hair, bool Far), Texture2D> Made = new();
+
+    public static Texture2D Of(string part, int colour, int skin = HeroLooks.SkinDrawn, int hair = HeroLooks.HairDrawn, bool far = false)
     {
-        if (Made.TryGetValue((part, colour), out var kept)) return kept;
+        var key = (part, colour, skin, hair, far);
+        if (Made.TryGetValue(key, out var kept)) return kept;
         var image = GD.Load<Texture2D>($"res://art/hero_{part}.png").GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
-        int[] from = Suits.ShadesOf(Suits.Drawn), to = Suits.ShadesOf(colour);
-        if (colour != Suits.Drawn)
-            for (int y = 0; y < image.GetHeight(); y++)
-                for (int x = 0; x < image.GetWidth(); x++)
-                {
-                    var c = image.GetPixel(x, y);
-                    int at = Array.IndexOf(from, (c.R8 << 16) | (c.G8 << 8) | c.B8);
-                    if (c.A8 > 0 && at >= 0) image.SetPixel(x, y, new Color((uint)(to[at] << 8 | c.A8)));
-                }
-        return Made[(part, colour)] = ImageTexture.CreateFromImage(image);
+        var swaps = new Dictionary<int, int>();
+        void Swap(int[] from, int[] to)
+        {
+            for (int i = 0; i < from.Length; i++) swaps[from[i]] = far ? Suits.Shade(to[i], FarShade) : to[i];
+        }
+        Swap(Suits.ShadesOf(Suits.Drawn), Suits.ShadesOf(colour));
+        Swap(HeroLooks.Skins[HeroLooks.SkinDrawn], HeroLooks.Skins[skin]);
+        Swap(HeroLooks.Hairs[HeroLooks.HairDrawn], HeroLooks.Hairs[hair]);
+        for (int y = 0; y < image.GetHeight(); y++)
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                var c = image.GetPixel(x, y);
+                if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
+                    image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
+            }
+        return Made[key] = ImageTexture.CreateFromImage(image);
     }
 }

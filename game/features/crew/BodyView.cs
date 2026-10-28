@@ -76,7 +76,8 @@ public partial class BodyView : Node2D
             shown!.Seen = true;
             int colour = Suits.Of(m.Players, pile.Peer);
             var hero = new Hero((int)Math.Round(pile.X), (int)Math.Round(pile.Y), 0, 0, false, pile.Peer % 2 == 0 ? 1 : -1);
-            shown.Figure.Wear(colour);
+            var (helmet, body) = Suits.WornBy(m.Items, pile.Peer);
+            shown.Figure.Wear(colour, helmet, body);
             // On its back aboard and afloat alike, found already lying: long past the fall.
             shown.Figure.Show(hero, Pose.Lie, 0, false, made ? Poses.Faint.Ms * 2 : elapsedMs);
             var beacon = new Vector2((float)(pile.X / Hero.Unit), (float)(pile.Y / Hero.Unit) - BeaconUp) * ShipCamera.Cell;

@@ -4,13 +4,14 @@ using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Landing;
 using Stillwake.Sim.Players;
 
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// Each hero sitting in a drop pod, strapped in behind its porthole: its own figure in its suit, seen through the glass only
+/// Each hero sitting in a drop pod, strapped in behind its porthole: its own figure as dressed, seen through the glass only
 /// (<c>dropPod_porthole.png</c>, the pod's dim inside, clips it), the same for every peer; the hero's walking body is hidden
 /// while it sits (<see cref="HeroView"/>). The seats are read every frame, a handful at most, so the frame a hero leaves its
 /// body shows and the porthole empties together.
@@ -23,18 +24,20 @@ public partial class SeatedHeroes : Node2D
     private readonly IGridQueries _grid;
     private readonly LandingModule _landing;
     private readonly IPlayersQueries _players;
+    private readonly IItemsQueries _items;
     /// <summary>Each pod sat in: its porthole, the figure in it and whose it is, made again for another hero.</summary>
     private readonly Dictionary<int, (Sprite2D Porthole, Figure Figure, int Peer)> _shown = [];
 
     /// <summary>A pod still coming down, drawn by the landing feature: nobody shows in it till it stands.</summary>
     private readonly Func<int, bool> _held;
 
-    public SeatedHeroes(IGridQueries grid, LandingModule landing, IPlayersQueries players, Func<int, bool>? held = null)
+    public SeatedHeroes(IGridQueries grid, LandingModule landing, IPlayersQueries players, IItemsQueries items, Func<int, bool>? held = null)
     {
         _held = held ?? (_ => false);
         _grid = grid;
         _landing = landing;
         _players = players;
+        _items = items;
         ZIndex = Layers.Screens;
     }
 
@@ -58,7 +61,8 @@ public partial class SeatedHeroes : Node2D
             }
             // Over the pod's picture, which rises over its footprint as a tall machine's does (0099).
             shown.Porthole.Position = new Vector2(pod.Cell % _grid.Width, pod.Cell / _grid.Width - ShipTiles.RiseOf(pod.Kind)) * ShipCamera.Cell;
-            shown.Figure.Wear(colour);
+            var (helmet, body) = Suits.WornBy(_items, seat.Peer);
+            shown.Figure.Wear(colour, helmet, body);
             shown.Figure.Show(new Hero(0, 0, 0, 0, false, 1), Pose.Strapped, 0, false, delta * 1000);
         }
         foreach (var pod in _shown.Keys.Where(p => !seated.Contains(p)).ToList()) Free(pod);

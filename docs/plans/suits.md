@@ -9,9 +9,7 @@ each player choose that person's appearance, which the lifepod prints the next t
 the user on 2026-10-27, after a design and its review; the design's reasoning goes into S-1's ADR. One pool of air
 rather than lungs beside a suit: every danger already drains one pool, and the user wants nothing else to change.
 
-**Order and PRs.** S-0 is done; S-1 needs nothing from it; S-2 needs S-0 merged;
-S-3 needs S-2. Each task is its own branch and PR. S-1 touches `sim/Crew`, `sim/Items` and many tests through
-`Crew.Suit`: whoever takes it tells the other developer, who keeps out of `sim/Crew` until it merges.
+**Order and PRs.** S-0, S-1 and S-2 are done; S-3 is next. Each task is its own branch and PR.
 
 **Words.**
 - *Air* is the hero's one pool of oxygen (today `Hero.Suit`). Its *capacity* is the worn suit's `Tank`, or `Crew.Lungs`
@@ -137,16 +135,14 @@ dangers; glossary "скафандр".
 **Frames:** `--suit` (a new demo, `new-demo` skill): printed bare at the pod, the suit taken at the Fabricator and
 worn, taken off in the starting room, a walk out bare: frost at once, the gauge at 20 emptying.
 
-### S-2 — The person under the suit
+### S-2 — The person under the suit ✅
 
-- The figure gains head, face, hair, beard and hand parts from S-0 (hair and beard on their own pivot, drawn only
-  bare), a jumpsuit in place of the suit's torso, arms and legs while bare (the helmet and air pack gone), and the
-  face behind the visor while suited, lit by the helmet lamp where one is worn.
-- Skin and hair recoloured by shade swap from their ramps, made once a part and colour, as `SuitArt` does; the ramps
-  and counts in `game/Content/logic`. Until S-3, every figure wears look 0.
-- Bodies drawn the same way, suited or bare as their peer is now (a body keeps no record of its gear).
-- **Frames:** bare figures in the four colours; a suited one in a dark room, the face lit by its lamp; a body bare and
-  one suited. Compared against the approved S-0 page.
+`Figure.Wear(colour, helmet, body)` draws what is worn (`Suits.WornBy`), the helmet and body apart: without the
+helmet, the hair and beard on their own pivot; with it, the shell and glass over the face, which its lamp lights;
+without the body, the jumpsuit and skin hands, no air pack. The lamp shows and shines only on a helmet. `SuitArt`
+swaps the suit, skin and hair ramps (`HeroLooks` in `game/Content/logic`, kept equal to `parts.js` by
+`HeroLooksTests`). Every figure wears look 0 (`Figure.Look`) till S-3; bodies and seated heroes are dressed as their
+peer is now. Frames: `-- --dress-sheet=<png>`.
 
 ### S-3 — Looks, chosen and printed
 
