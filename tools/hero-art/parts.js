@@ -203,7 +203,7 @@ const visor = [
 ];
 
 // The jumpsuit: the suit's parts' templates and joints, cloth in the suit's ramp, hands in the skin's, the belt, cuffs and
-// shoes in gear. Lit as the head is: no line on the lit front, folds in shade, the rim (R) down the back.
+// shoes in gear. Lit as the head is: no line on the lit front, folds in shade.
 const jumpsuit = {
   torso: [ // joint (6, 0)
     '...odllld...',
@@ -225,7 +225,7 @@ const jumpsuit = {
   upperArm: ['.lll.', 'oslll', 'osslo', 'osslo', 'osslo', 'odslo', 'odsso', 'odsso', '.ooo.'], // joint (2.5, 2.5)
   forearm: ['.sls.', 'osslo', 'osslo', 'odsso', 'oGGGo', '.DLS.', 'DSLLS', 'DSSLS', 'ODSSO', '.OOO.'], // joint (2.5, 2.9); a cuff, the fist
   thigh: ['.slll.', 'osslls', 'osslls', 'ossslo', 'ossslo', 'odsslo', 'odsslo', 'odssso', 'odssso', 'oddsso', 'oddsso', '.oooo.'], // joint (3, 2.5)
-  shin: ['.oslso', 'osslso', 'osslso', 'odsslo', 'oGGGGo', '.gHHHg..', 'gGHHHHgg.', 'gGGGGGGHg', 'KgggggggK', '.........', '.........'], // joint (3, 2.18); a shoe
+  shin: ['.oslso', 'osslso', 'osslso', 'osslso', 'odsslo', 'odsslo', 'oGGGGo', '.gHHHg..', 'gGHHHHgg.', 'gGGGGGGHg', 'KgggggggK'], // joint (3, 2.18); a shoe on the boot's row
 };
 
 // The cape (a prototype, Cape.cs): its outside and its lining, laid over its grid of cloth, 14x30, across from its

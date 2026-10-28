@@ -47,6 +47,18 @@ public class HeroLooksTests
         Assert.False(Painted(count), $"hero_{kind}_{count}.png is painted but not counted");
     }
 
+    /// <summary>The bare shin's shoe ends on the boot's row: both hang from one knee, so a shorter one stands above the floor.</summary>
+    [Fact]
+    public void TheBareFootStandsWhereTheBootDoes()
+    {
+        static int Lowest(string part)
+        {
+            var (w, h, pixels) = CreatureArtTests.Pixels(Path.Combine(Root, $"game/art/hero_{part}.png"));
+            return Enumerable.Range(0, h).Last(y => Enumerable.Range(0, w).Any(x => pixels[(y * w + x) * 4 + 3] > 0));
+        }
+        Assert.Equal(Lowest("shin"), Lowest("jumpsuit_shin"));
+    }
+
     [Theory]
     [InlineData(0, 6, 0)]
     [InlineData(5, 6, 5)]
