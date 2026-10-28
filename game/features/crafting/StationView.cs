@@ -111,27 +111,29 @@ public partial class StationView : Node2D
             if (ColdAt.TryGetValue(m.Kind, out var cold) && _crafting.TooCold(m.Id)) _cold.Add(corner + cold);
             ShowPlant(m.Id, m.Kind, corner);
             if (!Moving.TryGetValue(m.Kind, out var motion)) continue;
+            // A picture taller than its footprint, a bench's, rises over it (ShipTiles.RiseOf): its frames rise with it.
+            var art = corner - new Vector2(0, ShipTiles.RiseOf(m.Kind) * Cell);
             bool works = _crafting.Works(m.Id);
             if (m.Kind == "smelter") Heat(m.Id, corner, works, delta);
             if (Content.Modules.Fits(Content.Modules.Arc.Item, m.Kind)) Arc(m, corner, works, delta);
             // Each machine a step apart from the next, so two never beat in step.
             long step = (long)(_clock / motion.StepMs) + m.Id;
-            var middle = corner + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
+            var middle = art + PixelArt.Picture($"{m.Kind}_work_0").GetSize() / 2;
             _sounds.Hear(m.Id, m.Kind, middle, works, step, motion.Frames, motion.Down, delta);
             if (!works) continue;
             _working.Add(m.Id);
             if (!_shown.TryGetValue(m.Id, out var shown)) _shown[m.Id] = shown = Shown(motion);
-            shown.Sprite.Position = corner;
+            shown.Sprite.Position = art;
             int frame = (int)(step % motion.Frames);
             shown.Sprite.Texture = PixelArt.Picture($"{m.Kind}_work_{frame}");
             if (shown.Screen is { } screen)
             {
-                screen.Position = corner;
+                screen.Position = art;
                 screen.Texture = PixelArt.Picture($"{m.Kind}_screen_{frame}");
             }
             for (int i = 0; i < shown.Glows.Length; i++)
             {
-                shown.Glows[i].Position = corner + motion.Lights![i];
+                shown.Glows[i].Position = art + motion.Lights![i];
                 shown.Glows[i].Colour = motion.Light * motion.Levels![(frame + i) % motion.Levels.Length];
             }
         }
