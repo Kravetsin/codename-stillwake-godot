@@ -23,10 +23,11 @@ public partial class MeteorView : Node2D
     private const double Reach = 60, Drop = 18;
     private static readonly (int R, int G, int B) Hot = (255, 236, 196), Glow = (255, 170, 90);
     private static readonly Color Rock = new(0.36f, 0.31f, 0.28f), Front = new(1f, 0.82f, 0.55f);
-    /// <summary>Embers shed along the way, smoke, and what a broken wall throws, its chunks hot from the blow: no gravity out in space.</summary>
+    /// <summary>Embers shed along the way, smoke, what a broken wall throws, its chunks hot from the blow, and a held rock's shards: no gravity out in space.</summary>
     private static readonly Luminous Embers = Luminous.Ember with { Gravity = 0 }, Smoke = Luminous.Vapour with { Gravity = 0 },
         Dust = Luminous.BreakDust with { Gravity = 0 },
-        Chunk = Luminous.Chip with { Gravity = 0, Size = 2.2, Matter = false, Ramp = [(255, 222, 170), (230, 130, 70), (120, 100, 100)], LifeMs = (900, 1500) };
+        Chunk = Luminous.Chip with { Gravity = 0, Size = 2.2, Matter = false, Ramp = [(255, 222, 170), (230, 130, 70), (120, 100, 100)], LifeMs = (900, 1500) },
+        Shard = Chunk with { Ramp = [(255, 236, 200), (210, 120, 70), (92, 79, 71)], LifeMs = (600, 1100) };
 
     private readonly IGridQueries _grid;
     private readonly HazardsModule _hazards;
@@ -87,7 +88,7 @@ public partial class MeteorView : Node2D
     {
         _round.Clear();
         int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width;
-        int most = HazardsModule.Farthest(meteor.Power, _hazards.Rules.Meteors?.Blast ?? 0);
+        int most = _hazards.Rules.Meteors is { } shower ? HazardsModule.Farthest(meteor.Power, shower) : 0;
         for (int y = Math.Max(0, cy - most); y <= Math.Min(_grid.Height - 1, cy + most); y++)
             for (int x = Math.Max(0, cx - most); x <= Math.Min(width - 1, cx + most); x++)
                 if (_grid.WallAt(y * width + x) is { } wall) _round.Add((y * width + x, wall));
@@ -152,6 +153,19 @@ public partial class MeteorView : Node2D
         {
             stage.Flares.Shock(x, y, 4, farthest + 2 * Cell, 400, (255, 220, 170), 0.6 * Fx.Glow, 0.6);
             stage.Flares.Flash(x, y, Glow, 0.9 * Fx.Glow, 10, 0.6f, 0.9);
+        }
+        else
+        {
+            // The wall held: the rock shatters on it, its pieces glowing as they cool, flung back out the way it came.
+            double back = Math.Atan2(-way.Y, -way.X);
+            for (int i = 0; i < 6 + 2 * meteor.Power; i++)
+            {
+                double s = glims.Between(30, 120), a = back + glims.Between(-1.2, 1.2);
+                glims.Add(Shard, x + glims.Between(-2, 2), y + glims.Between(-2, 2), Math.Cos(a) * s, Math.Sin(a) * s, size: glims.Between(1, 2));
+            }
+            stage.Flares.Glint(x, y, 12, (255, 236, 200));
+            stage.Flares.Shock(x, y, 2, 3 * Cell, 250, (255, 220, 170), 0.4 * Fx.Glow, 0.5);
+            stage.Flares.Flash(x, y, Glow, 0.6 * Fx.Glow, 6, 0.6f, 0.85);
         }
         _strikes.Play(broke > 0 ? S.Break : S.Chop, new Vector2((float)x, (float)y));
         _round.Clear();

@@ -38,7 +38,7 @@ public partial class HazardsTests
             var before = new List<(int Cell, Content.Material Wall)>();
             if (coming is { Left: 1 } m)
             {
-                int most = HazardsModule.Farthest(m.Power, Shower.Blast), cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
+                int most = HazardsModule.Farthest(m.Power, Shower), cx = m.Cell % grid.Width, cy = m.Cell / grid.Width;
                 for (int y = Math.Max(0, cy - most); y <= Math.Min(grid.Height - 1, cy + most); y++)
                     for (int x = Math.Max(0, cx - most); x <= Math.Min(grid.Width - 1, cx + most); x++)
                         if (grid.WallAt(y * grid.Width + x) is { } wall) before.Add((y * grid.Width + x, wall));
@@ -84,12 +84,13 @@ public partial class HazardsTests
         int width = w.Layout.Width;
         foreach (var s in strikes)
         {
-            Assert.InRange(s.Power, 1, 6);
-            // A wall within (power - its strength + 1) × Blast cells of the struck one goes; a struck wall that holds stops it whole.
+            Assert.InRange(s.Power, 2, 7);
+            // A wall nearer the struck one than Hole + (power - its strength) × Blast cells goes; a struck wall that holds stops it whole.
             int cx = s.Cell % width, cy = s.Cell / width;
             var blast = s.Before.Where(b =>
             {
-                int dx = b.Cell % width - cx, dy = b.Cell / width - cy, reach = (s.Power - b.Wall.Strength + 1) * Shower.Blast;
+                int dx = b.Cell % width - cx, dy = b.Cell / width - cy;
+                int reach = s.Power < b.Wall.Strength ? 0 : Shower.Hole + (s.Power - b.Wall.Strength) * Shower.Blast;
                 return reach > 0 && dx * dx + dy * dy < reach * reach;
             }).Select(b => b.Cell);
             Assert.Equal(s.Power >= s.Strength ? blast : [], s.Gone);
@@ -100,6 +101,15 @@ public partial class HazardsTests
         var gone = strikes.SelectMany(s => s.Before.Where(b => s.Gone.Contains(b.Cell))).ToList();
         Assert.Equal(gone.Count, w.M.Building.Plans.Count);
         Assert.All(gone, b => Assert.Equal(Placement.Wall(b.Wall.Id), Assert.Single(w.M.Building.PlansAt(b.Cell)).Place));
+    }
+
+    /// <summary>The bug from play: on the new game's wreck, its hull scrap, meteors broke one cell or none.</summary>
+    [Fact]
+    public void TearAnAreaOutOfTheStartingWrecksScrapHullOnEveryStrike()
+    {
+        var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
+        var seen = string.Join("; ", strikes.Select(s => $"power {s.Power} at {s.Cell} (strength {s.Strength}): {s.Gone.Count} gone"));
+        Assert.True(strikes.All(s => s.Gone.Count >= 6), seen);
     }
 
     [Fact]

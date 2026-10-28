@@ -91,27 +91,35 @@ public sealed class HazardsModule : Module<HazardsState>
 
     /// <summary>
     /// <paramref name="meteor"/> strikes: if the wall it meets still stands and its power reaches the wall's strength, it breaks every wall
-    /// within (power - strength + 1) times the shower's <c>Blast</c> cells of it, each by its own strength (2026-10-28-meteor-blast);
-    /// a wall that holds stops it whole. All are found before any breaks, then breached in cell order.
+    /// within its <see cref="Reach"/> of it, each by its own strength (2026-10-28-meteor-blast); a wall that holds stops it whole. All
+    /// are found before any breaks, then breached in cell order.
     /// </summary>
     private void Strike(Meteor meteor, Meteors.Shower shower)
     {
         if (HitProblem(meteor.Cell) != null || meteor.Power < _grid.WallAt(meteor.Cell)!.Strength) return;
-        int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width, most = Farthest(meteor.Power, shower.Blast);
+        int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width, most = Farthest(meteor.Power, shower);
         _blast.Clear();
         for (int y = Math.Max(0, cy - most); y <= Math.Min(_grid.Height - 1, cy + most); y++)
             for (int x = Math.Max(0, cx - most); x <= Math.Min(width - 1, cx + most); x++)
             {
                 int cell = y * width + x;
                 if (HitProblem(cell) != null) continue;
-                int reach = (meteor.Power - _grid.WallAt(cell)!.Strength + 1) * shower.Blast;
+                int reach = Reach(meteor.Power, _grid.WallAt(cell)!.Strength, shower);
                 if (reach > 0 && (x - cx) * (x - cx) + (y - cy) * (y - cy) < reach * reach) _blast.Add(cell);
             }
         foreach (int cell in _blast) _building.Breach(cell);
     }
 
-    /// <summary>How far, in cells either way, a meteor of <paramref name="power"/> may break a wall: at it and past none of strength 1 or more gives way.</summary>
-    public static int Farthest(int power, int blast) => power * blast;
+    /// <summary>
+    /// How far from where it strikes, in cells, a meteor of <paramref name="power"/> breaks a wall of <paramref name="strength"/>: the
+    /// shower's <c>Hole</c> at a power just reaching it, <c>Blast</c> more for each point over; 0 for a wall it does not break. A wall breaks
+    /// nearer than that, its distance compared squared.
+    /// </summary>
+    public static int Reach(int power, int strength, Meteors.Shower shower) =>
+        power < strength ? 0 : shower.Hole + (power - strength) * shower.Blast;
+
+    /// <summary>How far, in cells either way, a meteor of <paramref name="power"/> may break any wall: no strength is below 1.</summary>
+    public static int Farthest(int power, Meteors.Shower shower) => Reach(power, 1, shower);
 
     /// <summary>Ticks from one meteor to the next seen coming, drawn evenly between the shower's least and most.</summary>
     private int Interval(Meteors.Shower shower) => shower.EveryMin + (int)Random.Below((uint)(shower.EveryMax - shower.EveryMin + 1));
