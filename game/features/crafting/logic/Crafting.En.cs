@@ -20,6 +20,7 @@ public static partial class En
         ["station.lifepod"] = "Fabricator",
         ["station.workbench"] = "Workbench",
         ["station.former"] = "Former",
+        ["station.crusher"] = "Crusher",
         ["station.smelter"] = "Electric smelter",
         ["station.assembler"] = "Circuit assembler",
         ["station.growCapsule"] = "Grow capsule",

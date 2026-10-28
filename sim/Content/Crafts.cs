@@ -13,13 +13,13 @@ public static class Crafts
 {
     public static readonly IReadOnlyList<Craft> All =
     [
-        new("wire", [("scrap", 2)], Ticks: 20),
-        new("plate", [("iron", 2)], Ticks: 40),
-        new("gear", [("iron", 1)], Ticks: 40),
-        new("tube", [("iron", 1)], Ticks: 40),
-        new("rotor", [("gear", 1), ("wire", 2)], Ticks: 60),
-        new("frame", [("plate", 2)], Ticks: 80),
-        new("coil", [("wire", 3)], Ticks: 60),
+        new("wire", [("scrap", 2)], Ticks: 30),
+        new("plate", [("iron", 2)], Ticks: 60),
+        new("gear", [("iron", 1)], Ticks: 60),
+        new("tube", [("iron", 1)], Ticks: 60),
+        new("rotor", [("gear", 1), ("wire", 2)], Ticks: 90),
+        new("frame", [("plate", 3), ("tube", 2)], Ticks: 120),
+        new("coil", [("wire", 4)], Ticks: 90),
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
         // Free at the pod, made again should one be lost: without it nothing is built (0107), not even the furnace.
         new("screwdriver", [], Ticks: 20),
@@ -34,35 +34,37 @@ public static class Crafts
         new("suit", [], Ticks: 20),
         // Of the ruins' cloth and a grazer's hide, at the Former (2026-10-27-the-cape-is-worn): none before the first planet.
         new("cape", [("cloth", 2), ("hide", 2)], Ticks: 60),
-        new("jetpack", [("frame", 1), ("tube", 2), ("coil", 1), ("circuit", 1), ("canister", 1), ("wire", 2)], Ticks: 160),
-        new("battery", [("plate", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 60),
+        new("jetpack", [("frame", 1), ("tube", 3), ("coil", 2), ("circuit", 1), ("canister", 1), ("wire", 4)], Ticks: 240),
+        new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),
-        new("drill", [("frame", 1), ("rotor", 1), ("coil", 1), ("gear", 2), ("tube", 1), ("circuit", 2)], Ticks: 160),
+        new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
-        new("circuit", [("silicon", 1), ("wire", 2)], Ticks: 80),
-        new("solarCell", [("silicon", 1), ("glass", 1), ("wire", 1)], Ticks: 100),
-        new("processor", [("circuit", 4), ("silicon", 2), ("coil", 1)], Ticks: 240),
-        new("display", [("glass", 2), ("circuit", 1), ("wire", 4)], Ticks: 160),
-        new("transceiver", [("coil", 3), ("circuit", 2), ("tube", 1), ("glass", 1)], Ticks: 200),
-        // Pressed at the Former only: a grow capsule's bed (0060).
-        new("soil", [("rock", 1), ("planks", 1)], Ticks: 60),
+        new("circuit", [("silicon", 1), ("wire", 3)], Ticks: 120),
+        new("solarCell", [("silicon", 1), ("glass", 2), ("wire", 2)], Ticks: 150),
+        new("processor", [("circuit", 6), ("silicon", 3), ("coil", 2)], Ticks: 360),
+        new("display", [("glass", 4), ("circuit", 2), ("wire", 6)], Ticks: 240),
+        new("transceiver", [("coil", 4), ("circuit", 3), ("tube", 2), ("glass", 2)], Ticks: 300),
+        // Pressed at the Former only: a grow capsule's bed (0060), of the crusher's gravel.
+        new("soil", [("gravel", 2), ("planks", 1)], Ticks: 60),
         // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band.
-        new("motor", [("rotor", 1), ("copper", 2), ("magnetite", 1)], Ticks: 120),
+        // A planet's ice frozen into a canister of air at the Former: air for spacewalks that no longer waits on salvage.
+        new("canister", [("ice", 3)], Ticks: 60),
+        new("motor", [("rotor", 1), ("copper", 4), ("magnetite", 2)], Ticks: 180),
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
-        new("drone", [("rotor", 1), ("plate", 2), ("circuit", 1), ("battery", 1)], Ticks: 160),
-        new("deckDrive", [("circuit", 2), ("rotor", 1), ("coil", 1)], Ticks: 200),
+        new("drone", [("rotor", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
+        new("deckDrive", [("circuit", 3), ("rotor", 2), ("coil", 2)], Ticks: 300),
         // The engine's parts, the last made: a nozzle pressed of the ruins' heat-proof alloy lined with copper, and a fuel pump
         // of a motor at the Former; an igniter of a crystal's spark at the circuit assembler.
-        new("nozzle", [("alloyScrap", 4), ("copper", 2)], Ticks: 200),
-        new("fuelPump", [("motor", 1), ("tube", 2), ("plate", 1)], Ticks: 160),
-        new("igniter", [("crystal", 1), ("circuit", 1), ("wire", 2)], Ticks: 120),
+        new("nozzle", [("alloyScrap", 12), ("copper", 6)], Ticks: 300),
+        new("fuelPump", [("motor", 2), ("tube", 4), ("plate", 2)], Ticks: 240),
+        new("igniter", [("crystal", 2), ("circuit", 2), ("wire", 4)], Ticks: 180),
         // At the arc bench (0099): a sky shard wound into a module an electric station or the drill takes (0086, 0096), in ten seconds.
-        new("arcModule", [("arcShard", 1), ("coil", 2), ("circuit", 2), ("frame", 1)], Ticks: 200),
+        new("arcModule", [("arcShard", 1), ("crystal", 2), ("mica", 2), ("coil", 4), ("circuit", 4), ("frame", 1)], Ticks: 200),
         // At the arc bench (0099): a battery wound round a sky shard with a planet's copper, three batteries' charge, in ten seconds.
-        new("accumulator", [("arcShard", 1), ("battery", 1), ("copper", 2), ("circuit", 1)], Ticks: 200),
+        new("accumulator", [("arcShard", 1), ("battery", 2), ("copper", 4), ("mica", 4), ("circuit", 2)], Ticks: 200),
         // At the arc bench (2026-10-27-the-railgun): two rails of copper wound with coils round a sky shard, in ten seconds.
-        new("railgun", [("arcShard", 1), ("copper", 4), ("coil", 2), ("tube", 1), ("frame", 1), ("circuit", 2)], Ticks: 200),
+        new("railgun", [("arcShard", 1), ("copper", 8), ("coil", 4), ("crystal", 2), ("tube", 2), ("frame", 1), ("circuit", 3)], Ticks: 200),
     ];
 
     private static readonly Dictionary<string, Craft> ByItem = All.ToDictionary(c => c.Item, StringComparer.Ordinal);

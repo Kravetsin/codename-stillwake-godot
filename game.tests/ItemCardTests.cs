@@ -149,7 +149,7 @@ public class ItemCardTests
         static IReadOnlyList<(string, int)> Yields(string item) => Spec.Items.Get(item).Yields!;
         Assert.Equal(new CardOutput(Yields("scrapChunk"), "3s"), ItemCards.OutputAt("scrapChunk", Taking("furnace", "scrapChunk", 3)));
         Assert.Equal(new CardOutput(Yields("hullPlate"), "5s"), ItemCards.OutputAt("hullPlate", Taking("furnace", "hullPlate", 5)));
-        Assert.Equal(new CardOutput(Yields("silicon"), "3s"), ItemCards.OutputAt("silicon", Taking("smelter", "silicon", 3)));
+        Assert.Equal(new CardOutput(Yields("quartz"), "3s"), ItemCards.OutputAt("quartz", Taking("smelter", "quartz", 3)));
         Assert.Equal(new CardOutput(Yields("seed"), "8 min"), ItemCards.OutputAt("seed", Taking("growCapsule", "seed", 8 * 60)));
         Assert.Null(ItemCards.OutputAt("planks", Spec.Stations.Get("furnace")));
     }

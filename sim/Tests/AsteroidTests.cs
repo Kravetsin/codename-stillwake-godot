@@ -40,7 +40,7 @@ public class AsteroidTests
     private static readonly Layout Tall = DebrisZonesTests.Open(400, 240, 180, 100, 12, 6);
 
     [Fact]
-    public void SpawnsAsteroidsRarelyOnlyInTheBandsAboveAndBelowTheHullNeverMoreThanTwoOut()
+    public void SpawnsAsteroidsRarelyOnlyInTheBandsAboveAndBelowTheHullNeverMoreThanItsCapOut()
     {
         var w = new Scenario(Tall);
         var seen = new List<Piece>();
@@ -56,8 +56,8 @@ public class AsteroidTests
             }
             most = Math.Max(most, Pieces(w).Count(p => p.Zone == DebrisSpec.Asteroids.Id));
         }
-        // About one every four minutes: ten in forty, give or take what the beats and the cap draw.
-        Assert.InRange(seen.Count, 5, 13);
+        // About one every two and a half minutes: sixteen in forty, give or take what the beats and the cap draw.
+        Assert.InRange(seen.Count, 10, 20);
         Assert.InRange(most, 1, DebrisSpec.Asteroids.Max);
         Assert.All(seen, p =>
         {
@@ -73,7 +73,7 @@ public class AsteroidTests
     }
 
     [Fact]
-    public void KeepsAtMostTwoAsteroidsOutAlongAHullSoLongTheyOutliveTheBeats()
+    public void KeepsAtMostItsCapOfAsteroidsOutAlongAHullSoLongTheyOutliveTheBeats()
     {
         // A hull two thousand cells long: an asteroid takes some 30 000 ticks to drift past it, so the band fills.
         var w = new Scenario(DebrisZonesTests.Open(2400, 200, 200, 100, w: 2000, h: 2));
@@ -171,7 +171,7 @@ public class AsteroidTests
     }
 
     [Fact]
-    public void BreaksAnAsteroidOnItsHundredAndTwentiethPointIntoThreeToFiveRockAlikeInTwoWorlds()
+    public void BreaksAnAsteroidOnItsHundredAndTwentiethPointIntoItsLootOfAsteroidOreAlikeInTwoWorlds()
     {
         Scenario Broken(uint seed)
         {
@@ -183,13 +183,15 @@ public class AsteroidTests
             Assert.Empty(w.M.Items.Floor);
             return Hits(w, 1, Drill).Run();
         }
+        var ore = Assert.Single(Loot.Of("asteroid")!);
+        Assert.Equal("asteroidOre", ore.Item);
         for (uint seed = 1; seed <= 20; seed++)
         {
             var (a, b) = (Broken(seed), Broken(seed));
             Assert.Empty(a.Refusals);
             Assert.Empty(Pieces(a));
-            Assert.All(a.M.Items.Floor, s => Assert.Equal("rock", s.Item));
-            Assert.InRange(a.M.Items.Floor.Sum(s => s.Count), 3, 5);
+            Assert.All(a.M.Items.Floor, s => Assert.Equal(ore.Item, s.Item));
+            Assert.InRange(a.M.Items.Floor.Sum(s => s.Count), ore.Min, ore.Max);
             Assert.Equal(a.World.Hash(), b.World.Hash());
         }
     }
@@ -378,7 +380,7 @@ public class AsteroidTests
             if (p.Id <= last) continue;
             last = p.Id;
             if (p.Zone != DebrisSpec.Asteroids.Id) continue;
-            if (Loot.Of(p.Item) is not [{ Item: "rock" }]) return $"a {p.Item} in the asteroid band";
+            if (Loot.Of(p.Item) is not [{ Item: "asteroidOre" }]) return $"a {p.Item} in the asteroid band";
             var cells = Enumerable.Range(0, width * height).Where(c => w.M.Grid.StructureAt(c) != Structure.Empty).ToList();
             if (cells.Count == 0) return $"asteroid {p.Id} spawned with no hull";
             int left = cells.Min(c => c % width), right = cells.Max(c => c % width), top = cells[0] / width, bottom = cells[^1] / width;

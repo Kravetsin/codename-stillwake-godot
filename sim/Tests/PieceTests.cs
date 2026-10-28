@@ -30,6 +30,9 @@ public class PieceTests
     private const int Width = 12;
     private static int At(int x, int y) => y * Width + x;
     private static readonly Placement Ladder = new("structure", "ladder"), Door = new("structure", "door");
+    private static readonly IReadOnlyList<(string Item, int Count)> LadderCost = Builds.Get("ladder").Cost, DoorCost = Builds.Get("door").Cost;
+    private static readonly int Scraps = LadderCost.Single().Count;
+    private static readonly int Plates = DoorCost.Single(c => c.Item == "plate").Count, Gears = DoorCost.Single(c => c.Item == "gear").Count;
 
     private static Scenario Stocked()
     {
@@ -50,20 +53,20 @@ public class PieceTests
         from dy in Enumerable.Range(0, tall) from dx in Enumerable.Range(0, across) select At(x + dx, y + dy);
 
     [Fact]
-    public void ALadderIsOnePieceTwoByTwoCostingAScrapAndBuiltAsLongAsA16PxCellWas()
+    public void ALadderIsOnePieceTwoByTwoCostingItsBuildAndBuiltAsLongAsA16PxCellWas()
     {
         var w = Stocked();
         w.Do(new PlacePlan(At(3, 2), Ladder)).Run();
         var plan = Assert.Single(w.M.Building.Plans);
         Assert.All(Box(3, 2, 2, 2), c => Assert.Equal(plan.Id, w.M.Building.PlansAt(c).Single().Id));
         Assert.Empty(w.M.Building.PlansAt(At(5, 2)));
-        Assert.Equal([("scrap", 1)], w.M.Building.CostFor(Ladder));
+        Assert.Equal(LadderCost, w.M.Building.CostFor(Ladder));
         Assert.Equal(Builds.Get("ladder").BuildTicks, w.M.Building.TicksFor(plan.Id));
         Finish(w, plan.Id);
         Assert.Empty(w.Refusals);
         Assert.All(Box(3, 2, 2, 2), c => Assert.Equal(Structure.Ladder, w.M.Grid.StructureAt(c)));
         Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(5, 2)));
-        Assert.Equal(9, Count(w, "scrap"));
+        Assert.Equal(10 - Scraps, Count(w, "scrap"));
     }
 
     [Fact]
@@ -89,11 +92,11 @@ public class PieceTests
         var mark = Assert.Single(w.M.Building.Plans);
         Assert.Equal(At(3, 4), mark.Cell);
         Assert.Equal("building.planned", w.M.Building.Problem(At(3, 5), "structure"));
-        Assert.Equal([("scrap", 1)], w.M.Building.RefundOf(mark.Id));
+        Assert.Equal(LadderCost, w.M.Building.RefundOf(mark.Id));
         Finish(w, mark.Id);
         Assert.All(Box(3, 4, 2, 2), c => Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(c)));
         Assert.All(Box(3, 2, 2, 2), c => Assert.Equal(Structure.Ladder, w.M.Grid.StructureAt(c)));
-        Assert.Equal(11, Count(w, "scrap"));
+        Assert.Equal(10 + Scraps, Count(w, "scrap"));
     }
 
     [Fact]
@@ -103,13 +106,13 @@ public class PieceTests
         w.Do(new PlacePlan(At(5, 2), Door)).Run();
         var plan = Assert.Single(w.M.Building.Plans);
         Assert.All(Box(5, 2, 2, 2), c => Assert.Equal(plan.Id, w.M.Building.PlansAt(c).Single().Id));
-        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostOf(plan.Id));
+        Assert.Equal(DoorCost, w.M.Building.CostOf(plan.Id));
         Assert.Equal(20, w.M.Building.TicksFor(plan.Id));
         Finish(w, plan.Id);
         Assert.Empty(w.Refusals);
         Assert.All(Box(5, 2, 2, 2), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
         Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(5, 4)));
-        Assert.Equal((18, 9), (Count(w, "plate"), Count(w, "gear")));
+        Assert.Equal((20 - Plates, 10 - Gears), (Count(w, "plate"), Count(w, "gear")));
     }
 
     private static readonly Placement HatchSegment = new("structure", Builds.Hatch);
@@ -120,12 +123,12 @@ public class PieceTests
         var w = Stocked();
         Assert.Equal((2, 1), Builds.PieceOf(Builds.Hatch));
         Assert.Equal([At(5, 2), At(6, 2)], w.M.Grid.Footprint(Builds.Hatch, At(5, 2)));
-        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostFor(HatchSegment));
+        Assert.Equal(DoorCost, w.M.Building.CostFor(HatchSegment));
         w.Do(new PlacePlan(At(5, 2), HatchSegment)).Run();
         var plan = Assert.Single(w.M.Building.Plans);
         Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(plan.Id, w.M.Building.PlansAt(c).Single().Id));
         Assert.Empty(w.M.Building.PlansAt(At(5, 3)));
-        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.CostOf(plan.Id));
+        Assert.Equal(DoorCost, w.M.Building.CostOf(plan.Id));
         Finish(w, plan.Id);
         Assert.Empty(w.Refusals);
         Assert.All(Box(5, 2, 2, 1), c => Assert.Equal(Structure.HatchClosed, w.M.Grid.StructureAt(c)));
@@ -134,7 +137,7 @@ public class PieceTests
         Assert.NotEqual(0, Doorways.LinksOf(At(5, 2), Width, Width * 10, w.M.Grid.StructureAt) & Doorways.Right);
         w.Do(new Deconstruct(At(6, 2), "structure")).Run();
         var mark = Assert.Single(w.M.Building.Plans);
-        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.RefundOf(mark.Id));
+        Assert.Equal(DoorCost, w.M.Building.RefundOf(mark.Id));
     }
 
     [Fact]
@@ -216,23 +219,23 @@ public class PieceTests
         w.Do(new Deconstruct(At(2, 4), "structure")).Run();
         var mark = Assert.Single(w.M.Building.Plans);
         Assert.Equal(At(1, 3), mark.Cell);
-        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.RefundOf(mark.Id));
+        Assert.Equal(DoorCost, w.M.Building.RefundOf(mark.Id));
         Finish(w, mark.Id);
         Assert.All(Box(1, 3, 2, 2), c => Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(c)));
         Assert.All(Box(1, 1, 2, 2).Concat(Box(1, 5, 2, 2)), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
-        Assert.Equal((22, 11), (Count(w, "plate"), Count(w, "gear")));
+        Assert.Equal((20 + Plates, 10 + Gears), (Count(w, "plate"), Count(w, "gear")));
     }
 
     [Fact]
     public void ADrawnMapsLoneDoorIsOneSegment()
     {
-        // A lone door character doubles to two by two: one segment, two plates and a gear, as one 16 px door cell cost.
+        // A lone door character doubles to two by two: one segment, given back at one segment's cost.
         var w = new Scenario("""
             ###
             #D#
             ###
             """);
         w.Do(new Deconstruct(w.At(1, 1), "structure")).Run();
-        Assert.Equal([("plate", 2), ("gear", 1)], w.M.Building.RefundOf(w.M.Building.Plans.Single().Id));
+        Assert.Equal(DoorCost, w.M.Building.RefundOf(w.M.Building.Plans.Single().Id));
     }
 }

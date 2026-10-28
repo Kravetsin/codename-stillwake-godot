@@ -41,7 +41,7 @@ public class ArcModuleTests
         ((0, 0), (1, 3)), ((3, 0), (4, 3)), ((6, 0), (7, 3)),
     ];
 
-    private static Scenario World() => new Scenario(Layout.Parse(Rows, null, Cables), doubled: true).GiveItems(0, (Arc, 3), ("iron", 40), ("rock", 4)).Run(2);
+    private static Scenario World() => new Scenario(Layout.Parse(Rows, null, Cables), doubled: true).GiveItems(0, (Arc, 3), ("iron", 40), ("quartz", 4)).Run(2);
 
     private static int Id(Scenario w, string kind) => w.M.Grid.MachinesOf(kind).Single().Id;
     private static int SlotOf(Scenario w, string item, int peer = 0) => w.M.Items.Inventory(peer).ToList().FindIndex(s => s?.Item == item);
@@ -159,27 +159,27 @@ public class ArcModuleTests
         Assert.Equal((speed, station.Heat), (w.M.Crafting.StationOf(smelter)!.Speed, w.M.Crafting.StationOf(smelter)!.Heat));
         Assert.Equal(draws, w.M.Power.Draw(smelter));
         Assert.Equal(0, Demand(w));
-        w.Do(new Move(new Slot(SlotOf(w, "rock")), new Target(0, smelter), 1)).Run();
+        w.Do(new Move(new Slot(SlotOf(w, "quartz")), new Target(0, smelter), 1)).Run();
         // The tick it is fed is the first of its work, at the full share the network gave it resting.
         Assert.Equal(speed, w.M.Crafting.Progress(smelter));
         w.Run();
         Assert.Equal(draws, Demand(w));
-        // The furnace's work on a rock at the doubled speed: the ticks it takes, rounded up.
-        var rock = Spec.Items.Get("rock");
-        w.Run((rock.SmeltTicks!.Value * 1000 + speed - 1) / speed - 3);
+        // A quartz's work at the doubled speed: the ticks it takes, rounded up.
+        var quartz = Spec.Items.Get("quartz");
+        w.Run((quartz.SmeltTicks!.Value * 1000 + speed - 1) / speed - 3);
         Assert.Equal(0, Held(w, smelter, "silicon"));
         w.Run();
-        Assert.Equal(rock.Yields!.Single(y => y.Item == "silicon").Count, Held(w, smelter, "silicon"));
+        Assert.Equal(quartz.Yields!.Single(y => y.Item == "silicon").Count, Held(w, smelter, "silicon"));
     }
 
     [Fact]
     public void OnANetworkShortOfItsDoubledDrawTheSmelterWorksAtItsShareOfTheDoubledSpeedRoundedDown()
     {
         string[] rows = ["PPP         ", "            ", "############", "#EE........#", "#EE........#", "############"];
-        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true).GiveItems(0, (Arc, 1), ("rock", 1)).Run(2);
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true).GiveItems(0, (Arc, 1), ("quartz", 1)).Run(2);
         int smelter = Id(w, "smelter");
         FitArc(w, smelter);
-        w.Do(new Move(new Slot(SlotOf(w, "rock")), new Target(0, smelter), 1)).Run().Run();
+        w.Do(new Move(new Slot(SlotOf(w, "quartz")), new Target(0, smelter), 1)).Run().Run();
         // A panel's power for the doubled draw: that share of the doubled speed, more than the speed without the arc.
         int makes = Spec.Machines.Get("solarPanel").Makes!.Value, draws = 2 * Spec.Machines.Get("smelter").Draws!.Value;
         int speed = 2 * Spec.Stations.Get("smelter").Speed;
@@ -283,15 +283,15 @@ public class ArcModuleTests
         var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell) ?? 0).ToArray();
         for (int i = 0; i < 2000 && !vented.All(r => w.M.Atmosphere.StatusOf(r) == Atmosphere.RoomStatus.Aired); i++) w.Run();
         Assert.All(vented, r => Assert.Equal(Atmosphere.RoomStatus.Aired, w.M.Atmosphere.StatusOf(r)));
-        LogisticsTests.Dock(w, w.M.Grid.MachinesOf(Spec.Logistics.Bay).Single().Id, 2).GiveItems(0, (Arc, 1), ("rock", 2));
+        LogisticsTests.Dock(w, w.M.Grid.MachinesOf(Spec.Logistics.Bay).Single().Id, 2).GiveItems(0, (Arc, 1), ("quartz", 2));
         int smelter = Id(w, "smelter");
         int left = w.M.Grid.MachinesOf("crate").First().Id;
-        LogisticsTests.Spread(w, left, ("rock", 50));
+        LogisticsTests.Spread(w, left, ("quartz", 50));
         FitArc(w, smelter);
-        w.Do(new Move(new Slot(SlotOf(w, "rock")), new Target(0, smelter), 2)).Run(600);
+        w.Do(new Move(new Slot(SlotOf(w, "quartz")), new Target(0, smelter), 2)).Run(600);
         Assert.Empty(w.Refusals);
         // Drones kept its input topped up from the crate, and left its module where it was.
-        Assert.True(Held(w, smelter, "rock") > 2, $"rock {Held(w, smelter, "rock")}");
+        Assert.True(Held(w, smelter, "quartz") > 2, $"quartz {Held(w, smelter, "quartz")}");
         Assert.Equal([Arc], w.M.Items.FittedTo(smelter));
         Assert.Equal(0, Carried(w, Arc));
         Assert.DoesNotContain(w.M.Grid.Machines, m => Held(w, m.Id, Arc) > 0);

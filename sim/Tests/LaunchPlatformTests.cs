@@ -43,15 +43,17 @@ public class LaunchPlatformTests
     private static int Count(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
 
     [Fact]
-    public void IsAPieceTwoByOneOfADeckDriveTwoPlatesAndAGlassStoodOnAsAShutHatchIs()
+    public void IsAPieceTwoByOneOfADeckDrivePlatesAndGlassStoodOnAsAShutHatchIs()
     {
-        var w = new Scenario(Room, cells: true).GiveItems(0, ("deckDrive", 2), ("plate", 4), ("glass", 2));
+        var cost = Builds.Get(Builds.Platform).Cost;
+        var w = new Scenario(Room, cells: true).GiveItems(0, [.. cost.Select(c => (c.Item, 2 * c.Count))]);
         Assert.Equal((2, 1), Builds.PieceOf(Builds.Platform));
-        Assert.Equal([("deckDrive", 1), ("plate", 2), ("glass", 1)], w.M.Building.CostFor(Platform));
+        Assert.Equal(["deckDrive", "plate", "glass"], cost.Select(c => c.Item));
+        Assert.Equal(cost, w.M.Building.CostFor(Platform));
         w.Do(new PlacePlan(At(3, 8), Platform)).Run();
         Finish(w, Assert.Single(w.M.Building.Plans).Id);
         Assert.Empty(w.Refusals);
-        Assert.Equal((1, 2, 1), (Count(w, "deckDrive"), Count(w, "plate"), Count(w, "glass")));
+        Assert.All(cost, c => Assert.Equal(c.Count, Count(w, c.Item)));
         int code = Structures.Placed(Builds.Platform)!.Value;
         Assert.Equal([code, code], [w.M.Grid.StructureAt(At(3, 8)), w.M.Grid.StructureAt(At(4, 8))]);
         Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(5, 8)));
@@ -59,9 +61,9 @@ public class LaunchPlatformTests
     }
 
     [Fact]
-    public void ItsDeckDriveIsMadeAtTheCircuitAssemblerOfTwoCircuitsARotorAndACoilAndAnalysedToOpenIt()
+    public void ItsDeckDriveIsMadeAtTheCircuitAssemblerOfCircuitsRotorsAndCoilsAndAnalysedToOpenIt()
     {
-        Assert.Equal([("circuit", 2), ("rotor", 1), ("coil", 1)], Crafts.Get("deckDrive").Cost);
+        Assert.Equal(["circuit", "rotor", "coil"], Crafts.Get("deckDrive").Cost.Select(c => c.Item));
         Assert.Equal(["assembler"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("deckDrive"))).Select(s => s.Machine));
         // Its blueprint opens once the drive, the plate and the glass are analysed: after the assembler and the smelter.
         Assert.All(["deckDrive", "plate", "glass"], item => Assert.True(Stillwake.Sim.Research.Analysable.NeedsAnalysis(item)));

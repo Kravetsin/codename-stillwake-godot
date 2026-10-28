@@ -89,9 +89,16 @@ public static class Items
         new("planks", 200, BurnTicks: 400),
         new("scrapChunk", 250, Yields: [("scrap", 4)], SmeltTicks: 60, Group: ItemGroup.Salvage),
         new("hullPlate", 250, Yields: [("iron", 2), ("scrap", 1)], SmeltTicks: 100, Group: ItemGroup.Salvage),
-        // Broken out of asteroids (0054) and dug out of a planet's stone (0077); smelted into silicon at a furnace or the
-        // electric smelter. Players see "Rock".
-        new("rock", 999, Yields: [("silicon", 2)], SmeltTicks: 160, Group: ItemGroup.Salvage),
+        // Dug out of a planet's stone (0077): bulk, crushed into gravel with now and then a quartz, or built back as stone.
+        // Players see "Rock".
+        new("rock", 999, Yields: [("gravel", 2)], SmeltTicks: 160, Process: "crush", Byproducts: [new("quartz", 1, 1, OneIn: 12)], Group: ItemGroup.Salvage),
+        // Broken out of asteroids (0054): crushed into iron ore and gravel, a quartz one time in two, the only silicon space gives.
+        new("asteroidOre", 250, Yields: [("ironOre", 1), ("gravel", 2)], SmeltTicks: 120, Process: "crush", Byproducts: [new("quartz", 1, 1, OneIn: 2)], Group: ItemGroup.Salvage),
+        // The crusher's: iron ore smelted at the furnace; quartz into silicon where it is hot, at the electric smelter; gravel
+        // four to a glass there too, and into soil and stone's own uses.
+        new("ironOre", 250, Yields: [("iron", 1)], SmeltTicks: 80),
+        new("quartz", 250, Yields: [("silicon", 1)], SmeltTicks: 120, Heat: 2),
+        new("gravel", 999, Yields: [("glass", 1)], SmeltTicks: 160, Heat: 2, SmeltTakes: 4),
         // Dug out of a planet's caves (0080): copper ore from its veins, an ingot an ore at the furnace's heat, as slow as rock.
         new("copperOre", 250, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         new("copper", 250),
@@ -148,8 +155,8 @@ public static class Items
         new("motor", 50),
         new("frame", 100),
         new("coil", 200),
-        // Smelted from rock, and smelted on into glass only where it is hot enough: the electric smelter (0057).
-        new("silicon", 250, Yields: [("glass", 1)], SmeltTicks: 120, Heat: 2),
+        // Smelted from quartz at the electric smelter (0057): circuits and solar cells.
+        new("silicon", 250),
         new("glass", 250),
         // Salvaged from cable racks and derelicts (Loot), and made at the circuit assembler of silicon and wire (0057).
         new("circuit", 100),

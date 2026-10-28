@@ -39,9 +39,11 @@ public static class Stations
         // The workbench, of raw salvage: the basic parts and the first tools by hand, at the pod's speed and with no power.
         new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
+        // Crushes rock and asteroid ore on power (economy rework): gravel, iron ore and quartz, the only way to silicon and glass.
+        new("crusher", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "crush"),
         // The first powered station: the bench's parts five times as fast, twice the queue, and what only it makes: frames,
         // motors, the jetpack, the battery and the drill.
-        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "cape"], ["nozzle", "fuelPump"], ["jetpack", "battery", "drill"]]),
+        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "cape", "canister"], ["nozzle", "fuelPump"], ["jetpack", "battery", "drill"]]),
         // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: silicon into glass.
         new("smelter", Speed: 2000, QueueMost: 0, Rows: [], Heat: 2),
         // The electronics bench: circuits and solar cells, and drones of them, at full speed on power, a queue of eight.

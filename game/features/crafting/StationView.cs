@@ -37,6 +37,9 @@ public partial class StationView : Node2D
     private static readonly Dictionary<string, Motion> Moving = new()
     {
         ["former"] = new(4, 110, Down: 2),
+        // The bench's hand tools at work, and the crusher's rollers turning in their dust.
+        ["workbench"] = new(4, 160),
+        ["crusher"] = new(4, 90),
         // The coils' glow: a hot orange, a little brighter on each picture as the heat runs up them.
         ["smelter"] = new(3, 160, Glows: true, Lights: [new(11.5f, 18), new(19.5f, 18)], Light: new(1f, 0.5f, 0.18f), Levels: [0.5f, 0.6f, 0.55f]),
         // The screen's trace, green as it is, flickering a little as it runs.

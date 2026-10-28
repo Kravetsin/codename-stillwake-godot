@@ -11,10 +11,10 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --testbed --arc</c>: the hero by the testbed's electric smelter, smelting rock, an arc module in its bag, for
+/// <c>-- --testbed --arc</c>: the hero by the testbed's electric smelter, smelting quartz, an arc module in its bag, for
 /// recording the module socket and the arcs (0086). The script opens the smelter, points at its empty socket, its tech's
 /// icon in it, and at the module, marked with that icon, its card showing it; shifts it into the socket, flying there;
-/// shifts it back out into the bag and in again; the smelter crackles violet-white as it works; then the rock is taken out,
+/// shifts it back out into the bag and in again; the smelter crackles violet-white as it works; then the quartz is taken out,
 /// and the smelter stands dark with the arc still fitted.
 /// </summary>
 public partial class ArcDemo : Control
@@ -22,8 +22,8 @@ public partial class ArcDemo : Control
     /// <summary>Where the arc module lies in the hero's own slots.</summary>
     public const int ArcSlot = 12;
 
-    /// <summary>Where the rock taken out of the smelter goes.</summary>
-    public const int RockSlot = 20;
+    /// <summary>Where the quartz taken out of the smelter goes.</summary>
+    public const int QuartzSlot = 20;
 
     /// <summary>The testbed's world with an arc module in peer 0's bag.</summary>
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
@@ -61,7 +61,7 @@ public partial class ArcDemo : Control
         At(8.0, () => _target = new Vector2(1100, 300));
         At(12.0, () => Go(new Place(0, Smelter())));
         At(12.5, () => Click());
-        At(12.7, () => Go(new Place(RockSlot)));
+        At(12.7, () => Go(new Place(QuartzSlot)));
         At(13.2, () => Click());
         At(13.6, () => _target = new Vector2(1100, 300));
     }

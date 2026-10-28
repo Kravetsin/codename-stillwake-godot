@@ -20,7 +20,7 @@ public partial class MarksDemo : Control
 {
     /// <summary>What the bag holds, from its first slot: something each station marks, a module, what is never analysed.</summary>
     public static readonly IReadOnlyList<string> Bag =
-        ["rock", "scrapChunk", "planks", "silicon", "seed", "battery", Spec.Logistics.Drone, Spec.Modules.Arc.Item, "iron", "fireAxe"];
+        ["rock", "scrapChunk", "planks", "quartz", "seed", "battery", Spec.Logistics.Drone, Spec.Modules.Arc.Item, "iron", "fireAxe"];
 
     /// <summary>
     /// The testbed's world, creative mode off, nothing analysed, <see cref="Bag"/> in peer 0's bag past the hotbar, and every

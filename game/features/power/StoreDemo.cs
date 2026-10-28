@@ -8,11 +8,11 @@ namespace Stillwake.Game.Features.Power;
 
 /// <summary>
 /// For recordings (<c>-- --store</c>, 0101): plays <see cref="StoreWorld"/>, the bank filling while the smelter stands empty;
-/// at <see cref="FeedAtS"/> seconds the hero puts its rock into the smelter, which works with the arc, and the bank gives out.
+/// at <see cref="FeedAtS"/> seconds the hero puts its quartz into the smelter, which works with the arc, and the bank gives out.
 /// </summary>
 public partial class StoreDemo : Node
 {
-    /// <summary>When the rock goes into the smelter, in seconds of play.</summary>
+    /// <summary>When the quartz goes into the smelter, in seconds of play.</summary>
     public const double FeedAtS = 12;
 
     private readonly Func<(Client Client, Registry M)?> _session;
@@ -31,6 +31,6 @@ public partial class StoreDemo : Node
         Input.ParseInputEvent(new InputEventMouseMotion { Position = at, GlobalPosition = at });
         if (_fed || _t < FeedAtS) return;
         _fed = true;
-        client.Send(new Move(new Place(StoreWorld.RockSlot), new Target(0, m.Grid.MachinesOf("smelter")[0].Id), StoreWorld.Rock));
+        client.Send(new Move(new Place(StoreWorld.QuartzSlot), new Target(0, m.Grid.MachinesOf("smelter")[0].Id), StoreWorld.Quartz));
     }
 }

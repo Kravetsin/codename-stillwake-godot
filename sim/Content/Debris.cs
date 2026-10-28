@@ -97,14 +97,14 @@ public static class Debris
         ]);
 
     /// <summary>
-    /// The asteroid band (0054): rock in two bands 44 to 88 rows above the hull's top and below its bottom,
-    /// past the tether's 24 cells, so only a jetpack reaches it. Rare: a beat every 3 to 5 minutes, 4 on
-    /// average, at most 2 out; drifting from the stream's start to its end as the stream does. Small and
+    /// The asteroid band (0054): ore in two bands 44 to 88 rows above the hull's top and below its bottom,
+    /// past the tether's 24 cells, so only a jetpack reaches it. A beat every 2 to 3 minutes, as space's only
+    /// silicon comes of its quartz (economy rework), at most 3 out; drifting from the stream's start to its end as the stream does. Small and
     /// middling rock nearer; on its far edge, rows 72 to 88 out, more large and the rich (0056). Every piece
     /// of the band spawns <see cref="Lead"/> (128) columns right of the hull, so its distance is twice its rows
     /// past it once they pass 64: the far edge is the tier from 144.
     /// </summary>
-    public static readonly DebrisZone Asteroids = new("asteroids", new HullBand(From: 44, To: 88, Lead), Every: 3600, Jitter: 2400, Max: 2,
+    public static readonly DebrisZone Asteroids = new("asteroids", new HullBand(From: 44, To: 88, Lead), Every: 2400, Jitter: 1200, Max: 3,
         DriftMin, DriftMax,
         [
             new(0, [("asteroidSmall", 3), ("asteroid", 4), ("asteroidLarge", 1)]),
@@ -256,20 +256,20 @@ public static class Loot
         ]),
         ("asteroid",
         [
-            new("rock", 3, 5),
+            new("asteroidOre", 3, 5),
         ]),
-        // The asteroid's kinds (0056): a hit point buys a little more rock the bigger the rock, and twice it in the rich.
+        // The asteroid's kinds (0056): a hit point buys a little more ore the bigger the rock, and twice it in the rich.
         ("asteroidSmall",
         [
-            new("rock", 1, 2),
+            new("asteroidOre", 1, 2),
         ]),
         ("asteroidLarge",
         [
-            new("rock", 6, 9),
+            new("asteroidOre", 6, 9),
         ]),
         ("asteroidRich",
         [
-            new("rock", 8, 12),
+            new("asteroidOre", 8, 12),
         ]),
         // Derelicts (0056): the wrecks' own loot, some five wrecks' worth in one place, so a sortie's air goes on breaking, not searching.
         ("engineBlock",

@@ -80,7 +80,7 @@ public class CraftsTests
         Assert.Null(Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: true, Workbench));
         // The assembler makes no wire, and the Former no circuits: a click there would find nothing to go to.
         Assert.Null(Crafts.MissingCraft(Crafts.Lines("circuit", [("silicon", 1)]), creative: false, Assembler));
-        Assert.Null(Crafts.MissingCraft(Crafts.Lines("battery", [("plate", 1), ("coil", 1), ("wire", 2)]), creative: false, Former));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("battery", [("plate", 2), ("coil", 2), ("wire", 4)]), creative: false, Former));
     }
 
     /// <summary>

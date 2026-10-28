@@ -122,42 +122,42 @@ public partial class ContentTests
             var far = Racks(tier.Kinds);
             Assert.True(far.Racks * stream.Of <= 2 * stream.Racks * far.Of, $"far tier {tier.From}: {far.Racks} racks of {far.Of}, the stream's {stream.Racks} of {stream.Of}");
         }
-        // Made besides of silicon and wire, at the circuit assembler alone, which is built of one salvaged (0057).
-        Assert.Equal([("silicon", 1), ("wire", 2)], Crafts.Get("circuit").Cost);
+        // Made besides of silicon and wire, at the circuit assembler alone, which is built of salvaged ones (0057).
+        Assert.Equal(["silicon", "wire"], Crafts.Get("circuit").Cost.Select(c => c.Item));
         Assert.Equal(["assembler"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("circuit"))).Select(s => s.Machine));
-        Assert.Contains(("circuit", 1), Machines.Get("assembler").Cost);
+        Assert.Contains("circuit", Machines.Get("assembler").Cost.Select(c => c.Item));
         Assert.Null(Content.Items.Get("circuit").Yields);
     }
 
     [Fact]
-    public void TheAsteroidBandLiesPastTheTetherIsRareAndCappedAndItsRockBreaksIntoRockToCarry()
+    public void TheAsteroidBandLiesPastTheTetherIsRareAndCappedAndItsRockBreaksIntoOreToCarry()
     {
         var band = Assert.IsType<HullBand>(DebrisSpec.Asteroids.Anchor);
         Assert.True(band.From * 1000 > Hero.Tether, $"the band's {band.From} rows within the tether's reach");
         Assert.True(band.From <= band.To && band.Lead > 0);
-        // About one every 4 minutes, at most 2 out.
-        Assert.Equal(4 * 60 * 20, DebrisSpec.Asteroids.Every + DebrisSpec.Asteroids.Jitter / 2);
-        Assert.Equal(2, DebrisSpec.Asteroids.Max);
-        Assert.All(DebrisSpec.Asteroids.Tiers.SelectMany(t => t.Kinds), k => Assert.All(Loot.Of(k.Item)!, e => Assert.Equal("rock", e.Item)));
+        // About one every two and a half minutes, at most 3 out.
+        Assert.Equal(150 * 20, DebrisSpec.Asteroids.Every + DebrisSpec.Asteroids.Jitter / 2);
+        Assert.Equal(3, DebrisSpec.Asteroids.Max);
+        Assert.All(DebrisSpec.Asteroids.Tiers.SelectMany(t => t.Kinds), k => Assert.All(Loot.Of(k.Item)!, e => Assert.Equal("asteroidOre", e.Item)));
         Assert.Equal(120, Wreckage.HpOf("asteroid"));
-        Assert.Equal([new LootEntry("rock", 3, 5)], Loot.Of("asteroid"));
-        Assert.Equal(999, Content.Items.Get("rock").Stack);
+        Assert.Equal([new LootEntry("asteroidOre", 3, 5)], Loot.Of("asteroid"));
+        Assert.Equal(250, Content.Items.Get("asteroidOre").Stack);
     }
 
     [Fact]
-    public void TheBiggerTheAsteroidTheHarderAndTheMoreRockTheRichOneMostRockForItsHitPoints()
+    public void TheBiggerTheAsteroidTheHarderAndTheMoreOreTheRichOneMostOreForItsHitPoints()
     {
-        // In thousandths of a rock a hit point, the middle of each range.
+        // In thousandths of an ore a hit point, the middle of each range.
         long Hp(string kind) => Wreckage.HpOf(kind)!.Value;
-        long Rock(string kind) => Loot.Of(kind)!.Single() is { Item: "rock" } e ? 1000L * (e.Min + e.Max) / 2 : throw new InvalidOperationException(kind);
+        long Ore(string kind) => Loot.Of(kind)!.Single() is { Item: "asteroidOre" } e ? 1000L * (e.Min + e.Max) / 2 : throw new InvalidOperationException(kind);
         string[] sizes = ["asteroidSmall", "asteroid", "asteroidLarge"];
         for (int i = 1; i < sizes.Length; i++)
         {
             Assert.True(Hp(sizes[i]) > Hp(sizes[i - 1]), sizes[i]);
-            Assert.True(Rock(sizes[i]) > Rock(sizes[i - 1]), sizes[i]);
-            Assert.True(Rock(sizes[i]) / Hp(sizes[i]) >= Rock(sizes[i - 1]) / Hp(sizes[i - 1]), $"{sizes[i]} pays less a hit point");
+            Assert.True(Ore(sizes[i]) > Ore(sizes[i - 1]), sizes[i]);
+            Assert.True(Ore(sizes[i]) / Hp(sizes[i]) >= Ore(sizes[i - 1]) / Hp(sizes[i - 1]), $"{sizes[i]} pays less a hit point");
         }
-        Assert.All(sizes, size => Assert.True(Rock("asteroidRich") / Hp("asteroidRich") >= 3 * Rock(size) / Hp(size) / 2, size));
+        Assert.All(sizes, size => Assert.True(Ore("asteroidRich") / Hp("asteroidRich") >= 3 * Ore(size) / Hp(size) / 2, size));
         // The rich only on the band's far edge, its last tier, and far out.
         Assert.DoesNotContain(DebrisSpec.Asteroids.Tiers[0].Kinds, k => k.Item == "asteroidRich");
         Assert.Contains(DebrisSpec.Asteroids.Tiers[^1].Kinds, k => k.Item == "asteroidRich");

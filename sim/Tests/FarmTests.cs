@@ -265,21 +265,21 @@ public class FarmTests
 
     /// <summary>Soil is pressed of a rock and a plank at the Former in 60 ticks; the lifepod and the assembler refuse it as not made there.</summary>
     [Fact]
-    public void PressesSoilOfRockAndPlanksAtTheFormerAloneInSixtyTicks()
+    public void PressesSoilOfGravelAndPlanksAtTheFormerAloneInSixtyTicks()
     {
         var w = new Scenario(Layout.Parse(
                 ["PPP   PPP      ", "               ", "###############", "#OOO..........#", "#OOO.MM.YY....#", "#OOO.MM.YY....#", "###############"],
                 null, [((0, 0), (5, 4)), ((6, 0), (8, 4))]), doubled: true)
-            .GiveItems(0, ("rock", 3), ("planks", 3));
+            .GiveItems(0, ("gravel", 6), ("planks", 3));
         int former = w.M.Grid.MachinesOf("former").Single().Id;
         int pod = w.M.Grid.MachinesOf("lifepod").Single().Id, assembler = w.M.Grid.MachinesOf("assembler").Single().Id;
         Assert.Equal(60, Content.Crafts.Get("soil").Ticks);
-        Assert.Equal([("rock", 1), ("planks", 1)], Content.Crafts.Get("soil").Cost);
+        Assert.Equal([("gravel", 2), ("planks", 1)], Content.Crafts.Get("soil").Cost);
         w.Do(new Craft(pod, "soil", 1)).Do(new Craft(assembler, "soil", 1)).Run();
         Assert.Equal(["crafting.notHere", "crafting.notHere"], Reasons(w));
         w.Do(new Craft(former, "soil", 1)).Run();
         Assert.Equal(2, w.Refusals.Count);
-        Assert.Equal((2, 2), (w.M.Items.Inventory(0).Sum(s => s?.Item == "rock" ? s.Count : 0), w.M.Items.Inventory(0).Sum(s => s?.Item == "planks" ? s.Count : 0)));
+        Assert.Equal((4, 2), (w.M.Items.Inventory(0).Sum(s => s?.Item == "gravel" ? s.Count : 0), w.M.Items.Inventory(0).Sum(s => s?.Item == "planks" ? s.Count : 0)));
         w.Run(60 - 2);
         Assert.Equal(0, Held(w, former, "soil"));
         w.Run();

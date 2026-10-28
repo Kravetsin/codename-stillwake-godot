@@ -153,7 +153,7 @@ public class StationsTests
         {
             var w = World();
             for (int peer = 0; peer < peers; peer++)
-                w.GiveItems(peer, ("scrap", 200), ("iron", 100), ("gear", 2), ("wire", 4), ("scrapChunk", 6), ("hullPlate", 3), ("planks", 3), ("rock", 2), ("silicon", 6), ("glass", 4), ("seed", 10), ("biomass", 4));
+                w.GiveItems(peer, ("scrap", 200), ("iron", 100), ("gear", 2), ("wire", 4), ("scrapChunk", 6), ("hullPlate", 3), ("planks", 3), ("quartz", 2), ("silicon", 6), ("glass", 4), ("seed", 10), ("biomass", 4));
             var stations = StationsIn(w);
             var fed = stations.Where(s => (Machines.Get(s.Station.Machine).Inputs ?? 0) > 0 && !s.Station.Fed).ToList();
             int capsules = stations.Count(s => s.Station.Process == "grow");
@@ -211,11 +211,16 @@ public class StationsTests
     [Fact]
     public void ProcessesAtAFedStationWhatIsOfItsProcessAndNoHotterThanIt()
     {
-        var (furnace, smelter, capsule) = (Stations.Get("furnace"), Stations.Get("smelter"), Stations.Get("growCapsule"));
-        Assert.True(CraftingModule.Processes(furnace, "rock") && CraftingModule.Processes(furnace, "hullPlate"));
-        // Silicon wants the smelter's heat; planks burn, but nothing is made of them; a seed is grown, never smelted.
-        Assert.False(CraftingModule.Processes(furnace, "silicon") || CraftingModule.Processes(furnace, "planks") || CraftingModule.Processes(furnace, "seed"));
-        Assert.True(CraftingModule.Processes(smelter, "silicon") && CraftingModule.Processes(smelter, "rock"));
+        var (furnace, smelter, capsule, crusher) = (Stations.Get("furnace"), Stations.Get("smelter"), Stations.Get("growCapsule"), Stations.Get("crusher"));
+        Assert.True(CraftingModule.Processes(furnace, "ironOre") && CraftingModule.Processes(furnace, "hullPlate"));
+        // Quartz and gravel want the smelter's heat; planks burn, but nothing is made of them; a seed is grown and rock
+        // crushed, never smelted.
+        Assert.False(CraftingModule.Processes(furnace, "quartz") || CraftingModule.Processes(furnace, "gravel") || CraftingModule.Processes(furnace, "planks")
+            || CraftingModule.Processes(furnace, "seed") || CraftingModule.Processes(furnace, "rock"));
+        Assert.True(CraftingModule.Processes(smelter, "quartz") && CraftingModule.Processes(smelter, "gravel") && CraftingModule.Processes(smelter, "ironOre"));
+        Assert.False(CraftingModule.Processes(smelter, "rock") || CraftingModule.Processes(smelter, "asteroidOre"));
+        Assert.True(CraftingModule.Processes(crusher, "rock") && CraftingModule.Processes(crusher, "asteroidOre"));
+        Assert.False(CraftingModule.Processes(crusher, "scrapChunk") || CraftingModule.Processes(crusher, "ironOre") || CraftingModule.Processes(crusher, "seed"));
         Assert.True(CraftingModule.Processes(capsule, "seed"));
         Assert.False(CraftingModule.Processes(capsule, "rock"));
     }

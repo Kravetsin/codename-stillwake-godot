@@ -49,7 +49,7 @@ once, and smelting has moved to `Crafting`.
   station's speed. The fire is read as the last tick left it, so a furnace starts smelting the tick after
   it lights, and a fire going out for want of air still smelts on its last tick.
 - The numbers are content's (`Content.Items`): a plank burns 400 ticks; a scrap chunk smelts in 60
-  into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, rock in 160 into 2 silicon, so a plank smelts about 6 chunks or 4
+  into 4 scrap, a hull plate in 100 into 2 iron and 1 scrap, iron ore in 80 into 1 iron, so a plank smelts about 6 chunks or 4
   plates ([0046](../../docs/decisions/0046-recipes-show-what-a-thing-is-made-of.md)).
 - **A generator rests while its fire is out:** in the construction phase, before power's derivation,
   each one not burning is told to rest (`IPowerOps.Rest`), one burning to work. `Power` counts no

@@ -56,7 +56,7 @@ public partial class ContentTests
     public void EveryItemsProcessHasAFedStationAndItsReturnsAreWeightsOfWhatIsWorked()
     {
         var processes = Stations.All.Where(s => s.Fed).Select(s => s.Process).Distinct().Order(StringComparer.Ordinal);
-        Assert.Equal(["grow", "smelt"], processes);
+        Assert.Equal(["crush", "grow", "smelt"], processes);
         Assert.All(Stations.All.Where(s => !s.Fed), s => Assert.Equal("smelt", s.Process));
         foreach (var item in Content.Items.All)
         {
@@ -103,23 +103,24 @@ public partial class ContentTests
     // Salvage
 
     /// <summary>
-    /// Salvage smelts into materials and canisters, never more salvage; rock into silicon, which smelts on into glass
-    /// (0057): whole amounts in whole ticks, each step of a chain as hot as the one before it or hotter, never back
-    /// into what it came from.
+    /// Salvage smelts into materials and canisters, never more salvage; rock and asteroid ore are crushed into gravel, iron
+    /// ore and quartz, which smelt on into glass, iron and silicon (0057, smelt-chances): whole amounts in whole ticks,
+    /// byproducts too, each step of a chain as hot as the one before it or hotter, never back into what it came from.
     /// </summary>
     [Fact]
     public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
-        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper"];
+        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz"];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
             if (spec.Yields == null) continue;
             Assert.True(spec.SmeltTicks > 0, spec.Id);
             Assert.NotEmpty(spec.Yields);
-            foreach (var (item, amount) in spec.Yields)
+            foreach (var (item, amount) in spec.Yields.Concat((spec.Byproducts ?? []).Select(b => (b.Item, b.Max))))
             {
-                // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass, biofuel and copper.
+                // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass, biofuel and
+                // copper, and the crusher's iron ore, gravel and quartz.
                 Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(Loot.Of(item));
@@ -130,8 +131,9 @@ public partial class ContentTests
             Assert.True(SlotsFor(spec.Yields) <= Inventory.Slots, spec.Id);
         }
         // What is smelted from something and smelts on yields what smelts no more: a chain of two, no cycle.
-        var chained = Content.Items.All.Where(i => i.Yields != null && Content.Items.All.Any(f => f.Yields?.Any(y => y.Item == i.Id) == true)).ToList();
-        Assert.Equal(["silicon", "biomass"], chained.Select(i => i.Id));
+        var chained = Content.Items.All.Where(i => i.Yields != null && Content.Items.All.Any(f =>
+            f.Yields?.Any(y => y.Item == i.Id) == true || f.Byproducts?.Any(b => b.Item == i.Id) == true)).ToList();
+        Assert.Equal(["ironOre", "quartz", "gravel", "biomass"], chained.Select(i => i.Id));
         Assert.All(chained, spec => Assert.All(spec.Yields!, y => Assert.Null(Content.Items.Get(y.Item).Yields)));
     }
 
@@ -159,8 +161,8 @@ public partial class ContentTests
     /// <summary>
     /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
     /// screwdriver (0046, 0107); the workbench the basic parts and the first tools; the Former those parts again, and
-    /// alone frames, the jetpack, the battery, the drill, soil (0060), the motor of a planet's copper and the cape of its
-    /// cloth (2026-10-27-the-cape-is-worn); the electronics, circuits, solar cells and the deck drive, the circuit
+    /// alone frames, the jetpack, the battery, the drill, soil (0060), the motor of a planet's copper, the canister of its
+    /// ice and the cape of its cloth (2026-10-27-the-cape-is-worn); the electronics, circuits, solar cells and the deck drive, the circuit
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
@@ -169,7 +171,7 @@ public partial class ContentTests
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"], tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp"];
         string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
-        string[] formed = ["frame", "motor", "soil", "cape", "nozzle", "fuelPump", "jetpack", "battery", "drill"];
+        string[] formed = ["frame", "motor", "soil", "cape", "canister", "nozzle", "fuelPump", "jetpack", "battery", "drill"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
         Assert.Equal(parts.Concat(tools).Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
@@ -357,7 +359,7 @@ public partial class ContentTests
             foreach (var station in stations.Where(s => built.Contains(s.Machine)))
             {
                 var made = station.Fed
-                    ? Content.Items.All.Where(i => had.Contains(i.Id) && i.Yields != null && i.Process == station.Process && i.Heat <= station.Heat).SelectMany(i => i.Yields!).Select(y => y.Item)
+                    ? Content.Items.All.Where(i => had.Contains(i.Id) && i.Yields != null && i.Process == station.Process && i.Heat <= station.Heat).SelectMany(i => i.Yields!.Select(y => y.Item).Concat((i.Byproducts ?? []).Select(b => b.Item)))
                     : station.Rows.SelectMany(r => r).Where(c => known.Contains(c) && Crafts.Get(c).Cost.All(p => had.Contains(p.Item)));
                 foreach (var item in made.ToList()) more |= had.Add(item);
             }
@@ -399,7 +401,7 @@ public partial class ContentTests
         Assert.DoesNotContain("motor", Reachable([.. Stations.All.Where(s => s.Machine != "former")], planet: true).Items);
         Assert.Equal([("copper", 1)], Content.Items.Get("copperOre").Yields);
         Assert.Equal(1, Content.Items.Get("copperOre").Heat);
-        Assert.Contains(("magnetite", 1), Crafts.Get("motor").Cost);
+        Assert.Contains("magnetite", Crafts.Get("motor").Cost.Select(c => c.Item));
         // Magnetite lies only in the heat's cracks, and they only in the band over the bedrock.
         var magnetic = Flora.Cave.Where(k => k.Yields.Any(y => y.Item == "magnetite")).ToList();
         Assert.Equal(["heatCrack"], magnetic.Select(k => k.Id));
@@ -458,7 +460,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy", "wallStone"];
         var (_, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
         var locked = recipes.Where(id => !known.Contains(id)).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -526,29 +528,34 @@ public partial class ContentTests
         Assert.True(weight < DebrisSpec.Kinds.Single(k => k.Item == "supplyPod").Weight);
     }
 
-    /// <summary>Heat walks too: the furnace smelts rock into silicon, but glass is had only once the smelter is.</summary>
+    /// <summary>
+    /// Heat walks too: aboard, the crusher's quartz and gravel are had without the smelter, but silicon and glass only once
+    /// it is; without the crusher none of them, the furnace too cold for what it would have made.
+    /// </summary>
     [Fact]
-    public void GlassIsReachableOnlyThroughTheElectricSmelterSiliconWithoutIt()
+    public void SiliconAndGlassAreReachableOnlyThroughTheCrusherAndTheElectricSmelter()
     {
         var (had, _) = Reachable([.. Stations.All.Where(s => s.Machine != "smelter")]);
-        Assert.Contains("silicon", had);
-        Assert.DoesNotContain("glass", had);
-        Assert.Contains("glass", Reachable(Stations.All).Items);
+        Assert.All(["quartz", "gravel"], item => Assert.Contains(item, had));
+        Assert.All(["silicon", "glass"], item => Assert.DoesNotContain(item, had));
+        var (uncrushed, _) = Reachable([.. Stations.All.Where(s => s.Machine != "crusher")]);
+        Assert.All(["quartz", "gravel", "silicon", "glass"], item => Assert.DoesNotContain(item, uncrushed));
+        Assert.All(["silicon", "glass"], item => Assert.Contains(item, Reachable(Stations.All).Items));
     }
 
     /// <summary>
-    /// The solar panel walks the whole chain (0057): rock smelted into silicon, silicon into glass at the smelter, both
-    /// with wire into solar cells at the circuit assembler, which salvaged circuits build. Without the assembler, or
-    /// the smelter, neither a cell nor a panel; circuits still come from salvage.
+    /// The solar panel walks the whole chain (0057): asteroid ore crushed into quartz and gravel, smelted into silicon and
+    /// glass at the smelter, both with wire into solar cells at the circuit assembler, which salvaged circuits build.
+    /// Without the assembler, the smelter or the crusher, neither a cell nor a panel; circuits still come from salvage.
     /// </summary>
     [Fact]
-    public void SolarCellsAndTheSolarPanelAreReachableOnlyThroughTheAssemblerAndTheSmelter()
+    public void SolarCellsAndTheSolarPanelAreReachableOnlyThroughTheAssemblerTheSmelterAndTheCrusher()
     {
         var (had, known) = Reachable(Stations.All);
         Assert.Contains("solarCell", had);
         Assert.Contains("solarPanel", known);
-        Assert.Contains(("solarCell", 4), Machines.Get("solarPanel").Cost);
-        foreach (var without in new[] { "assembler", "smelter" })
+        Assert.Contains("solarCell", Machines.Get("solarPanel").Cost.Select(c => c.Item));
+        foreach (var without in new[] { "assembler", "smelter", "crusher" })
         {
             var (some, opened) = Reachable([.. Stations.All.Where(s => s.Machine != without)]);
             Assert.DoesNotContain("solarCell", some);
