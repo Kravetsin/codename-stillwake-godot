@@ -35,10 +35,9 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
   breath, the rest tops the suit; the suit pays any shortfall. A room without supply runs out under its heroes.
 - **Thin air** (0076): on a kind with `Surfaces.Kind.ThinAir` n, the suit pays the shortfall only every n-th
   breath (`Clock / BreathEvery` divisible by n), in full, exertion included.
-- **Suit colours** (0076): `Crew.Colours`, kept by `Players`, so two heroes on two surfaces never wear one. A
-  hero coming in wears the first unworn, or the least worn, first on a tie (`Players.Dress`); a peer's first
-  hero gets the kit, the screwdriver (`IItemsOps.Kit`, 0107). `PickColour(Colour)` puts on a
-  colour no other hero wears.
+- **Colours and looks** (0076, looks-are-printed), kept by `Players`: a hero coming in wears the first unworn of
+  `Crew.Colours`, else the least worn, first on a tie; a peer's first gets the kit (`IItemsOps.Kit`, 0107).
+  `PickColour` puts on a free colour. `ChooseLook` sets the look a print wears: an `Enter` making a hero, a wake.
 - **Leave** (0055, 0076): the host sends it for a peer that left (`Host.Disconnect`); the hero goes, its colour
   freed, its tool stopped, its inventory kept for its seat. Off the ship the seat goes aboard (`ISurfaces.Send`).
 - **Surfaces** (0076, `ICarries`): `Depart` gives up the `Hero` as it is, `Arrive` takes it at the cell given or
@@ -78,10 +77,10 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 - **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `Cold(peer)`, `Warmth(peer)` (the frost);
   `HeroOf(id)` — `Hero` (`Id`, `Cell`, `Air`, `Out`) or null; `Heroes` — live, read-only, in id order. On the
   module: `Burns(cell)`; `RefillProblem(peer)`, so the client sends no `Refill` the sim would refuse.
-- **Commands:** `Enter(Cell)`, never refused (off the grid or in a wall is no air); `PickColour(Colour)` —
+- **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
   `crew.noHero`, `crew.noSuchColour`, `crew.colourTaken`; `Leave`, `Exert(On)` — `crew.noHero`; `Thrust(On)` —
   `crew.noHero`, `crew.noJetpack`; `Refill` — `crew.noHero`, `crew.suitFull`, `items.notEnough`.
-- **Fuzz:** every command and refusal; `Enter` near the spawn, anywhere, or off the grid.
+- **Fuzz:** every command and refusal; `Enter` near the spawn, anywhere, or off the grid (no air there).
 
 ## Invariants
 

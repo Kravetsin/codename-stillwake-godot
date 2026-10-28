@@ -5,6 +5,7 @@ using Stillwake.Game.Features.Effects;
 using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
+using Stillwake.Sim.Players;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Crew;
@@ -72,8 +73,7 @@ public partial class Figure : Node2D
     private readonly Node2D _faceLight;
     private const float FaceLight = 0.6f;
     private static readonly Material Added = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-    /// <summary>Every figure wears look 0 until players pick theirs (docs/plans/suits.md, S-3).</summary>
-    private static readonly (int Skin, int Hair, int HairColour, int Face, int Beard) Look = default;
+    private Look _look = Look.Zero;
     private bool _helmetWorn, _bodyWorn, _lampWorn;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
@@ -554,17 +554,20 @@ public partial class Figure : Node2D
 
     /// <summary>
     /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> and
-    /// <paramref name="body"/> or not (2026-10-27-suits-are-worn): its pictures recoloured, when any of it changes.
+    /// <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
+    /// 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
     /// </summary>
-    public void Wear(int colour, bool helmet = true, bool body = true)
+    public void Wear(int colour, bool helmet = true, bool body = true, Look? look = null)
     {
-        if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body) return;
-        (_colour, _helmetWorn, _bodyWorn) = (colour, helmet, body);
-        foreach (var (sprite, part, isFar) in _parts) sprite.Texture = SuitArt.Of(PictureOf(part), colour, Look.Skin, Look.HairColour, isFar);
+        look ??= Look.Zero;
+        if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
+        (_colour, _helmetWorn, _bodyWorn, _look) = (colour, helmet, body, look);
+        int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
+        foreach (var (sprite, part, isFar) in _parts) sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
         _pack.Visible = body;
         _shell.Visible = _visor.Visible = helmet;
         _hair.Visible = !helmet;
-        _beard.Visible = !helmet && Look.Beard > 0;
+        _beard.Visible = !helmet && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
     }
@@ -573,9 +576,9 @@ public partial class Figure : Node2D
     private string PictureOf(string part) => part switch
     {
         "torso" or "upperArm" or "forearm" or "thigh" or "shin" when !_bodyWorn => "jumpsuit_" + part,
-        "face" => $"face_{Look.Face}",
-        "hair" => $"hair_{Look.Hair}",
-        "beard" => $"beard_{Math.Max(Look.Beard - 1, 0)}",
+        "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
+        "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
+        "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
         "shell" => "helmet_shell",
         _ => part,
     };

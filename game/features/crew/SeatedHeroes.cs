@@ -62,7 +62,7 @@ public partial class SeatedHeroes : Node2D
             // Over the pod's picture, which rises over its footprint as a tall machine's does (0099).
             shown.Porthole.Position = new Vector2(pod.Cell % _grid.Width, pod.Cell / _grid.Width - ShipTiles.RiseOf(pod.Kind)) * ShipCamera.Cell;
             var (helmet, body) = Suits.WornBy(_items, seat.Peer);
-            shown.Figure.Wear(colour, helmet, body);
+            shown.Figure.Wear(colour, helmet, body, _players.LookOf(seat.Peer));
             shown.Figure.Show(new Hero(0, 0, 0, 0, false, 1), Pose.Strapped, 0, false, delta * 1000);
         }
         foreach (var pod in _shown.Keys.Where(p => !seated.Contains(p)).ToList()) Free(pod);

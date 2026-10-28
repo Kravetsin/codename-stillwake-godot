@@ -1,6 +1,7 @@
 # 0003 — Characters: modular cutout with keyframed animation
 
-- Status: accepted
+- Status: accepted; "Appearance is sent once on join" superseded by
+  [looks-are-printed](2026-10-28-looks-are-printed.md): a look is chosen, and worn from the pod's next print
 - Date: 2026-10-10
 
 ## Context

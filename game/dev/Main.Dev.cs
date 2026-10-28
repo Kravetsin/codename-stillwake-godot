@@ -82,6 +82,7 @@ public partial class Main
             Fabricator = _fabricator,
             Menu = menu,
             Suits = suits,
+            Looks = _lookEditor,
             DebrisPage = debrisPage,
             Layout = _layout,
             Hero = () => _hero?.Current,

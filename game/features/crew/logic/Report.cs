@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Stillwake.Sim;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crew;
+using Stillwake.Sim.Players;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Game.Features.Crew;
@@ -31,6 +32,17 @@ public static class Report
             return known.Cell != cell && tick - reported >= every ? new Enter(cell) : null;
         return new Enter(cell);
     }
+
+    /// <summary>
+    /// What goes before the <c>Enter</c> that has the pod print hero <paramref name="id"/> (2026-10-28-looks-are-printed):
+    /// <c>ChooseLook</c> with the player's <paramref name="look"/>, once a join (<paramref name="sent"/> already or not), so the
+    /// pod prints it in that look; <c>Hold</c> while the player has none yet, its look editor open on a first run: no
+    /// <c>Enter</c> goes till it closes. Nothing for a hero the sim knows.
+    /// </summary>
+    public static (Command? Choose, bool Hold) LookFirst(ICrewQueries crew, int id, Look? look, bool sent) =>
+        crew.HeroOf(id) != null ? (null, false)
+        : look == null ? (null, true)
+        : (sent ? null : new ChooseLook(look), false);
 
     /// <summary>
     /// How often the hero reports where it is: every tick it moves while a creature <paramref name="threatened"/> it, so what charges

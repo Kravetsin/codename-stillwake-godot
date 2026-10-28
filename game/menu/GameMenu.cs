@@ -34,6 +34,7 @@ public partial class GameMenu : CanvasLayer
     /// <param name="busy">Whether anything is open or in hand that Esc puts away first.</param>
     /// <param name="putAway">Closes the inventory and its crate and the Handbook, and puts the plan away.</param>
     /// <param name="handbook">Opens the Handbook (0066): a line here says J does, for a player who has not found it.</param>
+    /// <param name="look">Opens the look editor.</param>
     /// <param name="suits">The suit colours' row, shown in the settings.</param>
     /// <param name="save">Saves the world, and says how it went as an i18n key.</param>
     /// <param name="inWorld">Whether a world is played: on the title the menu stays shut.</param>
@@ -45,7 +46,7 @@ public partial class GameMenu : CanvasLayer
     /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
     /// <param name="update">Fetches the newer release and restarts into it.</param>
     /// <param name="updating">How an update stands while it runs.</param>
-    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Action handbook, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
+    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Action handbook, Action look, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
         Action exitToTitle, Action quit, Func<string> foot, string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
         (_ui, _busy, _putAway, _handbook, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, handbook, save, inWorld, owns, foot);
@@ -75,6 +76,11 @@ public partial class GameMenu : CanvasLayer
         {
             Show(MenuPage.Closed);
             _handbook();
+        }));
+        _main.AddChild(Choice("menu.look", () =>
+        {
+            Show(MenuPage.Closed);
+            look();
         }));
         _main.AddChild(_saveButton = Choice("menu.save", () => Say(Run(_save))));
         _main.AddChild(Choice("menu.settings", () => Show(MenuPage.Settings)));

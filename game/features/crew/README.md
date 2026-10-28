@@ -16,7 +16,7 @@ commands reach the sim; others' heroes come through the host.
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
-| `logic/HarpoonShot.cs` | the hand harpoon: rod, hook, reel, pull, cooldown (0044) |
+| `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | the harpoon's line as drawn |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
 | `logic/Seating.cs` | a hero in or flying a drop pod |
@@ -53,11 +53,12 @@ commands reach the sim; others' heroes come through the host.
 | `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
 | `SuitColours.cs` | the menu's suit colours |
+| `LookEditor.cs` | the look editor (looks-are-printed) |
 | `logic/Markers.cs` | markers' list and shape |
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies from floor stacks (0061) |
 | `BodyView.cs` | each body drawn, its beacon (0061) |
-| `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
+| `logic/Rams.cs` | a creature's ram as met here (0103) |
 | `logic/Crew.En.cs` | its player text |
 
 ## Guarantees

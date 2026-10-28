@@ -31,10 +31,10 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   shown takes it first, Settings going back to the menu's first page and that page closing it; else
   Esc closes the inventory and its crate and the Handbook and puts the plan away (0022), all at once; only with
   nothing open or in hand does it open the menu.
-- **Resume** closes it. **Handbook (J)** closes it and opens the Handbook (0066): the line says which key does,
-  for a player who has not found it. **Settings** holds the suit's colour (`features/crew`'s `SuitColours`: the one
+- **Resume** closes it. **Handbook (J)** closes it and opens the Handbook (0066), its line naming
+  the key. **Look** opens the look editor (`features/crew`). **Settings** holds the suit's colour (`features/crew`'s `SuitColours`: the one
   worn ringed, those others wear dimmed, a free one a click away sending `crew`'s `PickColour`,
-  refused by the sim as before), the **slot size**, Normal (40 px) or Large (56 px), the one in use lit (`Ui.SlotScale`,
+  refused by the sim), the **slot size**, Normal (40 px) or Large (56 px), the one in use lit (`Ui.SlotScale`,
   0058: applied at once, kept on this machine in `user://settings.cfg` by `platform/Settings`), **heat shimmer**
   On or Off (0075, `Shimmer.Enabled`, on by default, kept there too), and **Open logs folder**.
   **Save** writes the world to its folder, the save before kept as its

@@ -8,6 +8,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Players;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content.Hero;
 
@@ -107,6 +108,11 @@ public partial class HeroView : Node2D
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;
+    /// <summary>The session this hero's look was sent to, before its first <c>Enter</c> there.</summary>
+    private Client? _lookSentTo;
+
+    /// <summary>The look this player chose, sent before the pod prints its hero; null holds the hero out till it chooses. Look 0 unless set.</summary>
+    public Func<Look?> Look { get; set; } = () => Sim.Players.Look.Zero;
     private double _clockMs;
     private int _workedOnTick = -1;
     /// <summary>
@@ -424,7 +430,13 @@ public partial class HeroView : Node2D
         // Passed out it reports no cell: one landing after it wakes at the pod would put it back out there.
         int tick = client.World.Tick;
         if (passedOut) _reportedAt = tick;
-        if (Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt, Report.Every(m.Creatures.Threatens(client.Id))) is { } report)
+        var (choose, hold) = Report.LookFirst(m.Crew, client.Id, Look(), _lookSentTo == client);
+        if (choose != null)
+        {
+            client.Send(choose);
+            _lookSentTo = client;
+        }
+        if (!hold && Report.Of(m.Crew, m.Rooms, m.Atmosphere, grid.Width, client.Id, _current, tick, _reportedAt, Report.Every(m.Creatures.Threatens(client.Id))) is { } report)
         {
             client.Send(report);
             _reportedAt = tick;
@@ -472,7 +484,7 @@ public partial class HeroView : Node2D
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var (helmet, body) = Suits.WornBy(m.Items, client.Id);
-        _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body);
+        _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
