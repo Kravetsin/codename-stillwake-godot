@@ -1,0 +1,106 @@
+<title>Стили облика героя</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Golos+Text:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  /* Layout: one column of style plates, each a lineup on the deck and its heads close up, with a verdict strip. */
+  :root {
+    --bg: #11141a;
+    --plate: #181c25;
+    --line: #2a303d;
+    --fg: #e4e6eb;
+    --muted: #8d95a5;
+    --accent: #e0a030;
+    --good: #8cd06a;
+    --bad: #e58c7a;
+    --pixel: "Press Start 2P", ui-monospace, monospace;
+    --body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+    color-scheme: dark;
+  }
+  body { background: var(--bg); color: var(--fg); font: 16px/1.55 var(--body); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 40px; }
+  h1 { font: 22px/1.4 var(--pixel); margin: 0; letter-spacing: 0.02em; text-wrap: balance; }
+  h2 { font: 15px/1.5 var(--pixel); margin: 0; text-wrap: balance; }
+  .lead { max-width: 68ch; color: var(--fg); margin: 0; }
+  .lead + .lead { color: var(--muted); }
+  header { display: grid; gap: 14px; }
+  img.px { image-rendering: pixelated; image-rendering: crisp-edges; display: block; max-width: 100%; height: auto; }
+  .strip { overflow-x: auto; border: 1px solid var(--line); background: #0b0d11; }
+  .strip img { max-width: none; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font: 13px/1.4 var(--mono); color: var(--muted); margin: 0; padding: 0; list-style: none; }
+  .legend b { color: var(--fg); font-weight: 500; }
+  .plate { background: var(--plate); border: 1px solid var(--line); padding: 24px; display: grid; gap: 18px; }
+  .plate-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+  .letter { font: 15px/1 var(--pixel); color: var(--bg); background: var(--accent); padding: 8px 9px 7px; }
+  .art { display: grid; grid-template-columns: minmax(0, 540fr) minmax(0, 480fr); gap: 16px; align-items: start; }
+  .art figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+  figcaption { font: 12px/1.4 var(--mono); color: var(--muted); }
+  .traits { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 24px; }
+  .traits li { min-width: 0; }
+  .traits dt, .k { font: 12px/1.4 var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .traits span { display: block; }
+  .verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; border-top: 1px solid var(--line); padding-top: 14px; }
+  .verdict p { margin: 0; min-width: 0; }
+  .plus .k { color: var(--good); }
+  .minus .k { color: var(--bad); }
+  .next { display: grid; gap: 10px; }
+  .next p, .next ul { margin: 0; max-width: 68ch; }
+  .next li { margin-block: 4px; }
+  code { font: 14px var(--mono); color: var(--accent); }
+  @media (max-width: 760px) {
+    .art, .verdict { grid-template-columns: 1fr; }
+    .plate { padding: 16px; }
+    h1 { font-size: 17px; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Стили облика героя</h1>
+    <p class="lead">Пять способов нарисовать человека под скафандром, в каждом по два героя. Все собраны на нынешнем скелете героя: те же суставы, те же размеры рук и ног, кожа, волосы и комбинезон перекрашиваются так же, как сейчас перекрашиваются скафандры. Слева в каждом ряду стоит сегодняшний герой в скафандре, для масштаба.</p>
+    <p class="lead">Выбран стиль E с одной головой 1×: набор ниже, за ним сравнение 1× и 2× и все пять стилей.</p>
+  </header>
+
+  <section class="plate" id="set">
+    <div class="plate-head"><span class="letter">E</span><h2>Голова 1×: набор</h2></div>
+    <p class="lead">Одна голова на всех, нарисована руками. Шесть причёсок, пять лиц, две бороды, семь оттенков кожи и шесть цветов волос. Брови и бороды берут цвет волос; волосы и бороды под шлемом не рисуются.</p>
+    <figure style="margin:0"><img class="px" src="{{set_line}}" alt="Герои с разными причёсками и лицами, с поднятой головой и под визором" width="{{set_line_w}}" height="{{set_line_h}}"><figcaption>на палубе, ×6: кудри и короткая борода, длинные, короткие и улыбка, хвост и веснушки, ёжик и борода, пучок с поднятой головой, лицо под визором</figcaption></figure>
+    <div class="strip"><img class="px" src="{{cat_hairs}}" alt="Шесть причёсок" width="{{cat_hairs_w}}" height="{{cat_hairs_h}}"></div>
+    <p class="legend"><b>причёски</b> короткая · кудри · длинные · пучок · хвост · ёжик</p>
+    <div class="strip"><img class="px" src="{{cat_faces}}" alt="Пять лиц и две бороды" width="{{cat_faces_w}}" height="{{cat_faces_h}}"></div>
+    <p class="legend"><b>лица</b> спокойное · строгое · мягкое · улыбка · веснушки; <b>бороды</b> короткая · полная</p>
+    <div class="strip"><img class="px" src="{{cat_colours}}" alt="Семь оттенков кожи с разными цветами волос" width="{{cat_colours_w}}" height="{{cat_colours_h}}"></div>
+    <p class="legend"><b>кожа</b> семь оттенков, от светлого к тёмному; <b>волосы</b> чёрные, каштановые, рыжие, светлые, седые, розовые</p>
+  </section>
+
+  <section class="plate" id="density">
+    <div class="plate-head"><span class="letter">E</span><h2>Одна голова в шлеме: 1× или 2×</h2></div>
+    <p class="lead">Одна форма головы на всех, как в Starbound: героев различают причёска, лицо и кожа. Голова лежит внутри контура шлема, 13×12 пикселей тела. Верхний ряд нарисован пикселем тела (1×), нижний полупикселем (2×, 26×24 на том же месте). В каждом ряду: голова без волос, кудри, длинные, короткие, пучок, голова поднята к курсору, лицо за стеклом визора.</p>
+    <p class="lead">Выбран 1×. Глаз опущен на середину головы, шестую строку из двенадцати: за стеклом он теперь посередине окна визора, а не у его верхнего края.</p>
+    <figure style="margin:0"><img class="px" src="{{fg_line}}" alt="Герои стиля E с одной головой: сверху 1×, снизу 2×" width="{{fg_line_w}}" height="{{fg_line_h}}"><figcaption>на палубе, ×6: сверху 1×, снизу 2×</figcaption></figure>
+    <figure style="margin:0"><img class="px" src="{{fg_heads}}" alt="Те же головы крупно: сверху 1×, снизу 2×" width="{{fg_heads_w}}" height="{{fg_heads_h}}"><figcaption>головы, ×10: сверху 1×, снизу 2×</figcaption></figure>
+    <div class="verdict"><p class="plus"><span class="k">2×</span><br>В шлем помещаются нос, губы, подбородок и фактура волос. Поднятая голова остаётся гладкой. Минус: пиксель головы мельче пикселя тела, это видно на крупном плане и почти не видно на обычном зуме.</p><p class="minus"><span class="k">1×</span><br>Один размер пикселя на всём герое. Но на лицо остаются глаз, бровь и рот, а повёрнутая за курсором голова идёт лесенкой.</p></div>
+  </section>
+
+  <section class="next" aria-label="Все стили рядом">
+    <h2>Все рядом, ×3</h2>
+    <div class="strip"><img class="px" src="{{all_x3}}" alt="Герой в скафандре и по два героя каждого стиля на палубе" width="{{all_x3_w}}" height="{{all_x3_h}}"></div>
+    <ul class="legend">
+      <li><b>скафандр</b> для масштаба</li><li><b>A</b> чиби ×2</li><li><b>B</b> подробный ×2</li><li><b>C</b> плоский ×2</li><li><b>D</b> ретро ×2</li><li><b>E</b> мягкий свет ×2</li>
+    </ul>
+  </section>
+
+  {{plates}}
+
+  <section class="next">
+    <h2>Что решено</h2>
+    <ul>
+      <li>Стиль E, мягкий свет: контур только с теневой стороны, холодный ободок света по спине.</li>
+      <li>Одна голова на всех, внутри контура шлема, пикселем тела (1×). Героев различают причёска, лицо, кожа и цвет волос.</li>
+      <li>Глаз на середине головы, посередине окна визора.</li>
+      <li>Волосы и бороды больше шлема, под шлемом их не рисуют; в будущем шлеме-аквариуме причёску обрежут. Брови и бороды берут цвет волос.</li>
+      <li>Набор: 6 причёсок, 5 лиц, 2 бороды (и без бороды), 7 оттенков кожи, 6 цветов волос. Картинки рисует <code>tools/hero-art</code>.</li>
+    </ul>
+  </section>
+</div>

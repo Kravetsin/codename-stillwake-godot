@@ -36,6 +36,8 @@ const FIXED = {
   K: '#14171d', g: '#262b35', G: '#3d4452', h: '#6a7385', H: '#9aa3ad',
   e: '#16121a', w: '#e9e4de', m: '#7a3b34',
   v: '#1d2836/80', V: '#8fb6d6/210', y: '#cfe6f5/235',
+  // a blush; the cool rim of light down the back of the hair and the jumpsuit
+  B: '#d98a80', R: '#8fb4d4',
   // the cape's wool: light, own, shade, outline
   p: '#c49a68', q: '#9a7148', r: '#6e4f33', t: '#3b2a1b',
   // the cape's lining
@@ -44,142 +46,143 @@ const FIXED = {
   u: '#e2d6bf', x: '#bfae8e', z: '#8a7a60', n: '#4e4436',
 };
 
-// The head's slot shares the helmet's template: 13x12, turning at the neck, (6.5, 12), its bottom middle. Every
-// opaque pixel of the head, a face or hair lies inside the helmet's, so a suited head shows only through the visor.
+// The head's slot shares the helmet's template: 13x12, turning at the neck, (6.5, 12), its bottom middle. One head for
+// everyone, heroes told apart by hair and face. Every opaque pixel of the head and a face lies inside the helmet's, so
+// a suited head shows only through the visor; the eye sits on row 6, the middle of the visor's window (rows 4 to 7).
+// Lit from the upper front: the outline only on the shaded back and underside, the lit front left open.
 const HEAD_JOINT = [6.5, 12];
 
 const head = [
-  '.............',
-  '.............',
-  '.....OOOOO...',
-  '...OOLLLSSO..',
-  '..OLLSSSSSSO.',
-  '..OLSSSSSSSO.',
-  '..OSSSDSSSSSO',
-  '..OSSDDSSSSO.',
-  '..OSSSSSSSSO.',
-  '...ODSSSSSO..',
-  '....OODSSOO..',
-  '.....ODSO....',
+  '....SSSSS....',
+  '..DSLLLLLS...',
+  '.DSSLLLLLLS..',
+  '.DSSSSLLLLS..',
+  'ODSSSSSSSSSS.',
+  'ODSSSSSSSSSS.',
+  'ODSDDSSSSSSS.',
+  'ODDSDSSSSSSSS',
+  '.ODDDSSSSSSS.',
+  '..ODSSSSSSSS.',
+  '...ODDSSSSSO.',
+  '....ODOOOOO..',
 ];
 
-// Faces: eyes (e, w) and a mouth (m) keep their colours, brows take the hair's ramp, the rest the skin's.
+// Faces, in the head's template: eyes (e, w), lips (m) and a blush (B) keep their colours; brows take the hair's ramp,
+// so they match the hair; the rest the skin's.
+const marks = (w, h, at) => spots => {
+  const rows = Array.from({ length: h }, () => [...'.'.repeat(w)]);
+  for (const [x, y, keys] of spots) [...keys].forEach((k, i) => (rows[y + at][x + at + i] = k));
+  return rows.map(r => r.join(''));
+};
+const faceOf = marks(13, 12, 0);
 const faces = [
-  [ // calm
-    '.............',
-    '.............',
-    '.............',
-    '.............',
-    '........33...',
-    '........we...',
-    '.............',
-    '.............',
-    '..........D..',
-    '.............',
-    '.............',
-    '.............',
+  faceOf([[7, 5, '33'], [8, 6, 'we'], [10, 9, 'D']]), // calm
+  faceOf([[7, 5, '333'], [8, 6, 'De'], [9, 9, 'DD']]), // stern: a heavy brow, a narrowed eye, a set mouth
+  faceOf([[7, 5, '33'], [10, 5, 'e'], [8, 6, 'we'], [7, 7, 'B'], [10, 9, 'Dm']]), // soft: a lash flicked forward, a blush, lips
+  faceOf([[8, 4, '33'], [8, 6, 'ee'], [9, 8, 'D'], [10, 9, 'wD']]), // grin: a raised brow, a happy eye, teeth
+  faceOf([[7, 5, '33'], [8, 6, 'we'], [7, 7, 'D'], [9, 7, 'D'], [8, 8, 'D'], [10, 9, 'D']]), // freckles
+];
+
+// Hair has its own template, bigger than the helmet, which hides it: 16x18, the head's pixel (x, y) its (x + 2, y + 2),
+// so it turns at (8.5, 14). Keys 1 lit, 2 own, 3 shade, 4 line where it meets the dark (over the skin its edge is
+// shade), R a cool rim of light down the back.
+const HAIR_JOINT = [8.5, 14];
+const hairs = [
+  [ // short, parted, combed up at the front
+    '................',
+    '.......11111....',
+    '.....111111111..',
+    '...R12222222211.',
+    '..R222222222221.',
+    '..R22322222233..',
+    '..R2333223......',
+    '..R23334........',
+    '..R23...........',
+    '..R3............',
+    '...3............',
   ],
-  [ // stern: a heavy brow over a narrowed eye, a flat mouth
-    '.............',
-    '.............',
-    '.............',
-    '.............',
-    '.......3333..',
-    '........De...',
-    '.............',
-    '.............',
-    '.........DD..',
-    '.............',
-    '.............',
-    '.............',
+  [ // curls, full and round: flat, scattered lights above and shades below, the edge bumpy
+    '.....1..11.1....',
+    '...1121112112...',
+    '..R21222122212..',
+    '.R2122212221221.',
+    '.R2322232223222.',
+    '.R3222322232232.',
+    '.R23223223323...',
+    '.R32232.........',
+    '.R232...........',
+    '..R3............',
+    '...3............',
   ],
-  [ // cheerful: a raised brow, freckles, a grin
-    '.............',
-    '.............',
-    '.............',
-    '.............',
-    '........3.3..',
-    '........we...',
-    '.............',
-    '.......D.D...',
-    '.........Dm..',
-    '.............',
-    '.............',
-    '.............',
+  [ // long, from a side parting down past the shoulders
+    '................',
+    '......11111.....',
+    '....111111111...',
+    '...R11222222211.',
+    '..R2222222222221',
+    '.R22223222222233',
+    '.R2223322223....',
+    '.R22233.........',
+    '.R2223..........',
+    '.R2233..........',
+    '.R2233..........',
+    '.R2233..........',
+    '.R2333..........',
+    '..R233..........',
+    '..R233..........',
+    '..R334..........',
+    '...44...........',
+  ],
+  [ // pulled back into a bun
+    '.11.............',
+    '1122...1111.....',
+    'R2223.11111111..',
+    'R2333R222222211.',
+    '.R33R2222222221.',
+    '..R2222222222233',
+    '..R222322333....',
+    '..R2333.........',
+    '..R23...........',
+    '..R3............',
+    '...3............',
+  ],
+  [ // a ponytail tied at the back
+    '................',
+    '.......11111....',
+    '.....111111111..',
+    '...R12222222211.',
+    '..R222222222221.',
+    '.3G2222222222233',
+    'R22G222322333...',
+    'R223R333........',
+    'R223.R3.........',
+    'R223..3.........',
+    'R233............',
+    '.R33............',
+    '.R34............',
+    '..4.............',
+  ],
+  [ // cropped close: the hair's shade hugging the skull, a few lights on top
+    '................',
+    '................',
+    '......23332.....',
+    '....23332333....',
+    '...R333233323...',
+    '...R33333333....',
+    '..R3333333......',
+    '..R33333........',
+    '..R33...........',
+    '..R3............',
   ],
 ];
 
-const hairs = [
-  [ // crop
-    '.............',
-    '.....4444....',
-    '...44111244..',
-    '..4112222234.',
-    '.4122222334..',
-    '.422233......',
-    '.4223........',
-    '.423.........',
-    '..43.........',
-    '.............',
-    '.............',
-    '.............',
-  ],
-  [ // quiff, swept up and forward
-    '....44444....',
-    '..441111244..',
-    '.41122222224.',
-    '.422222222334',
-    '.4222223.....',
-    '.422233......',
-    '.4223........',
-    '.423.........',
-    '..43.........',
-    '.............',
-    '.............',
-    '.............',
-  ],
-  [ // ponytail, tied at the nape
-    '.............',
-    '.....4444....',
-    '...44111244..',
-    '..4112222234.',
-    '.4122222334..',
-    '4222233......',
-    '4hH3.........',
-    '423..........',
-    '423..........',
-    '.423.........',
-    '..43.........',
-    '.............',
-  ],
-  [ // long, down the back
-    '.............',
-    '....44444....',
-    '..441112244..',
-    '.41122222334.',
-    '412222223....',
-    '4222223......',
-    '422223.......',
-    '422223.......',
-    '42223........',
-    '.4223........',
-    '..423........',
-    '...4.........',
-  ],
-  [ // curls, full
-    '....44.44....',
-    '..441231234..',
-    '.42332332334.',
-    '.432312312334',
-    '42332332334..',
-    '431231231....',
-    '42332........',
-    '43123........',
-    '.4233........',
-    '..44.........',
-    '.............',
-    '.............',
-  ],
+// Beards, in the hair's template and ramp, so they take the hair's colour; drawn over the face, only bare, as hair is.
+// Spots are given in the head's pixels; the mouth (10, 9) is left open for the face's.
+const beardOf = marks(16, 18, 2);
+const beards = [
+  beardOf([[4, 8, '33'], [4, 9, '3333'], [4, 10, '3333333']]), // short, along the jaw
+  beardOf([[5, 7, '3'], [5, 8, '33'], [10, 8, '22'], [4, 9, '32222'], [11, 9, '2'], [4, 10, '32222222'], [5, 11, '3322223'],
+    [7, 12, '4334']]), // full, hanging under the chin
 ];
 
 // The helmet's visor (hero_helmet.png's E F pixels) as glass the face shows through, its glint kept off the eye;
@@ -199,75 +202,30 @@ const visor = [
   '.............',
 ];
 
-// The jumpsuit: the suit's parts' templates and joints, cloth in the suit's ramp, hands in the skin's, shoes in gear.
+// The jumpsuit: the suit's parts' templates and joints, cloth in the suit's ramp, hands in the skin's, the belt, cuffs and
+// shoes in gear. Lit as the head is: no line on the lit front, folds in shade, the rim (R) down the back.
 const jumpsuit = {
   torso: [ // joint (6, 0)
-    '...olllsdo..',
-    '.oodddddddo.',
-    '.ollddddsdo.',
-    '.ollsssssdo.',
-    '.olsssssdso.',
-    '.olsssssddo.',
-    '.olsssssddo.',
-    '.olsssssddo.',
-    '.oGgGGHGgGo.',
-    '.olsssssddo.',
-    '.olsssssddo.',
-    '.odsssssddo.',
-    '.oddsssdddo.',
+    '...odllld...',
+    '.oddslllll..',
+    'Rdsssslllll.',
+    'Rdsssssllll.',
+    'Rdssdssslls.',
+    'Rdssdssssls.',
+    'Rdsssssssss.',
+    'Rodssssssss.',
+    'RgGGGGHHHHG.',
+    'Rodsssssdss.',
+    'Rodssssdsss.',
+    '.odssssssss.',
+    '.ooddssssdo.',
     '..oooooooo..',
     '............',
   ],
-  upperArm: [ // joint (2.5, 2.5)
-    '.ooo.',
-    'ollso',
-    'olsdo',
-    'olsdo',
-    'olsdo',
-    'olsdo',
-    'olsdo',
-    'olsdo',
-    '.ooo.',
-  ],
-  forearm: [ // joint (2.5, 2.9); the fist where the glove's is
-    '.ooo.',
-    'olsdo',
-    'olsdo',
-    'olsdo',
-    'olsdo',
-    'oddoo',
-    '.OSO.',
-    'OLSDO',
-    'OSSDO',
-    '.OOO.',
-  ],
-  thigh: [ // joint (3, 2.5)
-    '.oooo.',
-    'ollsdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'odssdo',
-    '.oooo.',
-  ],
-  shin: [ // joint (3, 2.18); a shoe where the boot is
-    '.oooo.',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'olssdo',
-    'oddddo',
-    '.gggg..',
-    'ghGGGgg..',
-    'gGGGGGGg.',
-    'KggggggK.',
-    '.........',
-  ],
+  upperArm: ['.lll.', 'oslll', 'osslo', 'osslo', 'osslo', 'odslo', 'odsso', 'odsso', '.ooo.'], // joint (2.5, 2.5)
+  forearm: ['.sls.', 'osslo', 'osslo', 'odsso', 'oGGGo', '.DLS.', 'DSLLS', 'DSSLS', 'ODSSO', '.OOO.'], // joint (2.5, 2.9); a cuff, the fist
+  thigh: ['.slll.', 'osslls', 'osslls', 'ossslo', 'ossslo', 'odsslo', 'odsslo', 'odssso', 'odssso', 'oddsso', 'oddsso', '.oooo.'], // joint (3, 2.5)
+  shin: ['.oslso', 'osslso', 'osslso', 'odsslo', 'oGGGGo', '.gHHHg..', 'gGHHHHgg.', 'gGGGGGGHg', 'KgggggggK', '.........', '.........'], // joint (3, 2.18); a shoe
 };
 
 // The cape (a prototype, Cape.cs): its outside and its lining, laid over its grid of cloth, 14x30, across from its
@@ -313,4 +271,4 @@ const collar = [
   '.nzznzznzznnnn.',
 ];
 
-module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, head, faces, hairs, visor, jumpsuit, cape, hood, collar };
+module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, HAIR_JOINT, head, faces, hairs, beards, visor, jumpsuit, cape, hood, collar };
