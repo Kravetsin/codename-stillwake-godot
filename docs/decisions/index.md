@@ -151,3 +151,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [one-head](2026-10-28-one-head.md) | One head for every hero | accepted |  |
 | [smelt-chances](2026-10-28-smelt-chances.md) | Byproducts by chance and smelts of several | accepted |  |
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
+| [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |

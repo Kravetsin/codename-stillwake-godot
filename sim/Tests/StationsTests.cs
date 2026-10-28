@@ -15,19 +15,19 @@ namespace Stillwake.Sim.Tests;
 public class StationsTests
 {
     /// <summary>
-    /// A sealed room aired by a tank piped to a vent, as the furnace's tests: the lifepod, a furnace, and a Former,
-    /// an electric smelter, a circuit assembler and a grow capsule, each cabled to a solar panel of its own out under
-    /// the stars.
+    /// A sealed room aired by a tank piped to a vent, as the furnace's tests: the lifepod, a furnace, a workbench, and a
+    /// Former, an electric smelter, a circuit assembler and a grow capsule, each cabled to a solar panel of its own out
+    /// under the stars.
     /// </summary>
     private static readonly string[] Rows =
     [
-        "   PPP   PPP   PPP PPP ",
-        "                       ",
-        "#######################",
-        "#.......OOO.........gg#",
-        "#FF.TT..OOOMM.EE.YY.gg#",
-        "#FF.TTV.OOOMM.EE.YY.gg#",
-        "#######################",
+        "   PPP   PPP   PPP PPP   ",
+        "                         ",
+        "#########################",
+        "#.......OOO.........gg..#",
+        "#FF.TT..OOOMM.EE.YY.gg..#",
+        "#FF.TTV.OOOMM.EE.YY.ggII#",
+        "#########################",
     ];
     private static readonly string[] Under = ["", "", "", "", "    o", "    ---"];
 
@@ -229,6 +229,9 @@ public class StationsTests
     public void TheFuzzDrawsCraftsAtEveryStationRefusedOnesToo()
     {
         var w = World();
+        // Every inventory full, so no paid entry's refund fits: with no station taking most crafts as the pod once did,
+        // the fuzz cancels entries faster than it queues them, and only kept ones fill a queue.
+        for (int peer = 0; peer < 3; peer++) w.GiveItems(peer, ("canister", Content.Inventory.Slots * Content.Items.Get("canister").Stack));
         var rng = new Rng(new RngState { S = 7 });
         var at = new Dictionary<int, int>();
         var taken = new HashSet<int>();

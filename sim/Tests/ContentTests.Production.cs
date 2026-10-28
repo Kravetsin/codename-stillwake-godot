@@ -157,16 +157,24 @@ public partial class ContentTests
     // Crafts and stations
 
     /// <summary>
-    /// Every craft is made at some queued station; the pod keeps its twelve and its list stops growing, new crafts
-    /// going to machines (0057): the electronics, circuits, solar cells and the deck drive, to the circuit assembler alone, and soil to
-    /// the Former alone (0060), as the motor of a planet's copper and the cape of its cloth (2026-10-27-the-cape-is-worn); the arc crafts to
-    /// the arc bench (0099, 2026-10-27-the-railgun).
+    /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
+    /// screwdriver (0046, 0107); the workbench the basic parts and the first tools; the Former those parts again, and
+    /// alone frames, the jetpack, the battery, the drill, soil (0060), the motor of a planet's copper and the cape of its
+    /// cloth (2026-10-27-the-cape-is-worn); the electronics, circuits, solar cells and the deck drive, the circuit
+    /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
-    public void EveryCraftIsMadeSomewhereThePodAllButElectronicsDronesSoilMotorsAndTheCapeAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodTheSuitAndScrewdriverTheWorkbenchTheFirstPartsAndToolsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
-        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], formed = ["soil", "motor", "nozzle", "fuelPump", "cape"], arc = ["arcModule", "accumulator", "railgun"];
-        Assert.Equal(Crafts.All.Select(c => c.Item).Except([.. electronics, .. formed, .. arc]).Order(StringComparer.Ordinal), Stations.Get("lifepod").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
+        string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"], tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp"];
+        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
+        string[] formed = ["frame", "motor", "soil", "cape", "nozzle", "fuelPump", "jetpack", "battery", "drill"];
+        Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
+        Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
+        Assert.Equal(parts.Concat(tools).Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(parts.Concat(formed).Order(StringComparer.Ordinal), Stations.Get("former").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.All(tools, item => Assert.Equal(["workbench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
         Assert.Equal(electronics, Stations.Get("assembler").Rows.SelectMany(r => r));
         Assert.All(formed, item => Assert.Equal(["former"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
@@ -232,7 +240,8 @@ public partial class ContentTests
             {
                 Assert.True(station.QueueMost > 0, station.Machine);
                 int most = station.Rows.SelectMany(r => r).Max(craft => Crafts.Get(craft).Cost.Select(c => c.Item).Distinct().Count());
-                if (station.Machine == "lifepod") Assert.Equal(0, spec.Inputs);
+                // The pod and the workbench are paid by hand, so they take nothing in.
+                if (station.Machine is "lifepod" or "workbench") Assert.Equal(0, spec.Inputs);
                 // The arc bench is paid by hand too; its one input is its tool's (0099).
                 else if (spec.Tunes) Assert.Equal(1, spec.Inputs);
                 else Assert.True(spec.Inputs >= most, $"{station.Machine}: {spec.Inputs} inputs, a craft of {most} items");
@@ -249,8 +258,8 @@ public partial class ContentTests
         foreach (var craft in Crafts.All)
         {
             Assert.True(Content.Items.TryGet(craft.Item, out _), craft.Item);
-            // The basic helmet and body alone are free (2026-10-27-suits-are-worn).
-            if (craft.Item != Content.Suit.Basic && craft.Item != Content.Helmet.Basic) Assert.NotEmpty(craft.Cost);
+            // The basic helmet, body and screwdriver alone are free: what the pod gives (2026-10-27-suits-are-worn, 0107).
+            if (craft.Item != Content.Suit.Basic && craft.Item != Content.Helmet.Basic && craft.Item != Screwdrivers.Basic.Item) Assert.NotEmpty(craft.Cost);
             foreach (var (item, amount) in craft.Cost)
             {
                 Assert.True(Content.Items.TryGet(item, out _), item);

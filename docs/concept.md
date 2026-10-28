@@ -58,11 +58,14 @@ A living document: what is decided about the game and what is still open. Techni
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a tube, a coil and its line of wire
-  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [0068](decisions/0068-the-harpoon-before-the-jetpack.md)). The first machine is the pod's
-  Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)): no power, a fifth of full speed, a queue the crew
-  shares, paid when queued, made one at a time into its outputs. Most builds cost parts, so the
-  furnace feeds the Fabricator before it feeds the hull. Machines for parts the player builds are
-  powered, faster and with longer queues: the Former first, presses for the parts at five times the
+  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [0068](decisions/0068-the-harpoon-before-the-jetpack.md)). The pod's
+  Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)), gives only the suit and the
+  screwdriver. The first bench is the workbench, built of raw salvage as the furnace is: no power, a fifth of full speed, a
+  queue the crew shares, paid when queued, made one at a time into its outputs; it makes the basic parts and the first tools
+  ([the-workbench](decisions/2026-10-28-the-workbench.md)). Most builds cost parts, so the furnace feeds the workbench
+  before it feeds the hull. Machines for parts the player builds are
+  powered, faster and with longer queues: the Former first, the only maker of frames, motors, the jetpack, the battery and
+  the drill, and presses for the parts at five times the
   pod's speed; then the electric smelter, twice the furnace's speed and hotter: what needs more heat than
   a machine has goes in, and the machine shows it is too cold, cold blue, rather than refusing it; then the
   circuit assembler, circuits of silicon and wire and solar cells of silicon, glass and wire

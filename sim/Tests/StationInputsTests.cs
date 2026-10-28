@@ -37,11 +37,12 @@ public class StationInputsTests
     private static Scenario Feed(Scenario w, int count) => w.Do(new Move(new Slot(0), new Target(null, Former(w)), count)).Run();
 
     [Fact]
-    public void TheFormerTakesThreeInputsAndTheAssemblerFourBeforeTheirThreeOutputsThePodNone()
+    public void TheFormerTakesSixInputsAndTheAssemblerFourBeforeTheirThreeOutputsThePodAndTheWorkbenchNone()
     {
-        Assert.Equal((3, 6), (Machines.Get("former").Inputs, Machines.Get("former").Slots));
+        Assert.Equal((6, 9), (Machines.Get("former").Inputs, Machines.Get("former").Slots));
         Assert.Equal((4, 7), (Machines.Get("assembler").Inputs, Machines.Get("assembler").Slots));
         Assert.Equal((0, 3), (Machines.Get("lifepod").Inputs, Machines.Get("lifepod").Slots));
+        Assert.Equal((0, 3), (Machines.Get("workbench").Inputs, Machines.Get("workbench").Slots));
     }
 
     [Fact]
@@ -176,7 +177,7 @@ public class StationInputsTests
         var w = World().GiveItems(0, ("gear", 3));
         int former = Former(w);
         w.Do(new Move(new Slot(0), new Target(null, former), 4)).Do(new Move(new Slot(1), new Target(1, former), 3)).Run();
-        Assert.Equal([new Stack("iron", 4), new Stack("gear", 3), null, null, null, null], w.M.Items.Crate(former));
+        Assert.Equal([new Stack("iron", 4), new Stack("gear", 3), .. Enumerable.Repeat<Stack?>(null, Machines.Get("former").Slots!.Value - 2)], w.M.Items.Crate(former));
         for (int slot = Inputs; slot < Machines.Get("former").Slots; slot++)
             w.Do(new Move(new Slot(0), new Target(slot, former), 1));
         w.Run();
@@ -203,7 +204,7 @@ public class StationInputsTests
     public void RefusesAnEntryFedFromInputsAtThePodWhichHasNoneAndOnePastTheQueue()
     {
         var w = World();
-        w.Do(new Craft(Pod(w), "plate", 1, FromInputs: true)).Run();
+        w.Do(new Craft(Pod(w), Content.Screwdrivers.Basic.Item, 1, FromInputs: true)).Run();
         Assert.Equal(["crafting.noInputs"], Reasons(w));
         Assert.Empty(w.M.Crafting.Queue(Pod(w)));
         int former = Former(w);

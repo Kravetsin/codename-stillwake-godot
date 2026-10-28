@@ -58,6 +58,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - небесный осколок / sky shard **≠** → item `arcShard` → Items, Ruins
 - стойка электроники / electronics rack **≠** → item `cableRack` → Debris
 - кислородные баки / oxygen tanks (wreckage) **≠** → item `tankCluster` → Debris
+- верстак / workbench → machine `workbench` (paid by hand, no power) → Crafting
 - формовщик / former → machine `former` → Crafting; circuit assembler **≠** → `assembler`
 
 ## Crew and tools

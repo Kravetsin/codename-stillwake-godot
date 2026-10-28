@@ -13,22 +13,22 @@ namespace Stillwake.Sim.Tests;
 /// <summary>The crafting module: each crafting machine's shared queue, paid when queued, made a unit at a time into its outputs.</summary>
 public class CraftingTests
 {
-    /// <summary>A room with the lifepod and a crate, no power anywhere.</summary>
+    /// <summary>A room with the lifepod, a crate and a workbench, no power anywhere.</summary>
     private const string Room = """
         ##########
         #........#
         #.OOO....#
         #.OOO....#
-        #.OOOKK..#
+        #.OOOKKII#
         ##########
         """;
-    /// <summary>The pod's machine id and the crate's, by their top-left cells in reading order.</summary>
-    private const int Pod = 1, Crate = 2;
-    private static readonly Content.Station PodStation = Content.Stations.Get("lifepod");
-    private static readonly int PodSpeed = PodStation.Speed, QueueMost = PodStation.QueueMost;
-    private static readonly int Wire = Crafts.Get("wire").Ticks * 1000 / PodSpeed;
+    /// <summary>The crate's machine id and the workbench's, by their top-left cells in reading order.</summary>
+    private const int Crate = 2, Bench = 3;
+    private static readonly Content.Station BenchStation = Content.Stations.Get("workbench");
+    private static readonly int BenchSpeed = BenchStation.Speed, QueueMost = BenchStation.QueueMost;
+    private static readonly int Wire = Crafts.Get("wire").Ticks * 1000 / BenchSpeed;
     private static readonly int WireScrap = Crafts.Get("wire").Cost.Single().Count;
-    private static readonly int Outputs = Content.Machines.Get("lifepod").Slots!.Value;
+    private static readonly int Outputs = Content.Machines.Get("workbench").Slots!.Value;
 
     /// <summary>A room knowing every blueprint and craft, or what the wreck grants when <paramref name="start"/>.</summary>
     private static Scenario World(bool start = false)
@@ -40,15 +40,15 @@ public class CraftingTests
     private static int Count(Scenario w, string item, int peer = 0) =>
         w.M.Items.Inventory(peer).Sum(s => s?.Item == item ? s.Count : 0);
 
-    private static int Made(Scenario w, string item) => w.M.Items.Crate(Pod).Sum(s => s?.Item == item ? s.Count : 0);
+    private static int Made(Scenario w, string item) => w.M.Items.Crate(Bench).Sum(s => s?.Item == item ? s.Count : 0);
 
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
-    private static Scenario Craft(Scenario w, string recipe, int count = 1, int from = 0, int at = Pod) =>
+    private static Scenario Craft(Scenario w, string recipe, int count = 1, int from = 0, int at = Bench) =>
         w.Do(new Craft(at, recipe, count) { From = from }).Run();
-    private static Scenario Cancel(Scenario w, int entry, int from = 0, int at = Pod) => w.Do(new Cancel(at, entry) { From = from }).Run();
+    private static Scenario Cancel(Scenario w, int entry, int from = 0, int at = Bench) => w.Do(new Cancel(at, entry) { From = from }).Run();
 
     [Fact]
-    public void MakesAWireAtThePodInFiveTimesItsTicksWithNoPowerPayingWhenQueued()
+    public void MakesAWireAtTheWorkbenchInFiveTimesItsTicksWithNoPowerPayingWhenQueued()
     {
         var w = World().GiveItems(0, ("scrap", 10));
         Assert.Equal(5 * Crafts.Get("wire").Ticks, Wire);
@@ -56,19 +56,19 @@ public class CraftingTests
         // The tick of the craft is the first of its work.
         Craft(w, "wire");
         Assert.Equal(10 - WireScrap, Count(w, "scrap"));
-        Assert.Equal([new Entry(1, "wire", 1, 0)], w.M.Crafting.Queue(Pod));
+        Assert.Equal([new Entry(1, "wire", 1, 0)], w.M.Crafting.Queue(Bench));
         w.Run(Wire - 2);
-        Assert.Equal((Wire - 1) * PodSpeed, w.M.Crafting.Progress(Pod));
+        Assert.Equal((Wire - 1) * BenchSpeed, w.M.Crafting.Progress(Bench));
         Assert.Equal(0, Made(w, "wire"));
         w.Run();
         Assert.Equal(1, Made(w, "wire"));
         Assert.Equal(0, Count(w, "wire"));
-        Assert.Empty(w.M.Crafting.Queue(Pod));
-        Assert.Equal(0, w.M.Crafting.Progress(Pod));
+        Assert.Empty(w.M.Crafting.Queue(Bench));
+        Assert.Equal(0, w.M.Crafting.Progress(Bench));
     }
 
     [Fact]
-    public void MakesTheFireAxeAtThePodOfIronAndAPlankKnownInTheWreckFromItsStart()
+    public void MakesTheFireAxeAtTheWorkbenchOfIronAndAPlankKnownInTheWreckFromItsStart()
     {
         var axe = Crafts.Get(Content.Weapons.Axe.Item);
         Assert.Equal([("iron", 2), ("planks", 1)], axe.Cost);
@@ -76,7 +76,7 @@ public class CraftingTests
         Craft(w, Content.Weapons.Axe.Item);
         Assert.Empty(w.Refusals);
         Assert.All(axe.Cost, c => Assert.Equal(0, Count(w, c.Item)));
-        w.Run(axe.Ticks * 1000 / PodSpeed);
+        w.Run(axe.Ticks * 1000 / BenchSpeed);
         Assert.Equal(1, Made(w, Content.Weapons.Axe.Item));
     }
 
@@ -90,10 +90,10 @@ public class CraftingTests
         for (int made = 1; made <= 5; made++)
         {
             Assert.Equal(made, Made(w, "wire"));
-            if (made < 5) Assert.Equal([new Entry(1, "wire", 5 - made, 0)], w.M.Crafting.Queue(Pod));
+            if (made < 5) Assert.Equal([new Entry(1, "wire", 5 - made, 0)], w.M.Crafting.Queue(Bench));
             w.Run(Wire);
         }
-        Assert.Empty(w.M.Crafting.Queue(Pod));
+        Assert.Empty(w.M.Crafting.Queue(Bench));
         Assert.Equal(5, Made(w, "wire"));
     }
 
@@ -103,7 +103,7 @@ public class CraftingTests
         var w = World().GiveItems(0, ("gear", 1), ("wire", 2));
         Craft(w, "rotor");
         Assert.Equal((0, 0), (Count(w, "gear"), Count(w, "wire")));
-        w.Run(Crafts.Get("rotor").Ticks * 1000 / PodSpeed - 1);
+        w.Run(Crafts.Get("rotor").Ticks * 1000 / BenchSpeed - 1);
         Assert.Equal(1, Made(w, "rotor"));
     }
 
@@ -112,7 +112,7 @@ public class CraftingTests
     {
         var w = World().GiveItems(0, ("scrap", 4));
         Craft(w, "wire", 2).Run(2 * Wire);
-        w.Do(new Move(new Slot(0, Pod), new Target(), 99) { From = 3 }).Run();
+        w.Do(new Move(new Slot(0, Bench), new Target(), 99) { From = 3 }).Run();
         Assert.Equal((0, 2), (Made(w, "wire"), Count(w, "wire", 3)));
     }
 
@@ -149,7 +149,7 @@ public class CraftingTests
         Craft(w, "iron");
         Assert.Equal(["crafting.unknown", "crafting.unknown"], Reasons(w));
         Assert.Equal(10, Count(w, "iron"));
-        Assert.Empty(w.M.Crafting.Queue(Pod));
+        Assert.Empty(w.M.Crafting.Queue(Bench));
     }
 
     [Fact]
@@ -159,18 +159,18 @@ public class CraftingTests
         Craft(w, "wire", 10);
         Assert.Equal(["items.notEnough"], Reasons(w));
         Assert.Equal(6 * WireScrap, Count(w, "scrap"));
-        Assert.Empty(w.M.Crafting.Queue(Pod));
+        Assert.Empty(w.M.Crafting.Queue(Bench));
     }
 
     [Fact]
     public void RefusesACraftPastTheMostTheSharedQueueHoldsWhoeverSendsIt()
     {
         var w = World().GiveItems(0, ("scrap", 100)).GiveItems(1, ("scrap", 100));
-        for (int i = 0; i < QueueMost; i++) w.Do(new Craft(Pod, "wire", 1) { From = i % 2 });
+        for (int i = 0; i < QueueMost; i++) w.Do(new Craft(Bench, "wire", 1) { From = i % 2 });
         w.Run();
         Craft(w, "wire", from: 1);
         Assert.Equal(["crafting.full"], Reasons(w));
-        Assert.Equal(QueueMost, w.M.Crafting.Queue(Pod).Count);
+        Assert.Equal(QueueMost, w.M.Crafting.Queue(Bench).Count);
         Assert.Equal(200 - QueueMost * WireScrap, Count(w, "scrap", 0) + Count(w, "scrap", 1));
     }
 
@@ -183,32 +183,32 @@ public class CraftingTests
         Cancel(w, 1);
         Assert.Empty(w.Refusals);
         Assert.Equal((6, 0), (Count(w, "scrap"), Made(w, "wire")));
-        Assert.Empty(w.M.Crafting.Queue(Pod));
-        Assert.Equal(0, w.M.Crafting.Progress(Pod));
+        Assert.Empty(w.M.Crafting.Queue(Bench));
+        Assert.Equal(0, w.M.Crafting.Progress(Bench));
     }
 
     [Fact]
     public void CancelOfALaterEntryLeavesTheOneAtWorkWhereItWas()
     {
         var w = World().GiveItems(0, ("scrap", 6), ("iron", 2));
-        Craft(w, "wire").Do(new Craft(Pod, "gear", 2)).Run(4);
+        Craft(w, "wire").Do(new Craft(Bench, "gear", 2)).Run(4);
         Cancel(w, 2);
-        Assert.Equal(6 * PodSpeed, w.M.Crafting.Progress(Pod));
-        Assert.Equal([new Entry(1, "wire", 1, 0)], w.M.Crafting.Queue(Pod));
+        Assert.Equal(6 * BenchSpeed, w.M.Crafting.Progress(Bench));
+        Assert.Equal([new Entry(1, "wire", 1, 0)], w.M.Crafting.Queue(Bench));
         Assert.Equal(2, Count(w, "iron"));
     }
 
     [Fact]
-    public void TwoPeersQueueAtThePodAndOneCancelsTheOthersEntryGettingItsCost()
+    public void TwoPeersQueueAtTheWorkbenchAndOneCancelsTheOthersEntryGettingItsCost()
     {
         var w = World().GiveItems(1, ("scrap", 2 * WireScrap)).GiveItems(2, ("iron", 2));
         Craft(w, "wire", 2, from: 1);
         Craft(w, "gear", 2, from: 2);
-        Assert.Equal([new Entry(1, "wire", 2, 1), new Entry(2, "gear", 2, 2)], w.M.Crafting.Queue(Pod));
+        Assert.Equal([new Entry(1, "wire", 2, 1), new Entry(2, "gear", 2, 2)], w.M.Crafting.Queue(Bench));
         Cancel(w, 1, from: 2);
         Assert.Empty(w.Refusals);
         Assert.Equal((0, 2 * WireScrap), (Count(w, "scrap", 1), Count(w, "scrap", 2)));
-        Assert.Equal([new Entry(2, "gear", 2, 2)], w.M.Crafting.Queue(Pod));
+        Assert.Equal([new Entry(2, "gear", 2, 2)], w.M.Crafting.Queue(Bench));
     }
 
     [Fact]
@@ -225,18 +225,18 @@ public class CraftingTests
         w.GiveItems(2, ("canister", Content.Inventory.Slots * Content.Items.Get("canister").Stack));
         Cancel(w, 2, from: 2);
         Assert.Equal("items.full", Reasons(w)[^1]);
-        Assert.Single(w.M.Crafting.Queue(Pod));
+        Assert.Single(w.M.Crafting.Queue(Bench));
     }
 
     [Fact]
     public void KeepsAnEntrysIdWhileThoseBeforeItFinishNeverGivingAnIdTwice()
     {
         var w = World().GiveItems(0, ("scrap", 20));
-        Craft(w, "wire").Do(new Craft(Pod, "wire", 2)).Run(Wire);
-        Assert.Equal([new Entry(2, "wire", 2, 0)], w.M.Crafting.Queue(Pod));
+        Craft(w, "wire").Do(new Craft(Bench, "wire", 2)).Run(Wire);
+        Assert.Equal([new Entry(2, "wire", 2, 0)], w.M.Crafting.Queue(Bench));
         Cancel(w, 2);
         Craft(w, "wire");
-        Assert.Equal([new Entry(3, "wire", 1, 0)], w.M.Crafting.Queue(Pod));
+        Assert.Equal([new Entry(3, "wire", 1, 0)], w.M.Crafting.Queue(Bench));
     }
 
     [Fact]
@@ -245,17 +245,17 @@ public class CraftingTests
         var w = World().GiveItems(0, ("scrap", 2), ("iron", 3), ("gear", 1), ("wire", 2));
         // A gear, a plate and a rotor fill an output each: the wire finds no room.
         Assert.Equal(3, Outputs);
-        foreach (var part in new[] { "gear", "plate", "rotor", "wire" }) w.Do(new Craft(Pod, part, 1));
+        foreach (var part in new[] { "gear", "plate", "rotor", "wire" }) w.Do(new Craft(Bench, part, 1));
         w.Run(20 * Wire);
         Assert.Equal(0, Made(w, "wire"));
-        Assert.True(w.M.Crafting.Progress(Pod) > 0);
-        Assert.Equal(Crafts.Get("wire").Ticks * 1000, w.M.Crafting.Progress(Pod));
-        Assert.Single(w.M.Crafting.Queue(Pod));
-        Assert.All(w.M.Items.Crate(Pod), s => Assert.NotNull(s));
-        w.Do(new Move(new Slot(0, Pod), new Target(), 99)).Run();
+        Assert.True(w.M.Crafting.Progress(Bench) > 0);
+        Assert.Equal(Crafts.Get("wire").Ticks * 1000, w.M.Crafting.Progress(Bench));
+        Assert.Single(w.M.Crafting.Queue(Bench));
+        Assert.All(w.M.Items.Crate(Bench), s => Assert.NotNull(s));
+        w.Do(new Move(new Slot(0, Bench), new Target(), 99)).Run();
         Assert.Equal(1, Made(w, "wire"));
-        Assert.Equal("wire", w.M.Items.Crate(Pod)[0]?.Item);
-        Assert.Empty(w.M.Crafting.Queue(Pod));
+        Assert.Equal("wire", w.M.Items.Crate(Bench)[0]?.Item);
+        Assert.Empty(w.M.Crafting.Queue(Bench));
     }
 
     [Fact]
@@ -265,7 +265,7 @@ public class CraftingTests
         w.Do(new SetCreative(true)).Run();
         Craft(w, "rotor", 2);
         Assert.Empty(w.Refusals);
-        w.Run(2 * Crafts.Get("rotor").Ticks * 1000 / PodSpeed);
+        w.Run(2 * Crafts.Get("rotor").Ticks * 1000 / BenchSpeed);
         Assert.Equal(2, Made(w, "rotor"));
     }
 
@@ -273,12 +273,12 @@ public class CraftingTests
     public void SavesAndLoadsAQueuePartWayThroughAUnit()
     {
         var w = World().GiveItems(0, ("scrap", 10)).GiveItems(1, ("iron", 2));
-        Craft(w, "wire", 2).Do(new Craft(Pod, "gear", 1) { From = 1 }).Run(Wire + 3);
+        Craft(w, "wire", 2).Do(new Craft(Bench, "gear", 1) { From = 1 }).Run(Wire + 3);
         var before = w.World.Save();
         w.Reload();
         Assert.Equal(before, w.World.Save());
-        Assert.Equal([new Entry(1, "wire", 1, 0), new Entry(2, "gear", 1, 1)], w.M.Crafting.Queue(Pod));
-        Assert.Equal(4 * PodSpeed, w.M.Crafting.Progress(Pod));
+        Assert.Equal([new Entry(1, "wire", 1, 0), new Entry(2, "gear", 1, 1)], w.M.Crafting.Queue(Bench));
+        Assert.Equal(4 * BenchSpeed, w.M.Crafting.Progress(Bench));
     }
 
     // Invariants.
@@ -298,14 +298,14 @@ public class CraftingTests
         return into;
     }
 
-    /// <summary>The raw worth of every inventory, every queued unit, the pod's outputs and the floor: what crafting never changes.</summary>
+    /// <summary>The raw worth of every inventory, every queued unit, the workbench's outputs and the floor: what crafting never changes.</summary>
     private static string Worth(Scenario w)
     {
         var all = new Dictionary<string, int>(StringComparer.Ordinal);
         for (int peer = 0; peer < 3; peer++)
             foreach (var s in w.M.Items.Inventory(peer)) if (s != null) Raw(s.Item, s.Count, all);
-        foreach (var e in w.M.Crafting.Queue(Pod)) Raw(e.Recipe, e.Count, all);
-        foreach (var s in w.M.Items.Crate(Pod)) if (s != null) Raw(s.Item, s.Count, all);
+        foreach (var e in w.M.Crafting.Queue(Bench)) Raw(e.Recipe, e.Count, all);
+        foreach (var s in w.M.Items.Crate(Bench)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var s in w.M.Items.Floor) Raw(s.Item, s.Count, all);
         return string.Join(",", all.Where(a => a.Value != 0).OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => $"{a.Key}:{a.Value}"));
     }
@@ -337,22 +337,22 @@ public class CraftingTests
                 switch (s.Kind)
                 {
                     case 0:
-                        w.Do(new Craft(Pod, s.Recipe, s.Count) { From = s.From });
+                        w.Do(new Craft(Bench, s.Recipe, s.Count) { From = s.From });
                         break;
                     case 1:
-                        w.Do(new Cancel(Pod, s.Count) { From = s.From });
+                        w.Do(new Cancel(Bench, s.Count) { From = s.From });
                         break;
                     default:
                         // Now and then an output emptied into an inventory: else the outputs fill and units wait.
-                        w.Do(new Move(new Slot(s.Count % Outputs, Pod), new Target(), 999) { From = s.From });
+                        w.Do(new Move(new Slot(s.Count % Outputs, Bench), new Target(), 999) { From = s.From });
                         break;
                 }
                 for (int t = 0; t <= s.Ticks; t++)
                 {
                     w.Run();
-                    var queue = w.M.Crafting.Queue(Pod);
+                    var queue = w.M.Crafting.Queue(Bench);
                     if (queue.Count > QueueMost) return false;
-                    int progress = w.M.Crafting.Progress(Pod);
+                    int progress = w.M.Crafting.Progress(Bench);
                     if (queue.Count == 0)
                     {
                         if (progress != 0) return false;
@@ -362,7 +362,7 @@ public class CraftingTests
                         var first = Crafts.Get(queue[0].Recipe);
                         int work = first.Ticks * 1000;
                         if (progress > work) return false;
-                        if (progress == work && w.M.Items.OutputFull(Pod, [(first.Item, 1)]) == null) return false;
+                        if (progress == work && w.M.Items.OutputFull(Bench, [(first.Item, 1)]) == null) return false;
                         for (int i = 1; i < queue.Count; i++)
                             if (queue[i].Id <= queue[i - 1].Id) return false;
                         if (queue[0].Id < seen || queue.Any(e => e.Count < 1)) return false;

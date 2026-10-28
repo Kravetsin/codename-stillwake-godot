@@ -9,7 +9,7 @@ using Slot = Stillwake.Sim.Items.Place;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The Former (0057): the first powered station, the pod's parts at full speed while it draws.</summary>
+/// <summary>The Former (0057): the first powered station, the workbench's parts at full speed while it draws.</summary>
 public class FormerTests
 {
     /// <summary>
@@ -48,8 +48,8 @@ public class FormerTests
         Assert.Equal(0, Made(w, "plate"));
         w.Run();
         Assert.Equal(1, Made(w, "plate"));
-        // Five times the pod's speed.
-        Assert.Equal(Plate / 1000 * 5, Plate / Content.Stations.Get("lifepod").Speed);
+        // Five times the workbench's speed.
+        Assert.Equal(Plate / 1000 * 5, Plate / Content.Stations.Get("workbench").Speed);
         w.Run(Plate / 1000);
         Assert.Equal(2, Made(w, "plate"));
     }
@@ -147,11 +147,11 @@ public class FormerTests
     }
 
     [Fact]
-    public void OpensOnceAFrameARotorAGearAndACircuitAreAnalysed()
+    public void OpensOnceAPlateARotorAGearAndACircuitAreAnalysed()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
         var former = w.M.Research.Recipes().Single(r => r.Id == "former");
-        Assert.Equal(["frame", "rotor", "gear", "circuit"], former.Unanalysed);
+        Assert.Equal(["plate", "rotor", "gear", "circuit"], former.Unanalysed);
         Assert.False(former.Known);
     }
 }

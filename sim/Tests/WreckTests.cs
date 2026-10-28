@@ -121,35 +121,37 @@ public class WreckTests
         w.Run(30 * CrewSpec.BreathEvery);
         Assert.Equal(Scenario.Full, w.M.Crew.HeroOf(1)?.Air);
         // Its Fabricator works with no power and no air.
-        w.GiveItems(1, ("scrap", 2));
-        w.Do(new Sim.Crafting.Craft(pod, "wire", 1) { From = 1 }).Run(PodTicks("wire"));
-        Assert.Equal(new Stack("wire", 1), w.M.Items.Crate(pod)[0]);
+        string screwdriver = Content.Screwdrivers.Basic.Item;
+        w.Do(new Sim.Crafting.Craft(pod, screwdriver, 1) { From = 1 }).Run(TicksAt("lifepod", screwdriver));
+        Assert.Equal(new Stack(screwdriver, 1), w.M.Items.Crate(pod)[0]);
     }
 
-    /// <summary>Ticks one unit of <paramref name="craft"/> takes at the pod.</summary>
-    private static int PodTicks(string craft) => Content.Crafts.Get(craft).Ticks * 1000 / Content.Stations.Get("lifepod").Speed;
+    /// <summary>Ticks one unit of <paramref name="craft"/> takes at <paramref name="station"/>.</summary>
+    private static int TicksAt(string station, string craft) => Content.Crafts.Get(craft).Ticks * 1000 / Content.Stations.Get(station).Speed;
 
-    /// <summary>Crafts one of <paramref name="craft"/> at the pod for peer 0 and takes it from the pod's outputs.</summary>
-    private static void CraftAtPod(Scenario w, string craft)
+    /// <summary>Crafts one of <paramref name="craft"/> at workbench <paramref name="bench"/> for peer 0 and takes it from its outputs.</summary>
+    private static void CraftAtBench(Scenario w, int bench, string craft)
     {
-        int pod = w.M.Grid.MachineAt(Pod)!.Id;
-        w.Do(new Sim.Crafting.Craft(pod, craft, 1)).Run(PodTicks(craft));
-        w.Do(new Move(new Slot(0, pod), new Target(), 99)).Run();
+        w.Do(new Sim.Crafting.Craft(bench, craft, 1)).Run(TicksAt("workbench", craft));
+        w.Do(new Move(new Slot(0, bench), new Target(), 99)).Run();
     }
 
-    /// <summary>A furnace built in A by peer 0 of the salvage it costs, given with <paramref name="more"/>; its machine id.</summary>
-    private static int BuildFurnace(Scenario w, params (string Item, int Count)[] more)
+    /// <summary>A <paramref name="kind"/> built at <paramref name="cell"/> by peer 0 of the salvage it costs, given with <paramref name="more"/>; its machine id.</summary>
+    private static int Build(Scenario w, string kind, int cell, params (string Item, int Count)[] more)
     {
-        w.GiveItems(0, [.. Machines.Get("furnace").Cost, .. more]);
-        w.Do(new PlacePlan(At(49, 21), new Placement("machine", "furnace"))).Run();
+        w.GiveItems(0, [.. Machines.Get(kind).Cost, .. more]);
+        w.Do(new PlacePlan(cell, new Placement("machine", kind))).Run();
         int plan = w.M.Building.Plans.FirstOrDefault()?.Id ?? 0;
-        Machine? Built() => w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "furnace");
+        Machine? Built() => w.M.Grid.Machines.FirstOrDefault(m => m.Kind == kind);
         // Its salvage delivered on the first press, then built on the presses after.
-        for (int i = 0; i < 2 * Machines.Get("furnace").BuildTicks && Built() == null; i++) w.Do(new Work(plan)).Run();
+        for (int i = 0; i < 2 * Machines.Get(kind).BuildTicks && Built() == null; i++) w.Do(new Work(plan)).Run();
         int id = Built()?.Id ?? 0;
         Assert.True(id > 0);
         return id;
     }
+
+    /// <summary>A furnace built in A by peer 0 of the salvage it costs, given with <paramref name="more"/>; its machine id.</summary>
+    private static int BuildFurnace(Scenario w, params (string Item, int Count)[] more) => Build(w, "furnace", At(49, 21), more);
 
     private static int SlotOf(Scenario w, string item) => w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
 
@@ -169,7 +171,7 @@ public class WreckTests
     }
 
     [Fact]
-    public void SmeltsScrapCraftsAWireAtThePodCablesTheAnalyzerAnalysesIronAndCraftsAPlate()
+    public void SmeltsScrapCraftsAWireAtTheWorkbenchCablesTheAnalyzerAnalysesIronAndCraftsAPlate()
     {
         var w = AiredWreck();
         int furnace = BuildFurnace(w, ("scrapChunk", 1), ("hullPlate", 1), ("planks", 2));
@@ -183,8 +185,10 @@ public class WreckTests
         w.Run();
         Assert.True(w.M.Items.Totals(0).Single(t => t.Item == "iron").Count >= 2);
 
-        // Wire, the one craft the wreck grants, of the scrap smelted, at the pod; the cable of the wire.
-        CraftAtPod(w, "wire");
+        // A workbench of salvage, on the generator; wire, the one craft the wreck grants, of the scrap smelted, at it; the
+        // cable of the wire.
+        int bench = Build(w, "workbench", At(46, 20));
+        CraftAtBench(w, bench, "wire");
         w.Do(new Lay(Panel, Analyzer)).Run();
         Assert.Empty(w.Refusals);
         int analyzer = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
@@ -196,7 +200,7 @@ public class WreckTests
         Assert.True(w.M.Research.Knows("plate"));
         // One hull plate smelts into two iron, a plate's worth: the one analysed is taken back out.
         w.Do(new Move(new Slot(0, analyzer), new Target(), 1)).Run();
-        CraftAtPod(w, "plate");
+        CraftAtBench(w, bench, "plate");
         Assert.Empty(w.Refusals);
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
     }

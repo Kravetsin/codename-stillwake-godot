@@ -18,6 +18,7 @@ public static partial class En
         ["crafting.tooFew"] = "Takes {n} at a time",
         ["crafts.queue"] = "Queue",
         ["station.lifepod"] = "Fabricator",
+        ["station.workbench"] = "Workbench",
         ["station.former"] = "Former",
         ["station.smelter"] = "Electric smelter",
         ["station.assembler"] = "Circuit assembler",

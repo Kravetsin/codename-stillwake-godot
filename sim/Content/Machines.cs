@@ -143,17 +143,21 @@ public static class Machines
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         new("analyzer", 4, 4, [], [("plate", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (26, 3), Slots: 1, Menu: new(MenuTabs.Production, 20), Char: 'A', Means: "analyzer: draw its whole footprint"),
         new("crate", 4, 2, [], [("planks", 6), ("iron", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
+        // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
+        new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),
         // Its input, its fuel, then three outputs.
         new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
-        // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel.
-        new("burnerGenerator", 4, 4, [], [("frame", 1), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
+        // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
+        // power comes before the Former.
+        new("burnerGenerator", 4, 4, [], [("plate", 3), ("rotor", 1), ("coil", 1), ("scrap", 6)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 2, 4, [], [("frame", 1), ("coil", 1), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
         // a minute at its most taken in fills it, two of a spare panel's. Basic infrastructure, not arc-gated; a bigger arc store may come later.
         new("capacitorBank", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 2), ("circuit", 1)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60), Char: 'Q', Means: "capacitor bank: draw its whole footprint (0101)"),
-        // Presses and turns parts at full speed while it draws (Stations): two inputs, the most any craft of its needs, then three outputs. Rests idle.
-        new("former", 4, 4, [], [("frame", 2), ("rotor", 1), ("gear", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 6, Inputs: 3, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
+        // Presses and turns parts at full speed while it draws (Stations): six inputs, a jetpack's, then three outputs. Rests idle. Of the
+        // workbench's parts and a salvaged circuit, never a frame, which only it makes.
+        new("former", 4, 4, [], [("plate", 4), ("rotor", 1), ("gear", 4), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 9, Inputs: 6, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
         new("smelter", 4, 4, [], [("frame", 1), ("coil", 2), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40), Char: 'E', Means: "electric smelter: draw its whole footprint"),
         // Assembles electronics at full speed while it draws (Stations): four inputs, a drone's, then three outputs. Rests idle.

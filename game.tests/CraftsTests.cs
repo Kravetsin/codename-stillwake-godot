@@ -15,11 +15,13 @@ public class CraftsTests
         #######
         #OOO..#
         #OOO..#
-        #OOO..#
+        #OOOII#
         #######
         """;
-    private const int Pod = 1;
+    private const int Bench = 2;
     private static readonly Content.Station Fabricator = Content.Stations.Get("lifepod");
+    private static readonly Content.Station Workbench = Content.Stations.Get("workbench");
+    private static readonly Content.Station Former = Content.Stations.Get("former");
     private static readonly Content.Station Assembler = Content.Stations.Get("assembler");
 
     private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = Content.Research.StartKnown });
@@ -72,18 +74,18 @@ public class CraftsTests
     [Fact]
     public void GoesToTheFirstItemAShortRecipeLacksThatItsStationMakesAndNowhereForOneMadeElsewhere()
     {
-        Assert.Equal("gear", Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: false, Fabricator));
-        Assert.Equal("wire", Crafts.MissingCraft(Crafts.Lines("rotor", [("gear", 1), ("wire", 1)]), creative: false, Fabricator));
-        Assert.Null(Crafts.MissingCraft(Crafts.Lines("plate", [("iron", 1)]), creative: false, Fabricator));
-        Assert.Null(Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: true, Fabricator));
-        // The assembler makes no wire, and the pod no circuits: a click there would find nothing to go to.
+        Assert.Equal("gear", Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: false, Workbench));
+        Assert.Equal("wire", Crafts.MissingCraft(Crafts.Lines("rotor", [("gear", 1), ("wire", 1)]), creative: false, Workbench));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("plate", [("iron", 1)]), creative: false, Workbench));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("rotor", []), creative: true, Workbench));
+        // The assembler makes no wire, and the Former no circuits: a click there would find nothing to go to.
         Assert.Null(Crafts.MissingCraft(Crafts.Lines("circuit", [("silicon", 1)]), creative: false, Assembler));
-        Assert.Null(Crafts.MissingCraft(Crafts.Lines("battery", [("plate", 1), ("coil", 1), ("wire", 2)]), creative: false, Fabricator));
+        Assert.Null(Crafts.MissingCraft(Crafts.Lines("battery", [("plate", 1), ("coil", 1), ("wire", 2)]), creative: false, Former));
     }
 
     /// <summary>
     /// Every item a queued station's recipe costs says, short, where it comes from, unless that station makes it: in its own
-    /// words when salvaged or smelted, or by the stations that make it (wire at the assembler: the Fabricator, the Former).
+    /// words when salvaged or smelted, or by the stations that make it (wire at the assembler: the workbench, the Former).
     /// </summary>
     [Fact]
     public void SaysWhereEveryItemARecipeCostsComesFromWhenItsStationDoesNotMakeIt()
@@ -95,9 +97,9 @@ public class CraftsTests
                 else Assert.False(string.IsNullOrEmpty(Crafts.From(item, station)), $"{station.Machine}: {item}");
             }
         Assert.Equal(T("crafts.from.scrap"), Crafts.From("scrap", Fabricator));
-        Assert.Equal("made at: Fabricator, Former", Crafts.From("wire", Assembler));
+        Assert.Equal("made at: Workbench, Former", Crafts.From("wire", Assembler));
         Assert.Equal("the circuit assembler, or break cable racks or derelicts", Crafts.From("circuit", Fabricator));
-        Assert.Null(Crafts.From("wire", Fabricator));
+        Assert.Null(Crafts.From("wire", Workbench));
         // An item salvaged, smelted or made besides elsewhere has its own words; one only crafted has none, its stations named.
         foreach (var key in Table.Keys.Where(k => k.StartsWith("crafts.from.", StringComparison.Ordinal)))
         {
@@ -130,12 +132,12 @@ public class CraftsTests
     public void FillsTheBarOfTheUnitAtWorkFullWhileItWaitsAndSaysWhatItIsDoing()
     {
         var w = new TestWorld(Layout.Parse(Room).Doubled()).Give(0, ("scrap", 2));
-        Assert.Equal(Doing.Ready, Crafts.DoingOf(w.M.Crafting.Queue(Pod), w.M.Crafting.Progress(Pod)));
-        w.Step(new Craft(Pod, "wire", 1));
+        Assert.Equal(Doing.Ready, Crafts.DoingOf(w.M.Crafting.Queue(Bench), w.M.Crafting.Progress(Bench)));
+        w.Step(new Craft(Bench, "wire", 1));
         int work = Crafts.WorkOf("wire");
-        Assert.Equal((double)Fabricator.Speed / work, Crafts.Share("wire", w.M.Crafting.Progress(Pod)));
+        Assert.Equal((double)Workbench.Speed / work, Crafts.Share("wire", w.M.Crafting.Progress(Bench)));
         Assert.Equal(1.0, Crafts.Share("wire", work));
-        Assert.Equal(Doing.Making, Crafts.DoingOf(w.M.Crafting.Queue(Pod), w.M.Crafting.Progress(Pod)));
+        Assert.Equal(Doing.Making, Crafts.DoingOf(w.M.Crafting.Queue(Bench), w.M.Crafting.Progress(Bench)));
         Assert.Equal(Doing.OutputFull, Crafts.DoingOf([new Entry(1, "wire", 1, 0)], work));
     }
 

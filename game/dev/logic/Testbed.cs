@@ -62,7 +62,7 @@ public static class Testbed
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
     /// <summary>
-    /// Room one holds the lifepod, the crates, the drone bay and the air: a tank with a canister and a generator piped to a
+    /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, and the air: a tank with a canister and a generator piped to a
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
     /// furnace, the Former, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
     /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
@@ -87,7 +87,7 @@ public static class Testbed
             "  ###############################################",
             "  #.......LUUU...#....L.........J.......L...#..L#",
             "  #.OOOQQ..UUU.RRD..............gg...GG.....DZZ.D",
-            "  #.OOOQQTTGG..RRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
+            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBDZZ.D",
             "  #o#########################################__##",
             "  #XXXL#",
