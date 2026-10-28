@@ -49,7 +49,8 @@ public partial class HeroView
             var hero = seen.Hero;
             bool out_ = (crew.HeroOf(id)?.Out ?? 0) > 0;
             shown.Figure.Visible = m.Landing.SeatOf(id) == null && m.Landing.FlightOf(id) == null;
-            shown.Figure.Wear(Suits.Of(m.Players, id));
+            var (helmet, body) = Suits.WornBy(m.Items, id);
+            shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body);
             var (axe, chop) = _heardChops.GetValueOrDefault(id);
             if (!axe) shown.Swing.Stop();
             // Its blade heard and seen where it strikes the ground as it is played here, the fan its own peer sends then (0093, 0094),

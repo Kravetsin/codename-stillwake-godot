@@ -1,6 +1,6 @@
 # Suits are worn
 
-- Status: accepted; built (the sim, the gauge and the frost; the person under the suit and the looks come next, `docs/plans/suits.md`)
+- Status: accepted; built (the sim, the gauge, the frost and the person under the suit; the looks come next, `docs/plans/suits.md`)
 - Date: 2026-10-27
 - Supersedes [0028](0028-the-lifepod-and-crafting-by-machine-only.md)'s "heroes are made with a full suit" and, for the
   suit, [0057](0057-stations-one-model-for-every-crafting-machine.md)'s "the pod's list stops growing"

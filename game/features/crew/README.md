@@ -2,7 +2,7 @@
 
 This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here, and
 only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `Run`, `HitBy`, `Bolted` and the hands'
-commands reach the sim. Other heroes come through the host.
+commands reach the sim; others' heroes come through the host.
 
 ## Files
 
@@ -28,8 +28,8 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
 | `logic/Remote.cs` | what is sent of heroes, and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
-| `logic/Suits.cs` | suit colours |
-| `Figure.cs` | the sprite rig, lit and posed; dust (0075, 0090) |
+| `logic/Suits.cs` | suit colours, what is worn |
+| `Figure.cs` | the sprite rig, lit, posed, dressed; dust (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |
@@ -60,8 +60,6 @@ commands reach the sim. Other heroes come through the host.
 | `logic/Rams.cs` | a creature's ram as this client meets it (0103) |
 | `logic/Crew.En.cs` | its player text |
 
-`logic/` is Godot-free, tested in `game.tests/`.
-
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
@@ -82,7 +80,7 @@ commands reach the sim. Other heroes come through the host.
   thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
-- **Camera:** leads the way last moved, not the facing; eases height; snaps on a new place.
+- **Camera:** leads where last moved, not the facing; eases height; snaps to a new place.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
   `Thrust` is sent while own thrust differs from the sim's.
 - **A canister** (0047, 0081): a right click sends `Refill` when the sim takes it.
@@ -91,6 +89,7 @@ commands reach the sim. Other heroes come through the host.
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
 - **Markers** (0061): home, own newest body, friends heard, at the screen's edge.
+- **Dressed as worn**: helmet and body apart; bare, hair and a jumpsuit; a lamp only on a helmet.
 
 ## Others' heroes
 
@@ -122,5 +121,5 @@ commands reach the sim. Other heroes come through the host.
 ## Deliberately not handled
 
 - Friends are pointed at only while heard; markers one way overlap; friends have no names.
-- A body of a peer who left is drawn in the first suit colour; a body's look is the hero's sprites.
+- A body is drawn as its peer is dressed now; the first colour once it left.
 - Others' swings are not held on contact. A friend's gun hangs, its aim unsent.

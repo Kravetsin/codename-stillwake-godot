@@ -49,4 +49,4 @@ swapping each shade for the same shade of another, as `SuitArt.Of` does for suit
 
 Lit from the upper front: the outline only on the shaded back and underside, the lit front open. The faces use the
 skin's ramp for the mouth and freckles and the hair's for the brows and beards; the eyes (`e w`), the lips (`m`), the
-blush (`B`), the rim of light down the back (`R`), the gear's greys and the glass keep their colours.
+blush (`B`), the gear's greys and the glass keep their colours. No rim of light: the game lights the hero itself.

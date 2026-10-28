@@ -155,7 +155,7 @@ public partial class Main : Node2D, ITogether
         _scenarios = DevScenarios.Active(_dev);
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
-        if (PoseSheetOnly()) return;
+        if (PoseSheetOnly() || DressSheetOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());

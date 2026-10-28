@@ -53,7 +53,7 @@ public static class SurfaceViews
         new(c => new Features.Power.StoreLights(c.M.Grid, c.M.Power), Fades: true),
         new(c => new Features.Power.PlatformLamps(c.M.Grid, c.M.Power), Fades: true),
         // A seated hero behind its pod's porthole, then the pod's lamps and the glint on its glass over it.
-        new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players, c.Arrivals.Holds), Fades: true),
+        new(c => new Features.Crew.SeatedHeroes(c.M.Grid, c.M.Landing, c.M.Players, c.M.Items, c.Arrivals.Holds), Fades: true),
         new(c => new Features.Landing.PodSeats(c.M.Grid, c.M.Landing, c.Arrivals), Fades: true),
         // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),

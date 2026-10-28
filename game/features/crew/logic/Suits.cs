@@ -1,4 +1,5 @@
 using System;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Players;
 
 namespace Stillwake.Game.Features.Crew;
@@ -17,6 +18,10 @@ public static class Suits
     /// <summary>The suit colour hero <paramref name="id"/> wears, as the sim says; the first while the sim does not know it.</summary>
     public static int Of(IPlayersQueries players, int id) =>
         players.ColourOf(id) is int i && i >= 0 && i < All.Length ? All[i] : All[0];
+
+    /// <summary>Whether <paramref name="peer"/> wears a helmet and a suit's body (2026-10-27-suits-are-worn): what its figure is drawn in.</summary>
+    public static (bool Helmet, bool Body) WornBy(IItemsQueries items, int peer) =>
+        (items.WornIn(peer, Stillwake.Content.Helmet.Slot) != null, items.WornIn(peer, Stillwake.Content.Suit.Slot) != null);
 
     /// <summary><paramref name="colour"/> with each channel times <paramref name="by"/>, or moved toward white by −<paramref name="by"/> below 0 (<c>shade</c> of render/pixel-art.ts).</summary>
     public static int Shade(int colour, double by)

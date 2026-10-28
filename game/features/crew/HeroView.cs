@@ -471,7 +471,8 @@ public partial class HeroView : Node2D
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
-        _figure.Wear(Suits.Of(m.Players, client.Id));
+        var (helmet, body) = Suits.WornBy(m.Items, client.Id);
+        _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body);
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);

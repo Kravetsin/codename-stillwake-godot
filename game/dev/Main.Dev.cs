@@ -36,6 +36,14 @@ public partial class Main
         return true;
     }
 
+    /// <summary><c>--dress-sheet=&lt;path&gt;</c>: the hero as it may be dressed, drawn alone and saved, nothing else made; whether it was given.</summary>
+    private bool DressSheetOnly()
+    {
+        if (_dev.Value("--dress-sheet") is not { } sheet) return false;
+        AddChild(new Dev.DressSheet(sheet));
+        return true;
+    }
+
     /// <summary><c>--for=seconds</c>: quits after a while.</summary>
     private void QuitAfterAWhile()
     {
