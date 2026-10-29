@@ -147,10 +147,11 @@ A living document: what is decided about the game and what is still open. Techni
   open to space.
   A cell is 8 px; doors are built of 2×2 segments, hatches of 2×1 ([0104](decisions/0104-the-cell-is-8-px.md)).
   Networks: pipes and cables are straight spans between joints, pegs and machines' ports, laid at
-  once and passing through walls ([0109](decisions/0109-pipes-are-spans.md)). Machines stand on floors. Materials differ in strength
-  against meteors, air leaks and cost. The plan (B) works on one layer at a time, the front or the
-  back walls, switched with the middle button: the left button plans, the right marks for taking
-  apart ([0110](decisions/0110-the-plan-has-a-focused-layer.md)). With it put away, the screwdriver held on a plan
+  once and passing through walls ([0109](decisions/0109-pipes-are-spans.md)). Machines stand on floors. Materials either
+  armour or seal, never both ([wall-roles](decisions/2026-10-29-wall-roles.md)): metal and laid stone stand up to
+  meteors and leak at their seams, glass, mica and hide seal and give way, so a hull is built in layers.
+  The plan (B) works on one layer at a time, the front or the back walls, switched with the middle button: the
+  left button plans, the right marks for taking apart ([0110](decisions/0110-the-plan-has-a-focused-layer.md)). With it put away, the screwdriver held on a plan
   builds it by hand, putting in an item from the hero's pockets as each part of the work begins,
   and the pale plan turns into the real thing a part at a time, bottom up, a floor or a pipe from the
   left ([0063](decisions/0063-blueprints-are-paid-a-part-at-a-time.md)). Run out and the work stops

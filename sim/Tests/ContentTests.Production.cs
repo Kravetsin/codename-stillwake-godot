@@ -461,7 +461,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (_, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
         var locked = recipes.Where(id => !known.Contains(id)).Distinct().Order(StringComparer.Ordinal).ToArray();

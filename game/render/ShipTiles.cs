@@ -78,7 +78,7 @@ public sealed class ShipTiles
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
-        foreach (var name in (string[])["back_scrap", "back_iron_plain", "back_iron_grille", .. StructureTiles])
+        foreach (var name in (string[])[.. HullBacks, "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
         for (int linked = 0; linked < 16; linked++)
@@ -141,7 +141,7 @@ public sealed class ShipTiles
         {
             // Cut a cell at a time, a cell drawing the piece where it lies: sheets laid over the world, and the 16 px pictures of what
             // fills a map's character's cells, two by two or two across (0104): a ladder, a floor, iron's panels.
-            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || name == "back_scrap" || name.StartsWith("back_") && MadeImages.ContainsKey(name)
+            bool cut = name.StartsWith("wall_") || name.StartsWith("detail_") || HullBacks.Contains(name) || name.StartsWith("back_") && MadeImages.ContainsKey(name)
                 || CutDrawn(name) || name.StartsWith("door_") || name.StartsWith("hatch_");
             if (cut)
             {
@@ -159,6 +159,10 @@ public sealed class ShipTiles
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(reach * Cell, rise * Cell);
         }
     }
+
+    /// <summary>The hull's back walls laid over the world, cut a cell at a time: scrap's and the seals', every built material drawn cut.</summary>
+    private static readonly string[] HullBacks =
+        [.. Materials.All.Where(m => !m.Natural && m.Look == MaterialLook.Cut && m.Built).Select(m => BackName(m.Id))];
 
     /// <summary>The 16 px pictures cut into the cells of what fills a character's cells (0104): a ladder, a floor, iron's back walls.</summary>
     public static bool CutDrawn(string name) => name is "back_iron_plain" or "back_iron_grille" || StructureTiles.Contains(name);

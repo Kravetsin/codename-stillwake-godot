@@ -128,6 +128,20 @@ public partial class HazardsTests
         Assert.Contains(5, StrikeAt(Row("..###.", 5), 5, 5).Walls);
     }
 
+    /// <summary>A wall stands up to meteors by its armour, not by how hard it is to dig (wall-roles): stone digs at 12, stands at 4.</summary>
+    [Fact]
+    public void ReadAWallsArmourNotItsHardnessToDig()
+    {
+        Scenario Stone() => new(Layout.Parse("..###").WithMaterials("..sst") with { Meteors = true });
+        Assert.Empty(StrikeAt(Stone(), 4, 3).Walls);
+        Assert.Contains(4, StrikeAt(Stone(), 4, 4).Walls);
+        // A seal gives way to the weakest, soaking little: power 2 on glass goes as far as on soil.
+        var w = new Scenario(Layout.Parse("..#####") with { Meteors = true }).Do(new SetInstant(true));
+        for (int x = 2; x < 7; x++) w.Do(new ClearAt(x, "structure")).Do(new PlacePlan(x, Placement.Wall("glass")));
+        w.Do(new SetInstant(false)).Run();
+        Assert.Equal([2, 3, 4, 5, 6], StrikeAt(w, 6, 2).Walls);
+    }
+
     [Fact]
     public void StopAtADoorItsBlastBreakingTheBackWallsBeforeIt()
     {
