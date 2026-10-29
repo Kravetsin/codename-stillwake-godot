@@ -5,7 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `CreatureBody.cs` | One creature's body (0102) in the design its species names: its rig's parts, posed. |
-| `PixelBursts.cs` | Every creature's death: its pixels burst out, heaped and faded (2026-10-29-kill-feel). |
+| `PixelBursts.cs` | Every creature's death: it crumbles into pixels (2026-10-29-kills-crumble). |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
 | `CreatureParts.cs` | The creatures' parts as pictures (0102): each index map of `art/creatures` recoloured once, at first use, by a palette … |
@@ -59,10 +59,10 @@ axe's blade and the drill's bit are tested against each creature's body as again
 - **Jumps** (no ADR), read off the sim (a rise from the ground faster than any blow's hop): a crouch, then a spring tall
   and thin, ears laid back; on landing a squash as hard as the fall was fast.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
-  no blood), thrown from the side facing the hero, its share for a drill; `Sound.Creatures` its hit, thump and death
-  (placeholders), an own hit on Suit, a friend's on World.
-- **Death** (2026-10-29-kill-feel): a glint and shock ring, heard where it fell; held white `KillLooks.PopMs`, then it bursts
-  into its posed pixels (`PixelBursts`), its hit, tufts and a puff thrown; its loot sprays out as it bursts (`features/items`).
+  no blood), thrown from the side facing the hero, its share for a drill; `Sound.Creatures` its hit, thump and death,
+  an own on Suit heard far (`Sound.Felt`), a friend's on World.
+- **Death** (2026-10-29-kills-crumble): a glint and shock ring, heard where it fell; held white `KillLooks.PopMs`, then it stands
+  as its posed pixels, crumbling top down (`PixelBursts`), its hit and a puff thrown, its loot spraying out (`features/items`).
 - **The tick** (the sentry page's «Клещ»): its sprite drawn each frame from its pose (`TickArt`), lit; eye, cracks and a blow's
   white over it unlit. `TickMotion` reads the sim: `Clamped` grips (legs down, magnets aglow, a bounce), else legs folded, nose
   along its flight; X moving along its wreck while clamped steps its legs. Eye teal, yellow `Alerted` or flying home, red from
@@ -70,7 +70,7 @@ axe's blade and the drill's bit are tested against each creature's body as again
   held once aimed, its charge heard. Flying: an amber burner, sparks and smoke.
   Struck: flash, shake, fine sparks. `CutLeft`: it faces the line (its reel's hero), rears, saws with its claw and mandible,
   sparks thickening; `LastCut`: sparks and a whip of light down the line, a recoil. Killed (its wreck gone too): cracks for the
-  hold, then a burst of sparks and its pixels. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.
+  hold, then a burst of sparks, its pixels left to crumble. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev

@@ -266,8 +266,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         {
             var voices = own ? _ownHits : _worldHits;
             float db = Features.Sound.GroundSounds.HitDbOf(tool);
-            voices.Play(cues.Hit, side, cues.Hit.Tune, db);
-            voices.Play(cues.Thump, side, cues.Thump.Tune, db);
+            voices.Play(own ? S.Felt(cues.Hit) : cues.Hit, side, cues.Hit.Tune, db);
+            voices.Play(own ? S.Felt(cues.Thump) : cues.Thump, side, cues.Thump.Tune, db);
         }
     }
 
@@ -419,7 +419,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     /// <summary>
     /// <paramref name="one"/> killed where it was drawn (2026-10-29-kill-feel): a white glint and shock ring at once, heard where it fell,
-    /// its body held white <see cref="KillLooks.PopMs"/>, the world running on; then it bursts (<see cref="Pop"/>).
+    /// its body held white <see cref="KillLooks.PopMs"/>, the world running on; then it crumbles (<see cref="Pop"/>).
     /// </summary>
     private void Die(Shown one)
     {
@@ -427,15 +427,15 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
         Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
+        bool own = _clockMs - one.OwnAt < OwnMs * 2;
         if (S.Creatures.TryGetValue(one.Species, out var cues))
-            (_clockMs - one.OwnAt < OwnMs * 2 ? _ownHits : _worldHits).Play(cues.Death, middle, cues.Death.Tune, 0);
+            (own ? _ownHits : _worldHits).Play(own ? S.Felt(cues.Death) : cues.Death, middle, cues.Death.Tune, 0);
         one.Body.Whiten();
-        var velocity = (one.To - one.From) / Unit * Cell * World.TicksPerSecond;
-        _held.Add(new Held(one.Body, KillLooks.PopMs, one.Species, middle, one.Drawn.Y, middle.X >= NearestHero(middle).X ? 1 : -1, velocity));
+        _held.Add(new Held(one.Body, KillLooks.PopMs, one.Species, middle, one.Drawn.Y, middle.X >= NearestHero(middle).X ? 1 : -1));
     }
 
-    /// <summary>A killed body held white: how long yet, what it was, its middle and feet, the striker's other side, its speed in pixels a second.</summary>
-    private sealed record Held(CreatureBody Body, double LeftMs, string Species, Vector2 Middle, float Feet, int Away, Vector2 Velocity);
+    /// <summary>A killed body held white: how long yet, what it was, its middle and feet, the striker's other side.</summary>
+    private sealed record Held(CreatureBody Body, double LeftMs, string Species, Vector2 Middle, float Feet, int Away);
 
     private readonly List<Held> _held = [];
     private readonly Dictionary<(int X, int Y), (byte R, byte G, byte B)> _pixels = [];
@@ -443,7 +443,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     /// <summary>The soft puff a creature leaves: a warm wisp, swelling and gone.</summary>
     private static readonly Luminous Puff = Luminous.Vapour with { Ramp = [(240, 226, 206)], Alpha = 0.2, LifeMs = (500, 900) };
 
-    /// <summary>The held counting down; each bursting once its hold is over, back to the pool.</summary>
+    /// <summary>The held counting down; each crumbling once its hold is over, back to the pool.</summary>
     private void Holds(double elapsedMs)
     {
         for (int i = _held.Count - 1; i >= 0; i--)
@@ -460,21 +460,16 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         }
     }
 
-    /// <summary>A held body bursting: into its pixels (<see cref="PixelBursts"/>), with its hit thrown whole, tufts and a soft puff.</summary>
+    /// <summary>A held body left standing as its pixels to crumble (<see cref="PixelBursts"/>), with its hit thrown whole and a soft puff.</summary>
     private void Pop(Held held)
     {
         _pixels.Clear();
         held.Body.Pixels(_pixels);
-        _bursts.Burst(_pixels, held.Middle, held.Away, held.Velocity);
+        _bursts.Crumble(_pixels, held.Middle, held.Away);
         var (middle, feet) = (held.Middle, held.Feet);
         var impact = HitLooks.Creatures.GetValueOrDefault(held.Species, Impact.Flesh);
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], middle.X, middle.Y, held.Away, -1, 1, floor: feet);
         var glims = Stages.Of(Layers.Effects).Glims;
-        for (int i = 0; i < 14; i++)
-        {
-            double a = glims.Between(0, Math.Tau), s = glims.Between(10, 46);
-            glims.Add(HitLooks.TuftOf(impact), middle.X + Math.Cos(a) * 4, middle.Y + Math.Sin(a) * 4, Math.Cos(a) * s, Math.Sin(a) * s - 10, feet);
-        }
         for (int i = 0; i < 7; i++)
         {
             double a = glims.Between(0, Math.Tau), s = glims.Between(4, 14);

@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The pixels killed creatures burst into (2026-10-29-kill-feel), in world pixels and seconds: each flies under the surface's
-/// gravity, bounces off what is solid, lands on it or on the pixels landed in its column, sliding a few down to a lower
+/// The pixels killed creatures crumble into (2026-10-29-kills-crumble), in world pixels and seconds: each hangs where it was drawn till
+/// its wait is over, then flies under the surface's gravity, bounces off what is solid, lands on it or on the pixels landed in its column, sliding a few down to a lower
 /// neighbour, and fades; afloat it drifts as it was thrown, through everything. Drawn only, never part of the world: plain C#,
 /// asking the ground through <see cref="IGround"/>.
 /// </summary>
@@ -20,16 +20,26 @@ public sealed class PixelDust(int most)
         float Gravity { get; }
     }
 
-    /// <summary>One pixel: where it is and goes, its colour, how old and how long it lasts, landed or not.</summary>
+    /// <summary>One pixel: where it is and goes, its colour, how long it hangs yet, how old since it broke off and how long it lasts, landed or not.</summary>
     public struct Mote
     {
-        public float X, Y, Vx, Vy, Age, Lasts;
+        public float X, Y, Vx, Vy, Wait, Age, Lasts;
         public (byte R, byte G, byte B) Colour;
         public bool Landed;
 
         /// <summary>How much of it is drawn, 1 till its last <see cref="KillLooks.Fades"/>, then down to none.</summary>
         public readonly float Alpha => Math.Clamp((Lasts - Age) / KillLooks.Fades, 0, 1);
+
+        /// <summary>How bright it flares breaking off: 1 the moment it does, none <see cref="KillLooks.RimS"/> later, none while it hangs.</summary>
+        public readonly float Rim => Wait > 0 ? 0 : Math.Clamp(1 - Age / KillLooks.RimS, 0, 1);
     }
+
+    /// <summary>
+    /// How long a pixel at row <paramref name="y"/> of a body from <paramref name="top"/> to <paramref name="bottom"/> hangs: the top
+    /// first, the bottom <see cref="KillLooks.CrumbleS"/> later, and <paramref name="ragged"/> (0 to 1) of <see cref="KillLooks.Ragged"/>.
+    /// </summary>
+    public static float WaitOf(int y, int top, int bottom, float ragged) =>
+        (bottom > top ? (float)(y - top) / (bottom - top) : 0) * KillLooks.CrumbleS + ragged * KillLooks.Ragged;
 
     private readonly List<Mote> _motes = [];
     // Each column's landed pixels: the highest row one lies in, and how many lie there.
@@ -44,13 +54,19 @@ public sealed class PixelDust(int most)
         _motes.Add(mote);
     }
 
-    /// <summary>Moves every pixel <paramref name="dt"/> seconds on; one past its time is gone, its column a pixel lower.</summary>
+    /// <summary>Moves every pixel <paramref name="dt"/> seconds on, a hanging one only nearer breaking off; one past its time is gone, its column a pixel lower.</summary>
     public void Step(double dt, IGround ground)
     {
         float t = (float)dt;
         for (int i = _motes.Count - 1; i >= 0; i--)
         {
             var m = _motes[i];
+            if (m.Wait > 0)
+            {
+                m.Wait -= t;
+                _motes[i] = m;
+                continue;
+            }
             m.Age += t;
             if (m.Age >= m.Lasts)
             {

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The pixels a killed creature bursts into (2026-10-29-kill-feel): flying, landing, heaping, fading.</summary>
+/// <summary>The pixels a killed creature crumbles into (2026-10-29-kills-crumble): hanging, breaking off, flying, landing, heaping, fading.</summary>
 public class PixelDustTests
 {
     /// <summary>A floor whose top is row <see cref="FloorTop"/>, a wall at column <see cref="Wall"/> and right of it, space left of <see cref="SpaceLeft"/>.</summary>
@@ -85,6 +85,34 @@ public class PixelDustTests
         dust.Add(At(10.5f, 30.5f), room);
         Run(dust, room, 1);
         Assert.Equal(Room.FloorTop - 1, (int)Assert.Single(dust.Motes).Y);
+    }
+
+    [Fact]
+    public void AHangingPixelStaysPutAgelessTillItBreaksOffFlaringThenFalls()
+    {
+        var (dust, room) = (new PixelDust(100), new Room());
+        dust.Add(At(10.5f, 5.5f, vx: 3) with { Wait = 1 }, room);
+        Run(dust, room, 0.9);
+        var hanging = Assert.Single(dust.Motes);
+        Assert.Equal((10.5f, 5.5f, 0f, 0f), (hanging.X, hanging.Y, hanging.Age, hanging.Rim));
+        Run(dust, room, 0.15);
+        var broken = Assert.Single(dust.Motes);
+        Assert.True(broken.Rim > 0);
+        Assert.True(broken.Y > 5.5f && broken.X > 10.5f);
+        Run(dust, room, 2);
+        var landed = Assert.Single(dust.Motes);
+        Assert.Equal((true, 0f), (landed.Landed, landed.Rim));
+    }
+
+    [Fact]
+    public void ABodyCrumblesFromItsTopDownItsEdgeRaggedByAShare()
+    {
+        Assert.Equal(0, PixelDust.WaitOf(10, 10, 30, 0));
+        Assert.Equal(KillLooks.CrumbleS / 2, PixelDust.WaitOf(20, 10, 30, 0), 3);
+        Assert.Equal(KillLooks.CrumbleS, PixelDust.WaitOf(30, 10, 30, 0), 3);
+        Assert.Equal(KillLooks.CrumbleS + KillLooks.Ragged, PixelDust.WaitOf(30, 10, 30, 1), 3);
+        // A body one pixel tall breaks off at once.
+        Assert.Equal(0, PixelDust.WaitOf(10, 10, 10, 0));
     }
 
     [Fact]

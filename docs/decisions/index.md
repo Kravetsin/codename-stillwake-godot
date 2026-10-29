@@ -156,7 +156,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |
 | [clear-glass](2026-10-29-clear-glass.md) | Clear glass | accepted |  |
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
-| [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted |  |
+| [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |
+| [kills-crumble](2026-10-29-kills-crumble.md) | Kills crumble into pixels | accepted |  |
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted |  |
 | [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
