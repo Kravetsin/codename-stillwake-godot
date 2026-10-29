@@ -6,12 +6,12 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Rooms;
 using Spec = Stillwake.Content;
 
-namespace Stillwake.Game.Features.Creatures;
+namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// Every creature's death, alike (2026-10-29-kills-crumble): held white a moment, it stands as its own pixels and crumbles from the top
-/// down, each breaking off a little out and away from the striker, falling and heaping on the ground of the surface drawn, and
-/// fading (<see cref="PixelDust"/>, drawn by <see cref="PixelsLayer"/>).
+/// Every death, alike (2026-10-29-kills-crumble): a killed creature, or a hero's body emptied (2026-10-29-body-bag), stands as
+/// its own pixels and crumbles from the top down, each breaking off a little out and away from the striker, falling and heaping
+/// on the ground of the surface drawn, and fading (<see cref="PixelDust"/>, drawn by <see cref="PixelsLayer"/>).
 /// </summary>
 public partial class PixelBursts : Node2D
 {

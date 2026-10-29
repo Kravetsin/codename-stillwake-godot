@@ -1,6 +1,6 @@
 # 0061 — Death leaves a body
 
-- Status: accepted
+- Status: accepted; its drawing and taking back of a body superseded by [body-bag](2026-10-29-body-bag.md)
 - Date: 2026-10-18
 
 ## Context
