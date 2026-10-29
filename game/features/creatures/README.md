@@ -4,7 +4,8 @@
 
 | File | Purpose |
 | --- | --- |
-| `CreatureBody.cs` | One creature's body (0102) in the design its species names, as the user picked it on the loper page: its rig's … |
+| `CreatureBody.cs` | One creature's body (0102) in the design its species names: its rig's parts, posed. |
+| `PixelBursts.cs` | Every creature's death: its pixels burst out, heaped and faded (2026-10-29-kill-feel). |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How one creature's body reacts (0102), from what the sim decided and when it was struck: plain C#, tested. |
 | `CreatureParts.cs` | The creatures' parts as pictures (0102): each index map of `art/creatures` recoloured once, at first use, by a palette … |
@@ -59,17 +60,17 @@ axe's blade and the drill's bit are tested against each creature's body as again
   and thin, ears laid back; on landing a squash as hard as the fall was fast.
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
   no blood), thrown from the side facing the hero, its share for a drill; `Sound.Creatures` its hit, thump and death
-  (placeholders), an own hit on Suit, a friend's on World. An own axe hit nudges the view as a wreck's does.
-- **Death** (0102): its hit thrown whole, a glint and shock ring, the body swelling white and fading; what it gives falls
-  as the sim drops it (`features/items`). Heard where it fell.
+  (placeholders), an own hit on Suit, a friend's on World.
+- **Death** (2026-10-29-kill-feel): a glint and shock ring, heard where it fell; held white `KillLooks.PopMs`, then it bursts
+  into its posed pixels (`PixelBursts`), its hit, tufts and a puff thrown; its loot sprays out as it bursts (`features/items`).
 - **The tick** (the sentry page's «Клещ»): its sprite drawn each frame from its pose (`TickArt`), lit; eye, cracks and a blow's
   white over it unlit. `TickMotion` reads the sim: `Clamped` grips (legs down, magnets aglow, a bounce), else legs folded, nose
   along its flight; X moving along its wreck while clamped steps its legs. Eye teal, yellow `Alerted` or flying home, red from
   its crouch on, lighting the wreck. Winding up: trembling, red arcs between its legs. Aiming an arc: eye cyan, flickering,
   held once aimed, its charge heard. Flying: an amber burner, sparks and smoke.
   Struck: flash, shake, fine sparks. `CutLeft`: it faces the line (its reel's hero), rears, saws with its claw and mandible,
-  sparks thickening; `LastCut`: sparks and a whip of light down the line, a recoil. Killed (its wreck gone too): cracks 0.32 s,
-  then a burst and hot plates. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.
+  sparks thickening; `LastCut`: sparks and a whip of light down the line, a recoil. Killed (its wreck gone too): cracks for the
+  hold, then a burst of sparks and its pixels. A pounce cut short hit a hero: sparks. Heard on Suit (`Sound.Ticks`); a friend's blow on World.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev
@@ -86,5 +87,4 @@ drill on one loper; `--strip --creatures --creatures-course` puts a loper by the
 - **No outline or prompt** for a creature under the blade: the hit is the answer.
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,
   jumps and fits where a small one does.
-- **A dying body's parts show through each other** as they fade; a far ear's glow is added over the body.
 - **A tick saws at its claw,** not where the hook held: the hook point is the harpoon's. No sawing sound yet: none picked.

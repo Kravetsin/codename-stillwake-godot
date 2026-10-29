@@ -34,21 +34,37 @@ public static class Reach
 
     /// <summary>
     /// The stacks on the floor peer <paramref name="peer"/>'s hero, its feet at (<paramref name="x"/>,
-    /// <paramref name="y"/>), picks up as it goes (pickup.ts): those in any cell its body overlaps, unless
-    /// one is in <paramref name="taking"/>, picked up already with the pick-up still in flight, or the sim
-    /// would refuse it (its own, dropped a moment ago; no room for any).
+    /// <paramref name="y"/>), picks up as it goes (pickup.ts): those in any cell its body overlaps, and those nobody dropped
+    /// within <see cref="Floor.PickUpReach"/> cells of it, pulled in (2026-10-29-kill-feel); unless one is <see cref="Hidden"/>, in
+    /// <paramref name="taking"/>, picked up already with the pick-up still in flight, or the sim would refuse it (its own,
+    /// dropped a moment ago; no room for any).
     /// </summary>
     public static IReadOnlyList<int> PickUpsOf(IItemsQueries items, int width, int peer, int x, int y, IReadOnlySet<int> taking)
     {
         int half = Hero.Width / 2;
         int left = FloorDiv(x - half, Unit), right = FloorDiv(x + half - 1, Unit);
         int top = FloorDiv(y - Hero.Height, Unit), bottom = FloorDiv(y - 1, Unit);
+        int reach = Floor.PickUpReach;
+        bool Within(FloorStack s, int by) =>
+            s.Cell % width >= left - by && s.Cell % width <= right + by && s.Cell / width >= top - by && s.Cell / width <= bottom + by;
         return items.Floor
-            .Where(s => s.Cell % width >= left && s.Cell % width <= right && s.Cell / width >= top && s.Cell / width <= bottom)
-            .Where(s => !taking.Contains(s.Id) && items.PickUpProblem(peer, s.Id) == null)
+            .Where(s => Within(s, 0) || Pulled(s) && Within(s, reach))
+            .Where(s => !Hidden(s, items.Ticks) && !taking.Contains(s.Id) && items.PickUpProblem(peer, s.Id) == null)
             .Select(s => s.Id)
             .ToList();
     }
+
+    /// <summary>Whether the magnet pulls <paramref name="s"/> in: loot nobody dropped, never a stack let go for a friend nor a hero's body.</summary>
+    public static bool Pulled(FloorStack s) => s.By == FloorStack.Nobody && s.Body == null;
+
+    /// <summary>How many ticks a killed creature is held white before it bursts: <see cref="KillLooks.PopMs"/>, in whole ticks.</summary>
+    public static readonly int PopTicks = (int)Math.Ceiling(KillLooks.PopMs * Sim.World.TicksPerSecond / 1000);
+
+    /// <summary>
+    /// Whether <paramref name="s"/> is loot not yet out of the creature it sprays from, the items' clock at <paramref name="ticks"/>:
+    /// nobody's, younger than <see cref="PopTicks"/>, drawn and taken only once its creature has burst (2026-10-29-kill-feel).
+    /// </summary>
+    public static bool Hidden(FloorStack s, int ticks) => Pulled(s) && ticks - s.At < PopTicks;
 
     private static int FloorDiv(int a, int b) => (int)Math.Floor((double)a / b);
 }

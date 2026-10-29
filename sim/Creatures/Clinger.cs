@@ -110,7 +110,7 @@ internal sealed class ClingerBody : BodyRule
         // Its wreck broken or gone, it goes with it (the user's word: never a sentry left adrift).
         if (m.Debris.PieceById(c.Recall(Piece)) == null)
         {
-            m.Kill(c, spec);
+            m.Kill(c, spec, 0);
             return;
         }
         // Read now, not as the tick began: a pounce launched this tick has let go.

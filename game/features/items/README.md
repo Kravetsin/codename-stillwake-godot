@@ -13,7 +13,8 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `logic/Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) |
 | `logic/Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host |
 | `logic/Lessons.cs` | an analyzer's panel: stage, progress, what the item goes into (0027) |
-| `logic/Reach.cs` | `HeroSpot`; pick-ups |
+| `logic/Reach.cs` | `HeroSpot`; pick-ups and the magnet |
+| `logic/FloorFeel.cs` | a stack's landing (2026-10-29-kill-feel) |
 | `logic/OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was |
 | `PickUpFlights.cs` | a stack picked up flying home to the chest (0075) |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
@@ -82,9 +83,12 @@ and tested in `game.tests/`.
   (0081) always shows the belt's charge in whole power units, read four times a second.
 - **Every inventory action clicks** (0081), not the wheel. A canister breathed pulses its slot.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
-  between the last two ticks, side by side when still; over machines and bodies, under heroes.
-- **Pick-up** (no ADR): a stack the hero's body overlaps is picked up unless refused, and vanishes at once; never while
-  passed out (0061), which also closes the inventory.
+  between the last two ticks, side by side when still; over machines and bodies, under heroes. Flying they spin; landing
+  they squash, hop twice and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature
+  (`Reach.Hidden`) is not drawn.
+- **Pick-up** (no ADR): a stack the hero's body overlaps is picked up unless refused, vanishing, flying home;
+  loot nobody dropped within `Floor.PickUpReach` cells too, pulled in (2026-10-29-kill-feel); never while passed out
+  (0061), which also closes the inventory.
 - **Own catches** (0075): a grab seen in flight then gone has run; `CaughtFrom` gives each item a popup line and a
   flight home from the piece. Only this peer's; a refused or already-gone grab shows nothing.
 

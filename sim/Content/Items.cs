@@ -262,6 +262,27 @@ public static class Floor
     /// <summary>How fast a stack is thrown up, in thousandths of a cell a tick.</summary>
     public const int ThrowLift = 300;
 
+    /// <summary>
+    /// A creature's loot sprays out of it (2026-10-29-kill-feel): dealt into at most this many pieces, a unit each, the rest
+    /// riding on each item's last; every item at least one piece.
+    /// </summary>
+    public const int SprayMost = 6;
+
+    /// <summary>A sprayed piece's speed across, away from the striker, and up, in thousandths of a cell a tick: a draw between the two.</summary>
+    public const int SprayLeast = 60, SprayFastest = 200, SprayLiftLeast = 200, SprayLiftMost = 320;
+
+    /// <summary>
+    /// Afloat, a sprayed piece flies this share of its speed in thousandths, up or down by a draw, rounded toward none: nothing
+    /// slows it there, and past the grid's edge it is gone.
+    /// </summary>
+    public const int SpraySpaceShare = 300;
+
+    /// <summary>
+    /// How near a hero, in cells box distance from its middle, a stack nobody dropped flies to it and is picked up (the
+    /// client's magnet, 2026-10-29-kill-feel); one it overlaps it picks up as ever.
+    /// </summary>
+    public const int PickUpReach = 2;
+
     /// <summary>Inside the ship: what a stack gains falling each tick.</summary>
     public const int Gravity = 60;
 

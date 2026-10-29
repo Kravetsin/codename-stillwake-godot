@@ -23,6 +23,8 @@ public static class CreatureParts
     private readonly record struct Worn(int Shade, int Hue, int Kept, int Opacity);
 
     private static readonly Dictionary<(string, string, string, Kind, Worn), Texture2D> Made = new();
+    // Each colour picture's pixels, kept as made: what a creature bursts into is read from them, never back from the GPU.
+    private static readonly Dictionary<Texture2D, (int W, int H, byte[] Data)> Pixels = new();
     private static readonly Dictionary<(string, string, string, int), (Vector2 At, Color Colour)[]> Spots = new();
     private static readonly Dictionary<(string, string), int[]> Markings = new();
 
@@ -60,8 +62,13 @@ public static class CreatureParts
             };
             (data[o], data[o + 1], data[o + 2], data[o + 3]) = (r, g, b, alpha);
         }
-        return Made[key] = ImageTexture.CreateFromImage(Image.CreateFromData(w, h, false, Image.Format.Rgba8, data));
+        var texture = Made[key] = ImageTexture.CreateFromImage(Image.CreateFromData(w, h, false, Image.Format.Rgba8, data));
+        if (kind == Kind.Colour) Pixels[texture] = (w, h, data);
+        return texture;
     }
+
+    /// <summary>The pixels of a colour picture <see cref="Of"/> made, as made: Rgba8, row by row; none for any other.</summary>
+    public static (int W, int H, byte[] Data)? PixelsOf(Texture2D texture) => Pixels.TryGetValue(texture, out var p) ? p : null;
 
     /// <summary>
     /// Where a part's glow lights from, in its own pixels from its pivot, and the colour: its glowing pixels gathered by squares

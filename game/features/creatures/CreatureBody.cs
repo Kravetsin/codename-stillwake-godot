@@ -39,9 +39,6 @@ public partial class CreatureBody : Node2D
     private string _palette = "";
     private double _white;
 
-    /// <summary>How far through its death it is, 0 to 1, swelling white and fading; null alive.</summary>
-    public double? Dying { get; set; }
-
     /// <summary>The design it is drawn in.</summary>
     public CreatureArt.Design? Design => _design;
 
@@ -55,7 +52,7 @@ public partial class CreatureBody : Node2D
     public void Dress(string species, string palette, CreatureVariety.Individual one)
     {
         var design = CreatureArt.Designs[Spec.Creatures.Get(species).Look];
-        (Dying, Modulate, _white) = (null, Colors.White, 0);
+        (Modulate, _white) = (Colors.White, 0);
         if (design != _design || palette != _palette) Make(design, palette);
         var v = CreatureLooks.Varieties[species];
         foreach (var d in _drawn)
@@ -178,8 +175,8 @@ public partial class CreatureBody : Node2D
         }
     }
 
-    /// <summary>Drawn at <paramref name="alpha"/>, dying: its colours and glows fading, its flash swelling white then gone.</summary>
-    public void Fade(float alpha)
+    /// <summary>Drawn at <paramref name="alpha"/>, its colours and glows, its flash as last posed.</summary>
+    private void Fade(float alpha)
     {
         var shade = new Color(1, 1, 1, alpha);
         foreach (var d in _drawn)
@@ -187,9 +184,36 @@ public partial class CreatureBody : Node2D
             d.Colour.Modulate = shade;
             if (d.Glow != null) d.Glow.Modulate = shade;
         }
-        float white = (float)Math.Max(_white, Dying is double t ? Math.Min(1, 1.6 * (1 - t)) * (1 - t) : 0);
-        foreach (var d in _drawn) d.White.Visible = d.Colour.Visible && white > 0.01;
-        _flash.Visible = white > 0.01;
-        _flash.Modulate = new Color(1, 1, 1, white);
+        foreach (var d in _drawn) d.White.Visible = d.Colour.Visible && _white > 0.01;
+        _flash.Visible = _white > 0.01;
+        _flash.Modulate = new Color(1, 1, 1, (float)_white);
+    }
+
+    /// <summary>Held all white where it stands: killed, the moment before it bursts (2026-10-29-kill-feel).</summary>
+    public void Whiten()
+    {
+        _white = 1;
+        Fade(1);
+    }
+
+    /// <summary>
+    /// Every pixel of its colours as drawn now, at its whole pixel in its parent's space, the last drawn over the rest: what it
+    /// bursts into (<see cref="PixelBursts"/>).
+    /// </summary>
+    public void Pixels(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into)
+    {
+        foreach (var d in _drawn)
+        {
+            if (!d.Colour.Visible || d.Colour.Texture is not { } texture || CreatureParts.PixelsOf(texture) is not var (w, h, data)) continue;
+            var toParent = Transform * d.Colour.Transform;
+            for (int y = 0; y < h; y++)
+                for (int x = 0; x < w; x++)
+                {
+                    int o = (y * w + x) * 4;
+                    if (data[o + 3] == 0) continue;
+                    var at = toParent * (new Vector2(x + 0.5f, y + 0.5f) + d.Colour.Offset);
+                    into[((int)MathF.Floor(at.X), (int)MathF.Floor(at.Y))] = (data[o], data[o + 1], data[o + 2]);
+                }
+        }
     }
 }

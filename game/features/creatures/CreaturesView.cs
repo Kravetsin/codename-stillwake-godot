@@ -9,6 +9,8 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Grid;
+using Stillwake.Sim.Rooms;
 using S = Stillwake.Game.Sound;
 using Spec = Stillwake.Content;
 
@@ -31,9 +33,6 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     /// <summary>How near a hero a creature watches it, in pixels.</summary>
     private const float Watch = 18 * Cell;
-
-    /// <summary>How long a creature killed is drawn swelling white and fading, in milliseconds.</summary>
-    private const double GhostMs = 170;
 
 
     /// <summary>A rise faster than this a tick is a jump, not a blow's hop (an axe's is 360).</summary>
@@ -72,18 +71,14 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private readonly Stack<CreatureBody> _pool = new();
     private readonly HashSet<int> _out = [], _drawn = [];
     private readonly List<int> _gone = [];
-    private readonly List<(CreatureBody Body, double LeftMs)> _ghosts = [];
     // By reference: two strikes of one creature are equal records, and one may run while the other flies.
     private HashSet<Command> _flying = new(ReferenceEqualityComparer.Instance), _still = new(ReferenceEqualityComparer.Instance);
     private readonly Voices _ownHits = new(S.Suit, voices: 4), _worldHits = new(S.World, voices: 4);
     private double _clockMs;
     private CreaturesModule? _of;
 
-    /// <summary>This player's own axe bit a creature, knocking it <c>away</c>: the view nudges (<see cref="ShipCamera.Nudge"/>).</summary>
-    public event Action<Vector2>? Nudged;
-
     /// <summary>The creatures drawn last frame, and the bodies ever made: for the frame log and scripted runs.</summary>
-    public (int Drawn, int Made) Bodies => (_shown.Count, _shown.Count + _pool.Count + _ghosts.Count);
+    public (int Drawn, int Made) Bodies => (_shown.Count, _shown.Count + _pool.Count + _held.Count);
 
     private readonly List<(Vector2 At, Color Colour)> _lights = [];
     private readonly List<LightSource> _sources = [];
@@ -97,7 +92,12 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         AddChild(_ownHits);
         AddChild(_worldHits);
         AddChild(_ticks);
+        AddChild(_bursts);
+        _ticks.Bursts = _bursts;
     }
+
+    /// <summary>What every killed creature bursts into, the tick too (2026-10-29-kill-feel).</summary>
+    private readonly PixelBursts _bursts = new();
 
     /// <summary>The creatures drawn as the tick (<see cref="CreatureLooks.Ticks"/>): posed and drawn anew each frame, not a rig.</summary>
     private readonly TickBodies _ticks = new();
@@ -109,18 +109,23 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
     /// <see cref="CreatureLooks.PaletteOf"/>), each creature its own individual by its id and the surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
     /// </summary>
-    public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, Rect2 view, double progress, double elapsedMs, string palette, uint seed)
+    public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, IGridQueries grid, IRoomsQueries rooms, Spec.Surfaces.Kind rules,
+        Rect2 view, double progress, double elapsedMs, string palette, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
         if (creatures != _of)
         {
             foreach (var one in _shown.Values) Put(one.Body);
+            foreach (var held in _held) Put(held.Body);
             _shown.Clear();
+            _held.Clear();
+            _bursts.Clear();
             _ticks.Reset();
             _of = creatures;
         }
         (_palette, _seed) = (palette, seed);
+        _bursts.On(grid, rooms, rules);
         var all = creatures.Creatures;
         int left = (int)Math.Floor(view.Position.X - Margin) * Unit, right = (int)Math.Ceiling(view.End.X + Margin) * Unit;
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;
@@ -146,7 +151,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (!_out.Contains(id)) Die(gone);
             else Put(gone.Body);
         }
-        Ghosts(elapsedMs);
+        Holds(elapsedMs);
+        _bursts.Frame(elapsedMs);
 
         for (int i = 0; i < all.Count; i++)
         {
@@ -175,7 +181,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         // What their glowing parts light this frame: the fluff's spots in a cave, the tapir's pod at dusk.
         _lights.Clear();
         foreach (var one in _shown.Values) one.Body.Lights(_lights, one.Body.Transform, 1);
-        foreach (var (body, leftMs) in _ghosts) body.Lights(_lights, body.Transform, (float)(leftMs / GhostMs));
+        foreach (var held in _held) held.Body.Lights(_lights, held.Body.Transform, 1);
         _sources.Clear();
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
@@ -263,7 +269,6 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             voices.Play(cues.Hit, side, cues.Hit.Tune, db);
             voices.Play(cues.Thump, side, cues.Thump.Tune, db);
         }
-        if (own && !HeldLook.IsDrill(tool)) Nudged?.Invoke(new Vector2(away, 0));
     }
 
     /// <summary>The tool a friend most likely struck with at <paramref name="at"/>: a running drill whose bit is by it, else the axe.</summary>
@@ -413,58 +418,70 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     }
 
     /// <summary>
-    /// <paramref name="one"/> killed where it was drawn: a burst of its hit at full, a soft puff of fur and dust, a white glint
-    /// and shock ring, its body swelling white and gone; heard where it fell.
+    /// <paramref name="one"/> killed where it was drawn (2026-10-29-kill-feel): a white glint and shock ring at once, heard where it fell,
+    /// its body held white <see cref="KillLooks.PopMs"/>, the world running on; then it bursts (<see cref="Pop"/>).
     /// </summary>
     private void Die(Shown one)
     {
         var spec = Spec.Creatures.Get(one.Species);
         var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
-        var impact = HitLooks.Creatures.GetValueOrDefault(one.Species, Impact.Flesh);
-        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], middle.X, middle.Y, 0, -1, 1, floor: one.Drawn.Y);
+        Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
+        Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
+        if (S.Creatures.TryGetValue(one.Species, out var cues))
+            (_clockMs - one.OwnAt < OwnMs * 2 ? _ownHits : _worldHits).Play(cues.Death, middle, cues.Death.Tune, 0);
+        one.Body.Whiten();
+        var velocity = (one.To - one.From) / Unit * Cell * World.TicksPerSecond;
+        _held.Add(new Held(one.Body, KillLooks.PopMs, one.Species, middle, one.Drawn.Y, middle.X >= NearestHero(middle).X ? 1 : -1, velocity));
+    }
+
+    /// <summary>A killed body held white: how long yet, what it was, its middle and feet, the striker's other side, its speed in pixels a second.</summary>
+    private sealed record Held(CreatureBody Body, double LeftMs, string Species, Vector2 Middle, float Feet, int Away, Vector2 Velocity);
+
+    private readonly List<Held> _held = [];
+    private readonly Dictionary<(int X, int Y), (byte R, byte G, byte B)> _pixels = [];
+
+    /// <summary>The soft puff a creature leaves: a warm wisp, swelling and gone.</summary>
+    private static readonly Luminous Puff = Luminous.Vapour with { Ramp = [(240, 226, 206)], Alpha = 0.2, LifeMs = (500, 900) };
+
+    /// <summary>The held counting down; each bursting once its hold is over, back to the pool.</summary>
+    private void Holds(double elapsedMs)
+    {
+        for (int i = _held.Count - 1; i >= 0; i--)
+        {
+            var held = _held[i];
+            if (held.LeftMs > elapsedMs)
+            {
+                _held[i] = held with { LeftMs = held.LeftMs - elapsedMs };
+                continue;
+            }
+            _held.RemoveAt(i);
+            Pop(held);
+            Put(held.Body);
+        }
+    }
+
+    /// <summary>A held body bursting: into its pixels (<see cref="PixelBursts"/>), with its hit thrown whole, tufts and a soft puff.</summary>
+    private void Pop(Held held)
+    {
+        _pixels.Clear();
+        held.Body.Pixels(_pixels);
+        _bursts.Burst(_pixels, held.Middle, held.Away, held.Velocity);
+        var (middle, feet) = (held.Middle, held.Feet);
+        var impact = HitLooks.Creatures.GetValueOrDefault(held.Species, Impact.Flesh);
+        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], middle.X, middle.Y, held.Away, -1, 1, floor: feet);
         var glims = Stages.Of(Layers.Effects).Glims;
         for (int i = 0; i < 14; i++)
         {
             double a = glims.Between(0, Math.Tau), s = glims.Between(10, 46);
-            glims.Add(HitLooks.TuftOf(impact), middle.X + Math.Cos(a) * 4, middle.Y + Math.Sin(a) * 4, Math.Cos(a) * s, Math.Sin(a) * s - 10, one.Drawn.Y);
+            glims.Add(HitLooks.TuftOf(impact), middle.X + Math.Cos(a) * 4, middle.Y + Math.Sin(a) * 4, Math.Cos(a) * s, Math.Sin(a) * s - 10, feet);
         }
         for (int i = 0; i < 7; i++)
         {
             double a = glims.Between(0, Math.Tau), s = glims.Between(4, 14);
             glims.Add(Puff, middle.X + Math.Cos(a) * 6, middle.Y + Math.Sin(a) * 5, Math.Cos(a) * s, Math.Sin(a) * s - 4, size: glims.Between(3, 5));
         }
-        Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
-        Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
-        if (S.Creatures.TryGetValue(one.Species, out var cues))
-            (_clockMs - one.OwnAt < OwnMs * 2 ? _ownHits : _worldHits).Play(cues.Death, middle, cues.Death.Tune, 0);
-        one.Body.Dying = 0;
-        _ghosts.Add((one.Body, GhostMs));
     }
 
-    /// <summary>The soft puff a creature leaves: a warm wisp, swelling and gone.</summary>
-    private static readonly Luminous Puff = Luminous.Vapour with { Ramp = [(240, 226, 206)], Alpha = 0.2, LifeMs = (500, 900) };
-
-    /// <summary>Bodies of the killed swelling white and fading; each back to the pool once gone.</summary>
-    private void Ghosts(double elapsedMs)
-    {
-        for (int i = _ghosts.Count - 1; i >= 0; i--)
-        {
-            var (body, left) = _ghosts[i];
-            left -= elapsedMs;
-            if (left <= 0)
-            {
-                body.Dying = null;
-                _ghosts.RemoveAt(i);
-                Put(body);
-                continue;
-            }
-            _ghosts[i] = (body, left);
-            double t = 1 - left / GhostMs;
-            body.Dying = t;
-            body.Scale = new Vector2(Math.Sign(body.Scale.X) * (float)(1 + 0.45 * t), (float)(1 + 0.25 * t)) * body.Size;
-            body.Fade((float)(1 - t));
-        }
-    }
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame; a cell over it with none.</summary>
     private Vector2 NearestHero(Vector2 at)
