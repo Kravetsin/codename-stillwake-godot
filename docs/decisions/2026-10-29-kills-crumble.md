@@ -6,8 +6,8 @@
 
 ## Context
 
-A kill burst its creature into its pixels at once, 100 ms after it was held white. The user, having played it: rather the
-creature freezes and crumbles into its pixels over a second or two.
+A kill burst its creature into its pixels at once, 100 ms after it was held white, heard no farther than a chop. The user, having played it: rather the
+creature freezes and crumbles into its pixels over a second or two; and a hit or kill by a rifle far off must be heard.
 
 ## Decision
 
@@ -20,6 +20,8 @@ creature freezes and crumbles into its pixels over a second or two.
   colour under its middle, so a creature drawn larger or turned stands without gaps. All of them, up to `BodyPixels`.
 - The body's speed is no longer carried, and the tufts are gone: they burst; the hit and the puff stay. The tick keeps its
   cracks, sparks and flash, then crumbles alike. Loot sprays out as the crumble begins, as before.
+- **This player's own blow on a creature, and its kill, are heard far** (`Sound.Felt`, `FeltReach`: full within 120 cells,
+  gone at 240, still panned): shooting from afar, the player hears it land. A friend's keeps its cue's reach.
 
 ## Deliberately not handled
 

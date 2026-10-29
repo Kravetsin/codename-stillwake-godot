@@ -23,4 +23,17 @@ public class SoundReachTests
         foreach (var cue in Sound.All)
             if (cue.Heard is { } reach) Assert.True(reach.Silent > reach.Full, $"{cue.Files[0]} goes silent before it fades");
     }
+
+    [Fact]
+    public void AnOwnBlowOnACreatureIsHeardFullFarPastWhereAFriendsFades()
+    {
+        foreach (var (hit, thump, death) in Sound.Creatures.Values)
+            foreach (var cue in new[] { hit, thump, death })
+            {
+                var felt = Sound.Felt(cue);
+                Assert.Equal((cue.Files, cue.VolumeDb, cue.Tune), (felt.Files, felt.VolumeDb, felt.Tune));
+                Assert.Equal(1, felt.Heard!.Share(100));
+                Assert.True(cue.Heard!.Share(100) < 1);
+            }
+    }
 }

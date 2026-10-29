@@ -261,6 +261,15 @@ public static class Sound
     /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 12 cells, gone at 56.</summary>
     public static readonly Reach BreakReach = new(12, 56);
 
+    /// <summary>
+    /// How far this player's own blow on a creature, and its kill, carry (2026-10-29-kills-crumble): full well past the screen's
+    /// edge, still panned, so a shot from afar is felt to land. A friend's keeps its cue's own reach.
+    /// </summary>
+    public static readonly Reach FeltReach = new(120, 240);
+
+    /// <summary><paramref name="cue"/> as this player's own blow on a creature is heard: as far as <see cref="FeltReach"/>.</summary>
+    public static Cue Felt(Cue cue) => cue with { Heard = FeltReach };
+
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: BreakReach);
 

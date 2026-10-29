@@ -287,7 +287,7 @@ public partial class TickBodies : Node2D
         var at = middle + new Vector2(to.X / d * 7, to.Y / d * 5);
         double heading = Math.Atan2(to.Y, to.X);
         Sparks(Stages.Of(Layers.Effects), at, heading, 1);
-        if (one.Cues is { } cues) (own ? _suit : _world).Play(cues.Hit, at, 1, GroundSounds.HitDbOf(tool));
+        if (one.Cues is { } cues) (own ? _suit : _world).Play(own ? S.Felt(cues.Hit) : cues.Hit, at, 1, GroundSounds.HitDbOf(tool));
     }
 
     /// <summary>The page's spark burst, its <c>fine</c> sparks: a spray along <paramref name="heading"/>, dust, a warm flash.</summary>
@@ -505,7 +505,7 @@ public partial class TickBodies : Node2D
     private void Die(Shown one)
     {
         one.Motion.Die();
-        if (one.Cues is { } cues) _suit.Play(cues.Death, one.Drawn + new Vector2(0, -8));
+        if (one.Cues is { } cues) _suit.Play(_clockMs - one.OwnAt < OwnMs * 2 ? S.Felt(cues.Death) : cues.Death, one.Drawn + new Vector2(0, -8));
         _dying.Add(one);
     }
 

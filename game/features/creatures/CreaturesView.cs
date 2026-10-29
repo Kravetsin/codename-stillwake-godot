@@ -266,8 +266,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         {
             var voices = own ? _ownHits : _worldHits;
             float db = Features.Sound.GroundSounds.HitDbOf(tool);
-            voices.Play(cues.Hit, side, cues.Hit.Tune, db);
-            voices.Play(cues.Thump, side, cues.Thump.Tune, db);
+            voices.Play(own ? S.Felt(cues.Hit) : cues.Hit, side, cues.Hit.Tune, db);
+            voices.Play(own ? S.Felt(cues.Thump) : cues.Thump, side, cues.Thump.Tune, db);
         }
     }
 
@@ -427,8 +427,9 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
         Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
+        bool own = _clockMs - one.OwnAt < OwnMs * 2;
         if (S.Creatures.TryGetValue(one.Species, out var cues))
-            (_clockMs - one.OwnAt < OwnMs * 2 ? _ownHits : _worldHits).Play(cues.Death, middle, cues.Death.Tune, 0);
+            (own ? _ownHits : _worldHits).Play(own ? S.Felt(cues.Death) : cues.Death, middle, cues.Death.Tune, 0);
         one.Body.Whiten();
         _held.Add(new Held(one.Body, KillLooks.PopMs, one.Species, middle, one.Drawn.Y, middle.X >= NearestHero(middle).X ? 1 : -1));
     }
