@@ -2,6 +2,7 @@ using Stillwake.Game.Features.Light;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using Xunit;
+using Materials = Stillwake.Content.Materials;
 using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Game.Tests;
@@ -19,9 +20,23 @@ public class LightSourcesTests
         int[] structure = [Structure.Empty, Structure.Wall, Structure.DoorClosed, Structure.Empty, Structure.Empty, Structure.DoorOpen, Structure.Floor, Structure.Wall];
         var cells = new byte[6];
         // Two rows four wide, the box from the second column on: row by row, what is built only.
-        Sources.Occupy(structure, c => structure[c], 4, new Box(1, 0, 3, 1), cells);
+        Sources.Occupy(structure, new int[structure.Length], c => structure[c], 4, new Box(1, 0, 3, 1), cells);
         // A lone door cell is a door, not a hatch (0111): shut, it stops light.
         Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
+    }
+
+    /// <summary>A clear wall (glass, 2026-10-29-clear-glass) is one the shader lets light through, dimmed; any other stops it.</summary>
+    [Fact]
+    public void LetsLightThroughAClearWallAndStopsItAtAnyOther()
+    {
+        int[] structure = [Structure.Wall, Structure.Wall, Structure.Wall, Structure.Empty];
+        int[] material = [Materials.Get("glass").Code, Materials.Get("scrap").Code, Materials.Get("mica").Code, Materials.Get("glass").Code];
+        var cells = new byte[4];
+        Sources.Occupy(structure, material, c => structure[c], 4, new Box(0, 0, 3, 0), cells);
+        Assert.Equal(new[] { Sources.Clear, Sources.Wall, Sources.Wall, Sources.Open }, cells);
+        // A cell set again after a change reads the same.
+        Assert.Equal(Sources.Clear, Sources.Of(c => structure[c], c => material[c], 4, 4, 0));
+        Assert.Equal(Sources.Wall, Sources.Of(c => structure[c], c => material[c], 4, 4, 1));
     }
 
     [Fact]
@@ -35,7 +50,7 @@ public class LightSourcesTests
             Structure.DoorOpen, Structure.Empty, Structure.Empty, Structure.Empty,
         ];
         var cells = new byte[12];
-        Sources.Occupy(structure, c => structure[c], 4, new Box(0, 0, 3, 2), cells);
+        Sources.Occupy(structure, new int[structure.Length], c => structure[c], 4, new Box(0, 0, 3, 2), cells);
         Assert.Equal(new[] { Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Door, Sources.Open, Sources.Wall, Sources.Wall, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells);
     }
 
@@ -48,7 +63,7 @@ public class LightSourcesTests
         const int D = Structure.DoorClosed, H = Structure.HatchClosed, E = Structure.Empty;
         int[] structure = [D, D, E, H, H, E, D, D, E, E, E, E];
         var cells = new byte[12];
-        Sources.Occupy(structure, c => structure[c], 6, new Box(0, 0, 5, 1), cells);
+        Sources.Occupy(structure, new int[structure.Length], c => structure[c], 6, new Box(0, 0, 5, 1), cells);
         Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Wall, Sources.Wall, Sources.Open }, cells[..6]);
         Assert.Equal(new[] { Sources.Door, Sources.DoorFar, Sources.Open, Sources.Open, Sources.Open, Sources.Open }, cells[6..12]);
     }

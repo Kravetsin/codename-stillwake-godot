@@ -35,5 +35,5 @@ everything, found early, would end the reason to build again. The user wants a c
 
 ## Deliberately not handled
 
-- No wall is see-through: glass stops light as any wall does.
+- No wall is see-through: glass stops light as any wall does (replaced by [clear-glass](2026-10-29-clear-glass.md)).
 - The seals' pictures are placeholders, scrap's tinted, until the drawn ones land.

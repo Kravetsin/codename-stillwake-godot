@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Stillwake.Sim;
 using Stillwake.Sim.Grid;
 using L = Stillwake.Game.Light;
+using Materials = Stillwake.Content.Materials;
 using Structures = Stillwake.Content.Structures;
 using Trait = Stillwake.Content.Trait;
 
@@ -29,21 +30,22 @@ public interface ILightSource
 public static class Sources
 {
     /// <summary>
-    /// How the shader tells a cell: open, a closed door (its panel up and down blocks), a wall; a doorway two cells thick (0104),
-    /// its far column's own, so its 16 px panel stops light where it is drawn. A hatch is a floor and lets light through (0111), so
-    /// no hatch byte is written; the shader still knows one.
+    /// How the shader tells a cell: open, a closed door (its panel up and down blocks), a wall, a clear wall light passes dimmed
+    /// (2026-10-29-clear-glass); a doorway two cells thick (0104), its far column's own, so its 16 px panel stops light where it is
+    /// drawn. A hatch is a floor and lets light through (0111), so no hatch byte is written; the shader still knows one.
     /// </summary>
-    public const byte Open = 0, Hatch = 64, HatchFar = 96, Door = 128, DoorFar = 160, Wall = 255;
+    public const byte Open = 0, Clear = 32, Hatch = 64, HatchFar = 96, Door = 128, DoorFar = 160, Wall = 255;
 
     /// <summary>Floats an instance takes in the multimesh: a 2D transform, a colour, custom data.</summary>
     public const int Stride = 16;
 
     /// <summary>
     /// A byte a cell of <paramref name="box"/> of <paramref name="structure"/>, the grid's layer, which <paramref name="structureAt"/>
-    /// reads too, a grid <paramref name="width"/> wide, row by row into <paramref name="cells"/>: what stops light there. Most cells
-    /// of a planet are open or rock, read straight from the layer; a door's shape is found from its neighbours.
+    /// reads too, a grid <paramref name="width"/> wide, row by row into <paramref name="cells"/>: what stops light there, a wall's
+    /// <paramref name="material"/> whether it is clear. Most cells of a planet are open or rock, read straight from the layers; a
+    /// door's shape is found from its neighbours.
     /// </summary>
-    public static void Occupy(ReadOnlySpan<int> structure, Func<int, int> structureAt, int width, Box box, byte[] cells)
+    public static void Occupy(ReadOnlySpan<int> structure, ReadOnlySpan<int> material, Func<int, int> structureAt, int width, Box box, byte[] cells)
     {
         int i = 0;
         for (int y = box.Top; y <= box.Bottom; y++)
@@ -52,21 +54,30 @@ public static class Sources
             for (int end = cell + box.Width; cell < end; cell++)
             {
                 int s = structure[cell];
-                cells[i++] = !Structures.Is(s, Trait.BlocksLight) ? Open : !Doorways.IsDoor(s) ? Wall : Of(structureAt, width, structure.Length, cell);
+                cells[i++] = !Structures.Is(s, Trait.BlocksLight) ? Open
+                    : !Doorways.IsDoor(s) ? WallOf(material[cell]) : DoorOf(structureAt, width, structure.Length, cell);
             }
         }
     }
 
-    /// <summary>What stops light in <paramref name="cell"/>: a closed door's panel by the doorway's shape (0067), a wall.</summary>
-    public static byte Of(Func<int, int> structureAt, int width, int size, int cell)
+    /// <summary>What stops light in <paramref name="cell"/>: a closed door's panel by the doorway's shape (0067), a wall, clear by its <paramref name="materialAt"/>.</summary>
+    public static byte Of(Func<int, int> structureAt, Func<int, int> materialAt, int width, int size, int cell)
     {
         int structure = structureAt(cell);
         if (!Structures.Is(structure, Trait.BlocksLight)) return Open;
         // A shut door's panel stops light where it is drawn; anything else that stops it, a shut hatch filling its row too (0111), as a wall does.
-        if (!Doorways.IsDoor(structure)) return Wall;
+        return !Doorways.IsDoor(structure) ? WallOf(materialAt(cell)) : DoorOf(structureAt, width, size, cell);
+    }
+
+    /// <summary>A closed door's byte in <paramref name="cell"/>: its doorway's near column's or far column's (0104).</summary>
+    private static byte DoorOf(Func<int, int> structureAt, int width, int size, int cell)
+    {
         var spot = Render.DoorShape.SpotOf(cell, width, c => Doorways.LinksOf(c, width, size, structureAt), hatch: false);
         return spot.Across % Doorways.Thick == 1 ? DoorFar : Door;
     }
+
+    /// <summary>A wall of <paramref name="material"/>, by its code: one light passes dimmed if it is clear (glass), else one it stops at.</summary>
+    private static byte WallOf(int material) => Materials.ByCode(material)?.Clear == true ? Clear : Wall;
 
     /// <summary>
     /// Whether the point (<paramref name="x"/>, <paramref name="y"/>), in pixels of the world, <paramref name="cell"/> pixels a

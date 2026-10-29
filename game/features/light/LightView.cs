@@ -130,7 +130,7 @@ public partial class LightView : Node2D
         if (log == null)
         {
             // The first look, or the grid's log let go of what changed: everything laid out anew.
-            _lightmap.Occupy(_grid.StructureLayer, _grid.StructureAt, w, _grid.Built, DoorPanels);
+            _lightmap.Occupy(_grid.StructureLayer, _grid.MaterialLayer, _grid.StructureAt, w, _grid.Built, DoorPanels);
             _machines = _grid.Machines.ToArray();
             ShowLamps();
             _starlight.Show(_grid);
@@ -141,11 +141,13 @@ public partial class LightView : Node2D
         bool machines = false;
         foreach (var change in log)
         {
-            if ((change.Layers & GridLayers.Structure) != 0) _walls.Add(change.Cell);
-            if ((change.Layers & (GridLayers.Structure | GridLayers.Back | GridLayers.Machine)) != 0) _lit.Add(change.Cell);
+            // A wall's material and a back wall's matter too: a clear one lets light through (2026-10-29-clear-glass).
+            if ((change.Layers & (GridLayers.Structure | GridLayers.Material)) != 0) _walls.Add(change.Cell);
+            if ((change.Layers & (GridLayers.Structure | GridLayers.Material | GridLayers.Back | GridLayers.BackMaterial | GridLayers.Machine)) != 0)
+                _lit.Add(change.Cell);
             machines |= (change.Layers & GridLayers.Machine) != 0;
         }
-        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureLayer, _grid.StructureAt, w, _grid.Built, _walls, DoorPanels);
+        if (_walls.Count > 0) _lightmap.Follow(_grid.StructureLayer, _grid.MaterialLayer, _grid.StructureAt, MaterialAt, w, _grid.Built, _walls, DoorPanels);
         if (machines)
         {
             _machines = _grid.Machines.ToArray();
@@ -153,6 +155,8 @@ public partial class LightView : Node2D
         }
         if (_lit.Count > 0) _starlight.Follow(_grid, _lit);
     }
+
+    private int MaterialAt(int cell) => _grid.MaterialLayer[cell];
 
     /// <summary>Scratch for <see cref="Sync"/>: the cells changed in structure, and in what stops, dims or lets in starlight.</summary>
     private readonly List<int> _walls = [], _lit = [];

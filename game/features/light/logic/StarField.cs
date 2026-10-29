@@ -13,7 +13,8 @@ namespace Stillwake.Game.Features.Light;
 /// past the grid's edge, as brightly as the sky round the cell is open — whole in open space, faint in a
 /// lone hole in a back wall (<see cref="L.StarHole"/>) — and spread from there in sweeps along every row and
 /// column, keeping <see cref="L.StarKeep"/> a cell, so the light through a hole or a doorway falls off within
-/// a few cells. Worked out over <see cref="Region"/> only, what is built and <see cref="Margin"/> cells of
+/// a few cells. Glass (2026-10-29-clear-glass) lets it through dimmed: out of a clear wall it keeps <see cref="L.ClearOut"/>,
+/// and through a clear back wall the stars shine at <see cref="L.ClearBack"/>. Worked out over <see cref="Region"/> only, what is built and <see cref="Margin"/> cells of
 /// space round it: past what is built every cell is open and holds the stars whole, the light of the
 /// region's edge, as it did over the whole world. After a change it is worked out again only around the
 /// cells changed (<see cref="Follow"/>), within <see cref="Reach"/> and the sky's reach of them: past it,
@@ -25,7 +26,8 @@ public sealed class StarField
     public const int Margin = 8;
     /// <summary>How far round a cell its sky is counted: <see cref="L.StarSky"/>, within the margin.</summary>
     private const int Sky = L.StarSky < Margin ? L.StarSky : Margin;
-    private const byte Air = 0, Machine = 1, Wall = 2;
+    /// <summary>What a cell is to starlight: a clear wall (glass, 2026-10-29-clear-glass) lets it out as a wall does not.</summary>
+    private const byte Air = 0, Machine = 1, Wall = 2, Clear = 3, Kinds = 4;
 
     /// <summary>The colour of the light through the open sky: the stars', or a planet's daylight (0076).</summary>
     private readonly (float R, float G, float B) _sky;
@@ -82,14 +84,14 @@ public sealed class StarField
     private static int ReachOf(float[] shares)
     {
         // A float a step keeps a ten-millionth more than the share at most; the margin covers it many times.
-        double[] best = [1, 1, 1];
+        double[] best = [1, 1, 1, 1];
         int reach = 0;
         while (Math.Max(best[0], Math.Max(best[1], best[2])) >= Faint * 0.999)
         {
             if (++reach > 10_000) return int.MaxValue;
-            var next = new double[3];
-            for (int from = 0; from < 3; from++)
-                for (int to = 0; to < 3; to++) next[to] = Math.Max(next[to], best[from] * shares[from * 3 + to]);
+            var next = new double[Kinds];
+            for (int from = 0; from < Kinds; from++)
+                for (int to = 0; to < Kinds; to++) next[to] = Math.Max(next[to], best[from] * shares[from * Kinds + to]);
             best = next;
         }
         return reach;
@@ -218,7 +220,7 @@ public sealed class StarField
         var light = _light;
         Array.Clear(kind, 0, n);
         Array.Clear(light, 0, n);
-        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
+        ReadOnlySpan<int> structure = grid.StructureLayer, material = grid.MaterialLayer, back = grid.BackLayer, backMaterial = grid.BackMaterialLayer;
         if (machinesListed)
         {
             // A machine dims the light through every cell of its footprint; over the region, every machine is in it.
@@ -242,7 +244,7 @@ public sealed class StarField
             for (int x = 1; x < sw; x++)
             {
                 int gx = x - 1 + box.Left - Sky;
-                row += Starry(structure, back, gw, gh, gx, gy) ? 1 : 0;
+                row += Starry(structure, back, backMaterial, gw, gh, gx, gy) ? 1 : 0;
                 sum[y * sw + x] = sum[(y - 1) * sw + x] + row;
             }
         }
@@ -254,12 +256,14 @@ public sealed class StarField
                 bool inside = gx >= 0 && gy >= 0 && gx < gw && gy < gh;
                 int cell = gy * gw + gx;
                 if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
-                if (inside && Structures.Is(structure[cell], Trait.BlocksLight)) kind[i] = Wall;
+                if (inside && Structures.Is(structure[cell], Trait.BlocksLight))
+                    kind[i] = IsClear(material[cell]) && !Doorways.IsDoor(structure[cell]) ? Clear : Wall;
                 // Its own cell's count, from the sums: whether the stars shine into it.
                 int c = (y + Sky + 1) * sw + x + Sky + 1;
                 if (sum[c] - sum[c - 1] - sum[c - sw] + sum[c - sw - 1] == 0) continue;
                 int open = sum[(y + side) * sw + x + side] - sum[y * sw + x + side] - sum[(y + side) * sw + x] + sum[y * sw + x];
-                light[i] = SkyLight[open];
+                // Through a clear back wall the stars shine faintly; the sky round it counts it open all the same.
+                light[i] = inside && back[cell] != Back.None ? SkyLight[open] * L.ClearBack : SkyLight[open];
             }
         Spread(light, kind, w, h, _shares, _down);
         var bytes = Texels;
@@ -272,19 +276,22 @@ public sealed class StarField
     }
 
     /// <summary>
-    /// Whether the stars shine into a cell: an open one with no back wall, and any past the grid's edge.
+    /// Whether the stars shine into a cell: an open one with no back wall or a clear one, and any past the grid's edge.
     /// </summary>
-    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, int width, int height, int gx, int gy)
+    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, ReadOnlySpan<int> backMaterial, int width, int height, int gx, int gy)
     {
         if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
         int cell = gy * width + gx;
-        return back[cell] == Back.None && !Structures.Is(structure[cell], Trait.BlocksLight);
+        return (back[cell] == Back.None || IsClear(backMaterial[cell])) && !Structures.Is(structure[cell], Trait.BlocksLight);
     }
+
+    /// <summary>Whether a wall or back wall of material <paramref name="code"/> is clear: glass.</summary>
+    private static bool IsClear(int code) => Materials.ByCode(code)?.Clear == true;
 
     private void Texel(byte[] bytes, int at, float light, byte kind)
     {
         // Its alpha says whether it is a wall's, so the shader blends it only with its own side.
-        bytes[at + 3] = kind == Wall ? (byte)255 : (byte)0;
+        bytes[at + 3] = kind is Wall or Clear ? (byte)255 : (byte)0;
         // Most of a planet's ground is dark: no colour to work out.
         if (light == 0)
         {
@@ -293,7 +300,7 @@ public sealed class StarField
         }
         var (starR, starG, starB) = _sky;
         // Walls are drawn taking WallIn of the light on their face, so a wall cell holds its face's light.
-        float face = kind == Wall ? light / L.WallIn : light;
+        float face = kind is Wall or Clear ? light / L.WallIn : light;
         bytes[at] = (byte)(Math.Min(1, starR * face) * 255);
         bytes[at + 1] = (byte)(Math.Min(1, starG * face) * 255);
         bytes[at + 2] = (byte)(Math.Min(1, starB * face) * 255);
@@ -302,12 +309,16 @@ public sealed class StarField
     private static float[] SharesOf(float keep, float deep)
     {
         float[] into = [keep, Math.Min(keep, L.StarMachine)];
-        var shares = new float[9];
-        for (int from = 0; from < 3; from++)
-            for (int to = 0; to < 3; to++)
-                shares[from * 3 + to] = to == Wall
-                    ? from == Wall ? deep : L.WallIn
-                    : (from == Wall ? L.WallOut : 1) * into[to];
+        var shares = new float[Kinds * Kinds];
+        for (int from = 0; from < Kinds; from++)
+            for (int to = 0; to < Kinds; to++)
+                shares[from * Kinds + to] = to switch
+                {
+                    Wall => from is Wall or Clear ? deep : L.WallIn,
+                    // Into a clear wall as into any; on through it as through air; out of it far more than out of a wall.
+                    Clear => from == Wall ? deep : from == Clear ? keep : L.WallIn,
+                    _ => (from == Wall ? L.WallOut : from == Clear ? L.ClearOut : 1) * into[to],
+                };
         return shares;
     }
 
@@ -328,14 +339,14 @@ public sealed class StarField
                 {
                     float v = light[to - 1];
                     if (v == 0) continue;
-                    v *= shares[kind[to - 1] * 3 + kind[to]];
+                    v *= shares[kind[to - 1] * Kinds + kind[to]];
                     if (v > light[to]) light[to] = v;
                 }
                 for (int to = row + w - 2; to >= row; to--)
                 {
                     float v = light[to + 1];
                     if (v == 0) continue;
-                    v *= shares[kind[to + 1] * 3 + kind[to]];
+                    v *= shares[kind[to + 1] * Kinds + kind[to]];
                     if (v > light[to]) light[to] = v;
                 }
             }
@@ -345,14 +356,14 @@ public sealed class StarField
             {
                 float v = light[to - w];
                 if (v == 0) continue;
-                v *= down[kind[to - w] * 3 + kind[to]];
+                v *= down[kind[to - w] * Kinds + kind[to]];
                 if (v > light[to]) light[to] = v;
             }
             for (int to = n - w - 1; to >= 0; to--)
             {
                 float v = light[to + w];
                 if (v == 0) continue;
-                v *= shares[kind[to + w] * 3 + kind[to]];
+                v *= shares[kind[to + w] * Kinds + kind[to]];
                 if (v > light[to]) light[to] = v;
             }
         }
