@@ -32,8 +32,8 @@ public partial class Lightmap : Node
         Code = $$"""
             shader_type canvas_item;
             render_mode unshaded, blend_add;
-            // A texel a cell: 0 open, an eighth a clear wall, a quarter a closed hatch (3/8 its far row), half a closed door (5/8 its far
-            // column), whole a wall; over what is built, its first texel at cell origin.
+            // A texel a cell: 0 open, a quarter a closed hatch (3/8 its far row), half a closed door (5/8 its far column), whole a wall;
+            // over what is built, its first texel at cell origin.
             uniform sampler2D occupancy : filter_nearest, repeat_disable;
             uniform ivec2 origin = ivec2(0);
             // The columns of its doorway a closed door's panel fills, and the rows a closed hatch's does, in pixels of its two cells: from, to.
@@ -47,8 +47,6 @@ public partial class Lightmap : Node
             // Under a planet (0080): light reaches the open behind solid ground too, keeping wall_keep a cell of it, so a shadow cast by
             // rock fades in as the rock between thickens rather than starting along the rock's face. Aboard, a wall stops it.
             uniform bool soak_through = false;
-            // What light keeps of itself a cell of a clear wall crossed (glass, 2026-10-29-clear-glass): it passes, dimmed.
-            uniform float clear_keep = 0.5;
             const float CELL = {{Cell}}.0;
             varying vec2 world;
             varying flat vec2 centre;
@@ -63,20 +61,20 @@ public partial class Lightmap : Node
                 light = COLOR;
             }
 
-            // 2 a wall, 1 a closed door, 3 a closed hatch, 4 and 5 their far column and row, 6 a clear wall, 0 open, past what is built too.
+            // 2 a wall, 1 a closed door, 3 a closed hatch, 4 and 5 their far column and row, 0 open, past what is built too.
             int kind(ivec2 c) {
                 c -= origin;
                 ivec2 size = textureSize(occupancy, 0);
                 if (c.x < 0 || c.y < 0 || c.x >= size.x || c.y >= size.y) return 0;
                 float v = texelFetch(occupancy, c, 0).r;
-                return v > 0.75 ? 2 : (v > 0.56 ? 4 : (v > 0.44 ? 1 : (v > 0.31 ? 5 : (v > 0.19 ? 3 : (v > 0.06 ? 6 : 0)))));
+                return v > 0.75 ? 2 : (v > 0.56 ? 4 : (v > 0.44 ? 1 : (v > 0.31 ? 5 : (v > 0.19 ? 3 : 0))));
             }
 
             // How much of the light reaches a point, cell by cell along the line: none when a wall or a door's or hatch's panel
             // stands between with the open on both sides of it. The walls the point is in are passed until the line comes out
             // of them, keeping wall_keep a cell of the way through them (0077), so light goes into solid ground and fades
             // there smoothly, cell edges or not; so is the panel it is on, along the doorway's cells. A point beside a panel
-            // in its cell is shadowed by it. Clear walls anywhere along it pass light, keeping clear_keep a cell crossed.
+            // in its cell is shadowed by it.
             float through(vec2 from, vec2 to) {
                 vec2 a = from / CELL, d = to / CELL - a;
                 ivec2 c = ivec2(floor(a)), end = ivec2(floor(to / CELL));
@@ -87,7 +85,7 @@ public partial class Lightmap : Node
                     d.y > 0.0 ? (floor(a.y) + 1.0 - a.y) * delta.y : (d.y < 0.0 ? (a.y - floor(a.y)) * delta.y : 1e30));
                 bool leaving = true;
                 // How far, in cells, the line runs through the walls the point is in before it comes out of them.
-                float inside = 0.0, clear = 0.0, span_cells = length(d);
+                float inside = 0.0, span_cells = length(d);
                 float t0 = 0.0;
                 // As far as the light reaches at its most, twice the 16 px cells it was tuned in (0104).
                 for (int i = 0; i < 160; i++) {
@@ -112,7 +110,6 @@ public partial class Lightmap : Node
                             if (max(min(x0, x1), span.x) <= min(max(x0, x1), span.y)) return 0.0;
                         }
                     } else {
-                        if (k == 6) clear += (t1 - t0) * span_cells;
                         leaving = false;
                     }
                     if (c == end || t1 >= 1.0) break;
@@ -126,7 +123,7 @@ public partial class Lightmap : Node
                         next.y += delta.y;
                     }
                 }
-                return pow(wall_keep, inside) * pow(clear_keep, clear);
+                return pow(wall_keep, inside);
             }
 
             void fragment() {
@@ -258,7 +255,6 @@ public partial class Lightmap : Node
         _material.SetShaderParameter("panel", new Vector2(panels.Door.From, panels.Door.To));
         _material.SetShaderParameter("hatch", new Vector2(panels.Hatch.From, panels.Hatch.To));
         _material.SetShaderParameter("beam_cos", (float)Math.Cos(L.HeadLampHalfAngle));
-        _material.SetShaderParameter("clear_keep", L.ClearKeep);
     }
 
     /// <summary>Lays both maps over <paramref name="view"/> (world pixels) and draws <paramref name="main"/> and <paramref name="spots"/> into them.</summary>

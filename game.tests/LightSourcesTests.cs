@@ -25,7 +25,7 @@ public class LightSourcesTests
         Assert.Equal(new[] { Sources.Wall, Sources.Door, Sources.Open, Sources.Open, Sources.Open, Sources.Wall }, cells);
     }
 
-    /// <summary>A clear wall (glass, 2026-10-29-clear-glass) is one the shader lets light through, dimmed; any other stops it.</summary>
+    /// <summary>A clear wall (glass, 2026-10-29-clear-glass) is open to the shader; any other stops light.</summary>
     [Fact]
     public void LetsLightThroughAClearWallAndStopsItAtAnyOther()
     {
@@ -33,9 +33,9 @@ public class LightSourcesTests
         int[] material = [Materials.Get("glass").Code, Materials.Get("scrap").Code, Materials.Get("mica").Code, Materials.Get("glass").Code];
         var cells = new byte[4];
         Sources.Occupy(structure, material, c => structure[c], 4, new Box(0, 0, 3, 0), cells);
-        Assert.Equal(new[] { Sources.Clear, Sources.Wall, Sources.Wall, Sources.Open }, cells);
+        Assert.Equal(new[] { Sources.Open, Sources.Wall, Sources.Wall, Sources.Open }, cells);
         // A cell set again after a change reads the same.
-        Assert.Equal(Sources.Clear, Sources.Of(c => structure[c], c => material[c], 4, 4, 0));
+        Assert.Equal(Sources.Open, Sources.Of(c => structure[c], c => material[c], 4, 4, 0));
         Assert.Equal(Sources.Wall, Sources.Of(c => structure[c], c => material[c], 4, 4, 1));
     }
 

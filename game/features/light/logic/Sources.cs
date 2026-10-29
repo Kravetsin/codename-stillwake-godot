@@ -30,11 +30,11 @@ public interface ILightSource
 public static class Sources
 {
     /// <summary>
-    /// How the shader tells a cell: open, a closed door (its panel up and down blocks), a wall, a clear wall light passes dimmed
-    /// (2026-10-29-clear-glass); a doorway two cells thick (0104), its far column's own, so its 16 px panel stops light where it is
-    /// drawn. A hatch is a floor and lets light through (0111), so no hatch byte is written; the shader still knows one.
+    /// How the shader tells a cell: open, a closed door (its panel up and down blocks), a wall; a doorway two cells thick (0104),
+    /// its far column's own, so its 16 px panel stops light where it is drawn. A hatch is a floor and lets light through (0111), so
+    /// no hatch byte is written; the shader still knows one. A clear wall is open (2026-10-29-clear-glass).
     /// </summary>
-    public const byte Open = 0, Clear = 32, Hatch = 64, HatchFar = 96, Door = 128, DoorFar = 160, Wall = 255;
+    public const byte Open = 0, Hatch = 64, HatchFar = 96, Door = 128, DoorFar = 160, Wall = 255;
 
     /// <summary>Floats an instance takes in the multimesh: a 2D transform, a colour, custom data.</summary>
     public const int Stride = 16;
@@ -76,8 +76,11 @@ public static class Sources
         return spot.Across % Doorways.Thick == 1 ? DoorFar : Door;
     }
 
-    /// <summary>A wall of <paramref name="material"/>, by its code: one light passes dimmed if it is clear (glass), else one it stops at.</summary>
-    private static byte WallOf(int material) => Materials.ByCode(material)?.Clear == true ? Clear : Wall;
+    /// <summary>A wall of <paramref name="material"/>, by its code: open if it is clear (glass), else one light stops at.</summary>
+    private static byte WallOf(int material) => IsClear(material) ? Open : Wall;
+
+    /// <summary>Whether a wall or back wall of material <paramref name="code"/> is clear: glass, which light passes as air.</summary>
+    public static bool IsClear(int code) => Materials.ByCode(code)?.Clear == true;
 
     /// <summary>
     /// Whether the point (<paramref name="x"/>, <paramref name="y"/>), in pixels of the world, <paramref name="cell"/> pixels a

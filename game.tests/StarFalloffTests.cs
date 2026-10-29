@@ -177,36 +177,33 @@ public class StarFalloffTests
         return m;
     }
 
-    /// <summary>
-    /// A clear wall (glass, 2026-10-29-clear-glass) lets the stars in, dimmed: the cell inside it holds what came in through it
-    /// and out of it, ClearOut of it where a scrap wall lets out WallOut, and it falls off into the hall as through a doorway.
-    /// </summary>
-    [Fact]
-    public void StarlightComesInThroughAGlassWallDimmed()
-    {
-        var glass = Worked(Walled("glass"));
-        var scrap = Worked(Walled("scrap"));
-        int inside = W - 4;
-        Assert.InRange(RedAt(glass, inside, Hy), (int)(L.Star.R * L.WallIn * L.ClearOut * L.StarKeep * 255) - 1, (int)(L.Star.R * L.WallIn * L.ClearOut * L.StarKeep * 255));
-        Assert.True(RedAt(glass, inside, Hy) > 4 * RedAt(scrap, inside, Hy), $"{RedAt(glass, inside, Hy)} against {RedAt(scrap, inside, Hy)}");
-        Assert.True(RedAt(glass, inside - 1, Hy) < RedAt(glass, inside, Hy));
-        // Weak: never as the open.
-        Assert.True(RedAt(glass, inside, Hy) < Whole / 2);
-    }
-
-    /// <summary>
-    /// Through a clear back wall the stars shine faintly (ClearBack): a hall backed with glass is lit dimly all through, a
-    /// lone pane of glass in a scrap back wall as faintly as a hole is, by ClearBack.
-    /// </summary>
-    [Fact]
-    public void StarsShineFaintlyThroughAGlassBackWall()
+    /// <summary>A hall with its right wall gone over three rows, at the middle row: a gap to space.</summary>
+    private static Registry Gapped()
     {
         var m = Hall();
+        for (int y = Hy - 1; y <= Hy + 1; y++) m.Grid.Clear(y * W + W - 3, "structure");
+        return m;
+    }
+
+    /// <summary>Starlight passes a glass wall as air (2026-10-29-clear-glass): the hall lit as through a gap where the glass is.</summary>
+    [Fact]
+    public void StarlightPassesAGlassWallAsAGap()
+    {
+        Assert.Equal(Worked(Gapped()).Texels, Worked(Walled("glass")).Texels);
+        Assert.NotEqual(Worked(Gapped()).Texels, Worked(Walled("scrap")).Texels);
+    }
+
+    /// <summary>The stars shine through a glass back wall as through none: a pane as a hole, a hall backed with glass lit whole.</summary>
+    [Fact]
+    public void StarsShineThroughAGlassBackWallAsThroughNone()
+    {
         int cell = Hy * W + Hx;
-        m.Grid.Clear(cell, "back");
-        m.Grid.Place(cell, Placement.BackWall("glass"));
-        var pane = Worked(m);
-        Assert.Equal((int)(L.StarHole * L.ClearBack * L.Star.R * 255), RedAt(pane, Hx, Hy));
+        var pane = Hall();
+        pane.Grid.Clear(cell, "back");
+        pane.Grid.Place(cell, Placement.BackWall("glass"));
+        var hole = Hall();
+        hole.Grid.Clear(cell, "back");
+        Assert.Equal(Worked(hole).Texels, Worked(pane).Texels);
 
         var all = Hall();
         for (int y = 3; y < H - 3; y++)
@@ -215,8 +212,7 @@ public class StarFalloffTests
                 all.Grid.Clear(y * W + x, "back");
                 all.Grid.Place(y * W + x, Placement.BackWall("glass"));
             }
-        var lit = Worked(all);
-        Assert.Equal((int)(L.ClearBack * L.Star.R * 255), RedAt(lit, Hx, Hy));
+        Assert.Equal(Whole, RedAt(Worked(all), Hx, Hy));
         Assert.Equal(0, RedAt(Worked(Hall()), Hx, Hy));
     }
 

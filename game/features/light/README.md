@@ -57,8 +57,7 @@ the reaches of fire, particles, screens.
   `StarFullSky` or more the whole. Row and column sweeps spread it by `StarKeep` a cell (`StarMachine`
   through a machine): a hole lights near itself, not the room. `Starlight` hands it to `render/Lit.cs`,
   alpha marking walls and closed doors; a picture blends only cells of its own side.
-- **Clear walls** (glass, clear-glass ADR): lamps pass them keeping `ClearKeep` a cell (`Sources.Clear`);
-  starlight leaves them by `ClearOut`; a clear back wall lets `ClearBack` of the stars in.
+- **Clear walls** (glass, clear-glass ADR): light passes a clear wall or back wall as air (`Sources.IsClear`).
 - **A planet's sky** (0076): its surface kind's light (`Light.SkyOf`), spread as starlight; the stars'
   where the kind names none. The faintest texel is judged by `Light.BrightestSky`, so a change's reach
   covers every kind. `render/Stars` draws `PlanetSky` behind the ground, hiding stars, wrecks, dust (0079).

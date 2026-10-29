@@ -66,14 +66,6 @@ public static class Light
     public static readonly (float R, float G, float B) Star = (0.62f, 0.66f, 0.8f);
 
     /// <summary>
-    /// A clear wall's (Material.Clear, glass; 2026-10-29-clear-glass): a lamp's light keeps <see cref="ClearKeep"/> a cell of
-    /// it crossed, where a wall stops it; starlight comes out of it into the open keeping <see cref="ClearOut"/>, where a wall
-    /// lets <see cref="WallOut"/> through, and a clear back wall lets <see cref="ClearBack"/> of the stars into its cell. Weak:
-    /// a room behind glass is lit dimly, never as the open.
-    /// </summary>
-    public const float ClearKeep = 0.5f, ClearOut = 0.5f, ClearBack = 0.3f;
-
-    /// <summary>
     /// What shines through the open sky of a surface of <paramref name="kind"/> (0076): its sky's light, a planet's
     /// daylight, from content's thousandths; the <see cref="Star"/>s where it names none, as aboard.
     /// </summary>

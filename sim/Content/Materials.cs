@@ -41,8 +41,7 @@ namespace Stillwake.Content;
 /// leaves when dug that one's. None for any other.
 /// </param>
 /// <param name="Clear">
-/// Half see-through (2026-10-29-clear-glass): light passes a wall of it, dimmed, and the stars shine faintly through its back
-/// wall. Drawn only: the sim gives it no rule.
+/// See-through (2026-10-29-clear-glass): light passes a wall or back wall of it as air. Drawn only: the sim gives it no rule.
 /// </param>
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,

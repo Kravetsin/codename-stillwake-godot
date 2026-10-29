@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Content;
@@ -111,6 +112,21 @@ public static class BlueprintArt
                 var edge = ShipTiles.ImageOf(ShipTiles.EdgeName(placement.Material!, open));
                 picture.BlendRect(edge, new Rect2I(Vector2I.Zero, edge.GetSize()), at);
             }
-        return picture;
+        return wall ? picture : Lifted(picture);
+    }
+
+    /// <summary>How bright a back wall's card is on average, as a wall's is: its sheet recedes behind a room, too dark to read on a card.</summary>
+    private const float CardBrightness = 0.36f;
+
+    /// <summary><paramref name="picture"/> brightened till its mean is <see cref="CardBrightness"/>, at most three times; never darkened.</summary>
+    private static Image Lifted(Image picture)
+    {
+        byte[] data = picture.GetData();
+        double sum = 0;
+        for (int i = 0; i < data.Length; i += 4) sum += (0.3 * data[i] + 0.59 * data[i + 1] + 0.11 * data[i + 2]) / 255;
+        double mean = sum / (data.Length / 4), by = Math.Clamp(CardBrightness / Math.Max(mean, 1e-3), 1, 3);
+        for (int i = 0; i < data.Length; i += 4)
+            for (int c = 0; c < 3; c++) data[i + c] = (byte)Math.Min(255, data[i + c] * by);
+        return Image.CreateFromData(picture.GetWidth(), picture.GetHeight(), false, Image.Format.Rgba8, data);
     }
 }
