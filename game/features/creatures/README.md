@@ -62,8 +62,8 @@ axe's blade and the drill's bit are tested against each creature's body as again
 - **Seen and heard by what it is** (0093, 0094): `HitLooks.Creatures` names each species' `Impact` (`Flesh`, `CoolFlesh`;
   no blood), thrown from the side facing the hero, its share for a drill; `Sound.Creatures` its hit, thump and death,
   an own (struck or shot) on Suit heard far (`Sound.Felt`), a friend's on World.
-- **Death** (2026-10-29-kills-crumble): a glint and shock ring; held white `KillLooks.PopMs`, then it stands as its
-  pixels, crumbling top down (`PixelBursts`), heard (`Sound.CreatureDeath`), hit and puff thrown, loot sprayed (`features/items`).
+- **Death** (2026-10-29-kills-crumble): a glint, shock ring and death sound (`Sound.CreatureDeath`); held white `KillLooks.PopMs`, then it
+  stands as its pixels, crumbling top down (`PixelBursts`), hit and puff thrown, loot sprayed (`features/items`).
 - **The tick** (the sentry page's «Клещ»): its sprite drawn each frame from its pose (`TickArt`), lit; eye, cracks and a blow's
   white over it unlit. `TickMotion` reads the sim: `Clamped` grips (legs down, magnets aglow, a bounce), else legs folded, nose
   along its flight; X moving along its wreck while clamped steps its legs. Eye teal, yellow `Alerted` or flying home, red from

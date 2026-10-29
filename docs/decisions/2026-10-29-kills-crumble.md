@@ -26,8 +26,8 @@ creature's death, a heavy landing's thud, was lost under the shot.
   strike sent: the sim's `ShotHit` names the creature it met (`Id`) beside its shooter, and the client hears its own by it
   (`OwnShots`).
 - **Every grazer dies with one sound** (`Sound.CreatureDeath`, as Terraria's enemies mostly share one): Freesound's CC0 "Gooey
-  Squish", the user's pick of a death audition, pitched lower for the tapir and higher for the fluff, heard as the body starts
-  to crumble, `PopMs` after the kill, so it falls after a shot's crack rather than under it. The tick keeps its own power-down.
+  Squish", the user's pick of a death audition, pitched lower for the tapir and higher for the fluff, heard the moment it is
+  killed (heard 100 ms later, as the crumble began, it felt late to the user). The tick keeps its own power-down.
 
 ## Deliberately not handled
 

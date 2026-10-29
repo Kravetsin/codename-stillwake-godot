@@ -426,8 +426,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     }
 
     /// <summary>
-    /// <paramref name="one"/> killed where it was drawn (2026-10-29-kill-feel): a white glint and shock ring at once,
-    /// its body held white <see cref="KillLooks.PopMs"/>, the world running on; then it crumbles, heard dying (<see cref="Pop"/>).
+    /// <paramref name="one"/> killed where it was drawn (2026-10-29-kill-feel): a white glint, a shock ring and its death
+    /// heard at once, its body held white <see cref="KillLooks.PopMs"/>, the world running on; then it crumbles (<see cref="Pop"/>).
     /// </summary>
     private void Die(Shown one)
     {
@@ -436,12 +436,14 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
         Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
         bool own = _clockMs - one.OwnAt < OwnMs * 2 || _clockMs - one.ShotAt < OwnMs;
+        if (S.Creatures.TryGetValue(one.Species, out var cues))
+            (own ? _ownHits : _worldHits).Play(own ? S.Felt(cues.Death) : cues.Death, middle, cues.Death.Tune, 0);
         one.Body.Whiten();
-        _held.Add(new Held(one.Body, KillLooks.PopMs, one.Species, middle, one.Drawn.Y, middle.X >= NearestHero(middle).X ? 1 : -1, own));
+        _held.Add(new Held(one.Body, KillLooks.PopMs, one.Species, middle, one.Drawn.Y, middle.X >= NearestHero(middle).X ? 1 : -1));
     }
 
-    /// <summary>A killed body held white: how long yet, what it was, its middle and feet, the striker's other side, killed by this player or not.</summary>
-    private sealed record Held(CreatureBody Body, double LeftMs, string Species, Vector2 Middle, float Feet, int Away, bool Own);
+    /// <summary>A killed body held white: how long yet, what it was, its middle and feet, the striker's other side.</summary>
+    private sealed record Held(CreatureBody Body, double LeftMs, string Species, Vector2 Middle, float Feet, int Away);
 
     private readonly List<Held> _held = [];
     private readonly Dictionary<(int X, int Y), (byte R, byte G, byte B)> _pixels = [];
@@ -466,16 +468,13 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         }
     }
 
-    /// <summary>A held body left standing as its pixels to crumble (<see cref="PixelBursts"/>), heard dying, with its hit thrown whole and a soft puff.</summary>
+    /// <summary>A held body left standing as its pixels to crumble (<see cref="PixelBursts"/>), with its hit thrown whole and a soft puff.</summary>
     private void Pop(Held held)
     {
         _pixels.Clear();
         held.Body.Pixels(_pixels);
         _bursts.Crumble(_pixels, held.Middle, held.Away);
         var (middle, feet) = (held.Middle, held.Feet);
-        // Its death heard as it crumbles, once a shot's crack is over, not under it.
-        if (S.Creatures.TryGetValue(held.Species, out var cues))
-            (held.Own ? _ownHits : _worldHits).Play(held.Own ? S.Felt(cues.Death) : cues.Death, middle, cues.Death.Tune, 0);
         var impact = HitLooks.Creatures.GetValueOrDefault(held.Species, Impact.Flesh);
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], middle.X, middle.Y, held.Away, -1, 1, floor: feet);
         var glims = Stages.Of(Layers.Effects).Glims;

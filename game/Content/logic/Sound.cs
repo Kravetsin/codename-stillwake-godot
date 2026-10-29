@@ -386,7 +386,7 @@ public static class Sound
 
     /// <summary>
     /// Every grazer's death, one sound as one look (2026-10-29-kills-crumble): a gooey squish, the user's pick of the death audition,
-    /// played as its body starts to crumble, where a shot's crack is over; far as something breaking (<see cref="BreakReach"/>).
+    /// played the moment it is killed; far as something breaking (<see cref="BreakReach"/>).
     /// </summary>
     public static readonly Cue CreatureDeath = new(Shots("creatures/death-squish", 1), 0, Pitch: 0.08f, Heard: BreakReach);
 
