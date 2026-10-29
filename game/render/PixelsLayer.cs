@@ -4,7 +4,7 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The pixels killed creatures burst into (<see cref="PixelDust"/>), a world pixel each, lit as the world is, in one multimesh
+/// The pixels killed creatures crumble into (<see cref="PixelDust"/>), a world pixel each, lit as the world is, in one multimesh
 /// whose buffer is refilled each frame: thousands of pixels in one draw call.
 /// </summary>
 public partial class PixelsLayer : MultiMeshInstance2D
@@ -47,7 +47,8 @@ public partial class PixelsLayer : MultiMeshInstance2D
             // Godot's 2D transform rows: x.x, y.x, -, origin.x; x.y, y.y, -, origin.y.
             (_buffer[k], _buffer[k + 1], _buffer[k + 2], _buffer[k + 3]) = (1, 0, 0, MathF.Floor(m.X));
             (_buffer[k + 4], _buffer[k + 5], _buffer[k + 6], _buffer[k + 7]) = (0, 1, 0, MathF.Floor(m.Y));
-            (_buffer[k + 8], _buffer[k + 9], _buffer[k + 10], _buffer[k + 11]) = (m.Colour.R / 255f, m.Colour.G / 255f, m.Colour.B / 255f, m.Alpha);
+            float white = m.Rim * KillLooks.RimWhite;
+            (_buffer[k + 8], _buffer[k + 9], _buffer[k + 10], _buffer[k + 11]) = (Lighter(m.Colour.R, white), Lighter(m.Colour.G, white), Lighter(m.Colour.B, white), m.Alpha);
         }
         var mesh = Multimesh;
         int capacity = _buffer.Length / Stride;
@@ -55,4 +56,6 @@ public partial class PixelsLayer : MultiMeshInstance2D
         if (motes.Count > 0) mesh.Buffer = _buffer;
         mesh.VisibleInstanceCount = motes.Count;
     }
+
+    private static float Lighter(byte channel, float white) => channel / 255f + (1 - channel / 255f) * white;
 }

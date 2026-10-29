@@ -198,22 +198,14 @@ public partial class CreatureBody : Node2D
 
     /// <summary>
     /// Every pixel of its colours as drawn now, at its whole pixel in its parent's space, the last drawn over the rest: what it
-    /// bursts into (<see cref="PixelBursts"/>).
+    /// crumbles into (<see cref="PixelBursts"/>).
     /// </summary>
     public void Pixels(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into)
     {
         foreach (var d in _drawn)
         {
             if (!d.Colour.Visible || d.Colour.Texture is not { } texture || CreatureParts.PixelsOf(texture) is not var (w, h, data)) continue;
-            var toParent = Transform * d.Colour.Transform;
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    int o = (y * w + x) * 4;
-                    if (data[o + 3] == 0) continue;
-                    var at = toParent * (new Vector2(x + 0.5f, y + 0.5f) + d.Colour.Offset);
-                    into[((int)MathF.Floor(at.X), (int)MathF.Floor(at.Y))] = (data[o], data[o + 1], data[o + 2]);
-                }
+            PixelBursts.Paint(into, Transform * d.Colour.Transform * new Transform2D(0, d.Colour.Offset), w, h, data);
         }
     }
 }

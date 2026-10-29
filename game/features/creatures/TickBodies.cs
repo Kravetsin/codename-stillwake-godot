@@ -530,8 +530,8 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>
-    /// The page's burst, its shell now its pixels (2026-10-29-kill-feel): sparks every way, dust and smoke, a warm flash, and every pixel
-    /// of its sprite thrown out from its middle (<see cref="PixelBursts"/>), carrying its drift.
+    /// The page's burst, its shell now its pixels (2026-10-29-kills-crumble): sparks every way, dust and smoke, a warm flash, and its sprite
+    /// left standing as its pixels to crumble (<see cref="PixelBursts"/>).
     /// </summary>
     private void Burst(Shown one, Vector2 at)
     {
@@ -543,16 +543,8 @@ public partial class TickBodies : Node2D
         Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 214, 150), 1.6 * Fx.Glow, 14, CreatureLooks.LightKeep, 0.86);
         if (Bursts == null) return;
         _pixels.Clear();
-        var albedo = one.Art.Albedo;
-        for (int y = 0; y < TickArt.Height; y++)
-            for (int x = 0; x < TickArt.Width; x++)
-            {
-                int o = (y * TickArt.Width + x) * 4;
-                if (albedo[o + 3] == 0) continue;
-                var p = one.Transform * (new Vector2(x + 0.5f, y + 0.5f) + one.Body.Offset);
-                _pixels[((int)MathF.Floor(p.X), (int)MathF.Floor(p.Y))] = (albedo[o], albedo[o + 1], albedo[o + 2]);
-            }
-        Bursts.Burst(_pixels, at, 0, (one.To - one.From) / Unit * Cell * World.TicksPerSecond);
+        PixelBursts.Paint(_pixels, one.Transform * new Transform2D(0, one.Body.Offset), TickArt.Width, TickArt.Height, one.Art.Albedo);
+        Bursts.Crumble(_pixels, at, 0);
     }
 
     /// <summary>What a killed tick bursts into, shared with the grazers.</summary>

@@ -1,19 +1,28 @@
 namespace Stillwake.Game;
 
 /// <summary>
-/// The knobs of a kill's feel (2026-10-29-kill-feel): the white hold, the burst into pixels and their heaps, and how loot on
+/// The knobs of a kill's feel (2026-10-29-kill-feel, 2026-10-29-kills-crumble): the white hold, the crumble into pixels and their heaps, and how loot on
 /// the floor flies, lands and is pulled in. Placeholders for a play pass.
 /// </summary>
 public static class KillLooks
 {
-    /// <summary>How long a killed creature is held white before it bursts: the hit-stop, the world running on; two ticks.</summary>
+    /// <summary>How long a killed creature is held white before it crumbles: the hit-stop, the world running on; two ticks.</summary>
     public const double PopMs = 100;
 
-    /// <summary>The most pixels one creature bursts into, taken evenly from its picture; and the most flying or lying at once.</summary>
-    public const int PopPixels = 600, MostPixels = 8000;
+    /// <summary>The most pixels one creature crumbles into, taken evenly from its picture; and the most hanging, flying or lying at once.</summary>
+    public const int BodyPixels = 4000, MostPixels = 16000;
 
-    /// <summary>A pixel's speed out from the body's middle, and away from the striker and up besides, in pixels a second: a draw between each pair.</summary>
-    public const float OutLeast = 8, OutMost = 40, AwayLeast = 4, AwayMost = 30, UpLeast = 10, UpMost = 50;
+    /// <summary>
+    /// How long a body takes to crumble, its top breaking off first and its bottom last, in seconds; and how ragged that edge
+    /// is, the most a pixel's wait is drawn longer by.
+    /// </summary>
+    public const float CrumbleS = 1.5f, Ragged = 0.3f;
+
+    /// <summary>How long a pixel flares lighter as it breaks off, in seconds, and how far towards white at first.</summary>
+    public const float RimS = 0.12f, RimWhite = 0.6f;
+
+    /// <summary>A pixel's speed breaking off, out from the body's middle, away from the striker and up, in pixels a second: a draw between each pair.</summary>
+    public const float OutLeast = 2, OutMost = 10, AwayLeast = 2, AwayMost = 12, UpLeast = 0, UpMost = 12;
 
     /// <summary>How many times a stack's fall a pixel falls by: heavier, so a burst heaps where the creature stood.</summary>
     public const float Weight = 4;

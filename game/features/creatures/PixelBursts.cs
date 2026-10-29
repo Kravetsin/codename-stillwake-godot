@@ -9,9 +9,9 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Creatures;
 
 /// <summary>
-/// Every creature's death, alike (2026-10-29-kill-feel): held white a moment, it bursts into its own pixels, which fly out
-/// from its middle and away from the striker, carrying its speed, fall and heap on the ground of the surface drawn, and fade
-/// (<see cref="PixelDust"/>, drawn by <see cref="PixelsLayer"/>).
+/// Every creature's death, alike (2026-10-29-kills-crumble): held white a moment, it stands as its own pixels and crumbles from the top
+/// down, each breaking off a little out and away from the striker, falling and heaping on the ground of the surface drawn, and
+/// fading (<see cref="PixelDust"/>, drawn by <see cref="PixelsLayer"/>).
 /// </summary>
 public partial class PixelBursts : Node2D
 {
@@ -42,14 +42,16 @@ public partial class PixelBursts : Node2D
     }
 
     /// <summary>
-    /// Bursts <paramref name="pixels"/> (a world pixel each, its colour) out of <paramref name="middle"/>: at most
-    /// <see cref="KillLooks.PopPixels"/> of them, taken evenly; <paramref name="away"/> the striker's other side, 0 for none;
-    /// <paramref name="velocity"/> the body's, in pixels a second.
+    /// Crumbles <paramref name="pixels"/> (a world pixel each, its colour), a body drawn about <paramref name="middle"/>: each hangs
+    /// where it is, the top breaking off first (<see cref="PixelDust.WaitOf"/>), at most <see cref="KillLooks.BodyPixels"/> of
+    /// them, taken evenly; <paramref name="away"/> the striker's other side, 0 for none.
     /// </summary>
-    public void Burst(Dictionary<(int X, int Y), (byte R, byte G, byte B)> pixels, Vector2 middle, int away, Vector2 velocity)
+    public void Crumble(Dictionary<(int X, int Y), (byte R, byte G, byte B)> pixels, Vector2 middle, int away)
     {
         if (_ground.Grid == null || pixels.Count == 0) return;
-        int every = (pixels.Count + KillLooks.PopPixels - 1) / KillLooks.PopPixels, k = 0;
+        var (top, bottom) = (int.MaxValue, int.MinValue);
+        foreach (var (x, y) in pixels.Keys) (top, bottom) = (Math.Min(top, y), Math.Max(bottom, y));
+        int every = (pixels.Count + KillLooks.BodyPixels - 1) / KillLooks.BodyPixels, k = 0;
         foreach (var ((x, y), colour) in pixels)
         {
             if (k++ % every != 0) continue;
@@ -60,12 +62,36 @@ public partial class PixelBursts : Node2D
             {
                 X = at.X,
                 Y = at.Y,
-                Vx = outward.X * Between(KillLooks.OutLeast, KillLooks.OutMost) + side * Between(KillLooks.AwayLeast, KillLooks.AwayMost) + velocity.X,
-                Vy = outward.Y * Between(KillLooks.OutLeast, KillLooks.OutMost) - Between(KillLooks.UpLeast, KillLooks.UpMost) + velocity.Y,
+                Vx = outward.X * Between(KillLooks.OutLeast, KillLooks.OutMost) + side * Between(KillLooks.AwayLeast, KillLooks.AwayMost),
+                Vy = outward.Y * Between(KillLooks.OutLeast, KillLooks.OutMost) - Between(KillLooks.UpLeast, KillLooks.UpMost),
+                Wait = PixelDust.WaitOf(y, top, bottom, Between(0, 1)),
                 Lasts = Between(KillLooks.LastsLeast, KillLooks.LastsMost),
                 Colour = colour,
             }, _ground);
         }
+    }
+
+    /// <summary>
+    /// Adds to <paramref name="into"/> every world pixel a picture <paramref name="w"/> by <paramref name="h"/> (RGBA
+    /// <paramref name="data"/>) covers drawn through <paramref name="toWorld"/>, the colour of the picture's pixel under its middle:
+    /// sampled from the world's side, so a picture drawn larger or turned leaves no gaps.
+    /// </summary>
+    public static void Paint(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into, Transform2D toWorld, int w, int h, byte[] data)
+    {
+        var back = toWorld.AffineInverse();
+        Vector2[] corners = [toWorld * Vector2.Zero, toWorld * new Vector2(w, 0), toWorld * new Vector2(0, h), toWorld * new Vector2(w, h)];
+        var (left, top, right, bottom) = (float.MaxValue, float.MaxValue, float.MinValue, float.MinValue);
+        foreach (var c in corners) (left, top, right, bottom) = (MathF.Min(left, c.X), MathF.Min(top, c.Y), MathF.Max(right, c.X), MathF.Max(bottom, c.Y));
+        for (int y = (int)MathF.Floor(top); y < (int)MathF.Ceiling(bottom); y++)
+            for (int x = (int)MathF.Floor(left); x < (int)MathF.Ceiling(right); x++)
+            {
+                var p = back * new Vector2(x + 0.5f, y + 0.5f);
+                int px = (int)MathF.Floor(p.X), py = (int)MathF.Floor(p.Y);
+                if (px < 0 || py < 0 || px >= w || py >= h) continue;
+                int o = (py * w + px) * 4;
+                if (data[o + 3] == 0) continue;
+                into[(x, y)] = (data[o], data[o + 1], data[o + 2]);
+            }
     }
 
     /// <summary>Every pixel gone: another surface, or a load.</summary>
