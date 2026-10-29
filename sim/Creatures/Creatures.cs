@@ -190,7 +190,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
         c.Damage += damage;
         if (dies)
         {
-            Kill(c, spec);
+            Kill(c, spec, hit.Away);
             return true;
         }
         // A blow never slows one already going the knock's way: a run of the drill's quick hits cannot hold it.
@@ -208,12 +208,15 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>Whether <paramref name="damage"/> more kills <paramref name="c"/>: what <see cref="Hurt"/> decides by.</summary>
     private static bool Dies(Creature c, int damage) => c.Damage + damage >= Spec.Get(c.Species).Life.Hp;
 
-    /// <summary><paramref name="c"/> dies, giving what it gives: struck down, or gone with the wreck it clung to.</summary>
-    internal void Kill(Creature c, Spec.Species spec)
+    /// <summary>
+    /// <paramref name="c"/> dies, giving what it gives: struck down, sprayed <paramref name="away"/> from the striker, or gone with
+    /// the wreck it clung to, either way (0).
+    /// </summary>
+    internal void Kill(Creature c, Spec.Species spec, int away)
     {
         c.Dead = true;
-        // From its top row, so what it gives falls to where it stood; anyone may sweep it up at once.
-        _items.DropAt(FloorStack.Nobody, Loots.Roll(spec.Yields, Random), TopCell(c, spec));
+        // Out of its top row, so what it gives flies out of it (2026-10-29-kill-feel); anyone may sweep it up at once.
+        _items.Spray(Loots.Roll(spec.Yields, Random), TopCell(c, spec), away);
     }
 
     private void Apply(HitBy c)

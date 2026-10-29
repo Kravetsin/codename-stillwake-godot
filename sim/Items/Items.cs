@@ -51,6 +51,8 @@ public interface IItemsQueries
     string? OutputFull(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<(string Item, int Count)> InputsLack(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<FloorStack> Floor { get; }
+    /// <summary>The items' clock, ticks since the world began: what a floor stack's <c>At</c> counts in.</summary>
+    int Ticks { get; }
     string? PickUpProblem(int peer, int id);
     int PickUpAmount(int peer, int id);
     Shown AfterMoves(int peer, IReadOnlyList<Command> moves);
@@ -83,6 +85,7 @@ public interface IItemsOps
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
+    void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
     void Charge(int id, int slot, int amount);
     bool Drain(int peer, int amount);
     void StopRunning(int peer);
@@ -261,6 +264,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>The stacks on the floor, in id order; live and read-only.</summary>
     public IReadOnlyList<FloorStack> Floor => State.Floor;
+
+    public int Ticks => State.Ticks;
 
     /// <summary>Why peer <paramref name="peer"/>'s pick-up of stack <paramref name="id"/> would be refused: gone, too soon, or no room for any.</summary>
     public string? PickUpProblem(int peer, int id)
@@ -464,6 +469,28 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         foreach (var (item, count) in Stacks.Entries(cost))
             if (count > 0) FloorRules.LayDown(State, new Stack(item, count), cell, 0, _grid.Width, peer);
+    }
+
+    /// <summary>
+    /// Throws <paramref name="loot"/> out of cell <paramref name="cell"/> for anyone to take (2026-10-29-kill-feel): in pieces
+    /// (<see cref="SprayRules.Pieces"/>), each flying to the side <paramref name="away"/> points, or a drawn side for 0, at a drawn
+    /// speed and lift; afloat a share of them, up or down. Drawn from the world's Rng, so every peer throws the same.
+    /// </summary>
+    public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away)
+    {
+        bool afloat = _rooms.Afloat(cell);
+        foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), Content.Floor.SprayMost))
+        {
+            int side = away != 0 ? Math.Sign(away) : Random.Below(2) == 0 ? -1 : 1;
+            int vx = side * (Content.Floor.SprayLeast + (int)Random.Below(Content.Floor.SprayFastest - Content.Floor.SprayLeast + 1));
+            int vy = -(Content.Floor.SprayLiftLeast + (int)Random.Below(Content.Floor.SprayLiftMost - Content.Floor.SprayLiftLeast + 1));
+            if (afloat)
+            {
+                if (Random.Below(2) == 0) vy = -vy;
+                (vx, vy) = (vx * Content.Floor.SpraySpaceShare / 1000, vy * Content.Floor.SpraySpaceShare / 1000);
+            }
+            FloorRules.LayDown(State, new Stack(item, count), cell, vx, _grid.Width, FloorStack.Nobody, vy: vy);
+        }
     }
 
     /// <summary>

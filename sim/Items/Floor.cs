@@ -37,10 +37,10 @@ internal static class FloorRules
     /// <summary>
     /// Lays <paramref name="stack"/> on cell <paramref name="cell"/>, dropped by peer <paramref name="by"/>
     /// and thrown at <paramref name="vx"/>: as new stacks of at most the stack limit each, every one holding
-    /// what its item holds of its own, from the cell's bottom middle, rising a little as they go; each part of
-    /// <paramref name="body"/> when a hero left it where it died.
+    /// what its item holds of its own, from the cell's bottom middle, rising a little as they go (<paramref name="vy"/>
+    /// given, at that); each part of <paramref name="body"/> when a hero left it where it died.
     /// </summary>
-    public static void LayDown(ItemsState state, Stack stack, int cell, int vx, int width, int by, Body? body = null)
+    public static void LayDown(ItemsState state, Stack stack, int cell, int vx, int width, int by, Body? body = null, int? vy = null)
     {
         var (x, y) = BottomMiddle(cell, width);
         int limit = Content.Items.Get(stack.Item).Stack;
@@ -58,7 +58,7 @@ internal static class FloorRules
                 X = x,
                 Y = y,
                 Vx = vx,
-                Vy = vx == 0 ? 0 : -Tune.ThrowLift,
+                Vy = vy ?? (vx == 0 ? 0 : -Tune.ThrowLift),
                 By = by,
                 At = state.Ticks,
                 Body = body,

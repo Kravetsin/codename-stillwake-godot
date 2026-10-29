@@ -482,7 +482,7 @@ public class CreaturesTests
     }
 
     [Fact]
-    public void SixHitsOfTheAxeKillALoperAndItsYieldsFallWhereItStood()
+    public void SixHitsOfTheAxeKillALoperAndItsYieldsSprayAwayFromTheStrikerToTheFloor()
     {
         int hits = (Loper.Life.Hp + Spec.Weapons.Axe.Damage - 1) / Spec.Weapons.Axe.Damage;
         Assert.Equal(6, hits);
@@ -499,7 +499,9 @@ public class CreaturesTests
         w.Do(new Strike(c.Id, Axe)).Run();
         Assert.Empty(w.M.Creatures.Creatures);
         Assert.Empty(w.Refusals);
-        w.Run(30);
+        // Out of its top row, every piece thrown away from the hero on its left (2026-10-29-kill-feel).
+        Assert.All(w.M.Items.Floor, s => Assert.True(s.Vx > 0, $"{s.Item} {s.Vx}"));
+        w.Run(60);
         var biomass = w.M.Items.Floor.Where(s => s.Item == "biomass").ToList();
         Assert.InRange(biomass.Sum(s => s.Count), 2, 3);
         Assert.InRange(w.M.Items.Floor.Where(s => s.Item == "hide").Sum(s => s.Count), 1, 2);
@@ -508,7 +510,8 @@ public class CreaturesTests
         {
             Assert.Equal(FloorStack.Nobody, s.By);
             Assert.Equal(4 * Cell, s.Y);
-            Assert.Equal(6 * Cell + Unit / 2, s.X);
+            Assert.True(s.X > 6 * Cell + Unit / 2, $"{s.Item} at {s.X}");
+            Assert.Equal((0, 0), (s.Vx, s.Vy));
         });
     }
 

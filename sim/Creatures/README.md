@@ -60,7 +60,7 @@ shots-pierce, shots-fall-aboard).
   then flies at its grudge, else the nearest awake hero within its run, `Ticks` at `Speed`; `Return` flies it home. The
   arc, from its perch only: aimed `Lock` before the wind-up ends (its grudge, else the nearest within reach), struck at
   once to the first wall, lingering `Lingers`. `CutTether` lets go of a reel `Ticks` after it bites. Its wreck gone, it dies.
-- **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` dropped by nobody; else knocked
+- **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` sprayed away from the striker (`Spray`); else knocked
   (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order till one claims it.
 - **Shots:** `Fire` takes an ammo and its gun's `Energy` for a shot; each tick, in id order, it steps, hitting a cell's
   targets in turn (solid, the lowest-id creature, a wreck), skipping `Passed`, at its gun's keep after `Pierced`: through what

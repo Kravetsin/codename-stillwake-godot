@@ -7,17 +7,16 @@
 | `Deliveries.cs` | Part of `ItemsModule`: how much of an item a machine holds where a delivery of it goes (`Receiving`). |
 | `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged. |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
-| `Items.cs` | Every stack of items: inventories, what machines hold, the floor, creative mode. |
-| `Modules.cs` | Fits a module from a slot into a machine (0086): one of each … |
+| `Items.cs` | The module: inventories, machines' slots, the floor, creative mode. |
+| `Modules.cs` | Fits a module into a machine (0086). |
 | `Stacks.cs` | The rules on slots: giving, taking and moving. |
 | `State.cs` | The saved slice and its records: `Stack`, `Place`, `Target`, `Body`, `FloorStack`, … |
-| `ToolStats.cs` | What a tool works with (0098): its damage a hit, the ticks between its hits and what it draws a tick it runs … |
+| `Spray.cs` | A kill's loot dealt into pieces (2026-10-29-kill-feel). |
+| `ToolStats.cs` | What a tool works with (0098): damage, pace, draw. |
 
-Every stack of items: each hero's inventory, by peer; what each machine holds, by id; the
-stacks on the floor; and creative mode, where nothing is ever taken (0008).
+Every stack of items: inventories by peer, machines' by id, the floor's, and creative mode, taking nothing (0008).
 
-- **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open cells in a
-  room).
+- **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open room cells).
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
   `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
@@ -66,8 +65,9 @@ stacks on the floor; and creative mode, where nothing is ever taken (0008).
   space, ties by index, else rises a cell. Afloat it flies on, drifting only with no back wall;
   elsewhere it falls by gravity times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts`
   after a drop. Alike stacks resting in a cell merge, the later time kept.
-- **Machines and ladders hold no stack** (no ADR): one falls through to the floor; one laid in their cells stays.
-- **Whole cells** (0106): a stack is a point; it lands on a cell's top and stops against a built cell, never climbing.
+  `Spray` (2026-10-29-kill-feel): a kill's loot, a unit a piece up to `SprayMost`, thrown away from the striker.
+- **Machines and ladders hold no stack** (no ADR): one falls through; one laid there stays.
+- **Whole cells** (0106): a stack is a point, landing on a cell's top, stopped by a built cell, never climbing.
 - **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks (no ADR).
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
   `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative mode leaves none. Each is gone
