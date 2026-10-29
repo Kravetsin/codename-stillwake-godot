@@ -7,8 +7,8 @@
 | `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
 Meteors breaking the hull ([meteor-wave](../../docs/decisions/2026-10-29-meteor-wave.md), [hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md),
-[holes-not-planned](../../docs/decisions/2026-10-29-holes-not-planned.md)): a place's shower
-(`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself from the start, a steady cost of repair; the dev panel
+[holes-not-planned](../../docs/decisions/2026-10-29-holes-not-planned.md), [weak-meteors-till-landing](../../docs/decisions/2026-10-29-weak-meteors-till-landing.md)): a place's shower
+(`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself, a steady cost of repair; the dev panel
 strikes one by hand, to try a breach and its repair. Ported from `packages/sim/src/modules/hazards`; its rules hold
 here unchanged.
 
@@ -19,9 +19,11 @@ here unchanged.
 
 ## Rules
 
-- **A shower** falls where the surface's kind has one (the ship's `StartingSpace`; a planet none) and the world is not
-  `Calm`. A system in construction, as a command would apply: building and the rooms see the hole on its tick.
-- **Every `EveryMin` to `EveryMax` ticks**, drawn evenly from the world's `Rng`, a meteor is seen coming: its power by
+- **A shower** falls where the surface's kind has one and the world is not `Calm`: `Shower`, the kind's
+  `MeteorsBeforeLanding` (the ship's `BeforeLanding`) till a planet has been opened (`ISurfaces.Landed`), its `Meteors`
+  (`StartingSpace`) after; a planet has none. A system in construction, as a command would apply: building and the rooms see the hole on its tick.
+- **Every `EveryMin` to `EveryMax` ticks**, drawn evenly from the world's `Rng`, the first at `First` when the shower
+  gives one (a quarter of an hour), a meteor is seen coming: its power by
   the shower's weights (2–7, mostly weak), its target one of the walls open to the drift, drawn evenly. None open: the
   interval is drawn again.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
@@ -40,7 +42,7 @@ here unchanged.
 
 ## API
 
-- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Charge` and `Farthest`, a blast's charge and bound.
+- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Shower`, the shower falling now; `Charge` and `Farthest`, a blast's charge and bound.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
   never breaks (bedrock, lava) or out of the grid's zone (a planet's fog).
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It

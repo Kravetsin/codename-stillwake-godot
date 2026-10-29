@@ -87,7 +87,7 @@ public partial class MeteorView : Node2D
     {
         _round.Clear();
         int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width;
-        int most = _hazards.Rules.Meteors is { } shower ? HazardsModule.Farthest(meteor.Power, shower) : 0;
+        int most = _hazards.Shower is { } shower ? HazardsModule.Farthest(meteor.Power, shower) : 0;
         for (int y = Math.Max(0, cy - most); y <= Math.Min(_grid.Height - 1, cy + most); y++)
             for (int x = Math.Max(0, cx - most); x <= Math.Min(width - 1, cx + most); x++)
             {
@@ -101,7 +101,7 @@ public partial class MeteorView : Node2D
     private (double X, double Y, double Radius) Fly(Meteor meteor)
     {
         var (x, y) = Face(meteor.Cell);
-        int warning = _hazards.Rules.Meteors?.Warning ?? 1;
+        int warning = _hazards.Shower?.Warning ?? 1;
         double left = Math.Clamp((meteor.Left - _progress()) / warning, 0, 1), near = 1 - left;
         double hx = x + left * Reach * Cell, hy = y - left * Drop * Cell, radius = 1.5 + 0.6 * meteor.Power;
         double tail = (6 + 2 * meteor.Power) * Cell;

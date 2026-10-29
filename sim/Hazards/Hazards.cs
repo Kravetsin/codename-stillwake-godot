@@ -48,6 +48,13 @@ public sealed class HazardsModule : Module<HazardsState>
     public Meteor? Incoming => State.Incoming;
 
     /// <summary>
+    /// The shower falling here now (2026-10-29-weak-meteors-till-landing): the surface's weaker one till a planet has been opened, its
+    /// own after; null for a surface without meteors.
+    /// </summary>
+    public Meteors.Shower? Shower => Rules.Meteors is not { } shower ? null
+        : Surfaces?.Landed != false ? shower : Rules.MeteorsBeforeLanding ?? shower;
+
+    /// <summary>
     /// Why a meteor at <paramref name="cell"/> breaks nothing: no wall there (<c>hazards.noWall</c>), or one that never breaks, bedrock
     /// or lava, or in a planet's fog, out of the grid's zone (<c>hazards.neverBreaks</c>).
     /// </summary>
@@ -64,7 +71,7 @@ public sealed class HazardsModule : Module<HazardsState>
     /// </summary>
     private void Fall()
     {
-        if (State.Calm || Rules.Meteors is not { } shower) return;
+        if (State.Calm || Shower is not { } shower) return;
         var s = State;
         if (s.Incoming is { } meteor)
         {
@@ -78,7 +85,7 @@ public sealed class HazardsModule : Module<HazardsState>
             s.NextIn = Interval(shower);
             return;
         }
-        if (s.NextIn == 0) s.NextIn = Interval(shower);
+        if (s.NextIn == 0) s.NextIn = shower.First > 0 ? shower.First : Interval(shower);
         if (--s.NextIn > 0) return;
         Targets();
         if (_targets.Count == 0)

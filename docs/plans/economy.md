@@ -228,7 +228,8 @@ is a fuel source. Both are a planet's, so neither goes into anything before the 
 2. The workbench, the pod cut to the suit, the costs of the burner generator and the Former moved to bench parts. Done.
 3. The crusher with asteroid ore, iron ore, gravel and quartz; chance yields and several units a smelt in code. Done.
 4. Costs and craft times across the tree, checked with the calculator against about five hours solo. First pass done (the-crusher).
-5. Meteors from the start, walls kept planned. Done.
+5. Meteors from the start, walls kept planned. Done; weak till the first landing, scrap patched of raw chunks
+   (weak-meteors-till-landing).
 6. Hide and fat (done, #256), ice canisters (done); alloy plates, concrete walls, suit and helmet tiers to come.
 
 ## Open
