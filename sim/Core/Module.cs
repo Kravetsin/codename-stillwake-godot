@@ -40,6 +40,9 @@ public interface ISurfaces
     /// <summary>Whether this world can open surfaces: one whose modules cannot make another set is the ship alone.</summary>
     bool CanOpen { get; }
 
+    /// <summary>Whether a planet has been opened: a hero has landed on one, or a dev opened it. Planets stay open.</summary>
+    bool Landed { get; }
+
     /// <summary>
     /// The planet a descent lands on, opened if need be — a change to the world, so called only by a system on its tick: the lowest-id
     /// open surface of a planet's kind, else one opening this tick, else one of <c>Content.Landing.Planet</c> opened once every

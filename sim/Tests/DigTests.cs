@@ -121,7 +121,7 @@ public class DigTests
         // On a planet a hull wall is any wall: struck, and its scrap given back.
         w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
         Assert.Null(w.M.Grid.WallAt(At(0, 2)));
-        Assert.Equal(Materials.Get("scrap").Cost.Single().Count, Count(w, "scrap"));
+        Assert.Equal(Materials.Get("scrap").Cost.Single(), ("scrapChunk", Count(w, "scrapChunk")));
     }
 
     [Fact]
@@ -281,9 +281,9 @@ public class DigTests
             for (int c = 0; c < 32; c++)
                 if (before[c] is { } id && w.M.Grid.WallAt(c) == null)
                     foreach (var (item, count) in Materials.Get(id).Cost)
-                        (soil, rock, scrap) = item switch { "soil" => (soil + count, rock, scrap), "scrap" => (soil, rock, scrap + count), _ => (soil, rock + count, scrap) };
+                        (soil, rock, scrap) = item switch { "soil" => (soil + count, rock, scrap), "scrapChunk" => (soil, rock, scrap + count), _ => (soil, rock + count, scrap) };
             int Got(string item) => Count(w, item, 0) + Count(w, item, 1) + w.M.Items.Floor.Where(s => s.Item == item).Sum(s => s.Count);
-            return Got("soil") == soil && Got("rock") == rock && Got("scrap") == scrap && before.Count(b => b is "bedrock") == Enumerable.Range(0, 32).Count(c => w.M.Grid.WallAt(c)?.Id is "bedrock");
+            return Got("soil") == soil && Got("rock") == rock && Got("scrapChunk") == scrap && before.Count(b => b is "bedrock") == Enumerable.Range(0, 32).Count(c => w.M.Grid.WallAt(c)?.Id is "bedrock");
         });
     }
 }

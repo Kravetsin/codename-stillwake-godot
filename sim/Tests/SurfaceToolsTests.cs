@@ -69,7 +69,7 @@ public class SurfaceToolsTests
         w.Do(HewTesting.Dig(w, At(0, 2), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(At(0, 2)));
-        Assert.Equal(Materials.Get("scrap").Cost.Single().Count, Count(w, "scrap"));
+        Assert.Equal(Materials.Get("scrap").Cost.Single(), ("scrapChunk", Count(w, "scrapChunk")));
     }
 
     [Fact]

@@ -167,8 +167,10 @@ A living document: what is decided about the game and what is still open. Techni
   drift comes from, seen flying in a moment before they strike; a hull cell breaks only if the power
   reaches its material's strength, and its blast tears on through the walls round it and behind until
   they soak it up: a strong outer layer spares what lies inside. The starting space throws light ones
-  from the start, every few minutes: scrap gives way every time, iron seldom, concrete never; the player
-  patches the hole with what they have, so repair is a steady cost. Harder places, such as the rings round
+  every few minutes from a quarter of an hour in, a cell of scrap or a few, iron almost never, till a hero
+  has landed; then stronger ones, scrap torn in swathes, iron seldom, concrete never. The player patches
+  the hole with what they have, a scrap wall of a raw chunk at the least, so repair is a steady cost
+  ([weak-meteors-till-landing](decisions/2026-10-29-weak-meteors-till-landing.md)). Harder places, such as the rings round
   a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-wave).
 
 ## Open

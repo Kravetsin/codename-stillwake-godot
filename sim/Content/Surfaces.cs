@@ -39,8 +39,11 @@ public static class Surfaces
         /// <summary>The creatures that come with its debris, clamped on (<see cref="Creatures.OnDebris"/>).</summary>
         public IReadOnlyList<Creatures.OnDebris> Guards { get; init; } = [];
 
-        /// <summary>The meteors that strike its hull (2026-10-28-hull-meteors); none on a planet.</summary>
+        /// <summary>The meteors that strike its hull (2026-10-28-hull-meteors) once a hero has landed on a planet; none on a planet.</summary>
         public Meteors.Shower? Meteors { get; init; }
+
+        /// <summary>The weaker meteors striking it till then (2026-10-29-weak-meteors-till-landing); <see cref="Meteors"/> when none.</summary>
+        public Meteors.Shower? MeteorsBeforeLanding { get; init; }
 
         /// <summary>
         /// Whether its tools break what stands on its grid, and nothing on it is taken apart by a mark (a planet: the fan of rays);
@@ -65,7 +68,7 @@ public static class Surfaces
     }
 
     /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was, sentries on the derelicts and the starting space's meteors.</summary>
-    public static readonly Kind Ship = new("ship", []) { Guards = [Creatures.Derelicts], Meteors = Content.Meteors.StartingSpace };
+    public static readonly Kind Ship = new("ship", []) { Guards = [Creatures.Derelicts], Meteors = Content.Meteors.StartingSpace, MeteorsBeforeLanding = Content.Meteors.BeforeLanding };
 
     /// <summary>
     /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip, a character a 16 px cell and doubled as it opens (0104): under

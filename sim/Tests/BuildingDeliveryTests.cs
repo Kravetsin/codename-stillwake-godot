@@ -35,8 +35,9 @@ public class BuildingDeliveryTests
         cost.Where(c => c.Item == item).Sum(c => c.Count);
     /// <summary>The tick of its work part <paramref name="part"/> of machine <paramref name="spec"/>'s blueprint begins at, an item of its cost a part.</summary>
     private static int Begins(MachineSpec spec, int part) => spec.BuildTicks * part / Costs.PartsOf(spec.Cost);
-    /// <summary>The plates an iron wall takes, and the scrap a scrap one does.</summary>
-    private static readonly int IronPlates = CostIn(Iron.Cost, "plate"), ScrapUnits = CostIn(Scrap.Cost, "scrap");
+    /// <summary>The plates an iron wall takes, and what a scrap one is patched of: raw chunks, which no hero here carries.</summary>
+    private static readonly int IronPlates = CostIn(Iron.Cost, "plate");
+    private static readonly (string Item, int Count) ScrapPatch = Scrap.Cost.Single();
 
     /// <summary>Nine characters wide and five tall, doubled to 18 by 10 cells: a door, six cells tall, fits its room (0104).</summary>
     private const string Open = """
@@ -149,7 +150,7 @@ public class BuildingDeliveryTests
         w.Do(new Deconstruct(At(1, 1), "back")).Run();
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
         Assert.Null(w.M.Grid.BackAt(At(1, 1)));
-        Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap"));
+        Assert.Equal(ScrapPatch.Count, Count(w, ScrapPatch.Item));
         PlacePlan(w, At(1, 1), Placement.BackWall("iron"));
         Assert.Equal<(string, int)>(Iron.Cost, w.M.Building.CostOf(2)!);
         Hold(w, 2, IronWallTicks - 1);
@@ -330,7 +331,7 @@ public class BuildingDeliveryTests
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(At(0, 1)));
         Press(w, 1);
         Assert.Equal(Structure.Empty, w.M.Grid.StructureAt(At(0, 1)));
-        Assert.Equal(StockScrap + ScrapUnits, Count(w, "scrap"));
+        Assert.Equal(ScrapPatch.Count, Count(w, ScrapPatch.Item));
     }
 
     [Fact]
@@ -368,7 +369,7 @@ public class BuildingDeliveryTests
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
         Assert.Empty(w.Refusals);
         var lying = Assert.Single(w.M.Items.Floor);
-        Assert.Equal(("scrap", ScrapUnits, At(0, 1)), (lying.Item, lying.Count, lying.Cell));
+        Assert.Equal((ScrapPatch.Item, ScrapPatch.Count, At(0, 1)), (lying.Item, lying.Count, lying.Cell));
     }
 
     [Fact]

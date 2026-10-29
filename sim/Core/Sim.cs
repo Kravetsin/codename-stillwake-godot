@@ -362,6 +362,16 @@ public sealed class World
 
         public bool CanOpen => world.CanOpen;
 
+        public bool Landed
+        {
+            get
+            {
+                for (int i = 1; i < world._surfaces.Count; i++)
+                    if (Content.Surfaces.Get(world._surfaces[i].Surface.Kind) is Content.PlanetType) return true;
+                return false;
+            }
+        }
+
         public int OpenPlanet()
         {
             for (int i = 1; i < world._surfaces.Count; i++)
