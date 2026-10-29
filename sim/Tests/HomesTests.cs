@@ -130,7 +130,7 @@ public class HomesTests
         Hit(w, w.At(6, 4), Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage);
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plants);
-        Assert.Equal((2, 1, 1), (Count(w, "planks"), Count(w, "cloth"), Count(w, "alloyScrap")));
+        Assert.Equal((2, 1, 3), (Count(w, "planks"), Count(w, "cloth"), Count(w, "alloyScrap")));
     }
 
     [Fact]
@@ -167,11 +167,11 @@ public class HomesTests
         Hit(w, w.At(4, 3), Materials.Get("alloy").Strength / Weapons.Axe.BlockDamage);
         Assert.DoesNotContain("fallenBeam", Kinds(w));
         Assert.Equal(Structure.Wall, w.M.Grid.StructureAt(w.At(3, 3)));
-        Assert.Equal(1 + 3, Count(w, "alloyScrap"));
+        Assert.Equal(3 + 3, Count(w, "alloyScrap"));
         // The rubble's stone, six swings.
         Hit(w, w.At(6, 3), Materials.Get("stone").Strength / Weapons.Axe.BlockDamage);
         Assert.DoesNotContain("rubble", Kinds(w));
-        Assert.Equal((1 + 2, 1 + 3 + 1), (Count(w, "rock"), Count(w, "alloyScrap")));
+        Assert.Equal((1 + 2, 3 + 3 + 1), (Count(w, "rock"), Count(w, "alloyScrap")));
     }
 
     [Fact]

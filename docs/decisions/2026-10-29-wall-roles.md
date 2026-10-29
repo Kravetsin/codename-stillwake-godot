@@ -23,7 +23,7 @@ everything, found early, would end the reason to build again. The user wants a c
   | scrap | 2 | 3 | 2 scrap |
   | stone | 4 | 9 | 1 rock |
   | iron | 5 | 2.4 | 1 plate |
-  | alloy | 7 | 2.4 | 1 alloy scrap, what digging a cell of it gives |
+  | alloy | 7 | 2.4 | 3 alloy scrap, what digging a cell of it gives |
   | glass, mica, hide | 1 | 0.6 | 2 glass, 2 mica, a hide and a fat |
 
   Scrap and iron keep the leaks the start's air is tuned to. Concrete (9) joins as armour that leaks.

@@ -54,7 +54,7 @@ public class RuinsTests
         w.Do(HewTesting.Dig(w, w.At(7, 4), Axe)).Run();
         Assert.Empty(w.Refusals);
         Assert.Null(w.M.Grid.WallAt(w.At(7, 4)));
-        Assert.Equal(1, Count(w, "alloyScrap"));
+        Assert.Equal(3, Count(w, "alloyScrap"));
         // Its back wall stays, alloy too.
         Assert.Equal("alloy", w.M.Grid.BackAt(w.At(7, 4))?.Id);
     }
@@ -171,7 +171,7 @@ public class RuinsTests
         Assert.True(Taken(w, Ruins.Cradle));
         Assert.Equal(Suit(w, 1), Suit(w, 0));
         // Its digger gets the shards with the alloy: what a wall held goes to who broke it out.
-        Assert.Equal((4, 1), (Count(w, Ruins.Shard), Count(w, "alloyScrap")));
+        Assert.Equal((4, 3), (Count(w, Ruins.Shard), Count(w, "alloyScrap")));
     }
 
     /// <summary>Builds a floor in creative mode at <paramref name="cell"/>, working its plan to the end.</summary>
