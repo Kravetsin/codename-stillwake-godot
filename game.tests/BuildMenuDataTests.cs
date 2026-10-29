@@ -14,7 +14,8 @@ public class BuildMenuDataTests
     {
         Assert.Equal(
         [
-            "structure: wallScrap wallIron wallSoil wallStone wallAlloy backWallScrap backWallIron backWallSoil backWallStone "
+            "structure: wallScrap wallIron wallGlass wallMica wallHide wallSoil wallStone wallAlloy backWallScrap backWallIron backWallGlass "
+                + "backWallMica backWallHide backWallSoil backWallStone "
                 + "backWallAlloy floor ladder door hatch",
             "air: vent tank generator",
             "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",

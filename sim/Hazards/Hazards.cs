@@ -55,7 +55,7 @@ public sealed class HazardsModule : Module<HazardsState>
     {
         if (_grid.WallAt(cell) is not { } wall) return "hazards.noWall";
         bool zone = _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width);
-        return wall.Strength == Material.Unbreakable || !zone ? "hazards.neverBreaks" : null;
+        return wall.Armour == Material.Unbreakable || !zone ? "hazards.neverBreaks" : null;
     }
 
     /// <summary>
@@ -101,7 +101,7 @@ public sealed class HazardsModule : Module<HazardsState>
     /// </summary>
     private void Strike(Meteor meteor, Meteors.Shower shower)
     {
-        if (HitProblem(meteor.Cell) != null || meteor.Power < _grid.WallAt(meteor.Cell)!.Strength) return;
+        if (HitProblem(meteor.Cell) != null || meteor.Power < _grid.WallAt(meteor.Cell)!.Armour) return;
         int charge = Charge(meteor.Power, shower), most = Farthest(meteor.Power, shower), side = 2 * most + 1;
         int width = _grid.Width, cx = meteor.Cell % width, cy = meteor.Cell / width;
         // What reaching each cell of the box round the strike spent, cheapest found; past the charge, not reached.
@@ -110,7 +110,7 @@ public sealed class HazardsModule : Module<HazardsState>
         if (_byCost.Length < charge + 1) _byCost = [.. Enumerable.Range(0, charge + 1).Select(_ => new List<int>())];
         foreach (var bucket in _byCost) bucket.Clear();
         int Box(int cell) => (cell / width - cy + most) * side + cell % width - cx + most;
-        int first = Meteors.PerStrength * _grid.WallAt(meteor.Cell)!.Strength;
+        int first = Meteors.PerStrength * _grid.WallAt(meteor.Cell)!.Armour;
         _spent[Box(meteor.Cell)] = first;
         _byCost[first].Add(meteor.Cell);
         _blast.Clear();
@@ -121,8 +121,8 @@ public sealed class HazardsModule : Module<HazardsState>
                 int cell = _byCost[cost][i];
                 if (_spent[Box(cell)] != cost) continue;
                 if (_grid.WallAt(cell) != null) _blast.Add(cell);
-                if (_grid.BackAt(cell) is { } back && back.Strength != Material.Unbreakable
-                    && charge - cost >= Meteors.PerStrength * back.Strength) _backs.Add(cell);
+                if (_grid.BackAt(cell) is { } back && back.Armour != Material.Unbreakable
+                    && charge - cost >= Meteors.PerStrength * back.Armour) _backs.Add(cell);
                 int x = cell % width, y = cell / width;
                 for (int dy = -1; dy <= 1; dy++)
                     for (int dx = -1; dx <= 1; dx++)
@@ -134,7 +134,7 @@ public sealed class HazardsModule : Module<HazardsState>
                         if (_grid.WallAt(next) != null)
                         {
                             if (HitProblem(next) != null) continue;
-                            to += Meteors.PerStrength * _grid.WallAt(next)!.Strength;
+                            to += Meteors.PerStrength * _grid.WallAt(next)!.Armour;
                         }
                         else if (_grid.StructureAt(next) != Structure.Empty || _grid.MachineAt(next) != null) continue;
                         if (to > charge || to >= _spent[Box(next)]) continue;
