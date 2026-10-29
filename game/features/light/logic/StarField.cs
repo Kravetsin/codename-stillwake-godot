@@ -13,7 +13,8 @@ namespace Stillwake.Game.Features.Light;
 /// past the grid's edge, as brightly as the sky round the cell is open — whole in open space, faint in a
 /// lone hole in a back wall (<see cref="L.StarHole"/>) — and spread from there in sweeps along every row and
 /// column, keeping <see cref="L.StarKeep"/> a cell, so the light through a hole or a doorway falls off within
-/// a few cells. Worked out over <see cref="Region"/> only, what is built and <see cref="Margin"/> cells of
+/// a few cells. Glass is not there to it (2026-10-29-clear-glass): a clear wall is air, a clear back wall none.
+/// Worked out over <see cref="Region"/> only, what is built and <see cref="Margin"/> cells of
 /// space round it: past what is built every cell is open and holds the stars whole, the light of the
 /// region's edge, as it did over the whole world. After a change it is worked out again only around the
 /// cells changed (<see cref="Follow"/>), within <see cref="Reach"/> and the sky's reach of them: past it,
@@ -218,7 +219,7 @@ public sealed class StarField
         var light = _light;
         Array.Clear(kind, 0, n);
         Array.Clear(light, 0, n);
-        ReadOnlySpan<int> structure = grid.StructureLayer, back = grid.BackLayer;
+        ReadOnlySpan<int> structure = grid.StructureLayer, material = grid.MaterialLayer, back = grid.BackLayer, backMaterial = grid.BackMaterialLayer;
         if (machinesListed)
         {
             // A machine dims the light through every cell of its footprint; over the region, every machine is in it.
@@ -242,7 +243,7 @@ public sealed class StarField
             for (int x = 1; x < sw; x++)
             {
                 int gx = x - 1 + box.Left - Sky;
-                row += Starry(structure, back, gw, gh, gx, gy) ? 1 : 0;
+                row += Starry(structure, material, back, backMaterial, gw, gh, gx, gy) ? 1 : 0;
                 sum[y * sw + x] = sum[(y - 1) * sw + x] + row;
             }
         }
@@ -254,7 +255,7 @@ public sealed class StarField
                 bool inside = gx >= 0 && gy >= 0 && gx < gw && gy < gh;
                 int cell = gy * gw + gx;
                 if (!machinesListed && inside && grid.MachineAt(cell) != null) kind[i] = Machine;
-                if (inside && Structures.Is(structure[cell], Trait.BlocksLight)) kind[i] = Wall;
+                if (inside && Stops(structure[cell], material[cell])) kind[i] = Wall;
                 // Its own cell's count, from the sums: whether the stars shine into it.
                 int c = (y + Sky + 1) * sw + x + Sky + 1;
                 if (sum[c] - sum[c - 1] - sum[c - sw] + sum[c - sw - 1] == 0) continue;
@@ -272,14 +273,20 @@ public sealed class StarField
     }
 
     /// <summary>
-    /// Whether the stars shine into a cell: an open one with no back wall, and any past the grid's edge.
+    /// Whether the stars shine into a cell: an open one, or one of a clear wall, with no back wall or a clear one, and any past
+    /// the grid's edge.
     /// </summary>
-    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> back, int width, int height, int gx, int gy)
+    private static bool Starry(ReadOnlySpan<int> structure, ReadOnlySpan<int> material, ReadOnlySpan<int> back, ReadOnlySpan<int> backMaterial,
+        int width, int height, int gx, int gy)
     {
         if (gx < 0 || gy < 0 || gx >= width || gy >= height) return true;
         int cell = gy * width + gx;
-        return back[cell] == Back.None && !Structures.Is(structure[cell], Trait.BlocksLight);
+        return (back[cell] == Back.None || Sources.IsClear(backMaterial[cell])) && !Stops(structure[cell], material[cell]);
     }
+
+    /// <summary>Whether starlight stops at a cell of <paramref name="structure"/> and <paramref name="material"/>: a wall, unless a clear one, or a closed door.</summary>
+    private static bool Stops(int structure, int material) =>
+        Structures.Is(structure, Trait.BlocksLight) && !(Sources.IsClear(material) && !Doorways.IsDoor(structure));
 
     private void Texel(byte[] bytes, int at, float light, byte kind)
     {

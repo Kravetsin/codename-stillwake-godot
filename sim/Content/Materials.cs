@@ -40,10 +40,13 @@ namespace Stillwake.Content;
 /// A vein's (<see cref="Vein"/>): the material it runs through, drawn as that one flecked with its ore, the back wall it
 /// leaves when dug that one's. None for any other.
 /// </param>
+/// <param name="Clear">
+/// See-through (2026-10-29-clear-glass): light passes a wall or back wall of it as air. Drawn only: the sim gives it no rule.
+/// </param>
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,
     bool Hurts = false, bool Grows = false, Tread Footing = Tread.Deck, MaterialLook Look = MaterialLook.Cut, MenuSlot? Menu = null,
-    MenuSlot? BackMenu = null, string? In = null, int Armour = 0)
+    MenuSlot? BackMenu = null, string? In = null, int Armour = 0, bool Clear = false)
 {
     /// <summary>The <see cref="Strength"/> of a material nothing breaks.</summary>
     public const int Unbreakable = 0;
@@ -78,7 +81,7 @@ public static class Materials
         new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110), Armour: 2),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120), Armour: 5),
         // The seals: whole sheets no air gets through, and any meteor breaks. Alike but for their look, the player's choice.
-        new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1),
+        new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1, Clear: true),
         new("mica", Code: 12, Strength: 1, Leak: 6, Cost: [("mica", 2)], BuildTicks: 8, Menu: new(MenuTabs.Structure, 24), BackMenu: new(MenuTabs.Structure, 124), Armour: 1),
         new("hide", Code: 13, Strength: 1, Leak: 6, Cost: [("hide", 1), ("fat", 1)], BuildTicks: 6, Menu: new(MenuTabs.Structure, 26), BackMenu: new(MenuTabs.Structure, 126), Armour: 1),
         // A planet's ground (0077), far leakier than any hull, soil the worst. Soil breaks at a swing of the axe, stone at three; a

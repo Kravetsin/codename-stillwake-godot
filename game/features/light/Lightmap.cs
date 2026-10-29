@@ -200,14 +200,14 @@ public partial class Lightmap : Node
     /// built: past it every cell is open. <paramref name="panels"/> the door panel's columns in pixels; a hatch lets light
     /// through (0111).
     /// </summary>
-    public void Occupy(ReadOnlySpan<int> structure, Func<int, int> structureAt, int width, Box built, Panels panels)
+    public void Occupy(ReadOnlySpan<int> structure, ReadOnlySpan<int> material, Func<int, int> structureAt, int width, Box built, Panels panels)
     {
         // Nothing built: one open texel, for a texture cannot be empty.
         if (built.IsEmpty) built = new Box(0, 0, 0, 0);
         _occupied = built;
         int w = built.Width, h = built.Height;
         if (_cells.Length != w * h) _cells = new byte[w * h];
-        Sources.Occupy(structure, structureAt, width, built, _cells);
+        Sources.Occupy(structure, material, structureAt, width, built, _cells);
         Upload(built, panels);
     }
 
@@ -217,19 +217,20 @@ public partial class Lightmap : Node
     /// past the texture, the whole of what is built laid out anew (<see cref="Occupy"/>). The texture may cover
     /// more than is built: past what is built every cell is open, inside the texture or past it alike.
     /// </summary>
-    public void Follow(ReadOnlySpan<int> structure, Func<int, int> structureAt, int width, Box built, IReadOnlyList<int> changed, Panels panels)
+    public void Follow(ReadOnlySpan<int> structure, ReadOnlySpan<int> material, Func<int, int> structureAt, Func<int, int> materialAt, int width, Box built,
+        IReadOnlyList<int> changed, Panels panels)
     {
         var box = _occupied;
         foreach (int c in changed)
             if (_occupancy == null || !box.Contains(c % width, c / width))
             {
-                Occupy(structure, structureAt, width, built, panels);
+                Occupy(structure, material, structureAt, width, built, panels);
                 return;
             }
         foreach (int changedCell in changed)
             for (int c = changedCell - width; c <= changedCell + width; c += width)
                 if (c >= 0 && c < structure.Length && box.Contains(c % width, c / width))
-                    _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structureAt, width, structure.Length, c);
+                    _cells[(c / width - box.Top) * box.Width + c % width - box.Left] = Sources.Of(structureAt, materialAt, width, structure.Length, c);
         Upload(box, panels);
     }
 

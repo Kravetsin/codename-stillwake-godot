@@ -164,4 +164,69 @@ public class StarFalloffTests
         // Patched, the hall is as one that never had the hole.
         Assert.Equal(Worked(Hall()).Texels, field.Texels);
     }
+
+    /// <summary>The hall's right wall over three rows, at the middle row, made of <paramref name="material"/>.</summary>
+    private static Registry Walled(string material)
+    {
+        var m = Hall();
+        for (int y = Hy - 1; y <= Hy + 1; y++)
+        {
+            m.Grid.Clear(y * W + W - 3, "structure");
+            m.Grid.Place(y * W + W - 3, Placement.Wall(material));
+        }
+        return m;
+    }
+
+    /// <summary>A hall with its right wall gone over three rows, at the middle row: a gap to space.</summary>
+    private static Registry Gapped()
+    {
+        var m = Hall();
+        for (int y = Hy - 1; y <= Hy + 1; y++) m.Grid.Clear(y * W + W - 3, "structure");
+        return m;
+    }
+
+    /// <summary>Starlight passes a glass wall as air (2026-10-29-clear-glass): the hall lit as through a gap where the glass is.</summary>
+    [Fact]
+    public void StarlightPassesAGlassWallAsAGap()
+    {
+        Assert.Equal(Worked(Gapped()).Texels, Worked(Walled("glass")).Texels);
+        Assert.NotEqual(Worked(Gapped()).Texels, Worked(Walled("scrap")).Texels);
+    }
+
+    /// <summary>The stars shine through a glass back wall as through none: a pane as a hole, a hall backed with glass lit whole.</summary>
+    [Fact]
+    public void StarsShineThroughAGlassBackWallAsThroughNone()
+    {
+        int cell = Hy * W + Hx;
+        var pane = Hall();
+        pane.Grid.Clear(cell, "back");
+        pane.Grid.Place(cell, Placement.BackWall("glass"));
+        var hole = Hall();
+        hole.Grid.Clear(cell, "back");
+        Assert.Equal(Worked(hole).Texels, Worked(pane).Texels);
+
+        var all = Hall();
+        for (int y = 3; y < H - 3; y++)
+            for (int x = 3; x < W - 3; x++)
+            {
+                all.Grid.Clear(y * W + x, "back");
+                all.Grid.Place(y * W + x, Placement.BackWall("glass"));
+            }
+        Assert.Equal(Whole, RedAt(Worked(all), Hx, Hy));
+        Assert.Equal(0, RedAt(Worked(Hall()), Hx, Hy));
+    }
+
+    /// <summary>Glazing a hall's back wall after it was worked out gives what working it out anew does.</summary>
+    [Fact]
+    public void GlazingABackWallFollowsAsAWholeWorkDoes()
+    {
+        var m = Hall();
+        var field = Worked(m);
+        int version = m.Grid.Version, cell = Hy * W + Hx;
+        m.Grid.Clear(cell, "back");
+        m.Grid.Place(cell, Placement.BackWall("glass"));
+        field.Follow(m.Grid, m.Grid.ChangedSince(version)!.Select(c => c.Cell).ToList());
+        Assert.Equal(Worked(m).Texels, field.Texels);
+        Assert.True(RedAt(field, Hx, Hy) > 0);
+    }
 }
