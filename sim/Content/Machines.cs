@@ -155,15 +155,16 @@ public static class Machines
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
         // a minute at its most taken in fills it, two of a spare panel's. Basic infrastructure, not arc-gated; a bigger arc store may come later.
         new("capacitorBank", 4, 4, [], [("frame", 2), ("coil", 6), ("plate", 6), ("circuit", 2)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60), Char: 'Q', Means: "capacitor bank: draw its whole footprint (0101)"),
-        // Presses and turns parts at full speed while it draws (Stations): six inputs, a jetpack's, then three outputs. Rests idle. Of the
-        // workbench's parts and a salvaged circuit, never a frame, which only it makes.
-        new("former", 4, 4, [], [("plate", 6), ("rotor", 2), ("gear", 6), ("tube", 2), ("circuit", 1)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 9, Inputs: 6, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
-        // Crushes rock and asteroid ore on power (Stations): its input, then three outputs, room for gravel, iron ore and quartz. Rests idle.
-        new("crusher", 4, 4, [], [("frame", 2), ("gear", 8), ("plate", 6), ("rotor", 2), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (27, 6), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 35), Char: 'k', Means: "crusher: draw its whole footprint"),
+        // Presses and turns parts at full speed while it draws (Stations): three inputs, a motor's, then three outputs. Rests idle.
+        // Of the workbench's parts and no circuit, never a frame, which only it makes: a machine with no electronics in it.
+        new("former", 4, 4, [], [("plate", 6), ("rotor", 2), ("gear", 6), ("tube", 2), ("coil", 2)], BuildTicks: 200, Draws: 3, Plug: (4, 21), Slots: 6, Inputs: 3, Menu: new(MenuTabs.Production, 30), Char: 'M', Means: "former: draw its whole footprint"),
+        // Crushes rock and asteroid ore on power (Stations): its input, then three outputs, room for gravel, iron ore and quartz.
+        // Rests idle. Mechanical, no circuit in it.
+        new("crusher", 4, 4, [], [("frame", 2), ("gear", 8), ("plate", 6), ("rotor", 2), ("tube", 2)], BuildTicks: 200, Draws: 4, Plug: (27, 6), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 35), Char: 'k', Means: "crusher: draw its whole footprint"),
         // Smelts on power, twice the furnace's speed and hotter (Stations): its input, then three outputs. Rests idle.
-        new("smelter", 4, 4, [], [("frame", 3), ("coil", 4), ("plate", 8), ("tube", 4), ("circuit", 2)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40), Char: 'E', Means: "electric smelter: draw its whole footprint"),
+        new("smelter", 4, 4, [], [("frame", 3), ("coil", 4), ("plate", 8), ("tube", 4), ("circuit", 1)], BuildTicks: 200, Draws: 4, Plug: (4, 17), Slots: 4, Inputs: 1, Menu: new(MenuTabs.Production, 40), Char: 'E', Means: "electric smelter: draw its whole footprint"),
         // Assembles electronics at full speed while it draws (Stations): four inputs, a drone's, then three outputs. Rests idle.
-        new("assembler", 4, 4, [], [("frame", 3), ("rotor", 2), ("glass", 4), ("coil", 2), ("wire", 10), ("circuit", 2)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
+        new("assembler", 4, 4, [], [("frame", 3), ("rotor", 2), ("glass", 4), ("coil", 2), ("wire", 10), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
         new("growCapsule", 4, 6, [], [("frame", 2), ("glass", 6), ("soil", 8), ("circuit", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).

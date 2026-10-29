@@ -166,12 +166,13 @@ public partial class ContentTests
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
-    public void EveryCraftIsMadeSomewhereThePodTheSuitAndScrewdriverTheWorkbenchTheFirstPartsAndToolsAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
+    public void EveryCraftIsMadeSomewhereThePodTheSuitTheWorkbenchWhatIsAssembledTheFormerWhatIsStampedAndEveryQueuedStationLaysEachOfItsCraftsOutOnce()
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
-        string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"], tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp"];
-        string[] electronics = ["circuit", "solarCell", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
-        string[] formed = ["frame", "motor", "soil", "cape", "canister", "nozzle", "fuelPump", "jetpack", "battery", "drill"];
+        string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "cape", "fuelPump"];
+        string[] electronics = ["circuit", "solarCell", "battery", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
+        string[] formed = ["frame", "motor", "soil", "canister", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
         Assert.Equal(parts.Concat(tools).Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));

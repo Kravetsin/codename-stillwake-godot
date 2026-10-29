@@ -191,13 +191,13 @@ public static class Creatures
     /// to 60 cells, stopped by walls, four units of a suit off each hero it crosses, and it waits 2 s. Struck, or its wreck
     /// struck, it answers the striker at once the same way, by how far it is. It flies home at 40 cells a second, past a
     /// jetpack. Thirty hit points, five of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
-    /// It dies with its wreck. Placeholder numbers, for a play pass.
+    /// It dies with its wreck, dropping scrap and two or three circuits, a fighter's share of what is rare. Placeholder numbers, for a play pass.
     /// </summary>
     public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2, Crawl: 40),
         Life: new(Hp: 30, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
         Brain: [new CutTether(Ticks: 16), new Return(Speed: 2000), new Guard(Notice: 40, Strike: 20, AlertTicks: 20)],
         Moves: [new Pounce(WindUp: 16, Speed: 2000, Ticks: 10, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 40, Projectile: "bolt", Reach: 60, Lingers: 10)],
-        Yields: [new("scrapChunk", 3, 5)]);
+        Yields: [new("scrapChunk", 3, 5), new("circuit", 2, 3)]);
 
     public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
 

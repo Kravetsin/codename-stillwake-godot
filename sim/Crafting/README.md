@@ -41,8 +41,8 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
   `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's
-  the suit and screwdriver, the workbench's first parts and tools (the-workbench), the assembler's electronics, the arc
-  bench's sky-shard crafts (0099).
+  the suit and screwdriver, the workbench's assembled tools, the Former's stamped parts (stamped-and-assembled), the
+  assembler's electronics, the arc bench's sky-shard crafts (0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod and the
   workbench have none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs)`**: paid (the default) takes all `Count` units' cost from the sender at

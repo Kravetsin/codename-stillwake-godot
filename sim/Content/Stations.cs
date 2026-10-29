@@ -36,18 +36,19 @@ public static class Stations
     [
         // The lifepod's Fabricator: what a castaway is given, the suit and the screwdriver, at a fifth of full speed (0046).
         new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"]]),
-        // The workbench, of raw salvage: the basic parts and the first tools by hand, at the pod's speed and with no power.
-        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp"]]),
+        // The workbench, of raw salvage: the basic parts by hand, and everything assembled rather than stamped: the tools, the
+        // jetpack, the drill, the cape and the fuel pump. At the pod's speed and with no power.
+        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp", "jetpack", "drill"], ["cape", "fuelPump"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
         // Crushes rock and asteroid ore on power (economy rework): gravel, iron ore and quartz, the only way to silicon and glass.
         new("crusher", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "crush"),
-        // The first powered station: the bench's parts five times as fast, twice the queue, and what only it makes: frames,
-        // motors, the jetpack, the battery and the drill.
-        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "cape", "canister"], ["nozzle", "fuelPump"], ["jetpack", "battery", "drill"]]),
+        // The first powered station, a press: the bench's parts five times as fast, twice the queue, and what only it stamps:
+        // frames, motors, soil, canisters and the nozzle.
+        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "canister", "nozzle"]]),
         // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: silicon into glass.
         new("smelter", Speed: 2000, QueueMost: 0, Rows: [], Heat: 2),
         // The electronics bench: circuits and solar cells, and drones of them, at full speed on power, a queue of eight.
-        new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"], ["drone", "deckDrive"], ["processor", "display", "transceiver"], ["igniter"]]),
+        new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"], ["battery", "drone", "deckDrive"], ["processor", "display", "transceiver"], ["igniter"]]),
         // Grows what is planted in its input, on power (0060): a seed in 9600 ticks, eight minutes, at a full share.
         new("growCapsule", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "grow"),
         // The arc branch's station (0099): every craft of a sky shard, the arc module, the accumulator and the railgun, paid by
