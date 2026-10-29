@@ -211,11 +211,13 @@ public static class Aiming
     /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing. With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
-    /// flight, the next press undoes them, and a press says what its sender saw should become of it.
+    /// flight, the next press undoes them, and a press says what its sender saw should become of it. Where a machine's
+    /// picture rises over the cells above its footprint by <paramref name="riseOf"/> (0099), and nothing there is worked, it is that machine.
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null)
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null,
+        Func<string, int>? riseOf = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -235,6 +237,10 @@ public static class Aiming
             ? new Use(new Board(machine.Id), m.Landing.BoardProblem(peer, machine.Id))
             : crate == null ? PressOf(m, peer, cell, shown) : null;
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
+        // Over a machine's risen picture, as if at its footprint's top row under the pointer.
+        if (riseOf != null && RisenOver(grid, cell, riseOf) is int top
+            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, axe, gun, drill, shown) is ({ Crate: not null } or { Press: not null }) and var under)
+            return under;
         var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
         if (piece != null && HalfOf(piece.Item) == null)
@@ -258,6 +264,14 @@ public static class Aiming
         if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
         return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
+    }
+
+    /// <summary>The top cell, under <paramref name="cell"/>, of the first machine below it in its column, if its picture rises that far.</summary>
+    private static int? RisenOver(IGridQueries grid, int cell, Func<string, int> riseOf)
+    {
+        for (int rows = 1, c = cell + grid.Width; c < grid.Width * grid.Height; rows++, c += grid.Width)
+            if (grid.MachineAt(c) is { } machine) return riseOf(machine.Kind) >= rows ? c : null;
+        return null;
     }
 
     /// <summary>A point in cells, in thousandths of a cell.</summary>
