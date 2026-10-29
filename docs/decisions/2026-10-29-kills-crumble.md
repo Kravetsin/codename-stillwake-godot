@@ -7,7 +7,8 @@
 ## Context
 
 A kill burst its creature into its pixels at once, 100 ms after it was held white, heard no farther than a chop. The user, having played it: rather the
-creature freezes and crumbles into its pixels over a second or two; and a hit or kill by a rifle far off must be heard.
+creature freezes and crumbles into its pixels over a second or two; a hit or kill by a rifle far off must be heard; and a
+creature's death, a heavy landing's thud, was lost under the shot.
 
 ## Decision
 
@@ -21,7 +22,12 @@ creature freezes and crumbles into its pixels over a second or two; and a hit or
 - The body's speed is no longer carried, and the tufts are gone: they burst; the hit and the puff stay. The tick keeps its
   cracks, sparks and flash, then crumbles alike. Loot sprays out as the crumble begins, as before.
 - **This player's own blow on a creature, and its kill, are heard far** (`Sound.Felt`, `FeltReach`: full within 120 cells,
-  gone at 240, still panned): shooting from afar, the player hears it land. A friend's keeps its cue's reach.
+  gone at 240, still panned): shooting from afar, the player hears it land. A friend's keeps its cue's reach. A shot is no
+  strike sent: the sim's `ShotHit` names the creature it met (`Id`) beside its shooter, and the client hears its own by it
+  (`OwnShots`).
+- **Every grazer dies with one sound** (`Sound.CreatureDeath`, as Terraria's enemies mostly share one): Freesound's CC0 "Gooey
+  Squish", the user's pick of a death audition, pitched lower for the tapir and higher for the fluff, heard the moment it is
+  killed (heard 100 ms later, as the crumble began, it felt late to the user). The tick keeps its own power-down.
 
 ## Deliberately not handled
 

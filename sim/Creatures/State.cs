@@ -223,10 +223,11 @@ public enum ShotTarget
 /// <summary>
 /// A hit of a shot this tick (2026-10-27-shots-pierce): the shot by its id, its shooter, projectile and gun; the cell it hit
 /// <see cref="What"/> in, from (<see cref="From"/>), the shot's point as the tick began, in thousandths of a cell; and
-/// what it took (block damage off what is solid) and whether it broke or killed it, the shot then flying on. One with nothing
-/// left to take is listed too, taking nothing.
+/// what it took (block damage off what is solid) and whether it broke or killed it, the shot then flying on; and the
+/// creature or wreck it met by its id (<see cref="Id"/>, as <c>ShotPass</c> names it). One with nothing left to take is listed
+/// too, taking nothing.
 /// </summary>
-public readonly record struct ShotHit(int Shot, Ref By, string Projectile, string? Gun, int Cell, (int X, int Y) From, ShotTarget What, int Damage, bool Broke);
+public readonly record struct ShotHit(int Shot, Ref By, string Projectile, string? Gun, int Cell, (int X, int Y) From, ShotTarget What, int Damage, bool Broke, int Id);
 
 /// <summary>
 /// An arc a creature struck (2026-10-27-sentry-arc): what it carries (<see cref="Content.Shots.Projectile"/>), from its creature's
