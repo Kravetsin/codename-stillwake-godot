@@ -42,18 +42,17 @@ was redrawn since; the painter holds the earlier look.
 | `arc-bench/paint.js` | six candidate benches; the pick, `vise/`: `machine_arcBench`, `arcBench_*` (0099) | `hero_drill`, `module_arc_coil`, previews | `node tools/ship-art/arc-bench/paint.js [outDir]`, then copy `vise/`'s five | exact 5/5 |
 | `arc-bench/accumulator.js` | `items/accumulator`, `items/accumulator_empty` (placeholder, 0099) | none | `node tools/ship-art/arc-bench/accumulator.js [itemsDir]` | exact 2/2 |
 | `economy/` | candidates, `pick.html`; picks (`picks.json`): `machine_workbench`, `machine_crusher`, their `_work_0-3`; `items/` `asteroidOre`, `ironOre`, `gravel`, `quartz`, `alloyPlate`, `hide`, `fat` | none | `node build.js [outDir]`, then `node pick.js [outDir] [artDir]` | exact 17/17 |
+| `walls/` | candidates, `pick.html`; picks (`picks.json`): hull walls, edges, back walls | none | `node build.js`, then `node pick.js` | exact 86/86 |
 | `wrist/export.cjs` (headless Chrome) | `wrist_*` (body, cuff, display, dock, gauge) | Chrome | `node tools/ship-art/wrist/export.cjs <outDir>` | exact 6/6 |
 
-`machines/comp.js` lays one PNG over another (`node comp.js a.png b.png out.png <png.js>`). Painters of
-candidates write pick pages and previews beside themselves, ignored by git. "Scenes" means
-`game/art` scenes or previews.
+`machines/comp.js` lays one PNG over another (`node comp.js a.png b.png out.png <png.js>`). Pick pages and
+previews are written beside their painters, ignored by git. "Scenes": `game/art` scenes or previews.
 
 ## Not painted here
 
 No painter for:
 
-- The ship's tiles, doors, pipes, wall edges, back walls, `floor`, `ladder`, `fire_0-2`, valves, sockets, `wall_iron` and `wall_scrap`.
+- The ship's tiles, doors, pipes, `floor`, `ladder`, `fire_0-2`, valves, sockets; the hero's body parts, `hero_sheet(_screen)`.
 - `machine_generator`, `vent`, `solarPanel`, `furnace`, `crate`, `lamp` and `analyzer`.
-- The hero's body parts and `hero_sheet(_screen)`.
-- `items/cargoCrate`, `supplyPod`, `canister`, `asteroidLarge`, `asteroidRich`, `asteroidSmall`, `cargoHold`,
-  `engineBlock` and `podCluster`.
+- `items/` `cargoCrate`, `supplyPod`, `canister`, `asteroidLarge`, `asteroidRich`, `asteroidSmall`, `cargoHold`,
+  `engineBlock`, `podCluster`.
