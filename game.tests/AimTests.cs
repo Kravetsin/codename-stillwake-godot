@@ -248,6 +248,27 @@ public class AimTests
         """);
 
     [Fact]
+    public void AimsAtAMachineOverThePictureItRaisesAboveItsFootprint()
+    {
+        var world = Drawn("""
+            ##########
+            #........#
+            #........#
+            #...II...#
+            ##########
+            """);
+        var bench = world.M.Grid.Machines.First(c => c.Kind == "workbench");
+        int width = world.M.Grid.Width, x = bench.Cell % width, top = bench.Cell / width;
+        static int Rise(string kind) => kind == "workbench" ? 3 : 0;
+        var hero = HeroOn(4, 2);
+        // Three rows over its top: the picture's top; the cell aimed at is the footprint's under the pointer.
+        var risen = Aiming.AimAt(world.M, 0, hero, (x + 2.5, top - 2.5), riseOf: Rise);
+        Assert.Equal(new Aim(bench.Cell + 2, true, Crate: bench.Id), risen);
+        Assert.Null(Aiming.AimAt(world.M, 0, hero, (x + 2.5, top - 3.5), riseOf: Rise)!.Crate);
+        Assert.Null(Aiming.AimAt(world.M, 0, hero, (x + 2.5, top - 2.5))!.Crate);
+    }
+
+    [Fact]
     public void OpensOnAPressWithinReachAndOnNoPressOrOutOfReach()
     {
         var crate = Room.M.Grid.Machines.First(c => c.Kind == "crate");

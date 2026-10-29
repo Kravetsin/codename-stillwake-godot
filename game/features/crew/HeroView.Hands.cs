@@ -36,7 +36,7 @@ public partial class HeroView
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
-        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown) : null;
+        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, ShipTiles.RiseOf) : null;
         var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, aim);
         TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
