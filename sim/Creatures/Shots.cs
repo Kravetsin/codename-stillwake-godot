@@ -142,7 +142,7 @@ public sealed partial class CreaturesModule
             if (target.Pass == broken) throw new InvalidOperationException($"creatures.shot: {target.Pass} still in {cell} once broken");
             int damage = DamageOf(s.Gun, p, target.Pass.What, s.Pierced);
             bool takes = Takes(target.Pass, damage), broke = takes && HitAt(s, peer, target, damage);
-            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, takes ? damage : 0, broke));
+            _hits.Add(new ShotHit(s.Id, s.By, s.Projectile, s.Gun, cell, from, target.Pass.What, takes ? damage : 0, broke, target.Pass.Id));
             if (!Pierces(gun, takes, broke)) return true;
             s.Pierced += 1;
             if (broke) broken = target.Pass;
@@ -230,7 +230,7 @@ public sealed partial class CreaturesModule
                     ShotTarget.Wreck => _debris.Breaks(target.Pass.Id, damage),
                     _ => false,
                 };
-                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, takes ? damage : 0, breaks));
+                hits.Add(new ShotHit(0, Ref.None, p.Id, gun, cell, from, target.Pass.What, takes ? damage : 0, breaks, target.Pass.Id));
                 if (!Pierces(spec, takes, breaks)) return true;
                 through.Add(target.Pass);
             }

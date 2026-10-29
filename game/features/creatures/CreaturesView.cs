@@ -56,6 +56,8 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         public Vector2 Drawn { get; set; }
         public bool Grounded { get; set; }
         public double OwnAt { get; set; } = double.NegativeInfinity;
+        /// <summary>When this player's own shot last hit it: its blow and kill heard as its own, from afar.</summary>
+        public double ShotAt { get; set; } = double.NegativeInfinity;
         public string Species { get; set; } = "";
         /// <summary>Its steps up and down, two cells at once in the sim, drawn eased (0106): upright on them, never tilted.</summary>
         public StepEase Steps { get; set; } = NewSteps();
@@ -104,6 +106,9 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     private readonly List<Creature> _ticked = [];
 
+    /// <summary>The creatures this player's own shots hit this tick (<see cref="OwnShots"/>).</summary>
+    private readonly HashSet<int> _shotByOwn = [];
+
     /// <summary>
     /// Shows <paramref name="creatures"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
     /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
@@ -126,6 +131,9 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         }
         (_palette, _seed) = (palette, seed);
         _bursts.On(grid, rooms, rules);
+        OwnShots.Of(creatures.Hits, client.Id, _shotByOwn);
+        foreach (int id in _shotByOwn)
+            if (_shown.TryGetValue(id, out var shot)) shot.ShotAt = _clockMs;
         var all = creatures.Creatures;
         int left = (int)Math.Floor(view.Position.X - Margin) * Unit, right = (int)Math.Ceiling(view.End.X + Margin) * Unit;
         int top = (int)Math.Floor(view.Position.Y - Margin) * Unit, bottom = (int)Math.Ceiling(view.End.Y + Margin) * Unit;
@@ -173,7 +181,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (c.Damage > one.Damage)
             {
                 // A friend's strike, or one of this player's own already shown as it was sent.
-                if (_clockMs - one.OwnAt > OwnMs) Struck(one, ToolOf(one.Drawn), own: false);
+                if (_clockMs - one.OwnAt > OwnMs) Struck(one, ToolOf(one.Drawn), own: _clockMs - one.ShotAt < OwnMs);
                 one.Damage = c.Damage;
             }
             Place(one, c, progress, elapsedMs);
@@ -186,7 +194,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
-        _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources);
+        _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }
 
@@ -427,7 +435,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         var middle = one.Drawn + new Vector2(0, -spec.Body.Height * Cell / 2 * one.Body.Size);
         Stages.Of(Layers.Effects).Flares.Glint(middle.X, middle.Y, 12, (255, 255, 255));
         Stages.Of(Layers.Effects).Flares.Shock(middle.X, middle.Y, 3, 30, 200, (255, 246, 236), 0.5 * Fx.Glow, 0.35);
-        bool own = _clockMs - one.OwnAt < OwnMs * 2;
+        bool own = _clockMs - one.OwnAt < OwnMs * 2 || _clockMs - one.ShotAt < OwnMs;
         if (S.Creatures.TryGetValue(one.Species, out var cues))
             (own ? _ownHits : _worldHits).Play(own ? S.Felt(cues.Death) : cues.Death, middle, cues.Death.Tune, 0);
         one.Body.Whiten();
