@@ -46,7 +46,7 @@ public partial class TickBodies : Node2D
         public S.TickCues? Cues;
         public Vector2 From, To, Drawn;
         public int Tick = -1, Damage, Cut, Piece;
-        public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed, SawOwed, WhipLeft;
+        public double AlongFrom, AlongTo, OwnAt = double.NegativeInfinity, ShotAt = double.NegativeInfinity, ArcsOwed, BurnOwed, SmokeOwed, MotesOwed, SpitOwed, SawOwed, WhipLeft;
         /// <summary>The way the line it saws runs off, from its claw: what its snap whips along.</summary>
         public Vector2 LineWay = Vector2.Left;
         public string Species = "";
@@ -114,12 +114,14 @@ public partial class TickBodies : Node2D
     /// <summary>
     /// A frame of the creatures in <paramref name="ticks"/> (those drawn as the tick), tick <paramref name="tick"/> drawn
     /// <paramref name="progress"/> of the way to the next, watching the heroes drawn at <paramref name="heroes"/> (their chests);
-    /// what their lamps and burners light goes into <paramref name="lights"/>.
+    /// what their lamps and burners light goes into <paramref name="lights"/>; <paramref name="shotByOwn"/> those this player's own shots hit.
     /// </summary>
     public void Frame(CreaturesModule creatures, IDebrisQueries debris, IReadOnlyList<Creature> ticks, int tick, double progress,
-        double elapsedMs, IReadOnlyList<(float X, float Y)> heroes, List<LightSource> lights)
+        double elapsedMs, IReadOnlyList<(float X, float Y)> heroes, List<LightSource> lights, IReadOnlySet<int> shotByOwn)
     {
         _clockMs += elapsedMs;
+        foreach (int id in shotByOwn)
+            if (_shown.TryGetValue(id, out var shot)) shot.ShotAt = _clockMs;
         _heroes = heroes;
         double dt = Math.Max(0, elapsedMs / 1000);
         _seen.Clear();
@@ -132,7 +134,7 @@ public partial class TickBodies : Node2D
             if (c.Damage > one.Damage)
             {
                 // A friend's strike, or one of this player's own already shown as it was sent.
-                if (_clockMs - one.OwnAt > OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: false);
+                if (_clockMs - one.OwnAt > OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < OwnMs);
                 one.Damage = c.Damage;
             }
             var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress), dt);
@@ -505,7 +507,7 @@ public partial class TickBodies : Node2D
     private void Die(Shown one)
     {
         one.Motion.Die();
-        if (one.Cues is { } cues) _suit.Play(_clockMs - one.OwnAt < OwnMs * 2 ? S.Felt(cues.Death) : cues.Death, one.Drawn + new Vector2(0, -8));
+        if (one.Cues is { } cues) _suit.Play(_clockMs - one.OwnAt < OwnMs * 2 || _clockMs - one.ShotAt < OwnMs ? S.Felt(cues.Death) : cues.Death, one.Drawn + new Vector2(0, -8));
         _dying.Add(one);
     }
 

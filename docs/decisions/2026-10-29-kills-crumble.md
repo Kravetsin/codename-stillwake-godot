@@ -21,7 +21,9 @@ creature freezes and crumbles into its pixels over a second or two; and a hit or
 - The body's speed is no longer carried, and the tufts are gone: they burst; the hit and the puff stay. The tick keeps its
   cracks, sparks and flash, then crumbles alike. Loot sprays out as the crumble begins, as before.
 - **This player's own blow on a creature, and its kill, are heard far** (`Sound.Felt`, `FeltReach`: full within 120 cells,
-  gone at 240, still panned): shooting from afar, the player hears it land. A friend's keeps its cue's reach.
+  gone at 240, still panned): shooting from afar, the player hears it land. A friend's keeps its cue's reach. A shot is no
+  strike sent: the sim's `ShotHit` names the creature it met (`Id`) beside its shooter, and the client hears its own by it
+  (`OwnShots`).
 
 ## Deliberately not handled
 
