@@ -14,8 +14,8 @@ public static class Research
 
     /// <summary>
     /// What the wreck grants from its start: the furnace and the analyzer, the crate, the scrap walls and
-    /// back walls a torn room is closed with, the wire its cables are made of, and the fire axe wreckage
-    /// is broken with.
+    /// back walls a torn room is closed with, the wire its cables are made of, the fire axe wreckage
+    /// is broken with, and the solar panel, so its own taken apart builds again with the analyzer unpowered.
     /// </summary>
-    public static readonly IReadOnlyList<string> StartKnown = ["furnace", "workbench", "analyzer", "crate", "wallScrap", "backWallScrap", "wire", "fireAxe", "screwdriver", "helmet", "suit"];
+    public static readonly IReadOnlyList<string> StartKnown = ["furnace", "workbench", "analyzer", "crate", "wallScrap", "backWallScrap", "wire", "fireAxe", "screwdriver", "helmet", "suit", "solarPanel"];
 }

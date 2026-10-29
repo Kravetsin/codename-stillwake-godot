@@ -33,8 +33,9 @@ planned, a craft not known cannot be queued. Ported from `packages/sim/src/modul
   natural ground (0077, `Blueprints.Has`); soil and stone walls are, known once soil or rock is analysed. A craft is named by the item it makes (`wire`, `Content.Crafts`). Cables are no
   blueprint and always known.
 - **The opening rule:** a blueprint or a craft is known when it is granted, or when every item of its
-  cost that needs analysis (below) is analysed. Nothing is held back: the solar panel opens as the rest do, once a frame, a solar
-  cell, wire and a circuit are analysed (0041, 0057). In creative mode everything is known.
+  cost that needs analysis (below) is analysed. Nothing is held back; the solar panel is granted from the start, so the
+  wreck's own taken apart builds again with its analyzer unpowered ([photo-panel](../../docs/decisions/2026-10-29-photo-panel.md)).
+  In creative mode everything is known.
 - What is granted and analysed is kept by the world's `Knowledge` (0076), one for every surface: an item analysed on
   a planet opens what it opens aboard. Research, one a surface, keeps what each of its analyzers is doing and reads the
   rest; `IResearchQueries` is answered as before, so building and crafting ask it alone.

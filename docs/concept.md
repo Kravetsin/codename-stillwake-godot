@@ -47,10 +47,12 @@ A living document: what is decided about the game and what is still open. Techni
   assembler of silicon and wire ([stamped-and-assembled](decisions/2026-10-29-stamped-and-assembled.md)). Silicon starts as asteroid ore: the crusher breaks it into iron ore, gravel and, one
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
-  solar panel is built of solar cells, silicon and glass assembled with wire, so a first new panel takes the whole chain
+  solar panel is built of solar cells, silicon and glass assembled with wire, and of a photosensitive panel nothing makes:
+  only a panel taken apart gives one back, so the wreck's own can always be built again, and no new one
   ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
   [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
-  [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
+  [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md),
+  [photo-panel](decisions/2026-10-29-photo-panel.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
   never taken apart. Heroes are made at its hatch, at the start bare and after dying in what they wore,
   their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space,

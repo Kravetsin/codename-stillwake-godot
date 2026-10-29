@@ -241,33 +241,32 @@ public class ResearchTests
     }
 
     [Fact]
-    public void OpensTheSolarPanelOnceItsCellsAndPartsAreAnalysedAndBuildsItOfThem()
+    public void BuildsTheSolarPanelTakenApartAgainWithNothingAnalysedItsPhotosensitivePanelBack()
     {
-        // Held back by nothing (0041): a frame, solar cells, wire and a circuit, analysed as any blueprint is (0057).
-        var (w, id) = SetUp();
+        // Known from the start (2026-10-29-photo-panel): its photosensitive panel, which nothing makes, comes back taken apart.
+        var (w, _) = SetUp();
         var panel = new Placement("machine", "solarPanel");
         var cost = Content.Machines.Get("solarPanel").Cost;
-        Assert.Equal(["frame", "solarCell", "wire", "circuit"], cost.Select(c => c.Item));
-        // The wire is what the hero carries from the start.
-        int wire = cost.Single(c => c.Item == "wire").Count;
-        Assert.True(wire <= 5);
-        w.GiveItems(0, [.. cost.Where(c => c.Item != "wire")]);
-        Assert.Equal(["frame", "solarCell", "wire", "circuit"], RecipeOf(w, "solarPanel").Unanalysed);
-        foreach (var item in new[] { "frame", "solarCell", "wire" }) Analyse(w, id, item);
-        Assert.Equal(["circuit"], RecipeOf(w, "solarPanel").Unanalysed);
-        Assert.False(w.M.Research.Knows(panel));
-        Analyse(w, id, "circuit");
-        Assert.True(RecipeOf(w, "solarPanel").Known);
         Assert.True(w.M.Research.Knows(panel));
-        // Paid an item a part from what the hero carries, the analysed items taken back out among it.
-        w.Do(new PlacePlan(At(4, 0), panel)).Run();
+        Assert.Empty(Analysed(w));
+        Assert.False(Analysable.NeedsAnalysis("photoPanel"));
+        w.Do(new Deconstruct(At(0, 0), "machine")).Run();
+        int mark = w.M.Building.Plans.Single().Id;
+        for (int t = 0; t < 400 && w.M.Grid.MachineAt(At(0, 0)) != null; t++) w.Do(new Work(mark)).Run();
+        Assert.Null(w.M.Grid.MachineAt(At(0, 0)));
+        Assert.Equal(1, w.M.Items.Inventory(0).Sum(s => s?.Item == "photoPanel" ? s.Count : 0));
+        // Built again of what came back, the photosensitive panel among it; none is left for a second.
+        w.Do(new PlacePlan(At(0, 0), panel)).Run();
         Assert.Empty(w.Refusals);
         int plan = w.M.Building.Plans.Single().Id;
         for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal("solarPanel", w.M.Grid.MachineAt(At(4, 0))?.Kind);
-        Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item is "circuit" or "solarCell" or "frame" ? s.Count : 0));
-        Assert.Equal(5 - wire, w.M.Items.Inventory(0).Sum(s => s?.Item == "wire" ? s.Count : 0));
+        Assert.Equal("solarPanel", w.M.Grid.MachineAt(At(0, 0))?.Kind);
+        Assert.All(cost.Where(c => c.Item != "wire"), c => Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item == c.Item ? s.Count : 0)));
+        w.Do(new PlacePlan(At(4, 0), panel)).Run();
+        for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(w.M.Building.Plans.Single().Id)).Run();
+        Assert.Contains("items.notEnough", w.Refusals.Select(r => r.Reason));
+        Assert.Null(w.M.Grid.MachineAt(At(4, 0)));
     }
 
     [Fact]

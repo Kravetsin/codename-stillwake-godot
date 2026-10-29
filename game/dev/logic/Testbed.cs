@@ -35,11 +35,14 @@ public static class Testbed
     /// <summary>What a planet's caves and ruins give (0080, 0085, 0091), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
     public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
 
-    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of the crusher's, of planks for soil, and of what a planet gives.</summary>
-    public static IEnumerable<string> FarmCrate => [.. Farm, .. Crushed, "planks", .. Planet];
+    /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart.</summary>
+    public static readonly IReadOnlyList<string> Unmade = ["photoPanel"];
+
+    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of the crusher's, of planks for soil, of what a planet gives and of what nothing makes.</summary>
+    public static IEnumerable<string> FarmCrate => [.. Farm, .. Crushed, "planks", .. Planet, .. Unmade];
 
     /// <summary>Whether <paramref name="item"/> goes in the farm's crate rather than the full one.</summary>
-    public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item);
+    public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item);
 
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
