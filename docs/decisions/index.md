@@ -157,3 +157,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
 | [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted |  |
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted |  |
+| [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |

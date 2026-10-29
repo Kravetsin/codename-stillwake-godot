@@ -374,6 +374,8 @@ public class DebrisTests
         Assert.Equal(planks, Count(w, "planks", 0));
         Assert.NotEmpty(w.M.Items.Floor);
         w.Run(DebrisSpec.Every + DebrisSpec.Jitter);
+        // The next piece whatever the stream drew, a crate again, so it is one a hero catches.
+        Pieces(w)[0].Item = "cargoCrate";
         int next = Pieces(w)[0].Id;
         w.Do(new Grab(next)).Run();
         Assert.Equal([], w.M.Debris.CaughtFrom(next)!);

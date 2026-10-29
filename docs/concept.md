@@ -42,8 +42,9 @@ A living document: what is decided about the game and what is still open. Techni
   the jetpack and anything else that goes into nothing are known from the start. An item not analysed
   yet has a violet "?" in its slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
   item in it goes into, opened or still closed; nothing pops up over the hero. Every electric thing
-  is built of circuits: some salvaged from the electronics racks that drift by, most made at the circuit
-  assembler of silicon and wire. Silicon starts as asteroid ore: the crusher breaks it into iron ore, gravel and, one
+  is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
+  drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit
+  assembler of silicon and wire ([stamped-and-assembled](decisions/2026-10-29-stamped-and-assembled.md)). Silicon starts as asteroid ore: the crusher breaks it into iron ore, gravel and, one
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
   solar panel is built of solar cells, silicon and glass assembled with wire, so a first new panel takes the whole chain
@@ -65,8 +66,8 @@ A living document: what is decided about the game and what is still open. Techni
   queue the crew shares, paid when queued, made one at a time into its outputs; it makes the basic parts and the first tools
   ([the-workbench](decisions/2026-10-28-the-workbench.md)). Most builds cost parts, so the furnace feeds the workbench
   before it feeds the hull. Machines for parts the player builds are
-  powered, faster and with longer queues: the Former first, the only maker of frames, motors, the jetpack, the battery and
-  the drill, and presses for the parts at five times the
+  powered, faster and with longer queues: the Former first, a press that alone stamps frames, motors, soil, canisters and the
+  nozzle, and presses the parts at five times the
   pod's speed; then the electric smelter, twice the furnace's speed and hotter: what needs more heat than
   a machine has goes in, and the machine shows it is too cold, cold blue, rather than refusing it; then the
   circuit assembler, circuits of silicon and wire and solar cells of silicon, glass and wire
