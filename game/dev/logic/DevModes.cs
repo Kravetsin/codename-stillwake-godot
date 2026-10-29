@@ -90,7 +90,7 @@ public static class DevModes
         // The camera and measuring.
         new("--zoom", DevShape.Next, "the camera held at that zoom"),
         new("--view", DevShape.Next, "X,Y[,ZOOM]: where the camera looks"),
-        new("--snap", DevShape.Next, "the screen saved to that PNG once the world is --snap-at seconds old, then quits"),
+        new("--snap", DevShape.Next, "the screen saved to that PNG once the world has played --snap-at seconds, then quits"),
         new("--snap-at", DevShape.Next, "with --snap, the seconds; 6 by default"),
         new("--for", DevShape.Equals, "quits after that many seconds"),
         new("--measure", DevShape.Flag, "prints what frames cost (PerfReadout)"),

@@ -146,10 +146,12 @@ public partial class Main
         AimCamera(aimAt);
     }
 
-    /// <summary>--snap FILE: the screen saved to FILE as a PNG once the world is --snap-at seconds old (6 by default), then quit.</summary>
+    /// <summary>--snap FILE: the screen saved to FILE as a PNG once the world has played --snap-at seconds (6 by default), then quit.</summary>
     private void Snap(Client client)
     {
-        if (Arg("--snap") is { } snap && client.World.Tick >= World.TicksPerSecond * int.Parse(Arg("--snap-at") ?? "6") && !_snapped)
+        if (Arg("--snap") is not { } snap || _snapped) return;
+        _snapClock ??= new Dev.SnapClock(int.Parse(Arg("--snap-at") ?? "6"));
+        if (_snapClock.Due(client.World.Tick))
         {
             _snapped = true;
             GetViewport().GetTexture().GetImage().SavePng(snap);
@@ -160,6 +162,9 @@ public partial class Main
 
     /// <summary>Whether <c>--snap</c> has saved its picture.</summary>
     private bool _snapped;
+
+    /// <summary>When <c>--snap</c> saves it, counted from the first frame of play.</summary>
+    private Dev.SnapClock? _snapClock;
 
     /// <summary>The commands the dev scripts send on a tick: doors, hatches and toggles for recordings.</summary>
     private void DevTick(Client client, int before)
