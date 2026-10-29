@@ -22,9 +22,9 @@ public static class WallStats
     {
         var lines = new List<string> { En.T("wall.leak", ("rate", LeakAMinute(material))) };
         if (shower == null) return lines;
-        if (material.Strength == Material.Unbreakable) lines.Add(En.T("wall.meteorsNever"));
-        else if (back) lines.Add(En.T("wall.resists", ("strength", material.Strength)));
-        else lines.Add(En.T("wall.meteors", ("strength", material.Strength), ("share", BreakingShare(material.Strength, shower))));
+        if (material.Armour == Material.Unbreakable) lines.Add(En.T("wall.meteorsNever"));
+        else if (back) lines.Add(En.T("wall.resists", ("strength", material.Armour)));
+        else lines.Add(En.T("wall.meteors", ("strength", material.Armour), ("share", BreakingShare(material.Armour, shower))));
         return lines;
     }
 

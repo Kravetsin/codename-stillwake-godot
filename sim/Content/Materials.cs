@@ -6,7 +6,12 @@ namespace Stillwake.Content;
 /// <param name="Code">Stored in saves instead of the name: never reuse or renumber a code.</param>
 /// <param name="Strength">
 /// A natural wall's hit points: the damage of weapons' hits (0054) that breaks it out (0077). <see cref="Unbreakable"/>
-/// for one nothing breaks, bedrock and lava. A hull wall's: the least power of a meteor that breaks it (2026-10-28-hull-meteors).
+/// for one nothing breaks, bedrock and lava. A tool's hits on a hull wall where tools break things, a planet.
+/// </param>
+/// <param name="Armour">
+/// How it stands up to meteors (2026-10-29-wall-roles), apart from how hard it digs: the least power that breaks it, and twice
+/// it what breaking it soaks of a blast. 0 for one no meteor breaks. Armour and <see cref="Leak"/> pull apart, so no wall is best
+/// at both: metal and laid stone stand, their joints let air through; glass, mica and hide seal and give way.
 /// </param>
 /// <param name="Leak">
 /// Oxygen units lost every <see cref="Air.LeakEvery"/> ticks (ten minutes) through one cell of it that an
@@ -38,7 +43,7 @@ namespace Stillwake.Content;
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,
     bool Hurts = false, bool Grows = false, Tread Footing = Tread.Deck, MaterialLook Look = MaterialLook.Cut, MenuSlot? Menu = null,
-    MenuSlot? BackMenu = null, string? In = null)
+    MenuSlot? BackMenu = null, string? In = null, int Armour = 0)
 {
     /// <summary>The <see cref="Strength"/> of a material nothing breaks.</summary>
     public const int Unbreakable = 0;
@@ -69,23 +74,30 @@ public static class Materials
 {
     public static readonly IReadOnlyList<Material> All =
     [
-        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110)),
-        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120)),
-        // A planet's ground (0077), leakier than any hull. Soil breaks at a swing of the axe, stone at three; a shovelful
-        // of soil and a lump of rock, the asteroids' own, come out of it, and build it back.
-        new("soil", Code: 3, Strength: 4, Leak: 40, Cost: [("soil", 1)], BuildTicks: 5, Natural: true, Grows: true, Footing: Tread.Soil, Menu: new(MenuTabs.Structure, 30), BackMenu: new(MenuTabs.Structure, 130)),
-        new("stone", Code: 4, Strength: 12, Leak: 36, Cost: [("rock", 1)], BuildTicks: 10, Natural: true, Footing: Tread.Stone, Menu: new(MenuTabs.Structure, 40), BackMenu: new(MenuTabs.Structure, 140)),
+        // Metal hull (2026-10-29-wall-roles): patched scrap and riveted plates stand up to meteors, and leak at their seams.
+        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110), Armour: 2),
+        new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120), Armour: 5),
+        // The seals: whole sheets no air gets through, and any meteor breaks. Alike but for their look, the player's choice.
+        new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1),
+        new("mica", Code: 12, Strength: 1, Leak: 6, Cost: [("mica", 2)], BuildTicks: 8, Menu: new(MenuTabs.Structure, 24), BackMenu: new(MenuTabs.Structure, 124), Armour: 1),
+        new("hide", Code: 13, Strength: 1, Leak: 6, Cost: [("hide", 1), ("fat", 1)], BuildTicks: 6, Menu: new(MenuTabs.Structure, 26), BackMenu: new(MenuTabs.Structure, 126), Armour: 1),
+        // A planet's ground (0077), far leakier than any hull, soil the worst. Soil breaks at a swing of the axe, stone at three; a
+        // shovelful of soil and a lump of rock, the asteroids' own, come out of it, and build it back. Laid stone stands up to meteors
+        // better than scrap, soil worse.
+        new("soil", Code: 3, Strength: 4, Leak: 120, Cost: [("soil", 1)], BuildTicks: 5, Natural: true, Grows: true, Footing: Tread.Soil, Menu: new(MenuTabs.Structure, 30), BackMenu: new(MenuTabs.Structure, 130), Armour: 1),
+        new("stone", Code: 4, Strength: 12, Leak: 90, Cost: [("rock", 1)], BuildTicks: 10, Natural: true, Footing: Tread.Stone, Menu: new(MenuTabs.Structure, 40), BackMenu: new(MenuTabs.Structure, 140), Armour: 4),
         new("bedrock", Code: 5, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),
         // The planet's core over its bedrock: molten rock nothing digs or builds, burning a hero who touches it (Content.Lava).
         new(Lava.Material, Code: 6, Strength: Material.Unbreakable, Leak: 36, Cost: [], BuildTicks: 0, Natural: true,
             Hurts: true, Footing: Tread.Stone, Look: MaterialLook.Molten),
-        // The ruins' metal (0085): five times stone, a second and a half of the drill, under one with the arc fitted (0098); a scrap of it a cell.
-        new("alloy", Code: 7, Strength: 60, Leak: 36, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy, Menu: new(MenuTabs.Structure, 50), BackMenu: new(MenuTabs.Structure, 150)),
+        // The ruins' metal (0085): five times stone, a second and a half of the drill, under one with the arc fitted (0098); a scrap of
+        // it a cell, what digging gives too. The best armour, its plates leaking as iron's do.
+        new("alloy", Code: 7, Strength: 60, Leak: 24, Cost: [("alloyScrap", 1)], BuildTicks: 20, Natural: true, Footing: Tread.Alloy, Menu: new(MenuTabs.Structure, 50), BackMenu: new(MenuTabs.Structure, 150), Armour: 7),
         // The homes' warm back walls (0091): smoothed stone washed with lime. Never built, so no blueprint; no wall of it stands.
-        new("plaster", Code: 8, Strength: 12, Leak: 36, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone),
+        new("plaster", Code: 8, Strength: 12, Leak: 90, Cost: [], BuildTicks: 0, Natural: true, Footing: Tread.Stone, Armour: 4),
         // Veins of ore in a planet's stone: as hard as it, a lump of ore or ice a cell, never built.
-        new("copperVein", Code: 9, Strength: 12, Leak: 36, Cost: [("copperOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone"),
-        new("iceVein", Code: 10, Strength: 12, Leak: 36, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone"),
+        new("copperVein", Code: 9, Strength: 12, Leak: 90, Cost: [("copperOre", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
+        new("iceVein", Code: 10, Strength: 12, Leak: 90, Cost: [("ice", 1)], BuildTicks: 0, Natural: true, Footing: Tread.Stone, In: "stone", Armour: 4),
     ];
 
     /// <summary>What a <c>#</c> on a map is built of.</summary>

@@ -22,7 +22,17 @@ public class WallStatsTests
     public void GiveABackWallItsStrengthAloneAndAPlaceWithoutMeteorsItsLeakAlone()
     {
         Assert.Equal(["Leaks 3 O₂ a minute through each cell", "Meteor resistance 2"], WallStats.Of(Materials.Get("scrap"), back: true, Start));
-        Assert.Equal(["Leaks 4 O₂ a minute through each cell"], WallStats.Of(Materials.Get("soil"), back: false, shower: null));
+        Assert.Equal(["Leaks 12 O₂ a minute through each cell"], WallStats.Of(Materials.Get("soil"), back: false, shower: null));
+    }
+
+    [Fact]
+    public void GiveStoneArmourThatLeaksAndTheSealsNoArmourAndNoLeak()
+    {
+        Assert.Equal(["Leaks 9 O₂ a minute through each cell", "Meteor resistance 4: 40% of meteors here break it"],
+            WallStats.Of(Materials.Get("stone"), back: false, Start));
+        foreach (var seal in new[] { "glass", "mica", "hide" })
+            Assert.Equal(["Leaks 0.6 O₂ a minute through each cell", "Meteor resistance 1: 100% of meteors here break it"],
+                WallStats.Of(Materials.Get(seal), back: false, Start));
     }
 
     [Fact]

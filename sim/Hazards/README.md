@@ -27,16 +27,16 @@ here unchanged.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
   met first shields its row.
-- **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Strength` (scrap 2,
+- **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Armour` (wall-roles: scrap 2,
   iron 5), a blast of `Charge(power)` spreads from it as a wave, cheapest way first: a cell costs `Meteors.Step` (aslant
-  `Diagonal`), a wall `PerStrength` a point of its strength more, and breaks; what is left goes on, so walls soak it. It goes
+  `Diagonal`), a wall `PerStrength` a point of its armour more, and breaks; what is left goes on, so walls soak it. It goes
   through open cells and breakable walls; anything else stops it. A back wall behind a cell reached breaks where what is left
-  pays for its strength, spending nothing. All found, then broken in cell order. A struck wall that holds stops it whole.
+  pays for its armour, spending nothing. All found, then broken in cell order. A struck wall that holds stops it whole.
   Then the next interval is drawn. `Farthest(power, shower)` bounds the area, for the client too.
 - **A wall broken** is cleared, lost, refunding nothing, its pipes left whole (0109), and nothing is planned in its place:
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
-- `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its strength.
+- `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its armour.
 
 ## API
 
