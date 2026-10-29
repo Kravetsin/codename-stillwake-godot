@@ -57,4 +57,22 @@ public static class Bodies
                 (x, y, n) = (x + floor[i].X, y + floor[i].Y, n + 1);
         return new Pile(peer, newest, x / n, y / n);
     }
+
+    /// <summary>
+    /// What the body <paramref name="pile"/> holds among <paramref name="floor"/>'s stacks, each item once with all of it, the most
+    /// first, by item on a tie: what its tip lists (2026-10-29-body-bag).
+    /// </summary>
+    public static List<(string Item, int Count)> Contents(IReadOnlyList<FloorStack> floor, Pile pile)
+    {
+        var held = new List<(string Item, int Count)>();
+        for (int i = 0; i < floor.Count; i++)
+        {
+            if (floor[i].Body is not { } b || b.Peer != pile.Peer || b.Died != pile.Died) continue;
+            int k = held.FindIndex(h => h.Item == floor[i].Item);
+            if (k < 0) held.Add((floor[i].Item, floor[i].Count));
+            else held[k] = (held[k].Item, held[k].Count + floor[i].Count);
+        }
+        held.Sort((a, b) => a.Count != b.Count ? b.Count.CompareTo(a.Count) : string.CompareOrdinal(a.Item, b.Item));
+        return held;
+    }
 }

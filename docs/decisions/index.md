@@ -66,7 +66,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted |  |
 | [0059](0059-machines-heard-at-work.md) | Machines heard at work, and the suit heard over space | accepted |  |
 | [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md) | The farm: a grow capsule is a fed station | accepted |  |
-| [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted |  |
+| [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted | body-bag (in part) |
 | [0062](0062-drones-keep-machines-going.md) | Drones keep machines going | accepted |  |
 | [0063](0063-blueprints-are-paid-a-part-at-a-time.md) | Blueprints are paid a part at a time | accepted |  |
 | [0064](0064-plans-and-marks-are-drawn-alike.md) | Plans and marks are drawn alike | accepted |  |
@@ -154,6 +154,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
 | [the-crusher](2026-10-28-the-crusher.md) | The crusher and the first cost pass | accepted |  |
 | [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |
+| [body-bag](2026-10-29-body-bag.md) | A body holds its things | accepted |  |
 | [clear-glass](2026-10-29-clear-glass.md) | Clear glass | accepted |  |
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
 | [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |

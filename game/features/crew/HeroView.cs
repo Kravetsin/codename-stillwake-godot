@@ -60,7 +60,7 @@ public partial class HeroView : Node2D
     private readonly HeroSender _sender;
     private readonly Node2D _others = new() { ZIndex = Layers.OtherHeroes };
     /// <summary>What heroes left where they died, lying on their stacks with a beacon blinking (0061).</summary>
-    private readonly BodyView _bodies = new();
+    private readonly BodyView _bodies;
     /// <summary>
     /// Another hero as drawn: its figure, its tether while it has one, what its hands were busy with last
     /// frame, the swings of its axe as replayed here, each at the point sent with it, and its harpoon's rod as
@@ -211,6 +211,7 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        _bodies = new BodyView(ui);
         // Plans placed: the planner in the hero's hand beams them in, cell by cell; the others see it beam at the first.
         _ui.Planned += cells =>
         {
@@ -464,7 +465,7 @@ public partial class HeroView : Node2D
                 _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
-        _bodies.Frame(m, progress, elapsedMs);
+        _bodies.Frame(m, client.Id, progress, elapsedMs, Pointer());
 
         double between = _clock.Progress;
         double x = _previous.X + (_current.X - _previous.X) * between;

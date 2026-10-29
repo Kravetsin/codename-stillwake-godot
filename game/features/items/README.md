@@ -42,7 +42,7 @@ and tested in `game.tests/`.
 ## Guarantees
 
 - **What the slots show** is the world with this peer's own moves, drops, sorts and fits in flight made (`Reading`,
-  0014), read every 100 ms and at once after each send (no ADR).
+  0014), read every 100 ms and after each send.
 - **Clicks** (no ADR): left picks a stack and puts it; right picks half, rounded up, or puts one, or breathes an own
   canister (0047). A drag let go over a slot puts, over the world throws; along the closed hotbar it only chooses.
   A stack let go over any panel or bezel is not thrown.
@@ -60,15 +60,14 @@ and tested in `game.tests/`.
   `Slots.TintOf`: tools amber, worn items green.
 - **Equipment** (0047, 0058): head, back, belt rows; while a stack is carried, slots that would wear it glow, others
   dim. The screwdriver is a hotbar item (0107): no hands row.
-- **Look** (0074): every panel is a screen in the wrist's metal; a machine's screen is greyer than the bag's. Content
-  fades in with the tablet's screen; closing is instant.
+- **Look** (0074): every panel a screen in the wrist's metal, a machine's greyer; content fades in, closing is instant.
 - **One machine frame** (0058): name, and for a powered one a bolt with its power (`IPowerQueries.Draw`, modules in),
   lit while it works. Furnace and burner generator say why they stand (`furnace.*`, from `At`); smelter, grow capsule
   and charger panels follow 0057, 0060, 0053. Too cold: the mark turns blue, its tip names a station hot enough (0057).
   Queued stations dock at `Ui.InventoryFoot`, their input slots lent by `Lend` (0058).
 - **Module sockets** (0086): one per module a host takes, empty showing its tech's ghost, glowing while one that fits
   is carried; fit by drop, click or shift; take out by press. Slots holding a fitting module show its tech icon.
-- **Icons** (0097): glowing line icons, hexagon for a tech, ring for a station's work; only seen ones move.
+- **Icons** (0097): glowing lines, a hexagon a tech, a ring a station's work; only seen ones move.
 - **A tool in a slot** (2026-10-27-tool-icons): its icon fills the slot, its margin baked in (`Slots.IconBox`); any other
   item sits in the inset. The stack in hand and a flight between slots place it the same way.
 - **Station marks** (0097): with a fed station or fire open, slots it processes show its mark (`Smelts`, `Burns`,
@@ -81,14 +80,14 @@ and tested in `game.tests/`.
   charge in power units, never time (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter); an empty one its own picture. The energy tab
   (0081) always shows the belt's charge in whole power units, read four times a second.
-- **Every inventory action clicks** (0081), not the wheel. A canister breathed pulses its slot.
+- **Inventory actions click** (0081), not the wheel; a breathed canister pulses.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
-  between the last two ticks, side by side when still; over machines and bodies, under heroes. Flying they spin; landing
+  between the last two ticks, side by side when still; over machines, under heroes. Flying they spin; landing
   they squash, hop twice and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature
-  (`Reach.Hidden`) is not drawn.
+  (`Reach.Hidden`) is not drawn, nor a body's, inside it (2026-10-29-body-bag).
 - **Pick-up** (no ADR): a stack the hero's body overlaps is picked up unless refused, vanishing, flying home;
-  loot nobody dropped within `Floor.PickUpReach` cells too, pulled in (2026-10-29-kill-feel); never while passed out
-  (0061), which also closes the inventory.
+  loot nobody dropped within `Floor.PickUpReach` cells too, pulled in (2026-10-29-kill-feel); a body's all within
+  `Floor.BodyReach`, in one popup line; never while passed out (0061), which also closes the inventory.
 - **Own catches** (0075): a grab seen in flight then gone has run; `CaughtFrom` gives each item a popup line and a
   flight home from the piece. Only this peer's; a refused or already-gone grab shows nothing.
 
