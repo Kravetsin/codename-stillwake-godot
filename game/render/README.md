@@ -40,6 +40,8 @@
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
 | `PlanTiles.cs` | The ship's tile layers again, for plans and ghosts. |
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
+| `logic/PixelDust.cs` | The pixels a killed creature bursts into: flying, heaping, fading (2026-10-29-kill-feel). |
+| `PixelsLayer.cs` | Those pixels in one multimesh, lit. |
 | `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |

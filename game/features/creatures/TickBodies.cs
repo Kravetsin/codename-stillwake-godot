@@ -18,7 +18,7 @@ namespace Stillwake.Game.Features.Creatures;
 /// pose (<see cref="TickArt"/>, <see cref="TickMotion"/>), lit as the world, its eye and cracks over it unlit; its eye lamp
 /// lighting the wreck in its colour, red arcs jumping between its legs as it winds up, an amber burner trailing sparks and
 /// smoke while it flies, its feet's magnets glowing while it grips; struck a white flash and fine sparks; a harpoon line it
-/// cuts snipped in sparks at its claw; killed, cracks spreading till it bursts into sparks and tumbling plates. Heard on the
+/// cuts snipped in sparks at its claw; killed, cracks flashing over it till it bursts into sparks and its own pixels (2026-10-29-kill-feel). Heard on the
 /// Suit bus, as the wreck it guards is (<see cref="S.Ticks"/>). Drawn between ticks where the sim put it.
 /// </summary>
 public partial class TickBodies : Node2D
@@ -30,12 +30,6 @@ public partial class TickBodies : Node2D
     private const double OwnMs = 700;
 
     private static readonly CanvasItemMaterial Unshaded = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-
-    private static readonly CanvasItemMaterial Added = new()
-    {
-        BlendMode = CanvasItemMaterial.BlendModeEnum.Add,
-        LightMode = CanvasItemMaterial.LightModeEnum.Unshaded,
-    };
 
     private static readonly (int, int, int) Yellow = (255, 209, 51), Plume = (255, 190, 90), Magnet = (255, 170, 84);
 
@@ -107,7 +101,6 @@ public partial class TickBodies : Node2D
     private readonly HashSet<int> _seen = [], _alive = [];
     private readonly List<int> _gone = [];
     private readonly Voices _suit = new(S.Suit, voices: 4), _world = new(S.World, voices: 4);
-    private readonly Scrap _scrap = new(), _scrapHot = new() { Hot = true };
     private readonly Random _random = new();
     private double _clockMs;
     private IReadOnlyList<(float X, float Y)> _heroes = [];
@@ -116,10 +109,6 @@ public partial class TickBodies : Node2D
     {
         AddChild(_suit);
         AddChild(_world);
-        Lit.Set(_scrap);
-        _scrapHot.Material = Added;
-        AddChild(_scrap);
-        AddChild(_scrapHot);
     }
 
     /// <summary>
@@ -169,8 +158,6 @@ public partial class TickBodies : Node2D
             else Die(one);
         }
         Dying(dt, lights);
-        _scrap.Step(dt);
-        _scrapHot.Share(_scrap);
     }
 
     /// <summary>This player's own strike on <paramref name="id"/> with <paramref name="tool"/>, seen in flight for the first time: it reacts now, a round trip before the sim.</summary>
@@ -189,7 +176,6 @@ public partial class TickBodies : Node2D
         foreach (var one in _dying) Put(one);
         _shown.Clear();
         _dying.Clear();
-        _scrap.Clear();
     }
 
     private Shown Take(Creature c, CreaturesModule creatures, int tick)
@@ -543,7 +529,10 @@ public partial class TickBodies : Node2D
         }
     }
 
-    /// <summary>The page's burst: sparks every way, dust and smoke, a warm flash, four plates of its shell tumbling off hot.</summary>
+    /// <summary>
+    /// The page's burst, its shell now its pixels (2026-10-29-kill-feel): sparks every way, dust and smoke, a warm flash, and every pixel
+    /// of its sprite thrown out from its middle (<see cref="PixelBursts"/>), carrying its drift.
+    /// </summary>
     private void Burst(Shown one, Vector2 at)
     {
         var glims = Stages.Of(Layers.Effects).Glims;
@@ -552,100 +541,22 @@ public partial class TickBodies : Node2D
         for (int i = 0; i < 3; i++)
             glims.Add(Luminous.Vapour, at.X + glims.Between(-3, 3), at.Y + glims.Between(-3, 3), glims.Between(-18, 18), glims.Between(-18, 18));
         Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 214, 150), 1.6 * Fx.Glow, 14, CreatureLooks.LightKeep, 0.86);
-        for (int i = 0; i < 4; i++) _scrap.Throw(at, _random);
+        if (Bursts == null) return;
+        _pixels.Clear();
+        var albedo = one.Art.Albedo;
+        for (int y = 0; y < TickArt.Height; y++)
+            for (int x = 0; x < TickArt.Width; x++)
+            {
+                int o = (y * TickArt.Width + x) * 4;
+                if (albedo[o + 3] == 0) continue;
+                var p = one.Transform * (new Vector2(x + 0.5f, y + 0.5f) + one.Body.Offset);
+                _pixels[((int)MathF.Floor(p.X), (int)MathF.Floor(p.Y))] = (albedo[o], albedo[o + 1], albedo[o + 2]);
+            }
+        Bursts.Burst(_pixels, at, 0, (one.To - one.From) / Unit * Cell * World.TicksPerSecond);
     }
 
-    /// <summary>
-    /// The plates a tick bursts into (the page's chunks): each a few pixels of its shell, its top edge lit and its outline dark,
-    /// tumbling and slowing, trailing embers its first half second, glowing hot over its first second; gone in 2.4 s. One drawn
-    /// lit, its twin (<see cref="Hot"/>) the glow added over it.
-    /// </summary>
-    private sealed partial class Scrap : Node2D
-    {
-        private sealed class Plate
-        {
-            public Vector2 At, Velocity;
-            public float Angle, Spin, Age, EmberOwed;
-            public int Width, Height;
-        }
+    /// <summary>What a killed tick bursts into, shared with the grazers.</summary>
+    public PixelBursts? Bursts { get; set; }
 
-        private List<Plate> _plates = [];
-
-        /// <summary>Whether this draws the plates' glow rather than the plates.</summary>
-        public bool Hot { get; init; }
-
-        public void Throw(Vector2 at, Random random)
-        {
-            double a = random.NextDouble() * Math.Tau, s = 18 + random.NextDouble() * 37;
-            _plates.Add(new Plate
-            {
-                At = at,
-                Velocity = new Vector2((float)(Math.Cos(a) * s), (float)(Math.Sin(a) * s - 10)),
-                Angle = (float)(random.NextDouble() * Math.Tau),
-                Spin = (float)(random.NextDouble() * 10 - 5),
-                Width = 3 + random.Next(3),
-                Height = 2 + random.Next(2),
-            });
-        }
-
-        public void Step(double dt)
-        {
-            var glims = Stages.Of(Layers.Effects).Glims;
-            for (int i = _plates.Count - 1; i >= 0; i--)
-            {
-                var p = _plates[i];
-                p.Age += (float)dt;
-                if (p.Age > 2.4f)
-                {
-                    _plates.RemoveAt(i);
-                    continue;
-                }
-                float keep = (float)Math.Exp(-0.5 * dt);
-                p.Velocity *= keep;
-                p.At += p.Velocity * (float)dt;
-                p.Angle += p.Spin * (float)dt;
-                p.Spin *= (float)Math.Exp(-0.3 * dt);
-                float hot = Math.Clamp(1 - p.Age / 1.3f, 0, 1);
-                if (hot > 0) Stages.Of(Layers.Effects).Flares.Bloom(p.At.X, p.At.Y, 4.4, (255, 130, 50), hot * 0.25);
-                if (p.Age >= 0.55f) continue;
-                p.EmberOwed += (float)(40 * dt);
-                for (; p.EmberOwed >= 1; p.EmberOwed--)
-                    glims.Add(Luminous.ShardEmber, p.At.X, p.At.Y, -p.Velocity.X * 0.3 + glims.Between(-10, 10), -p.Velocity.Y * 0.3 + glims.Between(-10, 10));
-            }
-            QueueRedraw();
-        }
-
-        /// <summary>Draws the plates <paramref name="of"/> throws, as their glow.</summary>
-        public void Share(Scrap of)
-        {
-            _plates = of._plates;
-            QueueRedraw();
-        }
-
-        public void Clear() => _plates.Clear();
-
-        public override void _Draw()
-        {
-            foreach (var p in _plates)
-            {
-                DrawSetTransform(p.At, p.Angle);
-                var box = new Rect2(-p.Width / 2f, -p.Height / 2f, p.Width, p.Height);
-                if (Hot)
-                {
-                    float a = Math.Clamp(1 - p.Age / 1.3f, 0, 1);
-                    if (a <= 0) continue;
-                    DrawRect(box, new Color(1, 130 / 255f, 50 / 255f, a * 0.85f));
-                    continue;
-                }
-                float fade = p.Age > 1.8f ? 1 - (p.Age - 1.8f) / 0.6f : 1;
-                var outline = Tone(TickArt.Outline, fade);
-                DrawRect(box, outline);
-                DrawRect(new Rect2(box.Position, box.Size - Vector2.One), Tone(TickArt.Dark[2], fade));
-                DrawRect(new Rect2(box.Position, new Vector2(box.Size.X - 1, 1)), Tone(TickArt.Dark[4], fade));
-            }
-            DrawSetTransform(Vector2.Zero, 0);
-        }
-
-        private static Color Tone(TickArt.Rgb c, float alpha) => new((float)c.R / 255, (float)c.G / 255, (float)c.B / 255, Math.Clamp(alpha, 0, 1));
-    }
+    private readonly Dictionary<(int X, int Y), (byte R, byte G, byte B)> _pixels = [];
 }

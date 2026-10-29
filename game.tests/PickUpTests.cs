@@ -38,6 +38,45 @@ public class PickUpTests
         Assert.Empty(PickUps(m, 0, Standing(4)));
     }
 
+    /// <summary>The magnet (2026-10-29-kill-feel): loot nobody dropped within two cells of the body is pulled in; a dropped stack, or one farther, is not.</summary>
+    [Fact]
+    public void PullsInLootNobodyDroppedWithinItsReachButNotAStackLetGo()
+    {
+        const int nobody = Sim.Items.FloorStack.Nobody;
+        Assert.Equal(2, Spec.Floor.PickUpReach);
+        // Standing over cells 4 and 5: two cells either side reaches 2 to 7.
+        var (m, world) = With(Room, items => items["floor"] = new JsonArray(
+            Lying(1, "biomass", 1, 7, 5, Width, by: nobody, at: 0),
+            Lying(2, "biomass", 1, 8, 5, Width, by: nobody, at: 0),
+            Lying(3, "scrap", 1, 2, 5, Width, by: 1, at: 0),
+            Lying(4, "hide", 1, 2, 3, Width, by: nobody, at: 0),
+            // A hero's body is walked over to be taken, never pulled.
+            WithBody(Lying(5, "iron", 1, 6, 5, Width, by: nobody, at: 0))));
+        // Long out of the creatures they came from.
+        for (int i = 0; i < Reach.PopTicks; i++) world.Step([]);
+        Assert.Equal([1, 4], PickUps(m, 0, Standing(2)));
+    }
+
+    private static JsonObject WithBody(JsonObject stack)
+    {
+        stack["body"] = new JsonObject { ["peer"] = 1, ["died"] = 0 };
+        return stack;
+    }
+
+    /// <summary>Loot sprayed out of a creature is not taken, nor drawn, till the creature has burst: <see cref="Reach.PopTicks"/>.</summary>
+    [Fact]
+    public void LeavesLootTillItsCreatureHasBurst()
+    {
+        var (m, world) = With(Room, items =>
+            items["floor"] = new JsonArray(Lying(1, "biomass", 2, 4, 5, Width, by: Sim.Items.FloorStack.Nobody, at: (int)items["ticks"]!)));
+        Assert.Equal(2, Reach.PopTicks);
+        Assert.Empty(PickUps(m, 0, Standing(2)));
+        world.Step([]);
+        Assert.Empty(PickUps(m, 0, Standing(2)));
+        world.Step([]);
+        Assert.Equal([1], PickUps(m, 0, Standing(2)));
+    }
+
     [Fact]
     public void LeavesAStackTheHeroJustDroppedItself()
     {

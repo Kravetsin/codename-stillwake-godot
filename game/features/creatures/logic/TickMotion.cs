@@ -49,8 +49,8 @@ public sealed class TickMotion(Func<double> random)
     /// <summary>Its cut: how often its claw saws a second, its rear up and tilt, its recoil as the line snaps.</summary>
     public const double SawHz = 8, RecoilS = 0.4;
 
-    /// <summary>How long its death's cracks take to spread before it bursts (the page's <c>crack</c>).</summary>
-    public const double CracksS = 0.32;
+    /// <summary>How long its death's cracks take to spread before it bursts: the hold every creature is held killed (<c>KillLooks.PopMs</c>).</summary>
+    public const double CracksS = KillLooks.PopMs / 1000;
 
     private Seen _was;
     private bool _seen;

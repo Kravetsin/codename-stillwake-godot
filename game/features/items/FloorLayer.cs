@@ -6,6 +6,7 @@ using Stillwake.Game.Shared;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Rooms;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Items;
 
@@ -44,7 +45,9 @@ public partial class FloorLayer : Node2D
         public readonly Node2D View = view, Picture = picture;
         public readonly Sprite2D Rim = rim;
         public int Tick, FromX, FromY, ToX, ToY;
-        public double RestMs = double.NaN;
+        public double RestMs = double.NaN, LandMs = double.NaN, GlintMs;
+        /// <summary>Whether it was flying when last drawn: landing, it squashes, hops and clinks.</summary>
+        public bool Flying;
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
@@ -53,6 +56,9 @@ public partial class FloorLayer : Node2D
     private readonly HashSet<int> _ids = [];
     private readonly List<int> _gone = [];
     private readonly Dictionary<int, int> _inCell = new(), _placed = new();
+    private readonly Voices _clinks = new(S.World, voices: 4);
+
+    public override void _Ready() => AddChild(_clinks);
 
     /// <param name="taking">Stacks this peer has a pick-up in flight for.</param>
     /// <param name="tick">The world's tick, whose positions the floor holds.</param>
@@ -66,7 +72,7 @@ public partial class FloorLayer : Node2D
         _ids.Clear();
         var floor = items.Floor;
         for (int i = 0; i < floor.Count; i++)
-            if (!taking.Contains(floor[i].Id))
+            if (!taking.Contains(floor[i].Id) && !Reach.Hidden(floor[i], items.Ticks))
             {
                 lying.Add(floor[i]);
                 _ids.Add(floor[i].Id);
@@ -104,10 +110,16 @@ public partial class FloorLayer : Node2D
             double x = one.FromX + (one.ToX - one.FromX) * progress;
             double y = one.FromY + (one.ToY - one.FromY) * progress;
             double rise = 0;
-            if (!Resting(s)) one.RestMs = double.NaN;
+            if (!Resting(s))
+            {
+                one.RestMs = double.NaN;
+                one.Flying = true;
+            }
             else
             {
                 if (double.IsNaN(one.RestMs)) one.RestMs = _clockMs;
+                if (one.Flying && !inSpace) Landed(one, s);
+                one.Flying = false;
                 int n = inCell.GetValueOrDefault(s.Cell, 1);
                 int i = placed.GetValueOrDefault(s.Cell);
                 placed[s.Cell] = i + 1;
@@ -115,13 +127,35 @@ public partial class FloorLayer : Node2D
                 // Up from the line it rests on and back, starting from it; afloat in space it drifts as loot does (0034).
                 if (!inSpace) rise = (1 - Math.Cos((_clockMs - one.RestMs) / BobMs * 2 * Math.PI)) / 2;
             }
-            one.View.Position = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell - rise * Bob));
-            one.Picture.Rotation = inSpace ? (float)((_clockMs + s.Id * 1000) / TurnMs * 2 * Math.PI) : 0;
+            var (hop, squash) = FloorFeel.Landing(_clockMs - one.LandMs);
+            one.View.Position = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell - rise * Bob - hop));
+            one.View.Scale = new Vector2(1 + squash / 2, 1 - squash);
+            // Spinning the way it flies while it flies (2026-10-29-kill-feel); afloat in space it turns slowly as debris does.
+            one.Picture.Rotation = inSpace ? (float)((_clockMs + s.Id * 1000) / TurnMs * 2 * Math.PI)
+                : one.Flying ? (float)((_clockMs + s.Id * 170) / 1000 * KillLooks.Spin * 2 * Math.PI * Math.Sign(s.Vx == 0 ? 1 : s.Vx)) : 0;
+            if (Resting(s) && !inSpace && KillLooks.Glints.Contains(s.Item)) Glints(one, (float)(x / Unit * Cell), (float)(y / Unit * Cell), elapsedMs);
             one.Rim.Modulate = new Color(1, 1, 1, (float)(RimLow + (RimHigh - RimLow) * rise));
         }
     }
 
     private static bool Resting(FloorStack s) => s.Vx == 0 && s.Vy == 0;
+
+    /// <summary><paramref name="one"/>, <paramref name="s"/>, come down from flight: it squashes and hops, and clinks, higher the fewer it holds.</summary>
+    private void Landed(Shown one, FloorStack s)
+    {
+        one.LandMs = _clockMs;
+        var at = new Vector2(s.X, s.Y) / Unit * Cell;
+        _clinks.Play(S.Clink, at, S.Clink.Tune * (1 + 0.25f / Math.Max(1, s.Count)));
+    }
+
+    /// <summary>A rare drop lying still glints now and then, each on a beat of its own.</summary>
+    private static void Glints(Shown one, float x, float y, double elapsedMs)
+    {
+        one.GlintMs -= elapsedMs;
+        if (one.GlintMs > 0) return;
+        one.GlintMs = KillLooks.GlintEvery * 1000 * (0.7 + 0.6 * Random.Shared.NextDouble());
+        Stages.Of(Layers.Effects).Flares.Glint(x, y - Cell * 0.6f, 5, (255, 250, 220));
+    }
 
     /// <summary>An item's picture with a pale rim behind it, standing on the origin: its rim's lowest pixel on it.</summary>
     private static Shown PictureOf(string item)

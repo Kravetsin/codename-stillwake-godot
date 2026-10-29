@@ -110,6 +110,8 @@ public static class Sound
     public static readonly Cue Screwdriver = new(Shots("building/screwdriver", 5), -16, Heard: new(8, 28));
     public static readonly Cue Hiss = Looped("atmosphere/hiss", -8, new(6, 24));
     public static readonly Cue Click = new(Shots("ui/click", 2), -12);
+    /// <summary>A stack landing on the floor (2026-10-29-kill-feel), higher the fewer it holds: a placeholder, the click pitched up.</summary>
+    public static readonly Cue Clink = new(Shots("ui/click", 2), -18, Pitch: 0.1f, Heard: new(8, 28), Tune: 1.7f);
     public static readonly Cue VentHum = Looped("atmosphere/vent-hum", -12, new(3, 10));
     public static readonly Cue DoorOpen = new(Shots("grid/door-open", 1), -8, Heard: new(12, 48));
     public static readonly Cue DoorClose = new(Shots("grid/door-close", 1), -8, Heard: new(12, 48));
@@ -550,7 +552,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];
