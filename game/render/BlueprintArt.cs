@@ -23,7 +23,7 @@ public static class BlueprintArt
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>Which sides of a cell, a bit each, as the pictures are numbered.</summary>
-    private const int Right = 2, Left = 8, AllSides = 15;
+    private const int Up = 1, Right = 2, Down = 4, Left = 8, AllSides = 15;
 
     private static readonly Dictionary<Placement, ImageTexture> Thumbs = new();
 
@@ -59,17 +59,19 @@ public static class BlueprintArt
     /// <summary>
     /// What <paramref name="placement"/> builds, as one picture: a build menu card's, at the art's 16 px (0104), as it was before
     /// the cell was halved. A pipe or a valve reaches both ways; a door is a door's piece alone, the shape it is known by; a
-    /// picture cut over the world gives its first 16 px.
+    /// picture cut over the world gives its first 16 px; a wall or a back wall, a block of its cells (<see cref="Sample"/>).
     /// </summary>
     public static Texture2D Thumbnail(Placement placement)
     {
         if (Thumbs.TryGetValue(placement, out var kept)) return kept;
+        var spec = Structures.ByBuild(placement.Kind);
+        if (placement.Kind == "backWall" || spec is { Draw: StructureDraw.Autotile })
+            return Thumbs[placement] = ImageTexture.CreateFromImage(Sample(placement, spec != null));
         int linked = placement.Layer == "conduit" ? Left | Right : 0;
         var layers = new List<(Image Image, Vector2I At)>();
         int side = ShipTiles.Drawn;
         var size = new Vector2I(side, side);
         // A piece a 16 px cell square is its own art; a door's, its doorway one segment long, shut.
-        var spec = Structures.ByBuild(placement.Kind);
         IReadOnlyList<TilePiece> pieces = spec is { Draw: StructureDraw.Paired } ? [new(TileLayer.Fixtures, spec.Tile!)]
             : spec is { Draw: StructureDraw.Door, Join: Join.Column } ? [new(TileLayer.Doors, DoorShape.Whole(false, 1)[0])]
             : PiecesOf(placement, linked);
@@ -86,5 +88,29 @@ public static class BlueprintArt
         var picture = Image.CreateEmpty(size.X, size.Y, false, Image.Format.Rgba8);
         foreach (var (image, at) in layers) picture.BlendRect(image, new Rect2I(Vector2I.Zero, image.GetSize()), at);
         return Thumbs[placement] = ImageTexture.CreateFromImage(picture);
+    }
+
+    /// <summary>How many cells a side a wall's or a back wall's card shows: enough of its sheet for the material to read.</summary>
+    private const int SampleCells = 8;
+
+    /// <summary>
+    /// A block of <see cref="SampleCells"/> cells of a wall or a back wall, as the grid lays it: its sheet cut over the cells, a
+    /// wall edged on the block's outer sides.
+    /// </summary>
+    private static Image Sample(Placement placement, bool wall)
+    {
+        var sheet = ShipTiles.ImageOf(PiecesOf(placement, AllSides)[0].Picture);
+        var picture = Image.CreateEmpty(SampleCells * Cell, SampleCells * Cell, false, Image.Format.Rgba8);
+        for (int j = 0; j < SampleCells; j++)
+            for (int i = 0; i < SampleCells; i++)
+            {
+                var at = new Vector2I(i, j) * Cell;
+                picture.BlitRect(sheet, new Rect2I(at.X % sheet.GetWidth(), at.Y % sheet.GetHeight(), Cell, Cell), at);
+                int open = (j == 0 ? Up : 0) | (i == SampleCells - 1 ? Right : 0) | (j == SampleCells - 1 ? Down : 0) | (i == 0 ? Left : 0);
+                if (!wall || open == 0) continue;
+                var edge = ShipTiles.ImageOf(ShipTiles.EdgeName(placement.Material!, open));
+                picture.BlendRect(edge, new Rect2I(Vector2I.Zero, edge.GetSize()), at);
+            }
+        return picture;
     }
 }
