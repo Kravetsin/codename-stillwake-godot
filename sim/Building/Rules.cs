@@ -129,6 +129,8 @@ public sealed partial class BuildingModule
         bool taken = State.Plans.Exists(p =>
             p.Place is { } other && SlotOf(other.Layer) == slot && Covers(p).Any(wanted.Contains));
         if (taken) return "building.planned";
+        // A machine stands only where its ports fit the pipes there (2026-10-29-typed-ports).
+        if (place.Layer == "machine" && _pipes.SeatProblem(place.Kind, cell) is { } seat) return seat;
         // Built at once, a wall waits for no step out: it is refused on a hero, as its last tick of work would be (0077).
         return State.Instant && place.Kind == "wall" && HeroIn(cell) ? "building.heroInside" : null;
     }
@@ -199,11 +201,15 @@ public sealed partial class BuildingModule
         var plan = State.Plans.Find(p => p.Id == id);
         if (plan == null) return "building.noPlan";
         if (plan.Clear is { } layer) return Rules.ToolsBreak ? "building.notHere" : InUse(plan.Cell, layer);
+        bool last = plan.Progress + 1 >= Costs.TicksFor(_grid, plan);
         // A wall's last tick waits while a hero stands in its cell, so nobody walls themselves in (0077); it finishes once they step out.
-        if (plan.Place is { Kind: "wall" } && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && HeroIn(plan.Cell)) return "building.heroInside";
+        if (plan.Place is { Kind: "wall" } && last && HeroIn(plan.Cell)) return "building.heroInside";
         // So does any last tick over what stands there now: a drop pod docks or lands where it finds room, plans or not.
-        if (plan.Place is { } place && plan.Progress + 1 >= Costs.TicksFor(_grid, plan) && _grid.PlacementProblem(plan.Cell, place) is { } blocked)
+        if (plan.Place is { } place && last && _grid.PlacementProblem(plan.Cell, place) is { } blocked)
             return blocked;
+        // Nor over pipes its ports no longer fit, piped since it was planned (2026-10-29-typed-ports).
+        if (plan.Place is { Layer: "machine" } machine && last && _pipes.SeatProblem(machine.Kind, plan.Cell) is { } seat)
+            return seat;
         return Owes(plan) && PaymentOf(plan, peer) == null ? "items.notEnough" : null;
     }
 }

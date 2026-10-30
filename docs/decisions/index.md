@@ -162,6 +162,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted |  |
 | [photo-panel](2026-10-29-photo-panel.md) | The photosensitive panel | accepted |  |
 | [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |
+| [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted |  |

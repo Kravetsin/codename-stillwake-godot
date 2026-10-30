@@ -14,5 +14,8 @@ public static partial class En
         ["pipes.noJoint"] = "Valves go on a joint",
         ["pipes.already"] = "Already a valve",
         ["pipes.noValve"] = "There is no valve here",
+        ["pipes.bothGive"] = "Both ends give",
+        ["pipes.bothTake"] = "Both ends take",
+        ["pipes.mixedFluid"] = "Different fluids",
     };
 }

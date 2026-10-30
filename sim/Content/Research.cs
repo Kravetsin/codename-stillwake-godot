@@ -81,6 +81,7 @@ public static class Research
                 Block(Machines, "former"),
                 Block(Power, "burnerGenerator"),
                 Block(Power, "vent"),
+                Block(Power, "cistern"),
                 Block(Power, "tank")),
             new("processing", [("frame", 10), ("gear", 20), ("coil", 20)], 1,
                 Block(Structures, "wallGlass", "backWallGlass"),

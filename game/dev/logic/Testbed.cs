@@ -71,7 +71,7 @@ public static class Testbed
     /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, and the air: a tank with a canister and a generator piped to a
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
     /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
-    /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
+    /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
     /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
     /// cabled to the panel over the airlock, biofuel for two descents in its slot. Thirteen panels on the roof: the first and the third feed the
     /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
@@ -91,8 +91,8 @@ public static class Testbed
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......LUUU...#....L.kk......J.......L.$$#..L#",
-            "  #.OOOQQ..UUU.RRD......kk......gg...GG...$$DZZ.D",
+            "  #.......LUUU...#....L.kk.cc.ccJ.......L.$$#..L#",
+            "  #.OOOQQ..UUU.RRD......kk.cc.ccgg...GG...$$DZZ.D",
             "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GG..CBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK...CBBDZZ.D",
             "  #o#########################################__##",
@@ -132,6 +132,9 @@ public static class Testbed
 
     /// <summary>How much of it: a few plates' worth, under half a stack, so drones bring a stack at once (0062).</summary>
     public const int Pressed = 6;
+
+    /// <summary>The cisterns' top-left cells on the doubled map: the first's output is piped to the second's input as the world is made.</summary>
+    public static readonly (int X, int Y) CisternFrom = (54, 8), CisternTo = (60, 8);
 
     /// <summary>The crates by their top-left cells on the map, its drawing doubled (0104): the full one; the supply crate by the pod; the farm's, switched off.</summary>
     public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14);
@@ -217,7 +220,10 @@ public static class Testbed
         save["slices"]!["crafting"]!["queues"] = new JsonArray([.. new[] { Queue("former", "plate", 1, endless: true), Queue("assembler", "circuit", Assembling) }
             .OrderBy(q => (int)q["machine"]!)]);
         var world = World.Load(save.ToJsonString(), modules);
-        world.Step([new Sim.Logistics.SetServed(At(FarmAt), false)]);
+        // A drawn pipe meets only even cells and a cistern's output is on an odd one, so that span is laid, not drawn.
+        var ports = Machines.Get("cistern").Ports;
+        int Port((int X, int Y) at, int i) => (at.Y + ports[i].Y) * Map.Width + at.X + ports[i].X;
+        world.Step([new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0))]);
         world.Step([]);
         return world;
     }

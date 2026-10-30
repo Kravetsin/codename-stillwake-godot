@@ -10,13 +10,16 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     [Fact]
-    public void MachinesHaveAFootprintOfAtLeastOneCellAndPortsInsideIt()
+    public void MachinesHaveAFootprintOfAtLeastOneCellAndPortsInsideItOfAKnownFluid()
     {
         foreach (var m in Machines.All)
         {
             Assert.True(m.Width >= 1 && m.Height >= 1, m.Kind);
             foreach (var p in m.Ports)
+            {
                 Assert.True(p.X >= 0 && p.X < m.Width && p.Y >= 0 && p.Y < m.Height, m.Kind);
+                Assert.Contains(p.Fluid, Fluids.All);
+            }
         }
     }
 

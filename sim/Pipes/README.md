@@ -12,11 +12,12 @@ Pipes as spans (ADR 0109): straight pipes between machines' ports and joints, la
 plan, piping, valves on joints, and the networks they join, along which air flows between the machines on them. Shaped as
 `power`'s cables are; the per-cell conduit layer of the grid is gone.
 
-- **Depends on:** `grid` (`IGridQueries`: `Machines`, `PortsOf`, `MachineAt`, `Zone`, `ChangedSince`), `items`
+- **Depends on:** `grid` (`IGridQueries`: `Machines`, `PortsOf`, `PortAt`, `MachineAt`, `Zone`, `ChangedSince`), `items`
   (`IItemsQueries`, `IItemsOps`: what a span or a valve costs, given back).
 - **State** (`PipesState`, members internal): `Spans` — every `PipeSpan(A, B, Paid)`, its node cells the lower first,
   ordered by its ends; `Valves` — every `Valve(Cell, Open, Paid)`, by cell. Saved. Derived: `NetworkOf` (node cell → its
-  network), `Networks` in id order, the grid's version last looked at, `Version`, and `Stale` (a span or valve changed).
+  network), `Networks` in id order, the grid's version last looked at, `Version`, `Stale` (a span or valve changed), and
+  `Lines` with the grid's version they were found at.
 - **Files:** `Pipes.cs` — the module, its records, queries and commands; `PipeNetworks.cs` — the networks from the spans,
   and a map's drawn pipes as spans; `Fuzz.cs` — its fuzz generator.
 
@@ -44,15 +45,25 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   12 cells from its start (`PipeNetworks.FromLayout`). A lone pipe joining nothing is dropped. They count as paid. The
   machines a drawing connected are connected the same (`DoubledTests`).
 
+- **Ports** (2026-10-29-typed-ports) take (`In`) or give (`Out`) one fluid (`Content.Fluids`). A **line** is a network with
+  every valve counted open; its fluid is its first port's in cell order, none with no port. Lines are found on the first
+  read after a span changed or the grid moved, so commands of one tick see each other; finding them moves no `Version`.
+  A span is refused, after `pipes.twice`, joining two ports that give (`pipes.bothGive`) or take (`pipes.bothTake`), or
+  ends of different fluids (`pipes.mixedFluid`): an end's fluid is its port's, else its line's, and a line with no port
+  matches any. Only the two ends count: output → joint → output is laid. Valves never mix fluids, as lines ignore them.
+  Air's ports are the tank's, the generator's and the vent's; water's the cistern's, its input left and output right,
+  which holds nothing yet.
+
 ## API
 
 - **Queries** (`IPipesQueries`): `NetworkAt(cell)`, `NetworksOf(machineId)`, `Network(id)`, `Networks`, `Version` as
   before; `Spans`, `Valves`, `ValveAt(cell)`; `LayProblem(peer, a, b)` and `ValveProblem(peer, cell, valve)` — why that
-  command would be refused, for the piping's ghost; `AfterToggles(commands)` — whether each valve the `SetValve`s among
+  command would be refused, for the piping's ghost; `FluidProblem(a, b)` — the ports' refusals alone, what the piping lights;
+  `FluidAt(cell)`; `SeatProblem(kind, cell)` — why a machine there would break the ports' rules, for Building; `AfterToggles(commands)` — whether each valve the `SetValve`s among
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
 - **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
-  then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
+  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
   Valve)` — making one, `pipes.notAboard`, `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 
 ## Invariants
@@ -60,6 +71,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
 - Every node not a closed valve is in exactly one network, shared with every carrying node a span joins it to.
 - Every valve stands on a joint some span ends at.
 - What the networks are depends on the spans, valves and machines alone: the same after a load as before it.
+- No span laid since joins two ports of one way, and no line holds ports of two fluids (`TypedPortsTests`).
 
 ## Deliberately not handled
 
@@ -67,3 +79,4 @@ plan, piping, valves on joints, and the networks they join, along which air flow
 - **Meteors** break walls, not pipes: a span passes through a wall and stays (0109).
 - **Spans crossing** do not join: only shared ends do.
 - **Taking a machine apart** with spans on its ports is allowed: its ports stay joints.
+- **Laid spans are not checked again:** a drawn map or a save keeps a span the rules now refuse (a tank to a generator).

@@ -116,6 +116,8 @@ public interface IGridQueries
     IReadOnlyList<Machine> MachinesWith(MachineTrait trait);
     /// <summary>The cells where pipes meet machine <paramref name="m"/>, in the order its kind lists its ports.</summary>
     IReadOnlyList<int> PortsOf(Machine m);
+    /// <summary>The port at <paramref name="cell"/>, its way and fluid, if a machine has one there; null otherwise.</summary>
+    Port? PortAt(int cell);
     /// <summary>
     /// The cells a machine or a piece (a ladder, a door segment, 0104) of <paramref name="kind"/> covers with its top-left at
     /// <paramref name="cell"/>, ascending; null when it is neither or does not fit on the grid.
@@ -434,6 +436,15 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     {
         int x = m.Cell % State.Width, y = m.Cell / State.Width;
         return Content.Machines.Get(m.Kind).Ports.Select(p => (y + p.Y) * State.Width + x + p.X).ToArray();
+    }
+
+    public Port? PortAt(int cell)
+    {
+        if (MachineAt(cell) is not { } m) return null;
+        int dx = cell % State.Width - m.Cell % State.Width, dy = cell / State.Width - m.Cell / State.Width;
+        foreach (var p in Content.Machines.Get(m.Kind).Ports)
+            if (p.X == dx && p.Y == dy) return p;
+        return null;
     }
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
