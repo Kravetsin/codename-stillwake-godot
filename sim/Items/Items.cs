@@ -695,7 +695,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// Writes machine <paramref name="id"/>'s slots, every write of a machine's: each input slot that remembers (a fed
-    /// station's, a fire's, <see cref="Remembers"/>) remembers what it holds now, or, emptied, what it held, so a slot
+    /// station's, a trade station's, a fire's, <see cref="Remembers"/>) remembers what it holds now, or, emptied, what it held, so a slot
     /// burnt or smelted down to nothing still remembers its item (0062). Only a hand taking it out forgets.
     /// </summary>
     private void SetMachine(int id, Stack?[] slots)
@@ -709,12 +709,12 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Stacks.SetCrate(State, id, slots);
     }
 
-    /// <summary>How many of machine <paramref name="id"/>'s first slots remember their item: a fed station's or a fire's inputs, its fuel slot too; null for any other.</summary>
+    /// <summary>How many of machine <paramref name="id"/>'s first slots remember their item: a fed station's, a trade station's or a fire's inputs, its fuel slot too; null for any other.</summary>
     private int? Remembers(int id)
     {
         if (_grid.MachineById(id) is not { } m || !Machines.TryGet(m.Kind, out var spec) || spec.Slots is not int all) return null;
         bool fed = Content.Stations.TryGet(m.Kind, out var station) && station.Fed;
-        return fed || spec.FuelSlot != null ? spec.Inputs ?? all : null;
+        return fed || spec.FuelSlot != null || Machines.Is(m.Kind, MachineTrait.Sells) ? spec.Inputs ?? all : null;
     }
 
     private void Remember(int id, int slot, string item)

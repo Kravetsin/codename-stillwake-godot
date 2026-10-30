@@ -163,11 +163,10 @@ public class CrusherTests
     }
 
     [Fact]
-    public void OpensOnceItsFrameGearPlateRotorAndTubeAreAnalysed()
+    public void IsBoughtInTheTree()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
         var crusher = w.M.Research.Recipes().Single(r => r.Id == "crusher");
-        Assert.Equal(["frame", "gear", "plate", "rotor", "tube"], crusher.Unanalysed);
         Assert.False(crusher.Known);
     }
 }

@@ -3,6 +3,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
+using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using CrewSpec = Stillwake.Content.Crew;
@@ -36,8 +37,8 @@ public class WreckTests
     private static readonly int DoorToB = At(45, 21);
     private static readonly int Inner = At(54, 21);
     private static readonly int Outer = At(57, 21);
-    /// <summary>Room B's analyzer, and the cells of B's hull, floor and back wall torn away: drawn as space.</summary>
-    private static readonly int Analyzer = At(41, 21);
+    /// <summary>Room B's tech station, and the cells of B's hull, floor and back wall torn away: drawn as space.</summary>
+    private static readonly int TechStation = At(41, 21);
     private const int BLeft = 30, BRight = 44, BTop = 18, BBottom = 23;
     private static bool Torn(int x, int y) => x < WreckRows.Rows[y].Length && WreckRows.Rows[y][x] == ' ';
     private static readonly int Panel = At(50, 17);
@@ -91,13 +92,13 @@ public class WreckTests
     }
 
     [Fact]
-    public void HoldsAPanelCabledToALampAndAGeneratorAVentAnAnalyzerTheLifepodNoFurnaceOrCrate()
+    public void HoldsAPanelCabledToALampAndAGeneratorAVentATechStationTheLifepodNoFurnaceOrCrate()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["solarPanel", "lamp", "lifepod", "analyzer", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
+        Assert.Equal(["solarPanel", "lamp", "lifepod", "techStation", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
-        Assert.Empty(m.Research.Analysed);
+        Assert.Equal(0, m.Research.Credits);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
         Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 36), doors);
         var cells = m.Grid.Machines.Select(x => x.Cell).ToArray();
@@ -172,7 +173,7 @@ public class WreckTests
     }
 
     [Fact]
-    public void SmeltsScrapCraftsAWireAtTheWorkbenchCablesTheAnalyzerAnalysesIronAndCraftsAPlate()
+    public void SmeltsScrapCraftsAWireAndAPlateAtTheWorkbench()
     {
         var w = AiredWreck();
         int furnace = BuildFurnace(w, ("scrapChunk", 1), ("hullPlate", 1), ("planks", 2));
@@ -186,36 +187,46 @@ public class WreckTests
         w.Run();
         Assert.True(w.M.Items.Totals(0).Single(t => t.Item == "iron").Count >= 2);
 
-        // A workbench of salvage, on the generator; wire, the one craft the wreck grants, of the scrap smelted, at it; the
-        // cable of the wire.
+        // A workbench of salvage, on the generator; wire and a plate, crafts the wreck grants, of what was smelted.
         int bench = Build(w, "workbench", At(46, 20));
         CraftAtBench(w, bench, "wire");
-        w.Do(new Lay(Panel, Analyzer)).Run();
-        Assert.Empty(w.Refusals);
-        int analyzer = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
-        Assert.True(w.M.Power.Satisfaction(analyzer) > 0);
-
-        // Iron analysed opens the plate.
-        w.Do(new Move(new Slot(SlotOf(w, "iron")), new Target(Crate: analyzer), 1)).Run();
-        for (int i = 0; i < 4 * ResearchSpec.Ticks && !w.M.Research.Analysed.Contains("iron"); i++) w.Run();
-        Assert.True(w.M.Research.Knows("plate"));
-        // One hull plate smelts into two iron, a plate's worth: the one analysed is taken back out.
-        w.Do(new Move(new Slot(0, analyzer), new Target(), 1)).Run();
         CraftAtBench(w, bench, "plate");
         Assert.Empty(w.Refusals);
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
     }
 
+    /// <summary>The first minutes (2026-10-30-trade-and-tech): a trade station of raw salvage, a chunk sold, the first block bought at the wreck's tech station, its floor planned.</summary>
     [Fact]
-    public void FindsRoomAAndTheAirlockBTornOpenIsSpaceItsAnalyzerUncabled()
+    public void SellsAChunkAtATradeStationOfSalvageBuysTheFirstBlockAndPlansIt()
+    {
+        var w = AiredWreck();
+        w.GiveItems(0, Machines.Get("tradeStation").Cost.ToArray());
+        int trade = Build(w, "tradeStation", At(49, 21));
+        w.GiveItems(0, ("scrapChunk", 3));
+        w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), 3)).Run();
+        w.Run(3 * Stillwake.Content.Market.SellEvery);
+        Assert.Equal(6, w.M.Research.Credits);
+        int tech = w.M.Grid.MachineAt(TechStation)?.Id ?? 0;
+        w.Do(new BuyBlock(tech, "floor")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(1, w.M.Research.Credits);
+        Assert.True(w.M.Research.Knows("floor"));
+        var floor = new Placement("structure", "floor");
+        int cell = Enumerable.Range(0, w.M.Grid.Width * w.M.Grid.Height).First(c => w.M.Building.Problem(c, floor) == null);
+        w.Do(new PlacePlan(cell, floor)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Single(w.M.Building.Plans);
+    }
+
+    [Fact]
+    public void FindsRoomAAndTheAirlockBTornOpenIsSpaceItsTechStationInIt()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
         Assert.Equal([At(46, 19), At(55, 20)], m.Rooms.All.Select(r => r.Id));
         Assert.All(m.Rooms.All, r => Assert.Empty(r.Openings));
-        Assert.Equal(RoomsModule.Space, m.Rooms.RoomAt(Analyzer));
-        int id = m.Grid.MachineAt(Analyzer)?.Id ?? 0;
-        Assert.Equal(0, m.Power.Satisfaction(id));
+        Assert.Equal(RoomsModule.Space, m.Rooms.RoomAt(TechStation));
+        Assert.Equal("techStation", m.Grid.MachineAt(TechStation)?.Kind);
     }
 
     [Fact]
@@ -293,19 +304,8 @@ public class WreckTests
                 foreach (int cell in Blocks(x, x, y, y)) w.Do(new Place(cell, edge ? Placement.Wall("scrap") : Placement.BackWall("scrap")));
             }
         w.Run();
-        var room = w.M.Rooms.RoomAt(Analyzer);
+        var room = w.M.Rooms.RoomAt(TechStation);
         Assert.NotEqual(RoomsModule.Space, room);
         Assert.Empty(w.M.Rooms.All.First(r => r.Id == room).Openings);
-        // A cable from the panel reaches it through the roof.
-        w.GiveItems(0, ("wire", 1), ("scrap", 1));
-        w.Do(new Lay(Panel, Analyzer)).Run();
-        Assert.Empty(w.Refusals);
-        int id = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
-        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "scrap");
-        w.Do(new Move(new Slot(slot), new Target(Crate: id), 1)).Run();
-        Assert.True(w.M.Power.Satisfaction(id) > 0);
-        w.Run(2 * ResearchSpec.Ticks);
-        Assert.Equal(["scrap"], w.M.Research.Analysed);
-        foreach (var made in new[] { "floor", "ladder" }) Assert.True(w.M.Research.Knows(made), made);
     }
 }

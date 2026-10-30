@@ -171,11 +171,9 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void ResearchAnalysesInWholeTicks() => Assert.True(Content.Research.Ticks > 0);
 
     // What TypeScript's types guaranteed, which C#'s strings do not.
 
-    [Fact]
     public void GivesEveryKindOfDebrisThatSpawnsItsLooksOnceAndAtLeastOne()
     {
         var spawned = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item).Distinct().ToList();

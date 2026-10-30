@@ -83,9 +83,9 @@ public sealed record CardOutput(
 /// <param name="Item">The item, whose picture the card shows.</param>
 /// <param name="Tiles">A tool's tiles, its key number first; null for an item that is no tool.</param>
 /// <param name="Use">How it is used: its key and a hint.</param>
-/// <param name="Unknown">Not analysed yet: the band.</param>
+/// <param name="Price">What a unit sells for at a trade station; null for what no one buys.</param>
 public sealed record ItemCard(
-    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, IReadOnlyList<CardEffect> Effects, CardKey? Use, bool Unknown)
+    string Item, string Name, string Kind, IReadOnlyList<CardTile>? Tiles, IReadOnlyList<CardEffect> Effects, CardKey? Use, int? Price)
 {
     /// <summary>A tool: its card edged and its kind written in amber.</summary>
     public bool Tool => Tiles != null;
@@ -133,7 +133,7 @@ public sealed record ItemCard(
         other is not null && Item == other.Item && Name == other.Name && Kind == other.Kind
         && (Tiles == null ? other.Tiles == null : other.Tiles != null && Tiles.SequenceEqual(other.Tiles))
         && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
-        && Unknown == other.Unknown && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
+        && Price == other.Price && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
         && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted.SequenceEqual(other.Fitted)
         && DrawBoost == other.DrawBoost;
 
@@ -142,7 +142,7 @@ public sealed record ItemCard(
         var hash = new HashCode();
         hash.Add(Item);
         hash.Add(Name);
-        hash.Add(Unknown);
+        hash.Add(Price);
         hash.Add(Station);
         hash.Add(Charge);
         hash.Add(Picture);

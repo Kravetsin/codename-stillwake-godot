@@ -11,19 +11,19 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// <c>-- --items</c>: a room with a crate, a furnace and an analyzer cabled to a solar panel, the hero
-/// carrying a few stacks, lamps lit, the analyzer at work on iron and wire lying on the floor; and a script
+/// <c>-- --items</c>: a room with a crate, a furnace and a tech station, a solar panel, the hero
+/// carrying a few stacks, lamps lit and wire lying on the floor; and a script
 /// played through Godot's own input, for recordings with <c>--write-movie</c>: the hotbar chosen by the
 /// wheel and keys, stacks picked, split and put down in the inventory, shifted to the bag and back to the
 /// hotbar, dragged along the closed hotbar,
-/// the wire walked over and picked up, the furnace, the analyzer learning, a stack thrown with Q,
+/// the wire walked over and picked up, the furnace, a stack thrown with Q,
 /// the crate, its sort key and the bag's. It draws the pointer, which a movie does not.
 /// </summary>
 public partial class ItemsDemo : Control
 {
     /// <summary>
     /// The demo's room, drawn a character a 16 px cell and doubled (0104): the hero wakes at S; the panel P out in space above
-    /// the roof powers the analyzer and two lamps.
+    /// the roof powers two lamps.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
@@ -34,22 +34,20 @@ public partial class ItemsDemo : Control
             "#.KK...S..AA..FF.#",
             "##################",
         ],
-        cables: [((9, 0), (10, 3)), ((8, 0), (4, 2)), ((10, 0), (13, 2))]).Doubled() with
+        cables: [((8, 0), (4, 2)), ((10, 0), (13, 2))]).Doubled() with
     { Known = Spec.Research.StartKnown };
 
     /// <summary>The wire lying on the floor, the drawing's column and row: in its cells' bottom-left, doubled.</summary>
     private static readonly (int X, int Y) Lying = (12, 4);
 
     /// <summary>
-    /// <paramref name="world"/> with peer 0 carrying a few stacks, iron in the analyzer and wire
+    /// <paramref name="world"/> with peer 0 carrying a few stacks and wire
     /// lying on the floor: put into its save, as no command makes items out of nothing.
     /// </summary>
     public static World Seed(World world, Func<IReadOnlyList<Module>> modules)
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
-        var machines = root["slices"]!["grid"]!["machines"]!.AsArray();
-        int analyzer = machines.First(m => (string)m!["kind"]! == "analyzer")!["id"]!.GetValue<int>();
         JsonNode? Stack(string item, int count) => new JsonObject { ["item"] = item, ["count"] = count };
         var slots = new JsonArray();
         (string, int)?[] carried =
@@ -60,7 +58,6 @@ public partial class ItemsDemo : Control
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i < carried.Length && carried[i] is var (item, count) ? Stack(item, count) : null);
         items["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
-        items["crates"] = new JsonArray(new JsonObject { ["id"] = analyzer, ["slots"] = new JsonArray(Stack("iron", 1)) });
         int width = Map.Width, x = 2 * Lying.X, y = 2 * Lying.Y + 1;
         items["floor"] = new JsonArray(new JsonObject
         {
@@ -132,12 +129,6 @@ public partial class ItemsDemo : Control
         At(8.4, () => Click(MouseButton.Left, shift: true));
         At(8.6, () => Go(new Place(Spec.Machines.Get("furnace").FuelSlot!.Value, FurnaceId())));
         At(9.2, () => Press(Key.Escape));
-        // The analyzer, at work on the iron since the start: it learns, and then has nothing new.
-        At(9.4, () => Aim(10, 3));
-        At(9.7, () => Press(Key.E));
-        At(9.9, () => Go(new Place(0, AnalyzerId())));
-        At(10.8, () => Aim(8, 1));
-        At(14.0, () => Press(Key.Escape));
         // A stack thrown with Q, the way the hero faces; then back to the crate.
         At(14.2, () => Press(Key.Key2));
         At(14.3, () => Press(Key.Q));
@@ -179,7 +170,6 @@ public partial class ItemsDemo : Control
 
     private int MachineId(char c) => _view.Grid?.MachineAt(Map.CellsOf(c).First())?.Id ?? -1;
     private int FurnaceId() => MachineId('F');
-    private int AnalyzerId() => MachineId('A');
     private int CrateId() => MachineId('K');
 
     private void Walk(Key key, Func<HeroSpot, bool> done)

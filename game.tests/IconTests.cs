@@ -170,13 +170,6 @@ public class IconTests
     }
 
     [Fact]
-    public void TheQuestionMarkStandsStillForItMarksSoManySlots()
-    {
-        var rest = Flat(Lines(MarkLooks.Unknown, 0));
-        for (int frame = 1; frame <= 60; frame++) Assert.Equal(rest, Flat(Lines(MarkLooks.Unknown, frame)));
-    }
-
-    [Fact]
     public void AFlameLicksAtItsTipAndKeepsItsFoot()
     {
         var flame = MarkLooks.Burns;
@@ -296,7 +289,6 @@ public class IconTests
     public void AMotionThatComesRoundDrawsItsCycleAgainAndOnlyTheCrackleNeverDoes()
     {
         Assert.Null(Cycle(Arc));
-        Assert.Equal(1, Cycle(MarkLooks.Unknown));
         foreach (var look in MarkLooks.All.Values.Where(l => l.Motion is not (IconMotion.Still or IconMotion.Flicker)))
         {
             int cycle = Cycle(look)!.Value;

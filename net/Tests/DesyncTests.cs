@@ -551,6 +551,39 @@ public class DesyncTests(ITestOutputHelper output)
         });
     }
 
+    [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncSellingAndBuyingTheTree()
+    {
+        // Trade and the tree (2026-10-30-trade-and-tech): a stocked trade station earns on its beat, a joiner comes in mid-beat,
+        // the credits and the counter in its welcome, and before its next sale the first client spends them on the salvage tier's blocks: without them in its welcome it refuses.
+        var layout = Layout.Parse(["##########", "#AA$$....#", "#AA$$....#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
+        static string Stocked(string save)
+        {
+            var root = JsonNode.Parse(save)!;
+            int station = (int)root["slices"]!["grid"]!["machines"]!.AsArray().First(m => (string?)m!["kind"] == "tradeStation")!["id"]!;
+            var slots = new JsonArray(new JsonObject { ["item"] = "frame", ["count"] = 50 }, new JsonObject { ["item"] = "wire", ["count"] = 50 }, null, null);
+            root["slices"]!["items"]!["crates"]!.AsArray().Add(new JsonObject { ["id"] = station, ["slots"] = slots });
+            return root.ToJsonString();
+        }
+        string[] blocks = ["floor", "door", "wallIron", "coil", "nailer", "harpoon", "helmetLamp"];
+        Covering(23, tried =>
+        {
+            var game = new Definition(() => new Registry().All, Stocked);
+            int earned = 0, bought = 0;
+            var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1000, joinAt: 503, tamper: (tick, clients) =>
+            {
+                var first = clients[0];
+                var knowledge = game.Module<Sim.Knowledge.KnowledgeModule>(first.World);
+                earned = Math.Max(earned, knowledge.Credits);
+                bought = Math.Max(bought, blocks.Count(knowledge.Granted));
+                if (tick <= 503 || tick % 40 != 25) return;
+                int tech = game.Module<GridModule>(first.World).MachinesOf("techStation")[0].Id;
+                foreach (string block in blocks) first.Send(new Sim.Research.BuyBlock(tech, block));
+            });
+            return (run, earned > 100 && bought >= 3 ? null : $"{earned} credits at most, {bought} blocks bought");
+        });
+    }
+
     // The harness itself.
 
     [Theory]

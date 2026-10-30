@@ -144,7 +144,7 @@ Machines:
 | Machine | Now | New |
 | --- | --- | --- |
 | furnace | 4 chunk, 2 hull plate | unchanged: the first build |
-| analyzer | 2 plate, 4 wire | 4 plate, 8 wire, 1 coil |
+| tech station | 2 plate, 4 wire | 4 plate, 8 wire |
 | crate | 6 planks, 2 iron | 8 planks, 2 plate |
 | tank | 4 plate, 1 tube | 8 plate, 2 tube, 2 gear |
 | vent | 1 plate, 1 tube | 2 plate, 2 tube |

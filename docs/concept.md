@@ -28,28 +28,27 @@ A living document: what is decided about the game and what is still open. Techni
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
   survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
-  half away, an analyzer surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
+  half away, a tech station surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
 - **The world** is 2048×1024 cells of space with the wreck in its middle; the ship is built only
   within the middle 1024×512, the build zone, and the space round it is there to fly out into
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
-- **Blueprints are learned,** Grounded's way: a blueprint or a craft opens once every item of its
-  cost is analysed in a powered analyzer, raw or made. The wreck knows only the furnace, the
-  analyzer, the crate, scrap walls and the wire; smelting scrap, making wire, cabling the torn room's
-  analyzer and analysing iron is the first lesson. Only what goes into some cost is analysed; tools,
-  the jetpack and anything else that goes into nothing are known from the start. An item not analysed
-  yet has a violet "?" in its slot. The analyzer's screen shows a check when done, and its panel every blueprint and craft the
-  item in it goes into, opened or still closed; nothing pops up over the hero. Every electric thing
+- **Salvage is sold and blueprints bought:** a trade station sells what is put in it for the ship's credits, a unit at a
+  time, at prices that never fall and always pay more for what is refined; drones keep it stocked. A tech station opens a tree
+  of tiers, each holding branches of blocks: a tier opens by resources deposited for good, a block is bought with credits,
+  a few blueprints and crafts together, the first for a few chunks' worth, the engine last and dearest
+  ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). The wreck knows the furnace, the workbench, the crate, both
+  stations, scrap walls and the first parts.
+  Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit
   assembler of silicon and wire ([stamped-and-assembled](decisions/2026-10-29-stamped-and-assembled.md)). Silicon starts as asteroid ore: the crusher breaks it into iron ore, gravel and, one
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
   solar panel is built of solar cells, silicon and glass assembled with wire, so a first new panel takes the whole chain
-  ([0024](decisions/0024-blueprints-are-learned-by-analysis.md),
-  [0027](decisions/0027-what-is-analysed-opens-what-is-made-of-it.md),
+  ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
   never taken apart. Heroes are made at its hatch, at the start bare and after dying in what they wore,

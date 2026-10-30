@@ -11,7 +11,7 @@ namespace Stillwake.Game.Dev;
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
 /// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
 /// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
-/// generator lit, the analyzer at work, a battery charging, the Former pressing plates endlessly from the iron in its
+/// generator lit, a battery charging, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting quartz, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
 /// the farm's items, seeds, what the crusher takes and gives, planks, and what a planet's caves give; and drones (0062): two in a powered bay in room one beside a supply crate of
 /// twenty stacks of chunks, planks, iron and seeds, the farm's crate switched off. The furnace already holds chunks and
@@ -67,12 +67,12 @@ public static class Testbed
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, and the air: a tank with a canister and a generator piped to a
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
-    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the analyzer, the charging station
+    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the tech station, the trade station on the drone bay, the charging station
     /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
     /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
     /// cabled to the panel over the airlock, biofuel for two descents in its slot. Thirteen panels on the roof: the first and the third feed the
     /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
-    /// computer and the antenna, the one past the third the crusher under it, the fourth the analyzer,
+    /// computer and the antenna, the one past the third the crusher under it, the fourth nothing,
     /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
     /// room two, and the last three, over the airlock and past the stern, the charging station: 15, what it draws with the arc
     /// fitted (0100); the burner generator feeds the Former and room
@@ -88,8 +88,8 @@ public static class Testbed
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......LUUU...#....L.kk......J.......L...#..L#",
-            "  #.OOOQQ..UUU.RRD......kk......gg...GG.....DZZ.D",
+            "  #.......LUUU...#....L.kk......J.......L.$$#..L#",
+            "  #.OOOQQ..UUU.RRD......kk......gg...GG...$$DZZ.D",
             "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBDZZ.D",
             "  #o#########################################__##",
@@ -109,7 +109,7 @@ public static class Testbed
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
-            ((19, 2), (22, 4)), ((25, 2), (39, 6)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
+            ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
             ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)),
@@ -120,9 +120,6 @@ public static class Testbed
 
     /// <summary>The arc bench by room two's door (0099) and what it holds at the start: a plain drill in its vise.</summary>
     public static readonly (string Kind, string Tool) BenchHolds = ("arcBench", Weapons.Drill.Item);
-
-    /// <summary>What the analyzer holds at the start: an item no world has analysed yet.</summary>
-    public const string Analysing = "gear";
 
     /// <summary>What the battery in the charging station holds at the start, in thousandths of full: it charges.</summary>
     public const int Charging = 400;
@@ -158,7 +155,7 @@ public static class Testbed
     /// The testbed's world, played on <paramref name="modules"/>: run until its rooms are aired, its
     /// items put in through the save (no command makes items), loaded, and two ticks on: the furnace and
     /// the generator are lit on the first, the generator's power reaches its lamps and the Former on the
-    /// second (it rests while cold), and the analyzer has nearly its whole work ahead. The Former has
+    /// second (it rests while cold). The Former has
     /// <see cref="Pressed"/> <see cref="Pressing"/> in its inputs and an endless entry of plates fed from them, which creative mode
     /// does not make free; the smelter a stack of quartz; the assembler <see cref="Assembling"/> circuits queued; the grow capsule <see cref="Planted"/> seeds, the first growing from
     /// nothing at the speed of play. The supply crate and the bay's two drones go in with the rest; the farm's crate is
@@ -195,7 +192,6 @@ public static class Testbed
                 ["id"] = Id("furnace"),
                 ["slots"] = Slots("furnace", [.. FurnaceHolds.Select(h => Stack(h.Item, h.Count))]),
             },
-            new() { ["id"] = Id("analyzer"), ["slots"] = Slots("analyzer", [Stack(Analysing, 1)]) },
             new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
             new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },

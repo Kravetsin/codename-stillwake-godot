@@ -45,15 +45,12 @@ public class ShipComputerTests
     }
 
     [Fact]
-    public void OpenOnceTheirNewPartsAreAnalysedAsAnyBlueprintAndArePlannedOnTheShipTab()
+    public void AreBoughtInTheTreeAsAnyBlueprintAndArePlannedOnTheShipTab()
     {
         var w = new Scenario(Layout.Parse(Rows, null, Cables) with { Known = Content.Research.StartKnown }, doubled: true);
         var computer = new Placement("machine", "computer");
         Assert.Equal("building.unknown", w.M.Building.Problem(w.At(6, 3), computer));
-        var recipe = w.M.Research.Recipes().Single(r => r.Id == "computer");
-        Assert.Contains("processor", recipe.Unanalysed);
-        Assert.Contains("display", recipe.Unanalysed);
-        Assert.Contains("transceiver", w.M.Research.Recipes().Single(r => r.Id == "radarAntenna").Unanalysed);
+        Assert.All(["computer", "radarAntenna"], kind => Assert.False(w.M.Research.Knows(kind)));
         Assert.All(["computer", "radarAntenna"], kind => Assert.Equal(MenuTabs.Ship, Machines.Get(kind).Menu!.Tab));
         // A world granted everything plans them at once, creative or not.
         Assert.Null(World().M.Building.Problem(w.At(6, 3), computer));

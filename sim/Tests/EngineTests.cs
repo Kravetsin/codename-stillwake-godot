@@ -110,7 +110,7 @@ public class EngineTests
         Assert.Equal(0, w.M.Items.HeldFor(engine, "planks"));
     }
 
-    /// <summary>As an analyzer does: its pumps and igniter kept ready while its tank holds fuel, idle while empty.</summary>
+    /// <summary>Its pumps and igniter kept ready while its tank holds fuel, idle while empty.</summary>
     [Fact]
     public void DrawsItsPowerCabledWhileItHoldsFuelAndNothingWithout()
     {

@@ -10,7 +10,7 @@ namespace Stillwake.Sim.Tests;
 
 public sealed record RestMachine(int Id, bool Resting) : Command;
 
-/// <summary>Tells power to rest a machine or work it again, as research does with an idle analyzer.</summary>
+/// <summary>Tells power to rest a machine or work it again, as a module may with what stands idle.</summary>
 public sealed class Rester : Module<Rester.Nothing>
 {
     public sealed class Nothing;
@@ -354,7 +354,7 @@ public class PowerTests
         });
     }
 
-    // Beyond power.test.ts: resting (research's analyzer), drawing on a slot, and the map's cables.
+    // Beyond power.test.ts: resting and the map's cables.
 
     private static Scenario Resting(Pairs? cables = null) => new(Map(cables), with: m => [new Rester(m.Power)], doubled: true);
     private static IReadOnlyList<int> RestingIds(Scenario w) => ((PowerState)w.M.Power.Slice).Resting;
@@ -386,17 +386,6 @@ public class PowerTests
         Assert.Equal(0, w.M.Power.Networks[0].Demand);
         w.Do(new Cut(Panel, Second)).Run().Do(new ClearAt(Second, "machine")).Run();
         Assert.Equal(new[] { gen }, RestingIds(w));
-    }
-
-    [Fact]
-    public void AnAnalyzerDrawsOnlyWhileItsFirstSlotHoldsSomething()
-    {
-        string[] rows = [.. Rows[..3], "#AA............#", "#AA............#", Rows[5]];
-        var w = new Scenario(Layout.Parse(rows, null, ToFirst), doubled: true);
-        int analyzer = IdAt(w, Generator);
-        Assert.Equal((0, 1000), (w.M.Power.Networks[0].Demand, w.M.Power.Satisfaction(analyzer)));
-        w.FillCrate(analyzer, ("scrap", 1)).Run();
-        Assert.Equal(Content.Machines.Get("analyzer").Draws!.Value, w.M.Power.Networks[0].Demand);
     }
 
     [Fact]

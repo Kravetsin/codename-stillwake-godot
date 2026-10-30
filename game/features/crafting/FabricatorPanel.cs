@@ -388,11 +388,10 @@ public partial class FabricatorPanel : CanvasLayer
         return CardTip(craft, Crafts.Block(craft, station, _carried, _creative));
     }
 
-    /// <summary>The card of <paramref name="item"/> with what this station adds, its band as a slot's "?".</summary>
+    /// <summary>The card of <paramref name="item"/> with what this station adds.</summary>
     private Tip CardTip(string item, StationBlock station)
     {
-        bool unknown = ItemCards.Unknown(item, _creative, _research?.Analysed ?? []);
-        var card = ItemCards.Of(item, unknown) with { Station = station };
+        var card = ItemCards.Of(item) with { Station = station };
         return new Tip(card.Name) { Card = card };
     }
 

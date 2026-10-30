@@ -39,14 +39,6 @@ public static class MarkLooks
         ],
         Core: 0xf0fff2, Rim: 0x5fdc7c, Glow: 0x2fbf5a, IconMotion.Sway, Pivot: (.5f, .77f));
 
-    /// <summary>Not analysed yet, and what an analyzer takes: a violet "?", still, for it marks so many slots at once.</summary>
-    public static readonly Look Unknown = new(Ring,
-        [
-            new Stroke([(.385f, .37f), (.415f, .29f), (.5f, .25f), (.585f, .28f), (.625f, .35f), (.6f, .425f), (.535f, .47f), (.5f, .52f), (.5f, .6f)]),
-            new Stroke([(.5f, .715f), (.5f, .72f)], Weight: 1.2f),
-        ],
-        Core: 0xf4efff, Rim: 0xa78bfa, Glow: 0x8b5cf6, IconMotion.Still);
-
     /// <summary>What a charging station takes: a battery, charge's green, its three bars lit from the bottom one by one.</summary>
     public static readonly Look Charges = new(Ring,
         [
@@ -78,7 +70,6 @@ public static class MarkLooks
         Core: 0xeefaff, Rim: 0x7dd3fc, Glow: 0x38bdf8, IconMotion.Spin);
     public static readonly IReadOnlyDictionary<SlotMark, Look> All = new Dictionary<SlotMark, Look>
     {
-        [SlotMark.Unknown] = Unknown,
         [SlotMark.Smelts] = Smelts,
         [SlotMark.Burns] = Burns,
         [SlotMark.Grows] = Grows,

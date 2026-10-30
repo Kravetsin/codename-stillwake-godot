@@ -392,10 +392,10 @@ public class LogisticsTests
     }
 
     [Fact]
-    public void DronesWorkCratesFedAndQueuedStationsButNotBaysAnalyzersOrChargers()
+    public void DronesWorkCratesFedQueuedAndTradeStationsButNotBaysOrChargers()
     {
         var w = new Scenario(Layout.Parse(EveryMachine), doubled: true);
-        string[] servable = ["crate", "furnace", "former", "smelter", "assembler", "growCapsule", "burnerGenerator", "lifepod"];
+        string[] servable = ["crate", "furnace", "former", "smelter", "assembler", "growCapsule", "burnerGenerator", "lifepod", "tradeStation"];
         foreach (var m in w.M.Grid.Machines.Where(m => Content.Machines.Get(m.Kind).Slots != null))
             Assert.True(servable.Contains(m.Kind) == w.M.Logistics.Servable(m.Id), m.Kind);
     }
@@ -405,8 +405,8 @@ public class LogisticsTests
     [
         "####################################",
         "#...................gg.........OOO.#",
-        "#.FF.MM.EE.YY.AA.BB.gg.C....RR.OOO.#",
-        "#.FF.MM.EE.YY.AA.BB.gg.C.KK.RR.OOO.#",
+        "#.FF.MM.EE.YY.$$.BB.gg.C....RR.OOO.#",
+        "#.FF.MM.EE.YY.$$.BB.gg.C.KK.RR.OOO.#",
         "####################################",
     ];
 
@@ -531,6 +531,41 @@ public class LogisticsTests
         Assert.True(w.M.Logistics.Supplied(Furnace, "scrapChunk"));
         Assert.True(RunUntil(w, () => Held(w, Furnace, 0, "scrapChunk") == Chunks, 600));
         Assert.Equal(0, Count(w.M.Items.Crate(Left), "scrapChunk"));
+    }
+
+    /// <summary>Automation is what makes credits flow (2026-10-30-trade-and-tech): drones keep a seeded slot stocked, never with what no one buys.</summary>
+    [Fact]
+    public void DronesKeepATradeStationsSeededSlotStockedAndBringNothingUnpriced()
+    {
+        string[] rows = [.. Rooms.Select(r => r.Replace("FF", "$$"))];
+        var w = Aired(rows, RoomsUnder, 1, charge: Content.Charge.Drone);
+        int station = w.M.Grid.MachinesOf("tradeStation")[0].Id;
+        Assert.False(w.M.Logistics.Supplied(station, "wire"));
+        w.Put(0, new Stack("wire", 1), crate: station);
+        w.FillCrate(Left, ("wire", 100));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Left), "wire") < 100, 900));
+        Assert.True(RunUntil(w, () => w.M.Research.Credits > Content.Market.PriceOf("wire"), 900));
+        // Held by hand, an unpriced stack stays, and none comes after it.
+        w.Put(1, new Stack("arcShard", 1), crate: station);
+        w.FillCrate(Right, ("arcShard", 4));
+        w.Run(600);
+        Assert.Equal(4, Count(w.M.Items.Crate(Right), "arcShard"));
+        Assert.Equal(1, Count(w.M.Items.Crate(station), "arcShard"));
+    }
+
+    [Fact]
+    public void ADeliveryGoesToTheEmptySlotRememberingItAndLeavesAnotherSlotsMemory()
+    {
+        string[] rows = [.. Rooms.Select(r => r.Replace("FF", "$$"))];
+        var w = Aired(rows, RoomsUnder, 1, charge: Content.Charge.Drone);
+        int station = w.M.Grid.MachinesOf("tradeStation")[0].Id;
+        w.Put(0, new Stack("wire", 1), crate: station);
+        w.Put(1, new Stack("gear", 1), crate: station);
+        Assert.True(RunUntil(w, () => w.M.Items.Crate(station).All(s => s == null), 900));
+        w.FillCrate(Right, ("gear", 1));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station).All(s => s == null), 1800));
+        Assert.Equal("wire", w.M.Items.KeptAt(station, 0));
+        Assert.Equal("gear", w.M.Items.KeptAt(station, 1));
     }
 
     [Fact]
