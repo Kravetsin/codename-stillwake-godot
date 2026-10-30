@@ -3,14 +3,14 @@ using Stillwake.Content;
 namespace Stillwake.Sim.Hazards;
 
 /// <summary>
-/// A magnetic flare starts now, from the dev panel's button (2026-10-30-magnetic-flare): it strikes <c>Ticks</c> ticks on, its warning
-/// first when that is its place's <c>Warning</c>. In any world, armed or not.
+/// A magnetic flare starts now, from the dev panel's button (2026-10-30-magnetic-flare): it strikes on the <c>Ticks</c>th tick, the one it
+/// applies on counted first, so 1 strikes at once; its warning first when that is its place's <c>Warning</c>. In any world, armed or not.
 /// </summary>
 public sealed record FlareNow(int Ticks) : Command;
 
 public sealed partial class HazardsModule
 {
-    private readonly List<int> _candidates = [];
+    private readonly List<int> _candidates = [], _ends = [];
 
     /// <summary>The flares of this place, or the starting space's where it has none: what a flare started by hand strikes with.</summary>
     public MagneticFlares.Flare FlareRules => Rules.Flares ?? MagneticFlares.StartingSpace;
@@ -37,14 +37,18 @@ public sealed partial class HazardsModule
     }
 
     /// <summary>
-    /// A flare strikes: of the <c>n</c> powered machines on a network and not broken, in id order, it draws a percent between the place's
+    /// A flare strikes: of the <c>n</c> powered machines a cable ends on and not broken, in id order, it draws a percent between the place's
     /// least and most, then breaks <c>ceil(n × percent / 100)</c> of them, each drawn from those left and taken out. None, nothing drawn.
     /// </summary>
     private void StrikeFlare(MagneticFlares.Flare flare)
     {
+        // The cables as they lie now, not the networks found last derivation: one cut or laid this tick counts.
+        _ends.Clear();
+        foreach (var c in _power.Cables) { _ends.Add(c.A); _ends.Add(c.B); }
+        _ends.Sort();
         _candidates.Clear();
         foreach (var m in _grid.Machines)
-            if (Machines.Get(m.Kind).Powered && !_power.IsBroken(m.Id) && _power.NetworkOf(m.Cell) != null) _candidates.Add(m.Id);
+            if (Machines.Get(m.Kind).Powered && !_power.IsBroken(m.Id) && _ends.BinarySearch(m.Cell) >= 0) _candidates.Add(m.Id);
         int n = _candidates.Count;
         if (n == 0) return;
         int percent = flare.PercentMin + (int)Random.Below((uint)(flare.PercentMax - flare.PercentMin + 1));

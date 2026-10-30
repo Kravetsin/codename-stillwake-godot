@@ -69,5 +69,8 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>A repair whose machine is gone, or mended some other way, is dropped with what it was paid: one loss, no refund.</summary>
-    private void SweepRepairs() => State.Repairs.RemoveAll(r => !_power.IsBroken(r.Machine));
+    private void SweepRepairs()
+    {
+        if (State.Repairs.Count > 0) State.Repairs.RemoveAll(r => !_power.IsBroken(r.Machine));
+    }
 }

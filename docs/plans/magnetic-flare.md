@@ -31,7 +31,7 @@ Marked (U) where the user set the rule; the rest is design, approved with it.
   strikes on that tick. (2) Then, if `FlareIn` is 0, armed, not `Calm` and the kind has `Flares`, the next is drawn:
   `FlareIn` = `Rng` evenly in `EveryMin`..`EveryMax` (start: 9 600..18 000, 8–15 min), not counted down on the tick drawn.
   The warning is `FlareIn` in 1..`Warning` (start: 200, 10 s).
-- **The strike** (U: 10–30%, at random): the candidates are the electric machines on a network and not broken, in machine
+- **The strike** (U: 10–30%, at random): the candidates are the electric machines a cable ends on as the tick's cables lie and not broken, in machine
   id order (`n` of them). The `Rng` draws `p` evenly in `PercentMin`..`PercentMax` (10..30) first, then `k = ceil(n × p /
   100)` distinct picks: each `Rng.Next(remaining)` indexes the list left, and the pick is removed from it. Rounding up means
   every flare breaks one at least; three candidates lose a third. A machine with no cable is never picked: it works neither
@@ -82,9 +82,9 @@ Marked (U) where the user set the rule; the rest is design, approved with it.
   but not yet in its warning; refused `hazards.flareComing` during a warning. It works in any world, calm or not, armed or
   not; where the kind has no `Flares` the whole `StartingSpace` record gives the strike's numbers. The admin button sends
   the record's `Warning`, so the event starts with the aurora. After it strikes, the next is drawn only by the rule above.
-- **Fuzz:** Hazards draws `FlareNow(1)` one turn in 64, so a machine breaks within the suites' 100–400 ticks; Building
-  draws `Repair` at a broken machine, paid when the sender carries the cost, refused otherwise. `ModulesTests` then save,
-  load and desync worlds with broken machines; a repair half done is a scenario test's.
+- **Fuzz:** Hazards draws `FlareNow(1)` one turn in 64; Building draws `Repair`, mostly at a broken machine, else at any
+  id. The generic suites seldom see a machine broken in their short runs (oftener flares starved the stations' coverage),
+  so `MagneticFlareTests` loads a world struck and repaired before every tick and compares hashes.
 - **Save:** three fields added with "none" initializers: no format bump.
 - **Docs:** README rules of Power, Building (and its invariant), Hazards (`Calm`); `docs/glossary.md` (вспышка / flare,
   сломан / broken, ремонт / repair); `docs/map.md` if a line moves; ADR `docs/decisions/2026-10-30-magnetic-flare.md`; a line

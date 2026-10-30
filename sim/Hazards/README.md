@@ -45,9 +45,9 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 - **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
   reaching 0. Then, with none drawn, where the kind has `Flares`, the world is not `Calm` and `Knows("generator")`, the next
   is drawn evenly in `EveryMin..EveryMax`, not counted down that tick. Its last `Warning` ticks are its warning.
-- **The strike** takes the powered machines on a network and not broken, in id order (`n`), draws a percent evenly in
-  `PercentMin..PercentMax`, then `ceil(n × percent / 100)` picks, each `Rng.Below(left)` and taken out, and `Break`s them.
-  None: nothing drawn.
+- **The strike** takes the powered machines a cable ends on now (not last derivation's networks) and not broken, in id
+  order (`n`), draws a percent evenly in `PercentMin..PercentMax`, then `ceil(n × percent / 100)` picks, each
+  `Rng.Below(left)` and taken out, and `Break`s them. None: nothing drawn.
 - `FlareNow(ticks)` (dev) sets `FlareIn`, replacing a flare drawn and not yet coming, in any world; a place with no
   `Flares` strikes with `StartingSpace`'s.
 
@@ -60,7 +60,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   `hazards.flareComing` during a warning.
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
   reads the grid's walls when it draws, where the TypeScript generator, which cannot see the grid,
-  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64, so short runs see machines broken.
+  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64; `MagneticFlareTests` loads a world struck and repaired every tick.
 
 ## Invariants
 

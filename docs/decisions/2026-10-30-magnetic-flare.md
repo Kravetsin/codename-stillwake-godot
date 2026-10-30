@@ -16,8 +16,8 @@ working, not taken apart, but repairable, their cables left where they are.
   a `Calm` world draws none. They are armed once the oxygen generator is known (`Research.Knows("generator")`): from then
   on the player can make whatever repairing it takes. Creative mode knows everything, so flares come from the start there.
 - **The warning** is the aurora, lamps flickering and cables glowing: no text.
-- **What breaks** is drawn at random from the powered machines on a network and not broken: a machine with no cable works
-  neither way, and its breaking would spend the share. `ceil(n × percent / 100)` of them, so every flare breaks one at
+- **What breaks** is drawn at random from the powered machines a cable ends on and not broken, as the cables lie on the
+  strike's tick: a machine with no cable works neither way, and its breaking would spend the share. `ceil(n × percent / 100)` of them, so every flare breaks one at
   least. Nothing protects a machine yet, not standing deep in the hull either.
 - **Broken** is Power's: the machine stays a node, its cables, slots, queue and store with it, and makes, draws and stores
   nothing. Everything that asks Power whether a machine works (`Satisfaction`, `Needed`) stops with no rule of its own.

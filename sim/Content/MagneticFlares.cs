@@ -3,7 +3,7 @@ namespace Stillwake.Content;
 /// <summary>
 /// Magnetic flares breaking machines (2026-10-30-magnetic-flare): once <see cref="ArmedBy"/> is known, a place's flare comes every
 /// <see cref="Flare.EveryMin"/> to <see cref="Flare.EveryMax"/> ticks, seen <see cref="Flare.Warning"/> ticks before it strikes, and
-/// breaks <see cref="Flare.PercentMin"/> to <see cref="Flare.PercentMax"/> percent of the electric machines on a network, rounded up.
+/// breaks <see cref="Flare.PercentMin"/> to <see cref="Flare.PercentMax"/> percent of the electric machines a cable ends on, rounded up.
 /// </summary>
 public static class MagneticFlares
 {

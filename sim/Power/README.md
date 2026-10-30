@@ -94,6 +94,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   taken apart other than by `building` (a meteor, a dev clear) leaves its cables at its top-left, in the air.
 - A peg may stand farther than a span from a cable's other end, by the machine's size: only laying and moving check.
 - No priorities, switches or overload; a store holds nothing back and never leaks. A store taken apart loses its charge.
-- A broken drone bay still sends drones (logistics reads no power); a broken burner's lit fire burns on for nothing.
+- A broken drone bay still sends drones (logistics reads no power), the engine's draw is read by none; a broken
+  burner's lit fire burns on for nothing.
 - Networks are found from scratch every tick: tens of cables. A cache would also have to follow slots and rests,
   which do not move the grid's `Version`.
