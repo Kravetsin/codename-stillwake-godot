@@ -364,9 +364,12 @@ public class SurfacesTests
             }
             var copy = World.Load(world.Save(), new Registry().All);
             int to = (world.SurfaceOf(t.peer) + 1) % world.Surfaces.Count;
+            // One waking this very tick wakes aboard, wherever it just went (0076).
+            bool waking = Registry.On(world, world.SurfaceOf(t.peer)).Crew.HeroOf(t.peer)?.Out == 1;
+            int lands = waking ? 0 : to;
             world.Step([new Transfer(to) { From = t.peer }]);
             copy.Step([]);
-            return (Totals(world).SequenceEqual(Totals(copy)) && world.SurfaceOf(t.peer) == to).Label($"to {to}: {string.Join(",", Totals(world))} against {string.Join(",", Totals(copy))}");
+            return (Totals(world).SequenceEqual(Totals(copy)) && world.SurfaceOf(t.peer) == lands).Label($"to {to}, on {world.SurfaceOf(t.peer)}: {string.Join(",", Totals(world))} against {string.Join(",", Totals(copy))}");
         });
     }
 
