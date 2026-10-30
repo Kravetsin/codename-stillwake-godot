@@ -28,10 +28,10 @@ public class FarmTests
         return new Scenario(Layout.Parse(rows, null, cables), doubled: true).GiveItems(0, ("seed", 10), ("rock", 2), ("planks", 2));
     }
 
-    /// <summary>A sealed room aired by a tank piped to a vent, holding a furnace, and an electric smelter on a panel of its own.</summary>
+    /// <summary>A sealed room aired by a vaporizer piped to a vent, its tank and panel under the hull, holding a furnace, and an electric smelter on a panel of its own.</summary>
     private static Scenario Smelting()
     {
-        var w = new Scenario(Layout.Parse(
+        var w = new Scenario(AirTesting.Vaporized(
                 ["PPP       ", "          ", "##########", "#FF.TT.EE#", "#FF.TTVEE#", "##########"],
                 ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]), doubled: true)
             .GiveItems(0, ("biomass", 4), ("seed", 2), ("planks", 2));

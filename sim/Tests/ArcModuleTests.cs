@@ -278,7 +278,7 @@ public class ArcModuleTests
             "#RR.KK.TTVD..VEE..KK...#",
             "########################",
         ];
-        var w = new Scenario(Layout.Parse(rows, LogisticsTests.RoomsUnder), doubled: true);
+        var w = new Scenario(AirTesting.Vaporized(rows, LogisticsTests.RoomsUnder), doubled: true);
         // LogisticsTests.Aired's world, on the doubled map: both rooms aired, then the bay's drones docked.
         var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell) ?? 0).ToArray();
         for (int i = 0; i < 2000 && !vented.All(r => w.M.Atmosphere.StatusOf(r) == Atmosphere.RoomStatus.Aired); i++) w.Run();

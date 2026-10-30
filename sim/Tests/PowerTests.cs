@@ -25,8 +25,9 @@ public sealed class Rester : Module<Rester.Nothing>
 public class PowerTests
 {
     /// <summary>
-    /// Sixteen wide: a solar panel out in space above a sealed room, its generator piped to a vent. Two
-    /// rows of space between; the room's right wall is past a span from the generator. Drawn a character a 16 px cell, doubled (0104).
+    /// Sixteen wide: a solar panel out in space above a sealed room, its generator's gas output piped to a vent
+    /// (liquid-oxygen). Two rows of space between; the room's right wall is past a span from the generator. Drawn a
+    /// character a 16 px cell, doubled (0104).
     /// </summary>
     private static readonly string[] Rows =
     [
@@ -37,7 +38,11 @@ public class PowerTests
         "#GGVGG.........#",
         "################",
     ];
-    private static readonly string[] Under = ["", "", "", "", " ---"];
+    private static readonly string[] Under = ["", "", "", "  --", "   -"];
+
+    /// <summary>The same room with no vent pipe, a tank holding a canister under each generator in space, piped up to its liquid input.</summary>
+    private static readonly string[] Tanked = [.. Rows, " TT TT          ", " TT TT          "];
+    private static readonly string[] TankedUnder = ["", "", "", "", " -  -", " -  -", " -o -o", " -  -"];
     private const int Width = 2 * 16;
     /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left.</summary>
     private static int At(int x, int y) => 2 * y * Width + 2 * x;
@@ -185,12 +190,12 @@ public class PowerTests
     [Fact]
     public void SlowsEveryUserAlikeWhenShortTwoGeneratorsOnOnePanelGet625()
     {
-        var w = World([.. ToFirst, ((0, 0), (4, 3))]);
+        var w = new Scenario(Layout.Parse(Tanked, TankedUnder, [.. ToFirst, ((0, 0), (4, 3))]), doubled: true);
         var n = w.M.Power.Networks[0];
         Assert.Equal((5, 8, 625), (n.Supply, n.Demand, n.Satisfaction));
         Assert.Equal(625, w.M.Power.Satisfaction(IdAt(w, Second)));
-        // Unpiped, the second keeps all it makes: 750 a minute, a hundred and twenty units in 192 ticks, four times what a
-        // 16 px cell's generator made (0104).
+        // Its output unpiped, the second keeps all it makes of its tank's liquid: 750 a minute, a hundred and twenty units
+        // in 192 ticks, four times what a 16 px cell's generator made (0104).
         const int ticks = 192;
         w.Run(ticks);
         Assert.Equal(ticks * Content.Air.GeneratorRate * 625 / 1000 / Content.Air.LeakEvery, Store(w, Second));
@@ -200,7 +205,7 @@ public class PowerTests
     [Fact]
     public void RunsAGeneratorAtFullPowerAtItsRateItsFractionCarried()
     {
-        var w = new Scenario(Layout.Parse(Rows, [], ToFirst), doubled: true);
+        var w = new Scenario(Layout.Parse(Tanked, TankedUnder, ToFirst), doubled: true);
         w.Run(120);
         // Twelve hundred a minute, four times a 16 px cell's (0104): one a tick.
         Assert.Equal(120, Store(w, Generator));
