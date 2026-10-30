@@ -210,11 +210,10 @@ public class SmelterTests
     }
 
     [Fact]
-    public void OpensOnceAFrameACoilAPlateATubeAndACircuitAreAnalysed()
+    public void IsBoughtInTheTree()
     {
         var w = new Scenario(Layout.Parse(["####", "#..#", "####"]) with { Known = Content.Research.StartKnown });
         var smelter = w.M.Research.Recipes().Single(r => r.Id == "smelter");
-        Assert.Equal(["frame", "coil", "plate", "tube", "circuit"], smelter.Unanalysed);
         Assert.False(smelter.Known);
     }
 }

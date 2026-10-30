@@ -287,11 +287,13 @@ public class SurfacesTests
     }
 
     [Fact]
-    public void WhatIsLearnedOnOneSurfaceIsKnownOnEvery()
+    public void WhatIsKnownAndEarnedOnOneSurfaceIsSoOnEvery()
     {
         var w = Opened();
-        w.M.Knowledge.Learn("wire");
-        Assert.Equal(["wire"], w.On(1).Research.Analysed);
+        w.M.Knowledge.Grant("wire");
+        w.M.Knowledge.Earn(3);
+        Assert.True(w.On(1).Research.Knows("wire"));
+        Assert.Equal(3, w.On(1).Research.Credits);
         Assert.Equal(w.M.Research.Recipes().Select(r => r.Known), w.On(1).Research.Recipes().Select(r => r.Known));
     }
 

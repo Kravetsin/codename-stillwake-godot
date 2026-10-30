@@ -87,7 +87,7 @@ public class ChargeTests
     // The charging station.
 
     [Fact]
-    public void TheStationIsOneByTwoDrawsThreeAndIsOpenedByAnalysis()
+    public void TheStationIsOneByTwoDrawsThreeAndIsBoughtInTheTree()
     {
         var spec = Machines.Get("charger");
         // One by two as a map draws it, a character a 16 px cell (0104).

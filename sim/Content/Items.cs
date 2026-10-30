@@ -283,6 +283,12 @@ public static class Floor
     /// </summary>
     public const int PickUpReach = 2;
 
+    /// <summary>
+    /// How many whole cells round a hero's body (its stacks' cell) a hero touching it takes it all, as far as it fits: the body lying
+    /// some five cells long holds them inside (the client's, 2026-10-29-body-bag).
+    /// </summary>
+    public const int BodyReach = 2;
+
     /// <summary>Inside the ship: what a stack gains falling each tick.</summary>
     public const int Gravity = 60;
 

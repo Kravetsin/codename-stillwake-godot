@@ -144,7 +144,7 @@ Machines:
 | Machine | Now | New |
 | --- | --- | --- |
 | furnace | 4 chunk, 2 hull plate | unchanged: the first build |
-| analyzer | 2 plate, 4 wire | 4 plate, 8 wire, 1 coil |
+| tech station | 2 plate, 4 wire | 4 plate, 8 wire |
 | crate | 6 planks, 2 iron | 8 planks, 2 plate |
 | tank | 4 plate, 1 tube | 8 plate, 2 tube, 2 gear |
 | vent | 1 plate, 1 tube | 2 plate, 2 tube |
@@ -228,7 +228,8 @@ is a fuel source. Both are a planet's, so neither goes into anything before the 
 2. The workbench, the pod cut to the suit, the costs of the burner generator and the Former moved to bench parts. Done.
 3. The crusher with asteroid ore, iron ore, gravel and quartz; chance yields and several units a smelt in code. Done.
 4. Costs and craft times across the tree, checked with the calculator against about five hours solo. First pass done (the-crusher).
-5. Meteors from the start, walls kept planned. Done.
+5. Meteors from the start, walls kept planned. Done; weak till the first landing, scrap patched of raw chunks
+   (weak-meteors-till-landing).
 6. Hide and fat (done, #256), ice canisters (done); alloy plates, concrete walls, suit and helmet tiers to come.
 
 ## Open

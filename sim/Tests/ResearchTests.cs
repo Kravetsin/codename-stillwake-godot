@@ -1,285 +1,301 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Content;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Research;
 using Xunit;
+using ResearchSpec = Stillwake.Content.Research;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>packages/sim/src/modules/research/research.test.ts, ported, and its rule since 0027: what is analysed opens what is made of it.</summary>
+/// <summary>The tech tree (2026-10-30-trade-and-tech): tiers opened by deposits, blocks bought with credits, what is bought known.</summary>
 public class ResearchTests
 {
     private const int Width = 10;
     /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>), doubled (0104).</summary>
     private static int At(int x, int y) => 2 * y * 2 * Width + 2 * x;
-    private static readonly int Analyzer = At(1, 3);
-    private const int Ticks = Content.Research.Ticks;
-    private const int Work = Ticks * 1000;
+    private static readonly int Station = At(1, 1);
 
-    /// <summary>
-    /// Ten wide, granting <paramref name="known"/> or, with null, everything: a solar panel out in space
-    /// cabled to an analyzer in a room, and, when <paramref name="generator"/>, to a generator beside it
-    /// drawing as well; with <paramref name="two"/>, to a second analyzer there instead.
-    /// </summary>
-    private static Layout Map(IReadOnlyList<string>? known, bool generator = false, bool two = false)
+    /// <summary>Ten wide, granting <paramref name="known"/> or, with null, everything: a tech station and a trade station in a room.</summary>
+    private static Layout Map(IReadOnlyList<string>? known)
     {
-        string g = generator ? "GG" : two ? "AA" : "..";
         string[] rows =
         [
-            "PPP       ",
-            "          ",
             "##########",
-            $"#AA{g}....#",
-            $"#AA{g}....#",
+            "#AA$$....#",
+            "#AA$$....#",
             "##########",
         ];
-        IReadOnlyList<((int X, int Y) A, (int X, int Y) B)> cables =
-            generator || two ? [((0, 0), (1, 3)), ((0, 0), (3, 3))] : [((0, 0), (1, 3))];
-        var layout = Layout.Parse(rows, null, cables);
+        var layout = Layout.Parse(rows, null);
         return known == null ? layout : layout with { Known = known };
     }
 
-    private static Layout StartMap(bool generator = false, bool two = false) => Map(Content.Research.StartKnown, generator, two);
-
-    /// <summary>The world on <paramref name="layout"/>, a peer 0 carrying materials and parts, and the analyzer's id.</summary>
-    private static (Scenario W, int Id) SetUp(Layout? layout = null)
+    /// <summary>A world knowing what the wreck does and <paramref name="known"/>, with <paramref name="credits"/> earned, and its tech station's id.</summary>
+    private static (Scenario W, int Id) SetUp(int credits = 0, IReadOnlyList<string>? known = null)
     {
-        var w = new Scenario(layout ?? StartMap(), doubled: true)
-            .GiveItems(0, ("iron", 5), ("scrap", 5), ("plate", 5), ("gear", 5), ("wire", 5), ("planks", 5), ("fireAxe", 1));
-        return (w, w.M.Grid.MachineAt(Analyzer)?.Id ?? 0);
+        var w = new Scenario(Map([.. ResearchSpec.StartKnown, .. known ?? []]), doubled: true);
+        w.M.Knowledge.Earn(credits);
+        return (w, w.M.Grid.MachineAt(Station)?.Id ?? 0);
     }
 
-    /// <summary>Puts one of <paramref name="item"/> from peer 0 into analyzer <paramref name="id"/>.</summary>
-    private static Scenario Put(Scenario w, int id, string item)
+    private static int TradeOf(Scenario w) => w.M.Grid.MachineAt(At(3, 1))!.Id;
+    private static TechNode Node(string id) => ResearchSpec.Node(id)!;
+
+    /// <summary>What every block <paramref name="id"/> leads through opens, so it is reached: its gates must be filled apart.</summary>
+    private static string[] Before(string id)
     {
-        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == item);
-        return w.Do(new Items.Move(new Items.Place(slot), new Target(Crate: id), 1)).Run();
+        var all = new List<string>();
+        void Walk(TechNode node)
+        {
+            foreach (string need in node.Needs)
+            {
+                Walk(Node(need));
+                all.AddRange(Node(need).Opens);
+            }
+        }
+        Walk(Node(id));
+        return [.. all.Distinct()];
     }
 
-    private static Scenario TakeOut(Scenario w, int id) =>
-        w.Do(new Items.Move(new Items.Place(0, id), new Target(), 99)).Run();
-
-    /// <summary>Puts <paramref name="item"/> in, waits until it is analysed, and takes it out again.</summary>
-    private static Scenario Analyse(Scenario w, int id, string item)
+    /// <summary>Gives peer 0 what <paramref name="gate"/> asks for and puts it in.</summary>
+    private static void Fill(Scenario w, int id, TechNode gate)
     {
-        Put(w, id, item);
-        w.Run(Ticks);
-        Assert.Contains(item, w.M.Research.Analysed);
-        return TakeOut(w, id);
-    }
-
-    private static IReadOnlyList<string> Analysed(Scenario w) => w.M.Research.Analysed;
-    private static int Demand(Scenario w) => w.M.Power.Networks[0].Demand;
-    private static string[] Sorted(IEnumerable<string> ids) => ids.Order(StringComparer.Ordinal).ToArray();
-    private static Recipe RecipeOf(Scenario w, string id) => w.M.Research.Recipes().Single(r => r.Id == id);
-
-    [Fact]
-    public void AnalysesAnItemInItsTicksAtFullPowerKeepsItAndOpensWhatIsMadeOfItAlone()
-    {
-        var (w, id) = SetUp();
-        Put(w, id, "iron");
-        // The tick of the move was the first of the work.
-        w.Run(Ticks - 2);
-        Assert.Equal(new Analyzing("iron", Work - 1000, Work, null), w.M.Research.At(id));
-        Assert.False(w.M.Research.Knows("plate"));
-        w.Run();
-        Assert.Equal(["iron"], Analysed(w));
-        Assert.True(w.M.Research.Knows("plate"));
-        Assert.True(w.M.Research.Knows("gear"));
-        // The door is made of plates and a gear, not of iron.
-        Assert.False(w.M.Research.Knows(new Placement("structure", "door")));
-        Assert.Equal(new Stack("iron", 1), w.M.Items.Crate(id)[0]);
-        Assert.Equal("research.nothingNew", w.M.Research.At(id)?.Problem);
+        w.GiveItems(0, [.. gate.Deposit]);
+        w.Do(new Deposit(id, gate.Id)).Run();
     }
 
     [Fact]
-    public void AnalysedAlloyScrapOpensWallsOfTheRuinsAlloy()
+    public void BuysABlockSpendingItsPriceAndKnowingAllItOpens()
     {
-        // The ruins' alloy (0085) is a natural material: its walls a blueprint once its scrap is analysed, aboard as leaky decor.
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("alloyScrap", 1));
-        var wall = Placement.Wall("alloy");
-        Assert.Equal(["alloyScrap"], RecipeOf(w, "wallAlloy").Unanalysed);
-        Analyse(w, id, "alloyScrap");
-        Assert.True(w.M.Research.Knows(wall));
-    }
-
-    [Fact]
-    public void AnalysedClothAndHideOpenTheCapeSewnAtTheWorkbench()
-    {
-        // The ruins' cloth and a grazer's hide need analysis because the cape is made of them (2026-10-27-the-cape-is-worn).
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("cloth", 1), ("hide", 1));
-        Assert.Equal(["cloth", "hide"], RecipeOf(w, Content.Cape.Item).Unanalysed);
-        Analyse(w, id, "cloth");
-        Assert.False(w.M.Research.Knows(Content.Cape.Item));
-        Analyse(w, id, "hide");
-        Assert.True(w.M.Research.Knows(Content.Cape.Item));
-        Assert.Contains(Content.Stations.Get("workbench").Rows, row => row.Contains(Content.Cape.Item));
-    }
-
-    [Fact]
-    public void AnAnalysedArcLampOpensTheArcLampAboardWhichIsBuiltOfOne()
-    {
-        // A whole lamp of the arc makers' homes (0091): analysed, it stays, and its blueprint opens; hung aboard, it is the cost.
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("arcLamp", 1));
-        var lamp = new Placement("machine", "arcLamp");
-        Assert.False(w.M.Research.Knows(lamp));
-        Assert.Equal(["arcLamp"], RecipeOf(w, "arcLamp").Unanalysed);
-        Analyse(w, id, "arcLamp");
-        Assert.True(w.M.Research.Knows(lamp));
-        Assert.Equal([("arcLamp", 1)], Content.Machines.Get("arcLamp").Cost);
-        Assert.Equal(Content.Machines.Get("lamp").Draws, Content.Machines.Get("arcLamp").Draws);
-    }
-
-    [Fact]
-    public void AnAnalysedSkyShardOpensTheArcModuleAndTheArcBenchOnceAndStaysToBeWoundIntoOne()
-    {
-        // The relic (0096): its blueprint opens by analysing a shard, the rest of its cost known; the shard stays for the module.
-        // The arc bench, a shard in its cost, opens with it (0099).
-        var (w, id) = SetUp();
-        w.GiveItems(0, (Content.Ruins.Shard, 2), ("coil", 1), ("circuit", 1), ("frame", 1), ("crystal", 1), ("mica", 1), ("motor", 1));
-        foreach (string part in (string[])["coil", "circuit", "frame", "plate", "crystal", "mica", "motor"]) Analyse(w, id, part);
-        var bench = new Placement("machine", "arcBench");
-        Assert.False(w.M.Research.Knows("arcModule"));
-        Assert.False(w.M.Research.Knows(bench));
-        Assert.Equal([Content.Ruins.Shard], RecipeOf(w, "arcModule").Unanalysed);
-        Assert.Equal([Content.Ruins.Shard], RecipeOf(w, "arcBench").Unanalysed);
-        Analyse(w, id, Content.Ruins.Shard);
-        Assert.True(w.M.Research.Knows("arcModule"));
-        Assert.True(w.M.Research.Knows(bench));
-        Assert.Equal(2, w.M.Items.Totals(0).Where(t => t.Item == Content.Ruins.Shard).Sum(t => t.Count));
-        // Once: a second shard put in has nothing new to teach.
-        Put(w, id, Content.Ruins.Shard);
-        w.Run(Ticks);
-        Assert.Equal("research.nothingNew", w.M.Research.At(id)?.Problem);
-    }
-
-    [Fact]
-    public void OpensABlueprintOnceEveryItemOfItsCostIsAnalysedSayingWhichAreLeft()
-    {
-        var (w, id) = SetUp();
-        var door = new Placement("structure", "door");
-        Assert.Equal(["plate", "gear"], RecipeOf(w, "door").Unanalysed);
-        Analyse(w, id, "plate");
-        Assert.Equal(["gear"], RecipeOf(w, "door").Unanalysed);
-        Assert.False(w.M.Research.Knows(door));
-        Analyse(w, id, "gear");
-        Assert.True(w.M.Research.Knows(door));
-        Assert.True(RecipeOf(w, "door").Known);
-        Assert.Empty(RecipeOf(w, "door").Unanalysed);
-    }
-
-    [Fact]
-    public void OpensTheBurnerGeneratorOncePlateRotorCoilAndScrapAreAnalysed()
-    {
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("rotor", 1), ("coil", 1));
-        var generator = new Placement("machine", "burnerGenerator");
-        Assert.Equal(["plate", "rotor", "coil", "scrap"], RecipeOf(w, "burnerGenerator").Unanalysed);
-        foreach (var item in new[] { "plate", "coil", "scrap" }) Analyse(w, id, item);
-        Assert.Equal(["rotor"], RecipeOf(w, "burnerGenerator").Unanalysed);
-        Assert.False(w.M.Research.Knows(generator));
-        Analyse(w, id, "rotor");
-        Assert.True(w.M.Research.Knows(generator));
-    }
-
-    /// <summary>The capacitor bank (0101): common parts, no arc in them, so it opens aboard as the burner does.</summary>
-    [Fact]
-    public void OpensTheCapacitorBankOnceFrameCoilPlateAndCircuitAreAnalysed()
-    {
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 1), ("coil", 1), ("plate", 1), ("circuit", 1));
-        var bank = new Placement("machine", "capacitorBank");
-        Assert.Equal(["frame", "coil", "plate", "circuit"], RecipeOf(w, "capacitorBank").Unanalysed);
-        foreach (var item in new[] { "frame", "coil", "plate" }) Analyse(w, id, item);
-        Assert.False(w.M.Research.Knows(bank));
-        Analyse(w, id, "circuit");
-        Assert.True(w.M.Research.Knows(bank));
-    }
-
-    /// <summary>The circuit assembler (0057): a frame, a rotor, glass, a coil, wire and a circuit; and its circuit craft, silicon and wire.</summary>
-    [Fact]
-    public void OpensTheCircuitAssemblerOnceFrameRotorGlassCoilWireAndCircuitAreAnalysedAndCircuitsOfSiliconAndWire()
-    {
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 1), ("rotor", 1), ("glass", 1), ("coil", 1), ("circuit", 1), ("silicon", 1));
-        var assembler = new Placement("machine", "assembler");
-        Assert.Equal(["frame", "rotor", "glass", "coil", "wire", "circuit"], RecipeOf(w, "assembler").Unanalysed);
-        foreach (var item in new[] { "frame", "rotor", "glass", "coil", "wire" }) Analyse(w, id, item);
-        Assert.Equal(["circuit"], RecipeOf(w, "assembler").Unanalysed);
-        Assert.False(w.M.Research.Knows(assembler));
-        Assert.Equal(["silicon"], RecipeOf(w, "circuit").Unanalysed);
-        Analyse(w, id, "circuit");
-        Assert.True(w.M.Research.Knows(assembler));
-        Assert.False(w.M.Research.Knows("circuit"));
-        Analyse(w, id, "silicon");
-        Assert.True(w.M.Research.Knows("circuit"));
-    }
-
-    /// <summary>The grow capsule (0060): a frame, glass, soil, a circuit and wire; and soil's craft, gravel and planks.</summary>
-    [Fact]
-    public void OpensTheGrowCapsuleOnceFrameGlassSoilCircuitAndWireAreAnalysedAndSoilOfGravelAndPlanks()
-    {
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 1), ("glass", 1), ("soil", 1), ("circuit", 1), ("gravel", 1));
-        var capsule = new Placement("machine", "growCapsule");
-        Assert.Equal(["frame", "glass", "soil", "circuit", "wire"], RecipeOf(w, "growCapsule").Unanalysed);
-        foreach (var item in new[] { "frame", "glass", "circuit", "wire" }) Analyse(w, id, item);
-        Assert.Equal(["soil"], RecipeOf(w, "growCapsule").Unanalysed);
-        Assert.False(w.M.Research.Knows(capsule));
-        Analyse(w, id, "soil");
-        Assert.True(w.M.Research.Knows(capsule));
-        Assert.Equal(["gravel", "planks"], RecipeOf(w, "soil").Unanalysed);
-        Analyse(w, id, "gravel");
-        Analyse(w, id, "planks");
-        Assert.True(w.M.Research.Knows("soil"));
-    }
-
-    [Fact]
-    public void OpensTheSolarPanelOnceItsCellsAndPartsAreAnalysedAndBuildsItOfThem()
-    {
-        // Held back by nothing (0041): a frame, solar cells, wire and a circuit, analysed as any blueprint is (0057).
-        var (w, id) = SetUp();
-        var panel = new Placement("machine", "solarPanel");
-        var cost = Content.Machines.Get("solarPanel").Cost;
-        Assert.Equal(["frame", "solarCell", "wire", "circuit"], cost.Select(c => c.Item));
-        // The wire is what the hero carries from the start.
-        int wire = cost.Single(c => c.Item == "wire").Count;
-        Assert.True(wire <= 5);
-        w.GiveItems(0, [.. cost.Where(c => c.Item != "wire")]);
-        Assert.Equal(["frame", "solarCell", "wire", "circuit"], RecipeOf(w, "solarPanel").Unanalysed);
-        foreach (var item in new[] { "frame", "solarCell", "wire" }) Analyse(w, id, item);
-        Assert.Equal(["circuit"], RecipeOf(w, "solarPanel").Unanalysed);
-        Assert.False(w.M.Research.Knows(panel));
-        Analyse(w, id, "circuit");
-        Assert.True(RecipeOf(w, "solarPanel").Known);
-        Assert.True(w.M.Research.Knows(panel));
-        // Paid an item a part from what the hero carries, the analysed items taken back out among it.
-        w.Do(new PlacePlan(At(4, 0), panel)).Run();
+        var floor = Node("floor");
+        var (w, id) = SetUp(credits: Prices.Of(floor) + 2, known: Before("floor"));
+        Assert.False(w.M.Research.Knows("ladder"));
+        w.Do(new BuyBlock(id, "floor")).Run();
         Assert.Empty(w.Refusals);
-        int plan = w.M.Building.Plans.Single().Id;
-        for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
-        Assert.Empty(w.Refusals);
-        Assert.Equal("solarPanel", w.M.Grid.MachineAt(At(4, 0))?.Kind);
-        Assert.Equal(0, w.M.Items.Inventory(0).Sum(s => s?.Item is "circuit" or "solarCell" or "frame" ? s.Count : 0));
-        Assert.Equal(5 - wire, w.M.Items.Inventory(0).Sum(s => s?.Item == "wire" ? s.Count : 0));
+        Assert.Equal(2, w.M.Research.Credits);
+        Assert.All(floor.Opens, o => Assert.True(w.M.Research.Knows(o), o));
+        Assert.True(w.M.Research.Done(floor));
     }
 
     [Fact]
-    public void KnowsWhatIsGrantedWithNothingAnalysedTheWireCraftAmongIt()
+    public void WhatABlockOpensIsPlannedOnceBought()
+    {
+        var (w, id) = SetUp(credits: 100_000, known: Before("floor"));
+        var floor = new Placement("structure", "floor");
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(7, 1), floor));
+        w.Do(new BuyBlock(id, "floor")).Run();
+        Assert.Null(w.M.Building.Problem(At(7, 1), floor));
+    }
+
+    [Fact]
+    public void RefusesABuyAtWhatIsNoTechStation()
+    {
+        var (w, _) = SetUp(credits: 100_000);
+        w.Do(new BuyBlock(999, "workbench")).Run();
+        Assert.Equal(["research.noMachine"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(100_000, w.M.Research.Credits);
+    }
+
+    [Fact]
+    public void RefusesABuyAndADepositAtAMachineOfAnotherKind()
+    {
+        var (w, _) = SetUp(credits: 100_000, known: Before("press"));
+        w.GiveItems(0, ("wire", 5));
+        w.Do(new BuyBlock(TradeOf(w), "workbench")).Run();
+        w.Do(new Deposit(TradeOf(w), "press")).Run();
+        Assert.Equal(["research.noMachine", "research.noMachine"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(100_000, w.M.Research.Credits);
+        Assert.Equal(5, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
+    }
+
+    /// <summary>What a map grants may lie behind what is not done: bought, not locked, and nothing is charged for it.</summary>
+    [Fact]
+    public void ABlockKnownBeyondAShutGateIsBoughtNotLocked()
+    {
+        var (w, id) = SetUp(credits: 100, known: Node("coil").Opens);
+        w.Do(new BuyBlock(id, "coil")).Run();
+        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(100, w.M.Research.Credits);
+    }
+
+    [Fact]
+    public void RefusesABlockBoughtAlready()
+    {
+        var (w, id) = SetUp(credits: 100_000);
+        w.Do(new BuyBlock(id, "workbench")).Run();
+        w.Do(new BuyBlock(id, "workbench")).Run();
+        Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(100_000 - Prices.Of(Node("workbench")), w.M.Research.Credits);
+    }
+
+    /// <summary>Wire needs both the workbench and the furnace: one is not enough, whichever is bought.</summary>
+    [Fact]
+    public void RefusesABlockUntilEverythingItNeedsIsDone()
+    {
+        var (w, id) = SetUp(credits: 100_000);
+        w.Do(new BuyBlock(id, "wire")).Run();
+        w.Do(new BuyBlock(id, "workbench")).Run();
+        w.Do(new BuyBlock(id, "wire")).Run();
+        Assert.Equal(["research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
+        w.Do(new BuyBlock(id, "furnace")).Run();
+        w.Do(new BuyBlock(id, "wire")).Run();
+        Assert.Equal(2, w.Refusals.Count);
+        Assert.True(w.M.Research.Knows("wire"));
+    }
+
+    [Fact]
+    public void RefusesABlockBehindAGateNotFullOneThereIsNotAndAGateItself()
+    {
+        var (w, id) = SetUp(credits: 100_000, known: Before("press"));
+        w.Do(new BuyBlock(id, "coil")).Run();
+        w.Do(new BuyBlock(id, "noSuchBlock")).Run();
+        w.Do(new BuyBlock(id, "press")).Run();
+        Assert.Equal(["research.locked", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(100_000, w.M.Research.Credits);
+    }
+
+    [Fact]
+    public void RefusesABlockShortOfCreditsAndLeavesThemAlone()
+    {
+        int price = Prices.Of(Node("workbench"));
+        var (w, id) = SetUp(credits: price - 1);
+        w.Do(new BuyBlock(id, "workbench")).Run();
+        Assert.Equal(["research.noCredits"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(price - 1, w.M.Research.Credits);
+        Assert.False(w.M.Research.Knows("workbench"));
+    }
+
+    [Fact]
+    public void AGateFilledOpensWhatNeedsItTakingOnlyWhatItAsks()
+    {
+        var (w, id) = SetUp(credits: 100_000, known: Before("press"));
+        var press = Node("press");
+        Assert.False(w.M.Research.Done(press));
+        w.GiveItems(0, [.. press.Deposit]);
+        w.GiveItems(0, ("wire", 10));
+        w.Do(new Deposit(id, "press")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Done(press));
+        Assert.Equal(10, w.M.Items.Totals(0).Where(t => t.Item == "wire").Sum(t => t.Count));
+        Assert.DoesNotContain(w.M.Items.Totals(0), t => t.Item is "plate" or "gear");
+        w.Do(new BuyBlock(id, "coil")).Run();
+        Assert.True(w.M.Research.Knows("coil"));
+    }
+
+    /// <summary>Two peers fill one gate piece by piece: what is short stays with no one, what is shared stays shared.</summary>
+    [Fact]
+    public void TwoPeersFillAGatePartWayEachWhatEachCarries()
+    {
+        var (w, id) = SetUp(known: Before("press"));
+        var press = Node("press");
+        int wire = press.Deposit.Single(d => d.Item == "wire").Count, plate = press.Deposit.Single(d => d.Item == "plate").Count, gear = press.Deposit.Single(d => d.Item == "gear").Count;
+        w.GiveItems(0, ("wire", wire - 8), ("gear", gear));
+        w.GiveItems(1, ("wire", 12), ("plate", plate - 1));
+        w.Do(new Deposit(id, "press")).Run();
+        w.Do(new Deposit(id, "press") { From = 1 }).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(wire, w.M.Research.Deposited(press, "wire"));
+        Assert.Equal(plate - 1, w.M.Research.Deposited(press, "plate"));
+        Assert.Equal(gear, w.M.Research.Deposited(press, "gear"));
+        Assert.Equal(4, w.M.Items.Totals(1).Where(t => t.Item == "wire").Sum(t => t.Count));
+        Assert.False(w.M.Research.Done(press));
+        w.GiveItems(0, ("plate", 1));
+        w.Do(new Deposit(id, "press")).Run();
+        Assert.True(w.M.Research.Done(press));
+    }
+
+    [Fact]
+    public void RefusesADepositAtWhatIsNoTechStationAndNothingCarried()
+    {
+        var (w, id) = SetUp(known: Before("press"));
+        w.Do(new Deposit(999, "press")).Run();
+        w.Do(new Deposit(id, "press")).Run();
+        Assert.Equal(["research.noMachine", "research.nothingToDeposit"], w.Refusals.Select(r => r.Reason));
+    }
+
+    [Fact]
+    public void RefusesADepositOfAGateNotReachedABlockAndNoSuchGate()
+    {
+        var (w, id) = SetUp();
+        w.GiveItems(0, ("wire", 20), ("plate", 15), ("gear", 10));
+        w.Do(new Deposit(id, "press")).Run();
+        w.Do(new Deposit(id, "workbench")).Run();
+        w.Do(new Deposit(id, "noSuchGate")).Run();
+        Assert.Equal(["research.locked", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(20, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
+        Assert.Equal(15, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
+        Assert.Equal(10, w.M.Items.Totals(0).Single(t => t.Item == "gear").Count);
+    }
+
+    [Fact]
+    public void RefusesADepositOfAGateFilledWhateverIsStillCarried()
+    {
+        var (w, id) = SetUp(known: Before("press"));
+        Fill(w, id, Node("press"));
+        w.GiveItems(0, ("wire", 3));
+        w.Do(new Deposit(id, "press")).Run();
+        Assert.Equal(["research.gateOpen"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(3, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
+    }
+
+    /// <summary>The wire is all in and only wire is carried: nothing it asks for still can go in.</summary>
+    [Fact]
+    public void RefusesADepositOfWhatIsFullAlready()
+    {
+        var (w, id) = SetUp(known: Before("press"));
+        int wire = Node("press").Deposit.Single(d => d.Item == "wire").Count;
+        w.GiveItems(0, ("wire", wire + 3));
+        w.Do(new Deposit(id, "press")).Run();
+        Assert.Empty(w.Refusals);
+        w.Do(new Deposit(id, "press")).Run();
+        Assert.Equal(["research.nothingToDeposit"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(3, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
+    }
+
+    /// <summary>Two peers' saves must match byte for byte, whichever item went in first.</summary>
+    [Fact]
+    public void DepositsSaveAlikeWhicheverWentInFirst()
+    {
+        string Saved(params string[] order)
+        {
+            var (w, id) = SetUp(known: Before("press"));
+            foreach (string item in order)
+            {
+                w.GiveItems(0, (item, 1));
+                w.Do(new Deposit(id, "press")).Run();
+            }
+            return w.World.Save();
+        }
+        Assert.Equal(Saved("wire", "plate", "gear"), Saved("gear", "plate", "wire"));
+    }
+
+    [Fact]
+    public void CreativeModeKnowsAndOpensEverythingAndTakesNothing()
+    {
+        var (w, id) = SetUp(credits: 3);
+        w.GiveItems(0, ("wire", 20));
+        w.Do(new SetCreative(true)).Run();
+        Assert.True(w.M.Research.Knows("engine"));
+        Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(n), n.Id));
+        w.Do(new Deposit(id, "press")).Run();
+        w.Do(new BuyBlock(id, "engine")).Run();
+        Assert.Equal(["research.gateOpen", "research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(3, w.M.Research.Credits);
+        Assert.Equal(20, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
+    }
+
+    [Fact]
+    public void KnowsWhatIsGrantedAndNoMore()
     {
         var (w, _) = SetUp();
-        Assert.True(w.M.Research.Knows("wire"));
-        Assert.True(RecipeOf(w, "wire").Granted);
-        Assert.True(w.M.Research.Knows(new Placement("machine", "furnace")));
-        Assert.False(w.M.Research.Knows("rotor"));
-        Assert.False(w.M.Research.Knows("nothing"));
-        Assert.Equal(Sorted(Content.Research.StartKnown), Sorted(w.M.Research.Recipes().Where(r => r.Known).Select(r => r.Id)));
+        Assert.True(w.M.Research.Knows("fireAxe"));
+        Assert.True(w.M.Research.Knows(new Placement("machine", "tradeStation")));
+        Assert.False(w.M.Research.Knows("wire"));
+        Assert.False(w.M.Research.Knows(new Placement("machine", "furnace")));
+        Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), w.M.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -287,186 +303,16 @@ public class ResearchTests
     {
         var (w, _) = SetUp();
         var recipes = w.M.Research.Recipes();
-        Assert.Equal(Blueprints.All.Select(b => b.Id).Concat(Content.Crafts.All.Select(c => c.Item)), recipes.Select(r => r.Id));
-        Assert.Equal<(string, int)>(Content.Builds.Get("door").Cost, RecipeOf(w, "door").Cost);
-        Assert.Equal(new Placement("structure", "door"), RecipeOf(w, "door").Placement);
-        Assert.Null(RecipeOf(w, "rotor").Placement);
-        Assert.Equal<(string, int)>(Content.Crafts.Get("rotor").Cost, RecipeOf(w, "rotor").Cost);
-    }
-
-    [Fact]
-    public void RestsEmptyAndOnceWhatItHoldsIsAnalysedUsingNothingUp()
-    {
-        var (w, id) = SetUp();
-        w.Run();
-        Assert.Equal(0, Demand(w));
-        // Told to rest while empty, it draws from the tick after the put, which was the first of its work.
-        Put(w, id, "planks").Run();
-        Assert.Equal(2, Demand(w));
-        w.Run(Ticks - 2);
-        Assert.Equal(["planks"], Analysed(w));
-        w.Run();
-        Assert.Equal(0, Demand(w));
-        w.Run(Ticks);
-        var at = w.M.Research.At(id);
-        Assert.Equal((0, "research.nothingNew"), (at?.Progress, at?.Problem));
-        Assert.Equal(new Stack("planks", 1), w.M.Items.Crate(id)[0]);
-        TakeOut(w, id);
-        Put(w, id, "scrap");
-        w.Run(1);
-        Assert.Equal(2, Demand(w));
-    }
-
-    /// <summary>0027 amended: an analyzer is for what goes into something; a tool goes into nothing.</summary>
-    [Fact]
-    public void RestsOnAToolInNoCostSayingThereIsNothingToLearnAndThenAnalysesWhatIsInOne()
-    {
-        var (w, id) = SetUp();
-        Put(w, id, "fireAxe");
-        w.Run(2 * Ticks);
-        Assert.Equal(new Analyzing("fireAxe", 0, Work, "research.nothingToLearn"), w.M.Research.At(id));
-        Assert.Equal(0, Demand(w));
-        Assert.Empty(Analysed(w));
-        Assert.Equal(new Stack("fireAxe", 1), w.M.Items.Crate(id)[0]);
-        TakeOut(w, id);
-        Put(w, id, "planks").Run();
-        Assert.Equal(2, Demand(w));
-        w.Run(Ticks - 2);
-        Assert.Equal(["planks"], Analysed(w));
-    }
-
-    /// <summary>
-    /// Every item either goes into the cost of something not known from the start — a blueprint's or a craft's
-    /// — and an analyzer works on it, or goes into none and the analyzer rests on it saying so: no third case.
-    /// </summary>
-    [Fact]
-    public void AnalysesEveryItemInTheCostOfSomethingNotKnownFromTheStartAndRestsOnEveryOtherSayingThereIsNothingToLearn()
-    {
-        // Straight from content, beside Analysable's own reading of it: the wreck's grants and the cable, always known, left out.
-        bool Granted(string id) => Content.Research.StartKnown.Contains(id);
-        var inACost = Content.Crafts.All.Where(c => !Granted(c.Item)).SelectMany(c => c.Cost)
-            .Concat(Content.Builds.All.Where(b => !Granted(b.Id)).SelectMany(b => b.Cost))
-            .Concat(Content.Materials.All.Where(m => m.Built && !Granted("wall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
-            .Concat(Content.Materials.All.Where(m => m.Built && !Granted("backWall" + char.ToUpperInvariant(m.Id[0]) + m.Id[1..])).SelectMany(m => m.Cost))
-            .Concat(Content.Machines.All.Where(m => !m.Fixed && !Granted(m.Kind)).SelectMany(m => m.Cost))
-            .Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
-        Assert.Equal(Sorted(inACost), Analysable.All);
-        // What a recipe waits for is always something an analyzer can learn.
-        var (fresh, _) = SetUp();
-        Assert.All(fresh.M.Research.Recipes().SelectMany(r => r.Unanalysed), item => Assert.True(Analysable.NeedsAnalysis(item), item));
-        Assert.All(Content.Items.All.Select(i => i.Id), item =>
-        {
-            var w = new Scenario(StartMap(), doubled: true).GiveItems(0, (item, 1));
-            int id = w.M.Grid.MachineAt(Analyzer)?.Id ?? 0;
-            Put(w, id, item).Run();
-            var at = w.M.Research.At(id);
-            if (inACost.Contains(item))
-            {
-                Assert.True(Analysable.NeedsAnalysis(item), item);
-                Assert.Equal(((string?)null, 2), (at?.Problem, Demand(w)));
-            }
-            else
-            {
-                Assert.False(Analysable.NeedsAnalysis(item), item);
-                Assert.Equal(("research.nothingToLearn", 0), (at?.Problem, Demand(w)));
-            }
-        });
-        // Tools and what is worn are known from the start; the canister is in the jetpack's cost, the battery in the drone's.
-        Assert.All(["fireAxe", "harpoon", "drill", "jetpack", "drone"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
-        Assert.True(Analysable.NeedsAnalysis("battery"));
-        Assert.True(Analysable.NeedsAnalysis("canister"));
-        // The furnace's salvage only ever went into the furnace, known from the start: nothing to learn from it.
-        // Iron, the wreck's first lesson, opens the plate and the gear; scrap the floor, the ladder, the lamp.
-        Assert.All(["scrapChunk", "hullPlate"], item => Assert.False(Analysable.NeedsAnalysis(item), item));
-        Assert.All(["iron", "scrap", "planks", "plate", "wire"], item => Assert.True(Analysable.NeedsAnalysis(item), item));
-    }
-
-    [Fact]
-    public void OpensByTheItemsOfItsCostThatNeedAnalysisAndListsOnlyThoseAsUnanalysed()
-    {
-        // A world granted nothing: the furnace's cost holds nothing to learn, so it is open from the start.
-        var w = new Scenario(Map([]), doubled: true);
-        var furnace = RecipeOf(w, "furnace");
-        Assert.False(furnace.Granted);
-        Assert.Empty(furnace.Unanalysed);
-        Assert.True(furnace.Known && w.M.Research.Knows("furnace"));
-        // The wreck's grants: the crate's planks and plates still wait for the analyzer for what else they go into.
-        var start = new Scenario(StartMap(), doubled: true);
-        Assert.Empty(RecipeOf(start, "furnace").Unanalysed);
-        Assert.Equal(["planks", "plate"], RecipeOf(start, "crate").Unanalysed);
-    }
-
-    [Fact]
-    public void TheHarpoonOpensBeforeTheJetpack()
-    {
-        // Its cost is within the jetpack's, and neither is granted: in any order of analysis the harpoon opens first or with it (0068).
-        var harpoon = Content.Crafts.Get("harpoon").Cost.Select(c => c.Item).ToHashSet();
-        var jetpack = Content.Crafts.Get("jetpack").Cost.Select(c => c.Item).ToHashSet();
-        Assert.ProperSubset(jetpack, harpoon);
-        Assert.DoesNotContain("harpoon", Content.Research.StartKnown);
-        Assert.DoesNotContain("jetpack", Content.Research.StartKnown);
-        // From the wreck's start: iron and wire open the tube and the coil, and those two the harpoon; the jetpack waits on more.
-        var (w, id) = SetUp();
-        w.GiveItems(0, ("tube", 1), ("coil", 1));
-        Analyse(w, id, "iron");
-        Analyse(w, id, "wire");
-        Assert.True(w.M.Research.Knows("tube") && w.M.Research.Knows("coil"));
-        Analyse(w, id, "tube");
-        Analyse(w, id, "coil");
-        Assert.True(w.M.Research.Knows("harpoon"));
-        Assert.False(w.M.Research.Knows("jetpack"));
-        Assert.Equal(["frame", "gear", "canister"], RecipeOf(w, "jetpack").Unanalysed);
-    }
-
-    [Fact]
-    public void StallsUnpoweredSayingSoAndWorksProportionallySlowerShortOfPower()
-    {
-        var (w, id) = SetUp();
-        w.Do(new Power.Cut(0, Analyzer)).Run();
-        Put(w, id, "iron");
-        w.Run(50);
-        var at = w.M.Research.At(id);
-        Assert.Equal((0, "research.unpowered"), (at?.Progress, at?.Problem));
-
-        // With a generator on the panel too, 5 against 6: each at 833‰.
-        var (shortW, shortId) = SetUp(StartMap(generator: true));
-        Put(shortW, shortId, "iron");
-        Assert.Equal(833, shortW.M.Power.Satisfaction(shortId));
-        shortW.Run((Work + 832) / 833 - 2);
-        Assert.Empty(Analysed(shortW));
-        shortW.Run();
-        Assert.Equal(["iron"], Analysed(shortW));
-    }
-
-    [Fact]
-    public void StartsOverOnWhatIsTakenOutBeforeItIsAnalysed()
-    {
-        var (w, id) = SetUp();
-        Put(w, id, "iron");
-        w.Run(50);
-        TakeOut(w, id);
-        Assert.Null(w.M.Research.At(id));
-        Put(w, id, "iron");
-        Assert.Equal(1000, w.M.Research.At(id)?.Progress);
-    }
-
-    [Fact]
-    public void AnalysesAnItemOnceThatTwoAnalyzersFinishOnOneTick()
-    {
-        var (w, id) = SetUp(StartMap(two: true));
-        int second = w.M.Grid.MachineAt(At(3, 3))?.Id ?? 0;
-        // Five against two analyzers drawing two each: both in full.
-        int slot = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "iron");
-        w.Do(new Items.Move(new Items.Place(slot), new Target(Crate: id), 1));
-        w.Do(new Items.Move(new Items.Place(slot), new Target(Crate: second), 1)).Run(Ticks);
-        Assert.Equal(["iron"], Analysed(w));
-        Assert.Equal("research.nothingNew", w.M.Research.At(second)?.Problem);
+        Assert.Equal(Blueprints.All.Count + Content.Crafts.All.Count, recipes.Count);
+        var coil = recipes.Single(r => r.Id == "coil");
+        Assert.Null(coil.Placement);
+        Assert.Equal(Content.Crafts.Get("coil").Cost, coil.Cost);
     }
 
     [Fact]
     public void KnowsEveryBlueprintAndCraftOnAMapThatNamesNone()
     {
-        var (w, _) = SetUp(Map(null));
+        var w = new Scenario(Map(null), doubled: true);
         Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
         Assert.True(w.M.Research.Knows(new Placement("machine", "solarPanel")));
     }
@@ -476,16 +322,16 @@ public class ResearchTests
     {
         var (w, _) = SetUp();
         var wall = Placement.Wall("iron");
-        w.Do(new PlacePlan(At(6, 3), wall)).Run();
+        w.Do(new PlacePlan(At(6, 1), wall)).Run();
         Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(6, 3), wall));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(6, 1), wall));
         w.Do(new SetCreative(true)).Run();
-        w.Do(new PlacePlan(At(6, 3), wall)).Run();
+        w.Do(new PlacePlan(At(6, 1), wall)).Run();
         Assert.Equal(new[] { "building.unknown" }, w.Refusals.Select(r => r.Reason));
         Assert.Single(w.M.Building.Plans);
     }
 
-    /// <summary>Beyond research.test.ts: the names building asks <c>Knows</c> by.</summary>
+    /// <summary>The names building asks <c>Knows</c> by.</summary>
     [Fact]
     public void KnowsAPlacementByItsBlueprintNameAndEveryOneInCreativeMode()
     {
@@ -502,50 +348,103 @@ public class ResearchTests
     }
 
     [Fact]
-    public void SavesAndLoadsWhatIsAnalysedAndAnAnalysisUnderWay()
+    public void SavesAndLoadsCreditsDepositsAndWhatIsBought()
     {
-        var (w, id) = SetUp();
-        Analyse(w, id, "iron");
-        Put(w, id, "scrap");
-        w.Run(20);
+        int price = Prices.Of(Node("floor"));
+        var (w, id) = SetUp(credits: price + 45, known: Before("press"));
+        w.GiveItems(0, ("wire", 5));
+        w.Do(new BuyBlock(id, "floor")).Run();
+        w.Do(new Deposit(id, "press")).Run();
         var before = w.World.Save();
         w.Reload();
         Assert.Equal(before, w.World.Save());
-        Assert.Equal(["iron"], Analysed(w));
-        Assert.Equal(21_000, w.M.Research.At(id)?.Progress);
+        Assert.Equal(45, w.M.Research.Credits);
+        Assert.Equal(5, w.M.Research.Deposited(Node("press"), "wire"));
+        Assert.True(w.M.Research.Knows("ladder"));
     }
 
-    /// <summary>A put of an item, a take-out, or a run of ticks.</summary>
-    private sealed record Step(string? Put, bool Out, int Run);
+    /// <summary>A buy of any block, a deposit at any gate, the first node not done taken on, or a unit sold.</summary>
+    private sealed record Step(string? Block, string? Gate, string? Sold, bool Next = false);
 
-    /// <summary>The README's invariant: analysed only grows, holds only items there are, each once, sorted.</summary>
+    /// <summary>
+    /// The invariant, played through a real station: credits never go negative and move only by a sale's price or a block's,
+    /// a gate never holds over what it asks, and what was given is always in the bag or in a gate.
+    /// </summary>
     [Property(MaxTest = 40)]
-    public Property OnlyEverAnalysesAndOnlyItemsThereAreWhateverGoesInAndOut()
+    public Property CreditsMoveOnlyByASaleOrABlockAndDepositsOnlyByWhatTheBagGave()
     {
-        var items = Content.Items.All.Select(i => i.Id).ToList();
+        var nodes = ResearchSpec.Nodes.ToArray();
         var step = Gen.OneOf(
-            Gen.Elements("iron", "scrap", "plate", "gear", "wire", "planks", "fireAxe").Select(item => new Step(item, false, 0)),
-            Gen.Constant(new Step(null, true, 0)),
-            Gen.Choose(1, 2 * Ticks).Select(n => new Step(null, false, n)));
-        var steps = from n in Gen.Choose(0, 25) from s in step.ArrayOf(n) select s;
+            Gen.Elements(nodes.Where(n => !n.Gate).ToArray()).Select(b => new Step(b.Id, null, null)),
+            Gen.Elements(nodes.Where(n => n.Gate).ToArray()).Select(g => new Step(null, g.Id, null)),
+            Gen.Constant(new Step(null, null, null, Next: true)),
+            Gen.Constant(new Step(null, null, null, Next: true)),
+            Gen.Elements("scrapChunk", "frame", "processor").Select(i => new Step(null, null, i)));
+        var steps = from n in Gen.Choose(0, 40) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
-            var (w, id) = SetUp();
-            w.Run();
-            var before = Analysed(w).ToArray();
+            var (w, tech) = SetUp();
+            int trade = TradeOf(w), credits = 0;
+            var given = new Dictionary<string, int>(StringComparer.Ordinal);
+            void Buy(string block)
+            {
+                int refused = w.Refusals.Count;
+                w.Do(new BuyBlock(tech, block)).Run();
+                if (w.Refusals.Count == refused) credits -= Prices.Of(Node(block));
+            }
             foreach (var s in all)
             {
-                if (s.Put != null) Put(w, id, s.Put);
-                else if (s.Out) TakeOut(w, id);
-                else w.Run(s.Run);
-                var now = Analysed(w).ToArray();
-                if (!before.All(now.Contains)) return false;
-                if (!now.All(items.Contains) || !now.All(Analysable.NeedsAnalysis)) return false;
-                if (now.Distinct().Count() != now.Length) return false;
-                if (!Sorted(now).SequenceEqual(now)) return false;
-                before = now;
+                if (s.Sold != null)
+                {
+                    w.FillCrate(trade, (s.Sold, 1));
+                    w.Run(Market.SellEvery);
+                    credits += Market.PriceOf(s.Sold)!.Value;
+                }
+                else if (s.Gate != null) w.Do(new Deposit(tech, s.Gate)).Run();
+                else if (s.Block != null) Buy(s.Block);
+                else if (ResearchSpec.Nodes.FirstOrDefault(n => !w.M.Research.Done(n)) is { } next)
+                {
+                    if (next.Gate)
+                    {
+                        // More than half: two fill it, and the second leaves some carried.
+                        foreach (var (item, count) in next.Deposit)
+                        {
+                            w.GiveItems(0, (item, count / 2 + 1));
+                            given[item] = given.GetValueOrDefault(item) + count / 2 + 1;
+                        }
+                        w.Do(new Deposit(tech, next.Id)).Run();
+                    }
+                    else
+                    {
+                        w.M.Knowledge.Earn(Prices.Of(next));
+                        credits += Prices.Of(next);
+                        Buy(next.Id);
+                    }
+                }
+                if (w.M.Research.Credits != credits || credits < 0) return false;
+                if (ResearchSpec.Nodes.Any(n => n.Deposit.Any(d => w.M.Research.Deposited(n, d.Item) > d.Count))) return false;
+                var carried = w.M.Items.Totals(0);
+                foreach (string item in given.Keys.Order(StringComparer.Ordinal))
+                {
+                    int put = ResearchSpec.Nodes.Sum(n => n.Deposit.Any(d => d.Item == item) ? w.M.Research.Deposited(n, item) : 0);
+                    if (put + carried.Where(t => t.Item == item).Sum(t => t.Count) != given[item]) return false;
+                }
             }
             return true;
         });
+    }
+
+    /// <summary>The tree opens to its end through the commands alone, each node after what it needs in the order it is listed.</summary>
+    [Fact]
+    public void TheWholeTreeIsBoughtToTheEngineThroughGatesAndCredits()
+    {
+        var (w, id) = SetUp(credits: 100_000_000);
+        foreach (var node in ResearchSpec.Nodes)
+        {
+            if (node.Gate) Fill(w, id, node);
+            else w.Do(new BuyBlock(id, node.Id)).Run();
+        }
+        Assert.Empty(w.Refusals);
+        Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
     }
 }

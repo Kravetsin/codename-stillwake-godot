@@ -22,13 +22,13 @@ public class HelmetLampTests
     private static readonly int Head = Inventory.Slots, Back = Inventory.Slots + 1, Mount = Inventory.Slots + Inventory.Equipment.ToList().IndexOf(Content.Helmet.Mount);
 
     [Fact]
-    public void TheWorkbenchMakesOneOfAPlateTwoWireAndACoilOnceTheyAreAnalysed()
+    public void TheWorkbenchMakesOneOfAPlateTwoWireAndACoilOnceBought()
     {
         var w = new Scenario(Layout.Parse(Room) with { Known = [] }, doubled: true).GiveItems(0, ("plate", 1), ("wire", 2), ("coil", 1));
         Assert.Contains(Lamp, Stations.Get("workbench").Rows.SelectMany(r => r));
         Assert.Equal([("plate", 1), ("wire", 2), ("coil", 1)], Crafts.Get(Lamp).Cost);
         Assert.False(w.M.Research.Knows(Lamp));
-        foreach (var item in new[] { "plate", "wire", "coil" }) w.M.Knowledge.Learn(item);
+        w.M.Knowledge.Grant(Lamp);
         Assert.True(w.M.Research.Knows(Lamp));
         w.Do(new Crafting.Craft(Bench, Lamp, 1)).Run(Crafts.Get(Lamp).Ticks * 1000 / Stations.Get("workbench").Speed + 1);
         Assert.Empty(w.Refusals);

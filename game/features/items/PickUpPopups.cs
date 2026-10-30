@@ -23,15 +23,16 @@ public partial class PickUpPopups : Control
     /// <summary>Lines stacked above the head, newest lowest, this far apart in cells.</summary>
     private const float Gap = 1.4f;
 
-    private sealed class Line(string item, int count, Label text)
+    private sealed class Line(string key, int count, Label text)
     {
-        public string Item { get; } = item;
+        /// <summary>What it names, an i18n key: an item's, or a body's all at once.</summary>
+        public string Key { get; } = key;
         public int Count { get; set; } = count;
         public double Age { get; set; }
         public Label Text { get; } = text;
         /// <summary>The band of light sweeping across it once as it appears: a wide faint one and a narrow bright one, each a copy of its words clipped to the band.</summary>
         public (Control Clip, Label Shine)[] Bands { get; } = [Band(SweepWide), Band(SweepNarrow)];
-        public string Words => $"{T($"item.{Item}")} ({Count})";
+        public string Words => $"{T(Key)} ({Count})";
     }
 
     private static readonly LabelSettings Look = new()
@@ -70,9 +71,14 @@ public partial class PickUpPopups : Control
     public PickUpPopups() => MouseFilter = MouseFilterEnum.Ignore;
 
     /// <summary>Shows <paramref name="count"/> of <paramref name="item"/> picked up just now.</summary>
-    public void Add(string item, int count)
+    public void Add(string item, int count) => Say($"item.{item}", count);
+
+    /// <summary>Shows <paramref name="count"/> things taken out of a body just now, all in one line (2026-10-29-body-bag).</summary>
+    public void AddFromBody(int count) => Say("items.fromBody", count);
+
+    private void Say(string key, int count)
     {
-        if (_lines.Find(l => l.Item == item) is { } same)
+        if (_lines.Find(l => l.Key == key) is { } same)
         {
             same.Count += count;
             same.Age = 0;
@@ -80,7 +86,7 @@ public partial class PickUpPopups : Control
             foreach (var (_, shine) in same.Bands) shine.Text = same.Words;
             return;
         }
-        var line = new Line(item, count, new Label { LabelSettings = Look, MouseFilter = MouseFilterEnum.Ignore });
+        var line = new Line(key, count, new Label { LabelSettings = Look, MouseFilter = MouseFilterEnum.Ignore });
         line.Text.Text = line.Words;
         _lines = [line, .. _lines];
         AddChild(line.Text);

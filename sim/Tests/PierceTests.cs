@@ -81,6 +81,8 @@ public class PierceTests
         first.Damage = Spec.Creatures.Loper.Life.Hp - 6;
         var (hits, _) = Flown(w, new Fire(Nailer, 36 * Unit, 17 * Unit, Right));
         Assert.Equal([(ShotTarget.Creature, true), (ShotTarget.Creature, false)], hits.Select(h => (h.What, h.Broke)));
+        // Each hit names what it met and who shot: what a shooter's client hears its own hits by.
+        Assert.Equal([(first.Id, Ref.Hero(0)), (second.Id, Ref.Hero(0))], hits.Select(h => (h.Id, h.By)));
         Assert.DoesNotContain(first, w.M.Creatures.Creatures);
         Assert.Equal(3, second.Damage);
     }

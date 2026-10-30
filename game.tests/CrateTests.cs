@@ -35,7 +35,7 @@ public class CrateTests
         var (_, client) = LocalSession.Create(world);
         client.Send(new Move(new Place(0), new Target(Crate: crate), 100));
         client.Send(new Drop(new Place(1), 10, 2 * 20 + 2, 1));
-        var shown = Reading.Of(client.Id, client.InFlight, m.Items, m.Grid, m.Research, crate);
+        var shown = Reading.Of(client.Id, client.InFlight, m.Items, m.Grid, crate);
         Assert.Equal(new Stack("scrap", 260), shown.At(new Place(0)));
         Assert.Equal(new Stack("iron", 50), shown.At(new Place(1)));
         Assert.Equal(new Stack("scrap", 100), shown.At(new Place(0, crate)));
@@ -55,7 +55,7 @@ public class CrateTests
         client.Send(new Move(new Place(0), new Target(Spec.Inventory.Hotbar + 5), 100));
         client.Send(new Move(new Place(0), new Target(Spec.Inventory.Hotbar + 9), 100));
         client.Send(new Sort());
-        var shown = Reading.Of(client.Id, client.InFlight, m.Items, m.Grid, m.Research, crate);
+        var shown = Reading.Of(client.Id, client.InFlight, m.Items, m.Grid, crate);
         Assert.Equal(new Stack("scrap", 200), shown.At(new Place(Spec.Inventory.Hotbar)));
         Assert.Null(shown.At(new Place(Spec.Inventory.Hotbar + 5)));
         // The hotbar is not sorted: what is left there stays.

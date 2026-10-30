@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Features.Creatures;

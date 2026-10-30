@@ -35,7 +35,7 @@ unless marked.
   - a queued station with inputs (Former, assembler), when its head entry is fed from inputs: each item of the
     craft's cost × units not begun (endless: no end), at most a stack, wanted under half that or under one unit's
     cost. A paid head entry, or none, wants nothing;
-  - an empty input remembering nothing, crates, bays, the analyzer and the charging station want nothing.
+  - an empty input remembering nothing, crates, bays and the charger want nothing; a trade station only what has a price.
 - **Offers**, by item: what served crates in the flood and served machines' outputs (slots past inputs, the pod's
   and queued stations' too) hold, less **reservations** by drones coming: at a crate their counts, so drones share
   it; at outputs all of it, so one drone at a time takes them.

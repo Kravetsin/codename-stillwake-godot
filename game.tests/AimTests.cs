@@ -42,7 +42,7 @@ public class AimTests
 
     /// <summary><paramref name="map"/> with a crate drawn below it, and peer 0 carrying scrap, iron and tubes.</summary>
     private static TestWorld WithStore(string map) =>
-        new TestWorld(Layout.Parse([.. Layout.Parse(map).Rows, "KK"]).Doubled()).Give(0, ("scrap", 360), ("iron", 60), ("tube", 20));
+        new TestWorld(Layout.Parse([.. Layout.Parse(map).Rows, "KK"]).Doubled()).Give(0, ("scrap", 360), ("scrapChunk", 40), ("iron", 60), ("tube", 20));
 
     // Aiming.
 
@@ -155,7 +155,7 @@ public class AimTests
     [Fact]
     public void KeepsWorkingABlueprintItHasPaidIntoNotPassingToTheNextInItsCell()
     {
-        // A wall planned and the back wall behind it marked, in one cell, for a hero carrying scrap.
+        // A wall planned and the back wall behind it marked, in one cell, for a hero carrying scrap chunks.
         var w = WithStore(Hall(1));
         w.Step(new PlacePlan(Inside(0), Placement.Wall("scrap")), new Deconstruct(Inside(0), "back"));
         var hero = HeroOn(2, 1);

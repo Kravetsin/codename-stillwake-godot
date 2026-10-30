@@ -29,10 +29,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0021](0021-cables-by-hand-in-the-power-mode.md) | Cables by hand, in the power mode | accepted | 0022, 0030 (in part) |
 | [0022](0022-one-hand.md) | One hand | accepted | 0030, 0064 (in part) |
 | [0023](0023-a-furnace-burns-fuel.md) | A furnace burns fuel, and the wreck starts without one | accepted | 0057 (in part) |
-| [0024](0024-blueprints-are-learned-by-analysis.md) | Blueprints are learned by analysis | accepted | 0027 (in part) |
+| [0024](0024-blueprints-are-learned-by-analysis.md) | Blueprints are learned by analysis | superseded | 0027, trade-and-tech |
 | [0025](0025-godot-and-csharp.md) | Godot 4 and C# | accepted |  |
 | [0026](0026-light-from-emitters-by-cells.md) | Light from emitters, by cells | rejected |  |
-| [0027](0027-what-is-analysed-opens-what-is-made-of-it.md) | What is analysed opens what is made of it | accepted | 0028, 0041 (in part) |
+| [0027](0027-what-is-analysed-opens-what-is-made-of-it.md) | What is analysed opens what is made of it | superseded | 0028, 0041, trade-and-tech |
 | [0028](0028-the-lifepod-and-crafting-by-machine-only.md) | The lifepod, and crafting by machine only | accepted | 0046, 0057 (in part) |
 | [0029](0029-light-composed-in-lightmaps.md) | Light composed in lightmaps | accepted |  |
 | [0030](0030-the-build-tab-is-the-mode.md) | The build tab is the mode | accepted | 0072 (in part) |
@@ -66,7 +66,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0058](0058-one-place-for-every-machine-window.md) | One place for every machine window; equipment at the right edge | accepted |  |
 | [0059](0059-machines-heard-at-work.md) | Machines heard at work, and the suit heard over space | accepted |  |
 | [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md) | The farm: a grow capsule is a fed station | accepted |  |
-| [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted |  |
+| [0061](0061-death-leaves-a-body.md) | Death leaves a body | accepted | body-bag (in part) |
 | [0062](0062-drones-keep-machines-going.md) | Drones keep machines going | accepted |  |
 | [0063](0063-blueprints-are-paid-a-part-at-a-time.md) | Blueprints are paid a part at a time | accepted |  |
 | [0064](0064-plans-and-marks-are-drawn-alike.md) | Plans and marks are drawn alike | accepted |  |
@@ -154,6 +154,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-cape-flows](2026-10-28-the-cape-flows.md) | The cape flows | accepted |  |
 | [the-crusher](2026-10-28-the-crusher.md) | The crusher and the first cost pass | accepted |  |
 | [the-workbench](2026-10-28-the-workbench.md) | The workbench | accepted |  |
+| [body-bag](2026-10-29-body-bag.md) | A body holds its things | accepted |  |
 | [clear-glass](2026-10-29-clear-glass.md) | Clear glass | accepted |  |
 | [holes-not-planned](2026-10-29-holes-not-planned.md) | A meteor's hole is not planned | accepted |  |
 | [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |
@@ -162,3 +163,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |
 | [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
+| [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
+| [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
+| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph |

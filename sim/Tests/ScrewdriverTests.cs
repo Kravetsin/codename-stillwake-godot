@@ -30,7 +30,7 @@ public class ScrewdriverTests
         w.Do(new Leave()).Run().Do(new Enter(cell)).Run();
         Assert.Equal(1, Count(w, Screwdrivers.Basic.Item));
 
-        w.GiveItems(0, ("scrap", 5)).Do(new PlacePlan(cell + 1, Placement.Wall("scrap"))).Run();
+        w.GiveItems(0, ("scrapChunk", 5)).Do(new PlacePlan(cell + 1, Placement.Wall("scrap"))).Run();
         int plan = w.M.Building.Plans.Single().Id;
         int ticks = w.M.Building.TicksFor(plan)!.Value;
         // The screwdriver's pace: its Work ticks of the plan's work a tick held, as the client sends them.

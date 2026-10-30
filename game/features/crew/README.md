@@ -57,14 +57,14 @@ commands reach the sim; others' heroes come through the host.
 | `logic/Markers.cs` | markers' list and shape |
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies from floor stacks (0061) |
-| `BodyView.cs` | each body drawn, its beacon (0061) |
+| `BodyView.cs` | each body, its beacon, its tip; gone, it crumbles (0061, 2026-10-29-body-bag) |
 | `logic/Rams.cs` | a creature's ram as met here (0103) |
 | `logic/Crew.En.cs` | its player text |
 
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`) at any frame rate, drawn between its last two steps. Floats only in drawing.
+  (`Net.Clock`) at any frame rate, drawn between its last two steps; floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089).
@@ -73,7 +73,7 @@ commands reach the sim; others' heroes come through the host.
 - **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a step-deep
   hole is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
   ladder under the feet holds; jump wins over down.
-- **Steps** (0106): a walk steps one cell up or down where the box fits; two up stop it. Drawn eased.
+- **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
 - **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
   eased toward the keys, `AirControl` of it in the air.
 - **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
@@ -81,15 +81,15 @@ commands reach the sim; others' heroes come through the host.
   thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
-- **Camera:** leads where last moved, not the facing; eases height; snaps to a new place.
+- **Camera:** leads where last moved, eases height, snaps to a new place.
 - **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
   `Thrust` is sent while own thrust differs from the sim's.
-- **A canister** (0047, 0081): a right click sends `Refill` when the sim takes it.
+- **A canister** (0047, 0081): right click sends `Refill` if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
-- **Markers** (0061): home, own newest body, friends heard, at the screen's edge.
+- **Markers** (0061): home, own newest body, friends heard, on the edge.
 - **Dressed as worn**: helmet and body apart; bare, hair and a jumpsuit; a lamp only on a helmet.
 
 ## Others' heroes
@@ -102,7 +102,7 @@ commands reach the sim; others' heroes come through the host.
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`); working a plan, the screwdriver twists.
+- **What the hand holds shows** (`HeldLook`); on a plan the screwdriver twists.
 - **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
   wiring, lays cables; a tool on the right does nothing.
 - **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck
@@ -121,6 +121,6 @@ commands reach the sim; others' heroes come through the host.
 
 ## Deliberately not handled
 
-- Friends are pointed at only while heard; markers one way overlap; friends have no names.
+- Friends are marked only while heard; markers one way overlap; friends have no names.
 - A body is drawn as its peer is dressed now; the first colour once it left.
 - Others' swings are not held on contact. A friend's gun hangs, its aim unsent.

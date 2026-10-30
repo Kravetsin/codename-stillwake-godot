@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Items;
 /// The stacks lying about (floor-layer.ts): each its item's picture drawn unlit, in its own colours whatever the
 /// room's light, with a pale rim added over it as light (0075), breathing slowly, so it stands out in a dark room. At
 /// rest it stands on the line it lies on and bobs up from it; moving it glides from where the last tick had it to
-/// where this one does; in space it turns. One this player is picking up is gone at once (0014).
+/// where this one does; in space it turns. One this player is picking up is gone at once (0014). A body's lie unseen inside it.
 /// </summary>
 public partial class FloorLayer : Node2D
 {
@@ -72,7 +72,8 @@ public partial class FloorLayer : Node2D
         _ids.Clear();
         var floor = items.Floor;
         for (int i = 0; i < floor.Count; i++)
-            if (!taking.Contains(floor[i].Id) && !Reach.Hidden(floor[i], items.Ticks))
+            // A body's stacks lie inside it, unseen: the body is drawn by crew (2026-10-29-body-bag).
+            if (!taking.Contains(floor[i].Id) && !Reach.Hidden(floor[i], items.Ticks) && floor[i].Body == null)
             {
                 lying.Add(floor[i]);
                 _ids.Add(floor[i].Id);

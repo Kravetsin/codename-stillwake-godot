@@ -26,35 +26,29 @@ public static class ItemCards
     /// <summary>Whether <paramref name="item"/> is some gun's ammo (the nail): its card has tiles too, though it is no tool.</summary>
     public static bool IsAmmo(string item) => Spec.Shots.Guns.Any(gun => gun.Ammo.Contains(item));
 
-    /// <summary>
-    /// Whether <paramref name="item"/> shows the violet "?" and its card the band: it needs analysis, being in
-    /// some cost (<see cref="Analysable"/>), and is not among <paramref name="analysed"/>; never in creative mode.
-    /// </summary>
-    public static bool Unknown(string item, bool creative, IEnumerable<string> analysed) =>
-        !creative && Analysable.NeedsAnalysis(item) && !analysed.Contains(item);
+    /// <summary>The card of <paramref name="item"/>.</summary>
+    public static ItemCard Of(string item) => Card(item) with { Draw = Spec.Items.Get(item).Draw };
 
-    /// <summary>The card of <paramref name="item"/>; <paramref name="unknown"/> while not analysed.</summary>
-    public static ItemCard Of(string item, bool unknown) => Card(item, unknown) with { Draw = Spec.Items.Get(item).Draw };
-
-    private static ItemCard Card(string item, bool unknown)
+    private static ItemCard Card(string item)
     {
+        int? price = Spec.Market.PriceOf(item);
         string name = T($"item.{item}"), kind = T($"item.{item}.kind");
         // Anything used by a key of its own shows the key, and no words on what it does: the player finds out (0047).
         var key = Table.ContainsKey($"item.{item}.key") ? new CardKey(T($"item.{item}.key")) : null;
-        if (IsAmmo(item)) return new ItemCard(item, name, kind, AmmoTiles(item), [], key, unknown);
+        if (IsAmmo(item)) return new ItemCard(item, name, kind, AmmoTiles(item), [], key, price);
         if (!IsTool(item))
         {
-            var card = new ItemCard(item, name, kind, null, [], key, unknown);
+            var card = new ItemCard(item, name, kind, null, [], key, price);
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }
-        if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, unknown);
-        if (Spec.Shots.GunOf(item) is { } gun) return new ItemCard(item, name, kind, GunTiles(gun), [], key, unknown);
+        if (item == Spec.Harpoon.Item) return new ItemCard(item, name, kind, HarpoonTiles(), [], key, price);
+        if (Spec.Shots.GunOf(item) is { } gun) return new ItemCard(item, name, kind, GunTiles(gun), [], key, price);
         var weapon = Spec.Weapons.Of(item)!;
         return new ItemCard(
             item, name, kind, WeaponTiles(item, []),
             weapon.Effects.Select(e => new CardEffect(T($"effect.{e.Id}"), T($"effect.{e.Id}.about"), e.Colour, e.Ground)).ToList(),
-            key, unknown);
+            key, price);
     }
 
     /// <summary>

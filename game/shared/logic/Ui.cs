@@ -217,7 +217,7 @@ public sealed class Ui
     public Store<string?> Reason { get; } = new(null);
 
     /// <summary>
-    /// The crate, furnace or analyzer this player has open: <c>crew</c> opens it on E within reach and
+    /// The crate or furnace this player has open: <c>crew</c> opens it on E within reach and
     /// closes it out of reach, <c>items</c> shows it under the inventory and closes it on Tab or Esc.
     /// </summary>
     public Store<int?> OpenCrate { get; } = new(null);
@@ -227,6 +227,12 @@ public sealed class Ui
     /// <c>computer</c> shows its window and closes it on E or Esc.
     /// </summary>
     public Store<int?> OpenComputer { get; } = new(null);
+
+    /// <summary>
+    /// The tech station this player has open: <c>crew</c> opens it on E within reach and closes it out of reach,
+    /// <c>research</c> shows its window and closes it on E or Esc.
+    /// </summary>
+    public Store<int?> OpenTech { get; } = new(null);
 
     /// <summary>The program the open computer shows, by id; none as it opens, and none once it stops being ready.</summary>
     public Store<string?> ComputerProgram { get; } = new(null);

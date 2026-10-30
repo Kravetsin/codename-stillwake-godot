@@ -51,7 +51,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
 
     /// <summary>
     /// Whether drones ever have work at machine <paramref name="machine"/>, served or not: a crate, a machine with outputs,
-    /// one whose inputs or fuel they refill. Not a bay, the analyzer or the charging station: where the badge shows.
+    /// one whose inputs or fuel they refill. Not a bay or the charging station: where the badge shows.
     /// </summary>
     public bool Servable(int machine) => _grid.MachineById(machine) is { } m && (Machines.Is(m.Kind, MachineTrait.Container) || Takes(m) || OutputsOf(m) != null);
 

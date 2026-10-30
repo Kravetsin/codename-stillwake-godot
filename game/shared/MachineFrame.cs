@@ -5,7 +5,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// The one frame every machine's window opens in, under the inventory (0058): the same panel for a crate, a
-/// furnace, a smelter, a generator, an analyzer, a charging station and a queued station; a header with the
+/// furnace, a smelter, a generator, a trade station, a charging station and a queued station; a header with the
 /// machine's name in bold and, for one on the power grid, a bolt and its power, lit while it works and dark at
 /// 0 while it does not; under it the machine's own body. Used by the items feature and the crafting feature. It is the
 /// wrist computer's module under the forearm display (0074): its screen greyer and greener than the bag's, a seam between.
