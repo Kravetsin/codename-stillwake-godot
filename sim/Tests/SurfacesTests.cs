@@ -60,6 +60,22 @@ public class SurfacesTests
 
     // Slice 1: routing.
 
+    /// <summary>The tablet buys from anywhere (2026-10-30-tablet-tree): off the ship too, the world's credits spent.</summary>
+    [Fact]
+    public void BuysFromAnotherSurface()
+    {
+        var w = new Scenario(Layout.Parse(Ship.Split('\n')) with { Known = Content.Research.StartKnown }, doubled: true);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip)).Run();
+        w.M.Knowledge.Earn(100_000);
+        var surface = w.World.Surfaces[^1].Id;
+        w.Do(new Transfer(surface)).Run();
+        Assert.Equal(surface, w.World.SurfaceOf(0));
+        var block = Content.Research.Nodes.First(n => !n.Gate && n.Needs.Length == 0);
+        w.Do(new Stillwake.Sim.Research.BuyBlock(block.Id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(100_000 - Stillwake.Sim.Research.Prices.Of(block), w.M.Knowledge.Credits);
+    }
+
     [Fact]
     public void AWorldIsTheShipAloneWithEveryPeerOnIt()
     {

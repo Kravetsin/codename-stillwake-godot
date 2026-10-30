@@ -24,7 +24,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Furnace — sim/Furnace · f/furnace: `Furnace.cs` FurnaceModule; `FurnaceView.cs`, `Flames.cs`; c/`Furnace.cs`
 - Drones — sim/Logistics · f/logistics: `Logistics.cs` LogisticsModule; `Jobs.cs`; `Flight.cs`; `LogisticsView.cs`, `Served.cs`; c/`Logistics.cs`
 
-**Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `TechPanel.cs`, `logic/TechMap.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
+**Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `TechPanel.cs`, `logic/TechRings.cs`, `logic/TechLinks.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
 
 **Crew and hero movement**
 - Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
@@ -47,7 +47,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship computer** — f/computer: `ComputerPanel.cs`, `RadarScreen.cs`, `ComputerScreens.cs`, `Readout.cs` (programs brought by modules on its network); c/`Programs.cs`
 
-**UI and tablet** — game/shared: `Tablet.cs`, `TabletLayout.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
+**UI and tablet** — game/shared: `Tablet.cs`, `TabletLayout.cs`, `CreditLine.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
 
 **Net and co-op** — net/Net: `Host.cs`, `Client.cs`, `Session.cs`, `Playout.cs`; net/Tests `Desync.cs`; game/net: `EnetLink.cs`, `RelayLink.cs`; game/`Main.Sessions.cs` (hosting, joining, worlds on disk, the title); sim/Core: `Sim.cs` World, `Module.cs` Command, `Rng.cs`; sim/Registry: `Registry.cs`, `Migrations.cs`; game/platform: `Saves.cs`
 

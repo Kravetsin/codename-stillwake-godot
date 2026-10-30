@@ -20,8 +20,8 @@ public sealed class FurnaceScenario : DevScenario
     public override World? Create(IReadOnlyList<Module> modules) => FurnaceDemo.Create(modules);
 }
 
-/// <summary>The items room (<see cref="ItemsDemo"/>): a crate, a furnace and a tech station.</summary>
-[Dev("--items", "a room with a crate, a furnace and a tech station, and a script working them (ItemsDemo)")]
+/// <summary>The items room (<see cref="ItemsDemo"/>): a crate and a furnace.</summary>
+[Dev("--items", "a room with a crate and a furnace, and a script working them (ItemsDemo)")]
 public class ItemsScenario : DevScenario
 {
     public override Layout? Map => ItemsDemo.Map;
@@ -145,6 +145,14 @@ public sealed class HandbookScenario : DevScenario
     public override World Seed(World world, DevSeed seed) => HandbookDemo.Seed(world, seed.Modules);
 
     public override void Attach(DevContext c) => c.Add(new HandbookDemo(c.DebrisPage));
+}
+
+[Dev("--tree", "the tech tree on the tablet, in the wreck with credits to spend (TreeDemo)")]
+public sealed class TreeScenario : DevScenario
+{
+    public override World Seed(World world, DevSeed seed) => TreeDemo.Seed(world, seed.Modules);
+
+    public override void Attach(DevContext c) => c.Add(new TreeDemo(c.M));
 }
 
 [Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]

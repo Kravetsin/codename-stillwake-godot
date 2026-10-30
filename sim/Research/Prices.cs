@@ -2,15 +2,15 @@ using Stillwake.Content;
 
 namespace Stillwake.Sim.Research;
 
-/// <summary>What a block of the tree costs: what it opens is worth, times its category's multiple, to two figures as a shop prints it (2026-10-30-tech-graph).</summary>
+/// <summary>What a block of the tree costs: what it opens is worth, times its ring's multiple, to two figures as a shop prints it (2026-10-30-tech-rings).</summary>
 public static class Prices
 {
     private static readonly Dictionary<string, Blueprint> Prints = Blueprints.All.ToDictionary(b => b.Id, StringComparer.Ordinal);
 
-    private static readonly Dictionary<string, int> ByNode = Content.Research.Nodes.ToDictionary(n => n.Id, Worked, StringComparer.Ordinal);
+    private static readonly Dictionary<string, int> ByNode = Content.Research.Nodes.Where(n => !n.Gate).ToDictionary(n => n.Id, Worked, StringComparer.Ordinal);
 
     /// <summary>What block <paramref name="node"/> costs in credits; 0 for a gate.</summary>
-    public static int Of(TechNode node) => ByNode[node.Id];
+    public static int Of(TechNode node) => ByNode.GetValueOrDefault(node.Id);
 
     /// <summary>What the blueprint or craft <paramref name="id"/> is worth: a craft some units of it, a blueprint what it is built of.</summary>
     public static int WorthOf(string id)
@@ -19,11 +19,7 @@ public static class Prices
         return Prints[id].Cost.Sum(c => c.Count * Market.WorthOf(c.Item));
     }
 
-    private static int Worked(TechNode node)
-    {
-        int times = node.Times ?? Content.Research.CategoryOf(node).Times;
-        return Rounded(times * node.Opens.Sum(WorthOf));
-    }
+    private static int Worked(TechNode node) => Rounded(node.Times * WorthOf(node.Id));
 
     /// <summary><paramref name="price"/> up to its first two figures.</summary>
     private static int Rounded(int price)

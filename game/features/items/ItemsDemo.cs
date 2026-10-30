@@ -11,7 +11,7 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// <c>-- --items</c>: a room with a crate, a furnace and a tech station, a solar panel, the hero
+/// <c>-- --items</c>: a room with a crate and a furnace, a solar panel, the hero
 /// carrying a few stacks, lamps lit and wire lying on the floor; and a script
 /// played through Godot's own input, for recordings with <c>--write-movie</c>: the hotbar chosen by the
 /// wheel and keys, stacks picked, split and put down in the inventory, shifted to the bag and back to the
@@ -30,8 +30,8 @@ public partial class ItemsDemo : Control
             "        PPP       ",
             "##################",
             "#...L........L...#",
-            "#.........AA..FF.#",
-            "#.KK...S..AA..FF.#",
+            "#.............FF.#",
+            "#.KK...S......FF.#",
             "##################",
         ],
         cables: [((8, 0), (4, 2)), ((10, 0), (13, 2))]).Doubled() with

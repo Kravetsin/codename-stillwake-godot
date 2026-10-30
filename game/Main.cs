@@ -252,13 +252,15 @@ public partial class Main : Node2D, ITogether
         AddChild(dev);
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
+        // The tech tree on the tablet: put away and putting away as the computer's window.
+        var tech = new TechPanel(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
             {
                 _items?.Panel.Close();
                 _hands.Ui.OpenComputer.Set(null);
-                _hands.Ui.OpenTech.Set(null);
+                tech.Close();
                 _hands.Plan.PutPlanAway();
             },
         };
@@ -270,16 +272,16 @@ public partial class Main : Node2D, ITogether
             if (_hands.Ui.OpenComputer.Get() == null) return;
             _items?.Panel.Close();
             handbook.Close();
+            tech.Close();
             _hands.Plan.PutPlanAway();
         });
         AddChild(computer);
-        // A tech station's window, put away and putting away as the computer's.
-        var tech = new TechPanel(_hands.Ui, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
-        _hands.Ui.OpenTech.Subscribe(() =>
+        _hands.Ui.TreeOpen.Subscribe(() =>
         {
-            if (_hands.Ui.OpenTech.Get() == null) return;
+            if (!_hands.Ui.TreeOpen.Get()) return;
             _items?.Panel.Close();
             handbook.Close();
+            _hands.Ui.OpenComputer.Set(null);
             _hands.Plan.PutPlanAway();
         });
         AddChild(tech);
@@ -306,6 +308,7 @@ public partial class Main : Node2D, ITogether
                 _hands.Plan.PutPlanAway();
             },
             handbook: handbook.Open,
+            tree: tech.Open,
             look: () => lookEditor.Open(_look ?? Sim.Players.Look.Zero),
             suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
@@ -348,7 +351,6 @@ public partial class Main : Node2D, ITogether
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.OpenComputer.Set(null);
-        _hands.Ui.OpenTech.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
         Stages.Clear();

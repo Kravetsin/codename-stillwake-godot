@@ -43,6 +43,28 @@ public static class AsciiArt
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
 
+    /// <summary>The coin credits are written with.</summary>
+    public static ImageTexture Credit() => Texture("credit",
+    [
+        "....KKKKKKKK....",
+        "..KKyyyyyyyyKK..",
+        ".KyyhhhhhhhhyyK.",
+        ".KyhhyyyyyyyhoK.",
+        "KyhhyyyKKKyyyhoK",
+        "KyhyyyKKKKKyyyoK",
+        "KyhyyKKyyyKKyyoK",
+        "KyhyyKKyyyyyyyoK",
+        "KyhyyKKyyyyyyyoK",
+        "KyhyyKKyyyKKyyoK",
+        "KyhyyyKKKKKyyyoK",
+        "KyyoyyyKKKyyyooK",
+        ".KyoooyyyyyyooK.",
+        ".KyyoooooooooyK.",
+        "..KKyyyyyyyyKK..",
+        "....KKKKKKKK....",
+    ],
+        new Dictionary<char, uint> { ['K'] = 0x3a2a10, ['y'] = 0xf0c050, ['h'] = 0xffe9a0, ['o'] = 0xb8862c });
+
     /// <summary>A book with a star on its cover: the Handbook's (0066), a placeholder till its picture is picked.</summary>
     public static ImageTexture Book() => Texture("book",
     [

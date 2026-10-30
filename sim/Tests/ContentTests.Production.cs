@@ -360,7 +360,7 @@ public partial class ContentTests
             {
                 if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
                 more |= done.Add(node.Id);
-                foreach (string id in node.Opens) more |= known.Add(id);
+                if (!node.Gate) more |= known.Add(node.Id);
             }
             foreach (var station in stations)
             {
@@ -393,7 +393,7 @@ public partial class ContentTests
     public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.SelectMany(n => n.Opens).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate).Select(n => n.Id).Concat(Content.Research.StartKnown).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
     }
@@ -439,7 +439,7 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start or what it needs opens, at a
+    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start, its ring or a ring further in opens, at a
     /// station they open; what wreckage gives needs no one to open it.
     /// </summary>
     [Fact]
@@ -447,26 +447,14 @@ public partial class ContentTests
     {
         var (given, _) = Reachable([]);
         var prints = Stillwake.Sim.Research.Blueprints.All.ToDictionary(b => b.Id);
-        HashSet<string> Behind(TechNode node)
-        {
-            var opened = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
-            void Walk(TechNode each)
-            {
-                foreach (string need in each.Needs)
-                {
-                    var before = Content.Research.Node(need)!;
-                    opened.UnionWith(before.Opens);
-                    Walk(before);
-                }
-            }
-            Walk(node);
-            opened.UnionWith(node.Opens);
-            return opened;
-        }
+        var tabs = Content.Research.Tabs.Select(t => t.Id).ToList();
+        // A ring is bought in any order: a block may take what its own ring opens, or what is further in, never further out.
+        HashSet<string> Behind(TechNode node) => new(Content.Research.StartKnown.Concat(Content.Research.Nodes
+            .Where(n => tabs.IndexOf(n.Tab) < tabs.IndexOf(node.Tab) || (n.Tab == node.Tab && n.Ring <= node.Ring)).Where(n => !n.Gate).Select(n => n.Id)), StringComparer.Ordinal);
         foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
         {
             var opened = Behind(node);
-            foreach (string id in node.Opens)
+            string id = node.Id;
             {
                 bool craft = Crafts.TryGet(id, out var recipe);
                 var cost = craft ? recipe!.Cost : prints[id].Cost;
@@ -516,8 +504,7 @@ public partial class ContentTests
     {
         var (had, known) = Reachable([]);
         Assert.Contains("tradeStation", known);
-        Assert.Contains("techStation", known);
-        Assert.All(Machines.Get("tradeStation").Cost.Concat(Machines.Get("techStation").Cost), c => Assert.Contains(c.Item, had));
+        Assert.All(Machines.Get("tradeStation").Cost, c => Assert.Contains(c.Item, had));
         Assert.Contains("scrapChunk", had);
     }
 

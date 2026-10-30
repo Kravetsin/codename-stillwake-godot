@@ -27,7 +27,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _credits, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null);
             (_stored, _storedText, _rate) = (null, null, null);
         }
         if (want is not var (crate, kind)) return;
@@ -210,22 +210,21 @@ public partial class InventoryPanel
         _frame?.Light(charging);
     }
 
-    /// <summary>A trade station's body: its slots, and what the ship has earned under them.</summary>
+    /// <summary>A trade station's body: its slots; what the ship has earned stands under the bag.</summary>
     private VBoxContainer TradeBody(int crate, Content.MachineSpec spec)
     {
         var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
-        body.AddChild(_credits = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Amber400), MouseFilter = Control.MouseFilterEnum.Ignore });
         return body;
     }
 
     /// <summary>
-    /// The ship's credits at a trade station; whether the open furnace or generator burns and why it stands still; how
+    /// The ship's credits; whether the open furnace or generator burns and why it stands still; how
     /// far the furnace's work is; the frame's bolt lit while the machine works.
     /// </summary>
     private void ShowMachine(Reading reading)
     {
-        if (_credits != null) _credits.Text = T("research.credits", ("n", _research?.Credits ?? 0));
+        _credits.Set(_research?.Credits ?? 0);
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);

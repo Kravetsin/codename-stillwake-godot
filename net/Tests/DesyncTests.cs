@@ -563,8 +563,8 @@ public class DesyncTests(ITestOutputHelper output)
     public void KeepsEveryClientAndAJoinerInSyncSellingAndBuyingTheTree()
     {
         // Trade and the tree (2026-10-30-trade-and-tech): a stocked trade station earns on its beat, a joiner comes in mid-beat,
-        // the credits and the counter in its welcome, and before its next sale the first client spends them on the salvage tier's blocks: without them in its welcome it refuses.
-        var layout = Layout.Parse(["##########", "#AA$$....#", "#AA$$....#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
+        // the credits and the counter in its welcome, and before its next sale the first client spends them on the first ring's blocks: without them in its welcome it refuses.
+        var layout = Layout.Parse(["##########", "#$$......#", "#$$......#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
         static string Stocked(string save)
         {
             var root = JsonNode.Parse(save)!;
@@ -573,7 +573,7 @@ public class DesyncTests(ITestOutputHelper output)
             root["slices"]!["items"]!["crates"]!.AsArray().Add(new JsonObject { ["id"] = station, ["slots"] = slots });
             return root.ToJsonString();
         }
-        string[] blocks = ["workbench", "furnace", "wire", "plate", "gear", "floor", "crate"];
+        string[] blocks = ["workbench", "furnace"];
         Covering(23, tried =>
         {
             var game = new Definition(() => new Registry().All, Stocked);
@@ -585,10 +585,9 @@ public class DesyncTests(ITestOutputHelper output)
                 earned = Math.Max(earned, knowledge.Credits);
                 bought = Math.Max(bought, blocks.Count(knowledge.Granted));
                 if (tick <= 503 || tick % 40 != 25) return;
-                int tech = game.Module<GridModule>(first.World).MachinesOf("techStation")[0].Id;
-                foreach (string block in blocks) first.Send(new Sim.Research.BuyBlock(tech, block));
+                foreach (string block in blocks) first.Send(new Sim.Research.BuyBlock(block));
             });
-            return (run, earned > 100 && bought >= 3 ? null : $"{earned} credits at most, {bought} blocks bought");
+            return (run, earned > 100 && bought == 2 ? null : $"{earned} credits at most, {bought} blocks bought");
         });
     }
 
