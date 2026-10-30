@@ -385,29 +385,35 @@ public static class Sound
         (["dishes", "pots", "basin", "plantAlive", "plantDead"], HitStone, CeramicBreak));
 
     /// <summary>
-    /// A creature struck and killed (0102), by its species, whatever the tool, as a wall or a growth is (0093): placeholders from
-    /// what is here till the user picks — a hit, the cap's squelch lower with a soft body thump under it; its death, a heavy
-    /// landing's thud higher with the squelch. This player's own on Suit, a friend's on World, where it is struck.
+    /// Every grazer's death, one sound as one look (2026-10-29-kills-crumble): a gooey squish, the user's pick of the death audition,
+    /// played the moment it is killed; far as something breaking (<see cref="BreakReach"/>).
+    /// </summary>
+    public static readonly Cue CreatureDeath = new(Shots("creatures/death-squish", 1), 0, Pitch: 0.08f, Heard: BreakReach);
+
+    /// <summary>
+    /// A creature struck and killed (0102), by its species, whatever the tool, as a wall or a growth is (0093): its hit placeholders from
+    /// what is here till the user picks, the cap's squelch lower with a soft body thump under it; its death every grazer's one
+    /// (<see cref="CreatureDeath"/>), pitched by its size. This player's own on Suit, a friend's on World, where it is struck.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, (Cue Hit, Cue Thump, Cue Death)> Creatures = new Dictionary<string, (Cue, Cue, Cue)>
     {
         [Stillwake.Content.Creatures.Loper.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
-            LandHard with { VolumeDb = -2, Tune = 1.25f, Heard = BreakReach }),
+            CreatureDeath),
         // The sixleg the loper's; the heavier tapir lower, the small fluff higher (placeholders all).
         [Stillwake.Content.Creatures.Sixleg.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
-            LandHard with { VolumeDb = -2, Tune = 1.25f, Heard = BreakReach }),
+            CreatureDeath),
         [Stillwake.Content.Creatures.Tapir.Id] = (
             Glowcap with { Tune = 0.68f, Pitch = 0.1f },
             LandSoft with { VolumeDb = -2, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
-            LandHard with { VolumeDb = -1, Tune = 1.05f, Heard = BreakReach }),
+            CreatureDeath with { Tune = 0.88f }),
         [Stillwake.Content.Creatures.Fluff.Id] = (
             Glowcap with { Tune = 1.0f, Pitch = 0.14f },
             LandSoft with { VolumeDb = -5, Tune = 1.6f, Pitch = 0.12f, Heard = ToolReach },
-            LandHard with { VolumeDb = -4, Tune = 1.5f, Heard = BreakReach }),
+            CreatureDeath with { Tune = 1.15f }),
     };
 
     /// <summary>
@@ -564,7 +570,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, CaveDrip, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

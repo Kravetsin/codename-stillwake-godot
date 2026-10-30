@@ -47,10 +47,10 @@ public class CraftsTests
     public void LooksReadyWhenAUnitIsCarriedShortWhenNotAndLockedWhenNotKnown()
     {
         var w = Start();
-        Assert.Equal(Look.Short, LookOf(w, "wire"));
-        Assert.Equal(Look.Locked, LookOf(w, "plate"));
-        w.Give(0, ("scrap", 2));
-        Assert.Equal(Look.Ready, LookOf(w, "wire"));
+        Assert.Equal(Look.Short, LookOf(w, "fireAxe"));
+        Assert.Equal(Look.Locked, LookOf(w, "coil"));
+        w.Give(0, ("iron", 2), ("planks", 1));
+        Assert.Equal(Look.Ready, LookOf(w, "fireAxe"));
     }
 
     [Fact]

@@ -1,6 +1,6 @@
 # 0027 — What is analysed opens what is made of it
 
-- Status: accepted; supersedes the unlocks, the schematics and the "moment is shown" of
+- Status: superseded by [trade-and-tech](2026-10-30-trade-and-tech.md); was accepted; supersedes the unlocks, the schematics and the "moment is shown" of
   [0024](0024-blueprints-are-learned-by-analysis.md); the `Locked` list superseded by
   [0041](0041-wreckage-of-many-kinds-and-circuits.md): the solar panel costs circuits and opens by the rule;
   "every item is analysed alike" amended 2026-10-18: only what goes into some cost, and again: only what goes

@@ -45,6 +45,25 @@ public class BodiesTests
         Assert.Null(Bodies.Latest(w.M.Items.Floor, 1));
     }
 
+    /// <summary>What a body's tip lists (2026-10-29-body-bag): each item once with all of it, the most first, another body's and no body's left out.</summary>
+    [Fact]
+    public void ListsWhatABodyHoldsEachItemOnceTheMostFirst()
+    {
+        static JsonObject Tagged(JsonObject stack, int peer, int died)
+        {
+            stack["body"] = new JsonObject { ["peer"] = peer, ["died"] = died };
+            return stack;
+        }
+        var (m, _) = ItemsWorlds.With(Layout.Parse(Room), items => items["floor"] = new JsonArray(
+            Tagged(ItemsWorlds.Lying(1, "scrap", 3, 2, 2, 10, -1, 9), 2, 9),
+            Tagged(ItemsWorlds.Lying(2, "iron", 2, 2, 2, 10, -1, 9), 2, 9),
+            Tagged(ItemsWorlds.Lying(3, "scrap", 4, 2, 2, 10, -1, 9), 2, 9),
+            Tagged(ItemsWorlds.Lying(4, "biomass", 2, 2, 2, 10, -1, 9), 2, 9),
+            Tagged(ItemsWorlds.Lying(5, "planks", 9, 7, 2, 10, -1, 4), 1, 4),
+            ItemsWorlds.Lying(6, "planks", 9, 2, 2, 10, 0, 0)));
+        Assert.Equal([("scrap", 7), ("biomass", 2), ("iron", 2)], Bodies.Contents(m.Items.Floor, new Pile(2, 9, 0, 0)));
+    }
+
     [Fact]
     public void PutsABodyAtTheMiddleOfItsStacksAndLeavesStacksOfNoBodyOut()
     {

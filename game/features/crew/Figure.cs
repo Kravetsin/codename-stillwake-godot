@@ -553,6 +553,19 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
+    /// Every world pixel its suit's and person's pictures cover as drawn now, the colour under it, the last drawn over the rest:
+    /// what an emptied body crumbles into (2026-10-29-body-bag, <see cref="PixelBursts"/>).
+    /// </summary>
+    public void Pixels(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into)
+    {
+        foreach (var (sprite, _, _) in _parts)
+        {
+            if (!sprite.IsVisibleInTree() || sprite.Texture is not { } texture || SuitArt.PixelsOf(texture) is not var (w, h, data)) continue;
+            PixelBursts.Paint(into, sprite.GlobalTransform * new Transform2D(0, sprite.Offset), w, h, data);
+        }
+    }
+
+    /// <summary>
     /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> and
     /// <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
     /// 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
@@ -896,6 +909,11 @@ public static class SuitArt
     public const double FarShade = 0.7;
 
     private static readonly Dictionary<(string Part, int Colour, int Skin, int Hair, bool Far), Texture2D> Made = new();
+    // Each made picture's bytes, kept on the CPU: what a body crumbles into, never read back from the GPU.
+    private static readonly Dictionary<Texture2D, (int W, int H, byte[] Data)> Bytes = new();
+
+    /// <summary>A made picture's RGBA bytes, its width and height; none for a picture not made here.</summary>
+    public static (int W, int H, byte[] Data)? PixelsOf(Texture2D texture) => Bytes.TryGetValue(texture, out var p) ? p : null;
 
     public static Texture2D Of(string part, int colour, int skin = HeroLooks.SkinDrawn, int hair = HeroLooks.HairDrawn, bool far = false)
     {
@@ -919,6 +937,8 @@ public static class SuitArt
                 if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
                     image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
             }
-        return Made[key] = ImageTexture.CreateFromImage(image);
+        var made = Made[key] = ImageTexture.CreateFromImage(image);
+        Bytes[made] = (image.GetWidth(), image.GetHeight(), image.GetData());
+        return made;
     }
 }

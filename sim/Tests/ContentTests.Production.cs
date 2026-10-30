@@ -193,7 +193,7 @@ public partial class ContentTests
 
     /// <summary>
     /// The arc bench is the arc branch's station (0099): every craft of a sky shard sits there and nowhere else, each holds a
-    /// shard in its cost, so analysing one opens them together with the bench, and the bench is built of what the pod, the
+    /// shard in its cost, and the bench is built of what the pod, the
     /// Former and salvage give, and a shard: nothing it makes is needed to build it.
     /// </summary>
     [Fact]
@@ -322,8 +322,9 @@ public partial class ContentTests
     /// What the wreck can come to, walking stations (0057): an item is reachable when it is salvage — what any
     /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
-    /// or its blueprint is known and its cost reachable; under the opening rule (0027) a blueprint or craft is
-    /// known when granted or when every item of its cost is reachable, and so analysed. Debris of the kinds
+    /// or its blueprint is known and its cost reachable. A tier opens when the one before it did and its deposit can be had
+    /// (2026-10-30-trade-and-tech); its blocks are bought then, credits not walked, every price being earned by selling; what they
+    /// open is used when its cost is had. Debris of the kinds
     /// <paramref name="never"/> is left out, as if it never drifted by, and so are a planet's items of them. Aboard only: what a
     /// planet gives is not had. What only the wreck's own machines give (<see cref="WrecksOwn"/>) is had from the start.
     /// </summary>
@@ -350,14 +351,17 @@ public partial class ContentTests
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
         }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
-        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost))
-            .Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost))).ToList();
         var built = new HashSet<string>(StringComparer.Ordinal);
+        var done = new HashSet<string>(StringComparer.Ordinal);
         for (bool more = true; more;)
         {
             more = false;
-            foreach (var (id, _) in recipes.Where(r => !known.Contains(r.Id) && r.Cost.All(c => had.Contains(c.Item))))
-                more |= known.Add(id);
+            foreach (var node in Content.Research.Nodes.Where(n => !done.Contains(n.Id) && n.Needs.All(done.Contains)))
+            {
+                if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
+                more |= done.Add(node.Id);
+                foreach (string id in node.Opens) more |= known.Add(id);
+            }
             foreach (var station in stations)
             {
                 var spec = Machines.Get(station.Machine);
@@ -375,13 +379,146 @@ public partial class ContentTests
         return (had, known);
     }
 
-    /// <summary>Every craft and blueprint opens from the wreck's start, by analysing what is caught, dug on a planet or made at its stations.</summary>
+    /// <summary>Every craft and blueprint opens from the wreck's start, walking the tree on what is caught, dug on a planet or made at its stations.</summary>
     [Fact]
-    public void EveryCraftAndBlueprintOpensFromTheWrecksStartByAnalysingWhatItsStationsMake()
+    public void EveryCraftAndBlueprintOpensFromTheWrecksStartWalkingTheTree()
     {
         var (_, known) = Reachable(Stations.All, planet: true);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
         Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
+    }
+
+    /// <summary>Every blueprint and craft is known from the start or opened by exactly one block; a block opens nothing else.</summary>
+    [Fact]
+    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
+    {
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var opened = Content.Research.Nodes.SelectMany(n => n.Opens).Concat(Content.Research.StartKnown).ToList();
+        Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
+        Assert.Equal(opened.Count, opened.Distinct().Count());
+    }
+
+    /// <summary>Losing one station shuts what is made at it and everything after: the walk bites.</summary>
+    [Fact]
+    public void WithoutAStationAWholeStageStaysShut()
+    {
+        var (had, known) = Reachable([.. Stations.All.Where(s => s.Machine != "former")]);
+        Assert.DoesNotContain("frame", had);
+        Assert.DoesNotContain("crusher", known);
+        Assert.DoesNotContain("dropPod", known);
+    }
+
+    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing.</summary>
+    [Fact]
+    public void EveryPricedCraftAndYieldSellsForMoreThanItsPricedInputs()
+    {
+        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null))
+        {
+            int inputs = craft.Cost.Sum(c => (Market.PriceOf(c.Item) ?? 0) * c.Count);
+            Assert.True(Market.PriceOf(craft.Item) > inputs, $"{craft.Item}: {Market.PriceOf(craft.Item)} for {inputs}");
+        }
+        foreach (var item in Content.Items.All.Where(i => i.Yields != null && Market.PriceOf(i.Id) != null))
+        {
+            int yields = item.Yields!.Sum(y => (Market.PriceOf(y.Item) ?? 0) * y.Count);
+            if (yields > 0) Assert.True(yields > Market.PriceOf(item.Id) * item.SmeltTakes, $"{item.Id}: {item.SmeltTakes} at {Market.PriceOf(item.Id)} yield {yields}");
+        }
+    }
+
+    /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "cape"];
+
+    /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
+    [Fact]
+    public void EveryItemIsPricedOrNamedUnpricedAndTheStreamsChunkIsPriced()
+    {
+        Assert.NotNull(Market.PriceOf("scrapChunk"));
+        Assert.Contains("scrapChunk", DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => (Loot.Of(k.Item) ?? []).Select(e => e.Item).Append(k.Item)));
+        var unpriced = Content.Items.All.Where(i => Market.PriceOf(i.Id) == null).Select(i => i.Id).ToList();
+        Assert.True(unpriced.All(Unpriced.Contains), string.Join(", ", unpriced.Select(id => $"\"{id}\"")));
+        Assert.All(Unpriced, id => Assert.Null(Market.PriceOf(id)));
+    }
+
+    /// <summary>
+    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start or what it needs opens, at a
+    /// station they open; what wreckage gives needs no one to open it.
+    /// </summary>
+    [Fact]
+    public void NothingIsOpenedBeforeWhatItIsMadeOf()
+    {
+        var (given, _) = Reachable([]);
+        var prints = Stillwake.Sim.Research.Blueprints.All.ToDictionary(b => b.Id);
+        HashSet<string> Behind(TechNode node)
+        {
+            var opened = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+            void Walk(TechNode each)
+            {
+                foreach (string need in each.Needs)
+                {
+                    var before = Content.Research.Node(need)!;
+                    opened.UnionWith(before.Opens);
+                    Walk(before);
+                }
+            }
+            Walk(node);
+            opened.UnionWith(node.Opens);
+            return opened;
+        }
+        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
+        {
+            var opened = Behind(node);
+            foreach (string id in node.Opens)
+            {
+                bool craft = Crafts.TryGet(id, out var recipe);
+                var cost = craft ? recipe!.Cost : prints[id].Cost;
+                foreach (var (item, _) in cost)
+                    Assert.True(!Crafts.TryGet(item, out _) || given.Contains(item) || opened.Contains(item), $"{id} of {item}, not behind {node.Id}");
+                if (craft && cost.Count > 0)
+                    Assert.True(Stations.All.Any(s => s.Rows.Any(r => r.Contains(id)) && (Machines.Get(s.Machine).Fixed || opened.Contains(s.Machine))), $"{id}: no station behind {node.Id}");
+            }
+        }
+    }
+
+    /// <summary>Every need names a node listed before it: the order the window looks for what to do next.</summary>
+    [Fact]
+    public void EveryNeedIsANodeListedBeforeIt()
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in Content.Research.Nodes)
+        {
+            Assert.All(node.Needs, need => Assert.True(seen.Contains(need), $"{node.Id} needs {need}"));
+            seen.Add(node.Id);
+        }
+    }
+
+    /// <summary>The formula, pinned on a chain worked by hand: a chunk of 20 smelted in 3 seconds into 4 scrap, 2 of it wired in 1.5.</summary>
+    [Fact]
+    public void AStepIsWorthItsInputsAndTimeMarkedUpPerUnitRoundedUp()
+    {
+        Assert.Equal(20, Market.WorthOf("scrapChunk"));
+        Assert.Equal(8, Market.WorthOf("scrap")); // (20 + 3) x 1.25 / 4 = 7.19
+        Assert.Equal(22, Market.WorthOf("wire")); // (2 x 8 + 1.5) x 1.25 = 21.875
+        Assert.Equal(116, Market.WorthOf("coil")); // (4 x 22 + 4.5) x 1.25 = 115.625
+    }
+
+    /// <summary>First blueprints come for a few chunks; the engine is the dearest of all, so it stays the end of the tree.</summary>
+    [Fact]
+    public void TheFirstBlocksCostAFewChunksAndTheEngineMost()
+    {
+        var prices = Content.Research.Nodes.Where(n => !n.Gate).ToDictionary(n => n.Id, Stillwake.Sim.Research.Prices.Of);
+        Assert.All(new[] { "workbench", "furnace", "wire" }, id => Assert.InRange(prices[id], 1, 12 * Market.WorthOf("scrapChunk")));
+        Assert.Equal(prices.Values.Max(), prices["engine"]);
+        Assert.Single(prices.Values, prices["engine"]);
+    }
+
+    /// <summary>The first credits need nothing bought: no softlock can stand between the wreck's start and its first sale.</summary>
+    [Fact]
+    public void TheFirstCreditsNeedNothingBought()
+    {
+        var (had, known) = Reachable([]);
+        Assert.Contains("tradeStation", known);
+        Assert.Contains("techStation", known);
+        Assert.All(Machines.Get("tradeStation").Cost.Concat(Machines.Get("techStation").Cost), c => Assert.Contains(c.Item, had));
+        Assert.Contains("scrapChunk", had);
     }
 
     /// <summary>The invariant: every item there is can be had from the wreck, caught, dug on a planet or made at a station reachable.</summary>
@@ -469,9 +606,9 @@ public partial class ContentTests
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
         string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy", "wallHide", "wallMica", "wallStone"];
-        var (_, known) = Reachable(Stations.All);
-        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
-        var locked = recipes.Where(id => !known.Contains(id)).Distinct().Order(StringComparer.Ordinal).ToArray();
+        var (had, known) = Reachable(Stations.All);
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
+        var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();
         // The whole list in the message, so a failure names every recipe that moved, not the first few.
         Assert.True(locked.SequenceEqual(planetary.Order(StringComparer.Ordinal)), $"opened only on a planet: {string.Join(", ", locked.Select(id => $"\"{id}\""))}");
         Assert.Contains("dropPod", known);
@@ -480,7 +617,7 @@ public partial class ContentTests
 
     /// <summary>
     /// The farm walks from salvage (0060): seeds from supply pods and soil clods, soil pressed at the Former or broken
-    /// out of clods, the grow capsule opened by what its cost is made of, biomass grown in it and biofuel smelted from
+    /// out of clods, the grow capsule bought once that is had, biomass grown in it and biofuel smelted from
     /// that. Without the capsule, neither biomass nor biofuel; without the Former, soil only from clods; without both,
     /// no soil and no capsule.
     /// </summary>

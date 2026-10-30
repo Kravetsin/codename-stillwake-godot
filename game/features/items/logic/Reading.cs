@@ -5,7 +5,6 @@ using Stillwake.Sim;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
-using Stillwake.Sim.Research;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
@@ -13,13 +12,10 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The slots as this peer shows them (<c>read</c> in Inventory.tsx): the world with its own moves still
 /// in flight made, so a stack lands on the click rather than a round trip later, and the next click acts
-/// on what is seen (0014). <see cref="Crate"/> is the open crate's slots, <see cref="Kind"/> its kind;
-/// an analyzer shows what is in its slot, why it stands still and its <see cref="Items.Lessons"/>.
-/// <see cref="Analysed"/> are the items analysed so far, which no slot marks.
+/// on what is seen (0014). <see cref="Crate"/> is the open crate's slots, <see cref="Kind"/> its kind.
 /// </summary>
 public sealed record Reading(
-    IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind, Analyzing? Analyzer,
-    IReadOnlyList<string> Analysed, Lessons? Lessons = null)
+    IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind)
 {
     /// <summary>What the slot at <paramref name="place"/> shows: null when empty or not shown.</summary>
     public Stack? At(Place place)
@@ -43,9 +39,6 @@ public sealed record Reading(
     /// <summary>The modules the open machine has a socket for and holds none of: where a module shifted from the bag goes.</summary>
     public IReadOnlyList<string> Free => Host == null ? [] : Content.Modules.For(Host).Select(m => m.Item).Where(m => !Fitted.Contains(m)).ToList();
 
-    /// <summary>Whether a slot holding <paramref name="item"/> shows the violet "?": in some cost and not analysed yet, never in creative mode.</summary>
-    public bool Unknown(string item) => ItemCards.Unknown(item, Creative, Analysed);
-
     /// <summary>
     /// What the open machine does with <paramref name="item"/>: a fed station smelts or grows it, of its process and
     /// hot enough (<see cref="CraftingModule.Processes"/>), or a machine with a fire burns it, a fuel; it takes it as a
@@ -64,7 +57,7 @@ public sealed record Reading(
     /// <summary>
     /// The mark whose faint ghost slot <paramref name="slot"/> of a <paramref name="kind"/> shows while empty (0097): a fed
     /// station's input what it does (the furnace's and the smelter's crucible, the grow capsule's sprout), a fire's fuel slot
-    /// the flame, an analyzer's the "?", a charging station's a battery, a drone bay's a drone; none for any other slot.
+    /// the flame, a charging station's a battery, a drone bay's a drone; none for any other slot.
     /// </summary>
     public static SlotMark GhostOf(string kind, int slot)
     {
@@ -74,32 +67,30 @@ public sealed record Reading(
             return station.Process == "grow" ? SlotMark.Grows : SlotMark.Smelts;
         if (spec.Is(Content.MachineTrait.Zone)) return SlotMark.Docks;
         if (spec.Charges) return SlotMark.Charges;
-        return kind == "analyzer" && slot == 0 ? SlotMark.Unknown : SlotMark.None;
+        return SlotMark.None;
     }
 
     /// <summary>
     /// Whether <paramref name="item"/>, carried, lights the ghost <paramref name="ghost"/> of the open machine's empty slot:
-    /// what wears that mark in the bag with it open, what the fire burns, the "?" of what waits for analysis, what holds a
+    /// what wears that mark in the bag with it open, what the fire burns, what holds a
     /// charge, a drone.
     /// </summary>
     public bool Lights(SlotMark ghost, string item) => ghost switch
     {
         SlotMark.Smelts or SlotMark.Grows => Kind != null && Content.Stations.TryGet(Kind, out var station) && station.Fed && CraftingModule.Processes(station, item),
         SlotMark.Burns => Content.Items.Get(item).BurnTicks != null,
-        SlotMark.Unknown => Unknown(item),
         SlotMark.Charges => Content.Items.Get(item).Capacity != null,
         SlotMark.Docks => item == Content.Logistics.Drone,
         _ => false,
     };
 
-    /// <summary>The mark in the corner of an inventory slot holding <paramref name="item"/>: the open machine's (<see cref="HereOf"/>), else the "?" while it is not analysed.</summary>
-    public SlotMark MarkOf(string item) =>
-        HereOf(item) is var here && here != SlotMark.None ? here : Unknown(item) ? SlotMark.Unknown : SlotMark.None;
+    /// <summary>The mark in the corner of an inventory slot holding <paramref name="item"/>: the open machine's (<see cref="HereOf"/>).</summary>
+    public SlotMark MarkOf(string item) => HereOf(item);
 
-    /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>), the band while it is not analysed.</summary>
+    /// <summary>The one tooltip over a stack of <paramref name="item"/>: its card (<see cref="ItemCards"/>).</summary>
     public Tip TipOf(string item)
     {
-        var card = ItemCards.Of(item, Unknown(item));
+        var card = ItemCards.Of(item);
         return new Tip(card.Name) { Card = card };
     }
 
@@ -143,7 +134,7 @@ public sealed record Reading(
     /// <paramref name="inFlight"/>, will leave them.
     /// </summary>
     public static Reading Of(
-        int peer, IReadOnlyList<Command> inFlight, IItemsQueries items, IGridQueries grid, IResearchQueries research, int? crate)
+        int peer, IReadOnlyList<Command> inFlight, IItemsQueries items, IGridQueries grid, int? crate)
     {
         var moves = inFlight.Where(c => c is Move or Drop or Sort).ToList();
         var shown = items.AfterMoves(peer, moves);
@@ -158,12 +149,7 @@ public sealed record Reading(
         bool tunes = kind != null && Content.Machines.TryGet(kind, out var spec) && spec.Tunes;
         IReadOnlyList<string> modules = tunes ? slots is { Count: > 0 } && slots[0]?.Module is { } on ? [on] : [] : crate is int open ? items.FittedTo(open) : [];
         (var inventory, slots, var fitted) = Fitting(shown.Inventory, slots, modules, inFlight, crate, tunes);
-        // Copied: the sim's list is live, and a reading stands for what was read.
-        var analysed = research.Analysed.ToList();
-        if (kind != "analyzer") return new Reading(inventory, slots, items.Creative, kind, null, analysed) { Fitted = fitted };
-        var at = research.At(crate!.Value);
-        var item = slots is { Count: > 0 } ? slots[0]?.Item : null;
-        return new Reading(inventory, slots, items.Creative, kind, at, analysed, Lessons.Of(research, item, at)) { Fitted = fitted };
+        return new Reading(inventory, slots, items.Creative, kind) { Fitted = fitted };
     }
 
     /// <summary>

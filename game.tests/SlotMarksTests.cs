@@ -7,22 +7,21 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The mark in an inventory slot's corner while a fed station or a fire is open: what it smelts, burns or grows, before the "?".</summary>
+/// <summary>The mark in an inventory slot's corner while a fed station or a fire is open: what it smelts, burns or grows.</summary>
 public class SlotMarksTests
 {
-    private static Reading Open(string? kind, params string[] analysed) => new([], null, false, kind, null, analysed);
+    private static Reading Open(string? kind) => new([], null, false, kind);
 
     [Fact]
-    public void MarkWhatTheOpenFurnaceSmeltsAndBurnsAFlameBeforeTheQuestionMark()
+    public void MarkWhatTheOpenFurnaceSmeltsAndBurnsAFlame()
     {
         var furnace = Open("furnace");
         Assert.Equal(SlotMark.Smelts, furnace.MarkOf("ironOre"));
         Assert.Equal(SlotMark.Smelts, furnace.MarkOf("hullPlate"));
         Assert.Equal(SlotMark.Smelts, furnace.MarkOf("scrapChunk"));
         Assert.Equal(SlotMark.Burns, furnace.MarkOf("planks"));
-        // Too hot for it: no flame, only what it shows anyway.
-        Assert.Equal(SlotMark.Unknown, furnace.MarkOf("gravel"));
-        Assert.Equal(SlotMark.None, Open("furnace", "gravel").MarkOf("gravel"));
+        // Too hot for it: no flame, no mark.
+        Assert.Equal(SlotMark.None, furnace.MarkOf("gravel"));
         Assert.Equal(SlotMark.None, furnace.MarkOf("fireAxe"));
     }
 
@@ -30,22 +29,19 @@ public class SlotMarksTests
     public void MarkWhatTheSmelterSmeltsAndTheGrowCapsuleGrowsAndTheBurnersFuel()
     {
         Assert.Equal(SlotMark.Smelts, Open("smelter").MarkOf("quartz"));
-        // Gravel waits for an analyzer, yet the smelter's crucible goes first: the friend saw it smelts.
-        Assert.True(Open("smelter").Unknown("gravel"));
         Assert.Equal(SlotMark.Smelts, Open("smelter").MarkOf("gravel"));
         // The smelter runs on power: planks are no fuel there.
-        Assert.Equal(SlotMark.Unknown, Open("smelter").MarkOf("planks"));
+        Assert.Equal(SlotMark.None, Open("smelter").MarkOf("planks"));
         Assert.Equal(SlotMark.Grows, Open("growCapsule").MarkOf("seed"));
-        Assert.Equal(SlotMark.Unknown, Open("growCapsule").MarkOf("rock"));
+        Assert.Equal(SlotMark.None, Open("growCapsule").MarkOf("rock"));
         Assert.Equal(SlotMark.Burns, Open("burnerGenerator").MarkOf("planks"));
     }
 
     [Fact]
-    public void MarkOnlyTheQuestionMarkWithNoStationOpen()
+    public void MarkNothingWithNoStationOpen()
     {
-        Assert.Equal(SlotMark.Unknown, Open(null).MarkOf("rock"));
-        Assert.Equal(SlotMark.None, Open(null, "rock").MarkOf("rock"));
-        Assert.Equal(SlotMark.Unknown, Open("crate").MarkOf("rock"));
+        Assert.Equal(SlotMark.None, Open(null).MarkOf("rock"));
+        Assert.Equal(SlotMark.None, Open("crate").MarkOf("rock"));
         Assert.Equal(SlotMark.None, Open("crate").HereOf("planks"));
     }
 
@@ -63,10 +59,10 @@ public class SlotMarksTests
     public void MarkAModuleTheOpenMachineTakesWithItsTechsIconAndSayNoWordsOfWhereItGoes()
     {
         var arc = Spec.Modules.Arc.Item;
-        foreach (var host in Spec.Modules.Arc.Hosts) Assert.Equal(SlotMark.Fits, Open(host, arc).MarkOf(arc));
-        // Where it does not fit, the furnace, or with no machine open: only what it shows anyway.
-        Assert.Equal(SlotMark.None, Open("furnace", arc).MarkOf(arc));
-        Assert.Equal(SlotMark.None, Open(null, arc).MarkOf(arc));
+        foreach (var host in Spec.Modules.Arc.Hosts) Assert.Equal(SlotMark.Fits, Open(host).MarkOf(arc));
+        // Where it does not fit, the furnace, or with no machine open: no mark.
+        Assert.Equal(SlotMark.None, Open("furnace").MarkOf(arc));
+        Assert.Equal(SlotMark.None, Open(null).MarkOf(arc));
         Assert.Equal(SlotMark.Fits, Open("smelter").HereTipOf(new Stack(arc, 1)).Card!.Here);
     }
 
@@ -82,7 +78,6 @@ public class SlotMarksTests
         Assert.Equal(SlotMark.None, Reading.GhostOf("smelter", Spec.Machines.Get("smelter").Inputs!.Value));
         Assert.Equal(SlotMark.Grows, Reading.GhostOf("growCapsule", 0));
         Assert.Equal(SlotMark.Burns, Reading.GhostOf("burnerGenerator", 0));
-        Assert.Equal(SlotMark.Unknown, Reading.GhostOf("analyzer", 0));
         Assert.Equal(SlotMark.Charges, Reading.GhostOf("charger", 0));
         for (int slot = 0; slot < Spec.Machines.Get(Spec.Logistics.Bay).Slots; slot++) Assert.Equal(SlotMark.Docks, Reading.GhostOf(Spec.Logistics.Bay, slot));
         // A crate takes anything, and a queued station's inputs any cost: no ghost.
@@ -102,8 +97,6 @@ public class SlotMarksTests
         Assert.True(Open("smelter").Lights(SlotMark.Smelts, "gravel"));
         Assert.True(Open("growCapsule").Lights(SlotMark.Grows, "seed"));
         Assert.False(Open("growCapsule").Lights(SlotMark.Grows, "rock"));
-        Assert.True(Open("analyzer").Lights(SlotMark.Unknown, "rock"));
-        Assert.False(Open("analyzer", "rock").Lights(SlotMark.Unknown, "rock"));
         Assert.True(Open("charger").Lights(SlotMark.Charges, "battery"));
         Assert.False(Open("charger").Lights(SlotMark.Charges, "rock"));
         Assert.True(Open(Spec.Logistics.Bay).Lights(SlotMark.Docks, Spec.Logistics.Drone));

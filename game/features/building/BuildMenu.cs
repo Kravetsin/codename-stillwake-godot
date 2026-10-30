@@ -560,7 +560,7 @@ public partial class BuildMenu : CanvasLayer
             .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
         // A wall's numbers: what it leaks, how it stands up to the meteors here.
         if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } place })
-            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Rules.Meteors).Select(s => new TipLine(s)));
+            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Hazards.Shower).Select(s => new TipLine(s)));
         _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
 }

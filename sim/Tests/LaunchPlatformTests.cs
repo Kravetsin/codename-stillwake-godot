@@ -61,12 +61,10 @@ public class LaunchPlatformTests
     }
 
     [Fact]
-    public void ItsDeckDriveIsMadeAtTheCircuitAssemblerOfCircuitsRotorsAndCoilsAndAnalysedToOpenIt()
+    public void ItsDeckDriveIsMadeAtTheCircuitAssemblerOfCircuitsRotorsAndCoils()
     {
         Assert.Equal(["circuit", "rotor", "coil"], Crafts.Get("deckDrive").Cost.Select(c => c.Item));
         Assert.Equal(["assembler"], Stations.All.Where(s => s.Rows.Any(r => r.Contains("deckDrive"))).Select(s => s.Machine));
-        // Its blueprint opens once the drive, the plate and the glass are analysed: after the assembler and the smelter.
-        Assert.All(["deckDrive", "plate", "glass"], item => Assert.True(Stillwake.Sim.Research.Analysable.NeedsAnalysis(item)));
         Assert.DoesNotContain(Builds.Platform, Stillwake.Content.Research.StartKnown);
     }
 

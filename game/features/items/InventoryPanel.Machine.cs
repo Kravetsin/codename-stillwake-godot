@@ -16,7 +16,7 @@ namespace Stillwake.Game.Features.Items;
 
 public partial class InventoryPanel
 {
-    /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's or an analyzer's own, in the machine frame.</summary>
+    /// <summary>The open crate's panel, made anew for each crate: a crate's grid, a furnace's own, in the machine frame.</summary>
     private void BuildCrate()
     {
         (int, string)? want = Crate is int id && _reading?.Kind is string k ? (id, k) : null;
@@ -27,7 +27,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _credits, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
             (_stored, _storedText, _rate) = (null, null, null);
         }
         if (want is not var (crate, kind)) return;
@@ -47,7 +47,7 @@ public partial class InventoryPanel
         // Its body by what it is (0113): a fire smelting its inputs or making power, a fed station, a bay, a charging station.
         _frame.Add(kind switch
         {
-            "analyzer" => _analyzer = new AnalyzerPanel(Box(new Place(0, crate)), _tipSpots, _ui.Slot),
+            _ when spec.Is(Content.MachineTrait.Sells) => TradeBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) && spec.Inputs > 0 => FurnaceBody(crate, spec),
             _ when spec.Is(Content.MachineTrait.Fire) => GeneratorBody(crate, spec),
             _ when station is { Fed: true } => FedBody(crate, kind),
@@ -210,17 +210,22 @@ public partial class InventoryPanel
         _frame?.Light(charging);
     }
 
+    /// <summary>A trade station's body: its slots, and what the ship has earned under them.</summary>
+    private VBoxContainer TradeBody(int crate, Content.MachineSpec spec)
+    {
+        var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+        body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        body.AddChild(_credits = new Label { LabelSettings = Style.Text(Style.Mono, 11, Style.Amber400), MouseFilter = Control.MouseFilterEnum.Ignore });
+        return body;
+    }
+
     /// <summary>
-    /// The open analyzer's panel; whether the open furnace or generator burns and why it stands still; how
+    /// The ship's credits at a trade station; whether the open furnace or generator burns and why it stands still; how
     /// far the furnace's work is; the frame's bolt lit while the machine works.
     /// </summary>
     private void ShowMachine(Reading reading)
     {
-        if (reading.Lessons != null && _analyzer != null)
-        {
-            _analyzer.Show(reading.Lessons);
-            _frame?.Light(_analyzer.Works);
-        }
+        if (_credits != null) _credits.Text = T("research.credits", ("n", _research?.Credits ?? 0));
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);

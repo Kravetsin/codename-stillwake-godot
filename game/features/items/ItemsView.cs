@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Items;
 /// (<see cref="InventoryPanel"/>); the stacks lying on the floor (<see cref="FloorLayer"/>), picked up
 /// as the hero walks over them, saying so over its head, as it says what its own catches of debris gave
 /// (<see cref="OwnCatches"/>), each flying home to its chest on a ribbon of light (<see cref="PickUpFlights"/>).
-/// A crate, a furnace or an analyzer is opened by the crew's E, through <see cref="Ui.OpenCrate"/>.
+/// A crate or a furnace is opened by the crew's E, through <see cref="Ui.OpenCrate"/>.
 /// </summary>
 public partial class ItemsView : Node2D
 {
@@ -79,14 +79,27 @@ public partial class ItemsView : Node2D
                 if (from is var (fx, fy)) _flights.Fly(item, new Vector2((float)fx, (float)fy), i);
             }
             IReadOnlyList<int> walkedOver = spot.Out ? [] : Reach.PickUpsOf(items, grid.Width, client.Id, spot.X, spot.Y, taking);
+            // A body gives all it holds at once (2026-10-29-body-bag): one line for it all, its things streaming out of its chest.
+            int fromBody = 0, streamed = 0;
             foreach (int id in walkedOver)
             {
                 var stack = items.Floor.First(s => s.Id == id);
-                _popups.Add(stack.Item, items.PickUpAmount(client.Id, id));
-                _flights.Fly(stack.Item, new Vector2(stack.X, stack.Y) / 1000 * ShipCamera.Cell - new Vector2(0, 0.8f * ShipCamera.Cell));
+                int amount = items.PickUpAmount(client.Id, id);
+                var from = new Vector2(stack.X, stack.Y) / 1000 * ShipCamera.Cell - new Vector2(0, 0.8f * ShipCamera.Cell);
+                if (stack.Body != null)
+                {
+                    fromBody += amount;
+                    _flights.Fly(stack.Item, from, streamed++);
+                }
+                else
+                {
+                    _popups.Add(stack.Item, amount);
+                    _flights.Fly(stack.Item, from);
+                }
                 client.Send(new PickUp(id));
-                _pick.Play(spot.Floats);
             }
+            if (fromBody > 0) _popups.AddFromBody(fromBody);
+            if (walkedOver.Count > 0) _pick.Play(spot.Floats);
             _popups.Update(elapsedMs, spot.X, spot.Y);
             _flights.Update(new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell, elapsedMs);
         }

@@ -258,6 +258,7 @@ public partial class Main : Node2D, ITogether
             {
                 _items?.Panel.Close();
                 _hands.Ui.OpenComputer.Set(null);
+                _hands.Ui.OpenTech.Set(null);
                 _hands.Plan.PutPlanAway();
             },
         };
@@ -272,6 +273,16 @@ public partial class Main : Node2D, ITogether
             _hands.Plan.PutPlanAway();
         });
         AddChild(computer);
+        // A tech station's window, put away and putting away as the computer's.
+        var tech = new TechPanel(_hands.Ui, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
+        _hands.Ui.OpenTech.Subscribe(() =>
+        {
+            if (_hands.Ui.OpenTech.Get() == null) return;
+            _items?.Panel.Close();
+            handbook.Close();
+            _hands.Plan.PutPlanAway();
+        });
+        AddChild(tech);
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
@@ -282,7 +293,7 @@ public partial class Main : Node2D, ITogether
         });
         AddChild(lookEditor);
         var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || lookEditor.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
                 // A search in the build menu or the dev panel goes first, what else is open staying so.
@@ -290,6 +301,7 @@ public partial class Main : Node2D, ITogether
                 _items?.Panel.Close();
                 handbook.Close();
                 computer.Close();
+                tech.Close();
                 lookEditor.Close();
                 _hands.Plan.PutPlanAway();
             },
@@ -336,6 +348,7 @@ public partial class Main : Node2D, ITogether
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.OpenComputer.Set(null);
+        _hands.Ui.OpenTech.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
         Stages.Clear();

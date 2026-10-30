@@ -82,7 +82,6 @@ public class TestbedTests
         Assert.NotNull(airlock);
         Assert.All(m.Rooms.All, room => Assert.Equal(room.Id == airlock ? RoomStatus.Vacuum : RoomStatus.Aired, m.Atmosphere.StatusOf(room.Id)));
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
-        Assert.Equal(new Analyzing(Testbed.Analysing, 2000, Spec.Research.Ticks * 1000, null), m.Research.At(IdOf(m, "analyzer")));
         int charger = IdOf(m, "charger");
         Assert.True(m.Power.Charges(charger));
         // Charged both ticks, by its own panel on the roof.

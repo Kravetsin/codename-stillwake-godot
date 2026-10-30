@@ -190,6 +190,7 @@ public static partial class En
         ["items.notFitted"] = "No such module is fitted",
         ["items.noMachine"] = "There is no machine here",
         ["items.notEnough"] = "You do not carry enough",
+        ["items.fromBody"] = "From the body",
         ["items.full"] = "Not enough room",
         ["items.notCreative"] = "Only in creative mode",
         ["items.noCell"] = "Nowhere to drop it",

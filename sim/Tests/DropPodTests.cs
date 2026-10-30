@@ -93,6 +93,7 @@ public class DropPodTests
         public Content.Surfaces.Kind Kind => PlanetTypes.Small;
         public void Send(int peer, int surface) => throw new NotSupportedException();
         public bool CanOpen => false;
+        public bool Landed => false;
         public int OpenPlanet() => throw new NotSupportedException();
     }
 

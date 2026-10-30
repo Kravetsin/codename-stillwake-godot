@@ -18,7 +18,7 @@ public partial class ToolCardsDemo : CanvasLayer
         Layer = 50;
         var row = new HBoxContainer { Position = new Vector2(20, 80) };
         row.AddThemeConstantOverride("separation", 14);
-        var reading = new Reading([], null, true, null, null, []);
+        var reading = new Reading([], null, true, null);
         foreach (var stack in new[]
         {
             new Stack(Content.Weapons.Axe.Item, 1), new Stack("drill", 1), new Stack("drill", 1, Module: Content.Modules.Arc.Item),

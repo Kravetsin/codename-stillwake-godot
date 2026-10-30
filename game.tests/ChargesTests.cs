@@ -60,7 +60,7 @@ public class ChargesTests
     [Fact]
     public void TheTipOverABatteryCarriesItsChargeAndPicture()
     {
-        var reading = new Reading([], null, Creative: true, null, null, []);
+        var reading = new Reading([], null, Creative: true, null);
         var card = reading.TipOf(Charged(Full * 6 / 10)).Card!;
         Assert.Equal(new ChargeMeter(60, Full * 6 / 10 / Spec.Charge.Scale, Units, 0.6f), card.Charge);
         Assert.Equal(Battery, card.Picture);
@@ -76,8 +76,8 @@ public class ChargesTests
     public void AnElectricToolsCardShowsItsDrawAsAMachineShowsItsOwn()
     {
         // From content, as a machine's Draws: no item is electric yet, so no card has one.
-        Assert.All(Spec.Items.All, i => Assert.Equal(i.Draw, ItemCards.Of(i.Id, unknown: false).Draw));
-        var axe = ItemCards.Of("fireAxe", unknown: false);
+        Assert.All(Spec.Items.All, i => Assert.Equal(i.Draw, ItemCards.Of(i.Id).Draw));
+        var axe = ItemCards.Of("fireAxe");
         Assert.NotEqual(axe, axe with { Draw = 3 });
         Assert.Equal(axe with { Draw = 3 }, axe with { Draw = 3 });
     }

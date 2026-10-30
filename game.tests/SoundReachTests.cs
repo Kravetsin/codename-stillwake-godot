@@ -25,6 +25,14 @@ public class SoundReachTests
     }
 
     [Fact]
+    public void EveryGrazerDiesWithOneSoundPitchedByItsSize()
+    {
+        Assert.All(Sound.Creatures.Values, c => Assert.Equal(Sound.CreatureDeath.Files, c.Death.Files));
+        Assert.True(Sound.Creatures[Content.Creatures.Tapir.Id].Death.Tune < 1);
+        Assert.True(Sound.Creatures[Content.Creatures.Fluff.Id].Death.Tune > 1);
+    }
+
+    [Fact]
     public void AnOwnBlowOnACreatureIsHeardFullFarPastWhereAFriendsFades()
     {
         foreach (var (hit, thump, death) in Sound.Creatures.Values)

@@ -49,17 +49,32 @@ public class PickUpTests
             Lying(1, "biomass", 1, 7, 5, Width, by: nobody, at: 0),
             Lying(2, "biomass", 1, 8, 5, Width, by: nobody, at: 0),
             Lying(3, "scrap", 1, 2, 5, Width, by: 1, at: 0),
-            Lying(4, "hide", 1, 2, 3, Width, by: nobody, at: 0),
-            // A hero's body is walked over to be taken, never pulled.
-            WithBody(Lying(5, "iron", 1, 6, 5, Width, by: nobody, at: 0))));
+            Lying(4, "hide", 1, 2, 3, Width, by: nobody, at: 0)));
         // Long out of the creatures they came from.
         for (int i = 0; i < Reach.PopTicks; i++) world.Step([]);
         Assert.Equal([1, 4], PickUps(m, 0, Standing(2)));
     }
 
-    private static JsonObject WithBody(JsonObject stack)
+    /// <summary>
+    /// A body holds its stacks inside it (2026-10-29-body-bag): a hero within <see cref="Spec.Floor.BodyReach"/> cells of where they lie
+    /// takes them all, though its own body overlaps none of their cells; one farther, none.
+    /// </summary>
+    [Fact]
+    public void TakesAllABodyHoldsWithinItsLengthAndNoneFarther()
     {
-        stack["body"] = new JsonObject { ["peer"] = 1, ["died"] = 0 };
+        const int nobody = Sim.Items.FloorStack.Nobody;
+        Assert.Equal(2, Spec.Floor.BodyReach);
+        // Standing over cells 4 and 5: two cells either side reaches 2 to 7.
+        var (m, _) = With(Room, items => items["floor"] = new JsonArray(
+            WithBody(Lying(1, "iron", 1, 7, 5, Width, by: nobody, at: 0)),
+            WithBody(Lying(2, "scrap", 3, 7, 5, Width, by: nobody, at: 0)),
+            WithBody(Lying(3, "planks", 1, 8, 5, Width, by: nobody, at: 0), died: 1)));
+        Assert.Equal([1, 2], PickUps(m, 0, Standing(2)));
+    }
+
+    private static JsonObject WithBody(JsonObject stack, int died = 0)
+    {
+        stack["body"] = new JsonObject { ["peer"] = 1, ["died"] = died };
         return stack;
     }
 

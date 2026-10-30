@@ -67,77 +67,16 @@ public class MigrationsTests
     }
 
     [Fact]
-    public void AFormat35SaveLoadsEveryInventoryWithAnEmptyCapeSlotLastItsSuitWhereItWas()
-    {
-        // 2026-10-27-the-cape-is-worn: a slot appended, nothing worn in it.
-        var save = JsonNode.Parse(File.ReadAllText(Fixture(35)))!.AsObject();
-        var was = save["slices"]!["items"]!["inventories"]!.AsArray()
-            .Select(h => (Id: h!["id"]!.GetValue<int>(), Slots: h["slots"]!.AsArray().Select(s => s?["item"]?.GetValue<string>()).ToList())).ToList();
-        Assert.NotEmpty(was);
-        Assert.All(was, h => Assert.Equal(Content.Inventory.Total - 1, h.Slots.Count));
-
-        var m = new Registry();
-        World.Load(Migrations.Upgrade(save.ToJsonString()), m.All);
-        foreach (var (id, slots) in was)
-        {
-            var now = m.Items.Inventory(id).Select(s => s?.Item).ToList();
-            Assert.Equal([.. slots, null], now);
-            Assert.Null(m.Items.WornIn(id, Content.Cape.Slot));
-        }
-    }
-
-    [Fact]
-    public void AFormat34SaveLoadsEveryHeroAndEveryPeerWithoutOneSuitedTheirAirAsItWasAndTheLampOffTheHead()
-    {
-        // The fixture with peer 9 gone, its inventory kept for its seat (2026-10-27-suits-are-worn).
-        var save = JsonNode.Parse(File.ReadAllText(Fixture(34)))!.AsObject();
-        var inventories = save["slices"]!["items"]!["inventories"]!.AsArray();
-        var gone = new JsonArray();
-        for (int i = 0; i < Content.Inventory.Slots + 5; i++) gone.Add(i == Content.Inventory.Slots ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 } : null);
-        inventories.Add(new JsonObject { ["id"] = 9, ["slots"] = gone });
-        var heroes = save["slices"]!["crew"]!["heroes"]!.AsArray().Select(h => (Id: h!["id"]!.GetValue<int>(), Suit: h["suit"]!.GetValue<int>())).ToList();
-        Assert.NotEmpty(heroes);
-
-        var m = new Registry();
-        World.Load(Migrations.Upgrade(save.ToJsonString()), m.All);
-        foreach (var (id, suit) in heroes)
-        {
-            Assert.Equal((Content.Helmet.Basic, Content.Suit.Basic), (m.Items.WornIn(id, Content.Helmet.Slot), m.Items.WornIn(id, Content.Suit.Slot)));
-            Assert.Equal(suit, m.Crew.HeroOf(id)!.Air);
-        }
-        Assert.Equal(Content.Suit.Basic, m.Items.WornIn(9, Content.Suit.Slot));
-        // The lamp the head held moved to its own slot.
-        Assert.Equal(Content.HelmetLamp.Item, m.Items.WornIn(9, Content.Helmet.Mount));
-    }
-
-    [Fact]
-    public void AFormat33SaveLetsItsCreaturesGoAndKeepsTheirIdsAndClock()
-    {
-        // The fixture's strip holding a loper in its old mode (2026-10-26-creatures-are-composed).
-        var save = JsonNode.Parse(File.ReadAllText(Fixture(33)))!.AsObject();
-        save["surfaces"]![0]!["slices"]!["creatures"] = JsonNode.Parse("""
-            {"creatures":[{"id":7,"species":"loper","x":5000,"y":9000,"vx":0,"vy":0,"damage":2,"mode":2,"modeLeft":30,"seenAt":40}],
-             "nextId":8,"clock":41}
-            """);
-        string upgraded = Migrations.Upgrade(save.ToJsonString());
-        var creatures = JsonNode.Parse(upgraded)!["surfaces"]![0]!["slices"]!["creatures"]!;
-        Assert.Empty(creatures["creatures"]!.AsArray());
-        Assert.Equal((8, 41), (creatures["nextId"]!.GetValue<int>(), creatures["clock"]!.GetValue<int>()));
-        // And it loads and plays on, its ids never reused.
-        var m = new Registry();
-        var world = World.Load(upgraded, m.All);
-        for (int i = 0; i < 600; i++) world.Step([]);
-        Assert.True(JsonNode.Parse(world.Save())!["surfaces"]![0]!["slices"]!["creatures"]!["nextId"]!.GetValue<int>() >= 8);
-    }
-
-    [Fact]
     public void LeavesASaveOfThisFormatAsItIsAndOneFromBeforeTheHalvedCellForTheLoadToRefuse()
     {
         string save = Played();
         Assert.Same(save, Migrations.Upgrade(save));
-        // The last format of the 16 px cell (0104): its cells another scale's, it loads no more.
-        string old = save.Replace($"\"format\":{World.SaveFormat}", "\"format\":27");
-        Assert.Equal(old, Migrations.Upgrade(old));
-        Assert.Throws<InvalidDataException>(() => World.Load(old, new Registry().All));
+        // The last format of the 16 px cell (0104), and the last before trade and the tree (2026-10-30-trade-and-tech): they load no more.
+        foreach (int format in new[] { 27, Migrations.Oldest - 1 })
+        {
+            string old = save.Replace($"\"format\":{World.SaveFormat}", $"\"format\":{format}");
+            Assert.Equal(old, Migrations.Upgrade(old));
+            Assert.Throws<InvalidDataException>(() => World.Load(old, new Registry().All));
+        }
     }
 }

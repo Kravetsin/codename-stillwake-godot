@@ -24,7 +24,7 @@ public class ShiftFlightsTests
         var inventory = new Stack?[Spec.Inventory.Total];
         Stack?[]? crate = kind != null ? new Stack?[Spec.Machines.Get(kind).Slots ?? 0] : null;
         (at.Crate == null ? inventory : crate!)[at.Slot] = new Stack(item, 1);
-        return new Reading(inventory, crate, false, kind, null, []) { Fitted = fitted ?? [] };
+        return new Reading(inventory, crate, false, kind) { Fitted = fitted ?? [] };
     }
 
     /// <summary>Every slot a panel of <paramref name="kind"/> shows: the hotbar's, the bag's, the equipment's and the machine's.</summary>

@@ -77,8 +77,9 @@ public static class Materials
 {
     public static readonly IReadOnlyList<Material> All =
     [
-        // Metal hull (2026-10-29-wall-roles): patched scrap and riveted plates stand up to meteors, and leak at their seams.
-        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110), Armour: 2),
+        // Metal hull (2026-10-29-wall-roles): patched scrap and riveted plates stand up to meteors, and leak at their seams. Scrap is
+        // patched of a raw chunk, so a hole is mended with no furnace and no air (2026-10-29-weak-meteors-till-landing).
+        new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110), Armour: 2),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120), Armour: 5),
         // The seals: whole sheets no air gets through, and any meteor breaks. Alike but for their look, the player's choice.
         new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1, Clear: true),

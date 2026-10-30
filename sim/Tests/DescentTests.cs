@@ -168,6 +168,7 @@ public class DescentTests
         public Content.Surfaces.Kind Kind => Content.Surfaces.Ship;
         public void Send(int peer, int surface) => throw new NotSupportedException();
         public bool CanOpen => canOpen;
+        public bool Landed => false;
         public int OpenPlanet() => throw new NotSupportedException();
     }
 

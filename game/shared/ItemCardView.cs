@@ -48,7 +48,7 @@ public static class ItemCardView
     private static readonly LabelSettings HintText = Style.Text(Style.Mono, 11, Hint);
     private static readonly LabelSettings DotText = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
-    private static readonly LabelSettings UnknownText = Style.Text(Style.Mono, 11, Style.Violet400);
+    private static readonly LabelSettings PriceText = Style.Text(Style.Mono, 11, Style.Amber400);
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
     private static readonly LabelSettings SmeltText = Style.Text(Style.Mono, 11, Style.Amber400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
@@ -146,7 +146,7 @@ public static class ItemCardView
         foreach (var module in card.Fitted)
             column.AddChild(TechStrip(new CardTech(Content.Modules.Get(module).Tech, T("card.fitted", ("module", T($"item.{module}"))))));
         if (card.Here is not (SlotMark.None or SlotMark.Fits)) column.AddChild(HereStrip(card.Here, card.Output));
-        if (card.Unknown) column.AddChild(UnknownStrip());
+        if (card.Price is int price) column.AddChild(Text(T("card.sells", ("n", price)), PriceText, HorizontalAlignment.Left));
         if (card.Station is { } station) column.AddChild(Station(station));
     }
 
@@ -431,15 +431,6 @@ public static class ItemCardView
             ContentMarginBottom = 5,
         };
         return Boxed(box, content);
-    }
-
-    /// <summary>Not analysed yet: the slot's "?" mark, lit, and "Not analysed" in violet.</summary>
-    private static Control UnknownStrip()
-    {
-        var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, StripGap);
-        row.AddChild(StripIcon(MarkLooks.Unknown));
-        row.AddChild(Text(T("card.notAnalysed"), UnknownText, HorizontalAlignment.Left));
-        return Strip(Style.Violet400, Centred(row));
     }
 
     /// <summary>A strip's icon's side and its gap to the words, in pixels: big enough to read the mark's motion.</summary>
