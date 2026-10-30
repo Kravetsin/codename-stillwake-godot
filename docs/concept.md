@@ -27,7 +27,7 @@ A living document: what is decided about the game and what is still open. Techni
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
-  survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
+  survive: one small room an oxygen vaporizer holds from a tank of liquid oxygen, the lifepod in it, and beside it a room torn
   half away, a tech station surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
@@ -122,22 +122,23 @@ A living document: what is decided about the game and what is still open. Techni
   its rig.
 - **Look: simple textures carried by light.** Light also tells the ship's state: an unpowered room is
   dark but for helmet lamps, a venting room flashes red, starlight comes in through windows.
-- **Oxygen works like a power grid.** A pipe network holds one pool of oxygen; a vent of a network
-  with oxygen in it fills its room cell by cell, a unit of oxygen a cell, outward from the vent. A
+- **Oxygen works like a power grid.** It comes as liquid: canisters are poured into tanks, and a powered
+  vaporizer turns the liquid of the tanks piped to its input into air for the vents piped to its output
+  ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)). A vent fed so fills its room cell by cell, a unit of oxygen a cell, outward from the vent. A
   room is a space closed by walls and closed doors around it and back walls behind it, recomputed
   only when something is built, broken or a door moves; a cell holds air or not, and a room's air
   gathers around its vents and stays where it is ([0011](decisions/0011-air-lies-around-the-vents.md)).
-  A hero breathes room air standing where it is, and the suit refills there; the tanks behind
+  A hero breathes room air standing where it is, and the suit refills there; the vaporizers behind
   the room's vents pay for each breath, and without them the breath takes a cell from the patch's
   far edge. A breach or a door left open to space makes a room vent: its air goes and its network
   drains fast until a valve cuts the room off or the hole is patched. A door opened onto an empty
   room joins the two, and the vents fill the rest through the doorway. A room leaks a little all the
   time through what its air touches, the back wall behind each of its cells and every outer hull cell,
-  each as its material decides ([0020](decisions/0020-walls-of-materials-front-and-back.md)), paid like a breath: from the tanks,
+  each as its material decides ([0020](decisions/0020-walls-of-materials-front-and-back.md)), paid like a breath: from the vaporizers,
   or from the room's own air without them. Growth is held back by the fill, the leak and breathing. Without air a hero breathes from the suit tank.
 - **Power runs on cables** laid point to point between machines and anchors, hanging inside the
   ship and taut out in space; a network short of power slows everything on it alike. Solar panels
-  work only under the stars, out in space with no back wall behind them ([0043](decisions/0043-a-solar-panel-needs-the-stars.md)); the oxygen generator is the first thing that needs power
+  work only under the stars, out in space with no back wall behind them ([0043](decisions/0043-a-solar-panel-needs-the-stars.md)); the oxygen vaporizer is the first thing that needs power
   ([0017](decisions/0017-power-runs-on-cables.md)). The first power the player builds is the burner
   generator, of plates, gears, a rotor and wire: the furnace's fire turning a flywheel, it burns
   planks and breathes its room's air, and makes power while it burns, wherever it stands
