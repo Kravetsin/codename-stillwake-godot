@@ -16,7 +16,7 @@ public sealed record AirStream(double X, double Y, double? Heading, double PerSe
 
     /// <summary>
     /// The streams of every room venting air into space while it still holds some, or its vents still
-    /// pour oxygen in, from tanks or a generator: one per opening, heading out into the space beside it,
+    /// pour oxygen in, a powered vaporizer turning a tank's liquid into air: one per opening, heading out into the space beside it,
     /// thinner the more openings a room has. A room open to space with no air and nothing pouring in is
     /// quiet.
     /// </summary>
@@ -26,7 +26,7 @@ public sealed record AirStream(double X, double Y, double? Heading, double PerSe
         var streams = new List<AirStream>();
         foreach (var room in air)
         {
-            bool pouring = room.Lasts != null || room.Made > 0;
+            bool pouring = room.Oxygen > 0 && room.Made > 0;
             if (room.Status != RoomStatus.Venting || (room.Aired == 0 && !pouring)) continue;
             var openings = openingsOf(room.Room);
             double perSecond = Math.Min(PerOpening, PerRoom / Math.Max(1, openings.Count));

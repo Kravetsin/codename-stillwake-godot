@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Stillwake.Sim.Atmosphere;
 
-/// <summary>The oxygen a tank or a generator's store holds, by its machine id.</summary>
+/// <summary>The liquid oxygen a tank holds, or the gas a vaporizer's store holds, by its machine id: told apart by <c>MachineTrait.Gas</c>.</summary>
 internal sealed class TankAir
 {
     public int Tank { get; set; }
@@ -10,8 +10,8 @@ internal sealed class TankAir
 }
 
 /// <summary>
-/// A generator's work toward its next unit: a unit is <c>Air.LeakEvery × 1000</c>, and a generator adds
-/// <c>Air.GeneratorRate</c> × its power's satisfaction a tick.
+/// A vaporizer's work toward its next unit: a unit is <c>Air.LeakEvery × 1000</c>, and a vaporizer adds
+/// <c>Air.GeneratorRate</c> × its power's satisfaction a tick while it has room and liquid behind it.
 /// </summary>
 internal sealed class GeneratorWork
 {
@@ -25,15 +25,18 @@ public enum RoomStatus { Vacuum, Filling, Aired, Venting }
 /// <summary>A room's air, as the air overlay shows it.</summary>
 /// <param name="Aired">Its cells holding air, of its volume.</param>
 /// <param name="Leak">The cells it loses every <c>Air.LeakEvery</c> ticks through what its air touches.</param>
-/// <param name="Oxygen">The oxygen on its vents' networks, each network counted once.</param>
-/// <param name="Made">What the generators on those networks make every <c>Air.LeakEvery</c> ticks, together.</param>
+/// <param name="Oxygen">
+/// The liquid in the tanks behind the vaporizers feeding its vents' networks, each tank counted once; null when no
+/// vaporizer feeds it. The stores' gas is not counted.
+/// </param>
+/// <param name="Made">What the vaporizers feeding those networks make every <c>Air.LeakEvery</c> ticks at their power, together.</param>
 /// <param name="Lasts">
-/// Ticks its networks last at what this room alone draws: refilling its leak if aired, its vents' drain
-/// if venting. Null otherwise, when nothing is drawn, or when a generator feeds it.
+/// Ticks that liquid lasts, leaving at the smaller of what this room alone draws (refilling its leak if aired, its
+/// vents' drain if venting) and what its vaporizers make. Null when nothing feeds it, nothing is drawn or made.
 /// </param>
 /// <param name="Problem">Why a room in vacuum gets no air, as an i18n key.</param>
 public sealed record RoomAir(
-    int Room, RoomStatus Status, int Aired, int Leak, int Oxygen, int Made, int? Lasts, string? Problem);
+    int Room, RoomStatus Status, int Aired, int Leak, int? Oxygen, int Made, int? Lasts, string? Problem);
 
 /// <summary>
 /// The atmosphere's slice. Public so modules can be typed by it, its members internal: others go
@@ -41,11 +44,11 @@ public sealed record RoomAir(
 /// </summary>
 public sealed class AtmosphereState
 {
-    /// <summary>The oxygen in each tank or generator holding any, by machine id, in id order.</summary>
+    /// <summary>The liquid in each tank, and the gas in each vaporizer's store, holding any, by machine id, in id order.</summary>
     [JsonInclude] internal List<TankAir> Tanks { get; set; } = [];
     /// <summary>The cells holding air, a unit of oxygen each, sorted.</summary>
     [JsonInclude] internal List<int> Aired { get; set; } = [];
-    /// <summary>Each generator's work toward its next unit, by machine id, in id order.</summary>
+    /// <summary>Each vaporizer's work toward its next unit, by machine id, in id order.</summary>
     [JsonInclude] internal List<GeneratorWork> Making { get; set; } = [];
     /// <summary>Ticks the air has run: fill and leak beats are this modulo their rates.</summary>
     [JsonInclude] internal int Clock { get; set; }

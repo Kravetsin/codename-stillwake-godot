@@ -61,6 +61,39 @@ public static class AirTesting
         return doubled with { Rows = [.. rows.Select(r => new string(r))] };
     }
 
+    /// <summary>
+    /// A map drawn before liquid oxygen, a tank <c>TT</c> piped along its bottom row rightwards to vents, made the chain
+    /// (liquid-oxygen), every drawn cell and machine id kept: the tank's cells become a vaporizer, its id the tank's; its
+    /// gas leaves the output on its top row's right and joins the old run past it; under the hull, in space, a tank
+    /// holding the old <c>o</c> and a solar panel cabled to the vaporizer, ids after every other, the liquid drawn up
+    /// through the floor to the vaporizer's input. The rows are doubled as the test's own are (0104).
+    /// </summary>
+    public static Layout Vaporized(
+        IReadOnlyList<string> rows, IReadOnlyList<string>? under = null, IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>? cables = null)
+    {
+        int width = rows.Max(r => r.Length), height = rows.Count;
+        var main = rows.Select(r => r.PadRight(width).ToCharArray()).Concat(Enumerable.Range(0, 3).Select(_ => new string(' ', width).ToCharArray())).ToArray();
+        var below = Enumerable.Range(0, height + 3).Select(y => (under != null && y < under.Count ? under[y] : "").PadRight(width).ToCharArray()).ToArray();
+        var wires = cables?.ToList() ?? [];
+        for (int ty = 0; ty < height; ty++)
+            for (int tx = 0; tx < width; tx++)
+            {
+                if (main[ty][tx] != 'T' || (tx > 0 && main[ty][tx - 1] == 'T') || (ty > 0 && main[ty - 1][tx] == 'T')) continue;
+                if (below[ty + 1][tx + 2] != '-') throw new ArgumentException($"The tank at ({tx}, {ty}) is not piped rightwards along its bottom row: draw its chain by hand.");
+                bool filled = below[ty][tx] == 'o' || below[ty][tx + 1] == 'o';
+                main[ty][tx] = main[ty][tx + 1] = main[ty + 1][tx] = main[ty + 1][tx + 1] = 'G';
+                below[ty][tx] = ' ';
+                below[ty][tx + 1] = below[ty][tx + 2] = '-';
+                below[ty + 1][tx + 1] = ' ';
+                for (int y = ty + 1; y <= height + 2; y++) below[y][tx] = '-';
+                main[height + 1][tx] = main[height + 1][tx + 1] = main[height + 2][tx] = main[height + 2][tx + 1] = 'T';
+                if (filled) below[height + 1][tx + 1] = 'o';
+                main[height + 1][tx + 2] = main[height + 1][tx + 3] = main[height + 1][tx + 4] = 'P';
+                wires.Add(((tx + 2, height + 1), (tx, ty)));
+            }
+        return Layout.Parse([.. main.Select(r => new string(r))], [.. below.Select(r => new string(r))], wires);
+    }
+
     /// <summary>The atmosphere's slice, to read what TypeScript's tests read of <c>w.sim.world.slices.atmosphere</c>.</summary>
     internal static AtmosphereState Air(this Scenario w) => (AtmosphereState)w.M.Atmosphere.Slice;
 

@@ -26,7 +26,6 @@ public class FurnaceTests
     private static Command[] Breach() => [.. Hole.Select(c => new ClearAt(c, "structure"))];
     private static Command[] Seal() => [.. Hole.Select(c => new Place(c, Grid.Placement.Wall()))];
     private static readonly int FurnaceAt = At(1, 1);
-    private static readonly int Tank = At(4, 1);
     private static readonly int Fuel = Content.Machines.Get("furnace").FuelSlot!.Value;
     private static readonly Content.ItemSpec Chunk = ItemSpecs.Get("scrapChunk");
     private static readonly Content.ItemSpec Plank = ItemSpecs.Get("planks");
@@ -36,14 +35,15 @@ public class FurnaceTests
     /// <summary>The world, its room aired, a peer 0 carrying <paramref name="carry"/>, and the furnace's machine id.</summary>
     private static (Scenario W, int Id) SetUp(params (string Item, int Count)[] carry)
     {
-        var w = new Scenario(Layout.Parse(Rows, Under), doubled: true)
+        var w = new Scenario(AirTesting.Vaporized(Rows, Under), doubled: true)
             .GiveItems(0, carry.Length > 0 ? carry : [("scrapChunk", 2), ("planks", 2)]);
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(FurnaceAt); i++) w.Run();
         Assert.True(w.M.Atmosphere.AiredAt(FurnaceAt));
         return (w, w.M.Grid.MachineAt(FurnaceAt)?.Id ?? 0);
     }
 
-    private static int TankOxygen(Scenario w) => w.M.Atmosphere.OxygenIn(w.M.Grid.MachineAt(Tank)?.Id ?? 0);
+    /// <summary>The oxygen the chain holds: the tank's liquid and the vaporizer's gas (liquid-oxygen).</summary>
+    private static int TankOxygen(Scenario w) => w.M.Grid.Machines.Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 
     /// <summary>Moves <paramref name="count"/> of the first stack peer 0 holds of <paramref name="item"/> into slot <paramref name="slot"/> of furnace <paramref name="id"/>.</summary>
     private static Scenario Put(Scenario w, int id, string item, int slot, int count = 1)

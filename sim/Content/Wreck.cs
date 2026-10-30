@@ -1,8 +1,8 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// The wreck the hero wakes in (content/src/wreck.ts): one small room a weak generator holds, the lifepod in it, beside it
-/// a room torn half away, an airlock. Rows as drawn, the space around kept.
+/// The wreck the hero wakes in (content/src/wreck.ts): one small room a weak vaporizer holds, the lifepod in it, beside it
+/// a room torn half away with the tank of liquid oxygen it draws on (liquid-oxygen), an airlock. Rows as drawn, the space around kept.
 /// </summary>
 public static class Wreck
 {
@@ -29,8 +29,8 @@ public static class Wreck
         "                                      #################                                         ",
         "                                      .......#....L...####                                      ",
         "                                     ........D.....OOOD..D                                      ",
-        "                                    .....AA..DGG...OOOD..D                                      ",
-        "                                   ......AA..DGGV..OOOD..D                                      ",
+        "                                    .....AATTDGG...OOOD..D                                      ",
+        "                                   ......AATTDGGV..OOOD..D                                      ",
         "                                  ########################                                      ",
         "                                                                                                ",
         "                                                                                                ",
@@ -106,7 +106,10 @@ public static class Wreck
         "",
     ];
 
-    /// <summary>What lies under and inside the map: pipes under walls and machines.</summary>
+    /// <summary>
+    /// What lies under and inside the map: pipes under walls and machines, the liquid line from the tank to the vaporizer's
+    /// input and the gas line from its output to the vent, and a canister's worth of liquid in the tank (<c>o</c>).
+    /// </summary>
     public static readonly IReadOnlyList<string> Under =
     [
         "",
@@ -130,8 +133,8 @@ public static class Wreck
         "",
         "",
         "",
-        "",
-        "                                              ---",
+        "                                           o   --",
+        "                                           ---- -",
     ];
 
     /// <summary>The power cables laid at the start, each by its two ends, column and row.</summary>

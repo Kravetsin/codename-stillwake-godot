@@ -20,7 +20,12 @@ public static class Migrations
     public const int Oldest = 38;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps =
+    [
+        // 38 → 39 (liquid-oxygen): the bytes stay, their meaning changes. A tank's oxygen is now liquid, a generator's
+        // store and work its gas and progress; a tank piped straight to a vent no longer airs it, and the player re-pipes.
+        save => save,
+    ];
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();

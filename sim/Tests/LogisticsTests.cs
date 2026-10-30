@@ -48,7 +48,7 @@ public class LogisticsTests
     /// </summary>
     internal static Scenario Aired(string[] rows, string[]? under = null, int drones = 2, IReadOnlyList<((int, int), (int, int))>? cables = null, int charge = Content.Charge.Drone)
     {
-        var w = new Scenario(Layout.Parse(rows, under, cables), doubled: true);
+        var w = new Scenario(AirTesting.Vaporized(rows, under, cables), doubled: true);
         for (int i = 0; i < 2000 && !AllAired(w); i++) w.Run();
         Assert.True(AllAired(w));
         foreach (var bay in w.M.Grid.MachinesOf(Tune.Bay)) Dock(w, bay.Id, drones, charge);
@@ -694,17 +694,18 @@ public class LogisticsTests
         Assert.Equal(Chunks, w.M.Items.HeldFor(w.M.Grid.MachinesOf("furnace").Single().Id, "scrapChunk"));
     }
 
-    /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right.</summary>
+    /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right,
+    /// aired by two vaporizers: one cannot keep up with its leak (liquid-oxygen).</summary>
     private static readonly string[] Wide =
     [
         "##############################################",
         "#............................................#",
-        "#RR....TT......FF.....FF.......RR............#",
-        "#RR.KK.TTV.....FF.....FF.......RR............#",
+        "#RR....TT......FF.....FF.......RR........TT..#",
+        "#RR.KK.TTV.....FF.....FF.......RR........TTV.#",
         "##############################################",
     ];
 
-    private static readonly string[] WideUnder = ["", "", "       o", "       ---"];
+    private static readonly string[] WideUnder = ["", "", "       o                                 o", "       ---                               ---"];
 
     [Fact]
     public void AMachineOutsideTheZoneIsIgnoredAndOneInsideTwoZonesGetsOneDelivery()

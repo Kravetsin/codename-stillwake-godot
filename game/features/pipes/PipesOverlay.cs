@@ -87,10 +87,21 @@ public partial class PipesOverlay : Node2D
         var pipes = m.Pipes;
         int width = _width = grid.Width;
         var byId = grid.Machines.ToDictionary(x => x.Id);
-        // An air source feeds its pipes: a tank while it holds oxygen, a generator while powered, its store empty or not.
-        bool Feeds(int id) => byId.TryGetValue(id, out var x) && Stillwake.Content.Machines.Get(x.Kind) is var spec
-            && spec.Is(Stillwake.Content.MachineTrait.AirSource)
-            && (spec.Is(Stillwake.Content.MachineTrait.Gas) ? m.Atmosphere.OxygenIn(id) > 0 : m.Power.Satisfaction(id) > 0);
+        // Oxygen flows from where it comes in: a tank's port while it holds liquid (liquid-oxygen), a vaporizer's output
+        // while powered or holding gas, its input feeding nothing.
+        IEnumerable<int> SourcesOn(HashSet<int> own, IEnumerable<int> machines)
+        {
+            foreach (int id in machines)
+            {
+                if (!byId.TryGetValue(id, out var x)) continue;
+                var spec = Stillwake.Content.Machines.Get(x.Kind);
+                bool tank = spec.Is(Stillwake.Content.MachineTrait.Gas) && m.Atmosphere.OxygenIn(id) > 0;
+                bool vaporizer = spec.Is(Stillwake.Content.MachineTrait.AirSource) && (m.Power.Satisfaction(id) > 0 || m.Atmosphere.OxygenIn(id) > 0);
+                var cells = grid.PortsOf(x);
+                for (int p = 0; p < cells.Count; p++)
+                    if (own.Contains(cells[p]) && (tank || vaporizer && spec.Ports[p].Way == Stillwake.Content.Way.Out)) yield return cells[p];
+            }
+        }
         var colourOf = new Dictionary<int, Color>();
         _runs = [];
         var all = pipes.Spans.Select(s => (s.A, s.B)).ToList();
@@ -103,10 +114,10 @@ public partial class PipesOverlay : Node2D
                 colourOf[network.Id] = AsciiArt.Colour(Sockets.ColourOf(Stillwake.Content.Fluids.Water));
                 continue;
             }
-            var sources = network.Machines.Where(Feeds).SelectMany(id => grid.PortsOf(byId[id])).ToList();
+            var own = network.Cells.ToHashSet();
+            var sources = SourcesOn(own, network.Machines).ToList();
             var colour = AsciiArt.Colour(Flow.ColourOf(i), sources.Count > 0 ? 1 : DryAlpha);
             colourOf[network.Id] = colour;
-            var own = network.Cells.ToHashSet();
             foreach (var run in Flow.RunsOf(Flow.SpansIn(all, own), width, sources, own.Contains)) _runs.Add((run, colour with { A = 1 }));
         }
         _spans.Clear();

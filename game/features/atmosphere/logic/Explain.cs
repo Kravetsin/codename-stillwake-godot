@@ -39,13 +39,16 @@ public static class Explain
     private static string PerMinute(double perPeriod) =>
         (Math.Floor(perPeriod * 60 * World.TicksPerSecond * 10 / Air.LeakEvery) / 10).ToString(CultureInfo.InvariantCulture);
 
-    /// <summary>Whether a room's generators keep up with its leak and its breathers, and by how much a minute; or, falling short, how long its air lasts the difference.</summary>
-    private static string Generated(RoomAir air, int breathers)
+    /// <summary>
+    /// Whether a room's vaporizers keep up with its leak and its breathers, by how much a minute and how long the
+    /// <paramref name="liquid"/> behind them lasts at that draw; or, falling short, how long its own air lasts the difference.
+    /// </summary>
+    private static string Generated(RoomAir air, int liquid, int breathers)
     {
         double spare = air.Made - air.Leak - Breathing(breathers);
         return spare >= 0
-            ? En.T("air.keepsUp", ("n", PerMinute(spare)))
-            : En.T("air.fallsShort", ("time", Lasting(air.Oxygen + air.Aired, -spare, 0)));
+            ? En.T("air.keepsUp", ("n", PerMinute(spare)), ("time", Lasting(liquid, air.Leak, breathers)))
+            : En.T("air.fallsShort", ("time", Lasting(air.Aired, -spare, 0)));
     }
 
     /// <summary>
@@ -55,12 +58,11 @@ public static class Explain
     /// </summary>
     public static List<string> Of(RoomAir air, int volume, int breathers = 0)
     {
-        // With no supply, the room lives on its own air.
-        string lasts = air.Made > 0
-            ? Generated(air, breathers)
-            : air.Oxygen > 0
-                ? En.T("air.lasts", ("oxygen", air.Oxygen), ("time", Lasting(air.Oxygen, air.Leak, breathers)))
-                : En.T("air.lastsNot", ("time", Lasting(air.Aired, air.Leak, breathers)));
+        // With no powered vaporizer turning liquid into air, the room lives on its own air.
+        bool supplied = air.Oxygen > 0 && air.Made > 0;
+        string lasts = supplied
+            ? Generated(air, air.Oxygen!.Value, breathers)
+            : En.T("air.lastsNot", ("time", Lasting(air.Aired, air.Leak, breathers)));
         string[] problem = air.Problem is { } why ? [En.T(why)] : [];
         return air.Status switch
         {
@@ -68,11 +70,11 @@ public static class Explain
             RoomStatus.Filling =>
             [
                 En.T("air.filling", ("aired", air.Aired), ("cells", volume)),
-                air.Made > 0 ? lasts : En.T("air.pipes", ("oxygen", air.Oxygen)),
+                supplied ? lasts : En.T("air.pipes", ("oxygen", air.Oxygen ?? 0)),
             ],
             // With no piped vent in it, nothing drains: there are no pipes to speak of.
             RoomStatus.Venting => air.Lasts is int ticks
-                ? [En.T("air.venting"), En.T("air.drains", ("oxygen", air.Oxygen), ("time", Span(ticks)))]
+                ? [En.T("air.venting"), En.T("air.drains", ("oxygen", air.Oxygen ?? 0), ("time", Span(ticks)))]
                 : [En.T("air.venting")],
             _ => air.Aired > 0
                 ? [En.T("air.holding", ("aired", air.Aired), ("cells", volume)), lasts, .. problem]
