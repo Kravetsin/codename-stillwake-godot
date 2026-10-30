@@ -170,10 +170,15 @@ A living document: what is decided about the game and what is still open. Techni
   the hole with what they have, a scrap wall of a raw chunk at the least, so repair is a steady cost
   ([weak-meteors-till-landing](decisions/2026-10-29-weak-meteors-till-landing.md)). Harder places, such as the rings round
   a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-wave).
+- **Magnetic flares break machines.** Once the player can build an oxygen generator, an aurora spreads across the sky
+  every 8 to 15 minutes, lamps flicker and cables glow; then a flash, and a tenth to three tenths of the electric
+  machines on the networks stop where they stand, cables and all. Held with the screwdriver, each is repaired for a
+  quarter of what it was built of, circuits aside ([magnetic-flare](decisions/2026-10-30-magnetic-flare.md)). Fuses and
+  shielded walls will protect them later.
 
 ## Open
 
-- Which dangers besides meteors, how often, how they are telegraphed; a peaceful mode as in Raft?
+- Which dangers besides meteors and flares, how often, how they are telegraphed; a peaceful mode as in Raft?
   Directions so far: enemies living in other wrecks, pirate raids.
 - What the jump between places costs in biofuel, and how the radar shows where it goes.
 - How resources move between machines: belts, drones, or hired crew carrying them. In side view

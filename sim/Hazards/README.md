@@ -4,18 +4,21 @@
 
 | File | Purpose |
 | --- | --- |
+| `Flares.cs` | Magnetic flares breaking machines: drawn, counted down, striking; `FlareNow` by hand. |
 | `Hazards.cs` | Meteors breaking the hull: the place's shower falling by itself, and struck by hand. |
 
 Meteors breaking the hull ([meteor-wave](../../docs/decisions/2026-10-29-meteor-wave.md), [hull-meteors](../../docs/decisions/2026-10-28-hull-meteors.md), [meteor-blast](../../docs/decisions/2026-10-28-meteor-blast.md),
 [holes-not-planned](../../docs/decisions/2026-10-29-holes-not-planned.md), [weak-meteors-till-landing](../../docs/decisions/2026-10-29-weak-meteors-till-landing.md)): a place's shower
 (`Surfaces.Kind.Meteors`, `Content/Meteors.cs`) falls by itself, a steady cost of repair; the dev panel
 strikes one by hand, to try a breach and its repair. Ported from `packages/sim/src/modules/hazards`; its rules hold
-here unchanged.
+here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/decisions/2026-10-30-magnetic-flare.md),
+`Surfaces.Kind.Flares`, `Content/MagneticFlares.cs`).
 
-- **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them).
-- **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no meteors
+- **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them); `Power`
+  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares).
+- **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no hazards
   (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
-  `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`).
+  `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`); `FlareIn`, ticks till the flare drawn strikes, 0 for none.
 
 ## Rules
 
@@ -39,19 +42,30 @@ here unchanged.
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
 - `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its armour.
+- **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
+  reaching 0. Then, with none drawn, where the kind has `Flares`, the world is not `Calm` and `Knows("generator")`, the next
+  is drawn evenly in `EveryMin..EveryMax`, not counted down that tick. Its last `Warning` ticks are its warning.
+- **The strike** takes the powered machines on a network and not broken, in id order (`n`), draws a percent evenly in
+  `PercentMin..PercentMax`, then `ceil(n × percent / 100)` picks, each `Rng.Below(left)` and taken out, and `Break`s them.
+  None: nothing drawn.
+- `FlareNow(ticks)` (dev) sets `FlareIn`, replacing a flare drawn and not yet coming, in any world; a place with no
+  `Flares` strikes with `StartingSpace`'s.
 
 ## API
 
-- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Shower`, the shower falling now; `Charge` and `Farthest`, a blast's charge and bound.
+- **Queries:** `Incoming`, the meteor seen coming, for its flight; `Shower`, the shower falling now; `Charge` and `Farthest`,
+  a blast's charge and bound; `FlareRules`; `FlareComing` and `FlareLeft`, the warning and its ticks left.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
-  never breaks (bedrock, lava) or out of the grid's zone (a planet's fog).
+  never breaks (bedrock, lava) or out of the grid's zone (a planet's fog). `FlareNow(ticks)` — `hazards.badTicks` below 1,
+  `hazards.flareComing` during a warning.
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
   reads the grid's walls when it draws, where the TypeScript generator, which cannot see the grid,
-  aims at the wreck's walls as drawn.
+  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64, so short runs see machines broken.
 
 ## Invariants
 
 - A meteor only ever turns a wall into an empty cell and takes back walls away; it adds nothing, a plan neither.
+- A strike breaks between `ceil(n × PercentMin / 100)` and `ceil(n × PercentMax / 100)` of its `n` candidates.
 
 ## Deliberately not handled
 
@@ -60,6 +74,8 @@ here unchanged.
 - A hit breaks or does nothing: no damage adds up. A blast slips aslant between two walls meeting at a corner, and leaves
   doors and machines it meets whole. Showers do not change with where the ship goes yet.
 - A client joining between a strike and its next frame misses the strike's look.
+- Nothing shields a machine from a flare yet; fuses and shielded walls will shrink the candidates. No grace before the
+  first flare, and a machine just repaired may break in the next.
 
 ## Tests not yet ported
 

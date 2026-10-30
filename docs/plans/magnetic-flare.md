@@ -59,7 +59,7 @@ Marked (U) where the user set the rule; the rest is design, approved with it.
 
 ## Tasks
 
-### F-1 — Flares break machines, a screwdriver repairs them (sim)
+### F-1 — Flares break machines, a screwdriver repairs them (sim) ✅
 
 - **Content:** `sim/Content/MagneticFlares.cs`: `record Flare(int EveryMin, int EveryMax, int Warning, int PercentMin, int
   PercentMax)`, `StartingSpace`, `ArmedBy`; `RepairRules.Share` (‰) and `RepairRules.Never = "circuit"`.
