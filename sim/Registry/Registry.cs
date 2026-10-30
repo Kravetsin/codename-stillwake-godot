@@ -71,7 +71,7 @@ public sealed class Registry
         Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
         Grid = new GridModule();
         Rooms = new RoomsModule(Grid);
-        Items = new ItemsModule(Grid, Rooms);
+        Items = new ItemsModule(Grid, Rooms, Knowledge);
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Items, Items, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);

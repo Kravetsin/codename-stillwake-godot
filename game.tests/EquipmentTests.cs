@@ -15,7 +15,7 @@ public class EquipmentTests
     {
         Assert.Equal([Head], Equipment.Of("head"));
         Assert.Equal([Back], Equipment.Of("back"));
-        Assert.Equal(3, Equipment.Of("belt").Count());
+        Assert.Equal(5, Equipment.Of("belt").Count());
         Assert.False(Equipment.Is(new Place(Spec.Inventory.Slots - 1)));
         Assert.False(Equipment.Is(new Place(Spec.Inventory.Slots + 1, 4)));
         Assert.False(Equipment.Is(new Place(Spec.Inventory.Total)));

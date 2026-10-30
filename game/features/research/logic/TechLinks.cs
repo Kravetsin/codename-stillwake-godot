@@ -27,7 +27,7 @@ public static class TechLinks
     public static TechLink Of(TechNode node) => ById[node.Id];
 
     /// <summary>What <paramref name="id"/> costs to make or build.</summary>
-    public static IReadOnlyList<(string Item, int Count)> CostOf(string id) => Crafts.TryGet(id, out var craft) ? craft.Cost : Prints.TryGetValue(id, out var print) ? print.Cost : [];
+    public static IReadOnlyList<(string Item, int Count)> CostOf(string id) => Upgrades.Of(id) != null ? [] : Crafts.TryGet(id, out var craft) ? craft.Cost : Prints.TryGetValue(id, out var print) ? print.Cost : [];
 
     private static TechLink Worked(TechNode node)
     {

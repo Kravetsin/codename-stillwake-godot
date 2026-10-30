@@ -471,6 +471,8 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var box in _slots)
         {
             var p = box.Place;
+            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
+            box.Visible = _items!.SlotOpen(p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,

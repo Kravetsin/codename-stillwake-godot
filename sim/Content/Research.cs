@@ -44,19 +44,23 @@ public static class Research
     /// <summary>How many times its worth a craft costs on top of its ring's: a blueprint already costs what it is built of, a craft only a unit.</summary>
     public const int CraftTimes = 3;
 
-    private const string Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine";
+    private const string Better = "upgrades", Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine";
 
     private static (string Branch, string Id, int? Times) Block(string branch, string id) => (branch, id, null);
+
+    /// <summary>An upgrade: its price its own, whatever its ring's.</summary>
+    private static (string Branch, string Id, int? Times) Up(string id) => (Better, id, 1);
 
     private static (string Branch, string Id, int? Times) Dear(int times, string branch, string id) => (branch, id, times);
 
     /// <summary>The tree, by tab. Everything before the pod is had from what space gives; what a planet gives comes after it.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        new("ship", [Materials, Structures, Machines, Power, Automation, Gear], null,
+        new("ship", [Materials, Structures, Machines, Power, Automation, Gear, Better], null,
             new(null, [], 1,
                 Block(Machines, "workbench"),
-                Block(Machines, "furnace")),
+                Block(Machines, "furnace"),
+                Up("bag1")),
             new("firstMetal", [("scrap", 20), ("iron", 10)], 1,
                 Block(Materials, "wire"),
                 Block(Materials, "plate"),
@@ -66,7 +70,9 @@ public static class Research
                 Block(Structures, "ladder"),
                 Block(Structures, "lamp"),
                 Block(Gear, "nail"),
-                Block(Gear, "nailer")),
+                Block(Gear, "nailer"),
+                Up("bag2"),
+                Up("tradeSlots1")),
             new("press", [("wire", 20), ("plate", 15), ("gear", 10)], 1,
                 Block(Materials, "coil"),
                 Block(Materials, "rotor"),
@@ -76,26 +82,33 @@ public static class Research
                 Block(Structures, "backWallIron"),
                 Block(Automation, "crate"),
                 Block(Gear, "harpoon"),
-                Block(Gear, "helmetLamp")),
+                Block(Gear, "helmetLamp"),
+                Up("bag3"),
+                Up("tradeSlots2")),
             new("machinery", [("plate", 30), ("coil", 15), ("rotor", 8)], 1,
                 Block(Materials, "frame"),
                 Block(Machines, "former"),
                 Block(Power, "burnerGenerator"),
                 Block(Power, "vent"),
                 Block(Power, "cistern"),
-                Block(Power, "tank")),
+                Block(Power, "tank"),
+                Up("bag4")),
             new("processing", [("frame", 10), ("gear", 20), ("coil", 20)], 1,
                 Block(Structures, "wallGlass"),
                 Block(Structures, "backWallGlass"),
                 Block(Machines, "crusher"),
                 Block(Machines, "smelter"),
                 Block(Power, "generator"),
-                Block(Gear, "jetpack")),
+                Block(Gear, "jetpack"),
+                Up("bag5"),
+                Up("tradeSlots3")),
             new("electronics", [("frame", 15), ("glass", 10), ("tube", 20)], 1,
                 Block(Materials, "circuit"),
                 Block(Materials, "solarCell"),
                 Block(Machines, "assembler"),
-                Block(Machines, "autoTradeStation")),
+                Block(Machines, "autoTradeStation"),
+                Up("bag6"),
+                Up("tradeSlots4")),
             new("automation", [("circuit", 10), ("glass", 20), ("frame", 10)], 1,
                 Block(Materials, "soil"),
                 Block(Structures, "wallSoil"),
@@ -106,7 +119,9 @@ public static class Research
                 Block(Power, "capacitorBank"),
                 Block(Automation, "drone"),
                 Block(Automation, "droneBay"),
-                Block(Gear, "drill")),
+                Block(Gear, "drill"),
+                Up("bag7"),
+                Up("belt1")),
             new("wayDown", [("circuit", 20), ("glass", 30), ("frame", 20), ("coil", 40)], 1,
                 Block(Materials, "processor"),
                 Block(Materials, "display"),
@@ -115,7 +130,10 @@ public static class Research
                 Block(Machines, "computer"),
                 Block(Automation, "deckDrive"),
                 Block(Automation, "dropPod"),
-                Block(Automation, "radarAntenna")),
+                Block(Automation, "radarAntenna"),
+                Up("bag8"),
+                Up("belt2"),
+                Up("tradeSlots5")),
             new("ground", [("copper", 20), ("mica", 10), ("hide", 5)], 2,
                 Block(Materials, "canister"),
                 Block(Structures, "wallStone"),
@@ -127,19 +145,25 @@ public static class Research
                 Block(Structures, "wallAlloy"),
                 Block(Structures, "backWallAlloy"),
                 Block(Structures, "arcLamp"),
-                Block(Gear, "cape"))),
-        new("tech", [Arc, Engine], "ground",
+                Block(Gear, "cape"),
+                Up("bag9"),
+                Up("belt3"),
+                Up("tradeSlots6"))),
+        new("tech", [Arc, Engine, Better], "ground",
             new("arc", [("alloyScrap", 20), ("magnetite", 10), ("crystal", 5), ("biofuel", 20)], 2,
                 Block(Arc, "motor"),
                 Block(Arc, "arcBench"),
                 Block(Arc, "arcModule"),
                 Block(Arc, "accumulator"),
-                Block(Arc, "railgun")),
+                Block(Arc, "railgun"),
+                Up("bag10"),
+                Up("belt4")),
             new("enginePlans", [("motor", 4), ("copper", 30), ("alloyScrap", 30)], 2,
                 Block(Engine, "nozzle"),
                 Block(Engine, "fuelPump"),
                 Block(Engine, "igniter"),
-                Dear(8, Engine, "engine"))),
+                Dear(8, Engine, "engine"),
+                Up("bag11"))),
     ];
 
     /// <summary>Every node: tab by tab, ring by ring, a ring's gate before its blocks.</summary>

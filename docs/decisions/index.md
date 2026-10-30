@@ -167,6 +167,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
+| [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
 | [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted |  |
 | [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
 | [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | accepted |  |

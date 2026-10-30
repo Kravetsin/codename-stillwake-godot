@@ -416,7 +416,7 @@ public partial class TechPanel : CanvasLayer
     /// <summary>What to show of <paramref name="id"/>: a blueprint as the build menu pictures it, a craft or a material as its item.</summary>
     private TextureRect Picture(string id, int size) => new()
     {
-        Texture = _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size),
+        Texture = Content.Upgrades.Of(id) is { } upgrade ? AsciiArt.Upgrade(upgrade.Kind) : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
         StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
         TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
@@ -425,7 +425,7 @@ public partial class TechPanel : CanvasLayer
     };
 
     private string NameOf(string id) =>
-        _placements.ContainsKey(id) ? ItemCards.NameOf(id, _placements[id]) : T($"item.{id}");
+        Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}", ("n", upgrade.Slots)) : _placements.ContainsKey(id) ? ItemCards.NameOf(id, _placements[id]) : T($"item.{id}");
 
     /// <summary>The map's pointer: any button drags it, the left one picks what it clicks if it was not dragged.</summary>
     private void Handle(InputEvent e)
@@ -719,6 +719,7 @@ public partial class TechPanel : CanvasLayer
     /// <summary>What the pointer says of <paramref name="id"/>: a thing made its card, a blueprint its picture, name and words; and why it cannot be bought yet.</summary>
     private Tip TipOf(string id)
     {
+        if (Content.Upgrades.Of(id) is { } upgrade) return new Tip(NameOf(id), [new TipLine(T($"upgrade.{upgrade.Kind}.about"), Tone.Dim)]);
         if (_placements.GetValueOrDefault(id) is not { } placement) return new Tip(NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
         if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));

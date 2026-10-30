@@ -62,6 +62,18 @@ public static class AsciiArt
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
 
+    /// <summary>What an upgrade of <paramref name="kind"/> is drawn as on the tree: a bag, a belt, a capsule.</summary>
+    public static ImageTexture Upgrade(string kind) => kind switch
+    {
+        Content.Upgrades.Bag => Texture("upgrade-bag",
+            ["....KKKK....", "...Kw..wK...", "..KKKKKKKK..", ".KbbbbbbbbK.", ".KbbbbbbbbK.", ".KbbKKKKbbK.", ".KbbKyyKbbK.", ".KbbKKKKbbK.", ".KbbbbbbbbK.", ".KbbbbbbbbK.", "..KKKKKKKK.."],
+            new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0xc5ccd8, ['b'] = 0x7c6a4f, ['y'] = 0xf0b44c }),
+        Content.Upgrades.Belt => Texture("upgrade-belt",
+            ["............", "............", "KKKKKKKKKKKK", "bbbKKKKKKbbb", "bbbKyyyyKbbb", "bbbKyKKyKbbb", "bbbKyyyyKbbb", "bbbKKKKKKbbb", "KKKKKKKKKKKK", "............"],
+            new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['b'] = 0x7c6a4f, ['y'] = 0xf0b44c }),
+        _ => Capsule(),
+    };
+
     /// <summary>A trade station's capsule, nose up.</summary>
     public static ImageTexture Capsule() => Texture("capsule",
         ["....KK....", "...KwwK...", "..KwwwwK..", "..KwbbwK..", "..KwbbwK..", "..KwwwwK..", "..KwwwwK..", "..KyyyyK..", ".KKwwwwKK.", ".KwKKKKwK.", ".KK....KK."],

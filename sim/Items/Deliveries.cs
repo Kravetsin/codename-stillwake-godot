@@ -61,12 +61,12 @@ public sealed partial class ItemsModule
     /// machine with no inputs listed (a crate, a bay) all its slots; a charging station nothing without a capacity; one that
     /// takes one item nothing else.
     /// </summary>
-    private static IEnumerable<int> Receiving(MachineSpec spec, string item)
+    private IEnumerable<int> Receiving(MachineSpec spec, string item)
     {
         var what = Content.Items.Get(item);
         if (spec.Charges && what.Capacity == null) return [];
         if (spec.Takes is { } only && item != only) return [];
-        int inputs = spec.Inputs ?? spec.Slots ?? 0;
+        int inputs = InputsOf(spec);
         if (spec.FuelSlot is not int fuel) return Enumerable.Range(0, inputs);
         return what.BurnTicks != null ? [fuel] : Enumerable.Range(0, inputs).Where(i => i != fuel);
     }

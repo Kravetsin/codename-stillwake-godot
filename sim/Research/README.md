@@ -24,7 +24,8 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
   everything. In creative mode everything is known and every node done.
 - **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known, a gate when
   its deposit is full.
-- **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits.
+- **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits. An upgrade
+  (`Content.Upgrades`) is bought and granted the same way, and `Items` reads what it opens.
 - **A deposit** (`Deposit`) takes from the sender's bag, wherever they stand, what it carries of what a gate still lacks, for good. Part of it is
   enough. Only a gate reached takes one.
 

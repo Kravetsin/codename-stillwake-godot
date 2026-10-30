@@ -29,7 +29,32 @@ public static class Migrations
             foreach (var surface in root["surfaces"]!.AsArray()) surface!["slices"]!["trade"]!.AsObject().Remove("ticks");
             return root;
         },
+        // 40 → 41: the inventory's room bought by upgrades (2026-10-30-room-upgrades); a world keeps what it had open, its equipment moved up.
+        root =>
+        {
+            var granted = root["slices"]!["knowledge"]!["granted"]!.AsArray();
+            var known = granted.Select(g => g!.GetValue<string>()).Concat(["bag1", "bag2", "bag3", "belt1", "belt2", "tradeSlots1", "tradeSlots2"]).Distinct().ToList();
+            known.Sort(StringComparer.Ordinal);
+            root["slices"]!["knowledge"]!["granted"] = new JsonArray([.. known.Select(k => (JsonNode)k)]);
+            foreach (var slices in new[] { root["slices"]! }.Concat(root["surfaces"]!.AsArray().Select(s => s!["slices"]!)))
+            {
+                foreach (var held in slices["items"]!["inventories"]!.AsArray()) held!["slots"] = InventoryOf41(held["slots"]!.AsArray());
+                var stations = slices["grid"]!["machines"]!.AsArray().Where(m => m!["kind"]!.GetValue<string>() is "tradeStation" or "autoTradeStation").Select(m => m!["id"]!.GetValue<int>()).ToHashSet();
+                foreach (var held in slices["items"]!["crates"]!.AsArray())
+                    if (stations.Contains(held!["id"]!.GetValue<int>()))
+                        while (held["slots"]!.AsArray().Count < 8) held["slots"]!.AsArray().Add(null);
+            }
+            return root;
+        },
     ];
+
+    /// <summary>An inventory of 36 own slots, then head, back, three on the belt, suit, mount, cape, as 63 own slots, then the same with five on the belt.</summary>
+    private static JsonArray InventoryOf41(JsonArray old)
+    {
+        JsonNode?[] Take(int from, int count) => [.. old.Skip(from).Take(count).Select(n => n?.DeepClone())];
+        var none = new JsonNode?[1];
+        return new JsonArray([.. Take(0, 36), .. Enumerable.Repeat(none[0], 27), .. Take(36, 5), none[0], none[0], .. Take(41, 3)]);
+    }
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();

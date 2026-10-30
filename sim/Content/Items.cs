@@ -229,13 +229,20 @@ public static class Items
 
 /// <summary>
 /// A hero's inventory, which starts empty: <see cref="Slots"/> slots of its own, the first row the hotbar,
-/// then its equipment, a slot for each kind in <see cref="Equipment"/>: the head (a helmet), the back, three on the belt,
+/// then its equipment, a slot for each kind in <see cref="Equipment"/>: the head (a helmet), the back, five on the belt,
 /// then the body, the helmet's mount (its lamp) and the cape, last so older slots keep their places. Giving, taking and picking up use only its own slots; a slot of equipment holds only an item
 /// whose <c>Equip</c> is its kind.
 /// </summary>
 public static class Inventory
 {
-    public const int Slots = 36;
+    /// <summary>The most an inventory's own slots can come to (2026-10-30-room-upgrades); <see cref="Start"/> are open at first, the rest by <see cref="Upgrades"/>.</summary>
+    public const int Slots = 63;
+
+    /// <summary>The own slots open from the start: the hotbar and two rows.</summary>
+    public const int Start = 27;
+
+    /// <summary>The belt slots open from the start, of those in <see cref="Equipment"/>.</summary>
+    public const int BeltStart = 1;
 
     /// <summary>The first row of <see cref="Slots"/>, chosen with keys 1 to 9: a sort leaves it as it is (0008).</summary>
     public const int Hotbar = 9;
@@ -244,7 +251,7 @@ public static class Inventory
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 
     /// <summary>The kinds of the equipment slots, in slot order after <see cref="Slots"/>.</summary>
-    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", Suit.Slot, Helmet.Mount, Cape.Slot];
+    public static readonly IReadOnlyList<string> Equipment = [Helmet.Slot, "back", "belt", "belt", "belt", "belt", "belt", Suit.Slot, Helmet.Mount, Cape.Slot];
 
     /// <summary>Every slot of an inventory: its own, then its equipment.</summary>
     public static readonly int Total = Slots + Equipment.Count;

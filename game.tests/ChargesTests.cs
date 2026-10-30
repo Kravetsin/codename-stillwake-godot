@@ -91,23 +91,27 @@ public class ChargesTests
         Assert.Equal("charger.noPower", Charges.StationState(Charged(5), false));
     }
 
+    private static readonly int Most = Charges.BeltMost(3);
+
     [Fact]
     public void TheEnergyGaugeIsAShareOfAFullBeltInWholeUnitsLowUnderAQuarterOfWhatIsWorn()
     {
-        // Three stores on the belt (0081), the share of three of the largest, accumulators (0099): a battery is a ninth.
-        Assert.Equal(3, Charges.BeltSlots);
-        Assert.Equal(3 * Spec.Charge.Accumulator / Spec.Charge.Scale, Charges.BeltMost);
-        Assert.Equal(new Belt(1.0 / 9, Units, Low: false, Worn: true), Charges.BeltOf((Full, Full)));
-        Assert.Equal(new Belt(1.0 / 3, 3 * Units, Low: false, Worn: true), Charges.BeltOf((3 * Full, 3 * Full)));
-        Assert.Equal(new Belt(1, 3 * 3 * Units, Low: false, Worn: true), Charges.BeltOf((9 * Full, 9 * Full)));
+        // The share of a belt's open slots full of the largest stores, accumulators (0099): with three open, a battery is a ninth.
+        Assert.Equal(5, Charges.BeltSlots);
+        Assert.Equal(3 * Spec.Charge.Accumulator / Spec.Charge.Scale, Charges.BeltMost(3));
+        Assert.Equal(1.0 / 3, Charges.BeltOf((Full, Full), 1).Share);
+        Assert.Equal(1.0 / 15, Charges.BeltOf((Full, Full), 5).Share);
+        Assert.Equal(new Belt(1.0 / 9, Units, Low: false, Worn: true, Most), Charges.BeltOf((Full, Full), 3));
+        Assert.Equal(new Belt(1.0 / 3, 3 * Units, Low: false, Worn: true, Most), Charges.BeltOf((3 * Full, 3 * Full), 3));
+        Assert.Equal(new Belt(1, 3 * 3 * Units, Low: false, Worn: true, Most), Charges.BeltOf((9 * Full, 9 * Full), 3));
         // Units round down, as the card's meter: a hair short of a full battery is a power-tick short.
-        Assert.Equal(Units - 1, Charges.BeltOf((Full - 1, Full)).Units);
+        Assert.Equal(Units - 1, Charges.BeltOf((Full - 1, Full), 3).Units);
         // Low under a quarter of what the worn batteries hold full, as each slot's bar; an empty one too.
-        Assert.True(Charges.BeltOf((Full / 2 - 1, 2 * Full)).Low);
-        Assert.False(Charges.BeltOf((Full / 2, 2 * Full)).Low);
-        Assert.True(Charges.BeltOf((0, Full)).Low);
+        Assert.True(Charges.BeltOf((Full / 2 - 1, 2 * Full), 3).Low);
+        Assert.False(Charges.BeltOf((Full / 2, 2 * Full), 3).Low);
+        Assert.True(Charges.BeltOf((0, Full), 3).Low);
         // None worn: shown, dim and empty, never low, so it does not pulse over nothing.
-        Assert.Equal(new Belt(0, 0, Low: false, Worn: false), Charges.BeltOf((0, 0)));
+        Assert.Equal(new Belt(0, 0, Low: false, Worn: false, Most), Charges.BeltOf((0, 0), 3));
     }
 
     [Fact]
@@ -133,7 +137,7 @@ public class ChargesTests
         });
         var belt = m.Items.BeltCharge(0);
         Assert.Equal((Full * 3 / 4, 2 * Full), belt);
-        Assert.Equal(new Belt(0.25 / 3, Full * 3 / 4 / Spec.Charge.Scale, Low: false, Worn: true), Charges.BeltOf(belt));
+        Assert.Equal(new Belt(0.25 / 3, Full * 3 / 4 / Spec.Charge.Scale, Low: false, Worn: true, Most), Charges.BeltOf(belt, 3));
     }
 
     [Fact]
@@ -151,11 +155,11 @@ public class ChargesTests
         });
         var belt = m.Items.BeltCharge(0);
         Assert.Equal((2 * accumulator + Full, 2 * accumulator + Full), belt);
-        var shown = Charges.BeltOf(belt);
+        var shown = Charges.BeltOf(belt, 3);
         Assert.Equal(12_600, shown.Units);
-        Assert.Equal(12_600, Charges.UnitsOf(shown.Share));
-        Assert.Equal($"12{Charges.Thin}600", Charges.Grouped(Charges.UnitsOf(shown.Share)));
+        Assert.Equal(12_600, Charges.UnitsOf(shown.Share, shown.Most));
+        Assert.Equal($"12{Charges.Thin}600", Charges.Grouped(Charges.UnitsOf(shown.Share, shown.Most)));
         // Three accumulators full fill it; nothing passes its end.
-        Assert.Equal(Charges.BeltMost, Charges.UnitsOf(Charges.BeltOf((3 * accumulator, 3 * accumulator)).Share));
+        Assert.Equal(Most, Charges.UnitsOf(Charges.BeltOf((3 * accumulator, 3 * accumulator), 3).Share, Most));
     }
 }
