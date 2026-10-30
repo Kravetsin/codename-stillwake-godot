@@ -48,6 +48,7 @@ public static class SurfaceViews
         // Its core: lava under the caves, glowing.
         new(c => c.M.Rules is Content.PlanetType p ? new LavaView(c.M.Grid, p.Ground) : null),
         new(c => new StationScreens(c.M.Grid, c.M.Trade), Fades: true),
+        new(c => new CapsuleFlights(c.M.Grid, c.M.Trade, c.Progress)),
         new(c => new Features.Computer.ComputerScreens(c.M.Grid, c.M.Power), Fades: true),
         new(c => new Features.Power.ChargerLights(c.M.Grid, c.M.Items, c.M.Power), Fades: true),
         new(c => new Features.Power.StoreLights(c.M.Grid, c.M.Power), Fades: true),

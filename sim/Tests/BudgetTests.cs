@@ -342,7 +342,7 @@ public class BudgetTests(ITestOutputHelper output)
         var ticks = Time(w.World, 300, _ => []);
         var furnaces = w.M.Grid.Machines.Where(m => m.Kind == "furnace").ToList();
         int burning = furnaces.Count(m => w.M.Furnace.At(m.Id).Burning);
-        int selling = w.M.Grid.Machines.Count(m => m.Kind == "tradeStation" && w.M.Trade.SellingFrom(m.Id) != null);
+        int selling = w.M.Grid.Machines.Count(m => m.Kind == "tradeStation" && w.M.Trade.Worth(m.Id) > 0);
         output.WriteLine($"{w.M.Grid.Machines.Count} machines, {burning} of {furnaces.Count} furnaces burning, {selling} trade stations selling");
         output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
         Assert.True(burning > 1000 && selling > 1000, "the machines stand idle");

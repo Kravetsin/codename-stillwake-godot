@@ -20,7 +20,16 @@ public static class Migrations
     public const int Oldest = 39;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps =
+    [
+        // 39 → 40: trade by capsule (2026-10-30-trade-capsule); the sales' beat is gone, what stood in a station stays there to send.
+        root =>
+        {
+            root["slices"]!["trade"]!.AsObject().Remove("ticks");
+            foreach (var surface in root["surfaces"]!.AsArray()) surface!["slices"]!["trade"]!.AsObject().Remove("ticks");
+            return root;
+        },
+    ];
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();

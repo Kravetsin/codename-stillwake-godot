@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// What a trade station's screen says without a word: lines typed across it while it holds what sells, dark while it holds
-/// nothing that does. Drawn unlit over the screen of its picture, and lighting the room round it a little (a <see cref="Glow"/>).
+/// nothing that does; while its capsule is away, a flash as it goes and then a bar running down to its return. Drawn unlit over the screen of its picture, and lighting the room round it a little (a <see cref="Glow"/>).
 /// </summary>
 public partial class StationScreens : Node2D
 {
@@ -22,11 +22,14 @@ public partial class StationScreens : Node2D
     /// <summary>How much of its colour the screen's light gives while working.</summary>
     private const float WorkingLight = 0.55f;
 
-    private static readonly Color Dark = new("10161d"), Line = new("9fd8ff");
+    /// <summary>How long a launch whites the screen, in ticks.</summary>
+    private const int FlashTicks = 15;
+
+    private static readonly Color Dark = new("10161d"), Line = new("9fd8ff"), Away = new("f0b44c");
 
     private readonly IGridQueries _grid;
     private readonly TradeModule _trade;
-    private readonly List<(Vector2 Corner, bool Working)> _screens = [];
+    private readonly List<(Vector2 Corner, bool Working, int? Left)> _screens = [];
     private readonly List<Glow> _glows = [];
     private double _sinceRead = RefreshMs, _clock;
 
@@ -44,7 +47,7 @@ public partial class StationScreens : Node2D
         get
         {
             int working = 0;
-            foreach (var (_, on) in _screens)
+            foreach (var (_, on, _) in _screens)
                 if (on) working++;
             return working;
         }
@@ -66,7 +69,7 @@ public partial class StationScreens : Node2D
     private void Read()
     {
         _screens.Clear();
-        foreach (var m in _grid.MachinesWith(MachineTrait.Sells)) _screens.Add((CornerOf(m), _trade.SellingFrom(m.Id) != null));
+        foreach (var m in _grid.MachinesWith(MachineTrait.Sells)) _screens.Add((CornerOf(m), _trade.Worth(m.Id) > 0 && _trade.FlightOf(m.Id) == null, _trade.FlightOf(m.Id)?.Left));
     }
 
     private Vector2 CornerOf(Machine m) => new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;
@@ -104,10 +107,17 @@ public partial class StationScreens : Node2D
 
     public override void _Draw()
     {
-        foreach (var (corner, working) in _screens)
+        foreach (var (corner, working, left) in _screens)
         {
             var origin = corner + Screen.Position;
             DrawRect(new Rect2(origin, Screen.Size), Dark);
+            if (left is int ticks)
+            {
+                int gone = Market.CapsuleFlight - ticks;
+                if (gone < FlashTicks) DrawRect(new Rect2(origin, Screen.Size), Colors.White with { A = 1f - (float)gone / FlashTicks });
+                DrawRect(new Rect2(origin + new Vector2(1, 3), new Vector2((Screen.Size.X - 2f) * ticks / Market.CapsuleFlight, 1)), Away);
+                continue;
+            }
             if (!working) continue;
             // Three lines of text typed across the screen, each starting over when it reaches the edge.
             for (int row = 0; row < 3; row++)

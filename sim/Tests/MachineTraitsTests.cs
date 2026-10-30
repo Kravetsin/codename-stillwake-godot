@@ -22,6 +22,8 @@ public class MachineTraitsTests
     [InlineData(MachineTrait.Computer, new[] { "computer" })]
     [InlineData(MachineTrait.Seats, new[] { "dropPod" })]
     [InlineData(MachineTrait.Lands, new[] { "dropPod" })]
+    [InlineData(MachineTrait.Sells, new[] { "tradeStation", "autoTradeStation" })]
+    [InlineData(MachineTrait.AutoSends, new[] { "autoTradeStation" })]
     public void EachTraitIsWhatItsMachinesAre(MachineTrait trait, string[] kinds)
     {
         Assert.Equal(kinds, Machines.All.Where(m => m.Is(trait)).Select(m => m.Kind));

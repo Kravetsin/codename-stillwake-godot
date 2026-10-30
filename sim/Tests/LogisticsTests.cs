@@ -544,7 +544,9 @@ public class LogisticsTests
         w.Put(0, new Stack("wire", 1), crate: station);
         w.FillCrate(Left, ("wire", 100));
         Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Left), "wire") < 100, 900));
-        Assert.True(RunUntil(w, () => w.M.Research.Credits > Content.Market.PriceOf("wire"), 900));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(station), "wire") > 1, 900));
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(station)).Run(Content.Market.CapsuleFlight);
+        Assert.True(w.M.Research.Credits > Content.Market.PriceOf("wire"));
         // Held by hand, an unpriced stack stays, and none comes after it.
         w.Put(1, new Stack("arcShard", 1), crate: station);
         w.FillCrate(Right, ("arcShard", 4));
@@ -561,9 +563,10 @@ public class LogisticsTests
         int station = w.M.Grid.MachinesOf("tradeStation")[0].Id;
         w.Put(0, new Stack("wire", 1), crate: station);
         w.Put(1, new Stack("gear", 1), crate: station);
-        Assert.True(RunUntil(w, () => w.M.Items.Crate(station).All(s => s == null), 900));
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(station)).Run();
+        Assert.All(w.M.Items.Crate(station), s => Assert.Null(s));
         w.FillCrate(Right, ("gear", 1));
-        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station).All(s => s == null), 1800));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station)[1]?.Item == "gear", 1800));
         Assert.Equal("wire", w.M.Items.KeptAt(station, 0));
         Assert.Equal("gear", w.M.Items.KeptAt(station, 1));
     }

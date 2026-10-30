@@ -119,8 +119,10 @@ public enum MachineTrait
     Seats = 256,
     /// <summary>Stands only on a launch platform, the row under it wholly a run of one (<c>grid.noPlatform</c>): the drop pod, its landers to come.</summary>
     Lands = 512,
-    /// <summary>Sells what its slots hold for the ship's credits (Trade): the trade station.</summary>
+    /// <summary>Sends what its slots hold for the ship's credits by capsule (Trade): the trade stations.</summary>
     Sells = 1024,
+    /// <summary>Sends its capsule by itself whenever it is home and there is something to sell (Trade): the auto trade station.</summary>
+    AutoSends = 2048,
 }
 
 /// <summary>
@@ -147,8 +149,10 @@ public static class Machines
         new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         // Where the tree is walked: resources open its tiers, credits buy its blueprints (2026-10-30-trade-and-tech). No power, no slots.
-        // Sells what is put in for the ship's credits, a unit at a time; of raw salvage, so the first credits need nothing made.
+        // Sends what is put in for the ship's credits by capsule; of raw salvage, so the first credits need nothing made.
         new("tradeStation", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 120, Slots: 4, Has: MachineTrait.Sells, Menu: new(MenuTabs.Production, 17), Char: '$', Means: "trade station: draw its whole footprint"),
+        // A trade station that needs no hand on its button, so drones can run the selling alone.
+        new("autoTradeStation", 4, 4, [], [("frame", 4), ("plate", 4), ("wire", 10), ("circuit", 2)], BuildTicks: 200, Slots: 4, Has: MachineTrait.Sells | MachineTrait.AutoSends, Menu: new(MenuTabs.Production, 18), Char: 'A', Means: "auto trade station: draw its whole footprint"),
         new("crate", 4, 2, [], [("planks", 8), ("plate", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
         new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),
