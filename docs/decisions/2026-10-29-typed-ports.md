@@ -21,6 +21,9 @@ water port from an air one. More fluids will follow, so the rule has to grow by 
 - **A span is refused**, after `pipes.twice`, when both its ends are ports that give (`pipes.bothGive`) or take
   (`pipes.bothTake`), or its ends' fluids differ (`pipes.mixedFluid`). An end's fluid is its port's, else its line's; a
   line with no port matches anything. Lines ignore valves, so opening one never mixes fluids and `SetValve` refuses nothing.
+- **The cistern** (`cistern`, 4×4) is the first machine of another fluid: a water input on its left, an output on its right.
+  It holds nothing yet; its lines are drawn teal and still. Water itself, its melting, loading and the electrolyser are
+  the water plan's.
 - **Direction is about one span's two ends.** Output → joint → output is legal: a tank and generators on one manifold
   still work, and air still fills a whole network. Rejected: a rule over the whole network (it would refuse by the order
   things were built and by valve state), a direction saved on each span (nothing models directed flow), and one output
@@ -38,3 +41,9 @@ water port from an air one. More fluids will follow, so the rule has to grow by 
   Rebuilding in place a machine whose port held such a span is refused until the span is cut.
 - **Flow direction:** way is a rule for laying and placing; air fills a network as before.
 - **A player's own span not yet applied** is not seen by their lit ports or ghost: pipes are not predicted. The sim decides.
+- **A machine's output piped to its own input** is allowed and never lit; water decides whether it means anything.
+- **A blueprint planned on a bare joint** later piped so it no longer fits waits at its last `Work` until the pipe is cut.
+- **The cistern holds nothing yet.** Water itself comes next: the `water` item (a glass bottle), ice melted into it at the
+  furnace and the smelter, a bottle loaded into the cistern, which then passes it on, and the electrolyser (three glass
+  columns: water in, air out). It is the first machine with ports of two fluids, so it is the first to test
+  `SeatProblem`'s rule on two of a machine's own ports on one line, and Atmosphere then reads only air ports.

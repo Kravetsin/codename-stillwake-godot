@@ -38,6 +38,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - клапан / valve → `Valve`, `MakeValve`, `SetValve`, `tool.valve` → Pipes
 - порт, вход, выход / port, input, output → `Port`, `Way.In`, `Way.Out` (`c/Fluids.cs`), `PortAt` (2026-10-29-typed-ports) → Pipes, Grid
 - среда / fluid **≠** (what a pipe carries) → `Fluids` (`air`, `water`); a line's: `FluidAt` → Pipes
+- цистерна / cistern → machine `cistern`: water in on its left, out on its right (2026-10-29-typed-ports) → Pipes
 - трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
 - генератор / generator **≠** → `"generator"` is the oxygen generator (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
