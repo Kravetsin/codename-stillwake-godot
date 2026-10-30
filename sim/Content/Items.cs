@@ -162,6 +162,9 @@ public static class Items
         new("circuit", 100),
         // Silicon, glass and wire, made at the circuit assembler: what a solar panel is built of.
         new("solarCell", 100),
+        // The light-sensitive sheet of a solar panel: no craft makes one and nothing drops one, only a panel taken apart
+        // gives it back, so the wreck's own panel can always be built again, and no second one.
+        new("photoPanel", 20),
         // Two circuits driving a rotor through a coil, made at the circuit assembler: what slides a launch platform's deck
         // open, the last part built of what space gives (the drop pod's, to come).
         new("deckDrive", 50),
