@@ -23,7 +23,7 @@ one line of the tree out of what are many ways. Nothing showed why a block matte
 - **A node is one thing.** Two pictures in a circle under one name read as one thing: a block opens one blueprint or craft, so a wall and its
   back wall are bought apart.
 - **Words stay sharp.** The tree does not scale them with the map: nodes and text are set at the size they are seen, in an unhinted font.
-  From far, under a zoom where words cannot be read, a node is a plain dot coloured by its state, under its branch's name.
+  Further out a node keeps only its picture; from far, where that would be a smudge too, it is a plain dot coloured by its state, under its branch's name.
 - **The hub says what you carry against what is still needed**, so a glance tells what can go in now.
 - **Credits have a coin.** Written with its picture everywhere, and always shown by the bag, not only at a station.
 

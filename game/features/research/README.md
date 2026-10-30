@@ -18,7 +18,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 
 - The window reads the sim four times a second. It is built once and only restyled, for a rebuild under the pointer would eat
   a click. It changes the world only by sending `BuyBlock` and `Deposit`. A press picks only if the pointer did not move; only the strip's button buys or deposits.
-- Words are set at the size they are seen and never scaled; under a zoom where they cannot be read, nodes are plain dots coloured by their state, under the branches' names.
+- Words are set at the size they are seen and never scaled; further out a node keeps only its picture, and from far it is a plain dot coloured by its state, under its branch's name. What a node is, is said by the pointer: an item's card, or a blueprint's picture and words.
 - The hub and the strip show what the bag holds over what is still needed.
 - A block is green once bought, edged in amber while it can be bought, dim while out of reach. The hub is violet while its gate takes
   a deposit, and the rings its gates opened are lit. It opens on the hub the first time, and after that stays where it was left.
