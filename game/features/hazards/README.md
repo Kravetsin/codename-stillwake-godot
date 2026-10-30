@@ -30,15 +30,19 @@ surface, for the dev panel strikes one anywhere.
 - `-- --meteors` plays the new game's wreck with its first meteor seen coming at once; `--meteors=N` gives it power N (1
   shows a held hit on scrap).
 - **A flare's warning** (`FlareLook.Near`, 0 to 1): an aurora's two curtains of rays over the stars on their own canvas
-  layer, under the world, so seen only where it is open to space; green along the hem, violet up the folds, from a
-  quarter strong to whole at the strike. The lamps falter (`FlareLook.LampShare`, through `LightView`'s flicker, set in
-  `Main`) and the cables glow (`PowerView`).
-- **A flare's strike**, as its warning ends: a pale white flash over the world (`ScreenLayers.FlareFlash`), fading in
-  `FlareLook.FlashMs`, the curtains fading with it. What it broke is shown by `power` (dimmed, sparking).
+  layer, under the world, so seen only where it is open to space; green along the hem, violet up the folds, swaying at a
+  third of the shader's pace. It comes in from nothing, eased, over the first 40% of the warning, and grows on to whole at
+  the strike (`FlareLook.Aurora`). The lamps falter (`FlareLook.LampShare`, through `LightView`'s flicker, set in `Main`)
+  and the cables glow (`PowerView`).
+- **A flare's strike**, as its warning ends: a pale white flash over the world (`ScreenLayers.FlareFlash`), eased up in
+  `FlashRiseMs` and out by `FlashMs`; the curtains ease out over `AuroraFadeMs`. Each machine it broke (new in
+  `IPowerQueries.Broken` that tick) bursts where it stands, the bursts spread over 0.6 s: the resonator's crackle
+  (`Sound.Zap`) pitched up, a lamp's glass (`Sound.GlassBreak`) high and soft with it, both files reused, no new sound.
+  What it broke is shown by `power` (dimmed, sparking).
 - `-- --flare` plays the new game's wreck with a flare's warning begun at once.
 
 ## Deliberately not handled
 
 - No warning but the rock: no sound before the strike, no mark on the wall it will hit.
 - Chunks fly through walls, and are looks only: nothing thrown lands as items.
-- A flare makes no sound; a client joining between its strike and the next frame misses the flash.
+- A flare is silent through its warning; a client joining between its strike and the next frame misses the flash and bursts.

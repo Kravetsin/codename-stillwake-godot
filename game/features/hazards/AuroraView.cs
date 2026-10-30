@@ -1,18 +1,29 @@
 using System;
+using System.Collections.Generic;
 using Godot;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
+using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
+using Stillwake.Sim.Power;
+using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Hazards;
 
 /// <summary>
-/// A magnetic flare seen coming and striking (2026-10-30-magnetic-flare): through its warning an aurora's curtains spread over the
-/// stars, green over violet, rising toward the strike; at the strike, a white flash over the whole world. Behind the ship the sky
-/// shows only through what is open to space. It reads the sim's flare once a tick.
+/// A magnetic flare seen coming and striking (2026-10-30-magnetic-flare): through its warning an aurora's curtains come in over
+/// the stars, green over violet, swaying slowly, growing toward the strike; at the strike, a white flash eased over the whole
+/// world and out, the aurora fading after it, and each machine it broke heard bursting where it stands, one after another, a
+/// lamp's glass tinkling too. Behind the ship the sky shows only through what is open to space. It reads the sim once a tick.
 /// </summary>
 public partial class AuroraView : Node
 {
+    private const int Cell = ShipCamera.Cell;
     private static readonly StringName Strength = "strength", Time = "time";
+    /// <summary>How fast the curtains sway and their rays drift, against the shader's own pace: slow, as a sky's light moves.</summary>
+    private const double Pace = 0.35;
+    /// <summary>Over how long the bursts after a strike are spread, in ms: a run of pops, not one bang.</summary>
+    private const double BurstsOverMs = 600;
 
     private const string Code = """
         shader_type canvas_item;
@@ -39,6 +50,8 @@ public partial class AuroraView : Node
         }
         """;
 
+    private readonly IGridQueries _grid;
+    private readonly IPowerQueries _power;
     private readonly HazardsModule _hazards;
     private readonly Func<double> _progress;
     private readonly Func<int> _tick;
@@ -46,12 +59,20 @@ public partial class AuroraView : Node
     private readonly ColorRect _curtains = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly ColorRect _flash = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Color = new Color(0.92f, 0.96f, 1f, 0) };
     private readonly ShaderMaterial _material = new() { Shader = new Shader { Code = Code } };
+    private readonly Voices _bursts = new(S.World, voices: 6);
+    private readonly Random _random = new();
+    /// <summary>The machines broken as of the last tick read: those new at a strike are what it broke.</summary>
+    private readonly HashSet<int> _broken = [];
+    /// <summary>Bursts still to be heard: in how many ms, where, and whether a lamp's glass goes with it.</summary>
+    private readonly List<(double InMs, Vector2 At, bool Glass)> _due = [];
     private int _read = -1;
     private bool _coming;
-    private double _timeMs, _sinceStrike = double.MaxValue;
+    private double _timeMs, _sinceStrike = double.MaxValue, _struckAt;
 
-    public AuroraView(HazardsModule hazards, Func<double> progress, Func<int> tick)
+    public AuroraView(IGridQueries grid, IPowerQueries power, HazardsModule hazards, Func<double> progress, Func<int> tick)
     {
+        _grid = grid;
+        _power = power;
         _hazards = hazards;
         _progress = progress;
         _tick = tick;
@@ -62,32 +83,71 @@ public partial class AuroraView : Node
         _over.AddChild(_flash);
         AddChild(_sky);
         AddChild(_over);
+        AddChild(_bursts);
         _curtains.Visible = _flash.Visible = false;
+        _broken.UnionWith(power.Broken);
     }
 
     public override void _Process(double delta)
     {
-        _timeMs += delta * 1000;
-        _sinceStrike += delta * 1000;
+        double ms = delta * 1000;
+        _timeMs += ms;
+        _sinceStrike += ms;
         if (_tick() != _read)
         {
             _read = _tick();
             bool coming = _hazards.FlareComing;
             // A warning ends only by its strike.
-            if (_coming && !coming) _sinceStrike = 0;
+            if (_coming && !coming) Strike();
             _coming = coming;
+            _broken.Clear();
+            _broken.UnionWith(_power.Broken);
         }
         double near = _coming ? FlareLook.Near(_hazards.FlareLeft, _progress(), _hazards.FlareRules.Warning) : 0;
-        // The curtains fade as the flash does, so the sky does not snap clear.
-        double strength = Math.Max(_coming ? 0.25 + 0.75 * near : 0, FlareLook.Flash(_sinceStrike));
-        _curtains.Visible = strength > 0;
+        double strength = _coming ? FlareLook.Aurora(near) : _struckAt * FlareLook.AuroraLeft(_sinceStrike);
+        if (_coming) _struckAt = strength;
+        _curtains.Visible = strength > 0.001;
         if (_curtains.Visible)
         {
             _material.SetShaderParameter(Strength, (float)strength);
-            _material.SetShaderParameter(Time, (float)(_timeMs / 1000));
+            _material.SetShaderParameter(Time, (float)(_timeMs / 1000 * Pace));
         }
         double flash = FlareLook.Flash(_sinceStrike);
         _flash.Visible = flash > 0;
         _flash.Color = _flash.Color with { A = (float)(0.85 * flash) };
+        Burst(ms);
+    }
+
+    /// <summary>The strike: the flash begins, and every machine broken since the last tick is due to burst, each a moment apart.</summary>
+    private void Strike()
+    {
+        _sinceStrike = 0;
+        foreach (int id in _power.Broken)
+        {
+            if (_broken.Contains(id) || _grid.MachineById(id) is not { } machine) continue;
+            var spec = Content.Machines.Get(machine.Kind);
+            var at = new Vector2((machine.Cell % _grid.Width + spec.Width / 2f) * Cell, (machine.Cell / _grid.Width + spec.Height / 2f) * Cell);
+            _due.Add((_random.NextDouble() * BurstsOverMs, at, Content.Machines.Is(machine.Kind, Content.MachineTrait.Glow)));
+        }
+    }
+
+    /// <summary>
+    /// The bursts come due: an electric crack where the machine stands, pitched up and each a little apart, the resonator's
+    /// crackle (<see cref="S.Zap"/>); a lamp's glass tinkling high and soft with it (<see cref="S.GlassBreak"/>).
+    /// </summary>
+    private void Burst(double ms)
+    {
+        for (int i = _due.Count - 1; i >= 0; i--)
+        {
+            var (inMs, at, glass) = _due[i];
+            if ((inMs -= ms) > 0)
+            {
+                _due[i] = (inMs, at, glass);
+                continue;
+            }
+            _due.RemoveAt(i);
+            _bursts.Play(S.Zap, at, tune: 1.25f + 0.45f * _random.NextSingle(), offsetDb: 3);
+            if (glass) _bursts.Play(S.GlassBreak, at, tune: 1.8f + 0.3f * _random.NextSingle(), offsetDb: -17);
+        }
     }
 }
