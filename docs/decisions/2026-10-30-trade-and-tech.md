@@ -1,6 +1,6 @@
 # Trade and a tech tree
 
-- Status: accepted
+- Status: partly superseded by [tech-graph](2026-10-30-tech-graph.md): the tree's shape and the price list
 - Date: 2026-10-30
 - Supersedes [0024](0024-blueprints-are-learned-by-analysis.md) and
   [0027](0027-what-is-analysed-opens-what-is-made-of-it.md): the analyzer is gone

@@ -19,111 +19,104 @@ public class ResearchTests
     private static int At(int x, int y) => 2 * y * 2 * Width + 2 * x;
     private static readonly int Station = At(1, 1);
 
-    private static readonly string[] Press = ["wire", "plate", "gear"];
-
-    /// <summary>Ten wide, granting <paramref name="known"/> or, with null, everything: a tech station in a room.</summary>
+    /// <summary>Ten wide, granting <paramref name="known"/> or, with null, everything: a tech station and a trade station in a room.</summary>
     private static Layout Map(IReadOnlyList<string>? known)
     {
         string[] rows =
         [
             "##########",
-            "#AA......#",
-            "#AA......#",
+            "#AA$$....#",
+            "#AA$$....#",
             "##########",
         ];
         var layout = Layout.Parse(rows, null);
         return known == null ? layout : layout with { Known = known };
     }
 
-    /// <summary>A world knowing what the wreck does, with <paramref name="credits"/> earned, and its tech station's id.</summary>
+    /// <summary>A world knowing what the wreck does and <paramref name="known"/>, with <paramref name="credits"/> earned, and its tech station's id.</summary>
     private static (Scenario W, int Id) SetUp(int credits = 0, IReadOnlyList<string>? known = null)
     {
-        var w = new Scenario(Map(known ?? ResearchSpec.StartKnown), doubled: true);
+        var w = new Scenario(Map([.. ResearchSpec.StartKnown, .. known ?? []]), doubled: true);
         w.M.Knowledge.Earn(credits);
         return (w, w.M.Grid.MachineAt(Station)?.Id ?? 0);
     }
 
-    private static TechTier Tier(string id) => ResearchSpec.Tiers.Single(t => t.Id == id);
-    private static TechBlock BlockOf(string id) => ResearchSpec.Block(id)!.Value.Block;
+    private static int TradeOf(Scenario w) => w.M.Grid.MachineAt(At(3, 1))!.Id;
+    private static TechNode Node(string id) => ResearchSpec.Node(id)!;
 
-    /// <summary>A world knowing what the wreck does, a tech station and a trade station side by side.</summary>
-    private static (Scenario W, int Tech, int Trade) WithTrade(int credits = 0)
+    /// <summary>What every block <paramref name="id"/> leads through opens, so it is reached: its gates must be filled apart.</summary>
+    private static string[] Before(string id)
     {
-        string[] rows =
-        [
-            "##########",
-            "#AA$$....#",
-            "#AA$$....#",
-            "##########",
-        ];
-        var w = new Scenario(Layout.Parse(rows, null) with { Known = ResearchSpec.StartKnown }, doubled: true);
-        w.M.Knowledge.Earn(credits);
-        return (w, w.M.Grid.MachineAt(At(1, 1))!.Id, w.M.Grid.MachineAt(At(3, 1))!.Id);
+        var all = new List<string>();
+        void Walk(TechNode node)
+        {
+            foreach (string need in node.Needs)
+            {
+                Walk(Node(need));
+                all.AddRange(Node(need).Opens);
+            }
+        }
+        Walk(Node(id));
+        return [.. all.Distinct()];
     }
 
-    /// <summary>Fills every deposit up to and with <paramref name="tier"/>, from what peer 0 is given for it.</summary>
-    private static void OpenUpTo(Scenario w, int id, string tier)
+    /// <summary>Gives peer 0 what <paramref name="gate"/> asks for and puts it in.</summary>
+    private static void Fill(Scenario w, int id, TechNode gate)
     {
-        foreach (var t in ResearchSpec.Tiers)
-        {
-            if (t.Deposit.Count > 0)
-            {
-                w.GiveItems(0, t.Deposit.ToArray());
-                w.Do(new Deposit(id, t.Id)).Run();
-            }
-            if (t.Id == tier) return;
-        }
+        w.GiveItems(0, [.. gate.Deposit]);
+        w.Do(new Deposit(id, gate.Id)).Run();
     }
 
     [Fact]
-    public void BuysABlockOfAnOpenTierSpendingItsPriceAndKnowingAllItOpens()
+    public void BuysABlockSpendingItsPriceAndKnowingAllItOpens()
     {
-        var (w, id) = SetUp(credits: 7);
+        var floor = Node("floor");
+        var (w, id) = SetUp(credits: Prices.Of(floor) + 2, known: Before("floor"));
         Assert.False(w.M.Research.Knows("ladder"));
         w.Do(new BuyBlock(id, "floor")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(2, w.M.Research.Credits);
-        Assert.All(BlockOf("floor").Opens, o => Assert.True(w.M.Research.Knows(o), o));
-        Assert.True(w.M.Research.Bought(BlockOf("floor")));
+        Assert.All(floor.Opens, o => Assert.True(w.M.Research.Knows(o), o));
+        Assert.True(w.M.Research.Done(floor));
     }
 
     [Fact]
     public void WhatABlockOpensIsPlannedOnceBought()
     {
-        var (w, id) = SetUp(credits: 100);
+        var (w, id) = SetUp(credits: 100_000, known: Before("floor"));
         var floor = new Placement("structure", "floor");
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(5, 1), floor));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(7, 1), floor));
         w.Do(new BuyBlock(id, "floor")).Run();
-        Assert.Null(w.M.Building.Problem(At(5, 1), floor));
+        Assert.Null(w.M.Building.Problem(At(7, 1), floor));
     }
 
     [Fact]
     public void RefusesABuyAtWhatIsNoTechStation()
     {
-        var (w, _) = SetUp(credits: 100);
-        w.Do(new BuyBlock(999, "floor")).Run();
+        var (w, _) = SetUp(credits: 100_000);
+        w.Do(new BuyBlock(999, "workbench")).Run();
         Assert.Equal(["research.noMachine"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(100, w.M.Research.Credits);
+        Assert.Equal(100_000, w.M.Research.Credits);
     }
 
     [Fact]
     public void RefusesABuyAndADepositAtAMachineOfAnotherKind()
     {
-        var (w, _, trade) = WithTrade(credits: 100);
+        var (w, _) = SetUp(credits: 100_000, known: Before("press"));
         w.GiveItems(0, ("wire", 5));
-        w.Do(new BuyBlock(trade, "floor")).Run();
-        w.Do(new Deposit(trade, "press")).Run();
+        w.Do(new BuyBlock(TradeOf(w), "workbench")).Run();
+        w.Do(new Deposit(TradeOf(w), "press")).Run();
         Assert.Equal(["research.noMachine", "research.noMachine"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(100, w.M.Research.Credits);
+        Assert.Equal(100_000, w.M.Research.Credits);
         Assert.Equal(5, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
     }
 
-    /// <summary>What a map grants may lie in a tier still shut: bought, not locked, and nothing is charged for it.</summary>
+    /// <summary>What a map grants may lie behind what is not done: bought, not locked, and nothing is charged for it.</summary>
     [Fact]
-    public void ABlockKnownOfAShutTierIsBoughtNotLocked()
+    public void ABlockKnownBeyondAShutGateIsBoughtNotLocked()
     {
-        var (w, id) = SetUp(credits: 100, known: [.. ResearchSpec.StartKnown, .. BlockOf("burnerGenerator").Opens]);
-        w.Do(new BuyBlock(id, "burnerGenerator")).Run();
+        var (w, id) = SetUp(credits: 100, known: Node("coil").Opens);
+        w.Do(new BuyBlock(id, "coil")).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(100, w.M.Research.Credits);
     }
@@ -131,68 +124,73 @@ public class ResearchTests
     [Fact]
     public void RefusesABlockBoughtAlready()
     {
-        var (w, id) = SetUp(credits: 100);
-        w.Do(new BuyBlock(id, "floor")).Run();
-        w.Do(new BuyBlock(id, "floor")).Run();
+        var (w, id) = SetUp(credits: 100_000);
+        w.Do(new BuyBlock(id, "workbench")).Run();
+        w.Do(new BuyBlock(id, "workbench")).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(95, w.M.Research.Credits);
+        Assert.Equal(100_000 - Prices.Of(Node("workbench")), w.M.Research.Credits);
     }
 
+    /// <summary>Wire needs both the workbench and the furnace: one is not enough, whichever is bought.</summary>
     [Fact]
-    public void RefusesABlockBeforeTheOneBeforeItInItsBranch()
+    public void RefusesABlockUntilEverythingItNeedsIsDone()
     {
-        var (w, id) = SetUp(credits: 100);
-        w.Do(new BuyBlock(id, "door")).Run();
-        Assert.Equal(["research.locked"], w.Refusals.Select(r => r.Reason));
-        w.Do(new BuyBlock(id, "floor")).Run();
-        w.Do(new BuyBlock(id, "door")).Run();
-        Assert.Single(w.Refusals);
-        Assert.True(w.M.Research.Knows("door"));
-    }
-
-    [Fact]
-    public void RefusesABlockOfATierStillShutAndOneThereIsNot()
-    {
-        var (w, id) = SetUp(credits: 1000);
-        w.Do(new BuyBlock(id, "burnerGenerator")).Run();
-        w.Do(new BuyBlock(id, "noSuchBlock")).Run();
+        var (w, id) = SetUp(credits: 100_000);
+        w.Do(new BuyBlock(id, "wire")).Run();
+        w.Do(new BuyBlock(id, "workbench")).Run();
+        w.Do(new BuyBlock(id, "wire")).Run();
         Assert.Equal(["research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(1000, w.M.Research.Credits);
+        w.Do(new BuyBlock(id, "furnace")).Run();
+        w.Do(new BuyBlock(id, "wire")).Run();
+        Assert.Equal(2, w.Refusals.Count);
+        Assert.True(w.M.Research.Knows("wire"));
+    }
+
+    [Fact]
+    public void RefusesABlockBehindAGateNotFullOneThereIsNotAndAGateItself()
+    {
+        var (w, id) = SetUp(credits: 100_000, known: Before("press"));
+        w.Do(new BuyBlock(id, "coil")).Run();
+        w.Do(new BuyBlock(id, "noSuchBlock")).Run();
+        w.Do(new BuyBlock(id, "press")).Run();
+        Assert.Equal(["research.locked", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(100_000, w.M.Research.Credits);
     }
 
     [Fact]
     public void RefusesABlockShortOfCreditsAndLeavesThemAlone()
     {
-        var (w, id) = SetUp(credits: 4);
-        w.Do(new BuyBlock(id, "floor")).Run();
+        int price = Prices.Of(Node("workbench"));
+        var (w, id) = SetUp(credits: price - 1);
+        w.Do(new BuyBlock(id, "workbench")).Run();
         Assert.Equal(["research.noCredits"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(4, w.M.Research.Credits);
-        Assert.False(w.M.Research.Knows("floor"));
+        Assert.Equal(price - 1, w.M.Research.Credits);
+        Assert.False(w.M.Research.Knows("workbench"));
     }
 
     [Fact]
-    public void ADepositFilledOpensItsTierTakingOnlyWhatItNeeds()
+    public void AGateFilledOpensWhatNeedsItTakingOnlyWhatItAsks()
     {
-        var (w, id) = SetUp(credits: 60);
-        var press = Tier("press");
-        Assert.False(w.M.Research.Open(press));
+        var (w, id) = SetUp(credits: 100_000, known: Before("press"));
+        var press = Node("press");
+        Assert.False(w.M.Research.Done(press));
         w.GiveItems(0, [.. press.Deposit]);
         w.GiveItems(0, ("wire", 10));
         w.Do(new Deposit(id, "press")).Run();
         Assert.Empty(w.Refusals);
-        Assert.True(w.M.Research.Open(press));
+        Assert.True(w.M.Research.Done(press));
         Assert.Equal(10, w.M.Items.Totals(0).Where(t => t.Item == "wire").Sum(t => t.Count));
         Assert.DoesNotContain(w.M.Items.Totals(0), t => t.Item is "plate" or "gear");
-        w.Do(new BuyBlock(id, "burnerGenerator")).Run();
-        Assert.True(w.M.Research.Knows("burnerGenerator"));
+        w.Do(new BuyBlock(id, "coil")).Run();
+        Assert.True(w.M.Research.Knows("coil"));
     }
 
-    /// <summary>Two peers fill one deposit piece by piece: what is short stays with no one, what is shared stays shared.</summary>
+    /// <summary>Two peers fill one gate piece by piece: what is short stays with no one, what is shared stays shared.</summary>
     [Fact]
-    public void TwoPeersFillADepositPartWayEachWhatEachCarries()
+    public void TwoPeersFillAGatePartWayEachWhatEachCarries()
     {
-        var (w, id) = SetUp();
-        var press = Tier("press");
+        var (w, id) = SetUp(known: Before("press"));
+        var press = Node("press");
         int wire = press.Deposit.Single(d => d.Item == "wire").Count, plate = press.Deposit.Single(d => d.Item == "plate").Count, gear = press.Deposit.Single(d => d.Item == "gear").Count;
         w.GiveItems(0, ("wire", wire - 8), ("gear", gear));
         w.GiveItems(1, ("wire", 12), ("plate", plate - 1));
@@ -203,45 +201,43 @@ public class ResearchTests
         Assert.Equal(plate - 1, w.M.Research.Deposited(press, "plate"));
         Assert.Equal(gear, w.M.Research.Deposited(press, "gear"));
         Assert.Equal(4, w.M.Items.Totals(1).Where(t => t.Item == "wire").Sum(t => t.Count));
-        Assert.False(w.M.Research.Open(press));
+        Assert.False(w.M.Research.Done(press));
         w.GiveItems(0, ("plate", 1));
         w.Do(new Deposit(id, "press")).Run();
-        Assert.True(w.M.Research.Open(press));
+        Assert.True(w.M.Research.Done(press));
     }
 
     [Fact]
     public void RefusesADepositAtWhatIsNoTechStationAndNothingCarried()
     {
-        var (w, id) = SetUp();
+        var (w, id) = SetUp(known: Before("press"));
         w.Do(new Deposit(999, "press")).Run();
         w.Do(new Deposit(id, "press")).Run();
         Assert.Equal(["research.noMachine", "research.nothingToDeposit"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
-    public void RefusesADepositOfATierOpenAndOfOneBeyondTheNextShut()
+    public void RefusesADepositOfAGateNotReachedABlockAndNoSuchGate()
     {
         var (w, id) = SetUp();
-        w.GiveItems(0, ("frame", 10), ("gear", 20), ("coil", 20));
-        w.Do(new Deposit(id, "salvage")).Run();
-        w.Do(new Deposit(id, "processing")).Run();
-        w.Do(new Deposit(id, "noSuchTier")).Run();
-        Assert.Equal(["research.tierOpen", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(10, w.M.Items.Totals(0).Single(t => t.Item == "frame").Count);
-        Assert.Equal(20, w.M.Items.Totals(0).Single(t => t.Item == "gear").Count);
-        Assert.Equal(20, w.M.Items.Totals(0).Single(t => t.Item == "coil").Count);
+        w.GiveItems(0, ("wire", 20), ("plate", 15), ("gear", 10));
+        w.Do(new Deposit(id, "press")).Run();
+        w.Do(new Deposit(id, "workbench")).Run();
+        w.Do(new Deposit(id, "noSuchGate")).Run();
+        Assert.Equal(["research.locked", "research.locked", "research.locked"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(20, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
+        Assert.Equal(15, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
+        Assert.Equal(10, w.M.Items.Totals(0).Single(t => t.Item == "gear").Count);
     }
 
     [Fact]
-    public void RefusesADepositOfATierFilledWhateverIsStillCarried()
+    public void RefusesADepositOfAGateFilledWhateverIsStillCarried()
     {
-        var (w, id) = SetUp();
-        var press = Tier("press");
-        w.GiveItems(0, [.. press.Deposit]);
-        w.Do(new Deposit(id, "press")).Run();
+        var (w, id) = SetUp(known: Before("press"));
+        Fill(w, id, Node("press"));
         w.GiveItems(0, ("wire", 3));
         w.Do(new Deposit(id, "press")).Run();
-        Assert.Equal(["research.tierOpen"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(["research.gateOpen"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(3, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
     }
 
@@ -249,9 +245,8 @@ public class ResearchTests
     [Fact]
     public void RefusesADepositOfWhatIsFullAlready()
     {
-        var (w, id) = SetUp();
-        var press = Tier("press");
-        int wire = press.Deposit.Single(d => d.Item == "wire").Count;
+        var (w, id) = SetUp(known: Before("press"));
+        int wire = Node("press").Deposit.Single(d => d.Item == "wire").Count;
         w.GiveItems(0, ("wire", wire + 3));
         w.Do(new Deposit(id, "press")).Run();
         Assert.Empty(w.Refusals);
@@ -260,27 +255,13 @@ public class ResearchTests
         Assert.Equal(3, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
     }
 
-    /// <summary>One unit short keeps the next tier shut.</summary>
-    [Fact]
-    public void RefusesADepositOfTheNextTierWhileThisOneIsAUnitShort()
-    {
-        var (w, id) = SetUp();
-        var press = Tier("press");
-        w.GiveItems(0, [.. press.Deposit.Select(d => d.Item == "plate" ? (d.Item, d.Count - 1) : d)]);
-        w.Do(new Deposit(id, "press")).Run();
-        w.GiveItems(0, ("frame", 1));
-        w.Do(new Deposit(id, "processing")).Run();
-        Assert.Equal(["research.locked"], w.Refusals.Select(r => r.Reason));
-        Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "frame").Count);
-    }
-
     /// <summary>Two peers' saves must match byte for byte, whichever item went in first.</summary>
     [Fact]
     public void DepositsSaveAlikeWhicheverWentInFirst()
     {
         string Saved(params string[] order)
         {
-            var (w, id) = SetUp();
+            var (w, id) = SetUp(known: Before("press"));
             foreach (string item in order)
             {
                 w.GiveItems(0, (item, 1));
@@ -298,21 +279,22 @@ public class ResearchTests
         w.GiveItems(0, ("wire", 20));
         w.Do(new SetCreative(true)).Run();
         Assert.True(w.M.Research.Knows("engine"));
-        Assert.All(ResearchSpec.Tiers, t => Assert.True(w.M.Research.Open(t)));
+        Assert.All(ResearchSpec.Nodes, n => Assert.True(w.M.Research.Done(n), n.Id));
         w.Do(new Deposit(id, "press")).Run();
         w.Do(new BuyBlock(id, "engine")).Run();
-        Assert.Equal(["research.tierOpen", "research.bought"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(["research.gateOpen", "research.bought"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(3, w.M.Research.Credits);
         Assert.Equal(20, w.M.Items.Totals(0).Single(t => t.Item == "wire").Count);
     }
 
     [Fact]
-    public void KnowsWhatIsGrantedTheWireCraftAmongIt()
+    public void KnowsWhatIsGrantedAndNoMore()
     {
         var (w, _) = SetUp();
-        Assert.True(w.M.Research.Knows("wire"));
+        Assert.True(w.M.Research.Knows("fireAxe"));
         Assert.True(w.M.Research.Knows(new Placement("machine", "tradeStation")));
-        Assert.False(w.M.Research.Knows("coil"));
+        Assert.False(w.M.Research.Knows("wire"));
+        Assert.False(w.M.Research.Knows(new Placement("machine", "furnace")));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), w.M.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
     }
 
@@ -368,7 +350,8 @@ public class ResearchTests
     [Fact]
     public void SavesAndLoadsCreditsDepositsAndWhatIsBought()
     {
-        var (w, id) = SetUp(credits: 50);
+        int price = Prices.Of(Node("floor"));
+        var (w, id) = SetUp(credits: price + 45, known: Before("press"));
         w.GiveItems(0, ("wire", 5));
         w.Do(new BuyBlock(id, "floor")).Run();
         w.Do(new Deposit(id, "press")).Run();
@@ -376,32 +359,39 @@ public class ResearchTests
         w.Reload();
         Assert.Equal(before, w.World.Save());
         Assert.Equal(45, w.M.Research.Credits);
-        Assert.Equal(5, w.M.Research.Deposited(Tier("press"), "wire"));
+        Assert.Equal(5, w.M.Research.Deposited(Node("press"), "wire"));
         Assert.True(w.M.Research.Knows("ladder"));
     }
 
-    /// <summary>A buy of any block, a deposit at any tier (the next shut one, with what it asks for given, for an empty tier), or a unit sold.</summary>
-    private sealed record Step(string? Block, string? Tier, string? Sold);
+    /// <summary>A buy of any block, a deposit at any gate, the first node not done taken on, or a unit sold.</summary>
+    private sealed record Step(string? Block, string? Gate, string? Sold, bool Next = false);
 
     /// <summary>
     /// The invariant, played through a real station: credits never go negative and move only by a sale's price or a block's,
-    /// a deposit never goes over what it asks, and what was given is always in the bag or in a deposit.
+    /// a gate never holds over what it asks, and what was given is always in the bag or in a gate.
     /// </summary>
     [Property(MaxTest = 40)]
     public Property CreditsMoveOnlyByASaleOrABlockAndDepositsOnlyByWhatTheBagGave()
     {
-        var blocks = ResearchSpec.Tiers.SelectMany(t => t.Branches).SelectMany(b => b.Blocks).ToList();
+        var nodes = ResearchSpec.Nodes.ToArray();
         var step = Gen.OneOf(
-            Gen.Elements(blocks.ToArray()).Select(b => new Step(b.Id, null, null)),
-            Gen.Elements(ResearchSpec.Tiers.Select(t => t.Id).ToArray()).Select(t => new Step(null, t, null)),
-            Gen.Constant(new Step(null, "", null)),
-            Gen.Elements("scrapChunk", "frame", "processor", "deckDrive").Select(i => new Step(null, null, i)));
+            Gen.Elements(nodes.Where(n => !n.Gate).ToArray()).Select(b => new Step(b.Id, null, null)),
+            Gen.Elements(nodes.Where(n => n.Gate).ToArray()).Select(g => new Step(null, g.Id, null)),
+            Gen.Constant(new Step(null, null, null, Next: true)),
+            Gen.Constant(new Step(null, null, null, Next: true)),
+            Gen.Elements("scrapChunk", "frame", "processor").Select(i => new Step(null, null, i)));
         var steps = from n in Gen.Choose(0, 40) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
-            var (w, tech, trade) = WithTrade();
-            int credits = 0;
+            var (w, tech) = SetUp();
+            int trade = TradeOf(w), credits = 0;
             var given = new Dictionary<string, int>(StringComparer.Ordinal);
+            void Buy(string block)
+            {
+                int refused = w.Refusals.Count;
+                w.Do(new BuyBlock(tech, block)).Run();
+                if (w.Refusals.Count == refused) credits -= Prices.Of(Node(block));
+            }
             foreach (var s in all)
             {
                 if (s.Sold != null)
@@ -410,31 +400,33 @@ public class ResearchTests
                     w.Run(Market.SellEvery);
                     credits += Market.PriceOf(s.Sold)!.Value;
                 }
-                else if (s.Tier != null)
+                else if (s.Gate != null) w.Do(new Deposit(tech, s.Gate)).Run();
+                else if (s.Block != null) Buy(s.Block);
+                else if (ResearchSpec.Nodes.FirstOrDefault(n => !w.M.Research.Done(n)) is { } next)
                 {
-                    var tier = s.Tier == "" ? ResearchSpec.Tiers.FirstOrDefault(t => !w.M.Research.Open(t)) : Tier(s.Tier);
-                    if (tier == null) continue;
-                    if (s.Tier == "")
-                        foreach (var (item, count) in tier.Deposit)
+                    if (next.Gate)
+                    {
+                        // More than half: two fill it, and the second leaves some carried.
+                        foreach (var (item, count) in next.Deposit)
                         {
-                            // More than half: two fill it, and the second leaves some carried.
                             w.GiveItems(0, (item, count / 2 + 1));
                             given[item] = given.GetValueOrDefault(item) + count / 2 + 1;
                         }
-                    w.Do(new Deposit(tech, tier.Id)).Run();
-                }
-                else
-                {
-                    int refused = w.Refusals.Count;
-                    w.Do(new BuyBlock(tech, s.Block!)).Run();
-                    if (w.Refusals.Count == refused) credits -= BlockOf(s.Block!).Price;
+                        w.Do(new Deposit(tech, next.Id)).Run();
+                    }
+                    else
+                    {
+                        w.M.Knowledge.Earn(Prices.Of(next));
+                        credits += Prices.Of(next);
+                        Buy(next.Id);
+                    }
                 }
                 if (w.M.Research.Credits != credits || credits < 0) return false;
-                if (ResearchSpec.Tiers.Any(t => t.Deposit.Any(d => w.M.Research.Deposited(t, d.Item) > d.Count))) return false;
+                if (ResearchSpec.Nodes.Any(n => n.Deposit.Any(d => w.M.Research.Deposited(n, d.Item) > d.Count))) return false;
                 var carried = w.M.Items.Totals(0);
                 foreach (string item in given.Keys.Order(StringComparer.Ordinal))
                 {
-                    int put = ResearchSpec.Tiers.Sum(t => t.Deposit.Any(d => d.Item == item) ? w.M.Research.Deposited(t, item) : 0);
+                    int put = ResearchSpec.Nodes.Sum(n => n.Deposit.Any(d => d.Item == item) ? w.M.Research.Deposited(n, item) : 0);
                     if (put + carried.Where(t => t.Item == item).Sum(t => t.Count) != given[item]) return false;
                 }
             }
@@ -442,16 +434,16 @@ public class ResearchTests
         });
     }
 
-    /// <summary>The tree opens to its end through the commands alone, tier by tier.</summary>
+    /// <summary>The tree opens to its end through the commands alone, each node after what it needs in the order it is listed.</summary>
     [Fact]
-    public void TheWholeTreeIsBoughtToTheEngineThroughDepositsAndCredits()
+    public void TheWholeTreeIsBoughtToTheEngineThroughGatesAndCredits()
     {
-        var (w, id) = SetUp(credits: 1_000_000);
-        OpenUpTo(w, id, "arcAndEngine");
-        foreach (var tier in ResearchSpec.Tiers)
-            foreach (var branch in tier.Branches)
-                foreach (var block in branch.Blocks)
-                    w.Do(new BuyBlock(id, block.Id)).Run();
+        var (w, id) = SetUp(credits: 100_000_000);
+        foreach (var node in ResearchSpec.Nodes)
+        {
+            if (node.Gate) Fill(w, id, node);
+            else w.Do(new BuyBlock(id, node.Id)).Run();
+        }
         Assert.Empty(w.Refusals);
         Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
     }
