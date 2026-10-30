@@ -278,7 +278,7 @@ public class MagneticFlareTests
         foreach (int cell in new[] { Lamp, Generator, Panel }) Break(w, cell);
         Assert.Equal(new[] { ("wire", 1), ("scrap", 1) }, w.M.Building.RepairCost(Id(w, Lamp)));
         Assert.Equal(new[] { ("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 1) }, w.M.Building.RepairCost(Id(w, Generator)));
-        Assert.Equal(new[] { ("frame", 1), ("solarCell", 2), ("wire", 1) }, w.M.Building.RepairCost(Id(w, Panel)));
+        Assert.Equal(new[] { ("frame", 1), ("solarCell", 2), ("wire", 1), ("photoPanel", 1) }, w.M.Building.RepairCost(Id(w, Panel)));
         Assert.Null(w.M.Building.RepairCost(Id(w, Far)));
         Assert.Equal(new[] { ("arcLamp", 1) }, Costs.RepairOf("arcLamp"));
     }
@@ -374,7 +374,7 @@ public class MagneticFlareTests
     {
         var w = World(seed: 3);
         foreach (int peer in new[] { 0, 1 })
-            w.GiveItems(peer, ("wire", 30), ("scrap", 30), ("frame", 30), ("rotor", 30), ("tube", 30), ("solarCell", 30), ("plate", 30), ("coil", 30));
+            w.GiveItems(peer, ("wire", 30), ("scrap", 30), ("frame", 30), ("rotor", 30), ("tube", 30), ("solarCell", 30), ("plate", 30), ("coil", 30), ("photoPanel", 10));
         int brokenTicks = 0, repairTicks = 0;
         for (int t = 0; t < 300; t++)
         {
@@ -411,7 +411,7 @@ public class MagneticFlareTests
             select (seed: (uint)seed, steps);
         return Prop.ForAll(gen.ToArbitrary(), t =>
         {
-            string[] kinds = ["wire", "scrap", "frame", "rotor", "tube", "solarCell", "plate", "coil"];
+            string[] kinds = ["wire", "scrap", "frame", "rotor", "tube", "solarCell", "plate", "coil", "photoPanel"];
             var w = World(seed: t.seed).GiveItems(0, [.. kinds.Select(k => (k, 60))]);
             var bag = kinds.ToDictionary(k => k, k => Count(w, k));
             var paid = new List<IReadOnlyList<(string Item, int Count)>>();

@@ -18,7 +18,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
   does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024);
-  `Crafting` (`Queue`, 0057). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
+  `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): the growths grown
@@ -28,7 +28,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 - **Blueprint checks, in order:** `building.fixed` (the lifepod, never planned nor marked, 0028); `building.notHere`
   (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock always, 0077); the
-  grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`. Structure
+  grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`; ports (`SeatProblem`, `pipes.*`). Structure
   and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
   2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).
 - **Marks** (no ADR): one thing takes one mark and needs something in that layer; none at all where the surface's tools
@@ -49,8 +49,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
-  while a hero's reported cell, or the one above or under, is the plan's. Building runs before crew.
-  So does a last tick the grid refuses (a pod set down since).
+  while a hero's reported cell, or one above or under, is the plan's. Building runs before crew.
+  So does a last tick the grid or `SeatProblem` refuses (a pod or a pipe since).
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
   piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them (`Struck`).
@@ -72,7 +72,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 ## Commands
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
-(`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`),
+(`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`, `pipes.*`),
 `Hew(Tool, X, Y, Heading)`, `SetInstant(On)`, `Repair(Machine)` (`building.notBroken`, `items.notEnough`). Previews ask
 `Problem`, `WorkProblem`, `HewProblem`, `Struck`, `RepairProblem`.
 Fuzz aims `Work` and hits so plans complete.
@@ -93,7 +93,6 @@ Fuzz aims `Work` and hits so plans complete.
 - Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
 - Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's word.
-- Stale plans: only building fills the grid, so completing one over something throws.
 - A blueprint finished on its hero's cell puts the hero inside it. A tool of no damage throws.
 - Taking apart needs no knowledge of a thing (0024).
 - A part-built blueprint is nothing in the grid till its last tick (0063).

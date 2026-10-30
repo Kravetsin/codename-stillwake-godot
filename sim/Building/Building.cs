@@ -2,6 +2,7 @@ using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 using Cost = System.Collections.Generic.IReadOnlyList<(string Item, int Count)>;
@@ -73,12 +74,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     private readonly ICraftingQueries _crafting;
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
+    private readonly IPipesQueries _pipes;
 
     public override string Id => "building";
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps)
+        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
+        IPipesQueries pipes)
     {
         _grid = grid;
         _gridOps = gridOps;
@@ -90,6 +93,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _crafting = crafting;
         _crew = crew;
         _crewOps = crewOps;
+        _pipes = pipes;
         Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement), ApplyPlacePlan);
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);

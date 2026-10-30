@@ -160,7 +160,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [kill-feel](2026-10-29-kill-feel.md) | Kills burst into pixels | accepted | kills-crumble (in part) |
 | [kills-crumble](2026-10-29-kills-crumble.md) | Kills crumble into pixels | accepted |  |
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted |  |
+| [photo-panel](2026-10-29-photo-panel.md) | The photosensitive panel | accepted |  |
 | [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |
+| [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted |  |

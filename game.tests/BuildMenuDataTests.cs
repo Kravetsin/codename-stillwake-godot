@@ -17,7 +17,7 @@ public class BuildMenuDataTests
             "structure: wallScrap wallIron wallGlass wallMica wallHide wallSoil wallStone wallAlloy backWallScrap backWallIron backWallGlass "
                 + "backWallMica backWallHide backWallSoil backWallStone "
                 + "backWallAlloy floor ladder door hatch",
-            "air: vent tank generator",
+            "air: vent tank cistern generator",
             "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",
             "production: furnace workbench tradeStation techStation former crusher smelter assembler growCapsule arcBench",
             "storage: crate droneBay",

@@ -1,9 +1,9 @@
-﻿# Ship art painters
+# Ship art painters
 
 These scripts paint the ship's pictures into `game/art` or a dir they take. The planet's painters are in [`tools/planet-art`](../planet-art).
 
-Plain Node unless noted (`fs`, `path`, `zlib`). **Reproduces**, against the art at 85f408a: **exact** вЂ” identical
-bytes; **pixel-exact** вЂ” same pixels, other bytes (the PNG encoder was rewritten); **drifted** вЂ” the art
+Plain Node unless noted (`fs`, `path`, `zlib`); (Godot) ones run as `godot --headless --script tools/ship-art/<it>` and the args shown. **Reproduces**, against the art at 85f408a: **exact** — identical
+bytes; **pixel-exact** — same pixels, other bytes (the PNG encoder was rewritten); **drifted** — the art
 was redrawn since; the painter holds the earlier look.
 
 | Folder | Makes in `game/art` | Inputs | Command | Reproduces |
@@ -18,13 +18,15 @@ was redrawn since; the painter holds the earlier look.
 | `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | none; writes `.raw`, then `ffmpeg -f rawvideo -pix_fmt rgba -s WxH -i x.raw x.png` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; drill ones drifted (`drill/`) |
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
 | `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` was `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | 1/2; icon gone |
-| `drill/gen.js` (uses `weapons/`) | candidates; `icon_tube` was `items/drill`, `held_tube(_spin1-3)` was `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `hero_drill*` drifted; icon gone |
-| `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod`; `held_spring(_loaded)`, `icon_spring` were `hero_harpoon(_loaded)`, `items/harpoon` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
+| `drill/gen.js` (uses `weapons/`) | candidates, once `items/drill` and `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `hero_drill*` drifted; icon gone |
+| `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod`; others were `hero_harpoon(_loaded)`, `items/harpoon` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
 | `screwdriver/screwdriver.js` | `hero_screwdriver`, `tool_screwdriver` | none | `node tools/ship-art/screwdriver/screwdriver.js <outDir>` | exact 2/2 |
-| `engine/engine.gd` (Godot) | `machine_engine`; `items/` `nozzle`, `fuelPump`, `igniter` | none | `godot --headless --script tools/ship-art/engine/engine.gd -- <artDir> [sheet]` | exact 4/4 |
+| `engine/engine.gd` (Godot) | `machine_engine`; `items/` `nozzle`, `fuelPump`, `igniter` | none | `-- <artDir> [sheet]` | exact 4/4 |
 | `suit/suit.gd` (Godot) | `items/helmet`, `suit`, `helmetLamp`, `cape`; `hero_headLamp` | none | as jetpack's | exact |
-| `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `godot --headless --script tools/ship-art/jetpack/jetpack.gd -- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |
-| `computer/computer.gd` (Godot) | `*computer*`, `*radarAntenna*`; `items/` `processor`, `display`, `transceiver` | none | `godot --headless --script tools/ship-art/computer/computer.gd -- <artDir> [preview]` | exact 29/29 |
+| `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `-- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |
+| `photo-panel/photo-panel.gd` (Godot) | `items/photoPanel` | none | `-- <artDir>` | exact 1/1 |
+| `cistern/cistern.gd` (Godot) | `machine_cistern` | none | `-- <file>` | exact 1/1 |
+| `computer/computer.gd` (Godot) | `*computer*`, `*radarAntenna*`; `items/` `processor`, `display`, `transceiver` | none | `-- <artDir> [preview]` | exact 29/29 |
 | `debris-v1/gen.js` | `debris/` `crate_01-08`, `hull_01-12`, `pod_01-04`, `scrap_01-12` | none | `node tools/ship-art/debris-v1/gen.js [outDir]` | exact 36/36 |
 | `debris/gen.js` | `debris/` `asteroid_01-06`, `smallrock_01-06`, `bigrock_01-06`, `orerock_01-06`, `hold_01-04`, `pods_01-04`, `engine_01-04` (styles A, B) | `game/art/debris` | `node tools/ship-art/debris/gen.js [finalDir]` | exact 36/36 |
 | `wreck-section/section.js` | `debris/section_01`, `items/hullSection` | `debris-v1/gen.js` | `node tools/ship-art/wreck-section/section.js [outDir]` | exact 2/2 |
@@ -53,6 +55,6 @@ previews are written beside their painters, ignored by git. "Scenes": `game/art`
 No painter for:
 
 - The ship's tiles, doors, pipes, `floor`, `ladder`, `fire_0-2`, valves, sockets; the hero's body parts, `hero_sheet(_screen)`.
-- `machine_generator`, `vent`, `solarPanel`, `furnace`, `crate`, `lamp` and `analyzer`.
+- `machine_generator`, `vent`, `solarPanel`, `furnace`, `crate` and `lamp`.
 - `items/` `cargoCrate`, `supplyPod`, `canister`, `asteroidLarge`, `asteroidRich`, `asteroidSmall`, `cargoHold`,
   `engineBlock`, `podCluster`.

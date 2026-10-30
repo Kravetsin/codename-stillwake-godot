@@ -714,7 +714,7 @@ public class AirTests
     [Fact]
     public void CountsANetworkOnceForOxygenAndOncePerVentForTheDrain()
     {
-        // Two vents in the room, one network: the left vent's pipe runs on to the right one.
+        // Two vents in the room, one network: the left vent's pipe runs through a joint on to the right one.
         var s = SetUp("""
             #########
             #V.....V#
@@ -723,7 +723,7 @@ public class AirTests
             #########
             """);
         var w = s.W;
-        w.Pipe(At(1, 1), At(7, 1));
+        w.Pipe(At(1, 1), At(4, 1), At(7, 1));
         s.Fill(1);
         w.Do(new ClearAt(At(8, 2), "structure")).Run();
         int held = Oxygen(w, s.Tanks[0]);

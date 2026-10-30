@@ -1,6 +1,9 @@
+using Stillwake.Content;
 using Stillwake.Game.Features.Pipes;
 using Stillwake.Game.Render;
 using Stillwake.Sim;
+using Stillwake.Sim.Building;
+using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
 using Xunit;
@@ -94,5 +97,70 @@ public class PipeHandsTests
         Do(w, [new ButtonEvent(true, Middle(0, 0)), new ButtonEvent(false, Middle(15, 3)), new ButtonEvent(true, Middle(0, 0))], hands: hands);
         hands.Update([], false, [], Middle(15, 3), w.M.Grid, w.M.Pipes, 0, _ => { });
         Assert.Equal("pipes.tooLong", hands.Laying?.Why);
+    }
+
+    /// <summary>A generator and a tank that give air, their ports (0, 2) and (8, 2); two vents that take it, (0, 4) and (8, 4).</summary>
+    private static TestWorld Machines() => new(Layout.Parse(["GGGG....TTTT....", "GGGG....TTTT....", "GGGG....TTTT....", "GGGG....TTTT....", "VV......VV......", "VV......VV......"]));
+
+    private static int[] LitFrom(TestWorld w, (double, double) press)
+    {
+        var hands = new PipeHands();
+        Do(w, [new ButtonEvent(true, press)], hands: hands);
+        return [.. hands.Lit.Order()];
+    }
+
+    [Fact]
+    public void ADragLightsOnlyThePortsItsSpanMayEndAtNeverItsOwnMachines()
+    {
+        var w = Machines();
+        // From the generator: the vents, not the tank, which gives too.
+        Assert.Equal([At(0, 4), At(8, 4)], LitFrom(w, Middle(1, 2)));
+        // From a vent: the generator and the tank.
+        Assert.Equal([At(0, 2), At(8, 2)], LitFrom(w, Middle(0, 4)));
+        // From a bare cell: every port.
+        Assert.Equal([At(0, 2), At(8, 2), At(0, 4), At(8, 4)], LitFrom(w, Middle(5, 0)));
+        var hands = new PipeHands();
+        Do(w, [new ButtonEvent(true, Middle(1, 2)), new ButtonEvent(false, Middle(1, 2))], hands: hands);
+        Assert.Empty(hands.Lit);
+    }
+
+    [Fact]
+    public void ACisternsLeftHalfTakesItsInputItsRightItsOutputAndADragFromItNeverLightsItsOwn()
+    {
+        // Two cisterns: inputs (0, 2) and (8, 2), outputs (3, 2) and (11, 2).
+        var w = new TestWorld(Layout.Parse(["cccc....cccc....", "cccc....cccc....", "cccc....cccc....", "cccc....cccc...."]));
+        Assert.Equal(At(0, 2), PipeHands.CellAt(w.M.Grid, Middle(1, 0)));
+        Assert.Equal(At(3, 2), PipeHands.CellAt(w.M.Grid, Middle(2, 3)));
+        Assert.Equal([At(8, 2)], LitFrom(w, Middle(3, 2)));
+        Assert.Equal([At(3, 2)], LitFrom(w, Middle(8, 2)));
+    }
+
+    [Fact]
+    public void ADragLightsAPortBuiltWhileItLasts()
+    {
+        var w = World();
+        var hands = new PipeHands();
+        Do(w, [new ButtonEvent(true, Middle(10, 0))], hands: hands);
+        Assert.Equal([At(0, 0)], hands.Lit);
+        w.Step(new SetInstant(true));
+        w.Step(new PlacePlan(At(12, 0), new Placement("machine", "vent")));
+        hands.Update([], false, [], Middle(10, 0), w.M.Grid, w.M.Pipes, 0, _ => { });
+        Assert.Equal([At(0, 0), At(12, 0)], hands.Lit.Order());
+    }
+
+    [Fact]
+    public void ASocketPointsOutOfAMachineThatGivesAndIntoOneThatTakesInItsFluidsColour()
+    {
+        var generator = Stillwake.Content.Machines.Get("generator");
+        var vent = Stillwake.Content.Machines.Get("vent");
+        Assert.Equal((-1, 0), Sockets.ArrowOf(generator.Ports[0], generator.Width, generator.Height));
+        Assert.Equal((1, 0), Sockets.ArrowOf(vent.Ports[0], vent.Width, vent.Height));
+        // A port in a top or bottom row points up or down; one at the very middle, down when it gives.
+        Assert.Equal((0, -1), Sockets.ArrowOf(new(1, 0, Way.Out, Fluids.Air), 4, 4));
+        Assert.Equal((0, 1), Sockets.ArrowOf(new(1, 0, Way.In, Fluids.Air), 4, 4));
+        Assert.Equal((0, 1), Sockets.ArrowOf(new(1, 1, Way.Out, Fluids.Air), 3, 3));
+        Assert.Equal(0x7fc4f0u, Sockets.ColourOf(Fluids.Air));
+        Assert.Equal(0x2fa3b8u, Sockets.ColourOf(Fluids.Water));
+        Assert.Equal(Fluids.All.Count, Fluids.All.Select(Sockets.ColourOf).Distinct().Count());
     }
 }

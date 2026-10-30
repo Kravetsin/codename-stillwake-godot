@@ -16,7 +16,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Power** — Power — sim/Power · f/power: `Power.cs` PowerModule; `PowerNodes.cs`; `PowerView.cs`, `PowerHands.cs`, `Wiring.cs`, `StoreGauge.cs`; c/`Power.cs`, `Charge.cs`
 
-**Pipes** — Pipes — sim/Pipes · f/pipes: `Pipes.cs` PipesModule, `Valve`, `SetValve`; `PipeNetworks.cs`; `PipesView.cs`, `PipeHands.cs`; c/`Piping.cs`
+**Pipes** — Pipes — sim/Pipes · f/pipes: `Pipes.cs` PipesModule, `Valve`, `SetValve`; `PipeNetworks.cs`; `PipesView.cs`, `PipeHands.cs`; c/`Piping.cs`, `Fluids.cs`
 
 **Items and crafting**
 - Items — sim/Items · f/items: `Items.cs` ItemsModule; `Stacks.cs`; `Floor.cs`; `Modules.cs` (machine modules, `Fit`); `ToolStats.cs`; `InventoryPanel.cs`, `Hotbar.cs`, `Click.cs`, `Equipment.cs`; c/`Items.cs`
