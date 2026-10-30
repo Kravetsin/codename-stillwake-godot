@@ -290,6 +290,7 @@ public partial class ContentTests
         // What a planet's growth gives (0080), and what creatures drop.
         foreach (var (item, _) in Flora.Every.SelectMany(k => k.Yields)) had.Add(item);
         foreach (var entry in Content.Creatures.All.SelectMany(s => s.Yields)) had.Add(entry.Item);
+        had.UnionWith(WrecksOwn);
         var costs = AllBuilds().Select(b => b.Cost).Concat(Crafts.All.Select(c => c.Cost)).Append(Content.Power.CableCost);
         foreach (var (item, _) in costs.SelectMany(c => c)) Assert.Contains(item, had);
     }
@@ -312,6 +313,12 @@ public partial class ContentTests
     }
 
     /// <summary>
+    /// What only the wreck's own machines give, taken apart: the photosensitive panel of its solar panel, had once, never
+    /// made. Every item is had of something else besides.
+    /// </summary>
+    private static readonly string[] WrecksOwn = ["photoPanel"];
+
+    /// <summary>
     /// What the wreck can come to, walking stations (0057): an item is reachable when it is salvage — what any
     /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
@@ -319,7 +326,7 @@ public partial class ContentTests
     /// (2026-10-30-trade-and-tech); its blocks are bought then, credits not walked, every price being earned by selling; what they
     /// open is used when its cost is had. Debris of the kinds
     /// <paramref name="never"/> is left out, as if it never drifted by, and so are a planet's items of them. Aboard only: what a
-    /// planet gives is not had.
+    /// planet gives is not had. What only the wreck's own machines give (<see cref="WrecksOwn"/>) is had from the start.
     /// </summary>
     private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, params string[] never) =>
         Reachable(stations, planet: false, never);
@@ -331,7 +338,7 @@ public partial class ContentTests
     /// </summary>
     private static (HashSet<string> Items, HashSet<string> Known) Reachable(IReadOnlyList<Station> stations, bool planet, params string[] never)
     {
-        var had = new HashSet<string>(StringComparer.Ordinal);
+        var had = new HashSet<string>(WrecksOwn, StringComparer.Ordinal);
         if (planet)
         {
             var hunted = PlanetTypes.All.SelectMany(t => t.Creatures).SelectMany(h => Content.Creatures.Get(h.Species).Yields).Select(y => (y.Item, 0));
@@ -417,8 +424,8 @@ public partial class ContentTests
         }
     }
 
-    /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "cape"];
+    /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -681,16 +688,14 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// The solar panel walks the whole chain (0057): asteroid ore crushed into quartz and gravel, smelted into silicon and
+    /// Solar cells walk the whole chain (0057): asteroid ore crushed into quartz and gravel, smelted into silicon and
     /// glass at the smelter, both with wire into solar cells at the circuit assembler, which salvaged circuits build.
-    /// Without the assembler, the smelter or the crusher, neither a cell nor a panel; circuits still come from salvage.
+    /// Without the assembler, the smelter or the crusher, no cell; circuits still come from salvage.
     /// </summary>
     [Fact]
-    public void SolarCellsAndTheSolarPanelAreReachableOnlyThroughTheAssemblerTheSmelterAndTheCrusher()
+    public void SolarCellsAreReachableOnlyThroughTheAssemblerTheSmelterAndTheCrusher()
     {
-        var (had, known) = Reachable(Stations.All);
-        Assert.Contains("solarCell", had);
-        Assert.Contains("solarPanel", known);
+        Assert.Contains("solarCell", Reachable(Stations.All).Items);
         Assert.Contains("solarCell", Machines.Get("solarPanel").Cost.Select(c => c.Item));
         foreach (var without in new[] { "assembler", "smelter", "crusher" })
         {
@@ -698,5 +703,27 @@ public partial class ContentTests
             Assert.DoesNotContain("solarCell", some);
             Assert.Contains("circuit", some);
         }
+    }
+
+    /// <summary>
+    /// The photosensitive panel (2026-10-29-photo-panel) is had only of a solar panel taken apart: no debris, loot, smelt,
+    /// craft, growth or creature gives one. The wreck starts knowing the solar panel, so its own panel builds again, and no
+    /// second one.
+    /// </summary>
+    [Fact]
+    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTheWreckKnowsTheSolarPanel()
+    {
+        Assert.Equal(["photoPanel"], WrecksOwn);
+        Assert.Contains(("photoPanel", 1), Machines.Get("solarPanel").Cost);
+        Assert.Contains("solarPanel", Content.Research.StartKnown);
+        var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item)
+            .Concat(DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item))
+            .Concat(Content.Items.All.SelectMany(i => (i.Yields ?? []).Select(y => y.Item).Concat((i.Byproducts ?? []).Select(b => b.Item))))
+            .Concat(Crafts.All.Select(c => c.Item))
+            .Concat(Flora.Every.SelectMany(k => k.Yields).Select(y => y.Item))
+            .Concat(Content.Creatures.All.SelectMany(s => s.Yields).Select(y => y.Item));
+        Assert.DoesNotContain("photoPanel", given);
+        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
+        Assert.Equal(["solarPanel"], recipes.Where(r => r.Cost.Any(c => c.Item == "photoPanel")).Select(r => r.Id));
     }
 }
