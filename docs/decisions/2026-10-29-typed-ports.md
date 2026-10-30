@@ -41,3 +41,9 @@ water port from an air one. More fluids will follow, so the rule has to grow by 
   Rebuilding in place a machine whose port held such a span is refused until the span is cut.
 - **Flow direction:** way is a rule for laying and placing; air fills a network as before.
 - **A player's own span not yet applied** is not seen by their lit ports or ghost: pipes are not predicted. The sim decides.
+- **A machine's output piped to its own input** is allowed and never lit; water decides whether it means anything.
+- **A blueprint planned on a bare joint** later piped so it no longer fits waits at its last `Work` until the pipe is cut.
+- **The cistern holds nothing yet.** Water itself comes next: the `water` item (a glass bottle), ice melted into it at the
+  furnace and the smelter, a bottle loaded into the cistern, which then passes it on, and the electrolyser (three glass
+  columns: water in, air out). It is the first machine with ports of two fluids, so it is the first to test
+  `SeatProblem`'s rule on two of a machine's own ports on one line, and Atmosphere then reads only air ports.
