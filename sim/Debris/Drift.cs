@@ -9,10 +9,12 @@ namespace Stillwake.Sim.Debris;
 /// </summary>
 public sealed partial class DebrisModule
 {
-    /// <summary>The columns and rows the hull spans, every cell with a structure in it; null for none.</summary>
+    /// <summary>The columns and rows the hull spans, every cell with a structure in it but a vessel's (generated-vessels); null for none.</summary>
     private (int Left, int Right, int Top, int Bottom)? _hull;
     /// <summary>The grid's <c>Version</c> <see cref="_hull"/> was found at: found again only when it moves.</summary>
     private int _hullAt = int.MinValue;
+    /// <summary>The vessel's box <see cref="_hull"/> was found without: a new one finds it again whole.</summary>
+    private Box? _hullWithout;
     /// <summary>Where each hero on the grid is this tick, by its reported cell, in id order; refilled every tick.</summary>
     private readonly List<(int X, int Y)> _heroes = [];
 
@@ -35,23 +37,30 @@ public sealed partial class DebrisModule
     {
         if (_grid.Version == _hullAt) return _hull;
         // Followed by the grid's log (0051): only a structure cell emptied on the box's edge makes it look again, and then at that edge's lines.
-        var changes = _hullAt == int.MinValue ? null : _grid.ChangedSince(_hullAt);
+        var changes = _hullAt == int.MinValue || _grid.Reserved != _hullWithout ? null : _grid.ChangedSince(_hullAt);
         _hull = changes == null ? HullOf() : Follow(_hull, changes);
-        _hullAt = _grid.Version;
+        (_hullAt, _hullWithout) = (_grid.Version, _grid.Reserved);
         return _hull;
+    }
+
+    /// <summary>Whether <paramref name="cell"/> holds a structure of the ship's: any but a vessel's (generated-vessels), which the stream passes by.</summary>
+    private bool IsHull(int cell)
+    {
+        if (_grid.StructureLayer[cell] == Structure.Empty) return false;
+        int width = _grid.Width;
+        return _grid.Reserved is not { } box || !box.Contains(cell % width, cell / width);
     }
 
     /// <summary><paramref name="hull"/> after <paramref name="changes"/>: grown over every structure come, its edges moved in past lines left empty.</summary>
     private (int Left, int Right, int Top, int Bottom)? Follow((int Left, int Right, int Top, int Bottom)? hull, IReadOnlyList<CellChange> changes)
     {
-        var structure = _grid.StructureLayer;
         int width = _grid.Width;
         bool edge = false;
         foreach (var change in changes)
         {
             if ((change.Layers & GridLayers.Structure) == 0) continue;
             int x = change.Cell % width, y = change.Cell / width;
-            if (structure[change.Cell] != Structure.Empty)
+            if (IsHull(change.Cell))
                 hull = hull is { } h ? (Math.Min(h.Left, x), Math.Max(h.Right, x), Math.Min(h.Top, y), Math.Max(h.Bottom, y)) : (x, x, y, y);
             else if (hull is { } h && (x == h.Left || x == h.Right || y == h.Top || y == h.Bottom))
                 edge = true;
@@ -62,22 +71,21 @@ public sealed partial class DebrisModule
     /// <summary><paramref name="box"/> with each edge moved in past every line of it holding no structure; null when none is left.</summary>
     private (int Left, int Right, int Top, int Bottom)? Tighten((int Left, int Right, int Top, int Bottom) box)
     {
-        var structure = _grid.StructureLayer;
         int width = _grid.Width;
         var (left, right, top, bottom) = box;
-        while (top <= bottom && !Any(structure, top * width + left, 1, right - left + 1)) top++;
-        while (bottom >= top && !Any(structure, bottom * width + left, 1, right - left + 1)) bottom--;
+        while (top <= bottom && !Any(top * width + left, 1, right - left + 1)) top++;
+        while (bottom >= top && !Any(bottom * width + left, 1, right - left + 1)) bottom--;
         if (top > bottom) return null;
-        while (!Any(structure, top * width + left, width, bottom - top + 1)) left++;
-        while (!Any(structure, top * width + right, width, bottom - top + 1)) right--;
+        while (!Any(top * width + left, width, bottom - top + 1)) left++;
+        while (!Any(top * width + right, width, bottom - top + 1)) right--;
         return (left, right, top, bottom);
     }
 
-    /// <summary>Whether any of <paramref name="count"/> cells from <paramref name="from"/>, <paramref name="step"/> apart, holds a structure.</summary>
-    private static bool Any(ReadOnlySpan<int> structure, int from, int step, int count)
+    /// <summary>Whether any of <paramref name="count"/> cells from <paramref name="from"/>, <paramref name="step"/> apart, holds a structure of the hull.</summary>
+    private bool Any(int from, int step, int count)
     {
         for (int i = 0, cell = from; i < count; i++, cell += step)
-            if (structure[cell] != Structure.Empty) return true;
+            if (IsHull(cell)) return true;
         return false;
     }
 
@@ -409,14 +417,13 @@ public sealed partial class DebrisModule
     /// </summary>
     internal (int Left, int Right, int Top, int Bottom)? HullOf()
     {
-        var structure = _grid.StructureLayer;
         int width = _grid.Width;
         var built = _grid.Built;
         (int Left, int Right, int Top, int Bottom)? hull = null;
         for (int y = built.Top; y <= built.Bottom; y++)
             for (int x = built.Left; x <= built.Right; x++)
             {
-                if (structure[y * width + x] == Structure.Empty) continue;
+                if (!IsHull(y * width + x)) continue;
                 hull = hull is { } h ? (Math.Min(h.Left, x), Math.Max(h.Right, x), h.Top, y) : (x, x, y, y);
             }
         return hull;

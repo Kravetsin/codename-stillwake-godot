@@ -26,9 +26,9 @@ found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056, 0060, 0066).
 ## Zones
 
 `Content.Debris.Zones`, in order, each a `DebrisZone` whose anchor says where it spawns and whose tiers give its kinds
-by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052). Numbers live in content.
+by weight by distance from the hull's box, `d = max(dx, 2·dy)` (`TierOf`, 0052).
 
-- **`ship`, the stream** (`ByHull`): past the ship, within the hull grown by `Lead` columns and `Margin` rows; the only
+- **`ship`, the stream** (`ByHull`): past the ship, within the hull (a vessel's left out) grown by `Lead` columns and `Margin` rows; the only
   zone with soil clods (0060).
 - **`far`, the far field** (`AroundHeroes`): round every hero outside every stream's box, from its reported cell (0050,
   0052); farther tiers bring bigger wrecks, derelicts and rich rock (0056).

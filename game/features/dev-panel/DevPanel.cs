@@ -12,6 +12,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Places;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Dev;
@@ -34,13 +35,21 @@ public partial class DevPanel : CanvasLayer
     private readonly Func<Session?> _session;
     private readonly Func<Registry> _modules;
     private readonly Func<string?> _link;
+    private readonly Func<int, bool> _teleport;
+    private readonly Func<bool> _back;
 
     private readonly PanelContainer _panel = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly Label _fps = Text(Style.Slate400), _status = Text(Style.Slate400);
     private readonly GridContainer _readings = new() { Columns = 2 };
     private readonly VBoxContainer _slices = new();
     private readonly HFlowContainer _sounds = Style.Gap(new HFlowContainer { Visible = false }, 4);
-    private readonly Button _speed, _creative, _instant, _items;
+    private readonly Button _speed, _creative, _instant, _items, _intact;
+    /// <summary>Whether a vessel summoned comes intact rather than wrecked by a breach.</summary>
+    private bool _intactOn;
+    /// <summary>A vessel asked for and found, but not jumped to yet: its class, intact or not, the last contact id before, and how long it has waited.</summary>
+    private (string Class, bool Intact, int After, double WaitedMs)? _summoning;
+    /// <summary>How long a summon waits for its contact before it gives up: a refused <c>Find</c> never brings one.</summary>
+    private const double SummonWaitMs = 3000;
     private readonly VBoxContainer _picker = Style.Gap(new VBoxContainer { Visible = false }, 4);
     private readonly LineEdit _search = new() { PlaceholderText = "find an item…", ContextMenuEnabled = false, CaretBlink = true, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
     private readonly Label _pickerNote = Text(Style.Amber400);
@@ -55,9 +64,11 @@ public partial class DevPanel : CanvasLayer
     /// <param name="session">The session this machine plays in now; none before it has one.</param>
     /// <param name="modules">The registry of the world it plays: a load or a resync brings a new one.</param>
     /// <param name="link">Where this machine stands on the network, in a line; none alone.</param>
-    public DevPanel(Func<Session?> session, Func<Registry> modules, Func<string?> link)
+    /// <param name="teleport">Moves this machine's hero to stand in a cell, keeping where it was; false when it stands nowhere yet.</param>
+    /// <param name="back">Moves it back where it was before; false when there is nowhere to go back to.</param>
+    public DevPanel(Func<Session?> session, Func<Registry> modules, Func<string?> link, Func<int, bool> teleport, Func<bool> back)
     {
-        (_session, _modules, _link) = (session, modules, link);
+        (_session, _modules, _link, _teleport, _back) = (session, modules, link, teleport, back);
         // Hidden until the backquote: it covers much of the screen, and players never need it.
         Visible = false;
         Layer = ScreenLayers.Dev;
@@ -94,6 +105,17 @@ public partial class DevPanel : CanvasLayer
         surfaces.AddChild(Style.Button("to ship", () => Send(new Transfer(0))));
         surfaces.AddChild(Style.Button("down", ToLast));
         column.AddChild(surfaces);
+        // A vessel beside the ship (generated-vessels): one of each class jumped to, wrecked or intact; this hero moved into it
+        // by its door, and back where it stood.
+        var summon = Style.Gap(new HBoxContainer(), 8);
+        foreach (var cls in Content.Vessels.Classes) summon.AddChild(Style.Button(cls.Id, () => Summon(cls.Id)));
+        summon.AddChild(_intact = Style.Button("intact", () => _intactOn = !_intactOn));
+        column.AddChild(summon);
+        var vessel = Style.Gap(new HBoxContainer(), 8);
+        vessel.AddChild(Style.Button("to vessel", ToVessel));
+        vessel.AddChild(Style.Button("back", Back));
+        vessel.AddChild(Style.Button("remove", Remove));
+        column.AddChild(vessel);
         column.AddChild(_status);
         Say("");
         _items = Toggle("▸ items", Style.Slate400);
@@ -264,6 +286,75 @@ public partial class DevPanel : CanvasLayer
     }
 
     /// <summary>
+    /// A vessel of <paramref name="cls"/> beside the ship (generated-vessels): a contact of it the radar holds jumped to at once,
+    /// else one found first and jumped to once it comes (<see cref="Summoning"/>). Aboard only.
+    /// </summary>
+    private void Summon(string cls)
+    {
+        if (_session() is not Session s) return;
+        if (s.Client.World.SurfaceOf(s.Client.Id) != 0)
+        {
+            Say("Vessels come beside the ship: go aboard first.");
+            return;
+        }
+        var contacts = _modules().Places.Contacts;
+        if (contacts.LastOrDefault(c => c.Class == cls) is { } held)
+        {
+            s.Client.Send(new Jump(held.Id, _intactOn));
+            Say("");
+            return;
+        }
+        s.Client.Send(new Find(cls));
+        _summoning = (cls, _intactOn, contacts.Count == 0 ? 0 : contacts.Max(c => c.Id), 0);
+        Say($"Finding a {cls}…");
+    }
+
+    /// <summary>Each frame while a summon waits: its contact come, the jump to it sent; none after a while, given up.</summary>
+    private void Summoning(double elapsedMs)
+    {
+        if (_summoning is not var (cls, intact, after, waited) || _session() is not Session s) return;
+        if (_modules().Places.Contacts.FirstOrDefault(c => c.Class == cls && c.Id > after) is { } found)
+        {
+            s.Client.Send(new Jump(found.Id, intact));
+            _summoning = null;
+            Say("");
+            return;
+        }
+        _summoning = (cls, intact, after, waited + elapsedMs);
+        if (waited + elapsedMs < SummonWaitMs) return;
+        _summoning = null;
+        Say("No contact came: is the radar full?");
+    }
+
+    /// <summary>Moves this hero into the vessel beside the ship, just inside its door (<see cref="VesselDoor"/>); says so when no vessel is out.</summary>
+    private void ToVessel()
+    {
+        if (_session() is null) return;
+        if (VesselDoor.Inside(_modules().Grid) is not int cell)
+        {
+            Say("No vessel out: start with --vessel.");
+            return;
+        }
+        Say(_teleport(cell) ? "" : "The hero stands nowhere yet.");
+    }
+
+    /// <summary>Takes the vessel beside the ship away (<c>places</c>' <c>Dismiss</c>); says so when none is out.</summary>
+    private void Remove()
+    {
+        if (_session() is not Session s) return;
+        if (_modules().Grid.Reserved == null)
+        {
+            Say("No vessel out.");
+            return;
+        }
+        s.Client.Send(new Dismiss());
+        Say("");
+    }
+
+    /// <summary>Moves this hero back where it stood before the last move to a vessel; says so when there is nowhere to go back to.</summary>
+    private void Back() => Say(_back() ? "" : "Nowhere to go back to on this surface.");
+
+    /// <summary>
     /// Hits a random wall of the outer hull beside a room, where a meteor would, if any is left, and the wall cell behind it
     /// away from the room: a hull two cells thick (0104) is breached through.
     /// </summary>
@@ -319,6 +410,7 @@ public partial class DevPanel : CanvasLayer
 
     public override void _Process(double delta)
     {
+        Summoning(delta * 1000);
         if (!Visible) return;
         _sinceRead += delta * 1000;
         if (_sinceRead < RefreshMs) return;
@@ -352,6 +444,7 @@ public partial class DevPanel : CanvasLayer
         Style.Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
         bool instant = m.Building.Instant;
         Style.Paint(_instant, instant ? Style.Amber700 : Style.Slate700, instant ? Amber600 : Style.Slate600);
+        Style.Paint(_intact, _intactOn ? Style.Amber700 : Style.Slate700, _intactOn ? Amber600 : Style.Slate600);
         ShowSlices(client.World, client.World.SurfaceOf(client.Id), m);
     }
 

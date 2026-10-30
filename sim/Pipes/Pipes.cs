@@ -232,6 +232,9 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         if (a < 0 || b < 0 || a >= size || b >= size) return "pipes.offGrid";
         if (a == b) return "pipes.sameCell";
         var zone = _grid.Zone;
+        // No one builds in a vessel's box (generated-vessels); a span is too short to cross one.
+        if (_grid.Reserved is { } vessel && (vessel.Contains(a % _grid.Width, a / _grid.Width) || vessel.Contains(b % _grid.Width, b / _grid.Width)))
+            return "grid.reserved";
         if (!zone.Contains(a % _grid.Width, a / _grid.Width) || !zone.Contains(b % _grid.Width, b / _grid.Width)) return "pipes.outsideZone";
         int length = LengthOf(_grid.Width, a, b);
         if (length > Content.Piping.MaxSpan) return "pipes.tooLong";

@@ -31,7 +31,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   interval is drawn again.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
-  met first shields its row.
+  met first shields its row. A vessel's box is passed over: no vessel shields the ship (generated-vessels).
 - **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Armour` (wall-roles: scrap 2,
   iron 5), a blast of `Charge(power)` spreads from it as a wave, cheapest way first: a cell costs `Meteors.Step` (aslant
   `Diagonal`), a wall `PerStrength` a point of its armour more, and breaks; what is left goes on, so walls soak it. It goes

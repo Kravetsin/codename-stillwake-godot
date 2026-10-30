@@ -16,6 +16,9 @@ public static partial class En
         ["grid.noGround"] = "Needs flat ground under it",
         ["grid.underPlatform"] = "Not under a launch platform: the pod falls through here",
         ["grid.shaftBlocked"] = "Must be empty under it, down to the edge",
+        ["grid.reserved"] = "Another ship lies here: nothing is built on it",
+        // A vessel is written only inside its own box: the sim's bug if ever seen.
+        ["grid.outsideReserved"] = "Outside the other ship",
         // Not in the TypeScript: its types kept a placement to the layers there are.
         ["grid.noSuchLayer"] = "No such layer",
         ["grid.noDoor"] = "There is no door here",

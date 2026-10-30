@@ -75,9 +75,9 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 ## Commands
 
 `Lay(A, B)`, paid from the sender (`Content.Power.CableCost`; creative mode pays nothing and gets nothing back):
-`power.notAboard` (0110), `power.noNode`, `power.sameNode`, `power.tooLong`, `power.twice`, `items.notEnough`.
+`power.notAboard` (0110), `power.noNode`, `grid.reserved` (a vessel's), `power.sameNode`, `power.tooLong`, `power.twice`, `items.notEnough`.
 `Cut(A, B)` gives back what was paid: `power.noCable`, `items.full`. `Move(Node, To, Cable?)`: `power.notAboard`,
-`power.noCable`, `power.noNode`, `power.sameNode`, `power.twice`, `power.taut` (0021). `From` is the sender.
+`power.noCable`, `power.noNode`, `grid.reserved`, `power.sameNode`, `power.twice`, `power.taut` (0021). `From` is the sender.
 
 ## Invariants
 

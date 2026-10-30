@@ -36,6 +36,8 @@ public sealed class GridState
     /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
+    /// <summary>The box a vessel was written into (generated-vessels): no one builds in it; null for none.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal Box? Reserved { get; set; }
     /// <summary>Derived: the id of the machine covering each cell, 0 for none.</summary>
     [JsonIgnore] internal int[] Occupancy { get; set; } = [];
     /// <summary>Derived: every machine by its id; only looked up.</summary>
@@ -75,8 +77,10 @@ public interface IGridQueries
     /// when nothing is: every cell outside it is empty space. Kept tight by every change, never saved.
     /// </summary>
     Box Built { get; }
-    /// <summary>The build zone (0048): nothing is placed outside it. The whole grid for a map that sets none.</summary>
+    /// <summary>The build zone (0048): nothing is placed outside it but by <see cref="IGridOps.Lay"/>. The whole grid for a map that sets none.</summary>
     Box Zone { get; }
+    /// <summary>The box a vessel was written into (generated-vessels), where nothing is built; null for none.</summary>
+    Box? Reserved { get; }
     ReadOnlySpan<int> StructureLayer { get; }
     /// <summary>Each cell's wall material code (<c>Materials</c>), 0 where no wall stands.</summary>
     ReadOnlySpan<int> MaterialLayer { get; }
@@ -149,6 +153,13 @@ public interface IGridOps
 {
     void Place(int cell, Placement placement);
     void Clear(int cell, string layer);
+    /// <summary>Sets the box a vessel is written into, or none (generated-vessels). Only Places calls it.</summary>
+    void Reserve(Box? box);
+    /// <summary>
+    /// <see cref="Place"/> inside the reserved box, the zone not asked: how a vessel is written. A cell or footprint outside the
+    /// box, or any other problem, throws. Only Places calls it.
+    /// </summary>
+    void Lay(int cell, Placement placement);
     /// <summary>
     /// Opens or shuts the doorway <paramref name="cell"/> is in as <see cref="SetDoor"/> does: a launch platform's, which only its
     /// module opens, with power (Landing). The caller checks it is a doorway.
@@ -384,6 +395,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     public int Version => State.Version;
     public Box Built => State.Built;
     public Box Zone => State.Zone;
+    public Box? Reserved => State.Reserved;
     public ReadOnlySpan<int> StructureLayer => State.Structure;
     public ReadOnlySpan<int> MaterialLayer => State.Material;
     public ReadOnlySpan<int> BackLayer => State.Back;
@@ -449,6 +461,26 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
     private bool InZone(int cell) => State.Zone.Contains(cell % State.Width, cell / State.Width);
+    private bool InReserved(int cell) => State.Reserved is { } box && box.Contains(cell % State.Width, cell / State.Width);
+
+    /// <summary>
+    /// Why <paramref name="cells"/> may not be built on: <c>grid.reserved</c> for one in the reserved box, before
+    /// <c>grid.outsideZone</c> for one outside the zone; written by <paramref name="laid"/>, any outside the box.
+    /// </summary>
+    private string? Outside(IReadOnlyList<int> cells, bool laid)
+    {
+        if (!laid && State.Reserved != null)
+            foreach (int c in cells)
+                if (InReserved(c)) return "grid.reserved";
+        foreach (int c in cells)
+            if (Outside(c, laid) is { } why) return why;
+        return null;
+    }
+
+    private string? Outside(int cell, bool laid) =>
+        laid ? (InReserved(cell) ? null : "grid.outsideReserved")
+        : InReserved(cell) ? "grid.reserved"
+        : InZone(cell) ? null : "grid.outsideZone";
     private bool IsDoorway(int[] structure, int cell) => InBounds(cell) && Doorways.IsDoorway(structure[cell]);
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
@@ -559,17 +591,20 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         _todo.Push(cell);
     }
 
-    public string? PlacementProblem(int cell, Placement p)
+    public string? PlacementProblem(int cell, Placement p) => Problem(cell, p, laid: false);
+
+    /// <summary>Why <paramref name="p"/> may not go at <paramref name="cell"/>: built inside the zone and out of the reserved box, or <paramref name="laid"/> inside the box.</summary>
+    private string? Problem(int cell, Placement p, bool laid)
     {
         if (!InBounds(cell)) return "grid.outOfBounds";
-        if (!InZone(cell)) return "grid.outsideZone";
+        if (Outside(cell, laid) is { } outside) return outside;
         switch (p.Layer)
         {
             case "structure":
                 // A piece (a ladder, a door segment, 0104) needs every cell it covers as one cell needs its own.
                 IReadOnlyList<int>? covers = Builds.PieceOf(p.Kind) == null ? [cell] : Footprint(p.Kind, cell);
                 if (covers == null) return "grid.outOfBounds";
-                if (!covers.All(InZone)) return "grid.outsideZone";
+                if (Outside(covers, laid) is { } away) return away;
                 if (covers.Any(c => State.Structure[c] != Structure.Empty)) return "grid.occupied";
                 if (covers.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 if (Structures.ByBuild(p.Kind)?.Has(Trait.Terrain) == true && !Materials.TryGet(p.Material ?? "", out _)) return "grid.noSuchMaterial";
@@ -581,7 +616,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (!Content.Machines.TryGet(p.Kind, out _)) return "grid.noSuchMachine";
                 var cells = Footprint(p.Kind, cell);
                 if (cells == null) return "grid.outOfBounds";
-                if (!cells.All(InZone)) return "grid.outsideZone";
+                if (Outside(cells, laid) is { } off) return off;
                 if (cells.Any(c => State.Structure[c] != Structure.Empty)) return "grid.blocked";
                 if (cells.Any(c => State.Occupancy[c] != 0)) return "grid.machineInTheWay";
                 if (cells.Any(UnderPlatform)) return "grid.underPlatform";
@@ -667,10 +702,21 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return State.Structure[c] == Structure.Empty && State.Back[c] == Back.None && State.Occupancy[c] == 0;
     }
 
-    public void Place(int cell, Placement p)
+    public void Place(int cell, Placement p) => Put(cell, p, laid: false);
+
+    public void Lay(int cell, Placement p) => Put(cell, p, laid: true);
+
+    public void Reserve(Box? box)
     {
-        var problem = PlacementProblem(cell, p);
-        if (problem != null) throw new InvalidOperationException($"grid.place at {cell}: {problem}");
+        if (State.Reserved == box) return;
+        State.Version++;
+        State.Reserved = box;
+    }
+
+    private void Put(int cell, Placement p, bool laid)
+    {
+        var problem = Problem(cell, p, laid);
+        if (problem != null) throw new InvalidOperationException($"grid.{(laid ? "lay" : "place")} at {cell}: {problem}");
         State.Version++;
         Grow(cell);
         switch (p.Layer)

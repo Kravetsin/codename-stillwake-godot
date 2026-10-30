@@ -210,10 +210,13 @@ public sealed partial class HazardsModule : Module<HazardsState>
         int width = _grid.Width;
         int top = Math.Max(built.Top, zone.Top), bottom = Math.Min(built.Bottom, zone.Bottom);
         int left = Math.Max(built.Left, zone.Left), right = Math.Min(built.Right, zone.Right);
+        var vessel = _grid.Reserved;
         for (int y = top; y <= bottom; y++)
             for (int x = right; x >= left; x--)
             {
                 int cell = y * width + x;
+                // A vessel ahead is no shield (generated-vessels): meteors aim at the ship past it.
+                if (vessel is { } box && box.Contains(x, y)) continue;
                 if (_grid.StructureAt(cell) == Structure.Empty && _grid.MachineAt(cell) == null) continue;
                 if (HitProblem(cell) == null) _targets.Add(cell);
                 break;
