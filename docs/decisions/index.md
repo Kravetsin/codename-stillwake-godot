@@ -160,4 +160,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [kills-crumble](2026-10-29-kills-crumble.md) | Kills crumble into pixels | accepted |  |
 | [meteor-wave](2026-10-29-meteor-wave.md) | A meteor's blast is a wave walls soak up | accepted |  |
 | [stamped-and-assembled](2026-10-29-stamped-and-assembled.md) | Stamped and assembled; circuits found are rare | accepted |  |
+| [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |

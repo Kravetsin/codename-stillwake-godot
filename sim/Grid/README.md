@@ -42,7 +42,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   `BackLayer`, `BackMaterialLayer`); `StructureAt`, `WallAt` / `BackAt` (the `Material`, null for none), `GrownBack` (0084).
 - **Traits per cell:** `Blocks`, `Supports`, `Climbable`, `Seals`, `BlocksLight`, and `Solid` (blocks or supports); past
   the grid everything blocks and is solid, nothing else. Code-only callers read `Structures.Is(code, trait)`.
-- **Machines:** `MachineAt`, `MachineById`, `Machines`, `MachinesWith(trait)` (one `MachineTrait`, id order: what a system walks, 0113), `MachinesOf(kind)` (id order: one kind's own rule, the analyzer's), `PortsOf(machine)` (0109).
+- **Machines:** `MachineAt`, `MachineById`, `Machines`, `MachinesWith(trait)` (one `MachineTrait`, id order: what a system walks, 0113), `MachinesOf(kind)` (id order: one kind's own rule, the analyzer's), `PortsOf(machine)` (0109), `PortAt(cell)` (its way and fluid, typed-ports).
 - **Pieces:** `Footprint(kind, cell)` — what a machine or piece would cover from that top-left, null when it does not fit;
   `PieceOf(cell)` — the cells taken apart with it: its build's piece, columns paired from its row's run of the same (a
   doorway's group), rows from its column's top; any other structure its own cell.

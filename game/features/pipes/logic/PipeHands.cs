@@ -11,7 +11,8 @@ namespace Stillwake.Game.Features.Pipes;
 /// The hands at work on pipes, the plan piping (0109): a left drag lays a span from the cell pressed to the cell let go,
 /// a machine's cell standing for its nearest port; a right press takes the span nearest it away; with the menu's valve card
 /// (0110) the buttons make and take valves instead. While dragging, the span runs from its start to the pointer in the
-/// colour of what the sim would say, its reason beside it. Plain C#: <c>PipesOverlay</c> draws what it leaves here.
+/// colour of what the sim would say, its reason beside it, and the ports it may end at are lit (2026-10-29-typed-ports). Plain C#:
+/// <c>PipesOverlay</c> draws what it leaves here.
 /// </summary>
 public sealed class PipeHands
 {
@@ -19,9 +20,16 @@ public sealed class PipeHands
     public const double CutReach = 0.7;
 
     private int? _from;
+    private (int Start, int Pipes, int Grid)? _litAt;
 
     /// <summary>The span being laid, its ends' cells, and why it may not be laid as it is; null while none is.</summary>
     public (int From, int To, string? Why)? Laying { get; private set; }
+
+    /// <summary>
+    /// While a span is laid, the ports it may end at: every port the sim's <c>FluidProblem</c> lets it reach from its start, but the
+    /// start's machine's own. Length and cost light nothing off. Found as the drag starts and again when the pipes or the grid move.
+    /// </summary>
+    public IReadOnlyList<int> Lit { get; private set; } = [];
 
     /// <summary>The cell a press at <paramref name="at"/>, in cells, works on: a machine's nearest port on its cells, else the cell; -1 off the grid.</summary>
     public static int CellAt(IGridQueries grid, (double X, double Y) at)
@@ -90,6 +98,8 @@ public sealed class PipeHands
             if (_from is int start && cell >= 0 && cell != start && pipes.LayProblem(peer, start, cell) == null) send(new LayPipe(start, cell));
             _from = null;
         }
+        if (_from is int lit) Lit = LitFrom(lit, grid, pipes);
+        else (Lit, _litAt) = ([], null);
         Laying = _from is int from && pointer is { } p && CellAt(grid, p) is var to and >= 0
             ? (from, to, to == from ? null : pipes.LayProblem(peer, from, to))
             : null;
@@ -100,5 +110,18 @@ public sealed class PipeHands
     public PipeSpan? Hovered { get; private set; }
 
     /// <summary>Lets go of whatever is held: piping left mid-drag.</summary>
-    public void Release() => (_from, Laying, Hovered) = (null, null, null);
+    public void Release() => (_from, Laying, Hovered, Lit, _litAt) = (null, null, null, [], null);
+
+    private IReadOnlyList<int> LitFrom(int start, IGridQueries grid, IPipesQueries pipes)
+    {
+        if (_litAt == (start, pipes.Version, grid.Version)) return Lit;
+        _litAt = (start, pipes.Version, grid.Version);
+        int? own = grid.MachineAt(start)?.Id;
+        var lit = new List<int>();
+        foreach (var machine in grid.Machines)
+            if (machine.Id != own)
+                foreach (int port in grid.PortsOf(machine))
+                    if (pipes.FluidProblem(start, port) == null) lit.Add(port);
+        return lit;
+    }
 }

@@ -4,7 +4,7 @@ namespace Stillwake.Content;
 
 /// <summary>A machine: what it costs, its footprint, and what it does with power and items.</summary>
 /// <param name="Width">Footprint in cells, from the machine's top-left cell: twice what a map draws it, a character a 16 px cell (0104).</param>
-/// <param name="Ports">Where pipes connect, as offsets inside the footprint; none for a crate.</param>
+/// <param name="Ports">Where pipes connect, inside the footprint, each its way and fluid; none for a crate.</param>
 /// <param name="Cost">Whole units of items it takes from its builder, and gives back when taken apart.</param>
 /// <param name="BuildTicks">Ticks of a hero's work to build it.</param>
 /// <param name="Makes">
@@ -58,7 +58,7 @@ public sealed record MachineSpec(
     string Kind,
     int Width,
     int Height,
-    IReadOnlyList<(int X, int Y)> Ports,
+    IReadOnlyList<Port> Ports,
     IReadOnlyList<(string Item, int Count)> Cost,
     int BuildTicks,
     int? Makes = null,
@@ -132,10 +132,10 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [(0, 2)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
-        new("generator", 4, 4, [(0, 2)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("generator", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
-        new("vent", 2, 2, [(0, 0)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
+        new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
         new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
