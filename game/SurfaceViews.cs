@@ -66,6 +66,8 @@ public static class SurfaceViews
         new(c => new Features.Creatures.ShotsView(c.M, c.Progress, c.Peer, c.Tick, c.Hosts)),
         // Meteors seen coming and striking the hull, where its place has them (2026-10-28-hull-meteors).
         new(c => c.M.Rules.Meteors != null ? new Features.Hazards.MeteorView(c.M.Grid, c.M.Hazards, c.Progress, c.Tick) : null),
+        // A magnetic flare's aurora over the stars and its flash, wherever one may strike: by hand on any surface (magnetic-flare).
+        new(c => new Features.Hazards.AuroraView(c.M.Hazards, c.Progress, c.Tick)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
         // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.

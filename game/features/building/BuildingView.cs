@@ -396,7 +396,8 @@ public partial class BuildingView : Node2D
     /// Beside the pointer (<see cref="Ui.CostTip"/>), what the blueprint at <paramref name="cell"/> builds and,
     /// row by row, what this player carries against what it still needs, counting down a part at a time as it
     /// is paid, while it lacks something (once all is paid the plan, real all over, says the rest); else what a
-    /// mark there takes down and what that gives back (<see cref="BuildingModule.RefundOf"/>); nothing anywhere else.
+    /// mark there takes down and what that gives back (<see cref="BuildingModule.RefundOf"/>); else a broken machine's repair
+    /// cost till it is paid (<see cref="BuildingModule.RepairCost"/>); nothing anywhere else.
     /// </summary>
     private void ShowTray(int? cell, IGridQueries grid, BuildingModule building)
     {
@@ -408,6 +409,10 @@ public partial class BuildingView : Node2D
         else if (plans.FirstOrDefault(p => p.Clear != null) is { Clear: { } layer } mark && building.RefundOf(mark.Id) is { } refund
             && Tools.BuiltAt(MarkedAt(grid, mark), layer, grid) is { } built)
             tip = new MarkTip(built, refund).Tip;
+        // A broken machine not yet paid for: what it is and what the repair takes against what is carried, as a blueprint's (magnetic-flare).
+        else if (cell is int at && grid.MachineAt(at) is { } machine && building.RepairProgress(machine.Id) is (0, _)
+            && building.RepairCost(machine.Id) is { } repair)
+            tip = new PlanTip(new Placement("machine", machine.Kind), CostLine.Lacking(repair, [], _ui.Carried)).Tip;
         _ui.CostTip.Set(tip);
     }
 

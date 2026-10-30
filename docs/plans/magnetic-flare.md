@@ -11,8 +11,8 @@ The mechanic's next users, named so this plan leaves room for them and builds no
 walls** (both shrink the set a flare picks from), and **stronger flares in harder places** (a stronger record on their
 surface kind).
 
-**Order and PRs.** F-1 is the sim, with its dev command and tests; F-2 the client, with the admin button. Each is its own
-branch and PR, F-1 merged first.
+**Order and PRs.** F-1 is the sim, with its dev command and tests; F-2 the client, with the admin button. Both go in one
+branch and one PR (the user's call: the feature lands whole, seen in the game).
 
 **Words.** A *flare* is the event (`MagneticFlares.Flare` is its numbers, a record, not the event); its *warning* the ticks
 from the aurora to the strike; *broken* a machine a flare has stopped; *repair* the work that mends it. *Electric* is

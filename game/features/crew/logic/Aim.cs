@@ -18,8 +18,11 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>Something E does: the command it sends, and why the sim would refuse it, if it would.</summary>
 public sealed record Use(Command Command, string? Problem);
 
-/// <summary>A plan the left button works on, and why the sim would refuse it.</summary>
-public sealed record WorkAim(int Plan, string? Problem);
+/// <summary>
+/// A plan the left button works on, and why the sim would refuse it; or, with <c>Repair</c>, the broken machine it repairs
+/// (magnetic-flare), <c>Plan</c> then unused.
+/// </summary>
+public sealed record WorkAim(int Plan, string? Problem, int? Repair = null);
 
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
@@ -231,6 +234,9 @@ public static class Aiming
             .ToList();
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
         var machine = grid.MachineAt(cell);
+        // A broken machine with no plan on it is repaired; a mark on it wins, so it is taken apart (magnetic-flare).
+        if (work == null && machine != null && m.Power.IsBroken(machine.Id))
+            work = new WorkAim(0, m.Building.RepairProblem(machine.Id, peer), machine.Id);
         int? crate = machine != null && Opens(machine.Kind) ? machine.Id : null;
         // A drop pod is boarded on E, and its slot opens as the hero sits (Landing): the press and the panel both.
         var press = machine != null && Spec.Machines.Is(machine.Kind, Spec.MachineTrait.Seats)
@@ -485,7 +491,7 @@ public static class Aiming
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;
         int due = fresh ? 1 : Math.Min(tick - workedOnTick, MaxWorkPerFrame);
-        for (int i = 0; i < due * pace; i++) commands.Add(new Work(work.Plan));
+        for (int i = 0; i < due * pace; i++) commands.Add(work.Repair is int machine ? new Repair(machine) : new Work(work.Plan));
         return new(commands, null, due > 0 ? tick : workedOnTick);
     }
 }

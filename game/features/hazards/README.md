@@ -4,11 +4,15 @@
 
 | File | Purpose |
 | --- | --- |
+| `AuroraView.cs` | A magnetic flare coming and striking: the aurora over the stars, then the white flash over the world. |
 | `MeteorView.cs` | A meteor flying in and striking the hull: the rock and its trail, then the blast's ring, chunks, dust and sound. |
+| `logic/FlareLook.cs` | How a flare is seen, as numbers: its warning's run, the lamps' share, the cables' glow, the flash. |
 
 Meteors seen ([hull-meteors](../../../docs/decisions/2026-10-28-hull-meteors.md),
 [meteor-blast](../../../docs/decisions/2026-10-28-meteor-blast.md), [meteor-wave](../../../docs/decisions/2026-10-29-meteor-wave.md)): drawn only, from the sim's `HazardsModule.Incoming`, read
-once a tick. Made only where the surface's kind has a shower (`SurfaceViews`).
+once a tick. Made only where the surface's kind has a shower (`SurfaceViews`). Magnetic flares seen
+([magnetic-flare](../../../docs/decisions/2026-10-30-magnetic-flare.md)): from `FlareComing` and `FlareLeft`, on every
+surface, for the dev panel strikes one anywhere.
 
 ## Rules
 
@@ -25,8 +29,16 @@ once a tick. Made only where the surface's kind has a shower (`SurfaceViews`).
   the way it came, a glint, a small ring and a flash.
 - `-- --meteors` plays the new game's wreck with its first meteor seen coming at once; `--meteors=N` gives it power N (1
   shows a held hit on scrap).
+- **A flare's warning** (`FlareLook.Near`, 0 to 1): an aurora's two curtains of rays over the stars on their own canvas
+  layer, under the world, so seen only where it is open to space; green along the hem, violet up the folds, from a
+  quarter strong to whole at the strike. The lamps falter (`FlareLook.LampShare`, through `LightView`'s flicker, set in
+  `Main`) and the cables glow (`PowerView`).
+- **A flare's strike**, as its warning ends: a pale white flash over the world (`ScreenLayers.FlareFlash`), fading in
+  `FlareLook.FlashMs`, the curtains fading with it. What it broke is shown by `power` (dimmed, sparking).
+- `-- --flare` plays the new game's wreck with a flare's warning begun at once.
 
 ## Deliberately not handled
 
 - No warning but the rock: no sound before the strike, no mark on the wall it will hit.
 - Chunks fly through walls, and are looks only: nothing thrown lands as items.
+- A flare makes no sound; a client joining between its strike and the next frame misses the flash.

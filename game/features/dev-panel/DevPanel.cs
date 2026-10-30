@@ -84,6 +84,8 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(_creative = Style.Button("creative", ToggleCreative));
         buttons.AddChild(_instant = Style.Button("instant", ToggleInstant));
         buttons.AddChild(Style.Button("meteor", Meteor));
+        // A magnetic flare from its aurora, its whole warning first (magnetic-flare).
+        buttons.AddChild(Style.Button("flare", () => Send(new Sim.Hazards.FlareNow(_modules().Hazards.FlareRules.Warning))));
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
