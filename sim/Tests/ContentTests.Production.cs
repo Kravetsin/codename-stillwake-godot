@@ -408,11 +408,11 @@ public partial class ContentTests
         Assert.DoesNotContain("dropPod", known);
     }
 
-    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing.</summary>
+    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing. Soil is dug, its craft for a ship with no ground.</summary>
     [Fact]
     public void EveryPricedCraftAndYieldSellsForMoreThanItsPricedInputs()
     {
-        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null))
+        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null && c.Item != "soil"))
         {
             int inputs = craft.Cost.Sum(c => (Market.PriceOf(c.Item) ?? 0) * c.Count);
             Assert.True(Market.PriceOf(craft.Item) > inputs, $"{craft.Item}: {Market.PriceOf(craft.Item)} for {inputs}");
@@ -420,6 +420,8 @@ public partial class ContentTests
         foreach (var item in Content.Items.All.Where(i => i.Yields != null && Market.PriceOf(i.Id) != null))
         {
             int yields = item.Yields!.Sum(y => (Market.PriceOf(y.Item) ?? 0) * y.Count);
+            // A byproduct pays what it does on average: crushing ore pays by its quartz, gravel now being cheap.
+            yields += item.Byproducts?.Sum(b => (Market.PriceOf(b.Item) ?? 0) * b.Min / (b.OneIn ?? 1)) ?? 0;
             if (yields > 0) Assert.True(yields > Market.PriceOf(item.Id) * item.SmeltTakes, $"{item.Id}: {item.SmeltTakes} at {Market.PriceOf(item.Id)} yield {yields}");
         }
     }
@@ -482,6 +484,9 @@ public partial class ContentTests
     [Fact]
     public void AStepIsWorthItsInputsAndTimeMarkedUpPerUnitRoundedUp()
     {
+        // What the ground gives for a swing is worth next to nothing, whatever a recipe would make of it.
+        Assert.Equal(1, Market.PriceOf("soil"));
+        Assert.Equal(1, Market.PriceOf("rock"));
         Assert.Equal(20, Market.WorthOf("scrapChunk"));
         Assert.Equal(8, Market.WorthOf("scrap")); // (20 + 3) x 1.25 / 4 = 7.19
         Assert.Equal(22, Market.WorthOf("wire")); // (2 x 8 + 1.5) x 1.25 = 21.875
