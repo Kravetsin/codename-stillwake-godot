@@ -62,16 +62,16 @@ public class ResearchTests
     }
 
     [Fact]
-    public void BuysABlockSpendingItsPriceAndKnowingAllItOpens()
+    public void BuysABlockSpendingItsPriceAndKnowingWhatItOpensAlone()
     {
         var nail = Node("nail");
         var w = SetUp(credits: Prices.Of(nail) + 2, reach: "nail");
-        Assert.False(w.M.Research.Knows("nailer"));
+        Assert.False(w.M.Research.Knows("nail"));
         w.Do(new BuyBlock("nail")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(2, w.M.Research.Credits);
-        Assert.Contains("nailer", nail.Opens);
-        Assert.All(nail.Opens, o => Assert.True(w.M.Research.Knows(o), o));
+        Assert.True(w.M.Research.Knows("nail"));
+        Assert.False(w.M.Research.Knows("nailer"));
         Assert.True(w.M.Research.Done(nail));
     }
 
@@ -103,7 +103,7 @@ public class ResearchTests
     [Fact]
     public void ABlockKnownBeyondAShutGateIsBoughtNotLocked()
     {
-        var w = SetUp(credits: 100, known: Node("coil").Opens);
+        var w = SetUp(credits: 100, known: ["coil"]);
         w.Do(new BuyBlock("coil")).Run();
         Assert.Equal(["research.bought"], w.Refusals.Select(r => r.Reason));
         Assert.Equal(100, w.M.Research.Credits);

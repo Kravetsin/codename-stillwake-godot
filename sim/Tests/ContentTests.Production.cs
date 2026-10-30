@@ -360,7 +360,7 @@ public partial class ContentTests
             {
                 if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
                 more |= done.Add(node.Id);
-                foreach (string id in node.Opens) more |= known.Add(id);
+                if (!node.Gate) more |= known.Add(node.Id);
             }
             foreach (var station in stations)
             {
@@ -393,7 +393,7 @@ public partial class ContentTests
     public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.SelectMany(n => n.Opens).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate).Select(n => n.Id).Concat(Content.Research.StartKnown).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
     }
@@ -450,11 +450,11 @@ public partial class ContentTests
         var tabs = Content.Research.Tabs.Select(t => t.Id).ToList();
         // A ring is bought in any order: a block may take what its own ring opens, or what is further in, never further out.
         HashSet<string> Behind(TechNode node) => new(Content.Research.StartKnown.Concat(Content.Research.Nodes
-            .Where(n => tabs.IndexOf(n.Tab) < tabs.IndexOf(node.Tab) || (n.Tab == node.Tab && n.Ring <= node.Ring)).SelectMany(n => n.Opens)), StringComparer.Ordinal);
+            .Where(n => tabs.IndexOf(n.Tab) < tabs.IndexOf(node.Tab) || (n.Tab == node.Tab && n.Ring <= node.Ring)).Where(n => !n.Gate).Select(n => n.Id)), StringComparer.Ordinal);
         foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
         {
             var opened = Behind(node);
-            foreach (string id in node.Opens)
+            string id = node.Id;
             {
                 bool craft = Crafts.TryGet(id, out var recipe);
                 var cost = craft ? recipe!.Cost : prints[id].Cost;

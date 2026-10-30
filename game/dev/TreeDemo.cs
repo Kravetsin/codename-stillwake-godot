@@ -24,6 +24,11 @@ public partial class TreeDemo(Func<Registry> m) : Node
     {
         var root = JsonNode.Parse(world.Save())!;
         root["slices"]!["knowledge"]!["credits"] = Credits;
+        var slots = new JsonArray();
+        for (int i = 0; i < Content.Inventory.Total; i++) slots.Add(null);
+        slots[0] = new JsonObject { ["item"] = "scrap", ["count"] = 12 };
+        slots[1] = new JsonObject { ["item"] = "iron", ["count"] = 30 };
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         return World.Load(root.ToJsonString(), modules());
     }
 
@@ -56,10 +61,13 @@ public partial class TreeDemo(Func<Registry> m) : Node
             (6.55, "let go: its ties lit", () => Mouse(_last, MouseButton.Left, false)),
             (7.5, "click the hub", () => Mouse(_tree.HubAt, MouseButton.Left, true)),
             (7.55, "let go: the gate picked", () => Mouse(_last, MouseButton.Left, false)),
-            (8.5, "the other tab", () => Mouse(_tree.TabAt(1), MouseButton.Left, true)),
-            (8.55, "let go", () => Mouse(_last, MouseButton.Left, false)),
-            (9.5, "T puts it away", () => Press(Key.T)),
-            (10.0, "Tab: the bag, the credits on its metal", () => Press(Key.Tab)),
+            (8.0, "put in what is carried", () => Mouse(_tree.ActionAt, MouseButton.Left, true)),
+            (8.05, "let go: the iron all in, the scrap part", () => Mouse(_last, MouseButton.Left, false)),
+            (8.5, "wheel in on the hub", () => Wheel(_tree.HubAt, MouseButton.WheelUp, 8)),
+            (9.0, "the other tab", () => Mouse(_tree.TabAt(1), MouseButton.Left, true)),
+            (9.05, "let go", () => Mouse(_last, MouseButton.Left, false)),
+            (9.6, "T puts it away", () => Press(Key.T)),
+            (10.1, "Tab: the bag, the credits on its metal", () => Press(Key.Tab)),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {

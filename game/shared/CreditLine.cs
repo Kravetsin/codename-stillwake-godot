@@ -7,6 +7,7 @@ namespace Stillwake.Game.Shared;
 public partial class CreditLine : HBoxContainer
 {
     private readonly Label _amount;
+    private readonly TextureRect _coin;
     private int? _shown;
 
     /// <param name="size">The number's font size; the coin is drawn a little larger.</param>
@@ -14,7 +15,7 @@ public partial class CreditLine : HBoxContainer
     {
         MouseFilter = MouseFilterEnum.Ignore;
         AddThemeConstantOverride("separation", 3);
-        AddChild(new TextureRect
+        AddChild(_coin = new TextureRect
         {
             Texture = AsciiArt.Credit(),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
@@ -23,7 +24,7 @@ public partial class CreditLine : HBoxContainer
             CustomMinimumSize = new Vector2(size + 4, size + 4),
             MouseFilter = MouseFilterEnum.Ignore,
         });
-        AddChild(_amount = new Label { LabelSettings = new LabelSettings { Font = Style.Mono, FontSize = size, FontColor = new Color("f0c050") }, MouseFilter = MouseFilterEnum.Ignore });
+        AddChild(_amount = new Label { LabelSettings = new LabelSettings { Font = Style.Clear, FontSize = size, FontColor = new Color("f0c050") }, MouseFilter = MouseFilterEnum.Ignore });
     }
 
     /// <summary>Shows <paramref name="amount"/>.</summary>
@@ -32,6 +33,13 @@ public partial class CreditLine : HBoxContainer
         if (amount == _shown) return;
         _shown = amount;
         _amount.Text = amount.ToString();
+    }
+
+    /// <summary>Sets it at <paramref name="size"/>: on a map, the size it is seen at.</summary>
+    public void Resize(int size)
+    {
+        _amount.LabelSettings.FontSize = size;
+        _coin.CustomMinimumSize = new Vector2(size + 4, size + 4);
     }
 
     /// <summary>Colours the number: dim for a price out of reach.</summary>

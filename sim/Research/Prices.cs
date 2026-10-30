@@ -7,10 +7,10 @@ public static class Prices
 {
     private static readonly Dictionary<string, Blueprint> Prints = Blueprints.All.ToDictionary(b => b.Id, StringComparer.Ordinal);
 
-    private static readonly Dictionary<string, int> ByNode = Content.Research.Nodes.ToDictionary(n => n.Id, Worked, StringComparer.Ordinal);
+    private static readonly Dictionary<string, int> ByNode = Content.Research.Nodes.Where(n => !n.Gate).ToDictionary(n => n.Id, Worked, StringComparer.Ordinal);
 
     /// <summary>What block <paramref name="node"/> costs in credits; 0 for a gate.</summary>
-    public static int Of(TechNode node) => ByNode[node.Id];
+    public static int Of(TechNode node) => ByNode.GetValueOrDefault(node.Id);
 
     /// <summary>What the blueprint or craft <paramref name="id"/> is worth: a craft some units of it, a blueprint what it is built of.</summary>
     public static int WorthOf(string id)
@@ -19,7 +19,7 @@ public static class Prices
         return Prints[id].Cost.Sum(c => c.Count * Market.WorthOf(c.Item));
     }
 
-    private static int Worked(TechNode node) => Rounded(node.Times * node.Opens.Sum(WorthOf));
+    private static int Worked(TechNode node) => Rounded(node.Times * WorthOf(node.Id));
 
     /// <summary><paramref name="price"/> up to its first two figures.</summary>
     private static int Rounded(int price)

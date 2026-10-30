@@ -90,7 +90,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     public bool Done(TechNode node)
     {
         if (_items.Creative) return true;
-        if (!node.Gate) return node.Opens.All(_knowledge.Granted);
+        if (!node.Gate) return _knowledge.Granted(node.Id);
         foreach (var (item, count) in node.Deposit)
             if (_knowledge.DepositOf(node.Id, item) < count) return false;
         return true;
@@ -120,7 +120,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     {
         var block = Content.Research.Node(c.Block)!;
         _knowledgeOps.Spend(Prices.Of(block));
-        foreach (string id in block.Opens) _knowledgeOps.Grant(id);
+        _knowledgeOps.Grant(block.Id);
     }
 
     private string? DepositProblem(Deposit c)

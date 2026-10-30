@@ -1,25 +1,24 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// A node of the tech tree: a block of blueprints and crafts bought with credits, or the gate of resources deposited for good that
+/// A node of the tech tree: a block opening one blueprint or craft, bought with credits, or the gate of resources deposited for good that
 /// opens a ring of blocks (2026-10-30-tech-rings).
 /// </summary>
-/// <param name="Id">Its name: a block's first thing it opens, a gate's own.</param>
+/// <param name="Id">Its name: a block's the one blueprint or craft it opens, named as <see cref="Research"/> says; a gate's own.</param>
 /// <param name="Needs">The nodes that must be done first: their ids. A block's is its ring's gate, a gate's the gate before it.</param>
-/// <param name="Opens">What a block opens: blueprints as the build menu names their cards, crafts by the item they make. None for a gate.</param>
 /// <param name="Deposit">What a gate asks for. None for a block.</param>
 /// <param name="Times">How many times its worth a block costs.</param>
 /// <param name="Tab">The id of the tab it is drawn on.</param>
 /// <param name="Ring">Its ring on that tab, counted from the middle; a gate's is the ring it opens.</param>
 /// <param name="Branch">The branch it stands on; none for a gate, which stands in the middle.</param>
-public sealed record TechNode(string Id, string[] Needs, string[] Opens, IReadOnlyList<(string Item, int Count)> Deposit, int Times, string Tab, int Ring, string? Branch)
+public sealed record TechNode(string Id, string[] Needs, IReadOnlyList<(string Item, int Count)> Deposit, int Times, string Tab, int Ring, string? Branch)
 {
     /// <summary>Whether it is opened by resources rather than bought.</summary>
     public bool Gate => Deposit.Count > 0;
 }
 
 /// <summary>What a tab's ring is written as: what its gate asks for, none for a ring open from the start, how many times its worth a block of it costs, and its blocks.</summary>
-public sealed record TechRing(string? Gate, IReadOnlyList<(string Item, int Count)> Deposit, int Times, params (string Branch, string[] Opens, int? Times)[] Blocks);
+public sealed record TechRing(string? Gate, IReadOnlyList<(string Item, int Count)> Deposit, int Times, params (string Branch, string Id, int? Times)[] Blocks);
 
 /// <summary>A tab of the tree: its branches, going round from the top, and its rings, from the middle out; its first gate waits on <see cref="After"/>, if any.</summary>
 public sealed record TechTab(string Id, string[] Branches, string? After, params TechRing[] Rings);
@@ -47,9 +46,9 @@ public static class Research
 
     private const string Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine";
 
-    private static (string Branch, string[] Opens, int? Times) Block(string branch, params string[] opens) => (branch, opens, null);
+    private static (string Branch, string Id, int? Times) Block(string branch, string id) => (branch, id, null);
 
-    private static (string Branch, string[] Opens, int? Times) Dear(int times, string branch, params string[] opens) => (branch, opens, times);
+    private static (string Branch, string Id, int? Times) Dear(int times, string branch, string id) => (branch, id, times);
 
     /// <summary>The tree, by tab. Everything before the pod is had from what space gives; what a planet gives comes after it.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
@@ -66,13 +65,15 @@ public static class Research
                 Block(Structures, "floor"),
                 Block(Structures, "ladder"),
                 Block(Structures, "lamp"),
-                Block(Gear, "nail", "nailer")),
+                Block(Gear, "nail"),
+                Block(Gear, "nailer")),
             new("press", [("wire", 20), ("plate", 15), ("gear", 10)], 1,
                 Block(Materials, "coil"),
                 Block(Materials, "rotor"),
                 Block(Structures, "door"),
                 Block(Structures, "hatch"),
-                Block(Structures, "wallIron", "backWallIron"),
+                Block(Structures, "wallIron"),
+                Block(Structures, "backWallIron"),
                 Block(Automation, "crate"),
                 Block(Gear, "harpoon"),
                 Block(Gear, "helmetLamp")),
@@ -84,7 +85,8 @@ public static class Research
                 Block(Power, "cistern"),
                 Block(Power, "tank")),
             new("processing", [("frame", 10), ("gear", 20), ("coil", 20)], 1,
-                Block(Structures, "wallGlass", "backWallGlass"),
+                Block(Structures, "wallGlass"),
+                Block(Structures, "backWallGlass"),
                 Block(Machines, "crusher"),
                 Block(Machines, "smelter"),
                 Block(Power, "generator"),
@@ -95,7 +97,8 @@ public static class Research
                 Block(Machines, "assembler")),
             new("automation", [("circuit", 10), ("glass", 20), ("frame", 10)], 1,
                 Block(Materials, "soil"),
-                Block(Structures, "wallSoil", "backWallSoil"),
+                Block(Structures, "wallSoil"),
+                Block(Structures, "backWallSoil"),
                 Block(Machines, "growCapsule"),
                 Block(Power, "battery"),
                 Block(Power, "charger"),
@@ -114,10 +117,14 @@ public static class Research
                 Block(Automation, "radarAntenna")),
             new("ground", [("copper", 20), ("mica", 10), ("hide", 5)], 2,
                 Block(Materials, "canister"),
-                Block(Structures, "wallStone", "backWallStone"),
-                Block(Structures, "wallMica", "backWallMica"),
-                Block(Structures, "wallHide", "backWallHide"),
-                Block(Structures, "wallAlloy", "backWallAlloy"),
+                Block(Structures, "wallStone"),
+                Block(Structures, "backWallStone"),
+                Block(Structures, "wallMica"),
+                Block(Structures, "backWallMica"),
+                Block(Structures, "wallHide"),
+                Block(Structures, "backWallHide"),
+                Block(Structures, "wallAlloy"),
+                Block(Structures, "backWallAlloy"),
                 Block(Structures, "arcLamp"),
                 Block(Gear, "cape"))),
         new("tech", [Arc, Engine], "ground",
@@ -150,11 +157,11 @@ public static class Research
             var each = tab.Rings[ring];
             if (each.Gate is { } id)
             {
-                yield return new TechNode(id, gate == null ? [] : [gate], [], each.Deposit, 1, tab.Id, ring, null);
+                yield return new TechNode(id, gate == null ? [] : [gate], each.Deposit, 1, tab.Id, ring, null);
                 gate = id;
             }
-            foreach (var (branch, opens, times) in each.Blocks)
-                yield return new TechNode(opens[0], gate == null ? [] : [gate], opens, [], times ?? each.Times, tab.Id, ring, branch);
+            foreach (var (branch, block, times) in each.Blocks)
+                yield return new TechNode(block, gate == null ? [] : [gate], [], times ?? each.Times, tab.Id, ring, branch);
         }
     }
 }

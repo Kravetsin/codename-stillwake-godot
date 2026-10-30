@@ -20,6 +20,11 @@ one line of the tree out of what are many ways. Nothing showed why a block matte
 - **A click picks; a separate button buys.** What is picked lights up what it takes (teal), where it is made (pink) and what it goes
   into (sky), known or not, so a player can plan ahead; the strip below says the same and holds the button, with the price.
   These ties are worked out from the recipes, never written down (`TechLinks`). A gate picked lights the ring it opens.
+- **A node is one thing.** Two pictures in a circle under one name read as one thing: a block opens one blueprint or craft, so a wall and its
+  back wall are bought apart.
+- **Words stay sharp.** The tree does not scale them with the map: nodes and text are set at the size they are seen, in an unhinted font.
+  From far, under a zoom where words cannot be read, a node is a plain dot coloured by its state, under its branch's name.
+- **The hub says what you carry against what is still needed**, so a glance tells what can go in now.
 - **Credits have a coin.** Written with its picture everywhere, and always shown by the bag, not only at a station.
 
 ## Deliberate omissions
