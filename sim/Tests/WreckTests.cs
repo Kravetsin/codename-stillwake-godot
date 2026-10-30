@@ -92,17 +92,20 @@ public class WreckTests
     }
 
     [Fact]
-    public void HoldsAPanelCabledToALampAndAGeneratorAVentATechStationTheLifepodNoFurnaceOrCrate()
+    public void HoldsAPanelCabledToALampAndAGeneratorAVentATechStationATankOfACanisterTheLifepodNoFurnaceOrCrate()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["solarPanel", "lamp", "lifepod", "techStation", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
+        // The tank right after the tech station in reading order (liquid-oxygen), in B at (43, 21), holding a canister's liquid.
+        Assert.Equal(["solarPanel", "lamp", "lifepod", "techStation", "tank", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
+        var tank = m.Grid.Machines[4];
+        Assert.Equal((At(43, 21), Content.Air.Canister), (tank.Cell, m.Atmosphere.OxygenIn(tank.Id)));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
         Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 36), doors);
         var cells = m.Grid.Machines.Select(x => x.Cell).ToArray();
-        var (panel, lamp, generator) = (cells[0], cells[1], cells[4]);
+        var (panel, lamp, generator) = (cells[0], cells[1], cells[5]);
         // The generator and the lamp draw what the panel makes: in full.
         var network = Assert.Single(m.Power.Networks);
         Assert.Equal((panel, 5, 5, 1000), (network.Id, network.Supply, network.Demand, network.Satisfaction));

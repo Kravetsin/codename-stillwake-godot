@@ -60,11 +60,15 @@ public class SuitsTests
         return w;
     }
 
-    /// <summary><see cref="Room"/> aired from its piped tank, hero 0 brought in at the spawn, bare unless <paramref name="suited"/>.</summary>
+    /// <summary>
+    /// <see cref="Room"/> made the chain (<see cref="HandPiped.Chained"/>), aired from the vaporizer its vent is piped to, hero 0
+    /// brought in at the spawn, bare unless <paramref name="suited"/>.
+    /// </summary>
     private static Scenario Aired(bool suited)
     {
-        var w = new Scenario(Room) { Bare = !suited }.Do(new SetCreative(true));
-        w.Pipe(Cell(2, 2), Cell(2, 6)).Run();
+        var w = new Scenario(HandPiped.Chained(Room), doubled: true) { Bare = !suited }.Do(new SetCreative(true));
+        // From the vent's port, its top-left, to the vaporizer's output, the right of its top row.
+        w.Pipe(Cell(2, 2), Cell(5, 4)).Run();
         int tank = w.M.Grid.Machines.First(m => m.Kind == "tank").Id;
         w.Do(new LoadCanister(tank));
         w.Do(new SetCreative(false)).Run();

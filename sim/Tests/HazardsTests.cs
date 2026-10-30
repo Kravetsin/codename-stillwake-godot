@@ -17,7 +17,7 @@ namespace Stillwake.Sim.Tests;
 /// </summary>
 public partial class HazardsTests
 {
-    /// <summary>Nine wide: a sealed room with a vent above a tank and a valve between them.</summary>
+    /// <summary>Nine wide: a sealed room with a vent above a tank, the vaporizer <see cref="Aired"/> makes it, and a valve between them.</summary>
     private const string Room = """
         #########
         #V......#
@@ -26,19 +26,25 @@ public partial class HazardsTests
         #########
         """;
 
-    /// <summary><see cref="Room"/> in creative mode, piped through a valve, its tank loaded and the room aired.</summary>
+    /// <summary>
+    /// <see cref="Room"/> made the chain (<see cref="HandPiped.Chained"/>) in creative mode, its vent piped through a valve to
+    /// the vaporizer's output, the tank under the hull loaded, the room aired and the vaporizer's store full, so a drain is
+    /// paid in full.
+    /// </summary>
     private static (Scenario W, int Tank, int Room) Aired()
     {
-        var w = new Scenario(Room).Do(new Items.SetCreative(true));
-        // From the vent's port to the tank's through a valve.
-        var run = AirTesting.Line(9, 1, 1, 1, 3).ToArray();
-        w.Pipe(run[0], w.At(1, 2), run[^1]).Do(new MakeValve(w.At(1, 2), true)).Run();
+        var w = new Scenario(HandPiped.Chained(Room), doubled: true).Do(new Items.SetCreative(true));
+        // From the vent's port, its top-left, through a valve on the vaporizer's top-left to its output, the right of its top row.
+        w.Pipe(w.At(1, 1), w.At(1, 2), w.At(1, 2) + 3).Do(new MakeValve(w.At(1, 2), true)).Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
+        int vaporizer = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "generator")?.Id ?? 0;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
         int room = w.M.Rooms.RoomAt(w.At(4, 2)) ?? throw new InvalidOperationException("room");
         for (int i = 0; i < 1000 && w.M.Atmosphere.StatusOf(room) != RoomStatus.Aired; i++) w.Run();
         Assert.Equal(RoomStatus.Aired, w.M.Atmosphere.StatusOf(room));
+        for (int i = 0; i < 1000 && w.M.Atmosphere.OxygenIn(vaporizer) < Content.Air.GeneratorStore; i++) w.Run();
+        Assert.Equal(Content.Air.GeneratorStore, w.M.Atmosphere.OxygenIn(vaporizer));
         return (w, tank, room);
     }
 
@@ -48,26 +54,27 @@ public partial class HazardsTests
     [Fact]
     public void BreakAHullWallSoTheRoomVentsAndDrainsItsNetwork()
     {
-        var (w, tank, room) = Aired();
+        var (w, _, room) = Aired();
         Assert.Empty(w.M.Rooms.RoomById(room)!.Openings);
-        int before = w.M.Atmosphere.OxygenIn(tank);
+        int before = HandPiped.Held(w);
         Breach(w).Run();
         Assert.Equal((Structure.Empty, Structure.Empty), (w.M.Grid.StructureAt(w.At(8, 2)), w.M.Grid.StructureAt(w.At(8, 2) + 1)));
         Assert.Equal(room, w.M.Rooms.RoomAt(w.At(4, 2)));
         Assert.Equal(new[] { w.At(8, 2) + 1 }, w.M.Rooms.RoomById(room)!.Openings);
         Assert.Equal(RoomStatus.Venting, w.M.Atmosphere.StatusOf(room));
-        Assert.Equal(before - Content.Air.VentDrain, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(before - Content.Air.VentDrain, HandPiped.Held(w));
     }
 
     [Fact]
     public void StopDrainingTheNetworkOnceAValveCutsTheVentOff()
     {
-        var (w, tank, _) = Aired();
+        var (w, _, _) = Aired();
         Breach(w).Run(2);
         w.Do(new SetValve(w.At(1, 2), false)).Run();
-        int cut = w.M.Atmosphere.OxygenIn(tank);
+        // The vaporizer refills its store from the tank behind the valve: the chain holds what it held.
+        int cut = HandPiped.Held(w);
         w.Run(10);
-        Assert.Equal(cut, w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(cut, HandPiped.Held(w));
     }
 
     /// <summary>"stop venting once a wall planned on the hole is built", in creative mode as there.</summary>
