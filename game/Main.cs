@@ -381,11 +381,13 @@ public partial class Main : Node2D, ITogether
         }
         _grid = View<GridView>();
         var fires = View<FurnaceView>()!;
-        var power = _m.Power;
+        var (power, hazards) = (_m.Power, _m.Hazards);
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
-            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f,
+            // A flare coming makes them falter as one short of power does (magnetic-flare).
+            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f
+                * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],

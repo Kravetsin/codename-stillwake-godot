@@ -20,6 +20,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--layer-demo`, `--shimmer-demo` |
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie` |
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
+| `FlareScenario.cs` | `--flare`: the new game's wreck with a magnetic flare's warning begun at once; `=repair` a lamp half repaired |
 | `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 

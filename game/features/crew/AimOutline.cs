@@ -25,7 +25,8 @@ public static class AimOutline
     {
         var grid = m.Grid;
         int width = grid.Width;
-        if (aim.Work is { } work)
+        // A repair outlines its machine, below, as a plan outlines itself.
+        if (aim.Work is { Repair: null } work)
         {
             foreach (var plan in m.Building.Plans)
                 if (plan.Id == work.Plan) Plan(outline, m, plan, colour);

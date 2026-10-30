@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Power;
+using Stillwake.Sim.Research;
 
 namespace Stillwake.Sim.Hazards;
 
@@ -13,35 +15,46 @@ public sealed record Meteor(int Cell, int Power, int Left);
 /// </summary>
 public sealed class HazardsState
 {
-    /// <summary>A world whose map did not ask for meteors (<c>Layout.Meteors</c>): a test's, a dev world's. Off, not written.</summary>
+    /// <summary>A world whose map did not ask for hazards (<c>Layout.Meteors</c>): a test's, a dev world's. No meteors, no flares drawn. Off, not written.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool Calm { get; set; }
     /// <summary>Ticks till the next meteor is seen coming; 0 before the first is drawn.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int NextIn { get; set; }
     /// <summary>The meteor seen coming, if one is.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal Meteor? Incoming { get; set; }
+    /// <summary>Ticks till the magnetic flare drawn strikes, its warning the last of them; 0 while none is drawn.</summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal int FlareIn { get; set; }
 }
 
 /// <summary>A meteor hits the wall at <paramref name="Cell"/>: from the dev panel, to try a breach and its repair. It always breaks it.</summary>
 public sealed record MeteorHit(int Cell) : Command;
 
-/// <summary>Meteors breaking the hull (packages/sim/src/modules/hazards; 2026-10-28-hull-meteors).</summary>
-public sealed class HazardsModule : Module<HazardsState>
+/// <summary>Meteors breaking the hull (packages/sim/src/modules/hazards; 2026-10-28-hull-meteors), magnetic flares breaking machines (2026-10-30-magnetic-flare).</summary>
+public sealed partial class HazardsModule : Module<HazardsState>
 {
     private readonly IGridQueries _grid;
     private readonly IGridOps _ops;
+    private readonly IPowerQueries _power;
+    private readonly IPowerOps _powerOps;
+    private readonly IResearchQueries _research;
     private readonly List<int> _targets = [], _blast = [], _backs = [];
     private int[] _spent = [];
     private List<int>[] _byCost = [];
 
     public override string Id => "hazards";
 
-    public HazardsModule(IGridQueries grid, IGridOps ops)
+    public HazardsModule(IGridQueries grid, IGridOps ops, IPowerQueries power, IPowerOps powerOps, IResearchQueries research)
     {
         _grid = grid;
         _ops = ops;
+        _power = power;
+        _powerOps = powerOps;
+        _research = research;
         Handles<MeteorHit>(c => HitProblem(c.Cell), c => Break(c.Cell));
+        Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
         System(Phase.Construction, Fall);
+        // A flare too, so Power's derivation sees what it broke on its tick.
+        System(Phase.Construction, Flare);
     }
 
     /// <summary>The meteor seen coming, for its streak; null while none is.</summary>
@@ -211,11 +224,14 @@ public sealed class HazardsModule : Module<HazardsState>
 
     /// <summary>
     /// Meteors by hand, rarely: every hit opens the world a little more. Mostly at a standing wall, now
-    /// and then anywhere: off the grid, into space, at a wall already gone.
+    /// and then anywhere: off the grid, into space, at a wall already gone. As rarely a flare striking at once, so the
+    /// suites' short runs see machines broken.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
-        if (rng.Below(64) != 0) return null;
+        ulong roll = rng.Below(64);
+        if (roll == 1) return new FlareNow(1) { From = from };
+        if (roll != 0) return null;
         var structure = _grid.StructureLayer;
         var walls = new List<int>();
         for (int c = 0; c < structure.Length; c++) if (Structures.Is(structure[c], Trait.Terrain)) walls.Add(c);

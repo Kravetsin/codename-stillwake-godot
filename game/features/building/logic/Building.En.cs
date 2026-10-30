@@ -8,6 +8,7 @@ public static partial class En
         ["building.notEmpty"] = "Empty it first",
         ["building.nothingThere"] = "Nothing to take apart",
         ["building.noPlan"] = "No plan here",
+        ["building.notBroken"] = "Nothing broken to repair",
         ["building.fixed"] = "Built into the ship: it stays",
         ["building.notHere"] = "Cannot be built here",
         ["building.nothingToDig"] = "Nothing to dig",

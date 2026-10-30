@@ -68,6 +68,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     private readonly IGridOps _gridOps;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
+    private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
     private readonly ICraftingQueries _crafting;
@@ -79,13 +80,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
+        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
         IPipesQueries pipes)
     {
         _grid = grid;
         _gridOps = gridOps;
         _items = items;
         _itemsOps = itemsOps;
+        _power = power;
         _powerOps = powerOps;
         _research = research;
         _crafting = crafting;
@@ -97,12 +99,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
         Handles<SetInstant>(_ => null, c => State.Instant = c.On);
+        Handles<Repair>(c => RepairProblemOf(c.Machine, c.From), ApplyRepair);
         Handles<Hew>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), ApplyHew);
         // A mark whose thing a meteor broke has nothing left to take apart, nor a crack its wall. In derivation, after
         // every command and construction system, so a hit made before is seen on its tick.
         System(Phase.Derivation, () =>
         {
             State.Plans.RemoveAll(p => p.Clear is { } layer && MarkedCell(p.Cell, layer) == null);
+            SweepRepairs();
             SweepCracks();
             SweepPlants();
         });
@@ -169,7 +173,14 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// tip. Null for a blueprint or no plan; empty once what it names is gone.
     /// </summary>
     public Cost? RefundOf(int id) =>
-        State.Plans.Find(p => p.Id == id) is { Clear: { } layer } plan ? Costs.BuiltAt(_grid, plan.Cell, layer)?.Cost ?? [] : null;
+        State.Plans.Find(p => p.Id == id) is { Clear: { } layer } plan ? Refund(plan.Cell, layer) ?? [] : null;
+
+    /// <summary>What taking apart <paramref name="layer"/> of <paramref name="cell"/> gives back: its cost, less the repair a broken machine wants.</summary>
+    private Cost? Refund(int cell, string layer)
+    {
+        if (Costs.BuiltAt(_grid, cell, layer) is not { } built) return null;
+        return layer == "machine" && _grid.MachineAt(cell) is { } m && _power.IsBroken(m.Id) ? Costs.Less(built.Cost, Costs.RepairOf(m.Kind)) : built.Cost;
+    }
 
     // Commands.
 
@@ -231,13 +242,13 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     {
         // Plans claim their slots, and a last tick waits on what a pod set down there since: a refusal here is our bug.
         if (plan.Place is { } place) Build(plan.Cell, place);
-        else if (Costs.BuiltAt(_grid, plan.Cell, plan.Clear!) is { } built)
+        else if (Refund(plan.Cell, plan.Clear!) is { } refund)
         {
             // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
             // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
             if (plan.Clear == "machine" && _grid.MachineAt(plan.Cell) is { } machine) _powerOps.Unplug(machine.Id);
             foreach (int cell in plan.Clear == "structure" ? _grid.PieceOf(plan.Cell) : [plan.Cell]) _gridOps.Clear(cell, plan.Clear!);
-            _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
+            _itemsOps.GiveOrDrop(from, refund, plan.Cell);
         }
         State.Plans.RemoveAll(p => p.Id == plan.Id);
     }
