@@ -120,8 +120,9 @@ public sealed partial class LogisticsModule
         }
         var slots = _items.Crate(t.Id);
         int inputs = Machines.Get(t.Kind).Inputs ?? slots.Count;
+        bool sells = Machines.Is(t.Kind, MachineTrait.Sells);
         for (int i = 0; i < inputs; i++)
-            if ((slots[i]?.Item ?? _items.KeptAt(t.Id, i)) is { } item)
+            if ((slots[i]?.Item ?? _items.KeptAt(t.Id, i)) is { } item && (!sells || Market.PriceOf(item) != null))
                 Short(t, item, Content.Items.Get(item).Stack, Content.Items.Get(item).SmeltTakes);
     }
 
@@ -136,13 +137,14 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// Whether drones bring anything to a machine of <paramref name="m"/>'s kind: a fed station's input, a fire's fuel,
-    /// a queued station's inputs. Not a crate, a bay, the analyzer or the charging station.
+    /// a queued station's inputs, a trade station's. Not a crate, a bay or the charging station.
     /// </summary>
     private static bool Takes(Machine m)
     {
         // An arc bench takes a tool by hand and is paid by hand (0099): drones never touch it.
         if (!Machines.TryGet(m.Kind, out var spec) || spec.Charges || spec.Tunes) return false;
         if (Stations.TryGet(m.Kind, out var station)) return station.Fed || spec.Inputs > 0;
+        if (spec.Is(MachineTrait.Sells)) return true;
         return spec.FuelSlot != null;
     }
 

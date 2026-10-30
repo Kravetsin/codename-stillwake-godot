@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Items;
 /// The hotbar, always in the top-left corner, each slot's key in its corner; and with Tab, or E on a crate, the
 /// rest of the inventory, the open machine under it in the one frame (0058, <see cref="MachineFrame"/>): a crate's
 /// slots, a furnace's input over its fuel and its outputs, an electric smelter's or a grow capsule's input and outputs, a burner
-/// generator's fuel, an analyzer's own body (<see cref="AnalyzerPanel"/>), a charging station's slot and bar
+/// generator's fuel, a charging station's slot and bar
 /// (0053), each named, a powered one with its bolt; a queued station's is the crafting feature's, docked in the
 /// same place. Stacks move by clicks (<see cref="Clicks.On"/>), or dragged from one slot to another; Tab or Esc
 /// closes both. 1–9 and the wheel over the world choose a hotbar slot, Q throws its stack. A stack's name, and
@@ -75,8 +75,6 @@ public partial class InventoryPanel : CanvasLayer
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
-    /// <summary>The stack in hand's "?" while it is not analysed, in its corner as a slot's.</summary>
-    private GlowIcon _heldMark = null!;
     private ProgressBar? _progress;
     private Label? _problem;
     /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
@@ -85,10 +83,11 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>A charging station's numbers over its bar: what its battery holds of full, and what goes in a tick while it charges.</summary>
     private HBoxContainer? _stored;
     private Label? _storedText, _rate;
-    private AnalyzerPanel? _analyzer;
+    /// <summary>A trade station's: the ship's credits.</summary>
+    private Label? _credits;
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
     private string? _tooCold;
-    /// <summary>The slots and the analyzer's pictures, each saying what it holds in the one tooltip.</summary>
+    /// <summary>The slots, each saying what it holds in the one tooltip.</summary>
     private readonly TipSpots _tipSpots;
 
     private Client? _client;
@@ -235,7 +234,6 @@ public partial class InventoryPanel : CanvasLayer
             TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
-        _held.AddChild(_heldMark = SlotBox.Corner(MarkLooks.Unknown, size));
         _held.AddChild(_heldCount = new Label
         {
             LabelSettings = Style.Text(Style.Mono, 10, Colors.White, shadow: true),
@@ -262,7 +260,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _analyzer, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _credits, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
         (_stored, _storedText, _rate) = (null, null, null);
     }
 
@@ -290,7 +288,7 @@ public partial class InventoryPanel : CanvasLayer
     {
         _sinceRead = 0;
         if (_client == null || _items == null || _grid == null || _research == null) return;
-        _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, _research, Crate);
+        _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
         Refresh();
     }
 
@@ -470,7 +468,7 @@ public partial class InventoryPanel : CanvasLayer
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
-                stack == null ? SlotMark.None : p.Crate == null ? reading.MarkOf(stack.Item) : reading.Unknown(stack.Item) ? SlotMark.Unknown : SlotMark.None,
+                stack == null || p.Crate != null ? SlotMark.None : reading.MarkOf(stack.Item),
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,
                 stack == null && carried != null && reading.Lights(box.GhostMark, carried));
         }
@@ -484,13 +482,11 @@ public partial class InventoryPanel : CanvasLayer
             var stack = reading.At(h.Place)!;
             var item = stack.Item;
             FitHeld(Charges.Picture(item, stack.Charge));
-            _heldMark.Visible = reading.Unknown(item);
             _heldCount.Text = h.Count > 1 ? h.Count.ToString() : "";
         }
         else if (_unfitting is { } coming)
         {
             FitHeld(coming.Module);
-            _heldMark.Visible = false;
             _heldCount.Text = "";
         }
         ShowMachine(reading);

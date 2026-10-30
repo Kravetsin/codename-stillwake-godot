@@ -38,6 +38,7 @@ public partial class OpenDemo(Ui ui, string kind, Func<Registry> m, double openA
             ui.OpenComputer.Set(machine.Id);
             ui.ComputerProgram.Set(program);
         }
+        else if (Content.Machines.Is(machine.Kind, Content.MachineTrait.Tech)) ui.OpenTech.Set(machine.Id);
         else ui.OpenCrate.Set(machine.Id);
     }
 

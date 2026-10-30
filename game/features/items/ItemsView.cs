@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Items;
 /// (<see cref="InventoryPanel"/>); the stacks lying on the floor (<see cref="FloorLayer"/>), picked up
 /// as the hero walks over them, saying so over its head, as it says what its own catches of debris gave
 /// (<see cref="OwnCatches"/>), each flying home to its chest on a ribbon of light (<see cref="PickUpFlights"/>).
-/// A crate, a furnace or an analyzer is opened by the crew's E, through <see cref="Ui.OpenCrate"/>.
+/// A crate or a furnace is opened by the crew's E, through <see cref="Ui.OpenCrate"/>.
 /// </summary>
 public partial class ItemsView : Node2D
 {

@@ -102,7 +102,7 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void TheHarpoonIsAToolOfOneCraftedAtThePodAndOpenedByAnalysingWhatItIsMadeOf()
+    public void TheHarpoonIsAToolOfOneCraftedAtThePodAndBoughtInTheTree()
     {
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
         Assert.Equal(1, harpoon!.Stack);
@@ -151,7 +151,7 @@ public partial class ContentTests
                         Assert.True(Machines.TryGet(host, out var machine) && machine is { Draws: not null, Makes: null, Fixed: false, Tunes: false }, $"{module.Item} fits {host}");
                     }
                     bool station = Stations.TryGet(host, out var spec);
-                    foreach (var trade in on.Effects.Cast<Trade>())
+                    foreach (var trade in on.Effects.Cast<Content.Trade>())
                     {
                         Assert.True(trade.Add >= 0 && trade.Add % (trade.Stat == Stat.Heat ? 1 : 1000) == 0, $"{module.Item} in {host}: {trade}");
                         Assert.True(trade.Stat switch

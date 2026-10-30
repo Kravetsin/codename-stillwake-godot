@@ -20,8 +20,8 @@ public sealed class FurnaceScenario : DevScenario
     public override World? Create(IReadOnlyList<Module> modules) => FurnaceDemo.Create(modules);
 }
 
-/// <summary>The items room (<see cref="ItemsDemo"/>): a crate, a furnace and an analyzer.</summary>
-[Dev("--items", "a room with a crate, a furnace and an analyzer, and a script working them (ItemsDemo)")]
+/// <summary>The items room (<see cref="ItemsDemo"/>): a crate, a furnace and a tech station.</summary>
+[Dev("--items", "a room with a crate, a furnace and a tech station, and a script working them (ItemsDemo)")]
 public class ItemsScenario : DevScenario
 {
     public override Layout? Map => ItemsDemo.Map;

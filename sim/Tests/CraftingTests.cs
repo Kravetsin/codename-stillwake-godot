@@ -145,7 +145,7 @@ public class CraftingTests
     public void RefusesACraftNotKnownOrNoneAtAllTakingNothing()
     {
         var w = World(start: true).GiveItems(0, ("iron", 10));
-        Craft(w, "plate");
+        Craft(w, "coil");
         Craft(w, "iron");
         Assert.Equal(["crafting.unknown", "crafting.unknown"], Reasons(w));
         Assert.Equal(10, Count(w, "iron"));

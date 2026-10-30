@@ -224,7 +224,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// <summary>
     /// Whether a user draws now: none told to rest; a station (<c>Content.Stations</c>) whenever crafting does not rest
     /// it, whatever its inputs hold, for a queued one may have a paid unit to work; a charging station (the charger, a
-    /// drone bay) while any slot holds something short of full; any other with slots (an analyzer) while its first
+    /// drone bay) while any slot holds something short of full; any other with slots (the engine) while its first
     /// slot holds something.
     /// </summary>
     private bool Drawing(Machine m)

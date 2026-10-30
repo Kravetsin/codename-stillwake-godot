@@ -35,7 +35,7 @@ public static class Layers
     /// <summary>What grows on a planet (flora, 0079, 0080): over the ground and its moss, behind the heroes, its glows and glints too.</summary>
     public const int Flora = Fixtures;
 
-    /// <summary>A screen or a lamp on a machine's face beside its socket: an analyzer's (research), a tank's sight glass (atmosphere).</summary>
+    /// <summary>A screen or a lamp on a machine's face beside its socket: a station's (research), a tank's sight glass (atmosphere).</summary>
     public const int Screens = Sockets;
 
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>

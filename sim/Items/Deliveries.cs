@@ -21,7 +21,7 @@ public sealed partial class ItemsModule
     }
 
     /// <summary>How many of <paramref name="stack"/> a <see cref="PutIn"/> would put into machine <paramref name="id"/> now.</summary>
-    public int RoomFor(int id, Stack stack) => HolderOf(id) is { } spec ? stack.Count - Filled(spec, Crate(id), stack, out _) : 0;
+    public int RoomFor(int id, Stack stack) => HolderOf(id) is { } spec ? stack.Count - Filled(id, spec, Crate(id), stack, out _) : 0;
 
     /// <summary>
     /// Takes up to <paramref name="count"/> from slot <paramref name="slot"/> of machine <paramref name="id"/>, any slot,
@@ -38,12 +38,13 @@ public sealed partial class ItemsModule
 
     /// <summary>
     /// Puts as much of <paramref name="stack"/> as fits into machine <paramref name="id"/> as a whole, where
-    /// <see cref="Receiving"/> says, onto stacks alike in slot order and then into empty slots; returns how many did not fit.
+    /// <see cref="Receiving"/> says, onto stacks alike in slot order and then into empty slots, one remembering this item first,
+    /// one remembering another last; returns how many did not fit.
     /// </summary>
     public int PutIn(int id, Stack stack)
     {
         if (HolderOf(id) is not { } spec) return stack.Count;
-        int left = Filled(spec, Crate(id), stack, out var slots);
+        int left = Filled(id, spec, Crate(id), stack, out var slots);
         SetMachine(id, slots);
         return left;
     }
@@ -71,7 +72,7 @@ public sealed partial class ItemsModule
     }
 
     /// <summary><paramref name="slots"/> with as much of <paramref name="stack"/> as fits put in, as <see cref="PutIn"/> puts it, and how many did not fit.</summary>
-    private static int Filled(MachineSpec spec, IReadOnlyList<Stack?> slots, Stack stack, out Stack?[] into)
+    private int Filled(int id, MachineSpec spec, IReadOnlyList<Stack?> slots, Stack stack, out Stack?[] into)
     {
         into = [.. slots];
         int limit = Content.Items.Get(stack.Item).Stack, left = stack.Count;
@@ -84,7 +85,8 @@ public sealed partial class ItemsModule
             into[i] = s with { Count = s.Count + n };
             left -= n;
         }
-        foreach (int i in receiving)
+        // A slot seeded with another item keeps it (0062): written into, it would remember this one instead.
+        foreach (int i in receiving.OrderBy(i => KeptAt(id, i) is not { } kept ? 1 : kept == stack.Item ? 0 : 2))
         {
             if (left == 0) break;
             if (into[i] != null) continue;

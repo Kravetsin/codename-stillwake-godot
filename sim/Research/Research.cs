@@ -1,67 +1,53 @@
-using System.Text.Json.Serialization;
+using Stillwake.Content;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
-using Stillwake.Sim.Power;
 
 namespace Stillwake.Sim.Research;
 
-/// <summary>An analyzer part-way through what its slot holds, in thousandths of a tick at full power.</summary>
-public sealed record Analysis(int Analyzer, int Progress);
-
-/// <summary>
-/// An analyzer as its panel shows it: what its slot holds, how far it is, out of how much work, and why
-/// it stands still if it does: <c>research.unpowered</c>; <c>research.nothingNew</c> once what it
-/// holds is analysed; <c>research.nothingToLearn</c> for an item with nothing to learn (<see cref="Analysable"/>).
-/// </summary>
-public sealed record Analyzing(string Item, int Progress, int Work, string? Problem);
-
-/// <summary>
-/// A blueprint or a craft as the world knows it: what it costs, whether it was granted, and the items
-/// of its cost that need analysis (<see cref="Analysable"/>) and are not analysed yet, in the cost's order.
-/// </summary>
+/// <summary>A blueprint or a craft as the world knows it: what it costs, and whether it is known.</summary>
 /// <param name="Placement">What a blueprint places; null for a craft, named by the item it makes.</param>
-public sealed record Recipe(
-    string Id, Placement? Placement, IReadOnlyList<(string Item, int Count)> Cost, bool Granted,
-    IReadOnlyList<string> Unanalysed)
-{
-    /// <summary>Granted, or opened: every item of its cost that needs analysis analysed. Creative mode aside.</summary>
-    public bool Known => Granted || Unanalysed.Count == 0;
-}
+public sealed record Recipe(string Id, Placement? Placement, IReadOnlyList<(string Item, int Count)> Cost, bool Known);
+
+/// <summary>Buys the tree's block <paramref name="Block"/> at tech station <paramref name="Machine"/>, with the ship's credits.</summary>
+public sealed record BuyBlock(int Machine, string Block) : Command;
+
+/// <summary>Puts what the sender carries of tier <paramref name="Tier"/>'s deposit into it, at tech station <paramref name="Machine"/>.</summary>
+public sealed record Deposit(int Machine, string Tier) : Command;
 
 /// <summary>
-/// The research slice. Public so modules can be typed by it, its members internal: others go through
-/// <see cref="IResearchQueries"/>.
+/// The research slice: empty, as what is known, earned and deposited is the world's <c>Knowledge</c>. Public so modules can be
+/// typed by it.
 /// </summary>
-public sealed class ResearchState
-{
-    /// <summary>The analyzers at work, by machine id, in id order.</summary>
-    [JsonInclude] internal List<Analysis> Analyses { get; set; } = [];
-}
+public sealed class ResearchState;
 
-/// <summary>What any module may read of the research. Lists are live: a reader never writes them.</summary>
+/// <summary>What any module may read of the research.</summary>
 public interface IResearchQueries
 {
     /// <summary>Whether <paramref name="placement"/>'s blueprint is known: every one in creative mode.</summary>
     bool Knows(Placement placement);
     /// <summary>Whether the blueprint or craft <paramref name="id"/> is known: every one in creative mode.</summary>
     bool Knows(string id);
-    /// <summary>The items analysed, by id, sorted ordinally.</summary>
-    IReadOnlyList<string> Analysed { get; }
     /// <summary>Every blueprint, then every craft, as the world knows it now; creative mode aside.</summary>
     IReadOnlyList<Recipe> Recipes();
-    /// <summary>Analyzer <paramref name="id"/> as its panel shows it; null for an empty slot.</summary>
-    Analyzing? At(int id);
+    /// <summary>The ship's credits.</summary>
+    int Credits { get; }
+    /// <summary>Whether <paramref name="block"/> is bought: all it opens known.</summary>
+    bool Bought(TechBlock block);
+    /// <summary>Whether <paramref name="tier"/> is open: it and every tier before it have their deposits full; every one in creative mode.</summary>
+    bool Open(TechTier tier);
+    /// <summary>How much of <paramref name="item"/> <paramref name="tier"/>'s deposit holds.</summary>
+    int Deposited(TechTier tier, string item);
+    /// <summary>Why <paramref name="block"/> cannot be bought now, leaving the machine aside; null when it can.</summary>
+    string? BuyProblem(TechBlock block);
 }
 
 /// <summary>
-/// Knowing blueprints and crafts (ADRs 0024, 0027): what the world was granted, the items analyzers have
-/// analysed, and what that opens (packages/sim/src/modules/research).
+/// Knowing blueprints and crafts (2026-10-30-trade-and-tech): what the world knows, the tree it buys more of at tech stations, and
+/// the tiers' deposits. The state is the world's <c>Knowledge</c>; research holds the rules.
 /// </summary>
 public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 {
-    private const int Work = Content.Research.Ticks * 1000;
-
     /// <summary>Every blueprint, then every craft: its id, what it places, its cost.</summary>
     private static readonly IReadOnlyList<(string Id, Placement? Placement, IReadOnlyList<(string Item, int Count)> Cost)> Every =
     [
@@ -69,32 +55,26 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         .. Content.Crafts.All.Select(c => (c.Item, (Placement?)null, c.Cost)),
     ];
 
-    private static readonly Dictionary<string, IReadOnlyList<(string Item, int Count)>> CostOf =
-        Every.ToDictionary(e => e.Id, e => e.Cost, StringComparer.Ordinal);
-
     /// <summary>The id of every blueprint, then every craft: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
     public static readonly IReadOnlyList<string> Ids = Every.Select(e => e.Id).ToList();
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
-    private readonly IPowerQueries _power;
-    private readonly IPowerOps _powerOps;
+    private readonly IItemsOps _itemsOps;
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
 
     public override string Id => "research";
 
-    public ResearchModule(
-        IGridQueries grid, IItemsQueries items, IPowerQueries power, IPowerOps powerOps, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public ResearchModule(IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
-        _knowledge = knowledge;
-        _knowledgeOps = knowledgeOps;
         _grid = grid;
         _items = items;
-        _power = power;
-        _powerOps = powerOps;
-        // After power's derivation: an analyzer works at its satisfaction of this tick.
-        System(Phase.Simulation, Analyse);
+        _itemsOps = itemsOps;
+        _knowledge = knowledge;
+        _knowledgeOps = knowledgeOps;
+        Handles<BuyBlock>(c => BuyProblem(c), Apply);
+        Handles<Deposit>(c => DepositProblem(c), Apply);
     }
 
     protected override ResearchState Init(Layout layout) => new();
@@ -103,83 +83,96 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public bool Knows(Placement placement) => Knows(Research.Blueprints.Of(placement));
 
-    public bool Knows(string id) =>
-        _items.Creative || (CostOf.TryGetValue(id, out var cost) && Known(id, cost));
+    public bool Knows(string id) => _items.Creative || _knowledge.Granted(id);
 
-    public IReadOnlyList<string> Analysed => _knowledge.Analysed;
+    public IReadOnlyList<Recipe> Recipes() => Every.Select(e => new Recipe(e.Id, e.Placement, e.Cost, _knowledge.Granted(e.Id))).ToList();
 
-    public IReadOnlyList<Recipe> Recipes() =>
-        Every.Select(e => new Recipe(
-            e.Id, e.Placement, e.Cost, Granted(e.Id),
-            e.Cost.Select(c => c.Item).Where(item => Analysable.NeedsAnalysis(item) && !IsAnalysed(item)).Distinct().ToList())).ToList();
+    public int Credits => _knowledge.Credits;
 
-    public Analyzing? At(int id)
+    public bool Bought(TechBlock block) => block.Opens.All(Knows);
+
+    public bool Open(TechTier tier)
     {
-        var item = ItemIn(id);
-        if (item == null) return null;
-        int progress = ProgressOf(id);
-        string? problem = !Analysable.NeedsAnalysis(item) ? "research.nothingToLearn"
-            : IsAnalysed(item) ? "research.nothingNew"
-            : _power.Satisfaction(id) == 0 ? "research.unpowered"
-            : null;
-        return new Analyzing(item, progress, Work, problem);
-    }
-
-    private bool Granted(string id) => _knowledge.Granted(id);
-
-    private bool IsAnalysed(string item) => _knowledge.IsAnalysed(item);
-
-    /// <summary>The opening rule: granted, or every item of its cost analysed that needs analysis.</summary>
-    private bool Known(string id, IReadOnlyList<(string Item, int Count)> cost) =>
-        Granted(id) || cost.All(c => !Analysable.NeedsAnalysis(c.Item) || IsAnalysed(c.Item));
-
-    /// <summary>What machine <paramref name="id"/>'s first slot holds; null for none, or no such machine.</summary>
-    private string? ItemIn(int id)
-    {
-        var slots = _items.Crate(id);
-        return slots.Count == 0 ? null : slots[0]?.Item;
-    }
-
-    /// <summary>Analyzer <paramref name="id"/>'s work so far; none for one not at work.</summary>
-    private int ProgressOf(int id)
-    {
-        var analyses = State.Analyses;
-        int lo = 0, hi = analyses.Count - 1;
-        while (lo <= hi)
+        if (_items.Creative) return true;
+        foreach (var t in Content.Research.Tiers)
         {
-            int mid = lo + ((hi - lo) >> 1);
-            if (analyses[mid].Analyzer == id) return analyses[mid].Progress;
-            if (analyses[mid].Analyzer < id) lo = mid + 1;
-            else hi = mid - 1;
+            foreach (var (item, count) in t.Deposit)
+                if (_knowledge.DepositOf(t.Id, item) < count) return false;
+            if (t == tier) return true;
         }
-        return 0;
+        throw new InvalidOperationException($"A tier not in the tree: {tier.Id}.");
     }
 
-    private void Analyse()
+    public int Deposited(TechTier tier, string item) => _knowledge.DepositOf(tier.Id, item);
+
+    public string? BuyProblem(TechBlock block)
     {
-        var kept = new List<Analysis>();
-        var analyses = State.Analyses;
-        int next = 0;
-        foreach (var m in _grid.MachinesOf("analyzer"))
+        if (Bought(block)) return "research.bought";
+        if (Content.Research.Block(block.Id) is not { } found || !Open(found.Tier) || (found.Before is { } before && !Bought(before)))
+            return "research.locked";
+        return block.Price > _knowledge.Credits ? "research.noCredits" : null;
+    }
+
+    // Commands.
+
+    private bool IsTechStation(int machine) => _grid.MachineById(machine) is { } m && Machines.Is(m.Kind, MachineTrait.Tech);
+
+    private string? BuyProblem(BuyBlock c)
+    {
+        if (!IsTechStation(c.Machine)) return "research.noMachine";
+        return Content.Research.Block(c.Block) is { } found ? BuyProblem(found.Block) : "research.locked";
+    }
+
+    private void Apply(BuyBlock c)
+    {
+        var block = Content.Research.Block(c.Block)!.Value.Block;
+        _knowledgeOps.Spend(block.Price);
+        foreach (string id in block.Opens) _knowledgeOps.Grant(id);
+    }
+
+    private string? DepositProblem(Deposit c)
+    {
+        if (!IsTechStation(c.Machine)) return "research.noMachine";
+        if (!Content.Research.TryTier(c.Tier, out var tier)) return "research.locked";
+        if (Open(tier)) return "research.tierOpen";
+        var tiers = Content.Research.Tiers;
+        for (int i = 1; i < tiers.Count; i++)
+            if (tiers[i] == tier && !Open(tiers[i - 1])) return "research.locked";
+        return Taken(c.From, tier).Count == 0 ? "research.nothingToDeposit" : null;
+    }
+
+    private void Apply(Deposit c)
+    {
+        Content.Research.TryTier(c.Tier, out var tier);
+        foreach (var (item, count) in _itemsOps.Take(c.From, Taken(c.From, tier!))) _knowledgeOps.AddDeposit(c.Tier, item, count);
+    }
+
+    /// <summary>What <paramref name="peer"/> would put into <paramref name="tier"/>'s deposit now: of each item, what it lacks or what is carried, the less.</summary>
+    private List<(string Item, int Count)> Taken(int peer, TechTier tier)
+    {
+        var taken = new List<(string Item, int Count)>();
+        var totals = _items.Totals(peer);
+        foreach (var (item, count) in tier.Deposit)
         {
-            var item = ItemIn(m.Id);
-            bool works = item != null && Analysable.NeedsAnalysis(item) && !IsAnalysed(item);
-            // Empty, holding what is in no cost or what is analysed: what was done is dropped, no power drawn.
-            _powerOps.Rest(m.Id, !works);
-            if (!works) continue;
-            // Analyses and analyzers are both in id order: one pass finds each analyzer's.
-            while (next < analyses.Count && analyses[next].Analyzer < m.Id) next++;
-            int was = next < analyses.Count && analyses[next].Analyzer == m.Id ? analyses[next].Progress : 0;
-            int progress = was + _power.Satisfaction(m.Id);
-            if (progress < Work)
-            {
-                kept.Add(new Analysis(m.Id, progress));
-                continue;
-            }
-            // Two analyzers finishing one item on one tick: the second finds it analysed above.
-            _knowledgeOps.Learn(item!);
-            _powerOps.Rest(m.Id, true);
+            int carried = 0;
+            foreach (var t in totals)
+                if (t.Item == item) carried += t.Count;
+            int put = Math.Min(count - _knowledge.DepositOf(tier.Id, item), carried);
+            if (put > 0) taken.Add((item, put));
         }
-        State.Analyses = kept;
+        return taken;
+    }
+
+    /// <summary>Buys and deposits by hand, refused ones too: at a tech station when one stands, at any block and tier.</summary>
+    public override Command? Fuzz(Rng rng, int from)
+    {
+        if (rng.Below(8) != 0) return null;
+        var stations = _grid.MachinesWith(MachineTrait.Tech);
+        int machine = stations.Count > 0 && rng.Below(8) != 0 ? stations[(int)rng.Below((uint)stations.Count)].Id : (int)rng.Below(64);
+        var tiers = Content.Research.Tiers;
+        var tier = tiers[(int)rng.Below((uint)tiers.Count)];
+        if (rng.Below(2) == 0) return new Deposit(machine, tier.Id) { From = from };
+        var branch = tier.Branches[(int)rng.Below((uint)tier.Branches.Length)];
+        return new BuyBlock(machine, branch.Blocks[(int)rng.Below((uint)branch.Blocks.Length)].Id) { From = from };
     }
 }

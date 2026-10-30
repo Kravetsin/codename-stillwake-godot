@@ -52,7 +52,11 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- анализатор / analyzer → machine `analyzer`, `ResearchModule`, `Analysable`; f/items `AnalyzerPanel`, `Lessons` → Research
+- станция технологий / tech station → machine `techStation`, `TechPanel` → Research
+- дерево технологий, тир, ветка, блок / tech tree, tier, branch, block → `Content.Research.Tiers`, `TechTier`, `TechBranch`, `TechBlock` → Research
+- взнос / deposit → `Deposit`, `Knowledge.Deposits` → Research
+- торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade
+- кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade
 - чертёж / blueprint → `Blueprint`, `Blueprints` → Research
 - ящик / crate → machine `crate`; item `cargoCrate` is salvage → Items
 - дрон / drone → item `drone`, `Drone`, `LogisticsModule`, machine `droneBay` → Logistics

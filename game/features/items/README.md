@@ -12,7 +12,6 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `logic/Hotbar.cs` | the row of nine and the wheel; each slot's digit and key |
 | `logic/Equipment.cs` | the equipment slots by kind, and which glow while a stack is carried (0047) |
 | `logic/Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host |
-| `logic/Lessons.cs` | an analyzer's panel: stage, progress, what the item goes into (0027) |
 | `logic/Reach.cs` | `HeroSpot`; pick-ups and the magnet |
 | `logic/FloorFeel.cs` | a stack's landing (2026-10-29-kill-feel) |
 | `logic/OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was |
@@ -20,9 +19,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) |
 | `SlotBox.cs` | one slot: icon, count, tint, digit, mark, badge, ghost |
-| `AnalyzerPanel.cs` | an analyzer's panel |
 | `ModuleSocket.cs` | a machine's socket for one module (0086) |
-| `AnalyzerScreen.cs` | the analyzer's screen: dark, running lines, a check |
 | `InventoryPanel.cs` | the hotbar, inventory, equipment and the open machine's frame; the stack in hand |
 | `InventoryPanel.Machine.cs` | the open machine's body by kind and its readouts |
 | `InventoryPanel.Sockets.cs` | module sockets: laid out, lent, fitted, tipped (0086) |
@@ -32,7 +29,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `SlotFlights.cs` | a shifted stack flying to where it landed (0075) |
 | `PickUpPopups.cs` | "Scrap (12)" rising over the hero's head (0075) |
 | `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
-| `ItemsDemo.cs` | `-- --items`: a room with a crate, a furnace and an analyzer, for recordings |
+| `ItemsDemo.cs` | `-- --items`: a room with a crate, a furnace and a tech station, for recordings |
 | `logic/Items.En.cs` | Its player text (`En`) |
 
 The wrist computer's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`WristPieces`, `WristArt`,
@@ -72,7 +69,7 @@ and tested in `game.tests/`.
   item sits in the inset. The stack in hand and a flight between slots place it the same way.
 - **Station marks** (0097): with a fed station or fire open, slots it processes show its mark (`Smelts`, `Burns`,
   `Grows`) and the card says "Smelts here" and what it makes; an empty station slot shows its mark's ghost, lit while a
-  fitting stack is carried. Not analysed: a violet "?" (`ItemCards.Unknown`, 0027), never in creative mode.
+  fitting stack is carried.
 - **Sorting** (0008, 0081): the bag's key and a crate's key send `Sort`; shown at once with a sweep. A picked stack is
   put back first; one whose slot changed under it is let go (`Clicks.StillHeld`).
 - **The one tooltip** (0073): a stack's card follows the pointer, never covering its slot. Tools show picture and

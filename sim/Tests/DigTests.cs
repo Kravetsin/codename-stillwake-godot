@@ -162,13 +162,13 @@ public class DigTests
     }
 
     [Fact]
-    public void AboardASoilWallIsPlannedOnceSoilIsAnalysedBuiltOfSoilAndTakenApartForItAgain()
+    public void AboardASoilWallIsPlannedOnceBoughtBuiltOfSoilAndTakenApartForItAgain()
     {
         var w = Aboard(known: []).GiveItems(0, ("soil", 1));
         int cell = At(3, 1);
         var soilWall = Placement.Wall("soil");
         Assert.Equal("building.unknown", w.M.Building.Problem(cell, soilWall));
-        w.M.Knowledge.Learn("soil");
+        w.M.Knowledge.Grant("wallSoil");
         Assert.Null(w.M.Building.Problem(cell, soilWall));
         w.Do(new PlacePlan(cell, soilWall)).Run();
         int plan = w.M.Building.Plans.Single().Id;

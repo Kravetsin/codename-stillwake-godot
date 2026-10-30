@@ -192,7 +192,7 @@ public class RoomsTests
         // As packages/sim/src/modules/wreck.test.ts expects: A and the airlock, named by their first cells; torn B is space.
         Assert.Equal(new[] { w.At(46, 19), w.At(55, 20) }, w.M.Rooms.All.Select(r => r.Id));
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(41, 21)));
-        Assert.Equal(new[] { "solarPanel", "lamp", "lifepod", "analyzer", "generator", "vent" }, w.M.Grid.Machines.Select(m => m.Kind));
+        Assert.Equal(new[] { "solarPanel", "lamp", "lifepod", "techStation", "generator", "vent" }, w.M.Grid.Machines.Select(m => m.Kind));
     }
 
     private static readonly char[] Chars = [' ', '.', '#', '#', '#', '=', 'H', 'D', 'd'];

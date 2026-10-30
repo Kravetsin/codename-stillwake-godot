@@ -18,10 +18,6 @@ public class MachineKindGuardTests
     /// <summary>The files that work one machine's own rule, and may name it.</summary>
     private static readonly string[] Allowed =
     [
-        // The analyzer's: what it analyses, its screens, and its panel's lessons and unknown slot.
-        "sim/Research/Research.cs",
-        "game/features/research/AnalyzerScreens.cs",
-        "game/features/items/logic/Reading.cs",
         // The smelter's heat glow and the former's press: their own looks and sounds.
         "game/features/crafting/StationView.cs",
         "game/features/crafting/StationSounds.cs",
@@ -69,7 +65,7 @@ public class MachineKindGuardTests
         Assert.True(Skipped("sim/Tests/AirTests.cs"));
         Assert.True(Skipped("game/dev/logic/Testbed.cs"));
         Assert.True(Skipped("game/features/power/StoreDemo.cs"));
-        Assert.True(Skipped("sim/Research/Research.cs"));
+        Assert.True(Skipped("game/features/crafting/StationView.cs"));
         Assert.False(Skipped("sim/Atmosphere/Air.cs"));
     }
 }

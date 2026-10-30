@@ -36,8 +36,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - **Supply:** its makers not resting; a fuel burner (`FuelSlot`, rested by `furnace` while its fire is out, 0045)
   anywhere, any other only under the stars: every cell in space with no back wall behind (0043).
 - **Demand:** each drawing user's `Draws` × (1000 + its modules' `Draw`) / 1000, rounded up (0086). A station
-  (`Content.Stations`) draws whenever crafting does not rest it, whatever its slots hold (0057); an analyzer only while
-  its slot holds something (0024); a charging station only while something it holds is short of full (0053); none
+  (`Content.Stations`) draws whenever crafting does not rest it, whatever its slots hold (0057); any other with slots, the
+  engine, only while its first holds something; a charging station only while something it holds is short of full (0053); none
   told to rest. A machine taken apart leaves `Resting`.
 - **Satisfaction** (0017): `floor(1000 × served / demand)`, at most 1000, 1000 with no demand; served is supply plus
   what stores give out. Every user on it works at that share, a resting one included.
@@ -61,8 +61,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   0 off every network; `Draw(machineId)`, modules folded in (0086); `LayProblem(peer, a, b)` and
   `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100).
-- **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `research` rests an analyzer
-  with nothing to learn, `crafting` an idle station (0057), both from simulation; `furnace` a cold burner from
+- **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `crafting` rests an idle station (0057), both from simulation; `furnace` a cold burner from
   construction, so it shows this tick (0045). `Unplug(machineId)`, by `building` taking a machine apart: its cables move
   to a peg at its plug's cell (`Plug` pixels, eight to a cell); `Plug(machineId)`, by `building` building a powered
   machine: cables on a peg at its plug's cell move to it (0110). A cable that would end where it starts or join a pair
