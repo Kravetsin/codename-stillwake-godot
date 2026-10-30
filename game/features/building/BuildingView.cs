@@ -8,6 +8,7 @@ using Stillwake.Net;
 using Stillwake.Sim;
 using Stillwake.Sim.Building;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Power;
 using Stillwake.Sim.Rooms;
 using S = Stillwake.Game.Sound;
 
@@ -105,7 +106,7 @@ public partial class BuildingView : Node2D
         var grid = m.Grid;
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
-        DrawPlans(grid, building, m.Rooms);
+        DrawPlans(grid, building, m.Rooms, m.Power);
 
         var tool = _hand.Selected.Get();
         string? overlay = _ui.OverlayOn;
@@ -171,13 +172,14 @@ public partial class BuildingView : Node2D
     /// silhouette of each group (<see cref="Outline"/>). Redrawn only when the plans or the grid change, the dashes
     /// only when what they go round does.
     /// </summary>
-    private void DrawPlans(IGridQueries grid, BuildingModule building, IRoomsQueries rooms)
+    private void DrawPlans(IGridQueries grid, BuildingModule building, IRoomsQueries rooms, IPowerQueries power)
     {
         var plans = building.Plans;
         // The grid's version is in both keys, as what is built or taken down beside a plan changes how it joins; what was
-        // put in and the work done only in the drawing's, so plans turn real and marks red as they go on.
+        // put in and the work done only in the drawing's, so plans turn real and marks red as they go on; repairs too.
         string outlined = grid.Version + "|" + string.Join(";", plans.Select(p => $"{p.Id}:{p.Cell}:{p.Place}:{p.Clear}"));
-        string key = outlined + "|" + string.Join(";", plans.Select(p => $"{p.Progress}:{string.Join(",", p.Delivered)}"));
+        string key = outlined + "|" + string.Join(";", plans.Select(p => $"{p.Progress}:{string.Join(",", p.Delivered)}"))
+            + "|" + string.Join(";", power.Broken.Select(id => $"{id}:{building.RepairProgress(id)}"));
         if (key == _drawn) return;
         _drawn = key;
         int width = grid.Width;
@@ -207,6 +209,7 @@ public partial class BuildingView : Node2D
             if (cut != null) _glow.Cut(p.Id, BoxOf(CellsOf(grid, p), width), cut);
             shapes.Add((p, place, p.Cell, linked));
         }
+        var repairing = LayRepairs(grid, building, power);
         _marked.Begin();
         foreach (var p in plans)
         {
@@ -226,6 +229,50 @@ public partial class BuildingView : Node2D
         SparkWork(plans, grid, rooms);
         Finish(plans, building);
         _worked = plans.ToDictionary(p => p.Id, p => p.Progress);
+        SparkRepairs(repairing, grid, rooms, power);
+        _repairing = repairing;
+    }
+
+    /// <summary>Each broken machine whose repair is begun, by id: its work done, of all it takes, and its box. Kept as last drawn.</summary>
+    private Dictionary<int, (int Done, int Of, Rect2 Box)> _repairing = [];
+
+    /// <summary>A repair's key in <see cref="BuildGlow"/>, apart from every plan's id, which only grows from 1.</summary>
+    private static int RepairGlow(int machine) => -1 - machine;
+
+    /// <summary>
+    /// Each broken machine under repair (magnetic-flare) laid as a blueprint being built: its pale ghost over it, turning
+    /// real as the work goes on, from where its plan would (<see cref="PlanCut"/>). None before the repair is paid.
+    /// </summary>
+    private Dictionary<int, (int Done, int Of, Rect2 Box)> LayRepairs(IGridQueries grid, BuildingModule building, IPowerQueries power)
+    {
+        var now = new Dictionary<int, (int Done, int Of, Rect2 Box)>();
+        foreach (int id in power.Broken)
+        {
+            if (grid.MachineById(id) is not { } machine || building.RepairProgress(id) is not ( > 0 and var done, var of)) continue;
+            var place = new Placement("machine", machine.Kind);
+            var box = BoxOf(grid.Footprint(machine.Kind, machine.Cell) ?? [machine.Cell], grid.Width);
+            var cut = PlanCut.Of(((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y),
+                PlanCut.FromLeftFor(place.Layer, place.Kind), done, of);
+            _plans.Lay(place, machine.Cell, grid.Width, Tools.LinksOf(place, machine.Cell, grid.Width, _ => [], grid), cut);
+            _glow.Cut(RepairGlow(id), box, cut);
+            now[id] = (done, of, box);
+        }
+        return now;
+    }
+
+    /// <summary>
+    /// Sparks and the screwdriver off each repair whose work went on, as off a plan's (<see cref="SparkWork"/>); a repair gone
+    /// since, its machine mended, swept with light as a plan built is, else let go.
+    /// </summary>
+    private void SparkRepairs(Dictionary<int, (int Done, int Of, Rect2 Box)> now, IGridQueries grid, IRoomsQueries rooms, IPowerQueries power)
+    {
+        foreach (var (id, (done, _, box)) in now)
+        {
+            int was = _repairing.TryGetValue(id, out var before) ? before.Done : 0;
+            if (done > was) Spark(RepairGlow(id), done - was, box, grid, rooms);
+        }
+        foreach (var (id, _) in _repairing)
+            if (!now.ContainsKey(id)) _glow.Gone(RepairGlow(id), finished: grid.MachineById(id) != null && !power.IsBroken(id));
     }
 
     /// <summary>
@@ -238,16 +285,22 @@ public partial class BuildingView : Node2D
         foreach (var p in plans)
         {
             if (!_worked.TryGetValue(p.Id, out int was) || p.Progress <= was) continue;
-            _owedBursts += (p.Progress - was) * BurstsPerTick * Fx.Count;
-            int bursts = (int)Math.Floor(_owedBursts);
-            _owedBursts -= bursts;
-            if (bursts == 0) continue;
-            var box = BoxOf(CellsOf(grid, p), grid.Width);
-            var (x, y, heading) = Tools.SparksOf((box.Position.X, box.Position.Y, box.Size.X, box.Size.Y), _ui.Heroes, SparkReach);
-            var tip = new Vector2((float)x, (float)y);
-            _glow.Sparked(p.Id, tip, heading, bursts, rooms.Afloat(p.Cell), FloorUnder(grid, tip));
-            _screwdriver.PlayAt(tip);
+            Spark(p.Id, p.Progress - was, BoxOf(CellsOf(grid, p), grid.Width), grid, rooms);
         }
+    }
+
+    /// <summary>The sparks <paramref name="ticks"/> more of work owe off <paramref name="box"/>, glow <paramref name="glow"/>'s, and the screwdriver heard there.</summary>
+    private void Spark(int glow, int ticks, Rect2 box, IGridQueries grid, IRoomsQueries rooms)
+    {
+        _owedBursts += ticks * BurstsPerTick * Fx.Count;
+        int bursts = (int)Math.Floor(_owedBursts);
+        _owedBursts -= bursts;
+        if (bursts == 0) return;
+        var (x, y, heading) = Tools.SparksOf((box.Position.X, box.Position.Y, box.Size.X, box.Size.Y), _ui.Heroes, SparkReach);
+        var tip = new Vector2((float)x, (float)y);
+        int cell = (int)(box.Position.Y / Cell) * grid.Width + (int)(box.Position.X / Cell);
+        _glow.Sparked(glow, tip, heading, bursts, rooms.Afloat(cell), FloorUnder(grid, tip));
+        _screwdriver.PlayAt(tip);
     }
 
     /// <summary>The top of the first solid cell under <paramref name="at"/>, in pixels, within <see cref="FloorDepth"/> cells; none past it.</summary>

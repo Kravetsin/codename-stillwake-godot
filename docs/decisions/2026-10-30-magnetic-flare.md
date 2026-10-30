@@ -12,7 +12,7 @@ working, not taken apart, but repairable, their cables left where they are.
 ## Decision
 
 - **Where and when.** A surface kind's `Flares` record (`Content/MagneticFlares.cs`) brings them: the ship's
-  `StartingSpace`, one every 8 to 15 minutes, 10 s of warning, breaking 10–30% of the electric machines. Planets have none,
+  `StartingSpace`, one every 8 to 15 minutes, 30 s of warning, breaking 10–30% of the electric machines. Planets have none,
   a `Calm` world draws none. They are armed once the oxygen generator is known (`Research.Knows("generator")`): from then
   on the player can make whatever repairing it takes. Creative mode knows everything, so flares come from the start there.
 - **The warning** is the aurora, lamps flickering and cables glowing: no text.

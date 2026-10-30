@@ -13,8 +13,8 @@ public static class MagneticFlares
     /// <summary>The blueprint whose knowing arms the flares: once the player can build an oxygen generator, one can be repaired.</summary>
     public const string ArmedBy = "generator";
 
-    /// <summary>The starting space: one every eight to fifteen minutes, ten seconds of aurora, a tenth to three tenths of the machines broken.</summary>
-    public static readonly Flare StartingSpace = new(8 * 60 * 20, 15 * 60 * 20, 10 * 20, PercentMin: 10, PercentMax: 30);
+    /// <summary>The starting space: one every eight to fifteen minutes, thirty seconds of aurora, a tenth to three tenths of the machines broken.</summary>
+    public static readonly Flare StartingSpace = new(8 * 60 * 20, 15 * 60 * 20, 30 * 20, PercentMin: 10, PercentMax: 30);
 }
 
 /// <summary>What repairing a broken machine costs (2026-10-30-magnetic-flare).</summary>

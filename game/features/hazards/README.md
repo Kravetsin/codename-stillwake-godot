@@ -39,7 +39,8 @@ surface, for the dev panel strikes one anywhere.
   `IPowerQueries.Broken` that tick) bursts where it stands, the bursts spread over 0.6 s: the resonator's crackle
   (`Sound.Zap`) pitched up, a lamp's glass (`Sound.GlassBreak`) high and soft with it, both files reused, no new sound.
   What it broke is shown by `power` (dimmed, sparking).
-- `-- --flare` plays the new game's wreck with a flare's warning begun at once.
+- `-- --flare` plays the new game's wreck with a flare's warning begun at once; `--flare=repair` with its lamps and generator
+  broken, a lamp half repaired.
 
 ## Deliberately not handled
 
