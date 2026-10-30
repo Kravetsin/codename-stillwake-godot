@@ -94,7 +94,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
 - вспышка, магнитная буря / magnetic flare → `MagneticFlares.Flare`, `FlareNow`, `FlareComing` (sim/Hazards `Flares.cs`) → Hazards
 - сломан, поломка / broken → `IPowerQueries.IsBroken`, `IPowerOps.Break` → Power
-- ремонт, починить / repair → `Repair`, `RepairCost`, `RepairRules` (sim/Building `Repairs.cs`) → Building
+- ремонт, починить / repair → `Repair`, `RepairProgress`, `RepairRules` (sim/Building `Repairs.cs`) → Building
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core

@@ -38,6 +38,25 @@ public static class AsciiArt
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['y'] = none ? 0xe05555u : 0xf0b44cu });
 
 
+    /// <summary>A wrench on an orange plate over a machine a flare broke: it wants a hand, not power.</summary>
+    public static ImageTexture Broken() => Texture("broken",
+        [
+        "..KKKKKKKKK..",
+        ".KrrrrrrrrrK.",
+        "KrrrrrrwrrwrK",
+        "KrrrrrrwwrwrK",
+        "KrrrrrrwwwwrK",
+        "KrrrrrwwwwrrK",
+        "KrrrrwwwrrrrK",
+        "KrrrwwwrrrrrK",
+        "KrrwwwrrrrrrK",
+        "KrwwwrrrrrrrK",
+        "KrwwrrrrrrrrK",
+        ".KrrrrrrrrrK.",
+        "..KKKKKKKKK..",
+    ],
+        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['r'] = 0xe0662a, ['w'] = 0xf4f6f8 });
+
     /// <summary>A cable's plug, in a socket it is plugged into.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],

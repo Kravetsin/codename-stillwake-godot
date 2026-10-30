@@ -43,8 +43,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
   down. The tick that starts an unpaid part takes from the sender the first item in cost order still lacking that they
   carry, else is refused `items.notEnough`. Within a paid part anyone works, carrying nothing; creative mode takes nothing.
-- **Repair** (magnetic-flare): a tick of work as `Work` is; the first pays the whole `RepairOf`, the last `Mend`s. A
-  broken machine taken apart refunds its cost less `RepairOf`.
+- **Repair** (free-repair): a tick of work as `Work` is, taking nothing; the last `Mend`s. A broken machine taken apart
+  refunds its whole cost.
 - **Instant** (`SetInstant`, dev): a blueprint is built as placed, free; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
@@ -73,7 +73,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
 (`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`, `pipes.*`),
-`Hew(Tool, X, Y, Heading)`, `SetInstant(On)`, `Repair(Machine)` (`building.notBroken`, `items.notEnough`). Previews ask
+`Hew(Tool, X, Y, Heading)`, `SetInstant(On)`, `Repair(Machine)` (`building.notBroken`). Previews ask
 `Problem`, `WorkProblem`, `HewProblem`, `Struck`, `RepairProblem`.
 Fuzz aims `Work` and hits so plans complete.
 
@@ -85,8 +85,7 @@ Fuzz aims `Work` and hits so plans complete.
 - A crack lies only on something that breaks, damage above 0 and below its strength, one a cell and layer, by cell.
   A wall broken gives what it is made of, once.
 - After derivation every standing growth's hold is there; `Plants` and `Felled` are disjoint and together what grew.
-- Items are conserved across inventories, floor, blueprints and what is built, but for what drifts off the grid and
-  what repairs take.
+- Items are conserved across inventories, floor, blueprints and what is built, but for what drifts off the grid.
 
 ## Deliberately not handled
 

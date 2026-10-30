@@ -236,7 +236,7 @@ public static class Aiming
         var machine = grid.MachineAt(cell);
         // A broken machine with no plan on it is repaired; a mark on it wins, so it is taken apart (magnetic-flare).
         if (work == null && machine != null && m.Power.IsBroken(machine.Id))
-            work = new WorkAim(0, m.Building.RepairProblem(machine.Id, peer), machine.Id);
+            work = new WorkAim(0, m.Building.RepairProblem(machine.Id), machine.Id);
         int? crate = machine != null && Opens(machine.Kind) ? machine.Id : null;
         // A drop pod is boarded on E, and its slot opens as the hero sits (Landing): the press and the panel both.
         var press = machine != null && Spec.Machines.Is(machine.Kind, Spec.MachineTrait.Seats)

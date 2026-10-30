@@ -175,8 +175,8 @@ A living document: what is decided about the game and what is still open. Techni
   a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-wave).
 - **Magnetic flares break machines.** Once the player can build an oxygen generator, an aurora spreads across the sky
   every 8 to 15 minutes, lamps flicker and cables glow; then a flash, and a tenth to three tenths of the electric
-  machines on the networks stop where they stand, cables and all. Held with the screwdriver, each is repaired for a
-  quarter of what it was built of, circuits aside ([magnetic-flare](decisions/2026-10-30-magnetic-flare.md)). Fuses and
+  machines on the networks stop where they stand, cables and all. Held with the screwdriver, each is repaired for the
+  work alone, and a wrench over it says so ([free-repair](decisions/2026-10-30-free-repair.md)). Fuses and
   shielded walls will protect them later.
 
 ## Open

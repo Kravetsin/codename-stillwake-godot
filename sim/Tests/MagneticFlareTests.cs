@@ -272,32 +272,29 @@ public class MagneticFlareTests
     // Repair.
 
     [Fact]
-    public void RepairCostsAShareOfTheBuildRoundedUpNeverACircuit()
+    public void RepairTakesAShareOfTheBuildsTimeRoundedUp()
     {
         var w = World();
-        foreach (int cell in new[] { Lamp, Generator, Panel }) Break(w, cell);
-        Assert.Equal(new[] { ("wire", 1), ("scrap", 1) }, w.M.Building.RepairCost(Id(w, Lamp)));
-        Assert.Equal(new[] { ("frame", 1), ("rotor", 1), ("tube", 1), ("wire", 1) }, w.M.Building.RepairCost(Id(w, Generator)));
-        Assert.Equal(new[] { ("frame", 1), ("solarCell", 2), ("wire", 1), ("photoPanel", 1) }, w.M.Building.RepairCost(Id(w, Panel)));
-        Assert.Null(w.M.Building.RepairCost(Id(w, Far)));
-        Assert.Equal(new[] { ("arcLamp", 1) }, Costs.RepairOf("arcLamp"));
+        foreach (int cell in new[] { Lamp, Generator }) Break(w, cell);
+        Assert.Equal((0, 15), w.M.Building.RepairProgress(Id(w, Lamp)));
+        Assert.Equal((0, Costs.RepairTicks("generator")), w.M.Building.RepairProgress(Id(w, Generator)));
+        Assert.Null(w.M.Building.RepairProgress(Id(w, Far)));
     }
 
     [Fact]
-    public void RepairIsRefusedForAMachineNotBrokenAndWhenShortTakingNothing()
+    public void RepairIsRefusedOnlyForAMachineNotBrokenEvenWithEmptyHands()
     {
-        var w = World().GiveItems(0, ("wire", 1));
+        var w = World();
         Break(w, Lamp);
         w.Do(new Repair(Id(w, Far))).Do(new Repair(Id(w, Lamp))).Do(new Repair(9999)).Do(new Repair(Id(w, Crate))).Run();
-        Assert.Equal(new[] { "building.notBroken", "items.notEnough", "building.notBroken", "building.notBroken" }, Reasons(w));
-        Assert.Equal(1, Count(w, "wire"));
-        Assert.Equal((0, 15), w.M.Building.RepairProgress(Id(w, Lamp)));
+        Assert.Equal(new[] { "building.notBroken", "building.notBroken", "building.notBroken" }, Reasons(w));
+        Assert.Equal((1, 15), w.M.Building.RepairProgress(Id(w, Lamp)));
     }
 
     [Fact]
-    public void TheFirstTickPaysTwoHeroesWorkTwiceAsFastAndTheLastMends()
+    public void TwoHeroesCarryingNothingWorkTwiceAsFastAndTheLastTickMends()
     {
-        var w = World().GiveItems(0, ("wire", 1), ("scrap", 1));
+        var w = World();
         int lamp = Id(w, Lamp);
         Break(w, Lamp);
         int ticks = 0;
@@ -308,8 +305,7 @@ public class MagneticFlareTests
             if (ticks == 1) Assert.Equal((2, 15), w.M.Building.RepairProgress(lamp));
         }
         Assert.Equal(8, ticks);
-        Assert.Equal((0, 0), (Count(w, "wire"), Count(w, "scrap")));
-        // Peer 1 carried nothing and paid nothing; the work after the last tick is refused, quietly in the client.
+        // The work after the last tick is refused, quietly in the client.
         Assert.Equal(new[] { "building.notBroken" }, Reasons(w));
         w.Run();
         // Supply 5 against the generator's 4 and both lamps.
@@ -317,31 +313,40 @@ public class MagneticFlareTests
     }
 
     [Fact]
-    public void ProgressIsKeptAndCreativeTakesNothing()
+    public void WhatAHeroCarriesIsLeftAlone()
     {
-        var w = World().GiveItems(0, ("wire", 1), ("scrap", 1)).Do(new SetCreative(true)).Run();
+        var w = World().GiveItems(0, ("wire", 1), ("scrap", 1));
+        int lamp = Id(w, Lamp);
+        Break(w, Lamp);
+        while (w.M.Power.IsBroken(lamp)) w.Do(new Repair(lamp)).Run();
+        Assert.Equal((1, 1), (Count(w, "wire"), Count(w, "scrap")));
+    }
+
+    [Fact]
+    public void ProgressIsKeptWhileNobodyWorks()
+    {
+        var w = World();
         int lamp = Id(w, Lamp);
         Break(w, Lamp);
         w.Do(new Repair(lamp)).Run(100);
         Assert.Equal((1, 15), w.M.Building.RepairProgress(lamp));
-        Assert.Equal((1, 1), (Count(w, "wire"), Count(w, "scrap")));
         Assert.Empty(w.Refusals);
     }
 
     [Fact]
-    public void TakingABrokenMachineApartRefundsItsCostLessTheRepairPaidOrNot()
+    public void TakingABrokenMachineApartRefundsItsWholeCostRepairBegunOrNot()
     {
-        foreach (bool paid in new[] { false, true })
+        foreach (bool begun in new[] { false, true })
         {
-            var w = World().GiveItems(0, ("wire", 1), ("scrap", 1));
+            var w = World();
             int lamp = Id(w, Lamp);
             Break(w, Lamp);
-            if (paid) w.Do(new Repair(lamp)).Run();
+            if (begun) w.Do(new Repair(lamp)).Run();
             w.Do(new Deconstruct(Lamp, "machine")).Run();
             int plan = w.M.Building.Plans.Single().Id;
-            Assert.Equal(new[] { ("wire", 1), ("scrap", 1) }, w.M.Building.RefundOf(plan));
+            Assert.Equal(new[] { ("wire", 2), ("scrap", 2) }, w.M.Building.RefundOf(plan));
             while (w.M.Building.Plans.Count > 0) w.Do(new Work(plan)).Run();
-            Assert.Equal(paid ? (1, 1) : (2, 2), (Count(w, "wire"), Count(w, "scrap")));
+            Assert.Equal((2, 2), (Count(w, "wire"), Count(w, "scrap")));
             Assert.Empty(w.M.Power.Broken);
             Assert.Empty(((BuildingState)w.M.Building.Slice).Repairs);
         }
@@ -352,7 +357,7 @@ public class MagneticFlareTests
     [Fact]
     public void ASaveMidWarningAndMidRepairPlaysOnAlike()
     {
-        var w = World(meteors: true).GiveItems(0, ("wire", 1), ("scrap", 1));
+        var w = World(meteors: true);
         Break(w, Lamp);
         w.Do(new Repair(Id(w, Lamp))).Do(new FlareNow(Starting.Warning)).Run(5);
         var loaded = new Scenario(Layout.Parse(Rows, null, Cables) with { Meteors = true }, with: m => [new Breaker(m.Power)], doubled: true)
@@ -373,8 +378,6 @@ public class MagneticFlareTests
     public void AWorldLoadedBeforeEveryTickPlaysOnAlikeThroughStrikesAndRepairs()
     {
         var w = World(seed: 3);
-        foreach (int peer in new[] { 0, 1 })
-            w.GiveItems(peer, ("wire", 30), ("scrap", 30), ("frame", 30), ("rotor", 30), ("tube", 30), ("solarCell", 30), ("plate", 30), ("coil", 30), ("photoPanel", 10));
         int brokenTicks = 0, repairTicks = 0;
         for (int t = 0; t < 300; t++)
         {
@@ -399,10 +402,10 @@ public class MagneticFlareTests
 
     /// <summary>
     /// Strikes and repairs drawn at random: <c>Broken</c> holds existing powered machines once, sorted; each strike breaks its share
-    /// of the candidates, rounded up; a broken machine's satisfaction is 0; a repair takes its cost exactly once.
+    /// of the candidates, rounded up; a broken machine's satisfaction is 0; a repair takes nothing from the bag.
     /// </summary>
     [Property(MaxTest = 50)]
-    public Property StrikesAndRepairsKeepBrokenAndCostsTrue()
+    public Property StrikesAndRepairsKeepBrokenTrueAndTakeNothing()
     {
         var gen =
             from seed in Gen.Choose(1, 10000)
@@ -414,7 +417,6 @@ public class MagneticFlareTests
             string[] kinds = ["wire", "scrap", "frame", "rotor", "tube", "solarCell", "plate", "coil", "photoPanel"];
             var w = World(seed: t.seed).GiveItems(0, [.. kinds.Select(k => (k, 60))]);
             var bag = kinds.ToDictionary(k => k, k => Count(w, k));
-            var paid = new List<IReadOnlyList<(string Item, int Count)>>();
             foreach (int step in t.steps)
             {
                 var before = w.M.Power.Broken.ToList();
@@ -428,21 +430,14 @@ public class MagneticFlareTests
                 else if (before.Count > 0)
                 {
                     int machine = before[step == 1 ? 0 : before.Count - 1];
-                    var cost = w.M.Building.RepairCost(machine)!;
-                    bool unpaid = w.M.Building.RepairProgress(machine) is (0, _);
-                    w.Do(new Repair(machine)).Run();
-                    if (unpaid && w.M.Building.RepairProgress(machine) is not (0, _)) paid.Add(cost);
-                    for (int i = 0; i < 20; i++) w.Do(new Repair(machine)).Run();
+                    for (int i = 0; i < 21; i++) w.Do(new Repair(machine)).Run();
                 }
                 var broken = w.M.Power.Broken;
                 if (!broken.SequenceEqual(broken.Distinct().Order())) return false.Label("unsorted");
                 if (!broken.All(id => w.M.Grid.MachineById(id) is { } m && Machines.Get(m.Kind).Powered && w.M.Power.Satisfaction(id) == 0))
                     return false.Label("a broken machine not powered or working");
             }
-            // Every repair begun took its cost once; nothing else left the bag.
-            foreach (var cost in paid)
-                foreach (var (item, count) in cost) bag[item] -= count;
-            return bag.All(kv => Count(w, kv.Key) == kv.Value).Label("a repair paid more or less than once");
+            return bag.All(kv => Count(w, kv.Key) == kv.Value).Label("a repair took something from the bag");
         });
     }
 }

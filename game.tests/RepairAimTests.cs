@@ -21,10 +21,10 @@ public class RepairAimTests
 
     private static (double X, double Y) Centre(int x, int y) => (2 * x + 0.5, 2 * y + 0.5);
 
-    /// <summary>The hall with its lamp broken, through the save, and peer 0 carrying <paramref name="items"/>.</summary>
-    private static (TestWorld W, int Lamp) Broken(params (string Item, int Count)[] items)
+    /// <summary>The hall with its lamp broken, through the save, and peer 0 carrying nothing.</summary>
+    private static (TestWorld W, int Lamp) Broken()
     {
-        var w = new TestWorld(Layout.Parse(Hall).Doubled()).Give(0, items);
+        var w = new TestWorld(Layout.Parse(Hall).Doubled());
         int lamp = w.M.Grid.Machines.First(m => m.Kind == "lamp").Id;
         w.Edit(root => root["slices"]!["power"]!["broken"] = new JsonArray(lamp));
         return (w, lamp);
@@ -33,7 +33,7 @@ public class RepairAimTests
     [Fact]
     public void HeldOnABrokenMachineTheScrewdriverRepairsIt()
     {
-        var (w, lamp) = Broken(("wire", 1), ("scrap", 1));
+        var (w, lamp) = Broken();
         var aim = Aiming.AimAt(w.M, 0, HeroOn(3, 1), Centre(2, 1));
         Assert.Equal(new WorkAim(0, null, lamp), aim!.Work);
         Assert.Equal(new Prompt("use.repair", null), Prompts.Of(w.M, aim));
@@ -44,19 +44,9 @@ public class RepairAimTests
     }
 
     [Fact]
-    public void ShortOfItsCostItSaysWhyAndSendsNothing()
-    {
-        var (w, lamp) = Broken();
-        var aim = Aiming.AimAt(w.M, 0, HeroOn(3, 1), Centre(2, 1));
-        Assert.Equal(new WorkAim(0, "items.notEnough", lamp), aim!.Work);
-        Assert.Equal(new Prompt("use.repair", "items.notEnough"), Prompts.Of(w.M, aim));
-        Assert.Empty(Aiming.UsesOf(aim, pressed: false, held: true, 3, -1).Commands);
-    }
-
-    [Fact]
     public void AMarkOnABrokenMachineWinsAndAWorkingOneIsNoRepair()
     {
-        var (w, lamp) = Broken(("wire", 1), ("scrap", 1));
+        var (w, lamp) = Broken();
         w.Step(new Deconstruct(w.M.Grid.MachineById(lamp)!.Cell, "machine"));
         var marked = Aiming.AimAt(w.M, 0, HeroOn(3, 1), Centre(2, 1));
         Assert.Null(marked!.Work!.Repair);
