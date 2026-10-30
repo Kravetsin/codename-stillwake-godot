@@ -84,7 +84,7 @@ public partial class InventoryPanel : CanvasLayer
     private HBoxContainer? _stored;
     private Label? _storedText, _rate;
     /// <summary>A trade station's: the ship's credits.</summary>
-    private Label? _credits;
+    private readonly CreditLine _credits = new(Tablet.FontSize);
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
     private string? _tooCold;
     /// <summary>The slots, each saying what it holds in the one tooltip.</summary>
@@ -218,6 +218,8 @@ public partial class InventoryPanel : CanvasLayer
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
+        // What the ship has earned, on the display's metal: it is spent at the tablet, the workbench and the station alike.
+        grid.Mount(_credits, screen => new Vector2(screen.X + WristLook.SideKeyOut, screen.Y - WristLook.SideKeyDown));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -260,7 +262,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _credits, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
         (_stored, _storedText, _rate) = (null, null, null);
     }
 

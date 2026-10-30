@@ -2,7 +2,7 @@ using Stillwake.Content;
 
 namespace Stillwake.Sim.Research;
 
-/// <summary>What a block of the tree costs: what it opens is worth, times its category's multiple, to two figures as a shop prints it (2026-10-30-tech-graph).</summary>
+/// <summary>What a block of the tree costs: what it opens is worth, times its ring's multiple, to two figures as a shop prints it (2026-10-30-tech-rings).</summary>
 public static class Prices
 {
     private static readonly Dictionary<string, Blueprint> Prints = Blueprints.All.ToDictionary(b => b.Id, StringComparer.Ordinal);
@@ -19,11 +19,7 @@ public static class Prices
         return Prints[id].Cost.Sum(c => c.Count * Market.WorthOf(c.Item));
     }
 
-    private static int Worked(TechNode node)
-    {
-        int times = node.Times ?? Content.Research.CategoryOf(node).Times;
-        return Rounded(times * node.Opens.Sum(WorthOf));
-    }
+    private static int Worked(TechNode node) => Rounded(node.Times * node.Opens.Sum(WorthOf));
 
     /// <summary><paramref name="price"/> up to its first two figures.</summary>
     private static int Rounded(int price)

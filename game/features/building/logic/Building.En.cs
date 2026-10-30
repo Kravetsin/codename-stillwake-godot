@@ -44,6 +44,7 @@ public static partial class En
         ["tool.engine"] = "Engine",
         ["tool.dropPod"] = "Drop pod",
         ["build.open"] = "[B] Build",
+        ["build.openTree"] = "[T] Tech tree",
         ["build.search"] = "Search",
         ["build.none"] = "Nothing known by that name",
         ["hint.build"] = "LMB: plan · RMB: remove in the lit layer · MMB: layer · Q: pick · Z X C: mode · B: close",

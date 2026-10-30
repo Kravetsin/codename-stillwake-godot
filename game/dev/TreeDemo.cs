@@ -9,9 +9,10 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --tree</c>: the wreck with credits to spend, and a script through the tech tree on the tablet: T taking it out on the first
-/// thing to do, a drag starting on that node (which must buy nothing), a click on it, the wheel out to the whole map and in again,
-/// T putting it away. Played through Godot's own input, for recordings with <c>--write-movie</c>; each step is printed with its time.
+/// <c>-- --tree</c>: the wreck with credits to spend, and a script through the tech tree on the tablet: T taking it out, a drag starting on
+/// a node (which must pick nothing), a click on it (which must buy nothing), the strip's button buying it, a far node's ties, the wheel
+/// out to the whole map, the hub, the other tab, T putting it away, the bag. Played through Godot's own input, for recordings with
+/// <c>--write-movie</c>; each step is printed with its time.
 /// </summary>
 public partial class TreeDemo(Func<Registry> m) : Node
 {
@@ -40,18 +41,25 @@ public partial class TreeDemo(Func<Registry> m) : Node
         [
             (0.8, "T opens it", () => Press(Key.T)),
             (2.0, "point at the workbench", () => Point(_tree.ScreenOf("workbench"))),
-            (3.0, "press on the workbench and drag", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
-            (3.1, "dragging", () => Move(_last + away, MouseButton.Left)),
-            (3.2, "let go: nothing bought", () => Mouse(_last, MouseButton.Left, false)),
-            (3.6, "drag back", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
-            (3.7, "dragging", () => Move(_last - away, MouseButton.Left)),
-            (3.8, "let go: nothing bought", () => Mouse(_last, MouseButton.Left, false)),
-            (4.5, "click the workbench", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (2.5, "press on the workbench and drag", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (2.6, "dragging", () => Move(_last + away, MouseButton.Left)),
+            (2.7, "let go: nothing picked", () => Mouse(_last, MouseButton.Left, false)),
+            (3.0, "drag back", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (3.1, "dragging", () => Move(_last - away, MouseButton.Left)),
+            (3.2, "let go: nothing picked", () => Mouse(_last, MouseButton.Left, false)),
+            (3.5, "click the workbench", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (3.55, "let go: picked, nothing bought", () => Mouse(_last, MouseButton.Left, false)),
+            (4.5, "press the button", () => Mouse(_tree.ActionAt, MouseButton.Left, true)),
             (4.55, "let go: bought", () => Mouse(_last, MouseButton.Left, false)),
-            (5.5, "wheel out", () => Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 12)),
-            (6.5, "point at the furnace, all the way out", () => Point(_tree.ScreenOf("furnace"))),
-            (7.5, "wheel in", () => Wheel(_tree.ScreenOf("furnace"), MouseButton.WheelUp, 5)),
-            (8.5, "T puts it away", () => Press(Key.T)),
+            (5.5, "wheel out", () => Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 8)),
+            (6.5, "click the plate, not yet open", () => Mouse(_tree.ScreenOf("plate"), MouseButton.Left, true)),
+            (6.55, "let go: its ties lit", () => Mouse(_last, MouseButton.Left, false)),
+            (7.5, "click the hub", () => Mouse(_tree.HubAt, MouseButton.Left, true)),
+            (7.55, "let go: the gate picked", () => Mouse(_last, MouseButton.Left, false)),
+            (8.5, "the other tab", () => Mouse(_tree.TabAt(1), MouseButton.Left, true)),
+            (8.55, "let go", () => Mouse(_last, MouseButton.Left, false)),
+            (9.5, "T puts it away", () => Press(Key.T)),
+            (10.0, "Tab: the bag, the credits on its metal", () => Press(Key.Tab)),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {

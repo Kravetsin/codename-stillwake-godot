@@ -8,7 +8,7 @@
 | `Prices.cs` | What a block costs, worked out from what it opens. |
 | `Research.cs` | Knowing blueprints and crafts: what the world knows, the tree it buys more of, and its gates' deposits. |
 
-Knowing blueprints and crafts ([tech-graph](../../docs/decisions/2026-10-30-tech-graph.md), [tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md)). The tree is data,
+Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md), [tech-rings](../../docs/decisions/2026-10-30-tech-rings.md)). The tree is data,
 `Content/Research.cs`. A blueprint not known cannot be planned (`building.unknown`), a craft not known not queued
 (`crafting.unknown`).
 
@@ -22,7 +22,7 @@ Knowing blueprints and crafts ([tech-graph](../../docs/decisions/2026-10-30-tech
   else by the grid's name (`floor`, `furnace`). A craft by the item it makes. Cables are no blueprint and always known.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`); a map with none knows
   everything. In creative mode everything is known and every node done.
-- **A node is reached** when everything it `Needs` is done. A block is done when everything it opens is known, a gate when
+- **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known, a gate when
   its deposit is full.
 - **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits.
 - **A deposit** (`Deposit`) takes from the sender's bag, wherever they stand, what it carries of what a gate still lacks, for good. Part of it is

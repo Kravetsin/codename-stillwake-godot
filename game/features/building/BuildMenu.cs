@@ -87,7 +87,11 @@ public partial class BuildMenu : CanvasLayer
 
         _closed = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
         _closed.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900 with { A = 0.9f }, Render.Style.Slate700, 4));
-        _closed.AddChild(Tablet.Text(En.T("build.open"), Render.Style.Slate400));
+        var keys = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        keys.AddThemeConstantOverride("separation", 16);
+        keys.AddChild(Tablet.Text(En.T("build.open"), Render.Style.Slate400));
+        keys.AddChild(Tablet.Text(En.T("build.openTree"), Render.Style.Slate400));
+        _closed.AddChild(keys);
         _closed.AnchorLeft = _closed.AnchorRight = 0.5f;
         _closed.AnchorTop = _closed.AnchorBottom = 1;
         _closed.GrowHorizontal = Control.GrowDirection.Both;
