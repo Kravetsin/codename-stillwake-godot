@@ -101,11 +101,13 @@ its own, only its ports': the fluid of its first port in node order, none if it 
 - A water line is drawn teal, unfaded and still, with no flow: it is not dry, it carries nothing yet.
 
 - **Content:** its row in `Machines.All`: cost `plate 4, tube 2` (a designer's number), `BuildTicks 160`,
-  `Menu: new(MenuTabs.Air, 25)`, map letter `I` (free: `H` is the ladder), no traits.
+  `Menu: new(MenuTabs.Air, 25)`, map letter `c` (every capital is taken; `I` went to the workbench), no traits; its research block after the
+  vent's and the tank's (`Research.cs`).
 - **Art:** `game/art/machine_cistern.png`, 32×32 in the tank's palette: a steel cylinder lying on two saddles over a
   base plate, a hatch on top, a sight glass in its middle showing teal water, pipe stubs at its ports. Confirmed by the
   user before the PR opens (`MachineArtTests` is red without it). Its name and handbook line in the building feature's
-  `En`. In the testbed's map (`TestbedTests` wants every machine drawn), piped to a second cistern.
+  `En`. In the testbed's map (`TestbedTests` wants every machine drawn), piped to a second cistern: a drawn pipe meets only even cells and the output is on an odd one, so the testbed
+  lays that span as it is made.
 - **Docs:** the ADR and Pipes README gain the cistern as the first water machine; a glossary line for
   цистерна/cistern.
 - **Done when** scenario tests cover: cistern → vent refused `pipes.mixedFluid`; cistern out → cistern in laid; a

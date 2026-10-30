@@ -51,6 +51,8 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   A span is refused, after `pipes.twice`, joining two ports that give (`pipes.bothGive`) or take (`pipes.bothTake`), or
   ends of different fluids (`pipes.mixedFluid`): an end's fluid is its port's, else its line's, and a line with no port
   matches any. Only the two ends count: output → joint → output is laid. Valves never mix fluids, as lines ignore them.
+  Air's ports are the tank's, the generator's and the vent's; water's the cistern's, its input left and output right,
+  which holds nothing yet.
 
 ## API
 

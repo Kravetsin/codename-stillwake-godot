@@ -67,6 +67,7 @@ public static class Research
         new("powerAndAir", 1,
             Block(["coil"], "burnerGenerator"),
             Block(["burnerGenerator"], "vent", "tank"),
+            Block(["vent"], "cistern"),
             Block(["vent", "frame"], "generator"),
             Block(["frame", "coil"], "jetpack"),
             Gate("processing", ["frame", "burnerGenerator"], ("frame", 10), ("gear", 20), ("coil", 20))),

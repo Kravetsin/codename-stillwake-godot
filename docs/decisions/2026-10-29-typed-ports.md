@@ -21,6 +21,9 @@ water port from an air one. More fluids will follow, so the rule has to grow by 
 - **A span is refused**, after `pipes.twice`, when both its ends are ports that give (`pipes.bothGive`) or take
   (`pipes.bothTake`), or its ends' fluids differ (`pipes.mixedFluid`). An end's fluid is its port's, else its line's; a
   line with no port matches anything. Lines ignore valves, so opening one never mixes fluids and `SetValve` refuses nothing.
+- **The cistern** (`cistern`, 4×4) is the first machine of another fluid: a water input on its left, an output on its right.
+  It holds nothing yet; its lines are drawn teal and still. Water itself, its melting, loading and the electrolyser are
+  the water plan's.
 - **Direction is about one span's two ends.** Output → joint → output is legal: a tank and generators on one manifold
   still work, and air still fills a whole network. Rejected: a rule over the whole network (it would refuse by the order
   things were built and by valve state), a direction saved on each span (nothing models directed flow), and one output

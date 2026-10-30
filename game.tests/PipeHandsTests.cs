@@ -125,6 +125,17 @@ public class PipeHandsTests
     }
 
     [Fact]
+    public void ACisternsLeftHalfTakesItsInputItsRightItsOutputAndADragFromItNeverLightsItsOwn()
+    {
+        // Two cisterns: inputs (0, 2) and (8, 2), outputs (3, 2) and (11, 2).
+        var w = new TestWorld(Layout.Parse(["cccc....cccc....", "cccc....cccc....", "cccc....cccc....", "cccc....cccc...."]));
+        Assert.Equal(At(0, 2), PipeHands.CellAt(w.M.Grid, Middle(1, 0)));
+        Assert.Equal(At(3, 2), PipeHands.CellAt(w.M.Grid, Middle(2, 3)));
+        Assert.Equal([At(8, 2)], LitFrom(w, Middle(3, 2)));
+        Assert.Equal([At(3, 2)], LitFrom(w, Middle(8, 2)));
+    }
+
+    [Fact]
     public void ADragLightsAPortBuiltWhileItLasts()
     {
         var w = World();

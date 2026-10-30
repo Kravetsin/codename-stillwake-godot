@@ -27,7 +27,8 @@ The pipes as built, the piping's hands and the overlay that shows every network 
 - The overlay shows only while the plan is piping (C, `Tools.OverlayShown`); building, the menu has no pipes, valves or pipe
   overlay. Its buttons are the piping's (`Hands`): the building takes none.
 - A press on a machine's cell stands for its nearest port (`PipeHands.CellAt`); anywhere else, the cell itself.
-- Oxygen runs from tanks holding some and powered generators; a network none feeds is faded and still. Read every
+- Oxygen runs from tanks holding some and powered generators; a network none feeds is faded and still. A water network
+  (`FluidAt`) is teal, unfaded and still: it carries nothing yet. Read every
   250 ms once the world ticked; the dots move every frame.
 - Out of the overlay the pipes are `PipesView`'s, lit as the ship is, behind what stands in front (`Layers.Pipes`,
   `Valves`); redrawn only when the spans, valves or grid change.

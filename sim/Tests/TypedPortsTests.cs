@@ -205,23 +205,82 @@ public class TypedPortsTests
         Assert.Equal(2, Assert.Single(w.M.Pipes.Networks).Machines.Count);
     }
 
-    /// <summary>What breaks the ports' rules on a surface: a span joining two ports of one way, a network of two fluids.</summary>
+    /// <summary>
+    /// What breaks the ports' rules on a surface: a span joining two ports of one way, a line (every valve counted open)
+    /// holding two fluids.
+    /// </summary>
     private static string? Broken(Registry m)
     {
         foreach (var s in m.Pipes.Spans)
             if (m.Grid.PortAt(s.A) is { } a && m.Grid.PortAt(s.B) is { } b && a.Way == b.Way)
                 return $"span {s.A}–{s.B} joins two ports that {(a.Way == Way.Out ? "give" : "take")}";
-        foreach (var n in m.Pipes.Networks)
-            if (n.Cells.Select(c => m.Grid.PortAt(c)?.Fluid).OfType<string>().Distinct().Count() > 1)
-                return $"network {n.Id} holds two fluids";
+        var line = new Dictionary<int, int>();
+        int Root(int cell)
+        {
+            while (line.TryGetValue(cell, out int up) && up != cell) cell = up;
+            return cell;
+        }
+        foreach (var s in m.Pipes.Spans)
+        {
+            var (a, b) = (Root(s.A), Root(s.B));
+            line[a] = line.GetValueOrDefault(a, a);
+            line[b] = a;
+        }
+        foreach (var group in m.Pipes.Spans.SelectMany(s => new[] { s.A, s.B }).Distinct().GroupBy(Root))
+            if (group.Select(c => m.Grid.PortAt(c)?.Fluid).OfType<string>().Distinct().Count() > 1)
+                return $"the line through {group.Key} holds two fluids";
         return null;
     }
 
-    /// <summary>Where the property's pipes end: the ship's ports, and joints, four of them where a machine planned puts its port.</summary>
-    private static readonly (int X, int Y)[] Nodes = [(0, 0), (0, 6), (12, 6), (0, 10), (12, 10), (6, 8), (5, 5), (9, 2), (16, 2), (16, 8), (20, 0), (18, 10)];
+    /// <summary>
+    /// A cell a character: air's ports as on <see cref="Ship"/> but the bottom right vent; cistern C at (24, 4), its input
+    /// (24, 6) and output (27, 6); cistern D at (28, 8), its input (28, 10) and output (31, 10).
+    /// </summary>
+    private const string Mixed = """
+        VV..............................
+        VV..............................
+        ................................
+        ................................
+        TTTT........GGGG........cccc....
+        TTTT........GGGG........cccc....
+        TTTT........GGGG........cccc....
+        TTTT........GGGG........cccc....
+        ............................cccc
+        ............................cccc
+        VV..........VV..............cccc
+        VV..........VV..............cccc
+        """;
 
-    /// <summary>Machines the property plans, each at a top-left that puts its port on one of those joints.</summary>
-    private static readonly (string Kind, int X, int Y)[] Spots = [("generator", 16, 0), ("tank", 16, 6), ("vent", 20, 0), ("vent", 18, 10)];
+    /// <summary>Where the mixed ship's pipes end: its ports, and joints, among them where a machine planned puts a port.</summary>
+    private static readonly (int X, int Y)[] Nodes =
+    [
+        (0, 0), (0, 6), (12, 6), (0, 10), (12, 10), (24, 6), (27, 6), (28, 10), (31, 10),
+        (6, 8), (5, 5), (9, 2), (22, 6), (16, 2), (16, 8), (20, 0), (18, 10), (26, 2), (29, 2), (20, 10), (23, 10),
+    ];
+
+    /// <summary>Machines planned on the mixed ship, each at a top-left that puts its ports on joints among <see cref="Nodes"/>.</summary>
+    private static readonly (string Kind, int X, int Y)[] Spots =
+        [("generator", 16, 0), ("tank", 16, 6), ("vent", 20, 0), ("vent", 18, 10), ("cistern", 26, 0), ("cistern", 20, 8)];
+
+    /// <summary>One random step on the mixed ship: a span laid or cut, a machine planned or taken apart, a valve made or set.</summary>
+    private static Command StepOn(Scenario w, int op, int i, int j)
+    {
+        int At((int X, int Y) c) => w.At(c.X, c.Y);
+        var spot = Spots[i % Spots.Length];
+        var spans = w.M.Pipes.Spans;
+        return op switch
+        {
+            < 5 => new LayPipe(At(Nodes[i]), At(Nodes[j])),
+            5 when spans.Count > 0 => new CutPipe(spans[i % spans.Count].A, spans[i % spans.Count].B),
+            6 or 7 => new PlacePlan(w.At(spot.X, spot.Y), new Placement("machine", spot.Kind)),
+            8 => new ClearAt(At(Nodes[i]), "machine"),
+            9 => new MakeValve(At(Nodes[i]), j % 3 != 0),
+            _ => new SetValve(At(Nodes[i]), j % 2 == 0),
+        };
+    }
+
+    private static Scenario MixedShip() =>
+        new Scenario(Mixed, cells: true).GiveItems(0, ("tube", 20)).Do(new Items.SetCreative(true)).Do(new SetInstant(true)).Run();
 
     [Fact]
     public void TheWreckJoinsNoTwoPortsOfOneWayNorTwoFluids()
@@ -235,25 +294,55 @@ public class TypedPortsTests
     [Property(MaxTest = 60)]
     public Property KeepsEveryPortToItsWayAndFluidWhateverIsLaidCutBuiltOrTakenApart()
     {
-        var step = from op in Gen.Choose(0, 9) from i in Gen.Choose(0, Nodes.Length - 1) from j in Gen.Choose(0, Nodes.Length - 1) select (op, i, j);
+        var step = from op in Gen.Choose(0, 10) from i in Gen.Choose(0, Nodes.Length - 1) from j in Gen.Choose(0, Nodes.Length - 1) select (op, i, j);
         var steps = from n in Gen.Choose(1, 40) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
         {
-            var w = Piped().Do(new Items.SetCreative(true)).Do(new SetInstant(true)).Run();
-            int At((int X, int Y) c) => w.At(c.X, c.Y);
+            var w = MixedShip();
             foreach (var (op, i, j) in all)
             {
-                var spot = Spots[i % Spots.Length];
-                w.Do(op switch
-                {
-                    < 6 => new LayPipe(At(Nodes[i]), At(Nodes[j])),
-                    6 when w.M.Pipes.Spans.Count > 0 => new CutPipe(w.M.Pipes.Spans[i % w.M.Pipes.Spans.Count].A, w.M.Pipes.Spans[i % w.M.Pipes.Spans.Count].B),
-                    7 or 8 => new PlacePlan(w.At(spot.X, spot.Y), new Placement("machine", spot.Kind)),
-                    _ => new ClearAt(At(Nodes[i]), "machine"),
-                }).Run();
+                w.Do(StepOn(w, op, i, j)).Run();
                 if (Broken(w.M) is { } broken) return false.Label(broken);
             }
             return true.ToProperty();
         });
+    }
+
+    /// <summary>
+    /// Lines found when asked are what a load finds: two mixed ships fed the same random steps, one asked of fluids and seats
+    /// between ticks and now and then loaded from its save, hash alike every tick and refuse alike; and the steps reach
+    /// <c>pipes.mixedFluid</c> from both a pipe and a machine.
+    /// </summary>
+    [Fact]
+    public void AsksAndLoadsWithoutChangingWhatItRefuses()
+    {
+        int fromPipe = 0, fromMachine = 0;
+        for (uint seed = 1; seed <= 12; seed++)
+        {
+            var rng = new Rng(new RngState { S = seed });
+            int Below(int n) => (int)rng.Below((ulong)n);
+            var (plain, asked) = (MixedShip(), MixedShip());
+            for (int tick = 0; tick < 60; tick++)
+            {
+                for (int k = 0; k < 4; k++)
+                {
+                    var (node, spot) = (Nodes[Below(Nodes.Length)], Spots[Below(Spots.Length)]);
+                    asked.M.Pipes.FluidAt(asked.At(node.X, node.Y));
+                    asked.M.Pipes.SeatProblem(spot.Kind, asked.At(spot.X, spot.Y));
+                }
+                if (Below(8) == 0) asked.Reload();
+                var (op, i, j) = (Below(11), Below(Nodes.Length), Below(Nodes.Length));
+                var command = StepOn(plain, op, i, j);
+                var (was, wasAsked) = (plain.Refusals.Count, asked.Refusals.Count);
+                plain.Do(command).Run();
+                asked.Do(command).Run();
+                Assert.True(plain.World.Hash() == asked.World.Hash(), $"seed {seed}, tick {tick}: the asked world differs");
+                Assert.Equal(plain.Refusals.Skip(was).Select(r => r.Reason), asked.Refusals.Skip(wasAsked).Select(r => r.Reason));
+                foreach (var r in plain.Refusals.Skip(was).Where(r => r.Reason == "pipes.mixedFluid"))
+                    if (r.Command is LayPipe) fromPipe++;
+                    else fromMachine++;
+            }
+        }
+        Assert.True(fromPipe > 0 && fromMachine > 0, $"pipes.mixedFluid from a pipe {fromPipe} times, from a machine {fromMachine}");
     }
 }

@@ -97,6 +97,12 @@ public partial class PipesOverlay : Node2D
         for (int i = 0; i < pipes.Networks.Count; i++)
         {
             var network = pipes.Networks[i];
+            // Water carries nothing yet: its lines are teal and still, never dry (typed-ports).
+            if (pipes.FluidAt(network.Cells[0]) == Stillwake.Content.Fluids.Water)
+            {
+                colourOf[network.Id] = AsciiArt.Colour(Sockets.ColourOf(Stillwake.Content.Fluids.Water));
+                continue;
+            }
             var sources = network.Machines.Where(Feeds).SelectMany(id => grid.PortsOf(byId[id])).ToList();
             var colour = AsciiArt.Colour(Flow.ColourOf(i), sources.Count > 0 ? 1 : DryAlpha);
             colourOf[network.Id] = colour;

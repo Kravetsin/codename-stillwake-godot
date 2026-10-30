@@ -19,7 +19,7 @@ public class TestbedTests
     });
 
     [Fact]
-    public void ItsPipesJoinTwoPortsOfOneWayOnlyWhereDrawnSoAndNeverTwoFluids()
+    public void ItsPipesJoinTwoPortsOfOneWayOnlyWhereDrawnSoNeverTwoFluidsAndItsCisternsByWater()
     {
         var m = Built.Value;
         Assert.NotEmpty(m.Pipes.Spans);
@@ -27,7 +27,12 @@ public class TestbedTests
         var oneWay = m.Pipes.Spans.Where(s => m.Grid.PortAt(s.A) is { } a && m.Grid.PortAt(s.B) is { } b && a.Way == b.Way)
             .Select(s => (m.Grid.MachineAt(s.A)!.Kind, m.Grid.MachineAt(s.B)!.Kind));
         Assert.Equal([("tank", "generator")], oneWay);
-        Assert.All(m.Pipes.Networks, n => Assert.True(n.Cells.Select(c => m.Grid.PortAt(c)?.Fluid).OfType<string>().Distinct().Count() <= 1, $"network {n.Id}"));
+        // By lines, every valve counted open: a span's two ends of one fluid wherever both have one.
+        Assert.All(m.Pipes.Spans, s => Assert.True(m.Pipes.FluidAt(s.A) is not { } a || m.Pipes.FluidAt(s.B) is not { } b || a == b, $"span {s.A}–{s.B}"));
+        var cisterns = m.Grid.MachinesOf("cistern");
+        Assert.Equal(2, cisterns.Count);
+        var water = m.Pipes.Networks.Single(n => m.Pipes.FluidAt(n.Cells[0]) == Stillwake.Content.Fluids.Water);
+        Assert.Equal(cisterns.Select(c => c.Id).Order(), water.Machines.Order());
     }
 
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;
