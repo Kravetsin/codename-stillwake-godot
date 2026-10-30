@@ -17,7 +17,7 @@ namespace Stillwake.Sim;
 public static class Migrations
 {
     /// <summary>The oldest format a save may have and still load: the tech tree's first.</summary>
-    public const int Oldest = 37;
+    public const int Oldest = 38;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
     public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];

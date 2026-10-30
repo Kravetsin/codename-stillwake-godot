@@ -12,8 +12,8 @@ public sealed record Recipe(string Id, Placement? Placement, IReadOnlyList<(stri
 /// <summary>Buys the tree's block <paramref name="Block"/> at tech station <paramref name="Machine"/>, with the ship's credits.</summary>
 public sealed record BuyBlock(int Machine, string Block) : Command;
 
-/// <summary>Puts what the sender carries of tier <paramref name="Tier"/>'s deposit into it, at tech station <paramref name="Machine"/>.</summary>
-public sealed record Deposit(int Machine, string Tier) : Command;
+/// <summary>Puts what the sender carries of what gate <paramref name="Gate"/> asks for into it, at tech station <paramref name="Machine"/>.</summary>
+public sealed record Deposit(int Machine, string Gate) : Command;
 
 /// <summary>
 /// The research slice: empty, as what is known, earned and deposited is the world's <c>Knowledge</c>. Public so modules can be
@@ -32,19 +32,19 @@ public interface IResearchQueries
     IReadOnlyList<Recipe> Recipes();
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>Whether <paramref name="block"/> is bought: all it opens known.</summary>
-    bool Bought(TechBlock block);
-    /// <summary>Whether <paramref name="tier"/> is open: it and every tier before it have their deposits full; every one in creative mode.</summary>
-    bool Open(TechTier tier);
-    /// <summary>How much of <paramref name="item"/> <paramref name="tier"/>'s deposit holds.</summary>
-    int Deposited(TechTier tier, string item);
-    /// <summary>Why <paramref name="block"/> cannot be bought now, leaving the machine aside; null when it can.</summary>
-    string? BuyProblem(TechBlock block);
+    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's deposit full; every one in creative mode.</summary>
+    bool Done(TechNode node);
+    /// <summary>Whether all <paramref name="node"/> needs are done.</summary>
+    bool Reached(TechNode node);
+    /// <summary>How much of <paramref name="item"/> gate <paramref name="gate"/> holds.</summary>
+    int Deposited(TechNode gate, string item);
+    /// <summary>Why block <paramref name="block"/> cannot be bought now, leaving the machine aside; null when it can.</summary>
+    string? BuyProblem(TechNode block);
 }
 
 /// <summary>
 /// Knowing blueprints and crafts (2026-10-30-trade-and-tech): what the world knows, the tree it buys more of at tech stations, and
-/// the tiers' deposits. The state is the world's <c>Knowledge</c>; research holds the rules.
+/// its gates' deposits. The state is the world's <c>Knowledge</c>; research holds the rules.
 /// </summary>
 public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 {
@@ -89,28 +89,29 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public int Credits => _knowledge.Credits;
 
-    public bool Bought(TechBlock block) => block.Opens.All(Knows);
-
-    public bool Open(TechTier tier)
+    public bool Done(TechNode node)
     {
         if (_items.Creative) return true;
-        foreach (var t in Content.Research.Tiers)
-        {
-            foreach (var (item, count) in t.Deposit)
-                if (_knowledge.DepositOf(t.Id, item) < count) return false;
-            if (t == tier) return true;
-        }
-        throw new InvalidOperationException($"A tier not in the tree: {tier.Id}.");
+        if (!node.Gate) return node.Opens.All(_knowledge.Granted);
+        foreach (var (item, count) in node.Deposit)
+            if (_knowledge.DepositOf(node.Id, item) < count) return false;
+        return true;
     }
 
-    public int Deposited(TechTier tier, string item) => _knowledge.DepositOf(tier.Id, item);
-
-    public string? BuyProblem(TechBlock block)
+    public bool Reached(TechNode node)
     {
-        if (Bought(block)) return "research.bought";
-        if (Content.Research.Block(block.Id) is not { } found || !Open(found.Tier) || (found.Before is { } before && !Bought(before)))
-            return "research.locked";
-        return block.Price > _knowledge.Credits ? "research.noCredits" : null;
+        foreach (string need in node.Needs)
+            if (!Done(Content.Research.Node(need)!)) return false;
+        return true;
+    }
+
+    public int Deposited(TechNode gate, string item) => _knowledge.DepositOf(gate.Id, item);
+
+    public string? BuyProblem(TechNode block)
+    {
+        if (Done(block)) return "research.bought";
+        if (block.Gate || !Reached(block)) return "research.locked";
+        return Prices.Of(block) > _knowledge.Credits ? "research.noCredits" : null;
     }
 
     // Commands.
@@ -120,59 +121,54 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     private string? BuyProblem(BuyBlock c)
     {
         if (!IsTechStation(c.Machine)) return "research.noMachine";
-        return Content.Research.Block(c.Block) is { } found ? BuyProblem(found.Block) : "research.locked";
+        return Content.Research.Node(c.Block) is { } block ? BuyProblem(block) : "research.locked";
     }
 
     private void Apply(BuyBlock c)
     {
-        var block = Content.Research.Block(c.Block)!.Value.Block;
-        _knowledgeOps.Spend(block.Price);
+        var block = Content.Research.Node(c.Block)!;
+        _knowledgeOps.Spend(Prices.Of(block));
         foreach (string id in block.Opens) _knowledgeOps.Grant(id);
     }
 
     private string? DepositProblem(Deposit c)
     {
         if (!IsTechStation(c.Machine)) return "research.noMachine";
-        if (!Content.Research.TryTier(c.Tier, out var tier)) return "research.locked";
-        if (Open(tier)) return "research.tierOpen";
-        var tiers = Content.Research.Tiers;
-        for (int i = 1; i < tiers.Count; i++)
-            if (tiers[i] == tier && !Open(tiers[i - 1])) return "research.locked";
-        return Taken(c.From, tier).Count == 0 ? "research.nothingToDeposit" : null;
+        if (Content.Research.Node(c.Gate) is not { Gate: true } gate) return "research.locked";
+        if (Done(gate)) return "research.gateOpen";
+        if (!Reached(gate)) return "research.locked";
+        return Taken(c.From, gate).Count == 0 ? "research.nothingToDeposit" : null;
     }
 
     private void Apply(Deposit c)
     {
-        Content.Research.TryTier(c.Tier, out var tier);
-        foreach (var (item, count) in _itemsOps.Take(c.From, Taken(c.From, tier!))) _knowledgeOps.AddDeposit(c.Tier, item, count);
+        foreach (var (item, count) in _itemsOps.Take(c.From, Taken(c.From, Content.Research.Node(c.Gate)!))) _knowledgeOps.AddDeposit(c.Gate, item, count);
     }
 
-    /// <summary>What <paramref name="peer"/> would put into <paramref name="tier"/>'s deposit now: of each item, what it lacks or what is carried, the less.</summary>
-    private List<(string Item, int Count)> Taken(int peer, TechTier tier)
+    /// <summary>What <paramref name="peer"/> would put into <paramref name="gate"/> now: of each item, what it lacks or what is carried, the less.</summary>
+    private List<(string Item, int Count)> Taken(int peer, TechNode gate)
     {
         var taken = new List<(string Item, int Count)>();
         var totals = _items.Totals(peer);
-        foreach (var (item, count) in tier.Deposit)
+        foreach (var (item, count) in gate.Deposit)
         {
             int carried = 0;
             foreach (var t in totals)
                 if (t.Item == item) carried += t.Count;
-            int put = Math.Min(count - _knowledge.DepositOf(tier.Id, item), carried);
+            int put = Math.Min(count - _knowledge.DepositOf(gate.Id, item), carried);
             if (put > 0) taken.Add((item, put));
         }
         return taken;
     }
 
-    /// <summary>Buys and deposits by hand, refused ones too: at a tech station when one stands, at any block and tier.</summary>
+    /// <summary>Buys and deposits by hand, refused ones too: at a tech station when one stands, at any node.</summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(8) != 0) return null;
         var stations = _grid.MachinesWith(MachineTrait.Tech);
         int machine = stations.Count > 0 && rng.Below(8) != 0 ? stations[(int)rng.Below((uint)stations.Count)].Id : (int)rng.Below(64);
-        var tiers = Content.Research.Tiers;
-        var tier = tiers[(int)rng.Below((uint)tiers.Count)];
-        if (rng.Below(2) == 0) return new Deposit(machine, tier.Id) { From = from };
-        var branch = tier.Branches[(int)rng.Below((uint)tier.Branches.Length)];
-        return new BuyBlock(machine, branch.Blocks[(int)rng.Below((uint)branch.Blocks.Length)].Id) { From = from };
+        var nodes = Content.Research.Nodes;
+        var node = nodes[(int)rng.Below((uint)nodes.Count)];
+        return node.Gate ? new Deposit(machine, node.Id) { From = from } : new BuyBlock(machine, node.Id) { From = from };
     }
 }

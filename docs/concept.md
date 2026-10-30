@@ -37,10 +37,9 @@ A living document: what is decided about the game and what is still open. Techni
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
 - **Salvage is sold and blueprints bought:** a trade station sells what is put in it for the ship's credits, a unit at a
   time, at prices that never fall and always pay more for what is refined; drones keep it stocked. A tech station opens a tree
-  of tiers, each holding branches of blocks: a tier opens by resources deposited for good, a block is bought with credits,
-  a few blueprints and crafts together, the first for a few chunks' worth, the engine last and dearest
-  ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). The wreck knows the furnace, the workbench, the crate, both
-  stations, scrap walls and the first parts.
+  drawn as a map: blocks bought with credits, a few blueprints and crafts together, the first for a few chunks' worth, the engine
+  last and dearest, and gates of resources deposited for good. What things are worth is worked out from their recipes
+  ([tech-graph](decisions/2026-10-30-tech-graph.md)). The wreck knows both stations, scrap walls and the fire axe.
   Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit

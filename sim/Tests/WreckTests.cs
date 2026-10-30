@@ -142,6 +142,7 @@ public class WreckTests
     private static int Build(Scenario w, string kind, int cell, params (string Item, int Count)[] more)
     {
         w.GiveItems(0, [.. Machines.Get(kind).Cost, .. more]);
+        w.M.Knowledge.Grant(kind);
         w.Do(new PlacePlan(cell, new Placement("machine", kind))).Run();
         int plan = w.M.Building.Plans.FirstOrDefault()?.Id ?? 0;
         Machine? Built() => w.M.Grid.Machines.FirstOrDefault(m => m.Kind == kind);
@@ -176,6 +177,8 @@ public class WreckTests
     public void SmeltsScrapCraftsAWireAndAPlateAtTheWorkbench()
     {
         var w = AiredWreck();
+        w.M.Knowledge.Grant("wire");
+        w.M.Knowledge.Grant("plate");
         int furnace = BuildFurnace(w, ("scrapChunk", 1), ("hullPlate", 1), ("planks", 2));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, furnace), 2)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: furnace), 1)).Run();
@@ -202,18 +205,19 @@ public class WreckTests
         var w = AiredWreck();
         w.GiveItems(0, Machines.Get("tradeStation").Cost.ToArray());
         int trade = Build(w, "tradeStation", At(49, 21));
-        w.GiveItems(0, ("scrapChunk", 3));
-        w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), 3)).Run();
-        w.Run(3 * Stillwake.Content.Market.SellEvery);
-        Assert.Equal(6, w.M.Research.Credits);
+        int chunk = Stillwake.Content.Market.PriceOf("scrapChunk")!.Value, price = Prices.Of(ResearchSpec.Node("furnace")!), chunks = price / chunk + 1;
+        w.GiveItems(0, ("scrapChunk", chunks));
+        w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), chunks)).Run();
+        w.Run(chunks * Stillwake.Content.Market.SellEvery);
+        Assert.Equal(chunks * chunk, w.M.Research.Credits);
         int tech = w.M.Grid.MachineAt(TechStation)?.Id ?? 0;
-        w.Do(new BuyBlock(tech, "floor")).Run();
+        w.Do(new BuyBlock(tech, "furnace")).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(1, w.M.Research.Credits);
-        Assert.True(w.M.Research.Knows("floor"));
-        var floor = new Placement("structure", "floor");
-        int cell = Enumerable.Range(0, w.M.Grid.Width * w.M.Grid.Height).First(c => w.M.Building.Problem(c, floor) == null);
-        w.Do(new PlacePlan(cell, floor)).Run();
+        Assert.Equal(chunks * chunk - price, w.M.Research.Credits);
+        Assert.True(w.M.Research.Knows("furnace"));
+        var furnace = new Placement("machine", "furnace");
+        int cell = Enumerable.Range(0, w.M.Grid.Width * w.M.Grid.Height).First(c => w.M.Building.Problem(c, furnace) == null);
+        w.Do(new PlacePlan(cell, furnace)).Run();
         Assert.Empty(w.Refusals);
         Assert.Single(w.M.Building.Plans);
     }

@@ -1,70 +1,85 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// Selling goods for credits at a trade station (2026-10-30-trade-and-tech): one unit every <see cref="SellEvery"/> ticks, at a
-/// price that never falls. Refined pays more than what it is made of, or nothing would be worth processing.
+/// What things are worth, in credits (2026-10-30-tech-graph). Only what no recipe makes is priced by hand: anything else is worth
+/// its inputs and the time they take, marked up, per unit it comes to. Every step of a chain so pays, and a recipe changed
+/// reprices all made of it. Selling at a trade station is one unit every <see cref="SellEvery"/> ticks, at a price that never falls.
 /// </summary>
 public static class Market
 {
     /// <summary>Ticks from one unit sold to the next at a station: two a second.</summary>
     public const int SellEvery = 10;
 
-    private static readonly Dictionary<string, int> Prices = new(StringComparer.Ordinal)
+    /// <summary>What a step of a chain adds to its inputs and time, in percent.</summary>
+    public const int Markup = 125;
+
+    /// <summary>Ticks of a recipe's work worth a credit: a credit a second.</summary>
+    public const int TicksPerCredit = 20;
+
+    /// <summary>What no recipe makes, or what is grown so slowly that its time would swamp it: all else is worked out from these.</summary>
+    private static readonly Dictionary<string, int> Raw = new(StringComparer.Ordinal)
     {
-        // Raw.
-        ["scrap"] = 1,
-        ["gravel"] = 1,
-        ["rock"] = 1,
-        ["scrapChunk"] = 2,
-        ["planks"] = 2,
-        ["spore"] = 2,
-        ["biomass"] = 2,
-        ["ironOre"] = 2,
-        ["iron"] = 3,
-        ["asteroidOre"] = 3,
-        ["seed"] = 3,
-        ["copperOre"] = 3,
-        ["ice"] = 3,
-        ["cloth"] = 3,
-        ["fat"] = 3,
-        // Finds and refined.
-        ["hullPlate"] = 4,
-        ["alloyScrap"] = 4,
-        ["hide"] = 4,
-        ["quartz"] = 5,
-        ["copper"] = 5,
-        ["mica"] = 5,
-        ["soil"] = 5,
-        ["glass"] = 6,
-        ["magnetite"] = 6,
-        ["biofuel"] = 6,
-        ["silicon"] = 8,
-        ["crystal"] = 10,
-        ["arcLamp"] = 30,
-        // Parts.
-        ["wire"] = 3,
-        ["nail"] = 3,
-        ["gear"] = 4,
-        ["tube"] = 4,
-        ["plate"] = 8,
-        ["canister"] = 12,
-        ["rotor"] = 13,
-        ["coil"] = 16,
-        ["frame"] = 42,
-        // Electronics.
-        ["circuit"] = 24,
-        ["solarCell"] = 36,
-        ["display"] = 120,
-        ["deckDrive"] = 180,
-        ["transceiver"] = 210,
-        ["processor"] = 270,
-        // Engine parts.
-        ["motor"] = 60,
-        ["nozzle"] = 100,
-        ["igniter"] = 110,
-        ["fuelPump"] = 200,
+        ["scrapChunk"] = 20,
+        ["hullPlate"] = 40,
+        ["asteroidOre"] = 30,
+        ["rock"] = 4,
+        ["quartz"] = 50,
+        ["planks"] = 20,
+        ["cloth"] = 30,
+        ["hide"] = 40,
+        ["fat"] = 30,
+        ["seed"] = 30,
+        ["spore"] = 20,
+        ["biomass"] = 20,
+        ["ice"] = 30,
+        ["copperOre"] = 30,
+        ["mica"] = 50,
+        ["magnetite"] = 60,
+        ["alloyScrap"] = 40,
+        ["crystal"] = 100,
+        ["arcLamp"] = 300,
+        ["arcShard"] = 200,
     };
 
+    /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's.</summary>
+    private static readonly HashSet<string> Unsold = new(StringComparer.Ordinal)
+    {
+        "arcShard", "arcModule", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "cape",
+    };
+
+    private static readonly Dictionary<string, int> Worths = Worked();
+
+    /// <summary>What a unit of <paramref name="item"/> is worth: 0 for what nothing makes and nothing prices, wreckage whole.</summary>
+    public static int WorthOf(string item) => Worths.GetValueOrDefault(item);
+
     /// <summary>What a unit of <paramref name="item"/> sells for; null for what no one buys: gear and what is never carried.</summary>
-    public static int? PriceOf(string item) => Prices.TryGetValue(item, out int price) ? price : null;
+    public static int? PriceOf(string item) => WorthOf(item) > 0 && !Unsold.Contains(item) ? WorthOf(item) : null;
+
+    private static Dictionary<string, int> Worked()
+    {
+        var worths = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var item in Items.All) Worth(item.Id, worths, []);
+        return worths;
+    }
+
+    private static int Worth(string id, Dictionary<string, int> worths, HashSet<string> working)
+    {
+        if (worths.TryGetValue(id, out int known)) return known;
+        if (!working.Add(id)) throw new InvalidOperationException($"market: {id} is made of itself; price one of its chain by hand");
+        int worth = 0;
+        if (Raw.TryGetValue(id, out int raw)) worth = raw;
+        else if (Crafts.TryGet(id, out var craft) && craft.Cost.Count > 0) worth = Marked(craft.Cost.Sum(c => c.Count * Worth(c.Item, worths, working)), craft.Ticks, 1);
+        else if (Items.All.FirstOrDefault(i => i.Yields?.Any(y => y.Item == id) == true) is { } source)
+            worth = Marked(source.SmeltTakes * Worth(source.Id, worths, working), source.SmeltTicks ?? 0, source.Yields!.Sum(y => y.Count));
+        working.Remove(id);
+        worths[id] = worth;
+        return worth;
+    }
+
+    /// <summary>The worth of a unit of <paramref name="units"/> made of <paramref name="inputs"/> in <paramref name="ticks"/>, rounded up, so a step never loses to rounding.</summary>
+    private static int Marked(int inputs, int ticks, int units)
+    {
+        long marked = (inputs * (long)TicksPerCredit + ticks) * Markup, per = TicksPerCredit * 100L * units;
+        return (int)((marked + per - 1) / per);
+    }
 }

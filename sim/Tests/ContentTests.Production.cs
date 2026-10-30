@@ -345,15 +345,15 @@ public partial class ContentTests
         }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
         var built = new HashSet<string>(StringComparer.Ordinal);
+        var done = new HashSet<string>(StringComparer.Ordinal);
         for (bool more = true; more;)
         {
             more = false;
-            foreach (var tier in Content.Research.Tiers)
+            foreach (var node in Content.Research.Nodes.Where(n => !done.Contains(n.Id) && n.Needs.All(done.Contains)))
             {
-                if (!tier.Deposit.All(d => had.Contains(d.Item))) break;
-                foreach (var branch in tier.Branches)
-                    foreach (var block in branch.Blocks)
-                        foreach (string id in block.Opens) more |= known.Add(id);
+                if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
+                more |= done.Add(node.Id);
+                foreach (string id in node.Opens) more |= known.Add(id);
             }
             foreach (var station in stations)
             {
@@ -386,7 +386,7 @@ public partial class ContentTests
     public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Tiers.SelectMany(t => t.Branches).SelectMany(b => b.Blocks).SelectMany(b => b.Opens).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.SelectMany(n => n.Opens).Concat(Content.Research.StartKnown).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
     }
@@ -431,13 +431,86 @@ public partial class ContentTests
         Assert.All(Unpriced, id => Assert.Null(Market.PriceOf(id)));
     }
 
+    /// <summary>
+    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start or what it needs opens, at a
+    /// station they open; what wreckage gives needs no one to open it.
+    /// </summary>
+    [Fact]
+    public void NothingIsOpenedBeforeWhatItIsMadeOf()
+    {
+        var (given, _) = Reachable([]);
+        var prints = Stillwake.Sim.Research.Blueprints.All.ToDictionary(b => b.Id);
+        HashSet<string> Behind(TechNode node)
+        {
+            var opened = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+            void Walk(TechNode each)
+            {
+                foreach (string need in each.Needs)
+                {
+                    var before = Content.Research.Node(need)!;
+                    opened.UnionWith(before.Opens);
+                    Walk(before);
+                }
+            }
+            Walk(node);
+            opened.UnionWith(node.Opens);
+            return opened;
+        }
+        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
+        {
+            var opened = Behind(node);
+            foreach (string id in node.Opens)
+            {
+                bool craft = Crafts.TryGet(id, out var recipe);
+                var cost = craft ? recipe!.Cost : prints[id].Cost;
+                foreach (var (item, _) in cost)
+                    Assert.True(!Crafts.TryGet(item, out _) || given.Contains(item) || opened.Contains(item), $"{id} of {item}, not behind {node.Id}");
+                if (craft && cost.Count > 0)
+                    Assert.True(Stations.All.Any(s => s.Rows.Any(r => r.Contains(id)) && (Machines.Get(s.Machine).Fixed || opened.Contains(s.Machine))), $"{id}: no station behind {node.Id}");
+            }
+        }
+    }
+
+    /// <summary>Every need names a node listed before it: the order the window looks for what to do next.</summary>
+    [Fact]
+    public void EveryNeedIsANodeListedBeforeIt()
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var node in Content.Research.Nodes)
+        {
+            Assert.All(node.Needs, need => Assert.True(seen.Contains(need), $"{node.Id} needs {need}"));
+            seen.Add(node.Id);
+        }
+    }
+
+    /// <summary>The formula, pinned on a chain worked by hand: a chunk of 20 smelted in 3 seconds into 4 scrap, 2 of it wired in 1.5.</summary>
+    [Fact]
+    public void AStepIsWorthItsInputsAndTimeMarkedUpPerUnitRoundedUp()
+    {
+        Assert.Equal(20, Market.WorthOf("scrapChunk"));
+        Assert.Equal(8, Market.WorthOf("scrap")); // (20 + 3) x 1.25 / 4 = 7.19
+        Assert.Equal(22, Market.WorthOf("wire")); // (2 x 8 + 1.5) x 1.25 = 21.875
+        Assert.Equal(116, Market.WorthOf("coil")); // (4 x 22 + 4.5) x 1.25 = 115.625
+    }
+
+    /// <summary>First blueprints come for a few chunks; the engine is the dearest of all, so it stays the end of the tree.</summary>
+    [Fact]
+    public void TheFirstBlocksCostAFewChunksAndTheEngineMost()
+    {
+        var prices = Content.Research.Nodes.Where(n => !n.Gate).ToDictionary(n => n.Id, Stillwake.Sim.Research.Prices.Of);
+        Assert.All(new[] { "workbench", "furnace", "wire" }, id => Assert.InRange(prices[id], 1, 12 * Market.WorthOf("scrapChunk")));
+        Assert.Equal(prices.Values.Max(), prices["engine"]);
+        Assert.Single(prices.Values, prices["engine"]);
+    }
+
     /// <summary>The first credits need nothing bought: no softlock can stand between the wreck's start and its first sale.</summary>
     [Fact]
     public void TheFirstCreditsNeedNothingBought()
     {
         var (had, known) = Reachable([]);
         Assert.Contains("tradeStation", known);
-        Assert.All(Machines.Get("tradeStation").Cost, c => Assert.Contains(c.Item, had));
+        Assert.Contains("techStation", known);
+        Assert.All(Machines.Get("tradeStation").Cost.Concat(Machines.Get("techStation").Cost), c => Assert.Contains(c.Item, had));
         Assert.Contains("scrapChunk", had);
     }
 

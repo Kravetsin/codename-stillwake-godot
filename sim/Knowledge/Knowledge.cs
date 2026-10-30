@@ -2,8 +2,8 @@ using System.Text.Json.Serialization;
 
 namespace Stillwake.Sim.Knowledge;
 
-/// <summary>What has gone into tier <c>Tier</c>'s deposit of <c>Item</c> so far.</summary>
-public sealed record Deposited(string Tier, string Item, int Count);
+/// <summary>What has gone into gate <c>Gate</c> of <c>Item</c> so far.</summary>
+public sealed record Deposited(string Gate, string Item, int Count);
 
 /// <summary>The knowledge's slice. Public so modules can be typed by it, its members internal.</summary>
 public sealed class KnowledgeState
@@ -12,7 +12,7 @@ public sealed class KnowledgeState
     [JsonInclude] internal List<string> Granted { get; set; } = [];
     /// <summary>The ship's credits.</summary>
     [JsonInclude] internal int Credits { get; set; }
-    /// <summary>What the tiers' deposits hold so far, sorted ordinally by tier, then item.</summary>
+    /// <summary>What the gates hold so far, sorted ordinally by gate, then item.</summary>
     [JsonInclude] internal List<Deposited> Deposits { get; set; } = [];
 }
 
@@ -23,8 +23,8 @@ public interface IKnowledgeQueries
     bool Granted(string id);
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>How much of <paramref name="item"/> tier <paramref name="tier"/>'s deposit holds.</summary>
-    int DepositOf(string tier, string item);
+    /// <summary>How much of <paramref name="item"/> gate <paramref name="gate"/> holds.</summary>
+    int DepositOf(string gate, string item);
 }
 
 /// <summary>How research and trade change what the crew knows and has earned.</summary>
@@ -36,12 +36,12 @@ public interface IKnowledgeOps
     void Spend(int credits);
     /// <summary>The blueprint or craft <paramref name="id"/> is known: kept once, in order.</summary>
     void Grant(string id);
-    /// <summary>Adds <paramref name="count"/> of <paramref name="item"/> to tier <paramref name="tier"/>'s deposit.</summary>
-    void AddDeposit(string tier, string item, int count);
+    /// <summary>Adds <paramref name="count"/> of <paramref name="item"/> to gate <paramref name="gate"/>.</summary>
+    void AddDeposit(string gate, string item, int count);
 }
 
 /// <summary>
-/// What the crew knows and has earned, wherever it did (0076): the blueprints and crafts known, the credits, the tiers' deposits.
+/// What the crew knows and has earned, wherever it did (0076): the blueprints and crafts known, the credits, the gates' deposits.
 /// One per world, records only: no commands, no systems. Its rules are research's and trade's, one a surface.
 /// </summary>
 public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<KnowledgeState>, IKnowledgeQueries, IKnowledgeOps
@@ -60,10 +60,10 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
 
     public int Credits => State.Credits;
 
-    public int DepositOf(string tier, string item)
+    public int DepositOf(string gate, string item)
     {
         foreach (var d in State.Deposits)
-            if (d.Tier == tier && d.Item == item) return d.Count;
+            if (d.Gate == gate && d.Item == item) return d.Count;
         return 0;
     }
 
@@ -81,13 +81,13 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
         if (at < 0) State.Granted.Insert(~at, id);
     }
 
-    public void AddDeposit(string tier, string item, int count)
+    public void AddDeposit(string gate, string item, int count)
     {
         var deposits = State.Deposits;
         int at = 0;
         for (; at < deposits.Count; at++)
         {
-            int order = string.CompareOrdinal(deposits[at].Tier, tier);
+            int order = string.CompareOrdinal(deposits[at].Gate, gate);
             if (order == 0) order = string.CompareOrdinal(deposits[at].Item, item);
             if (order == 0)
             {
@@ -96,6 +96,6 @@ public sealed class KnowledgeModule(IReadOnlyList<string> every) : Module<Knowle
             }
             if (order > 0) break;
         }
-        deposits.Insert(at, new Deposited(tier, item, count));
+        deposits.Insert(at, new Deposited(gate, item, count));
     }
 }

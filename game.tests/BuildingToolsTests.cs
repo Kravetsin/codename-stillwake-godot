@@ -353,10 +353,10 @@ public class BuildingToolsTests
             with
         { Known = Research.StartKnown });
         var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
-        Assert.Contains("furnace", known);
         Assert.Contains("techStation", known);
         Assert.Contains("tradeStation", known);
-        Assert.Contains("crate", known);
+        Assert.DoesNotContain("furnace", known);
+        Assert.DoesNotContain("crate", known);
         Assert.False(Tools.Known(Card("tank"), w.M.Research));
         Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research));
         Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research)));

@@ -55,14 +55,22 @@ public class DesyncTests(ITestOutputHelper output)
     [MemberData(nameof(Seeds))]
     public void KeepsEveryClientInSyncOnTheStartingWreck(uint seed)
     {
-        // Heroes entered anywhere on the big world: the far field round them spawns, drifts and is gone in sync too.
-        var game = Definition.Game();
-        int far = 0;
-        var run = Desync.Fuzz(game, seed, layout: Registry.Wreck, tamper: (_, clients) =>
-            far = Math.Max(far, game.Module<DebrisModule>(clients[0].World).Pieces.Count(p => p.Zone == Content.Debris.Far.Id)));
+        var run = Desync.Fuzz(Definition.Game(), seed, layout: Registry.Wreck);
         Assert.Null(run.Desync);
         Assert.Equal(600, run.Ticks);
-        Assert.True(far > 0, "no far piece spawned");
+    }
+
+    [Fact]
+    public void KeepsTheFarFieldInSyncRoundHeroesEnteredAnywhere()
+    {
+        Covering(3, tried =>
+        {
+            var game = Definition.Game();
+            int far = 0;
+            var run = Desync.Fuzz(game, tried, layout: Registry.Wreck, tamper: (_, clients) =>
+                far = Math.Max(far, game.Module<DebrisModule>(clients[0].World).Pieces.Count(p => p.Zone == Content.Debris.Far.Id)));
+            return (run, far > 0 ? null : "no far piece spawned");
+        });
     }
 
     [Fact]
@@ -565,7 +573,7 @@ public class DesyncTests(ITestOutputHelper output)
             root["slices"]!["items"]!["crates"]!.AsArray().Add(new JsonObject { ["id"] = station, ["slots"] = slots });
             return root.ToJsonString();
         }
-        string[] blocks = ["floor", "door", "wallIron", "coil", "nailer", "harpoon", "helmetLamp"];
+        string[] blocks = ["workbench", "furnace", "wire", "plate", "gear", "floor", "crate"];
         Covering(23, tried =>
         {
             var game = new Definition(() => new Registry().All, Stocked);

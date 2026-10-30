@@ -29,13 +29,13 @@ public class TradeTests
         var (w, id) = SetUp();
         w.FillCrate(id, ("scrapChunk", 3));
         w.Run(Market.SellEvery);
-        Assert.Equal(2, w.M.Research.Credits);
+        Assert.Equal(Market.PriceOf("scrapChunk"), w.M.Research.Credits);
         Assert.Equal(2, w.M.Items.Crate(id)[0]?.Count);
         w.Run(2 * Market.SellEvery);
-        Assert.Equal(6, w.M.Research.Credits);
+        Assert.Equal(3 * Market.PriceOf("scrapChunk"), w.M.Research.Credits);
         Assert.Null(w.M.Items.Crate(id)[0]);
         w.Run(5 * Market.SellEvery);
-        Assert.Equal(6, w.M.Research.Credits);
+        Assert.Equal(3 * Market.PriceOf("scrapChunk"), w.M.Research.Credits);
     }
 
     [Fact]
