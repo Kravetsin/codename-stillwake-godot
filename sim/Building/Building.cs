@@ -99,7 +99,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
         Handles<SetInstant>(_ => null, c => State.Instant = c.On);
-        Handles<Repair>(c => RepairProblemOf(c.Machine, c.From), ApplyRepair);
+        Handles<Repair>(c => RepairProblem(c.Machine), ApplyRepair);
         Handles<Hew>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), ApplyHew);
         // A mark whose thing a meteor broke has nothing left to take apart, nor a crack its wall. In derivation, after
         // every command and construction system, so a hit made before is seen on its tick.
@@ -175,12 +175,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     public Cost? RefundOf(int id) =>
         State.Plans.Find(p => p.Id == id) is { Clear: { } layer } plan ? Refund(plan.Cell, layer) ?? [] : null;
 
-    /// <summary>What taking apart <paramref name="layer"/> of <paramref name="cell"/> gives back: its cost, less the repair a broken machine wants.</summary>
-    private Cost? Refund(int cell, string layer)
-    {
-        if (Costs.BuiltAt(_grid, cell, layer) is not { } built) return null;
-        return layer == "machine" && _grid.MachineAt(cell) is { } m && _power.IsBroken(m.Id) ? Costs.Less(built.Cost, Costs.RepairOf(m.Kind)) : built.Cost;
-    }
+    /// <summary>What taking apart <paramref name="layer"/> of <paramref name="cell"/> gives back: its cost.</summary>
+    private Cost? Refund(int cell, string layer) => Costs.BuiltAt(_grid, cell, layer)?.Cost;
 
     // Commands.
 

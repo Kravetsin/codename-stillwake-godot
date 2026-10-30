@@ -26,7 +26,7 @@ public sealed record Plan(int Id, int Cell, int Progress, Placement? Place, stri
 /// </summary>
 public sealed record Crack(int Cell, int Damage, int At, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] bool Back = false);
 
-/// <summary>A broken machine's repair, paid when it began: <c>Progress</c> ticks of work done on it.</summary>
+/// <summary>A broken machine's repair: <c>Progress</c> ticks of work done on it.</summary>
 public sealed record Repairing(int Machine, int Progress);
 
 /// <summary>
@@ -46,7 +46,7 @@ public sealed class BuildingState
     [JsonInclude] internal List<int> Felled { get; set; } = [];
     /// <summary>Instant building (dev panel): a blueprint placed is built at once. A world setting, kept per surface; off, not written.</summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] internal bool Instant { get; set; }
-    /// <summary>The broken machines whose repair is paid, by machine id, ascending, with its work done (2026-10-30-magnetic-flare).</summary>
+    /// <summary>The broken machines whose repair is begun, by machine id, ascending, with its work done (2026-10-30-magnetic-flare).</summary>
     [JsonIgnore] internal List<Repairing> Repairs { get; set; } = [];
     /// <summary>Repairs as saved: none written while none is begun, so a world never repaired saves as before.</summary>
     [JsonInclude, JsonPropertyName("repairs"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
