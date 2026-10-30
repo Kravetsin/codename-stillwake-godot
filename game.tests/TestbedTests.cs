@@ -18,6 +18,18 @@ public class TestbedTests
         return m;
     });
 
+    [Fact]
+    public void ItsPipesJoinTwoPortsOfOneWayOnlyWhereDrawnSoAndNeverTwoFluids()
+    {
+        var m = Built.Value;
+        Assert.NotEmpty(m.Pipes.Spans);
+        // Drawn before ports had a way: the tank piped straight to the generator beside it, kept as drawn (2026-10-29-typed-ports).
+        var oneWay = m.Pipes.Spans.Where(s => m.Grid.PortAt(s.A) is { } a && m.Grid.PortAt(s.B) is { } b && a.Way == b.Way)
+            .Select(s => (m.Grid.MachineAt(s.A)!.Kind, m.Grid.MachineAt(s.B)!.Kind));
+        Assert.Equal([("tank", "generator")], oneWay);
+        Assert.All(m.Pipes.Networks, n => Assert.True(n.Cells.Select(c => m.Grid.PortAt(c)?.Fluid).OfType<string>().Distinct().Count() <= 1, $"network {n.Id}"));
+    }
+
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;
 
     /// <summary>The crate with everything and the farm's, by their cells on the map.</summary>

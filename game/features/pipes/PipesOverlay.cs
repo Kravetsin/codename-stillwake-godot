@@ -15,8 +15,9 @@ namespace Stillwake.Game.Features.Pipes;
 /// over the ship, slim, in a colour of their own, so a player sees which tanks and generators reach which vents. Where
 /// oxygen comes into a network, from a tank holding some or a powered generator, dots run along its spans away from it; a
 /// network none comes into is faded and still. A valve shows its state in colour; a socket shows where each machine takes
-/// a pipe. The piping's hands work here (<see cref="PipeHands"/>): the span being laid runs to the pointer, green where it
-/// may go, red where not, its length and cost by the pointer.
+/// a pipe, in its fluid's colour, an arrow out of the machine or into it (2026-10-29-typed-ports). The piping's hands work here
+/// (<see cref="PipeHands"/>): the span being laid runs to the pointer, green where it may go, red where not, its length and
+/// cost by the pointer, and the ports it may end at are ringed.
 /// </summary>
 public partial class PipesOverlay : Node2D
 {
@@ -29,6 +30,7 @@ public partial class PipesOverlay : Node2D
     /// <summary>Oxygen's dots: how fast they run, in cells a second, and how many cells apart.</summary>
     private const double FlowSpeed = 4;
     private const int DotEvery = 6;
+    private static readonly Vector2[] NoUvs = [Vector2.Zero, Vector2.Zero, Vector2.Zero];
     private static readonly Color ValveOpen = AsciiArt.Colour(0x4caf6a), ValveClosed = AsciiArt.Colour(0xd05050), ValveEdge = AsciiArt.Colour(0x10161d),
         Loose = new(0.6f, 0.65f, 0.7f, DryAlpha), Fits = new(0.45f, 0.9f, 0.55f), Refused = new(0.95f, 0.35f, 0.35f), Hovered = new(1f, 0.85f, 0.45f);
 
@@ -37,7 +39,7 @@ public partial class PipesOverlay : Node2D
     private readonly PipeHands _hands = new();
     private readonly List<(Vector2 A, Vector2 B, Color Colour)> _spans = [];
     private readonly List<(Rect2 Box, Color Colour)> _valves = [];
-    private readonly List<Vector2> _sockets = [];
+    private readonly List<(Vector2 At, Color Colour, Vector2[] Head, Color[] HeadColour)> _sockets = [];
     private List<(Run Run, Color Colour)> _runs = [];
     private double _since = RefreshMs, _along;
     private int _shownTick = -1, _width = 1;
@@ -116,8 +118,18 @@ public partial class PipesOverlay : Node2D
         }
         _sockets.Clear();
         foreach (var machine in grid.Machines)
-            foreach (int port in grid.PortsOf(machine))
-                _sockets.Add(PipesView.MiddleOf(port, width) - new Vector2(4, 4));
+        {
+            var spec = Stillwake.Content.Machines.Get(machine.Kind);
+            var cells = grid.PortsOf(machine);
+            for (int i = 0; i < cells.Count; i++)
+            {
+                var (dx, dy) = Sockets.ArrowOf(spec.Ports[i], spec.Width, spec.Height);
+                var (at, colour, arrow) = (PipesView.MiddleOf(cells[i], width), AsciiArt.Colour(Sockets.ColourOf(spec.Ports[i].Fluid)), new Vector2(dx, dy));
+                // A small arrowhead just outside the socket, on the way the fluid goes; built here, so a frame allocates none.
+                var (side, tip) = (new Vector2(-arrow.Y, arrow.X), at + arrow * 8);
+                _sockets.Add((at, colour, [tip, tip - arrow * 3 + side * 3, tip - arrow * 3 - side * 3], [colour, colour, colour]));
+            }
+        }
     }
 
     private void Paint(Sketch g)
@@ -129,7 +141,11 @@ public partial class PipesOverlay : Node2D
             g.DrawRect(box, ValveEdge, false, 1);
         }
         var socket = PixelArt.Picture("socket");
-        foreach (var at in _sockets) g.DrawTexture(socket, at);
+        foreach (var (at, colour, head, headColour) in _sockets)
+        {
+            g.DrawTexture(socket, at - new Vector2(4, 4), colour);
+            g.DrawPrimitive(head, headColour, NoUvs);
+        }
         foreach (var (run, colour) in _runs)
             foreach (var (x, y) in Flow.DotsOf([run], _along, DotEvery))
             {
@@ -149,6 +165,8 @@ public partial class PipesOverlay : Node2D
             g.DrawLine(a, b, Hovered, 1);
             foreach (var end in (Vector2[])[a, b]) g.DrawRect(new Rect2(end - new Vector2(3, 3), new Vector2(6, 6)), Hovered, false, 1);
         }
+        foreach (int port in _hands.Lit)
+            g.DrawRect(new Rect2(PipesView.MiddleOf(port, _width) - new Vector2(6, 6), new Vector2(12, 12)), Fits, false, 1);
         if (_hands.Laying is not var (from, to, why) || from == to) return;
         g.DrawLine(PipesView.MiddleOf(from, _width), PipesView.MiddleOf(to, _width), why == null ? Fits : Refused, 3);
     }
