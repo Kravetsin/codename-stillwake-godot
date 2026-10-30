@@ -225,7 +225,7 @@ public partial class InventoryPanel
     /// </summary>
     private void ShowMachine(Reading reading)
     {
-        if (_credits != null) _credits.Text = T("research.credits", ("n", _research?.Credits ?? 0));
+        if (_credits != null) _credits.Text = T("research.creditsAtStation", ("n", _research?.Credits ?? 0));
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);

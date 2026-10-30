@@ -13,109 +13,173 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// A tech station's window, opened by the crew's E at it through <see cref="Ui.OpenTech"/>: the ship's credits over the tree's map
-/// (2026-10-30-tech-graph), a band a category, lines running left to right from what a node needs. A block is green once bought,
-/// edged in amber while it can be bought, dim while out of reach; a gate takes what the bag holds of what it asks for. Dragged or
-/// scrolled. E and Esc put it away; the world runs on behind it.
+/// The tech tree on the tablet (2026-10-30-tablet-tree), nearly the whole screen: T takes it out anywhere and puts it away; Esc, Tab, E
+/// and B put it away too. Along the top the ship's credits, how far the tree is walked and what comes next, which brings it into view
+/// when clicked. Below, the map (2026-10-30-tech-graph): a band a category, lines running left to right from what a node needs, dragged
+/// and zoomed (<see cref="TechCamera"/>). A block is green once bought, edged in amber while it can be bought, dim while out of reach;
+/// a gate takes what the bag holds of what it asks for. A press on a node counts only if the pointer has not moved: a drag starting
+/// on one buys nothing. The world runs on behind it.
 /// </summary>
 public partial class TechPanel : CanvasLayer
 {
-    private static readonly Color Steel = new("7f848f"), Line = new("1a1e25"), Glass = new("10161d"), Socket = new("474c57"),
-        Dim = new("2a2e36"), Lit = new("6fe08a"), LitBack = new("0b1f16"), Faint = new("5b6170"), Warm = new("f0c050"), Far = new("39404c"),
-        BandA = new("161c24"), BandB = new("12171e"), GateBack = new("2c2437"), GateEdge = new("b08fe0");
+    private static readonly Color Line = new("1a1e25"), Socket = new("474c57"), Dim = new("2a2e36"), Lit = new("6fe08a"), LitBack = new("0b1f16"),
+        Faint = new("5b6170"), Warm = new("f0c050"), Far = new("39404c"), BandA = new("161c24"), BandB = new("12171e"), GateBack = new("2c2437"), GateEdge = new("b08fe0");
 
     /// <summary>Seconds between reads of the world: a panel reads on a timer, never every frame.</summary>
     private const double ReadEvery = 0.25;
+    /// <summary>The gap kept between the tablet's art and the window's edge.</summary>
+    private const int Margin = 12;
+    /// <summary>Pixels the pointer may move in a press still meant as a click.</summary>
+    private const float ClickSlack = 4;
+    /// <summary>Under this zoom a node's words would be a smudge: its pictures and colours say enough.</summary>
+    private const double WordsFrom = 0.55;
     private const int Pad = 10, Icon = 34, CellWide = 148, CellTall = 72, NodeWide = 124, NodeTall = 62, BandLeft = 10, BandHead = 22;
 
     /// <summary>What a node on the map is made of, kept so a read only restyles it: a rebuild under the pointer would eat a click.</summary>
     private sealed record NodeView(TechNode Node, Panel Box, Label Words, List<TextureRect> Pictures);
 
     private readonly Ui _ui;
+    private readonly Func<bool> _inWorld;
     private readonly Func<Registry?> _world;
     private readonly Func<int> _peer;
     private readonly Action<Command> _send;
-    private readonly Panel _frame = Boxed(Steel, 3, 4);
-    private readonly Panel _screen = Boxed(Glass, 2, 2);
-    private readonly Label _credits = Words2("", Warm);
-    private readonly ScrollContainer _scroll = new();
-    private readonly Control _map = new() { MouseFilter = Control.MouseFilterEnum.Pass };
+    private readonly Tablet _tablet = new();
+    private readonly HBoxContainer _head = Style.Gap(new HBoxContainer { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore }, 16);
+    private readonly Label _credits = Tablet.Text("", Warm), _progress = Tablet.Text("", Style.Slate100), _next = Tablet.Text("", Style.Sky200);
+    private readonly HBoxContainer _foot = Style.Gap(new HBoxContainer { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
+    private readonly Control _view = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Stop };
+    private readonly Control _map = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Control _lines = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly TipSpots _tips;
+    private readonly TechCamera _camera = new();
     private readonly List<NodeView> _nodes = new();
     private readonly List<Label> _titles = new();
     private readonly TechMap _layout = new(Content.Research.Categories);
     private IResearchQueries? _research;
+    private TechNode? _nextNode;
     private string? _shown;
-    private double _sinceRead;
-    private bool _focus;
+    private double _sinceRead = ReadEvery;
+    private bool _focus = true, _wordsOn = true, _pressed;
+    private float _moved;
 
-    /// <param name="ui">Which station is open, set by the crew's E, and cleared here when it is put away.</param>
-    /// <param name="world">The world the station stands in; null with none played.</param>
+    /// <param name="ui">Whether it is out, the hand freed as it comes, the menu, under which it takes no key.</param>
+    /// <param name="inWorld">Whether a world is played: on the title T does nothing.</param>
+    /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="peer">This player's peer: whose bag a deposit is taken from.</param>
     /// <param name="send">Sends a command to the session.</param>
-    public TechPanel(Ui ui, Func<Registry?> world, Func<int> peer, Action<Command> send)
+    public TechPanel(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<int> peer, Action<Command> send)
     {
-        (_ui, _world, _peer, _send) = (ui, world, peer, send);
+        (_ui, _inWorld, _world, _peer, _send) = (ui, inWorld, world, peer, send);
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.Handbook;
-        var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = 16 } };
+        var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = Tablet.FontSize } };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
-        root.AddChild(_frame);
-        _frame.AddChild(_screen);
-        _screen.ClipContents = true;
-        _screen.AddChild(_credits);
-        _screen.AddChild(_scroll);
-        _scroll.AddChild(_map);
+        root.AddChild(_tablet);
+        _next.MouseFilter = Control.MouseFilterEnum.Stop;
+        _next.GuiInput += e =>
+        {
+            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } || _nextNode == null) return;
+            Bring(_nextNode);
+            _next.AcceptEvent();
+        };
+        _head.AddChild(_credits);
+        _head.AddChild(_progress);
+        _head.AddChild(_next);
+        _foot.AddChild(Tablet.Text(T("research.title"), Style.Slate100));
+        var hint = Tablet.Text(T("research.hint"), Style.Slate500, Tablet.HintSize);
+        hint.ClipText = true;
+        hint.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        hint.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
+        _foot.AddChild(hint);
+        _view.AddChild(_map);
         _map.AddChild(_lines);
         _lines.Draw += DrawLines;
-        _map.GuiInput += Pan;
-        _frame.Visible = false;
-        ui.OpenTech.Subscribe(() =>
-        {
-            _shown = null;
-            _sinceRead = ReadEvery;
-            _focus = true;
-        });
+        _view.GuiInput += Handle;
+        // The wheel over the bezel zooms as over the map; it never reaches the hotbar.
+        _tablet.GuiInput += e => Zoom(e, _tablet);
+        _tablet.Bezel.GuiInput += e => Zoom(e, _tablet.Bezel);
+        foreach (var part in (Control[])[_head, _view, _foot]) _tablet.OnScreen(part);
     }
 
-    /// <summary>Whether a station is open: what Esc puts away before it opens the menu.</summary>
-    public bool Shown => _ui.OpenTech.Get() != null;
+    /// <summary>Whether it is out: what Esc puts away before it opens the menu.</summary>
+    public bool Shown => _ui.TreeOpen.Get();
 
-    /// <summary>Puts it away: E, or Esc through the menu's <c>Escape</c>.</summary>
-    public void Close() => _ui.OpenTech.Set(null);
+    /// <summary>Takes it out, the hand freed. What it puts away is <c>Main</c>'s to say, as it listens to <see cref="Ui.TreeOpen"/>.</summary>
+    public void Open()
+    {
+        if (Shown) return;
+        _ui.Hand.Set(Holding.Free);
+        _shown = null;
+        _sinceRead = ReadEvery;
+        _ui.TreeOpen.Set(true);
+    }
+
+    /// <summary>Where a node's middle is on the screen: what a recording points at.</summary>
+    public Vector2 ScreenOf(string id)
+    {
+        var box = _nodes.First(v => v.Node.Id == id).Box;
+        var at = box.Position + box.Size / 2;
+        return _view.GlobalPosition + _map.Position + at * _map.Scale;
+    }
+
+    /// <summary>Puts it away: T again, Esc through the menu's <c>Escape</c>, Tab, E or B.</summary>
+    public void Close()
+    {
+        _ui.TreeOpen.Set(false);
+        _pressed = false;
+    }
 
     public override void _Process(double delta)
     {
         bool open = Shown && _world() != null;
-        _frame.Visible = open;
-        if (!open)
-        {
-            _tips.Show(null);
-            return;
-        }
+        _tablet.Step(open, delta);
+        if (!_tablet.Shown) return;
         LayOut();
-        // A band's name stays in view however far along the map is scrolled.
-        foreach (var title in _titles) title.Position = new Vector2(_scroll.ScrollHorizontal + 6, title.Position.Y);
-        _tips.Frame(_ui.MenuOpen.Get() ? null : _frame.GetViewport().GetMousePosition());
+        Place();
+        var mouse = _view.GetViewport().GetMousePosition();
+        _tips.Frame(open && !_ui.MenuOpen.Get() && _view.GetGlobalRect().HasPoint(mouse) ? mouse : null);
+        if (!open) return;
         _sinceRead += delta;
         if (_sinceRead < ReadEvery) return;
         _sinceRead = 0;
         Read(_world()!);
     }
 
+    /// <summary>The tablet at rest in the middle of the window, as large as its art lets it be, and the strips on its screen.</summary>
     private void LayOut()
     {
-        var view = _frame.GetViewportRect().Size;
-        float width = Mathf.Clamp(view.X * 0.86f, 560, 1800), height = Mathf.Clamp(view.Y * 0.84f, 380, 1000);
-        _frame.Size = new Vector2(width, height);
-        _frame.Position = ((view - _frame.Size) / 2).Round();
-        _screen.Position = new Vector2(Pad, Pad);
-        _screen.Size = new Vector2(width - 2 * Pad, height - 2 * Pad);
-        _credits.Position = new Vector2(Pad, 4);
-        _scroll.Position = new Vector2(2, 28);
-        _scroll.Size = _screen.Size - new Vector2(4, 30);
+        var screen = _tablet.GetViewportRect().Size;
+        const int s = TabletLayout.ArtScale, around = TabletLayout.ArtAround * s;
+        float width = Mathf.Floor(screen.X - around - 2 * Margin), height = Mathf.Floor(screen.Y - around - 2 * Margin);
+        _tablet.Size = new Vector2(width, height);
+        var rest = ((screen - new Vector2(width + around, height + around)) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
+        _tablet.Position = rest + new Vector2(0, _tablet.Drop(rest.Y));
+        const int pad = TabletLayout.Pad, bodyTop = pad + TabletLayout.TabHeight + pad;
+        _head.Position = new Vector2(pad, pad);
+        _head.Size = new Vector2(width - 2 * pad, TabletLayout.TabHeight);
+        _foot.Position = new Vector2(pad, height - pad - TabletLayout.FootHeight);
+        _foot.Size = new Vector2(width - 2 * pad, TabletLayout.FootHeight);
+        _view.Position = new Vector2(pad, bodyTop);
+        _view.Size = new Vector2(width - 2 * pad, _foot.Position.Y - pad - bodyTop);
+    }
+
+    /// <summary>The map where the camera has it; band names keep their size and stay in view however it lies.</summary>
+    private void Place()
+    {
+        _camera.Fit(_view.Size.X, _view.Size.Y, _map.CustomMinimumSize.X, _map.CustomMinimumSize.Y);
+        float zoom = (float)_camera.Zoom;
+        _map.Scale = new Vector2(zoom, zoom);
+        _map.Position = new Vector2((float)_camera.X, (float)_camera.Y).Round();
+        foreach (var title in _titles)
+        {
+            title.Scale = new Vector2(1 / zoom, 1 / zoom);
+            title.Position = new Vector2(Mathf.Max(0, -_map.Position.X / zoom) + 6 / zoom, title.Position.Y);
+        }
+        bool words = _camera.Zoom >= WordsFrom;
+        if (words == _wordsOn) return;
+        _wordsOn = words;
+        foreach (var view in _nodes) view.Words.Visible = words;
     }
 
     /// <summary>Restyles what has changed: a block's state, a gate's deposit, what the bag holds. Credits only retype their line.</summary>
@@ -125,6 +189,11 @@ public partial class TechPanel : CanvasLayer
         _research = research;
         if (_nodes.Count == 0) Build(research);
         _credits.Text = T("research.credits", ("n", research.Credits));
+        var all = Content.Research.Nodes;
+        _progress.Text = T("research.progress", ("done", all.Count(research.Done)), ("all", all.Count));
+        var open = all.Where(n => !research.Done(n) && research.Reached(n)).ToList();
+        _nextNode = open.FirstOrDefault(n => !n.Gate && research.BuyProblem(n) == null) ?? open.FirstOrDefault();
+        _next.Text = _nextNode is { } next ? T("research.next", ("what", NameOf(next, research))) : "";
         var carried = m.Items.Totals(_peer());
         int Carried(string item) => carried.Where(t => t.Item == item).Sum(t => t.Count);
         string now = string.Join('|', _nodes.Select(v => v.Node.Gate
@@ -136,24 +205,32 @@ public partial class TechPanel : CanvasLayer
             foreach (var view in _nodes) Restyle(view, research);
             _lines.QueueRedraw();
         }
-        if (_focus) Focus(research);
+        if (!_focus) return;
+        // The first time out it opens on the first thing to do; after that it stays where it was left.
+        _focus = false;
+        if (_nextNode != null) Bring(_nextNode);
     }
 
-    /// <summary>Scrolls to the first thing there is to do, once the map is laid out.</summary>
-    private void Focus(IResearchQueries research)
+    /// <summary>A node's name: a gate's own, a block's the first thing it opens.</summary>
+    private static string NameOf(TechNode node, IResearchQueries research)
     {
-        if (_scroll.GetHScrollBar().MaxValue <= 0) return;
-        _focus = false;
-        var next = Content.Research.Nodes.FirstOrDefault(n => !research.Done(n) && research.Reached(n));
-        if (next == null) return;
-        var spot = _layout.Spots[next.Id];
-        _scroll.ScrollHorizontal = Math.Max(0, BandLeft + spot.Column * CellWide - CellWide);
-        _scroll.ScrollVertical = Math.Max(0, (int)RowY(spot.Row) - CellTall - BandHead);
+        if (node.Gate) return T($"research.gate.{node.Id}");
+        string first = node.Opens[0];
+        return ItemCards.NameOf(first, research.Recipes().First(r => r.Id == first).Placement);
+    }
+
+    /// <summary>Brings a node to the middle of the view.</summary>
+    private void Bring(TechNode node)
+    {
+        var box = _nodes.First(v => v.Node == node).Box;
+        _camera.Fit(_view.Size.X, _view.Size.Y, _map.CustomMinimumSize.X, _map.CustomMinimumSize.Y);
+        _camera.Centre(box.Position.X + box.Size.X / 2, box.Position.Y + box.Size.Y / 2);
     }
 
     private void Build(IResearchQueries research)
     {
         _map.CustomMinimumSize = new Vector2(BandLeft + _layout.Columns * CellWide + Pad, _layout.Rows * CellTall + _layout.Bands.Count * BandHead + Pad);
+        _map.Size = _map.CustomMinimumSize;
         _lines.Size = _map.CustomMinimumSize;
         int band = 0;
         foreach (var each in _layout.Bands)
@@ -164,11 +241,10 @@ public partial class TechPanel : CanvasLayer
                 Position = new Vector2(0, RowY(each.FirstRow) - BandHead),
                 Size = new Vector2(_map.CustomMinimumSize.X, each.Rows * CellTall + BandHead),
                 MouseFilter = Control.MouseFilterEnum.Ignore,
-                ShowBehindParent = false,
             };
             _map.AddChild(back);
             _map.MoveChild(back, 0);
-            var title = Words2(T($"research.category.{each.Category.Id}"), Faint);
+            var title = Tablet.Text(T($"research.category.{each.Category.Id}"), Style.Slate500);
             title.Position = new Vector2(6, RowY(each.FirstRow) - BandHead);
             _titles.Add(title);
             _map.AddChild(title);
@@ -179,8 +255,8 @@ public partial class TechPanel : CanvasLayer
     private NodeView NodeOf(TechNode node, IResearchQueries research)
     {
         var spot = _layout.Spots[node.Id];
-        var box = Boxed(Dim, 2, 2);
-        box.MouseFilter = Control.MouseFilterEnum.Pass;
+        var box = new Panel { MouseFilter = Control.MouseFilterEnum.Ignore };
+        Restyle(box, Dim, Line);
         box.Position = new Vector2(BandLeft + spot.Column * CellWide, RowY(spot.Row) + (CellTall - NodeTall) / 2);
         box.Size = new Vector2(NodeWide, NodeTall);
         var icons = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Position = new Vector2(4, 3) };
@@ -196,28 +272,56 @@ public partial class TechPanel : CanvasLayer
             icons.AddChild(picture);
         }
         box.AddChild(icons);
-        var words = Words2("", Faint);
-        words.Position = new Vector2(6, Icon + 3);
+        var words = Tablet.Text("", Faint, 14);
+        words.Position = new Vector2(6, Icon + 5);
         box.AddChild(words);
         _map.AddChild(box);
         var view = new NodeView(node, box, words, pictures);
         _tips.Add(box, () => TipOf(view));
-        box.GuiInput += e =>
-        {
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
-            Press(node);
-        };
         return view;
     }
 
-    private void Press(TechNode node)
+    /// <summary>The map's pointer: any button drags it, the left one clicks a node if it was not dragged.</summary>
+    private void Handle(InputEvent e)
     {
-        if (_research is not { } research || _ui.OpenTech.Get() is not int station) return;
+        switch (e)
+        {
+            case InputEventMouseButton { ButtonIndex: MouseButton.Left } button:
+                if (button.Pressed) (_pressed, _moved) = (true, 0);
+                else if (_pressed && _moved < ClickSlack) Click(button.Position);
+                if (!button.Pressed) _pressed = false;
+                break;
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown }:
+                Zoom(e, _view);
+                break;
+            case InputEventMouseMotion { ButtonMask: not 0 } drag:
+                _moved += drag.Relative.Length();
+                _camera.Drag(drag.Relative.X, drag.Relative.Y);
+                break;
+        }
+    }
+
+    private void Zoom(InputEvent e, Control over)
+    {
+        if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel) return;
+        var at = _view.GetLocalMousePosition();
+        _camera.Wheel(wheel.ButtonIndex == MouseButton.WheelUp ? 1 : -1, at.X, at.Y);
+        over.AcceptEvent();
+    }
+
+    /// <summary>A click at a point of the view: the node there is bought or deposited in, if it can be.</summary>
+    private void Click(Vector2 at)
+    {
+        var (x, y) = _camera.ToMap(at.X, at.Y);
+        var point = new Vector2((float)x, (float)y);
+        var hit = _nodes.FirstOrDefault(v => new Rect2(v.Box.Position, v.Box.Size).HasPoint(point));
+        if (hit == null || _research is not { } research) return;
+        var node = hit.Node;
         if (node.Gate)
         {
-            if (!research.Done(node) && research.Reached(node)) _send(new Deposit(station, node.Id));
+            if (!research.Done(node) && research.Reached(node)) _send(new Deposit(node.Id));
         }
-        else if (research.BuyProblem(node) == null) _send(new BuyBlock(station, node.Id));
+        else if (research.BuyProblem(node) == null) _send(new BuyBlock(node.Id));
     }
 
     private void Restyle(NodeView view, IResearchQueries research)
@@ -231,11 +335,11 @@ public partial class TechPanel : CanvasLayer
         {
             int had = node.Deposit.Sum(d => research.Deposited(node, d.Item)), all = node.Deposit.Sum(d => d.Count);
             view.Words.Text = done ? "✓" : $"{had}/{all}";
-            view.Words.AddThemeColorOverride("font_color", done ? Lit : reached ? GateEdge : Faint);
+            view.Words.LabelSettings.FontColor = done ? Lit : reached ? GateEdge : Faint;
             return;
         }
         view.Words.Text = done ? "✓" : Prices.Of(node).ToString();
-        view.Words.AddThemeColorOverride("font_color", done ? Lit : can ? Warm : Faint);
+        view.Words.LabelSettings.FontColor = done ? Lit : can ? Warm : Faint;
     }
 
     private Tip TipOf(NodeView view)
@@ -280,14 +384,6 @@ public partial class TechPanel : CanvasLayer
     /// <summary>Where row <paramref name="row"/> starts: each band so far has a head over its rows.</summary>
     private float RowY(int row) => row * CellTall + _layout.Bands.Count(b => b.FirstRow <= row) * BandHead;
 
-    /// <summary>Dragging the map scrolls it.</summary>
-    private void Pan(InputEvent e)
-    {
-        if (e is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left or MouseButtonMask.Right } drag) return;
-        _scroll.ScrollHorizontal -= (int)drag.Relative.X;
-        _scroll.ScrollVertical -= (int)drag.Relative.Y;
-    }
-
     /// <summary>A blueprint as the build menu pictures it, a craft or a material as its item.</summary>
     private static TextureRect Picture(string id, Placement? placement) => new()
     {
@@ -299,33 +395,28 @@ public partial class TechPanel : CanvasLayer
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
 
-    private static Label Words2(string text, Color colour)
-    {
-        var label = new Label { Text = text, MouseFilter = Control.MouseFilterEnum.Ignore };
-        label.AddThemeColorOverride("font_color", colour);
-        return label;
-    }
-
+    /// <summary>Tab, E and B put it away and go on to what they do.</summary>
     public override void _Input(InputEvent e)
     {
-        // E puts it away and is spent, so the crew's E does not open it again at once.
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.E } || !Shown) return;
-        Close();
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !Shown) return;
+        if (key.PhysicalKeycode is Key.Tab or Key.E or Key.B) Close();
+    }
+
+    /// <summary>T takes it out and puts it away, in a world with the menu shut.</summary>
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.T }) return;
+        if (!_inWorld() || _ui.MenuOpen.Get()) return;
+        if (Shown) Close();
+        else Open();
         GetViewport().SetInputAsHandled();
     }
 
-    private static Panel Boxed(Color fill, int border, int corner)
-    {
-        var box = new Panel { MouseFilter = Control.MouseFilterEnum.Stop };
-        Restyle(box, fill, Line, border, corner);
-        return box;
-    }
-
-    private static void Restyle(Panel box, Color fill, Color edge, int border = 2, int corner = 2)
+    private static void Restyle(Panel box, Color fill, Color edge)
     {
         var look = new StyleBoxFlat { BgColor = fill, BorderColor = edge };
-        look.SetBorderWidthAll(border);
-        look.SetCornerRadiusAll(corner);
+        look.SetBorderWidthAll(2);
+        look.SetCornerRadiusAll(2);
         box.AddThemeStyleboxOverride("panel", look);
     }
 }

@@ -232,7 +232,7 @@ public sealed class Ui
     /// The tech station this player has open: <c>crew</c> opens it on E within reach and closes it out of reach,
     /// <c>research</c> shows its window and closes it on E or Esc.
     /// </summary>
-    public Store<int?> OpenTech { get; } = new(null);
+    public Store<bool> TreeOpen { get; } = new(false);
 
     /// <summary>The program the open computer shows, by id; none as it opens, and none once it stops being ready.</summary>
     public Store<string?> ComputerProgram { get; } = new(null);

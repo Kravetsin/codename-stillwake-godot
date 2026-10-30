@@ -4,10 +4,14 @@ public static partial class En
 {
     private static readonly Strings Research = new()
     {
+        ["research.title"] = "Tech tree",
+        ["research.hint"] = "Drag: move · Wheel: zoom · Click: buy · T: close",
         ["research.credits"] = "{n} credits",
+        ["research.creditsAtStation"] = "{n} credits · T: tech tree",
+        ["research.progress"] = "{done}/{all} open",
+        ["research.next"] = "Next: {what}",
         ["research.depositHint"] = "Click to put in what you carry",
         ["research.inTheBag"] = "{n} in the bag",
-        ["research.noMachine"] = "No tech station here",
         ["research.bought"] = "Bought",
         ["research.locked"] = "Not open yet",
         ["research.noCredits"] = "Not enough credits",

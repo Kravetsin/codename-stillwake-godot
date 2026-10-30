@@ -12,7 +12,7 @@ public class TechTreeTextTests
     {
         Assert.All(Spec.Research.Categories, c => Assert.True(Table.ContainsKey($"research.category.{c.Id}"), c.Id));
         Assert.All(Spec.Research.Nodes.Where(n => n.Gate), g => Assert.True(Table.ContainsKey($"research.gate.{g.Id}"), g.Id));
-        Assert.All(["noMachine", "bought", "locked", "noCredits", "gateOpen", "nothingToDeposit"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
+        Assert.All(["bought", "locked", "noCredits", "gateOpen", "nothingToDeposit"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
     }
 
     [Fact]
@@ -22,13 +22,10 @@ public class TechTreeTextTests
     }
 
     [Fact]
-    public void NamesBothStationsAndWhatOpeningThemSays()
+    public void NamesTheTradeStationAndWhatOpeningItSays()
     {
-        Assert.All(["techStation", "tradeStation"], kind =>
-        {
-            Assert.True(Table.ContainsKey($"tool.{kind}"), kind);
-            Assert.True(Table.ContainsKey($"tool.{kind}.about"), kind);
-            Assert.True(Table.ContainsKey($"use.open.{kind}"), kind);
-        });
+        Assert.True(Table.ContainsKey("tool.tradeStation"));
+        Assert.True(Table.ContainsKey("tool.tradeStation.about"));
+        Assert.True(Table.ContainsKey("use.open.tradeStation"));
     }
 }

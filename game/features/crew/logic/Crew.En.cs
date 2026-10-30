@@ -31,7 +31,6 @@ public static partial class En
         ["use.openCrate"] = "[E] Open crate",
         ["use.open.furnace"] = "[E] Open furnace",
         ["use.open.burnerGenerator"] = "[E] Open generator",
-        ["use.open.techStation"] = "[E] Open tech station",
         ["use.open.tradeStation"] = "[E] Open trade station",
         ["use.open.charger"] = "[E] Open charging station",
         ["use.open.lifepod"] = "[E] Fabricator",

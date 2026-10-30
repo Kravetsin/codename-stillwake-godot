@@ -186,10 +186,10 @@ public static class Aiming
         return piece is var (id, stuck, _) ? new RodHit(id, stuck) : null;
     }
 
-    /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace), the ship's computer, or a tech station.</summary>
-    private static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer) || spec.Is(Spec.MachineTrait.Tech));
+    /// <summary>Whether a machine of <paramref name="kind"/> opens on E: one holding items (a crate, a furnace) or the ship's computer.</summary>
+    private static bool Opens(string kind) => Spec.Machines.TryGet(kind, out var spec) && (spec.Slots != null || spec.Is(Spec.MachineTrait.Computer));
 
-    /// <summary>Whether a crate, a furnace, a computer or a tech station <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
+    /// <summary>Whether a crate, a furnace or a computer <paramref name="id"/> still stands with a cell of it within the hero's reach.</summary>
     public static bool CrateInReach(IGridQueries grid, Hero hero, int id)
     {
         var crate = grid.MachineById(id) is { } m && Opens(m.Kind) ? m : null;

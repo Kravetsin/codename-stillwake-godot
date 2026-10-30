@@ -67,7 +67,7 @@ public static class Testbed
     /// <summary>
     /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, and the air: a tank with a canister and a generator piped to a
     /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
-    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the tech station, the trade station on the drone bay, the charging station
+    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
     /// and the burner generator; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
     /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
     /// cabled to the panel over the airlock, biofuel for two descents in its slot. Thirteen panels on the roof: the first and the third feed the
@@ -90,8 +90,8 @@ public static class Testbed
             "  ###############################################",
             "  #.......LUUU...#....L.kk......J.......L.$$#..L#",
             "  #.OOOQQ..UUU.RRD......kk......gg...GG...$$DZZ.D",
-            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
-            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBDZZ.D",
+            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GG..CBBDZZ.D",
+            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK...CBBDZZ.D",
             "  #o#########################################__##",
             "  #XXXL#",
             "  #XXX.#",

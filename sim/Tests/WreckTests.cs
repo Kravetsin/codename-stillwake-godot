@@ -37,8 +37,8 @@ public class WreckTests
     private static readonly int DoorToB = At(45, 21);
     private static readonly int Inner = At(54, 21);
     private static readonly int Outer = At(57, 21);
-    /// <summary>Room B's tech station, and the cells of B's hull, floor and back wall torn away: drawn as space.</summary>
-    private static readonly int TechStation = At(41, 21);
+    /// <summary>Room B's trade station, and the cells of B's hull, floor and back wall torn away: drawn as space.</summary>
+    private static readonly int TradeStation = At(41, 21);
     private const int BLeft = 30, BRight = 44, BTop = 18, BBottom = 23;
     private static bool Torn(int x, int y) => x < WreckRows.Rows[y].Length && WreckRows.Rows[y][x] == ' ';
     private static readonly int Panel = At(50, 17);
@@ -92,11 +92,11 @@ public class WreckTests
     }
 
     [Fact]
-    public void HoldsAPanelCabledToALampAndAGeneratorAVentATechStationTheLifepodNoFurnaceOrCrate()
+    public void HoldsAPanelCabledToALampAndAGeneratorAVentATradeStationTheLifepodNoFurnaceOrCrate()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["solarPanel", "lamp", "lifepod", "techStation", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
+        Assert.Equal(["solarPanel", "lamp", "lifepod", "tradeStation", "generator", "vent"], m.Grid.Machines.Select(x => x.Kind));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         var doors = Wreck.CellsOf('D').Select(m.Grid.StructureAt).ToList();
@@ -198,20 +198,18 @@ public class WreckTests
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
     }
 
-    /// <summary>The first minutes (2026-10-30-trade-and-tech): a trade station of raw salvage, a chunk sold, the first block bought at the wreck's tech station, its floor planned.</summary>
+    /// <summary>The first minutes (2026-10-30-tablet-tree): a chunk sold at the wreck's trade station, the first block bought, its machine planned.</summary>
     [Fact]
-    public void SellsAChunkAtATradeStationOfSalvageBuysTheFirstBlockAndPlansIt()
+    public void SellsAChunkAtTheWrecksTradeStationBuysTheFirstBlockAndPlansIt()
     {
         var w = AiredWreck();
-        w.GiveItems(0, Machines.Get("tradeStation").Cost.ToArray());
-        int trade = Build(w, "tradeStation", At(49, 21));
+        int trade = w.M.Grid.MachineAt(TradeStation)!.Id;
         int chunk = Stillwake.Content.Market.PriceOf("scrapChunk")!.Value, price = Prices.Of(ResearchSpec.Node("furnace")!), chunks = price / chunk + 1;
         w.GiveItems(0, ("scrapChunk", chunks));
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), chunks)).Run();
         w.Run(chunks * Stillwake.Content.Market.SellEvery);
         Assert.Equal(chunks * chunk, w.M.Research.Credits);
-        int tech = w.M.Grid.MachineAt(TechStation)?.Id ?? 0;
-        w.Do(new BuyBlock(tech, "furnace")).Run();
+        w.Do(new BuyBlock("furnace")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(chunks * chunk - price, w.M.Research.Credits);
         Assert.True(w.M.Research.Knows("furnace"));
@@ -223,14 +221,14 @@ public class WreckTests
     }
 
     [Fact]
-    public void FindsRoomAAndTheAirlockBTornOpenIsSpaceItsTechStationInIt()
+    public void FindsRoomAAndTheAirlockBTornOpenIsSpaceItsTradeStationInIt()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
         Assert.Equal([At(46, 19), At(55, 20)], m.Rooms.All.Select(r => r.Id));
         Assert.All(m.Rooms.All, r => Assert.Empty(r.Openings));
-        Assert.Equal(RoomsModule.Space, m.Rooms.RoomAt(TechStation));
-        Assert.Equal("techStation", m.Grid.MachineAt(TechStation)?.Kind);
+        Assert.Equal(RoomsModule.Space, m.Rooms.RoomAt(TradeStation));
+        Assert.Equal("tradeStation", m.Grid.MachineAt(TradeStation)?.Kind);
     }
 
     [Fact]
@@ -308,7 +306,7 @@ public class WreckTests
                 foreach (int cell in Blocks(x, x, y, y)) w.Do(new Place(cell, edge ? Placement.Wall("scrap") : Placement.BackWall("scrap")));
             }
         w.Run();
-        var room = w.M.Rooms.RoomAt(TechStation);
+        var room = w.M.Rooms.RoomAt(TradeStation);
         Assert.NotEqual(RoomsModule.Space, room);
         Assert.Empty(w.M.Rooms.All.First(r => r.Id == room).Openings);
     }

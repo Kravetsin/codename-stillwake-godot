@@ -28,7 +28,7 @@ A living document: what is decided about the game and what is still open. Techni
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
   survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
-  half away, a tech station surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
+  half away, a trade station surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
@@ -36,7 +36,7 @@ A living document: what is decided about the game and what is still open. Techni
   within the middle 1024×512, the build zone, and the space round it is there to fly out into
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
 - **Salvage is sold and blueprints bought:** a trade station sells what is put in it for the ship's credits, a unit at a
-  time, at prices that never fall and always pay more for what is refined; drones keep it stocked. A tech station opens a tree
+  time, at prices that never fall and always pay more for what is refined; drones keep it stocked. The tablet holds a tree
   drawn as a map: blocks bought with credits, a few blueprints and crafts together, the first for a few chunks' worth, the engine
   last and dearest, and gates of resources deposited for good. What things are worth is worked out from their recipes
   ([tech-graph](decisions/2026-10-30-tech-graph.md)). The wreck knows both stations, scrap walls and the fire axe.

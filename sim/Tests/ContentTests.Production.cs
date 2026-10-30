@@ -509,8 +509,7 @@ public partial class ContentTests
     {
         var (had, known) = Reachable([]);
         Assert.Contains("tradeStation", known);
-        Assert.Contains("techStation", known);
-        Assert.All(Machines.Get("tradeStation").Cost.Concat(Machines.Get("techStation").Cost), c => Assert.Contains(c.Item, had));
+        Assert.All(Machines.Get("tradeStation").Cost, c => Assert.Contains(c.Item, had));
         Assert.Contains("scrapChunk", had);
     }
 

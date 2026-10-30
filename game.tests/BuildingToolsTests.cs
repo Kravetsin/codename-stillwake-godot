@@ -353,7 +353,6 @@ public class BuildingToolsTests
             with
         { Known = Research.StartKnown });
         var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
-        Assert.Contains("techStation", known);
         Assert.Contains("tradeStation", known);
         Assert.DoesNotContain("furnace", known);
         Assert.DoesNotContain("crate", known);

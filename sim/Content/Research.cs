@@ -32,7 +32,7 @@ public static class Research
     /// </summary>
     public static readonly IReadOnlyList<string> StartKnown =
     [
-        "tradeStation", "techStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
+        "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
     ];
 
     /// <summary>How many times its worth a craft costs on top of its category's: a blueprint already costs what it is built of, a craft only a unit.</summary>
