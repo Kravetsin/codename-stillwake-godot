@@ -18,7 +18,7 @@ namespace Stillwake.Game.Features.Research;
 /// hub asks for what opens the next ring, the rings filled are lit, a branch a way out. A click picks a node and buys nothing: what it
 /// takes, where it is made and what it goes into light up (<see cref="TechLinks"/>), known or not, and the strip below says so and buys.
 /// A press counts as a click only if the pointer has not moved. Words are set at the size they are seen, never scaled, so they stay sharp;
-/// from far nodes are plain dots under their branches' names. The world runs on behind it.
+/// further out a node keeps its picture and loses its words, and from far it is a plain dot under its branch's name. The world runs on behind it.
 /// </summary>
 public partial class TechPanel : CanvasLayer
 {
@@ -32,8 +32,8 @@ public partial class TechPanel : CanvasLayer
     private const int Margin = 12, DetailTall = 116;
     /// <summary>Pixels the pointer may move in a press still meant as a click.</summary>
     private const float ClickSlack = 4;
-    /// <summary>Under this zoom words would be too small to read and pictures a smudge: nodes turn plain dots.</summary>
-    private const double WordsFrom = 0.65;
+    /// <summary>Under the first zoom words would be too small to read, and only pictures show; under the second pictures would be a smudge too, and nodes turn plain dots.</summary>
+    private const double WordsFrom = 0.5, PicturesFrom = 0.28;
     /// <summary>How fast a ring lights as it opens, of what is left a second.</summary>
     private const double LitSpeed = 3;
     /// <summary>A node's sizes on the map at zoom 1; how small a dot gets; words' sizes at zoom 1; how far from its way's edge a branch's name stands.</summary>
@@ -62,7 +62,8 @@ public partial class TechPanel : CanvasLayer
         public bool Centred;
         public double Lit = TechRings.HubRadius, SetAt;
         public TechNode? Gate;
-        public bool Near => Camera.Zoom >= WordsFrom;
+        public bool Words => Camera.Zoom >= WordsFrom;
+        public bool Pictures => Camera.Zoom >= PicturesFrom;
     }
 
     private readonly Ui _ui;
@@ -75,7 +76,6 @@ public partial class TechPanel : CanvasLayer
     private readonly HBoxContainer _head = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, GrowHorizontal = Control.GrowDirection.Begin, Alignment = BoxContainer.AlignmentMode.End }, 16);
     private readonly CreditLine _credits = new(Tablet.FontSize + 1);
     private readonly Label _progress = Text("", Style.Slate100);
-    private readonly HBoxContainer _foot = Style.Gap(new HBoxContainer { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
     private readonly Control _view = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly Panel _detail = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly HBoxContainer _facts = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true }, 24);
@@ -133,12 +133,6 @@ public partial class TechPanel : CanvasLayer
         _head.AddChild(_progress);
         _head.AddChild(_credits);
         _strip.AddChild(_head);
-        _foot.AddChild(Text(T("research.title"), Style.Slate100));
-        var hint = Text(T("research.hint"), Style.Slate500, Tablet.HintSize + 1);
-        hint.ClipText = true;
-        hint.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
-        hint.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        _foot.AddChild(hint);
         foreach (var tab in _tabs)
         {
             _view.AddChild(tab.Map);
@@ -163,7 +157,7 @@ public partial class TechPanel : CanvasLayer
         // The wheel over the bezel zooms as over the map; it never reaches the hotbar.
         _tablet.GuiInput += e => Zoom(e, _tablet);
         _tablet.Bezel.GuiInput += e => Zoom(e, _tablet.Bezel);
-        foreach (var part in (Control[])[_strip, _view, _detail, _foot]) _tablet.OnScreen(part);
+        foreach (var part in (Control[])[_strip, _view, _detail]) _tablet.OnScreen(part);
         PaintTabs();
         Show(_tab, true);
     }
@@ -231,9 +225,7 @@ public partial class TechPanel : CanvasLayer
         _strip.Size = new Vector2(width - 2 * pad, TabletLayout.TabHeight);
         _head.Size = new Vector2(_head.GetCombinedMinimumSize().X, TabletLayout.TabHeight);
         _head.Position = new Vector2(_strip.Size.X - _head.Size.X, 0);
-        _foot.Position = new Vector2(pad, height - pad - TabletLayout.FootHeight);
-        _foot.Size = new Vector2(width - 2 * pad, TabletLayout.FootHeight);
-        _detail.Position = new Vector2(pad, _foot.Position.Y - pad - DetailTall);
+        _detail.Position = new Vector2(pad, height - pad - DetailTall);
         _detail.Size = new Vector2(width - 2 * pad, DetailTall);
         _facts.Position = new Vector2(pad, pad);
         _facts.Size = new Vector2(_detail.Size.X - ButtonWide - 3 * pad, DetailTall - 2 * pad);
@@ -267,7 +259,7 @@ public partial class TechPanel : CanvasLayer
         var middle = origin + new Vector2((float)_tab.Rings.Middle, (float)_tab.Rings.Middle) * zoom;
         float hub = (float)TechRings.HubRadius * zoom;
         _tab.Hub.Position = middle - new Vector2(hub, hub);
-        float reach = _tab.Near ? hub + TitleOut : (float)_tab.Rings.Edges[^1] * zoom - TitleOut / 2f;
+        float reach = _tab.Words ? hub + TitleOut : (float)_tab.Rings.Edges[^1] * zoom - TitleOut / 2f;
         foreach (var (title, way) in _tab.Titles) title.Position = (middle + way * reach - title.GetMinimumSize() / 2).Round();
         double lit = OpenEdge(_tab);
         if (Math.Abs(lit - _tab.Lit) <= 0.5) return;
@@ -281,14 +273,14 @@ public partial class TechPanel : CanvasLayer
         tab.SetAt = tab.Camera.Zoom;
         _shown = null;
         _sinceRead = ReadEvery;
-        bool near = tab.Near;
-        float side = near ? NodeSide * zoom : Math.Max(LeastDot, NodeSide * zoom);
+        bool words = tab.Words;
+        float side = tab.Pictures ? NodeSide * zoom : Math.Max(LeastDot, NodeSide * zoom);
         int size = Math.Max(8, Mathf.RoundToInt(NameSize * zoom));
         foreach (var view in tab.Nodes)
         {
             view.Box.Position = new Vector2(-side / 2, -side / 2);
             view.Box.Size = new Vector2(side, side);
-            float icon = Icon * zoom;
+            float icon = words ? Icon * zoom : side * 0.75f;
             view.Picture.Position = new Vector2(-icon / 2, -icon / 2);
             view.Picture.Size = new Vector2(icon, icon);
             view.Picture.TextureFilter = zoom < 1 ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.Nearest;
@@ -308,12 +300,12 @@ public partial class TechPanel : CanvasLayer
         float hub = (float)TechRings.HubRadius * zoom;
         tab.Hub.Size = new Vector2(2 * hub, 2 * hub);
         tab.HubWords.Size = tab.Hub.Size;
-        tab.HubWords.Visible = near;
+        tab.HubWords.Visible = words;
         tab.HubTitle.LabelSettings.FontSize = Math.Max(8, Mathf.RoundToInt(HubSize * zoom));
         foreach (var (title, _) in tab.Titles)
         {
-            title.LabelSettings.FontSize = near ? 12 : 14;
-            title.LabelSettings.FontColor = near ? Style.Slate500 : Style.Slate100;
+            title.LabelSettings.FontSize = words ? 12 : 14;
+            title.LabelSettings.FontColor = words ? Style.Slate500 : Style.Slate100;
         }
     }
 
@@ -409,7 +401,7 @@ public partial class TechPanel : CanvasLayer
         root.AddChild(done);
         tab.Front.AddChild(root);
         var view = new NodeView(node, root, box, picture, name, price, done);
-        _tips.Add(box, () => TipOf(view));
+        _tips.Add(box, () => TipOf(node.Id));
         return view;
     }
 
@@ -527,14 +519,14 @@ public partial class TechPanel : CanvasLayer
             var asks = Flow(14);
             foreach (var (item, count) in node.Deposit)
             {
-                int left = count - (_research?.Deposited(node, item) ?? 0), had = _carried(item);
+                int left = _research?.Done(node) == true ? 0 : count - (_research?.Deposited(node, item) ?? 0), had = _carried(item);
                 asks.AddChild(Named(item, left <= 0 ? $"{NameOf(item)} ✓" : T("research.asked", ("what", NameOf(item)), ("had", had), ("left", left)), AskColour(had, left)));
             }
             _facts.AddChild(Fact(T("research.asks"), GateEdge, asks, 2));
             _facts.AddChild(Fact(T("research.opens"), GateEdge, Pictures(Content.Research.Nodes.Where(n => n.Needs.Contains(node.Id) && !n.Gate).Select(n => n.Id).ToList()), 4));
             return;
         }
-        _facts.AddChild(Title(NameOf(node.Id), AboutOf(node.Id), node.Id));
+        _facts.AddChild(Title(NameOf(node.Id), Table.ContainsKey($"item.{node.Id}.kind") ? T($"item.{node.Id}.kind") : "", node.Id));
         var link = TechLinks.Of(node);
         if (link.Takes.Count > 0)
         {
@@ -558,7 +550,7 @@ public partial class TechPanel : CanvasLayer
         foreach (string id in ids)
         {
             var one = Picture(id, size);
-            _tips.Add(one, () => new Tip(NameOf(id)));
+            _tips.Add(one, () => TipOf(id));
             flow.AddChild(one);
         }
         return flow;
@@ -566,10 +558,6 @@ public partial class TechPanel : CanvasLayer
 
     /// <summary>What is carried set against what is still asked: green with enough, amber with some.</summary>
     private static Color AskColour(int had, int left) => left <= 0 || had >= left ? Bought : had > 0 ? Warm : Style.Slate100;
-
-    /// <summary>What a blueprint or a craft is, in a line: a machine's own words, or an item's kind.</summary>
-    private static string AboutOf(string id) =>
-        Table.ContainsKey($"tool.{id}.about") ? T($"tool.{id}.about") : Table.ContainsKey($"item.{id}.kind") ? T($"item.{id}.kind") : "";
 
     /// <summary>The strip's first column: the large picture, the name and what it is.</summary>
     private Control Title(string name, string about, string? id)
@@ -579,6 +567,8 @@ public partial class TechPanel : CanvasLayer
         {
             var picture = Picture(id, Big);
             picture.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+            picture.MouseFilter = Control.MouseFilterEnum.Ignore;
+            _tips.Add(picture, () => TipOf(id));
             row.AddChild(picture);
         }
         var words = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill }, 2);
@@ -672,17 +662,17 @@ public partial class TechPanel : CanvasLayer
     private void Restyle(TabView tab, NodeView view, IResearchQueries research)
     {
         var node = view.Node;
-        bool done = research.Done(node), reached = research.Reached(node), can = research.BuyProblem(node) == null, near = tab.Near;
+        bool done = research.Done(node), reached = research.Reached(node), can = research.BuyProblem(node) == null, words = tab.Words, pictures = tab.Pictures;
         Color? tie = Tie(node);
         Color state = done ? Bought : can ? Warm : reached ? Faint : Socket;
-        if (near) Paint(view.Box, done ? BoughtBack : reached ? Socket : Dim, tie ?? (done ? Bought : can ? Warm : reached ? Socket : Line), tie != null ? 3 : 2);
+        if (pictures) Paint(view.Box, done ? BoughtBack : reached ? Socket : Dim, tie ?? (done ? Bought : can ? Warm : reached ? Socket : Line), tie != null ? 3 : 2);
         else Paint(view.Box, tie ?? state, tie ?? state, 0);
-        view.Picture.Visible = near;
+        view.Picture.Visible = pictures;
         view.Picture.Modulate = done || reached || tie != null ? Colors.White : new Color(0.55f, 0.55f, 0.6f, 0.8f);
         view.Root.Modulate = _picked == null || tie != null ? Colors.White : new Color(1, 1, 1, 0.3f);
-        view.Name.Visible = near;
-        view.Done.Visible = near && done;
-        view.Price.Visible = near && !done;
+        view.Name.Visible = words;
+        view.Done.Visible = words && done;
+        view.Price.Visible = words && !done;
         view.Price.Tint(can ? Warm : Faint);
     }
 
@@ -726,13 +716,14 @@ public partial class TechPanel : CanvasLayer
         }
     }
 
-    private Tip TipOf(NodeView view)
+    /// <summary>What the pointer says of <paramref name="id"/>: a thing made its card, a blueprint its picture, name and words; and why it cannot be bought yet.</summary>
+    private Tip TipOf(string id)
     {
-        var node = view.Node;
-        if (_research is not { } research) return new Tip("");
+        if (_placements.GetValueOrDefault(id) is not { } placement) return new Tip(NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
-        if (research.BuyProblem(node) is { } why && why != "research.bought") lines.Add(new TipLine(T(why), Tone.Unknown));
-        return new Tip(NameOf(node.Id), lines);
+        if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));
+        if (_research?.BuyProblem(Content.Research.Node(id)!) is { } why && why != "research.bought") lines.Add(new TipLine(T(why), Tone.Unknown));
+        return new Tip(NameOf(id), lines) { Picture = placement };
     }
 
     /// <summary>What lies under the nodes: the lit rings, each ring's edge, the branches' borders, and the lines from what is picked to what it ties to.</summary>

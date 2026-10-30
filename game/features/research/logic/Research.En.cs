@@ -4,8 +4,6 @@ public static partial class En
 {
     private static readonly Strings Research = new()
     {
-        ["research.title"] = "Tech tree",
-        ["research.hint"] = "Click: select · Drag: move · Wheel: zoom · T: close",
         ["research.pickHint"] = "Click a node to see what it takes, where it is made and what it goes into",
         ["research.gateAbout"] = "Fill it to open the next ring",
         ["research.allOpen"] = "All open",
