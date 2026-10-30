@@ -71,7 +71,6 @@ public partial class ContentTests
         Assert.Equal(ItemGroup.Salvage, Content.Items.Get("scrapChunk").Group);
         Assert.Equal(ItemGroup.Material, Content.Items.Get("scrap").Group);
         Assert.InRange(Inventory.Hotbar, 1, Inventory.Slots - 1);
-        Assert.Equal(0, Inventory.Slots % Inventory.Hotbar);
     }
 
     [Fact]

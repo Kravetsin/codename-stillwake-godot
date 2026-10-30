@@ -425,7 +425,7 @@ public partial class TechPanel : CanvasLayer
     };
 
     private string NameOf(string id) =>
-        Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}", ("n", upgrade.Slots)) : _placements.ContainsKey(id) ? ItemCards.NameOf(id, _placements[id]) : T($"item.{id}");
+        Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}") : _placements.ContainsKey(id) ? ItemCards.NameOf(id, _placements[id]) : T($"item.{id}");
 
     /// <summary>The map's pointer: any button drags it, the left one picks what it clicks if it was not dragged.</summary>
     private void Handle(InputEvent e)

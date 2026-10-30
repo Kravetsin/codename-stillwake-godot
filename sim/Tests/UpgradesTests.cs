@@ -40,8 +40,8 @@ public class UpgradesTests
         Assert.Equal(new[] { "items.noSlot" }, Reasons(w));
         Assert.Equal("wire", w.M.Items.Inventory(0)[0]?.Item);
         Grant(w, "bag1");
-        Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Start + 2)));
-        Assert.False(w.M.Items.SlotOpen(new Slot(Inventory.Start + 3)));
+        Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Start)));
+        Assert.False(w.M.Items.SlotOpen(new Slot(Inventory.Start + 1)));
         w.Do(new Move(new Slot(0), new Target(Inventory.Start), 1)).Run();
         Assert.Equal("wire", w.M.Items.Inventory(0)[Inventory.Start]?.Item);
     }
@@ -94,7 +94,7 @@ public class UpgradesTests
     {
         var w = World().Do(new SetCreative(true)).Run();
         Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Slots - 1)));
-        Assert.True(w.M.Items.SlotOpen(new Slot(Belt + 4)));
+        Assert.True(w.M.Items.SlotOpen(new Slot(Belt + 2)));
         Assert.True(w.M.Items.SlotOpen(new Slot(7, Station(w))));
     }
 
@@ -122,6 +122,15 @@ public class UpgradesTests
         Assert.Equal(Inventory.Slots, Inventory.Start + Upgrades.Added(Upgrades.Bag, _ => true));
         Assert.Equal(Inventory.Equipment.Count(e => e == "belt"), Inventory.BeltStart + Upgrades.Added(Upgrades.Belt, _ => true));
         Assert.Equal(Machines.Get("tradeStation").Slots, Upgrades.TradeStart + Upgrades.Added(Upgrades.TradeSlots, _ => true));
+    }
+
+    [Fact]
+    public void TheBeltGrowsWithTheStoresItCarries()
+    {
+        static int RingOf(string id) => Tree.Node(id)!.Ring;
+        Assert.Equal(RingOf("battery"), RingOf("belt1"));
+        Assert.Equal(Tree.Node("accumulator")!.Tab, Tree.Node("belt2")!.Tab);
+        Assert.Equal(RingOf("accumulator"), RingOf("belt2"));
     }
 
     [Fact]

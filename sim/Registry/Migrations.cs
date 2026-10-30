@@ -33,7 +33,7 @@ public static class Migrations
         root =>
         {
             var granted = root["slices"]!["knowledge"]!["granted"]!.AsArray();
-            var known = granted.Select(g => g!.GetValue<string>()).Concat(["bag1", "bag2", "bag3", "belt1", "belt2", "tradeSlots1", "tradeSlots2"]).Distinct().ToList();
+            var known = granted.Select(g => g!.GetValue<string>()).Concat(["bag1", "bag2", "bag3", "bag4", "bag5", "bag6", "bag7", "bag8", "bag9", "belt1", "belt2", "tradeSlots1", "tradeSlots2"]).Distinct().ToList();
             known.Sort(StringComparer.Ordinal);
             root["slices"]!["knowledge"]!["granted"] = new JsonArray([.. known.Select(k => (JsonNode)k)]);
             foreach (var slices in new[] { root["slices"]! }.Concat(root["surfaces"]!.AsArray().Select(s => s!["slices"]!)))
@@ -48,12 +48,12 @@ public static class Migrations
         },
     ];
 
-    /// <summary>An inventory of 36 own slots, then head, back, three on the belt, suit, mount, cape, as 63 own slots, then the same with five on the belt.</summary>
+    /// <summary>An inventory of 36 own slots, then its equipment, as 38 own slots, then the same equipment.</summary>
     private static JsonArray InventoryOf41(JsonArray old)
     {
         JsonNode?[] Take(int from, int count) => [.. old.Skip(from).Take(count).Select(n => n?.DeepClone())];
         var none = new JsonNode?[1];
-        return new JsonArray([.. Take(0, 36), .. Enumerable.Repeat(none[0], 27), .. Take(36, 5), none[0], none[0], .. Take(41, 3)]);
+        return new JsonArray([.. Take(0, 36), none[0], none[0], .. Take(36, 8)]);
     }
 
     /// <summary>The format a save says it has.</summary>

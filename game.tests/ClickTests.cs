@@ -218,7 +218,7 @@ public class ClickTests
     {
         var worn = new Stack("battery", 1, 300);
         var battery = new Stack("battery", 1);
-        var belt = Holding((Belt1, worn), (Belt2, worn), (Belt3, worn), (new Place(Spec.Inventory.Slots + 5), worn), (new Place(Spec.Inventory.Slots + 6), worn), (Inv(5), battery));
+        var belt = Holding((Belt1, worn), (Belt2, worn), (Belt3, worn), (Inv(5), battery));
         Assert.Equal(MoveOf(Inv(5), Belt1, 1), Clicks.On(null, Click(Inv(5), battery, shift: true, crate: null, inventory: belt)).Command);
         var jetpack = new Stack("jetpack", 1);
         var back = Holding((Back, jetpack), (Inv(2), jetpack));

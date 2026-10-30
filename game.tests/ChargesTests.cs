@@ -97,10 +97,9 @@ public class ChargesTests
     public void TheEnergyGaugeIsAShareOfAFullBeltInWholeUnitsLowUnderAQuarterOfWhatIsWorn()
     {
         // The share of a belt's open slots full of the largest stores, accumulators (0099): with three open, a battery is a ninth.
-        Assert.Equal(5, Charges.BeltSlots);
+        Assert.Equal(3, Charges.BeltSlots);
         Assert.Equal(3 * Spec.Charge.Accumulator / Spec.Charge.Scale, Charges.BeltMost(3));
         Assert.Equal(1.0 / 3, Charges.BeltOf((Full, Full), 1).Share);
-        Assert.Equal(1.0 / 15, Charges.BeltOf((Full, Full), 5).Share);
         Assert.Equal(new Belt(1.0 / 9, Units, Low: false, Worn: true, Most), Charges.BeltOf((Full, Full), 3));
         Assert.Equal(new Belt(1.0 / 3, 3 * Units, Low: false, Worn: true, Most), Charges.BeltOf((3 * Full, 3 * Full), 3));
         Assert.Equal(new Belt(1, 3 * 3 * Units, Low: false, Worn: true, Most), Charges.BeltOf((9 * Full, 9 * Full), 3));

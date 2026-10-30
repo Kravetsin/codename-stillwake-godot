@@ -4,11 +4,11 @@ public static partial class En
 {
     private static readonly Strings Research = new()
     {
-        ["upgrade.bag"] = "+{n} inventory slots",
+        ["upgrade.bag"] = "+1 inventory slot",
         ["upgrade.bag.about"] = "More room in the inventory, for the whole crew.",
-        ["upgrade.belt"] = "+{n} belt slot",
+        ["upgrade.belt"] = "+1 belt slot",
         ["upgrade.belt.about"] = "One more battery on the belt, for the whole crew.",
-        ["upgrade.tradeSlots"] = "+{n} trade station slot",
+        ["upgrade.tradeSlots"] = "+1 trade station slot",
         ["upgrade.tradeSlots.about"] = "One more kind of goods in each trade station's capsule.",
         ["trade.notStation"] = "No trade station here",
         ["trade.capsuleAway"] = "The capsule is away",
