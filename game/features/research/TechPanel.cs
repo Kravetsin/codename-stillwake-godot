@@ -298,6 +298,8 @@ public partial class TechPanel : CanvasLayer
             view.Name.Size = new Vector2(wide, size + 4);
             view.Price.Resize(size);
             view.Price.CustomMinimumSize = new Vector2(wide, 0);
+            // A container never shrinks by itself: left at its old size it would centre the price in that, off to the right and down.
+            view.Price.Size = view.Price.GetCombinedMinimumSize();
             view.Price.Position = new Vector2(-wide / 2, side / 2 + 2 * zoom + size + 3);
             view.Done.LabelSettings.FontSize = size + 2;
             view.Done.Position = view.Price.Position;
