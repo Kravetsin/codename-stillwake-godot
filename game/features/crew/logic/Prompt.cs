@@ -25,6 +25,7 @@ public static class Prompts
     public static Prompt? Of(Registry m, Aim? aim)
     {
         if (aim is not { InReach: true }) return null;
+        if (aim.Work is { Repair: not null } repair) return new Prompt("use.repair", repair.Problem);
         if (aim.Work is { } work)
         {
             var plan = m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan);

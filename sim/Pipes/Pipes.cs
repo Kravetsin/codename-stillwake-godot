@@ -41,6 +41,12 @@ public sealed class PipesState
     [JsonIgnore] internal int Version { get; set; }
     /// <summary>Derived: whether a span or a valve changed since the networks were found.</summary>
     [JsonIgnore] internal bool Stale { get; set; } = true;
+    /// <summary>
+    /// Derived: the lines (every valve counted open), each node's line and each line's fluid; found on the first read after a
+    /// span changed or the grid moved (<see cref="LinesGrid"/>), so the commands of one tick see each other. Null: not found yet.
+    /// </summary>
+    [JsonIgnore] internal (Dictionary<int, int> LineOf, Dictionary<int, string?> Fluid)? Lines { get; set; }
+    [JsonIgnore] internal int LinesGrid { get; set; }
 }
 
 /// <summary>What any module may read of the pipes. Read networks at or after derivation.</summary>
@@ -65,6 +71,19 @@ public interface IPipesQueries
     string? LayProblem(int peer, int a, int b);
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="MakeValve"/> would be refused; null if it would not.</summary>
     string? ValveProblem(int peer, int cell, bool valve);
+    /// <summary>
+    /// Why a span from <paramref name="a"/> to <paramref name="b"/> breaks the ports' rules (2026-10-29-typed-ports):
+    /// <c>pipes.bothGive</c>, <c>pipes.bothTake</c>, <c>pipes.mixedFluid</c>; null if it does not. What the piping lights.
+    /// </summary>
+    string? FluidProblem(int a, int b);
+    /// <summary>The fluid at <paramref name="cell"/>: its port's, else its line's; null for a line with no port, or no node.</summary>
+    string? FluidAt(int cell);
+    /// <summary>
+    /// Why a machine of <paramref name="kind"/> with its top-left at <paramref name="cell"/> cannot stand where its ports
+    /// would land: a port spanned straight to a port of its way, a port on a line of another fluid, or two of its ports of
+    /// different fluids on one line; the first problem in its ports' order, or null.
+    /// </summary>
+    string? SeatProblem(string kind, int cell);
     /// <summary>
     /// Whether each valve the <see cref="SetValve"/>s among <paramref name="toggles"/> name would be open, in order, skipping
     /// those refused: what a client shows of its own toggles before their tick runs (0014). The world is untouched.
@@ -119,6 +138,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         (State.NetworkOf, State.Networks) = PipeNetworks.Find(State.Spans, State.Valves, machines);
         State.GridVersion = _grid.Version;
         State.Stale = false;
+        State.Lines = null;
         State.Version++;
     }
 
@@ -219,7 +239,58 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         int length = LengthOf(_grid.Width, a, b);
         if (length > Content.Piping.MaxSpan) return "pipes.tooLong";
         if (SpanAt(a, b) != null) return "pipes.twice";
-        return _items.ShortOf(peer, CostOf(length));
+        return FluidProblem(a, b) ?? _items.ShortOf(peer, CostOf(length));
+    }
+
+    public string? FluidProblem(int a, int b)
+    {
+        var (pa, pb) = (_grid.PortAt(a), _grid.PortAt(b));
+        if (pa != null && pb != null && pa.Way == pb.Way) return WayProblem(pa.Way);
+        string? fa = pa?.Fluid ?? LineFluid(a), fb = pb?.Fluid ?? LineFluid(b);
+        return fa != null && fb != null && fa != fb ? "pipes.mixedFluid" : null;
+    }
+
+    public string? FluidAt(int cell) => _grid.PortAt(cell)?.Fluid ?? LineFluid(cell);
+
+    public string? SeatProblem(string kind, int cell)
+    {
+        var ports = Content.Machines.Get(kind).Ports;
+        int width = _grid.Width, x = cell % width, y = cell / width;
+        var seated = new List<(int Line, string Fluid)>();
+        foreach (var port in ports)
+        {
+            int at = (y + port.Y) * width + x + port.X;
+            foreach (var s in State.Spans)
+                if ((s.A == at || s.B == at) && _grid.PortAt(s.A == at ? s.B : s.A)?.Way == port.Way) return WayProblem(port.Way);
+            if (Lines().LineOf.TryGetValue(at, out int line))
+            {
+                if (LineFluid(at) is { } fluid && fluid != port.Fluid) return "pipes.mixedFluid";
+                if (seated.Exists(p => p.Line == line && p.Fluid != port.Fluid)) return "pipes.mixedFluid";
+                seated.Add((line, port.Fluid));
+            }
+        }
+        return null;
+    }
+
+    private static string WayProblem(Content.Way way) => way == Content.Way.Out ? "pipes.bothGive" : "pipes.bothTake";
+
+    /// <summary>The fluid of the line through <paramref name="cell"/>: its first port's in cell order; null for none.</summary>
+    private string? LineFluid(int cell) => Lines() is var (lineOf, fluid) && lineOf.TryGetValue(cell, out int line) ? fluid[line] : null;
+
+    /// <summary>The lines, found again when a span changed or the grid moved since they were last found (State.Lines).</summary>
+    private (Dictionary<int, int> LineOf, Dictionary<int, string?> Fluid) Lines()
+    {
+        if (State.Lines is { } lines && State.LinesGrid == _grid.Version) return lines;
+        var (lineOf, found) = PipeNetworks.Find(State.Spans, [], []);
+        var fluid = new Dictionary<int, string?>();
+        foreach (var line in found)
+        {
+            fluid[line.Id] = null;
+            foreach (int cell in line.Cells)
+                if (_grid.PortAt(cell) is { } port) { fluid[line.Id] = port.Fluid; break; }
+        }
+        State.LinesGrid = _grid.Version;
+        return (State.Lines = (lineOf, fluid)).Value;
     }
 
     /// <summary>
@@ -257,6 +328,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         State.Spans.Add(new PipeSpan(Math.Min(c.A, c.B), Math.Max(c.A, c.B), taken.Count > 0));
         State.Spans.Sort(ByEnds);
         State.Stale = true;
+        State.Lines = null;
     }
 
     private void ApplyCut(CutPipe c)
@@ -267,6 +339,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         State.Spans.Remove(span);
         State.Valves.RemoveAll(v => !Piped(v.Cell));
         State.Stale = true;
+        State.Lines = null;
     }
 
     private void ApplyMakeValve(MakeValve c)

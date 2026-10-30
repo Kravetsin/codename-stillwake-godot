@@ -9,14 +9,14 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship building**
 - Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries, `MachinesWith`; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); c/`Machines.cs` (`MachineSpec`, `MachineTrait`, 0113); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
-- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`, `WallStats.cs` (a wall card's leak and meteor numbers); c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
+- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `Repairs.cs` (`Repair`); `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`, `WallStats.cs` (a wall card's leak and meteor numbers); c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
 - Rooms — sim/Rooms: `Rooms.cs` RoomsModule (rooms from walls and doors). Drawn: r/`ShipTiles.cs`, `BlueprintArt.cs`, `DoorShape.cs`
 
 **Air** — Atmosphere — sim/Atmosphere · f/atmosphere: `Atmosphere.cs` AtmosphereModule, `LoadCanister`; `Air.cs`; `Order.cs`; `AirView.cs`, `TankLooks.cs`, `VentLight.cs`; c/`Air.cs`
 
 **Power** — Power — sim/Power · f/power: `Power.cs` PowerModule; `PowerNodes.cs`; `PowerView.cs`, `PowerHands.cs`, `Wiring.cs`, `StoreGauge.cs`; c/`Power.cs`, `Charge.cs`
 
-**Pipes** — Pipes — sim/Pipes · f/pipes: `Pipes.cs` PipesModule, `Valve`, `SetValve`; `PipeNetworks.cs`; `PipesView.cs`, `PipeHands.cs`; c/`Piping.cs`
+**Pipes** — Pipes — sim/Pipes · f/pipes: `Pipes.cs` PipesModule, `Valve`, `SetValve`; `PipeNetworks.cs`; `PipesView.cs`, `PipeHands.cs`; c/`Piping.cs`, `Fluids.cs`
 
 **Items and crafting**
 - Items — sim/Items · f/items: `Items.cs` ItemsModule; `Stacks.cs`; `Floor.cs`; `Modules.cs` (machine modules, `Fit`); `ToolStats.cs`; `InventoryPanel.cs`, `Hotbar.cs`, `Click.cs`, `Equipment.cs`; c/`Items.cs`
@@ -38,7 +38,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Debris and wrecks**
 - Debris — sim/Debris · f/debris: `Debris.cs` DebrisModule, `Hit`; `Drift.cs` (zones, spawns); `DebrisView.cs`, `BreakView.cs`, `Finds.cs`; c/`Debris.cs`, `Wreck.cs`, `Wreckage.cs`
-- Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `MeteorView.cs`; c/`Meteors.cs`
+- Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `Flares.cs` (magnetic flares, `FlareNow`); `MeteorView.cs`; c/`Meteors.cs`, c/`MagneticFlares.cs`
 - Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats), `Launch` (its descent and return, `Flights`, `Owners`); `Content.Landing`; client game/features/landing: `PodSeats.cs`, `LaunchKey.cs` (Descend / Return), `FlightOverlay.cs` (the white-out); the seated hero: f/crew `SeatedHeroes.cs`
 - Places — sim/Places: `Places.cs` PlacesModule, `Find` (a contact), `Jump` (a vessel written beside the ship, the last wiped); the vessel itself sim/Core `Vessels/`: `Shipyard.cs` (describe, stamp, damage), `Vessel.cs`; c/`Vessels.cs` (classes, interiors, loot); f/places (its text only); dev `--vessel` (`VesselScenario.cs`)
 

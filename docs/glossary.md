@@ -36,6 +36,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - проводка / wiring (plan mode, X) → `PlanMode.Wiring`, f/power `PowerHands` → Power
 - труба / pipe → spans: `LayPipe`, `CutPipe`, `PipeNetworks`, `tool.pipe` → Pipes
 - клапан / valve → `Valve`, `MakeValve`, `SetValve`, `tool.valve` → Pipes
+- порт, вход, выход / port, input, output → `Port`, `Way.In`, `Way.Out` (`c/Fluids.cs`), `PortAt` (2026-10-29-typed-ports) → Pipes, Grid
+- среда / fluid **≠** (what a pipe carries) → `Fluids` (`air`, `water`); a line's: `FluidAt` → Pipes
+- цистерна / cistern → machine `cistern`: water in on its left, out on its right (2026-10-29-typed-ports) → Pipes
 - трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
 - генератор / generator **≠** → `"generator"` is the oxygen generator (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
@@ -88,6 +91,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 - обломок / debris piece **≠** → `Piece`, `Hit`, `Reel` (sim/Debris); a wreck is debris of kind wreckage → Debris
 - метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
+- вспышка, магнитная буря / magnetic flare → `MagneticFlares.Flare`, `FlareNow`, `FlareComing` (sim/Hazards `Flares.cs`) → Hazards
+- сломан, поломка / broken → `IPowerQueries.IsBroken`, `IPowerOps.Break` → Power
+- ремонт, починить / repair → `Repair`, `RepairCost`, `RepairRules` (sim/Building `Repairs.cs`) → Building
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core

@@ -89,7 +89,7 @@ internal static class PipeNetworks
         foreach (int cell in layout.CellsOf('-', under: true)) pipe[cell] = true;
         var ports = new HashSet<int>();
         foreach (var (kind, cell) in layout.Machines())
-            foreach (var (px, py) in Content.Machines.Get(kind).Ports)
+            foreach (var (px, py, _, _) in Content.Machines.Get(kind).Ports)
                 ports.Add(cell + py * width + px);
         bool Pipe(int x, int y) => x >= 0 && y >= 0 && x < width && y < height && pipe[y * width + x];
         bool Node(int cell)

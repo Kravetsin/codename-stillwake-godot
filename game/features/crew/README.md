@@ -103,11 +103,10 @@ commands reach the sim; others' heroes come through the host.
 ## The hands
 
 - **What the hand holds shows** (`HeldLook`); on a plan the screwdriver twists.
-- **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
-  wiring, lays cables; a tool on the right does nothing.
-- **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck
-  under the pointer, else the nearest small piece in space. Outlined green or red; `UsePrompt` says why. A plan
-  in hand (0022): E does nothing.
+- **Left is the front, right the back** (0107, 0108): the screwdriver works plans, or repairs what is broken, on the
+  left button; the plan, wiring, lays cables; a tool on the right, nothing.
+- **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck under the
+  pointer, else the nearest small piece afloat. Outlined green or red; `UsePrompt` says why. Plan in hand: E idle.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
   strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.

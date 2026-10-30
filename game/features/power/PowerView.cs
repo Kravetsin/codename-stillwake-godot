@@ -48,6 +48,18 @@ public partial class PowerView : Node2D
     private readonly Sketch _lines = new(Layers.Cables, lit: true), _grommets = new(Layers.Fittings, lit: true);
     private readonly Node2D _ends = new() { ZIndex = Layers.Fittings }, _bolts = new() { ZIndex = Layers.Bolts }, _unplugged = new() { ZIndex = Layers.OverlayMarks };
     private readonly Sketch _overlay = new(Layers.Overlay), _ghost = new(Layers.OverlayHands);
+    /// <summary>
+    /// A magnetic flare coming: the cables glowing over themselves, unlit, seen in the dark (magnetic-flare). A machine it broke:
+    /// dimmed over its footprint, under its bolt, now and then throwing sparks.
+    /// </summary>
+    private readonly Sketch _charged = new(Layers.Cables), _dimmed = new(Layers.Fittings);
+    private static readonly Color Charged = new(0.55f, 0.95f, 1f), Dimmed = new(0.02f, 0.03f, 0.05f, 0.55f);
+    private static readonly Luminous Sparks = Luminous.HitSpark with { Ramp = [(240, 250, 255), (170, 215, 255), (90, 140, 255)], Gravity = 240, Bounce = 0.3 };
+    /// <summary>How often a broken machine throws sparks, in ms on average.</summary>
+    private const double SparksEveryMs = 1400;
+    private double _glow;
+    /// <summary>Each broken machine's footprint, in cells: x, y, width, height.</summary>
+    private readonly List<(int X, int Y, int W, int H)> _broken = [];
     /// <summary>Each powered machine's socket outlined while a cable is carried: where it would plug in.</summary>
     private readonly Outline _sockets = new(Layers.OverlayHands);
     private IReadOnlyList<CableLine> _drawn = [];
@@ -63,10 +75,23 @@ public partial class PowerView : Node2D
         _ui = ui;
         Lit.Set(_lines);
         Lit.Set(_grommets);
-        foreach (var node in (Node2D[])[_lines, _grommets, _ends, _bolts, _overlay, _unplugged, _ghost, _sockets]) AddChild(node);
+        foreach (var node in (Node2D[])[_lines, _charged, _grommets, _ends, _dimmed, _bolts, _overlay, _unplugged, _ghost, _sockets]) AddChild(node);
         _lines.Paint = g =>
         {
             foreach (var line in _drawn) g.Rope(line.Points, CableColour, CableWidth);
+        };
+        _charged.Paint = g =>
+        {
+            if (_glow <= 0) return;
+            foreach (var line in _drawn)
+            {
+                g.Rope(line.Points, Charged with { A = (float)(0.3 * _glow) }, CableWidth * 3);
+                g.Rope(line.Points, Charged with { A = (float)_glow }, CableWidth);
+            }
+        };
+        _dimmed.Paint = g =>
+        {
+            foreach (var (x, y, w, h) in _broken) g.DrawRect(new Rect2(x * Cell, y * Cell, w * Cell, h * Cell), Dimmed);
         };
         _grommets.Paint = g =>
         {
@@ -106,8 +131,14 @@ public partial class PowerView : Node2D
             if (Changed(_boltsShown, BoltsOf(m))) PlaceBolts(m);
             if (Changed(_endsShown, EndsOf())) PlaceEnds(m);
             if (Changed(_unpluggedShown, UnpluggedOf(m))) PlaceUnplugged(m);
+            FindBroken(m);
         }
         _timeMs += elapsedMs;
+        var hazards = m.Hazards;
+        double was = _glow;
+        _glow = Hazards.FlareLook.CableGlow(Hazards.FlareLook.Near(hazards.FlareLeft, 0, hazards.FlareRules.Warning), _timeMs);
+        if (_glow > 0 || was > 0) _charged.QueueRedraw();
+        SparkBroken(elapsedMs);
         _overlay.Visible = _unplugged.Visible = _ghost.Visible = On;
         // Out of the power overlay, nothing is held; in it, a cable's end may be carried by hand.
         if (!On)
@@ -191,7 +222,7 @@ public partial class PowerView : Node2D
         _ui.WorldTip.SetLines(_storeSaid);
     }
 
-    private readonly List<int> _key = [], _boltsShown = [], _endsShown = [], _unpluggedShown = [];
+    private readonly List<int> _key = [], _boltsShown = [], _endsShown = [], _unpluggedShown = [], _brokenShown = [];
 
     /// <summary>Whether <paramref name="now"/> differs from <paramref name="shown"/>, which then takes it.</summary>
     private static bool Changed(List<int> shown, List<int> now)
@@ -214,6 +245,39 @@ public partial class PowerView : Node2D
                 _key.Add(s == 0 ? 0 : 1);
             }
         return _key;
+    }
+
+    /// <summary>The machines a flare broke, their footprints, redrawn dimmed only when they change.</summary>
+    private void FindBroken(Registry m)
+    {
+        _key.Clear();
+        foreach (int id in m.Power.Broken) _key.Add(id);
+        if (!Changed(_brokenShown, _key)) return;
+        _broken.Clear();
+        foreach (int id in m.Power.Broken)
+            if (m.Grid.MachineById(id) is { } machine)
+            {
+                var spec = Machines.Get(machine.Kind);
+                _broken.Add((machine.Cell % m.Grid.Width, machine.Cell / m.Grid.Width, spec.Width, spec.Height));
+            }
+        _dimmed.QueueRedraw();
+    }
+
+    /// <summary>Now and then, out of a broken machine, a few blue-white sparks falling.</summary>
+    private void SparkBroken(double elapsedMs)
+    {
+        if (_broken.Count == 0) return;
+        var glims = Stages.Of(Layers.Effects).Glims;
+        foreach (var (x, y, w, h) in _broken)
+        {
+            if (glims.Between(0, SparksEveryMs) >= elapsedMs) continue;
+            double sx = (x + glims.Between(0, w)) * Cell, sy = (y + glims.Between(0, h * 0.6)) * Cell;
+            for (int i = 0; i < 4; i++)
+            {
+                double a = glims.Between(0, Math.Tau), s = glims.Between(30, 90);
+                glims.Add(Sparks, sx, sy, Math.Cos(a) * s, Math.Sin(a) * s - 40, size: glims.Between(0.6, 1.1));
+            }
+        }
     }
 
     /// <summary>What the pegs and plugs show: the nodes cables end at.</summary>

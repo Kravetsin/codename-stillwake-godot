@@ -13,7 +13,8 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   click so two quick clicks switch it back), instant building right of it (`building`'s `SetInstant`, read the same way:
   a blueprint placed is built at once, free), both amber while on, and a meteor on a random wall of the outer hull
   beside a room (`hazards`' `MeteorHit`), with the wall cell behind it away from the room, so a hull two cells thick (0104)
-  is breached through; or a line saying none is left. Surfaces (0076): `open planet` opens a planet grown from its seed
+  is breached through; or a line saying none is left; a magnetic flare (`hazards`' `FlareNow`, its whole warning first, so
+  the aurora comes before the strike). Surfaces (0076): `open planet` opens a planet grown from its seed
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
   opened last (`world.transfer`), or say none is open. Vessels (generated-vessels): a button a class (`Vessels.Classes`)
   jumps to one beside the ship, `places`' `Jump` to a contact of it the radar holds, else `Find` first and the jump sent
