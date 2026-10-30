@@ -100,6 +100,10 @@ public partial class HeroView : Node2D
     private int _surface;
     private Tether? _tether;
     private readonly List<(double X, double Y)> _tetherPoints = [];
+    /// <summary>Where the dev panel moves the hero at its next frame (<see cref="Teleport"/>, <see cref="TeleportBack"/>); none for none.</summary>
+    private Func<Ship, Hero>? _moveTo;
+    /// <summary>Where the hero was, and on which surface, before the dev panel last moved it: what <see cref="TeleportBack"/> returns it to.</summary>
+    private (Hero Hero, int Surface)? _before;
     /// <summary>
     /// What the outline was traced for: the aim's cell, its plan, whether the sim would refuse it, and the
     /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
@@ -291,6 +295,27 @@ public partial class HeroView : Node2D
     /// <summary>Where a dev run places the hero first (<c>--edge</c>), not the crew's spawn; it wakes at the spawn as ever.</summary>
     public Func<Registry, int>? Start { get; set; }
 
+    /// <summary>
+    /// The dev panel's teleport: the hero stands with its feet in <paramref name="cell"/> from its next frame, reported to the sim
+    /// at once, where it was kept for <see cref="TeleportBack"/>. False before it stands anywhere.
+    /// </summary>
+    public bool Teleport(int cell)
+    {
+        if (!_placed) return false;
+        _before = (_current, _surface);
+        _moveTo = ship => Hero.At(ship, cell);
+        return true;
+    }
+
+    /// <summary>The hero back where it stood before the last <see cref="Teleport"/>; false when there is none, or it was on another surface.</summary>
+    public bool TeleportBack()
+    {
+        if (_before is not var (hero, surface) || surface != _surface) return false;
+        _before = null;
+        _moveTo = _ => hero;
+        return true;
+    }
+
     /// <summary>Where the prompt for E lies on the screen while it shows: what the markers keep out of.</summary>
     public Rect2? PromptCovers => _prompt.Covers;
 
@@ -384,6 +409,15 @@ public partial class HeroView : Node2D
             _previous = _current = Hero.At(ship, known.Cell);
             _snap = true;
         }
+        // Moved by the dev panel: as a seam of the fog moves it, the harpoon let go, the camera snapped, reported this frame.
+        if (_moveTo != null && !passedOut && seat == null)
+        {
+            _previous = _current = _moveTo(ship);
+            _harpoon = new HarpoonShot();
+            _snap = true;
+            _reportedAt = int.MinValue / 2;
+        }
+        _moveTo = null;
         _wasOut = passedOut;
         // The hero faces the pointer's side and looks at it, read where the camera was last frame.
         var pointed = Pointer();

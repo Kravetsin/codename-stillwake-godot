@@ -23,7 +23,7 @@ namespace Stillwake.Content;
 /// None for one never built, bedrock.
 /// </param>
 /// <param name="BuildTicks">
-/// Ticks of a hero's work to build one cell; 0 for one never built. Half the 16 px cell's it was, rounded to the nearest, a half up:
+/// Ticks of a hero's work to build one cell, what taking it apart is a share of; 0 for one never built but a vessel's hull. Half the 16 px cell's it was, rounded to the nearest, a half up:
 /// a wall of the same area takes twice as long as at 16 px, so building is not instant (0104 had a quarter).
 /// </param>
 /// <param name="Natural">
@@ -54,8 +54,8 @@ public sealed record Material(
     /// <summary>Whether weapons break a wall of it (0077): natural and not <see cref="Unbreakable"/>.</summary>
     public bool Breaks => Natural && Strength != Unbreakable;
 
-    /// <summary>Whether a wall of it may be planned and built: it takes work, and costs something.</summary>
-    public bool Built => BuildTicks > 0;
+    /// <summary>Whether a wall of it may be planned and built: it has a card in the build menu. A vessel's hull takes work to take apart, and is never built.</summary>
+    public bool Built => Menu != null;
 }
 
 /// <summary>What boots on a material sound like (0093): a deck's plates, rock, soil (grass or moss over it heard as such), the ruins' metal.</summary>
@@ -85,6 +85,8 @@ public static class Materials
         new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1, Clear: true),
         new("mica", Code: 12, Strength: 1, Leak: 6, Cost: [("mica", 2)], BuildTicks: 8, Menu: new(MenuTabs.Structure, 24), BackMenu: new(MenuTabs.Structure, 124), Armour: 1),
         new("hide", Code: 13, Strength: 1, Leak: 6, Cost: [("hide", 1), ("fat", 1)], BuildTicks: 6, Menu: new(MenuTabs.Structure, 26), BackMenu: new(MenuTabs.Structure, 126), Armour: 1),
+        // A generated vessel's plating (generated-vessels): as hard and slow to take apart as iron, a scrap chunk a cell, never built.
+        new(Vessels.Hull, Code: 14, Strength: 5, Leak: 24, Cost: [("scrapChunk", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Armour: 5),
         // A planet's ground (0077), far leakier than any hull, soil the worst. Soil breaks at a swing of the axe, stone at three; a
         // shovelful of soil and a lump of rock, the asteroids' own, come out of it, and build it back. Laid stone stands up to meteors
         // better than scrap, soil worse.

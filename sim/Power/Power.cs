@@ -305,6 +305,9 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public int ChargeRate(int machineId) =>
         Charges(machineId) ? DrawOf(_grid.MachineById(machineId)!) * Content.Charge.Scale * Satisfaction(machineId) / 1000 : 0;
 
+    /// <summary>Whether node <paramref name="node"/> is in a vessel's box (generated-vessels), where no one builds, cables too.</summary>
+    private bool InVessel(int node) => _grid.Reserved is { } box && box.Contains(node % _grid.Width, node / _grid.Width);
+
     public string? LayProblem(int peer, int a, int b)
     {
         // Cables are laid aboard only (0110): away from the ship the plan only builds.
@@ -312,6 +315,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         var p = NodeAt(a);
         var q = NodeAt(b);
         if (p == null || q == null) return "power.noNode";
+        if (InVessel(p.Value) || InVessel(q.Value)) return "grid.reserved";
         if (p == q) return "power.sameNode";
         if (!InSpan(_grid, p.Value, q.Value)) return "power.tooLong";
         var ends = Ordered(p.Value, q.Value);
@@ -331,6 +335,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         if (taken.Count == 0) return "power.noCable";
         var target = NodeAt(to);
         if (target == null) return "power.noNode";
+        if (InVessel(target.Value)) return "grid.reserved";
         // Cables are unique by their ends, so value equality picks out exactly the ones taken.
         var pairs = State.Cables.Where(c => !taken.Contains(c)).Select(c => (c.A, c.B)).ToList();
         foreach (var c in taken)

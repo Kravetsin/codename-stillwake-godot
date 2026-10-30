@@ -13,7 +13,7 @@
 | `State.cs` | The saved slice and its records: `Plan`, `Crack`, `BuildingState`. |
 
 Plans and the work that turns them into the ship: a blueprint puts something in a cell, a mark takes something apart.
-Also digging natural ground and what grows on and in it (0077, 0079, 0080), and the ruins' pieces (0085, 0091, 0096).
+Also digging the ground, its growths and the ruins' pieces (0077, 0079, 0080, 0085, 0091, 0096).
 
 - **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
   does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110); `Research` (`Knows`, 0024);
@@ -49,13 +49,14 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while a hero's reported cell, or the one above or under, is the plan's. Building runs before crew.
   So does a last tick the grid refuses (a pod set down since).
-- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
-  (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (any material but bedrock and
-  lava; a built piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them.
-  `Struck` says what. Each takes `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths,
-  a piece whole for its cost. `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. `Hit`,
-  a shot's, strikes one cell `ShotTakes` allows, true if it broke, its yield the shooter's here, else anyone's. No
-  tool hits back walls: old cracks heal.
+- **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), where `ToolsBreak` and aboard in a vessel's box
+  (generated-vessels; else `building.notHere`): the weapon's fan (`Rays`) from the hand; a ray stops at a wall or what
+  stops a body, striking it if it breaks (not bedrock or lava; a piece by its first cell, at its
+  `Build.Strength`), and passes ladders, open doors and plants, striking them. `Struck` says what. Each takes
+  `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths, a piece whole for its cost.
+  `building.nothingToDig` for nothing struck, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell
+  `ShotTakes` allows, true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls.
+- **`Wipe(box)`** takes a vessel's box apart to nothing, plans and cracks too (generated-vessels).
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or
   plant is gone is dropped in derivation.
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
@@ -74,7 +75,6 @@ Also digging natural ground and what grows on and in it (0077, 0079, 0080), and 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
 (`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`),
 `Hew(Tool, X, Y, Heading)`, `SetInstant(On)`. Previews ask `Problem`, `WorkProblem`, `HewProblem`, `Struck`.
-Fuzz aims `Work` and hits so plans complete.
 
 ## Invariants
 
@@ -88,11 +88,10 @@ Fuzz aims `Work` and hits so plans complete.
 
 ## Deliberately not handled
 
-- Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
+- A drawn map's growths are not brought back by a load: only grown ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
 - Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's word.
 - Stale plans: only building fills the grid, so completing one over something throws.
-- A blueprint finished on its hero's cell puts the hero inside it. A tool of no damage throws.
-- Taking apart needs no knowledge of a thing (0024).
+- A blueprint finished on its hero's cell puts the hero inside it.
 - A part-built blueprint is nothing in the grid till its last tick (0063).
-- Creative mode turned off past what was paid: each later tick pays an item.
+- Creative mode off past what was paid: each later tick pays an item.

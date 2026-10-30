@@ -72,6 +72,9 @@ public sealed class ShipTiles
                 pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Drawn, Drawn, side, side)), Relief.None));
             }
         }
+        // A vessel's hull (generated-vessels): iron's wall and edges darkened, till it is drawn; its back wall iron's panels.
+        Made(WallName(Vessels.Hull), Darkened(Art(WallName("iron"))));
+        for (int open = 1; open < 16; open++) Made(EdgeName(Vessels.Hull, open), Darkened(Art(EdgeName("iron", open))));
         foreach (var material in Materials.All.Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
@@ -352,6 +355,19 @@ public sealed class ShipTiles
 
     /// <summary>A normal facing straight out of the screen.</summary>
     private static readonly Color Flat = new(0.5f, 0.5f, 1f);
+
+    /// <summary><paramref name="image"/> darker and a little colder: a picture another stands in for till it is drawn.</summary>
+    private static Image Darkened(Image image)
+    {
+        var dark = (Image)image.Duplicate();
+        for (int y = 0; y < dark.GetHeight(); y++)
+            for (int x = 0; x < dark.GetWidth(); x++)
+            {
+                var c = dark.GetPixel(x, y);
+                dark.SetPixel(x, y, new Color(c.R * 0.6f, c.G * 0.62f, c.B * 0.7f, c.A));
+            }
+        return dark;
+    }
 
     private static Image Filled(Vector2I size, Color colour)
     {

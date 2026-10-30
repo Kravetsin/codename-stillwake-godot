@@ -51,7 +51,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   command would be refused, for the piping's ghost; `AfterToggles(commands)` — whether each valve the `SetValve`s among
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
-- **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
+- **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `grid.reserved` (an end in a vessel's box), `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
   then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
   Valve)` — making one, `pipes.notAboard`, `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 

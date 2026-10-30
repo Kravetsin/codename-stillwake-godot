@@ -10,8 +10,8 @@ namespace Stillwake.Sim.Building;
 /// drill's pace. Each ray strikes the first wall it meets, a closed door or hatch, a floor, and stops there; it passes through
 /// the plants, ladders and open doors it crosses, striking them. What stands takes the weapon's block damage
 /// (<c>BlockDamage</c>) once, however many rays meet it: a wall at its material's strength, a built piece at its build's, and
-/// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>): on the ship the plan
-/// alone takes things apart.
+/// gives the sender what it is made of. Only where the surface's tools break things (<c>ToolsBreak</c>), and aboard inside a
+/// vessel's box (generated-vessels): elsewhere on the ship the plan alone takes things apart.
 /// </summary>
 public sealed record Hew(string Tool, int X, int Y, int Heading) : Command;
 
@@ -37,7 +37,7 @@ public sealed partial class BuildingModule
         var weapon = Weapons.Of(tool) ?? throw new InvalidOperationException($"building.hew: {tool} deals no damage");
         var cells = new List<int>();
         var plants = new List<Plant>();
-        if (Rules.ToolsBreak) Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell => Stops(cell, cells, plants));
+        if (Rules.ToolsBreak || _grid.Reserved != null) Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell => Stops(cell, cells, plants));
         cells.Sort();
         for (int i = cells.Count - 1; i > 0; i--)
             if (cells[i] == cells[i - 1]) cells.RemoveAt(i);
@@ -52,6 +52,8 @@ public sealed partial class BuildingModule
     /// </summary>
     private bool Stops(int cell, List<int> cells, List<Plant> plants)
     {
+        // Aboard, tools break only a vessel's things (generated-vessels): a ray leaving its box stops there, the ship untouched.
+        if (!Rules.ToolsBreak && !InVessel(cell)) return true;
         if (_grid.WallAt(cell) is { } wall)
         {
             if (wall.Strength != Material.Unbreakable) cells.Add(cell);
@@ -66,6 +68,9 @@ public sealed partial class BuildingModule
         if (_grid.StructureAt(cell) == Structure.Empty && PlantAt(cell) is { } plant && !plants.Contains(plant)) plants.Add(plant);
         return false;
     }
+
+    /// <summary>Whether <paramref name="cell"/> is in the box a vessel was written into (generated-vessels).</summary>
+    private bool InVessel(int cell) => _grid.Reserved is { } box && box.Contains(cell % _grid.Width, cell / _grid.Width);
 
     /// <summary>The built piece at <paramref name="cell"/>, a floor, ladder, door or hatch: its first cell, kept by, and its build; none for a wall or nothing.</summary>
     private (int Head, Build Build)? PieceAt(int cell)
@@ -88,7 +93,8 @@ public sealed partial class BuildingModule
     /// (<see cref="IItemsQueries.WeaponProblem"/>): flat, or, as the command applies, not running.
     /// </summary>
     private string? HewProblemOf(int peer, Hewn hewn, string tool, bool running) =>
-        !Rules.ToolsBreak ? "building.notHere" : hewn.IsEmpty ? "building.nothingToDig" : _items.WeaponProblem(peer, tool, running);
+        !Rules.ToolsBreak && hewn.IsEmpty ? "building.notHere"
+        : hewn.IsEmpty ? "building.nothingToDig" : _items.WeaponProblem(peer, tool, running);
 
     /// <summary>
     /// The weapon's block damage added once to each wall, piece and plant the fan strikes, walls and pieces first: one at its

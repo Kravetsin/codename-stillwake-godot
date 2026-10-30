@@ -57,8 +57,8 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
   `LeaveBody(peer, cell)` at the reported cell, or the spawn if off the grid; `Items` leaves all but gear there.
   The client moves its hero there when it wakes.
 - **The cold past the field** (0050): the field is the
-  build zone grown by `Field.Margin`. `EdgeCost(cell)` is 0 inside, past it the square of the depth by the deeper
-  axis toward `Field.EdgeCost` at the grid's edge and off it (rounded up; its summary has the formula). Each breath, after breath
+  build zone grown by `Field.Margin`. `EdgeCost(cell)` is 0 inside and in a vessel's box, past it the square of the depth by the deeper
+  axis toward `Field.EdgeCost` at the grid's edge and off it (rounded up). Each breath, after breath
   and refill, the suit alone pays it for the reported cell, never below nothing. No zone (a planet, 0076): no cold.
   With no body, where `AiredAt` is false, it pays `Crew.BareCold` more, on thin air on the shortfall's beat; `Cold(peer)` says it.
 - **Lava burns** (0087): `Burns(cell)`: lava
@@ -85,7 +85,7 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 ## Invariants
 
 - Air holds between nothing and capacity, through swaps, thrust, canisters and cold (`SuitsTests`, `FieldTests`).
-- `EdgeCost` is 0 inside the field, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
+- `EdgeCost` is 0 inside the field and a vessel's box, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
 - Heroes are in id order, one per peer.
 - While heroes are no more than colours, no two wear one, on any surfaces.
 - A seat's hero is on its surface (`World.SurfaceOf`) and no other (`SurfacesTests`).

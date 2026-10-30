@@ -15,7 +15,14 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
   beside a room (`hazards`' `MeteorHit`), with the wall cell behind it away from the room, so a hull two cells thick (0104)
   is breached through; or a line saying none is left. Surfaces (0076): `open planet` opens a planet grown from its seed
   (0077), `open strip` the test strip (`world.open`), `to ship` and `down` beam this hero aboard or down to the surface
-  opened last (`world.transfer`), or say none is open.
+  opened last (`world.transfer`), or say none is open. Vessels (generated-vessels): a button a class (`Vessels.Classes`)
+  jumps to one beside the ship, `places`' `Jump` to a contact of it the radar holds, else `Find` first and the jump sent
+  once the contact comes (three seconds at most: a full radar brings none), wrecked or, with `intact` amber, as built;
+  aboard only. `to vessel` moves this hero into the vessel beside the ship
+  feet on the deck past its door (`VesselDoor`), or over it when a breach took the door, and
+  `back` returns it where it stood, on the same surface; `remove` takes the vessel away (`places`' `Dismiss`), its box
+  free to build in again; each says so when it cannot. The client moves its own hero
+  (0002): it is reported at once.
 - **Items** (creative mode): a picker, shut at the start, with a row for every item in `Content.Items.All` by group then
   name (`ItemPicker`), so a new item appears on it unasked. The search keeps the rows whose name or id holds what is
   typed, case ignored; `1`, `10` or `stack` is how many a pick gives. A row clicked, or Enter for the first shown, sends
@@ -38,6 +45,7 @@ the top-right corner, hidden at the start, shown and hidden again with the backq
 | `DevPanel.cs` | the panel, its readouts, buttons, item picker and sound board | yes   |
 | `logic/CueNames.cs` | what the sound board calls a cue               | no    |
 | `logic/ItemPicker.cs` | what the item picker lists for a search  | no    |
+| `logic/VesselDoor.cs` | where `to vessel` puts the hero          | no    |
 
 ## Accepted limitations
 

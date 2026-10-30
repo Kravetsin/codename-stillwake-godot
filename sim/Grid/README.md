@@ -16,8 +16,8 @@ The ship as cells in ship-local coordinates, layer by layer; rooms, pipes and ai
   the zone (`Layout.Zone`, 0048) is where anything may be built, the whole grid for a map that sets none.
 - **Cells:** row by row from the top-left, `cell = y * width + x`. A cell is 8 px (0104); every cell is whole, no slopes (0106).
 - **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Material`, `Back`, `BackMaterial`),
-  `Zone`, `Machines` (id order), `NextMachineId`. Saved as runs (`Runs`), so empty space costs nothing. Derived, rebuilt after
-  a load: `Occupancy` (machine id per cell), `ById`, `ByKind`, `Version`, `Built` (the tight box of everything), `Log`.
+  `Zone`, `Machines` (id order), `NextMachineId`, `Reserved` (a vessel's box or none). Saved as runs (`Runs`). Derived, rebuilt
+  after a load: `Occupancy` (machine id per cell), `ById`, `ByKind`, `Version`, `Built` (the tight box of everything), `Log`.
 
 ## Layers
 
@@ -36,7 +36,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 
 ## API
 
-- **Queries** (`IGridQueries`): `Width`, `Height`, `Zone`, `Built`; `Version`, bumped on every change, 0 after a load;
+- **Queries** (`IGridQueries`): `Width`, `Height`, `Zone`, `Built`, `Reserved`; `Version`, bumped on every change, 0 after a load;
   `ChangedSince(version)` — the cells and `GridLayers` that differ since then, ascending, or null when the log no longer
   reaches back (the reader then looks at everything, 0051); the layers live and read-only (`StructureLayer`, `MaterialLayer`,
   `BackLayer`, `BackMaterialLayer`); `StructureAt`, `WallAt` / `BackAt` (the `Material`, null for none), `GrownBack` (0084).
@@ -52,12 +52,13 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   client's own toggles in flight (0014); not a copy of the layer.
 - **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
   `Clear(cell, layer)` (a whole machine), `SetDoorway(cell, open)` (a whole doorway as `SetDoor` sets it: Landing's
-  platforms). Only in commands or construction.
+  platforms). Only in commands or construction. Places' alone (generated-vessels): `Reserve(box)`, a vessel's box, and
+  `Lay(cell, placement)`, `Place` only inside it, the zone not asked.
 - **Command:** `SetDoor(cell, open)` — sets the whole doorway the cell is in to the state its sender saw it should take
   (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
   `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
-- **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
-  `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.noPlatform` (a machine that `Lands` with the row
+- **Refusals:** `grid.outOfBounds`, `grid.reserved` (in a vessel's box), `grid.outsideZone`, `grid.occupied`,
+  `grid.machineInTheWay`, `grid.blocked`, `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.noPlatform` (a machine that `Lands` with the row
   under it not all launch platform), `grid.noGround` (off the ship, where only Landing places a pod, the row under it not all
   solid), `grid.underPlatform` (a structure or machine in a launch platform's shaft: under it, to the grid's edge),
   `grid.shaftBlocked` (a platform over a shaft not empty). `Taken(cell)`, `ClearBelow(cell)`: the shaft's test; `OnRun`.
@@ -83,7 +84,8 @@ through as its back wall, so digging it out leaves no second lump of ore.
 - Machines never overlap and stand only on cells without structure; `Occupancy`, `ById` and `ByKind` match `Machines`.
 - Machine ids only grow and are never reused.
 - Every write goes through `Set`, which logs it and bumps `Version`; `ChangedSince(v)` names exactly what differs since `v`.
-- Nothing is placed outside `Zone`; `Built` is the tight box of everything after any change and any load.
+- Nothing is placed outside `Zone`, nor in `Reserved`, but by `Lay`; `Built` is the tight box of everything after any change
+  and any load.
 - Stored codes are the save format: never renumber them.
 - A doorway is a door or a hatch (0111), its shape derived (`Doorways`): a door cell joins the door cells above and below
   (`Join.Column`) and the cell beside it within its segment; a hatch cell (`Join.Row`) only the cell beside it within its

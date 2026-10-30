@@ -248,7 +248,7 @@ public partial class Main : Node2D, ITogether
         else if (hostAs != null) Host(hostAs.Length > 0 ? hostAs : null);
         else if (join != null) Join(join.Length > 0 ? join : "127.0.0.1", BadNetwork.From(_dev.All), Relay());
         else Alone();
-        var dev = new DevPanel(() => _session, () => _m, () => _net);
+        var dev = new DevPanel(() => _session, () => _m, () => _net, cell => _hero?.Teleport(cell) == true, () => _hero?.TeleportBack() == true);
         AddChild(dev);
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);

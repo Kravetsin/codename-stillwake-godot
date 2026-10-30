@@ -40,6 +40,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Debris — sim/Debris · f/debris: `Debris.cs` DebrisModule, `Hit`; `Drift.cs` (zones, spawns); `DebrisView.cs`, `BreakView.cs`, `Finds.cs`; c/`Debris.cs`, `Wreck.cs`, `Wreckage.cs`
 - Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `MeteorView.cs`; c/`Meteors.cs`
 - Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats), `Launch` (its descent and return, `Flights`, `Owners`); `Content.Landing`; client game/features/landing: `PodSeats.cs`, `LaunchKey.cs` (Descend / Return), `FlightOverlay.cs` (the white-out); the seated hero: f/crew `SeatedHeroes.cs`
+- Places — sim/Places: `Places.cs` PlacesModule, `Find` (a contact), `Jump` (a vessel written beside the ship, the last wiped); the vessel itself sim/Core `Vessels/`: `Shipyard.cs` (describe, stamp, damage), `Vessel.cs`; c/`Vessels.cs` (classes, interiors, loot); f/places (its text only); dev `--vessel` (`VesselScenario.cs`)
 
 **Light** — f/light: `LightView.cs`, `Lightmap.cs`, `Sources.cs`, `StarField.cs`; f/effects: `EffectsView.cs`, `Impacts.cs`; r/`Lit.cs`, `Luminous.cs`, `Flares.cs`; gc/`Light.cs`, `Fx.cs`
 

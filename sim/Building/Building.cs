@@ -55,6 +55,12 @@ public interface IBuildingOps
 {
     /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
     bool Hit(int peer, int cell, int damage);
+
+    /// <summary>
+    /// Takes apart everything in <paramref name="box"/> as a finished mark does, its machines unplugged and emptied, giving and
+    /// dropping nothing, and drops every plan and crack there: a vessel's box cleared before the next is written (generated-vessels).
+    /// </summary>
+    void Wipe(Box box);
 }
 
 /// <summary>
@@ -236,6 +242,29 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
             _itemsOps.GiveOrDrop(from, built.Cost, plan.Cell);
         }
         State.Plans.RemoveAll(p => p.Id == plan.Id);
+    }
+
+    public void Wipe(Box box)
+    {
+        int width = _grid.Width;
+        bool In(int cell) => box.Contains(cell % width, cell / width);
+        // Plans first, while the grid still says what their marks cover.
+        State.Plans.RemoveAll(p => Covers(p).Any(In));
+        State.Cracks.RemoveAll(k => In(k.Cell));
+        for (int y = box.Top; y <= box.Bottom; y++)
+            for (int cell = y * width + box.Left; cell <= y * width + box.Right; cell++)
+            {
+                if (_grid.MachineAt(cell) is { } machine)
+                {
+                    var held = _items.Crate(machine.Id);
+                    for (int slot = 0; slot < held.Count; slot++)
+                        if (held[slot] is { } stack) _itemsOps.TakeFrom(machine.Id, slot, stack.Count);
+                    _powerOps.Unplug(machine.Id);
+                    _gridOps.Clear(cell, "machine");
+                }
+                if (_grid.StructureAt(cell) != Content.Structure.Empty) _gridOps.Clear(cell, "structure");
+                if (_grid.BackAt(cell) != null) _gridOps.Clear(cell, "back");
+            }
     }
 
     /// <summary>Puts <paramref name="place"/> into the grid at <paramref name="cell"/>, a slot validation found free.</summary>

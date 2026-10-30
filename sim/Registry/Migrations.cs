@@ -20,7 +20,16 @@ public static class Migrations
     public const int Oldest = 38;
 
     /// <summary>Step <c>i</c> turns a save of format <c>Oldest + i</c> into one of the next format.</summary>
-    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [];
+    public static readonly IReadOnlyList<Func<JsonObject, JsonObject>> Steps = [PlacesJoin];
+
+    /// <summary>38 to 39: the places module (generated-vessels) joins every surface, with no contact found and no vessel out.</summary>
+    private static JsonObject PlacesJoin(JsonObject save)
+    {
+        save["slices"]!.AsObject()["places"] = new JsonObject();
+        if (save["surfaces"] is JsonArray surfaces)
+            foreach (var surface in surfaces) surface!["slices"]!.AsObject()["places"] = new JsonObject();
+        return save;
+    }
 
     /// <summary>The format a save says it has.</summary>
     public static int FormatOf(string save) => JsonNode.Parse(save)!["format"]!.GetValue<int>();
