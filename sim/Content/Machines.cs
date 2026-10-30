@@ -138,7 +138,8 @@ public static class Machines
     [
         new("tank", 4, 4, [(0, 2)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
         new("generator", 4, 4, [(0, 2)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
-        new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
+        // Built of the one photosensitive panel nothing makes: known from the start, so the wreck's own can be built again.
+        new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
         new("vent", 2, 2, [(0, 0)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
         new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and

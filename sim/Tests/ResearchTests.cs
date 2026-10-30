@@ -299,6 +299,33 @@ public class ResearchTests
     }
 
     [Fact]
+    public void BuildsTheSolarPanelTakenApartAgainWithNothingBoughtItsPhotosensitivePanelBack()
+    {
+        // Known from the start (2026-10-29-photo-panel): its photosensitive panel, which nothing makes, comes back taken apart.
+        var w = new Scenario(Layout.Parse(["PPP       ", "          "], null) with { Known = ResearchSpec.StartKnown }, doubled: true);
+        var panel = new Placement("machine", "solarPanel");
+        var cost = Content.Machines.Get("solarPanel").Cost;
+        Assert.True(w.M.Research.Knows(panel));
+        w.Do(new Deconstruct(At(0, 0), "machine")).Run();
+        int mark = w.M.Building.Plans.Single().Id;
+        for (int t = 0; t < 400 && w.M.Grid.MachineAt(At(0, 0)) != null; t++) w.Do(new Work(mark)).Run();
+        Assert.Null(w.M.Grid.MachineAt(At(0, 0)));
+        Assert.Equal(1, w.M.Items.Inventory(0).Sum(s => s?.Item == "photoPanel" ? s.Count : 0));
+        // Built again of what came back, the photosensitive panel among it; nothing is left for a second.
+        w.Do(new PlacePlan(At(0, 0), panel)).Run();
+        Assert.Empty(w.Refusals);
+        int plan = w.M.Building.Plans.Single().Id;
+        for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(plan)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal("solarPanel", w.M.Grid.MachineAt(At(0, 0))?.Kind);
+        Assert.All(w.M.Items.Inventory(0), s => Assert.Null(s));
+        w.Do(new PlacePlan(At(4, 0), panel)).Run();
+        for (int t = 0; t < Content.Machines.Get("solarPanel").BuildTicks; t++) w.Do(new Work(w.M.Building.Plans.Single().Id)).Run();
+        Assert.Contains("items.notEnough", w.Refusals.Select(r => r.Reason));
+        Assert.Null(w.M.Grid.MachineAt(At(4, 0)));
+    }
+
+    [Fact]
     public void ListsEveryBlueprintThenEveryCraftWithItsCost()
     {
         var (w, _) = SetUp();

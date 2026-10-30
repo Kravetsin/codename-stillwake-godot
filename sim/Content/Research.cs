@@ -28,11 +28,12 @@ public static class Research
 {
     /// <summary>
     /// What the wreck knows from its start: what earns, what a torn room is closed with, the fire axe wreckage is broken with, what
-    /// a castaway's pod makes. Both stations are of raw salvage, so taking one apart never leaves a world unable to trade.
+    /// a castaway's pod makes. Both stations are of raw salvage, so taking one apart never leaves a world unable to trade. The
+    /// solar panel too: the wreck's own, taken apart, gives back the photosensitive panel nothing makes, and builds again.
     /// </summary>
     public static readonly IReadOnlyList<string> StartKnown =
     [
-        "tradeStation", "techStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
+        "tradeStation", "techStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit", "solarPanel",
     ];
 
     /// <summary>How many times its worth a craft costs on top of its category's: a blueprint already costs what it is built of, a craft only a unit.</summary>
@@ -76,7 +77,7 @@ public static class Research
         new("electronics", 1,
             Block(["smelter"], "assembler"),
             Block(["assembler"], "circuit"),
-            Block(["circuit", "crusher"], "solarCell", "solarPanel"),
+            Block(["circuit", "crusher"], "solarCell"),
             Gate("automation", ["circuit", "crusher"], ("circuit", 10), ("glass", 20), ("frame", 10))),
         new("automation", 1,
             Block(["automation"], "soil", "wallSoil", "backWallSoil"),
