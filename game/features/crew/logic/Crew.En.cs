@@ -28,6 +28,7 @@ public static partial class En
         ["bodies.walkOver"] = "Walk into it to take it all",
         ["use.build"] = "[Screwdriver, hold LMB] Build",
         ["use.takeApart"] = "[Screwdriver, hold LMB] Take apart",
+        ["use.repair"] = "[Screwdriver, hold LMB] Repair",
         ["use.openCrate"] = "[E] Open crate",
         ["use.open.furnace"] = "[E] Open furnace",
         ["use.open.burnerGenerator"] = "[E] Open generator",

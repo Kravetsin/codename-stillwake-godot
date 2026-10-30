@@ -109,6 +109,9 @@ public static class ScreenLayers
     /// <summary>The frost past the field, over the world and under all that is read (<c>Features.Crew.Frost</c>, 0050).</summary>
     public const int Frost = 2;
 
+    /// <summary>A magnetic flare's white flash over the world, with the frost, under all that is read (<c>Features.Hazards.AuroraView</c>).</summary>
+    public const int FlareFlash = Frost;
+
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
     public const int Hud = 3;
 

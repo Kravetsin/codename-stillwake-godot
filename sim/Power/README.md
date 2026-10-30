@@ -15,7 +15,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   `Items` (`IItemsQueries`, `IItemsOps`: a cable's cost, what a charging station holds, modules' draw).
 - **State** (`PowerState`, saved): `Cables`, each as its two node cells, the lower first, and whether it was paid,
   ordered by its ends; `Resting`, machine ids told to rest, sorted; `Stores`, `StoreCharge(Machine, Energy)` in
-  power-ticks by machine id, only those holding something (0101). A battery's charge is the item's, saved by `Items`.
+  power-ticks by machine id, only those holding something (0101); `Broken`, machine ids a flare broke, sorted, written
+  only when some are (magnetic-flare). A battery's charge is the item's, saved by `Items`.
 - **Derived**, found from the cables every tick in derivation: `Networks` in id order (nodes, supply, demand,
   satisfaction; stores' `Stored`, `Capacity`, `Flow`, `Intake`; `Steady`, what its panels make); `Satisfaction` per
   cabled user; `Flows` into each cabled store, out below 0. The machines are those at cable ends (`MachineAt`), so a
@@ -51,6 +52,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   `Draws` × satisfaction / 1000 in thousandths (`Content.Charge.Scale`), rounded down, evenly into the slots short of
   full, the remainder one each to the first in slot order (`IItemsOps.Charge`), never past full. A drone bay shares it
   between docked drones (0062) and takes no module. Power owns this: it knows satisfaction and depends on items.
+- **Broken** (magnetic-flare): a machine `hazards` broke stays a node, makes, draws and stores nothing, its store keeping
+  what it holds; `Satisfaction` 0 and `Needed` false at once. `Unplug` mends it; derivation drops one gone otherwise.
 - **A map's cables** (`Layout.Cables`; the wreck's from `Content.Wreck.Cables`) count as paid; one ending on no node
   fails the load (`FormatException`) (no ADR).
 
@@ -60,12 +63,14 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   ends on with power enough: its network makes or stores some and covers its demand (a launch platform's lamp); `Satisfaction(machineId)`,
   0 off every network; `Draw(machineId)`, modules folded in (0086); `LayProblem(peer, a, b)` and
   `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
-  `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100).
+  `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100);
+  `Broken`, `IsBroken(machineId)`.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `crafting` rests an idle station (0057), both from simulation; `furnace` a cold burner from
   construction, so it shows this tick (0045). `Unplug(machineId)`, by `building` taking a machine apart: its cables move
   to a peg at its plug's cell (`Plug` pixels, eight to a cell); `Plug(machineId)`, by `building` building a powered
   machine: cables on a peg at its plug's cell move to it (0110). A cable that would end where it starts or join a pair
-  already joined stays.
+  already joined stays. `Break(machineId)`, by `hazards`, a powered machine only, else it throws; `Mend(machineId)`, by
+  `building` once repaired.
 
 ## Commands
 
@@ -80,6 +85,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - Satisfaction is within 0..1000; `floor(draw × satisfaction / 1000)` summed never exceeds supply plus stores' output.
 - Energy is kept: supply + given out = drawn + taken in + wasted, waste never below 0; a store stays within 0 and its
   capacity, moves at most its `In` or `Out`, and stops short only at one of those limits (`StoreTests`).
+- `Broken`: standing powered machines, each once, sorted.
 
 ## Deliberately not handled
 
@@ -88,5 +94,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   taken apart other than by `building` (a meteor, a dev clear) leaves its cables at its top-left, in the air.
 - A peg may stand farther than a span from a cable's other end, by the machine's size: only laying and moving check.
 - No priorities, switches or overload; a store holds nothing back and never leaks. A store taken apart loses its charge.
+- A broken drone bay still sends drones (logistics reads no power), the engine's draw is read by none; a broken
+  burner's lit fire burns on for nothing.
 - Networks are found from scratch every tick: tens of cables. A cache would also have to follow slots and rests,
   which do not move the grid's `Version`.

@@ -21,5 +21,7 @@ public static partial class En
         ["grid.noDoor"] = "There is no door here",
         ["hazards.noWall"] = "There is no wall here",
         ["hazards.neverBreaks"] = "This never breaks",
+        ["hazards.flareComing"] = "A flare is coming already",
+        ["hazards.badTicks"] = "A flare strikes a tick on at the soonest",
     };
 }

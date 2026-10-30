@@ -69,6 +69,22 @@ internal static class Costs
         return BuiltAt(grid, plan.Cell, plan.Clear!) is { } built ? ApartTicks(built.BuildTicks) : 1;
     }
 
+    /// <summary>
+    /// What repairing a broken <paramref name="kind"/> costs (2026-10-30-magnetic-flare): each item of its build cost but
+    /// <see cref="RepairRules.Never"/>, times <see cref="RepairRules.Share"/> thousandths, rounded up, so a one-item cost takes that item.
+    /// </summary>
+    public static Cost RepairOf(string kind) =>
+        Machines.Get(kind).Cost.Where(c => c.Item != RepairRules.Never).Select(c => (c.Item, Count: ShareUp(c.Count))).ToList();
+
+    /// <summary>Ticks of work repairing a broken <paramref name="kind"/> takes: its build ticks' share, rounded up.</summary>
+    public static int RepairTicks(string kind) => ShareUp(Machines.Get(kind).BuildTicks);
+
+    private static int ShareUp(int n) => (n * RepairRules.Share + 999) / 1000;
+
+    /// <summary><paramref name="cost"/> less <paramref name="less"/>, item by item, never below 0; items left at 0 dropped.</summary>
+    public static Cost Less(Cost cost, Cost less) =>
+        cost.Select(c => (c.Item, Count: c.Count - less.Where(l => l.Item == c.Item).Sum(l => l.Count))).Where(c => c.Count > 0).ToList();
+
     /// <summary>The parts a blueprint's work is split into, each paid with one item as it begins: as many as its cost has items.</summary>
     public static int PartsOf(Cost cost) => cost.Sum(c => c.Count);
 
