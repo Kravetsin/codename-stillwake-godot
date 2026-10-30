@@ -72,6 +72,7 @@ public partial class InventoryPanel : CanvasLayer
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
     private SortButton? _crateKey;
+    private Button? _send;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
@@ -145,6 +146,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>What a furnace or a burner generator is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
+
+    /// <summary>The trade module, for a trade station's capsule: what it would carry and whether it is away.</summary>
+    public Stillwake.Sim.Trade.TradeModule? Trade { get; set; }
 
     /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }

@@ -257,6 +257,9 @@ public static class Sound
     public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(6, 28), Tune: 1.5f);
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
+    /// <summary>A trade station's capsule thrown off: a door's thud, low.</summary>
+    public static readonly Cue CapsuleOff = DoorClose with { Tune = 0.6f };
+
     public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(8, 32));
     /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 12 cells, gone at 56.</summary>
     public static readonly Reach BreakReach = new(12, 56);

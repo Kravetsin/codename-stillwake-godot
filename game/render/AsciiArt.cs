@@ -62,6 +62,11 @@ public static class AsciiArt
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
 
+    /// <summary>A trade station's capsule, nose up.</summary>
+    public static ImageTexture Capsule() => Texture("capsule",
+        ["....KK....", "...KwwK...", "..KwwwwK..", "..KwbbwK..", "..KwbbwK..", "..KwwwwK..", "..KwwwwK..", "..KyyyyK..", ".KKwwwwKK.", ".KwKKKKwK.", ".KK....KK."],
+        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0xc5ccd8, ['b'] = 0x4da3d6, ['y'] = 0xf0b44c });
+
     /// <summary>The coin credits are written with.</summary>
     public static ImageTexture Credit() => Texture("credit",
     [

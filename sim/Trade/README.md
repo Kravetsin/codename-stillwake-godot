@@ -4,36 +4,41 @@
 
 | File | Purpose |
 | --- | --- |
-| `Trade.cs` | Selling goods for the ship's credits at trade stations. |
+| `Trade.cs` | Selling goods for the ship's credits by capsule from trade stations. |
 
-Selling goods for the ship's credits ([trade-and-tech](../../docs/decisions/2026-10-30-trade-and-tech.md)). The prices are
-`Content/Market.cs`.
+Selling goods for the ship's credits by capsule ([trade-capsule](../../docs/decisions/2026-10-30-trade-capsule.md)). The prices
+and the flight are `Content/Market.cs`.
 
-- **Depends on:** `Grid` (`IGridQueries.MachinesWith`), `Items` (`IItemsQueries.Crate`, `IItemsOps.TakeFrom`), `Knowledge`
-  (`IKnowledgeOps.Earn`).
-- **State** (`TradeState`): `Ticks`, ticks run on this surface, which the sales beat by. Saved.
+- **Depends on:** `Grid` (`IGridQueries.MachinesWith`, `MachineById`), `Items` (`IItemsQueries.Crate`, `IItemsOps.TakeFrom`),
+  `Knowledge` (`IKnowledgeOps.Earn`).
+- **State** (`TradeState`): `Flights`, the capsules away, what each carries and how long it has left. Saved, omitted when empty.
 
 ## Rules
 
-- A machine with `MachineTrait.Sells` is a trade station. Every `Market.SellEvery` ticks, in the simulation phase, after
-  logistics, each one in id order sells one unit from its first slot holding what has a price, for that price.
+- A machine with `MachineTrait.Sells` is a trade station. `SendCapsule` takes everything priced from its slots at once, however
+  much, for what it is worth at that moment, and `Market.CapsuleFlight` ticks on, launch tick counted, earns that sum.
+- One capsule a station. Slots fill as usual while it is away, for the next one.
+- `MachineTrait.AutoSends`: the station launches by itself in the simulation phase whenever `SendCapsule` would be taken, so
+  whatever drones brought goes on the tick after the last capsule came home.
 - A price never falls, however much is sold.
-- What has no price (gear, what is never carried) stays in its slot, unsold, and drones never bring it.
-- Its input slots remember what they held (`Items.Remembers`), so drones keep a slot seeded by hand stocked. A hand taking
-  it out forgets. A station holding and remembering nothing wants nothing.
-- The drone switch stops drones, not selling.
+- What has no price (gear, what is never carried) stays in its slot and counts for nothing, and drones never bring it.
+- Its input slots remember what they held (`Items.Remembers`), a launch included, so drones keep a slot seeded by hand stocked.
+  A hand taking it out forgets. A station holding and remembering nothing wants nothing.
+- The drone switch stops drones, not capsules.
 
 ## API
 
-- **Queries:** `SellingFrom(machine)`, the slot it sells from, for its look.
-- **Commands:** none, so no fuzz generator: a hero or a drone puts goods in (`Items.Move`).
+- **Queries:** `Worth(machine)`, what it holds is worth; `FlightOf(machine)`, its capsule away; `SendProblem(machine)`.
+- **Commands:** `SendCapsule(Machine)` (`trade.notStation`, `trade.capsuleAway`, `trade.nothingToSell`).
 
 ## Invariants
 
-- Credits only ever grow here, by the price of a unit taken out of a station.
+- Credits only ever grow here, by exactly what left a station's slots was worth, once its capsule is home.
 
 ## Deliberately not handled
 
+- A capsule lost or intercepted, and a limit on what one carries: limiting the player is no fun.
+- A station taken apart or broken while its capsule is away: the capsule still pays, there is nothing to refuse.
 - Falling prices when a market is flooded: the economy is one world's, and limiting the player is no fun.
 - Buying anything but blueprints. Coordinates, upgrades and cosmetics are the next users of credits.
 - No machines stand on a planet, so a planet's goods are carried up to sell.

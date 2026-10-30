@@ -27,7 +27,7 @@ public partial class InventoryPanel
             _slots.RemoveAll(s => s.Place.Crate != null && !_lent.Contains(s));
             _shown.RemoveChild(_frame);
             _frame.QueueFree();
-            (_frame, _progress, _problem, _charged, _station, _tooCold, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null);
+            (_frame, _progress, _problem, _charged, _station, _tooCold, _crateGrid, _crateKey, _send) = (null, null, null, null, null, null, null, null, null);
             (_stored, _storedText, _rate) = (null, null, null);
         }
         if (want is not var (crate, kind)) return;
@@ -210,12 +210,26 @@ public partial class InventoryPanel
         _frame?.Light(charging);
     }
 
-    /// <summary>A trade station's body: its slots; what the ship has earned stands under the bag.</summary>
+    /// <summary>A trade station's body: its slots and its capsule's key; what the ship has earned stands under the bag.</summary>
     private VBoxContainer TradeBody(int crate, Content.MachineSpec spec)
     {
         var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
+        body.AddChild(_send = Style.Button("", () => Send(new Stillwake.Sim.Trade.SendCapsule(crate))));
+        _send.Icon = AsciiArt.Credit();
         return body;
+    }
+
+    /// <summary>The capsule's key: what it would carry while home, what it carries and when it comes back while away, dark with nothing to send.</summary>
+    private void ShowCapsule(int station)
+    {
+        if (_send == null || Trade == null) return;
+        var flight = Trade.FlightOf(station);
+        _send.Disabled = Trade.SendProblem(station) != null;
+        string text = flight != null
+            ? T("trade.back", ("s", (flight.Left + 19) / 20), ("n", flight.Credits))
+            : T("trade.send", ("n", Trade.Worth(station)));
+        if (_send.Text != text) _send.Text = text;
     }
 
     /// <summary>
@@ -226,6 +240,7 @@ public partial class InventoryPanel
     {
         _credits.Set(_research?.Credits ?? 0);
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
+        if (spec?.Is(Content.MachineTrait.Sells) == true && Crate is int sells) ShowCapsule(sells);
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
         if (spec is { Charges: true } && !zone && Crate is int station) ShowCharger(reading.At(new Place(0, station)), Charger?.Invoke(station) == true);
         // A bay's bolt lit while it charges a drone docked in it.

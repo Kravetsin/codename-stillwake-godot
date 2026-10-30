@@ -425,7 +425,7 @@ public class ResearchTests
                 if (s.Sold != null)
                 {
                     w.FillCrate(trade, (s.Sold, 1));
-                    w.Run(Market.SellEvery);
+                    w.Do(new Stillwake.Sim.Trade.SendCapsule(trade)).Run(Market.CapsuleFlight);
                     credits += Market.PriceOf(s.Sold)!.Value;
                 }
                 else if (s.Gate != null) w.Do(new Deposit(s.Gate)).Run();

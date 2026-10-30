@@ -4,6 +4,11 @@ public static partial class En
 {
     private static readonly Strings Research = new()
     {
+        ["trade.notStation"] = "No trade station here",
+        ["trade.capsuleAway"] = "The capsule is away",
+        ["trade.nothingToSell"] = "Nothing to sell",
+        ["trade.send"] = "Send capsule: +{n}",
+        ["trade.back"] = "Back in {s} s: +{n}",
         ["research.pickHint"] = "Click a node to see what it takes, where it is made and what it goes into",
         ["research.gateAbout"] = "Fill it to open the next ring",
         ["research.allOpen"] = "All open",

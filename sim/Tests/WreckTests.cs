@@ -207,7 +207,7 @@ public class WreckTests
         int chunk = Stillwake.Content.Market.PriceOf("scrapChunk")!.Value, price = Prices.Of(ResearchSpec.Node("furnace")!), chunks = price / chunk + 1;
         w.GiveItems(0, ("scrapChunk", chunks));
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), chunks)).Run();
-        w.Run(chunks * Stillwake.Content.Market.SellEvery);
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(trade)).Run(Stillwake.Content.Market.CapsuleFlight);
         Assert.Equal(chunks * chunk, w.M.Research.Credits);
         w.Do(new BuyBlock("furnace")).Run();
         Assert.Empty(w.Refusals);

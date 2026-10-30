@@ -3,12 +3,12 @@ namespace Stillwake.Content;
 /// <summary>
 /// What things are worth, in credits (2026-10-30-tech-graph). Only what no recipe makes is priced by hand: anything else is worth
 /// its inputs and the time they take, marked up, per unit it comes to. Every step of a chain so pays, and a recipe changed
-/// reprices all made of it. Selling at a trade station is one unit every <see cref="SellEvery"/> ticks, at a price that never falls.
+/// reprices all made of it. A trade station sends what it holds by capsule, at a price that never falls (2026-10-30-trade-capsule).
 /// </summary>
 public static class Market
 {
-    /// <summary>Ticks from one unit sold to the next at a station: two a second.</summary>
-    public const int SellEvery = 10;
+    /// <summary>Ticks a trade station's capsule is away, launch to credits: thirty seconds.</summary>
+    public const int CapsuleFlight = 30 * 20;
 
     /// <summary>What a step of a chain adds to its inputs and time, in percent.</summary>
     public const int Markup = 125;

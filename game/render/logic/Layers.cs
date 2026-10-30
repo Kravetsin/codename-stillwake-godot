@@ -11,6 +11,9 @@ public static class Layers
     /// <summary>Debris drifting past behind the hull (debris).</summary>
     public const int Debris = -20;
 
+    /// <summary>A trade station's capsule going off behind the hull (research, 2026-10-30-trade-capsule).</summary>
+    public const int Capsules = -15;
+
     // What runs behind the ship's structure: back walls, pipes and their valves, cables (grid's and power's behind).
     public const int BackWalls = -11, Pipes = -6, Valves = -5, Cables = -4;
 
