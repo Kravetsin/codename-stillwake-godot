@@ -198,17 +198,19 @@ public class AimTests
             client.Update();
         }
 
-        // Along room A, where the hero wakes: the closed doorway to room B stops the hero, until opened.
+        // Along the iron room, where the hero wakes: the closed doorway to the lock stops the hero, until opened.
         var h = Run(Hero.At(ShipNow(), HeroTests.Spawn), HeroTests.Left, 120);
         // At the door, two cells thick, its block whole (0104).
         Assert.Equal(46 * Block + Spec.Hero.Width / 2, h.X);
         Use(h, 45, 22);
+        h = Run(h, HeroTests.Left, 120);
+        // Into the lock, its outer door the next to stop the hero.
+        Assert.Equal(43 * Block + Spec.Hero.Width / 2, h.X);
+        Use(h, 42, 22);
         h = Run(h, HeroTests.Left, 900);
-        // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.
-        // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.
-        var tied = h.Anchor!.Value;
-        Assert.InRange(tied.X, HeroTests.TornEdge, HeroTests.TornEdge + Spec.Hero.Walk);
-        Assert.InRange(h.X, tied.X - Spec.Hero.Tether, tied.X - Spec.Hero.Tether + 1);
+        // Out through the hold and past its throat, on a tether tied there.
+        Assert.InRange(h.Anchor!.Value.X, HeroTests.TornEdge, HeroTests.TornEdge + Spec.Hero.Walk);
+        Assert.True(h.X < HeroTests.TornEdge);
 
         // Back the other way, the airlock's inner doorway stops the hero, until opened.
         h = Run(h, HeroTests.Right, 1200);
@@ -229,12 +231,9 @@ public class AimTests
         if (Aiming.AimAt(m, 0, h, Centre(45, 22))?.Press is { } press) client.Send(press.Command);
         // Sent, not released: the world still has the doorway shut.
         Assert.Contains(Predicted.Grid(client, m.Grid, m.Pipes).Structure!, shown => shown.Value != m.Grid.StructureAt(shown.Key));
-        for (int i = 0; i < 900; i++) h = h.Step(HeroTests.Left, ShipNow());
-        // Into room B, torn open to space, and out past its torn edge as far as the tether lets the hero.
-        // The tether cuts a move back to its length rounded toward its anchor: within a thousandth of a cell.
-        var tied = h.Anchor!.Value;
-        Assert.InRange(tied.X, HeroTests.TornEdge, HeroTests.TornEdge + Spec.Hero.Walk);
-        Assert.InRange(h.X, tied.X - Spec.Hero.Tether, tied.X - Spec.Hero.Tether + 1);
+        for (int i = 0; i < 120; i++) h = h.Step(HeroTests.Left, ShipNow());
+        // Through it and across the lock, to its outer door.
+        Assert.Equal(43 * Block + Spec.Hero.Width / 2, h.X);
     }
 
     // A crate under the pointer.

@@ -25,6 +25,7 @@
 | `Tests/PaceTests.cs` | How a session's time runs: the clock and a joined game's playout. |
 | `Tests/SessionTests.cs` | The host and clients ordering commands. |
 | `Tests/SurfaceStampTests.cs` | A command goes out stamped with the surface its sender is on (0076); sessions carry every surface. |
+| `Tests/PoweredWreck.cs` | A ship with cables, a generator and a vent, which the starting one no longer has: keeps them in the generic runs. |
 | `Tests/WireTests.cs` | Commands and messages packed and back; cut or garbled bytes refused. |
 
 How peers share one world (0002): a host orders every peer's commands tick by tick, every peer runs the same

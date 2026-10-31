@@ -8,7 +8,7 @@ namespace Stillwake.Net.Tests;
 /// <summary>Commands and messages as the network carries them, packed (<see cref="Packing"/>), and back.</summary>
 public class WireTests
 {
-    private static readonly World Game = World.Create(1, Registry.Wreck, new Registry().All);
+    private static readonly World Game = World.Create(1, PoweredWreck.Layout, new Registry().All);
 
     private static string Json(object value) => JsonSerializer.Serialize(value, value.GetType(), Game.Json);
 

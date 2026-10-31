@@ -60,6 +60,15 @@ public class DesyncTests(ITestOutputHelper output)
         Assert.Equal(600, run.Ticks);
     }
 
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void KeepsEveryClientInSyncOnAShipWithPowerAndPipedAir(uint seed)
+    {
+        var run = Desync.Fuzz(Definition.Game(), seed, layout: PoweredWreck.Layout);
+        Assert.Null(run.Desync);
+        Assert.Equal(600, run.Ticks);
+    }
+
     [Fact]
     public void KeepsTheFarFieldInSyncRoundHeroesEnteredAnywhere()
     {

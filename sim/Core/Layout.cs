@@ -117,12 +117,14 @@ public sealed record Layout(
     /// This map with the materials of its cells drawn beside it (0077), the same size, in <c>Legend.Materials</c>' characters and
     /// trimmed as <see cref="Parse(string)"/> trims a map: how a test draws natural ground.
     /// </summary>
-    public Layout WithMaterials(string map)
+    public Layout WithMaterials(string map) => WithMaterials(Trimmed(map));
+
+    /// <summary>This map with the materials of its cells drawn beside it, rows as written: how content draws its walls.</summary>
+    public Layout WithMaterials(IReadOnlyList<string> rows)
     {
-        var rows = Trimmed(map);
         var codes = new int[Width * Height];
         Array.Fill(codes, Content.Materials.Get(Content.Materials.DefaultHull).Code);
-        for (int y = 0; y < Math.Min(rows.Length, Height); y++)
+        for (int y = 0; y < Math.Min(rows.Count, Height); y++)
             for (int x = 0; x < Math.Min(rows[y].Length, Width); x++)
             {
                 char c = rows[y][x];

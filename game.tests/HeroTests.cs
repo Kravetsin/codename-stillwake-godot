@@ -912,8 +912,8 @@ public class HeroTests
 
     internal static readonly Layout Wreck = Registry.WreckMap;
     internal static readonly int Spawn = new TestWorld(Wreck).M.Crew.Spawn;
-    /// <summary>Room B's torn edge, its last cell of hull's left side: a tether out of it is tied where the body's middle last was, a step's walk at most inside.</summary>
-    internal const int TornEdge = 36 * Block;
+    /// <summary>The hold's throat, its last cell of hull's left side: a tether out of it is tied where the body's middle last was, a step's walk at most inside.</summary>
+    internal const int TornEdge = 37 * Block;
 
     /// <summary>The wreck with every door open, the airlock's two doorways among them.</summary>
     internal static Ship Opened() => ShipFrom(Layout.Parse(Wreck.Rows.Select(r => r.Replace('D', 'd')).ToArray()));
@@ -924,11 +924,14 @@ public class HeroTests
         var ship = ShipFrom(Layout.Parse(Wreck.Rows));
         var opened = Opened();
 
-        // From room A, where the hero wakes, through the doorway into room B, torn open to space, afloat
+        // From the iron room, where the hero wakes, through the left lock into the hold, open to space, afloat
         // and untied while within the hull; on its tether from the torn edge, as far as it lets the hero.
-        Assert.Equal(TornEdge - Spec.Tether, Settle(opened, Hero.At(opened, Spawn), Left).X);
+        // Straight on, it stops at the upper jaw's tooth, well within the tether.
+        var out_ = Settle(opened, Hero.At(opened, Spawn), Left);
+        Assert.InRange(out_.Anchor!.Value.X, TornEdge, TornEdge + Spec.Walk);
+        Assert.True(out_.X < TornEdge);
 
-        // With the doorway closed, the hero stops at it, past the generator: at the door, two cells thick, its block whole (0104).
+        // With the doorway closed, the hero stops at it: at the door, two cells thick, its block whole (0104).
         Assert.Equal(46 * Block + Half, Settle(ship, Hero.At(ship, Spawn), Left).X);
     }
 

@@ -399,14 +399,9 @@ public class PowerTests
     }
 
     [Fact]
-    public void TheWreckStartsWithItsPanelCabledToItsGeneratorAndLamp()
+    public void TheWreckStartsWithItsPanelOnNoCable()
     {
         var w = new Scenario(Registry.Wreck);
-        int width = w.Layout.Width;
-        var (x, y) = Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height);
-        int At(int cx, int cy) => (2 * cy + y) * width + 2 * cx + x;
-        var n = Assert.Single(w.M.Power.Networks);
-        Assert.Equal(new[] { At(50, 17), At(50, 19), At(46, 21) }, n.Nodes);
-        Assert.Equal((5, 5, 1000), (n.Supply, n.Demand, n.Satisfaction));
+        Assert.All(w.M.Power.Networks, n => Assert.Equal(0, n.Demand));
     }
 }
