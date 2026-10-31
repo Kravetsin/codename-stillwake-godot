@@ -26,9 +26,9 @@ A living document: what is decided about the game and what is still open. Techni
   debris or another wreck. Harder places bring their own dangers (see meteors below).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
-- **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
-  survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
-  half away, a trade station surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
+- **Start:** the hero is left alive in the torn-off scoop of a scavenger, and has to make it livable to
+  survive: an iron room whose air the lifepod makes, a lock each way, the open hold on the left and on the right a
+  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)). Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
@@ -56,8 +56,9 @@ A living document: what is decided about the game and what is still open. Techni
   [photo-panel](decisions/2026-10-29-photo-panel.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
   never taken apart. Heroes are made at its hatch, at the start bare and after dying in what they wore,
-  their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space,
-  and the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
+  their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space
+  ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). It also makes its room's air as a first generator, with no power, so
+  the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and

@@ -1,5 +1,7 @@
 # The scoop: a new starting ship
 
+Step 1 has landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below. Steps 2 and 3 are still to do.
+
 A new world starts in the torn-off scoop section of a scavenger ship. The hold's heaps are what its last crew had gathered. Picture:
 [scoop.png](scoop.png), 2× zoom, about 66×33 cells, drawn from the game's art, not yet in the game.
 

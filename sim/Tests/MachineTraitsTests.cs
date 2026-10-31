@@ -14,8 +14,8 @@ public class MachineTraitsTests
     [Theory]
     [InlineData(MachineTrait.Container, new[] { "crate" })]
     [InlineData(MachineTrait.Gas, new[] { "tank" })]
-    [InlineData(MachineTrait.AirSource, new[] { "tank", "generator" })]
-    [InlineData(MachineTrait.Vents, new[] { "vent" })]
+    [InlineData(MachineTrait.AirSource, new[] { "tank", "generator", "lifepod" })]
+    [InlineData(MachineTrait.Vents, new[] { "vent", "lifepod" })]
     [InlineData(MachineTrait.Zone, new[] { "droneBay" })]
     [InlineData(MachineTrait.Glow, new[] { "lamp", "arcLamp" })]
     [InlineData(MachineTrait.Fire, new[] { "furnace", "burnerGenerator" })]
@@ -41,9 +41,9 @@ public class MachineTraitsTests
     }
 
     [Fact]
-    public void AnAirSourceStoresGasOrMakesItOnPower()
+    public void AnAirSourceBuiltStoresGasOrMakesItOnPower()
     {
-        foreach (var m in Machines.All.Where(m => m.Is(MachineTrait.AirSource)))
+        foreach (var m in Machines.All.Where(m => m.Is(MachineTrait.AirSource) && !m.Fixed))
         {
             Assert.NotEmpty(m.Ports);
             Assert.NotEqual(m.Is(MachineTrait.Gas), m.Draws != null);

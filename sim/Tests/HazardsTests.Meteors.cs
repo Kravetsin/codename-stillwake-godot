@@ -191,8 +191,12 @@ public partial class HazardsTests
     public void TearAnAreaOutOfTheStartingWrecksScrapHullOnEveryStrikeOnceAHeroHasLanded()
     {
         var (strikes, _) = Fall(Landed(new Scenario(Registry.Wreck)), 6);
-        Assert.True(strikes.All(s => s.Gone.Count >= 5), Seen(strikes));
+        Assert.NotEmpty(OnScrap(strikes));
+        Assert.True(OnScrap(strikes).All(s => s.Gone.Count >= 5), Seen(strikes));
     }
+
+    /// <summary>Strikes on the hull's scrap: its iron is too strong for many, and stands.</summary>
+    private static IEnumerable<Strike> OnScrap(List<Strike> strikes) => strikes.Where(s => s.Strength == Content.Materials.Get("scrap").Strength);
 
     /// <summary>
     /// The softlock from play: a strike tore more than a castaway could patch before the next. Till anyone lands each takes a cell or
@@ -202,8 +206,9 @@ public partial class HazardsTests
     public void TakeACellOrAFewOfTheStartingWrecksScrapHullBeforeAnyoneLands()
     {
         var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
-        Assert.True(strikes.All(s => s.Gone.Count is >= 1 and <= 7), Seen(strikes));
-        Assert.True(strikes.Average(s => s.Gone.Count) <= 4, Seen(strikes));
+        Assert.NotEmpty(OnScrap(strikes));
+        Assert.True(OnScrap(strikes).All(s => s.Gone.Count is >= 1 and <= 7), Seen(strikes));
+        Assert.True(OnScrap(strikes).Average(s => s.Gone.Count) <= 4, Seen(strikes));
     }
 
     /// <summary>A hole is patched of a raw scrap chunk (2026-10-29-weak-meteors-till-landing): no furnace, so no air, is needed.</summary>

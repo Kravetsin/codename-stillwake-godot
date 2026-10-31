@@ -186,13 +186,13 @@ public class RoomsTests
     }
 
     [Fact]
-    public void FindsTheWrecksRoomsAsTheTypeScriptSimDoes()
+    public void FindsTheWrecksRooms()
     {
-        var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under), doubled: true);
-        // As packages/sim/src/modules/wreck.test.ts expects: A and the airlock, named by their first cells; torn B is space.
-        Assert.Equal(new[] { w.At(46, 19), w.At(55, 20) }, w.M.Rooms.All.Select(r => r.Id));
-        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(41, 21)));
-        Assert.Equal(new[] { "solarPanel", "lamp", "lifepod", "tradeStation", "generator", "vent" }, w.M.Grid.Machines.Select(m => m.Kind));
+        var w = new Scenario(Layout.Parse(Wreck.Rows, Wreck.Under));
+        // Two locks and the room between, named by their first cells; the hold is space.
+        Assert.Equal(new[] { w.At(86, 38), w.At(92, 38), w.At(110, 38) }, w.M.Rooms.All.Select(r => r.Id));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(82, 42)));
+        Assert.Equal(new[] { "solarPanel", "lifepod" }, w.M.Grid.Machines.Select(m => m.Kind));
     }
 
     private static readonly char[] Chars = [' ', '.', '#', '#', '#', '=', 'H', 'D', 'd'];

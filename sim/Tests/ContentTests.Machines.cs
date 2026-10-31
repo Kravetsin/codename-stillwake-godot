@@ -31,7 +31,7 @@ public partial class ContentTests
         Assert.Empty(pod.Cost);
         Assert.Equal((0, null, null), (pod.Inputs, pod.Makes, pod.Draws));
         Assert.Contains(Legend.Map, e => Legend.MachineOf(e.Char) == "lifepod");
-        Assert.Single(Layout.Parse(Wreck.Rows).Doubled().Machines(), m => m.Kind == "lifepod");
+        Assert.Single(Layout.Parse(Wreck.Rows).Machines(), m => m.Kind == "lifepod");
         var (x, y) = Content.Crew.PodHatch;
         Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
@@ -141,10 +141,10 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void PowerLetsTheWrecksOnePanelRunItsGeneratorInFull()
+    public void PowerLetsTheWrecksOnePanelRunAGeneratorInFull()
     {
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);
-        Assert.NotEmpty(Wreck.Cables);
+        Assert.Contains(Registry.WreckMap.Machines(), m => m.Kind == "solarPanel");
     }
 
     // Light

@@ -67,7 +67,7 @@ public sealed partial class AtmosphereModule
         _readFor = s;
         s.MadeOn.Clear();
         foreach (var (network, generator) in s.Generators)
-            s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + _power.Satisfaction(generator);
+            s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + MadeShare(generator);
         s.Held.Clear();
         foreach (var t in State.Tanks) s.Held[t.Tank] = t;
         return s;
@@ -369,9 +369,12 @@ public sealed partial class AtmosphereModule
         return (int)(DueBy(beat + 1) - DueBy(beat));
     }
 
+    /// <summary>How much of its rate generator <paramref name="generator"/> makes, in thousandths: as much as its power, or all of it if it draws none.</summary>
+    public int MadeShare(int generator) =>
+        _grid.MachineById(generator) is { } m && Content.Machines.Get(m.Kind).Draws is null or 0 ? 1000 : _power.Satisfaction(generator);
+
     /// <summary>
-    /// Each generator, in id order, works toward its next unit by <c>Air.GeneratorRate</c> × its power's
-    /// satisfaction, and puts each unit it finishes into its own store, up to <c>Air.GeneratorStore</c>;
+    /// Each generator, in id order, works toward its next unit by <c>Air.GeneratorRate</c> × <see cref="MadeShare"/>, and puts each unit it finishes into its own store, up to <c>Air.GeneratorStore</c>;
     /// what does not fit is lost. At full power each <c>Air.LeakEvery</c> ticks make exactly the rate.
     /// </summary>
     private void Produce()
@@ -385,10 +388,12 @@ public sealed partial class AtmosphereModule
         foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
         {
             if (!MakesAir(m)) continue;
+            // A pod on no pipe is only a pod: nothing to store, nothing saved.
+            if (Content.Machines.Get(m.Kind).Draws is null or 0 && !OnAPipe(m)) continue;
             // The work kept and the generators are both in id order: one pass finds each generator's.
             while (next < was.Count && was[next].Generator < m.Id) next++;
             int part = (next < was.Count && was[next].Generator == m.Id ? was[next].Part : 0)
-                + Content.Air.GeneratorRate * _power.Satisfaction(m.Id);
+                + Content.Air.GeneratorRate * MadeShare(m.Id);
             int made = part / unit;
             part -= made * unit;
             making.Add(new GeneratorWork { Generator = m.Id, Part = part });
@@ -403,6 +408,13 @@ public sealed partial class AtmosphereModule
         }
         State.Making = making;
         if (added) State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+    }
+
+    private bool OnAPipe(Machine m)
+    {
+        foreach (int port in _grid.PortsOf(m))
+            if (_pipes.NetworkAt(port) != null) return true;
+        return false;
     }
 
     /// <summary>Tank <paramref name="id"/>'s oxygen among the first <paramref name="count"/> tanks, which are in id order; null for none.</summary>

@@ -13,7 +13,7 @@
 Oxygen: what the ship's tanks and generators hold, and how it fills rooms, is used in them and vents into space.
 
 - **Depends on:** `Grid` (machines, walls by material), `Items` (canisters), `Rooms` (cells, vents, hull,
-  openings), `Pipes` (which tanks a vent reaches), `Power` (a generator's share).
+  openings), `Pipes` (which tanks a vent reaches), `Power` (a generator's share; one drawing none, the piped pod, makes in full).
 - **State** (`AtmosphereState`, internal, all saved): `Tanks` — oxygen in each tank or generator holding any, by
   machine id, in id order; `Making` — each generator's work toward its next unit; `Aired` — cells holding air,
   sorted; `Clock` — for the fill and leak beats. Derived: `Orders` by room id and what they were found from

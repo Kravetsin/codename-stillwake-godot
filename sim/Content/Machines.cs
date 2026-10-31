@@ -181,7 +181,8 @@ public static class Machines
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
         new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
-        new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
+        // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
+        new("lifepod", 6, 6, [new(0, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
         new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),

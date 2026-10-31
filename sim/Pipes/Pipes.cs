@@ -314,8 +314,12 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         return refund;
     }
 
+    /// <summary>A pipe inside a machine never taken apart: the pod's, whose air must always come back.</summary>
+    private bool InsideFixed(PipeSpan span) =>
+        _grid.MachineAt(span.A) is { } m && _grid.MachineAt(span.B)?.Id == m.Id && Content.Machines.Get(m.Kind).Fixed;
+
     private string? CutProblem(CutPipe c) =>
-        SpanAt(c.A, c.B) is not { } span ? "pipes.noPipe" : RefundOf(span) is { Count: > 0 } refund ? _items.FullFor(c.From, refund) : null;
+        SpanAt(c.A, c.B) is not { } span ? "pipes.noPipe" : InsideFixed(span) ? "pipes.fixed" : RefundOf(span) is { Count: > 0 } refund ? _items.FullFor(c.From, refund) : null;
 
     // Commands.
 
