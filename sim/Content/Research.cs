@@ -33,18 +33,17 @@ public static class Research
 {
     /// <summary>
     /// What the wreck knows from its start: what earns, what a torn room is closed with, the fire axe wreckage is broken with, what
-    /// a castaway's pod makes. The trade station is of raw salvage, so taking one apart never leaves a world unable to trade. The
-    /// solar panel too: the wreck's own, taken apart, gives back the photosensitive panel nothing makes, and builds again.
+    /// a castaway's pod makes. The trade station is of raw salvage, so taking one apart never leaves a world unable to trade.
     /// </summary>
     public static readonly IReadOnlyList<string> StartKnown =
     [
-        "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit", "solarPanel",
+        "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
     ];
 
     /// <summary>How many times its worth a craft costs on top of its ring's: a blueprint already costs what it is built of, a craft only a unit.</summary>
     public const int CraftTimes = 3;
 
-    private const string Better = "upgrades", Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine";
+    private const string Better = "upgrades", Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine", ForSale = "forSale";
 
     private static (string Branch, string Id, int? Times) Block(string branch, string id) => (branch, id, null);
 
@@ -57,11 +56,11 @@ public static class Research
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
         new("ship", [Materials, Structures, Machines, Power, Automation, Gear, Better], null,
-            new(null, [], 1,
+            new TechRing(null, [], 1,
                 Block(Machines, "workbench"),
                 Block(Machines, "furnace"),
                 Up("bag1")),
-            new("firstMetal", [("scrap", 20), ("iron", 10)], 1,
+            new("firstMetal", [("scrap", 12), ("iron", 6)], 1,
                 Block(Materials, "wire"),
                 Block(Materials, "plate"),
                 Block(Materials, "gear"),
@@ -69,11 +68,10 @@ public static class Research
                 Block(Structures, "floor"),
                 Block(Structures, "ladder"),
                 Block(Structures, "lamp"),
-                Block(Gear, "nail"),
-                Block(Gear, "nailer"),
+                Block(Gear, "harpoon"),
                 Up("bag2"),
                 Up("tradeSlots1")),
-            new("press", [("wire", 20), ("plate", 15), ("gear", 10)], 1,
+            new("press", [("wire", 12), ("plate", 8), ("gear", 6)], 1,
                 Block(Materials, "coil"),
                 Block(Materials, "rotor"),
                 Block(Structures, "door"),
@@ -81,11 +79,12 @@ public static class Research
                 Block(Structures, "wallIron"),
                 Block(Structures, "backWallIron"),
                 Block(Automation, "crate"),
-                Block(Gear, "harpoon"),
+                Block(Gear, "nail"),
+                Block(Gear, "nailer"),
                 Block(Gear, "helmetLamp"),
                 Up("bag3"),
                 Up("tradeSlots2")),
-            new("machinery", [("plate", 30), ("coil", 15), ("rotor", 8)], 1,
+            new("machinery", [("plate", 18), ("coil", 8), ("rotor", 5)], 1,
                 Block(Materials, "frame"),
                 Block(Machines, "former"),
                 Block(Power, "burnerGenerator"),
@@ -93,7 +92,7 @@ public static class Research
                 Block(Power, "cistern"),
                 Block(Power, "tank"),
                 Up("bag4")),
-            new("processing", [("frame", 10), ("gear", 20), ("coil", 20)], 1,
+            new("processing", [("frame", 6), ("gear", 12), ("coil", 12)], 1,
                 Block(Structures, "wallGlass"),
                 Block(Structures, "backWallGlass"),
                 Block(Machines, "crusher"),
@@ -162,6 +161,10 @@ public static class Research
                 Block(Engine, "igniter"),
                 Dear(8, Engine, "engine"),
                 Up("bag11"))),
+        // Open from the start, at a price rather than a stage (black-market). Its parts are another matter.
+        new("blackMarket", [ForSale], null,
+            new TechRing(null, [], 1,
+                Dear(5, ForSale, "solarPanel"))),
     ];
 
     /// <summary>Every node: tab by tab, ring by ring, a ring's gate before its blocks.</summary>

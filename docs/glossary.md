@@ -41,6 +41,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - цистерна / cistern → machine `cistern`: water in on its left, out on its right (2026-10-29-typed-ports) → Pipes
 - трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
 - генератор / generator **≠** → `"generator"` is the oxygen generator (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
+- чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
 - светочувствительная панель / photosensitive panel → item `photoPanel`, in the solar panel's cost, had only of one taken apart
 - аккумулятор / accumulator → item `accumulator` (belt equipment); the machine is `capacitorBank` "Capacitor bank" **≠** → Items, Power

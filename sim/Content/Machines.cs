@@ -140,7 +140,7 @@ public static class Machines
         // Water's first ports (typed-ports): it holds nothing yet, so it needs no power and air ignores it.
         new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
         new("generator", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
-        // Built of the one photosensitive panel nothing makes: known from the start, so the wreck's own can be built again.
+        // Of the one photosensitive panel nothing makes: its blueprint is the black market's, for many credits (black-market).
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
         new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
         new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),

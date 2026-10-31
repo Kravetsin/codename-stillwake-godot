@@ -112,11 +112,11 @@ public partial class ContentTests
             long each = 1000L * (entry.Min + entry.Max) / 2 / entry.OneIn!.Value / Wreckage.HpOf(source)!.Value;
             Assert.True(each * 20 <= rack, $"{source}: {each} thousandths of a circuit a hit point, the rack's {rack}");
         }
-        // Racks are at most twice as likely a spawn far out as in the stream (0056, amended): a flying hero meets
+        // Racks are at most 2 in 135 a spawn far out (0056, amended): a flying hero meets
         // far more spawns, so found circuits stay a bonus and the assembler's are the supply.
         static (int Racks, int Of) Racks(IReadOnlyList<(string Item, int Weight)> kinds) =>
             (kinds.Single(k => k.Item == "cableRack").Weight, kinds.Sum(k => k.Weight));
-        var stream = Racks(DebrisSpec.Kinds);
+        var stream = (Racks: 1, Of: 135);
         foreach (var tier in DebrisSpec.Far.Tiers)
         {
             var far = Racks(tier.Kinds);

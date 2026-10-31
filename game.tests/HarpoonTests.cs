@@ -275,6 +275,59 @@ public class HarpoonTests
         Assert.Equal(10_000, line.Length, 0);
     }
 
+    [Fact]
+    public void TheStreakHomeRunsOutWithTheRodSeatedAndNeverWaitsForTheNextShot()
+    {
+        const double Frame = 1000.0 / 60;
+        var seated = new RodFlourish();
+        seated.Step(Rod.Reeling, true, Frame);
+        Assert.True(seated.Step(Rod.Returning, true, Frame).ZipBegan);
+        // The rod is home a frame later, well before the streak.
+        var shown = new List<RodFlourish.Shown>();
+        for (int i = 0; i < 12; i++) shown.Add(seated.Step(Rod.Seated, true, Frame));
+        Assert.Contains(shown, s => s.Zip != null);
+        Assert.Single(shown, s => s.ZipHome);
+        Assert.Equal(default, seated.Step(Rod.Flying, true, Frame));
+
+        // The gun put away mid-streak, or drawn again for the next shot: nothing is left of it.
+        var putAway = new RodFlourish();
+        putAway.Step(Rod.Reeling, true, Frame);
+        putAway.Step(Rod.Returning, true, Frame);
+        Assert.Equal(default, putAway.Step(Rod.Seated, false, Frame));
+        Assert.Equal(default, putAway.Step(Rod.Flying, true, Frame));
+    }
+
+    [Fact]
+    public void TheBeadRunsDownTheLineAsItGoesTautAndIsGoneWithTheLine()
+    {
+        const double Frame = 1000.0 / 60;
+        var bead = new RodFlourish();
+        bead.Step(Rod.Hooked, true, Frame);
+        Assert.Equal(0, bead.Step(Rod.Reeling, true, Frame).Bead);
+        Assert.NotNull(bead.Step(Rod.Reeling, true, Frame).Bead);
+        Assert.Null(bead.Step(Rod.Seated, true, Frame).Bead);
+        Assert.Null(bead.Step(Rod.Flying, true, Frame).Bead);
+    }
+
+    [Fact]
+    public void TheLineNeverRunsBackThroughTheGunAsTheRodLeavesIt()
+    {
+        const double RodLength = 2_000, Frame = 1000.0 / 60;
+        (double X, double Y) gun = (0, 0), along = (1, 0);
+        var line = new HarpoonLine(gun, HarpoonLine.EndOf(gun, gun, along, RodLength));
+        var points = new List<(double X, double Y)>();
+        for (int i = 0; i < 20; i++)
+        {
+            (double X, double Y) tip = (i * Spec.RodSpeed * Frame / 50, 0);
+            line.Update(gun, HarpoonLine.EndOf(gun, tip, along, RodLength), taut: false, Frame);
+            points.Clear();
+            line.DrawnInto(points);
+            // A hair of drift aside, all of it ahead of the muzzle.
+            Assert.All(points, p => Assert.True(p.X > -100, $"frame {i}: a point at {p.X:F0}"));
+        }
+        Assert.Equal((5_000, 0), HarpoonLine.EndOf(gun, (7_000, 0), along, RodLength));
+    }
+
     /// <summary>A harpoon reeling piece 1 in, the sim showing the reel, sent from <see cref="Muzzle"/>.</summary>
     private static (HarpoonShot Shot, Pieces World) Reeling()
     {

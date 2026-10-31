@@ -69,6 +69,10 @@ public partial class TreeDemo(Func<Registry> m) : Node
             (8.5, "wheel in on the hub", () => Wheel(_tree.HubAt, MouseButton.WheelUp, 8)),
             (9.0, "the other tab", () => Mouse(_tree.TabAt(1), MouseButton.Left, true)),
             (9.05, "let go", () => Mouse(_last, MouseButton.Left, false)),
+            (9.2, "the black market", () => Mouse(_tree.TabAt(2), MouseButton.Left, true)),
+            (9.25, "let go", () => Mouse(_last, MouseButton.Left, false)),
+            (9.35, "click the solar panel on sale", () => Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
+            (9.4, "let go", () => Mouse(_last, MouseButton.Left, false)),
             (9.6, "T puts it away", () => Press(Key.T)),
             (10.1, "Tab: the bag, the credits on its metal", () => Press(Key.Tab)),
         ];

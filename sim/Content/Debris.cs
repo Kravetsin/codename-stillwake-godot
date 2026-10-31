@@ -15,10 +15,10 @@ namespace Stillwake.Content;
 /// </summary>
 public static class Debris
 {
-    public const int Every = 160;
-    public const int Jitter = 80;
-    public const int Max = 20;
-    public const int AtStart = 8;
+    public const int Every = 60;
+    public const int Jitter = 40;
+    public const int Max = 60;
+    public const int AtStart = 20;
     public const int DriftMin = 60;
     public const int DriftMax = 110;
     public const int Margin = 24;
@@ -37,24 +37,24 @@ public static class Debris
     public const int AimRadius = 3000;
 
     /// <summary>
-    /// The stream's kinds by weight: its one tier. Three times 0041's, so the rare soil clod fits in whole numbers
-    /// with the same odds for the rest (as 0056 scaled the far field's).
+    /// The stream's kinds by weight: its one tier. A piece every 4 s, the more of them plain salvage, what a hero starts on
+    /// (first-hour-pace); wrecks, racks and clods come about as often as when a piece came every 10 s.
     /// </summary>
     public static readonly IReadOnlyList<(string Item, int Weight)> Kinds =
     [
-        ("scrapChunk", 54),
-        ("hullPlate", 27),
-        ("cargoCrate", 18),
-        ("supplyPod", 9),
-        // Wreckage (Wreckage): 25 of 135, one spawn in five, a wreck about every 50 s; the cable rack a third as common as the
-        // rest, circuits found being rare (economy rework).
+        ("scrapChunk", 130),
+        ("hullPlate", 92),
+        ("cargoCrate", 36),
+        ("supplyPod", 15),
+        // Wreckage (Wreckage): 25 of 300, a wreck about every 50 s; the cable rack a third as common as the rest, circuits found
+        // being rare (economy rework).
         ("hullSection", 9),
         ("cargoContainer", 6),
         ("machineBlock", 3),
         ("cableRack", 1),
         ("tankCluster", 3),
         ("shieldSlab", 3),
-        // Seeds' second source beside supply pods (0060): 2 of 135 of some 350 spawns an hour, one every 12 minutes or so.
+        // Seeds' second source beside supply pods (0060): 2 of 300 of some 900 spawns an hour, one every 10 minutes or so.
         ("soilClod", 2),
     ];
 

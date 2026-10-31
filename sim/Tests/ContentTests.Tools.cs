@@ -107,8 +107,12 @@ public partial class ContentTests
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
         Assert.Equal(1, harpoon!.Stack);
         Assert.True(Crafts.TryGet(Harpoon.Item, out var craft));
-        Assert.Equal([("tube", 1), ("coil", 1), ("wire", 4)], craft!.Cost);
+        Assert.Equal([("tube", 1), ("wire", 8)], craft!.Cost);
         Assert.DoesNotContain(Harpoon.Item, Content.Research.StartKnown);
+        // Before the nailer, whose targets are only met flying (first-hour-pace), and with what it is made of.
+        var ring = Content.Research.Node(Harpoon.Item)!.Ring;
+        Assert.True(ring < Content.Research.Node("nailer")!.Ring);
+        Assert.All(craft.Cost, c => Assert.True(Content.Research.Node(c.Item)!.Ring <= ring, c.Item));
     }
 
     /// <summary>
