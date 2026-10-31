@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>What CI takes for granted when it leaves tests out of a PR's run (<c>tools/ci-scope.sh</c>).</summary>
+/// <summary>What CI takes for granted when it leaves tests out of a PR's run (<c>tools/ci-scope.sh</c>, 2026-10-31-ci-scope).</summary>
 public class CiScopeTests
 {
     private static string Here([CallerFilePath] string path = "") => path;

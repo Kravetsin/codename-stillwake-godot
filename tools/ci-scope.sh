@@ -5,8 +5,8 @@ scope=
 while IFS= read -r path; do
   case "$path" in
     tools/ci-scope*) echo all; exit ;;
-    docs/* | .claude/* | tools/* | README.md | CLAUDE.md | */README.md) scope=${scope:-docs} ;;
-    game/* | game.tests/*) scope=client ;;
+    docs/* | .claude/* | README.md | CLAUDE.md | */README.md) scope=${scope:-docs} ;;
+    game/* | game.tests/* | tools/*) scope=client ;;
     *) echo all; exit ;;
   esac
 done
