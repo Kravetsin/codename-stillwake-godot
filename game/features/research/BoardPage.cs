@@ -15,7 +15,7 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// The tablet's first tab: the scavenger's board (docs/plans/board.md), blank till the first find. Notes in ink where <see cref="BoardSlots"/>
 /// stands them, threads to shapes in pencil, dragged and zoomed (<see cref="TechCamera"/>). A click picks and says what is known of it in
-/// the strip below; it buys nothing, for it takes no way to send a command.
+/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardFile"/>).
 /// </summary>
 public sealed class BoardPage : ITabletPage
 {
@@ -32,6 +32,7 @@ public sealed class BoardPage : ITabletPage
     private readonly Control _view;
     private readonly StripParts _strip;
     private readonly Action _readSoon;
+    private readonly Func<uint> _worldId;
     private readonly TechCamera _camera = new();
     // What scales is under _map, what is set at its seen size under _front.
     private readonly Control _map = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
@@ -39,6 +40,7 @@ public sealed class BoardPage : ITabletPage
     private readonly Control _back = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Dictionary<string, NoteView> _notes = new(StringComparer.Ordinal);
     private Dictionary<string, BoardSlot> _slots = new(StringComparer.Ordinal);
+    private Dictionary<string, BoardSpot> _spots = new(StringComparer.Ordinal);
     private HashSet<string> _had = new(StringComparer.Ordinal);
     private BoardPicture _picture = new(new Dictionary<string, BoardShow>(), []);
     private BoardRead? _read;
@@ -49,17 +51,21 @@ public sealed class BoardPage : ITabletPage
     private Vector2 _viewWas;
     private string? _picked;
     private double? _sizedAt;
-    private bool _centred, _out, _pressed;
+    private bool _centred, _out, _pressed, _unwritten;
     private float _moved;
+    private uint _world;
+    private string? _held;
+    private Vector2 _heldBy;
 
     private bool Words => _camera.Zoom >= WordsFrom;
 
     /// <param name="view">The tablet's view, which it draws into.</param>
     /// <param name="strip">The strip below and its words.</param>
     /// <param name="readSoon">Has the tablet read on its next frame.</param>
-    public BoardPage(Control view, StripParts strip, Action readSoon)
+    /// <param name="worldId">Which world is played: what its moved things are kept under; with 0 they are not kept.</param>
+    public BoardPage(Control view, StripParts strip, Action readSoon, Func<uint> worldId)
     {
-        (_view, _strip, _readSoon) = (view, strip, readSoon);
+        (_view, _strip, _readSoon, _worldId) = (view, strip, readSoon, worldId);
         _back.Draw += DrawBack;
         _map.AddChild(_back);
         view.AddChild(_map);
@@ -152,10 +158,11 @@ public sealed class BoardPage : ITabletPage
         Fill();
     }
 
-    /// <summary>Another world, loaded or resynced: its board starts afresh.</summary>
+    /// <summary>Another world, loaded or resynced: its board starts afresh, what was moved kept through a resync, which is the same world.</summary>
     private void Forget(Registry m)
     {
         _knowledge = m.Knowledge;
+        if (_worldId() is var world && world != _world) (_world, _spots, _unwritten) = (world, BoardFile.Read(FileOf(world)), false);
         _strip.Learn(m.Research);
         foreach (var view in _notes.Values) view.Root.QueueFree();
         _notes.Clear();
@@ -184,7 +191,7 @@ public sealed class BoardPage : ITabletPage
         _viewWas = _view.Size;
         var box = (_box == default ? BoardBox.Round(_view.Size.X, _view.Size.Y) : _box).Holding(BoardBox.Round(_view.Size.X, _view.Size.Y));
         foreach (var (id, show) in _picture.Shows)
-            if (show != BoardShow.Unseen) box = box.Holding(_slots[id].X, _slots[id].Y);
+            if (show != BoardShow.Unseen) box = box.Holding(SpotOf(id).X, SpotOf(id).Y);
         double left = _box.Left - box.Left, up = _box.Top - box.Top;
         _box = box;
         _camera.Fit(_view.Size.X, _view.Size.Y, box.Wide, box.Tall);
@@ -211,27 +218,61 @@ public sealed class BoardPage : ITabletPage
         return new NoteView(root, box, picture, name);
     }
 
-    /// <summary>The board's pointer: any button drags it, the left one picks what it clicks if it was not dragged.</summary>
+    /// <summary>The board's pointer: any button drags it, the left one on a thing drags that instead, and picks it if it was not dragged.</summary>
     public void Pointer(InputEvent e)
     {
         switch (e)
         {
             case InputEventMouseButton { ButtonIndex: MouseButton.Left } button:
-                if (button.Pressed) (_pressed, _moved) = (true, 0);
+                if (button.Pressed) Press(button.Position);
                 else if (_pressed && _moved < ClickSlack) Click(button.Position);
-                if (!button.Pressed) _pressed = false;
+                if (!button.Pressed) LetGo();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown }:
                 Zoom(e, _view);
                 break;
             case InputEventMouseMotion { ButtonMask: not 0 } drag:
                 _moved += drag.Relative.Length();
-                _camera.Drag(drag.Relative.X, drag.Relative.Y);
+                if (_held == null) _camera.Drag(drag.Relative.X, drag.Relative.Y);
+                else if (_moved >= ClickSlack) Stand(_held, drag.Position);
                 break;
         }
     }
 
-    public void LetGo() => _pressed = false;
+    public void LetGo() => (_pressed, _held) = (false, null);
+
+    /// <summary>Whether a thing is being carried: the pointer says nothing of it meanwhile.</summary>
+    public bool Carrying => _held != null && _moved >= ClickSlack;
+
+    /// <summary>Writes what was moved, if anything was since it last did: when the tablet closes and on every way out.</summary>
+    public void Keep()
+    {
+        if (!_unwritten || _world == 0) return;
+        _unwritten = !BoardFile.Write(FileOf(_world), _spots);
+        if (_unwritten) GD.PushWarning($"The board of world {_world} was not kept.");
+    }
+
+    private static string FileOf(uint world) => BoardFile.PathOf(ProjectSettings.GlobalizePath("user://boards"), world);
+
+    /// <summary>A left press at a point of the view: takes hold of what is there, on top of the rest from now on.</summary>
+    private void Press(Vector2 at)
+    {
+        (_pressed, _moved, _held) = (true, 0, ThingAt(at));
+        if (_held is not { } id) return;
+        _notes[id].Root.MoveToFront();
+        var (x, y) = _camera.ToMap(at.X, at.Y);
+        _heldBy = new Vector2((float)x, (float)y) - At(id);
+    }
+
+    /// <summary>Stands what is held under the pointer, by where it was taken; only it moves, and the threads with it.</summary>
+    private void Stand(string id, Vector2 at)
+    {
+        var (x, y) = _camera.ToMap(at.X, at.Y);
+        _spots[id] = new BoardSpot(x - _heldBy.X + _box.Left, y - _heldBy.Y + _box.Top);
+        _unwritten = true;
+        Grow();
+        _back.QueueRedraw();
+    }
 
     public void Zoom(InputEvent e, Control over)
     {
@@ -244,11 +285,17 @@ public sealed class BoardPage : ITabletPage
     /// <summary>A click at a point of the view: picks what is shown there; off everything, picks nothing.</summary>
     private void Click(Vector2 at)
     {
+        _picked = ThingAt(at);
+        _readSoon();
+    }
+
+    /// <summary>What is shown at a point of the view, the topmost; none if nothing is.</summary>
+    private string? ThingAt(Vector2 at)
+    {
         var (x, y) = _camera.ToMap(at.X, at.Y);
         var point = new Vector2((float)x, (float)y);
         var half = new Vector2(NoteSide / 2f, NoteSide / 2f);
-        _picked = _notes.Where(n => n.Value.Root.Visible).Select(n => n.Key).FirstOrDefault(id => new Rect2(At(id) - half, half * 2).HasPoint(point));
-        _readSoon();
+        return _notes.Where(n => n.Value.Root.Visible).Select(n => n.Key).Where(id => new Rect2(At(id) - half, half * 2).HasPoint(point)).MaxBy(id => _notes[id].Root.GetIndex());
     }
 
     /// <summary>The strip below, built again when anything read has moved: what is known of what is picked.</summary>
@@ -323,8 +370,11 @@ public sealed class BoardPage : ITabletPage
         return link.MadeAt.Contains(id) ? MadeAt : link.From.Contains(id) || link.Takes.Any(t => t.Item == id) ? From : link.UsedIn.Contains(id) ? UsedIn : null;
     }
 
+    /// <summary>Where <paramref name="id"/> stands on the board: where it was moved to, else its slot.</summary>
+    private BoardSpot SpotOf(string id) => _spots.TryGetValue(id, out var spot) ? spot : new BoardSpot(_slots[id].X, _slots[id].Y);
+
     /// <summary>Where <paramref name="id"/> stands on the map, whose top-left is the box's.</summary>
-    private Vector2 At(string id) => new((float)(_slots[id].X - _box.Left), (float)(_slots[id].Y - _box.Top));
+    private Vector2 At(string id) => new((float)(SpotOf(id).X - _box.Left), (float)(SpotOf(id).Y - _box.Top));
 
     /// <summary>One canvas under the notes: the threads, and the lines from what is picked to what it ties to.</summary>
     private void DrawBack()

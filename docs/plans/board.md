@@ -110,7 +110,7 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 - **Two heroes dragging:** each client keeps its own positions and sends nothing. Neither sees the other's arrangement; two people with one tablet each is the point. Knowledge is shared; layout is not.
 - **Late guest:** gets `Obtained` and `Granted` in the Welcome save (`Protocol.cs:46`), and from them the same slots as anyone.
-- **Persistence:** only the notes a player has moved, written when the tablet closes and on leaving, in `user://boards/<seed>.json` for host and guest alike. The seed is the surface's, already in the save (`Sim.cs:303`), so the protocol does not change. Unverified: that a world's seed differs from another's; if it does not, this needs one id on `WelcomeMessage`. The reviewer would have cut persistence for session-only positions. We keep it: arranging notes is what the user asked for, and it is not worth doing if a relaunch undoes it. If the file is lost, notes return to their slots.
+- **Persistence:** only the notes a player has moved, written when the tablet closes and on leaving, in `user://boards/<id>.json` for host and guest alike. The id is `World.Id`, a random number drawn for a new world and carried in its save, so the protocol does not change. The reviewer would have cut persistence for session-only positions. We keep it: arranging notes is what the user asked for, and it is not worth doing if a relaunch undoes it. If the file is lost, notes return to their slots.
 
 ## Budget
 
@@ -142,7 +142,6 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 - **A later ring may open at once** on what was sold before. We do not count sales per ring, as that would throw away what a player already did.
 - **Heroes do not see each other's boards,** and no note is shared, pointed at or written on.
 - **No search, no zoom to fit, no undo of a drag, no reset layout.**
-- **Two worlds with one seed** share a layout. Harmless.
 - **Notes for upgrades:** none. They are the market page's rows.
 
 ## Risks
@@ -166,4 +165,3 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 - Should flares stay on `generator`, or move to a later knowing such as `smelter`? Default: stay, decide at the playtest.
 - Are 3 threads a note enough for a board that invites wandering? Default: 3, a client constant, judged by eye.
-- Is the seed unique enough to key a layout by? To be checked in the plan.

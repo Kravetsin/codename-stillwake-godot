@@ -34,6 +34,7 @@ public partial class ResearchTablet : CanvasLayer
     private readonly TipSpots _tips;
     private readonly StripParts _parts;
     private readonly List<ITabletPage> _pages = [];
+    private readonly BoardPage _board;
     private readonly List<PanelContainer> _tabBoxes = [];
     private ITabletPage _page;
     private double _sinceRead = ReadEvery;
@@ -44,7 +45,8 @@ public partial class ResearchTablet : CanvasLayer
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="peer">This player's peer: whose bag a deposit is taken from.</param>
     /// <param name="send">Sends a command to the session.</param>
-    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<int> peer, Action<Command> send)
+    /// <param name="worldId">Which world is played, on every machine: what the board's layout is kept under.</param>
+    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<int> peer, Action<Command> send, Func<uint> worldId)
     {
         (_ui, _inWorld, _world) = (ui, inWorld, world);
         _tips = new TipSpots(ui.Tip);
@@ -73,7 +75,7 @@ public partial class ResearchTablet : CanvasLayer
             _tabBoxes.Add(box);
             x += box.CustomMinimumSize.X + 4;
         }
-        AddTab(T("research.tab.board"), new BoardPage(_view, _parts, () => _sinceRead = ReadEvery));
+        AddTab(T("research.tab.board"), _board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId));
         foreach (var tab in Content.Research.Tabs) AddTab(T($"research.tab.{tab.Id}"), new RingsPage(tab, _view, _parts, peer, send, () => _sinceRead = ReadEvery));
         _page = _pages[0];
         _head.AddChild(_progress);
@@ -121,7 +123,11 @@ public partial class ResearchTablet : CanvasLayer
     {
         _ui.TreeOpen.Set(false);
         _page.LetGo();
+        KeepBoard();
     }
+
+    /// <summary>Writes what was moved on the board: as it is put away, and on every way out of the world.</summary>
+    public void KeepBoard() => _board.Keep();
 
     /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>
     public Vector2 ScreenOf(string id) => _page.ScreenOf(id);
@@ -144,7 +150,7 @@ public partial class ResearchTablet : CanvasLayer
         _page.Step(delta);
         var mouse = _view.GetViewport().GetMousePosition();
         bool over = _view.GetGlobalRect().HasPoint(mouse) || _detail.GetGlobalRect().HasPoint(mouse);
-        _tips.Frame(open && !_ui.MenuOpen.Get() && over ? mouse : null);
+        _tips.Frame(open && !_ui.MenuOpen.Get() && over && !_board.Carrying ? mouse : null);
         if (!open) return;
         _sinceRead += delta;
         if (_sinceRead < ReadEvery) return;
