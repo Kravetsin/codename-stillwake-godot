@@ -10,13 +10,14 @@ Selling goods for the ship's credits by capsule ([trade-capsule](../../docs/deci
 and the flight are `Content/Market.cs`; what the ground gives for a swing, soil and rock, sells for 1.
 
 - **Depends on:** `Grid` (`IGridQueries.MachinesWith`, `MachineById`), `Items` (`IItemsQueries.Crate`, `IItemsOps.TakeFrom`),
-  `Knowledge` (`IKnowledgeOps.Earn`).
+  `Knowledge` (`IKnowledgeOps.Earn`, `Sell`).
 - **State** (`TradeState`): `Flights`, the capsules away, what each carries and how long it has left. Saved, omitted when empty.
 
 ## Rules
 
 - A machine with `MachineTrait.Sells` is a trade station. `SendCapsule` takes everything priced from its slots at once, however
-  much, for what it is worth at that moment, and `Market.CapsuleFlight` ticks on, launch tick counted, earns that sum.
+  much, for what it is worth at that moment, and `Market.CapsuleFlight` ticks on, launch tick counted, earns that sum. What
+  left is sold from that tick (`Knowledge.Sell`), by hand or from an auto station.
 - One capsule a station. Slots fill as usual while it is away, for the next one. Two are open at first, the rest by upgrades
   (`Items.SlotOpen`).
 - `MachineTrait.AutoSends`: the station launches by itself in the simulation phase whenever `SendCapsule` would be taken, so

@@ -108,6 +108,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     private readonly IRoomsQueries _rooms;
 
     private readonly IKnowledgeQueries _knowledge;
+    private readonly IKnowledgeOps _knowledgeOps;
 
     /// <summary>An inventory's own slots open now, before its equipment: what giving, taking and picking up use (2026-10-30-room-upgrades).</summary>
     private int Own => OpenOf(Content.Upgrades.Bag, Content.Inventory.Start, Content.Inventory.Slots);
@@ -131,11 +132,12 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     public override string Id => "items";
 
-    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge)
+    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
         _grid = grid;
         _rooms = rooms;
         _knowledge = knowledge;
+        _knowledgeOps = knowledgeOps;
         Handles<Drop>(DropProblem, ApplyDrop);
         Handles<PickUp>(c => PickUpProblem(c.From, c.Id), ApplyPickUp);
         Handles<SetCreative>(_ => null, c => State.Creative = c.On);
@@ -435,6 +437,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         var outputs = Smelted(slots, inputs, besides);
         if (outputs == null || Stacks.TakenFrom(slots, 0, Content.Items.Get(slots[0]!.Item).SmeltTakes, out var left, out _) != null)
             throw new InvalidOperationException("items.smelt: nothing to smelt; check CanSmelt");
+        Obtained(Content.Items.Get(slots[0]!.Item).Yields!);
+        Obtained(besides);
         SetMachine(id, [.. left.Take(inputs), .. outputs]);
     }
 
@@ -451,6 +455,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         if (Stacks.IsNothing(cost)) return;
         var slots = Outputs(id, cost) ?? throw new InvalidOperationException("items.output: no room; check OutputFull first");
+        Obtained(cost);
         SetMachine(id, slots);
     }
 
@@ -473,6 +478,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
         if (Stacks.IsNothing(cost)) return [];
+        Obtained(cost);
         var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
         Stacks.SetInventory(State, peer, slots);
         DropAt(peer, left, cell);
@@ -486,9 +492,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         return given;
     }
 
+    /// <summary>What the crew obtains is counted where a stack is born: here, never when one only moves or a payment comes back.</summary>
+    private void Obtained(IReadOnlyList<(string Item, int Count)> cost)
+    {
+        foreach (var (item, count) in Stacks.Entries(cost)) _knowledgeOps.Obtain(item, count);
+    }
+
     /// <summary>Lets <paramref name="cost"/> fall on cell <paramref name="cell"/> as if peer <paramref name="peer"/> dropped it there, still; <see cref="FloorStack.Nobody"/> for a stack anyone may take at once.</summary>
     public void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
+        if (peer == FloorStack.Nobody) Obtained(cost);
         foreach (var (item, count) in Stacks.Entries(cost))
             if (count > 0) FloorRules.LayDown(State, new Stack(item, count), cell, 0, _grid.Width, peer);
     }
@@ -500,6 +513,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// </summary>
     public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away)
     {
+        Obtained(loot);
         bool afloat = _rooms.Afloat(cell);
         foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), Content.Floor.SprayMost))
         {

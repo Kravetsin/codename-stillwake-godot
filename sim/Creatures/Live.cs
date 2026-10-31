@@ -59,7 +59,8 @@ public sealed partial class CreaturesModule
             var creature = all[i];
             if (!Kept(creature)) continue;
             Behave(creature, Spec.Get(creature.Species));
-            all[kept++] = creature;
+            // Dead by its own step, its wreck gone: the mark is not saved, so kept it would load alive and die again.
+            if (!creature.Dead) all[kept++] = creature;
         }
         all.RemoveRange(kept, all.Count - kept);
         if (Habitats.Count > 0 && s.Clock % Spec.Beat == 0) Spawn();

@@ -49,7 +49,7 @@ shots-pierce, shots-fall-aboard).
   edge and a planet's fog. It steps `StepUp`; at a wall it cannot step or a drop of `Drop` it tries a leap (`Lands`),
   else its drive may act (`Blocked`), else it turns.
 - **The clinger:** clamped to its wreck's top, `along` from its middle, riding its drift; off it, it flies straight through
-  walls. Its wreck gone, it holds the last point.
+  walls.
 - **Grazers:** `Graze` idles and wanders by turns, lengths drawn. `Flee` runs its ticks; cornered with a hero near it may
   lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
@@ -66,7 +66,7 @@ shots-pierce, shots-fall-aboard).
   targets in turn (solid, the lowest-id creature, a wreck), skipping `Passed`, at its gun's keep after `Pierced`: through what
   its gun `Pierces` (`Broken` or `All`, what stands `Passed`), else ending. Falling by its cell
   (`ShotFlight.Gravity`, shots-fall-aboard): none `Afloat`, aboard by the ship's gravity, on a planet by its kind's.
-- **The dead** are gone to every command and cap from the blow, listed till swept.
+- **The dead** are gone to every command and cap from the blow, swept within the tick: the mark is not saved.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `ReleaseProblem`, `Place`.

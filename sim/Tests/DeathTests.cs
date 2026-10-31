@@ -22,17 +22,18 @@ public class DeathTests
 
     private const int Width = 20;
     private static int At(int x, int y) => y * Width + x;
-    private static readonly int Spawn = At(11, 1), Inside = At(15, 1), InSpace = At(4, 1);
+    private static readonly int Spawn = At(11, 1), InSpace = At(4, 1);
+    internal static readonly int Inside = At(15, 1);
     private static int StackOf(string item) => Content.Items.Get(item).Stack;
 
-    private static Scenario Room() => new(Layout.Parse(Map));
+    internal static Scenario Room() => new(Layout.Parse(Map));
     private static IReadOnlyList<FloorStack> Floor(Scenario w) => w.M.Items.Floor;
     private static int Ticks(Scenario w) => ((ItemsState)w.M.Items.Slice).Ticks;
     private static Hero HeroOf(Scenario w, int peer = 0) => w.M.Crew.HeroOf(peer)!;
     private static int Count(Scenario w, int peer, string item) => w.M.Items.Totals(peer).Where(t => t.Item == item).Sum(t => t.Count);
 
     /// <summary>Peer <paramref name="peer"/>'s hero brought to <paramref name="cell"/> and run until it passes out there.</summary>
-    private static Scenario DieAt(Scenario w, int cell, int peer = 0)
+    internal static Scenario DieAt(Scenario w, int cell, int peer = 0)
     {
         w.Do(new Enter(cell) { From = peer }).Run();
         for (int i = 0; i < 2 * Scenario.Full * Content.Crew.BreathEvery && HeroOf(w, peer).Out == 0; i++) w.Run();
