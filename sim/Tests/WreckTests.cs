@@ -115,8 +115,8 @@ public class WreckTests
         var walls = Enumerable.Range(0, Wreck.Width * Wreck.Height).Where(c => m.Grid.WallAt(c) != null).ToList();
         var iron = walls.Where(c => m.Grid.WallAt(c)!.Id == "iron").ToHashSet();
         Assert.Equal(76, iron.Count);
-        // Everything else scrap, and behind every wall a scrap back wall: an iron wall pays one plate.
-        Assert.All(walls.Where(c => !iron.Contains(c)), c => Assert.Equal("scrap", m.Grid.WallAt(c)!.Id));
+        // Everything else scrap, its dressed plates included, and behind every wall a scrap back wall: an iron wall pays one plate.
+        Assert.All(walls.Where(c => !iron.Contains(c)), c => Assert.Contains(m.Grid.WallAt(c)!.Id, (string[])["scrap", "wreckScrap"]));
         Assert.All(walls, c => Assert.Equal("scrap", m.Grid.BackAt(c)?.Id));
     }
 
