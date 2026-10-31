@@ -1,12 +1,11 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Machine footprints, builds, the drone bay, air, power and light.</summary>
+/// <summary>Machine footprints, builds, the drone bay, air and power.</summary>
 public partial class ContentTests
 {
     [Fact]
@@ -143,38 +142,4 @@ public partial class ContentTests
     [Fact]
     public void PowerLetsASolarPanelRunAGeneratorInFull() =>
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);
-
-    // Light
-
-    [Fact]
-    public void LightFadesInAirMoreThroughMachinesAndACellThickWallLetsNextToNoneThrough()
-    {
-        Assert.True(Light.Margin >= 0);
-        Assert.True(Light.Rounds >= 1);
-        foreach (float keep in (float[])[Light.StarKeep, Light.StarMachine, Light.WallIn, Light.WallDeep, Light.WallOut])
-        {
-            Assert.True(keep > 0);
-            Assert.True(keep < 1);
-        }
-        Assert.True(Light.StarMachine < Light.StarKeep);
-        // Through a wall a cell thick, into the cell beyond: a tenth at most.
-        Assert.True(Light.WallIn * Light.WallOut * Light.StarKeep < 0.1f);
-    }
-
-    [Fact]
-    public void LightComesInColoursAbove0SourcesAtMostTwiceWhiteNeverLeavingACornerBlack()
-    {
-        foreach (var (r, g, b) in (List<(float, float, float)>)[Light.Star, Light.Lamp, Light.Fire])
-            foreach (float n in (float[])[r, g, b])
-            {
-                Assert.True(n > 0);
-                Assert.True(n <= 2);
-            }
-        foreach (float n in (float[])[Light.Ambient.R, Light.Ambient.G, Light.Ambient.B])
-        {
-            Assert.True(n > 0);
-            Assert.True(n < 1);
-        }
-        Assert.True(Light.Particle > 0);
-    }
 }

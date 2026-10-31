@@ -52,8 +52,6 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 Tests in Release halved `dotnet test` ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)), and it
 is still most of a run. Measured 2026-10-31, by what each would save:
 
-- A PR runs only what its paths can break, `main` everything. Of the last 100 PRs 9% touched only docs (`DocsGuardTests` is
-  enough) and about a quarter only the client (no `Sim.Tests` or `Net.Tests`, but `sim/Tests` links `game/Content/logic/Light.cs`).
 - The budget tests in a job of their own: they run alone, after the others, about 30% of `Sim.Tests`' time.
 - Planets shared between tests: three tests grow the first planet on the same 50 seeds, 27% of the summed test time.
 - The slowest tests in the run's summary, from a trx: the step grew from 15 s to 150–400 s in two weeks, one test at a time.
