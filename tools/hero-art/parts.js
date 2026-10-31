@@ -272,3 +272,4 @@ const collar = [
 ];
 
 module.exports = { SUIT_DRAWN, SUITS, SKINS, SKIN_DRAWN, HAIRS, HAIR_DRAWN, FIXED, HEAD_JOINT, HAIR_JOINT, head, faces, hairs, beards, visor, jumpsuit, cape, hood, collar };
+
