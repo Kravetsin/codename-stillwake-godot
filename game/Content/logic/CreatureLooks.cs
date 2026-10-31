@@ -113,6 +113,9 @@ public static class CreatureLooks
     /// </summary>
     public static readonly IReadOnlySet<string> Ticks = new HashSet<string> { Stillwake.Content.Creatures.Sentry.Look };
 
+    /// <summary>The looks with no art yet, drawn as a plain box that shows what the creature is doing (<c>PlaceholderBodies</c>).</summary>
+    public static readonly IReadOnlySet<string> Boxes = new HashSet<string> { Stillwake.Content.Creatures.Warden.Look };
+
     /// <summary>
     /// A tick's eye lamp's light: its colour at this strength times its brightness (half the page's 0.85, a third more acting), out
     /// to <see cref="LightReach"/> cells; its burner's, orange, at <see cref="TickBurnerLight"/> times its thrust, out to

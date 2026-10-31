@@ -26,12 +26,14 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
 
     private bool Beams => course || ram != null;
     private int BeamCell => ram != null ? RamCell : CourseCell;
+    private static readonly IReadOnlyList<Spec.Creatures.Species> Wild = [.. Spec.Creatures.All.Where(s => s.Lifetime == Spec.Creatures.Lifetime.Wild)];
+
     /// <summary>
     /// The species let out: <c>--creatures=fluff</c>'s (a species' id or its look's), else each of them in turn round the hero, so one
     /// run shows them all.
     /// </summary>
     private string SpeciesAt(int i) =>
-        kind == null ? Spec.Creatures.All[i % Spec.Creatures.All.Count].Id
+        kind == null ? Wild[i % Wild.Count].Id
         : Spec.Creatures.All.FirstOrDefault(s => s.Id == kind || s.Look == kind)?.Id ?? throw new ArgumentException($"--creatures={kind}: no such species");
 
     /// <summary>Where the creatures are let out, in columns from the hero's: some near, some farther, both sides.</summary>
