@@ -46,7 +46,8 @@ public class TestbedTests
     public void DrawsEveryKindOfMachine()
     {
         var drawn = Testbed.Map.Machines().Select(x => x.Kind).ToHashSet();
-        Assert.All(Spec.Machines.All, spec => Assert.Contains(spec.Kind, drawn));
+        // A pile is only ever in the hold of the ship a world starts in.
+        Assert.All(Spec.Machines.All.Where(m => m.Menu != null || m.Fixed), spec => Assert.Contains(spec.Kind, drawn));
     }
 
     [Fact]

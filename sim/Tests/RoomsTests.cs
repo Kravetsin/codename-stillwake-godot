@@ -192,7 +192,7 @@ public class RoomsTests
         // Two locks and the room between, named by their first cells; the hold is space.
         Assert.Equal(new[] { w.At(86, 38), w.At(92, 38), w.At(110, 38) }, w.M.Rooms.All.Select(r => r.Id));
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(82, 42)));
-        Assert.Equal(new[] { "solarPanel", "lifepod" }, w.M.Grid.Machines.Select(m => m.Kind));
+        Assert.Equal(new[] { "solarPanel", "lifepod" }, w.M.Grid.Machines.Where(m => Machines.Get(m.Kind).Menu != null || Machines.Get(m.Kind).Fixed).Select(m => m.Kind));
     }
 
     private static readonly char[] Chars = [' ', '.', '#', '#', '#', '=', 'H', 'D', 'd'];

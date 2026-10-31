@@ -145,7 +145,7 @@ public partial class ContentTests
         static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
         return Materials.All.SelectMany(m => new[] { $"wall{Titled(m.Id)}", $"backWall{Titled(m.Id)}" })
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
+            .Concat(Machines.All.Where(m => m.Menu != null).Select(m => m.Kind));
     }
 
     [Fact]

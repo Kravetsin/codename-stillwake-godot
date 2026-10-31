@@ -135,9 +135,9 @@ public sealed partial class BuildingModule
         return State.Instant && place.Kind == "wall" && HeroIn(cell) ? "building.heroInside" : null;
     }
 
-    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock; creative mode too.</summary>
+    /// <summary>A wall or back wall of a material no blueprint builds (0077), of bedrock, or a machine none does, a pile; creative mode too.</summary>
     private static bool Unbuilt(Placement place) =>
-        place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _) && !Research.Blueprints.Has(place);
+        ((place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _)) || (place.Layer == "machine" && Machines.TryGet(place.Kind, out _))) && !Research.Blueprints.Has(place);
 
     /// <summary>
     /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative

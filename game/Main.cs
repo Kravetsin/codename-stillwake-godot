@@ -386,7 +386,7 @@ public partial class Main : Node2D, ITogether
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
             // A flare coming makes them falter as one short of power does (magnetic-flare).
-            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f
+            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => (Stillwake.Content.Machines.Get(lamp.Kind).Draws == null ? 1f : power.Satisfaction(lamp.Id) / 1000f)
                 * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,

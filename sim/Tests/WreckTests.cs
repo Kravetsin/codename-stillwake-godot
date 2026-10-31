@@ -88,12 +88,14 @@ public class WreckTests
     }
 
     [Fact]
-    public void HoldsTheLifepodOnItsPipeAndAPanelOnTheRoofAndNothingElse()
+    public void HoldsTheLifepodOnItsPipeAPanelOnTheRoofAndThePilesInTheHoldAndNothingElse()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["solarPanel", "lifepod"], m.Grid.Machines.Select(x => x.Kind));
-        Assert.Equal([Panel, Pod], m.Grid.Machines.Select(x => x.Cell));
+        Assert.Equal(["solarPanel", "lifepod"], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Menu != null || Machines.Get(x.Kind).Fixed).Select(x => x.Kind));
+        Assert.Equal([Panel, Pod], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Menu != null || Machines.Get(x.Kind).Fixed).Select(x => x.Cell));
+        Assert.Equal(2, m.Grid.MachinesOf("emergencyLamp").Count);
+        Assert.Equal(["pileBits", "pileCargo", "pileHull", "pileScrap"], m.Grid.Machines.Where(x => x.Kind.StartsWith("pile", StringComparison.Ordinal)).Select(x => x.Kind).Order(StringComparer.Ordinal));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         // Four doors, each two cells by six.
@@ -330,6 +332,8 @@ public class WreckTests
     public void MakesTheHoldARoomOnceItsThroatIsWalled()
     {
         var w = new Scenario(Wreck);
+        // The pile standing in the throat comes out first: it holds its cells' build slot.
+        TakeApart(w, "pileScrap");
         foreach (int cell in Cells(24, 24, 14, 30)) w.Do(new Place(cell, Placement.Wall("scrap")));
         w.Run();
         var room = w.M.Rooms.RoomAt(At(30, 18));
@@ -378,10 +382,18 @@ public class WreckTests
     public void OpensTheLampWithTheBurnerForNothingBeforeItMakesPower() =>
         Assert.Equal(ResearchSpec.Node("burnerGenerator")!.Ring, ResearchSpec.Node("lamp")!.Ring);
 
+    private static void TakeApart(Scenario w, string kind)
+    {
+        w.Do(new Deconstruct(w.M.Grid.MachinesOf(kind).Single().Cell, "machine")).Run();
+        for (int i = 0; i < Machines.Get(kind).BuildTicks / Content.Builds.DeconstructSpeedup; i++) w.Do(new Work(w.M.Building.Plans.Single().Id) { From = 1 }).Run();
+    }
+
     [Fact]
     public void WillNotLightAFurnaceInTheHold()
     {
         var w = new Scenario(Wreck);
+        TakeApart(w, "pileCargo");
+        TakeApart(w, "pileBits");
         int id = Build(w, "furnace", At(29, 17), ("planks", 1), ("scrapChunk", 1));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 1)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 1)).Run();
