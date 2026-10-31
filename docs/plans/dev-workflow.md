@@ -46,6 +46,20 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 - Big classes a smaller model struggles to hold: `HeroView` (held tools as `IHeldTool` strategies) and
   `InventoryPanel` (machine windows by kind). Check what the `Main`/`HeroView` split already did.
 
+### 2. CI speed
+
+Tests in Release halved `dotnet test` ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)), and it
+is still most of a run. Measured 2026-10-31, by what each would save:
+
+- A PR runs only what its paths can break, `main` everything. Of the last 100 PRs 9% touched only docs (`DocsGuardTests` is
+  enough) and about a quarter only the client (no `Sim.Tests` or `Net.Tests`, but `sim/Tests` links `game/Content/logic/Light.cs`).
+- The budget tests in a job of their own: they run alone, after the others, about 30% of `Sim.Tests`' time.
+- Planets shared between tests: three tests grow the first planet on the same 50 seeds, 27% of the summed test time.
+- The slowest tests in the run's summary, from a trx: the step grew from 15 s to 150–400 s in two weeks, one test at a time.
+- `format`, about 2 minutes beside `build, tests`, is a run's floor once that gets as short. `dotnet format whitespace --folder`
+  takes 6 s against 35 on a desk and catches whitespace, but not `IDE0161` (file-scoped namespaces).
+- x64 or `ubuntu-24.04-arm`, once `lscpu` in the logs shows how often a run draws x64's slowest machines (see the ADR).
+
 ## Delegating to Sonnet: what worked
 
 Three tasks were run as Sonnet sub-agents and reviewed (#181, #184, #187).
