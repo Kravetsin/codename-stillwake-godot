@@ -51,6 +51,9 @@ public static partial class CreatureArt
 /// </summary>
 public static class CreatureLooks
 {
+    /// <summary>How long after this player's own strike the sim's damage rising is that strike's, already shown, in milliseconds.</summary>
+    public const double OwnMs = 700;
+
     /// <summary>
     /// A design's gait at speed: <paramref name="Stride"/> pixels walked a stride at a slow walk, its strides lengthening as it goes
     /// faster so it takes at most <paramref name="MostStrides"/> a second however fast it runs — a 30-cell-a-second flight a gallop
@@ -113,8 +116,11 @@ public static class CreatureLooks
     /// </summary>
     public static readonly IReadOnlySet<string> Ticks = new HashSet<string> { Stillwake.Content.Creatures.Sentry.Look };
 
-    /// <summary>The looks with no art yet, drawn as a plain box that shows what the creature is doing (<c>PlaceholderBodies</c>).</summary>
-    public static readonly IReadOnlySet<string> Boxes = new HashSet<string> { Stillwake.Content.Creatures.Warden.Look };
+    /// <summary>
+    /// The looks drawn as the Istukan, the guard page's candidate 4 (<c>IstukanArt</c>, <c>IstukanMotion</c>): a sprite posed and drawn anew,
+    /// as the tick is.
+    /// </summary>
+    public static readonly IReadOnlySet<string> Istukans = new HashSet<string> { Stillwake.Content.Creatures.Warden.Look };
 
     /// <summary>
     /// A tick's eye lamp's light: its colour at this strength times its brightness (half the page's 0.85, a third more acting), out

@@ -156,7 +156,7 @@ public sealed partial class BuildingModule
     /// The cells <paramref name="plant"/> holds on to: the cell under each of its columns on a floor (a wall, or a piece it stands
     /// on), over each from a ceiling, its own walls in the rock; for one on a back wall, the back walls of its own cells.
     /// </summary>
-    private IEnumerable<int> HoldsOf(Plant plant)
+    public IEnumerable<int> HoldsOf(Plant plant)
     {
         var kind = Kinds[plant.Kind];
         if (kind.On is Flora.Anchor.Rock or Flora.Anchor.Back)

@@ -24,6 +24,8 @@ a 150 Hz high-pass at −20 dBFS, peaks at −1 dBFS at most), then all turned d
 arc's charge and hit, picked later, matched to them by that loudness, capped at −3 dBFS. Its
 death is two sources mixed as the audition mixed them. Its burner is the jetpack's loop, its hit the wreck's chop.
 
+The warden's sounds are the guard audition's picks, cut and levelled as the sentry's: each the length given here from its attack, its last 45% faded out. Its landing is a hero's on alloy and its hit a tool's on alloy, so they are not here.
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -59,6 +61,13 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 | `crafting/smelter-crackle-5.wav` | generated for Stillwake: pop 5 of six, white noise (mulberry32 seed 4104) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `crafting/smelter-crackle-6.wav` | generated for Stillwake: pop 6 of six, white noise (mulberry32 seed 4105) decaying over 15–40 ms through a band-pass at 300–900 Hz, Q 5 (seed 41 draws each pop's length and band); the six levelled together so two a second have −23 dBFS RMS (the audition's "Molten bubbling") | Stillwake team | CC0 |
 | `creatures/death-squish-1.wav` | Freesound, "Gooey Squish", https://freesound.org/people/editor_adp/sounds/269482/: its HQ preview from 5 ms before its attack to its end (0.84 s), faded over its last 30 ms, its loudest 100 ms RMS raised to the death audition's, its peaks rounded off at −1 dBFS by a tanh | editor_adp | CC0 |
+| `creatures/warden-wake-1.wav` | Freesound, "Robot Awakening, Power On" (1.17 s), https://freesound.org/people/GammaGool/sounds/746988/ | GammaGool | CC0 |
+| `creatures/warden-alert-1.wav` | Freesound, "Synthetic monster growl.wav" (0.9 s), https://freesound.org/people/Wax_vibe/sounds/556613/ | Wax_vibe | CC0 |
+| `creatures/warden-windup-1.wav` | Freesound, "hydraulic office chair moving effect 01" (0.78 s), https://freesound.org/people/rubberduck9999/sounds/678452/ | rubberduck9999 | CC0 |
+| `creatures/warden-pounce-1.wav` | Freesound, "burst3.wav" (0.6 s), https://freesound.org/people/ReadeOnly/sounds/186926/ | ReadeOnly | CC0 |
+| `creatures/warden-punch-1.wav` | Freesound, "PUNCH-BOXING-03.wav" (0.45 s), https://freesound.org/people/newagesoup/sounds/348242/ | newagesoup | CC0 |
+| `creatures/warden-death-1.wav` | Freesound, "Computer Breaking Sound" (1.04 s), https://freesound.org/people/thehorriblejoke/sounds/505751/ | thehorriblejoke | CC0 |
+| `creatures/warden-shutdown-1.wav` | Freesound, "MachinePowerOff.flac" (1.6 s), https://freesound.org/people/Skylar1146/sounds/395378/ | Skylar1146 | CC0 |
 | `creatures/sentry-alert-1.wav` | Freesound, "Computer Chirp.wav", https://freesound.org/people/pointparkcinema/sounds/407244/ | pointparkcinema | CC0 |
 | `creatures/sentry-windup-1.wav` | Freesound, "servomotor.wav", https://freesound.org/people/vacuumfan7072/sounds/264592/ | vacuumfan7072 | CC0 |
 | `creatures/sentry-unclamp-1.wav` | Freesound, "SqueakyClick1.wav" (from 0.067 s), https://freesound.org/people/BMacZero/sounds/94133/ | BMacZero | CC0 |
