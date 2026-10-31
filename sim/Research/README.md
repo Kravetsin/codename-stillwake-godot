@@ -20,7 +20,7 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 
 - A blueprint is named as the build menu names its card: a wall or back wall by kind and material (`wallIron`), anything
   else by the grid's name (`floor`, `furnace`). A craft by the item it makes. Cables are no blueprint and always known.
-- A solar panel taken apart teaches it (`Content.Research.KnownTakenApart`, granted by `Building`), and nothing else does.
+- `Content.Research.NeverKnown`, the solar panel, is opened by nothing, on a map that names what it knows.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`); a map with none knows
   everything. In creative mode everything is known and every node done.
 - **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known, a gate when

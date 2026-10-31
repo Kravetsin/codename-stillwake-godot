@@ -10,7 +10,8 @@
 The first solo playtest of the rings: paying the gates before the jetpack was a grind, mostly of hand work at a workbench
 (the machinery gate alone took 28 minutes of it); the nailer opened before the harpoon although nothing it answers is met before the
 jetpack; a harpoon outran the stream, a piece every 10 s, of which a fifth gave iron, so a player waited and could not grow the ship;
-and the build menu offered a solar panel from the first minute, which nobody can build.
+and the build menu offered a solar panel from the first minute, which nobody can build. The user would rather a player can lose than
+keep it for the sake of one who takes the wreck's own apart.
 
 ## Decision
 
@@ -22,13 +23,15 @@ and the build menu offered a solar panel from the first minute, which nobody can
 - **The stream brings a piece every 4 s** (60 ticks plus up to 40, at most 60 out, 20 at the start), about all a harpoon can reel in.
   What it adds is plain salvage: scrap chunks, hull plates, and twice the crates and half again the supply pods. Wrecks,
   racks and soil clods come about as often as before, so found circuits and seeds stay as rare.
-- **The solar panel is learned by taking one apart** (`Research.KnownTakenApart`, granted by `Building`), and in no other way. Its
-  card is not in the menu until there is a panel's worth of parts to build it from; a player who takes the wreck's apart can always put
-  it back, which is what known from the start was for.
+- **The solar panel is out of the crafts** (`Research.NeverKnown`): no block opens it, and taking one apart does not either. The wreck's
+  own taken apart is gone for good, its parts in hand. We accept that a player can hurt themself: it is a loss, not a dead end, as
+  the lifepod's air and a death at the pod ask for no power, the furnace and the workbench neither, and the burner generator opens by
+  the machinery gate.
 
 ## Consequences
 
-- A world saved earlier keeps the panel known, as it keeps all it knows; no format change.
+- A world saved earlier keeps the panel known, as it keeps all it knows; no format change. We do not take it back: only our own
+  test worlds have one.
 - More salvage is more credits all game, not only in the first hour. We do not scale the stream down later on: the far field and
   the machines soon outrun it anyway, and the 5-hour target is for the next playtest to check.
 - We do not touch how long a craft takes: the workbench stays slow, which is what makes the Former worth building.

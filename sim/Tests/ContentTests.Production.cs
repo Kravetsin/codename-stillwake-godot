@@ -350,7 +350,7 @@ public partial class ContentTests
             had.Add(item);
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
         }
-        var known = new HashSet<string>(Content.Research.StartKnown.Concat(Content.Research.KnownTakenApart), StringComparer.Ordinal);
+        var known = new HashSet<string>(Content.Research.StartKnown.Concat(Content.Research.NeverKnown), StringComparer.Ordinal);
         var built = new HashSet<string>(StringComparer.Ordinal);
         var done = new HashSet<string>(StringComparer.Ordinal);
         for (bool more = true; more;)
@@ -393,7 +393,7 @@ public partial class ContentTests
     public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(Content.Research.StartKnown).Concat(Content.Research.KnownTakenApart).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(Content.Research.StartKnown).Concat(Content.Research.NeverKnown).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
     }
@@ -722,12 +722,12 @@ public partial class ContentTests
     /// second one.
     /// </summary>
     [Fact]
-    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTeachesTheSolarPanel()
+    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndNothingOpensTheSolarPanel()
     {
         Assert.Equal(["photoPanel"], WrecksOwn);
         Assert.Contains(("photoPanel", 1), Machines.Get("solarPanel").Cost);
         Assert.DoesNotContain("solarPanel", Content.Research.StartKnown);
-        Assert.Equal(["solarPanel"], Content.Research.KnownTakenApart);
+        Assert.Equal(["solarPanel"], Content.Research.NeverKnown);
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item)
             .Concat(DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item))
             .Concat(Content.Items.All.SelectMany(i => (i.Yields ?? []).Select(y => y.Item).Concat((i.Byproducts ?? []).Select(b => b.Item))))

@@ -41,10 +41,10 @@ public static class Research
     ];
 
     /// <summary>
-    /// What is learned by taking one apart, and no other way: the solar panel. The wreck's own gives back the photosensitive panel
-    /// nothing makes, and so it can be built again; no panel to build is no card in the menu.
+    /// What a world never comes to know, though one may stand in it: the solar panel, out of the economy. The wreck's own taken
+    /// apart is gone for good, which the lifepod's air and the burner generator make a loss and no dead end (first-hour-pace).
     /// </summary>
-    public static readonly IReadOnlyList<string> KnownTakenApart = ["solarPanel"];
+    public static readonly IReadOnlyList<string> NeverKnown = ["solarPanel"];
 
     /// <summary>How many times its worth a craft costs on top of its ring's: a blueprint already costs what it is built of, a craft only a unit.</summary>
     public const int CraftTimes = 3;

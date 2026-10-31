@@ -2,7 +2,6 @@ using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
-using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
@@ -72,7 +71,6 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
-    private readonly IKnowledgeOps _knowledgeOps;
     private readonly ICraftingQueries _crafting;
     private readonly ICrewQueries _crew;
     private readonly ICrewOps _crewOps;
@@ -82,7 +80,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
 
     public BuildingModule(
         IGridQueries grid, IGridOps gridOps, IItemsQueries items, IItemsOps itemsOps,
-        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IKnowledgeOps knowledgeOps, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
+        IPowerQueries power, IPowerOps powerOps, IResearchQueries research, ICraftingQueries crafting, ICrewQueries crew, ICrewOps crewOps,
         IPipesQueries pipes)
     {
         _grid = grid;
@@ -92,7 +90,6 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _power = power;
         _powerOps = powerOps;
         _research = research;
-        _knowledgeOps = knowledgeOps;
         _crafting = crafting;
         _crew = crew;
         _crewOps = crewOps;
@@ -245,11 +242,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         {
             // What a mark names may be gone already, to a meteor: then there is nothing to refund. RefundOf tells the same.
             // A ladder or a doorway comes apart whole, as it was built (0104); a machine's cables stay, on a peg (0110).
-            if (plan.Clear == "machine" && _grid.MachineAt(plan.Cell) is { } machine)
-            {
-                _powerOps.Unplug(machine.Id);
-                if (Content.Research.KnownTakenApart.Contains(machine.Kind)) _knowledgeOps.Grant(machine.Kind);
-            }
+            if (plan.Clear == "machine" && _grid.MachineAt(plan.Cell) is { } machine) _powerOps.Unplug(machine.Id);
             foreach (int cell in plan.Clear == "structure" ? _grid.PieceOf(plan.Cell) : [plan.Cell]) _gridOps.Clear(cell, plan.Clear!);
             _itemsOps.GiveOrDrop(from, refund, plan.Cell);
         }
