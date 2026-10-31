@@ -16,7 +16,7 @@
 
 Every stack of items: inventories by peer, machines' by id, the floor's, and creative mode, taking nothing (0008).
 
-- **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open room cells).
+- **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
   `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
@@ -36,7 +36,8 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (`Stacks.Misfit`, 0047). Worn items
   are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there, a suit for Crew (2026-10-27-suits-are-worn).
-- **Give and take** all of a cost or none (0008; order no ADR): giving fills stacks of the item in slot order, then empty
+- **Obtained** (board.md): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `DropAt` for `Nobody` count; the rest moves or refunds.
+- **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full.
 - **Move** (0008) takes the least of `Count`, what `Src` holds and what fits, onto an empty slot or a stack alike; part
@@ -59,15 +60,15 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
   what has a capacity, a `Takes` only its item. Outputs are the slots past the inputs (0057).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
-- **The floor** (no ADR; numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
+- **The floor** (numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
   inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell before
   space, ties by index, else rises a cell. Afloat it flies on, drifting only with no back wall;
   elsewhere it falls by gravity times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts`
   after a drop. Alike stacks resting in a cell merge, the later time kept.
   `Spray` (2026-10-29-kill-feel): a kill's loot, a unit a piece up to `SprayMost`, thrown away from the striker.
-- **Machines and ladders hold no stack** (no ADR): one falls through; one laid there stays.
+- **Machines and ladders hold no stack**: one falls through; one laid there stays.
 - **Whole cells** (0106): a stack is a point, landing on a cell's top, stopped by a built cell, never climbing.
-- **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks (no ADR).
+- **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks.
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
   `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative mode leaves none. Each is gone
   `BodyLasts` after death; stacks merge only within one body or outside any.
@@ -93,8 +94,6 @@ negative cost throws.
   outlasts its owner leaving and is anyone's.
 - Reach is the client's. A stale pick, or a drone after a sort, takes what is there then.
 - A stack pushed out of a wall in space with no room in reach drifts away.
-- Anyone may switch creative mode (dev panel).
 - A module in a machine gone other than by `Building` would stay in `Fitted`: nothing a player does causes it.
 - A fit shows once its tick runs (0014). Of two drills carried the fitted one works (0098).
 - Charge never leaks; short of a tick's draw, it waits to be charged (0053).
-- A `Run` landing on a hero already out pays one tick before `Crew` stops it.

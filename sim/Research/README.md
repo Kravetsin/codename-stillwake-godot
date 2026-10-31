@@ -7,6 +7,7 @@
 | `Blueprints.cs` | Every blueprint: what a card of the build menu places, by the name the tree knows it by. |
 | `Prices.cs` | What a block costs, worked out from what it opens. |
 | `Research.cs` | Knowing blueprints and crafts: what the world knows, the tree it buys more of, and its gates' deposits. |
+| `Understanding.cs` | How many of a part the crew must have obtained to understand it. |
 
 Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md), [tech-rings](../../docs/decisions/2026-10-30-tech-rings.md)). The tree is data,
 `Content/Research.cs`. A blueprint not known cannot be planned (`building.unknown`), a craft not known not queued
