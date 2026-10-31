@@ -31,7 +31,7 @@ Every run gave the same results, in Debug and Release, on x64 and arm64. A desk 
   share of a tick, took 0.15–0.24 ms of its 0.4 ms.
 - CI logs `lscpu`, to tie a slow run to its machine. Past runs fall into three speeds, the slowest more than twice the
   fastest; the slowest did not turn up among these four x64 machines. Later runs named it: AMD EPYC 7763, 131–145 s of tests in
-  Release against the EPYC 9V45's 75–80 s, in 4 of 10 runs.
+  Release against the EPYC 9V45's 75–80 s, in 7 of 16 runs.
 
 ## Consequences
 
