@@ -15,7 +15,7 @@ was redrawn since; the painter holds the earlier look.
 | `machines/charger.js` | `machine_charger` | none | `node tools/ship-art/machines/charger.js [file]` | pixel-exact 1/1 |
 | `machines/capacitor-bank.js` | `machine_capacitorBank` (0101) | none | `node tools/ship-art/machines/capacitor-bank.js [file]` | exact 1/1 |
 | `machines/parts.js` | `items/rotor`; also `wire`, `plate`, `gear` | none | `node tools/ship-art/machines/parts.js [itemsDir]` | `rotor` exact; others drifted (`resource-icons`) |
-| `piles/gen.js` | `machine_pile*`, `machine_emergencyLamp` | `debris/`, `machine_lamp` | `node tools/ship-art/piles/gen.js [artDir]` | exact 5/5 |
+| `piles/gen.js` | `machine_pile*`, `machine_emergencyLamp` | `debris/` | `node tools/ship-art/piles/gen.js [artDir]` | exact 5/5 |
 | `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | `.raw` for `ffmpeg` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; drill ones drifted (`drill/`) |
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
 | `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` was `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | 1/2; icon gone |

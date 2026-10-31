@@ -37,7 +37,6 @@ public class WreckTests
     private static readonly int[] Lock = [.. Cells(60, 63, 13, 20)];
     private static readonly int[] Hold = [.. Cells(24, 33, 14, 30)];
     private static readonly int LeftOuter = At(34, 15), LeftInner = At(40, 15), Inner = At(58, 15), Outer = At(64, 15);
-    private static readonly int Panel = At(38, 7);
     /// <summary>The lifepod's top-left cell, in A against the right lock's inner door, and its hatch.</summary>
     private static readonly int Pod = At(52, 15), Hatch = Pod + Content.Crew.PodHatch.Y * Wreck.Width + Content.Crew.PodHatch.X;
     /// <summary>A cell of open space, off the hull.</summary>
@@ -88,12 +87,12 @@ public class WreckTests
     }
 
     [Fact]
-    public void HoldsTheLifepodOnItsPipeAPanelOnTheRoofAndThePilesInTheHoldAndNothingElse()
+    public void HoldsTheLifepodOnItsPipeAndThePilesInTheHoldAndNothingElse()
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap", "solarPanel"], m.Grid.Machines.Select(x => x.Kind).Order(StringComparer.Ordinal));
-        Assert.Equal([Panel, Pod], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Menu != null || Machines.Get(x.Kind).Fixed).Select(x => x.Cell));
+        Assert.Equal(["emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap"], m.Grid.Machines.Select(x => x.Kind).Order(StringComparer.Ordinal));
+        Assert.Equal([Pod], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Fixed).Select(x => x.Cell));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         // Four doors, each two cells by six.
@@ -382,9 +381,9 @@ public class WreckTests
     public void OpensTheLampWithTheBurnerForNothingBeforeItMakesPower() =>
         Assert.Equal(ResearchSpec.Node("burnerGenerator")!.Ring, ResearchSpec.Node("lamp")!.Ring);
 
-    /// <summary>Each lights the hold, up against what it hangs from: a lamp in mid-air would read as a mistake.</summary>
+    /// <summary>Each lights the hold, on the wall its bracket reaches: a lamp in mid-air reads as a mistake.</summary>
     [Fact]
-    public void HangsAnEmergencyLampInEachPartOfTheHoldUnderACeiling()
+    public void HangsAnEmergencyLampInEachPartOfTheHoldOnItsRightWall()
     {
         var w = new Scenario(Wreck);
         var lamps = w.M.Grid.MachinesOf("emergencyLamp");
@@ -393,8 +392,7 @@ public class WreckTests
         foreach (var lamp in lamps)
         {
             Assert.Contains(lamp.Cell, inHold);
-            int above = lamp.Cell - Wreck.Width;
-            Assert.True(w.M.Grid.WallAt(above) != null || w.M.Grid.StructureAt(above) == Structure.Floor, $"{lamp.Cell}");
+            Assert.NotNull(w.M.Grid.WallAt(lamp.Cell + Machines.Get(lamp.Kind).Width));
         }
     }
 

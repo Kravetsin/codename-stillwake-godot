@@ -45,8 +45,8 @@ public class PilesTests
     public void TheyHoldWhatTheDesignSays()
     {
         var stock = Stock();
-        Assert.Equal((16, 8, 6), (stock["scrapChunk"], stock["hullPlate"], stock["planks"]));
-        Assert.Equal(3, stock.Count);
+        Assert.Equal((16, 8, 6, 1), (stock["scrapChunk"], stock["hullPlate"], stock["planks"], stock["photoPanel"]));
+        Assert.Equal(4, stock.Count);
     }
 
     [Fact]

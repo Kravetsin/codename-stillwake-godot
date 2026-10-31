@@ -1,5 +1,5 @@
 // The hold's piles (the-scoop): pieces of the debris art heaped into a machine's footprint, a dark mound behind them, flat on the floor.
-// And its emergency lamp: the ship's lamp with a red glass.
+// And its emergency lamp: a red glass on a bracket from the wall on its right.
 const path = require('path');
 const { read, write } = require('../part-icons/png.js');
 const ART = path.join(__dirname, '../../../game/art');
@@ -42,10 +42,25 @@ for (const pile of PILES) {
   write(path.join(OUT, `machine_${pile.kind}.png`), { w: W, h: H, data: px });
 }
 
-const lamp = read(path.join(ART, 'machine_lamp.png'));
-for (let i = 0; i < lamp.w * lamp.h; i++) {
-  const r = lamp.data[i * 4], g = lamp.data[i * 4 + 1], b = lamp.data[i * 4 + 2];
-  // Warm, bright pixels are its glass.
-  if (r > 150 && r > b + 30) { lamp.data[i * 4] = 240; lamp.data[i * 4 + 1] = Math.round(g * 0.25); lamp.data[i * 4 + 2] = Math.round(b * 0.25); }
-}
-write(path.join(OUT, 'machine_emergencyLamp.png'), lamp);
+const LAMP = [
+  '................',
+  '................',
+  '................',
+  '................',
+  '.....######...dd',
+  '.....#RRRR#...dd',
+  '....#RRoRRR#..dd',
+  '....#RooRRR#mmmd',
+  '....#RRRRRR#mmmd',
+  '.....#RRRR#...dd',
+  '.....######...dd',
+  '..............dd',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+const COLOURS = { '#': [24, 22, 26], R: [226, 44, 34], o: [255, 176, 150], m: [88, 96, 110], d: [44, 48, 58] };
+const glass = new Uint8Array(16 * 16 * 4);
+LAMP.forEach((row, y) => [...row].forEach((c, x) => { if (COLOURS[c]) { glass.set([...COLOURS[c], 255], (y * 16 + x) * 4); } }));
+write(path.join(OUT, 'machine_emergencyLamp.png'), { w: 16, h: 16, data: glass });

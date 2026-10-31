@@ -313,7 +313,7 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// What only the wreck's own machines give, taken apart: the photosensitive panel of its solar panel, had once, never
+    /// What only the wreck's own machines give, taken apart: the photosensitive panel in its cargo pile, had once, never
     /// made. Every item is had of something else besides.
     /// </summary>
     private static readonly string[] WrecksOwn = ["photoPanel"];
@@ -717,14 +717,14 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// The photosensitive panel (2026-10-29-photo-panel) is had only of a solar panel taken apart: no debris, loot, smelt,
-    /// craft, growth or creature gives one. The wreck starts knowing the solar panel, so its own panel builds again, and no
-    /// second one.
+    /// The photosensitive panel (2026-10-29-photo-panel) is had only of the hold's cargo pile or a solar panel taken apart: no
+    /// debris, loot, smelt, craft, growth or creature gives one, so a world has one solar panel.
     /// </summary>
     [Fact]
-    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTheBlackMarketSellsItsBlueprint()
+    public void OnlyTheCargoPileOrASolarPanelTakenApartGivesAPhotosensitivePanelAndTheBlackMarketSellsItsBlueprint()
     {
         Assert.Equal(["photoPanel"], WrecksOwn);
+        Assert.Contains(("photoPanel", 1), Machines.Get("pileCargo").Cost);
         Assert.Contains(("photoPanel", 1), Machines.Get("solarPanel").Cost);
         Assert.DoesNotContain("solarPanel", Content.Research.StartKnown);
         var listing = Content.Research.Node("solarPanel")!;

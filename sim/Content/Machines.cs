@@ -184,10 +184,10 @@ public static class Machines
         // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
         new("lifepod", 6, 6, [new(0, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The last crew's piles in the hold (the-scoop): never built, a mark takes one apart and its cost is what it holds. Together
-        // they pay for the trade station, the furnace and the workbench, but not for the blocks those need.
+        // they pay for the trade station, the furnace and the workbench, but not for the blocks those need. The cargo holds a world's one photosensitive panel.
         new("pileHull", 4, 4, [], [("scrapChunk", 6), ("hullPlate", 3)], BuildTicks: 180, Char: 'a', Means: "pile of hull plates: draw its whole footprint"),
         new("pileScrap", 3, 3, [], [("scrapChunk", 6), ("hullPlate", 1)], BuildTicks: 140, Char: 'b', Means: "pile of scrap: draw its whole footprint"),
-        new("pileCargo", 3, 3, [], [("planks", 4), ("hullPlate", 2), ("scrapChunk", 1)], BuildTicks: 140, Char: 'e', Means: "pile of cargo: draw its whole footprint"),
+        new("pileCargo", 3, 3, [], [("planks", 4), ("hullPlate", 2), ("scrapChunk", 1), ("photoPanel", 1)], BuildTicks: 160, Char: 'e', Means: "pile of cargo: draw its whole footprint"),
         new("pileBits", 2, 2, [], [("scrapChunk", 3), ("hullPlate", 2), ("planks", 2)], BuildTicks: 140, Char: 'f', Means: "pile of odds and ends: draw its whole footprint"),
         // What shows the hold before anything makes power: the last crew's battery lamps, needing none (the-scoop).
         new("emergencyLamp", 2, 2, [], [("scrapChunk", 1)], BuildTicks: 40, Has: MachineTrait.Glow, Char: 'i', Means: "emergency lamp: draw its whole footprint"),
