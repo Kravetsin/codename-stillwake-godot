@@ -55,8 +55,8 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         .. Content.Crafts.All.Select(c => (c.Item, (Placement?)null, c.Cost)),
     ];
 
-    /// <summary>The id of every blueprint, then every craft: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
-    public static readonly IReadOnlyList<string> Ids = Every.Select(e => e.Id).ToList();
+    /// <summary>The id of every blueprint, then every craft, then every upgrade: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
+    public static readonly IReadOnlyList<string> Ids = [.. Every.Select(e => e.Id), .. Content.Upgrades.All.Select(u => u.Id)];
 
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;

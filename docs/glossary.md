@@ -61,6 +61,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - связи ноды / a node's ties → `TechLinks` (client)
 - взнос / deposit → `Deposit`, `Knowledge.Deposits` → Research
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
+- улучшения, слоты инвентаря, пояса, терминала / upgrades → `Content.Upgrades`, `Items.SlotOpen` → Items, Research
 - торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`
 - капсула с товаром / trade capsule → `SendCapsule`, `Flight`, `Market.CapsuleFlight` → Trade; `CapsuleFlights` drawn in f/research
 - кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade

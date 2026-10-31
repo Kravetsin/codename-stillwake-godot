@@ -235,7 +235,14 @@ public static class Items
 /// </summary>
 public static class Inventory
 {
-    public const int Slots = 36;
+    /// <summary>The most an inventory's own slots can come to (2026-10-30-room-upgrades); <see cref="Start"/> are open at first, the rest by <see cref="Upgrades"/>.</summary>
+    public const int Slots = 38;
+
+    /// <summary>The own slots open from the start: the hotbar and two rows.</summary>
+    public const int Start = 27;
+
+    /// <summary>The belt slots open from the start, of those in <see cref="Equipment"/>.</summary>
+    public const int BeltStart = 1;
 
     /// <summary>The first row of <see cref="Slots"/>, chosen with keys 1 to 9: a sort leaves it as it is (0008).</summary>
     public const int Hotbar = 9;

@@ -25,9 +25,8 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
 
 ## Rules
 
-- **Slots:** an inventory is `Inventory.Slots` of its own, then one equipment slot per `Inventory.Equipment` kind
-  (0047); a machine has its `Slots` in `Machines`. A `Stack` is `Item`, `Count` (1 to the item's limit), `Charge`,
-  `Module`. The first row is the hotbar.
+- **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047); `SlotOpen`
+  says which are open (upgrades). A machine's `Slots` are in `Machines`. A `Stack` is `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
 - **Per-item values** (0053, 0098): `Charge` (0 to `Capacity`, thousandths of a power-tick) and `Module` (a module on a
   tool among its `Hosts`) live on a stack of one and go wherever the stack goes, the floor included. Stacks merge only
   when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none, and no

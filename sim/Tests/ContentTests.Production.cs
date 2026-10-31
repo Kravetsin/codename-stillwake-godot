@@ -393,7 +393,7 @@ public partial class ContentTests
     public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.Where(n => !n.Gate).Select(n => n.Id).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(Content.Research.StartKnown).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
     }
@@ -451,7 +451,7 @@ public partial class ContentTests
         // A ring is bought in any order: a block may take what its own ring opens, or what is further in, never further out.
         HashSet<string> Behind(TechNode node) => new(Content.Research.StartKnown.Concat(Content.Research.Nodes
             .Where(n => tabs.IndexOf(n.Tab) < tabs.IndexOf(node.Tab) || (n.Tab == node.Tab && n.Ring <= node.Ring)).Where(n => !n.Gate).Select(n => n.Id)), StringComparer.Ordinal);
-        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
+        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null))
         {
             var opened = Behind(node);
             string id = node.Id;

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Game.Shared;
@@ -17,6 +18,9 @@ namespace Stillwake.Game.Features.Items;
 public sealed record Reading(
     IReadOnlyList<Stack?> Inventory, IReadOnlyList<Stack?>? Crate, bool Creative, string? Kind)
 {
+    /// <summary>Whether a slot of the hero's is open yet (2026-10-30-room-upgrades): a shift never sends a stack to one that is not.</summary>
+    public Func<Place, bool>? Open { get; init; }
+
     /// <summary>What the slot at <paramref name="place"/> shows: null when empty or not shown.</summary>
     public Stack? At(Place place)
     {
@@ -149,7 +153,7 @@ public sealed record Reading(
         bool tunes = kind != null && Content.Machines.TryGet(kind, out var spec) && spec.Tunes;
         IReadOnlyList<string> modules = tunes ? slots is { Count: > 0 } && slots[0]?.Module is { } on ? [on] : [] : crate is int open ? items.FittedTo(open) : [];
         (var inventory, slots, var fitted) = Fitting(shown.Inventory, slots, modules, inFlight, crate, tunes);
-        return new Reading(inventory, slots, items.Creative, kind) { Fitted = fitted };
+        return new Reading(inventory, slots, items.Creative, kind) { Fitted = fitted, Open = items.SlotOpen };
     }
 
     /// <summary>

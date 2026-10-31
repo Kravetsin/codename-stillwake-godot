@@ -35,6 +35,8 @@ A living document: what is decided about the game and what is still open. Techni
 - **The world** is 2048×1024 cells of space with the wreck in its middle; the ship is built only
   within the middle 1024×512, the build zone, and the space round it is there to fly out into
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
+- **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The tree's rings
+  sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
 - **Salvage is sold and blueprints bought:** a trade station sends what is put in it off by capsule, thirty seconds till its credits
   come back, however much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. The tablet holds a tree
   drawn as rings round a hub: the hub takes resources for good and each fill opens the next ring all round, where blueprints and
