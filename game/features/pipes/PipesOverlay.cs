@@ -116,7 +116,9 @@ public partial class PipesOverlay : Node2D
             }
             var own = network.Cells.ToHashSet();
             var sources = SourcesOn(own, network.Machines).ToList();
-            var colour = AsciiArt.Colour(Flow.ColourOf(i), sources.Count > 0 ? 1 : DryAlpha);
+            // Liquid oxygen is pale blue wherever it runs (liquid-oxygen); each air network a colour of its own.
+            bool liquid = pipes.FluidAt(network.Cells[0]) == Stillwake.Content.Fluids.LiquidOxygen;
+            var colour = AsciiArt.Colour(liquid ? Sockets.ColourOf(Stillwake.Content.Fluids.LiquidOxygen) : Flow.ColourOf(i), sources.Count > 0 ? 1 : DryAlpha);
             colourOf[network.Id] = colour;
             foreach (var run in Flow.RunsOf(Flow.SpansIn(all, own), width, sources, own.Contains)) _runs.Add((run, colour with { A = 1 }));
         }
