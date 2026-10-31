@@ -402,6 +402,6 @@ public class PowerTests
     public void TheWreckStartsWithItsPanelOnNoCable()
     {
         var w = new Scenario(Registry.Wreck);
-        Assert.All(w.M.Power.Networks, n => Assert.Equal(0, n.Demand));
+        Assert.Empty(w.M.Power.Networks);
     }
 }

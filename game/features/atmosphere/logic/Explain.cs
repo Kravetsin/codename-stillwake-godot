@@ -81,9 +81,9 @@ public static class Explain
     }
 
     /// <summary>
-    /// The rooms losing oxygen into space: venting through a piped vent, a breach or a meteor's hole. A
-    /// room open to space with no piped vent loses nothing, so the start's breached room stays quiet.
+    /// The rooms losing oxygen into space: venting through a piped vent, a breach or a meteor's hole, stored air running out or
+    /// made air pouring through (the pod's). A room open to space with no piped vent loses nothing, so it stays quiet.
     /// </summary>
     public static HashSet<int> Draining(IEnumerable<RoomAir> rooms) =>
-        rooms.Where(r => r.Status == RoomStatus.Venting && r.Lasts != null).Select(r => r.Room).ToHashSet();
+        rooms.Where(r => r.Status == RoomStatus.Venting && (r.Lasts != null || r.Made > 0)).Select(r => r.Room).ToHashSet();
 }

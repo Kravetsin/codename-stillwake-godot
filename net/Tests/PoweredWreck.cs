@@ -10,7 +10,7 @@ internal static class PoweredWreck
 {
     public static readonly Layout Layout = Sim.Layout.Parse(
         [
-            "                                  PPP       ",
+            "                              PPP           ",
             "                  #################         ",
             "                  .......#....L...#         ",
             "                 ........D.....OOOD..D      ",
@@ -18,7 +18,7 @@ internal static class PoweredWreck
             "               ......$$..DGGV..OOOD..D      ",
             "              ###########################   ",
         ],
-        ["", "", "", "", "", "                              ---"],
-        [((34, 0), (30, 4)), ((34, 0), (34, 2))]).Doubled().InWorld() with
+        ["", "", "", "", "", "                          ---"],
+        [((30, 0), (26, 4)), ((30, 0), (30, 2))]).Doubled().InWorld() with
     { Known = Content.Research.StartKnown };
 }

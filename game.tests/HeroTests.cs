@@ -929,7 +929,7 @@ public class HeroTests
         // Straight on, it stops at the upper jaw's tooth, well within the tether.
         var out_ = Settle(opened, Hero.At(opened, Spawn), Left);
         Assert.InRange(out_.Anchor!.Value.X, TornEdge, TornEdge + Spec.Walk);
-        Assert.True(out_.X < TornEdge);
+        Assert.Equal(63 * Unit + Half, out_.X);
 
         // With the doorway closed, the hero stops at it: at the door, two cells thick, its block whole (0104).
         Assert.Equal(46 * Block + Half, Settle(ship, Hero.At(ship, Spawn), Left).X);
@@ -963,7 +963,7 @@ public class HeroTests
     [Fact]
     public void TiesATetherLeavingAShipOpenToSpaceAllThroughNeverLettingTheHeroDriftOff()
     {
-        // Every door broken out and room B torn: the whole wreck is space, yet still the hull.
+        // Every door broken out: the whole wreck is space, yet still the hull.
         var opened = ShipFrom(Layout.Parse(Wreck.Rows.Select(r => r.Replace('D', '.')).ToArray(), Wreck.Under));
         var h = Hero.At(opened, Spawn);
         Assert.True(opened.Space(h.BodyCell(opened.Width)));

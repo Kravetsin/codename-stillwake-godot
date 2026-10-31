@@ -196,11 +196,12 @@ public class ExplainTests
     [Fact]
     public void DrainingRoomsAreTheRoomsVentingThroughAPipedVentDrainedDryOrNot() =>
         Assert.Equal(
-            new HashSet<int> { 1, 2 },
+            new HashSet<int> { 1, 2, 6 },
             Explain.Draining([
                 Room(RoomStatus.Venting, lasts: 4, room: 1),
                 Room(RoomStatus.Venting, lasts: 0, room: 2),
                 Room(RoomStatus.Venting, room: 3),
+                new RoomAir(6, RoomStatus.Venting, 10, 5, 0, 12000, null, null),
                 Room(RoomStatus.Aired, lasts: 0, room: 4),
                 Room(problem: "atmosphere.dry", room: 5),
             ]));

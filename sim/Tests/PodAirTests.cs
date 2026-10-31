@@ -58,11 +58,12 @@ public class PodAirTests
     [Fact]
     public void MakesAUnitATickUpToItsStore()
     {
-        // Its room walled off from it would be the test; here its first ticks, before the vent draws faster than it makes.
-        Assert.Equal(1, Air.GeneratorRate / Air.LeakEvery);
+        // A room just the pod's size: all it makes is in its store or its cells, before the walls' leak has taken any.
         var w = new Scenario(Layout.Parse(
-            ["##########", "#OOOOOO###", "#OOOOOO###", "#OOOOOO###", "#OOOOOO###", "#OOOOOO###", "#OOOOOO###", "##########"], Piped));
-        // Nothing to fill but the pod's own cells: the store reaches its top and stays.
+            ["########", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "########"], Piped));
+        w.Run(30);
+        Assert.Equal(30, Aired(w) + w.M.Atmosphere.OxygenIn(Pod(w)));
+        // Full, the store reaches its top and stays.
         w.Run(2 * Air.GeneratorStore + 200);
         Assert.Equal(Air.GeneratorStore, w.M.Atmosphere.OxygenIn(Pod(w)));
     }
@@ -134,5 +135,33 @@ public class PodAirTests
         far.Do(new CutPipe(span.A, span.B)).Run();
         Assert.Empty(far.Refusals);
         Assert.Empty(far.M.Pipes.Spans);
+    }
+
+    [Fact]
+    public void APipeInsideAMachineThatComesApartCuts()
+    {
+        var w = new Scenario(Layout.Parse(["##########", "#GGGG....#", "#GGGG....#", "#GGGG....#", "#GGGG....#", "##########"], ["", "", "", " --"]));
+        var span = w.M.Pipes.Spans.Single();
+        w.Do(new CutPipe(span.A, span.B)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Pipes.Spans);
+    }
+
+    /// <summary>A pod taken on and off a pipe, as an old save's may be: a world loaded on any tick plays on the same.</summary>
+    [Fact]
+    public void GoingOnAndOffAPipeKeepsAWorldLoadedEveryTickAlike()
+    {
+        var w = Room(piped: false);
+        w.GiveItems(0, ("tube", 20));
+        int end = Cell(8, 6);
+        for (int tick = 0; tick < 300; tick++)
+        {
+            var loaded = new Registry();
+            var copy = World.Load(w.World.Save(), [.. loaded.All, new Builder(loaded)]);
+            List<Command> commands = tick == 20 ? [new LayPipe(Port, end)] : tick == 200 ? [new CutPipe(Port, end)] : [];
+            Assert.Empty(w.World.Step(commands));
+            copy.Step(commands);
+            Assert.Equal(w.World.Hash(), copy.Hash());
+        }
     }
 }

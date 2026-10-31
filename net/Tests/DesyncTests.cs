@@ -64,9 +64,20 @@ public class DesyncTests(ITestOutputHelper output)
     [MemberData(nameof(Seeds))]
     public void KeepsEveryClientInSyncOnAShipWithPowerAndPipedAir(uint seed)
     {
-        var run = Desync.Fuzz(Definition.Game(), seed, layout: PoweredWreck.Layout);
+        var run = Desync.Fuzz(Definition.Game(), seed, layout: PoweredWreck.Layout, joinAt: 300);
         Assert.Null(run.Desync);
         Assert.Equal(600, run.Ticks);
+    }
+
+    /// <summary>What the run above is for: its ship's cables and pipes join what they should.</summary>
+    [Fact]
+    public void ItsShipStartsWithItsGeneratorPoweredAndItsVentFed()
+    {
+        var m = new Registry();
+        World.Create(1, PoweredWreck.Layout, m.All);
+        var byKind = m.Grid.Machines.ToDictionary(x => x.Kind);
+        Assert.Contains(m.Power.Networks, n => n.Demand > 0);
+        Assert.True(m.Atmosphere.Fed(byKind["vent"].Id));
     }
 
     [Fact]

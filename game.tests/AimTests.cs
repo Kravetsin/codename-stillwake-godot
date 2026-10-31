@@ -210,7 +210,7 @@ public class AimTests
         h = Run(h, HeroTests.Left, 900);
         // Out through the hold and past its throat, on a tether tied there.
         Assert.InRange(h.Anchor!.Value.X, HeroTests.TornEdge, HeroTests.TornEdge + Spec.Hero.Walk);
-        Assert.True(h.X < HeroTests.TornEdge);
+        Assert.Equal(63 * Block / 2 + Spec.Hero.Width / 2, h.X);
 
         // Back the other way, the airlock's inner doorway stops the hero, until opened.
         h = Run(h, HeroTests.Right, 1200);

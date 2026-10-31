@@ -222,9 +222,14 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null }))
         .ToArray();
 
-    /// <summary>Each material's back wall, by code: a vein's is the rock it runs through, so digging it out leaves no second lump of ore.</summary>
+    /// <summary>
+    /// Each material's back wall on a map, by code: a vein's is the rock it runs through, so digging it out leaves no second lump of ore;
+    /// behind a built wall the default hull, so a wall drawn iron pays one plate (the-scoop).
+    /// </summary>
     private static readonly int[] BackOf = Enumerable.Range(0, Materials.All.Max(m => m.Code) + 1)
-        .Select(code => Materials.ByCode(code)?.In is { } rock ? Materials.Get(rock).Code : code)
+        .Select(code => Materials.ByCode(code) is not { } m ? code
+            : m.In is { } rock ? Materials.Get(rock).Code
+            : m.Natural ? code : Materials.Get(Materials.DefaultHull).Code)
         .ToArray();
 
     protected override GridState Init(Layout layout)

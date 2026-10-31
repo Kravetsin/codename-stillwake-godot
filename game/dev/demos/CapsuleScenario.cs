@@ -11,7 +11,14 @@ namespace Stillwake.Game.Dev;
 [Dev("--capsule", "the wreck with its trade station's capsule just gone; =back about to come home (CapsuleScenario)")]
 public sealed class CapsuleScenario : DevScenario
 {
-    public override Layout? Map => Registry.Wreck;
+    public override Layout? Map { get; } = Layout.Parse(
+        """
+        ##############
+        #.........OOO#
+        #...$$....OOO#
+        #...$$....OOO#
+        ##############
+        """).Doubled().InWorld();
 
     /// <summary>The flight, through the save.</summary>
     public override World Seed(World world, DevSeed seed)

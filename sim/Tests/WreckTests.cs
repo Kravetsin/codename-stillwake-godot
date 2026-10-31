@@ -2,6 +2,7 @@ using Stillwake.Sim.Building;
 using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
@@ -81,7 +82,7 @@ public class WreckTests
         World.Create(1, Wreck, m.All);
         var zone = m.Grid.Zone;
         int pod = m.Grid.MachinesOf("lifepod").Single().Cell;
-        // The drawing's 192×96, doubled to 384×192, centred in the zone's 1024×512: (320, 160) in, then the pod's own (102, 40).
+        // The drawing's box of 384×192, centred in the zone's 1024×512: (320, 160) in, then the pod's own (102, 40).
         Assert.Equal((320 + 102, 160 + 40), (pod % m.Grid.Width - zone.Left, pod / m.Grid.Width - zone.Top));
         Assert.Equal(Pod, pod);
     }
@@ -97,7 +98,7 @@ public class WreckTests
         Assert.Equal(0, m.Research.Credits);
         // Four doors, each two cells by six.
         Assert.Equal(Enumerable.Repeat(Structure.DoorClosed, 4 * 12), Wreck.CellsOf('D').Select(m.Grid.StructureAt));
-        Assert.All(m.Power.Networks, n => Assert.Single(n.Nodes));
+        Assert.Empty(m.Power.Networks);
         Assert.Single(m.Pipes.Spans);
         Assert.Equal(Hatch, m.Crew.Spawn);
         Assert.Contains(m.Crew.Spawn, A);
@@ -109,11 +110,15 @@ public class WreckTests
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        var round = Cells(41, 58, 12, 12).Concat(Cells(41, 58, 21, 21)).Concat(Cells(41, 41, 13, 14)).Concat(Cells(58, 58, 13, 14));
+        // The roof and floor of both locks and the room, and the walls that part them.
+        var round = Cells(36, 63, 12, 12).Concat(Cells(36, 63, 21, 21)).Concat(Cells(35, 35, 12, 14)).Concat(Cells(40, 41, 13, 14)).Concat(Cells(58, 59, 13, 14)).Concat(Cells(65, 65, 13, 14));
         Assert.All(round, cell => Assert.Equal("iron", m.Grid.WallAt(cell)?.Id));
-        // The bottom of the hold, the deck under the rooms.
-        Assert.Equal("scrap", m.Grid.WallAt(At(30, 32))?.Id);
-        Assert.Equal("scrap", m.Grid.WallAt(At(50, 23))?.Id);
+        var walls = Enumerable.Range(0, Wreck.Width * Wreck.Height).Where(c => m.Grid.WallAt(c) != null).ToList();
+        var iron = walls.Where(c => m.Grid.WallAt(c)!.Id == "iron").ToHashSet();
+        Assert.Equal(76, iron.Count);
+        // Everything else scrap, and behind every wall a scrap back wall: an iron wall pays one plate.
+        Assert.All(walls.Where(c => !iron.Contains(c)), c => Assert.Equal("scrap", m.Grid.WallAt(c)!.Id));
+        Assert.All(walls, c => Assert.Equal("scrap", m.Grid.BackAt(c)?.Id));
     }
 
     [Fact]
@@ -331,9 +336,29 @@ public class WreckTests
         Assert.NotEqual(RoomsModule.Space, room);
         Assert.Empty(w.M.Rooms.All.First(r => r.Id == room).Openings);
         Assert.False(w.M.Rooms.Afloat(At(30, 18)));
+        // Its floor is the deck a hero now stands on, and the pod airs it once both doors of the left lock stand open.
+        Assert.Equal(Structure.Floor, w.M.Grid.StructureAt(At(30, 21)));
+        w.Do(new SetDoor(LeftInner, true)).Do(new SetDoor(LeftOuter, true)).Run(1200);
+        Assert.True(w.M.Atmosphere.AiredAt(At(30, 18)));
     }
 
-    /// <summary>The dead ends are gone while the room has this margin: lower the rate and a lit fire and a breathing hero outrun it.</summary>
+    /// <summary>The pod feeds a first vent elsewhere (the-scoop): a branch laid from its pipe's free end, its own pipe still uncut.</summary>
+    [Fact]
+    public void FeedsAVentInTheLeftLockFromABranchLaidOffThePodsPipe()
+    {
+        var w = new Scenario(Wreck);
+        Build(w, "vent", At(37, 19));
+        int free = At(53, 20), bend = At(53, 19), mid = At(45, 19), vent = At(37, 19);
+        w.GiveItems(0, ("tube", 40));
+        w.Do(new LayPipe(free, bend)).Do(new LayPipe(bend, mid)).Do(new LayPipe(mid, vent)).Run();
+        Assert.Empty(w.Refusals);
+        w.Run(1200);
+        Assert.All(Cells(36, 39, 13, 20), c => Assert.True(w.M.Atmosphere.AiredAt(c)));
+        w.Do(new CutPipe(At(52, 20), free)).Run();
+        Assert.Equal("pipes.fixed", Assert.Single(w.Refusals).Reason);
+    }
+
+    /// <summary>What closes the dead ends: a lit fire and a breathing hero together take less than the pod makes.</summary>
     [Fact]
     public void HoldsItsAirWithAHeroBreathingAndAFurnaceLit()
     {
@@ -341,9 +366,12 @@ public class WreckTests
         int id = BuildFurnace(w, ("planks", 5), ("scrapChunk", 5));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 5)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 5)).Run();
-        w.Do(new Enter(At(50, 19)) { From = 1 });
-        w.Run(60 * 20);
+        // Out of the pod's reach, whose air would pay its breaths.
+        w.Do(new Enter(At(44, 19)) { From = 1 });
+        w.Run(12 * 20);
+        Assert.True(w.M.Furnace.At(id).Burning);
         Assert.Equal(A.Length, AiredIn(w, A));
+        Assert.Equal(Scenario.Full, w.M.Crew.HeroOf(1)?.Air);
     }
 
     [Fact]

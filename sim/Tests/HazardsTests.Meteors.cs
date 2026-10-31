@@ -191,6 +191,7 @@ public partial class HazardsTests
     public void TearAnAreaOutOfTheStartingWrecksScrapHullOnEveryStrikeOnceAHeroHasLanded()
     {
         var (strikes, _) = Fall(Landed(new Scenario(Registry.Wreck)), 6);
+        Assert.NotEmpty(OnScrap(strikes));
         Assert.True(OnScrap(strikes).All(s => s.Gone.Count >= 5), Seen(strikes));
     }
 
@@ -205,11 +206,9 @@ public partial class HazardsTests
     public void TakeACellOrAFewOfTheStartingWrecksScrapHullBeforeAnyoneLands()
     {
         var (strikes, _) = Fall(new Scenario(Registry.Wreck), 10);
-        // Fins on its back stand alone, so a blast takes more of them; nothing a room needs.
-        int roof = (Layout.OffsetInWorld(Registry.WreckMap.Width, Registry.WreckMap.Height).Y + 34) * Registry.Wreck.Width;
-        Assert.True(OnScrap(strikes).All(s => s.Gone.Count >= 1), Seen(strikes));
-        Assert.True(strikes.Where(s => s.Cell >= roof).All(s => s.Gone.Count <= 7), Seen(strikes));
-        Assert.True(strikes.Average(s => s.Gone.Count) <= 4, Seen(strikes));
+        Assert.NotEmpty(OnScrap(strikes));
+        Assert.True(OnScrap(strikes).All(s => s.Gone.Count is >= 1 and <= 7), Seen(strikes));
+        Assert.True(OnScrap(strikes).Average(s => s.Gone.Count) <= 4, Seen(strikes));
     }
 
     /// <summary>A hole is patched of a raw scrap chunk (2026-10-29-weak-meteors-till-landing): no furnace, so no air, is needed.</summary>
