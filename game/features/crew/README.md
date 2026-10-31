@@ -65,7 +65,7 @@ commands reach the sim; others' heroes come through the host.
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`) at any frame rate, drawn between its last two steps; floats only in drawing.
+  (`Net.Clock`) at any frame rate, drawn between two steps; floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089).
@@ -83,8 +83,8 @@ commands reach the sim; others' heroes come through the host.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
 - **Camera:** leads where last moved, eases height, snaps to a new place.
-- **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
-  `Thrust` is sent while own thrust differs from the sim's.
+- **Jetpack and swim** (0047): afloat the hero swims on its tether, through floors; with a jetpack it ties none and Shift thrusts;
+  `Thrust` is sent while it differs from the sim's.
 - **A canister** (0047, 0081): right click sends `Refill` if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`

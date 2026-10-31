@@ -152,6 +152,23 @@ public class HeroTests
         Assert.Equal(-1, back.Step(Still with { Face = -1 }, ship).Facing);
     }
 
+    [Theory]
+    [InlineData(Structure.Floor, true)]
+    [InlineData(Structure.Ladder, true)]
+    [InlineData(Structure.Wall, false)]
+    [InlineData(Structure.HatchClosed, false)]
+    public void SwimsThroughWhatOnlyHoldsAFallBothWaysAndStopsAtWhatStopsABody(int deck, bool through)
+    {
+        const int Width = 20, Row = 10;
+        var ship = new Ship(Width, 20, cell => cell / Width == Row ? deck : Structure.Empty, _ => true);
+        var over = Hero.At(ship, (Row - 2) * Width + 10);
+        var under = Hero.At(ship, (Row + 8) * Width + 10);
+        var up = Still with { Y = -1 };
+        for (int i = 0; i < 400; i++) (over, under) = (over.Step(Down, ship), under.Step(up, ship));
+        Assert.Equal(through, over.Y > (Row + 1) * Unit);
+        Assert.Equal(through, under.Y - Spec.Height < Row * Unit);
+    }
+
     [Fact]
     public void SwimmingKeepsFacingWhereItsAxeSwingBeganTowardTillTheSwingEnds()
     {
