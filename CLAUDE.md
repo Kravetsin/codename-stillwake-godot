@@ -196,6 +196,19 @@ in the sim.
   true moves into an ADR, a module README or the concept.
 - Keep this file short. Detail about a module belongs in its README.
 
+## Art and sound picks
+
+The user picks every new look and sound, on a published Artifact, unasked and never as a local HTML file: a page per
+subject, several really different candidates, one click on a candidate picks it, the pick kept in the page's `db` for
+Claude to read with `ArtifactData`, a copy button as the fallback. A subagent writes the page's files; the main session
+publishes them. A pick goes into its ADR.
+
+- **Sound:** CC0 only (`game/audio/CREDITS.md`): Kenney's packs and Freesound's recordings, by its public HQ previews, no
+  account. Download the candidates and publish them as the page's own `files` (the frame blocks media from other hosts), played
+  from a button through Web Audio. Say what is unheard. Once picked: cut, level and credit them as `CREDITS.md` says.
+- **Art:** drawn in code on a canvas at the game's scale (a cell 8 px, the hero beside it), moving through every state it has.
+  Once picked: exported by the code that drew it, through `tools/`.
+
 ## Commands
 
 ```
