@@ -93,7 +93,8 @@ public class ModulesTests
     /// <summary>
     /// What modules keep between ticks — rooms found again around a change, the air's survey, leaks and
     /// orders — is what a load finds from scratch: a world loaded from the live one's save before every
-    /// tick, fed the same commands, hashes the same after it. Closed rooms six cells from space, the drawing doubled (0104), so
+    /// tick, fed the same commands, hashes the same after it. Closed rooms, each two cells above its tile's channel of space where the panels feeding its
+    /// vaporizer stand (liquid-oxygen), the drawing doubled (0104), so
     /// changes are followed around them; builds out in space above, so breaches flood a ship's box that
     /// grows and shrinks; with the air read every tick, as an open panel does, and without; and a few ticks
     /// that write more than the grid's log holds, so every reader finds what it follows again from scratch.

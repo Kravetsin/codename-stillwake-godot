@@ -44,3 +44,5 @@ kind id for the vaporizer (a migration of every slice for a name).
 - **Switching a vaporizer off:** it runs while powered with liquid behind and room in its store.
 - **Old saves' tank–vent spans** are not re-piped by a migration: they show `notPiped`.
 - **No warning before a tank runs dry on a slow leak:** `Lasts` and `dry` show in the air overlay.
+- **A filling room's leak is free:** a cell aired and taken by the leak on one tick stays aired (Atmosphere README), and
+  while a room fills its vaporizer's store runs dry every tick, so the leak costs nothing until the room is aired.
