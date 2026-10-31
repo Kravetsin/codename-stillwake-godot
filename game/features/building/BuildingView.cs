@@ -355,7 +355,7 @@ public partial class BuildingView : Node2D
             if (plan.Clear != null) marks.Add(shape);
             else if (shown.Layer == "back") backs.Add(shape);
             else front.Add(shape);
-            if (plan.Place is { Layer: "machine" }) machines.Add(BoxOf(CellsOf(grid, plan), width));
+            if (plan.Place is { Layer: "machine" } place) machines.Add(PictureOf(BoxOf(CellsOf(grid, plan), width), place.Kind));
         }
         _outline.Show(PlanOutline.Of(front, SmallestHole));
         _backOutline.Show(PlanOutline.Of(backs, SmallestHole));
@@ -420,6 +420,13 @@ public partial class BuildingView : Node2D
         return new Rect2(x * Cell, y * Cell, (right - x + 1) * Cell, (bottom - y + 1) * Cell);
     }
 
+    /// <summary>What <paramref name="box"/>, the footprint of a thing of <paramref name="kind"/>, is as drawn: a picture may rise over it or reach out of it.</summary>
+    private static Rect2 PictureOf(Rect2 box, string kind)
+    {
+        var (x, y, w, h) = PlanCut.Picture(((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y), ShipTiles.RiseOf(kind), ShipTiles.ReachOf(kind), Cell);
+        return new Rect2(x, y, w, h);
+    }
+
     /// <summary>
     /// Where blueprint <paramref name="p"/> turns from real into plan: across its box as far as its work has gone, a
     /// pixel at a time; none before any. Work stops where a part is not paid for, so a stalled build sits at its boundary.
@@ -427,7 +434,7 @@ public partial class BuildingView : Node2D
     private static PlanCut? CutOf(IGridQueries grid, BuildingModule building, Sim.Building.Plan p, Placement place)
     {
         if (p.Progress <= 0 || building.TicksFor(p.Id) is not { } ticks) return null;
-        var box = BoxOf(CellsOf(grid, p), grid.Width);
+        var box = PictureOf(BoxOf(CellsOf(grid, p), grid.Width), place.Kind);
         var pixels = ((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y);
         return PlanCut.Of(pixels, PlanCut.FromLeftFor(place.Layer, place.Kind), p.Progress, ticks);
     }
@@ -440,7 +447,7 @@ public partial class BuildingView : Node2D
     private static PlanCut? MarkCutOf(IGridQueries grid, BuildingModule building, Sim.Building.Plan p, Placement built)
     {
         if (p.Progress <= 0 || building.TicksFor(p.Id) is not { } ticks) return null;
-        var box = BoxOf(CellsOf(grid, p), grid.Width);
+        var box = PictureOf(BoxOf(CellsOf(grid, p), grid.Width), built.Kind);
         var pixels = ((int)box.Position.X, (int)box.Position.Y, (int)box.Size.X, (int)box.Size.Y);
         return PlanCut.Of(pixels, PlanCut.FromLeftFor(built.Layer, built.Kind), ticks - p.Progress, ticks);
     }

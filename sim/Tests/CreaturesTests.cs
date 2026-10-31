@@ -816,7 +816,8 @@ public class CreaturesTests
         var rng = new Rng(new RngState { S = 7 });
         for (int t = 0; t < 400; t++)
         {
-            if (w.M.Creatures.Fuzz(rng, (int)rng.Below(2)) is { } c) w.Do(c);
+            // A clinger let out on a wreck drifting by has a piece to cling to: not what this is about.
+            if (w.M.Creatures.Fuzz(rng, (int)rng.Below(2)) is { } c && !(c is Release r && Tune.Get(r.Species).Body is Tune.Clinger)) w.Do(c);
             w.Run();
         }
         // The stream's pieces drift by, none a derelict: each looked at, none guarded.

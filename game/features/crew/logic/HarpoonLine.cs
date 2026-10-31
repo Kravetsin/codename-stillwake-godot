@@ -32,6 +32,17 @@ public sealed class HarpoonLine
         _length = Span(gun, eye);
     }
 
+    /// <summary>
+    /// Where the line ends for a rod with its point at <paramref name="tip"/>, pointing <paramref name="pointing"/>, its eye
+    /// <paramref name="rodLength"/> behind it: at its eye, or at <paramref name="gun"/> while that eye is still in the gun, as a
+    /// line tied behind the muzzle would run back through the gun.
+    /// </summary>
+    public static (double X, double Y) EndOf((double X, double Y) gun, (double X, double Y) tip, (double X, double Y) pointing, double rodLength)
+    {
+        var eye = (X: tip.X - pointing.X * rodLength, Y: tip.Y - pointing.Y * rodLength);
+        return (eye.X - gun.X) * pointing.X + (eye.Y - gun.Y) * pointing.Y > 0 ? eye : gun;
+    }
+
     /// <summary>How long the line is let out now.</summary>
     public double Length => _length;
 

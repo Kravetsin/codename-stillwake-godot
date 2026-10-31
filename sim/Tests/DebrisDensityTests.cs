@@ -167,11 +167,11 @@ public class DebrisDensityTests(ITestOutputHelper output)
     [InlineData(260, 1.4, 2.8)]
     public void ShowsASortieOneOrTwoDerelictsFarOutAndSeldomNone(int rows, double least, double most)
     {
-        var runs = Enumerable.Range(1, 30).Select(seed => Derelicts((uint)seed, rows)).ToList();
+        var runs = Enumerable.Range(1, 60).Select(seed => Derelicts((uint)seed, rows)).ToList();
         double wide = runs.Average(r => r.Wide), near = runs.Average(r => r.Near);
         int none = runs.Count(r => r.Wide == 0);
-        output.WriteLine($"a sortie {rows} rows up: {wide:F2} derelicts in the farthest view, {near:F2} in the default one; none in {none} of 30");
+        output.WriteLine($"a sortie {rows} rows up: {wide:F2} derelicts in the farthest view, {near:F2} in the default one; none in {none} of 60");
         Assert.InRange(wide, least, most);
-        if (rows >= 256) Assert.True(none <= 6, $"none in {none} of 30 sorties");
+        if (rows >= 256) Assert.True(none <= 12, $"none in {none} of 60 sorties");
     }
 }

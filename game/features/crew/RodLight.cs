@@ -14,13 +14,11 @@ public sealed class RodLight
 {
     /// <summary>Motes the flying rod leaves a second, times <see cref="Fx.Count"/>.</summary>
     private const double WakePerSecond = 20;
-    /// <summary>How long the bead takes down the line, and the zip home, in 60 Hz frames.</summary>
-    private const double BeadFrames = 10, ZipFrames = 8;
     private static readonly (int, int, int) Muzzle = (230, 238, 255), Warm = (255, 228, 180), Bead = (255, 236, 200),
         BiteGlint = (255, 220, 160), BiteRing = (255, 236, 210), Home = (170, 225, 255), HomeGlint = (190, 230, 255);
 
-    private Rod _was;
-    private double _wake, _beadMs = -1, _zipMs = -1;
+    private readonly RodFlourish _flourish = new();
+    private double _wake;
     private Vector2 _zipFrom;
 
     /// <summary>The shot leaving <paramref name="muzzle"/> along <paramref name="barrel"/>, a unit vector: a glint and the gas, on <paramref name="stage"/>, its figure's held one.</summary>
@@ -54,18 +52,21 @@ public sealed class RodLight
     /// </summary>
     public void Step(Rod rod, Vector2 tip, Vector2 pointing, Vector2 eye, Vector2? muzzle, double elapsedMs)
     {
-        if (_was == Rod.Hooked && rod is Rod.Reeling or Rod.Pulling) _beadMs = 0;
-        if (_was == Rod.Reeling && rod == Rod.Returning) (_zipMs, _zipFrom) = (0, tip);
-        _was = rod;
-        if (rod == Rod.Flying) Fly(tip, pointing, eye, elapsedMs);
+        var shown = _flourish.Step(rod, muzzle != null, elapsedMs);
+        if (shown.ZipBegan) _zipFrom = tip;
         if (muzzle is not { } gun) return;
-        if (_beadMs >= 0) BeadDown(eye, gun, elapsedMs);
-        if (_zipMs >= 0) ZipHome(gun, elapsedMs);
+        if (rod == Rod.Flying) Fly(tip, pointing, eye, gun, elapsedMs);
+        if (shown.Bead is { } bead) BeadDown(eye, gun, bead);
+        if (shown.Zip is { } zip) ZipHome(gun, zip);
+        if (shown.ZipHome) Arrive(gun);
     }
 
-    private void Fly(Vector2 tip, Vector2 pointing, Vector2 eye, double elapsedMs)
+    private void Fly(Vector2 tip, Vector2 pointing, Vector2 eye, Vector2 gun, double elapsedMs)
     {
-        var back = eye - pointing * (float)(26 * Fx.Length);
+        // The eye still in the gun leaves nothing, and its trail never reaches back into the gun.
+        float clear = (eye - gun).Dot(pointing);
+        if (clear <= 0) return;
+        var back = eye - pointing * Math.Min((float)(26 * Fx.Length), clear);
         Stages.Of(Layers.Tethers).Flares.Trail([(tip.X - pointing.X * 4, tip.Y - pointing.Y * 4), (eye.X, eye.Y), (back.X, back.Y)], Warm, 0.6, 0.75, 0.45);
         var glims = Stages.Of(Layers.Tethers).Glims;
         _wake += WakePerSecond * Fx.Count * elapsedMs / 1000;
@@ -74,34 +75,25 @@ public sealed class RodLight
     }
 
     /// <summary>A bead of light running from the rod's eye down the taut line to the gun, quickening.</summary>
-    private void BeadDown(Vector2 eye, Vector2 gun, double elapsedMs)
+    private static void BeadDown(Vector2 eye, Vector2 gun, double q)
     {
-        double q = _beadMs / Glim.SampleMs / BeadFrames;
-        _beadMs += elapsedMs;
-        if (q >= 1)
-        {
-            _beadMs = -1;
-            return;
-        }
         var at = eye.Lerp(gun, (float)(q * q));
         var behind = at + (eye - gun).Normalized() * 7;
         Stages.Of(Layers.Tethers).Flares.Bloom(at.X, at.Y, 6, Warm, 0.8);
         Stages.Of(Layers.Tethers).Flares.Trail(at.X, at.Y, behind.X, behind.Y, Bead, 0.7, 0.9, 0.35);
     }
 
-    /// <summary>A reel over: a streak zipping from where the rod was home to the gun, then a glint, a ring and a flash at the hand.</summary>
-    private void ZipHome(Vector2 gun, double elapsedMs)
+    /// <summary>The streak home in: a glint, a ring and a flash at the hand.</summary>
+    private static void Arrive(Vector2 gun)
     {
-        double q = _zipMs / Glim.SampleMs / ZipFrames;
-        _zipMs += elapsedMs;
-        if (q >= 1)
-        {
-            _zipMs = -1;
-            Stages.Of(Layers.Tethers).Flares.Glint(gun.X, gun.Y, 6, HomeGlint);
-            Stages.Of(Layers.Tethers).Flares.Shock(gun.X, gun.Y, 2, 11, 12 * Glim.SampleMs, HomeGlint, 0.35 * Fx.Glow, 0.28);
-            Stages.Of(Layers.Tethers).Flares.Flash(gun.X, gun.Y, (160, 220, 255), 0.3 * Fx.Glow, 2, 0.45f, 0.85);
-            return;
-        }
+        Stages.Of(Layers.Tethers).Flares.Glint(gun.X, gun.Y, 6, HomeGlint);
+        Stages.Of(Layers.Tethers).Flares.Shock(gun.X, gun.Y, 2, 11, 12 * Glim.SampleMs, HomeGlint, 0.35 * Fx.Glow, 0.28);
+        Stages.Of(Layers.Tethers).Flares.Flash(gun.X, gun.Y, (160, 220, 255), 0.3 * Fx.Glow, 2, 0.45f, 0.85);
+    }
+
+    /// <summary>A reel over: a streak zipping from where the rod was home to the gun.</summary>
+    private void ZipHome(Vector2 gun, double q)
+    {
         double e = q * q;
         var head = _zipFrom.Lerp(gun, (float)e);
         var way = (gun - _zipFrom).Normalized();
