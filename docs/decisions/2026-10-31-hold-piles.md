@@ -14,7 +14,7 @@ The scoop started a player with nothing but the debris stream. Its hold was to h
 - **A blueprint now follows from a menu card,** not from not being `Fixed`, and a machine with no blueprint is refused even in creative mode (`building.unknown`). `Fixed` keeps its meaning: never taken apart, and only the lifepod.
 - **Four piles hold 16 chunks, 8 plates and 6 planks,** which pay for the trade station, the furnace and the workbench with a little over, worth less than the first ring's 400 credits. A player still has to catch.
 - **A pile holds its cells' build slot.** The one in the hold's throat must come out before the throat can be walled.
-- **Two emergency lamps light the hold in red,** a glowing machine row that draws nothing and so is always lit. Without them the piles cannot be seen. They too can be taken apart, leaving the player in the dark by their own hand.
+- **Two emergency lamps light the hold in red,** a glowing machine row that draws nothing and so is always lit, though a flare dims it as it does any lamp. Without them the piles cannot be seen. They too can be taken apart, leaving the player in the dark by their own hand.
 
 ## Deliberately not handled
 

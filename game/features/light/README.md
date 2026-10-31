@@ -5,6 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `Crackle.cs` | The arc makers' arcs crackling (0091, `Emits.Arc`). |
+| `logic/LampPower.cs` | How much of its light a lamp's power gives it; full for one drawing none. |
 | `logic/Flicker.cs` | How brightly a lamp short of power shines, flickering. |
 | `LampSparks.cs` | A lamp short of power, in light (0075): glints, sparks, arcs. |
 | `LightView.cs` | Gathers every light each frame for the lightmap (0019, 0029, 0070). |

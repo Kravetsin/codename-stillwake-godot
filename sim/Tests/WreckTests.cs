@@ -92,10 +92,8 @@ public class WreckTests
     {
         var m = new Registry();
         World.Create(1, Wreck, m.All);
-        Assert.Equal(["solarPanel", "lifepod"], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Menu != null || Machines.Get(x.Kind).Fixed).Select(x => x.Kind));
+        Assert.Equal(["emergencyLamp", "emergencyLamp", "lifepod", "pileBits", "pileCargo", "pileHull", "pileScrap", "solarPanel"], m.Grid.Machines.Select(x => x.Kind).Order(StringComparer.Ordinal));
         Assert.Equal([Panel, Pod], m.Grid.Machines.Where(x => Machines.Get(x.Kind).Menu != null || Machines.Get(x.Kind).Fixed).Select(x => x.Cell));
-        Assert.Equal(2, m.Grid.MachinesOf("emergencyLamp").Count);
-        Assert.Equal(["pileBits", "pileCargo", "pileHull", "pileScrap"], m.Grid.Machines.Where(x => x.Kind.StartsWith("pile", StringComparison.Ordinal)).Select(x => x.Kind).Order(StringComparer.Ordinal));
         Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), m.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
         Assert.Equal(0, m.Research.Credits);
         // Four doors, each two cells by six.
@@ -333,6 +331,8 @@ public class WreckTests
     {
         var w = new Scenario(Wreck);
         // The pile standing in the throat comes out first: it holds its cells' build slot.
+        w.Do(new Place(At(24, 30), Placement.Wall("scrap"))).Run();
+        Assert.Equal("grid.machineInTheWay", Assert.Single(w.Refusals).Reason);
         TakeApart(w, "pileScrap");
         foreach (int cell in Cells(24, 24, 14, 30)) w.Do(new Place(cell, Placement.Wall("scrap")));
         w.Run();
@@ -382,10 +382,26 @@ public class WreckTests
     public void OpensTheLampWithTheBurnerForNothingBeforeItMakesPower() =>
         Assert.Equal(ResearchSpec.Node("burnerGenerator")!.Ring, ResearchSpec.Node("lamp")!.Ring);
 
+    /// <summary>Each lights the hold, up against what it hangs from: a lamp in mid-air would read as a mistake.</summary>
+    [Fact]
+    public void HangsAnEmergencyLampInEachPartOfTheHoldUnderACeiling()
+    {
+        var w = new Scenario(Wreck);
+        var lamps = w.M.Grid.MachinesOf("emergencyLamp");
+        Assert.Equal(2, lamps.Count);
+        var inHold = Cells(24, 33, 11, 30).ToHashSet();
+        foreach (var lamp in lamps)
+        {
+            Assert.Contains(lamp.Cell, inHold);
+            int above = lamp.Cell - Wreck.Width;
+            Assert.True(w.M.Grid.WallAt(above) != null || w.M.Grid.StructureAt(above) == Structure.Floor, $"{lamp.Cell}");
+        }
+    }
+
     private static void TakeApart(Scenario w, string kind)
     {
         w.Do(new Deconstruct(w.M.Grid.MachinesOf(kind).Single().Cell, "machine")).Run();
-        for (int i = 0; i < Machines.Get(kind).BuildTicks / Content.Builds.DeconstructSpeedup; i++) w.Do(new Work(w.M.Building.Plans.Single().Id) { From = 1 }).Run();
+        for (int i = 0; i < Costs.ApartTicks(Machines.Get(kind).BuildTicks); i++) w.Do(new Work(w.M.Building.Plans.Single().Id) { From = 1 }).Run();
     }
 
     [Fact]
