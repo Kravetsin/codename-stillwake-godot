@@ -45,8 +45,8 @@ public class WreckScrapTests
     public void ItIsScrapInEveryRule()
     {
         var (plate, scrap) = (Materials.Get("wreckScrap"), Materials.Get("scrap"));
-        Assert.Equal((scrap.Strength, scrap.Leak, scrap.BuildTicks, scrap.Armour, scrap.Natural, scrap.Clear, scrap.Footing),
-            (plate.Strength, plate.Leak, plate.BuildTicks, plate.Armour, plate.Natural, plate.Clear, plate.Footing));
+        Assert.Equal((scrap.Strength, scrap.Leak, scrap.BuildTicks, scrap.Armour, scrap.Natural, scrap.Clear, scrap.Footing, scrap.Look),
+            (plate.Strength, plate.Leak, plate.BuildTicks, plate.Armour, plate.Natural, plate.Clear, plate.Footing, plate.Look));
         Assert.Equal(scrap.Cost, plate.Cost);
         Assert.Equal("scrap", plate.As);
     }
@@ -83,6 +83,16 @@ public class WreckScrapTests
     }
 
     [Fact]
-    public void TakenApartItPaysAsScrap() =>
-        Assert.Equal(Materials.Get("scrap").Cost, Costs.BuiltAt(new Scenario(World).M.Grid, ADressedCell(), "structure")!.Cost);
+    public void TakenApartByAHeroItPaysAChunkAndLeavesTheBackWall()
+    {
+        var w = new Scenario(World);
+        int cell = ADressedCell();
+        w.Do(new Deconstruct(cell, "structure")).Run();
+        int mark = w.M.Building.Plans.Single().Id;
+        for (int i = 0; i < 20 && w.M.Building.Plans.Count > 0; i++) w.Do(new Work(mark)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Null(w.M.Grid.WallAt(cell));
+        Assert.Equal("scrap", w.M.Grid.BackAt(cell)?.Id);
+        Assert.Equal(1, w.M.Items.Totals(0).Where(t => t.Item == "scrapChunk").Sum(t => t.Count));
+    }
 }

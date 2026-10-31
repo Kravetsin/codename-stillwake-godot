@@ -56,8 +56,8 @@ function rust(cx, cy, heavy, put) {
 }
 
 const OCHRE = [176, 150, 84], BONE = [196, 180, 128];
-// Where a chevron's point lies on each tip: the middle of the tip's height.
-const tipMiddle = cy => (cy <= 13 ? 104 : cy <= 25 ? 200 : 152);
+// Where a chevron's point lies, in pixels down the drawing: the upper jaw's tip and the lower jaw's; the landing's rows, above it, slant one way, as picked.
+const tipMiddle = cy => (cy <= 13 ? 104 : 200);
 
 function stripes(cx, cy, put) {
   eachPixel(cx, cy, (px, py, wx, wy) => {

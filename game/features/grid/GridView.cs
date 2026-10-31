@@ -290,14 +290,12 @@ public partial class GridView : Node2D
 
         var spec = Structures.Of(_drawn.Structure[cell]);
         // Stars show through a tear's cuts, so it draws no back wall while its wall stands.
-        bool dressed = spec.Draw == StructureDraw.Autotile && _drawn.Material[cell] == WreckDress.Code;
-        var drawing = dressed ? WreckDress.DrawnAt(x, y, _corner) : default;
         int open = spec.Draw == StructureDraw.Autotile ? ~WalledSides(cell) & (Up | Right | Down | Left) : 0;
-        bool torn = dressed && WreckDress.ShowsTear(drawing.X, drawing.Y, open);
+        var dress = spec.Draw == StructureDraw.Autotile ? WreckDress.Of(_drawn.Material[cell], x, y, _corner, open) : default;
 
         if (_drawn.Back[cell] == Back.Wall)
         {
-            if (!torn) DrawBack(at, _drawn.BackMaterial[cell]);
+            if (dress.Torn == null) DrawBack(at, _drawn.BackMaterial[cell]);
             DrawShade(cell, blank);
         }
 
@@ -306,13 +304,12 @@ public partial class GridView : Node2D
             case StructureDraw.Autotile:
                 {
                     var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
-                    if (torn) Put(_walls, at, WreckDress.TornName(drawing.X, drawing.Y));
+                    if (dress.Torn != null) Put(_walls, at, dress.Torn);
                     else _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
                     // Edged where it faces no wall.
-                    if (open != 0 && !torn)
+                    if (open != 0 && dress.Torn == null)
                         Put(_edges, at, edges[open]);
-                    if (dressed && WreckDress.At(drawing.X, drawing.Y) is 'R' or 'r' or 'H')
-                        Put(_dress, at, WreckDress.OverName(drawing.X, drawing.Y));
+                    if (dress.Over != null) Put(_dress, at, dress.Over);
                     DrawDetail(cell);
                     DrawTop(cell);
                     break;

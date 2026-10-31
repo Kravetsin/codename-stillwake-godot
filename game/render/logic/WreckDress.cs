@@ -34,13 +34,26 @@ public static class WreckDress
     public static int OpenAsDrawn(int x, int y) =>
         (IsWall(x, y - 1) ? 0 : Up) | (IsWall(x + 1, y) ? 0 : Right) | (IsWall(x, y + 1) ? 0 : Down) | (IsWall(x - 1, y) ? 0 : Left);
 
-    /// <summary>Whether a torn cell shows its tear with <paramref name="open"/> sides open now; a neighbour built or taken away ends it.</summary>
-    public static bool ShowsTear(int x, int y, int open) => At(x, y) == 'T' && open == OpenAsDrawn(x, y);
-
     private static bool IsWall(int x, int y)
     {
         int row = y + Wreck.Top, column = x + Wreck.Left;
         return row >= 0 && row < Wreck.Rows.Count && column >= 0 && column < Wreck.Rows[row].Length && Wreck.Rows[row][column] == '#';
+    }
+
+    /// <summary>
+    /// What a wall of material <paramref name="code"/> at grid cell (<paramref name="x"/>, <paramref name="y"/>) draws beyond its plain pictures: a picture over
+    /// it, or a torn one in its place, which also has it draw no back wall and no edge. Neither for a wall built since, as scrap, or a tear whose sides changed.
+    /// </summary>
+    public static (string? Over, string? Torn) Of(int code, int x, int y, (int X, int Y) corner, int open)
+    {
+        if (code != Code) return default;
+        var (dx, dy) = DrawnAt(x, y, corner);
+        return At(dx, dy) switch
+        {
+            'R' or 'r' or 'H' => (OverName(dx, dy), null),
+            'T' when open == OpenAsDrawn(dx, dy) => (null, TornName(dx, dy)),
+            _ => default,
+        };
     }
 
     /// <summary>A rust or stripes picture's name.</summary>
