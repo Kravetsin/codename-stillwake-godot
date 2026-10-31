@@ -37,6 +37,8 @@ public static class SurfaceViews
     public static readonly IReadOnlyList<SurfaceView> All =
     [
         new(c => new GridView(c.M.Grid) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
+        // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
+        new(c => new WreckMotionView(c.M.Grid), Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building)),
         // A planet's caves: their stone tinted by depth under their growth (0080).

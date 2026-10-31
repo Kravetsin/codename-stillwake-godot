@@ -160,6 +160,9 @@ public sealed record Luminous(Glimmer Kind, (int R, int G, int B)[] Ramp, (doubl
     /// <summary>Condensation curling and thinning out of a breach into space.</summary>
     public static readonly Luminous Condensation = new(Glimmer.Wisp, [(232, 240, 250)], (900, 1600))
     { Matter = true, Drag = 1.1, Turbulence = 45, Spin = 1.5, NoiseScale = 0.07, Size = 1.8, Grow = 4, Alpha = 0.13 };
+    /// <summary>The last of the old crew's air seeping from a tear in the wreck (2026-10-31-the-scoop): a slow thin thread of light, nothing like a leak's jet.</summary>
+    public static readonly Luminous WreckThread = new(Glimmer.Wisp, [(222, 234, 246)], (3000, 4600))
+    { Drag = 0.15, Turbulence = 5, Spin = 0.4, NoiseScale = 0.05, Size = 1.4, Grow = 0.4, Alpha = 0.3 };
     /// <summary>Fresh air breathed out of a vent filling its room, a faint veil drifting up and settling.</summary>
     public static readonly Luminous FreshAir = new(Glimmer.Wisp, [(214, 236, 255)], (1600, 2600))
     { Matter = true, Drag = 1.6, Turbulence = 14, Spin = 0.8, NoiseScale = 0.06, Size = 1.6, Grow = 2.6, Alpha = 0.07 };

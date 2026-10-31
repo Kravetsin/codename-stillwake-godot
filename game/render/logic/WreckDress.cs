@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Stillwake.Content;
 using Stillwake.Sim;
+using Stillwake.Sim.Grid;
 
 namespace Stillwake.Game.Render;
 
@@ -54,6 +55,16 @@ public static class WreckDress
             'T' when open == OpenAsDrawn(dx, dy) => (null, TornName(dx, dy)),
             _ => default,
         };
+    }
+
+    /// <summary>Whether the cell (<paramref name="x"/>, <paramref name="y"/>) of the drawing shows its tear on <paramref name="grid"/> now; never past the grid's edge.</summary>
+    public static bool ShowsTear(IGridQueries grid, int x, int y, (int X, int Y) corner)
+    {
+        int gx = x + Wreck.Left + corner.X, gy = y + Wreck.Top + corner.Y;
+        if (gx < 0 || gy < 0 || gx >= grid.Width || gy >= grid.Height) return false;
+        bool Walled(int cx, int cy) => cx >= 0 && cy >= 0 && cx < grid.Width && cy < grid.Height && Structures.Is(grid.StructureAt(cy * grid.Width + cx), Trait.Terrain);
+        int open = (Walled(gx, gy - 1) ? 0 : Up) | (Walled(gx + 1, gy) ? 0 : Right) | (Walled(gx, gy + 1) ? 0 : Down) | (Walled(gx - 1, gy) ? 0 : Left);
+        return Of(grid.MaterialLayer[gy * grid.Width + gx], gx, gy, corner, open).Torn != null;
     }
 
     /// <summary>A rust or stripes picture's name.</summary>

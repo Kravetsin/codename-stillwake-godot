@@ -24,7 +24,7 @@ public class CraftsTests
     private static readonly Content.Station Former = Content.Stations.Get("former");
     private static readonly Content.Station Assembler = Content.Stations.Get("assembler");
 
-    private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = Content.Research.StartKnown });
+    private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = ["fireAxe"] });
 
     private static Look LookOf(TestWorld w, string craft) =>
         Crafts.LookOf(w.M.Research.Knows(craft), Crafts.Lines(craft, w.M.Items.Totals(0)), w.M.Items.Creative);
