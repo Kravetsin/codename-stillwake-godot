@@ -256,25 +256,29 @@ public class DesyncTests(ITestOutputHelper output)
     public void KeepsAJoinerInSyncWhileRoomsAreFoundAgainAroundDoorsFarFromSpace()
     {
         // Rooms closed by doors three cells and more from space: toggled by the fuzz, they are found
-        // again around the door, and the air follows only those rooms.
+        // again around the door, and the air follows only those rooms. Each top corner room is aired by the chain
+        // (liquid-oxygen): its tank's liquid along row 3 to a vaporizer's input, the air from its output (the right cell
+        // of its top right character) up to a vent; a panel in the space above the ship powers each vaporizer.
         string[] ship =
         [
             "#####################",
-            "#V.....#.....#.....V#",
-            "#TT....D.....D....TT#",
-            "#TT....#..H..#....TT#",
+            "#....V.#.....#....V.#",
+            "#TTGG..D.....DTTGG..#",
+            "#TTGG..#..H..#TTGG..#",
             "###D#######D#####D###",
             "#.....V#.....#......#",
             "#......D.....D......#",
             "#......#.....#......#",
             "#####################",
         ];
-        string[] pipes = ["", " -                 -", " -o               --", " -                -o"];
+        string[] pipes = ["", "     -            -", "  o --        o  --", " ---          ---"];
         string Pad(string row) => ("   " + row).PadRight(27);
         var blank = Enumerable.Repeat("", 3);
+        string[] above = ["", " PPP          PPP", ""];
         var layout = Layout.Parse(
-            [.. blank.Concat(ship).Concat(blank).Select(Pad)],
-            [.. blank.Concat(pipes).Select(Pad)]).Doubled();
+            [.. above.Concat(ship).Concat(blank).Select(Pad)],
+            [.. blank.Concat(pipes).Select(Pad)],
+            [((4, 1), (6, 5)), ((17, 1), (19, 5))]).Doubled();
         // On a stream of modules' commands alone: the world's are drawn in KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces.
         Covering(7, tried =>
         {
@@ -298,21 +302,25 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientInSyncWhileAirFillsLeaksAndVentsAndHeroesBreatheIt()
     {
-        // A room with a vent above a tank and the spawn beside them. The first client pipes them and
-        // loads the tank through the pipeline, then the fuzz plays on past two leak beats, breaching
-        // walls and moving heroes in and out as it goes, one kept outside till it passes out.
+        // A room with a vent above a tank, a vaporizer beside them powered by a panel out in space, and the spawn. The first
+        // client pipes the chain (liquid-oxygen), the tank to the vaporizer's input and its output to the vent, and loads the
+        // tank, then the fuzz plays on past two leak beats, breaching walls and moving heroes in and out as it goes, one kept
+        // outside till it passes out.
         var room = Layout.Parse([
             ".............",
             ".###########.",
             ".#V..S.....#.",
-            ".#TT.......#.",
-            ".#TT.......#.",
+            ".#TT..GG...#.",
+            ".#TT..GG...#.",
             ".###########.",
-            ".............",
-        ]).Doubled();
+            "......PPP....",
+        ], cables: [((6, 6), (6, 3))]).Doubled();
         // The cell of the drawing's character at (x, y): its block's top-left, doubled (0104).
         static int Cell(int x, int y) => 2 * y * 26 + 2 * x;
         const int tank = 2;
+        // The tank's port and the vaporizer's input, on their bottom rows' left; the vent's port, and the vaporizer's output,
+        // the right cell of its top right character.
+        int liquid = Cell(2, 4), input = Cell(6, 4), vent = Cell(2, 2), output = Cell(7, 3) + 1;
         Covering(9, tried =>
         {
             int aired = 0, peak = 0;
@@ -329,9 +337,12 @@ public class DesyncTests(ITestOutputHelper output)
                     if (tick <= 40) first.Send(new SetCreative(true));
                     if (tick < 40)
                     {
-                        // The pipe laid again while missing, from the vent's port down to the tank's (0109): the fuzz may cut it meanwhile.
-                        int from = Cell(2, 2), to = Cell(2, 2) + 4 * 26;
-                        if (!game.Module<PipesModule>(first.World).Spans.Any(s => s.A == from && s.B == to)) first.Send(new LayPipe(from, to));
+                        // The pipes laid again while missing (0109): the fuzz may cut them meanwhile.
+                        var spans = game.Module<PipesModule>(first.World).Spans;
+                        foreach (var (from, to) in new[] { (liquid, input), (vent, output) })
+                            if (!spans.Any(s => s.A == from && s.B == to)) first.Send(new LayPipe(from, to));
+                        // The panel's cable too, which the power fuzz may cut: refused while there.
+                        first.Send(new Sim.Power.Lay(Cell(6, 6), Cell(6, 3)));
                     }
                     else if (tick == 40)
                     {
@@ -480,10 +491,30 @@ public class DesyncTests(ITestOutputHelper output)
         // mode, keeps the Former's and the assembler's queues going and the furnace, the smelter, the crusher, the capsule and
         // the generators fed. The capsule starts a hundred ticks of full power from its crop, so the seeds it gives back are
         // drawn on every peer; the crusher's quartz, one ore in two, is drawn too.
+        // The room is aired by the chain under its hull, in space (liquid-oxygen): it leaks some 1.2 units a tick and a
+        // vaporizer makes 1, so three, each powered by a panel, their outputs (each one's top right character's right cell)
+        // on a gas line up to the vent; a filled tank on a liquid line to their inputs.
         var layout = Layout.Parse(
-            ["###############################", "#.......OOO..............gg...#", "#FF.TT..OOOMMBB.EE.YY.BB.gg.kk#", "#FF.TTV.OOOMMBB.EE.YY.BB.gg.kk#", "###############################"],
-            ["", "", "    o", "    ---"],
-            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2)), ((22, 2), (28, 2))]).Doubled();
+            [
+                "###############################",
+                "#.......OOO..............gg...#",
+                "#FF.....OOOMMBB.EE.YY.BB.gg.kk#",
+                "#FF...V.OOOMMBB.EE.YY.BB.gg.kk#",
+                "###############################",
+                "",
+                "  GG  GG  GG",
+                "  GG  GG  GG",
+                "",
+                "  TT",
+                "  TT",
+                "",
+                "  PPP PPP PPP",
+            ],
+            ["", "", "", "      -", "      -", "    ---------", "   --  --  --", "  -   -   -", "  ---------", "  -o", "  -"],
+            [
+                ((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2)), ((22, 2), (28, 2)),
+                ((2, 12), (2, 6)), ((6, 12), (6, 6)), ((10, 12), (10, 6)),
+            ]).Doubled();
         int crop = Content.Items.Get("seed").SmeltTicks!.Value * 1000;
         string Stocked(string save)
         {

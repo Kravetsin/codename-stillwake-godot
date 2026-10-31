@@ -28,8 +28,9 @@ public class BudgetTests(ITestOutputHelper output)
     private static double Within(double ms) => ms * Slack;
 
     /// <summary>
-    /// apps/game/src/dev/perf-map.ts: an 8×8 tile repeated, every chunk holding every kind of cell; here
-    /// each tile's tank also starts with a canister and is piped to its vent, so every room fills and leaks.
+    /// apps/game/src/dev/perf-map.ts: an 8×8 tile repeated, every chunk holding every kind of cell; here each tile's
+    /// tank also starts with a canister, piped to a vaporizer powered by a panel in a row of space under the room, its air
+    /// on to a vent (liquid-oxygen), so every room fills and leaks.
     /// </summary>
     internal static Layout Reference() => Reference(256, 128);
 
@@ -42,25 +43,35 @@ public class BudgetTests(ITestOutputHelper output)
     /// </summary>
     internal static Layout Reference(int width, int height, int shipWidth = 256, int shipHeight = 128, int margin = 0)
     {
+        // The tank's liquid runs along row 2 to the vaporizer's input; its air leaves the output, the right cell of the
+        // vaporizer's top right character, to the vent and on down through the open valve. A panel needs the stars, so the
+        // tile's last row is space, a channel through the ship to its edge.
         string[] tile =
         [
             "########",
-            "#TT.V.-#",
-            "#TT.H.v#",
+            "#TT.GGV#",
+            "#TT.GGv#",
             "#=.DH.-#",
             "#--x-H.#",
             "#.V.dH.#",
-            "#==..=.#",
             "########",
+            "PPP     ",
         ];
-        string[] under = ["", " o --", " ---", "", "", "", "", ""];
+        string[] under = ["", " o   --", " ----", "", "", "", "", ""];
         string Row(int y, string[] of) =>
             (y >= margin && y < margin + shipHeight
                 ? new string(' ', margin) + string.Concat(Enumerable.Repeat(of[(y - margin) % 8].PadRight(8), shipWidth / 8))
                 : "").PadRight(width);
         var rows = Enumerable.Range(0, height).Select(y => Row(y, tile)).ToArray();
         var below = Enumerable.Range(0, height).Select(y => Row(y, under)).ToArray();
-        return Layout.Parse(rows, below);
+        // Each tile's panel cabled to its vaporizer.
+        var cables =
+            from ty in Enumerable.Range(0, shipHeight / 8)
+            from tx in Enumerable.Range(0, shipWidth / 8)
+            let x = margin + 8 * tx
+            let y = margin + 8 * ty
+            select ((x, y + 7), (x + 4, y + 1));
+        return Layout.Parse(rows, below, [.. cables]);
     }
 
     [Fact]
@@ -328,10 +339,12 @@ public class BudgetTests(ITestOutputHelper output)
     [Fact]
     public void KeepsAThousandFurnacesAndTradeStationsAtWorkUnderBudget()
     {
-        string[] tile = ["########", "#FF.$$.#", "#FF.$$.#", "#......#", "#.TT.V.#", "#.TT...#", "#......#", "########"];
-        string[] under = ["", "", "", "", "  o  -", "  ----", "", ""];
+        // Each room's tank feeds a vaporizer, powered by a panel in the row of space under the room, and it a vent (liquid-oxygen).
+        string[] tile = ["########", "#FF.$$.#", "#FF.$$.#", "#......#", "#TTGGV.#", "#TTGG..#", "########", "PPP     "];
+        string[] under = ["", "", "", "", " o  --", " ---", "", ""];
         string[] Rows(string[] of) => [.. Enumerable.Range(0, 256).Select(y => string.Concat(Enumerable.Repeat(of[y % 8].PadRight(8), 32)))];
-        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under)), doubled: true);
+        var cables = from ty in Enumerable.Range(0, 32) from tx in Enumerable.Range(0, 32) select ((8 * tx, 8 * ty + 7), (8 * tx + 3, 8 * ty + 4));
+        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under), [.. cables]), doubled: true);
         foreach (var m in w.M.Grid.Machines)
         {
             if (m.Kind == "furnace") w.FillCrate(m.Id, ("scrapChunk", 10), ("planks", 50));
@@ -346,7 +359,8 @@ public class BudgetTests(ITestOutputHelper output)
         output.WriteLine($"{w.M.Grid.Machines.Count} machines, {burning} of {furnaces.Count} furnaces burning, {selling} trade stations selling");
         output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
         Assert.True(burning > 1000 && selling > 1000, "the machines stand idle");
-        // Two thousand machines, more than a world will hold: twice the budget, where a desk takes about 2 ms.
+        // Two thousand machines, more than a world will hold: twice the budget. A desk took about 2.6 ms before liquid oxygen,
+        // 3.2–3.7 ms with a vaporizer and a panel to each room.
         Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
     }
 
@@ -359,26 +373,57 @@ public class BudgetTests(ITestOutputHelper output)
     [Fact]
     public void KeepsFourBaysOfFourDronesAmongFortyMachinesUnderBudget()
     {
-        const int W = 72, H = 16;
-        var rows = Enumerable.Range(0, H).Select(y => (y == 0 || y == H - 1 ? new string('#', W) : "#" + new string('.', W - 2) + "#").ToCharArray()).ToArray();
-        var under = Enumerable.Range(0, H).Select(_ => new string(' ', W).ToCharArray()).ToArray();
+        // The hall, rows 0–15, and under its hull in space its air plant (liquid-oxygen). The hall leaks some 10.6 units a tick
+        // and a vaporizer makes 1, so sixteen on one gas line up to the vents fill it as fast as a room fills, four cells a
+        // tick; four filled tanks on one liquid line under them, thirteen panels powering them.
+        const int W = 72, H = 16, Below = 8, Vaporizers = 16, Panels = 13;
+        var rows = Enumerable.Range(0, H + Below).Select(y => (y >= H ? new string(' ', W) : y == 0 || y == H - 1 ? new string('#', W) : "#" + new string('.', W - 2) + "#").ToCharArray()).ToArray();
+        var under = Enumerable.Range(0, H + Below).Select(_ => new string(' ', W).ToCharArray()).ToArray();
         void Stamp(char c, int x, int y, int w, int h)
         {
             for (int dy = 0; dy < h; dy++)
                 for (int dx = 0; dx < w; dx++) rows[y + dy][x + dx] = c;
         }
+        void Pipe(int x0, int x1, int y0, int y1)
+        {
+            for (int y = y0; y <= y1; y++)
+                for (int x = x0; x <= x1; x++) under[y][x] = '-';
+        }
         foreach (int x in new[] { 6, 24, 42, 60 })
         {
             Stamp('R', x, 12, 2, 2);
-            Stamp('T', x + 4, 12, 2, 2);
             Stamp('V', x + 7, 13, 1, 1);
-            under[12][x + 4] = 'o';
-            for (int px = x + 4; px <= x + 7; px++) under[13][px] = '-';
+            // From the vent down through the hull to the gas line.
+            Pipe(x + 7, x + 7, 13, H);
         }
         for (int k = 0; k < 17; k++) Stamp('K', 3 + 4 * k, 3, 2, 1);
         for (int k = 0; k < 11; k++) Stamp('F', 4 + 6 * k, 7, 2, 2);
         foreach (int x in new[] { 10, 30, 50 }) Stamp('K', x, 10, 2, 1);
-        var w = new Scenario(Layout.Parse([.. rows.Select(r => new string(r))], [.. under.Select(r => new string(r))]), doubled: true);
+        // The gas line on row 16, each vaporizer's output (its top right character's right cell) up to it; the liquid line
+        // on row 19, each vaporizer's input down to it and each tank's port up to it.
+        Pipe(4, 67, H, H);
+        Pipe(2, 62, H + 3, H + 3);
+        var cables = new List<((int, int), (int, int))>();
+        for (int k = 0; k < Vaporizers; k++)
+        {
+            int c = 2 + 4 * k;
+            Stamp('G', c, H + 1, 2, 2);
+            Pipe(c + 1, c + 2, H + 1, H + 1);
+            Pipe(c, c, H + 2, H + 2);
+            if (k > 0) cables.Add(((c - 4, H + 1), (c, H + 1)));
+        }
+        foreach (int t in new[] { 4, 20, 36, 52 })
+        {
+            Stamp('T', t, H + 4, 2, 2);
+            Pipe(t, t, H + 4, H + 5);
+            under[H + 4][t + 1] = 'o';
+        }
+        for (int j = 0; j < Panels; j++)
+        {
+            Stamp('P', 2 + 4 * j, H + 7, 3, 1);
+            cables.Add(((2 + 4 * j, H + 7), (2 + 4 * j, H + 1)));
+        }
+        var w = new Scenario(Layout.Parse([.. rows.Select(r => new string(r))], [.. under.Select(r => new string(r))], cables), doubled: true);
         Assert.True(w.M.Grid.Machines.Count >= 40);
         foreach (var bay in w.M.Grid.MachinesOf(Content.Logistics.Bay)) LogisticsTests.Dock(w, bay.Id, 4);
         var crates = w.M.Grid.MachinesOf("crate").Where(c => c.Cell == w.At(c.Cell % w.M.Grid.Width / 2, 3)).ToList();

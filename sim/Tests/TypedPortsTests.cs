@@ -13,25 +13,25 @@ namespace Stillwake.Sim.Tests;
 public class TypedPortsTests
 {
     /// <summary>
-    /// Ports: the top vent's (0, 0) takes, the tank's (0, 6) and the generator's (12, 6) give, the bottom vents' (0, 10) and
-    /// (12, 10) take; open cells between.
+    /// Ports (liquid-oxygen): the vents' (0, 0), (0, 10) and (12, 10) take air; the generator's (8, 2) takes liquid and its
+    /// (11, 0) gives air; the tanks' (0, 6) and (12, 6) give liquid; open cells between.
     /// </summary>
     private const string Ship = """
-        VV......................
-        VV......................
-        ........................
-        ........................
-        TTTT........GGGG........
-        TTTT........GGGG........
-        TTTT........GGGG........
-        TTTT........GGGG........
+        VV......GGGG............
+        VV......GGGG............
+        ........GGGG............
+        ........GGGG............
+        TTTT........TTTT........
+        TTTT........TTTT........
+        TTTT........TTTT........
+        TTTT........TTTT........
         ........................
         ........................
         VV..........VV..........
         VV..........VV..........
         """;
 
-    /// <summary>The ship with no generator and one vent: room for machines planned onto the pipes.</summary>
+    /// <summary>A tank and one vent, no generator: room for machines planned onto the pipes.</summary>
     private const string Bare = """
         VV......................
         VV......................
@@ -44,6 +44,7 @@ public class TypedPortsTests
         """;
 
     private static readonly Placement Generator = new("machine", "generator");
+    private static readonly Placement Tank = new("machine", "tank");
     private static readonly Placement Vent = new("machine", "vent");
 
     private static Scenario Piped(string map = Ship) => new Scenario(map, cells: true).GiveItems(0, ("tube", 20));
@@ -60,20 +61,35 @@ public class TypedPortsTests
     public void LaysAPipeFromAnOutputToAnInputAndRefusesOneJoiningTwoOutputsOrTwoInputs()
     {
         var w = Piped();
-        w.Do(new LayPipe(w.At(0, 6), w.At(0, 0))).Do(new LayPipe(w.At(0, 6), w.At(12, 6))).Do(new LayPipe(w.At(0, 10), w.At(12, 10))).Run();
+        w.Do(new LayPipe(w.At(0, 6), w.At(8, 2))).Do(new LayPipe(w.At(0, 6), w.At(12, 6))).Do(new LayPipe(w.At(0, 10), w.At(12, 10))).Run();
         Assert.Equal(["pipes.bothGive", "pipes.bothTake"], Reasons(w));
-        Assert.Equal([new PipeSpan(w.At(0, 0), w.At(0, 6), true)], w.M.Pipes.Spans);
+        Assert.Equal([new PipeSpan(w.At(8, 2), w.At(0, 6), true)], w.M.Pipes.Spans);
+    }
+
+    /// <summary>
+    /// The chain (liquid-oxygen): a tank's liquid to the generator's input, its air from its output to a vent; a tank's
+    /// liquid straight to a vent is refused, both ends' ways fitting.
+    /// </summary>
+    [Fact]
+    public void LaysATanksLiquidToTheGeneratorItsAirToAVentAndRefusesATankStraightToAVent()
+    {
+        var w = Piped();
+        w.Do(new LayPipe(w.At(0, 6), w.At(0, 10))).Do(new LayPipe(w.At(0, 6), w.At(8, 2))).Do(new LayPipe(w.At(11, 0), w.At(0, 0))).Run();
+        Assert.Equal(["pipes.mixedFluid"], Reasons(w));
+        Assert.Equal([new PipeSpan(w.At(0, 0), w.At(11, 0), true), new PipeSpan(w.At(8, 2), w.At(0, 6), true)], w.M.Pipes.Spans);
+        Assert.Equal(2, w.M.Pipes.Networks.Count);
+        Assert.Equal("pipes.mixedFluid", w.M.Pipes.FluidProblem(w.At(12, 6), w.At(12, 10)));
     }
 
     [Fact]
-    public void JoinsATankAGeneratorAndAVentThroughAJointTwoOutputsOnOneLine()
+    public void JoinsTwoTanksAndAGeneratorThroughAJointTwoOutputsOnOneLine()
     {
         var w = Piped();
         int joint = w.At(6, 8);
-        w.Do(new LayPipe(w.At(0, 6), joint)).Do(new LayPipe(w.At(12, 6), joint)).Do(new LayPipe(joint, w.At(0, 10))).Run();
+        w.Do(new LayPipe(w.At(0, 6), joint)).Do(new LayPipe(w.At(12, 6), joint)).Do(new LayPipe(joint, w.At(8, 2))).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(3, Assert.Single(w.M.Pipes.Networks).Machines.Count);
-        Assert.Equal(Content.Fluids.Air, w.M.Pipes.FluidAt(joint));
+        Assert.Equal(Content.Fluids.LiquidOxygen, w.M.Pipes.FluidAt(joint));
     }
 
     [Fact]
@@ -105,7 +121,7 @@ public class TypedPortsTests
     [Fact]
     public void KeepsADrawnSpanBetweenTwoOutputsThroughALoad()
     {
-        // The tank's and the generator's ports joined straight by a pipe drawn under them: no longer laid, still kept.
+        // The two tanks' ports joined straight by a pipe drawn under them: no longer laid, still kept.
         string[] rows = [.. Ship.Split('\n').Select(r => r.Trim())];
         string[] under = ["", "", "", "", "", "", "-------------"];
         var w = new Scenario(Layout.Parse(rows, under));
@@ -123,13 +139,13 @@ public class TypedPortsTests
     {
         var w = Piped(Bare);
         w.Do(new LayPipe(w.At(0, 6), w.At(12, 6))).Do(new LayPipe(w.At(0, 0), w.At(8, 0))).Run();
-        w.Do(new PlacePlan(w.At(12, 4), Generator)).Do(new PlacePlan(w.At(8, 0), Vent)).Run();
+        w.Do(new PlacePlan(w.At(12, 4), Tank)).Do(new PlacePlan(w.At(8, 0), Vent)).Run();
         Assert.Equal(["pipes.bothGive", "pipes.bothTake"], Reasons(w));
         Assert.Empty(w.M.Building.Plans);
         // Built at once, the same.
-        w.Do(new SetInstant(true)).Do(new PlacePlan(w.At(12, 4), Generator)).Run();
+        w.Do(new SetInstant(true)).Do(new PlacePlan(w.At(12, 4), Tank)).Run();
         Assert.Equal(["pipes.bothGive", "pipes.bothTake", "pipes.bothGive"], Reasons(w));
-        Assert.DoesNotContain(w.M.Grid.Machines, m => m.Kind == "generator");
+        Assert.Single(w.M.Grid.Machines, m => m.Kind == "tank");
     }
 
     [Fact]
@@ -149,19 +165,19 @@ public class TypedPortsTests
     [Fact]
     public void SeesWhatEarlierCommandsOfItsTickDid()
     {
-        // A generator finished, then a pipe from the tank to its port: refused on the tick it is built.
+        // A second tank finished, then a pipe from the first to its port: refused on the tick it is built.
         var w = Piped(Bare).Do(new Items.SetCreative(true));
-        w.Do(new PlacePlan(w.At(12, 4), Generator)).Run();
+        w.Do(new PlacePlan(w.At(12, 4), Tank)).Run();
         int plan = w.M.Building.Plans[0].Id;
-        WorkAllButLast(w, plan, "generator").Do(new Work(plan)).Do(new LayPipe(w.At(0, 6), w.At(12, 6))).Run();
+        WorkAllButLast(w, plan, "tank").Do(new Work(plan)).Do(new LayPipe(w.At(0, 6), w.At(12, 6))).Run();
         Assert.Equal(["pipes.bothGive"], Reasons(w));
-        Assert.Equal("generator", w.M.Grid.MachineAt(w.At(12, 6))!.Kind);
+        Assert.Equal("tank", w.M.Grid.MachineAt(w.At(12, 6))!.Kind);
 
-        // A pipe from the tank to a joint, then a generator finished on it: refused on the tick the pipe is laid.
+        // A pipe from the tank to a joint, then a second tank finished on it: refused on the tick the pipe is laid.
         var v = Piped(Bare).Do(new Items.SetCreative(true));
-        v.Do(new PlacePlan(v.At(12, 4), Generator)).Run();
+        v.Do(new PlacePlan(v.At(12, 4), Tank)).Run();
         int other = v.M.Building.Plans[0].Id;
-        WorkAllButLast(v, other, "generator").Do(new LayPipe(v.At(0, 6), v.At(12, 6))).Do(new Work(other)).Run();
+        WorkAllButLast(v, other, "tank").Do(new LayPipe(v.At(0, 6), v.At(12, 6))).Do(new Work(other)).Run();
         Assert.Equal(["pipes.bothGive"], Reasons(v));
         Assert.Null(v.M.Grid.MachineAt(v.At(12, 6)));
     }
@@ -179,18 +195,20 @@ public class TypedPortsTests
     [Fact]
     public void BuildsAMachineWhosePortsFitThePipesThere()
     {
-        // A vent on a joint piped from the tank, a generator on one piped from the vent: each gives to a port that takes.
+        // A generator on a joint piped from the tank and one piped to the vent, its input taking the tank's liquid and its
+        // output giving the vent air; a vent on a joint piped on from that output.
         foreach (bool instant in new[] { false, true })
         {
             var w = Piped(Bare).Do(new Items.SetCreative(true)).Do(new SetInstant(instant));
-            w.Do(new LayPipe(w.At(0, 6), w.At(8, 6))).Do(new LayPipe(w.At(0, 0), w.At(8, 2))).Run();
-            w.Do(new PlacePlan(w.At(8, 6), Vent)).Do(new PlacePlan(w.At(8, 0), Generator)).Run();
+            w.Do(new LayPipe(w.At(0, 6), w.At(8, 6))).Do(new LayPipe(w.At(0, 0), w.At(11, 4))).Do(new LayPipe(w.At(11, 4), w.At(16, 6))).Run();
+            w.Do(new PlacePlan(w.At(16, 6), Vent)).Do(new PlacePlan(w.At(8, 4), Generator)).Run();
             foreach (var plan in w.M.Building.Plans.ToList())
                 for (int i = 0; i < Content.Machines.Get(plan.Place!.Kind).BuildTicks; i++) w.Do(new Work(plan.Id)).Run();
             Assert.Empty(w.Refusals);
-            Assert.Equal("vent", w.M.Grid.MachineAt(w.At(8, 6))!.Kind);
-            Assert.Equal("generator", w.M.Grid.MachineAt(w.At(8, 2))!.Kind);
-            Assert.All(w.M.Pipes.Networks, n => Assert.Equal(2, n.Machines.Count));
+            Assert.Equal("vent", w.M.Grid.MachineAt(w.At(16, 6))!.Kind);
+            Assert.Equal("generator", w.M.Grid.MachineAt(w.At(8, 6))!.Kind);
+            // The air line: the vents and the generator; the liquid line: the tank and the generator.
+            Assert.Equal([3, 2], w.M.Pipes.Networks.Select(n => n.Machines.Count));
         }
     }
 
@@ -200,7 +218,7 @@ public class TypedPortsTests
         var w = Piped().Do(new Items.SetCreative(true));
         w.Do(new PlacePlan(w.At(6, 6), Vent)).Run();
         int plan = w.M.Building.Plans[0].Id;
-        WorkAllButLast(w, plan, "vent").Do(new Work(plan)).Do(new LayPipe(w.At(12, 6), w.At(6, 6))).Run();
+        WorkAllButLast(w, plan, "vent").Do(new Work(plan)).Do(new LayPipe(w.At(11, 0), w.At(6, 6))).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(2, Assert.Single(w.M.Pipes.Networks).Machines.Count);
     }
@@ -233,18 +251,18 @@ public class TypedPortsTests
     }
 
     /// <summary>
-    /// A cell a character: air's ports as on <see cref="Ship"/> but the bottom right vent; cistern C at (24, 4), its input
-    /// (24, 6) and output (27, 6); cistern D at (28, 8), its input (28, 10) and output (31, 10).
+    /// A cell a character: air's and liquid oxygen's ports as on <see cref="Ship"/>; cistern C at (24, 4), its input (24, 6)
+    /// and output (27, 6); cistern D at (28, 8), its input (28, 10) and output (31, 10).
     /// </summary>
     private const string Mixed = """
-        VV..............................
-        VV..............................
-        ................................
-        ................................
-        TTTT........GGGG........cccc....
-        TTTT........GGGG........cccc....
-        TTTT........GGGG........cccc....
-        TTTT........GGGG........cccc....
+        VV......GGGG....................
+        VV......GGGG....................
+        ........GGGG....................
+        ........GGGG....................
+        TTTT........TTTT........cccc....
+        TTTT........TTTT........cccc....
+        TTTT........TTTT........cccc....
+        TTTT........TTTT........cccc....
         ............................cccc
         ............................cccc
         VV..........VV..............cccc
@@ -254,8 +272,8 @@ public class TypedPortsTests
     /// <summary>Where the mixed ship's pipes end: its ports, and joints, among them where a machine planned puts a port.</summary>
     private static readonly (int X, int Y)[] Nodes =
     [
-        (0, 0), (0, 6), (12, 6), (0, 10), (12, 10), (24, 6), (27, 6), (28, 10), (31, 10),
-        (6, 8), (5, 5), (9, 2), (22, 6), (16, 2), (16, 8), (20, 0), (18, 10), (26, 2), (29, 2), (20, 10), (23, 10),
+        (0, 0), (8, 2), (11, 0), (0, 6), (12, 6), (0, 10), (12, 10), (24, 6), (27, 6), (28, 10), (31, 10),
+        (6, 8), (5, 5), (6, 2), (22, 6), (16, 2), (19, 0), (16, 8), (20, 0), (18, 10), (26, 2), (29, 2), (20, 10), (23, 10),
     ];
 
     /// <summary>Machines planned on the mixed ship, each at a top-left that puts its ports on joints among <see cref="Nodes"/>.</summary>
