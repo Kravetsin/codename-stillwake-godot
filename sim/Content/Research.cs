@@ -40,6 +40,12 @@ public static class Research
         "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
     ];
 
+    /// <summary>What a part understood must have been obtained to, in credits of its worth: a rare part takes few, a common one many.</summary>
+    public const int EnoughWorth = 200;
+
+    /// <summary>However cheap a part, no more than this many are needed to understand it.</summary>
+    public const int EnoughMost = 10;
+
     /// <summary>How many times its worth a craft costs on top of its ring's: a blueprint already costs what it is built of, a craft only a unit.</summary>
     public const int CraftTimes = 3;
 
