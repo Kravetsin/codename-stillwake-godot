@@ -11,8 +11,8 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// <c>-- --board</c>: the board on the tablet, a world's counts seeded through its save and nothing obtained during the run (docs/plans/board-plan.md,
-/// B-5). Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: T, a click
-/// on the first note, a click on a shape, the wheel out; each step is printed with its time.
+/// B-5, B-6). Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: T, a click
+/// on the first note, a click on a shape, the wheel out, a click off everything, the first note dragged away; each step is printed with its time.
 /// </summary>
 public partial class BoardDemo(Func<Registry> m) : Node
 {
@@ -71,6 +71,11 @@ public partial class BoardDemo(Func<Registry> m) : Node
         _hands.Mouse(_tablet.ScreenOf(id), MouseButton.Left, true);
     }
 
+    private void Drag(Vector2 by)
+    {
+        if (First(BoardShow.Note) != null) _hands.Move(_hands.Last + by, MouseButton.Left);
+    }
+
     private void LetGo()
     {
         if (First(BoardShow.Note) != null) _hands.Mouse(_hands.Last, MouseButton.Left, false);
@@ -89,6 +94,13 @@ public partial class BoardDemo(Func<Registry> m) : Node
             (3.2, "click a shape", () => Click(First(BoardShow.Silhouette))),
             (3.25, "let go: what it takes", LetGo),
             (4.4, "wheel out", () => _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 5)),
+            (5.0, "click off everything", () => { if (First(BoardShow.Note) is { } note) _hands.Mouse(_tablet.ScreenOf(note) + new Vector2(-300, 120), MouseButton.Left, true); }),
+            (5.05, "let go: nothing picked", LetGo),
+            (5.6, "take the first note", () => Click(First(BoardShow.Note))),
+            (5.7, "drag it", () => Drag(new Vector2(60, 30))),
+            (5.8, "on", () => Drag(new Vector2(90, 45))),
+            (5.9, "and on", () => Drag(new Vector2(90, 45))),
+            (6.0, "let go: it stays, its threads with it", LetGo),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {
