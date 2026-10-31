@@ -294,7 +294,7 @@ public class HomesTests
     /// its lava, its ceiling <c>HomeDeepLeast</c> to <c>HomeDeepMost</c> under the lowest surface across it (or moved up to fit),
     /// every cell of it as its prefab draws it, nothing grown in its box but its pieces, each where its anchor holds it.
     /// </summary>
-    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, IReadOnlyList<(int X, int Y, Ruins.Home Home)> homes, int[] surface)
+    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, IReadOnlyList<(int X, int Y, Ruins.Home Home)> homes, IReadOnlyList<int> surface)
     {
         int w = l.Width, middle = w / 2, floor = l.Height - g.CoreRows;
         if (homes.Count != g.Homes) return $"{homes.Count} homes";
@@ -383,7 +383,7 @@ public class HomesTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed, out _, out var surface, out var spires, out var homes);
+            var (l, surface, spires, homes) = PlanetTesting.First(seed);
             Assert.Null(Wrong(PlanetTypes.First.Ground, l, spires, homes, surface));
             Assert.Equal(Ruins.Homes.Select(h => h.Id).Order(StringComparer.Ordinal), homes.Select(h => h.Home.Id).Order(StringComparer.Ordinal));
         }
