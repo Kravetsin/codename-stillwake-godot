@@ -56,7 +56,7 @@ is still most of a run. Measured 2026-10-31, by what each would save:
 - The budget tests in a job of their own: they run alone, after the others, about 30% of `Sim.Tests`' time.
 - Planets shared between tests: three tests grow the first planet on the same 50 seeds, 27% of the summed test time.
 - The slowest tests in the run's summary, from a trx: the step grew from 15 s to 150–400 s in two weeks, one test at a time.
-- `format`, about 2 minutes beside `build, tests`, is a run's floor once that gets as short. `dotnet format whitespace --folder`
+- `format`, about 2 minutes beside `build, tests`, is the floor of a client PR's run, and of any run once that gets as short. `dotnet format whitespace --folder`
   takes 6 s against 35 on a desk and catches whitespace, but not `IDE0161` (file-scoped namespaces).
 - x64 or `ubuntu-24.04-arm`, once `lscpu` in the logs shows how often a run draws x64's slowest machines (see the ADR).
 
