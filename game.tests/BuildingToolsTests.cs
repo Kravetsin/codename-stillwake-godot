@@ -348,10 +348,10 @@ public class BuildingToolsTests
     [Fact]
     public void ShowsAndPicksOnlyTheCardsTheWorldKnows()
     {
-        // The tank and the wall of the scrap the hull is of, in a world knowing only its start.
+        // The tank and the wall of the scrap the hull is of, in a world knowing little.
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"])
             with
-        { Known = Research.StartKnown });
+        { Known = ["tradeStation", "wallScrap"] });
         var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
         Assert.Contains("tradeStation", known);
         Assert.DoesNotContain("furnace", known);

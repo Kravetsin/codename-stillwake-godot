@@ -6,7 +6,7 @@
 things, and credits buy only on a black market whose rings open by what is sold. This plan lands that in steps, and every
 merge leaves the game playable. Costs, recipes, worths, prices, the capsule and the scoop start do not change.
 
-**Where this plan and board.md differ, the plan wins.** It checked the design against the code: the layout is keyed by a world id, not
+**Where this plan and board.md differ, the plan wins.** It checked the design against the code: the wreck knows nothing from its start; the layout is keyed by a world id, not
 the seed; a market gate also needs its ring reached; ring 5 has a first order; slots also read what is granted; and a newly met order
 lights the dot. File lines are at 22d3a36a and drift: find a thing by its name, and `TechPanel`'s lines live in `ResearchTablet` or
 `RingsPage` after B-3.
@@ -169,7 +169,8 @@ In `game/features/research/logic/`, with no Godot; floats are fine.
   - It replays `found` in order. The first note stands at the middle.
   - A thing takes its slot when its first part gets a note, or when it is itself obtained if that is sooner: the next free slot on an
     arc round that part, pushing outward. A raw thing takes one round the note before it.
-  - `StartKnown` takes a slot like anything else.
+  - The wreck knows nothing from its start (`StartKnown` is empty). What takes nothing, the pod's helmet, suit and screwdriver, is
+    granted on the first tick and shows only once obtained: it has no slot, not even in the row.
   - Market blocks take none until bought. Then they stand, with what an old world knows with no part noted, in a row by the first
     note, by id. Only this row reads `granted`.
   - The radius, spacing and arc are client constants chosen by eye. The tests pin only the properties below.
@@ -208,8 +209,8 @@ In `game/features/research/logic/`, with no Godot; floats are fine.
     | Value | Seeded | Shows |
     | --- | --- | --- |
     | bare | nothing | a blank board |
-    | `=first` | 3 `scrapChunk` | one note, threads to two pale shapes |
-    | `=near` | 9 `scrapChunk`, 4 `hullPlate` | two notes, the same shapes darker |
+    | `=first` | 3 `scrapChunk` | one note, threads to three pale shapes |
+    | `=near` | 9 `scrapChunk`, 4 `hullPlate` | two notes, the same shapes darker, the plate's threads adding the furnace and workbench |
     | `=burst` | enough for wire, nail, plate, gear and tube, a workbench standing | five things inked at their slots |
     | `=circuit` | the five parts of a wreck's panel | five notes, a found circuit pale in what it is made of |
     | `=late` | everything in space | about 60 notes in view |

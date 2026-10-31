@@ -481,11 +481,11 @@ public class CountsTests
     }
 
     [Property(MaxTest = 12)]
-    public Property EverythingHeldHasACountOrIsKnownFromTheStart() => Prop.ForAll(Seeds, seed =>
+    public Property EverythingHeldHasACountOrCameWithTheKit() => Prop.ForAll(Seeds, seed =>
     {
         var world = Played(seed);
         var knowledge = Registry.On(world, 0).Knowledge;
-        var strays = Held(world).Where(item => knowledge.ObtainedOf(item) == 0 && !Content.Research.StartKnown.Contains(item)).Distinct().ToList();
+        var strays = Held(world).Where(item => knowledge.ObtainedOf(item) == 0 && !Content.Inventory.Kit.Any(k => k.Item == item)).Distinct().ToList();
         Assert.True(strays.Count == 0, $"held with no count: {string.Join(", ", strays)}");
     });
 

@@ -9,7 +9,7 @@ Written by `design-author`, cut down by `design-reviewer`. Design only, no plan 
 Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), a workbench at a fifth of full speed (`Stations.cs:41`).
 
 1. **Before the first find.** The tablet is empty: T shows a blank board, and nothing is drawn until the crew obtains something. A player already knows to catch what drifts by.
-2. **First catch.** A chunk goes into the bag. A dot lights on the tablet's icon. On the board a note stands alone, and threads run off it to two pale shapes, the furnace and the workbench. A hull plate gets its own note, and the same shapes darken.
+2. **First catch.** A chunk goes into the bag. A dot lights on the tablet's icon. On the board a note stands alone, and threads run off it to three pale shapes, the closest to done: the scrap walls first. A hull plate gets its own note, the same shapes darken, and its threads reach the furnace and the workbench.
 3. **Furnace.** At 10 chunks (a scrap wall gives one in 4 ticks) and 5 hull plates, the furnace inks in and its card joins the build menu.
 4. **Workbench.** It waits on 10 planks: 2 or 3 crates, one crate in about 33 s of stream. Its 4-plank cost is not the wait. The planks are what sends a player out to catch once the scoop's piles land (6 planks in stock; `feat/scoop-piles`, not on main yet).
 5. **First smelts.** A hull plate gives 2 iron and 1 scrap in 5 s; a chunk gives 4 scrap in 3 s. At 10 scrap, floor and ladder ink in.
@@ -88,7 +88,7 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 **Slots.** Worked out in plain C# in `logic/`, a pure function of `Obtained` and the recipes, so a late guest gets the same board.
 - A thing takes its slot when its first part gets a note, or when it is itself obtained if that is sooner: the next free slot on an arc round that part, pushing outward. A raw thing with no recipe takes one round the note before it.
-- The first note stands in the middle of the board. Known is not written down: what `StartKnown` holds (`Content/Research.cs:38`) stays in the build menu from the start and takes a slot like anything else. What an old world knows with no part noted stands in a row by the first note.
+- The first note stands in the middle of the board. The wreck knows nothing from its start: the build menu is as empty as the tablet until the first walls, at ten chunks. What an old world knows with no part noted stands in a row by the first note.
 - Nothing moves on its own. A thing inks in where it stands, so a burst of five is five shapes darkening, not five things looking for room.
 
 **Only one step ahead.** A silhouette is always a direct use of something noted, never a distant goal, and no hand placement exists on the board. The engine and the radar antenna are direct uses of a plate (`Machines.cs:191`, `:194`), so a player who clicks a plate can meet them there; threads go to what is closest to done, so they will not put them on show.
