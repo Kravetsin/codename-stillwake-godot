@@ -253,7 +253,7 @@ public partial class Main : Node2D, ITogether
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         // The tech tree on the tablet: put away and putting away as the computer's window.
-        var tech = new TechPanel(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
+        var tech = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>

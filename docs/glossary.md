@@ -57,7 +57,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- дерево технологий / tech tree → `TechPanel` on the tablet (T), `Content.Research` → Research
+- дерево технологий / tech tree → `ResearchTablet`, `RingsPage` on the tablet (T), `Content.Research` → Research
 - дерево технологий, кольцо, ветка, таб, блок, ворота, хаб / tech tree, ring, branch, tab, block, gate, hub → `Content.Research.Tabs`, `TechTab`, `TechRing`, `TechNode` → Research
 - связи ноды / a node's ties → `TechLinks` (client)
 - взнос / deposit → `Deposit`, `Knowledge.Deposits` → Research
