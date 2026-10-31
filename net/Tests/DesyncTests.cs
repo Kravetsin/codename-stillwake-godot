@@ -189,6 +189,8 @@ public class DesyncTests(ITestOutputHelper output)
         // by it, strikes it, harpoons its wreck and reports its pounces' hits; the fuzz strikes and releases besides. A joiner
         // comes in mid-fight, Mem, Target and the wreck's blow in its welcome.
         string sentry = Content.Creatures.Sentry.Id, axe = Content.Weapons.Axe.Item;
+        // Reeled for twice what it takes the sentry to cut the line, so the cut comes of this script and not of the fuzz's luck.
+        int line = 2 * Content.Creatures.Sentry.Brain.OfType<Content.Creatures.CutTether>().Single().Ticks * Content.Harpoon.ReelSpeed;
         Covering(42, tried =>
         {
             int alive = 0, pounced = 0, cut = 0;
@@ -217,9 +219,50 @@ public class DesyncTests(ITestOutputHelper output)
                 if (tick % 60 == 0) first.Send(new Enter(Math.Clamp(cy - 1, 0, m.Grid.Height - 1) * width + Math.Clamp(cx - 6, 0, width - 1)));
                 if (tick % 90 == 30) first.Send(new Sim.Creatures.Strike(s.Id, axe));
                 if (tick % 130 == 70 && m.Creatures.ClingsTo(s) is int piece && m.Debris.PieceById(piece) is { } held)
-                    first.Send(new Reel(piece, held.X - 8000, held.Y));
+                    first.Send(new Reel(piece, held.X - line, held.Y));
             });
             return (run, alive >= 300 && pounced >= 1 && cut >= 1 ? null : $"{alive} sentry-ticks, {pounced} pouncing, {cut} after a cut");
+        });
+    }
+
+    [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncWithGuardsInASpiresHall()
+    {
+        // The spire's guards: the first client beamed down stands in the hall, strikes them and reports their pounces' hits, going off
+        // now and then so they calm, and the fuzz digs and strikes besides. A joiner comes in with them awake, Mem and all.
+        string planet = Content.PlanetTypes.SmallSpire.Id, warden = Content.Creatures.Warden.Id, axe = Content.Weapons.Axe.Item;
+        Covering(77, tried =>
+        {
+            int alive = 0, flew = 0, hit = 0;
+            var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, ticks: 1200, joinAt: 600, worldEvery: 6, tamper: (tick, clients) =>
+            {
+                var world = clients[0].World;
+                var first = clients[0];
+                if (world.Surfaces.FirstOrDefault(s => s.Kind == planet) is not { } down)
+                {
+                    if (tick % 20 == 0) first.Send(new OpenSurface(planet));
+                    return;
+                }
+                var on = Registry.On(world, down.Id);
+                var guards = on.Creatures.Creatures.Where(c => c.Species == warden).ToList();
+                alive += guards.Count;
+                flew += guards.Count(c => c.Posture == Sim.Creatures.Posture.Charge);
+                if (world.SurfaceOf(first.Id) != down.Id)
+                {
+                    if (tick % 10 == 0) first.Send(new Transfer(down.Id));
+                    return;
+                }
+                foreach (var c in guards.Where(c => c.Posture == Sim.Creatures.Posture.Charge))
+                {
+                    first.Send(new Sim.Creatures.HitBy(c.Id));
+                    hit++;
+                }
+                if (tick % 10 != 0) return;
+                if (on.Building.Posts.FirstOrDefault() is { } post && tick % 200 < 150) first.Send(new Enter(post.Cell + 3 * on.Grid.Width + 20));
+                else first.Send(new Enter(on.Crew.Spawn));
+                if (guards.Count > 0 && tick % 50 == 0) first.Send(new Sim.Creatures.Strike(guards[0].Id, axe));
+            });
+            return (run, alive >= 100 && flew >= 1 && hit >= 1 ? null : $"{alive} guard-ticks, {flew} flying, {hit} hits");
         });
     }
 

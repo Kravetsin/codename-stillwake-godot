@@ -68,8 +68,8 @@ public class CreatureContractTests
     [Fact]
     public void EverySpeciesStruckTurnsToSomethingAndAClampedSentryGuards()
     {
-        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed).
-        Assert.All(Tune.All, s =>
+        // A hit some drive claims, or a cut act would only begin again (2026-10-26-creatures-are-composed). A posted one is never let out: SpireGuardTests.
+        Assert.All(Tune.All.Where(s => s.Lifetime != Tune.Lifetime.Posted), s =>
         {
             var (w, c) = LetOut(s);
             int drive = c.Drive;
@@ -90,6 +90,7 @@ public class CreatureContractTests
         { "fluff", "Flee Graze | " },
         // The shot added after the pounce (shots-are-the-sims): every place a save holds keeps its meaning, so no bump.
         { "sentry", "CutTether Return Guard | Pounce Shoot" },
+        { "warden", "Ward | Pounce" },
     };
 
     [Fact]

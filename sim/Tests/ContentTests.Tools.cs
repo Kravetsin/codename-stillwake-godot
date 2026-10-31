@@ -10,14 +10,13 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     [Fact]
-    public void TheAxeIsAToolCraftedAtThePodKnownFromTheStartThatHitsAndSwingsInWholeUnits()
+    public void TheAxeIsAToolCraftedAtThePodThatHitsAndSwingsInWholeUnits()
     {
         Assert.True(Weapons.Axe.Damage > 0);
         Assert.True(Weapons.Axe.Pace > 0);
         Assert.True(Content.Items.TryGet(Weapons.Axe.Item, out var axe));
         Assert.Equal(1, axe!.Stack);
         Assert.True(Crafts.TryGet(Weapons.Axe.Item, out _));
-        Assert.Contains(Weapons.Axe.Item, Content.Research.StartKnown);
     }
 
     [Fact]

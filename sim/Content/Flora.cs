@@ -27,6 +27,13 @@ public static class Flora
         Back,
     }
 
+    /// <summary>
+    /// A growth a creature is tied to (spire guards): one of <paramref name="Species"/> stands by it, its body's bottom left cell at
+    /// (<paramref name="StandX"/>, <paramref name="StandY"/>) from the growth's own, while the growth and the relic in its arena stand.
+    /// Its arena is the box of cells from (<paramref name="Left"/>, <paramref name="Top"/>) to (<paramref name="Right"/>, <paramref name="Bottom"/>), all from its own cell.
+    /// </summary>
+    public sealed record Post(string Species, int StandX, int StandY, int Left, int Top, int Right, int Bottom);
+
     /// <summary>A kind of growth, on the surface or in the caves: what Building needs of any of them.</summary>
     /// <param name="Tall">The cells it stands in, its own and up (on a floor) or down (from a ceiling): a hit on any of them hits it.</param>
     public abstract record Growth(string Id, int Tall)
@@ -57,6 +64,9 @@ public static class Flora
         /// fells it. 0 for one that falls to any hit: flowers, grass, the caves' growth.
         /// </summary>
         public int Strength { get; init; }
+
+        /// <summary>The creature tied to it, felled for good when that creature is killed; null for most.</summary>
+        public Post? Post { get; init; }
 
         /// <summary>What it holds on to.</summary>
         public abstract Anchor On { get; }

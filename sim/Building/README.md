@@ -68,6 +68,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **The resonator** (0091): every breath, before crew breathes, a hero within `Ruins.ZapReach` pays `Ruins.Zap` (`Shock`).
 - **The relic** (0096): every `Hew` striking a cradle first shocks its sender once (`ShockOf`, a faster tool its pace's
   share); its floor dug out fells it unshocked. `Relics` reads taken-ness from `Felled` alone.
+- **Posts** (`Flora.Post`): rock pieces a guard is tied to; `FellPost` for a kill.
 
 ## Commands
 
@@ -91,8 +92,8 @@ Fuzz aims `Work` and hits so plans complete.
 
 - Growths on a drawn map are not brought back by a load: only a grown surface's ground grows again.
 - Only a growth's own cell built over fells it, not its crown's (0080).
-- Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's word.
-- A blueprint finished on its hero's cell puts the hero inside it. A tool of no damage throws.
-- Taking apart needs no knowledge of a thing (0024).
+- Reach, a fan's hand, a shot's muzzle and which plan is worked are the client's.
+- A blueprint finished on its hero's cell holds the hero.
+- Taking apart needs no knowledge (0024).
 - A part-built blueprint is nothing in the grid till its last tick (0063).
-- Creative mode turned off past what was paid: each later tick pays an item.
+- Creative turned off past what was paid: each later tick pays an item.

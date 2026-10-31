@@ -32,13 +32,10 @@ public sealed record TechTab(string Id, string[] Branches, string? After, params
 public static class Research
 {
     /// <summary>
-    /// What the wreck knows from its start: what earns, what a torn room is closed with, the fire axe wreckage is broken with, what
-    /// a castaway's pod makes. The trade station is of raw salvage, so taking one apart never leaves a world unable to trade.
+    /// What the wreck knows from its start: nothing (docs/plans/board.md). A castaway writes down what they find, the first walls at
+    /// ten chunks, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
     /// </summary>
-    public static readonly IReadOnlyList<string> StartKnown =
-    [
-        "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
-    ];
+    public static readonly IReadOnlyList<string> StartKnown = [];
 
     /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/plans/board.md).</summary>
     public const string Market = "blackMarket";

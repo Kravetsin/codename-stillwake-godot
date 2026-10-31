@@ -21,6 +21,7 @@ public class CreatureSpeciesGuardTests
     [
         "sim/Content/Creatures.cs",
         "sim/Content/PlanetTypes.cs",
+        "sim/Content/Ruins.cs",
         "game/Content/logic/CreatureArt.cs",
         "game/Content/logic/CreatureLooks.cs",
         "game/Content/logic/HitLooks.cs",

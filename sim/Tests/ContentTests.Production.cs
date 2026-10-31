@@ -388,10 +388,10 @@ public partial class ContentTests
 
     /// <summary>Every blueprint and craft is known from the start or opened by exactly one block; a block opens nothing else.</summary>
     [Fact]
-    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
+    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrComesByTheRuleAlone()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(["tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit"]).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
     }

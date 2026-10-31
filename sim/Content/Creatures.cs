@@ -39,8 +39,12 @@ public static class Creatures
     /// <summary>Its hit points, and the knock a hit gives it across and the hop up, at a full pace's blow (<see cref="KnockPace"/>).</summary>
     public sealed record Life(int Hp, int Knock, int Hop);
 
-    /// <summary>How long a creature lives: <see cref="Wild"/>, while some hero is near (<see cref="Keep"/>, <see cref="Linger"/>).</summary>
-    public enum Lifetime { Wild }
+    /// <summary>
+    /// How long a creature lives: <see cref="Wild"/>, while some hero is near (<see cref="Keep"/>, <see cref="Linger"/>);
+    /// <see cref="Posted"/>, that too, but it comes of a post (<c>Flora.Post</c>) rather than a habitat, and goes without a drop when
+    /// its post or its arena's relic is gone or its drive calms. Never let out: no post, no guard.
+    /// </summary>
+    public enum Lifetime { Wild, Posted }
 
     /// <summary>Something a creature may want to do, ranked by its place in a brain.</summary>
     public abstract record Drive;
@@ -77,6 +81,14 @@ public static class Creatures
     /// <summary>A reflex, never in charge: a harpoon's line on its piece is cut <paramref name="Ticks"/> after it is seen, if still on.</summary>
     public sealed record CutTether(int Ticks) : Drive;
 
+    /// <summary>
+    /// Keeping its post's arena (spire guards): asleep till an awake hero's reported cell is in the arena, a blow lands or a sibling is
+    /// up; <paramref name="Wake"/> ticks waking; then waiting for its turn to make its first move, no sibling crouching or flying; after
+    /// that <paramref name="Stuck"/> ticks on the floor, counted from its landing. <paramref name="Calm"/> ticks with no awake hero in the
+    /// arena and no blow, it goes, whole again on a later beat.
+    /// </summary>
+    public sealed record Ward(int Wake, int Stuck, int Calm) : Drive;
+
     /// <summary>An act a creature makes, in phases, the suit units it takes from a hero it hits.</summary>
     public abstract record Move(int Damage);
 
@@ -101,7 +113,8 @@ public static class Creatures
 
     /// <summary>
     /// A pounce: crouched <paramref name="WindUp"/> ticks, then a flight straight at its target at <paramref name="Speed"/> a tick on
-    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed).
+    /// the longer axis, for <paramref name="Ticks"/>; never cut short by a blow (2026-10-26-creatures-are-composed). A walker's flies
+    /// with no gravity and ends at the first solid cell on its way; a clinger's passes walls.
     /// </summary>
     public sealed record Pounce(int WindUp, int Speed, int Ticks, int Damage) : Move(Damage);
 
@@ -199,7 +212,20 @@ public static class Creatures
         Moves: [new Pounce(WindUp: 16, Speed: 2000, Ticks: 10, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 40, Projectile: "bolt", Reach: 60, Lingers: 10)],
         Yields: [new("scrapChunk", 3, 5), new("circuit", 2, 3)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry];
+    /// <summary>
+    /// The warden, the Istukan (spire guards): a machine of the arc makers, two to a spire's hall, each by a post (<c>Ruins.PostLeft</c>,
+    /// <c>Ruins.PostRight</c>), four cells by five, folded in its niche like a column. By turns it crouches 0.8 s and flies straight at
+    /// 36 cells a second, 1.4 s at most, five units of a suit if it hits, and lies stuck a second where it fell. It takes 24 hit points,
+    /// four of the nailer's nails or six of the axe's; never knocked. Killed it gives two or three circuits and a little alloy scrap, and
+    /// its post is felled for good; the relic taken, it falls with nothing. Placeholder numbers, for a play pass.
+    /// </summary>
+    public static readonly Species Warden = new("warden", Look: "istukan",
+        Body: new Walker(Width: 4, Height: 5, Walk: 0, Run: 0, Jump: 0, JumpAcross: 0), Life: new(Hp: 24, Knock: 0, Hop: 0),
+        Faction: Machines, Lifetime: Lifetime.Posted, Brain: [new Ward(Wake: 10, Stuck: 20, Calm: 100)],
+        Moves: [new Pounce(WindUp: 16, Speed: 1800, Ticks: 28, Damage: 5)],
+        Yields: [new("circuit", 2, 3), new("alloyScrap", 1, 2)]);
+
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry, Warden];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):

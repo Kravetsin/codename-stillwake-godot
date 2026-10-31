@@ -78,8 +78,8 @@ above the hall, so the stamp and what clears a box work unchanged. Rows 0 to 17 
 #.......................#  20
 #.......................#  21
 #.......................#  22
-#........###............#  23 step under the hole; the flue's column stays open
-###...................###  24 the niches' lintels
+###......###..........###  23 step under the hole, the flue's column open; the niches' lintels, three rows over a guard so it can fly out rising
+#.......................#  24
 #.......................#  25
 P.......................P  26 P a post, in the wall (a piece, not the prefab)
 #........c.CCC...........#  27 c cache, C cradle under the light, both as today's, eight columns in
@@ -98,7 +98,7 @@ Guard scenarios and the fuzz use `SmallSpire`: on `TestStrip` a load grows no fl
 respawn after a load" would pass for nothing. The fuzz opens it beside `Small`, so its draws shift once: accepted, as the sentry's did.
 
 **The post, felled for good.** A `Growth` may carry `Post(Species, Stand, Arena)`: where the body stands and the arena box, both
-relative to the post. It is a rock piece in the end wall (`Anchor.Rock`, `Fixed`, no yields), so "dead for good" is one int in
+relative to the post. It is a rock piece in the end wall (`Anchor.Rock`, no yields), so "dead for good" is one int in
 `Felled`, and nests can use the same record with a hittable piece. Digging out a post's wall fells it through today's sweep.
 - *Rejected, a saved list in Creatures:* it duplicates what Building keeps.
 - *Rejected, saved guards from world start:* eight creatures ticking with no one near.

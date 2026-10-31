@@ -94,6 +94,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         AddChild(_ownHits);
         AddChild(_worldHits);
         AddChild(_ticks);
+        AddChild(_boxes);
         AddChild(_bursts);
         _ticks.Bursts = _bursts;
     }
@@ -105,6 +106,11 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     private readonly TickBodies _ticks = new();
 
     private readonly List<Creature> _ticked = [];
+
+    /// <summary>The creatures with no art yet (<see cref="CreatureLooks.Boxes"/>).</summary>
+    private readonly PlaceholderBodies _boxes = new();
+
+    private readonly List<Creature> _boxed = [];
 
     /// <summary>The creatures this player's own shots hit this tick (<see cref="OwnShots"/>).</summary>
     private readonly HashSet<int> _shotByOwn = [];
@@ -140,6 +146,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         _out.Clear();
         _drawn.Clear();
         _ticked.Clear();
+        _boxed.Clear();
         for (int i = 0; i < all.Count; i++)
         {
             var c = all[i];
@@ -147,6 +154,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             if (c.X < left || c.X > right || c.Y < top || c.Y > bottom) continue;
             if (CreatureLooks.Varieties.ContainsKey(c.Species)) _drawn.Add(c.Id);
             else if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(c.Species).Look)) _ticked.Add(c);
+            else if (CreatureLooks.Boxes.Contains(Spec.Creatures.Get(c.Species).Look)) _boxed.Add(c);
         }
         _gone.Clear();
         foreach (int id in _shown.Keys)
@@ -194,6 +202,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         foreach (var (at, colour) in _lights)
             _sources.Add(new LightSource(at.X, at.Y, (colour.R, colour.G, colour.B), CreatureLooks.LightStrength * colour.A, CreatureLooks.LightReach,
                 CreatureLooks.LightKeep, 1));
+        _boxes.Frame(_boxed);
         _ticks.Frame(creatures, debris, _ticked, client.World.Tick, progress, elapsedMs, ui.Heroes, _sources, _shotByOwn);
         if (Trace != null) Traced(all);
     }

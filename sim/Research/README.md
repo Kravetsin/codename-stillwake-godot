@@ -22,7 +22,7 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 - A blueprint is named as the build menu names its card: a wall or back wall by kind and material (`wallIron`), anything
   else by the grid's name (`floor`, `furnace`). A craft by the item it makes. Cables are no blueprint and always known.
 - **The black market** is a tab of the tree, open from the start: a block there is bought like any, at a high price and no stage.
-- What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`); a map with none knows
+- What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`, empty); a map with none knows
   everything. In creative mode everything is known and every node done.
 - **The rule** ([board](../../docs/plans/board.md)): a blueprint or craft is understood, and granted, once every part's count
   (`Knowledge.Obtained`) is at `Understanding.Enough` and, for a craft, a machine that makes it stands on some surface. `Walk`, in

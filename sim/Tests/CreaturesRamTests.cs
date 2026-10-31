@@ -112,7 +112,7 @@ public class CreaturesRamTests
     {
         Assert.Equal((5, 900), (Tapir.Ram(), Tapir.RamChance()));
         Assert.Equal((3, 700, 3, 700), (Tune.Loper.Ram(), Tune.Loper.RamChance(), Tune.Sixleg.Ram(), Tune.Sixleg.RamChance()));
-        Assert.All(Tune.All.Where(s => s.Body is Tune.Walker), s => Assert.InRange(s.RamChance(), s.Ram() > 0 ? 1 : 0, s.Ram() > 0 ? 1000 : 0));
+        Assert.All(Tune.All.Where(s => s.Body is Tune.Walker && s.Lifetime == Tune.Lifetime.Wild), s => Assert.InRange(s.RamChance(), s.Ram() > 0 ? 1 : 0, s.Ram() > 0 ? 1000 : 0));
     }
 
     // Ramming back after a hit.

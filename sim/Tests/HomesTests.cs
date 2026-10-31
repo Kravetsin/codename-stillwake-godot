@@ -408,7 +408,7 @@ public class HomesTests
     {
         var ids = Flora.Every.Select(k => k.Id).ToList();
         Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(51, Ruins.Pieces.Count);
+        Assert.Equal(53, Ruins.Pieces.Count);
         Assert.All(Ruins.Pieces, p =>
         {
             Assert.True(p.Across >= 1 && p.Tall >= 1 && p.Strength >= 0, p.Id);

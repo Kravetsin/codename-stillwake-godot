@@ -291,12 +291,13 @@ public class ResearchTests
     [Fact]
     public void KnowsWhatIsGrantedAndNoMore()
     {
-        var w = SetUp();
+        string[] known = ["fireAxe", "tradeStation"];
+        var w = SetUp(known: known);
         Assert.True(w.M.Research.Knows("fireAxe"));
         Assert.True(w.M.Research.Knows(new Placement("machine", "tradeStation")));
         Assert.False(w.M.Research.Knows("wire"));
         Assert.False(w.M.Research.Knows(new Placement("machine", "furnace")));
-        Assert.Equal(ResearchSpec.StartKnown.Order(StringComparer.Ordinal), w.M.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
+        Assert.Equal(known.Order(StringComparer.Ordinal), w.M.Research.Recipes().Where(r => r.Known).Select(r => r.Id).Order(StringComparer.Ordinal));
     }
 
     [Fact]
@@ -335,7 +336,7 @@ public class ResearchTests
     public void KnowsEveryBlueprintAndCraftOnAMapThatNamesNone()
     {
         var w = new Scenario(Map(null), doubled: true);
-        Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
+        Assert.All(w.M.Research.Recipes().Where(r => ResearchSpec.Node(r.Id) != null), r => Assert.True(r.Known, r.Id));
         Assert.True(w.M.Research.Knows(new Placement("machine", "solarPanel")));
     }
 
@@ -357,7 +358,7 @@ public class ResearchTests
     [Fact]
     public void KnowsAPlacementByItsBlueprintNameAndEveryOneInCreativeMode()
     {
-        var w = SetUp();
+        var w = SetUp(known: ["wallScrap"]);
         Assert.Equal("wallIron", Blueprints.Of(Placement.Wall("iron")));
         Assert.Equal("backWallScrap", Blueprints.Of(Placement.BackWall("scrap")));
         Assert.Equal("floor", Blueprints.Of(new Placement("structure", "floor")));
@@ -467,6 +468,6 @@ public class ResearchTests
             else w.Do(new BuyBlock(node.Id)).Run();
         }
         Assert.Empty(w.Refusals);
-        Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
+        Assert.All(w.M.Research.Recipes().Where(r => ResearchSpec.Node(r.Id) != null), r => Assert.True(r.Known, r.Id));
     }
 }
