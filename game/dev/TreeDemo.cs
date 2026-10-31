@@ -37,12 +37,12 @@ public partial class TreeDemo(Func<Registry> m) : Node
     private double _t;
     private int _step;
     private Vector2 _last;
-    private TechPanel _tree = null!;
+    private ResearchTablet _tree = null!;
 
     public override void _Process(double delta)
     {
         _t += delta;
-        _tree ??= GetParent().GetChildren().OfType<TechPanel>().First();
+        _tree ??= GetParent().GetChildren().OfType<ResearchTablet>().First();
         var away = new Vector2(-120, -60);
         (double At, string What, Action Do)[] script =
         [

@@ -7,7 +7,10 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 
 | File                 | Holds                                                                     | Godot |
 | -------------------- | ------------------------------------------------------------------------- | ----- |
-| `TechPanel.cs`       | the tree on the tablet: tabs of rings, a hub, nodes, the strip about what is picked | yes   |
+| `ResearchTablet.cs`  | the tablet: its tabs, the head and the strip below, T, the read timer     | yes   |
+| `ITabletPage.cs`     | what the tablet asks of a page on a tab                                   | yes   |
+| `RingsPage.cs`       | a tab of rings: a hub, nodes, what the strip says of what is picked       | yes   |
+| `StripParts.cs`      | what pages write with: the strip's controls, a thing's words and pictures | yes   |
 | `StationScreens.cs`  | a trade station's screen, drawn over its picture                          | yes   |
 | `CapsuleFlights.cs`  | a trade station's capsule going off behind the hull and coming back       | yes   |
 | `logic/CapsulePath.cs` | Where a capsule is drawn along its flight | no |

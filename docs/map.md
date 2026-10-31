@@ -24,7 +24,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Furnace — sim/Furnace · f/furnace: `Furnace.cs` FurnaceModule; `FurnaceView.cs`, `Flames.cs`; c/`Furnace.cs`
 - Drones — sim/Logistics · f/logistics: `Logistics.cs` LogisticsModule; `Jobs.cs`; `Flight.cs`; `LogisticsView.cs`, `Served.cs`; c/`Logistics.cs`
 
-**Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `TechPanel.cs`, `logic/TechRings.cs`, `logic/TechLinks.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
+**Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `ResearchTablet.cs`, `RingsPage.cs`, `StripParts.cs`, `logic/TechRings.cs`, `logic/TechLinks.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
 
 **Crew and hero movement**
 - Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
