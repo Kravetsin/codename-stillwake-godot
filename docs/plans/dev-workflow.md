@@ -23,6 +23,7 @@ READMEs.
 | #192 | New ADRs are `YYYY-MM-DD-two-words.md`, titled `# Title` and named by their slug, the numbered ones kept; the index accepts both and is `merge=union`; the first, for #185, amends 0031 | renumbering ADRs when two developers took the same next number |
 | #194 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
 | #311 | CI builds and tests with `-c Release`, `TieredPGO` off, the budgets' slack ×2, `lscpu` in the log ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)) | half of `dotnet test`'s time on CI |
+| #314 | A PR runs what its paths can break: docs only `DocsGuardTests`, the client no `Sim.Tests` or `Net.Tests`, `main` everything ([2026-10-31-ci-scope](../decisions/2026-10-31-ci-scope.md)) | a third of PRs waiting for tests they cannot change |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
