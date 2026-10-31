@@ -79,11 +79,11 @@ public class ReportTests
     [Fact]
     public void EntersAgainOnCrossingTheEdgeOfTheAirInsideOneRoom()
     {
-        // A generator piped to a vent and cabled to a panel above: the air spreads from the vent,
-        // nearest cells first.
+        // A vaporizer cabled to a panel above, a tank under the floor piped up to it and its air to the vent beside its top
+        // (liquid-oxygen): the air spreads from the vent, nearest cells first.
         var s = WorldFrom(Layout.Parse(
-            ["PPP      ", "#########", "#V......#", "#GG.....#", "#GG.....#", "#########"],
-            ["", "", " -", " -", " -"],
+            ["PPP      ", "#########", "#..V....#", "#GG.....#", "#GG.....#", "#########", " TT", " TT"],
+            ["", "", "   -", "  --", " -", " -", " -o", " -"],
             [((0, 0), (1, 3))]).Doubled());
         var air = s.M.Atmosphere;
         for (int i = 0; i < 600 && !air.AiredAt(At(5, 3)); i++) s.World.Step([]);

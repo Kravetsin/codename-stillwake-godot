@@ -19,14 +19,15 @@ public class TestbedTests
     });
 
     [Fact]
-    public void ItsPipesJoinTwoPortsOfOneWayOnlyWhereDrawnSoNeverTwoFluidsAndItsCisternsByWater()
+    public void ItsPipesNeverJoinTwoPortsOfOneWayOrTwoFluidsItsVentsFedThroughVaporizersAndItsCisternsByWater()
     {
         var m = Built.Value;
         Assert.NotEmpty(m.Pipes.Spans);
-        // Drawn before ports had a way: the tank piped straight to the generator beside it, kept as drawn (2026-10-29-typed-ports).
         var oneWay = m.Pipes.Spans.Where(s => m.Grid.PortAt(s.A) is { } a && m.Grid.PortAt(s.B) is { } b && a.Way == b.Way)
             .Select(s => (m.Grid.MachineAt(s.A)!.Kind, m.Grid.MachineAt(s.B)!.Kind));
-        Assert.Equal([("tank", "generator")], oneWay);
+        Assert.Empty(oneWay);
+        // Each vent fed by a vaporizer, its tank's liquid on the vaporizer's other line (liquid-oxygen).
+        Assert.All(m.Grid.MachinesOf("vent"), vent => Assert.True(m.Atmosphere.Fed(vent.Id), $"vent {vent.Id}"));
         // By lines, every valve counted open: a span's two ends of one fluid wherever both have one.
         Assert.All(m.Pipes.Spans, s => Assert.True(m.Pipes.FluidAt(s.A) is not { } a || m.Pipes.FluidAt(s.B) is not { } b || a == b, $"span {s.A}–{s.B}"));
         var cisterns = m.Grid.MachinesOf("cistern");

@@ -68,22 +68,27 @@ public static class Testbed
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
     /// <summary>
-    /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, and the air: a tank with a canister and a generator piped to a
-    /// vent in each room, and a capacitor bank on the supply crate by the pod; room two the arc bench by its door, the
+    /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, the air's chain (liquid-oxygen): a tank
+    /// piped along the floor to an oxygen vaporizer, the vaporizer's air to the vent; and a capacitor bank on the supply crate by the pod; room two
+    /// a tank by its door, the arc bench, the
     /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the tech station, the trade station on the drone bay, the charging station
-    /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second; then the airlock, no vent in it. The ship's computer hangs over room one's generator, the radar
+    /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second, and two vaporizers
+    /// one over the other right of the grow capsule, the tank's liquid along the floor to both, their air to the vent past the farm's crate;
+    /// then the airlock, no vent in it. The ship's computer hangs over room one's vaporizer, the radar
     /// antenna stands on the roof at the bow. The drop pod stands in the airlock on a launch platform laid in its floor over space,
     /// cabled to the panel over the airlock, biofuel for two descents in its slot. Thirteen panels on the roof: the first and the third feed the
-    /// lamps and the oxygen generator, their spare filling the bank (0101), the second the drone bay, the one beside it the
+    /// lamps and the vaporizer, their spare filling the bank (0101), the second the drone bay, the one beside it the
     /// computer and the antenna, the one past the third the crusher under it, the fourth nothing,
-    /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two oxygen generators in
+    /// the fifth the smelter, the sixth the assembler and the grow capsule, the seventh and eighth the two vaporizers in
     /// room two, and the last three, over the airlock and past the stern, the charging station: 15, what it draws with the arc
     /// fitted (0100); the burner generator feeds the Former and room
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
-    /// bay's zone. Three oxygen generators, piped with the tank to both vents, make more than the rooms leak and the two
-    /// fires breathe, so the air holds however long a session runs; one alone ran room two dry in three minutes.
+    /// bay's zone. A vaporizer makes a unit a tick: room one leaks some 0.8 a tick, room two and its two fires some 1.4, so
+    /// room two has two. A canister in each tank airs the rooms as the world is made, then the tanks go in full, four canisters
+    /// each: some twenty minutes of room two's air, more of room one's, and canisters in the crate for more.
     /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
-    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104).
+    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
+    /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
@@ -91,10 +96,10 @@ public static class Testbed
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......LUUU...#....L.kk.cc.ccJ.......L.$$#..L#",
-            "  #.OOOQQ..UUU.RRD......kk.cc.ccgg...GG...$$DZZ.D",
-            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.GGAACBBDZZ.D",
-            "  #.OOOKKTTGGVKK.DWWVFF.MM.EE.YYggGGKK.AACBBDZZ.D",
+            "  #.......LUUU...#..TTL.kk.cc.ccJ.GG....L.$$#..L#",
+            "  #.OOOQQ..UUU.RRD..TT..kk.cc.ccggGG......$$DZZ.D",
+            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG...AACBBDZZ.D",
+            "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
             "  #o#########################################__##",
             "  #XXXL#",
             "  #XXX.#",
@@ -105,21 +110,21 @@ public static class Testbed
             "",
             "",
             "",
-            "",
-            "",
-            "         o                          --",
-            "         ----------------------------",
+            "                    o              --",
+            "                    -            -- -",
+            "         o  --      -            - --",
+            "         --- -      --------------- ---",
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
             ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
-            ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (37, 5)),
+            ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
             ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)),
         ]).Doubled();
 
-    /// <summary>Ticks run before the items go in: a vent airs a cell a tick, and each room has some sixty.</summary>
-    public const int AirTicks = 200;
+    /// <summary>Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its 416.</summary>
+    public const int AirTicks = 300;
 
     /// <summary>The arc bench by room two's door (0099) and what it holds at the start: a plain drill in its vise.</summary>
     public static readonly (string Kind, string Tool) BenchHolds = ("arcBench", Weapons.Drill.Item);
@@ -185,6 +190,9 @@ public static class Testbed
             while (slots.Count < Machines.Get(kind).Slots) slots.Add(null);
             return slots;
         }
+        // A canister aired the rooms; the tanks go in full, so the air holds a long session.
+        foreach (var tank in save["slices"]!["atmosphere"]!["tanks"]!.AsArray())
+            if (machines.Any(m => (int)m!["id"]! == (int)tank!["tank"]! && (string?)m["kind"] == "tank")) tank!["oxygen"] = Air.TankCapacity;
         var items = save["slices"]!["items"]!;
         items["creative"] = true;
         var held = new List<JsonObject>

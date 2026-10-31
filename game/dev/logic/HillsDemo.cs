@@ -34,17 +34,28 @@ public static class HillsDemo
 
     /// <summary>
     /// A character a cell, for its steps are a cell (0106), its machines drawn at their whole footprints: a panel six by two on the
-    /// roof, a lamp two by two, the tank four by four up the left wall beside its vent.
+    /// roof, a lamp two by two, the tank four by four up the left wall, three oxygen vaporizers in a row beside it and their vent
+    /// past them. The room leaks some 2.7 units a tick and a vaporizer makes 1 (liquid-oxygen), so three keep up, the full tank
+    /// for some ten minutes. The lamps under the ceiling are joined, so the six panels, 30, feed the twelve lamps and the three
+    /// vaporizers, 24, each vaporizer cabled to a lamp.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(Rows(), Under(),
-        [.. Lamps.SelectMany(x => new[] { ((x, 0), (x, Top + 1)), ((x, Top + 1), (x, LowLamps)) })]);
+        [.. Lamps.SelectMany(x => new[] { ((x, 0), (x, Top + 1)), ((x, Top + 1), (x, LowLamps)) }),
+            .. Lamps.Skip(1).Select((x, i) => ((Lamps[i], Top + 1), (x, Top + 1))),
+            ((Lamps[0], Top + 1), (TankLeft + 4, TankTop)), ((Lamps[0], Top + 1), (TankLeft + 8, TankTop)), ((Lamps[1], Top + 1), (TankLeft + 12, TankTop))]);
 
-    /// <summary>The pipe from the tank's port, its left column's third cell, along under it and up under the vent beside it.</summary>
+    /// <summary>
+    /// The pipes (liquid-oxygen): the liquid from the tank's port, its left column's third cell, along under the row to the
+    /// vaporizers' inputs, the same cell of each; the air along their top row through their outputs, its right cells, to the vent.
+    /// </summary>
     private static string[] Under() =>
-        [.. Enumerable.Range(0, Height).Select(y => y == TankTop + 2 ? "  -----" : y == TankTop || y == TankTop + 1 ? "      -" : "")];
+        [.. Enumerable.Range(0, Height).Select(y => y == TankTop + 2 ? "  -------------" : y == TankTop ? "         ----------" : "")];
 
     /// <summary>The tank's top row, hung on the left wall under the first lamp: machines need no floor.</summary>
     private const int TankTop = Top + 4;
+
+    /// <summary>The tank's left column, against the left wall.</summary>
+    private const int TankLeft = 2;
 
     private static string[] Rows()
     {
@@ -94,9 +105,11 @@ public static class HillsDemo
             Block(x, LowLamps, 2, 2, 'L');
             Block(x - 2, 0, 6, 2, 'P');
         }
-        // A tank and its vent by the start: the room leaks as any does, and the tank, filled as the world begins, makes it up for an hour.
-        Block(2, TankTop, 4, 4, 'T');
-        Block(6, TankTop, 2, 2, 'V');
+        // A tank, its vaporizers and their vent by the start: the room leaks as any does, and the tank, filled as the world
+        // begins, makes it up through the vaporizers.
+        Block(TankLeft, TankTop, 4, 4, 'T');
+        for (int i = 1; i <= 3; i++) Block(TankLeft + 4 * i, TankTop, 4, 4, 'G');
+        Block(TankLeft + 16, TankTop, 2, 2, 'V');
         Set(1, Ground - 1, 'S');
         return [.. Enumerable.Range(0, Height).Select(y => new string([.. Enumerable.Range(0, Width).Select(x => map[y, x])]))];
     }

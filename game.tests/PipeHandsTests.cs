@@ -99,7 +99,10 @@ public class PipeHandsTests
         Assert.Equal("pipes.tooLong", hands.Laying?.Why);
     }
 
-    /// <summary>A generator and a tank that give air, their ports (0, 2) and (8, 2); two vents that take it, (0, 4) and (8, 4).</summary>
+    /// <summary>
+    /// A vaporizer taking liquid at (0, 2) and giving air at (3, 0); a tank giving liquid at (8, 2); two vents taking air,
+    /// (0, 4) and (8, 4) (liquid-oxygen).
+    /// </summary>
     private static TestWorld Machines() => new(Layout.Parse(["GGGG....TTTT....", "GGGG....TTTT....", "GGGG....TTTT....", "GGGG....TTTT....", "VV......VV......", "VV......VV......"]));
 
     private static int[] LitFrom(TestWorld w, (double, double) press)
@@ -113,12 +116,16 @@ public class PipeHandsTests
     public void ADragLightsOnlyThePortsItsSpanMayEndAtNeverItsOwnMachines()
     {
         var w = Machines();
-        // From the generator: the vents, not the tank, which gives too.
-        Assert.Equal([At(0, 4), At(8, 4)], LitFrom(w, Middle(1, 2)));
-        // From a vent: the generator and the tank.
-        Assert.Equal([At(0, 2), At(8, 2)], LitFrom(w, Middle(0, 4)));
+        // From the vaporizer's output: the vents, not the tank, whose liquid is another fluid, nor its own input.
+        Assert.Equal([At(0, 4), At(8, 4)], LitFrom(w, Middle(2, 0)));
+        // From its input: the tank only, the vents taking too and air besides.
+        Assert.Equal([At(8, 2)], LitFrom(w, Middle(1, 2)));
+        // From a vent: the vaporizer's output, never the tank: a tank piped to a vent is refused.
+        Assert.Equal([At(3, 0)], LitFrom(w, Middle(0, 4)));
+        // From the tank: the vaporizer's input.
+        Assert.Equal([At(0, 2)], LitFrom(w, Middle(9, 2)));
         // From a bare cell: every port.
-        Assert.Equal([At(0, 2), At(8, 2), At(0, 4), At(8, 4)], LitFrom(w, Middle(5, 0)));
+        Assert.Equal([At(3, 0), At(0, 2), At(8, 2), At(0, 4), At(8, 4)], LitFrom(w, Middle(5, 0)));
         var hands = new PipeHands();
         Do(w, [new ButtonEvent(true, Middle(1, 2)), new ButtonEvent(false, Middle(1, 2))], hands: hands);
         Assert.Empty(hands.Lit);
@@ -151,9 +158,13 @@ public class PipeHandsTests
     [Fact]
     public void ASocketPointsOutOfAMachineThatGivesAndIntoOneThatTakesInItsFluidsColour()
     {
-        var generator = Stillwake.Content.Machines.Get("generator");
+        var tank = Stillwake.Content.Machines.Get("tank");
+        var vaporizer = Stillwake.Content.Machines.Get("generator");
         var vent = Stillwake.Content.Machines.Get("vent");
-        Assert.Equal((-1, 0), Sockets.ArrowOf(generator.Ports[0], generator.Width, generator.Height));
+        Assert.Equal((-1, 0), Sockets.ArrowOf(tank.Ports[0], tank.Width, tank.Height));
+        // The vaporizer's liquid in on its left, its air out of its top right corner, sideways.
+        Assert.Equal((1, 0), Sockets.ArrowOf(vaporizer.Ports[0], vaporizer.Width, vaporizer.Height));
+        Assert.Equal((1, 0), Sockets.ArrowOf(vaporizer.Ports[1], vaporizer.Width, vaporizer.Height));
         Assert.Equal((1, 0), Sockets.ArrowOf(vent.Ports[0], vent.Width, vent.Height));
         // A port in a top or bottom row points up or down; one at the very middle, down when it gives.
         Assert.Equal((0, -1), Sockets.ArrowOf(new(1, 0, Way.Out, Fluids.Air), 4, 4));
@@ -161,6 +172,7 @@ public class PipeHandsTests
         Assert.Equal((0, 1), Sockets.ArrowOf(new(1, 1, Way.Out, Fluids.Air), 3, 3));
         Assert.Equal(0x7fc4f0u, Sockets.ColourOf(Fluids.Air));
         Assert.Equal(0x2fa3b8u, Sockets.ColourOf(Fluids.Water));
+        Assert.Equal(0xa8d8ffu, Sockets.ColourOf(Fluids.LiquidOxygen));
         Assert.Equal(Fluids.All.Count, Fluids.All.Select(Sockets.ColourOf).Distinct().Count());
     }
 }
