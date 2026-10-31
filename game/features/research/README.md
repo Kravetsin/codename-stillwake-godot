@@ -10,13 +10,16 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `ResearchTablet.cs`  | the tablet: its tabs, the head and the strip below, T, the read timer     | yes   |
 | `ITabletPage.cs`     | what the tablet asks of a page on a tab                                   | yes   |
 | `BoardPage.cs`       | the first tab: the board of notes, threads and shapes                     | yes   |
+| `TabletKey.cs`       | the tablet's key on the HUD and its dot                                   | yes   |
 | `RingsPage.cs`       | a tab of rings: a hub, nodes, what the strip says of what is picked       | yes   |
 | `StripParts.cs`      | what pages write with: the strip's controls, a thing's words and pictures | yes   |
 | `StationScreens.cs`  | a trade station's screen, drawn over its picture                          | yes   |
 | `CapsuleFlights.cs`  | a trade station's capsule going off behind the hull and coming back       | yes   |
 | `logic/BoardBox.cs` | The part of the board the camera keeps in bounds | no |
 | `logic/BoardFile.cs` | What this machine's player moved on a world's board, in its own file | no |
+| `logic/BoardKeep.cs` | The board as this machine keeps it, for the world played | no |
 | `logic/BoardPencil.cs` | How far a silhouette has come towards being understood | no |
+| `logic/BoardSeen.cs` | What is new on the board for this player | no |
 | `logic/BoardSlots.cs` | Where everything on the board stands, from what was found in what order | no |
 | `logic/BoardThings.cs` | Every blueprint and craft as the board sees it | no |
 | `logic/BoardThreads.cs` | What a note's threads run to | no |
@@ -34,6 +37,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 - Words are set at the size they are seen and never scaled; further out a node keeps only its picture, and from far it is a plain dot coloured by its state, under its branch's name. What a node is, is said by the pointer: an item's card, or a blueprint's picture and words.
 - The board reads only behind a key of its `Knowledge`, that module's version and the hero's grid's; positions are set only as the camera moves. It takes no way to send a command, so it cannot change the world. Blank till the first find. Its box only grows, and the first note stands in the middle of the view.
 - A left press on a thing on the board, a note or a shape, carries it once past the click's slack, and it stays where it is let go; anywhere else the press drags the board. A click still only picks. Each machine keeps its own arrangement, never sent: only what was moved, in `user://boards/<World.Id>.json`, written as the tablet closes and on every way out. A lost or bad file means things go back to their slots, a failed write stops nothing, and a world with id 0 (made before ids, or a dev run) keeps no file.
+- A dot on the tablet's key says a note has appeared since the tablet last closed; opening puts it out, and new notes stay ringed until it closes. What was seen is kept in the same file. With nothing kept it starts as things stand at the first read, so a new world or a late guest has nothing new. Only notes count: more of a known item or a bought upgrade lights nothing.
 - The hub and the strip show what the bag holds over what is still needed.
 - A block is green once bought, edged in amber while it can be bought, dim while out of reach. The hub is violet while its gate takes
   a deposit, and the rings its gates opened are lit. It opens on the hub the first time, and after that stays where it was left.

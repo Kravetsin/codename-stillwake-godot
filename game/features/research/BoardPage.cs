@@ -15,11 +15,11 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// The tablet's first tab: the scavenger's board (docs/plans/board.md), blank till the first find. Notes in ink where <see cref="BoardSlots"/>
 /// stands them, threads to shapes in pencil, dragged and zoomed (<see cref="TechCamera"/>). A click picks and says what is known of it in
-/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardFile"/>).
+/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardKeep"/>). What is new is ringed until the tablet is put away.
 /// </summary>
 public sealed class BoardPage : ITabletPage
 {
-    private static readonly Color Paper = new("18202b"), Ink = new("8a93a6"), Blank = new("0f141b"), Pencil = new("39404c"), Thread = new("7a8090");
+    private static readonly Color Paper = new("18202b"), Ink = new("8a93a6"), Blank = new("0f141b"), Pencil = new("39404c"), Thread = new("7a8090"), New = new("f2b84b");
 
     /// <summary>Under this zoom words would be too small to read, and only pictures show.</summary>
     private const double WordsFrom = 0.5;
@@ -33,6 +33,7 @@ public sealed class BoardPage : ITabletPage
     private readonly StripParts _strip;
     private readonly Action _readSoon;
     private readonly Func<uint> _worldId;
+    private readonly BoardKeep _keep;
     private readonly TechCamera _camera = new();
     // What scales is under _map, what is set at its seen size under _front.
     private readonly Control _map = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
@@ -40,7 +41,6 @@ public sealed class BoardPage : ITabletPage
     private readonly Control _back = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Dictionary<string, NoteView> _notes = new(StringComparer.Ordinal);
     private Dictionary<string, BoardSlot> _slots = new(StringComparer.Ordinal);
-    private Dictionary<string, BoardSpot> _spots = new(StringComparer.Ordinal);
     private HashSet<string> _had = new(StringComparer.Ordinal);
     private BoardPicture _picture = new(new Dictionary<string, BoardShow>(), []);
     private BoardRead? _read;
@@ -51,9 +51,8 @@ public sealed class BoardPage : ITabletPage
     private Vector2 _viewWas;
     private string? _picked;
     private double? _sizedAt;
-    private bool _centred, _out, _pressed, _unwritten;
+    private bool _centred, _out, _pressed;
     private float _moved;
-    private uint _world;
     private string? _held;
     private Vector2 _heldBy;
 
@@ -62,10 +61,11 @@ public sealed class BoardPage : ITabletPage
     /// <param name="view">The tablet's view, which it draws into.</param>
     /// <param name="strip">The strip below and its words.</param>
     /// <param name="readSoon">Has the tablet read on its next frame.</param>
-    /// <param name="worldId">Which world is played: what its moved things are kept under; with 0 they are not kept.</param>
-    public BoardPage(Control view, StripParts strip, Action readSoon, Func<uint> worldId)
+    /// <param name="worldId">Which world is played: what the board is kept under.</param>
+    /// <param name="keep">What is kept of the board, shared with the tablet's key.</param>
+    public BoardPage(Control view, StripParts strip, Action readSoon, Func<uint> worldId, BoardKeep keep)
     {
-        (_view, _strip, _readSoon, _worldId) = (view, strip, readSoon, worldId);
+        (_view, _strip, _readSoon, _worldId, _keep) = (view, strip, readSoon, worldId, keep);
         _back.Draw += DrawBack;
         _map.AddChild(_back);
         view.AddChild(_map);
@@ -151,6 +151,7 @@ public sealed class BoardPage : ITabletPage
         _picture = BoardView.Of(slots, BoardThings.All, read, _picked);
         _slots = slots.ToDictionary(s => s.Id, StringComparer.Ordinal);
         _had = [.. read.Found, .. read.Granted];
+        _keep.Seen.Read(BoardView.NotesOf(slots, read));
         Restyle();
         Grow();
         _placedAt = null;
@@ -162,7 +163,7 @@ public sealed class BoardPage : ITabletPage
     private void Forget(Registry m)
     {
         _knowledge = m.Knowledge;
-        if (_worldId() is var world && world != _world) (_world, _spots, _unwritten) = (world, BoardFile.Read(FileOf(world)), false);
+        _keep.Of(_worldId());
         _strip.Learn(m.Research);
         foreach (var view in _notes.Values) view.Root.QueueFree();
         _notes.Clear();
@@ -178,7 +179,8 @@ public sealed class BoardPage : ITabletPage
             if (!_notes.TryGetValue(id, out var view)) view = _notes[id] = NoteOf(id);
             Color? tie = Tie(id);
             bool note = show == BoardShow.Note;
-            Paint(view.Box, note ? Paper : Blank, tie ?? (note ? Ink : Pencil), tie != null ? 3 : note ? 2 : 1);
+            bool marked = _keep.Seen.Marked(id);
+            Paint(view.Box, note ? Paper : Blank, tie ?? (marked ? New : note ? Ink : Pencil), tie != null || marked ? 3 : note ? 2 : 1);
             if (note) view.Picture.Material = null;
             else Pale(view.Picture, BoardPencil.Of(BoardThings.All.First(t => t.Id == id), _read!.Count, _read.Stands));
             view.Root.Modulate = _picked == null || tie != null ? Colors.White : new Color(1, 1, 1, 0.3f);
@@ -244,16 +246,6 @@ public sealed class BoardPage : ITabletPage
     /// <summary>Whether a thing is being carried: the pointer says nothing of it meanwhile.</summary>
     public bool Carrying => _held != null && _moved >= ClickSlack;
 
-    /// <summary>Writes what was moved, if anything was since it last did: when the tablet closes and on every way out.</summary>
-    public void Keep()
-    {
-        if (!_unwritten || _world == 0) return;
-        _unwritten = !BoardFile.Write(FileOf(_world), _spots);
-        if (_unwritten) GD.PushWarning($"The board of world {_world} was not kept.");
-    }
-
-    private static string FileOf(uint world) => BoardFile.PathOf(ProjectSettings.GlobalizePath("user://boards"), world);
-
     /// <summary>A left press at a point of the view: takes hold of what is there, on top of the rest from now on.</summary>
     private void Press(Vector2 at)
     {
@@ -268,8 +260,7 @@ public sealed class BoardPage : ITabletPage
     private void Stand(string id, Vector2 at)
     {
         var (x, y) = _camera.ToMap(at.X, at.Y);
-        _spots[id] = new BoardSpot(x - _heldBy.X + _box.Left, y - _heldBy.Y + _box.Top);
-        _unwritten = true;
+        _keep.Move(id, new BoardSpot(x - _heldBy.X + _box.Left, y - _heldBy.Y + _box.Top));
         Grow();
         _back.QueueRedraw();
     }
@@ -371,7 +362,7 @@ public sealed class BoardPage : ITabletPage
     }
 
     /// <summary>Where <paramref name="id"/> stands on the board: where it was moved to, else its slot.</summary>
-    private BoardSpot SpotOf(string id) => _spots.TryGetValue(id, out var spot) ? spot : new BoardSpot(_slots[id].X, _slots[id].Y);
+    private BoardSpot SpotOf(string id) => _keep.Spots.TryGetValue(id, out var spot) ? spot : new BoardSpot(_slots[id].X, _slots[id].Y);
 
     /// <summary>Where <paramref name="id"/> stands on the map, whose top-left is the box's.</summary>
     private Vector2 At(string id) => new((float)(SpotOf(id).X - _box.Left), (float)(SpotOf(id).Y - _box.Top));

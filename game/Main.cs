@@ -228,6 +228,7 @@ public partial class Main : Node2D, ITogether
                 yield return building.Covers;
                 yield return overlays.Covers;
                 if (fabricator.Covers is { } crafts) yield return crafts;
+                if (_tablet != null) yield return _tablet.KeyCovers;
             }
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
