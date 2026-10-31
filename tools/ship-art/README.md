@@ -1,10 +1,10 @@
 # Ship art painters
 
-These scripts paint the ship's pictures into `game/art` or a dir they take. The planet's painters are in [`tools/planet-art`](../planet-art).
+Scripts that paint the ship's pictures into `game/art` or a dir they take. The planet's: [`tools/planet-art`](../planet-art).
 
-Plain Node unless noted (`fs`, `path`, `zlib`); (Godot) ones run as `godot --headless --script tools/ship-art/<it>` and the args shown. **Reproduces**, against the art at 85f408a: **exact** — identical
+Plain Node unless noted; (Godot) ones run as `godot --headless --script tools/ship-art/<it>` and the args shown. **Reproduces**, against the art at 85f408a: **exact** — identical
 bytes; **pixel-exact** — same pixels, other bytes (the PNG encoder was rewritten); **drifted** — the art
-was redrawn since; the painter holds the earlier look.
+was redrawn since.
 
 | Folder | Makes in `game/art` | Inputs | Command | Reproduces |
 | ------ | ------------------- | ------ | ------- | ---------- |
@@ -16,6 +16,7 @@ was redrawn since; the painter holds the earlier look.
 | `machines/capacitor-bank.js` | `machine_capacitorBank` (0101) | none | `node tools/ship-art/machines/capacitor-bank.js [file]` | exact 1/1 |
 | `machines/parts.js` | `items/rotor`; also `wire`, `plate`, `gear` | none | `node tools/ship-art/machines/parts.js [itemsDir]` | `rotor` exact; others drifted (`resource-icons`) |
 | `piles/gen.js` | `machine_pile*`, `machine_emergencyLamp` | `debris/` | `node tools/ship-art/piles/gen.js [artDir]` | exact 5/5 |
+| `wreck/gen.js` | `wreck_dress`, `wreck_tears` | `Wreck.cs` | `node tools/ship-art/wreck/gen.js` | exact 2/2 |
 | `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | `.raw` for `ffmpeg` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; drill ones drifted (`drill/`) |
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
 | `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` was `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | 1/2; icon gone |
@@ -48,8 +49,8 @@ was redrawn since; the painter holds the earlier look.
 | `walls/` | candidates, `pick.html`; picks (`picks.json`): hull walls, edges, back walls | none | `node build.js`, then `node pick.js` | exact 86/86 |
 | `wrist/export.cjs` (headless Chrome) | `wrist_*` (body, cuff, display, dock, gauge) | Chrome | `node tools/ship-art/wrist/export.cjs <outDir>` | exact 6/6 |
 
-`machines/comp.js` lays one PNG over another (`node comp.js a.png b.png out.png <png.js>`). Pick pages and
-previews are written beside their painters, ignored by git. "Scenes": `game/art` scenes or previews.
+`machines/comp.js` lays one PNG over another (`comp.js a b out <png.js>`). Pick pages and
+previews lie beside their painters, ignored by git. "Scenes": `game/art` scenes or previews.
 
 ## Not painted here
 

@@ -26,6 +26,7 @@
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
 | `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
+| `logic/WreckDress.cs` | Which of the wreck's plates show rust, stripes or a tear, on a world or a dev grid; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon at each side, and their white silhouettes. |

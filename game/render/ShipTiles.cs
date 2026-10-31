@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
+using Stillwake.Sim;
 
 namespace Stillwake.Game.Render;
 
@@ -72,12 +73,13 @@ public sealed class ShipTiles
                 pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Drawn, Drawn, side, side)), Relief.None));
             }
         }
-        foreach (var material in Materials.All.Select(m => m.Id))
+        foreach (var material in Materials.All.Where(m => m.As == null).Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
+        AddWreckDress(pictures);
         foreach (var name in (string[])[.. HullBacks, "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
@@ -157,6 +159,26 @@ public sealed class ShipTiles
             var spec = name.StartsWith("machine_") && Machines.TryGet(name["machine_".Length..], out var m) ? m : null;
             int rise = spec != null ? Mathf.Max(0, size.Y - spec.Height) : 0, reach = spec?.Exhaust ?? 0;
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(reach * Cell, rise * Cell);
+        }
+    }
+
+    /// <summary>The wreck's dress (<see cref="WreckDress"/>): a picture a cell, a torn one the piece of scrap's wall that lies there in a new world, cut by its mask.</summary>
+    private static void AddWreckDress(List<(string Name, Image Diffuse, Image Normal)> pictures)
+    {
+        Image over = Art("wreck_dress"), masks = Art("wreck_tears"), scrap = Art("wall_scrap");
+        var corner = Layout.OffsetInWorld(Wreck.Width, Wreck.Height);
+        var (across, down) = (scrap.GetWidth() / Cell, scrap.GetHeight() / Cell);
+        foreach (var (x, y, look) in WreckDress.Cells())
+        {
+            var inSheet = new Rect2I(x * Cell, y * Cell, Cell, Cell);
+            if (look != 'T')
+            {
+                pictures.Add(Picture(WreckDress.OverName(x, y), over.GetRegion(inSheet), Relief.None));
+                continue;
+            }
+            var wall = scrap.GetRegion(new Rect2I((x + Wreck.Left + corner.X) % across * Cell, (y + Wreck.Top + corner.Y) % down * Cell, Cell, Cell));
+            var torn = WreckDress.Torn(wall.GetData(), masks.GetRegion(inSheet).GetData());
+            pictures.Add(Picture(WreckDress.TornName(x, y), Image.CreateFromData(Cell, Cell, false, Image.Format.Rgba8, torn), Relief.None));
         }
     }
 

@@ -1,6 +1,6 @@
 # The scoop: a new starting ship
 
-Steps 1 and 2 have landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below, and [hold-piles](../decisions/2026-10-31-hold-piles.md). Step 3 is still to do. Piles break by axe, not by a mark, and so no longer pay for the first machines: hold-piles has it.
+Steps 1 and 2 have landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below, and [hold-piles](../decisions/2026-10-31-hold-piles.md). Step 3's static look has landed too, in the-scoop; sparks, venting gas and hanging cables are still to do. Piles break by axe, not by a mark, and so no longer pay for the first machines: hold-piles has it.
 
 A new world starts in the torn-off scoop section of a scavenger ship. The hold's heaps are what its last crew had gathered. Picture:
 [scoop.png](scoop.png), 2× zoom, about 66×33 cells, drawn from the game's art, not yet in the game.
@@ -62,7 +62,6 @@ test holds every hold cell `Afloat`: a one-cell slit would turn the hold into a 
 - **Fires without air:** kept. The furnace's and burner's need for air is a mechanic of the game.
 - **Piles shrinking in stages:** a pile goes whole when worked. Stages would need a new command and saved progress for looks only.
 - **The jaws catching debris:** scenery. The stream and its rules do not change.
-- **Hull paint, torn tiles, frost, sparks:** a separate design. The shape of the map reads without them for the first playtest.
 - **A scrap tank:** the pod does its job.
 - **A full bag in the hold:** the rest drifts off, as any drop in space. Piles are small and the bag is large.
 - **Old saves:** they keep their wreck, as `World.Load` does not read the layout, and their pod does not start making air unless it is a change of the row: then
@@ -83,7 +82,7 @@ test holds every hold cell `Afloat`: a one-cell slit would turn the hold into a 
 
 1. **The ship:** the map, the pod's air and light, the lamp's ring, tests. Playable by catching alone, seen in the game at once.
 2. **Piles:** rows, script-made pictures from `art/debris`, their stock, the ADR, the concept.
-3. **Looks:** their own design.
+3. **Looks:** rust, stripes and tears landed; sparks, gas and cables next.
 
 ## Not verified
 

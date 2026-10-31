@@ -228,7 +228,7 @@ public static class Tools
                 return grid.MachineAt(cell) is { } m ? new Placement(layer, m.Kind) : null;
             case "structure":
                 // What placed it, by the code the grid stores: a doorway a door's or a hatch's (0104, 0111, 0112).
-                if (grid.WallAt(cell) is { } wall) return Placement.Wall(wall.Id);
+                if (grid.WallAt(cell) is { } wall) return Placement.Wall(wall.As ?? wall.Id);
                 return Structures.Of(grid.StructureAt(cell)).Build is { } build ? new Placement(layer, build) : null;
             default:
                 return grid.BackAt(cell) is { } material ? Placement.BackWall(material.Id) : null;

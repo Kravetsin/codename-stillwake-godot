@@ -16,7 +16,7 @@ public partial class ContentTests
     {
         foreach (var item in Content.Items.All) Assert.True(item.Stack > 0, item.Id);
         // Natural ground (0077) is dug into what it costs: soil, and stone into rock.
-        foreach (var material in Materials.All.Where(m => !m.Natural)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
+        foreach (var material in Materials.All.Where(m => !m.Natural && m.As == null)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
     }
 
     [Fact]

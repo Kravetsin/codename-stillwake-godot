@@ -27,17 +27,20 @@ public partial class GridView : Node2D
     /// <summary>Which sides of a cell: up, right, down, left, a bit each (SIDE in ship-art.ts).</summary>
     private const int Up = 1, Right = 2, Down = 4, Left = 8;
 
+    /// <summary>Where the wreck's maps lie in this grid.</summary>
+    private readonly (int X, int Y) _corner;
+
     private readonly IGridQueries _grid;
     private readonly ShipTiles _tiles = ShipTiles.Shared;
     private readonly ShadowTiles _shadows = ShadowTiles.Shared;
-    private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _tops, _topsFront, _fixtures, _doors, _machines;
+    private readonly TileMapLayer _back, _shade, _walls, _details, _edges, _dress, _tops, _topsFront, _fixtures, _doors, _machines;
     /// <summary>The layers a cell is drawn in; machines are drawn apart, over their footprints.</summary>
     private readonly TileMapLayer[] _cellLayers;
     private readonly Node2D _sockets = new() { ZIndex = Layers.Sockets };
     // A door or valve that moves is heard where it stands, by everyone near (0033).
     private readonly Heard2D _opens = Cues.Player2D(S.DoorOpen, S.World, voices: 2),
         _closes = Cues.Player2D(S.DoorClose, S.World, voices: 2);
-    private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.Id);
+    private readonly Dictionary<int, string> _materials = Materials.All.ToDictionary(m => m.Code, m => m.As ?? m.Id);
     private readonly DrawnLayers _drawn;
     private Machine[] _drawnMachines = [];
     private bool _blank = true;
@@ -47,6 +50,7 @@ public partial class GridView : Node2D
     public GridView(IGridQueries grid)
     {
         _grid = grid;
+        _corner = WreckDress.CornerIn(grid.Width, grid.Height);
         _drawn = new DrawnLayers(grid.Width, grid.Height);
         _reveal = new ChunkReveal(grid.Width, grid.Height);
         _drawRow = DrawRow;
@@ -67,13 +71,15 @@ public partial class GridView : Node2D
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
+        // The wreck's rust and stripes, over its edges as added after them.
+        _dress = Layer(Layers.Edges, L.WallIn);
         // The living edge over its ground, lit as the open air its top faces; over the edges, as added after them; its tufts before the heroes.
         _tops = Layer(Layers.Edges);
         _topsFront = Layer(Layers.GroundFront);
         _fixtures = Layer(Layers.Fixtures);
         _doors = Layer(Layers.Doors, L.WallIn);
         _machines = Layer(Layers.Machines);
-        _cellLayers = [_back, _shade, _walls, _details, _edges, _fixtures, _doors];
+        _cellLayers = [_back, _shade, _walls, _details, _edges, _dress, _fixtures, _doors];
         AddChild(_sockets);
         foreach (var player in (Node[])[_opens, _closes]) AddChild(player);
     }
@@ -82,7 +88,7 @@ public partial class GridView : Node2D
     public void Fade((float Front, float Back) alpha)
     {
         foreach (var layer in (CanvasItem[])[_back, _shade]) layer.Modulate = new Color(1, 1, 1, alpha.Back);
-        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
+        foreach (var layer in (CanvasItem[])[_walls, _details, _edges, _dress, _tops, _topsFront]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
@@ -282,23 +288,31 @@ public partial class GridView : Node2D
             }
         }
 
+        var spec = Structures.Of(_drawn.Structure[cell]);
+        // Stars show through a tear's cuts, so it draws no back wall while its wall stands.
+        bool dressed = spec.Draw == StructureDraw.Autotile && _drawn.Material[cell] == WreckDress.Code;
+        var drawing = dressed ? WreckDress.DrawnAt(x, y, _corner) : default;
+        int open = spec.Draw == StructureDraw.Autotile ? ~WalledSides(cell) & (Up | Right | Down | Left) : 0;
+        bool torn = dressed && WreckDress.ShowsTear(drawing.X, drawing.Y, open);
+
         if (_drawn.Back[cell] == Back.Wall)
         {
-            DrawBack(at, _drawn.BackMaterial[cell]);
+            if (!torn) DrawBack(at, _drawn.BackMaterial[cell]);
             DrawShade(cell, blank);
         }
 
-        var spec = Structures.Of(_drawn.Structure[cell]);
         switch (spec.Draw)
         {
             case StructureDraw.Autotile:
                 {
                     var (wall, edges) = WallNamesOf(_drawn.Material[cell]);
-                    _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
+                    if (torn) Put(_walls, at, WreckDress.TornName(drawing.X, drawing.Y));
+                    else _walls.SetCell(at, ShipTiles.Source, _tiles.CutAt(wall, x, y));
                     // Edged where it faces no wall.
-                    int open = ~WalledSides(cell) & (Up | Right | Down | Left);
-                    if (open != 0)
+                    if (open != 0 && !torn)
                         Put(_edges, at, edges[open]);
+                    if (dressed && WreckDress.At(drawing.X, drawing.Y) is 'R' or 'r' or 'H')
+                        Put(_dress, at, WreckDress.OverName(drawing.X, drawing.Y));
                     DrawDetail(cell);
                     DrawTop(cell);
                     break;

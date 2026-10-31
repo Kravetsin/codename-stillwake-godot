@@ -44,6 +44,7 @@ public static class Legend
         ('c', "copperVein"),
         ('i', "iceVein"),
         ('n', "iron"),
+        ('w', "wreckScrap"),
     ];
 
     /// <summary>The material a material map's <paramref name="c"/> names; null for the default hull, or a character none names.</summary>
