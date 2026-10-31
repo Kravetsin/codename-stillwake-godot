@@ -127,3 +127,4 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - справочник / Handbook → f/handbook `HandbookPanel`, `game/Content/logic/Handbook.cs` → UI
 - подсказка / tooltip → `game/shared/logic/Tip.cs`, `PointerTip` → UI
 - дев-аргумент, демо / dev argument, demo → `-- --<name>`: one `DevMode` each in `game/dev/logic/DevModes.cs`, wired in `game/dev/Main.Dev.cs` → Dev tools
+

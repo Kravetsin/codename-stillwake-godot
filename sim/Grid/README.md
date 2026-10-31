@@ -96,3 +96,4 @@ through as its back wall, so digging it out leaves no second lump of ore.
 - An engine's exhaust is checked only when placed: what is later built in its nozzle's cells or taken from them leaves it standing.
 - Door kinds with rules of their own (an airlock) would need a layer (0067).
 - The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`); a tick writing more makes readers look at everything.
+

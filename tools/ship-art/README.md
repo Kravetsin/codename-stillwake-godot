@@ -60,3 +60,4 @@ No painter for:
 - `machine_generator`, `vent`, `solarPanel`, `furnace`, `crate` and `lamp`.
 - `items/` `cargoCrate`, `supplyPod`, `canister`, `asteroidLarge`, `asteroidRich`, `asteroidSmall`, `cargoHold`,
   `engineBlock`, `podCluster`.
+
