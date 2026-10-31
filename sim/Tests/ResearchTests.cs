@@ -302,14 +302,18 @@ public class ResearchTests
     [Fact]
     public void BuildsTheSolarPanelTakenApartAgainWithNothingBoughtItsPhotosensitivePanelBack()
     {
-        // Known from the start (2026-10-29-photo-panel): its photosensitive panel, which nothing makes, comes back taken apart.
+        // Not known till one is taken apart (first-hour-pace): its photosensitive panel, which nothing makes, comes back so (2026-10-29-photo-panel).
         var w = new Scenario(Layout.Parse(["PPP       ", "          "], null) with { Known = ResearchSpec.StartKnown }, doubled: true);
         var panel = new Placement("machine", "solarPanel");
         var cost = Content.Machines.Get("solarPanel").Cost;
-        Assert.True(w.M.Research.Knows(panel));
+        Assert.False(w.M.Research.Knows(panel));
+        w.Do(new PlacePlan(At(4, 0), panel)).Run();
+        Assert.Equal(["building.unknown"], w.Refusals.Select(r => r.Reason));
+        w.Refusals.Clear();
         w.Do(new Deconstruct(At(0, 0), "machine")).Run();
         int mark = w.M.Building.Plans.Single().Id;
         for (int t = 0; t < 400 && w.M.Grid.MachineAt(At(0, 0)) != null; t++) w.Do(new Work(mark)).Run();
+        Assert.True(w.M.Research.Knows(panel));
         Assert.Null(w.M.Grid.MachineAt(At(0, 0)));
         Assert.Equal(1, w.M.Items.Inventory(0).Sum(s => s?.Item == "photoPanel" ? s.Count : 0));
         // Built again of what came back, the photosensitive panel among it; nothing is left for a second.
@@ -473,6 +477,6 @@ public class ResearchTests
             else w.Do(new BuyBlock(node.Id)).Run();
         }
         Assert.Empty(w.Refusals);
-        Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
+        Assert.All(w.M.Research.Recipes().Where(r => !ResearchSpec.KnownTakenApart.Contains(r.Id)), r => Assert.True(r.Known, r.Id));
     }
 }

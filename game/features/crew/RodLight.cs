@@ -57,15 +57,18 @@ public sealed class RodLight
         if (_was == Rod.Hooked && rod is Rod.Reeling or Rod.Pulling) _beadMs = 0;
         if (_was == Rod.Reeling && rod == Rod.Returning) (_zipMs, _zipFrom) = (0, tip);
         _was = rod;
-        if (rod == Rod.Flying) Fly(tip, pointing, eye, elapsedMs);
         if (muzzle is not { } gun) return;
+        if (rod == Rod.Flying) Fly(tip, pointing, eye, gun, elapsedMs);
         if (_beadMs >= 0) BeadDown(eye, gun, elapsedMs);
         if (_zipMs >= 0) ZipHome(gun, elapsedMs);
     }
 
-    private void Fly(Vector2 tip, Vector2 pointing, Vector2 eye, double elapsedMs)
+    private void Fly(Vector2 tip, Vector2 pointing, Vector2 eye, Vector2 gun, double elapsedMs)
     {
-        var back = eye - pointing * (float)(26 * Fx.Length);
+        // The eye still in the gun leaves nothing, and its trail never reaches back into the gun.
+        float clear = (eye - gun).Dot(pointing);
+        if (clear <= 0) return;
+        var back = eye - pointing * Math.Min((float)(26 * Fx.Length), clear);
         Stages.Of(Layers.Tethers).Flares.Trail([(tip.X - pointing.X * 4, tip.Y - pointing.Y * 4), (eye.X, eye.Y), (back.X, back.Y)], Warm, 0.6, 0.75, 0.45);
         var glims = Stages.Of(Layers.Tethers).Glims;
         _wake += WakePerSecond * Fx.Count * elapsedMs / 1000;

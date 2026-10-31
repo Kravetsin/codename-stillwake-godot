@@ -2,6 +2,7 @@
 
 - Status: accepted; built
 - Date: 2026-10-29
+- Amended by [first-hour-pace](2026-10-31-first-hour-pace.md): the panel is known once one is taken apart
 - Amends [0041](0041-wreckage-of-many-kinds-and-circuits.md), [0057](0057-stations-one-model-for-every-crafting-machine.md)
   and [tech-graph](2026-10-30-tech-graph.md): the solar panel's cost, and how it opens
 

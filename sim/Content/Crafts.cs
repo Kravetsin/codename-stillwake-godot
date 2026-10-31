@@ -23,9 +23,9 @@ public static class Crafts
         new("fireAxe", [("iron", 2), ("planks", 1)], Ticks: 60),
         // Free at the pod, made again should one be lost: without it nothing is built (0107), not even the furnace.
         new("screwdriver", [], Ticks: 20),
-        // The harpoon of what the jetpack is made of, and less, so it opens first (0068).
-        new("harpoon", [("tube", 1), ("coil", 1), ("wire", 4)], Ticks: 100),
-        // The first gun (shots-are-the-sims): cheaper than the harpoon, after the first iron; the axe's time.
+        // A tube and its line of wire, no coil: the first ring's, so salvage comes in from the first iron on (first-hour-pace).
+        new("harpoon", [("tube", 1), ("wire", 8)], Ticks: 100),
+        // The first gun (shots-are-the-sims): after the harpoon, as what it fights is only met flying; the axe's time.
         new("nailer", [("tube", 1), ("plate", 2), ("wire", 2)], Ticks: 60),
         // Two scrap a nail, so the scrap a hero has too much of goes into nails made ahead: a second a nail at the pod.
         new("nail", [("scrap", 2)], Ticks: 4),

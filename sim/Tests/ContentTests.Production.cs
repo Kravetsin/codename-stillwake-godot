@@ -350,7 +350,7 @@ public partial class ContentTests
             had.Add(item);
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
         }
-        var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+        var known = new HashSet<string>(Content.Research.StartKnown.Concat(Content.Research.KnownTakenApart), StringComparer.Ordinal);
         var built = new HashSet<string>(StringComparer.Ordinal);
         var done = new HashSet<string>(StringComparer.Ordinal);
         for (bool more = true; more;)
@@ -393,9 +393,27 @@ public partial class ContentTests
     public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(Content.Research.StartKnown).Concat(Content.Research.KnownTakenApart).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
+    }
+
+    /// <summary>
+    /// The gates before the Former are paid by hand at a workbench (first-hour-pace): in seconds of its work, however many things
+    /// a gate asks for, each no more than it takes a hero to sit through.
+    /// </summary>
+    [Theory]
+    [InlineData("firstMetal", 0)]
+    [InlineData("press", 330)]
+    [InlineData("machinery", 960)]
+    public void AGateBeforeTheFormerIsAtMostSoManySecondsOfTheWorkbench(string gate, int seconds)
+    {
+        int speed = Stations.Get("workbench").Speed;
+        int Ticks(string item) => Crafts.TryGet(item, out var craft) && Stations.Get("workbench").Rows.Any(r => r.Contains(item))
+            ? craft.Ticks * 1000 / speed + craft.Cost.Sum(c => c.Count * Ticks(c.Item))
+            : 0;
+        int total = Content.Research.Node(gate)!.Deposit.Sum(d => d.Count * Ticks(d.Item));
+        Assert.True(total <= seconds * 20, $"{gate}: {total / 20} s of the workbench");
     }
 
     /// <summary>Losing one station shuts what is made at it and everything after: the walk bites.</summary>
@@ -704,11 +722,12 @@ public partial class ContentTests
     /// second one.
     /// </summary>
     [Fact]
-    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTheWreckKnowsTheSolarPanel()
+    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTeachesTheSolarPanel()
     {
         Assert.Equal(["photoPanel"], WrecksOwn);
         Assert.Contains(("photoPanel", 1), Machines.Get("solarPanel").Cost);
-        Assert.Contains("solarPanel", Content.Research.StartKnown);
+        Assert.DoesNotContain("solarPanel", Content.Research.StartKnown);
+        Assert.Equal(["solarPanel"], Content.Research.KnownTakenApart);
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item)
             .Concat(DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item))
             .Concat(Content.Items.All.SelectMany(i => (i.Yields ?? []).Select(y => y.Item).Concat((i.Byproducts ?? []).Select(b => b.Item))))

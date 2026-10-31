@@ -16,6 +16,13 @@ public readonly record struct PlanCut(int Line, bool FromLeft)
     public static PlanCut Of((int X, int Y, int W, int H) box, bool fromLeft, int done, int all) =>
         fromLeft ? new(box.X + box.W * done / all, true) : new(box.Y + box.H - box.H * done / all, false);
 
+    /// <summary>
+    /// A machine's picture over <paramref name="footprint"/> (x, y, w, h, in pixels), what a cut runs over: <paramref name="rise"/> cells
+    /// above it, as a bench's, and <paramref name="reach"/> out of its left, as an engine's nozzle (<c>ShipTiles.RiseOf</c>, <c>ReachOf</c>).
+    /// </summary>
+    public static (int X, int Y, int W, int H) Picture((int X, int Y, int W, int H) footprint, int rise, int reach, int cell) =>
+        (footprint.X - reach * cell, footprint.Y - rise * cell, footprint.W + reach * cell, footprint.H + rise * cell);
+
     /// <summary>Whether a placement of <paramref name="kind"/> on <paramref name="layer"/> turns real from the left: a structure cut over the world, a floor.</summary>
     public static bool FromLeftFor(string layer, string kind) =>
         Stillwake.Content.Structures.ByBuild(kind)?.Draw == Stillwake.Content.StructureDraw.Cut;

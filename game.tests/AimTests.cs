@@ -298,12 +298,15 @@ public class AimTests
 
     // A piece of debris under the pointer.
 
-    /// <summary>A hull of one block in the corner, for the debris to fly past, run until the first piece is out: 24 cells by 16.</summary>
+    /// <summary>A hull of one block in the corner, for the debris to fly past, run until the first piece is out, one small enough to take in hand: 24 cells by 16.</summary>
     private static TestWorld Corner()
     {
-        var w = new TestWorld(Layout.Parse(["#".PadRight(12), .. Enumerable.Repeat(new string(' ', 12), 7)]).Doubled());
-        for (int i = 0; i < Spec.Debris.Every; i++) w.Step();
-        return w;
+        for (uint seed = 1; ; seed++)
+        {
+            var w = new TestWorld(Layout.Parse(["#".PadRight(12), .. Enumerable.Repeat(new string(' ', 12), 7)]).Doubled(), seed);
+            for (int i = 0; i < Spec.Debris.Every; i++) w.Step();
+            if (Spec.Wreckage.HpOf(w.M.Debris.Pieces[0].Item) == null) return w;
+        }
     }
 
     /// <summary>The middle of cell (x, y).</summary>

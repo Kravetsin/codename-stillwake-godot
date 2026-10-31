@@ -50,8 +50,8 @@ A living document: what is decided about the game and what is still open. Techni
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
   solar panel is built of solar cells, silicon and glass assembled with wire, and of a photosensitive panel nothing makes:
-  only a panel taken apart gives one back, so the wreck's own, known from the start, can always be built again, and no new
-  one ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
+  only a panel taken apart gives one back, so the wreck's own, its blueprint learned by taking it apart, can always be built again, and
+  no new one ([first-hour-pace](decisions/2026-10-31-first-hour-pace.md), [trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md),
   [photo-panel](decisions/2026-10-29-photo-panel.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
@@ -62,8 +62,8 @@ A living document: what is decided about the game and what is still open. Techni
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
-  recipe shows what a thing is made of: the harpoon is a tube, a coil and its line of wire
-  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [0068](decisions/0068-the-harpoon-before-the-jetpack.md)). The pod's
+  recipe shows what a thing is made of: the harpoon is a tube and its line of wire
+  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [first-hour-pace](decisions/2026-10-31-first-hour-pace.md)). The pod's
   Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)), gives only the suit and the
   screwdriver. The first bench is the workbench, built of raw salvage as the furnace is: no power, a fifth of full speed, a
   queue the crew shares, paid when queued, made one at a time into its outputs; it makes the basic parts and the first tools

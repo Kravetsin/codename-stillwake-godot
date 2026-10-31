@@ -131,6 +131,11 @@ public class PlanLookTests
     public void APlanBeingBuiltTurnsRealFromTheBottomAsItIsWorkedAndAFloorFromTheLeft()
     {
         // A wall at cell (2, 3) half worked: its bottom half real, its top half a plan.
+        // A bench's picture rises three cells over its two: half done, it is real up to its middle, not to its footprint's.
+        var bench = PlanCut.Picture((0, 10 * Cell, 4 * Cell, 2 * Cell), rise: 3, reach: 0, Cell);
+        Assert.Equal((0, 7 * Cell, 4 * Cell, 5 * Cell), bench);
+        Assert.Equal(7 * Cell + 5 * Cell / 2, PlanCut.Of(bench, false, 1, 2).Line);
+        Assert.Equal((-2 * Cell, 0, 6 * Cell, Cell), PlanCut.Picture((0, 0, 4 * Cell, Cell), rise: 0, reach: 2, Cell));
         var wall = PlanCut.Of((2 * Cell, 3 * Cell, Cell, Cell), PlanCut.FromLeftFor("structure", "wall"), 1, 2);
         Assert.Equal(((32, 56, 16, 8), (32, 48, 16, 8)), wall.Split((32, 48, 16, 16)));
         // A scrap wall of 13 ticks fills tick by tick, a row or two at a time, never back: no part reveals itself whole.
