@@ -90,6 +90,7 @@ public static class CreatureLooks
     {
         [Stillwake.Content.PlanetTypes.First.Id] = "savanna",
         [Stillwake.Content.PlanetTypes.Small.Id] = "savanna",
+        [Stillwake.Content.PlanetTypes.SmallSpire.Id] = "savanna",
     };
 
     /// <summary>The palette of a surface whose type names none, as the test strip's.</summary>

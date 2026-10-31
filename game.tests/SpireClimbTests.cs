@@ -8,7 +8,7 @@ using Spec = Stillwake.Content.Hero;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// The way back out of a spire (0096): from its chamber floor up its ledges, a held jump each, to the room in its tip and out
+/// The way back out of a spire (0096): from its hall's floor up its step and ledges, a held jump each, to the room in its tip and out
 /// through a plug dug open, with plain keys under the first planet's gravity, on the spires as the ground grows them.
 /// </summary>
 public class SpireClimbTests
@@ -18,7 +18,7 @@ public class SpireClimbTests
 
     /// <summary>
     /// The first spire the first planet grows on <paramref name="seed"/>, cut out of its ground with a margin, both its plugs dug
-    /// open and its drawn rows <paramref name="edits"/> drawn anew, a character a 16 px block: its ship, and its left column and top row in it, in cells.
+    /// open and its shaft's drawn rows <paramref name="edits"/> drawn anew, a character a 16 px block: its ship, and its left column and top row in it, in cells.
     /// </summary>
     private static (Ship Ship, int X0, int Y0) Spire(uint seed, params (int Row, string Cells)[] edits)
     {
@@ -35,7 +35,7 @@ public class SpireClimbTests
             for (int dx = 0; dx < Ruins.SpireWide && dy >= 0 && dy < Ruins.Spire.Count; dx++)
                 if (Ruins.Spire[dy][dx] == Ruins.Plug) row[Margin + dx] = '.';
             foreach (var (at, cells) in edits)
-                if (dy >= 0 && at == dy / 2) string.Concat(cells.Select(c => new string(c, 2))).CopyTo(0, row, Margin, 2 * cells.Length);
+                if (dy >= 0 && at == dy / 2) string.Concat(cells.Select(c => new string(c, 2))).CopyTo(0, row, Margin + Ruins.SpireTip, 2 * cells.Length);
             rows.Add(new string(row));
         }
         return (OnPlanet(Layout.Parse(rows)), Margin, ly - top);
@@ -50,34 +50,35 @@ public class SpireClimbTests
     }
 
     /// <summary>
-    /// What a player does, from the chamber's floor under the light: a held jump right onto the slab; along it to its edge and a held
-    /// jump left onto the first ledge; then right, left and right again, a running jump off each ledge's edge, the last up through
-    /// the hole into the room; and out right through the plug. Every position stepped through, and the row each jump landed on.
+    /// What a player does, from the hall's floor under the light: a held jump up and left onto the step; then right, left and right again,
+    /// a running jump off each edge, up through the roof's hole onto the first ledge and the last up through the hole into the room;
+    /// and out right through the plug. Every position stepped through, and the row each jump landed on.
     /// </summary>
     private static (List<Hero> Path, List<int> Landed) ClimbOut(Ship ship, int x0, int y0)
     {
-        var hero = Hero.At(ship, (y0 + 55) * ship.Width + x0 + 8);
+        var hero = Hero.At(ship, (y0 + 55) * ship.Width + x0 + Ruins.SpireFlue - 1);
         var path = new List<Hero> { hero };
         var landed = new List<int>();
         void Go(HeroInput keys, int steps, Func<Hero, bool>? until = null)
         {
             for (int i = 0; i < steps && !(until?.Invoke(hero) ?? false); i++) path.Add(hero = hero.Step(keys, ship));
         }
-        void Hop(int dir)
+        void Hop(int dir, bool jump = true)
         {
-            Go(Still with { X = dir, Jump = true }, 1);
+            if (jump) Go(Still with { X = dir, Jump = true }, 1);
             int steps = 0;
             Go(Still with { X = dir, JumpHeld = true }, 150, h => ++steps > 3 && h.Airborne == 0);
             landed.Add((hero.Y - y0 * Unit) / Block);
         }
-        int X(double blocks) => (int)(x0 * Unit + blocks * Block);
+        int X(double blocks) => (int)((x0 + Ruins.SpireTip) * Unit + blocks * Block);
         Go(Still, 30);
-        Hop(1);
-        Go(Still with { X = -1 }, 200, h => h.X <= X(6.3));
-        Hop(-1);
-        foreach (int dir in (int[])[1, -1, 1])
+        // Straight up past the step's underside, for leaning in at once walks under it, then left onto it.
+        Go(Still with { Jump = true }, 1);
+        Go(Still with { JumpHeld = true }, 60, h => h.Y < (y0 + 46) * Unit);
+        Hop(-1, jump: false);
+        foreach (var (dir, off) in ((int, double)[])[(1, 2.7), (-1, 5.3), (1, 3.7)])
         {
-            Go(Still with { X = dir }, 200, h => dir > 0 ? h.X >= X(3.7) : h.X <= X(5.3));
+            Go(Still with { X = dir }, 200, h => dir > 0 ? h.X >= X(off) : h.X <= X(off));
             Hop(dir);
         }
         Go(Still with { X = 1 }, 200);
@@ -85,7 +86,7 @@ public class SpireClimbTests
     }
 
     /// <summary>Whether the climb ended out of the spire: right of it on its roof or the ground beside it, never down its shaft.</summary>
-    private static bool Out(Hero end, int x0, int y0) => end.X > x0 * Unit + 7 * Block && (end.X >= x0 * Unit + 9 * Block || end.Y <= y0 * Unit + 10 * Block);
+    private static bool Out(Hero end, int x0, int y0) => end.X > (x0 + Ruins.SpireTip) * Unit + 7 * Block && (end.X >= (x0 + Ruins.SpireTip) * Unit + 9 * Block || end.Y <= y0 * Unit + 10 * Block);
 
     [Theory]
     [InlineData(1u)]
@@ -93,25 +94,26 @@ public class SpireClimbTests
     [InlineData(3u)]
     [InlineData(7u)]
     [InlineData(11u)]
-    public void AHeroClimbsFromTheChamberFloorUpTheLedgesInFiveJumpsAndWalksOutOfTheSpire(uint seed)
+    public void AHeroClimbsFromTheHallFloorUpTheStepAndLedgesInFourJumpsAndWalksOutOfTheSpire(uint seed)
     {
         var (ship, x0, y0) = Spire(seed);
         var (path, landed) = ClimbOut(ship, x0, y0);
-        // The slab, the ledges at rows 22, 18 and 14 by turns, the room's floor: each jump lands where it aimed.
-        Assert.True(landed.SequenceEqual([26, 22, 18, 14, 10]), $"landed on rows {string.Join(", ", landed)}; {Trace(path, x0, y0)}");
+        // The step, the ledges at rows 18 and 14 by turns, the room's floor: each jump lands where it aimed.
+        Assert.True(landed.SequenceEqual([23, 18, 14, 10]), $"landed on rows {string.Join(", ", landed)}; {Trace(path, x0, y0)}");
         Assert.True(Out(path[^1], x0, y0), Trace(path, x0, y0));
     }
 
     [Theory]
+    [InlineData(23, ".........")]
     [InlineData(18, "#.......#")]
     [InlineData(18, "####....#")]
-    [InlineData(22, "#....####")]
-    public void ALedgeTakenOutOrMovedOverItsNeighbourLeavesTheSameKeysShortOfTheWayOut(int row, string cells)
+    [InlineData(14, "#.......#")]
+    public void AStepOrALedgeTakenOutOrMovedOverItsNeighbourLeavesTheSameKeysShortOfTheWayOut(int row, string cells)
     {
-        // Proof the climb bites (0096): the ledge at row 18 gone, or moved left over the one at 22, or that one moved right under it.
+        // Proof the climb bites (0096): the step gone, the ledge at row 18 gone or moved left, or the one at 14 gone.
         var (ship, x0, y0) = Spire(1, (row, cells));
         var (path, landed) = ClimbOut(ship, x0, y0);
-        Assert.False(landed.SequenceEqual([26, 22, 18, 14, 10]) && Out(path[^1], x0, y0), string.Join(", ", landed));
+        Assert.False(landed.SequenceEqual([23, 18, 14, 10]) && Out(path[^1], x0, y0), string.Join(", ", landed));
     }
 
     /// <summary>The path every fifth step, its feet and whether it climbs, for a failure to say where the hero went.</summary>

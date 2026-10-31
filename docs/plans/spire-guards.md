@@ -82,7 +82,7 @@ above the hall, so the stamp and what clears a box work unchanged. Rows 0 to 17 
 ###...................###  24 the niches' lintels
 #.......................#  25
 P.......................P  26 P a post, in the wall (a piece, not the prefab)
-#.........c.CCC.........#  27 c cache, C cradle under the light
+#........c.CCC...........#  27 c cache, C cradle under the light, both as today's, eight columns in
 #########################  28
 #########################  29
 ```
@@ -90,11 +90,10 @@ P.......................P  26 P a post, in the wall (a piece, not the prefab)
 **Where it stands.** The anchor stays over the tip's 18 columns (`SpireTip`). Inside its band, scan from the seed's pick for the
 nearest column where the hall's ceiling lies `HallCover` rows under the lowest surface across the hall, as `Homes` finds a place. If
 none qualifies, use the pick and accept a hall that shows, as 0085 accepted for spires (a hero then walks in from a valley and wakes
-them as anywhere). The shaft never changes length. The full box
-is used for clearance only, not the band arithmetic. `RuinClear` and the spawn invariants are checked on the hall's columns.
+them as anywhere). The shaft never changes length. Bands, `RuinClear` and the spawn invariants all take the hall's columns, so no two halls meet.
 
 **The small test planet splits in two,** for a spire's hall and a home cannot both fit (home 68 + margins 8 + hall 50 = 126, against
-110 usable): `Small` keeps its home and holds no spire; a new `SmallSpire` (`Small` with one spire and no home) is grown the same way.
+110 usable): `Small` keeps its home and holds no spire; a new `SmallSpire` (`Small` 192 wide, with one spire and no home) is grown the same way.
 Guard scenarios and the fuzz use `SmallSpire`: on `TestStrip` a load grows no flora, so its posts and relic would vanish and a test of "no
 respawn after a load" would pass for nothing. The fuzz opens it beside `Small`, so its draws shift once: accepted, as the sentry's did.
 
