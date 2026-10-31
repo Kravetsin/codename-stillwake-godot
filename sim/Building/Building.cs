@@ -58,6 +58,9 @@ public interface IBuildingQueries
 
     /// <summary>The post standing with its own cell at <paramref name="cell"/>; null for none.</summary>
     Plant? PostAt(int cell);
+
+    /// <summary>The cells <paramref name="plant"/> holds on to: the wall under, over or in it; breaking any of them fells it (0080).</summary>
+    IEnumerable<int> HoldsOf(Plant plant);
 }
 
 /// <summary>How another module may change what stands on the grid.</summary>

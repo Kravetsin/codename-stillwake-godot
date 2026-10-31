@@ -26,20 +26,13 @@ public partial class TickBodies : Node2D
     private const float Cell = ShipCamera.Cell;
     private const int Unit = CreaturesModule.Unit;
 
-    /// <summary>How long after this player's own strike the sim's damage rising is that strike's, already shown.</summary>
-    private const double OwnMs = 700;
-
-    private static readonly CanvasItemMaterial Unshaded = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
-
     private static readonly (int, int, int) Yellow = (255, 209, 51), Plume = (255, 190, 90), Magnet = (255, 170, 84);
 
-    private sealed partial class Shown : Node2D
+    // Turned about its middle, eight pixels over its feet, as the page turns it.
+    private sealed partial class Shown() : PosedSprite(TickArt.Width, TickArt.Height, TickArt.OriginX, TickArt.OriginY, 8)
     {
         public readonly TickArt Art = new();
         public TickMotion Motion = null!;
-        public readonly Sprite2D Body = Sprite(), White = Sprite(), Glow = Sprite();
-        public readonly Image Albedo = Blank(), Silhouette = Blank(), Emission = Blank();
-        public readonly ImageTexture AlbedoTexture, SilhouetteTexture, EmissionTexture;
         public Heard2D? Burner;
         public LoopEnvelope Burning;
         public TickArt.Anchors Anchors = null!;
@@ -51,48 +44,19 @@ public partial class TickBodies : Node2D
         public Vector2 LineWay = Vector2.Left;
         public string Species = "";
 
-        public Shown()
-        {
-            AlbedoTexture = ImageTexture.CreateFromImage(Albedo);
-            SilhouetteTexture = ImageTexture.CreateFromImage(Silhouette);
-            EmissionTexture = ImageTexture.CreateFromImage(Emission);
-            (Body.Texture, White.Texture, Glow.Texture) = (AlbedoTexture, SilhouetteTexture, EmissionTexture);
-            Lit.Set(Body);
-            White.Material = Unshaded;
-            Glow.Material = Unshaded;
-            AddChild(Body);
-            AddChild(Glow);
-            AddChild(White);
-        }
-
-        private static Sprite2D Sprite() => new()
-        {
-            Centered = false,
-            // Turned about its middle, eight pixels over its feet, as the page turns it.
-            Offset = new Vector2(-TickArt.OriginX, -TickArt.OriginY + 8),
-            TextureFilter = TextureFilterEnum.Nearest,
-        };
-
-        private static Image Blank() => Image.CreateEmpty(TickArt.Width, TickArt.Height, false, Image.Format.Rgba8);
-
         /// <summary>Its sprite drawn in its motion's pose, at its place, turned and facing as it flies.</summary>
         public void Show(Vector2 feet)
         {
             Anchors = Art.Draw(Motion.Pose);
-            Albedo.SetData(TickArt.Width, TickArt.Height, false, Image.Format.Rgba8, Art.Albedo);
-            Silhouette.SetData(TickArt.Width, TickArt.Height, false, Image.Format.Rgba8, Art.Silhouette);
-            Emission.SetData(TickArt.Width, TickArt.Height, false, Image.Format.Rgba8, Art.Emission);
-            AlbedoTexture.Update(Albedo);
-            SilhouetteTexture.Update(Silhouette);
-            EmissionTexture.Update(Emission);
-            White.Modulate = new Color(1, 1, 1, (float)Motion.Flash);
-            Position = feet + new Vector2((float)Motion.Shake, -8);
-            Rotation = (float)Motion.Angle;
-            Scale = new Vector2(Motion.Face, 1);
+            Paint(Art.Albedo, Art.Silhouette, Art.Emission);
+            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Motion.Flash);
         }
 
         /// <summary>Where a point of its sprite (<see cref="TickArt.Anchors"/>) is in the world this frame, the middle of its pixel.</summary>
         public Vector2 World((double X, double Y) at) => Transform * new Vector2((float)at.X + 0.5f, (float)at.Y + 8.5f);
+
+        /// <summary>Its pixels in the world as they stand now, for a burst.</summary>
+        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into) => PaintInto(into, Art.Albedo);
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
@@ -134,7 +98,7 @@ public partial class TickBodies : Node2D
             if (c.Damage > one.Damage)
             {
                 // A friend's strike, or one of this player's own already shown as it was sent.
-                if (_clockMs - one.OwnAt > OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < OwnMs);
+                if (_clockMs - one.OwnAt > CreatureLooks.OwnMs) Struck(one, Spec.Weapons.Axe.Item, own: _clockMs - one.ShotAt < CreatureLooks.OwnMs);
                 one.Damage = c.Damage;
             }
             var moments = one.Motion.Step(SeenOf(one, c, creatures, debris, progress), dt);
@@ -264,19 +228,7 @@ public partial class TickBodies : Node2D
     }
 
     /// <summary>The chest of the hero nearest <paramref name="at"/>, as the crew drew them this frame; none with no hero.</summary>
-    private Vector2? Nearest(Vector2 at)
-    {
-        Vector2? nearest = null;
-        float best = float.MaxValue;
-        foreach (var (x, y) in _heroes)
-        {
-            var hero = new Vector2(x, y);
-            float d = hero.DistanceSquaredTo(at);
-            if (d >= best) continue;
-            (best, nearest) = (d, hero);
-        }
-        return nearest;
-    }
+    private Vector2? Nearest(Vector2 at) => CreatureFx.NearestOf(_heroes, at);
 
     /// <summary>A blow on <paramref name="one"/>: it flashes and shakes, its eye red, fine sparks thrown toward the hero who struck, heard where it lands.</summary>
     private void Struck(Shown one, string tool, bool own)
@@ -288,17 +240,8 @@ public partial class TickBodies : Node2D
         float d = Math.Max(to.Length(), 1);
         var at = middle + new Vector2(to.X / d * 7, to.Y / d * 5);
         double heading = Math.Atan2(to.Y, to.X);
-        Sparks(Stages.Of(Layers.Effects), at, heading, 1);
+        CreatureFx.Sparks(Stages.Of(Layers.Effects), at, heading, 1);
         if (one.Cues is { } cues) (own ? _suit : _world).Play(own ? S.Felt(cues.Hit) : cues.Hit, at, 1, GroundSounds.HitDbOf(tool));
-    }
-
-    /// <summary>The page's spark burst, its <c>fine</c> sparks: a spray along <paramref name="heading"/>, dust, a warm flash.</summary>
-    private static void Sparks(Stage stage, Vector2 at, double heading, double scale)
-    {
-        var glims = stage.Glims;
-        glims.Spray(Luminous.FineSpark, at.X, at.Y, (int)Math.Round(28 * scale * Fx.Count), heading, (-1.1, 1.1), (70, 230));
-        for (int i = 0; i < Math.Round(5 * scale); i++) glims.Add(Luminous.HitDust, at.X, at.Y, glims.Between(-20, 20), glims.Between(-20, 20));
-        stage.Flares.Flash(at.X, at.Y, (255, 220, 140), 0.5 * scale * Fx.Glow, 8, CreatureLooks.LightKeep, 0.8);
     }
 
     /// <summary>Its moments seen and heard: a start and a flash at its eye, the wind-up's servo, letting go and clamping on, a braking flight, a hero struck.</summary>
@@ -375,7 +318,7 @@ public partial class TickBodies : Node2D
         var claw = one.World(one.Anchors.Cut);
         // The cut end flies off along the line: sparks and white slivers that way, a whip of light down it.
         double along = Math.Atan2(one.LineWay.Y, one.LineWay.X);
-        Sparks(Stages.Of(Layers.Creatures), claw, Math.Atan2(one.LineWay.Y - 0.5, one.LineWay.X), 1.1);
+        CreatureFx.Sparks(Stages.Of(Layers.Creatures), claw, Math.Atan2(one.LineWay.Y - 0.5, one.LineWay.X), 1.1);
         Stages.Of(Layers.Creatures).Glims.Spray(Luminous.Snip, claw.X, claw.Y, 5, along, (-0.35, 0.35), (120, 220));
         one.WhipLeft = WhipS;
         Stages.Of(Layers.Creatures).Flares.Flash(claw.X, claw.Y, (255, 245, 220), 0.45 * Fx.Glow, 10, CreatureLooks.LightKeep, 0.8);
@@ -507,7 +450,7 @@ public partial class TickBodies : Node2D
     private void Die(Shown one)
     {
         one.Motion.Die();
-        if (one.Cues is { } cues) _suit.Play(_clockMs - one.OwnAt < OwnMs * 2 || _clockMs - one.ShotAt < OwnMs ? S.Felt(cues.Death) : cues.Death, one.Drawn + new Vector2(0, -8));
+        if (one.Cues is { } cues) _suit.Play(_clockMs - one.OwnAt < CreatureLooks.OwnMs * 2 || _clockMs - one.ShotAt < CreatureLooks.OwnMs ? S.Felt(cues.Death) : cues.Death, one.Drawn + new Vector2(0, -8));
         _dying.Add(one);
     }
 
@@ -545,7 +488,7 @@ public partial class TickBodies : Node2D
         Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 214, 150), 1.6 * Fx.Glow, 14, CreatureLooks.LightKeep, 0.86);
         if (Bursts == null) return;
         _pixels.Clear();
-        PixelBursts.Paint(_pixels, one.Transform * new Transform2D(0, one.Body.Offset), TickArt.Width, TickArt.Height, one.Art.Albedo);
+        one.PaintInto(_pixels);
         Bursts.Crumble(_pixels, at, 0);
     }
 

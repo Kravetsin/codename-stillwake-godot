@@ -108,6 +108,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
 - лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
 - сентри / sentry → `Creatures.Sentry` = `"sentry"`: a `Clinger` on a wreck, `Guard`, `Return`, `CutTether`, `Pounce`; dev `--sentry` (`=fight`: a line sawn, struck, its wreck broken; `=crawl`) → Creatures
+- страж шпиля / spire guard → `Creatures.Warden` = `"warden"`: a `Walker` at a `Post`, `Ward`, `Pounce`; dev `--ground=spire-guards`
+- истукан / Istukan → the warden's look: `CreatureLooks.Istukans`, f/creatures `IstukanBodies`, `IstukanArt`, `IstukanMotion`; sounds `Sound.Istukans`
 - клещ / tick → the sentry's look (its pick page's «Клещ»): `CreatureLooks.Ticks`, f/creatures `TickBodies`, `TickArt`, `TickMotion`; sounds `Sound.Ticks`
 - вид / species → `Content.Creatures.Species`, composed of a body (`Shape`: `Walker`), `Life`, a faction, a brain and moves → Creatures
 - побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures

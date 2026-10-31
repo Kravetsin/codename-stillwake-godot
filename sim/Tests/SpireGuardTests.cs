@@ -50,7 +50,7 @@ internal static class SpireHall
 }
 
 /// <summary>
-/// The spire's guards (docs/plans/spire-guards.md) on a planet grown as a player's is, so its posts and its relic come back on a load:
+/// The spire's guards (docs/decisions/2026-10-31-spire-guards.md) on a planet grown as a player's is, so its posts and its relic come back on a load:
 /// asleep in their niches, woken by a hero in the arena or a blow, pouncing by turns, stuck on the floor; killed for their circuits, or
 /// gone with nothing once the shard is taken; calmed and back whole with nobody left in the hall.
 /// </summary>
@@ -325,6 +325,22 @@ public class SpireGuardTests
         Assert.Equal([b.Id], Guards(w).Select(g => g.Id));
         Assert.Null(M(w).Building.PostAt(wall));
         Assert.Equal(0, Count(w, "circuit"));
+    }
+
+    [Fact]
+    public void AnyCellOfAPostsWallDugOutFellsItAndItsHoldsSaySo()
+    {
+        var (w, a, _) = Posted();
+        w.BesideWall();
+        int own = Post(w, Ruins.PostLeft);
+        var post = M(w).Building.PostAt(own)!;
+        var holds = M(w).Building.HoldsOf(post).ToList();
+        int lower = own + M(w).Grid.Width;
+        Assert.Contains(lower, holds);
+        for (int i = 0; i < 16 && M(w).Grid.WallAt(lower) != null; i++) w.Do(HewTesting.Dig(w, lower, Axe, surface: 1)).Run();
+        Assert.NotNull(M(w).Grid.WallAt(own));
+        Assert.Null(M(w).Building.PostAt(own));
+        Assert.DoesNotContain(a.Id, Guards(w).Select(g => g.Id));
     }
 
     [Fact]
