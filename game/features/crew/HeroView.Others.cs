@@ -195,7 +195,7 @@ public partial class HeroView
         if (rod == Rod.Seated || muzzle is not { } at)
         {
             (line, picture.Visible) = (null, false);
-            light.Step(rod, default, default, default, null, elapsedMs);
+            light.Step(rod, default, default, default, muzzle, elapsedMs);
             return;
         }
         var gun = Thousandths(at);

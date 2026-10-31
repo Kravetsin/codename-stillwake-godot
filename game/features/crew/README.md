@@ -8,9 +8,9 @@ commands reach the sim; others' heroes come through the host.
 
 | File | Holds |
 | --- | --- |
-| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`, a `Step` at 60/s (0047, 0106) |
-| `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) |
-| `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
+| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`, `Step` (0047, 0106) |
+| `logic/Rig.cs` | the figure's joints and limbs; the fist (0040) |
+| `logic/Pose.cs` | poses, the head's turn, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan |
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
@@ -28,8 +28,9 @@ commands reach the sim; others' heroes come through the host.
 | `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
 | `logic/Remote.cs` | what is sent of heroes, and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
+| `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
-| `Figure.cs` | the sprite rig, lit, posed, dressed; dust (0075, 0090) |
+| `Figure.cs` | the sprite rig, lit, dressed; dust (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |

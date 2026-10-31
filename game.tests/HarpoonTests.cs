@@ -276,6 +276,40 @@ public class HarpoonTests
     }
 
     [Fact]
+    public void TheStreakHomeRunsOutWithTheRodSeatedAndNeverWaitsForTheNextShot()
+    {
+        const double Frame = 1000.0 / 60;
+        var seated = new RodFlourish();
+        seated.Step(Rod.Reeling, true, Frame);
+        Assert.True(seated.Step(Rod.Returning, true, Frame).ZipBegan);
+        // The rod is home a frame later, well before the streak.
+        var shown = new List<RodFlourish.Shown>();
+        for (int i = 0; i < 12; i++) shown.Add(seated.Step(Rod.Seated, true, Frame));
+        Assert.Contains(shown, s => s.Zip != null);
+        Assert.Single(shown, s => s.ZipHome);
+        Assert.Equal(default, seated.Step(Rod.Flying, true, Frame));
+
+        // The gun put away mid-streak, or drawn again for the next shot: nothing is left of it.
+        var putAway = new RodFlourish();
+        putAway.Step(Rod.Reeling, true, Frame);
+        putAway.Step(Rod.Returning, true, Frame);
+        Assert.Equal(default, putAway.Step(Rod.Seated, false, Frame));
+        Assert.Equal(default, putAway.Step(Rod.Flying, true, Frame));
+    }
+
+    [Fact]
+    public void TheBeadRunsDownTheLineAsItGoesTautAndIsGoneWithTheLine()
+    {
+        const double Frame = 1000.0 / 60;
+        var bead = new RodFlourish();
+        bead.Step(Rod.Hooked, true, Frame);
+        Assert.Equal(0, bead.Step(Rod.Reeling, true, Frame).Bead);
+        Assert.NotNull(bead.Step(Rod.Reeling, true, Frame).Bead);
+        Assert.Null(bead.Step(Rod.Seated, true, Frame).Bead);
+        Assert.Null(bead.Step(Rod.Flying, true, Frame).Bead);
+    }
+
+    [Fact]
     public void TheLineNeverRunsBackThroughTheGunAsTheRodLeavesIt()
     {
         const double RodLength = 2_000, Frame = 1000.0 / 60;
