@@ -45,9 +45,12 @@ public static class AirTesting
     /// <paramref name="map"/> doubled (0104), its hull one cell thick as a player builds one at 8 px: every wall cell beside
     /// space or the grid's edge and no open cell is taken away. A wall two cells thick leaks nothing (Rooms README).
     /// </summary>
-    public static Layout OneThick(string map)
+    public static Layout OneThick(string map) => OneThick(Layout.Parse(map));
+
+    /// <summary><see cref="OneThick(string)"/> of a layout drawn a character a 16 px cell, as <see cref="Vaporized"/> gives one.</summary>
+    public static Layout OneThick(Layout drawn)
     {
-        var doubled = Layout.Parse(map).Doubled();
+        var doubled = drawn.Doubled();
         int w = doubled.Width, h = doubled.Height;
         char At(int x, int y) => x < 0 || y < 0 || x >= w || y >= h ? '\0' : doubled.Rows[y][x];
         var rows = doubled.Rows.Select(r => r.ToCharArray()).ToArray();
@@ -93,6 +96,22 @@ public static class AirTesting
             }
         return Layout.Parse([.. main.Select(r => new string(r))], [.. below.Select(r => new string(r))], wires);
     }
+
+    /// <summary>
+    /// <paramref name="map"/>, its tank drawn at (1, 2) made the chain by <see cref="Vaporized"/>, its old run only the stub
+    /// right of the tank's bottom row that <see cref="Vaporized"/> asks for: the vent is left for the test to pipe to the
+    /// vaporizer's <see cref="Output"/>. Not doubled.
+    /// </summary>
+    public static Layout Chained(string map) => Vaporized(Layout.Parse(map).Rows, ["", "", "", "   -"]);
+
+    /// <summary>The gas output of the vaporizer standing on <paramref name="cell"/>: its second port, after its liquid input (liquid-oxygen).</summary>
+    public static int Output(this Scenario w, int cell) => w.M.Grid.PortsOf(w.M.Grid.MachineAt(cell)!)[1];
+
+    /// <summary>The oxygen the ship's chains hold: every tank's liquid and every vaporizer's gas, which only draws take from.</summary>
+    public static int Held(this Scenario w) => w.M.Grid.Machines.Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
+
+    /// <summary>The gas in the stores of the ship's vaporizers.</summary>
+    public static int Gas(this Scenario w) => w.M.Grid.MachinesOf("generator").Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 
     /// <summary>The atmosphere's slice, to read what TypeScript's tests read of <c>w.sim.world.slices.atmosphere</c>.</summary>
     internal static AtmosphereState Air(this Scenario w) => (AtmosphereState)w.M.Atmosphere.Slice;
