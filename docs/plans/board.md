@@ -8,8 +8,8 @@ Written by `design-author`, cut down by `design-reviewer`. Design only, no plan 
 
 Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), a workbench at a fifth of full speed (`Stations.cs:41`).
 
-1. **First open.** T shows seven inked notes, the wreck's `StartKnown` (`Content/Research.cs:38`), and two pale shapes far off: the engine and the radar. There are no words.
-2. **First catch.** A chunk goes into the bag. A note lands with a pencil stroke, and threads run off it to two pale shapes, the furnace and the workbench. A hull plate lands its own note, and the same shapes darken.
+1. **Before the first find.** The tablet is empty: T shows a blank board, and nothing is drawn until the crew obtains something. A player already knows to catch what drifts by.
+2. **First catch.** A chunk goes into the bag. A dot lights on the tablet's icon. On the board a note stands alone, and threads run off it to two pale shapes, the furnace and the workbench. A hull plate gets its own note, and the same shapes darken.
 3. **Furnace.** At 10 chunks (a scrap wall gives one in 4 ticks) and 5 hull plates, the furnace inks in and its card joins the build menu.
 4. **Workbench.** It waits on 10 planks: 2 or 3 crates, one crate in about 33 s of stream. Its 4-plank cost is not the wait. The planks are what sends a player out to catch once the scoop's piles land (6 planks in stock; `feat/scoop-piles`, not on main yet).
 5. **First smelts.** A hull plate gives 2 iron and 1 scrap in 5 s; a chunk gives 4 scrap in 3 s. At 10 scrap, floor and ladder ink in.
@@ -72,10 +72,12 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 
 **Slots.** Worked out in plain C# in `logic/`, a pure function of `Obtained` and the recipes, so a late guest gets the same board.
 - A thing takes its slot when its first part gets a note, or when it is itself obtained if that is sooner: the next free slot on an arc round that part, pushing outward. A raw thing with no recipe takes one round the note before it.
-- What is known with no part noted, the seven of `StartKnown` above all, stands in a row at the start.
+- The first note stands in the middle of the board. Known is not written down: what `StartKnown` holds (`Content/Research.cs:38`) stays in the build menu from the start and takes a slot like anything else. What an old world knows with no part noted stands in a row by the first note.
 - Nothing moves on its own. A thing inks in where it stands, so a burst of five is five shapes darkening, not five things looking for room.
 
-**Engine and radar at the far edge: kept.** The concept ends the stage on them (`concept.md:19`). Their parts are noted within minutes, but threads go to what is closest to done, so without this they would stay unseen for most of the stage. They cost two ids, `engine` and `radarAntenna`, in `Content.Research.Far` and no state, and they are the only wordless statement of the goal. They are silhouettes like any other, drawing in as counts rise, draggable. This is the one hand placement on the board, and it is listed as such.
+**Only one step ahead.** A silhouette is always a direct use of something noted, never a distant goal, and no hand placement exists on the board. The engine and the radar antenna are direct uses of a plate (`Machines.cs:191`, `:194`), so a player who clicks a plate can meet them there; threads go to what is closest to done, so they will not put them on show.
+
+**New notes.** A wordless dot on the tablet's icon lights when something has got a note or inked since that hero last opened the tablet, and a mark rings each such thing until the tablet closes. It is client-only, comparing `Obtained` and `Granted` with what the hero last saw, kept with the layout. The tablet opens with T and a line in the menu (`GameMenu.cs:37`); no on-screen button turned up in a search, so the plan adds a small icon.
 
 **Readouts stay.** The strip and its colours (takes, made at, goes into) stay; the buy button goes. `TechLinks` keeps working from recipes, keyed by id over every recipe and item rather than `TechNode` (`TechLinks.cs:24`). `TechCamera` stays, its bounds the notes' box plus a margin.
 
@@ -117,7 +119,8 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 
 - **Build and take apart counts as taken apart.** We keep no record of what the crew built. Knowing a node means its parts are already at `Enough`, so the loop only helps through `StartKnown`: a trade station for chunks and hull plates, about 9 s a cycle, scrap walls for chunks. It saves about a minute and hurts nobody.
 - **Loot that drifts off counts.** It was seen coming out, as the handbook's record already holds.
-- **No landing animation:** no stagger for a burst, no replay when the tablet opens, no picture over the hero beyond what a catch already shows. It is the first thing to add if the playtest finds that new knowledge passes unnoticed.
+- **No landing animation:** no stagger for a burst, no replay when the tablet opens, no picture over the hero beyond what a catch already shows. The dot says something is new; a stagger is the first thing to add if that is not enough.
+- **The board does not state the goal.** Nothing says an engine and a radar end the stage. A player finds them by following what they make; the playtest will show whether they do.
 - **Ring order on upgrades is gone.** `belt1` can be bought before any battery exists. Price is the only pace.
 - **Heroes do not see each other's boards,** and no note is shared, pointed at or written on.
 - **No search, no zoom to fit, no undo of a drag, no reset layout.**
@@ -135,8 +138,8 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 ## Cost
 
 - **Modules changed:** Knowledge, Items, Research, Registry (migration). None new.
-- **Content:** `EnoughWorth`, `EnoughMost`, `Far`, the panel's price; tree data removed.
-- **Client:** research feature: the board and the market page.
+- **Content:** `EnoughWorth`, `EnoughMost`, the panel's price; tree data removed.
+- **Client:** research feature: the board, the market page and the tablet's icon with its dot.
 - **Estimated diff** (the author's, before the cuts): sim +250/-350, client +700/-900, tests +300/-500.
 - **Docs when accepted:** an ADR superseding tech-rings and amending black-market, room-upgrades and first-hour-pace; the concept's lines 38 to 45.
 
