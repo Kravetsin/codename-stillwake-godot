@@ -332,7 +332,7 @@ public class WreckTests
         // The pile standing in the throat comes out first: it holds its cells' build slot.
         w.Do(new Place(At(24, 30), Placement.Wall("scrap"))).Run();
         Assert.Equal("grid.machineInTheWay", Assert.Single(w.Refusals).Reason);
-        TakeApart(w, "pileScrap");
+        PilesTests.Break(w, "pileScrap");
         foreach (int cell in Cells(24, 24, 14, 30)) w.Do(new Place(cell, Placement.Wall("scrap")));
         w.Run();
         var room = w.M.Rooms.RoomAt(At(30, 18));
@@ -396,18 +396,12 @@ public class WreckTests
         }
     }
 
-    private static void TakeApart(Scenario w, string kind)
-    {
-        w.Do(new Deconstruct(w.M.Grid.MachinesOf(kind).Single().Cell, "machine")).Run();
-        for (int i = 0; i < Costs.ApartTicks(Machines.Get(kind).BuildTicks); i++) w.Do(new Work(w.M.Building.Plans.Single().Id) { From = 1 }).Run();
-    }
-
     [Fact]
     public void WillNotLightAFurnaceInTheHold()
     {
         var w = new Scenario(Wreck);
-        TakeApart(w, "pileCargo");
-        TakeApart(w, "pileBits");
+        PilesTests.Break(w, "pileCargo");
+        PilesTests.Break(w, "pileBits");
         int id = Build(w, "furnace", At(29, 17), ("planks", 1), ("scrapChunk", 1));
         w.Do(new Move(new Slot(SlotOf(w, "planks")), new Target(Machines.Get("furnace").FuelSlot, id), 1)).Run();
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: id), 1)).Run();

@@ -85,7 +85,11 @@ public sealed partial class BuildingModule
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
         // Where tools break what stands, nothing is marked: a planet's things go to tools alone (the fan of rays).
         if (Rules.ToolsBreak) return "building.notHere";
-        if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
+        if (layer == "machine" && _grid.MachineAt(at) is { } machine)
+        {
+            if (IsFixed(machine.Kind)) return "building.fixed";
+            if (Machines.Get(machine.Kind).Strength != null) return "building.needsAxe";
+        }
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer);
     }
