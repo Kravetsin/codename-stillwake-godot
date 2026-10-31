@@ -275,6 +275,25 @@ public class HarpoonTests
         Assert.Equal(10_000, line.Length, 0);
     }
 
+    [Fact]
+    public void TheLineNeverRunsBackThroughTheGunAsTheRodLeavesIt()
+    {
+        const double RodLength = 2_000, Frame = 1000.0 / 60;
+        (double X, double Y) gun = (0, 0), along = (1, 0);
+        var line = new HarpoonLine(gun, HarpoonLine.EndOf(gun, gun, along, RodLength));
+        var points = new List<(double X, double Y)>();
+        for (int i = 0; i < 20; i++)
+        {
+            (double X, double Y) tip = (i * Spec.RodSpeed * Frame / 50, 0);
+            line.Update(gun, HarpoonLine.EndOf(gun, tip, along, RodLength), taut: false, Frame);
+            points.Clear();
+            line.DrawnInto(points);
+            // A hair of drift aside, all of it ahead of the muzzle.
+            Assert.All(points, p => Assert.True(p.X > -100, $"frame {i}: a point at {p.X:F0}"));
+        }
+        Assert.Equal((5_000, 0), HarpoonLine.EndOf(gun, (7_000, 0), along, RodLength));
+    }
+
     /// <summary>A harpoon reeling piece 1 in, the sim showing the reel, sent from <see cref="Muzzle"/>.</summary>
     private static (HarpoonShot Shot, Pieces World) Reeling()
     {

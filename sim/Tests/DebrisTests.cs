@@ -55,12 +55,15 @@ public class DebrisTests
 
     private static IReadOnlyList<Piece> Pieces(Scenario w) => w.M.Debris.Pieces;
 
-    /// <summary>The first piece, once <c>Debris.Every</c> ticks have spawned it.</summary>
+    /// <summary>The first piece, once <c>Debris.Every</c> ticks have spawned it: of a world whose first is small enough to take in hand.</summary>
     private static Scenario Spawned(Layout? map = null)
     {
-        var w = new Scenario(map ?? Space).Run(DebrisSpec.Every);
-        Assert.Single(Pieces(w));
-        return w;
+        for (uint seed = 1; ; seed++)
+        {
+            var w = new Scenario(map ?? Space, seed).Run(DebrisSpec.Every);
+            Assert.Single(Pieces(w));
+            if (Content.Wreckage.HpOf(Pieces(w)[0].Item) == null) return w;
+        }
     }
 
     /// <summary>Runs until the first piece's middle is in column <paramref name="x"/>.</summary>
@@ -228,7 +231,7 @@ public class DebrisTests
             {
                 Assert.Equal(last + 1, out_[^1].Id);
                 if (spawns > 0) Assert.True(gap >= DebrisSpec.Every);
-                if (spawns > 0 && out_.Count < DebrisSpec.Max) Assert.True(gap <= DebrisSpec.Every + DebrisSpec.Jitter);
+                if (spawns > 0 && peak < DebrisSpec.Max) Assert.True(gap <= DebrisSpec.Every + DebrisSpec.Jitter);
                 last = out_[^1].Id;
                 spawns += 1;
                 // Until the cap is first reached no beat is skipped, so gaps are beats.
