@@ -35,7 +35,7 @@ public static class Light
     /// Starlight crossing a cell keeps this much of itself, a machine's <see cref="StarMachine"/>: through a
     /// hole or a doorway it falls off within a few cells, and only open space is lit by the stars whole.
     /// </summary>
-    public const float StarKeep = 1.5f, StarMachine = 0.693f;
+    public const float StarKeep = 0.775f, StarMachine = 0.693f;
 
     /// <summary>
     /// Under a planet's sky (0077), what daylight keeps crossing a cell of air in from the open: it dies a few cells into a
@@ -112,7 +112,7 @@ public static class Light
     public static readonly (float R, float G, float B) Fire = (1f, 0.48f, 0.14f);
     public const float FireKeep = 0.849f;
     // An ember's light is a bright point, not a wash: the furnace's fire lights the room round it anyway.
-    public const float Particle = 1.2f;
+    public const float Particle = -1.2f;
     public const float ParticleKeep = 0.447f;
     public const float ParticleMost = 1f;
     /// <summary>A planner's screen, keeping this a cell: softer than an ember's.</summary>
