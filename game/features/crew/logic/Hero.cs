@@ -499,9 +499,18 @@ public readonly record struct Hero(
         var (vx, vy) = input.Jetpack ? Flown(hero.Vx + hero.Kx, hero.Vy + hero.Ky, input) : (input.X * Spec.Swim + hero.Kx, input.Y * Spec.Swim + hero.Ky);
         var (kx, ky) = input.Jetpack ? (0, 0) : (Faded(hero.Kx), Faded(hero.Ky));
         int nx = MoveX(ship, hero.X, hero.Y, vx);
-        int ny = MoveY(ship, nx, hero.Y, vy, false);
+        int ny = vy > 0 ? SwimDown(ship, nx, hero.Y, vy) : MoveY(ship, nx, hero.Y, vy, false);
         if (!Clear(ship, nx, ny)) (nx, ny) = Clear(ship, nx, hero.Y) ? (nx, hero.Y) : (hero.X, hero.Y);
         return new Hero(nx, ny, nx - hero.X, ny - hero.Y, false, facing, Kx: kx, Ky: ky);
+    }
+
+    /// <summary><paramref name="y"/> moved down by <paramref name="dy"/>, afloat: what only holds a fall (a floor, a ladder's top) holds nothing with no gravity, so only what stops a body does.</summary>
+    private static int SwimDown(Ship ship, int x, int y, int dy)
+    {
+        for (int r = CellOf(y - 1) + 1; r <= CellOf(y + dy - 1); r++)
+            for (int c = CellOf(x - Half); c <= CellOf(x + Half - 1); c++)
+                if (Solid(ship, c, r)) return r * Unit;
+        return y + dy;
     }
 
     private static int Faded(int kick) => (int)((long)kick * Spec.KickKeep / Unit);
