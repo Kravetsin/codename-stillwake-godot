@@ -16,13 +16,17 @@ public static class Market
     /// <summary>Ticks of a recipe's work worth a credit: a credit a second.</summary>
     public const int TicksPerCredit = 20;
 
-    /// <summary>What no recipe makes, or what is grown so slowly that its time would swamp it: all else is worked out from these.</summary>
+    /// <summary>
+    /// What no recipe makes, what is grown so slowly that its time would swamp it, or what the ground gives for a swing, whatever
+    /// a recipe would make of it: all else is worked out from these.
+    /// </summary>
     private static readonly Dictionary<string, int> Raw = new(StringComparer.Ordinal)
     {
         ["scrapChunk"] = 20,
         ["hullPlate"] = 40,
         ["asteroidOre"] = 30,
-        ["rock"] = 4,
+        ["rock"] = 1,
+        ["soil"] = 1,
         ["quartz"] = 50,
         ["planks"] = 20,
         ["cloth"] = 30,
