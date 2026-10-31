@@ -25,7 +25,12 @@ public partial class DigView : Node2D
     private readonly Dictionary<(int Cell, bool Back), (int Damage, Material Material)> _drawn = new();
     private readonly List<(int Cell, bool Back)> _gone = [];
 
-    private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell);
+    private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell) ?? PileMaterial(cell);
+
+    /// <summary>A pile cracks and bursts as the metal it is, at its own strength.</summary>
+    private Material? PileMaterial(int cell) =>
+        _grid.MachineAt(cell) is { } machine && Stillwake.Content.Machines.Get(machine.Kind).Strength is int strength
+            ? Stillwake.Content.Materials.Get("alloy") with { Strength = strength } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
     private const int Stages = 3;
@@ -85,7 +90,8 @@ public partial class DigView : Node2D
         foreach (var ((cell, _), (damage, material)) in _drawn)
         {
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
-            DrawTexture(Texture(stage), new Vector2(cell % w, cell / w) * Cell);
+            foreach (int at in _grid.MachineAt(cell) is { } pile ? _grid.Footprint(pile.Kind, pile.Cell) ?? [cell] : [cell])
+                DrawTexture(Texture(stage), new Vector2(at % w, at / w) * Cell);
         }
     }
 

@@ -15,7 +15,8 @@ was redrawn since; the painter holds the earlier look.
 | `machines/charger.js` | `machine_charger` | none | `node tools/ship-art/machines/charger.js [file]` | pixel-exact 1/1 |
 | `machines/capacitor-bank.js` | `machine_capacitorBank` (0101) | none | `node tools/ship-art/machines/capacitor-bank.js [file]` | exact 1/1 |
 | `machines/parts.js` | `items/rotor`; also `wire`, `plate`, `gear` | none | `node tools/ship-art/machines/parts.js [itemsDir]` | `rotor` exact; others drifted (`resource-icons`) |
-| `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | none; writes `.raw`, then `ffmpeg -f rawvideo -pix_fmt rgba -s WxH -i x.raw x.png` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; drill ones drifted (`drill/`) |
+| `piles/gen.js` | `machine_pile*`, `machine_emergencyLamp` | `debris/` | `node tools/ship-art/piles/gen.js [artDir]` | exact 5/5 |
+| `machines/make.js` | `items/asteroid`; also the first `drill` icon and `hero_drill` | `.raw` for `ffmpeg` | `node tools/ship-art/machines/make.js <dir>` | `asteroid` exact; drill ones drifted (`drill/`) |
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
 | `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` was `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | 1/2; icon gone |
 | `drill/gen.js` (uses `weapons/`) | candidates, once `items/drill` and `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `hero_drill*` drifted; icon gone |
@@ -30,7 +31,7 @@ was redrawn since; the painter holds the earlier look.
 | `debris-v1/gen.js` | `debris/` `crate_01-08`, `hull_01-12`, `pod_01-04`, `scrap_01-12` | none | `node tools/ship-art/debris-v1/gen.js [outDir]` | exact 36/36 |
 | `debris/gen.js` | `debris/` `asteroid_01-06`, `smallrock_01-06`, `bigrock_01-06`, `orerock_01-06`, `hold_01-04`, `pods_01-04`, `engine_01-04` (styles A, B) | `game/art/debris` | `node tools/ship-art/debris/gen.js [finalDir]` | exact 36/36 |
 | `wreck-section/section.js` | `debris/section_01`, `items/hullSection` | `debris-v1/gen.js` | `node tools/ship-art/wreck-section/section.js [outDir]` | exact 2/2 |
-| `wrecks/` | `debris/` `container_01`, `machine_01`, `rack_01`, `slab_01`, `tanks_01`; `items/` `cargoContainer`, `machineBlock`, `cableRack`, `shieldSlab`, `tankCluster`, `circuit` | `debris-v1/gen.js`, `debris/section_01.png` | in `tools/ship-art/wrecks/`: `node gen-wrecks.js`, `node icons.js 16` (not 14), `node install.js [artDir]` | exact 11/11 |
+| `wrecks/` | `debris/` `container_01`, `machine_01`, `rack_01`, `slab_01`, `tanks_01`; their six `items/` | `debris-v1/gen.js`, `debris/section_01.png` | in `tools/ship-art/wrecks/`: `node gen-wrecks.js`, `node icons.js 16`, `node install.js [artDir]` | exact 11/11 |
 | `resource-icons/` | `items/` `gear`, `hullPlate`, `iron`, `planks`, `plate`, `scrap`, `scrapChunk`, `wire` | `game/art/items` | `node build.js [outDir]`, then `node pick.js [outDir] [itemsDir]` | exact 8/8 |
 | `part-icons/` | `items/` `rock`, `battery`, `battery_empty`, `coil`, `frame`, `tube` | `game/art/items` | `node build.js [outDir]`, then `node pick.js [outDir] [itemsDir]` | exact 6/6 |
 | `drones/tools/build.js` | drone-A: `drone_*` (fly, dock, eye, lamp), `items/drone(_empty)`; bay-C: `machine_droneBay`, `droneBay_*` (pad, charge) | scenes | `node tools/ship-art/drones/tools/build.js [outDir]`, then copy `drone-A/*`, `bay-C/*` | exact 19/19 |

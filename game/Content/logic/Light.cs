@@ -104,6 +104,8 @@ public static class Light
     public static readonly IReadOnlyDictionary<string, LampLight> Lamps = new Dictionary<string, LampLight>(System.StringComparer.Ordinal)
     {
         ["lamp"] = new(Lamp, 1, LampReach, LampKeep, 0xffd9a0ff),
+        // The hold's red battery lamp (the-scoop): enough to find the piles by, not to work by comfortably.
+        ["emergencyLamp"] = new((1f, 0.22f, 0.16f), 0.75f, LampReach, LampKeep, 0xff3a2cff),
         // An arc makers' lamp (0091): their cold light, brighter and further.
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
     };

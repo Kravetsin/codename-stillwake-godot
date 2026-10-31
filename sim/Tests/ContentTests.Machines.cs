@@ -141,11 +141,8 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void PowerLetsTheWrecksOnePanelRunAGeneratorInFull()
-    {
+    public void PowerLetsASolarPanelRunAGeneratorInFull() =>
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);
-        Assert.Contains(Registry.WreckMap.Machines(), m => m.Kind == "solarPanel");
-    }
 
     // Light
 

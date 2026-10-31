@@ -28,7 +28,7 @@ A living document: what is decided about the game and what is still open. Techni
   picks their own path and pace; the world hints by colour, light and motion only.
 - **Start:** the hero is left alive in the torn-off scoop of a scavenger, and has to make it livable to
   survive: an iron room whose air the lifepod makes, a lock each way, the open hold on the left and on the right a
-  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)). Everything is caught as debris: a furnace built of caught salvage burns
+  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).

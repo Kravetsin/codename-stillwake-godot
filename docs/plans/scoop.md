@@ -1,6 +1,6 @@
 # The scoop: a new starting ship
 
-Step 1 has landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below. Steps 2 and 3 are still to do.
+Steps 1 and 2 have landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below, and [hold-piles](../decisions/2026-10-31-hold-piles.md). Step 3 is still to do. Piles break by axe, not by a mark, and so no longer pay for the first machines: hold-piles has it.
 
 A new world starts in the torn-off scoop section of a scavenger ship. The hold's heaps are what its last crew had gathered. Picture:
 [scoop.png](scoop.png), 2× zoom, about 66×33 cells, drawn from the game's art, not yet in the game.

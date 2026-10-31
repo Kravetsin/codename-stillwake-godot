@@ -26,8 +26,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 ## Rules
 
-- **Blueprint checks, in order:** `building.fixed` (the lifepod, never planned nor marked, 0028); `building.notHere`
-  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock always, 0077); the
+- **Blueprint checks, in order:** `building.fixed` (the lifepod, never planned nor marked, 0028); `building.needsAxe` (a pile, marked); `building.notHere`
+  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock and machines with no card always, 0077); the
   grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`; ports (`SeatProblem`, `pipes.*`). Structure
   and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
   2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).

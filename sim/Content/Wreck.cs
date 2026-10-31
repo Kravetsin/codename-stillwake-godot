@@ -2,7 +2,7 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// The ship a new world starts in: the torn-off scoop of a scavenger, a character a cell. Its jaws and hold to the left, then a lock, the iron room
-/// with the lifepod, a lock and a landing to the right, where the debris comes from (docs/decisions/2026-10-31-the-scoop.md).
+/// with the lifepod, a lock and a landing to the right, where the debris comes from; in the hold the piles its last crew gathered (docs/decisions/2026-10-31-the-scoop.md).
 /// </summary>
 public static class Wreck
 {
@@ -15,30 +15,30 @@ public static class Wreck
         "                                               ###",
         "                                               ###  #  #  #  #",
         "                                               ###  #  #  #  #",
-        "                                      PPPPPP   ###  #  #  #  #",
-        "                                      PPPPPP   ###  #  #  #  #",
+        "                                               ###  #  #  #  #",
+        "                                               ###  #  #  #  #",
         "                         ###      ################  ##########",
         "                   #############################################",
         "               ##############.....################################",
         "            #################.....################################",
-        "          ##################......##....##................##....##",
-        "        ##########  ### .###......##....##................##....##",
+        "          ##################....ii##....##................##....##",
+        "        ##########  ### .###....ii##....##................##....##",
         "      #######           ..........DD....DD..........OOOOOODD....DD",
         "      ##  ###           ..........DD....DD..........OOOOOODD....DD",
         "                        ..........DD....DD..........OOOOOODD....DD",
-        "                        ..........DD....DD..........OOOOOODD....DD",
-        "                        ..........DD....DD..........OOOOOODD....DD",
-        "                        ..........DD....DD..........OOOOOODD....DD",
+        "                        .....eee..DD....DD..........OOOOOODD....DD",
+        "                        .....eeeffDD....DD..........OOOOOODD....DD",
+        "                        .....eeeffDD....DD..........OOOOOODD....DD",
         "                        ..=HH=====######################################",
-        "                        ...HH.....######################################",
-        "                        ...HH.....####################################",
+        "                        ...HH...ii######################################",
+        "                        ...HH...ii####################################",
         "                        ...HH.....###################################",
         "                        ...HH.....##",
         "      #                 ...HH.....##",
-        "      #######           ...HH....###",
-        "      #######           ...HH....###",
-        "       ###########  ### ...HH....##",
-        "         #########  ### ...HH....##",
+        "      #######           ...HHaaaa###",
+        "      #######           bbbHHaaaa###",
+        "       ###########  ### bbbHHaaaa##",
+        "         #########  ### bbbHHaaaa##",
         "          #########################",
         "            #######################",
         "              ####################",
