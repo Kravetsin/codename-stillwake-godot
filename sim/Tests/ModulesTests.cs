@@ -99,20 +99,29 @@ public class ModulesTests
     /// that write more than the grid's log holds, so every reader finds what it follows again from scratch.
     /// </summary>
     [Theory]
-    [InlineData(5u, false)]
-    [InlineData(5u, true)]
-    [InlineData(10u, true)]
-    public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir)
+    [InlineData(5u, false, false)]
+    [InlineData(5u, true, false)]
+    [InlineData(10u, true, false)]
+    [InlineData(5u, false, true)]
+    public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir, bool walks)
     {
         var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3).Doubled();
+        // With little known and one short of the furnace's parts, the rule has something to grant mid-run (docs/plans/board.md).
+        if (walks) layout = layout with { Known = Content.Research.StartKnown };
         var rng = new Rng(new RngState { S = seed });
         // The edits that grow and shrink what is built draw their own numbers: a module's fuzz drawing more never starves them.
         var edits = new Rng(new RngState { S = seed });
         var live = new Registry();
         var world = World.Create(seed, layout, [.. live.All, new Builder(live)]);
         int around = 0, grown = 0, shrunk = 0, behind = 0;
+        if (walks) live.Knowledge.Obtain("scrapChunk", Research.Understanding.Enough("scrapChunk"));
         for (int i = 0; i < 400; i++)
         {
+            if (walks && i == 200)
+            {
+                Assert.False(live.Knowledge.Granted("furnace"));
+                live.Knowledge.Obtain("hullPlate", Research.Understanding.Enough("hullPlate"));
+            }
             if (readAir && live.Rooms.All.Count > 0)
             {
                 live.Atmosphere.RoomsAir();
@@ -144,6 +153,7 @@ public class ModulesTests
             if (live.Grid.ChangedSince(gridWas) == null) behind++;
             Assert.True(world.Hash() == copy.Hash(), $"tick {i}: the world differs from one loaded before it");
         }
+        if (walks) Assert.True(live.Knowledge.Granted("furnace"), "the rule granted nothing");
         Assert.True(around > 30, $"rooms found around a change {around} times");
         Assert.True(grown > 3 && shrunk > 3, $"the built box grew {grown} times and shrank {shrunk}");
         Assert.True(behind >= 2, $"the log was outrun {behind} times");

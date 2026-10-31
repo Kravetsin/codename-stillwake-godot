@@ -351,17 +351,15 @@ public partial class ContentTests
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
         }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+        foreach (var node in Content.Research.Nodes.Where(n => n.Tab == Content.Research.Market)) known.Add(node.Id);
         var built = new HashSet<string>(StringComparer.Ordinal);
-        var done = new HashSet<string>(StringComparer.Ordinal);
+        var walked = Stillwake.Sim.Research.Blueprints.All.Where(b => Content.Research.Node(b.Id)?.Tab != Content.Research.Market).Select(b => (b.Id, b.Cost, Craft: false))
+            .Concat(Crafts.All.Where(c => Content.Research.Node(c.Item)?.Tab != Content.Research.Market).Select(c => (Id: c.Item, c.Cost, Craft: true))).ToList();
         for (bool more = true; more;)
         {
             more = false;
-            foreach (var node in Content.Research.Nodes.Where(n => !done.Contains(n.Id) && n.Needs.All(done.Contains)))
-            {
-                if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
-                more |= done.Add(node.Id);
-                if (!node.Gate) more |= known.Add(node.Id);
-            }
+            foreach (var (id, cost, craft) in walked.Where(w => !known.Contains(w.Id) && w.Cost.All(c => had.Contains(c.Item))))
+                if (!craft || stations.Any(s => built.Contains(s.Machine) && s.Rows.Any(r => r.Contains(id)))) more |= known.Add(id);
             foreach (var station in stations)
             {
                 var spec = Machines.Get(station.Machine);
@@ -414,6 +412,23 @@ public partial class ContentTests
             : 0;
         int total = Content.Research.Node(gate)!.Deposit.Sum(d => d.Count * Ticks(d.Item));
         Assert.True(total <= seconds * 20, $"{gate}: {total / 20} s of the workbench");
+    }
+
+    /// <summary>
+    /// The way to power and the press, under the rule: at most this much of the workbench's work. Each item is made as many times as
+    /// its own count or what is made from it asks, the more: a rotor's gear counts towards the gears too.
+    /// </summary>
+    [Fact]
+    public void TheFormerAndBurnerAreUnderstoodWithin540SecondsOfTheBench()
+    {
+        var bench = Stations.Get("workbench");
+        var made = Crafts.All.Where(c => bench.Rows.Any(r => r.Contains(c.Item))).ToList();
+        var parts = Machines.Get("former").Cost.Concat(Machines.Get("burnerGenerator").Cost).Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
+        int Times(string item) => Math.Max(
+            parts.Contains(item) ? Stillwake.Sim.Research.Understanding.Enough(item) : 0,
+            made.Sum(c => c.Cost.Where(x => x.Item == item).Sum(x => x.Count * Times(c.Item))));
+        int total = made.Sum(c => Times(c.Item) * (c.Ticks * 1000 / bench.Speed));
+        Assert.True(total <= 540 * 20, $"{total / 20} s of the workbench");
     }
 
     /// <summary>Losing one station shuts what is made at it and everything after: the walk bites.</summary>

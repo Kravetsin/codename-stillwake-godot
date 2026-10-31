@@ -15,6 +15,9 @@ public sealed record BuyBlock(string Block) : Command;
 /// <summary>Puts what the sender carries of what gate <paramref name="Gate"/> asks for into it, from anywhere.</summary>
 public sealed record Deposit(string Gate) : Command;
 
+/// <summary>What the rule grants by: a thing, how many of each part are enough, and for a craft the machines that make it; null for a blueprint.</summary>
+internal sealed record Walkable(string Id, (string Item, int Enough)[] Parts, string[]? Stations);
+
 /// <summary>
 /// The research slice: empty, as what is known, earned and deposited is the world's <c>Knowledge</c>. Public so modules can be
 /// typed by it.
@@ -58,24 +61,67 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     /// <summary>The id of every blueprint, then every craft, then every upgrade: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
     public static readonly IReadOnlyList<string> Ids = [.. Every.Select(e => e.Id), .. Content.Upgrades.All.Select(u => u.Id)];
 
+    /// <summary>What the rule walks: every blueprint and craft in <see cref="Every"/>'s order, but what only the market opens. Upgrades are no recipes.</summary>
+    internal static readonly Walkable[] Walked =
+    [
+        .. Every.Where(e => Content.Research.Node(e.Id) is not { Tab: Content.Research.Market }).Select(e => new Walkable(
+            e.Id,
+            [.. e.Cost.Select(c => (c.Item, Understanding.Enough(c.Item)))],
+            e.Placement != null ? null : [.. Content.Stations.All.Where(s => s.Rows.Any(r => r.Contains(e.Id))).Select(s => s.Machine)])),
+    ];
+
+    private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
+    private int _knowledgeSeen = -1, _gridSeen = -1;
 
     public override string Id => "research";
 
-    public ResearchModule(IItemsQueries items, IItemsOps itemsOps, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public ResearchModule(IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
+        _grid = grid;
         _items = items;
         _itemsOps = itemsOps;
         _knowledge = knowledge;
         _knowledgeOps = knowledgeOps;
         Handles<BuyBlock>(c => BuyProblem(c), Apply);
         Handles<Deposit>(c => DepositProblem(c), Apply);
+        System(Phase.Derivation, Walk);
     }
 
     protected override ResearchState Init(Layout layout) => new();
+
+    public override void Rebuild()
+    {
+        _knowledgeSeen = -1;
+        _gridSeen = -1;
+    }
+
+    /// <summary>
+    /// Grants what the rule allows (docs/plans/board.md), when a count or the grid has moved. One pass is enough: the rule reads
+    /// counts and the grid, never what is granted, and a loaded world walks on its first tick, so it matches one that kept running.
+    /// </summary>
+    internal void Walk()
+    {
+        if (_knowledge.Version == _knowledgeSeen && _grid.Version == _gridSeen) return;
+        for (int i = 0; i < Walked.Length; i++)
+            if (!_knowledge.Granted(Walked[i].Id) && Understood(Walked[i])) _knowledgeOps.Grant(Walked[i].Id);
+        _knowledgeSeen = _knowledge.Version;
+        _gridSeen = _grid.Version;
+    }
+
+    /// <summary>Whether each part of <paramref name="thing"/> is enough and, for a craft, a machine that makes it stands on this surface.</summary>
+    private bool Understood(Walkable thing)
+    {
+        for (int i = 0; i < thing.Parts.Length; i++)
+            if (_knowledge.ObtainedOf(thing.Parts[i].Item) < thing.Parts[i].Enough) return false;
+        if (thing.Stations is not { } stations) return true;
+        for (int i = 0; i < stations.Length; i++)
+            if (_grid.MachinesOf(stations[i]).Count > 0) return true;
+        return false;
+    }
 
     // Queries.
 

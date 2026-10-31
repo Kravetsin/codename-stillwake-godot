@@ -40,6 +40,9 @@ public static class Research
         "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
     ];
 
+    /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/plans/board.md).</summary>
+    public const string Market = "blackMarket";
+
     /// <summary>What a part understood must have been obtained to, in credits of its worth: a rare part takes few, a common one many.</summary>
     public const int EnoughWorth = 200;
 
@@ -168,7 +171,7 @@ public static class Research
                 Dear(8, Engine, "engine"),
                 Up("bag11"))),
         // Open from the start, at a price rather than a stage (black-market). Its parts are another matter.
-        new("blackMarket", [ForSale], null,
+        new(Market, [ForSale], null,
             new TechRing(null, [], 1,
                 Dear(5, ForSale, "solarPanel"))),
     ];

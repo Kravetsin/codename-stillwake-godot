@@ -13,8 +13,8 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 `Content/Research.cs`. A blueprint not known cannot be planned (`building.unknown`), a craft not known not queued
 (`crafting.unknown`).
 
-- **Depends on:** `Items` (`IItemsQueries.Totals`, `Creative`;
-  `IItemsOps.Take`, for a deposit), `Knowledge` (what is known, the credits and the deposits).
+- **Depends on:** `Grid` (`MachinesOf`, `Version`, for the rule), `Items` (`IItemsQueries.Totals`, `Creative`;
+  `IItemsOps.Take`, for a deposit), `Knowledge` (what is known, the credits, the deposits and the counts).
 - **State** (`ResearchState`): empty; all of it is the world's `Knowledge`, so a surface shares it.
 
 ## Rules
@@ -24,6 +24,10 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 - **The black market** is a tab of the tree, open from the start: a block there is bought like any, at a high price and no stage.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`); a map with none knows
   everything. In creative mode everything is known and every node done.
+- **The rule** ([board](../../docs/plans/board.md)): a blueprint or craft is understood, and granted, once every part's count
+  (`Knowledge.Obtained`) is at `Understanding.Enough` and, for a craft, a machine that makes it stands on some surface. `Walk`, in
+  the derivation phase, checks when a count or that surface's grid has moved, and on a load's first tick. What only the market
+  opens (`Content.Research.Market`) and upgrades stay outside it. Known stays known, its machine gone or not.
 - **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known, a gate when
   its deposit is full.
 - **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits. An upgrade
@@ -53,6 +57,7 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 
 - Credits move here only by a block's price, and never go negative.
 - A node's state is worked out from what is known and `Deposits`, never saved.
+- After a walk nothing the rule allows is ungranted, and a world loaded before it grants the same (`UnderstandingTests`).
 
 ## Deliberately not handled
 
