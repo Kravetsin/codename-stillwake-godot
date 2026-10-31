@@ -169,7 +169,8 @@ In `game/features/research/logic/`, with no Godot; floats are fine.
   - It replays `found` in order. The first note stands at the middle.
   - A thing takes its slot when its first part gets a note, or when it is itself obtained if that is sooner: the next free slot on an
     arc round that part, pushing outward. A raw thing takes one round the note before it.
-  - `StartKnown` takes a slot like anything else.
+  - `StartKnown` takes a slot like anything else, but inks in only once understood, and no thread runs to it. The trade station and
+    the scrap walls take a chunk, so inked at once they would crowd the first note, which stands alone (`=first`).
   - Market blocks take none until bought. Then they stand, with what an old world knows with no part noted, in a row by the first
     note, by id. Only this row reads `granted`.
   - The radius, spacing and arc are client constants chosen by eye. The tests pin only the properties below.

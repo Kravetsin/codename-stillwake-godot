@@ -13,6 +13,11 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `StripParts.cs`      | what pages write with: the strip's controls, a thing's words and pictures | yes   |
 | `StationScreens.cs`  | a trade station's screen, drawn over its picture                          | yes   |
 | `CapsuleFlights.cs`  | a trade station's capsule going off behind the hull and coming back       | yes   |
+| `logic/BoardPencil.cs` | How far a silhouette has come towards being understood | no |
+| `logic/BoardSlots.cs` | Where everything on the board stands, from what was found in what order | no |
+| `logic/BoardThings.cs` | Every blueprint and craft as the board sees it | no |
+| `logic/BoardThreads.cs` | What a note's threads run to | no |
+| `logic/BoardView.cs` | What the board shows: a note, a silhouette or nothing, and its threads | no |
 | `logic/CapsulePath.cs` | Where a capsule is drawn along its flight | no |
 | `logic/Research.En.cs` | Its player text (`En`) | no |
 | `logic/TechCamera.cs` | How the map lies in the view: dragged, zoomed, kept in bounds | no |
