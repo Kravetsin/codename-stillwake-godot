@@ -97,7 +97,7 @@ public partial class BoardDemo(Func<Registry> m) : Node
         (double At, string What, Action Do)[] script =
         [
             (0.5, "a find: the key lit", Find),
-            (1.5, "T opens it on the board, new notes ringed", () => TabletHands.Press(Key.T)),
+            (1.5, "T opens it on the board, a loop round each new note", () => TabletHands.Press(Key.T)),
             (3.0, "click the first note", () => Click(First(BoardShow.Note))),
             (3.05, "let go: its ties lit", LetGo),
             (4.2, "click a shape", () => Click(First(BoardShow.Silhouette))),
@@ -110,7 +110,7 @@ public partial class BoardDemo(Func<Registry> m) : Node
             (6.8, "on", () => Drag(new Vector2(90, 45))),
             (6.9, "and on", () => Drag(new Vector2(90, 45))),
             (7.0, "let go: it stays, its threads with it", LetGo),
-            (7.6, "T puts it away: nothing new, no dot", () => TabletHands.Press(Key.T)),
+            (7.6, "T puts it away: nothing new, the lamp dark", () => TabletHands.Press(Key.T)),
             (9.0, "press the key: the tablet again", () => _hands.Mouse(_tablet.KeyCovers.GetCenter(), MouseButton.Left, true)),
             (9.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
         ];

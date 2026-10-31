@@ -15,7 +15,7 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// The tablet's first tab: the scavenger's board (docs/plans/board.md), blank till the first find. Notes in ink where <see cref="BoardSlots"/>
 /// stands them, threads to shapes in pencil, dragged and zoomed (<see cref="TechCamera"/>). A click picks and says what is known of it in
-/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardKeep"/>). What is new is ringed until the tablet is put away.
+/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardKeep"/>). What is new has a loop drawn round it until the tablet is put away ([tablet-key](../../../docs/decisions/2026-10-31-tablet-key.md)).
 /// </summary>
 public sealed class BoardPage : ITabletPage
 {
@@ -25,9 +25,12 @@ public sealed class BoardPage : ITabletPage
     private const double WordsFrom = 0.5;
     /// <summary>A note's sizes on the board at zoom 1, and its word's.</summary>
     private const int NoteSide = 64, Icon = 40, NameSize = 12;
+    /// <summary>The loop round a new note and its word, from the note's centre at zoom 1, drawn by hand: wobbling, its ends overlapping.</summary>
+    private static readonly Vector2[] Loop = LoopPoints();
+    private const float LoopWidth = 2;
 
     /// <summary>What a thing on the board is made of, kept so a read only restyles it.</summary>
-    private sealed record NoteView(Control Root, Panel Box, TextureRect Picture, Label Name);
+    private sealed record NoteView(Control Root, Panel Box, TextureRect Picture, Label Name, Line2D Mark);
 
     private readonly Control _view;
     private readonly StripParts _strip;
@@ -135,6 +138,8 @@ public sealed class BoardPage : ITabletPage
             view.Name.LabelSettings.FontSize = size;
             view.Name.Position = new Vector2(-wide / 2, side / 2 + zoom);
             view.Name.Size = new Vector2(wide, size + 2);
+            view.Mark.Scale = new Vector2(zoom, zoom);
+            view.Mark.Width = LoopWidth / zoom;
         }
     }
 
@@ -179,8 +184,8 @@ public sealed class BoardPage : ITabletPage
             if (!_notes.TryGetValue(id, out var view)) view = _notes[id] = NoteOf(id);
             Color? tie = Tie(id);
             bool note = show == BoardShow.Note;
-            bool marked = _keep.Seen.Marked(id);
-            Paint(view.Box, note ? Paper : Blank, tie ?? (marked ? New : note ? Ink : Pencil), tie != null || marked ? 3 : note ? 2 : 1);
+            Paint(view.Box, note ? Paper : Blank, tie ?? (note ? Ink : Pencil), tie != null ? 3 : note ? 2 : 1);
+            view.Mark.Visible = _keep.Seen.Marked(id);
             if (note) view.Picture.Material = null;
             else Pale(view.Picture, BoardPencil.Of(BoardThings.All.First(t => t.Id == id), _read!.Count, _read.Stands));
             view.Root.Modulate = _picked == null || tie != null ? Colors.White : new Color(1, 1, 1, 0.3f);
@@ -214,10 +219,35 @@ public sealed class BoardPage : ITabletPage
         name.ClipText = true;
         name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         root.AddChild(name);
+        var mark = new Line2D
+        {
+            Points = Loop,
+            Width = LoopWidth,
+            DefaultColor = New,
+            JointMode = Line2D.LineJointMode.Round,
+            BeginCapMode = Line2D.LineCapMode.Round,
+            EndCapMode = Line2D.LineCapMode.Round,
+            Visible = false,
+        };
+        root.AddChild(mark);
         _front.AddChild(root);
         _strip.Tips.Add(box, () => TipOf(id));
         _sizedAt = null;
-        return new NoteView(root, box, picture, name);
+        return new NoteView(root, box, picture, name, mark);
+    }
+
+    private static Vector2[] LoopPoints()
+    {
+        const int Steps = 40;
+        var points = new Vector2[Steps + 1];
+        for (int i = 0; i <= Steps; i++)
+        {
+            float t = (float)i / Steps, a = -2.2f + t * (Mathf.Tau + 0.55f);
+            float k = 1 + 0.035f * MathF.Sin(3 * a + 1) + 0.02f * MathF.Sin(7 * a + 0.5f) + 0.05f * t;
+            float Rounded(float v) => MathF.Sign(v) * MathF.Pow(MathF.Abs(v), 2f / 3);
+            points[i] = new Vector2(45 * k * Rounded(MathF.Cos(a)), 8 + 52 * k * Rounded(MathF.Sin(a)));
+        }
+        return points;
     }
 
     /// <summary>The board's pointer: any button drags it, the left one on a thing drags that instead, and picks it if it was not dragged.</summary>
