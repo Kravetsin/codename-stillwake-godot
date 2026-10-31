@@ -23,6 +23,7 @@ READMEs.
 | #192 | New ADRs are `YYYY-MM-DD-two-words.md`, titled `# Title` and named by their slug, the numbered ones kept; the index accepts both and is `merge=union`; the first, for #185, amends 0031 | renumbering ADRs when two developers took the same next number |
 | #194 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
 | #311 | CI builds and tests with `-c Release`, `TieredPGO` off, the budgets' slack ×2, `lscpu` in the log ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)) | half of `dotnet test`'s time on CI |
+| #314 | A PR runs what its paths can break: docs only `DocsGuardTests`, the client no `Sim.Tests` or `Net.Tests`, `main` everything ([2026-10-31-ci-scope](../decisions/2026-10-31-ci-scope.md)) | a third of PRs waiting for tests they cannot change |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
@@ -52,12 +53,10 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 Tests in Release halved `dotnet test` ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)), and it
 is still most of a run. Measured 2026-10-31, by what each would save:
 
-- A PR runs only what its paths can break, `main` everything. Of the last 100 PRs 9% touched only docs (`DocsGuardTests` is
-  enough) and about a quarter only the client (no `Sim.Tests` or `Net.Tests`, but `sim/Tests` links `game/Content/logic/Light.cs`).
 - The budget tests in a job of their own: they run alone, after the others, about 30% of `Sim.Tests`' time.
 - Planets shared between tests: three tests grow the first planet on the same 50 seeds, 27% of the summed test time.
 - The slowest tests in the run's summary, from a trx: the step grew from 15 s to 150–400 s in two weeks, one test at a time.
-- `format`, about 2 minutes beside `build, tests`, is a run's floor once that gets as short. `dotnet format whitespace --folder`
+- `format`, about 2 minutes beside `build, tests`, is the floor of a client PR's run, and of any run once that gets as short. `dotnet format whitespace --folder`
   takes 6 s against 35 on a desk and catches whitespace, but not `IDE0161` (file-scoped namespaces).
 - x64 or `ubuntu-24.04-arm`, once `lscpu` in the logs shows how often a run draws x64's slowest machines (see the ADR).
 

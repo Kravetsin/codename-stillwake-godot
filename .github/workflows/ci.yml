@@ -14,9 +14,46 @@ permissions:
   contents: read
 
 jobs:
+  # What a PR's paths can break: docs, client, or with anything else everything (2026-10-31-ci-scope). main runs
+  # everything: that run catches two green PRs breaking each other, and a release trusts it.
+  scope:
+    name: scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+    steps:
+      # A PR checks out as its merge into the base: that commit and its parents are all the diff needs.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - run: bash tools/ci-scope.test.sh
+      # --no-renames: a file moved out of the sim changes the sim, whatever folder it lands in.
+      - id: scope
+        if: github.event_name == 'pull_request'
+        run: |
+          scope=$(git diff --no-renames --name-only HEAD^1 HEAD | bash tools/ci-scope.sh)
+          echo "scope=$scope" | tee -a "$GITHUB_OUTPUT"
+
+  # All a PR of docs can break: this class holds the READMEs, the map and the ADR index to the tree.
+  docs:
+    name: docs guard
+    needs: scope
+    if: needs.scope.outputs.scope == 'docs'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet test game.tests/Game.Tests.csproj -c Release --filter FullyQualifiedName~DocsGuardTests
+
   # Beside the build and tests rather than before them: it takes about a minute of the run.
   format:
     name: format
+    needs: scope
+    if: needs.scope.outputs.scope != 'docs'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -31,6 +68,8 @@ jobs:
 
   check:
     name: build, tests
+    needs: scope
+    if: needs.scope.outputs.scope != 'docs'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -48,18 +87,20 @@ jobs:
       # The solution's Release builds the game in Debug, demos and all.
       - run: dotnet build Stillwake.sln -c Release --no-restore
       # Release runs them in half of Debug's time, TieredPGO off in 6–10% less again.
-      - run: dotnet test Stillwake.sln -c Release --no-build
+      # A PR of the client leaves out the sim's and the net's: they compile nothing of its (CiScopeTests).
+      - run: dotnet test ${{ needs.scope.outputs.scope == 'client' && 'game.tests/Game.Tests.csproj' || 'Stillwake.sln' }} -c Release --no-build
         env:
           DOTNET_TieredPGO: 0
       # The release build drops the demos (game/dev/demos, *Demo.cs): kept code naming one fails here, not at release.
       - run: dotnet build game/Stillwake.Game.csproj -c ExportRelease --no-restore
 
-  # The check main's protection requires, by this name: green only when both jobs are. A skipped required
-  # check counts as passed, so it runs always and fails on anything but success.
+  # The check main's protection requires, by this name: red when a job failed or was cancelled, and a job the scope
+  # leaves out is skipped. A skipped required check counts as passed, so it runs always.
   gate:
     name: format, build, tests
-    needs: [format, check]
+    needs: [scope, docs, format, check]
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - run: test "${{ needs.format.result }}" = success && test "${{ needs.check.result }}" = success
+      - if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
