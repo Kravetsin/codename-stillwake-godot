@@ -1,6 +1,6 @@
 # The scoop: a new starting ship
 
-Steps 1 and 2 have landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below, and [hold-piles](../decisions/2026-10-31-hold-piles.md). Step 3's static look has landed too, in the-scoop; sparks, venting gas and hanging cables are still to do. Piles break by axe, not by a mark, and so no longer pay for the first machines: hold-piles has it.
+Steps 1 and 2 have landed: [the-scoop](../decisions/2026-10-31-the-scoop.md), which also says how the pod's air differs from the text below, and [hold-piles](../decisions/2026-10-31-hold-piles.md). Step 3 has landed too, in the-scoop. Piles break by axe, not by a mark, and so no longer pay for the first machines: hold-piles has it.
 
 A new world starts in the torn-off scoop section of a scavenger ship. The hold's heaps are what its last crew had gathered. Picture:
 [scoop.png](scoop.png), 2× zoom, about 66×33 cells, drawn from the game's art, not yet in the game.
@@ -82,7 +82,7 @@ test holds every hold cell `Afloat`: a one-cell slit would turn the hold into a 
 
 1. **The ship:** the map, the pod's air and light, the lamp's ring, tests. Playable by catching alone, seen in the game at once.
 2. **Piles:** rows, script-made pictures from `art/debris`, their stock, the ADR, the concept.
-3. **Looks:** rust, stripes and tears landed; sparks, gas and cables next.
+3. **Looks:** rust, stripes, tears, arcs, the thread and the wires.
 
 ## Not verified
 
