@@ -21,12 +21,9 @@ namespace Stillwake.Game.Features.Research;
 /// </summary>
 public sealed class RingsPage : ITabletPage
 {
-    private static readonly Color Socket = new("474c57"), Dim = new("2a2e36"), Bought = new("6fe08a"), BoughtBack = new("0b1f16"),
-        Far = new("39404c"), LitFill = new("16261f"), GateEdge = new("b08fe0"), GateBack = new("2c2437"),
-        Picked = new("ffffff"), From = new("5eead4"), MadeAt = new("f28fd0"), UsedIn = new("7dd3fc");
+    private static readonly Color Socket = new("474c57"), Dim = new("2a2e36"), BoughtBack = new("0b1f16"),
+        Far = new("39404c"), LitFill = new("16261f"), GateEdge = new("b08fe0"), GateBack = new("2c2437");
 
-    /// <summary>Pixels the pointer may move in a press still meant as a click.</summary>
-    private const float ClickSlack = 4;
     /// <summary>Under the first zoom words would be too small to read, and only pictures show; under the second pictures would be a smudge too, and nodes turn plain dots.</summary>
     private const double WordsFrom = 0.5, PicturesFrom = 0.28;
     /// <summary>How fast a ring lights as it opens, of what is left a second.</summary>
@@ -332,7 +329,7 @@ public sealed class RingsPage : ITabletPage
             return;
         }
         facts.AddChild(_strip.Title(_strip.NameOf(node.Id), Table.ContainsKey($"item.{node.Id}.kind") ? T($"item.{node.Id}.kind") : "", node.Id, TipOf));
-        var link = TechLinks.Of(node);
+        var link = TechLinks.Of(node.Id);
         if (link.Takes.Count > 0)
         {
             var takes = Flow(10);
@@ -407,7 +404,7 @@ public sealed class RingsPage : ITabletPage
         if (_picked is not { } picked) return null;
         if (picked == node) return Picked;
         if (picked.Gate) return node.Needs.Contains(picked.Id) ? GateEdge : null;
-        var link = TechLinks.Of(picked);
+        var link = TechLinks.Of(picked.Id);
         return link.MadeAt.Contains(node.Id) ? MadeAt : link.From.Contains(node.Id) ? From : link.UsedIn.Contains(node.Id) ? UsedIn : null;
     }
 
@@ -448,7 +445,7 @@ public sealed class RingsPage : ITabletPage
         if (_strip.PlacementOf(id) is not { } placement) return new Tip(_strip.NameOf(id)) { Card = ItemCards.Of(id) };
         var lines = new List<TipLine>();
         if (Table.ContainsKey($"tool.{id}.about")) lines.Add(new TipLine(T($"tool.{id}.about"), Tone.Dim));
-        if (_research?.BuyProblem(Content.Research.Node(id)!) is { } why && why != "research.bought") lines.Add(new TipLine(T(why), Tone.Unknown));
+        if (Content.Research.Node(id) is { } node && _research?.BuyProblem(node) is { } why && why != "research.bought") lines.Add(new TipLine(T(why), Tone.Unknown));
         return new Tip(_strip.NameOf(id), lines) { Picture = placement };
     }
 
@@ -466,7 +463,7 @@ public sealed class RingsPage : ITabletPage
             _back.DrawLine(middle + way * (float)TechRings.HubRadius, middle + way * (float)_rings.Edges[^1], Far, 1);
         }
         if (_picked is not { Gate: false } picked) return;
-        var link = TechLinks.Of(picked);
+        var link = TechLinks.Of(picked.Id);
         Vector2 At(string id) => new((float)_rings.Spots[id].X, (float)_rings.Spots[id].Y);
         void Ties(IEnumerable<string> ids, Color colour)
         {

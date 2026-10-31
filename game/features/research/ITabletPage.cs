@@ -24,6 +24,9 @@ public interface ITabletPage
     /// <summary>Fills the strip below for what is picked.</summary>
     void Fill();
 
+    /// <summary>Where a thing's middle is on the screen: what a recording points at.</summary>
+    Vector2 ScreenOf(string id);
+
     /// <summary>Forgets a press under way, as the tablet goes away: its release comes to nothing.</summary>
     void LetGo();
 }

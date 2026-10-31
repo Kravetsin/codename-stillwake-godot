@@ -36,93 +36,55 @@ public partial class TreeDemo(Func<Registry> m) : Node
 
     private double _t;
     private int _step;
-    private Vector2 _last;
+    private TabletHands _hands = null!;
     private ResearchTablet _tree = null!;
 
     public override void _Process(double delta)
     {
         _t += delta;
+        _hands ??= new TabletHands(this);
         _tree ??= GetParent().GetChildren().OfType<ResearchTablet>().First();
         var away = new Vector2(-120, -60);
         (double At, string What, Action Do)[] script =
         [
-            (0.8, "T opens it", () => Press(Key.T)),
-            (2.0, "point at the workbench", () => Point(_tree.ScreenOf("workbench"))),
-            (2.5, "press on the workbench and drag", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
-            (2.6, "dragging", () => Move(_last + away, MouseButton.Left)),
-            (2.7, "let go: nothing picked", () => Mouse(_last, MouseButton.Left, false)),
-            (3.0, "drag back", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
-            (3.1, "dragging", () => Move(_last - away, MouseButton.Left)),
-            (3.2, "let go: nothing picked", () => Mouse(_last, MouseButton.Left, false)),
-            (3.5, "click the workbench", () => Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
-            (3.55, "let go: picked, nothing bought", () => Mouse(_last, MouseButton.Left, false)),
-            (4.5, "press the button", () => Mouse(_tree.ActionAt, MouseButton.Left, true)),
-            (4.55, "let go: bought", () => Mouse(_last, MouseButton.Left, false)),
-            (5.0, "wheel out a little: prices stay under their names", () => Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 2)),
-            (5.1, "further: pictures, no words", () => Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 3)),
-            (5.2, "point at the furnace: its tip", () => Point(_tree.ScreenOf("furnace"))),
-            (5.5, "far: plain dots", () => Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 3)),
-            (6.5, "click the plate, not yet open", () => Mouse(_tree.ScreenOf("plate"), MouseButton.Left, true)),
-            (6.55, "let go: its ties lit", () => Mouse(_last, MouseButton.Left, false)),
-            (7.5, "click the hub", () => Mouse(_tree.HubAt, MouseButton.Left, true)),
-            (7.55, "let go: the gate picked", () => Mouse(_last, MouseButton.Left, false)),
-            (8.0, "put in what is carried", () => Mouse(_tree.ActionAt, MouseButton.Left, true)),
-            (8.05, "let go: the iron all in, the scrap part", () => Mouse(_last, MouseButton.Left, false)),
-            (8.5, "wheel in on the hub", () => Wheel(_tree.HubAt, MouseButton.WheelUp, 8)),
-            (9.0, "the other tab", () => Mouse(_tree.TabAt(1), MouseButton.Left, true)),
-            (9.05, "let go", () => Mouse(_last, MouseButton.Left, false)),
-            (9.2, "the black market", () => Mouse(_tree.TabAt(2), MouseButton.Left, true)),
-            (9.25, "let go", () => Mouse(_last, MouseButton.Left, false)),
-            (9.35, "click the solar panel on sale", () => Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
-            (9.4, "let go", () => Mouse(_last, MouseButton.Left, false)),
-            (9.6, "T puts it away", () => Press(Key.T)),
-            (10.1, "Tab: the bag, the credits on its metal", () => Press(Key.Tab)),
+            (0.8, "T opens it", () => TabletHands.Press(Key.T)),
+            (1.4, "from the board to the ship's rings", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
+            (1.45, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (2.0, "point at the workbench", () => _hands.Point(_tree.ScreenOf("workbench"))),
+            (2.5, "press on the workbench and drag", () => _hands.Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (2.6, "dragging", () => _hands.Move(_hands.Last + away, MouseButton.Left)),
+            (2.7, "let go: nothing picked", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (3.0, "drag back", () => _hands.Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (3.1, "dragging", () => _hands.Move(_hands.Last - away, MouseButton.Left)),
+            (3.2, "let go: nothing picked", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (3.5, "click the workbench", () => _hands.Mouse(_tree.ScreenOf("workbench"), MouseButton.Left, true)),
+            (3.55, "let go: picked, nothing bought", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (4.5, "press the button", () => _hands.Mouse(_tree.ActionAt, MouseButton.Left, true)),
+            (4.55, "let go: bought", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (5.0, "wheel out a little: prices stay under their names", () => _hands.Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 2)),
+            (5.1, "further: pictures, no words", () => _hands.Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 3)),
+            (5.2, "point at the furnace: its tip", () => _hands.Point(_tree.ScreenOf("furnace"))),
+            (5.5, "far: plain dots", () => _hands.Wheel(_tree.ScreenOf("workbench"), MouseButton.WheelDown, 3)),
+            (6.5, "click the plate, not yet open", () => _hands.Mouse(_tree.ScreenOf("plate"), MouseButton.Left, true)),
+            (6.55, "let go: its ties lit", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (7.5, "click the hub", () => _hands.Mouse(_tree.HubAt, MouseButton.Left, true)),
+            (7.55, "let go: the gate picked", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (8.0, "put in what is carried", () => _hands.Mouse(_tree.ActionAt, MouseButton.Left, true)),
+            (8.05, "let go: the iron all in, the scrap part", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (8.5, "wheel in on the hub", () => _hands.Wheel(_tree.HubAt, MouseButton.WheelUp, 8)),
+            (9.0, "the other tab", () => _hands.Mouse(_tree.TabAt(2), MouseButton.Left, true)),
+            (9.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (9.2, "the black market", () => _hands.Mouse(_tree.TabAt(3), MouseButton.Left, true)),
+            (9.25, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (9.35, "click the solar panel on sale", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
+            (9.4, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (9.6, "T puts it away", () => TabletHands.Press(Key.T)),
+            (10.1, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {
             GD.Print($"{script[_step].At}s: {script[_step].What}; {m().Research.Credits} credits");
             script[_step++].Do();
         }
-    }
-
-    private void Point(Vector2 at)
-    {
-        GetViewport().WarpMouse(at);
-        Move(at, null);
-    }
-
-    private void Move(Vector2 at, MouseButton? held)
-    {
-        Input.ParseInputEvent(new InputEventMouseMotion
-        {
-            Position = at,
-            GlobalPosition = at,
-            Relative = at - _last,
-            ButtonMask = held == null ? 0 : MouseButtonMask.Left,
-        });
-        _last = at;
-    }
-
-    private void Mouse(Vector2 at, MouseButton button, bool pressed)
-    {
-        _last = at;
-        GetViewport().WarpMouse(at);
-        Input.ParseInputEvent(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = button, Pressed = pressed, ButtonMask = pressed ? MouseButtonMask.Left : 0 });
-    }
-
-    private void Wheel(Vector2 at, MouseButton button, int notches)
-    {
-        GetViewport().WarpMouse(at);
-        for (int i = 0; i < notches; i++)
-        {
-            Input.ParseInputEvent(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = button, Pressed = true });
-            Input.ParseInputEvent(new InputEventMouseButton { Position = at, GlobalPosition = at, ButtonIndex = button, Pressed = false });
-        }
-    }
-
-    private static void Press(Key key)
-    {
-        Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Pressed = true });
-        Input.ParseInputEvent(new InputEventKey { PhysicalKeycode = key, Keycode = key, Pressed = false });
     }
 }

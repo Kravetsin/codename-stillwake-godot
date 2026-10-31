@@ -9,10 +9,12 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | -------------------- | ------------------------------------------------------------------------- | ----- |
 | `ResearchTablet.cs`  | the tablet: its tabs, the head and the strip below, T, the read timer     | yes   |
 | `ITabletPage.cs`     | what the tablet asks of a page on a tab                                   | yes   |
+| `BoardPage.cs`       | the first tab: the board of notes, threads and shapes                     | yes   |
 | `RingsPage.cs`       | a tab of rings: a hub, nodes, what the strip says of what is picked       | yes   |
 | `StripParts.cs`      | what pages write with: the strip's controls, a thing's words and pictures | yes   |
 | `StationScreens.cs`  | a trade station's screen, drawn over its picture                          | yes   |
 | `CapsuleFlights.cs`  | a trade station's capsule going off behind the hull and coming back       | yes   |
+| `logic/BoardBox.cs` | The part of the board the camera keeps in bounds | no |
 | `logic/BoardPencil.cs` | How far a silhouette has come towards being understood | no |
 | `logic/BoardSlots.cs` | Where everything on the board stands, from what was found in what order | no |
 | `logic/BoardThings.cs` | Every blueprint and craft as the board sees it | no |
@@ -21,7 +23,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `logic/CapsulePath.cs` | Where a capsule is drawn along its flight | no |
 | `logic/Research.En.cs` | Its player text (`En`) | no |
 | `logic/TechCamera.cs` | How the map lies in the view: dragged, zoomed, kept in bounds | no |
-| `logic/TechLinks.cs` | How a block ties to the others, worked out from the recipes | no |
+| `logic/TechLinks.cs` | How a thing ties to the others, worked out from the recipes | no |
 | `logic/TechRings.cs` | Where each block stands on a tab, from its ring and branch | no |
 
 ## Guarantees
@@ -29,6 +31,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 - The window reads the sim four times a second. It is built once and only restyled, for a rebuild under the pointer would eat
   a click. It changes the world only by sending `BuyBlock` and `Deposit`. A press picks only if the pointer did not move; only the strip's button buys or deposits.
 - Words are set at the size they are seen and never scaled; further out a node keeps only its picture, and from far it is a plain dot coloured by its state, under its branch's name. What a node is, is said by the pointer: an item's card, or a blueprint's picture and words.
+- The board reads only behind a key of its `Knowledge`, that module's version and the hero's grid's; positions are set only as the camera moves. It takes no way to send a command, so it cannot change the world. Blank till the first find. Its box only grows, and the first note stands in the middle of the view.
 - The hub and the strip show what the bag holds over what is still needed.
 - A block is green once bought, edged in amber while it can be bought, dim while out of reach. The hub is violet while its gate takes
   a deposit, and the rings its gates opened are lit. It opens on the hub the first time, and after that stays where it was left.

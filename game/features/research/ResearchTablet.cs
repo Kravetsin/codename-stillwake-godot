@@ -55,11 +55,11 @@ public partial class ResearchTablet : CanvasLayer
         AddChild(root);
         root.AddChild(_tablet);
         float x = 0;
-        foreach (var tab in Content.Research.Tabs)
+        void AddTab(string title, ITabletPage page)
         {
             int index = _pages.Count;
-            _pages.Add(new RingsPage(tab, _view, _parts, peer, send, () => _sinceRead = ReadEvery));
-            var box = Tablet.Tab(T($"research.tab.{tab.Id}"), null, x);
+            _pages.Add(page);
+            var box = Tablet.Tab(title, null, x);
             foreach (var label in box.FindChildren("*", nameof(Label), true, false).OfType<Label>()) label.LabelSettings.Font = Style.Clear;
             box.GuiInput += e =>
             {
@@ -73,6 +73,8 @@ public partial class ResearchTablet : CanvasLayer
             _tabBoxes.Add(box);
             x += box.CustomMinimumSize.X + 4;
         }
+        AddTab(T("research.tab.board"), new BoardPage(_view, _parts, () => _sinceRead = ReadEvery));
+        foreach (var tab in Content.Research.Tabs) AddTab(T($"research.tab.{tab.Id}"), new RingsPage(tab, _view, _parts, peer, send, () => _sinceRead = ReadEvery));
         _page = _pages[0];
         _head.AddChild(_progress);
         _head.AddChild(_credits);
@@ -121,8 +123,8 @@ public partial class ResearchTablet : CanvasLayer
         _page.LetGo();
     }
 
-    /// <summary>Where a node's middle is on the screen: what a recording points at.</summary>
-    public Vector2 ScreenOf(string id) => ((RingsPage)_page).ScreenOf(id);
+    /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>
+    public Vector2 ScreenOf(string id) => _page.ScreenOf(id);
 
     /// <summary>Where the button buying what is picked is on the screen: what a recording points at.</summary>
     public Vector2 ActionAt => _parts.Action.GetGlobalRect().GetCenter();
