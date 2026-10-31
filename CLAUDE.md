@@ -186,6 +186,7 @@ in the sim.
 - While working, test one project or filter (`dotnet test sim/Tests --filter Logistics`). Once, before the
   commit: the full `dotnet test Stillwake.sln`. The pre-commit hook (`git config core.hooksPath tools/hooks`, once
   per clone) formats the staged `.cs` files; CI fails on whitespace. Budget tests are strict on a desk: a miss is real.
+  CI tests in Release: `-c Release` reproduces a failure only it sees.
 - Match the ritual to the size: a new mechanic gets its ADR, a test proven to bite and screenshots; a number
   change or a bug fix gets its test and a README line.
 - Releases only on request, only from a green `main`: `release.cmd` (docs/releasing.md).
