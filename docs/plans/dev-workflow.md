@@ -22,6 +22,7 @@ READMEs.
 | #191 | The views of a surface are a list in draw order (`game/SurfaceViews.cs`), made and freed in one loop, a flag for those fading with the plan; a view giving light is an `ILightSource` that `LightView.Shining` gathers | a new view's field, free, make and fade lines in `Main.cs` and a `Func` in `LightView` |
 | #192 | New ADRs are `YYYY-MM-DD-two-words.md`, titled `# Title` and named by their slug, the numbered ones kept; the index accepts both and is `merge=union`; the first, for #185, amends 0031 | renumbering ADRs when two developers took the same next number |
 | #194 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
+| #311 | CI builds and tests with `-c Release`, `TieredPGO` off, the budgets' slack ×2, `lscpu` in the log ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)) | half of `dotnet test`'s time on CI |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
