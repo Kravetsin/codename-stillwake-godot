@@ -30,6 +30,20 @@ public class UnderstandingTests
     }
 
     [Fact]
+    public void AWreckKnowsNothingButWhatItsPodMakesForNothingAndItsFirstWallsComeAtTenChunks()
+    {
+        var w = new Scenario(Registry.Wreck).Run();
+        Assert.Equal(["helmet", "screwdriver", "suit"], w.M.Knowledge.GrantedIds.Order(StringComparer.Ordinal));
+        Assert.False(w.M.Research.Knows(Placement.Wall("scrap")));
+        w.M.Knowledge.Obtain("scrapChunk", Understanding.Enough("scrapChunk") - 1);
+        Assert.False(w.Run().M.Research.Knows(Placement.Wall("scrap")));
+        w.M.Knowledge.Obtain("scrapChunk", 1);
+        Assert.True(w.Run().M.Research.Knows(Placement.Wall("scrap")));
+        Assert.True(w.M.Research.Knows(Placement.BackWall("scrap")));
+        Assert.False(w.M.Research.Knows(new Placement("machine", "tradeStation")));
+    }
+
+    [Fact]
     public void ABlueprintIsUnderstoodAtItsCountsAndItsBlockShowsDoneUnbought()
     {
         var w = Count(Room(), "furnace").Run();

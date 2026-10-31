@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using Stillwake.Content;
@@ -10,8 +9,7 @@ namespace Stillwake.Game.Features.Research;
 /// <param name="Parts">Each thing it costs, and how many of it are enough.</param>
 /// <param name="Stations">The machines that make it, for a craft; null for a blueprint.</param>
 /// <param name="Market">Whether only the market opens it: no slot, thread or silhouette till bought.</param>
-/// <param name="Start">Whether the wreck knows it from the start: written down when understood, however early it can be built.</param>
-public sealed record BoardThing(string Id, IReadOnlyList<(string Item, int Enough)> Parts, IReadOnlyList<string>? Stations, bool Market, bool Start);
+public sealed record BoardThing(string Id, IReadOnlyList<(string Item, int Enough)> Parts, IReadOnlyList<string>? Stations, bool Market);
 
 /// <summary>Every blueprint and craft the board may show. Upgrades are the market page's rows, never notes.</summary>
 public static class BoardThings
@@ -27,6 +25,5 @@ public static class BoardThings
         id,
         cost.Select(c => (c.Item, Understanding.Enough(c.Item))).ToList(),
         stations,
-        Content.Research.Node(id) is { Tab: Content.Research.Market },
-        Content.Research.StartKnown.Contains(id, StringComparer.Ordinal));
+        Content.Research.Node(id) is { Tab: Content.Research.Market });
 }

@@ -68,11 +68,11 @@ public class CraftingTests
     }
 
     [Fact]
-    public void MakesTheFireAxeAtTheWorkbenchOfIronAndAPlankKnownInTheWreckFromItsStart()
+    public void MakesTheFireAxeAtTheWorkbenchOfIronAndAPlank()
     {
         var axe = Crafts.Get(Content.Weapons.Axe.Item);
         Assert.Equal([("iron", 2), ("planks", 1)], axe.Cost);
-        var w = World(start: true).GiveItems(0, [.. axe.Cost]);
+        var w = World().GiveItems(0, [.. axe.Cost]);
         Craft(w, Content.Weapons.Axe.Item);
         Assert.Empty(w.Refusals);
         Assert.All(axe.Cost, c => Assert.Equal(0, Count(w, c.Item)));

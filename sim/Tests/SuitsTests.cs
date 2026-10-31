@@ -210,11 +210,10 @@ public class SuitsTests
     }
 
     [Fact]
-    public void ThePodMakesTheBasicHelmetAndBodyForNothingKnownFromTheStart()
+    public void ThePodMakesTheBasicHelmetAndBodyForNothingUnderstoodOnTheFirstTick()
     {
         foreach (string item in new[] { Helmet, Body })
         {
-            Assert.Contains(item, Content.Research.StartKnown);
             Assert.Empty(Content.Crafts.Get(item).Cost);
             var w = new Scenario(Layout.Parse(PodRoom) with { Known = Content.Research.StartKnown }, doubled: true) { Bare = true };
             w.Do(EnterAt(w.M.Crew.Spawn)).Run();

@@ -104,13 +104,13 @@ public class BoardSlotsTests
     }
 
     [Fact]
-    public void TheRowHoldsWhatAnOldWorldKnowsWithNoPartNotedByIdNeverWhatTheWreckKnows()
+    public void TheRowHoldsWhatAnOldWorldKnowsWithNoPartNotedByIdNeverWhatTakesNothing()
     {
-        var slots = Slots(["hullPlate"], [.. Start, "wire", "gear", "motor"]);
+        var slots = Slots(["hullPlate"], ["wire", "gear", "motor", "helmet"]);
         var row = slots.Where(s => s.Row).ToList();
         Assert.Equal(["gear", "motor", "wire"], row.Select(s => s.Id));
         Assert.True(row[0].X < row[1].X && row[1].X < row[2].X);
-        Assert.DoesNotContain(row, s => Start.Contains(s.Id));
+        Assert.DoesNotContain(slots, s => s.Id == "helmet");
     }
 
     [Fact]

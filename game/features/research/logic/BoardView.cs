@@ -23,8 +23,8 @@ public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<
 public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, IReadOnlyList<(string Note, string Shape)> Threads);
 
 /// <summary>
-/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is understood; what the wreck knew from its start
-/// waits to be understood too, so a first find stands alone. A shape shows only at a thread's end or linked to what is picked.
+/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is known. A shape shows only at a thread's end or
+/// linked to what is picked.
 /// </summary>
 public static class BoardView
 {
@@ -36,14 +36,7 @@ public static class BoardView
         var known = read.Granted.ToHashSet(StringComparer.Ordinal);
         var slotted = slots.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
         double Pencil(BoardThing thing) => BoardPencil.Of(thing, read.Count, read.Stands);
-        bool Inked(string id)
-        {
-            if (found.Contains(id)) return true;
-            if (!known.Contains(id)) return false;
-            return !byId.TryGetValue(id, out var thing) || !thing.Start || Pencil(thing) >= 1;
-        }
-
-        var notes = slots.Select(s => s.Id).Where(Inked).ToHashSet(StringComparer.Ordinal);
+        var notes = slots.Select(s => s.Id).Where(id => found.Contains(id) || known.Contains(id)).ToHashSet(StringComparer.Ordinal);
         bool Shape(string id) => slotted.Contains(id) && !notes.Contains(id);
         var threads = new List<(string Note, string Shape)>();
         var ends = new HashSet<string>(StringComparer.Ordinal);

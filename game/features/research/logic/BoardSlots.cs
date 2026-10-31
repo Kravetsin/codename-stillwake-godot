@@ -44,7 +44,8 @@ public static class BoardSlots
         }
         var known = granted.ToHashSet(StringComparer.Ordinal);
         int along = 0;
-        foreach (var thing in things.Where(t => !t.Start && !at.ContainsKey(t.Id) && known.Contains(t.Id)).OrderBy(t => t.Id, StringComparer.Ordinal))
+        // What takes nothing has no part to be noted by and is no find: the pod's helmet shows once made.
+        foreach (var thing in things.Where(t => t.Parts.Count > 0 && !at.ContainsKey(t.Id) && known.Contains(t.Id)).OrderBy(t => t.Id, StringComparer.Ordinal))
         {
             while (!Free((along * Spacing, -RowOut), at.Values)) along++;
             var spot = (along * Spacing, -RowOut);
