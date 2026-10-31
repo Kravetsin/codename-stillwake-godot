@@ -240,7 +240,7 @@ public sealed class World
     public Command Fuzz(Rng rng, int from)
     {
         if (CanOpen && _surfaces.Count < FuzzedSurfaces && rng.Below(3) == 0)
-            return new OpenSurface((rng.Below(2) == 0 ? Content.Surfaces.TestStrip : Content.PlanetTypes.Small).Id) { From = from };
+            return new OpenSurface(rng.Below(3) switch { 0 => Content.Surfaces.TestStrip.Id, 1 => Content.PlanetTypes.Small.Id, _ => Content.PlanetTypes.SmallSpire.Id }) { From = from };
         int to = (int)rng.Below((uint)_surfaces.Count + 1);
         int? cell = rng.Below(3) == 0 ? (int)rng.Below(400) : null;
         return new Transfer(to, cell) { From = from };

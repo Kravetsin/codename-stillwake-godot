@@ -390,7 +390,7 @@ public class HomesTests
     }
 
     [Fact]
-    public void TheSmallPlanetHoldsOneHomeBesideItsSpireEveryScheme()
+    public void TheSmallPlanetHoldsOneHomeEveryScheme()
     {
         var schemes = new HashSet<string>(StringComparer.Ordinal);
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
@@ -431,14 +431,14 @@ public class HomesTests
     }
 
     [Fact]
-    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCache()
+    public void TheSpiresHallIsFurnishedEachPieceHeldAndClearOfItsCache()
     {
         // Held() takes every piece's cell for open: a cache's is not.
         Assert.Null(Held(new Ruins.Home("spire", Ruins.Spire, Ruins.SpireFurnishing)));
         Assert.Contains(Ruins.SpireFurnishing, p => p.Kind == Ruins.Cradle);
         foreach (uint seed in Enumerable.Range(1, 20).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out _, out var spires, out _);
+            var l = Terrain.Generate(PlanetTypes.SmallSpire, seed, out _, out _, out var spires, out _);
             var (x0, y0) = spires.Single();
             Assert.All(Ruins.SpireFurnishing, q => Assert.Contains(l.Flora!, p => p.Kind == q.Kind && p.Cell == (y0 + q.Y) * l.Width + x0 + q.X));
         }

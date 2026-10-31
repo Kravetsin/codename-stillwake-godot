@@ -189,7 +189,7 @@ public class DesyncTests(ITestOutputHelper output)
         // by it, strikes it, harpoons its wreck and reports its pounces' hits; the fuzz strikes and releases besides. A joiner
         // comes in mid-fight, Mem, Target and the wreck's blow in its welcome.
         string sentry = Content.Creatures.Sentry.Id, axe = Content.Weapons.Axe.Item;
-        Covering(41, tried =>
+        Covering(42, tried =>
         {
             int alive = 0, pounced = 0, cut = 0;
             var game = Definition.Game();

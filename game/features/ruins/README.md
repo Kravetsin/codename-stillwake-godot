@@ -50,10 +50,10 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
   this view draws them as any.
 - **A spire** (`SpiresView`), found by its cradle: while it stands the shard sparks (`RelicSparks`, the page's live emitter at 24
   steps a second): small arcs on twos from its cracks to its collar, legs and plates or into the air, now and then a reach to the
-  chamber's walls, the ledge over it and the slab by it, sparks dripping; every 2.6–5.5 s a big branchy discharge into the
-  chamber's metal, a flash of its violet-white re-lighting the room, sparks raining, the zap heard. Its light breathes with the
+  hall's roof over it and the step by it, sparks dripping; every 2.6–5.5 s a big branchy discharge into the
+  hall's metal, a flash of its violet-white re-lighting the room, sparks raining, the zap heard. Its light breathes with the
   hum; a light every 26 px up the light well's column lights the ledges; the lens burns in the tip and throws a pillar of light
-  144 cells up the sky, a thin white core in it, motes rising in the beam; its roots glow in the rock round the chamber, where the
+  144 cells up the sky, a thin white core in it, motes rising in the beam; its roots glow in the rock round the hall, where the
   rock still stands (V1's fulgurites, drawn again only when the grid or the light changes). A hit on the cradle arcs into the
   nearest hero as the sim shocks whoever struck.
 - **Taken:** watched, the cradle sparks three seconds more, its arcs thinning out, a last discharge into the slab at
@@ -68,7 +68,7 @@ stamped into the ground with it, felled by hits or with what holds them. This fe
   sparks out.
 - **Cost** (`--ground=spire-in --zoom 2.4 --measure`, RTX 4060 Ti, 1280 × 720): 792 fps, 1.26 ms a frame, against 935 fps and
   1.07 ms with `--no-homes`: 21 draws, some 30 lights (arcs, sparks, the shaft) and 0.06 ms of effects more.
-- **Dev:** `--ground=spire-climb --autopilot` climbs from the chamber up the ledges, five held jumps, and out through the right plug, dug for it;
+- **Dev:** `--ground=spire-climb --autopilot` climbs from the hall up the step and ledges, four held jumps, to the right plug, dug for it;
   `--take-at SECONDS` at a spire or a home strikes its nearest relic till it is taken.
 
 ## Deliberately not handled

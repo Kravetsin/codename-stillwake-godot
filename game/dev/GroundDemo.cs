@@ -23,8 +23,8 @@ namespace Stillwake.Game.Dev;
 /// cave of that depth band, <c>hall</c> in the garden's great hall, looking at the growth there, the pointer on it (0080); <c>backs</c>
 /// at the spawn, building soil and stone back walls beside it (0084); <c>lava</c> on the floor of the cave nearest the spawn's
 /// column whose lava is open, looking at it; <c>spire</c> on the roof of the spire nearest the spawn beside its left plug,
-/// <c>spire-in</c> in its chamber by the cache, <c>spire-far</c> on the ground forty columns left of it, to see its tip over the
-/// hills (0085), <c>spire-climb</c> on its chamber's floor under the light, its right plug dug, for <c>--autopilot</c> to climb out
+/// <c>spire-in</c> in its hall by the cache, <c>spire-far</c> on the ground forty columns left of it, to see its tip over the
+/// hills (0085), <c>spire-climb</c> on its hall's floor under the light, its right plug dug, for <c>--autopilot</c> to climb out
 /// (0096). An
 /// axe hit every <see cref="Pace"/> ticks,
 /// sent as a strike sends them: cracks, chips, dust, and the sky falling into the shaft.
@@ -123,7 +123,7 @@ public sealed class GroundDemo(string mode)
             if (mode == "spire-climb")
                 for (int dy = 0; dy < Spec.Ruins.Spire.Count; dy++)
                     if (Spec.Ruins.Spire[dy].LastIndexOf(Spec.Ruins.Plug) is int px and >= 0)
-                        _cells.Add((at / w - (Spec.Ruins.Spire.Count - 3) + dy) * w + at % w - 4 + px);
+                        _cells.Add((at / w - (Spec.Ruins.Spire.Count - 5) + dy) * w + at % w - Spec.Ruins.SpireFlue + px);
             // --ground-offset N: stood N columns off where the mode stands it, for a recording (0096).
             at += Offset;
             client.Send(new Transfer(_planet.Value, at));
@@ -333,7 +333,7 @@ public sealed class GroundDemo(string mode)
 
     /// <summary>
     /// The cell to stand in at the spire nearest the spawn, found by its lamp in its tip's top cell: on its roof beside its left plug,
-    /// in its chamber beside its cache, or on the ground forty columns left of it.
+    /// in its hall beside its cache, or on the ground forty columns left of it.
     /// </summary>
     private static int? SpireSpot(Registry m, string mode)
     {
@@ -342,7 +342,7 @@ public sealed class GroundDemo(string mode)
         if (lamp == null) return null;
         int x0 = lamp.Cell % w - Spec.Ruins.Spire[0].IndexOf(Spec.Ruins.Lamp), y0 = lamp.Cell / w;
         if (mode == "spire-far") return (TopOf(m, x0 - 40) - 1) * w + x0 - 40;
-        return mode == "spire" ? (y0 + rise - 1) * w + x0 + 1 : (y0 + Spec.Ruins.Spire.Count - 3) * w + x0 + (mode == "spire-climb" ? 4 : 2);
+        return mode == "spire" ? (y0 + rise - 1) * w + x0 + Spec.Ruins.SpireTip + 1 : (y0 + Spec.Ruins.Spire.Count - 5) * w + x0 + (mode == "spire-climb" ? Spec.Ruins.SpireFlue : Spec.Ruins.SpireTip + 2);
     }
 
     /// <summary>Whether <paramref name="mode"/> stands the hero in a home of the arc makers (0091): <c>home-hearth</c>, <c>home-bedroom</c>, <c>home-study</c>.</summary>

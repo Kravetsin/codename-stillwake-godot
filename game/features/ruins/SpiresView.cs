@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Ruins;
 /// <summary>
 /// The spires alight round their relics (0096): each spire whose cradle the sim keeps standing (<see cref="BuildingModule.Relics"/>)
 /// burns — the shard sparking in its cradle, the lit shaft up its light well, the lens in its tip throwing a pillar of light into the
-/// sky, its roots glowing in the rock round its chamber — and a taken one goes dark: watched being taken, its cradle sparks out over
+/// sky, its roots glowing in the rock round its hall — and a taken one goes dark: watched being taken, its cradle sparks out over
 /// a few seconds first; found taken, after a load or by a friend joining, it is dark from the start. A hit on the cradle arcs into the
 /// hero that struck. The cradle's picture is the homes' view's, as any piece's; this draws what is round it and the empty cradle left.
 /// </summary>
@@ -117,22 +117,16 @@ public partial class SpiresView : Node2D, ILightSource
         var kind = Spec.Flora.Get(Spec.Ruins.Cradle);
         var (bx, by) = HomesLooks.BoxAt(Spec.Ruins.Cradle, kind.On, relic.Cell % w, relic.Cell / w, kind.Across, kind.Tall);
         var corner = new Vector2(bx, by);
-        int chamberFloor = (y0 + Spec.Ruins.Spire.Count - 4) * Cell;
+        int hallFloor = (y0 + Spec.Ruins.Spire.Count - 4) * Cell;
         var far = new List<Vector2>();
-        // The chamber's metal round the cradle: its walls' inner faces, the ledge over its left, the slab at its right, the cache;
-        // at Spire's cells, its drawing's doubled (0104).
-        for (int y = (y0 + 46) * Cell + 2; y < chamberFloor; y += 6)
+        // The hall's metal round the cradle: under the step at its left, the roof over it, the cache; at Spire's cells, its drawing's doubled (0104).
+        for (int x = (x0 + 18) * Cell + 4; x < (x0 + 24) * Cell; x += 8) far.Add(new Vector2(x, (y0 + 48) * Cell));
+        for (int x = (x0 + 26) * Cell + 2; x < (x0 + 36) * Cell; x += 8) far.Add(new Vector2(x, (y0 + Spec.Ruins.SpireHall + 2) * Cell));
+        far.Add(new Vector2((x0 + 18) * Cell + 8, hallFloor - 12));
+        var sparks = new RelicSparks(_random, RelicArt.Cradle, corner, far, hallFloor, small: false);
+        var spire = new Spire(relic.Cell, x0, y0, corner, sparks, Roots(relic.Cell, sparks.Core.X, hallFloor + 6))
         {
-            far.Add(new Vector2((x0 + 2) * Cell, y));
-            far.Add(new Vector2((x0 + 16) * Cell, y));
-        }
-        for (int x = (x0 + 2) * Cell + 4; x < (x0 + 8) * Cell; x += 8) far.Add(new Vector2(x, (y0 + 46) * Cell));
-        for (int x = (x0 + 12) * Cell + 2; x < (x0 + 16) * Cell; x += 8) far.Add(new Vector2(x, Slab(x0, y0).Y));
-        far.Add(new Vector2((x0 + 2) * Cell + 8, chamberFloor - 12));
-        var sparks = new RelicSparks(_random, RelicArt.Cradle, corner, far, chamberFloor, small: false);
-        var spire = new Spire(relic.Cell, x0, y0, corner, sparks, Roots(relic.Cell, sparks.Core.X, chamberFloor + 6))
-        {
-            Bounds = new Rect2(x0 * Cell - 16 * Cell, (y0 - RelicLooks.PillarCells) * Cell, 50 * Cell, (RelicLooks.PillarCells + Spec.Ruins.Spire.Count + 18) * Cell),
+            Bounds = new Rect2(x0 * Cell - 16 * Cell, (y0 - RelicLooks.PillarCells) * Cell, (Spec.Ruins.SpireWide + 32) * Cell, (RelicLooks.PillarCells + Spec.Ruins.Spire.Count + 18) * Cell),
         };
         return spire;
     }
@@ -170,11 +164,11 @@ public partial class SpiresView : Node2D, ILightSource
         return roots;
     }
 
-    /// <summary>The near corner of the slab at the chamber's right, the relic's nearest metal: where its last discharge goes.</summary>
-    private static Vector2 Slab(int x0, int y0) => new((x0 + 12) * Cell + 1, (y0 + Spec.Ruins.Spire.Count - 8) * Cell);
+    /// <summary>The near corner of the step at the hall's left, the relic's nearest metal: where its last discharge goes.</summary>
+    private static Vector2 Step(int x0, int y0) => new((x0 + 24) * Cell - 1, (y0 + 48) * Cell);
 
-    /// <summary>The middle of the flue down the spire's middle, the light's: its drawn column 4, our columns 8 and 9 (0104).</summary>
-    private static float Flue(int x0) => (x0 + 9) * Cell;
+    /// <summary>The middle of the flue down the spire's middle, the light's.</summary>
+    private static float Flue(int x0) => (x0 + Spec.Ruins.SpireFlue) * Cell;
 
     /// <summary>How much a spire still burns: 1 while its relic stands and while it sparks out, then going dark.</summary>
     private double Burns(Spire s)
@@ -198,7 +192,7 @@ public partial class SpiresView : Node2D, ILightSource
             {
                 s.Last = true;
                 var core = s.Sparks.Core;
-                s.Sparks.Discharge(Slab(s.X0, s.Y0));
+                s.Sparks.Discharge(Step(s.X0, s.Y0));
                 Flash(s, core, 0.8);
             }
         }
@@ -290,7 +284,7 @@ public partial class SpiresView : Node2D, ILightSource
     }
 
     /// <summary>Whether a spire's lens still stands in its tip: dug out, it throws no pillar.</summary>
-    private bool Lens(Spire s) => _building.PlantAt(s.Y0 * _grid.Width + s.X0 + 8)?.Kind == Spec.Ruins.SpireLamp;
+    private bool Lens(Spire s) => _building.PlantAt(s.Y0 * _grid.Width + s.X0 + Spec.Ruins.SpireFlue - 1)?.Kind == Spec.Ruins.SpireLamp;
 
     private void Paint(Painter on, Coat coat)
     {
@@ -350,7 +344,7 @@ public partial class SpiresView : Node2D, ILightSource
     /// <summary>The lens alight and the pillar it throws into the sky, seen from any hill round.</summary>
     private void Pillar(Painter on, Spire s, float burns)
     {
-        var lens = new Vector2((s.X0 + 8) * Cell - 4, s.Y0 * Cell - 4);
+        var lens = new Vector2((s.X0 + Spec.Ruins.SpireFlue - 1) * Cell - 4, s.Y0 * Cell - 4);
         on.DrawTexture(_lensGlow, lens, new Color(1, 1, 1, burns));
         on.DrawTexture(_lens, lens, new Color(1, 1, 1, burns));
         float cx = Flue(s.X0), foot = s.Y0 * Cell + 1, top = (s.Y0 - RelicLooks.PillarCells) * Cell;
