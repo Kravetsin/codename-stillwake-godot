@@ -202,6 +202,7 @@ public static class HitLooks
         [Stillwake.Content.Creatures.Sixleg.Id] = Impact.CoolFlesh,
         [Stillwake.Content.Creatures.Fluff.Id] = Impact.CoolFlesh,
         [Stillwake.Content.Creatures.Sentry.Id] = Impact.Wreck,
+        [Stillwake.Content.Creatures.Warden.Id] = Impact.Wreck,
     };
 
     /// <summary>The tuft a creature struck with <paramref name="impact"/> throws dying, every way.</summary>

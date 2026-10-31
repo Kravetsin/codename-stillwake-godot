@@ -12,27 +12,26 @@
 | `Guard.cs` | The sentry's drives' rules: `Guard`, `Return`, and the `CutTether` reflex. |
 | `Live.cs` | The system: the killed swept out; each creature kept or gone, then its tick; the brain's shared steps. |
 | `Lunge.cs` | The lunge's rule: a ram along the ground in phases (0103). |
-| `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short. |
+| `Pounce.cs` | The pounce's rule: a straight flight at a hero, never cut short; a walker's stops at a wall. |
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
 | `Shoot.cs` | The arc's rule (the sentry's): crouched, its aim held, an arc struck at once, a recovery. |
 | `Shots.cs` | Shots: `Fire`, the flight, hits, pierces; `Shots`, `Ended`, `Hits`, `StepOf`. |
-| `Spawn.cs` | Spawning (0102): round each hero, on the beat, out of view, where a habitat is; guards on derelicts. |
+| `Spawn.cs` | Spawning (0102): posts; round each hero, on the beat, out of view, by habitat; guards on derelicts. |
 | `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `Shot`, `CreaturesState`; the derived `Posture`. |
+| `Ward.cs` | The spire guards' drive: asleep, waking, waiting, its pounce, stuck; turns; calm. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling, leaping (0102, 0104, 0106). |
 
 Every creature, composed ([creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
 species (`Content.Creatures`) names a body, life, faction, a brain of ranked drives, moves and yields, each record served
-by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks. Shots fly here (shots-are-the-sims,
+by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks, the warden in spires. Shots fly here (shots-are-the-sims,
 shots-pierce, shots-fall-aboard).
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells; `Blow`); `Items` (queries, ops: weapons, ammo, drops, charge); `Debris`
-  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`); `Rooms` (`Afloat`).
+  (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`).
 - **State** (`CreaturesState`, saved): `Creatures` in id order, each `{ Id, Species, X, Y, VX, VY, Damage, Drive, DriveLeft,
-  Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` the drive in charge (its brain
-  place), `Step` its place in it, `Act` the move under way (`{ Move, Phase, Left }`), `Target` its grudge (a `Ref`), `Mem`
-  its rules' numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Fired`. Empty `Target`,
-  `Mem`, `Shots`, `Arcs`, `Pierced` 0, `Passed` are not written. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
-- **Runs** after `Crew` and `Debris` (simulation): heroes' cells and wrecks are this tick's; shots fly after.
+  Step, Act, Target, Mem, SeenAt }`, its bottom middle in thousandths of a cell; `Drive` its brain place, `Act` `{ Move, Phase, Left }`,
+  `Mem` its rules' numbers by key, ordinal; `NextId`; `Clock`; `Shots`, `Arcs`, `Fired`. **Never saved:** `Dead`. **Derived:** `Posture`, `Fleeing`, `Ended`, `Hits`.
+- **Runs** after `Crew` and `Debris` (simulation); shots fly after.
 
 ## Adding a species or a rule
 
@@ -48,36 +47,35 @@ shots-pierce, shots-fall-aboard).
 - **The walker** (0102, 0104, 0106): under the surface's gravity; solid is a wall, floor, closed door, the grid's
   edge and a planet's fog. It steps `StepUp`; at a wall it cannot step or a drop of `Drop` it tries a leap (`Lands`),
   else its drive may act (`Blocked`), else it turns.
-- **The clinger:** clamped to its wreck's top, `along` from its middle, riding its drift; off it, it flies straight through
-  walls.
+- **The clinger:** clamped to its wreck's top, riding its drift; off it, it flies straight through walls.
 - **Grazers:** `Graze` idles and wanders by turns, lengths drawn. `Flee` runs its ticks; cornered with a hero near it may
   lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
   drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
 - **The sentry:** `Guard` watches; one within `Notice` alerts it; `AlertTicks` on, one within `Strike` and it pounces,
-  one farther it strikes an arc. A blow on it, or on its wreck since it last answered (`Piece.Struck` against a hit's
-  `Answered`): it answers the striker (`Target`) so, by distance; one while away, once home. The pounce crouches `WindUp`,
-  then flies at its grudge, else the nearest awake hero within its run, `Ticks` at `Speed`; `Return` flies it home. The
-  arc, from its perch only: aimed `Lock` before the wind-up ends (its grudge, else the nearest within reach), struck at
-  once to the first wall, lingering `Lingers`. `CutTether` lets go of a reel `Ticks` after it bites. Its wreck gone, it dies.
-- **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` sprayed away from the striker (`Spray`); else knocked
+  one farther it strikes an arc. A blow on it or its wreck: it answers so. The pounce crouches `WindUp`, then flies at
+  its grudge, else the nearest awake hero within its run, `Ticks` at `Speed`; `Return` flies it home. The arc, from its perch: aimed
+  `Lock` before the wind-up ends, struck to the first wall, lingering `Lingers`. `CutTether` lets go of a reel. Its wreck gone, it dies.
+- **The warden** (`Lifetime.Posted`, `Ward`): on the beat one appears at a standing post (`Flora.Post`) with a standing relic in its
+  arena, a hero in its keep box, none tied to it; no draw; a full cap or blocked niche waits. Woken by an awake hero in the arena, a
+  blow or a sibling. It pounces if no sibling acts; a walker's (`Flies`) has no gravity and ends at the first solid cell; then `Stuck`
+  from its landing. **Goes in the kept loop, no drop, never by `Dead`:** post gone, relic taken, or `Calm` (back whole). Killed, it fells its post.
+- **The hit path** (`Strike`, a shot): damage; dead at its hit points, its `Yields` sprayed; else knocked
   (`Life.Knock`, `Hop`), its act cut if interruptible, its drives told in brain order till one claims it.
-- **Shots:** `Fire` takes an ammo and its gun's `Energy` for a shot; each tick, in id order, it steps, hitting a cell's
-  targets in turn (solid, the lowest-id creature, a wreck), skipping `Passed`, at its gun's keep after `Pierced`: through what
-  its gun `Pierces` (`Broken` or `All`, what stands `Passed`), else ending. Falling by its cell
-  (`ShotFlight.Gravity`, shots-fall-aboard): none `Afloat`, aboard by the ship's gravity, on a planet by its kind's.
+- **Shots:** `Fire` takes an ammo and its gun's `Energy`; each tick, in id order, it steps, hitting a cell's targets in turn (solid,
+  the lowest-id creature, a wreck), skipping `Passed`: through what its gun `Pierces`, else ending. It falls by `ShotFlight.Gravity`.
 - **The dead** are gone to every command and cap from the blow, swept within the tick: the mark is not saved.
 - **`HitBy(Creature)`** (0103), **`Bolted(Arc)`**, as the hit hero's client saw it: a `Blow` of the move's `Damage`, the act ends; or
   the arc's projectile's, once a hero.
-- **`Release`** (dev): `ReleaseProblem`, `Place`.
-- **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew, reported each tick.
-- **Kept or gone** (0102): kept in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat round heroes under `PerKeep`, the surface under `Max`. **Guards** (`Kind.Guards`): each
+- **`Release`** (dev): `Place`.
+- **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew.
+- **Kept or gone** (0102): in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat, under `PerKeep` and `Max`. **Guards** (`Kind.Guards`): each
   piece past `Watermark` with a perch draws once: sentries on half.
 
 ## Commands
 
 `Strike`: `creatures.gone`, `items.flat`, `items.notRunning`. `HitBy`: `creatures.gone`, `creatures.notAttacking`. `Release`:
-`creatures.blocked` off the grid, `creatures.full`, then the body's: `creatures.notHere` (a walker with no gravity),
+`creatures.notHere` (a posted one), `creatures.blocked` off the grid, `creatures.full`, then the body's: `creatures.notHere` (a walker with no gravity),
 `creatures.blocked` (in anything solid), `creatures.noPiece` (a clinger with no wreck). `Fire`: `creatures.noGun` (none
 carried), `creatures.blocked` (the muzzle off the grid), `items.notEnough`, `items.flat`. `Bolted`: `creatures.gone`.
 

@@ -12,7 +12,7 @@ public class HomesLooksTests
     [Fact]
     public void EveryPieceHasItsPicturesEachVariantItsDarkLookWhereItsLampMayGoOutAndTheirGlows()
     {
-        Assert.Equal(Spec.Ruins.Pieces.Select(p => p.Id).Order(StringComparer.Ordinal), HomesArt.Of.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(Spec.Ruins.Pieces.Where(p => p.Post == null).Select(p => p.Id).Order(StringComparer.Ordinal), HomesArt.Of.Keys.Order(StringComparer.Ordinal));
         foreach (var (kind, art) in HomesArt.Of)
             for (int v = 0; v < art.Variants; v++)
             {

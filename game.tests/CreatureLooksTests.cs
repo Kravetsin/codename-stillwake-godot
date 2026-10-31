@@ -10,12 +10,12 @@ public class CreatureLooksTests
 
     [Fact]
     public void EveryWalkerHasARig() =>
-        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
+        Assert.All(Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Boxes.Contains(s.Look)), s => Assert.True(CreatureLooks.Varieties.ContainsKey(s.Id), s.Id));
 
     [Theory]
     [MemberData(nameof(Species))]
     public void EverySpeciesIsDrawnByItsRigOrAsTheTick(string species) =>
-        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look), species);
+        Assert.True(CreatureLooks.Varieties.ContainsKey(species) ^ (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look) || CreatureLooks.Boxes.Contains(Spec.Creatures.Get(species).Look)), species);
 
     [Theory]
     [MemberData(nameof(Species))]
@@ -23,6 +23,7 @@ public class CreatureLooksTests
     {
         Assert.True(HitLooks.Creatures.TryGetValue(species, out var impact), $"{species} has no hit look");
         Assert.NotEmpty(HitLooks.Of[impact].Throws);
+        if (CreatureLooks.Boxes.Contains(Spec.Creatures.Get(species).Look)) return;
         if (CreatureLooks.Ticks.Contains(Spec.Creatures.Get(species).Look))
         {
             Assert.True(Sound.Ticks.TryGetValue(species, out var tick), $"{species} is drawn as the tick with no tick's sounds");

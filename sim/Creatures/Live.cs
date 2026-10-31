@@ -49,7 +49,7 @@ public sealed partial class CreaturesModule
         s.Creatures.RemoveAll(c => c.Dead);
         if (Rules.Guards.Count > 0 && _debris.Pieces.Count > 0 && _debris.Pieces[^1].Id > s.Watermark) GuardNewPieces();
         // A surface with no life and none let out runs nothing and draws nothing: aboard, only a guarded kind drifting in draws.
-        if (s.Creatures.Count == 0 && Habitats.Count == 0) return;
+        if (s.Creatures.Count == 0 && Habitats.Count == 0 && _built.Posts.Count == 0) return;
         s.Clock += 1;
         FindHeroes();
         var all = s.Creatures;
@@ -58,12 +58,37 @@ public sealed partial class CreaturesModule
         {
             var creature = all[i];
             if (!Kept(creature)) continue;
-            Behave(creature, Spec.Get(creature.Species));
+            var spec = Spec.Get(creature.Species);
+            // Gone here, never by the Dead mark, which is not saved and rolls a drop.
+            if (spec.Lifetime == Spec.Lifetime.Posted && StoodDown(creature, spec)) continue;
+            Behave(creature, spec);
             // Dead by its own step, its wreck gone: the mark is not saved, so kept it would load alive and die again.
             if (!creature.Dead) all[kept++] = creature;
         }
         all.RemoveRange(kept, all.Count - kept);
-        if (Habitats.Count > 0 && s.Clock % Spec.Beat == 0) Spawn();
+        if (s.Clock % Spec.Beat != 0) return;
+        Posted();
+        if (Habitats.Count > 0) Spawn();
+    }
+
+    /// <summary>Whether <paramref name="c"/>, posted, goes with nothing given: its post or its relic gone, or its drive calmed.</summary>
+    private bool StoodDown(Creature c, Spec.Species spec)
+    {
+        if (_built.PostAt(c.Recall(PostKey)) == null) return true;
+        int relic = c.Recall(RelicKey);
+        foreach (var r in _built.Relics)
+            if (r.Cell == relic && r.Taken) return true;
+        return spec.Brain[c.Drive] is Spec.Ward ward && WardDrive.Calmed(this, c, ward);
+    }
+
+    /// <summary>Whether an awake hero's reported cell is in the arena of <paramref name="c"/>'s post; false with its post gone.</summary>
+    internal bool HeroInArena(Creature c)
+    {
+        if (_built.PostAt(c.Recall(PostKey)) is not { } post) return false;
+        var arena = ArenaOf(post);
+        for (int i = 0; i < _heroes.Count; i++)
+            if (_awake[i] && arena.Contains(_heroes[i].X, _heroes[i].Y)) return true;
+        return false;
     }
 
     /// <summary>Every hero's reported cell, in id order, as a column and row; one off the grid, which only the fuzz holds, is nowhere.</summary>
