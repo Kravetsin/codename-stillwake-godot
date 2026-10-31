@@ -611,6 +611,45 @@ public class DesyncTests(ITestOutputHelper output)
         });
     }
 
+    [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncAsTheRuleGrants()
+    {
+        // The rule (docs/plans/board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
+        // the first client's plates reach it and everyone's walk grants on the same tick, the joiner's too.
+        var layout = Layout.Parse(["##########", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
+        static string Seeded(string save)
+        {
+            var root = JsonNode.Parse(save)!;
+            root["slices"]!["knowledge"]!["obtained"] = new JsonArray(new JsonObject { ["item"] = "plate", ["count"] = Sim.Research.Understanding.Enough("plate") - 1 });
+            var inventories = new JsonArray();
+            for (int id = 0; id < 4; id++)
+            {
+                var slots = new JsonArray();
+                for (int i = 0; i < Content.Inventory.Total; i++) slots.Add(null);
+                slots[0] = new JsonObject { ["item"] = "iron", ["count"] = 200 };
+                inventories.Add(new JsonObject { ["id"] = id, ["slots"] = slots });
+            }
+            root["slices"]!["items"]!["inventories"] = inventories;
+            return root.ToJsonString();
+        }
+        Covering(29, tried =>
+        {
+            var game = new Definition(() => new Registry().All, Seeded);
+            bool early = false, granted = false;
+            var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1000, joinAt: 503, tamper: (tick, clients) =>
+            {
+                var first = clients[0];
+                bool known = game.Module<Sim.Knowledge.KnowledgeModule>(first.World).Granted("wallIron");
+                if (tick <= 503) early |= known;
+                granted |= known;
+                if (tick <= 503 || tick % 40 != 25) return;
+                int bench = game.Module<Sim.Grid.GridModule>(first.World).MachinesOf("workbench")[0].Id;
+                first.Send(new Sim.Crafting.Craft(bench, "plate", 1));
+            });
+            return (run, granted && !early ? null : $"granted {granted}, before the joiner {early}");
+        });
+    }
+
     // The harness itself.
 
     [Theory]

@@ -24,6 +24,8 @@ public partial class TreeDemo(Func<Registry> m) : Node
     {
         var root = JsonNode.Parse(world.Save())!;
         root["slices"]!["knowledge"]!["credits"] = Credits;
+        // Enough of the furnace's parts: it shows done, unbought.
+        root["slices"]!["knowledge"]!["obtained"] = new JsonArray(new JsonObject { ["item"] = "scrapChunk", ["count"] = 10 }, new JsonObject { ["item"] = "hullPlate", ["count"] = 5 });
         var slots = new JsonArray();
         for (int i = 0; i < Content.Inventory.Total; i++) slots.Add(null);
         slots[0] = new JsonObject { ["item"] = "scrap", ["count"] = 12 };

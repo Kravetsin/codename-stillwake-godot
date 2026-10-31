@@ -331,7 +331,8 @@ public class BudgetTests(ITestOutputHelper output)
         string[] tile = ["########", "#FF.$$.#", "#FF.$$.#", "#......#", "#.TT.V.#", "#.TT...#", "#......#", "########"];
         string[] under = ["", "", "", "", "  o  -", "  ----", "", ""];
         string[] Rows(string[] of) => [.. Enumerable.Range(0, 256).Select(y => string.Concat(Enumerable.Repeat(of[y % 8].PadRight(8), 32)))];
-        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under)), doubled: true);
+        // Knowing little, so the rule's walk is timed too: the furnaces move what it follows every tick.
+        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under)) with { Known = Content.Research.StartKnown }, doubled: true);
         foreach (var m in w.M.Grid.Machines)
         {
             if (m.Kind == "furnace") w.FillCrate(m.Id, ("scrapChunk", 10), ("planks", 50));
@@ -348,6 +349,27 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(burning > 1000 && selling > 1000, "the machines stand idle");
         // Two thousand machines, more than a world will hold: twice the budget, where a desk takes about 2 ms.
         Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
+    }
+
+    /// <summary>
+    /// The rule's walk (docs/plans/board.md) at its dearest: nothing known yet, every part looked up, and something counted before
+    /// every pass, as a world of busy furnaces has. Timed by itself: its share is too small to tell from a whole tick's noise.
+    /// </summary>
+    [Fact]
+    public void TheRulesWalkTakesAFractionOfATick()
+    {
+        var w = new Scenario(Layout.Parse(["##########", "#II......#", "##########"], null) with { Known = [] }, doubled: true).Run();
+        const int Passes = 2000;
+        var clock = Stopwatch.StartNew();
+        for (int i = 0; i < Passes; i++)
+        {
+            w.M.Knowledge.Obtain("scrapChunk", 1);
+            w.M.Research.Walk();
+        }
+        clock.Stop();
+        double mean = clock.Elapsed.TotalMilliseconds / Passes;
+        output.WriteLine($"a walk: {mean:F4} ms mean");
+        Assert.True(mean < Within(0.2), $"a walk takes {mean:F4} ms");
     }
 
     /// <summary>
