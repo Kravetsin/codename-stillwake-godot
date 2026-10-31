@@ -59,12 +59,28 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 **Who decides.** `Research` holds the rule and `Knowledge` the record, as with credits. `Research` gains a system in derivation and `IGridQueries` (a station stands: `MachinesOf`, `Grid.cs:114`). It walks the ungranted blueprints and crafts in `Every` order (`Research.cs:52`) when `Knowledge.Version` or `grid.Version` (`Grid.cs:64`) has moved, the idiom of `Flora.cs:198`, and grants what the rule allows. `Knowledge` is shared by every surface (`Registry.cs:71`), and each surface's `Research` checks its own grid. A station on a planet counts.
 
 **Black market: a second page of the tablet, beside the board.** `tablet-tree` already settled this: an order placed by radio, naming no machine and working on any surface, while goods leave physically through a trade station. So a player on a planet with credits can still buy a bag slot.
-- `BuyBlock` becomes `Buy(Id)` in `Research`. It keeps `research.bought`, `research.noCredits` and `research.locked` (an id that is no listing), which have text and tests.
-- A listing is an `Upgrades.All` row at its own price, or `solarPanel` at 12 000, today's worked price written down in `Content.Research`.
-- The page shows the next unbought of each kind. The sim does not enforce order; any order adds one slot.
-- Contraband later is more rows, with a purchase that gives items (`black-market`). Nothing is built for it.
 
-**Solar panel.** A listing is outside the rule: its counts never ink it. It shows no silhouette or threads on the board. Any note it uses lists it under "goes into". Once bought it gets a note. Building it still needs a `photoPanel`, as today (`black-market`).
+**The rings move there: the market opens by trust, and trust comes from sales.** Today's tree machinery serves it nearly as it stands.
+- `Tabs` keeps only `blackMarket`, which takes all the upgrades in rings. `BuyBlock`, `Prices`, `Done`, `Reached`, `BuyProblem`, their refusals and the rings' drawing all stay. A market block is outside the board's rule, so no second list is needed.
+- A gate's `Deposit` becomes its order: what the mafia wants sold to it. It opens by itself once enough has been sold; there is no button.
+- A sale is a capsule's launch (`Trade.cs:73`), the one point where goods leave, by hand or from an auto station. It calls `Knowledge.Sell(item, count)`, and `Trade` already holds `IKnowledgeOps` (`Trade.cs:40`). Goods are paid for as ever, so an order takes nothing beyond what a sale takes.
+- Counts are totals since the world began, so what was sold before a ring came up counts towards it. A test holds that every ordered item has a price.
+- **No pressure:** no deadlines, no penalties, and trust never falls. Nothing on the main path is sold here, only what a player cannot make: room and foreign technology. A player who never trades keeps a small bag and still reaches the engine.
+
+A first cut of the rings, to tune at the playtest (worths from the current recipes). Orders before the Former ask for no bench work, which is where the first playtest's grind was.
+
+| Ring | Order | Worth | Opens |
+| --- | --- | --- | --- |
+| 0 | none | | `bag1`, `bag2`, `tradeSlots1`, solar panel at its 12 000 |
+| 1 | 40 scrap chunks, 20 iron, 20 planks | about 1 600 | `bag3`, `bag4`, `tradeSlots2` |
+| 2 | 30 plates, 20 gears | about 2 100 | `bag5`, `bag6`, `belt1`, `tradeSlots3`, `tradeSlots4` |
+| 3 | 20 glass, 20 silicon, 10 frames | about 5 000 | `bag7`, `bag8`, `tradeSlots5` |
+| 4 | 20 circuits | about 3 600 | `bag9`, `tradeSlots6` |
+| 5 | a planet's goods, chosen with its content | | `bag10`, `bag11`, `belt2` |
+
+Contraband, goods sold at a loss, comes after this: it needs a purchase that gives items and a way for them to arrive (`black-market`). Ring 2 is its natural start. Nothing is built for it here.
+
+**Solar panel.** A market block is outside the rule: its counts never ink it. It shows no silhouette or threads on the board. Any note it uses lists it under "goes into". Once bought it gets a note. Building it still needs a `photoPanel`, as today (`black-market`).
 
 **What cannot be had in space.** Copper, mica, magnetite, crystal, alloy, hide and cloth have no note until found. A silhouette appears only when one of its parts has a note, so planet walls do not clutter a ship's board. A motor stays part drawn for as long as a player stays in space; nothing says "locked". Click a silhouette and the strip shows its parts: known ones named with have/enough, unseen ones as pale pictures with no name.
 
@@ -83,12 +99,12 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 
 ## Saved, derived, determinism
 
-- **Saved:** `Granted` as is, `Credits`, and one new list, `Obtained: (Item, Count)`, appended in the order first obtained. The list index is the order found. No separate notes list.
+- **Saved:** `Granted` as is, `Credits`, and two new lists. `Obtained: (Item, Count)` is appended in the order first obtained; its index is the order found, so there is no separate notes list. `Sold: (Item, Count)` is what the market has bought, sorted by item.
 - **Derived:** an item-to-index map (lookups only), `Knowledge.Version`, bumped in `Obtain` and `Grant`, and each `Research`'s last seen versions, set so the first tick walks. The walk is idempotent, so a loaded world and a running one grant on the same tick.
 - **Removed:** `Deposits`, `AddDeposit`, `DepositOf`. Removing a saved field bumps the format: 41 to 42 (`Sim.cs:18`), and a save with `deposits` would otherwise be refused (`Sim.cs:108`).
 - **An existing world on load:** the step only removes `deposits`. It keeps everything `Granted` and its credits, and `Obtained` starts empty, so nothing closes and its counts begin again. Only our own test worlds have one (`first-hour-pace`), so neither gates nor blocks are refunded, and the step reads no mutable `Content`.
 - **Determinism:** integers, rounded up as above. `Obtained` and `Every` are lists; the map is never iterated. Within a tick the order is the sim's own: commands in stamped order, then surfaces by index, then modules (`Sim.cs:154`, `:171`). All peers get the same list and hash, as the slice is saved. Only `Obtain` and `Grant` write it, inside the tick.
-- **Inputs:** only existing commands, plus `Buy`. Drags are never commands.
+- **Inputs:** only existing commands. Drags are never commands.
 
 ## Co-op
 
@@ -103,16 +119,16 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 
 ## What goes, stays, changes
 
-- **Goes:** `Deposit`, the refusals `research.gateOpen` and `research.nothingToDeposit` and their text, `Prices.cs`, `CraftTimes`, `Tabs`, `TechNode`/`TechRing`/`TechTab`, `Done`, `Reached`, `Deposited`, `BuyProblem`, `TechRings`, `TechPanel` (replaced by a board panel), `TreeDemo`, `TechRingsTests`, `TechTreeTextTests`.
-- **Stays:** `Knows`, `Recipes`, `Credits`, `Blueprints`, `Layout.Known` (a map with none knows everything, so most tests do not notice), `StartKnown` unchanged, `Upgrades`, `Market` worths and prices, the trade capsule, `TechCamera`.
+- **Goes:** the `Deposit` command and what serves it (`Taken`, `Items` ops in `Research`), the refusals `research.gateOpen` and `research.nothingToDeposit` and their text, `CraftTimes` and the craft branch of `Prices.WorthOf`, the `ship` and `tech` tabs, `Deposits`, `AddDeposit`, `DepositOf`.
+- **Stays:** `Knows`, `Recipes`, `Credits`, `Blueprints`, `Layout.Known` (a map with none knows everything, so most tests do not notice), `StartKnown` unchanged, `Upgrades`, `Market` worths and prices, the trade capsule, `TechCamera`; for the market, `BuyBlock`, `Prices`, `TechNode`, `TechRing`, `TechTab`, `Done`, `Reached`, `BuyProblem`, `TechRings` and the rings' drawing out of `TechPanel`, which the board panel sits beside. `TreeDemo`, `TechRingsTests` and `TechTreeTextTests` shrink to the one tab.
 - **Changes:**
-  - `ResearchTests` (44 hits) is rewritten; `UpgradesTests`, `SurfacesTests.cs:73`, `WreckTests.cs:245`, `net/Tests/DesyncTests.cs:608` and `ContentTests.Tools.cs` move off `BuyBlock` and `Nodes`. `Research.Fuzz` draws `Buy`.
+  - `ResearchTests` (44 hits) is rewritten; `SurfacesTests.cs:73`, `WreckTests.cs:245`, `net/Tests/DesyncTests.cs:608` and `ContentTests.Tools.cs` move to blocks that are still on the market. `Research.Fuzz` draws `BuyBlock` alone.
   - The `Reachable` walk (`ContentTests.Production.cs:339`) becomes the rule's fixpoint, with `WithoutAStation` and `SolarCellsAreReachable` kept. `EveryBlueprintAndCraftIsInExactlyOneBlock` and the nothing-opened-early test go, since the rule makes them true.
   - The gate-seconds test (`:405`) becomes "the former is understood within 540 s of the bench".
 
 **Tests.**
-- **Scenarios:** each source counts once; each non-source leaves counts alone; a craft waits for a station; a station gone keeps the knowledge; a listing is never granted by counts; each `Buy` refusal.
-- **Invariants:** whatever lies in a slot or on the floor has a count or is known from the start (proven to bite by removing one source's count); `Obtained` holds each item once; after a walk, no rule-true non-listing is ungranted.
+- **Scenarios:** each source counts once; each non-source leaves counts alone; a craft waits for a station; a station gone keeps the knowledge; a market block is never granted by counts; a capsule's goods count towards an order once, by hand and from an auto station; a ring opens by sales alone, with what was sold before it came up.
+- **Invariants:** whatever lies in a slot or on the floor has a count or is known from the start (proven to bite by removing one source's count); `Obtained` holds each item once; after a walk, nothing outside the market that the rule allows is ungranted.
 - **Client:** layout and pencil in `logic/`.
 
 ## Deliberately not handled
@@ -121,7 +137,9 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 - **Loot that drifts off counts.** It was seen coming out, as the handbook's record already holds.
 - **No landing animation:** no stagger for a burst, no replay when the tablet opens, no picture over the hero beyond what a catch already shows. The dot says something is new; a stagger is the first thing to add if that is not enough.
 - **The board does not state the goal.** Nothing says an engine and a radar end the stage. A player finds them by following what they make; the playtest will show whether they do.
-- **Ring order on upgrades is gone.** `belt1` can be bought before any battery exists. Price is the only pace.
+- **Who the mafia is.** It has no characters and no text but its orders. Where it comes from, and why it does not fetch the hero, is left for the story; no mechanic rests on it.
+- **Orders are written by hand,** in `Content`: the market is a small chosen catalogue, unlike the board.
+- **A later ring may open at once** on what was sold before. We do not count sales per ring, as that would throw away what a player already did.
 - **Heroes do not see each other's boards,** and no note is shared, pointed at or written on.
 - **No search, no zoom to fit, no undo of a drag, no reset layout.**
 - **Two worlds with one seed** share a layout. Harmless.
@@ -133,14 +151,15 @@ Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), 
 - **The ship pays too well.** Four door segments give 12 plates and 8 gears in about 2 s of work (`Structures.cs:142`), skipping about 3 minutes of bench and opening the door blueprint itself; the player pays with a lock. It extends the scoop's listed risk; the same dial answers it.
 - **Scoop text goes stale.** Its step 4 reason, 400 credits of blocks forcing catching, is gone. Its stock still works: 16 chunks and 8 plates meet the furnace if those plates are hull plates (the design does not say), and 6 planks leave the bench short.
 - **Credits run out of uses:** about 74 000 in all (bags 39 300, belts 10 000, trade slots 12 800, panel 12 000) against more salvage all game. Contraband is the answer later; until then a late game has idle credits.
+- **An order may pull scarce goods from the main path.** Rings 3 and 4 want silicon and circuits, where quartz is the bottleneck. A player chooses, and nothing there is needed for the engine, but it may read as a trap; the playtest says.
 - **The first playtest's grind may just move:** the bench is 520 s to the former against today's 21 minutes, and real time is unmeasured.
 
 ## Cost
 
-- **Modules changed:** Knowledge, Items, Research, Registry (migration). None new.
-- **Content:** `EnoughWorth`, `EnoughMost`, the panel's price; tree data removed.
+- **Modules changed:** Knowledge, Items, Research, Trade (one call), Registry (migration). None new.
+- **Content:** `EnoughWorth`, `EnoughMost`, the market's rings; the other tabs removed.
 - **Client:** research feature: the board, the market page and the tablet's icon with its dot.
-- **Estimated diff** (the author's, before the cuts): sim +250/-350, client +700/-900, tests +300/-500.
+- **Estimated diff** (the author's, before the cuts and before the market kept its rings, so high): sim +250/-350, client +700/-900, tests +300/-500.
 - **Docs when accepted:** an ADR superseding tech-rings and amending black-market, room-upgrades and first-hour-pace; the concept's lines 38 to 45.
 
 ## Open questions
