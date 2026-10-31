@@ -189,6 +189,8 @@ public class DesyncTests(ITestOutputHelper output)
         // by it, strikes it, harpoons its wreck and reports its pounces' hits; the fuzz strikes and releases besides. A joiner
         // comes in mid-fight, Mem, Target and the wreck's blow in its welcome.
         string sentry = Content.Creatures.Sentry.Id, axe = Content.Weapons.Axe.Item;
+        // Reeled for twice what it takes the sentry to cut the line, so the cut comes of this script and not of the fuzz's luck.
+        int line = 2 * Content.Creatures.Sentry.Brain.OfType<Content.Creatures.CutTether>().Single().Ticks * Content.Harpoon.ReelSpeed;
         Covering(42, tried =>
         {
             int alive = 0, pounced = 0, cut = 0;
@@ -217,7 +219,7 @@ public class DesyncTests(ITestOutputHelper output)
                 if (tick % 60 == 0) first.Send(new Enter(Math.Clamp(cy - 1, 0, m.Grid.Height - 1) * width + Math.Clamp(cx - 6, 0, width - 1)));
                 if (tick % 90 == 30) first.Send(new Sim.Creatures.Strike(s.Id, axe));
                 if (tick % 130 == 70 && m.Creatures.ClingsTo(s) is int piece && m.Debris.PieceById(piece) is { } held)
-                    first.Send(new Reel(piece, held.X - 8000, held.Y));
+                    first.Send(new Reel(piece, held.X - line, held.Y));
             });
             return (run, alive >= 300 && pounced >= 1 && cut >= 1 ? null : $"{alive} sentry-ticks, {pounced} pouncing, {cut} after a cut");
         });
