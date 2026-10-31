@@ -50,8 +50,8 @@ A living document: what is decided about the game and what is still open. Techni
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
   solar panel is built of solar cells, silicon and glass assembled with wire, and of a photosensitive panel nothing makes:
-  only a panel taken apart gives one back, and its blueprint is known to no one: the wreck's own is the only one, and taken apart it is
-  gone ([first-hour-pace](decisions/2026-10-31-first-hour-pace.md), [trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
+  only a panel taken apart gives one back, and its blueprint is sold on the black market, a tab of the tech tree, for many credits
+  ([black-market](decisions/2026-10-31-black-market.md), [trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md),
   [photo-panel](decisions/2026-10-29-photo-panel.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,

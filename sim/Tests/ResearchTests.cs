@@ -300,9 +300,9 @@ public class ResearchTests
     }
 
     [Fact]
-    public void TakesTheSolarPanelApartForItsPartsAndNeverKnowsItsBlueprint()
+    public void TakesTheSolarPanelApartForItsPartsAndBuildsItAgainOnceItsBlueprintIsBought()
     {
-        // Out of the economy (first-hour-pace): what it is built of comes back, its photosensitive panel too, and it is gone for good.
+        // What it is built of comes back, its photosensitive panel too; its blueprint is the black market's (black-market).
         var w = new Scenario(Layout.Parse(["PPP       ", "          "], null) with { Known = ResearchSpec.StartKnown }, doubled: true);
         var panel = new Placement("machine", "solarPanel");
         var cost = Content.Machines.Get("solarPanel").Cost;
@@ -315,6 +315,9 @@ public class ResearchTests
         Assert.False(w.M.Research.Knows(panel));
         w.Do(new PlacePlan(At(0, 0), panel)).Run();
         Assert.Equal(["building.unknown"], w.Refusals.Select(r => r.Reason));
+        w.Refusals.Clear();
+        w.Do(new BuyBlock("solarPanel")).Run();
+        Assert.Equal(["research.noCredits"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
@@ -464,6 +467,6 @@ public class ResearchTests
             else w.Do(new BuyBlock(node.Id)).Run();
         }
         Assert.Empty(w.Refusals);
-        Assert.All(w.M.Research.Recipes().Where(r => !ResearchSpec.NeverKnown.Contains(r.Id)), r => Assert.True(r.Known, r.Id));
+        Assert.All(w.M.Research.Recipes(), r => Assert.True(r.Known, r.Id));
     }
 }

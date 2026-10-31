@@ -173,4 +173,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | accepted |  |
 | [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule |
 | [trade-capsule](2026-10-30-trade-capsule.md) | Goods leave by capsule | accepted |  |
+| [black-market](2026-10-31-black-market.md) | The black market | accepted |  |
 | [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted |  |

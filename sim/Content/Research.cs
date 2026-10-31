@@ -40,16 +40,10 @@ public static class Research
         "tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit",
     ];
 
-    /// <summary>
-    /// What a world never comes to know, though one may stand in it: the solar panel, out of the economy. The wreck's own taken
-    /// apart is gone for good, which the lifepod's air and the burner generator make a loss and no dead end (first-hour-pace).
-    /// </summary>
-    public static readonly IReadOnlyList<string> NeverKnown = ["solarPanel"];
-
     /// <summary>How many times its worth a craft costs on top of its ring's: a blueprint already costs what it is built of, a craft only a unit.</summary>
     public const int CraftTimes = 3;
 
-    private const string Better = "upgrades", Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine";
+    private const string Better = "upgrades", Materials = "materials", Structures = "structures", Machines = "machines", Power = "powerAndAir", Automation = "automation", Gear = "gear", Arc = "arc", Engine = "engine", ForSale = "forSale";
 
     private static (string Branch, string Id, int? Times) Block(string branch, string id) => (branch, id, null);
 
@@ -62,7 +56,7 @@ public static class Research
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
         new("ship", [Materials, Structures, Machines, Power, Automation, Gear, Better], null,
-            new(null, [], 1,
+            new TechRing(null, [], 1,
                 Block(Machines, "workbench"),
                 Block(Machines, "furnace"),
                 Up("bag1")),
@@ -167,6 +161,10 @@ public static class Research
                 Block(Engine, "igniter"),
                 Dear(8, Engine, "engine"),
                 Up("bag11"))),
+        // Open from the start, at a price rather than a stage (black-market). Its parts are another matter.
+        new("blackMarket", [ForSale], null,
+            new TechRing(null, [], 1,
+                Dear(5, ForSale, "solarPanel"))),
     ];
 
     /// <summary>Every node: tab by tab, ring by ring, a ring's gate before its blocks.</summary>

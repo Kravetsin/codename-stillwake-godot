@@ -115,7 +115,8 @@ public class UpgradesTests
     [Fact]
     public void EveryRingOfTheTreeOffersMoreBagAndTheSlotsAddUpToTheMost()
     {
-        foreach (var tab in Tree.Tabs)
+        // The black market is a shop, not a stage of the tree.
+        foreach (var tab in Tree.Tabs.Where(t => t.Id != "blackMarket"))
             for (int ring = 0; ring < tab.Rings.Length; ring++)
                 Assert.Contains(Tree.Nodes, n => n.Tab == tab.Id && n.Ring == ring && Upgrades.Of(n.Id)?.Kind == Upgrades.Bag);
         Assert.All(Upgrades.All, u => Assert.NotNull(Tree.Node(u.Id)));

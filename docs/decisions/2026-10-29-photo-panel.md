@@ -2,7 +2,7 @@
 
 - Status: accepted; built
 - Date: 2026-10-29
-- Amended by [first-hour-pace](2026-10-31-first-hour-pace.md): the panel is never known, and one taken apart is gone
+- Amended by [black-market](2026-10-31-black-market.md): the panel's blueprint is bought there
 - Amends [0041](0041-wreckage-of-many-kinds-and-circuits.md), [0057](0057-stations-one-model-for-every-crafting-machine.md)
   and [tech-graph](2026-10-30-tech-graph.md): the solar panel's cost, and how it opens
 
