@@ -179,4 +179,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted |  |
 | [hold-piles](2026-10-31-hold-piles.md) | The hold's piles | accepted |  |
 | [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
+| [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | accepted |  |
 | [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted |  |

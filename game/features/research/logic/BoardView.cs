@@ -28,15 +28,21 @@ public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, 
 /// </summary>
 public static class BoardView
 {
+    /// <summary>What of what has a slot shows as a note: what was obtained or is known.</summary>
+    public static HashSet<string> NotesOf(IReadOnlyList<BoardSlot> slots, BoardRead read)
+    {
+        var found = read.Found.ToHashSet(StringComparer.Ordinal);
+        var known = read.Granted.ToHashSet(StringComparer.Ordinal);
+        return slots.Select(s => s.Id).Where(id => found.Contains(id) || known.Contains(id)).ToHashSet(StringComparer.Ordinal);
+    }
+
     /// <param name="picked">The note or shape clicked; null for none.</param>
     public static BoardPicture Of(IReadOnlyList<BoardSlot> slots, IReadOnlyList<BoardThing> things, BoardRead read, string? picked)
     {
         var byId = things.ToDictionary(t => t.Id, StringComparer.Ordinal);
-        var found = read.Found.ToHashSet(StringComparer.Ordinal);
-        var known = read.Granted.ToHashSet(StringComparer.Ordinal);
         var slotted = slots.Select(s => s.Id).ToHashSet(StringComparer.Ordinal);
         double Pencil(BoardThing thing) => BoardPencil.Of(thing, read.Count, read.Stands);
-        var notes = slots.Select(s => s.Id).Where(id => found.Contains(id) || known.Contains(id)).ToHashSet(StringComparer.Ordinal);
+        var notes = NotesOf(slots, read);
         bool Shape(string id) => slotted.Contains(id) && !notes.Contains(id);
         var threads = new List<(string Note, string Shape)>();
         var ends = new HashSet<string>(StringComparer.Ordinal);

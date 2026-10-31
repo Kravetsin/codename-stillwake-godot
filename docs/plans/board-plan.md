@@ -8,7 +8,7 @@ merge leaves the game playable. Costs, recipes, worths, prices, the capsule and 
 
 **Where this plan and board.md differ, the plan wins.** It checked the design against the code: the wreck knows nothing from its start; the layout is keyed by a world id, not
 the seed; a market gate also needs its ring reached; ring 5 has a first order; slots also read what is granted; and a newly met order
-lights the dot. File lines are at 22d3a36a and drift: find a thing by its name, and `TechPanel`'s lines live in `ResearchTablet` or
+lights the lamp. File lines are at 22d3a36a and drift: find a thing by its name, and `TechPanel`'s lines live in `ResearchTablet` or
 `RingsPage` after B-3.
 
 **Words.** A *part* is an item in a recipe's `Cost`. A *count* is `Knowledge.Obtained`'s number for an item. A part is *enough* at
@@ -27,7 +27,7 @@ obtained or known, drawn in ink. A *silhouette* is a pale shape of a recipe not 
 | B-4 | the board's logic, unwired | nothing |
 | B-5 | the board, a tab beside the tree | a new first tab |
 | B-6 | world id, dragging, the layout's file | notes move and stay moved |
-| B-7 | the tablet's icon and dot | a key on the HUD |
+| B-7 | the tablet's icon and lamp | a key on the HUD |
 | B-8 | the market's rings by sales | upgrades move to the market |
 | B-9 | **the tree goes, format 42** | `ship` and `tech` gone, no deposits |
 | B-10 | docs; this plan deleted | nothing |
@@ -245,7 +245,7 @@ In `game/features/research/logic/`, with no Godot; floats are fine.
 **Done when** a `--board=first` run with a scripted drag shows the note moved, its threads following and the rest unmoved; a real new world
 relaunched by hand keeps a moved note and a second new world does not; format and docs guard are clean.
 
-### B-7 — The tablet's icon and dot
+### B-7 — The tablet's icon and lamp
 
 - **What is on screen:**
   - the hotbar at `(Margin, Margin)`, the gauge row under it at `Slots.GaugeRowOf`/`GaugeTop`, filling the wrist's column;
@@ -255,19 +255,19 @@ relaunched by hand keeps a moved note and a second new world does not; format an
   `WristLook.TabHeight`. The bag's sort key starts lower, at `InventoryTop`.
 - **What it copies:** look and press from `SortButton` over `WristKey` (`game/shared/WristKey.cs`); placing and `SlotScale.Subscribe` from
   `EnergyBar.cs:28-34`; its layer as `InventoryPanel._over` (`:59`), with `ScreenLayers.Hud`.
-- **`TabletKey.cs`:** glyph drawn in code, a wordless dot, a tip by the pointer. A press calls `Open`, as T and the menu's line do
+- **`TabletKey.cs`:** glyph drawn in code, a wordless lamp, a tip by the pointer. A press calls `Open`, as T and the menu's line do
   (`GameMenu.cs:37`, wired at `Main.cs:311`). `Hud()` (`Main.cs:222`) yields its rect for the markers.
-- **The dot reads for itself on a 0.25 s timer behind `Knowledge.Version`,** because the panel returns early while away (`TechPanel.cs:201`).
+- **The lamp reads for itself on a 0.25 s timer behind `Knowledge.Version`,** because the panel returns early while away (`TechPanel.cs:201`).
 - **`logic/BoardSeen.cs`** compares `Obtained` and `GrantedIds` with what this hero last saw, taken when the tablet closes and kept in
   `BoardFile`. Things new since then get a mark until the tablet closes. Client only.
-  - With no file, what was seen starts as things stand at the first read, so a new world has no dot on a blank board and a joining guest
+  - With no file, what was seen starts as things stand at the first read, so a new world has no lamp on a blank board and a joining guest
     has no marks.
   - A granted id with no note is ignored, so buying a bag lights nothing.
-- **Tests:** `BoardSeenTests`: dot on a new item and on a new grant with a note, off for more of a known item, off after opening; marks
-  until close; a bare world has no dot; a joined guest has no marks; buying a bag lights nothing.
+- **Tests:** `BoardSeenTests`: lamp on a new item and on a new grant with a note, off for more of a known item, off after opening; marks
+  until close; a bare world has no lamp; a joined guest has no marks; buying a bag lights nothing.
 
 **Done when**
-- `--board=first` frames show the dot before T and none after, with the mark on the new notes;
+- `--board=first` frames show the lamp before T and none after, with the mark on the new notes;
 - the key is compared by eye with the sort key in `--items` (`SortKeyAt`, `ItemsDemo.cs:148`), at `--slots large` too;
 - frames with `--open=crate` show it clear of the crate's panel;
 - a press on it does not reach the hand; format and docs guard are clean.
@@ -287,7 +287,7 @@ relaunched by hand keeps a moved note and a second new world does not; format an
 - **Client (`RingsPage`):** the hub and strip say sold over ordered, not carried. No button on a market gate. Text: `research.gate.order*`,
   `research.sold`. `TreeDemo.Seed` adds `sold` part way, and the script clicks the hub.
   - `Sell` moves no `Version`, so the page's change string (`TechPanel.cs:336-339`) gains what is sold of each market gate's order.
-  - A ring opens as a side effect of a launch, about five times a game, so a newly met order lights the dot, and the market's tab in the
+  - A ring opens as a side effect of a launch, about five times a game, so a newly met order lights the lamp, and the market's tab in the
     strip carries one until it is chosen. The key's timer reads `Done` of the market gates for this, and `BoardSeen` keeps how many it saw.
 - **Tests:**
   - a ring opens by sales alone, with no command; what was sold before it came up counts; its order met with the ring before short stays
@@ -295,7 +295,7 @@ relaunched by hand keeps a moved note and a second new world does not; format an
   - `EveryOrderedItemHasAPrice`;
   - `UpgradesTests.cs:119-122` reads the market tab; `:128-135` (`TheBeltGrows…`) goes;
   - `ResearchTests.Fill` and the property skip market gates;
-  - `BoardSeenTests`: a newly met order lights the dot, and an order already seen does not.
+  - `BoardSeenTests`: a newly met order lights the lamp, and an order already seen does not.
 - **Save:** none: upgrades granted stay granted.
 
 **Done when** a `--tree` sheet shows the market's hub at sold/ordered, its open rings lit as the `ship` tab's are in the same sheet, and
@@ -340,7 +340,7 @@ upgrades gone from the other tabs; the full suite passes; format and docs guard 
 - `grep -rnE "Deposit|DepositOf|CraftTimes|gateOpen|nothingToDeposit"` finds only `Migrations`, fixtures and `docs/`, READMEs having
   changed in this task;
 - the full suite passes, the release build passes, format and docs guard are clean;
-- frames: `--board=burst`, `--tree` on the market page with two tabs in the strip, and a real run of `--debris` showing a catch lighting the dot;
+- frames: `--board=burst`, `--tree` on the market page with two tabs in the strip, and a real run of `--debris` showing a catch lighting the lamp;
 - a dev save of format 41 loads by hand, its bag still large.
 
 ### B-10 — Docs, then this plan is gone

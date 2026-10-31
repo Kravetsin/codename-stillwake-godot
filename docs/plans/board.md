@@ -9,7 +9,7 @@ Written by `design-author`, cut down by `design-reviewer`. Design only, no plan 
 Timings are arithmetic from `Content`: a piece every 3 to 5 s (`Debris.cs:18`), a workbench at a fifth of full speed (`Stations.cs:41`).
 
 1. **Before the first find.** The tablet is empty: T shows a blank board, and nothing is drawn until the crew obtains something. A player already knows to catch what drifts by.
-2. **First catch.** A chunk goes into the bag. A dot lights on the tablet's icon. On the board a note stands alone, and threads run off it to three pale shapes, the closest to done: the scrap walls first. A hull plate gets its own note, the same shapes darken, and its threads reach the furnace and the workbench.
+2. **First catch.** A chunk goes into the bag. A lamp lights on the tablet's icon. On the board a note stands alone, and threads run off it to three pale shapes, the closest to done: the scrap walls first. A hull plate gets its own note, the same shapes darken, and its threads reach the furnace and the workbench.
 3. **Furnace.** At 10 chunks (a scrap wall gives one in 4 ticks) and 5 hull plates, the furnace inks in and its card joins the build menu.
 4. **Workbench.** It waits on 10 planks: 2 or 3 crates, one crate in about 33 s of stream. Its 4-plank cost is not the wait. The planks are what sends a player out to catch once the scoop's piles land (6 planks in stock; `feat/scoop-piles`, not on main yet).
 5. **First smelts.** A hull plate gives 2 iron and 1 scrap in 5 s; a chunk gives 4 scrap in 3 s. At 10 scrap, floor and ladder ink in.
@@ -93,7 +93,7 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 **Only one step ahead.** A silhouette is always a direct use of something noted, never a distant goal, and no hand placement exists on the board. The engine and the radar antenna are direct uses of a plate (`Machines.cs:191`, `:194`), so a player who clicks a plate can meet them there; threads go to what is closest to done, so they will not put them on show.
 
-**New notes.** A wordless dot on the tablet's icon lights when something has got a note or inked since that hero last opened the tablet, and a mark rings each such thing until the tablet closes. It is client-only, comparing `Obtained` and `Granted` with what the hero last saw, kept with the layout. The tablet opens with T and a line in the menu (`GameMenu.cs:37`); no on-screen button turned up in a search, so the plan adds a small icon.
+**New notes.** A wordless lamp on the tablet's icon lights when something has got a note or inked since that hero last opened the tablet, and a mark rings each such thing until the tablet closes. It is client-only, comparing `Obtained` and `Granted` with what the hero last saw, kept with the layout. The tablet opens with T and a line in the menu (`GameMenu.cs:37`); no on-screen button turned up in a search, so the plan adds a small icon.
 
 **Readouts stay.** The strip and its colours (takes, made at, goes into) stay; the buy button goes. `TechLinks` keeps working from recipes, keyed by id over every recipe and item rather than `TechNode` (`TechLinks.cs:24`). `TechCamera` stays, its bounds the notes' box plus a margin.
 
@@ -135,7 +135,7 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 - **Build and take apart counts as taken apart.** We keep no record of what the crew built. Knowing a node means its parts are already at `Enough`, so the loop only helps through `StartKnown`: a trade station for chunks and hull plates, about 9 s a cycle, scrap walls for chunks. It saves about a minute and hurts nobody.
 - **Loot that drifts off counts.** It was seen coming out, as the handbook's record already holds.
-- **No landing animation:** no stagger for a burst, no replay when the tablet opens, no picture over the hero beyond what a catch already shows. The dot says something is new; a stagger is the first thing to add if that is not enough.
+- **No landing animation:** no stagger for a burst, no replay when the tablet opens, no picture over the hero beyond what a catch already shows. The lamp says something is new; a stagger is the first thing to add if that is not enough.
 - **The board does not state the goal.** Nothing says an engine and a radar end the stage. A player finds them by following what they make; the playtest will show whether they do.
 - **Who the mafia is.** It has no characters and no text but its orders. Where it comes from, and why it does not fetch the hero, is left for the story; no mechanic rests on it.
 - **Orders are written by hand,** in `Content`: the market is a small chosen catalogue, unlike the board.
@@ -157,7 +157,7 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 - **Modules changed:** Knowledge, Items, Research, Trade (one call), Registry (migration). None new.
 - **Content:** `EnoughWorth`, `EnoughMost`, the market's rings; the other tabs removed.
-- **Client:** research feature: the board, the market page and the tablet's icon with its dot.
+- **Client:** research feature: the board, the market page and the tablet's icon with its lamp.
 - **Estimated diff** (the author's, before the cuts and before the market kept its rings, so high): sim +250/-350, client +700/-900, tests +300/-500.
 - **Docs when accepted:** an ADR superseding tech-rings and amending black-market, room-upgrades and first-hour-pace; the concept's lines 38 to 45.
 

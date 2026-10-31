@@ -35,6 +35,8 @@ public partial class ResearchTablet : CanvasLayer
     private readonly StripParts _parts;
     private readonly List<ITabletPage> _pages = [];
     private readonly BoardPage _board;
+    private readonly BoardKeep _keep = new(ProjectSettings.GlobalizePath("user://boards"));
+    private readonly TabletKey _key;
     private readonly List<PanelContainer> _tabBoxes = [];
     private ITabletPage _page;
     private double _sinceRead = ReadEvery;
@@ -75,7 +77,7 @@ public partial class ResearchTablet : CanvasLayer
             _tabBoxes.Add(box);
             x += box.CustomMinimumSize.X + 4;
         }
-        AddTab(T("research.tab.board"), _board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId));
+        AddTab(T("research.tab.board"), _board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, _keep));
         foreach (var tab in Content.Research.Tabs) AddTab(T($"research.tab.{tab.Id}"), new RingsPage(tab, _view, _parts, peer, send, () => _sinceRead = ReadEvery));
         _page = _pages[0];
         _head.AddChild(_progress);
@@ -103,6 +105,8 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_strip, _view, _detail]) _tablet.OnScreen(part);
         PaintTabs();
         _page.Show(true);
+        _key = new TabletKey(ui, inWorld, world, worldId, _keep, Open);
+        AddChild(_key);
     }
 
     /// <summary>Whether it is out: what Esc puts away before it opens the menu.</summary>
@@ -113,6 +117,7 @@ public partial class ResearchTablet : CanvasLayer
     {
         if (Shown) return;
         _ui.Hand.Set(Holding.Free);
+        _keep.Seen.Opened();
         _page.Show(true);
         _sinceRead = ReadEvery;
         _ui.TreeOpen.Set(true);
@@ -121,13 +126,20 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Puts it away: T again, Esc through the menu's <c>Escape</c>, Tab, E or B.</summary>
     public void Close()
     {
+        if (Shown) _keep.Seen.Closed();
         _ui.TreeOpen.Set(false);
         _page.LetGo();
         KeepBoard();
     }
 
     /// <summary>Writes what was moved on the board: as it is put away, and on every way out of the world.</summary>
-    public void KeepBoard() => _board.Keep();
+    public void KeepBoard()
+    {
+        if (!_keep.Write()) GD.PushWarning("The board was not kept.");
+    }
+
+    /// <summary>Where the key on the HUD lies on the screen: what the markers keep out of.</summary>
+    public Rect2 KeyCovers => _key.Covers;
 
     /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>
     public Vector2 ScreenOf(string id) => _page.ScreenOf(id);

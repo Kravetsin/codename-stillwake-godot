@@ -38,6 +38,7 @@ public static partial class En
         ["research.board.hint"] = "Click a note to see what it takes, where it is made and what it goes into",
         ["research.board.part"] = "{what} {have}/{enough}",
         ["research.atLifepod"] = "The lifepod",
+        ["research.key"] = "Tablet (T)",
         ["research.tab.board"] = "Board",
         ["research.tab.ship"] = "Ship",
         ["research.tab.tech"] = "Technologies",
