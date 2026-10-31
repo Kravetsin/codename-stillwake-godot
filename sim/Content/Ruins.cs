@@ -36,6 +36,12 @@ public static class Ruins
     /// </summary>
     public const int CradleShock = 5;
 
+    /// <summary>
+    /// The posts of a spire's two guards (spire guards), in the alloy at either end of its hall, each over the niche its guard stands
+    /// in: never hit, and gone with a wall of theirs dug out or with their guard killed, so that one never comes back.
+    /// </summary>
+    public const string PostLeft = "wardenPostLeft", PostRight = "wardenPostRight";
+
     /// <summary>The characters of a prefab.</summary>
     public const char Alloy = '#', Open = '.', Plaster = 'p', Plug = 's', Stone = 't', OpenStone = ',', Cache = 'c', Lamp = 'l', Keep = ' ';
 
@@ -47,7 +53,7 @@ public static class Ruins
     /// rise of 10). Ledges four rows apart either side by turns, so none is over the one under it on its side and each is a held
     /// jump's four rows up with room for the hero's head (a jump rises six, the hero is 2.625 of them tall: three rows apart, the ledge
     /// over the take-off stops it). At the bottom a hall nine rows tall under a hole in its roof, a step five rows under that and five
-    /// over the floor, a niche under a lintel at either end, a cache on its floor and the relic's cradle under the light.
+    /// over the floor, a niche under a lintel at either end, three rows clear over its guard, so it flies out at a hero up on the step, a cache on its floor and the relic's cradle under the light.
     /// </summary>
     public static readonly IReadOnlyList<string> Spire = Doubled(
     [
@@ -74,8 +80,8 @@ public static class Ruins
         "#.......................#",
         "#.......................#",
         "#.......................#",
-        "#........###............#",
-        "###...................###",
+        "###......###..........###",
+        "#.......................#",
         "#.......................#",
         "#.......................#",
         "#........c..............#",
@@ -176,15 +182,19 @@ public static class Ruins
         // its striker (CradleShock); the chip in the hearth home's niche is one.
         new(Cradle, Anchor.Floor, Tall: 6) { Across = 6, Strength = 16, Yields = [(Shard, 4)] },
         new(Niche, Anchor.Back, Tall: 4) { Behind = true, Strength = 4, Yields = [(Shard, 1)] },
+        // The guards' posts: their arena is the hall's interior and the two rows of the hole in its roof, the rock either side of the hole with it.
+        new(PostLeft, Anchor.Rock, Tall: 2) { Post = new(Creatures.Warden.Id, StandX: 2, StandY: 3, Left: 2, Top: -16, Right: 47, Bottom: 3) },
+        new(PostRight, Anchor.Rock, Tall: 2) { Post = new(Creatures.Warden.Id, StandX: -4, StandY: 3, Left: -46, Top: -16, Right: -1, Bottom: 3) },
     ];
 
     /// <summary>
     /// The spire's hall furnished (0091, the homes page; 0096): the relic's cradle under the light, and a post someone kept — a lamp
-    /// hanging under the step over the cache, the makers' banner by it, a shelf across the light, a cobweb up under the roof. Pieces by kind at their own cells in <see cref="Spire"/>'s columns and rows, as a home's are, drawn at the
+    /// hanging under the step over the cache, the makers' banner by it, a shelf across the light, a cobweb up under the roof; and its
+    /// guards' posts in the end walls. Pieces by kind at their own cells in <see cref="Spire"/>'s columns and rows, as a home's are, drawn at the
     /// prefab's characters.
     /// </summary>
     public static readonly IReadOnlyList<(string Kind, int X, int Y)> SpireFurnishing =
-        Placed([("banner", 7, 24), ("ceilLamp", 9, 24), (Cradle, 11, 27), ("wallShelf", 16, 24), ("cobweb", 15, 19)]);
+        Placed([("banner", 7, 24), ("ceilLamp", 9, 24), (Cradle, 11, 27), ("wallShelf", 16, 24), ("cobweb", 15, 19), (PostLeft, 0, 26), (PostRight, 24, 26)]);
 
     /// <summary>
     /// A prefab drawn a character a 16 px cell, as the 8 px cells it covers (0104): each character two by two, so its walls are

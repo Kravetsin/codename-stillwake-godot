@@ -49,6 +49,15 @@ public interface IBuildingQueries
 
     /// <summary>What a shot's hit in <paramref name="cell"/> strikes, by a cell of it: a built piece by its first cell, whatever cell of it is met; else the cell itself. A thing a shot passed is remembered by this, so a piece over several cells is hit once.</summary>
     int ShotKey(int cell);
+
+    /// <summary>The relics the ground grew with, ascending by cell, standing or taken (0096).</summary>
+    IReadOnlyList<Relic> Relics { get; }
+
+    /// <summary>The growths standing that a creature is tied to (<c>Flora.Post</c>), ascending by cell.</summary>
+    IReadOnlyList<Plant> Posts { get; }
+
+    /// <summary>The post standing with its own cell at <paramref name="cell"/>; null for none.</summary>
+    Plant? PostAt(int cell);
 }
 
 /// <summary>How another module may change what stands on the grid.</summary>
@@ -56,6 +65,9 @@ public interface IBuildingOps
 {
     /// <summary>A hit of <paramref name="damage"/> by peer <paramref name="peer"/>'s shot on what stands solid in <paramref name="cell"/>: true when it broke.</summary>
     bool Hit(int peer, int cell, int damage);
+
+    /// <summary>Fells the post at <paramref name="cell"/> for good, its creature killed; nothing if it is gone already.</summary>
+    void FellPost(int cell);
 }
 
 /// <summary>

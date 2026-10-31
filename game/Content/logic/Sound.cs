@@ -453,7 +453,7 @@ public static class Sound
     };
 
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
-    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack"];
+    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack", Stillwake.Content.Ruins.PostLeft, Stillwake.Content.Ruins.PostRight];
 
     private static Dictionary<string, (Cue? Hit, Cue Fall)> Sounding(params (string[] Kinds, Cue? Hit, Cue Fall)[] groups) =>
         groups.SelectMany(g => g.Kinds.Select(kind => (kind, g.Hit, g.Fall))).ToDictionary(k => k.kind, k => (k.Hit, k.Fall));

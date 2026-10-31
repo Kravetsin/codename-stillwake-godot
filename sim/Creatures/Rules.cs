@@ -100,6 +100,9 @@ internal abstract class MoveRule
     /// <summary>Whether the body walks its way under it: kept against a wall till its steering turns it.</summary>
     internal abstract bool Walks(Act a);
 
+    /// <summary>Whether a walker making it flies now: no gravity, no steps, its act over at the first solid cell on its way.</summary>
+    internal virtual bool Flies(Spec.Species spec, Act a) => false;
+
     /// <summary>How it shows: crouched, then under way.</summary>
     internal virtual Posture PostureOf(Act a) => a.Phase == ActPhase.Active ? Posture.Charge : Posture.WindUp;
 }

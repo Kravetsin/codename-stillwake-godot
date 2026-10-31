@@ -13,6 +13,7 @@
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
 | `logic/Creatures.En.cs` | Its player text (`En`) |
 | `logic/OwnShots.cs` | The creatures this player's own shots hit, heard as its blows. |
+| `PlaceholderBodies.cs` | A plain box for a look with no art yet. |
 | `TickBodies.cs` | The tick (the sentry): sprite, lamp, arcs, burner, sparks, death. |
 | `ShotsView.cs` | Every peer's shots but a guest's own, drawn a tick behind; heard fired; their hits; the sentry's arcs. |
 | `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |

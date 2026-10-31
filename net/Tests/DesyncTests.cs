@@ -224,6 +224,47 @@ public class DesyncTests(ITestOutputHelper output)
     }
 
     [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncWithGuardsInASpiresHall()
+    {
+        // The spire's guards: the first client beamed down stands in the hall, strikes them and reports their pounces' hits, going off
+        // now and then so they calm, and the fuzz digs and strikes besides. A joiner comes in with them awake, Mem and all.
+        string planet = Content.PlanetTypes.SmallSpire.Id, warden = Content.Creatures.Warden.Id, axe = Content.Weapons.Axe.Item;
+        Covering(77, tried =>
+        {
+            int alive = 0, flew = 0, hit = 0;
+            var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, ticks: 1200, joinAt: 600, worldEvery: 6, tamper: (tick, clients) =>
+            {
+                var world = clients[0].World;
+                var first = clients[0];
+                if (world.Surfaces.FirstOrDefault(s => s.Kind == planet) is not { } down)
+                {
+                    if (tick % 20 == 0) first.Send(new OpenSurface(planet));
+                    return;
+                }
+                var on = Registry.On(world, down.Id);
+                var guards = on.Creatures.Creatures.Where(c => c.Species == warden).ToList();
+                alive += guards.Count;
+                flew += guards.Count(c => c.Posture == Sim.Creatures.Posture.Charge);
+                if (world.SurfaceOf(first.Id) != down.Id)
+                {
+                    if (tick % 10 == 0) first.Send(new Transfer(down.Id));
+                    return;
+                }
+                foreach (var c in guards.Where(c => c.Posture == Sim.Creatures.Posture.Charge))
+                {
+                    first.Send(new Sim.Creatures.HitBy(c.Id));
+                    hit++;
+                }
+                if (tick % 10 != 0) return;
+                if (on.Building.Posts.FirstOrDefault() is { } post && tick % 200 < 150) first.Send(new Enter(post.Cell + 3 * on.Grid.Width + 20));
+                else first.Send(new Enter(on.Crew.Spawn));
+                if (guards.Count > 0 && tick % 50 == 0) first.Send(new Sim.Creatures.Strike(guards[0].Id, axe));
+            });
+            return (run, alive >= 100 && flew >= 1 && hit >= 1 ? null : $"{alive} guard-ticks, {flew} flying, {hit} hits");
+        });
+    }
+
+    [Fact]
     public void KeepsEveryClientAndAJoinerInSyncWithCreaturesOnSmallPlanets()
     {
         // Creatures on small planets (0102): the first client beamed down lets lopers out over the ground by its hero and
