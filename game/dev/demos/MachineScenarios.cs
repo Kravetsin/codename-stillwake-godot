@@ -155,6 +155,16 @@ public sealed class TreeScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new TreeDemo(c.M));
 }
 
+[Dev("--board", "the board on the tablet, blank or with =first, =near, =burst, =circuit or =late seeded (BoardDemo)", Shape = DevShape.Either)]
+public sealed class BoardScenario : DevScenario
+{
+    public override Layout? Map => Registry.Wreck;
+
+    public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, Args.Given("--board"));
+
+    public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M));
+}
+
 [Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]
 public sealed class ToolCardsScenario : DevScenario
 {

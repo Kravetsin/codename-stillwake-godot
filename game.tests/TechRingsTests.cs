@@ -7,7 +7,7 @@ namespace Stillwake.Game.Tests;
 /// <summary>The rings laid out, and how the blocks tie to each other (2026-10-30-tech-rings).</summary>
 public class TechRingsTests
 {
-    private static TechLink Link(string id) => TechLinks.Of(Spec.Research.Node(id)!);
+    private static TechLink Link(string id) => TechLinks.Of(id);
 
     [Fact]
     public void EveryBlockStandsOnItsTabAndNoTwoOverlap()
@@ -52,6 +52,18 @@ public class TechRingsTests
         Assert.Contains(Link("coil").Takes, t => t.Item == "wire");
         Assert.Contains("wire", Link("coil").From);
     }
+
+    [Fact]
+    public void AnItemWithNoBlockTiesToo()
+    {
+        Assert.Contains("wallScrap", Link("scrapChunk").UsedIn);
+        Assert.Contains("furnace", Link("hullPlate").UsedIn);
+        Assert.Empty(Link("scrapChunk").Takes);
+    }
+
+    [Fact]
+    public void WhatOnlyTheMarketOpensStillShowsUnderGoesInto() =>
+        Assert.Contains("solarPanel", Link("frame").UsedIn);
 
     [Fact]
     public void AStationTiesToWhatIsMadeAtIt()

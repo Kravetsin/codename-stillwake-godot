@@ -12,7 +12,23 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>What every page of the research tablet writes with: the strip's controls, and its words and pictures of a thing.</summary>
 public sealed class StripParts(TipSpots tips)
 {
-    public static readonly Color Line = new("1a1e25"), Faint = new("7a8090"), Warm = new("f0c050");
+    public static readonly Color Line = new("1a1e25"), Faint = new("7a8090"), Warm = new("f0c050"), Bought = new("6fe08a"),
+        Picked = new("ffffff"), From = new("5eead4"), MadeAt = new("f28fd0"), UsedIn = new("7dd3fc");
+
+    /// <summary>Pixels the pointer may move in a press still meant as a click.</summary>
+    public const float ClickSlack = 4;
+
+    /// <summary>A thing not known yet: its picture's shape alone, a dark grey that comes up as <c>pencil</c> goes from 0 to 1.</summary>
+    private static readonly Shader PencilShape = new()
+    {
+        Code = """
+            shader_type canvas_item;
+            uniform float pencil = 0.0;
+            void fragment() {
+                COLOR = vec4(vec3(mix(0.16, 0.6, pencil)), texture(TEXTURE, UV).a * COLOR.a * 0.9);
+            }
+            """,
+    };
 
     private const int Big = 64, Entry = 24, UsedLarge = 32, UsedSmall = 24, UsedManyFrom = 20;
 
@@ -71,25 +87,41 @@ public sealed class StripParts(TipSpots tips)
         MouseFilter = Control.MouseFilterEnum.Ignore,
     };
 
+    /// <summary>Draws <paramref name="picture"/> as a shape, <paramref name="pencil"/> of the way to being understood.</summary>
+    public static void Pale(TextureRect picture, double pencil)
+    {
+        if (picture.Material is not ShaderMaterial material) picture.Material = material = new ShaderMaterial { Shader = PencilShape };
+        material.SetShaderParameter("pencil", (float)pencil);
+    }
+
+    /// <summary>The pale picture of what is not known: no name by it.</summary>
+    public TextureRect Unseen(string id)
+    {
+        var picture = Picture(id, Entry);
+        Pale(picture, 0);
+        return picture;
+    }
+
     public string NameOf(string id) =>
         Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}") : _placements.ContainsKey(id) ? ItemCards.NameOf(id, _placements[id]) : T($"item.{id}");
 
-    /// <summary>The pictures of <paramref name="ids"/>, smaller the more of them there are, each named by the pointer through <paramref name="tip"/>.</summary>
-    public Control Pictures(IReadOnlyList<string> ids, Func<string, Tip> tip)
+    /// <summary>The pictures of <paramref name="ids"/>, smaller the more of them there are, each named by the pointer through <paramref name="tip"/>, those <paramref name="pale"/> says pale.</summary>
+    public Control Pictures(IReadOnlyList<string> ids, Func<string, Tip> tip, Func<string, bool>? pale = null)
     {
         var flow = Flow(4);
         int size = ids.Count > UsedManyFrom ? UsedSmall : UsedLarge;
         foreach (string id in ids)
         {
             var one = Picture(id, size);
+            if (pale?.Invoke(id) == true) Pale(one, 0);
             Tips.Add(one, () => tip(id));
             flow.AddChild(one);
         }
         return flow;
     }
 
-    /// <summary>The strip's first column: the large picture, the name and what it is.</summary>
-    public Control Title(string name, string about, string? id, Func<string, Tip> tip)
+    /// <summary>The strip's first column: the large picture, in <paramref name="pencil"/> if it is a shape, the name and what it is.</summary>
+    public Control Title(string name, string about, string? id, Func<string, Tip> tip, double? pencil = null)
     {
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(250, 0) }, 10);
         if (id != null)
@@ -97,6 +129,7 @@ public sealed class StripParts(TipSpots tips)
             var picture = Picture(id, Big);
             picture.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
             picture.MouseFilter = Control.MouseFilterEnum.Ignore;
+            if (pencil is { } done) Pale(picture, done);
             Tips.Add(picture, () => tip(id));
             row.AddChild(picture);
         }

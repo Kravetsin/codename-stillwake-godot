@@ -10,6 +10,7 @@ public class TechTreeTextTests
     [Fact]
     public void NamesEveryTabBranchAndGateAndSaysEveryRefusal()
     {
+        Assert.True(Table.ContainsKey("research.tab.board"));
         Assert.All(Spec.Research.Tabs, t => Assert.True(Table.ContainsKey($"research.tab.{t.Id}"), t.Id));
         Assert.All(Spec.Research.Tabs.SelectMany(t => t.Branches), b => Assert.True(Table.ContainsKey($"research.branch.{b}"), b));
         Assert.All(Spec.Research.Nodes.Where(n => n.Gate), g => Assert.True(Table.ContainsKey($"research.gate.{g.Id}"), g.Id));
