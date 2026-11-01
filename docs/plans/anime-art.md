@@ -47,8 +47,7 @@ from playing it are this step's list:
   ones are checked in frames only.
 - **Scrap is too clean.** The pixel hull is rusty and battered; this one has first rust at its seams. Bring more damage back, and the
   wreck's dress (`wreck_dress`, still pixels) with it.
-- **Moss.** Stretching one logical pixel along a run cannot carry this style. Draw the run in pieces instead, which changes
-  `CaveView`'s `Band`.
+- **Moss.** Done: [pieces cut to meet along a run](../decisions/2026-11-01-moss-in-ink.md), the user's «Космы», both tones. At the switch `Atlas.Band` and `Planting.Strip` go.
 - **The stone's pattern** was stained glass. Done: large masses of close tone, only some cracks drawn, accepted by the user.
 
 The acacia is drawn (`flora`); the far ones in the sky are still pixels.

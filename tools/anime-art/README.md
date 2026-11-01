@@ -38,7 +38,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `items`   | `items/<id>`: the ten items of the slice's hotbar and bag                                                 |
 | `room`    | `wall_scrap`, `back_scrap`, `wall-edge_scrap_*`, `door_closed_*`, `door_open_*`                           |
 | `smelter` | `machine_smelter`, `smelter_work_*`                                                                       |
-| `caves`   | stone, ice vein and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/mossGreen_*`, `caves/crystalIce*` |
+| `caves`   | stone, ice vein and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
 | `tick`, `warden` | `creatures/inkTick/*`, `creatures/inkIstukan/*`, and `Content/logic/TickInk.cs`, `IstukanInk.cs`: the picked guards, posed by `TickRig` and `IstukanRig` |
 | `flora`   | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
@@ -62,5 +62,5 @@ and the light are the engine's, one for every subject (`engine.js`), per world p
 - A picture must be exactly 4 times the logical one; the game reports the logical size and lays out by it.
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
 - A `top_*` picture lays its ground line on row 16; rows above it stand on the cell above, rows below lie over the block, in its `front` picture.
-- A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss has its band
-  solid on the rows `CaveView` stretches.
+- A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
+  run, px 4 and 20 of 24: every variant has the same cross-section there, its torn end past them.

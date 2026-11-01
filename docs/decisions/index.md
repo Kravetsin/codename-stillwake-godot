@@ -185,4 +185,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
 | [guards-in-ink](2026-11-01-guards-in-ink.md) | The guards in ink | accepted |  |
 | [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
+| [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
