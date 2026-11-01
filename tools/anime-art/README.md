@@ -38,6 +38,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `items`   | `items/<id>`: the ten items of the slice's hotbar and bag                                                 |
 | `room`    | `wall_` and `wall-edge_` of scrap and iron, `back_scrap`, `back_iron_*`, `door_closed_*`, `door_open_*`   |
 | `wreck`   | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |
+| `piles`   | `machine_pile*`: the hold's heaps                                                                         |
 | `smelter` | `machine_smelter`, `smelter_work_*`                                                                       |
 | `caves`   | stone, ice vein and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |

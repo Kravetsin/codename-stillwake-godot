@@ -16,6 +16,8 @@ pixel generator reads it.
 **A torn cell's mask takes no finish.** `WreckDress.Torn` needs pure magenta to cut, so `wreck_tears` is written straight at 4x. `ShipTiles` cuts the fine scrap wall by it exactly as it cuts the
 pixel one by the pixel mask, and falls back to pixels without the flag.
 
+**The hold's piles came after, on the user's word,** their pieces of the same kinds as the pixel heaps', placed by hand in `tools/anime-art/subjects/piles.js` and torn at their edges. The first try, whole pieces on a dark bell, read as a cartoon; a pile is now packed and its shape is broken by what lies on it. Drawn on no pick, as the rest here: the design is [hold-piles](2026-10-31-hold-piles.md)'.
+
 ## Deliberately not here
 
 - **More damage on the scrap wall.** The user's call.
