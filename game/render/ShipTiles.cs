@@ -59,8 +59,9 @@ public sealed class ShipTiles
                     for (int half = 0; half < 2; half++)
                     {
                         var top = tops.GetRegion(new Rect2I(v * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
-                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
-                        if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, v, front, half), top, Relief.None));
+                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile; a hi-res picture may draw where the pixels did not.
+                        string name = TopName(natural, v, front, half);
+                        if (!top.IsInvisible() || HiRes.Load(name)?.IsInvisible() == false) pictures.Add(Picture(name, top, Relief.None));
                     }
             // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
             // several on the second.

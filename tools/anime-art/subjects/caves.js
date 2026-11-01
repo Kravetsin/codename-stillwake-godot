@@ -4,15 +4,23 @@
 const { ell, poly, rng, bake, canvas } = Anime;
 
 const GROUNDS = {
-  stone: { back: ['#22252f', '#262a35', '#1f222b'], tones: [
-    { base: '#5d6474', shade: '#3f4358', lite: '#7c8393', spec: '#a6adba', ink: '#0f111b' },
-    { base: '#4d5364', shade: '#35394e', lite: '#696f80', spec: '#8c92a2', ink: '#0f111b' },
-    { base: '#6a7180', shade: '#484c60', lite: '#8b92a0', spec: '#b4bac4', ink: '#0f111b' },
-  ], cells: 62 },
-  soil: { back: ['#2a2024', '#2f2428', '#261c20'], tones: [
-    { base: '#6a5040', shade: '#4a3438', lite: '#876a50', spec: '#a68a68', ink: '#140c0e' },
-    { base: '#5c4438', shade: '#402c32', lite: '#785c48', spec: '#967858', ink: '#140c0e' },
-  ], cells: 90 },
+  stone: { back: ['#181a22', '#1b1d26', '#16181f'], tones: [
+    { base: '#565c6a', shade: '#3d424f', lite: '#6c7280', spec: '#868c98', ink: '#0f111b' },
+    { base: '#4e5462', shade: '#373c48', lite: '#646a78', spec: '#7c8290', ink: '#0f111b' },
+    { base: '#5e6472', shade: '#434855', lite: '#747a88', spec: '#8e94a0', ink: '#0f111b' },
+  ], cells: 26 },
+  soil: { back: ['#1e171a', '#221a1d', '#1b1417'], tones: [
+    { base: '#59443a', shade: '#3e2e2c', lite: '#6e5646', spec: '#866c58', ink: '#140c0e' },
+    { base: '#4f3c33', shade: '#372826', lite: '#644c3e', spec: '#7c6250', ink: '#140c0e' },
+    { base: '#63493b', shade: '#46322c', lite: '#786050', spec: '#907460', ink: '#140c0e' },
+  ], cells: 40,
+  // Stones in the earth, each placed: x, y, half width, half height.
+  stones: [[14, 9, 2.2, 1.4], [37, 22, 1.4, 1], [58, 7, 1.6, 1.1], [71, 33, 3, 1.9], [96, 14, 1.3, .9], [117, 27, 2, 1.3], [24, 44, 2.6, 1.6], [49, 55, 1.4, 1], [88, 49, 2, 1.2], [108, 58, 1.5, 1]],
+  grass: [
+    { base: '#4a7a38', shade: '#2f5530', lite: '#6a9a48', spec: '#6a9a48', ink: '#10200f' },
+    { base: '#3f6e34', shade: '#2a4d2c', lite: '#5d9042', spec: '#5d9042', ink: '#10200f' },
+    { base: '#86804a', shade: '#5c5834', lite: '#a09858', spec: '#a09858', ink: '#1a160c' },
+  ] },
 };
 const VEIN = { base: '#6cb4e4', shade: '#3c74b4', lite: '#b4e4fa', spec: '#ffffff', ink: '#0f1c34' };
 
@@ -49,11 +57,11 @@ const flatPoly = (cell, dx, dy, k) => {
   return poly(cell.flatMap((p) => [cx + (p[0] - cx) * k + dx, cy + (p[1] - cy) * k + dy]));
 };
 
-/** A sheet of cracked blocks: each its own tone, its shadow a hard crescent on the side from the light, a lit chip on its other corner. */
+/** A sheet of ground: large masses of close tone, each with a hard shadow along its foot, and only some of the cracks between them drawn, so it reads as one body and not as paving. */
 function groundSheet(look, seed, dim) {
   return { w: 128, h: 64, tile: true, K: 2, draw(a) {
-    const r = rng(seed ^ 0x13);
-    for (const cell of cellsOf(128, 64, dim ? 34 : look.cells, seed)) {
+    const r = rng(seed ^ 0x13), cells = cellsOf(128, 64, dim ? 34 : look.cells, seed), ink = look.tones[0].ink;
+    for (const cell of cells) {
       const t = look.tones[Math.floor(r() * look.tones.length)];
       if (dim) {
         // The wall behind: dark and quiet, so what the hero can stand on reads first. One tone a facet, no lines.
@@ -61,9 +69,14 @@ function groundSheet(look, seed, dim) {
         a.flat(flatPoly(cell, 0, 0, 1.02), look.back[Math.floor(k * look.back.length)]);
         continue;
       }
-      const m = { base: t.shade, shade: t.shade, lite: t.base, spec: t.lite, ink: t.ink };
-      a.shape(flatPoly(cell, 0, 0, 1), m, { outer: false, lite: flatPoly(cell, -.5, -.6, 1), spec: flatPoly(cell, -1.6, -1.8, .55) });
+      a.shape(flatPoly(cell, 0, 0, 1.03), t, { outer: false, edge: false, shade: 1.1 });
     }
+    if (dim) return;
+    for (const cell of cells) for (let i = 0; i < cell.length; i++) {
+      const p = cell[i], q = cell[(i + 1) % cell.length];
+      if (r() < .3) a.line(`M${p[0]} ${p[1]}L${q[0]} ${q[1]}`, { w: 2.4, c: ink });
+    }
+    for (const [x, y, w, h] of look.stones || []) lump(a, x, y, w, h, GROUNDS.stone.tones[Math.floor(r() * 3)], r);
   } };
 }
 
@@ -93,8 +106,34 @@ function topOf(look, v, front, half) {
   return bake({ w: 8, h: 32, draw(a) {
     const m = look.tones[Math.floor(r() * look.tones.length)];
     if (front) { if (r() < .35) lump(a, 2 + r() * 4, 17 + r() * .4, .7 + r() * .5, .5 + r() * .2, m, r); }
-    else if (r() < .75) lump(a, 3.7 + r() * .6, 15.7 + r() * .3, 1.5 + r() * 2.2, .8 + r() * .7, m, r);
+    else if (!look.grass && r() < .75) lump(a, 3.7 + r() * .6, 15.7 + r() * .3, 1.5 + r() * 2.2, .8 + r() * .7, m, r);
+    if (look.grass) turf(a, look.grass, front, r);
   } });
+}
+
+/** The living edge of grown ground, one half column of it, its ends level so columns join: behind the hero a band of turf with thick tufts on it; before him turf lying over the block's top, its ragged lip hanging down the soil, and a few short blades. */
+function turf(a, grass, front, r) {
+  const [lit, deep] = grass, wavy = (y0, spread, flip) => {
+    const pts = [];
+    for (let k = 0; k <= 8; k++) pts.push(k, y0 + (k === 0 || k === 8 ? 0 : flip * r() * spread));
+    return pts;
+  };
+  const blade = (x, root, h, lean, t) => {
+    const tip = Math.min(7.7, Math.max(.3, x + lean)), mid = x + (tip - x) * .35;
+    a.shape(`M${x - .42} ${root}Q${mid - .3} ${root - h * .55} ${tip} ${root - h}Q${mid + .32} ${root - h * .5} ${x + .42} ${root}Z`, t, { outer: false, edge: false, shade: `M${x} ${root}Q${mid + .05} ${root - h * .5} ${tip} ${root - h}L${x + .6} ${root}Z` });
+  };
+  if (front) {
+    const lip = wavy(18, 2, 1), under = [];
+    for (let i = lip.length - 2; i >= 0; i -= 2) under.push(lip[i], lip[i + 1]);
+    a.shape(poly(-.2, 15.7, 8.2, 15.7, ...under), deep, { outer: false, edge: false, lite: poly(-.2, 15.7, 8.2, 15.7, 8.2, 16.9, -.2, 16.9) });
+    a.line('M' + lip.join(' ').replace(/(\S+ \S+) /g, '$1L'), { w: 1.8, c: deep.ink });
+    for (let i = 0, n = 2 + Math.floor(r() * 3); i < n; i++) blade(.8 + r() * 6.4, 16.4, 1.6 + r() * 2, (r() - .5) * 1.4, grass[Math.floor(r() * 2)]);
+    return;
+  }
+  const crown = wavy(14.9, .9, -1);
+  for (let i = 0, n = 6 + Math.floor(r() * 4); i < n; i++) blade(.5 + r() * 7, 15.4, 3 + r() * 4.2, (r() - .5) * 2.2, deep);
+  a.shape(poly(...crown, 8.2, 16.4, -.2, 16.4), lit, { outer: false, edge: false, shade: poly(-.2, 15.6, 8.2, 15.6, 8.2, 16.4, -.2, 16.4) });
+  for (let i = 0, n = 5 + Math.floor(r() * 4); i < n; i++) blade(.5 + r() * 7, 15.6, 2 + r() * 3.4, (r() - .5) * 1.8, r() < .12 ? grass[2] : lit);
 }
 
 /** A ground's details over its cells: pebbles and cracks; features a boulder, a long crack and a heap. */
@@ -117,7 +156,7 @@ function detailOf(look, k) {
 }
 
 // Moss: a solid band along its face at the rows the view stretches, tufts off it.
-const MOSS = { base: '#3f9a3c', shade: '#256a36', lite: '#79c850', spec: '#c8ec84', ink: '#0d2a18' };
+const MOSS = { base: '#4f7a3c', shade: '#2f5232', lite: '#7aa350', spec: '#b4cc7c', ink: '#0d2a18' };
 const BAND = { top: [4, 5], bottom: [19, 21], left: [4, 5], right: [19, 20] };
 
 function mossPicture(face, v) {
@@ -215,7 +254,7 @@ Subjects.caves = function () {
   out('wall_soil', bake(groundSheet(GROUNDS.soil, 0x5703, false)));
   out('back_soil', bake(groundSheet(GROUNDS.soil, 0x5704, true)));
   const edges = {
-    stone: { lite: '#9aa2b0', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#9aa2b0', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#9c8064', shade: '#33242a', ink: '#140c0e' },
+    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
   };
   for (const [name, look] of Object.entries(edges)) for (let open = 1; open < 16; open++) out(`wall-edge_${name}_${open}`, AnimeEdge(open, look));
   for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
@@ -225,7 +264,7 @@ Subjects.caves = function () {
   for (const face of ['top', 'bottom', 'left', 'right']) for (let v = 0; v < 4; v++) {
     const c = bake(mossPicture(face, v));
     out(`caves/mossGreen_${face}_${v}`, c);
-    out(`caves/mossGreen_${face}_${v}_glow`, glowOf(c, '#7cf06a', 3, .3));
+    out(`caves/mossGreen_${face}_${v}_glow`, glowOf(c, '#7ca85a', 3, .2));
   }
   for (let v = 0; v < 3; v++) {
     for (const [family, hang] of [['crystalIce', false], ['crystalIceHang', true]]) {
