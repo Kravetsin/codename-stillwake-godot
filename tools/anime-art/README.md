@@ -44,6 +44,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
 | `tick`, `warden` | `creatures/inkTick/*`, `creatures/inkIstukan/*`, and `Content/logic/TickInk.cs`, `IstukanInk.cs`: the picked guards, posed by `TickRig` and `IstukanRig` |
 | `backdrop` | `planet/far`, `planet/ridge`, `planet/hills` and their far acacias, at 2x: soft and always far            |
+| `tufts`   | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn`         |
 | `flora`   | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
 
 ## Run

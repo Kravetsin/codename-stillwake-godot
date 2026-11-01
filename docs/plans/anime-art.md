@@ -41,8 +41,8 @@ time, for every picture is now mipmapped at startup. A miss here changes the pla
 The slice proved the ship and not the planet, which is about a third of the pictures and the hardest of them. The user's notes
 from playing it are this step's list:
 
-- **Grass.** Done for soil: turf over the block's top and thick tufts (`top_soil`), accepted from a frame. The flora's own tufts are
-  still pixels, and the look on other planet types is open.
+- **Grass.** Done for soil: turf over the block's top and thick tufts (`top_soil`), accepted from a frame, and [the flora's tufts](../decisions/2026-11-02-tufts-in-ink.md).
+  The look on other planet types is open. Bushes, rocks and bells are still pixels.
 - **Back walls** must stay dark and quiet behind what stands before them. Darkened on the ship, stone and soil; the stone and soil
   ones are checked in frames only.
 - **The hull.** Done: [iron and the wreck's dress](../decisions/2026-11-01-iron-and-dress-in-ink.md); the scrap wall stays as it is, by the user's call.
