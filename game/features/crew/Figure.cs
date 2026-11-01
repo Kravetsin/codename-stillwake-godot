@@ -99,7 +99,20 @@ public partial class Figure : Node2D
     private readonly Sprite2D _plan;
     /// <summary>Every part with its picture's name, and whether it is a far limb's, to recolour.</summary>
     private readonly List<(Sprite2D Sprite, string Part, bool Far)> _parts = [];
+    /// <summary>Each part's offset for a pixel picture; a hi-res one has <see cref="HiRes.FigureMargin"/> more round it.</summary>
+    private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     private int? _colour;
+
+    /// <summary>The player's mark on a suit, whose colours stay as drawn: lit, so it reads in a dark room, tinted by the player's colour. On the helmet, the chest and the pack; bare, the chest alone.</summary>
+    private readonly Sprite2D _markHelmet = NewMark(), _markChest = NewMark(), _markPack = NewMark(), _markStripe = NewMark("hero_mark_stripe");
+    private static readonly Vector2 HelmetMark = new(2.8f - 6.5f, 3.8f - 12), StripeMark = new(5f - 6.5f, 2f - 12), ChestMark = new(9.1f - 6, 4.7f), PackMark = new(2.2f, 5.3f);
+    private static Sprite2D NewMark(string picture = "hero_mark") => new() { Texture = MarkDrawn ? PixelArt.Picture(picture) : null, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded }, Visible = false };
+    private static readonly bool MarkDrawn = HiRes.Load("hero_mark") != null;
+    private static void Mark(Node2D on, Vector2 at, Sprite2D mark)
+    {
+        mark.Position = at;
+        on.AddChild(mark);
+    }
 
     private Limbs? _shown;
     private (int X, int Y)? _last;
@@ -224,6 +237,10 @@ public partial class Figure : Node2D
         (_shell, _visor) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"));
         foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair, _shell, _visor }) _helmet.AddChild(n);
         // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
+        Mark(_helmet, HelmetMark, _markHelmet);
+        Mark(_helmet, StripeMark, _markStripe);
+        Mark(chest, ChestMark, _markChest);
+        Mark(pack, PackMark, _markPack);
         _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
         Lit.Set(_headLamp);
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
@@ -576,7 +593,17 @@ public partial class Figure : Node2D
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
         (_colour, _helmetWorn, _bodyWorn, _look) = (colour, helmet, body, look);
         int skin = HeroLooks.Wrap(look.Skin, HeroLooks.Skins.Length), hair = HeroLooks.Wrap(look.HairColour, HeroLooks.Hairs.Length);
-        foreach (var (sprite, part, isFar) in _parts) sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
+        foreach (var (sprite, part, isFar) in _parts)
+        {
+            sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
+            sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
+        }
+        (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
+        var tint = new Color((uint)(colour << 8 | 0xff));
+        foreach (var mark in new[] { _markHelmet, _markStripe, _markChest, _markPack }) mark.Modulate = tint;
+        _markHelmet.Visible = _markStripe.Visible = helmet && MarkDrawn;
+        _markChest.Visible = MarkDrawn;
+        _markPack.Visible = body && MarkDrawn;
         _pack.Visible = body;
         _shell.Visible = _visor.Visible = helmet;
         _hair.Visible = !helmet;
@@ -602,6 +629,7 @@ public partial class Figure : Node2D
         var sprite = new Sprite2D { Centered = false, Offset = -Joints[joint ?? name] };
         Lit.Set(sprite);
         _parts.Add((sprite, name, far));
+        _joints[sprite] = sprite.Offset;
         return sprite;
     }
 
@@ -937,7 +965,21 @@ public static class SuitArt
                 if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
                     image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
             }
-        var made = Made[key] = ImageTexture.CreateFromImage(image);
+        // The slice's hi-res part has no ramps to swap: its far limbs darkened as the pixel ones are, any suit in the colours drawn.
+        Texture2D made;
+        if (HiRes.Load($"hero_{part}") is { } fine)
+        {
+            if (far)
+                for (int y = 0; y < fine.GetHeight(); y++)
+                    for (int x = 0; x < fine.GetWidth(); x++)
+                    {
+                        var c = fine.GetPixel(x, y);
+                        fine.SetPixel(x, y, new Color(c.R * (float)FarShade, c.G * (float)FarShade, c.B * (float)FarShade, c.A));
+                    }
+            made = HiRes.Texture(fine);
+        }
+        else made = ImageTexture.CreateFromImage(image);
+        Made[key] = made;
         Bytes[made] = (image.GetWidth(), image.GetHeight(), image.GetData());
         return made;
     }

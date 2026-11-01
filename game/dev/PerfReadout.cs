@@ -46,7 +46,7 @@ public partial class PerfReadout : Node
         double avg = _frames.Average(), p99 = sorted[Math.Max(0, (int)Math.Ceiling(n * 0.99) - 1)];
         var camera = GetViewport().GetCamera2D();
         GD.Print($"PERF zoom={camera?.Zoom.X:F2} fps={1000 / avg:F0} avg={avg:F2}ms p99={p99:F2}ms render-cpu={_cpu / n:F2}ms "
-            + $"gpu={_gpu / n:F2}ms draws={_draws / n:F0} load={_loadMs / 1000.0:F1}s {_extra()} adapter={RenderingServer.GetVideoAdapterName().Replace(' ', '_')}");
+            + $"gpu={_gpu / n:F2}ms draws={_draws / n:F0} textures={Performance.GetMonitor(Performance.Monitor.RenderTextureMemUsed) / 1048576:F0}MB load={_loadMs / 1000.0:F1}s {_extra()} adapter={RenderingServer.GetVideoAdapterName().Replace(' ', '_')}");
         GetTree().Quit();
     }
 }

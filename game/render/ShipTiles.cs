@@ -91,6 +91,7 @@ public sealed class ShipTiles
         }
         foreach (var name in DoorShape.HatchPictures) pictures.Add(Picture(name, Relief.Down));
         // A door's panel part way open, as it slides (a door's relief rolls across it, a hatch's down).
+        var fineSlid = new Dictionary<string, Image>();
         var pixels = new Dictionary<string, byte[]>();
         byte[]? PixelsOf(string? name) => name == null ? null : pixels.TryGetValue(name, out var known) ? known : pixels[name] = Art(name).GetData();
         foreach (var p in DoorShape.SlidPictures)
@@ -98,6 +99,7 @@ public sealed class ShipTiles
             var slid = DoorShape.Slid(PixelsOf(p.Closed)!, PixelsOf(p.Open)!, PixelsOf(p.OverClosed)!, PixelsOf(p.OverOpen)!,
                 PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Drawn, p.Shift, p.Hatch);
             pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
+            if (FineSlid(p) is { } fine) fineSlid[p.Name] = fine;
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
         foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
@@ -108,35 +110,47 @@ public sealed class ShipTiles
 
         // Shelves of pictures, tallest first, a cell at a time.
         var order = pictures.OrderByDescending(p => p.Diffuse.GetHeight()).ThenBy(p => p.Name, System.StringComparer.Ordinal).ToList();
-        int x = 0, y = 0, shelf = 0;
+        // A cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
+        int x = 1, y = 1, shelf = 0;
         foreach (var (name, diffuse, _) in order)
         {
             var size = new Vector2I(diffuse.GetWidth() / Cell, diffuse.GetHeight() / Cell);
-            if (x + size.X > Across) (x, y, shelf) = (0, y + shelf, 0);
+            if (x + size.X + 1 > Across) (x, y, shelf) = (1, y + shelf, 0);
             _placed[name] = (new Vector2I(x, y), size);
-            x += size.X;
-            shelf = Mathf.Max(shelf, size.Y);
+            x += size.X + 1;
+            shelf = Mathf.Max(shelf, size.Y + 1);
         }
         int down = y + shelf;
-        var atlas = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
+        const int S = HiRes.Scale;
+        var atlas = Image.CreateEmpty(Across * Cell * S, down * Cell * S, false, Image.Format.Rgba8);
         var normals = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
         normals.Fill(Flat);
         foreach (var (name, diffuse, normal) in pictures)
         {
             var at = _placed[name].At * Cell;
-            atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
+            var fine = fineSlid.GetValueOrDefault(name) ?? HiRes.Load(name);
+            if (fine != null && fine.GetSize() != diffuse.GetSize() * S && fine.GetSize().X % (Cell * S) != 0 && !name.StartsWith("valve_", StringComparison.Ordinal)) GD.PushError($"hi-res {name}: {fine.GetSize()} for {diffuse.GetSize()}");
+            if (fine == null)
+            {
+                fine = (Image)diffuse.Duplicate();
+                fine.Resize(diffuse.GetWidth() * S, diffuse.GetHeight() * S, Image.Interpolation.Nearest);
+            }
+            fine.FixAlphaEdges();
+            var box = new Rect2I(at * S, diffuse.GetSize() * S);
+            // A valve is centred in its padded cells (see Picture), so its smaller drawing is too.
+            atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + (box.Size - fine.GetSize()) / 2);
+            Extrude(atlas, box, Cell * S / 2);
             normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
         }
+        atlas.GenerateMipmaps();
 
-        Texture = new CanvasTexture
-        {
-            DiffuseTexture = ImageTexture.CreateFromImage(atlas),
-            NormalTexture = ImageTexture.CreateFromImage(normals),
-        };
+        Texture = HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals));
         var source = new TileSetAtlasSource
         {
             Texture = Texture,
             TextureRegionSize = new Vector2I(Cell, Cell),
+            // Godot's padding copies pictures by the size the atlas reports, not its pixels: Extrude does this instead.
+            UseTexturePadding = false,
         };
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
@@ -159,6 +173,32 @@ public sealed class ShipTiles
             var spec = name.StartsWith("machine_") && Machines.TryGet(name["machine_".Length..], out var m) ? m : null;
             int rise = spec != null ? Mathf.Max(0, size.Y - spec.Height) : 0, reach = spec?.Exhaust ?? 0;
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(reach * Cell, rise * Cell);
+        }
+    }
+
+    /// <summary>A door's panel part way open from the hi-res pictures, its panel told by what differs between shut and open; none unless all of them are drawn.</summary>
+    private static Image? FineSlid(DoorShape.SlidPicture p)
+    {
+        byte[]? Fine(string? name) => name != null && HiRes.Load(name) is { } image ? image.GetData() : null;
+        const int Side = Drawn * HiRes.Scale;
+        if (Fine(p.Closed) is not { } closed || Fine(p.Open) is not { } open || Fine(p.OverClosed) is not { } overClosed || Fine(p.OverOpen) is not { } overOpen) return null;
+        var slid = DoorShape.Slid(closed, open, overClosed, overOpen, Fine(p.NextClosed), Fine(p.NextOpen), Side, p.Shift * HiRes.Scale, p.Hatch);
+        return Image.CreateFromData(Side, Side, false, Image.Format.Rgba8, slid);
+    }
+
+    /// <summary>Copies the edges of <paramref name="box"/> outward <paramref name="by"/> pixels, so a tile sampled past its edge meets itself, not clear.</summary>
+    private static void Extrude(Image atlas, Rect2I box, int by)
+    {
+        var (x, y, w, h) = (box.Position.X, box.Position.Y, box.Size.X, box.Size.Y);
+        for (int i = 1; i <= by; i++)
+        {
+            atlas.BlitRect(atlas, new Rect2I(x, y, 1, h), new Vector2I(x - i, y));
+            atlas.BlitRect(atlas, new Rect2I(x + w - 1, y, 1, h), new Vector2I(x + w - 1 + i, y));
+        }
+        for (int i = 1; i <= by; i++)
+        {
+            atlas.BlitRect(atlas, new Rect2I(x - by, y, w + 2 * by, 1), new Vector2I(x - by, y - i));
+            atlas.BlitRect(atlas, new Rect2I(x - by, y + h - 1, w + 2 * by, 1), new Vector2I(x - by, y + h - 1 + i));
         }
     }
 
@@ -279,7 +319,7 @@ public sealed class ShipTiles
     private static Image Art(string name)
     {
         if (MadeImages.TryGetValue(name, out var made)) return made;
-        var image = PixelArt.Picture(name).GetImage();
+        var image = PixelArt.Logical(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
         if (!Halved(name)) return image;
@@ -307,7 +347,7 @@ public sealed class ShipTiles
         if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open]
             && Materials.TryGet(material, out var m) && m.Natural)
             return GroundArt.Edge(material, int.Parse(open), Drawn);
-        var image = PixelArt.Picture(name).GetImage();
+        var image = PixelArt.Logical(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
         return image;
@@ -350,7 +390,7 @@ public sealed class ShipTiles
     public static int RiseOf(string kind)
     {
         if (Rises.TryGetValue(kind, out int kept)) return kept;
-        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Picture($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
+        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Logical($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
         return Rises[kind] = rise;
     }
 

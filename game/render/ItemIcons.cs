@@ -49,6 +49,7 @@ public static class ItemIcons
     {
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
         var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Readable(Drawn(item));
+        bool fine = HeldLook.Of(item) == null && Drawn(item) is CanvasTexture;
         int lowest = -1;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
@@ -57,8 +58,8 @@ public static class ItemIcons
                 if (a > 0) lowest = y;
                 image.SetPixel(x, y, new Color(1, 1, 1, a));
             }
-        ClearRows[item] = image.GetHeight() - 1 - lowest;
-        return Silhouettes[item] = ImageTexture.CreateFromImage(image);
+        ClearRows[item] = (image.GetHeight() - 1 - lowest) / (fine ? HiRes.Scale : 1);
+        return Silhouettes[item] = fine ? HiRes.Texture(image) : ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>The clear rows under <paramref name="item"/>'s picture as the world draws it, in that picture's pixels: what a stack on the floor is lowered by to stand on it.</summary>
@@ -71,7 +72,7 @@ public static class ItemIcons
     private static Texture2D Drawn(string item)
     {
         if (!Icons.TryGetValue(item, out var icon))
-            Icons[item] = icon = GD.Load<Texture2D>($"res://art/items/{item}.png");
+            Icons[item] = icon = HiRes.Load($"items/{item}") is { } fine ? HiRes.Texture(fine) : GD.Load<Texture2D>($"res://art/items/{item}.png");
         return icon;
     }
 

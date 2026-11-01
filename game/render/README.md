@@ -29,6 +29,7 @@
 | `logic/WreckDress.cs` | Which of the wreck's plates show rust, stripes or a tear, on a world or a dev grid; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
+| `HiRes.cs` | The anime art's pictures, 4 times their logical pixels, reporting the logical size and sampled smoothly. |
 | `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon at each side, and their white silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
