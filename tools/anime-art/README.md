@@ -36,7 +36,8 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `machines` | `machine_<kind>` and their working overlays, fire, tank fill; exposes `AnimeKit` |
 | `zfittings` | pipes, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, charge bars, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items`   | `items/<id>`: the ten items of the slice's hotbar and bag                                                 |
-| `room`    | `wall_scrap`, `back_scrap`, `wall-edge_scrap_*`, `door_closed_*`, `door_open_*`                           |
+| `room`    | `wall_` and `wall-edge_` of scrap and iron, `back_scrap`, `back_iron_*`, `door_closed_*`, `door_open_*`   |
+| `wreck`   | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |
 | `smelter` | `machine_smelter`, `smelter_work_*`                                                                       |
 | `caves`   | stone, ice vein and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |

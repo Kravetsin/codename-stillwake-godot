@@ -80,7 +80,8 @@ public sealed class ShipTiles
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
-        AddWreckDress(pictures);
+        var fineMade = new Dictionary<string, Image>();
+        AddWreckDress(pictures, fineMade);
         foreach (var name in (string[])[.. HullBacks, "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
@@ -92,7 +93,6 @@ public sealed class ShipTiles
         }
         foreach (var name in DoorShape.HatchPictures) pictures.Add(Picture(name, Relief.Down));
         // A door's panel part way open, as it slides (a door's relief rolls across it, a hatch's down).
-        var fineSlid = new Dictionary<string, Image>();
         var pixels = new Dictionary<string, byte[]>();
         byte[]? PixelsOf(string? name) => name == null ? null : pixels.TryGetValue(name, out var known) ? known : pixels[name] = Art(name).GetData();
         foreach (var p in DoorShape.SlidPictures)
@@ -100,7 +100,7 @@ public sealed class ShipTiles
             var slid = DoorShape.Slid(PixelsOf(p.Closed)!, PixelsOf(p.Open)!, PixelsOf(p.OverClosed)!, PixelsOf(p.OverOpen)!,
                 PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Drawn, p.Shift, p.Hatch);
             pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
-            if (FineSlid(p) is { } fine) fineSlid[p.Name] = fine;
+            if (FineSlid(p) is { } fine) fineMade[p.Name] = fine;
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
         foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
@@ -136,7 +136,7 @@ public sealed class ShipTiles
                 atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
                 continue;
             }
-            var fine = fineSlid.GetValueOrDefault(name) ?? HiRes.Load(name);
+            var fine = fineMade.GetValueOrDefault(name) ?? HiRes.Load(name);
             if (fine != null && fine.GetSize() != diffuse.GetSize() * S && fine.GetSize().X % (Cell * S) != 0 && !name.StartsWith("valve_", StringComparison.Ordinal)) GD.PushError($"hi-res {name}: {fine.GetSize()} for {diffuse.GetSize()}");
             if (fine == null)
             {
@@ -212,9 +212,11 @@ public sealed class ShipTiles
     }
 
     /// <summary>The wreck's dress (<see cref="WreckDress"/>): a picture a cell, a torn one the piece of scrap's wall that lies there in a new world, cut by its mask.</summary>
-    private static void AddWreckDress(List<(string Name, Image Diffuse, Image Normal)> pictures)
+    private static void AddWreckDress(List<(string Name, Image Diffuse, Image Normal)> pictures, Dictionary<string, Image> fine)
     {
         Image over = Art("wreck_dress"), masks = Art("wreck_tears"), scrap = Art("wall_scrap");
+        Image? fineOver = HiRes.Load("wreck_dress"), fineMasks = HiRes.Load("wreck_tears"), fineScrap = HiRes.Load("wall_scrap");
+        int side = Cell * HiRes.Scale;
         var corner = Layout.OffsetInWorld(Wreck.Width, Wreck.Height);
         var (across, down) = (scrap.GetWidth() / Cell, scrap.GetHeight() / Cell);
         foreach (var (x, y, look) in WreckDress.Cells())
@@ -223,11 +225,16 @@ public sealed class ShipTiles
             if (look != 'T')
             {
                 pictures.Add(Picture(WreckDress.OverName(x, y), over.GetRegion(inSheet), Relief.None));
+                if (fineOver != null) fine[WreckDress.OverName(x, y)] = fineOver.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side));
                 continue;
             }
-            var wall = scrap.GetRegion(new Rect2I((x + Wreck.Left + corner.X) % across * Cell, (y + Wreck.Top + corner.Y) % down * Cell, Cell, Cell));
+            var inWall = new Vector2I((x + Wreck.Left + corner.X) % across * Cell, (y + Wreck.Top + corner.Y) % down * Cell);
+            var wall = scrap.GetRegion(new Rect2I(inWall, Cell, Cell));
             var torn = WreckDress.Torn(wall.GetData(), masks.GetRegion(inSheet).GetData());
             pictures.Add(Picture(WreckDress.TornName(x, y), Image.CreateFromData(Cell, Cell, false, Image.Format.Rgba8, torn), Relief.None));
+            if (fineMasks == null || fineScrap == null) continue;
+            var fineTorn = WreckDress.Torn(fineScrap.GetRegion(new Rect2I(inWall * HiRes.Scale, side, side)).GetData(), fineMasks.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side)).GetData());
+            fine[WreckDress.TornName(x, y)] = Image.CreateFromData(side, side, false, Image.Format.Rgba8, fineTorn);
         }
     }
 

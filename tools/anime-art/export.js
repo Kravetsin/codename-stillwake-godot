@@ -42,9 +42,13 @@ const logical = {};
 for (const f of fs.readdirSync(path.join(art, 'caves'))) if (/^crystalIce(Hang)?_\d\.png$/.test(f)) logical[f.slice(0, -4)] = usedBox(path.join(art, 'caves', f));
 for (const f of fs.readdirSync(path.join(art, 'planet'))) if (/^acacia_\d_glow\.png$/.test(f)) logical[f.slice(0, -4)] = usedBox(path.join(art, 'planet', f));
 
+const wreckSource = fs.readFileSync(path.join(here, '..', '..', 'sim', 'Content', 'Wreck.cs'), 'utf8');
+const mapOf = (name, next) => wreckSource.slice(wreckSource.indexOf(`${name} = Placed(`), wreckSource.indexOf(next)).split('\n').map((l) => /^\s*"(.*)",\s*$/.exec(l)).filter(Boolean).map((m) => m[1]);
+const wreck = { rows: mapOf('Rows', 'Materials = Placed('), dress: mapOf('Dress', 'The pipe inside the pod') };
+
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
 const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
-<script>window.LOGICAL=${JSON.stringify(logical)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);</script>
+<script>window.LOGICAL=${JSON.stringify(logical)};window.WRECK=${JSON.stringify(wreck)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);</script>
 <script src="${url('engine.js')}"></script>
 <script src="${url('wash.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}

@@ -134,6 +134,56 @@ const backScrap = {
   },
 };
 
+const IRON = [
+  { base: '#8f98a8', stain: '#858e9f', bloom: '#98a1b0', shade: '#666e86', lite: '#b6becb', spec: '#e4e9ef', ink: '#10121c' },
+  { base: '#858e9f', stain: '#7b8495', bloom: '#8e97a7', shade: '#5e667e', lite: '#adb5c3', spec: '#dce2ea', ink: '#10121c' },
+  { base: '#98a0af', stain: '#8e96a5', bloom: '#a1a9b7', shade: '#6d758b', lite: '#bec5d0', spec: '#e8ecf1', ink: '#10121c' },
+];
+/** An iron plate, as made and kept: square, its rivets in a column at each end, stained only a tone off its paint. */
+function ironPlate(a, p, r, m) {
+  const { x, y, w, h } = p, d = poly(x, y, x + w, y, x + w, y + h, x, y + h);
+  a.shape(d, m, {
+    outer: false, edge: false,
+    lite: poly(x, y, x + w, y, x + w - .7, y + .8, x + .7, y + .8),
+    shade: [poly(x, y + h - 1.3, x + w, y + h - 1.3, x + w, y + h, x, y + h), poly(x + w - 1, y, x + w, y, x + w, y + h, x + w - 1, y + h)],
+    spec: poly(x + 1.4, y + .2, x + 11, y + .2, x + 10.6, y + .6, x + 1, y + .6),
+  });
+  for (let i = 0; i < 2; i++) a.flat(tornBlotch(r, x + 7 + r() * (w - 14), y + 4 + r() * (h - 8), 3 + r() * 5, 1.5 + r() * 2), i ? m.stain : m.bloom);
+  for (const rx of [x + 2.6, x + w - 3.1]) for (let i = 0; i < 4; i++) {
+    const ry = y + 2.8 + i * (h - 6.1) / 3;
+    a.shape(ell(rx, ry, .5), RIVET, { outer: false, edge: false, shade: `M${rx - 1} ${ry + .1}L${rx + 1} ${ry + .1}L${rx + 1} ${ry + 1}L${rx - 1} ${ry + 1}Z`, spec: ell(rx - .13, ry - .18, .16) });
+  }
+}
+const wallIron = {
+  w: SHEET_W, h: SHEET_H, tile: true, K: 2,
+  draw(a) {
+    const r = rng(0x1f07);
+    const rows = [0, 1, 2, 3].map((n) => [0, 1, 2, 3].map((i) => ({ x: (n % 2) * 16 + i * 32, y: n * 16, w: 32, h: 16 })));
+    for (const row of rows) for (const p of row) ironPlate(a, p, r, IRON[Math.floor(r() * IRON.length)]);
+    seam(a, rows);
+  },
+};
+
+const IRON_BACK = { base: '#2c3240', shade: '#212632', lite: '#3a4150', spec: '#3a4150', ink: '#0f1118' };
+/** A back panel of iron, a cell of 16 px: its rim, a bolt in each corner, and on some a grille of slots. */
+const backIron = (grille) => ({
+  w: 16, h: 16, tile: true, K: 2,
+  draw(a) {
+    a.shape(poly(0, 0, 16, 0, 16, 16, 0, 16), IRON_BACK, { outer: false, edge: false,
+      lite: poly(0, 0, 16, 0, 16, .6, 0, .6),
+      shade: [poly(0, 15, 16, 15, 16, 16, 0, 16), poly(15.2, 0, 16, 0, 16, 16, 15.2, 16)] });
+    a.flat(poly(0, 0, 16, 0, 16, .3, 0, .3), IRON_BACK.ink);
+    a.flat(poly(0, 0, .3, 0, .3, 16, 0, 16), IRON_BACK.ink);
+    for (const x of [2.3, 13.7]) for (const y of [2.3, 13.7]) { a.flat(ell(x, y, .6), IRON_BACK.ink); a.flat(ell(x - .1, y - .15, .22), '#59606f'); }
+    if (!grille) return;
+    a.flat(poly(4, 3.6, 12, 3.6, 12, 12.4, 4, 12.4), '#191d27');
+    for (let y = 4.4; y < 12; y += 1.7) {
+      a.flat(poly(4.5, y, 11.6, y, 11.6, y + .85, 4.5, y + .85), '#0b0d13');
+      a.flat(poly(4.5, y + .85, 11.6, y + .85, 11.6, y + 1.15, 4.5, y + 1.15), '#3f4656');
+    }
+  },
+});
+
 /** A wall's edge (open: up 1, right 2, down 4, left 8): an ink line on each open side, a hard lit rim inside it on top and on the light's side, a shaded one on the others. */
 function edge(open, look) {
   const S = 32, c = canvas(S, S), x = c.getContext('2d'), I = 3, R = 2;
@@ -234,6 +284,11 @@ Subjects.room = function () {
   out('back_scrap', bake(backScrap));
   const look = { lite: '#b4bcc8', shade: '#3e4258', ink: '#10121c' };
   for (let open = 1; open < 16; open++) out(`wall-edge_scrap_${open}`, edge(open, look));
+  out('wall_iron', bake(wallIron));
+  out('back_iron_plain', bake(backIron(false)));
+  out('back_iron_grille', bake(backIron(true)));
+  const ironLook = { lite: '#ccd3dd', shade: '#4a5068', ink: '#10121c' };
+  for (let open = 1; open < 16; open++) out(`wall-edge_iron_${open}`, edge(open, ironLook));
   // Links: up 1, down 4; a door's pieces from its top down: joined down 4, both 5, joined up 1.
   for (const [links, piece] of [[4, 'top'], [5, 'mid'], [1, 'foot']]) {
     out(`door_closed_${links}`, doorPicture(piece, true));
@@ -241,4 +296,6 @@ Subjects.room = function () {
   }
 };
 window.AnimeEdge = edge;
+/** The plates of the scrap sheet, in logical pixels: what the wreck's rust grows from. */
+window.AnimeScrapRows = () => rowsOf(rng(0x5c7a9), [13, 12, 15, 11, 13], 14, 34);
 })();

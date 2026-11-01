@@ -45,8 +45,7 @@ from playing it are this step's list:
   still pixels, and the look on other planet types is open.
 - **Back walls** must stay dark and quiet behind what stands before them. Darkened on the ship, stone and soil; the stone and soil
   ones are checked in frames only.
-- **Scrap is too clean.** The pixel hull is rusty and battered; this one has first rust at its seams. Bring more damage back, and the
-  wreck's dress (`wreck_dress`, still pixels) with it.
+- **The hull.** Done: [iron and the wreck's dress](../decisions/2026-11-01-iron-and-dress-in-ink.md); the scrap wall stays as it is, by the user's call.
 - **Moss.** Done: [pieces cut to meet along a run](../decisions/2026-11-01-moss-in-ink.md), the user's «Космы», both tones. At the switch `Atlas.Band` and `Planting.Strip` go.
 - **The stone's pattern** was stained glass. Done: large masses of close tone, only some cracks drawn, accepted by the user.
 
