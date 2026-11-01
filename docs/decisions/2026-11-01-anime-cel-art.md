@@ -1,6 +1,6 @@
 # Anime cel art
 
-- Status: accepted as the direction; the switch waits on the nature probe in [the plan](../plans/anime-art.md).
+- Status: the plumbing stands; the look is superseded by [ink and watercolour](2026-11-01-ink-and-watercolour.md). The switch waits on the nature probe in [the plan](../plans/anime-art.md).
 
 Item icons had run out of pixels at 16 × 16, and the hero, at 42 pixels tall, could not carry a designed suit. Three rounds of
 samples tried hand sketches, ink and wash, soft anime, plain vector and filters laid over crisp vector. The user's pick:
