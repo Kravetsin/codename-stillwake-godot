@@ -40,6 +40,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `smelter` | `machine_smelter`, `smelter_work_*`                                                                       |
 | `caves`   | stone, ice vein and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
+| `tick`, `warden` | `creatures/inkTick/*`, `creatures/inkIstukan/*`, and `Content/logic/TickInk.cs`, `IstukanInk.cs`: the picked guards, posed by `TickRig` and `IstukanRig` |
 | `flora`   | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
 
 ## Run

@@ -28,10 +28,22 @@ public partial class TickBodies : Node2D
 
     private static readonly (int, int, int) Yellow = (255, 209, 51), Plume = (255, 190, 90), Magnet = (255, 170, 84);
 
-    // Turned about its middle, eight pixels over its feet, as the page turns it.
-    private sealed partial class Shown() : PosedSprite(TickArt.Width, TickArt.Height, TickArt.OriginX, TickArt.OriginY, 8)
+    // Turned about its middle over its feet, as the page turns it; in ink that is higher, on its stilts.
+    private static readonly float Middle = HiRes.On ? (float)-CreatureArt.InkTick.Centre.Y : 8;
+
+    private sealed partial class Shown : PosedSprite
     {
         public readonly TickArt Art = new();
+        private readonly TickRig _rig = new();
+        private readonly InkRig? _ink;
+
+        public Shown() : base(TickArt.Width, TickArt.Height, TickArt.OriginX, TickArt.OriginY, Middle)
+        {
+            if (!HiRes.On) return;
+            _ink = new InkRig(CreatureArt.InkTick.Id, CreatureArt.InkTick.Parts) { Position = new Vector2(0, Middle) };
+            AddChild(_ink);
+        }
+
         public TickMotion Motion = null!;
         public Heard2D? Burner;
         public LoopEnvelope Burning;
@@ -47,16 +59,28 @@ public partial class TickBodies : Node2D
         /// <summary>Its sprite drawn in its motion's pose, at its place, turned and facing as it flies.</summary>
         public void Show(Vector2 feet)
         {
-            Anchors = Art.Draw(Motion.Pose);
-            Paint(Art.Albedo, Art.Silhouette, Art.Emission);
+            if (_ink != null)
+            {
+                Anchors = _rig.Place(Motion.Pose);
+                _ink.Show(_rig.Slots, Motion.Flash, 0);
+            }
+            else
+            {
+                Anchors = Art.Draw(Motion.Pose);
+                Paint(Art.Albedo, Art.Silhouette, Art.Emission);
+            }
             Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Motion.Flash);
         }
 
-        /// <summary>Where a point of its sprite (<see cref="TickArt.Anchors"/>) is in the world this frame, the middle of its pixel.</summary>
-        public Vector2 World((double X, double Y) at) => Transform * new Vector2((float)at.X + 0.5f, (float)at.Y + 8.5f);
+        /// <summary>Where a point of its sprite (<see cref="TickArt.Anchors"/>) is in the world this frame, the middle of its pixel if it has pixels.</summary>
+        public Vector2 World((double X, double Y) at) => Transform * (_ink != null ? new Vector2((float)at.X, (float)at.Y + Middle) : new Vector2((float)at.X + 0.5f, (float)at.Y + 8.5f));
 
         /// <summary>Its pixels in the world as they stand now, for a burst.</summary>
-        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into) => PaintInto(into, Art.Albedo);
+        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into)
+        {
+            if (_ink != null) _ink.Pixels(into, Transform);
+            else PaintInto(into, Art.Albedo);
+        }
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
