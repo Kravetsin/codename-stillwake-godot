@@ -17,4 +17,8 @@
   <ItemGroup>
     <None Include="Fixtures/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <!-- PlanetTesting holds 2 GB of grown planets, which by default lets the GC leave as much again uncollected. -->
+  <ItemGroup>
+    <RuntimeHostConfigurationOption Include="System.GC.ConserveMemory" Value="5" />
+  </ItemGroup>
 </Project>

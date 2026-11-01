@@ -24,6 +24,7 @@ READMEs.
 | #194 | Recipes `/new-machine`, `/new-module`, `/new-demo` in `.claude/commands/`, walked on today's code; `/new-machine` tested by Sonnet adding a throwaway machine; `MachineArtTests` catches a machine with no picture | the add-a-thing checklists in people's heads; a missing picture crashing the first frame |
 | #311 | CI builds and tests with `-c Release`, `TieredPGO` off, the budgets' slack ×2, `lscpu` in the log ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)) | half of `dotnet test`'s time on CI |
 | #314 | A PR runs what its paths can break: docs only `DocsGuardTests`, the client no `Sim.Tests` or `Net.Tests`, `main` everything ([2026-10-31-ci-scope](../decisions/2026-10-31-ci-scope.md)) | a third of PRs waiting for tests they cannot change |
+| #319 | Tests that only read the first planet share one per seed (`PlanetTesting`); a full run holds 2 GB of them, its peak 3–4 GB against 1.7 | `Sim.Tests` growing that planet 246 times a run, a fifth of its time on CI |
 
 Also on `main` from parallel work: `Main` split by concern (`Main.cs`, `Main.Sessions.cs`, `dev/Main.Dev.cs`),
 `DevModes` as the documented list of dev arguments, the build menu laid out from content.
@@ -53,12 +54,11 @@ Before each task, check `git log` on its files: someone may have moved them sinc
 Tests in Release halved `dotnet test` ([2026-10-31-ci-tests-in-release](../decisions/2026-10-31-ci-tests-in-release.md)), and it
 is still most of a run. Measured 2026-10-31, by what each would save:
 
-- The budget tests in a job of their own: they run alone, after the others, about 30% of `Sim.Tests`' time.
-- Planets shared between tests: three tests grow the first planet on the same 50 seeds, 27% of the summed test time.
+- The budget tests in a job of their own: they run alone, after the others, about 35% of `Sim.Tests`' time.
 - The slowest tests in the run's summary, from a trx: the step grew from 15 s to 150–400 s in two weeks, one test at a time.
 - `format`, about 2 minutes beside `build, tests`, is the floor of a client PR's run, and of any run once that gets as short. `dotnet format whitespace --folder`
   takes 6 s against 35 on a desk and catches whitespace, but not `IDE0161` (file-scoped namespaces).
-- x64 or `ubuntu-24.04-arm`, once `lscpu` in the logs shows how often a run draws x64's slowest machines (see the ADR).
+- x64 or `ubuntu-24.04-arm`: `lscpu` shows x64 drawing its slowest machine, the EPYC 7763, in 7 of 16 runs (see the ADR).
 
 ## Delegating to Sonnet: what worked
 

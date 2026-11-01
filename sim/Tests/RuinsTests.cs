@@ -217,7 +217,7 @@ public class RuinsTests
     /// whole, never taken off as a spike, its plugs soil, its open cells backed with alloy — its growths in
     /// place and nothing else grown in its box, anchored at the highest surface across its tip.
     /// </summary>
-    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, int[] surface)
+    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, IReadOnlyList<int> surface)
     {
         var prefab = Ruins.Spire;
         int w = l.Width, wide = Ruins.SpireWide, tall = prefab.Count, middle = w / 2;
@@ -262,7 +262,7 @@ public class RuinsTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed, out _, out var surface, out var spires);
+            var (l, surface, spires, _) = PlanetTesting.First(seed);
             Assert.Null(Wrong(PlanetTypes.First.Ground, l, spires, surface));
             // Spread along the planet: both sides of the middle hold one.
             Assert.Contains(spires, s => s.X < l.Width / 2);
@@ -271,9 +271,9 @@ public class RuinsTests
     }
 
     /// <summary>Why a hall stands open under ground too high for its roof: the place the plan accepts only where its band holds no other.</summary>
-    private static string? Bare(PlanetType type, uint seed)
+    private static string? Bare(uint seed)
     {
-        Terrain.Generate(type, seed, out _, out var surface, out var spires);
+        var (_, surface, spires, _) = PlanetTesting.First(seed);
         foreach (var (x0, y0) in spires)
         {
             int ground = Enumerable.Range(x0, Ruins.SpireWide).Max(x => surface[x]);
@@ -285,7 +285,7 @@ public class RuinsTests
     [Fact]
     public void EveryHallOnTheFirstPlanetLiesUnderCoverOnEverySeed()
     {
-        foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s)) Assert.Null(Bare(PlanetTypes.First, seed));
+        foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s)) Assert.Null(Bare(seed));
     }
 
     [Fact]

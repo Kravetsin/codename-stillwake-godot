@@ -170,6 +170,7 @@ in the sim.
 - **Generic suites** (`ModulesTests`) cover every registered module: save, load and play on, two
   worlds kept alike, and every module with commands drawing them in its `Fuzz` override (refused
   ones too). Do not copy them per module.
+- A test that only reads the first planet takes it from `PlanetTesting.First(seed)`: grown once a run, not each time.
 - **Client:** scripted runs (`-- --autopilot` and the like) recorded with `--write-movie` and read
   frame by frame; logic such as the hero controller in plain C# with unit tests.
 - A bug fix starts with a failing test. Tests never touch real time; time is ticks.

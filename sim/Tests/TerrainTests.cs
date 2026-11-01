@@ -28,7 +28,7 @@ public class TerrainTests
     [Fact]
     public void AnotherSeedGrowsOtherGround()
     {
-        var (a, b) = (Terrain.Generate(PlanetTypes.First, 1), Terrain.Generate(PlanetTypes.First, 2));
+        var (a, b) = (PlanetTesting.First(1).Layout, PlanetTesting.First(2).Layout);
         Assert.False(a.Rows.SequenceEqual(b.Rows));
     }
 
@@ -53,7 +53,7 @@ public class TerrainTests
     public void NothingGrowsOnTheLava()
     {
         // The deepest caves of the first planet reach the lava: their floors there grow nothing.
-        var l = Terrain.Generate(PlanetTypes.First, 1);
+        var l = PlanetTesting.First(1).Layout;
         int floor = l.Height - Planet.CoreRows;
         Assert.Contains(Enumerable.Range(0, l.Width), x => l.Rows[floor - 1][x] == '.');
         Assert.DoesNotContain(l.Flora!, f => f.Cell / l.Width == floor - 1 && Content.Flora.Cave.Any(k => k.Id == f.Kind && k.Holds == Content.Flora.Anchor.Floor));
@@ -83,7 +83,7 @@ public class TerrainTests
     [Fact]
     public void HeroesBeamDownNearTheMiddleOfThePlanet()
     {
-        var l = Terrain.Generate(PlanetTypes.First, 7);
+        var l = PlanetTesting.First(7).Layout;
         int spawn = l.CellsOf('S').Single();
         Assert.InRange(spawn % l.Width, l.Width / 2 - 40, l.Width / 2 + 40);
     }
@@ -111,7 +111,7 @@ public class TerrainTests
         // planet a few columns in a hundred. A tiny ground may be half chasm, so this is measured on planets.
         foreach (uint seed in Enumerable.Range(1, 6).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed);
+            var l = PlanetTesting.First(seed).Layout;
             int thin = Enumerable.Range(Planet.Fog, l.Width - 2 * Planet.Fog).Count(x => SoilAt(l, x, TopOf(l, x)) < Planet.SoilLeast);
             Assert.True(thin * 10 <= l.Width, $"seed {seed}: {thin} thin columns");
         }
@@ -136,16 +136,19 @@ public class TerrainTests
     public void TheSurfaceIsAStairAHeroWalksWithNoCliffAnywhere()
     {
         // The first planet's terraces and hills are steeper than a row a column wherever they rise; the stair fills them up.
-        foreach (uint seed in new uint[] { 1, 2 }) AStair(PlanetTypes.First, seed);
+        foreach (uint seed in new uint[] { 1, 2 }) AStair(PlanetTesting.First(seed).Surface, seed);
     }
 
     [Property(MaxTest = 60)]
-    public Property TheSmallSurfaceIsAStairWhateverTheSeed() => Prop.ForAll(Seeds, seed => AStair(PlanetTypes.Small, seed));
-
-    private static void AStair(PlanetType type, uint seed)
+    public Property TheSmallSurfaceIsAStairWhateverTheSeed() => Prop.ForAll(Seeds, seed =>
     {
-        Terrain.Generate(type, seed, out _, out var surface);
-        for (int x = 1; x < surface.Length; x++)
+        Terrain.Generate(PlanetTypes.Small, seed, out _, out var surface);
+        AStair(surface, seed);
+    });
+
+    private static void AStair(IReadOnlyList<int> surface, uint seed)
+    {
+        for (int x = 1; x < surface.Count; x++)
             Assert.True(Math.Abs(surface[x] - surface[x - 1]) <= 1, $"seed {seed}: {surface[x] - surface[x - 1]} rows at column {x}");
     }
 
@@ -205,7 +208,7 @@ public class TerrainTests
     public void AShaftKeepsItsBackWallAllTheWayDownUnderItsMouth()
     {
         // The first planet's chasms go down hundreds of rows straight under the sky: only their first few rows show it.
-        var l = Terrain.Generate(PlanetTypes.First, 1, out _, out var surface);
+        var (l, surface, _, _) = PlanetTesting.First(1);
         int deepest = 0;
         for (int x = 0; x < l.Width; x++)
         {
@@ -224,7 +227,7 @@ public class TerrainTests
     {
         foreach (uint seed in Enumerable.Range(1, 12).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed);
+            var l = PlanetTesting.First(seed).Layout;
             int from = Planet.Surface + Planet.CaveFrom, to = Planet.Height - Planet.CoreRows, third = (to - from) / 3;
             double Open(int top, int bottom) =>
                 Enumerable.Range(top, bottom - top).Sum(y => l.Rows[y].Count(c => c == '.')) / (double)((bottom - top) * l.Width);
@@ -239,7 +242,7 @@ public class TerrainTests
         int mouths = 0;
         foreach (uint seed in Enumerable.Range(1, 12).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed);
+            var l = PlanetTesting.First(seed).Layout;
             int near = Enumerable.Range(Planet.Surface, 2 * Planet.CaveFrom).Sum(y => l.Rows[y].Count(c => c == '.'));
             Assert.True(near > 100, $"seed {seed}: {near} cave cells near the surface");
             // A cave breaking the surface: open under the open sky.
@@ -253,7 +256,7 @@ public class TerrainTests
     {
         foreach (uint seed in new uint[] { 1, 2, 3 })
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed);
+            var l = PlanetTesting.First(seed).Layout;
             int w = l.Width, middle = w / 2;
             int TopOf(int x) => Enumerable.Range(0, l.Height).First(y => l.Rows[Math.Clamp(y, 0, l.Height - 1)][Math.Clamp(x, 1, w - 2)] == '#');
             // A chasm: a column open nine cells in ten from the land beside it down half a chasm's greatest depth.
@@ -293,15 +296,12 @@ public class TerrainTests
         }
     }
 
-    /// <summary>The first planet grown from seed 1, once: the veins' tests read it.</summary>
-    private static readonly Lazy<Layout> FirstOne = new(() => Terrain.Generate(PlanetTypes.First, 1));
-
     private static bool IsVein(int code) => Materials.ByCode(code)?.In != null;
 
     [Fact]
     public void VeinsRunOnlyThroughSolidStoneInTheBandsTheyRunIn()
     {
-        var (l, t) = (FirstOne.Value, PlanetTypes.First);
+        var (l, t) = (PlanetTesting.First(1).Layout, PlanetTypes.First);
         var seen = new HashSet<string>();
         for (int cell = 0; cell < l.Width * l.Height; cell++)
         {
@@ -318,7 +318,7 @@ public class TerrainTests
     public void AVeinIsALineOfCellsNotScatteredDots()
     {
         // Nearly every vein cell has another of its vein beside it, across or corner to corner.
-        var l = FirstOne.Value;
+        var l = PlanetTesting.First(1).Layout;
         int w = l.Width, cells = 0, joined = 0;
         for (int y = 1; y < l.Height - 1; y++)
             for (int x = 1; x < w - 1; x++)
@@ -346,15 +346,15 @@ public class TerrainTests
             Assert.DoesNotContain(l.Materials!, IsVein);
             Assert.DoesNotContain(l.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && k.Lode));
         }
-        Assert.Contains(FirstOne.Value.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && k.Lode));
-        Assert.Contains(FirstOne.Value.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && !k.Lode));
+        Assert.Contains(PlanetTesting.First(1).Layout.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && k.Lode));
+        Assert.Contains(PlanetTesting.First(1).Layout.Flora!, p => Flora.Cave.Any(k => k.Id == p.Kind && !k.Lode));
     }
 
     [Fact]
     public void CrystalsGatherByTheVeinsInRichCavesWithBareOnesBetween()
     {
         // Within a lode's reach of a vein cell: a crystal or a geode far more often than any growth that grows by the patches.
-        var l = FirstOne.Value;
+        var l = PlanetTesting.First(1).Layout;
         int w = l.Width, reach = PlanetTypes.First.LodeWave / 2;
         var near = new bool[l.Width * l.Height];
         for (int cell = 0; cell < near.Length; cell++)
@@ -381,10 +381,10 @@ public class TerrainTests
         var flat = PlanetTypes.First with { Ground = PlanetTypes.First.Ground with { RegionLeast = 100, RegionLift = 0 } };
         foreach (uint seed in new uint[] { 1, 2 })
         {
-            Terrain.Generate(PlanetTypes.First, seed, out _, out var regions);
+            var regions = PlanetTesting.First(seed).Surface;
             Terrain.Generate(flat, seed, out _, out var none);
             // The rows climbed over each eighth of the planet: the plains' the flattest.
-            static long[] Climbs(int[] s) => [.. s.Chunk(s.Length / 8).Select(c => c.Zip(c.Skip(1)).Sum(p => (long)Math.Abs(p.First - p.Second)))];
+            static long[] Climbs(IReadOnlyList<int> s) => [.. s.Chunk(s.Count / 8).Select(c => c.Zip(c.Skip(1)).Sum(p => (long)Math.Abs(p.First - p.Second)))];
             Assert.True(Climbs(regions).Min() * 2 < Climbs(none).Min(), $"seed {seed}: {Climbs(regions).Min()} rows climbed on the plains, {Climbs(none).Min()} with none");
             Assert.True(Climbs(regions).Sum() < Climbs(none).Sum(), $"seed {seed}");
             Assert.True(regions.Average() < none.Average() - PlanetTypes.First.Ground.RegionLift / 4, $"seed {seed}: {regions.Average()} against {none.Average()}");
