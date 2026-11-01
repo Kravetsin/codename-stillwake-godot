@@ -11,7 +11,7 @@ const asked = process.argv.slice(2);
 for (const s of asked) if (!SUBJECTS.includes(s)) throw new Error(`No subject ${s}: ${SUBJECTS.join(', ')}.`);
 const started = Date.now();
 
-/** The box a logical PNG uses, its size and the rows and columns it draws on: a cave picture's base must stay on its row. RGBA8 or palette, as the art is. */
+/** The box a logical PNG uses, its size, the rows and columns it draws on and its solid pixels: a cave picture's base must stay on its row, a tree's pods where the game lights from. RGBA8 or palette, as the art is. */
 function usedBox(file) {
   const b = fs.readFileSync(file);
   let p = 8, w, h, ct, trns; const idat = [];
@@ -21,6 +21,7 @@ function usedBox(file) {
   }
   const raw = zlib.inflateSync(Buffer.concat(idat)), ch = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[ct], st = w * ch;
   let prev = Buffer.alloc(st), q = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
+  const pts = [];
   for (let y = 0; y < h; y++) {
     const f = raw[q++], cur = Buffer.from(raw.subarray(q, q + st)); q += st;
     for (let i = 0; i < st; i++) {
@@ -31,14 +32,15 @@ function usedBox(file) {
     }
     for (let x = 0; x < w; x++) {
       const al = ct === 6 ? cur[x * 4 + 3] : ct === 4 ? cur[x * 2 + 1] : ct === 3 && trns && cur[x] < trns.length ? trns[cur[x]] : 255;
-      if (al > 0) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+      if (al > 0) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); if (al >= 153) pts.push(x, y); }
     }
     prev = cur;
   }
-  return { w, h, x0, y0, x1, y1 };
+  return { w, h, x0, y0, x1, y1, pts };
 }
 const logical = {};
 for (const f of fs.readdirSync(path.join(art, 'caves'))) if (/^crystalIce(Hang)?_\d\.png$/.test(f)) logical[f.slice(0, -4)] = usedBox(path.join(art, 'caves', f));
+for (const f of fs.readdirSync(path.join(art, 'planet'))) if (/^acacia_\d_glow\.png$/.test(f)) logical[f.slice(0, -4)] = usedBox(path.join(art, 'planet', f));
 
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
 const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
