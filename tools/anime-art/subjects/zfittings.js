@@ -98,20 +98,44 @@ const chargeBar = (n, low) => (a) => {
 // The tools in the hand.
 const WOODH = { base: '#8a6242', shade: '#5c3e30', lite: '#ad8258', spec: '#cca678', ink: '#1c1210' };
 const RED = { base: '#c8402c', shade: '#84282c', deep: '#5c1c28', lite: '#ec7458', spec: '#ffd8c8', ink: '#280c10' };
+const BLADE = { base: '#b4bcc8', shade: '#6c7486', lite: '#d8dee6', spec: '#f0f2f4', ink: '#14162a' };
+const screw = (a, x, y, r = .42) => a.shape(ell(x, y, r), STEEL, { outer: false, edge: false, shade: band(x - r, y + .05, x + r, y + r), lines: [`M${x - r * .7} ${y + r * .3}L${x + r * .7} ${y - r * .3}`] });
 const axe = (a) => {
-  a.shape(rr(.4, 5.2, 21, 2.8, .7), WOODH, { lite: band(1, 5.3, 20, 6), shade: band(1, 7.2, 20, 8) });
-  for (const x of [1.4, 3.4, 5.4]) a.flat(band(x, 5.2, x + 1, 8), '#262a42');
-  a.shape('M18 8.6L18 4C19 2.6 21 1 24 0.4C24.2 3.2 25 7 25.6 9.8L18 9.8Z', RED, { lite: 'M19 3.8C20 2.8 21.6 1.8 23.2 1.4L23.6 4L20 5.4Z', shade: 'M23 4L25.6 9.8L22 9.8Z', spec: 'M20.2 3.2L22.2 2.1L22.2 2.5L20.4 3.6Z' });
-  a.shape('M16.4 9.4L27.4 9.4C27.8 10.8 27.8 12 27.4 13.4L16.4 13.4C17 12 17 10.8 16.4 9.4Z', { base: '#dfe7f2', shade: '#868fa2', lite: '#ffffff', spec: '#ffffff', ink: '#14162a' }, { shade: band(16, 12, 28, 13.4) });
+  // The haft: grain, a pommel with its ring, a grip of wound tape.
+  a.shape(rr(.4, 5.2, 21, 2.8, .7), WOODH, { lite: band(1, 5.3, 20, 6), shade: band(1, 7.2, 20, 8), lines: ['M8.6 6.2L13 6.1', 'M11.4 7L16.6 6.9', 'M14.4 6.3L17.4 6.2'] });
+  a.shape(rr(0, 4.8, 1.6, 3.6, .4), STEEL, { lite: band(.2, 4.9, 1.4, 5.5), shade: band(.2, 7.6, 1.4, 8.4) });
+  a.flat(band(1.8, 5.2, 7.8, 8), '#23263a');
+  for (const x of [2, 3.2, 4.4, 5.6, 6.8]) { a.flat(poly(x, 5.2, x + .75, 5.2, x + 1.05, 8, x + .3, 8), '#3d4258'); a.line(`M${x + .78} 5.2L${x + 1.08} 8`, { w: .8 }); }
+  // The head: painted steel, the paint chipped along the edges, a collar bolted round the haft.
+  a.shape('M18 8.6L18 4C19 2.6 21 1 24 0.4C24.2 3.2 25 7 25.6 9.8L18 9.8Z', RED, { lite: 'M19 3.8C20 2.8 21.6 1.8 23.2 1.4L23.6 4L20 5.4Z', shade: 'M23 4L25.6 9.8L22 9.8Z', spec: 'M20.2 3.2L22.2 2.1L22.2 2.5L20.4 3.6Z', lines: ['M19.2 8.4C20.8 7.4 22.4 7.2 24.6 7.6'] });
+  a.flat(poly(22.8, .8, 24, .4, 24.1, 1.9, 23.4, 1.5), '#9aa2ae');
+  a.flat(poly(18, 4, 18.9, 3.2, 19.2, 4.3, 18, 5.2), '#9aa2ae');
+  a.flat(poly(23.2, 5.2, 24.3, 5, 24.5, 6.3, 23.6, 6.1), '#6c7486');
+  a.shape(rr(16.6, 4.5, 2.2, 4.2, .4), DARK, { lite: band(16.8, 4.6, 18.6, 5.2), shade: band(16.8, 7.9, 18.6, 8.7) });
+  screw(a, 17.7, 5.6); screw(a, 17.7, 7.5);
+  screw(a, 21.3, 5.4, .5);
+  // The blade: a ground bevel, two old nicks in the edge.
+  a.shape('M16.4 9.4L27.4 9.4C27.8 10.8 27.8 12 27.4 13.4L22.6 13.4L22 12.8L21.3 13.4L18.8 13.4L18.3 12.9L17.8 13.4L16.4 13.4C17 12 17 10.8 16.4 9.4Z', BLADE, { lite: band(16.6, 9.5, 27.2, 10.2), shade: band(16, 12, 28, 13.4), lines: ['M17 11.3L27.4 11.3'] });
+  a.line('M24 10.2L25.6 10.8', { w: .9 });
 };
 const drill = (spin) => (a) => {
-  // Handle end, body with its orange band, chuck, and the bit; spinning, the bit is three blurred tones.
+  // The back end with its vents and lamp, the grip with its ribs, trigger and battery; a steel housing, bolted, with a heat band; a toothed chuck; the bit, whose flutes turn when it spins.
   a.shape(rr(0, 2.6, 9, 6.6, 1.2), GUN, { lite: band(.6, 2.7, 8.4, 3.6), shade: band(.6, 7.8, 8.4, 9.2) });
+  for (const x of [3.2, 4.5, 5.8, 7.1]) a.flat(poly(x, 4.2, x + .55, 4.2, x + .35, 7, x - .2, 7), '#14172c');
   a.flat(ell(1.6, 4.6, .55), spin === null ? '#54ba74' : '#a0f0a0');
-  a.shape(rr(3.4, 8.8, 4, 5.6, .6), DARK, { lite: band(3.8, 8.9, 5, 14.2) });
-  a.shape(rr(8.6, 1.8, 13, 7.6, .8), STEEL, { lite: band(9, 1.9, 21.2, 2.8), spec: band(10, 2.1, 15, 2.5), shade: band(9, 7.8, 21.2, 9.4) });
-  for (let i = 0; i < 4; i++) a.flat(band(10.6 + i * 2.5, 4.2, 11.8 + i * 2.5, 6.8), '#c8703c');
+  screw(a, 1.3, 7.6);
+  a.shape(poly(8, 9.2, 9.6, 9.2, 9.8, 10, 8.9, 11.2, 8.4, 11), RED, { lite: band(8.2, 9.3, 9.5, 9.8) });
+  a.shape(rr(3.4, 8.8, 4, 4.4, .6), DARK, { lite: band(3.8, 8.9, 5, 13) });
+  for (const y of [10, 10.9, 11.8]) a.line(`M3.7 ${y}L7.1 ${y}`, { w: .9 });
+  a.shape(rr(2.6, 12.4, 5.6, 2.4, .4), GUN, { lite: band(2.9, 12.5, 7.9, 13.1), shade: band(2.9, 14.1, 7.9, 14.8) });
+  a.flat(band(3.4, 13.4, 5.6, 13.9), spin === null ? '#54ba74' : '#a0f0a0');
+  a.shape(rr(8.6, 1.8, 13, 7.6, .8), STEEL, { lite: band(9, 1.9, 21.2, 2.8), spec: band(10, 2.1, 15, 2.5), shade: band(9, 7.8, 21.2, 9.4), lines: ['M18.9 1.9L18.9 9.3', 'M10.2 1.9L10.2 9.3'] });
+  for (const [x, y] of [[9.4, 2.9], [9.4, 8.2], [20.2, 2.9], [20.2, 8.2]]) screw(a, x, y);
+  for (let i = 0; i < 3; i++) a.flat(band(11.2 + i * 2.5, 4.1, 12.5 + i * 2.5, 6.9), '#c8703c');
+  a.line('M11 3.5L18 3.5', { w: .9 });
+  a.flat(poly(13.2, 7.4, 15.8, 7.4, 15.6, 8.1, 13.4, 8.1), '#3a2a22');
   a.shape(poly(21.4, 2.8, 24.8, 3.8, 24.8, 7.4, 21.4, 8.4), GUN, { lite: band(21.4, 2.8, 24.8, 4.2), shade: band(21.4, 7, 24.8, 8.4) });
+  for (const x of [22.2, 23, 23.8]) a.line(`M${x} ${3 + (x - 21.4) * .28}L${x} ${8.2 - (x - 21.4) * .28}`, { w: .9 });
   const y0 = 3.6, y1 = 7.6;
   a.shape(poly(24.8, y0, 32.8, 5.6, 24.8, y1), { base: '#dfe7f2', shade: '#868fa2', lite: '#ffffff', spec: '#ffffff', ink: '#14162a' }, { shade: poly(24.8, 5.6, 32.8, 5.6, 24.8, y1) });
   for (let i = 0; i < 3; i++) { const x = 26 + i * 2 + (spin === null ? 0 : (spin % 3) * .66); a.flat(poly(x, 3.9, x + .7, 4.1, x - .2, 7.2, x - .9, 7), '#868fa2', { clip: poly(24.8, y0, 32.8, 5.6, 24.8, y1) }); }

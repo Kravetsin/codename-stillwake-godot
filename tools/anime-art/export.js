@@ -1,5 +1,5 @@
 // Draws the subjects in a headless browser and writes their pictures into game/art/hd. node tools/anime-art/export.js [subject...]
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 const fs = require('fs'), os = require('os'), path = require('path'), zlib = require('zlib');
 const here = __dirname, art = path.join(here, '..', '..', 'game', 'art'), hd = path.join(art, 'hd');
 const browser = [process.env.ANIME_BROWSER, 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', 'C:/Program Files/Google/Chrome/Application/chrome.exe',
@@ -42,11 +42,12 @@ for (const f of fs.readdirSync(path.join(art, 'caves'))) if (/^crystalIce(Hang)?
 
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
 const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
-<script>window.LOGICAL=${JSON.stringify(logical)};window.Made=[];window.out=(name,c)=>Made.push([name,c.toDataURL('image/png')]);</script>
+<script>window.LOGICAL=${JSON.stringify(logical)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);</script>
 <script src="${url('engine.js')}"></script>
+<script src="${url('wash.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}
 <script>
-try { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = JSON.stringify(Made); }
+try { for (const s of ${JSON.stringify(asked.length ? asked : SUBJECTS)}) Subjects[s](); document.getElementById('out').textContent = String(Made.length); }
 catch (e) { document.getElementById('out').textContent = 'ERROR ' + e.stack; }
 </script>`;
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'anime-art-'));
@@ -66,23 +67,30 @@ async function draw() {
     if (!target) throw new Error('The browser never opened the page.');
     const ws = new WebSocket(target.webSocketDebuggerUrl);
     await new Promise((r, e) => { ws.onopen = r; ws.onerror = e; });
-    const value = await new Promise((resolve, reject) => {
-      ws.onmessage = (m) => { const r = JSON.parse(m.data); if (r.id === 1) (r.error ? reject(new Error(r.error.message)) : resolve(r.result.result.value)); };
-      ws.send(JSON.stringify({ id: 1, method: 'Runtime.evaluate', params: { expression: 'new Promise(r=>{const t=()=>{const x=document.getElementById("out").textContent;x?r(x):setTimeout(t,100)};t()})', awaitPromise: true, returnByValue: true } }));
+    let id = 0;
+    const ask = (expression) => new Promise((resolve, reject) => {
+      const me = ++id;
+      ws.onmessage = (m) => { const r = JSON.parse(m.data); if (r.id === me) (r.error ? reject(new Error(r.error.message)) : resolve(r.result.result.value)); };
+      ws.send(JSON.stringify({ id: me, method: 'Runtime.evaluate', params: { expression, awaitPromise: true, returnByValue: true } }));
     });
+    const told = await ask('new Promise(r=>{const t=()=>{const x=document.getElementById("out").textContent;x?r(x):setTimeout(t,100)};t()})');
+    if (told.startsWith('ERROR')) throw new Error(told);
+    const n = Number(told);
+    for (let i = 0; i < n; i++) {
+      const [name, data] = await ask(`[Made[${i}][0], Made[${i}][1].toDataURL('image/png')]`);
+      const file = path.join(hd, name + '.png');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, Buffer.from(data.split(',')[1], 'base64'));
+    }
     ws.close();
-    return value;
-  } finally { child.kill(); }
+    return n;
+  } finally {
+    // On Windows the browser's children outlive a plain kill.
+    if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); else child.kill();
+  }
 }
 
-draw().then((text) => {
+draw().then((n) => {
   try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }); } catch { /* the browser's last lock on its profile, in a temp folder */ }
-  if (text.startsWith('ERROR')) throw new Error(text);
-  const made = JSON.parse(text);
-  for (const [name, data] of made) {
-    const file = path.join(hd, name + '.png');
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, Buffer.from(data.split(',')[1], 'base64'));
-  }
-  console.log(`${made.length} pictures in ${((Date.now() - started) / 1000).toFixed(1)} s`);
+  console.log(`${n} pictures in ${((Date.now() - started) / 1000).toFixed(1)} s`);
 }).catch((e) => { console.error(e); process.exit(1); });

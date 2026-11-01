@@ -62,6 +62,16 @@ function crack(a, r, x, y, len) {
   a.line(d, { w: 3.2 });
 }
 
+/** An irregular patch round a point: lobes and bites along its edge, as rust and old paint come away. */
+function tornBlotch(r, x, y, rx, ry) {
+  const pts = [];
+  for (let i = 0; i < 14; i++) {
+    const t = (i / 14) * Math.PI * 2, k = .55 + r() * .75;
+    pts.push(x + Math.cos(t) * rx * k, y + Math.sin(t) * ry * k);
+  }
+  return poly(...pts);
+}
+
 const seam = (a, rows) => {
   // The dark gap between plates, drawn over all of them; straight, so it tiles.
   for (const row of rows) {
@@ -77,6 +87,11 @@ const wallScrap = {
     const r = rng(0x5c7a9);
     const rows = rowsOf(r, [13, 12, 15, 11, 13], 14, 34);
     for (const row of rows) for (const p of row) plate(a, p, r, PLATE[Math.floor(r() * PLATE.length)]);
+    // Rust eats out from the seams, where water sat: each patch placed by hand, its edge torn, a darker heart on the seam.
+    for (const [x, y, rx, ry] of [[22, 13, 9, 3], [64, 25, 6, 2.5], [101, 40, 11, 3.5], [8, 51, 7, 3], [47, 40, 5, 2], [86, 13, 6, 2.2], [120, 25, 5, 2], [33, 51, 8, 2.6], [72, 51, 4, 2]]) {
+      a.flat(tornBlotch(r, x, y, rx, ry), '#8a4f2e');
+      a.flat(tornBlotch(r, x, y, rx * .55, ry * .55), '#5c3220');
+    }
     seam(a, rows);
     // What makes it scrap: patches bolted over the seams, a rusty one, and cracks.
     const patches = [[100, 10, 9, 9], [15, 44, 7, 9], [19, 50, 11, 8], [120, 37, 11, 8], [50, 24, 8, 6], [84, 54, 10, 7]];
@@ -93,8 +108,8 @@ const wallScrap = {
 };
 
 const BACK = [
-  { base: '#39404f', shade: '#2d3244', lite: '#454c5c', spec: '#454c5c', ink: '#14161f' },
-  { base: '#343a49', shade: '#2a2e40', lite: '#3f4656', spec: '#3f4656', ink: '#14161f' },
+  { base: '#272c38', shade: '#1f2330', lite: '#2e3440', spec: '#2e3440', ink: '#0f1118' },
+  { base: '#242935', shade: '#1d212d', lite: '#2b303c', spec: '#2b303c', ink: '#0f1118' },
 ];
 const backScrap = {
   w: SHEET_W, h: SHEET_H, tile: true, K: 2,
@@ -109,8 +124,8 @@ const backScrap = {
     }
     for (const row of rows) {
       const y = row[0].y;
-      a.flat(poly(-2, y - .22, SHEET_W + 2, y - .22, SHEET_W + 2, y + .22, -2, y + .22), '#14161f');
-      for (const p of row) a.flat(poly(p.x - .18, p.y, p.x + .18, p.y, p.x + .18, p.y + p.h, p.x - .18, p.y + p.h), '#14161f');
+      a.flat(poly(-2, y - .22, SHEET_W + 2, y - .22, SHEET_W + 2, y + .22, -2, y + .22), '#0f1118');
+      for (const p of row) a.flat(poly(p.x - .18, p.y, p.x + .18, p.y, p.x + .18, p.y + p.h, p.x - .18, p.y + p.h), '#0f1118');
     }
     for (const [x, y, w, h] of [[20, 38, 16, 11], [86, 7, 21, 13], [58, 46, 12, 8]]) {
       const m = BACK[0];

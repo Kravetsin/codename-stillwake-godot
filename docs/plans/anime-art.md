@@ -1,12 +1,14 @@
-# Moving the game to anime cel art
+# Moving the game to the new art
 
-The decision and its costs: [anime cel art](../decisions/2026-11-01-anime-cel-art.md). This is the way there: 905 pictures, in
-families, each landing in its own PR, the game never shown half and half to a player.
+The look: [ink and watercolour](../decisions/2026-11-01-ink-and-watercolour.md), its rules in
+[the tool's README](../../tools/anime-art/README.md#the-style). The plumbing and its costs: [anime cel art](../decisions/2026-11-01-anime-cel-art.md).
+This is the way there: 905 pictures, in families, each landing in its own PR, the game never shown half and half to a player.
 
 ## Where it stands
 
 Landed, off by default: the plumbing (`HiRes`, the atlas), `tools/anime-art/`, the `--anime` demos, and 385 hi-res pictures:
-the testbed room whole, the hero's first look, ten icons, a stone and soil ground, ice crystals, moss that failed.
+the testbed room whole, the hero's first look, ten icons, a stone and soil ground, ice crystals, moss that failed. All of them are
+now drawn in ink and watercolour; scrap has its first rust.
 
 ## How it lands
 

@@ -181,5 +181,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
 | [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | accepted |  |
 | [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted |  |
-| [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | accepted |  |
+| [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour |
+| [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
