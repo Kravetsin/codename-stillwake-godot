@@ -113,7 +113,7 @@ public static class HitLooks
     public static readonly Luminous Tuft = new(Glimmer.Streak, [(236, 214, 176), (190, 160, 120)], (500, 900))
     { Matter = true, Bright = 0.85, Fade = 0.8, Gravity = 60, Drag = 2.4, Spin = 3, Turbulence = 22, NoiseScale = 0.1, Stretch = 0.05, Shortest = 1, Longest = 2.5, Width = 0.35, Hot = 0 };
 
-    /// <summary>A tuft of a cool coat (the tapir's, the sixleg's, the fluff's: the savanna palette's lilac fur), as <see cref="Tuft"/>.</summary>
+    /// <summary>A tuft of a cool coat (the tapir's, the sixleg's: the savanna palette's lilac fur), as <see cref="Tuft"/>.</summary>
     public static readonly Luminous CoolTuft = Tuft with { Ramp = [(206, 198, 222), (143, 134, 180)] };
 
     /// <summary>A soft warm puff off a struck body.</summary>
@@ -200,7 +200,6 @@ public static class HitLooks
         [Stillwake.Content.Creatures.Loper.Id] = Impact.Flesh,
         [Stillwake.Content.Creatures.Tapir.Id] = Impact.CoolFlesh,
         [Stillwake.Content.Creatures.Sixleg.Id] = Impact.CoolFlesh,
-        [Stillwake.Content.Creatures.Fluff.Id] = Impact.CoolFlesh,
         [Stillwake.Content.Creatures.Sentry.Id] = Impact.Wreck,
         [Stillwake.Content.Creatures.Warden.Id] = Impact.Wreck,
     };

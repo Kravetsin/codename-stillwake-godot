@@ -54,7 +54,7 @@ from playing it are this step's list:
 The acacia is drawn (`flora`); the far ones in the sky are still pixels.
 
 **Creatures:** the loper, the tapir and the sixleg are drawn, [as parts on the same rig](../decisions/2026-11-01-creatures-in-ink.md). The
-fluff needs its pick. The sentry and the warden are the hard ones: `PosedSprite` paints them on the CPU every frame, and at 4 times that
+sentry and the warden are the hard ones: `PosedSprite` paints them on the CPU every frame, and at 4 times that
 is 16 times the pixels. Decide for them: parts as the rest, or a fixed set of poses.
 
 **Exit:** the user walks a planet's surface and a cave with the flag on and accepts them. If nature does not hold after this step,

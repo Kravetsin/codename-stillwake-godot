@@ -62,7 +62,7 @@ public sealed class CreaturePose
         // Grazing: the head down, nibbling, up for a look every few seconds (the page's).
         double graze = s.Graze * Math.Clamp(1 - Math.Max(0, Math.Sin(clk / 1400) - 0.75) * 4, 0, 1);
         double nib = graze * Math.Max(0, Math.Sin(clk / 70)) * 0.07;
-        double bob = 0, roll = 0, rock = 0, bound = 0;
+        double bob = 0, rock = 0, bound = 0;
         Stretch = 0;
         switch (_design.Gait)
         {
@@ -76,19 +76,11 @@ public sealed class CreaturePose
                 rock = -_run.Rock * g * Math.Sin(reach * tau);
                 Stretch = -_run.Stretch * g * Math.Sin(ph * tau);
                 break;
-            case CreatureArt.Gait.Waddle:
-                bob = -Math.Abs(Math.Sin(ph * tau)) * 1.6 * walk * (1 - g);
-                roll = Math.Sin(ph * tau) * 0.09 * walk * (1 - g);
-                // Fleeing it bounds along in hops, one a stride: squashed on the ground, tall aloft, nose up rising and down falling.
-                bound = -_run.Bound * g * Math.Abs(Math.Sin(ph * Math.PI));
-                rock = -_run.Rock * g * Math.Sin(ph * tau);
-                Stretch = _run.Stretch * g * Math.Cos(ph * tau);
-                break;
             case CreatureArt.Gait.Hop:
                 bob = -Math.Abs(Math.Sin(ph * Math.PI)) * p.Hop * (1 + 0.2 * g) * walk;
                 break;
         }
-        double bodyA = (_design.Headless ? p.Graze * graze + nib * 0.5 : 0) + roll + rock;
+        double bodyA = (_design.Headless ? p.Graze * graze + nib * 0.5 : 0) + rock;
         var rig = _design.Rig;
         double low = double.NegativeInfinity;
         for (int i = 0; i < rig.Count; i++)
@@ -151,12 +143,6 @@ public sealed class CreaturePose
                 {
                     double k = Math.Sin(ph * Math.PI) * walk;
                     return n.Hind ? (-0.75 * k, 0, 0) : (0.5 * k, 0, -k * 1.5);
-                }
-            case CreatureArt.Gait.Waddle:
-                {
-                    // Paws shuffle at a waddle; bounding, they tuck up under the body while it is aloft.
-                    double w = (ph + n.Phase) * tau, hop = Math.Abs(Math.Sin(ph * Math.PI)) * g;
-                    return (0, Math.Sin(w) * 1.2 * walk * (1 - g), -Math.Max(0, Math.Cos(w)) * p.Lift * walk * (1 - g) - hop * 1.5);
                 }
             default:
                 {

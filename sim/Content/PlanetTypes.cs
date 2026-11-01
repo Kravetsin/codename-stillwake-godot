@@ -152,15 +152,12 @@ public static class PlanetTypes
         LodeOver = 42000,
         LodeMost = 1000,
         // Neutral creatures only on the first planet (the user's word), spawned by habitat (the user's rule, 2026-10-22): the
-        // loper, the tapir and the sixleg on the open ground; the fluff on cave floors of the cold band and, more, the garden's.
-        // Nothing yet in the amber and ember bands: their kinds come later.
+        // loper, the tapir and the sixleg on the open ground. Nothing yet in the caves: their kinds come later.
         Creatures =
         [
             new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 3),
             new(Content.Creatures.Tapir.Id, Content.Creatures.Place.Surface, 2),
             new(Content.Creatures.Sixleg.Id, Content.Creatures.Place.Surface, 2),
-            new(Content.Creatures.Fluff.Id, Content.Creatures.Place.Band, 2, Band: 0),
-            new(Content.Creatures.Fluff.Id, Content.Creatures.Place.Band, 3, Band: 1),
         ],
     };
 

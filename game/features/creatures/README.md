@@ -77,7 +77,7 @@ axe's blade and the drill's bit are tested against each creature's body as again
 ## Dev
 
 `-- --planet --creatures[=species|look]` lets six creatures out either side of the hero (`dev/CreaturesDemo`, the sim's
-`Release`); `--ground=band1 --creatures=fluff --manual` in a cave. `--creatures-trace` logs strides and looks; `--creatures-herd` ten
+`Release`); `--creatures-trace` logs strides and looks; `--creatures-herd` ten
 of a kind in a row; without `--manual` `dev/demos/CreatureHands` hunts them with the axe, then the drill. `--creatures-drill` holds the
 drill on one loper; `--strip --creatures --creatures-course` puts a loper by the strip's walls and shaft for its leaps.
 
