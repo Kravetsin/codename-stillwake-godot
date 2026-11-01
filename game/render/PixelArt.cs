@@ -21,6 +21,14 @@ public static class PixelArt
         return texture;
     }
 
+    /// <summary>A far, soft layer of land: its hi-res file may be any size, and draws at the size of the pixel picture.</summary>
+    public static Texture2D Far(string name)
+    {
+        if (!Loaded.TryGetValue(name, out var texture))
+            Loaded[name] = texture = HiRes.Load(name) is { } fine ? HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(fine)), (Vector2I)Logical(name).GetSize()) : Logical(name);
+        return texture;
+    }
+
     /// <summary>The pixel picture <c>res://art/{name}.png</c> itself: what reads its pixels (a shape, a size) rather than draws it.</summary>
     public static Texture2D Logical(string name) => GD.Load<Texture2D>($"res://art/{name}.png");
 
