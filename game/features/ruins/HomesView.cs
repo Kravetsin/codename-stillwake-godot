@@ -667,7 +667,7 @@ public partial class HomesView : Node2D, ILightSource
 
         static Atlas()
         {
-            var names = Names().Select(n => (Name: n, Image: Rgba(PixelArt.Picture(n).GetImage()))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
+            var names = Names().Select(n => (Name: n, Image: Rgba(PixelArt.Logical(n).GetImage()))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
             int x = 0, y = 0, row = 0;
             foreach (var (name, image) in names)
             {

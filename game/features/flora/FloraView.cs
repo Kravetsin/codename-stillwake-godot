@@ -101,7 +101,7 @@ public partial class FloraView : Node2D, ILightSource
         var size = texture.GetSize();
         // Planted: its lowest drawn row Sink pixels under the top of the ground it grows from, the rows there not drawn.
         int x = plant.Cell % _grid.Width, y = plant.Cell / _grid.Width;
-        var (top, bottom) = UsedRows(texture);
+        var (top, bottom) = UsedRows(PixelArt.Logical(name));
         var (px, py, from, rows) = Planting.Picture(Spec.Anchor.Floor, x, y, Cell, Spec.Get(plant.Kind).Across, (int)size.X, (int)size.Y, top, bottom, look.Sink);
         var corner = new Vector2(px, py);
         var picture = new Sprite2D
@@ -251,8 +251,7 @@ public partial class FloraView : Node2D, ILightSource
         if (GlowsOf.TryGetValue(name, out var known)) return known;
         string path = $"res://art/{name}_glow.png";
         if (!ResourceLoader.Exists(path)) return GlowsOf[name] = null;
-        var texture = PixelArt.Picture($"{name}_glow");
-        return GlowsOf[name] = (texture, PointsOf(texture));
+        return GlowsOf[name] = (PixelArt.Picture($"{name}_glow"), PointsOf(PixelArt.Logical($"{name}_glow")));
     }
 
     private static readonly Dictionary<string, (Texture2D, (Vector2, Color)[])?> GlowsOf = new();

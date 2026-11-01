@@ -17,7 +17,7 @@ public static class PixelArt
     public static Texture2D Picture(string name)
     {
         if (!Loaded.TryGetValue(name, out var texture))
-            Loaded[name] = texture = !name.Contains('/') && HiRes.Load(name) is { } fine ? HiRes.Texture(fine) : Logical(name);
+            Loaded[name] = texture = HiRes.Load(name) is { } fine ? HiRes.Texture(fine) : Logical(name);
         return texture;
     }
 

@@ -674,7 +674,7 @@ public partial class CaveView : Node2D, ILightSource
             return glow;
         }
 
-        private static Image ImageOf(string name) => Rgba(PixelArt.Picture(name).GetImage());
+        private static Image ImageOf(string name) => Rgba(PixelArt.Logical(name).GetImage());
 
         private static Image Rgba(Image image)
         {
