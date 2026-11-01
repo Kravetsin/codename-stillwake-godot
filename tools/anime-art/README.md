@@ -24,6 +24,8 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
   short pen lines; dents and patches sit where something hit or was mended.
 - **Detail:** objects are composed, each part placed by hand: about 20 calls for a 16 × 16 icon. Walls are quieter than what stands
   before them, back walls dark and quietest. Random scatter is for the edge of a placed thing, never for placing it.
+- **Ground:** one body, not paving: large masses of close tone, a hard shadow at their foot, only some cracks drawn. Grass lies over the
+  block's top as part of it, thick, a deep muted green.
 - **Do not:** lay a filter or an outline over finished or pixel art, or draw a wall as a texture of noise.
 
 ## What it draws
@@ -56,5 +58,6 @@ and the light are the engine's, one for every subject (`engine.js`), per world p
 
 - A picture must be exactly 4 times the logical one; the game reports the logical size and lays out by it.
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
+- A `top_*` picture lays its ground line on row 16; rows above it stand on the cell above, rows below lie over the block, in its `front` picture.
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss has its band
   solid on the rows `CaveView` stretches.

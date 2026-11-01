@@ -41,14 +41,15 @@ time, for every picture is now mipmapped at startup. A miss here changes the pla
 The slice proved the ship and not the planet, which is about a third of the pictures and the hardest of them. The user's notes
 from playing it are this step's list:
 
-- **Grass.** The ground's living edge has none: `top_soil` was drawn as bare ground, and tufts are still pixels.
-- **Back walls too simple**, on the ship and the ground alike. They must stay dark and quiet behind what stands before them; the
-  first ground back wall, as busy as the stone, could not be stood against.
-- **Scrap is too clean.** The pixel hull is rusty and battered; this one is riveted plates with a few patches. Bring the damage
-  back, and the wreck's dress (`wreck_dress`, still pixels) with it.
+- **Grass.** Done for soil: turf over the block's top and thick tufts (`top_soil`), accepted from a frame. The flora's own tufts are
+  still pixels, and the look on other planet types is open.
+- **Back walls** must stay dark and quiet behind what stands before them. Darkened on the ship, stone and soil; the stone and soil
+  ones are checked in frames only.
+- **Scrap is too clean.** The pixel hull is rusty and battered; this one has first rust at its seams. Bring more damage back, and the
+  wreck's dress (`wreck_dress`, still pixels) with it.
 - **Moss.** Stretching one logical pixel along a run cannot carry this style. Draw the run in pieces instead, which changes
   `CaveView`'s `Band`.
-- **The stone's pattern** reads as stained glass: quieter, fewer lines.
+- **The stone's pattern** was stained glass. Done: large masses of close tone, only some cracks drawn, accepted by the user.
 
 Then a tree and one creature, walking and at both zooms, for what bends and what moves.
 
