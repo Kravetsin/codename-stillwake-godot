@@ -30,6 +30,9 @@ public partial class CreatureBody : Node2D
     private sealed record Drawn(int Node, string Part, Sprite2D Colour, Sprite2D White, Sprite2D? Glow)
     {
         public (Vector2 At, Color Colour)[] Spots { get; set; } = [];
+
+        /// <summary>What its colours are multiplied by: an individual in ink's (<see cref="CreatureVariety.InkTint"/>), its eye's whites never.</summary>
+        public Color Tint { get; set; } = Colors.White;
     }
 
     private readonly List<Drawn> _drawn = [];
@@ -52,7 +55,8 @@ public partial class CreatureBody : Node2D
     /// </summary>
     public void Dress(string species, string palette, CreatureVariety.Individual one)
     {
-        var design = CreatureArt.Designs[Spec.Creatures.Get(species).Look];
+        string look = Spec.Creatures.Get(species).Look;
+        var design = HiRes.On && CreatureArt.InkDesigns.TryGetValue(look, out var ink) ? ink : CreatureArt.Designs[look];
         (Modulate, _white) = (Colors.White, 0);
         if (design != _design || palette != _palette) Make(design, palette);
         var v = CreatureLooks.Varieties[species];
@@ -62,6 +66,11 @@ public partial class CreatureBody : Node2D
             d.White.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.White, v, one);
             if (d.Glow != null) d.Glow.Texture = CreatureParts.Of(design, d.Part, palette, CreatureParts.Kind.Glow, v, one);
             d.Spots = CreatureParts.SpotsOf(design, d.Part, palette, one);
+            if (design.Ink && d.Part is not ("eye_open" or "eye_wide" or "pupil" or "pupil_wide"))
+            {
+                var (r, g, b) = CreatureVariety.InkTint(one);
+                d.Tint = new Color(r, g, b);
+            }
         }
         Size = one.Size / 1000f;
         Fade(1);
@@ -82,7 +91,11 @@ public partial class CreatureBody : Node2D
         {
             var node = design.Rig[i];
             if (node.Drive == CreatureArt.Drive.Eye)
-                foreach (var part in CreatureArt.EyeParts) Add(i, part);
+                foreach (var part in CreatureArt.EyeParts)
+                {
+                    // An eye with no pupil is a pit, as the sixleg's.
+                    if (design.Parts.ContainsKey(part)) Add(i, part);
+                }
             else Add(i, node.Part);
         }
         // Glows over the whole body, as the page adds them, then the flash over all.
@@ -132,7 +145,10 @@ public partial class CreatureBody : Node2D
         bool wide = eye == CreaturePose.EyeState.Wide;
         var travel = wide ? design.Eye.TravelWide : design.Eye.Travel;
         var look = pose.Look;
-        var pupil = new Vector2(MathF.Round((float)look.X * travel.X), MathF.Round((float)look.Y * travel.Y + (eye == CreaturePose.EyeState.Half ? 1 : 0)));
+        // Whole pixels, for pixels; in ink it travels less than one.
+        var pupil = design.Ink
+            ? new Vector2((float)look.X * travel.X, (float)look.Y * travel.Y)
+            : new Vector2(MathF.Round((float)look.X * travel.X), MathF.Round((float)look.Y * travel.Y + (eye == CreaturePose.EyeState.Half ? 1 : 0)));
         _white = white;
         foreach (var d in _drawn)
         {
@@ -182,7 +198,7 @@ public partial class CreatureBody : Node2D
         var shade = new Color(1, 1, 1, alpha);
         foreach (var d in _drawn)
         {
-            d.Colour.Modulate = shade;
+            d.Colour.Modulate = d.Tint with { A = alpha };
             if (d.Glow != null) d.Glow.Modulate = shade;
         }
         foreach (var d in _drawn) d.White.Visible = d.Colour.Visible && _white > 0.01;

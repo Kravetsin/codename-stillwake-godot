@@ -16,7 +16,7 @@ public static partial class CreatureArt
     public enum Drive { None, Body, Head, Ear, Leg, Tail, Pod, Antler, Eye }
 
     /// <summary>A part's picture: <paramref name="W"/> × <paramref name="H"/>, the pixel it turns about, the ramps it is painted in, whether a glow map goes with it.</summary>
-    public sealed record Part(int W, int H, int PivotX, int PivotY, int[] Ramps, bool Glow = false);
+    public sealed record Part(int W, int H, float PivotX, float PivotY, int[] Ramps, bool Glow = false);
 
     /// <summary>
     /// A node of the rig: <paramref name="Part"/> drawn hanging from <paramref name="Parent"/> at (<paramref name="X"/>,
@@ -28,12 +28,12 @@ public static partial class CreatureArt
     /// <summary>The eye: where it sits on its parent, and how far its pupil travels each way, calm and wide.</summary>
     public sealed record Eye(float X, float Y, (float X, float Y) Travel, (float X, float Y) TravelWide);
 
-    /// <summary>The page's pose numbers, radians and pixels: ears up and back, perked, a leg's swing and lift, the tail's sway and flight, grazing, a hopper's hop.</summary>
-    public sealed record Pose(float EarUp, float EarBack, float EarPerk, float LegAmp, float Lift, float TailAmp, float TailFlee, float Graze, float Hop);
+    /// <summary>The page's pose numbers, radians and pixels: ears up and back, perked, a leg's swing and lift, the tail's sway and flight, grazing, a hopper's hop; for a design that stands on its feet its legs' length and half its foot.</summary>
+    public sealed record Pose(float EarUp, float EarBack, float EarPerk, float LegAmp, float Lift, float TailAmp, float TailFlee, float Graze, float Hop, float LegLen = 0, float FootW = 0);
 
-    /// <summary>A design: its gait, whether its head is its body, the ramp its glow maps take, its eye, pose, parts and rig in drawing order.</summary>
+    /// <summary>A design: its gait, whether its head is its body, the ramp its glow maps take, its eye, pose, parts and rig in drawing order; whether it is drawn in ink, its parts finished pictures and not index maps.</summary>
     public sealed record Design(
-        string Id, Gait Gait, bool Headless, int Glow, Eye Eye, Pose Pose, IReadOnlyDictionary<string, Part> Parts, IReadOnlyList<Node> Rig);
+        string Id, Gait Gait, bool Headless, int Glow, Eye Eye, Pose Pose, IReadOnlyDictionary<string, Part> Parts, IReadOnlyList<Node> Rig, bool Ink = false);
 
     /// <summary>The parts every design's eye is drawn from: whites calm and wide, pupils calm and wide, half and shut lids.</summary>
     public static readonly string[] EyeParts = ["eye_open", "eye_wide", "pupil", "pupil_wide", "lid_half", "lid_blink"];
@@ -70,6 +70,9 @@ public static class CreatureLooks
         ["tapir"] = new(Stride: 11, MostStrides: 2.6, Reach: 0.45, Bound: 2.5, Rock: 0.05, Stretch: 0.04),
         ["sixleg"] = new(Stride: 9, MostStrides: 2.8, Reach: 0.5, Bound: 1.5, Rock: 0.03, Stretch: 0.03),
         ["fluff"] = new(Stride: 8, MostStrides: 3.4, Reach: 0, Bound: 5, Rock: 0.06, Stretch: 0.07),
+        ["inkLoper"] = new(Stride: 12, MostStrides: 3.2, Reach: 0.26, Bound: 3.5, Rock: 0.07, Stretch: 0.05),
+        ["inkTapir"] = new(Stride: 11, MostStrides: 2.6, Reach: 0.36, Bound: 2.2, Rock: 0.05, Stretch: 0.03),
+        ["inkSixleg"] = new(Stride: 11, MostStrides: 2.8, Reach: 0.32, Bound: 1.5, Rock: 0.03, Stretch: 0.03),
     };
 
     /// <summary>
@@ -95,6 +98,9 @@ public static class CreatureLooks
         [Stillwake.Content.PlanetTypes.Small.Id] = "savanna",
         [Stillwake.Content.PlanetTypes.SmallSpire.Id] = "savanna",
     };
+
+    /// <summary>What an individual in ink differs by, its picture multiplied: a share lighter a quarter tone of its shade, and warmer or cooler a step of its tint.</summary>
+    public const float InkShade = 0.05f, InkHue = 0.035f;
 
     /// <summary>The palette of a surface whose type names none, as the test strip's.</summary>
     public const string Palette = "savanna";

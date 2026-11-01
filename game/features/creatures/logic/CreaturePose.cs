@@ -90,6 +90,7 @@ public sealed class CreaturePose
         }
         double bodyA = (_design.Headless ? p.Graze * graze + nib * 0.5 : 0) + roll + rock;
         var rig = _design.Rig;
+        double low = double.NegativeInfinity;
         for (int i = 0; i < rig.Count; i++)
         {
             var n = rig[i];
@@ -125,6 +126,15 @@ public sealed class CreaturePose
                     break;
             }
             Joints[i] = new Joint(a, x, y);
+            // A rigid leg swinging out would lift its foot: what the body must drop so the lowest foot stays on the ground.
+            if (n.Drive == CreatureArt.Drive.Leg) low = Math.Max(low, y + p.LegLen * (Math.Cos(a) - 1) + p.FootW * Math.Abs(Math.Sin(a)));
+        }
+        if (p.LegLen > 0 && low > double.NegativeInfinity)
+        {
+            // Standing on its feet in place of the fixed bob, walking and in a gallop's gathered moment; aloft it is left to bound.
+            double c = Math.Cos((ph - 0.25) * Math.PI * (_design.Gait == CreatureArt.Gait.Tripod ? 2 : 1)), plant = Math.Max(walk * (1 - g), g * c * c * c * c);
+            for (int i = 0; i < rig.Count; i++)
+                if (rig[i].Drive == CreatureArt.Drive.Body) Joints[i] = Joints[i] with { Y = bound - low * plant };
         }
         Eye = s.Eye < 0.3 ? EyeState.Blink : s.Eye > 1.2 ? EyeState.Wide : graze > 0.5 ? EyeState.Half : EyeState.Open;
         Look = s.Look ?? (graze > 0.5 ? (0.55, 0.83) : (0.98, 0.18));

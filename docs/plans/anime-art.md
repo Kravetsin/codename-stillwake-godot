@@ -51,11 +51,11 @@ from playing it are this step's list:
   `CaveView`'s `Band`.
 - **The stone's pattern** was stained glass. Done: large masses of close tone, only some cracks drawn, accepted by the user.
 
-The acacia is drawn (`flora`); the far ones in the sky are still pixels. Then one creature, walking and at both zooms, for what moves.
+The acacia is drawn (`flora`); the far ones in the sky are still pixels.
 
-**A creature is not a picture to swap.** `PosedSprite` paints albedo, silhouette and emission on the CPU every frame at logical
-size, and `CreatureParts` reads index maps to mark each individual. At 4 times that is 16 times the pixels a frame. Decide first:
-a pipeline of parts as the hero has, or a fixed set of poses; and where the markings go. This decision is part of the probe.
+**Creatures:** the loper, the tapir and the sixleg are drawn, [as parts on the same rig](../decisions/2026-11-01-creatures-in-ink.md). The
+fluff needs its pick. The sentry and the warden are the hard ones: `PosedSprite` paints them on the CPU every frame, and at 4 times that
+is 16 times the pixels. Decide for them: parts as the rest, or a fixed set of poses.
 
 **Exit:** the user walks a planet's surface and a cave with the flag on and accepts them. If nature does not hold after this step,
 stop and decide again before drawing more: the ship in cel beside pixel nature is not a game we ship.

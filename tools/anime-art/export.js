@@ -44,7 +44,7 @@ for (const f of fs.readdirSync(path.join(art, 'planet'))) if (/^acacia_\d_glow\.
 
 const url = (f) => 'file:///' + path.join(here, f).replace(/\\/g, '/');
 const page = `<!doctype html><meta charset="utf-8"><pre id="out"></pre>
-<script>window.LOGICAL=${JSON.stringify(logical)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);</script>
+<script>window.LOGICAL=${JSON.stringify(logical)};window.Made=[];window.out=(name,c)=>Made.push([name,c]);window.Texts=[];window.writeText=(p,t)=>Texts.push([p,t]);</script>
 <script src="${url('engine.js')}"></script>
 <script src="${url('wash.js')}"></script>
 ${SUBJECTS.map((s) => `<script src="${url('subjects/' + s + '.js')}"></script>`).join('\n')}
@@ -84,6 +84,7 @@ async function draw() {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, Buffer.from(data.split(',')[1], 'base64'));
     }
+    for (const [p, t] of await ask('Texts')) fs.writeFileSync(path.join(hd, p), t);
     ws.close();
     return n;
   } finally {
