@@ -184,18 +184,6 @@ public static class Creatures
     public static readonly Species Sixleg = Loper with { Id = "sixleg", Look = "sixleg", Life = Loper.Life with { Hp = 14 } };
 
     /// <summary>
-    /// The fluff («Пушок»): a ball of fur on tiny paws, glowing spots down its back and lantern antennae, living on the floors of
-    /// the upper caves and the garden band, where its glow lights the dark. Small and light: eight hit points (four of the
-    /// axe's); a blow knocks it a fifth farther and hops it higher; it potters at 3.2 cells a second and bolts at 28; its hop is
-    /// smaller, 760 up and 720 across, 6.4 cells high on the first planet, still over a ledge of six. One or two biomass, a
-    /// seed one time in four, a hide and at most one fat (placeholders). It never rams.
-    /// </summary>
-    public static readonly Species Fluff = new("fluff", Look: "fluff",
-        Body: new Walker(Width: 4, Height: 4, Walk: 160, Run: 1400, Jump: 760, JumpAcross: 720), Life: new(Hp: 8, Knock: 480, Hop: 440),
-        Faction: Grazer, Lifetime: Lifetime.Wild, Brain: [new Flee(FleeTicks), new Graze()], Moves: [],
-        Yields: [new("biomass", 1, 2), new("seed", 1, 1, OneIn: 4), new("hide", 1, 1), new("fat", 0, 1)]);
-
-    /// <summary>
     /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
     /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. A hero within 40 cells alerts it (the user's
     /// word: it sees far); alerted a second, a hero within twenty and it pounces: a crouch of 0.8 s, then a flight of half a
@@ -225,7 +213,7 @@ public static class Creatures
         Moves: [new Pounce(WindUp: 16, Speed: 1800, Ticks: 28, Damage: 5)],
         Yields: [new("circuit", 2, 3), new("alloyScrap", 1, 2)]);
 
-    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Fluff, Sentry, Warden];
+    public static readonly IReadOnlyList<Species> All = [Loper, Tapir, Sixleg, Sentry, Warden];
 
     /// <summary>
     /// A species that comes with debris pieces of some kinds as they drift in, clamped to a perch on one's top (<c>Wreckage.Perches</c>):

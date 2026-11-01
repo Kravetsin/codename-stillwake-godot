@@ -46,6 +46,16 @@ public static class Migrations
             }
             return root;
         },
+        // 41 → 42: the fluff is gone from the game (2026-11-01-creatures-in-ink), and so are the ones a world had.
+        root =>
+        {
+            foreach (var surface in root["surfaces"]!.AsArray())
+            {
+                var creatures = surface!["slices"]!["creatures"]!["creatures"]!.AsArray();
+                foreach (var fluff in creatures.Where(c => c!["species"]!.GetValue<string>() == "fluff").ToList()) creatures.Remove(fluff);
+            }
+            return root;
+        },
     ];
 
     /// <summary>An inventory of 36 own slots, then its equipment, as 38 own slots, then the same equipment.</summary>

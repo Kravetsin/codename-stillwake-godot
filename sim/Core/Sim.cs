@@ -15,7 +15,7 @@ public sealed class World
     /// added; a save of another format is refused. A field added with its default needs no bump: an older build refuses
     /// it as unknown (<see cref="Load"/>), this one reads an older save's lack of it as the default.
     /// </summary>
-    public const int SaveFormat = 41;
+    public const int SaveFormat = 42;
 
     /// <summary>How many ticks a second of game time holds: the host releases them at this pace.</summary>
     public const int TicksPerSecond = 20;

@@ -404,7 +404,7 @@ public static class Sound
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath),
-        // The sixleg the loper's; the heavier tapir lower, the small fluff higher (placeholders all).
+        // The sixleg the loper's; the heavier tapir lower (placeholders all).
         [Stillwake.Content.Creatures.Sixleg.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
@@ -413,10 +413,6 @@ public static class Sound
             Glowcap with { Tune = 0.68f, Pitch = 0.1f },
             LandSoft with { VolumeDb = -2, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath with { Tune = 0.88f }),
-        [Stillwake.Content.Creatures.Fluff.Id] = (
-            Glowcap with { Tune = 1.0f, Pitch = 0.14f },
-            LandSoft with { VolumeDb = -5, Tune = 1.6f, Pitch = 0.12f, Heard = ToolReach },
-            CreatureDeath with { Tune = 1.15f }),
     };
 
     /// <summary>

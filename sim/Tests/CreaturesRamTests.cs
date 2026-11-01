@@ -90,13 +90,8 @@ public class CreaturesRamTests
     }
 
     [Fact]
-    public void TheFluffNeverRamsNorDoesAWandererThatMeetsAWall()
+    public void AWandererThatMeetsAWallNeverRams()
     {
-        Assert.Equal((0, 0), (Tune.Fluff.Ram(), Tune.Fluff.RamChance()));
-        var w = CreaturesTesting.Planet(Pen).Breathing().HeroAt(10, 3);
-        var fluff = w.Let(Tune.Fluff, 13, 3);
-        Assert.False(WindsUp(w, fluff));
-
         var v = CreaturesTesting.Planet(Pen).Breathing().HeroAt(10, 3);
         var tapir = v.Let(Tapir, 13, 3).Walking(+1);
         for (int t = 0; t < 400; t++)
@@ -148,11 +143,10 @@ public class CreaturesRamTests
     }
 
     [Fact]
-    public void AStruckLoperRamsBackMostTimesAndTheFluffNever()
+    public void AStruckLoperRamsBackMostTimes()
     {
         int lopers = Enumerable.Range(1, 10).Count(seed => StruckFrom(Tune.Loper, 3, (uint)seed).ChargedAt != null);
         Assert.InRange(lopers, 5, 10);
-        Assert.All(Enumerable.Range(1, 10), seed => Assert.Null(StruckFrom(Tune.Fluff, 3, (uint)seed, ticks: 200).ChargedAt));
     }
 
     [Fact]

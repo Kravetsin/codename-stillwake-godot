@@ -194,7 +194,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             }
             Place(one, c, progress, elapsedMs);
         }
-        // What their glowing parts light this frame: the fluff's spots in a cave, the tapir's pod at dusk.
+        // What their glowing parts light this frame: the tapir's pod at dusk.
         _lights.Clear();
         foreach (var one in _shown.Values) one.Body.Lights(_lights, one.Body.Transform, 1);
         foreach (var held in _held) held.Body.Lights(_lights, held.Body.Transform, 1);

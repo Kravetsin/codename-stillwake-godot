@@ -46,7 +46,7 @@ public sealed class CreaturesScenario : DevScenario
 
     public override void Attach(DevContext c)
     {
-        // =fluff (a species or its look): only that kind let out.
+        // =tapir (a species or its look): only that kind let out.
         string? kind = Args.Given("--creatures") is { Length: > 0 } k ? k : null;
         string? ram = Args.Given("--creatures-ram") is { } r ? r.Length > 0 ? r : "hit" : null;
         bool drill = Args.Has("--creatures-drill"), course = Args.Has("--creatures-course");

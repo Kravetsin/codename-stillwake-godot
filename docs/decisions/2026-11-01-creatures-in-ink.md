@@ -5,10 +5,14 @@
 
 The user picked on [a page](https://claude.ai/artifact/R8hBM1Y5RTrtscJNBL6zCu), one design for each creature: the loper gaunt and wary
 (Б), the tapir plated and heavy (В), the sixleg alien, read through its ears and marks (Г). The fourth candidate, the old silhouette redrawn,
-was rejected. The fluff has no candidate yet and stays in pixels.
+was rejected.
+
+**The fluff is gone from the game.** It had no pick, and the user would rather have none than a pixel one beside these: no species, no art, no
+spawns, so the caves stand empty until their kinds come. A world that had some loses them on loading (format 42). The way a kind spawns in a
+band stays, for those kinds; its hopping gait, which only the fluff used, went with it.
 
 **The rig stays; only the pictures change.** A plan feared 16 times the pixels painted each frame, but that holds only for the sentry and the
-warden (`PosedSprite`). These four are sprites of parts, turned by the GPU, so a part 4 times larger costs memory and no frame time.
+warden (`PosedSprite`). These three are sprites of parts, turned by the GPU, so a part 4 times larger costs memory and no frame time.
 
 **A part is a finished picture, not an index map.** We meant to keep colour computed, writing ramp, tone and water into the channels, and did not:
 a boundary between two zones cannot be antialiased in one ramp's index, and the picked colours are in no palette. So an individual differs by:
@@ -29,4 +33,4 @@ the lowest foot, walking and in a gallop's gathered moment.
 - **The tint in the burst.** A killed creature crumbles into its picture's reduced pixels in plain colours: gone in a moment.
 - **The hit box.** The sim's is unchanged; the loper's head now reaches past it. Felt in play or not: unchecked.
 - **The sixleg's glowing tail.** The picked Г has none, so it gives no light. The tapir's pod was not on the page either and was added, for it lights the night.
-- **The sentry, the warden and the fluff:** their own decisions.
+- **The sentry and the warden:** their own decision.

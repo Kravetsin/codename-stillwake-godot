@@ -29,7 +29,7 @@ public sealed class CreaturesDemo(bool drill = false, bool course = false, strin
     private static readonly IReadOnlyList<Spec.Creatures.Species> Wild = [.. Spec.Creatures.All.Where(s => s.Lifetime == Spec.Creatures.Lifetime.Wild)];
 
     /// <summary>
-    /// The species let out: <c>--creatures=fluff</c>'s (a species' id or its look's), else each of them in turn round the hero, so one
+    /// The species let out: <c>--creatures=tapir</c>'s (a species' id or its look's), else each of them in turn round the hero, so one
     /// run shows them all.
     /// </summary>
     private string SpeciesAt(int i) =>

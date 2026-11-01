@@ -9,8 +9,8 @@ namespace Stillwake.Game;
 /// </summary>
 public static partial class CreatureArt
 {
-    /// <summary>How a design walks (the page's): legs in diagonal pairs, six in two tripods, a waddle on paws, or hops.</summary>
-    public enum Gait { Walk, Tripod, Waddle, Hop }
+    /// <summary>How a design walks (the page's): legs in diagonal pairs, six in two tripods, or hops.</summary>
+    public enum Gait { Walk, Tripod, Hop }
 
     /// <summary>What moves a rig's node: nothing, the body, the head, an ear, a leg, the tail, a seed pod, antlers, or the eye.</summary>
     public enum Drive { None, Body, Head, Ear, Leg, Tail, Pod, Antler, Eye }
@@ -63,13 +63,12 @@ public static class CreatureLooks
     /// </summary>
     public sealed record Run(double Stride, double MostStrides, double Reach, double Bound, double Rock, double Stretch);
 
-    /// <summary>Each design's: the tapir heavier and slower, the six legs quicker and lower, the fluff bounding along in hops.</summary>
+    /// <summary>Each design's: the tapir heavier and slower, the six legs quicker and lower.</summary>
     public static readonly IReadOnlyDictionary<string, Run> Runs = new Dictionary<string, Run>
     {
         ["classic"] = new(Stride: 10, MostStrides: 3.2, Reach: 0.6, Bound: 3.5, Rock: 0.07, Stretch: 0.05),
         ["tapir"] = new(Stride: 11, MostStrides: 2.6, Reach: 0.45, Bound: 2.5, Rock: 0.05, Stretch: 0.04),
         ["sixleg"] = new(Stride: 9, MostStrides: 2.8, Reach: 0.5, Bound: 1.5, Rock: 0.03, Stretch: 0.03),
-        ["fluff"] = new(Stride: 8, MostStrides: 3.4, Reach: 0, Bound: 5, Rock: 0.06, Stretch: 0.07),
         ["inkLoper"] = new(Stride: 12, MostStrides: 3.2, Reach: 0.26, Bound: 3.5, Rock: 0.07, Stretch: 0.05),
         ["inkTapir"] = new(Stride: 11, MostStrides: 2.6, Reach: 0.36, Bound: 2.2, Rock: 0.05, Stretch: 0.03),
         ["inkSixleg"] = new(Stride: 11, MostStrides: 2.8, Reach: 0.32, Bound: 1.5, Rock: 0.03, Stretch: 0.03),
@@ -106,7 +105,7 @@ public static class CreatureLooks
     public const string Palette = "savanna";
 
     /// <summary>
-    /// The light a glowing part casts (the fluff's spots and antennae, the tapir's pod, the sixleg's berries): from its glowing
+    /// The light a glowing part casts (the tapir's pod, the sixleg's berries): from its glowing
     /// pixels' middle, at <see cref="LightStrength"/> of their colour, falling off by <see cref="LightKeep"/> a cell out to
     /// <see cref="LightReach"/>; the brightest <see cref="MostLights"/> spots of a creature.
     /// </summary>
@@ -150,12 +149,11 @@ public static class CreatureLooks
     public sealed record Variety(
         int Least, int Most, int Coat, int Shade, int Toward, int Away, int Blend, int MorphOneIn, int Morph, int Drop, int Faint);
 
-    /// <summary>Each species': the loper tan to rosy or ashen, its stripes one to three; the tapir pale at times; the fluff pink or cream, its spots fewer.</summary>
+    /// <summary>Each species': the loper tan to rosy or ashen, its stripes one to three; the tapir pale at times.</summary>
     public static readonly IReadOnlyDictionary<string, Variety> Varieties = new Dictionary<string, Variety>
     {
         ["loper"] = new(Least: 860, Most: 1140, Coat: FurA, Shade: 3, Toward: FurB, Away: Skin, Blend: 420, MorphOneIn: 7, Morph: -4, Drop: 350, Faint: 450),
         ["tapir"] = new(Least: 880, Most: 1160, Coat: FurB, Shade: 3, Toward: FurA, Away: Skin, Blend: 450, MorphOneIn: 7, Morph: 4, Drop: 250, Faint: 500),
         ["sixleg"] = new(Least: 880, Most: 1120, Coat: FurB, Shade: 3, Toward: FurA, Away: Belly, Blend: 450, MorphOneIn: 7, Morph: -4, Drop: 300, Faint: 450),
-        ["fluff"] = new(Least: 820, Most: 1150, Coat: FurB, Shade: 3, Toward: Skin, Away: Belly, Blend: 450, MorphOneIn: 7, Morph: 4, Drop: 250, Faint: 1000),
     };
 }
