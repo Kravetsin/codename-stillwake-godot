@@ -33,4 +33,4 @@ the lowest foot, walking and in a gallop's gathered moment.
 - **The tint in the burst.** A killed creature crumbles into its picture's reduced pixels in plain colours: gone in a moment.
 - **The hit box.** The sim's is unchanged; the loper's head now reaches past it. Felt in play or not: unchecked.
 - **The sixleg's glowing tail.** The picked Г has none, so it gives no light. The tapir's pod was not on the page either and was added, for it lights the night.
-- **The sentry and the warden:** their own decision.
+- **The sentry and the warden:** [their own decision](2026-11-01-guards-in-ink.md).

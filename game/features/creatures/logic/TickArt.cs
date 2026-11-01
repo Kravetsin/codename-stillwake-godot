@@ -31,10 +31,10 @@ public sealed class TickArt
     /// <summary>
     /// What it is doing, the page's <c>P</c>: crouched (1, −0.5 a hop up), walking (0..1) and how far its legs have gone, its legs
     /// folded for flight (0..1), its eye's colour and brightness (lit at 1 and over), where it looks across (−1..1, its own way),
-    /// how far its death's cracks have spread (0..1, none at 0), its front claw raised to work at a line (0..1) and its mandible open (0..1).
+    /// how far its death's cracks have spread (0..1, none at 0), its front claw raised to work at a line (0..1), its mandible open (0..1) and how alert it stands (0..1).
     /// </summary>
     public readonly record struct Pose(double Crouch, double Walk, double Gait, double Fly, Rgb Eye, double EyeAmp, double Look, double Cracks = 0,
-        double Saw = 0, double Jaw = 0);
+        double Saw = 0, double Jaw = 0, double Alert = 0);
 
     /// <summary>
     /// Where its parts are this frame, in its own pixels (origin the middle of its feet): the eye, its nozzle, its near feet, the

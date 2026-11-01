@@ -32,9 +32,19 @@ public partial class IstukanBodies : Node2D
     /// <summary>How fast the fallen drop to the floor under them, in pixels a second a second.</summary>
     private const float Drop = 700;
 
-    private sealed partial class Shown() : PosedSprite(IstukanArt.Width, IstukanArt.Height, IstukanArt.OriginX, IstukanArt.OriginY, Middle)
+    private sealed partial class Shown : PosedSprite
     {
         public readonly IstukanArt Art = new();
+        private readonly IstukanRig _rig = new();
+        private readonly InkRig? _ink;
+
+        public Shown() : base(IstukanArt.Width, IstukanArt.Height, IstukanArt.OriginX, IstukanArt.OriginY, Middle)
+        {
+            if (!HiRes.On) return;
+            _ink = new InkRig(CreatureArt.InkIstukan.Id, CreatureArt.InkIstukan.Parts) { Position = new Vector2(0, Middle) };
+            AddChild(_ink);
+        }
+
         public IstukanMotion Motion = null!;
         public IstukanArt.Anchors Anchors;
         public IstukanArt.Pose? Painted;
@@ -50,7 +60,12 @@ public partial class IstukanBodies : Node2D
         /// <summary>Its sprite in its motion's pose, painted only if that changed, at its place, turned and facing as it flies.</summary>
         public void Show(Vector2 feet)
         {
-            if (Painted != Motion.Pose)
+            if (_ink != null)
+            {
+                Anchors = _rig.Place(Motion.Pose, Motion.Clock);
+                _ink.Show(_rig.Slots, Motion.Flash, Motion.Pose.Dim);
+            }
+            else if (Painted != Motion.Pose)
             {
                 Painted = Motion.Pose;
                 Anchors = Art.Draw(Motion.Pose);
@@ -63,7 +78,11 @@ public partial class IstukanBodies : Node2D
         public Vector2 World((double X, double Y) at) => Transform * new Vector2((float)at.X, (float)at.Y + Middle);
 
         /// <summary>Its pixels in the world as they stand now, for a burst.</summary>
-        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into) => PaintInto(into, Art.Albedo);
+        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into)
+        {
+            if (_ink != null) _ink.Pixels(into, Transform);
+            else PaintInto(into, Art.Albedo);
+        }
     }
 
     private readonly Dictionary<int, Shown> _shown = new();

@@ -36,7 +36,7 @@ public static class CreatureParts
     /// </summary>
     public static Texture2D Of(CreatureArt.Design design, string part, string palette, Kind kind, CreatureLooks.Variety v, CreatureVariety.Individual one)
     {
-        if (design.Ink) return Inked(design, part, kind, one);
+        if (design.Ink) return Inked(design.Id, part, kind, one);
         bool coat = kind == Kind.Colour && Array.IndexOf(design.Parts[part].Ramps, v.Coat) >= 0;
         bool marked = part == Marks;
         var worn = new Worn(coat ? one.Shade : 0, coat ? one.Hue : 0, marked ? KeptOf(design, part, one) : -1,
@@ -70,14 +70,17 @@ public static class CreatureParts
         return texture;
     }
 
+    /// <summary>Part <paramref name="part"/> of the guard in ink <paramref name="id"/>, as <paramref name="kind"/>: every one of them alike.</summary>
+    public static Texture2D Ink(string id, string part, Kind kind) => Inked(id, part, kind, default);
+
     /// <summary>
     /// Part <paramref name="part"/> of a design in ink: the picture as drawn, shared by every individual, which differ by a tint at the sprite
     /// (<see cref="CreatureVariety.InkTint"/>); only its markings make copies. Its logical pixels are kept for what it crumbles into.
     /// </summary>
-    private static Texture2D Inked(CreatureArt.Design design, string part, Kind kind, CreatureVariety.Individual one)
+    private static Texture2D Inked(string id, string part, Kind kind, CreatureVariety.Individual one)
     {
         bool marked = part == Marks;
-        string name = $"creatures/{design.Id}/{part}";
+        string name = $"creatures/{id}/{part}";
         var (w, h, drawn) = InkPicture(kind == Kind.Glow ? name + "_glow" : name);
         int kept = -1;
         int[]? markings = null;
@@ -88,7 +91,7 @@ public static class CreatureParts
             kept = count >= CreatureVariety.MostMarkings ? one.Kept : one.Kept & ((1 << count) - 1);
         }
         var worn = new Worn(0, 0, kept, marked && kind == Kind.Colour ? one.Opacity : 1000);
-        var key = (design.Id, part, "", kind, worn);
+        var key = (id, part, "", kind, worn);
         if (Made.TryGetValue(key, out var made)) return made;
         var data = (byte[])drawn.Clone();
         for (int q = 0; q < w * h; q++)

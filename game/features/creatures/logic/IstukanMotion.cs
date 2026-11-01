@@ -58,6 +58,9 @@ public sealed class IstukanMotion(Func<double> random, double wakeS)
     /// <summary>Seconds since it began to fall; none standing.</summary>
     public double? Falling { get; private set; }
 
+    /// <summary>Seconds of its life: what a body in ink sways and shivers by.</summary>
+    public double Clock => _clock;
+
     /// <summary>Its pose for <see cref="IstukanArt"/>.</summary>
     public IstukanArt.Pose Pose { get; private set; }
 

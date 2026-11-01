@@ -53,9 +53,8 @@ from playing it are this step's list:
 
 The acacia is drawn (`flora`); the far ones in the sky are still pixels.
 
-**Creatures:** the loper, the tapir and the sixleg are drawn, [as parts on the same rig](../decisions/2026-11-01-creatures-in-ink.md). The
-sentry and the warden are the hard ones: `PosedSprite` paints them on the CPU every frame, and at 4 times that
-is 16 times the pixels. Decide for them: parts as the rest, or a fixed set of poses.
+**Creatures:** the loper, the tapir and the sixleg are drawn, [as parts on the same rig](../decisions/2026-11-01-creatures-in-ink.md); the
+sentry and the warden [as parts on rigs of their own](../decisions/2026-11-01-guards-in-ink.md). At the switch their pixel painters and `PosedSprite` go.
 
 **Exit:** the user walks a planet's surface and a cave with the flag on and accepts them. If nature does not hold after this step,
 stop and decide again before drawing more: the ship in cel beside pixel nature is not a game we ship.
