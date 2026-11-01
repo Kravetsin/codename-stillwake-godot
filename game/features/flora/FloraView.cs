@@ -95,9 +95,10 @@ public partial class FloraView : Node2D, ILightSource
     private void Show(Plant plant)
     {
         var look = FloraLooks.Of[plant.Kind];
-        int variant = (int)(Hash(plant.Cell) % (uint)look.Variants);
+        uint hash = Hash(plant.Cell);
+        int variant = (int)(hash % (uint)look.Variants);
         string name = $"planet/{plant.Kind}_{variant}";
-        var texture = PixelArt.Picture(name);
+        var texture = PixelArt.Picture(FloraLooks.Drawn(plant.Kind, variant, hash, HiRes.On));
         var size = texture.GetSize();
         // Planted: its lowest drawn row Sink pixels under the top of the ground it grows from, the rows there not drawn.
         int x = plant.Cell % _grid.Width, y = plant.Cell / _grid.Width;
