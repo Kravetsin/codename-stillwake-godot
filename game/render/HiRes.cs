@@ -5,19 +5,20 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The anime slice's pictures: <c>res://art/hd/{name}.png</c>, <see cref="Scale"/> times the pixels of the picture they stand for,
+/// The anime art's pictures: <c>res://art/hd/{name}.png</c>, <see cref="Scale"/> times the pixels of the picture they stand for,
 /// reporting that picture's size so nothing that lays pictures out by their size changes, and sampled smoothly whatever node draws them.
-/// <c>-- --pixel</c> leaves them out, for the same frame in the old art.
+/// Off until the switch (2026-11-01-anime-cel-art): <c>-- --anime-art</c> or an <c>--anime</c> demo turns it on; off, the game is drawn as it was.
 /// </summary>
 public static class HiRes
 {
+    /// <summary>Whether the new art is drawn.</summary>
+    public static readonly bool On = OS.GetCmdlineUserArgs().Any(a => a is "--anime-art" or "--anime" || a.StartsWith("--anime=", System.StringComparison.Ordinal));
+
     /// <summary>How many pixels of a hi-res picture stand for one of the world's; zoom reaches 2.5, the rest is room for the screen.</summary>
-    public const int Scale = 4;
+    public static int Scale => On ? 4 : 1;
 
     /// <summary>The world's pixels a hi-res hero part has clear round its pixel picture's box: for its outline, which a limb's box would cut.</summary>
     public const int FigureMargin = 3;
-
-    private static readonly bool On = !OS.GetCmdlineUserArgs().Contains("--pixel");
 
     /// <summary>The hi-res picture standing for <paramref name="name"/> as pixels, RGBA8; none if it has none.</summary>
     public static Image? Load(string name)
@@ -36,6 +37,7 @@ public static class HiRes
     /// </summary>
     public static Texture2D Sheet(Image logical, IEnumerable<(string Name, Rect2 At)> placed, string suffix = "")
     {
+        if (!On) return ImageTexture.CreateFromImage(logical);
         var sheet = (Image)logical.Duplicate();
         sheet.Resize(logical.GetWidth() * Scale, logical.GetHeight() * Scale, Image.Interpolation.Nearest);
         foreach (var (name, at) in placed)

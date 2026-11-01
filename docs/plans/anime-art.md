@@ -5,7 +5,7 @@ families, each landing in its own PR, the game never shown half and half to a pl
 
 ## Where it stands
 
-Branch `feat/anime-slice`: the plumbing (`HiRes`, the atlas), `tools/anime-art/`, the `--anime` demos, and 385 hi-res pictures:
+Landed, off by default: the plumbing (`HiRes`, the atlas), `tools/anime-art/`, the `--anime` demos, and 385 hi-res pictures:
 the testbed room whole, the hero's first look, ten icons, a stone and soil ground, ice crystals, moss that failed.
 
 ## How it lands
@@ -27,10 +27,10 @@ Each is one PR, with frames near and far beside the same frame without the flag,
 
 ### 1. Land the slice
 
-The flag turned round as above (`--pixel` goes), the atlas's scale coming from one value in `HiRes`, 4 or 1, the docs guard green.
-No more art. If the probe fails, reverting the plumbing and `art/hd/` is cheap.
+Done: the flag is `--anime-art`, the plumbing off without it, the game drawn as it was. No more art. If the probe fails, reverting
+the plumbing and `art/hd/` is cheap.
 
-**And measure a mid-range card** with the flag on at zoom 2.5, before more is drawn: `Scale` and the atlas are fixed before 900
+**Still to do: measure a mid-range card** with the flag on at zoom 2.5, before more is drawn: `Scale` and the atlas are fixed before 900
 pictures rest on them, and the planet and the rest of the ship will grow the atlas. Report its size against 8192 too, and the load
 time, for every picture is now mipmapped at startup. A miss here changes the plan; at the switch it would redraw everything.
 

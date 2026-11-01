@@ -210,7 +210,8 @@ publishes them. A pick goes into its ADR.
   account. Download the candidates and publish them as the page's own `files` (the frame blocks media from other hosts), played
   from a button through Web Audio. Say what is unheard. Once picked: cut, level and credit them as `CREDITS.md` says.
 - **Art:** drawn in code on a canvas at the game's scale (a cell 8 px, the hero beside it), moving through every state it has.
-  Once picked: exported by the code that drew it, through `tools/`.
+  Once picked: exported by the code that drew it, through `tools/`. The game is moving to anime cel art behind `-- --anime-art`
+  ([plan](docs/plans/anime-art.md)); new pictures stay in pixels until their family's step.
 
 ## Commands
 

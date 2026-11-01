@@ -12,6 +12,7 @@ agreed to go on.
 
 ## What it is
 
+- It stays behind `-- --anime-art` until the switch; without it the game is drawn as it was.
 - Every picture is drawn in code (`tools/anime-art/`) with one engine, one line weight per world pixel and one light, and
   exported at **4 times** its logical size: zoom reaches 2.5, the rest is room for the screen.
 - A hi-res picture stands in for the picture of its name (`game/art/hd/<name>.png`, `game/render/HiRes.cs`) and **reports its

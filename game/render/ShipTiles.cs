@@ -110,24 +110,31 @@ public sealed class ShipTiles
 
         // Shelves of pictures, tallest first, a cell at a time.
         var order = pictures.OrderByDescending(p => p.Diffuse.GetHeight()).ThenBy(p => p.Name, System.StringComparer.Ordinal).ToList();
-        // A cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
-        int x = 1, y = 1, shelf = 0;
+        // Hi-res, a cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
+        int clear = HiRes.On ? 1 : 0;
+        int x = clear, y = clear, shelf = 0;
         foreach (var (name, diffuse, _) in order)
         {
             var size = new Vector2I(diffuse.GetWidth() / Cell, diffuse.GetHeight() / Cell);
-            if (x + size.X + 1 > Across) (x, y, shelf) = (1, y + shelf, 0);
+            if (x + size.X + clear > Across) (x, y, shelf) = (clear, y + shelf, 0);
             _placed[name] = (new Vector2I(x, y), size);
-            x += size.X + 1;
-            shelf = Mathf.Max(shelf, size.Y + 1);
+            x += size.X + clear;
+            shelf = Mathf.Max(shelf, size.Y + clear);
         }
         int down = y + shelf;
-        const int S = HiRes.Scale;
+        int S = HiRes.Scale;
         var atlas = Image.CreateEmpty(Across * Cell * S, down * Cell * S, false, Image.Format.Rgba8);
         var normals = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
         normals.Fill(Flat);
         foreach (var (name, diffuse, normal) in pictures)
         {
             var at = _placed[name].At * Cell;
+            normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
+            if (!HiRes.On)
+            {
+                atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
+                continue;
+            }
             var fine = fineSlid.GetValueOrDefault(name) ?? HiRes.Load(name);
             if (fine != null && fine.GetSize() != diffuse.GetSize() * S && fine.GetSize().X % (Cell * S) != 0 && !name.StartsWith("valve_", StringComparison.Ordinal)) GD.PushError($"hi-res {name}: {fine.GetSize()} for {diffuse.GetSize()}");
             if (fine == null)
@@ -140,17 +147,18 @@ public sealed class ShipTiles
             // A valve is centred in its padded cells (see Picture), so its smaller drawing is too.
             atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + (box.Size - fine.GetSize()) / 2);
             Extrude(atlas, box, Cell * S / 2);
-            normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
         }
-        atlas.GenerateMipmaps();
+        if (HiRes.On) atlas.GenerateMipmaps();
 
-        Texture = HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals));
+        Texture = HiRes.On
+            ? HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals))
+            : new CanvasTexture { DiffuseTexture = ImageTexture.CreateFromImage(atlas), NormalTexture = ImageTexture.CreateFromImage(normals) };
         var source = new TileSetAtlasSource
         {
             Texture = Texture,
             TextureRegionSize = new Vector2I(Cell, Cell),
             // Godot's padding copies pictures by the size the atlas reports, not its pixels: Extrude does this instead.
-            UseTexturePadding = false,
+            UseTexturePadding = !HiRes.On,
         };
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
@@ -180,7 +188,7 @@ public sealed class ShipTiles
     private static Image? FineSlid(DoorShape.SlidPicture p)
     {
         byte[]? Fine(string? name) => name != null && HiRes.Load(name) is { } image ? image.GetData() : null;
-        const int Side = Drawn * HiRes.Scale;
+        int Side = Drawn * HiRes.Scale;
         if (Fine(p.Closed) is not { } closed || Fine(p.Open) is not { } open || Fine(p.OverClosed) is not { } overClosed || Fine(p.OverOpen) is not { } overOpen) return null;
         var slid = DoorShape.Slid(closed, open, overClosed, overOpen, Fine(p.NextClosed), Fine(p.NextOpen), Side, p.Shift * HiRes.Scale, p.Hatch);
         return Image.CreateFromData(Side, Side, false, Image.Format.Rgba8, slid);

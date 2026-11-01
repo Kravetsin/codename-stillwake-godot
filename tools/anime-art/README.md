@@ -1,7 +1,8 @@
 # Anime art
 
-Draws the anime slice's pictures in code and writes them into `game/art/hd/`, where `game/render/HiRes.cs` picks
-them up in place of the pixel pictures of the same names (`-- --pixel` leaves them out).
+Draws the anime art's pictures in code and writes them into `game/art/hd/`, where `game/render/HiRes.cs` picks
+them up in place of the pixel pictures of the same names, with `-- --anime-art` or an `--anime` demo. Off by default until
+the switch ([the plan](../../docs/plans/anime-art.md)).
 
 ## What it draws
 
