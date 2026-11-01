@@ -18,7 +18,7 @@ public static class HeldArt
         string key = layers.Count == 0 ? picture : picture + "|" + string.Join("|", layers.Select(l => $"{l.Picture}@{l.X},{l.Y}"));
         if (Made.TryGetValue(key, out var kept)) return kept;
         var texture = GD.Load<Texture2D>(picture);
-        if (layers.Count == 0) return Made[key] = texture;
+        if (layers.Count == 0) return Made[key] = picture.StartsWith("res://art/hero_", System.StringComparison.Ordinal) ? PixelArt.Picture(picture["res://art/".Length..^4]) : texture;
         var image = Rgba(texture);
         foreach (var layer in layers)
         {

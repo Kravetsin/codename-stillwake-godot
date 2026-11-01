@@ -254,6 +254,16 @@ public sealed class HeroAutopilot
         ]);
     }
 
+    /// <summary><c>-- --anime=walk</c> on the testbed: from the smelter to the door of room two, opened, through it and back, all at a walk.</summary>
+    public static HeroAutopilot Stroll() => new(
+    [
+        Wait(20),
+        Walk(-1, h => Block(h) <= 24),
+        Wait(10),
+        Walk(1, h => Block(h) >= 28),
+        Wait(60),
+    ]);
+
     /// <summary>
     /// <c>-- --fly</c> (<c>FarDemo</c>): floating out past the stream with a jetpack worn, it waits while
     /// the far field spawns round it, then flies right, up and back left through it, waiting between.

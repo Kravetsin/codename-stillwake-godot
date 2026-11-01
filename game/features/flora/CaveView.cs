@@ -610,7 +610,8 @@ public partial class CaveView : Node2D, ILightSource
             foreach (string tone in (string[])["moss", "mossGreen"])
                 foreach (var (face, name, line, thick) in MossBands)
                     Band[(tone, face)] = BandOf(names.Where(n => n.Name.StartsWith($"caves/{tone}_{name}_", StringComparison.Ordinal)).ToList(), face, line, thick);
-            (Pictures, Glows) = (ImageTexture.CreateFromImage(pictures), ImageTexture.CreateFromImage(glows));
+            var placed = names.Select(n => (n.Name, At[n.Name])).ToList();
+            (Pictures, Glows) = (HiRes.Sheet(pictures, placed), HiRes.Sheet(glows, placed, "_glow"));
         }
 
         /// <summary>

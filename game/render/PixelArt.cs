@@ -17,18 +17,23 @@ public static class PixelArt
     public static Texture2D Picture(string name)
     {
         if (!Loaded.TryGetValue(name, out var texture))
-            Loaded[name] = texture = GD.Load<Texture2D>($"res://art/{name}.png");
+            Loaded[name] = texture = !name.Contains('/') && HiRes.Load(name) is { } fine ? HiRes.Texture(fine) : Logical(name);
         return texture;
     }
+
+    /// <summary>The pixel picture <c>res://art/{name}.png</c> itself: what reads its pixels (a shape, a size) rather than draws it.</summary>
+    public static Texture2D Logical(string name) => GD.Load<Texture2D>($"res://art/{name}.png");
 
     /// <summary>The picture with its normal map, for a picture drawn on its own (a socket).</summary>
     public static CanvasTexture Lit(string name)
     {
         if (WithNormals.TryGetValue(name, out var kept)) return kept;
-        var diffuse = Picture(name);
-        var image = diffuse.GetImage();
+        var image = Logical(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
-        kept = new CanvasTexture { DiffuseTexture = diffuse, NormalTexture = ImageTexture.CreateFromImage(VolumeMap(image)) };
+        var normal = ImageTexture.CreateFromImage(VolumeMap(image));
+        kept = HiRes.Load(name) is { } fine
+            ? HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(fine)), image.GetSize(), normal)
+            : new CanvasTexture { DiffuseTexture = Logical(name), NormalTexture = normal };
         WithNormals[name] = kept;
         return kept;
     }

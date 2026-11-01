@@ -10,6 +10,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | File | Holds |
 | --- | --- |
 | `StoreScenario.cs` | `--store` |
+| `AnimeScenario.cs` | `--anime`, `=bare`, `=bag`, `=walk`, `=door`, `=cave`, `=colours`, `=colours-dark`: the anime slice's frames (tools/anime-art) |
 | `PlatformScenario.cs` | `--platform`: launch platforms, a run cabled and lit green, one uncabled and red, a piece alone; `--descent`: the pod down and back |
 | `TestbedScenarios.cs` | `--testbed`, and the scenarios played on it: `--jetpack`, `--charge`, `--dust` |
 | `WreckScenarios.cs` | `--wreck`, `--wrecks`, `--harpoon` (seeded hosting too), `--grapple` |
