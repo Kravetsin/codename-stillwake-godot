@@ -49,7 +49,7 @@ from playing it are this step's list:
 - **Moss.** Done: [pieces cut to meet along a run](../decisions/2026-11-01-moss-in-ink.md), the user's «Космы», both tones. At the switch `Atlas.Band` and `Planting.Strip` go.
 - **The stone's pattern** was stained glass. Done: large masses of close tone, only some cracks drawn, accepted by the user.
 
-The acacia is drawn (`flora`); the far ones in the sky are still pixels.
+The acacia is drawn (`flora`), and the [far ones on the land behind](../decisions/2026-11-02-far-land-in-ink.md).
 
 **Creatures:** the loper, the tapir and the sixleg are drawn, [as parts on the same rig](../decisions/2026-11-01-creatures-in-ink.md); the
 sentry and the warden [as parts on rigs of their own](../decisions/2026-11-01-guards-in-ink.md). At the switch their pixel painters and `PosedSprite` go.

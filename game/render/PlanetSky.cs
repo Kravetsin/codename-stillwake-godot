@@ -49,8 +49,8 @@ public partial class PlanetSky : Node2D
         AddChild(_sun);
         foreach (var (name, top, follows) in Land)
         {
-            var texture = PixelArt.Picture($"{set}/{name}");
-            var under = new ColorRect { Color = BottomOf(texture), MouseFilter = Control.MouseFilterEnum.Ignore };
+            var texture = PixelArt.Far($"{set}/{name}");
+            var under = new ColorRect { Color = BottomOf(PixelArt.Logical($"{set}/{name}")), MouseFilter = Control.MouseFilterEnum.Ignore };
             var sprite = Layer(texture, repeat: true);
             AddChild(under);
             AddChild(sprite);
@@ -98,8 +98,9 @@ public partial class PlanetSky : Node2D
     private static void Spread(Sprite2D layer, float x, float zoom, Vector2 screen, float y)
     {
         float across = screen.X / zoom;
-        layer.RegionRect = new Rect2(Mathf.PosMod(x - across / 2, layer.Texture.GetWidth()), 0, across, layer.Texture.GetHeight());
-        layer.Position = new Vector2(0, y);
+        // From its second row: a smoothly sampled repeat would blend its bottom row into its top, a line across the sky.
+        layer.RegionRect = new Rect2(Mathf.PosMod(x - across / 2, layer.Texture.GetWidth()), 1, across, layer.Texture.GetHeight() - 1);
+        layer.Position = new Vector2(0, y + zoom);
         layer.Scale = Vector2.One * zoom;
     }
 

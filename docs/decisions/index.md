@@ -188,3 +188,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
+| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
