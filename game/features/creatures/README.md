@@ -43,8 +43,8 @@ axe's blade and the drill's bit are tested against each creature's body as again
   toward a near hero, else the way it last moved.
 - **The body** (`CreatureBody`, 0102): the design its species' `Look` names. Parts in `art/creatures/<design>/` are index maps
   (R the ramp, G the tone) recoloured once at first use by the planet's palette (`CreatureParts`, `CreatureLooks.PaletteOf`),
-  with a white copy for the flash and glow maps a tone up; painted by `tools/planet-art/creatures`, rig, pose, eye and
-  palettes generated into `Content/logic/CreatureArt.cs`. A sprite a part in rig order, hung from its parent and turned about its
+  with a white copy for the flash and glow maps a tone up (`tools/planet-art/creatures`). Under
+  `--anime-art`: `InkDesigns`, finished pictures (2026-11-01-creatures-in-ink). A sprite a part in rig order, hung from its parent and turned about its
   pivot (`CreaturePose`), at screen resolution, lit as the world (`Lit`), on `Layers.Creatures` under the heroes. Its eye
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light
@@ -85,7 +85,7 @@ drill on one loper; `--strip --creatures --creatures-course` puts a loper by the
 
 - **Creatures overlap** one another and the heroes, as the sim lets them: a struck herd bunches into one lump.
 - **A friend's strike shows a round trip late,** and its tool is guessed: a running drill's bit by it, else the axe.
-- **No outline or prompt** under the blade.
+- **No outline** under the blade.
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,
   jumps and fits where a small one does.
 - **A tick saws at its claw,** not where the hook held: the hook point is the harpoon's.

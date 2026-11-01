@@ -111,8 +111,9 @@ public class CreatureGaitTests
     [MemberData(nameof(Designs))]
     public void APoseStandsItsLegsStillAndShowsEachEyeStateAndMovesOnlyALittleFromFrameToFrame(string design)
     {
-        var pose = new CreaturePose(CreatureArt.Designs[design], CreatureLooks.Runs[design]);
-        var rig = CreatureArt.Designs[design].Rig;
+        var drawn = CreatureArt.Designs.Values.Concat(CreatureArt.InkDesigns.Values).Single(d => d.Id == design);
+        var pose = new CreaturePose(drawn, CreatureLooks.Runs[design]);
+        var rig = drawn.Rig;
         CreaturePose.Doing Still(double eye = 1, double graze = 0) => new(0.3, 0, 0, 0, 0, graze, 0, 1000, 0, eye, null);
         pose.Set(Still());
         for (int i = 0; i < rig.Count; i++)
