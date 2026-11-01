@@ -1,4 +1,4 @@
-// A cave's corner: stone as cracked cel blocks (with soil and the ice vein on the same generator), its edges, tops and details; green moss; ice crystals.
+// A cave's corner: stone as cracked cel blocks (with soil and the ice vein on the same generator), its edges, tops and details; moss; ice crystals.
 (function () {
 'use strict';
 const { ell, poly, rng, bake, canvas } = Anime;
@@ -155,37 +155,139 @@ function detailOf(look, k) {
   } });
 }
 
-// Moss: a solid band along its face at the rows the view stretches, tufts off it.
-const MOSS = { base: '#4f7a3c', shade: '#2f5232', lite: '#7aa350', spec: '#b4cc7c', ink: '#0d2a18' };
-const BAND = { top: [4, 5], bottom: [19, 21], left: [4, 5], right: [19, 20] };
+// Moss, the picked «Космы» (2026-11-01-moss-in-ink): matted wet strands, hanging from a ceiling, slumped down a wall, flattened one way on a floor.
+// Written in along (al, 0..24 down a face) and off (ac: + into the air, - into the rock), turned to each face by frame(). Every variant has the same
+// cross-section at al = 4 and al = 20, where the game cuts a run's pieces, so any joins any; growth stays inside them, a torn end past them.
+const mossPicture = (function () {
+const frame = (face) => (face === 'top' ? (al, ac) => [al, 4 - ac]
+  : face === 'bottom' ? (al, ac) => [al, 20 + ac]
+    : face === 'left' ? (al, ac) => [4 - ac, al]
+      : (al, ac) => [20 + ac, al]);
+const kindOf = (face) => (face === 'top' ? 'floor' : face === 'bottom' ? 'ceil' : 'wall');
 
-function mossPicture(face, v) {
-  const r = rng(0x305 + v * 31 + face.length * 7);
-  const horizontal = face === 'top' || face === 'bottom';
-  return { w: 24, h: 24, draw(a) {
-    // Written as along (x) and across (y) a top face, turned to the others below.
-    const at = (al, ac) => {
-      if (face === 'top') return [al, ac];
-      if (face === 'bottom') return [al, 24 - ac + (BAND.bottom[0] + BAND.bottom[1] - 24)];
-      if (face === 'left') return [ac, al];
-      return [24 - ac + (BAND.right[0] + BAND.right[1] - 24), al];
-    };
-    const path = (pts) => poly(pts.flatMap((p) => at(p[0], p[1])));
-    const [b0, b1] = face === 'bottom' ? [4, 6] : [4, 5];
-    // Cushions along the band, of uneven height, a few blades off them: a comb of even blades reads as grass.
-    const cushions = 4 + Math.floor(r() * 3);
-    for (let i = 0; i < cushions; i++) {
-      const al = 5.5 + (i + r() * .7) * (13 / cushions), w = 1.3 + r() * 1.5, tall = .9 + r() * (face === 'bottom' ? 2 : 1.4), pts = [];
-      for (let k = 0; k <= 6; k++) pts.push([al - w + (2 * w * k) / 6, b0 + .2 - (k === 0 || k === 6 ? 0 : tall * Math.sin((k / 6) * Math.PI) * (.8 + r() * .35))]);
-      pts.push([al + w, b0 + .4], [al - w, b0 + .4]);
-      a.shape(path(pts), MOSS, { lite: path(pts.slice(0, 4).concat([[al, b0 + .1], [al - w, b0 + .1]])) });
-      if (r() < .5) a.flat(ell(...at(al - w * .3, b0 - tall * .6), .3), MOSS.spec);
-    }
-    a.shape(path([[4, b0], [20, b0], [20, b1], [4, b1]]), MOSS, { outer: false, edge: false });
-    a.flat(path([[4, b0 + (b1 - b0) * .7], [20, b0 + (b1 - b0) * .7], [20, b1], [4, b1]]), MOSS.shade);
-    a.flat(path([[4, b0 - .2], [20, b0 - .2], [20, b0 + .15], [4, b0 + .15]]), MOSS.lite);
-  } };
+
+/** What it draws with, on a face's frame. */
+function kit(a, face, r) {
+  const T = frame(face);
+  const path = (pts) => poly(pts.flatMap((p) => T(p[0], p[1])));
+  const fill = (pts, col) => a.flat(path(pts), col);
+  /** A tapering run through hand-placed points. w: width at its root; keep: what is left of it at the tip. */
+  const strand = (pts, w, col, keep, amp) => {
+    let s = pts;
+    for (let i = 0; i < 2; i++) { const n = [s[0]]; for (let k = 0; k < s.length - 1; k++) { const p = s[k], q = s[k + 1]; n.push([p[0] * .75 + q[0] * .25, p[1] * .75 + q[1] * .25], [p[0] * .25 + q[0] * .75, p[1] * .25 + q[1] * .75]); } n.push(s[s.length - 1]); s = n; }
+    const L = [], R = [], end = keep === undefined ? 0 : keep;
+    s.forEach((p, i) => {
+      const u = s[Math.max(0, i - 1)], v = s[Math.min(s.length - 1, i + 1)], dx = v[0] - u[0], dy = v[1] - u[1], l = Math.hypot(dx, dy) || 1, t = i / (s.length - 1);
+      const q = (w / 2) * (1 - (1 - end) * t * t) * (1 + (amp || 0) * (r() - .5));
+      L.push([p[0] - (dy / l) * q, p[1] + (dx / l) * q]); R.unshift([p[0] + (dy / l) * q, p[1] - (dx / l) * q]);
+    });
+    a.flat(path(L.concat(R)), col);
+  };
+  return { fill, strand };
 }
+
+// How much there is along a block, by hand, in shares of its height (0 its seam's thickness, 1 its full height, -1 bare rock): a run swells and thins over several blocks.
+const WAVE = {
+  floor: [
+    [[4.7, 0], [5.6, .35], [6.8, .7], [8, .55], [9.4, 1], [10.8, .8], [12, .9], [13.4, .5], [14.8, .6], [16, .3], [17.4, .2], [19.3, 0]],
+    [[4.7, 0], [6, -.6], [7.4, -1.2], [8.8, -.6], [10, 0], [11.4, .3], [12.8, .5], [14, .85], [15.2, .7], [16.6, 1], [18, .75], [19.3, 0]],
+    [[4.7, 0], [6, .15], [7.6, .1], [9, -.4], [10.6, -1.3], [12, -.8], [13.6, -.1], [15, .25], [16.4, .1], [18, .2], [19.3, 0]],
+    [[4.7, 0], [5.4, .6], [6.6, .95], [7.6, .7], [9, .8], [10.2, .5], [11.4, .3], [12.8, .4], [14.2, 0], [15.6, -.5], [17, -.4], [18.2, 0], [19.3, 0]],
+  ],
+  ceil: [
+    [[4.7, 0], [6, .2], [7.2, .1], [8.6, .6], [10, .9], [11.2, 1], [12.6, .7], [14, .85], [15.4, .4], [16.8, .1], [18, .2], [19.3, 0]],
+    [[4.7, 0], [5.4, .7], [6.6, 1], [8, .75], [9.4, .5], [10.8, .1], [12.2, -.7], [13.6, -1.3], [15, -.5], [16.4, 0], [18, .3], [19.3, 0]],
+    [[4.7, 0], [6.4, -.5], [8, -.2], [9.6, .2], [11, .15], [12.4, -.3], [14, -.9], [15.6, -.4], [17, .1], [18.4, .25], [19.3, 0]],
+    [[4.7, 0], [6, .3], [7.4, .2], [8.6, .45], [10, .3], [11.4, .6], [12.6, .8], [14, 1], [15.4, .7], [16.6, .95], [18, .6], [19.3, 0]],
+  ],
+  wall: [
+    [[4.7, 0], [6, .4], [7.4, .8], [8.8, .7], [10.2, 1], [11.6, .6], [13, .2], [14.4, -.5], [15.8, -.3], [17.4, .1], [19.3, 0]],
+    [[4.7, 0], [6.2, -.9], [7.8, -.7], [9.2, 0], [10.6, .4], [12, .8], [13.4, .65], [14.8, 1], [16.2, .8], [17.8, .5], [19.3, 0]],
+    [[4.7, 0], [6.4, .1], [8, -.4], [9.6, -1.2], [11.2, -.4], [12.8, .1], [14.4, .2], [16, .05], [17.6, .15], [19.3, 0]],
+    [[4.7, 0], [5.6, .55], [7, .75], [8.2, .5], [9.6, .2], [11, -.3], [12.4, 0], [13.8, .5], [15.2, .85], [16.8, .7], [18.2, .35], [19.3, 0]],
+  ],
+};
+const CAPS = { floor: [[2.6, 1.7], [1.5, 3], [2, 2.2], [3, 1.5]], ceil: [[2.1, 2.8], [1.4, 2.4], [3.1, 1.6], [2.4, 2.2]], wall: [[2.5, 1.5], [1.6, 2.7], [2.8, 2], [2.2, 1.8]] };
+const along = (w, al) => { if (al <= w[0][0]) return w[0][1]; for (let i = 1; i < w.length; i++) if (al <= w[i][0]) { const p = w[i - 1], q = w[i], f = (al - p[0]) / (q[0] - p[0]); return p[1] + (q[1] - p[1]) * f * f * (3 - 2 * f); } return 0; };
+
+/**
+ * The mass of a variant along its face, split where the wave leaves bare rock: exact at the seams (off seamHi, into rock seamLo), torn elsewhere.
+ * o: seamHi, seamLo, top (height at share 1), deep (reach into rock at most), jag. Returns the height along it, for what lies on it.
+ */
+function body(k, r, wave, caps, col, o) {
+  const cut = (al) => (o.cuts || []).some(([x0, x1]) => al > x0 && al < x1);
+  const heightOf = (al) => { if (cut(al)) return 0; const t = along(wave, al); return t >= 0 ? o.seamHi + t * (o.top - o.seamHi) : o.seamHi * (1 + t); };
+  const spans = [];
+  let cur = null;
+  for (let al = 4; al <= 20.001; al += .1) { const on = heightOf(al) > .12; if (on && !cur) cur = [al]; if (!on && cur) { cur.push(al - .1); spans.push(cur); cur = null; } }
+  if (cur) { cur.push(20); spans.push(cur); }
+  for (const [x0, x1] of spans) {
+    const seamA = x0 <= 4.05, seamB = x1 >= 19.95, top = [], under = [];
+    const a0 = seamA ? caps[0] : .8, b0 = seamB ? caps[1] : .8;
+    top.push([x0 - a0, (o.seamLo * .3)], [x0 - a0 * .68, o.seamHi * .5], [x0 - a0 * .35, o.seamHi * .85]);
+    under.push([x0 - a0 * .7, o.seamLo * .55], [x0 - a0 * .3, o.seamLo * .9]);
+    for (let al = x0; al < x1; ) {
+      const edge = al < 4.72 || al > 19.28, jag = edge ? 0 : o.jag * (r() - .42) * Math.min(1, heightOf(al) * .9 + .3);
+      top.push([al, Math.max(.05, heightOf(al) + jag)]);
+      under.push([al, edge ? o.seamLo : o.seamLo - (o.deep - (-o.seamLo)) * (.5 + .5 * Math.sin(al * .9 + r() * .4)) * Math.max(0, along(wave, al))]);
+      al += edge ? .25 : .32 + r() * .4;
+    }
+    top.push([x1, seamB ? o.seamHi : .1], [x1 + b0 * .35, o.seamHi * .82], [x1 + b0 * .7, o.seamHi * .45], [x1 + b0, o.seamLo * .3]);
+    under.push([x1, o.seamLo], [x1 + b0 * .45, o.seamLo * .75]);
+    k.fill(top.concat(under.reverse()), col);
+  }
+  return heightOf;
+}
+/** A flat sliver lying along the mass, by hand: from, to, its middle's height off the line, its thickness. */
+const sliver = (k, x0, x1, ac, th, col) => { const w = x1 - x0; k.fill([[x0, ac], [x0 + w * .18, ac + th * .35], [x0 + w * .46, ac + th * .5], [x0 + w * .74, ac + th * .3], [x1, ac + th * .05], [x0 + w * .7, ac - th * .42], [x0 + w * .34, ac - th * .5]], col, .1); };
+
+
+function matted(a, k, r, P, kind, v) {
+  const w = WAVE[kind][v], caps = CAPS[kind][v], seamHi = kind === 'ceil' ? .9 : .65;
+  // Behind the mat, then in front of it: thin strands, none as long as its neighbour. Where a strand starts is the edge of the mass placed by the wave.
+  const h = (al) => { const t = along(w, al); return t >= 0 ? seamHi + t * (kind === 'ceil' ? .9 : .85) : seamHi * (1 + t); };
+  if (kind === 'ceil') {
+    const pass = (col, reach, step, wid) => {
+      for (let al = 4.9; al < 19.2; al += step * (.5 + r())) {
+        const t = along(w, al);
+        if (t < -.25) continue;
+        const L = Math.min(4, h(al) + (reach * (.25 + Math.max(0, t)) * (.55 + r() * .75))), lean = (r() - .5) * 1.2, tip = Math.min(19.5, Math.max(4.6, al + lean));
+        k.strand([[al, .5], [al + (tip - al) * .22 + (r() - .5) * .3, L * .42], [al + (tip - al) * .68 + (r() - .5) * .28, L * .74], [tip, L]], wid, col, .14, .2);
+      }
+    };
+    pass(P.shade, 3.1, .8, .42);
+    body(k, r, w, caps, P.shade, { seamHi, seamLo: -.6, top: 1.8, deep: .85, jag: .42 });
+    pass(P.base, 2.2, 1.25, .36);
+  } else if (kind === 'floor') {
+    body(k, r, w, caps, P.shade, { seamHi, seamLo: -.6, top: 1.5, deep: .85, jag: .24 });
+    for (let al = 4.9; al < 17.8; al += .6 + r() * .9) {
+      if (along(w, al) < -.1) continue;
+      const end = Math.min(19.4, al + 1.8 + r() * 2.6), H = Math.min(2.5, h((al + end) / 2) * (.75 + r() * .55));
+      k.strand([[al, .2], [al + (end - al) * .35, H * .78], [al + (end - al) * .72, H], [end, H * .82]], .38, r() < .55 ? P.base : P.mid, .1, .2);
+    }
+  } else {
+    body(k, r, w, caps, P.shade, { seamHi, seamLo: -.6, top: 1.5, deep: .85, jag: .3 });
+    for (let al = 4.9; al < 17.4; al += .7 + r() * 1.1) {
+      const t = along(w, al);
+      if (t < -.1) continue;
+      const end = Math.min(19.3, al + 2.4 + r() * (2.4 + t * 4)), H = Math.min(4, h(al) + .15 + Math.max(0, t) * 1.9 * r());
+      k.strand([[al, .25], [al + (end - al) * .2, H * .85], [al + (end - al) * .55, H], [al + (end - al) * .85, H * .74], [end, H * .86]], .38, r() < .55 ? P.base : P.mid, .1, .22);
+    }
+  }
+  // Wet streaks, by hand on the fullest place of each variant.
+  const crest = w.reduce((b, p) => (p[1] > b[1] ? p : b), w[0])[0], H = h(crest);
+  k.strand([[crest - 1.1, H * .6], [crest - .2, H * .78], [crest + .9, H * .62]], .15, P.lite, .3);
+}
+
+return (face, v, palette) => {
+  const r = rng(0x305 + v * 31 + face.length * 7 + 606);
+  return { w: 24, h: 24, draw(a) { matted(a, kit(a, face, r), r, palette, kindOf(face), v); } };
+};
+})();
+const MOSS = {
+  mossGreen: { base: '#67714f', mid: '#535d44', shade: '#434d3b', lite: '#8a8f6a', glow: '#7ca85a', keep: .2 },
+  moss: { base: '#527470', mid: '#41605f', shade: '#34504f', lite: '#769c95', glow: '#59c8b0', keep: .4 },
+};
 
 /** A soft glow from a picture, as the game's bloom picture: blurred, fading before its edge. */
 function glowOf(c, tint, reach, keep) {
@@ -261,10 +363,10 @@ Subjects.caves = function () {
     for (let v = 0; v < 4; v++) for (const front of [false, true]) for (let half = 0; half < 2; half++) out(`top_${name}_${v}_${front ? 'front' : 'back'}_${half}`, topOf(look, v, front, half));
     for (let k = 0; k < 11; k++) out(`detail_${name}_${k}`, detailOf(look, k));
   }
-  for (const face of ['top', 'bottom', 'left', 'right']) for (let v = 0; v < 4; v++) {
-    const c = bake(mossPicture(face, v));
-    out(`caves/mossGreen_${face}_${v}`, c);
-    out(`caves/mossGreen_${face}_${v}_glow`, glowOf(c, '#7ca85a', 3, .2));
+  for (const [tone, paint] of Object.entries(MOSS)) for (const face of ['top', 'bottom', 'left', 'right']) for (let v = 0; v < 4; v++) {
+    const c = bake(mossPicture(face, v, paint));
+    out(`caves/${tone}_${face}_${v}`, c);
+    out(`caves/${tone}_${face}_${v}_glow`, glowOf(c, paint.glow, 3, paint.keep));
   }
   for (let v = 0; v < 3; v++) {
     for (const [family, hang] of [['crystalIce', false], ['crystalIceHang', true]]) {

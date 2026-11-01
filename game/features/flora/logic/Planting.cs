@@ -97,6 +97,19 @@ public static class Planting
         };
     }
 
+    /// <summary>How far a piece of moss's picture reaches past its block on every side, and its whole size round a block of 16.</summary>
+    private const int PieceOver = 4, PieceSize = 24;
+
+    /// <summary>
+    /// What of a moss picture in ink shows along <paramref name="face"/>: cut at its block's edge where a run of it goes on
+    /// <paramref name="before"/> or <paramref name="after"/> it, its torn end kept where the run stops (2026-11-01-moss-in-ink).
+    /// </summary>
+    public static (int X, int Y, int W, int H) Piece(Faces face, bool before, bool after)
+    {
+        int from = before ? PieceOver : 0, length = (after ? PieceSize - PieceOver : PieceSize) - from;
+        return face is Faces.Up or Faces.Down ? (from, 0, length, PieceSize) : (0, from, PieceSize, length);
+    }
+
     /// <summary>
     /// The row of pixels a drip falling from (<paramref name="x"/>, <paramref name="y"/>) lands on: the top of the first wall,
     /// closed door or floor under it, within <paramref name="rows"/> cells; null for none, or for one under the drip's very

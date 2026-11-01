@@ -67,6 +67,17 @@ public class PlantingTests
         Assert.Equal((47, 48, 1, 16), Planting.Strip(Faces.Right, 4, 6, Cell, 2, 2, 1, before: true, after: false));
     }
 
+    [Fact]
+    public void InInkAPieceIsCutAtItsBlocksEdgeWhereARunGoesOnAndKeepsItsEndsWhereItStops()
+    {
+        Assert.Equal((0, 0, 24, 24), Planting.Piece(Faces.Up, before: false, after: false));
+        Assert.Equal((4, 0, 20, 24), Planting.Piece(Faces.Up, before: true, after: false));
+        Assert.Equal((0, 0, 20, 24), Planting.Piece(Faces.Down, before: false, after: true));
+        Assert.Equal((4, 0, 16, 24), Planting.Piece(Faces.Down, before: true, after: true));
+        Assert.Equal((0, 4, 24, 20), Planting.Piece(Faces.Left, before: true, after: false));
+        Assert.Equal((0, 4, 24, 16), Planting.Piece(Faces.Right, before: true, after: true));
+    }
+
     /// <summary>A column 1 wide: open, open, open, then walls from row 3.</summary>
     private static double? Drip(double y) =>
         Planting.DripFloor(c => c < 3 ? Structure.Empty : Structure.Wall, 1, 5, Cell, Cell / 4.0, y, 20);
