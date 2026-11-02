@@ -38,12 +38,12 @@ public partial class PlanetSky : Node2D
     /// <param name="set">The folder of its pictures under <c>art</c>: its planet type's backdrop (<see cref="PlanetLooks"/>, 0095).</param>
     public PlanetSky(string set)
     {
-        var sky = PixelArt.Picture($"{set}/sky");
+        var sky = PixelArt.Far($"{set}/sky");
         _above.Color = TopOf(sky);
         AddChild(_above);
         AddChild(_sky = Layer(sky, repeat: false));
         AddChild(_giant = Layer(PixelArt.Picture($"{set}/giant"), repeat: false));
-        AddChild(_clouds = Layer(PixelArt.Picture($"{set}/clouds"), repeat: true));
+        AddChild(_clouds = Layer(PixelArt.Far($"{set}/clouds"), repeat: true));
         _sun = Layer(PixelArt.Picture($"{set}/sun"), repeat: false);
         _sun.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         AddChild(_sun);
@@ -110,7 +110,7 @@ public partial class PlanetSky : Node2D
 
     private static Color PixelOf(Texture2D texture, int row)
     {
-        var image = texture.GetImage();
+        var image = (texture is CanvasTexture { DiffuseTexture: { } painted } ? painted : texture).GetImage();
         if (image.IsCompressed()) image.Decompress();
         return image.GetPixel(0, row);
     }
