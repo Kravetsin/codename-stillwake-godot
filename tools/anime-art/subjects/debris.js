@@ -903,7 +903,7 @@ function egg(a, cx, cy, rx, ry, t, o) {
   const u = (v0, v1) => poly(...T(v0, -ry * 1.3), ...T(v1, -ry * 1.3), ...T(v1, ry * 1.3), ...T(v0, ry * 1.3));
   if (o.stripe) { a.flat(u(o.at - .85, o.at + .85), o.stripe, { clip: d });  }
   a.flat(u(-rx * 1.1, -rx * .62), OLD.base, { clip: d });
-  a.flat(dark, OLD.deep, { clip: u(-rx * 1.1, -rx * .62) });
+  a.flat(u(-rx * 1.1, -rx * .84), OLD.deep, { clip: d });
   a.flat(u(-rx * .7, -rx * .62), SOOT.base, { clip: d });
   for (const v of [-rx * .62, rx * .1, rx * .66]) { const h = v < 0 ? ry * .88 : ry * (1 - .26 * (v / rx) * (v / rx)) * Math.sqrt(1 - (v / rx) * (v / rx)); a.line(`M${T(v, -h).join(' ')}L${T(v, h).join(' ')}`, { w: 1.2 }); }
   rv(a, T(-rx * .5, -ry * .5), T(-rx * .5, ry * .5), T(rx * .1 - .9, -ry * .68), T(rx * .1 - .9, ry * .68));
