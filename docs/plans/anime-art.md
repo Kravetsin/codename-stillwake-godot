@@ -10,9 +10,9 @@ Landed, off by default: the plumbing (`HiRes`, the atlas), `tools/anime-art/`, t
 the testbed room whole, the hero's first look, ten icons, a stone and soil ground, ice crystals, moss that failed. All of them are
 now drawn in ink and watercolour; scrap has its first rust.
 
-**[The batch](../decisions/2026-11-02-ink-batch.md)** drew the rest of steps 3 to 7 at once: no picture the game reads is left in pixels. It is a first
-pass nobody but its authors has judged: each step below stays open until the user accepts its family or sends it back, and what is left of the step
-is that. Step 1's measure is still to do, and the flag's default still off.
+**[The batch](../decisions/2026-11-02-ink-batch.md)** drew the rest of steps 3 to 7 at once: no picture the game reads is left in pixels. The user
+accepted every family from [contact sheets](https://claude.ai/artifact/FTKnz6KGboMvtkE9GoALx2), not yet in play, so steps 3 to 6 are drawn and step 2's walk remains.
+Many states were never framed in the game (a fitted tool, the seated pod, dark homes), and step 1's measure is still to do. What is left is steps 1, 2 and 7.
 
 ## How it lands
 
