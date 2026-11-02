@@ -51,7 +51,7 @@ public partial class WornPicture : Control
         bool lamp = card.Item == Content.HelmetLamp.Item;
         CustomMinimumSize = new Vector2(lamp ? LampWidth : Side, Side);
         int scale = lamp ? CardLook.HelmetScale : CardLook.WornScale;
-        var texture = lamp ? GD.Load<Texture2D>("res://art/hero_helmet.png") : ItemIcons.Icon(card.Picture);
+        var texture = lamp ? PixelArt.Picture("hero_helmet") : ItemIcons.Icon(card.Picture);
         var size = texture.GetSize() * scale;
         var origin = new Vector2(lamp ? HelmetLeft : Mathf.Round((Side - size.X) / 2), Mathf.Round((Side - size.Y) / 2));
         AddChild(new TextureRect
