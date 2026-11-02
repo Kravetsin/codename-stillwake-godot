@@ -65,7 +65,7 @@ function mask(w, h, draw) {
 
 /* ---- Crystals: caves.js's prisms, a shard from its foot to its tip, in a crust of dark rock. Rows as the logical picture: the foot on its base row, a hanging one's on row 0. ---- */
 const CRYSTAL = {
-  Amber: { base: '#d0922e', shade: '#94591a', deep: '#60350e', lite: '#f4c870', spec: '#fff', ink: '#1c1006', crust: { base: '#54402c', shade: '#38291c', lite: '#6e5840', ink: '#1c1006' }, glow: '#ffc070' },
+  Amber: { base: '#de8a1e', shade: '#a05210', deep: '#6a3008', lite: '#f6ae48', spec: '#fff', ink: '#1c1006', crust: { base: '#54402c', shade: '#38291c', lite: '#6e5840', ink: '#1c1006' }, glow: '#ffc070' },
   Ember: { base: '#cc4f1c', shade: '#8c2c10', deep: '#561a0a', lite: '#f09040', spec: '#fff', ink: '#1c0a05', crust: { base: '#4a2a20', shade: '#2f1b16', lite: '#664034', ink: '#1c0a05' }, glow: '#ff7a34' },
   Rose: { base: '#c46478', shade: '#843c52', deep: '#58283c', lite: '#eca4ac', spec: '#fff', ink: '#1e0e16', crust: { base: '#4c3840', shade: '#33262c', lite: '#685058', ink: '#1e0e16' }, glow: '#ff8c90' },
 };
@@ -128,7 +128,7 @@ const STONE = [
 ];
 const STALACTITE = [
   [
-    { rows: [[1, 1.4, 5.7], [2, 2.2, 5.3], [3.4, 2.5, 4.6], [5, 2.9, 4.4], [7, 3.1, 3.9], [9, 3.4, 3.5]], wet: [2, 6], ring: [3.4] },
+    { rows: [[1, 1.4, 5.7], [2.4, 2.1, 5.1], [4, 2.6, 4.7], [5.6, 2.9, 4.3], [7, 3.1, 3.9], [9, 3.4, 3.5]], wet: [2, 6], flute: [[3.8, 1.4, 3.6, 5.4]] },
     { rows: [[1, 1.1, 5.9], [3, 2, 5.2], [6, 2.7, 4.5], [9, 3, 4], [11, 3.2, 3.8], [13, 3.5, 3.6]], wet: [2.4, 8], ring: [4.4] },
     { rows: [[1, 1.1, 7.9], [3, 2.3, 7], [6, 3.3, 5.9], [9, 3.7, 5.2], [12, 4, 4.9], [15, 4.3, 4.7], [16.4, 4.5, 4.55]], wet: [3, 11], ring: [5, 8.6], drop: [4.5, 17.6] },
   ],
@@ -150,7 +150,7 @@ const STALACTITE = [
 ];
 const STALAGMITE = [
   [
-    { rows: [[0, 3.4, 3.6], [1.6, 3, 4.1], [3.4, 2.7, 4.4], [4.6, 2.5, 4.6], [5.4, 1.7, 5.3], [6, 1.1, 5.9]], wet: [1.4, 4.4], ring: [4.6] },
+    { rows: [[0, 3.3, 3.5], [1.6, 2.9, 4.2], [3.2, 2.4, 4.4], [4.8, 1.9, 5], [6, 1.2, 5.7]], wet: [1.4, 4.4], flute: [[3.9, 5.7, 3.7, 2.4]] },
     { rows: [[0, 3.5, 3.6], [3, 3.1, 4.1], [6, 2.8, 4.5], [8, 2.3, 4.8], [9.2, 1.7, 5.4], [10, 1.1, 5.9]], wet: [2, 7], ring: [6, 8] },
     { rows: [[0, 4.4, 4.6], [4, 4, 5.1], [8, 3.4, 5.6], [11, 2.8, 6.3], [13, 2, 7.1], [14.2, 1.4, 7.6], [15, 1.1, 7.9]], wet: [3, 11], ring: [8.6, 12] },
   ],
@@ -199,7 +199,7 @@ const FLESH = {
 /** A cap's skin: x its middle, y its top, hw half its width, hh its height, lean of its crown, sag of its rim (+ right, - left lower). */
 function skin(c) {
   const by = c.y + c.hh, lean = c.lean || 0, sag = c.sag || 0, hw = c.hw, hh = c.hh, x = c.x;
-  return [[x - hw, by + Math.max(0, -sag)], [x - hw * .94, c.y + hh * .62], [x - hw * .62 + lean * .4, c.y + hh * .2], [x + lean - hw * .14, c.y], [x + lean + hw * .2, c.y + hh * .03], [x + hw * .66 + lean * .4, c.y + hh * .24], [x + hw * .95, c.y + hh * .64], [x + hw, by + Math.max(0, sag)],
+  return [[x - hw, by + Math.max(0, -sag)], [x - hw * .94, c.y + hh * .62], [x - hw * .62 + lean * .4, c.y + hh * .2], [x + lean - hw * .22, c.y], [x + lean + hw * .06, c.y + hh * .08], [x + lean + hw * .24, c.y + hh * .26], [x + hw * .56 + lean * .4, c.y + hh * .2], [x + hw * .78 + lean * .4, c.y + hh * .36], [x + hw * .95, c.y + hh * .64], [x + hw, by + Math.max(0, sag)],
     [x + hw * .72, by - hh * .1 + Math.max(0, sag) * .6], [x + hw * .3, by - hh * .24], [x - hw * .2, by - hh * .28], [x - hw * .68, by - hh * .1 + Math.max(0, -sag) * .6]];
 }
 function fungusCap(a, F, c) {
@@ -207,11 +207,11 @@ function fungusCap(a, F, c) {
   // The gills: a dark torn skirt under the rim, seen from just below.
   const skirt = [[c.x - hw * .92, by - c.hh * .14 + Math.max(0, -(c.sag || 0))], [c.x - hw * .5, by + .28], [c.x - hw * .1, by + .1], [c.x + hw * .3, by + .34], [c.x + hw * .66, by + .06], [c.x + hw * .92, by - c.hh * .14 + Math.max(0, c.sag || 0)], [c.x + hw * .3, by - c.hh * .4], [c.x - hw * .3, by - c.hh * .4]];
   a.flat(pts(skirt), F.deep);
-  for (const [dx, len, w] of c.tat || []) { run(a, [[c.x + dx, by - .2], [c.x + dx + .12, by + len * .75], [c.x + dx - .08, by + len * 1.3]], w || .36, .1, F.shade, true); a.flat(ell(c.x + dx - .08, by + len * 1.3, .17, .26), F.drip || F.lite); }
+  for (const [dx, len, w] of c.tat || []) { run(a, [[c.x + dx, by - .2], [c.x + dx + .12, by + len * .75], [c.x + dx - .08, by + len * 1.3]], w || .36, .1, F.base, true); a.flat(ell(c.x + dx - .08, by + len * 1.3, .13, .24), F.base); }
   const d = skin(c);
   a.flat(pts(d), F.base);
   // Shade on the far side, under the crown; never a highlight dot: one wet streak along the skin.
-  a.flat(pts([d[3].map((n, i) => (i ? n + c.hh * .28 : n + hw * .2)), d[4], d[5], d[6], d[7], d[8], d[9], [c.x + hw * .05, by - c.hh * .32]]), F.shade);
+  a.flat(pts([[d[4][0], d[4][1] + c.hh * .1], d[5], d[6], d[7], d[8], d[9], d[10], d[11], [c.x + hw * .02, by - c.hh * .34]]), F.shade);
   a.flat(pts([[c.x - hw * .78, c.y + c.hh * .62], [c.x - hw * .46, c.y + c.hh * .26], [c.x - hw * .1, c.y + c.hh * .14], [c.x - hw * .36, c.y + c.hh * .4]]), F.lite);
   // Rot runs down the skin in streaks from where it has gone soft; wrinkles from the crown where the skin has fallen in.
   for (const [dx, dy, r] of c.pits || []) run(a, [[c.x + dx, c.y + dy - r * 1.4], [c.x + dx * 1.1, c.y + dy], [c.x + dx * 1.22, c.y + dy + r * 2.6]], r * 1.2, r * .2, F.deep, true);
@@ -362,11 +362,11 @@ function threads(a, T, t) {
 }
 const threadGlow = (t, T) => bloom(mask(t.w, t.h, (fill, stroke) => {
   for (const s of t.s) {
-    for (const [x, y] of s.b) fill(ell(x, y - .1, .5, .7));
-    if (s.e) fill(ell(s.e[0], s.e[1], s.big ? .9 : .7, .95));
+    for (const [x, y] of s.b) fill(ell(x, y - .1, .6, .8));
+    if (s.e) fill(ell(s.e[0], s.e[1], s.big ? 1.05 : .85, 1.05));
   }
-}), T.glow, 3.5, .95, .55);
-const threadHaze = (t, T) => bloom(mask(t.w, t.h, (fill, stroke) => { for (const s of t.s) stroke(pathOf(s.p), .55); }), T.glow, 5, .3);
+}), T.glow, 2.2, 1, 1);
+const threadHaze = (t, T) => bloom(mask(t.w, t.h, (fill, stroke) => { for (const s of t.s) stroke(pathOf(s.p), .6); }), T.glow, 3, .42);
 function stacked(c, d) { const x = c.getContext('2d'); x.drawImage(d, 0, 0); return c; }
 
 /* ---- Roots from the surface, drawn wet and split; only a bit of pale new growth at their tips gives light. ---- */
@@ -396,7 +396,7 @@ function root(a, r, k) {
   if (r.w[0] > 1) { const from = Math.floor(r.p.length * .2), head = r.p.slice(from, from + 3).map(([x, y]) => [x - .34, y]); run(a, head, .26, .1, ROOT.lite, true); }
   if (r.tip) a.flat(ell(r.tip[0], r.tip[1], .34, .78), ROOT.tip);
 }
-const rootsGlow = (t) => bloom(mask(t.w, t.h, (fill) => { for (const r of t.r) if (r.tip) fill(ell(r.tip[0], r.tip[1], .42, .8)); }), ROOT.glow, 3, .7, .55);
+const rootsGlow = (t) => bloom(mask(t.w, t.h, (fill) => { for (const r of t.r) if (r.tip) fill(ell(r.tip[0], r.tip[1], .5, .9)); }), ROOT.glow, 2, 1, 1);
 
 /* ---- The heat's cracks, in the rock: a charred seam, burning inside it. What burns may be full. ---- */
 const CRACKS = [
@@ -550,6 +550,6 @@ Subjects.cavelife = function () {
   out('caves/spireCache_0_glow', bloom(mask(24, 16, (fill) => fill(poly(10.9, 11, 13.1, 11, 13.1, 11.9, 10.9, 11.9))), '#64e8cc', 3, 1, .7));
   out('caves/spireLamp_0', bake(24, 24, lens));
 };
-/** A crystal's whole body as its glow: the same as the ice's. */
-function Bloom(c, tint) { return bloom(c, tint, 6, .8); }
+/** A crystal's whole body as its glow, as the ice's; less of it, or its warm paint burns out to white and the facets go. */
+function Bloom(c, tint) { return bloom(c, tint, 6, .55); }
 })();
