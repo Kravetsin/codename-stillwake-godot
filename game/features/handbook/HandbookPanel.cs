@@ -109,6 +109,9 @@ public partial class HandbookPanel : CanvasLayer
         _open = true;
     }
 
+    /// <summary>The tablet itself, which rises from the edge.</summary>
+    public Tablet Tablet => _tablet;
+
     /// <summary>Puts it away: J again, Esc through the menu's <c>Escape</c>, Tab or E.</summary>
     public void Close() => _open = false;
 
@@ -116,7 +119,6 @@ public partial class HandbookPanel : CanvasLayer
     private void LayOut()
     {
         _at = new HandbookScreen(_ui.Slot);
-        _tablet.Size = new Vector2(_at.Width, _at.Height);
         _tabs.Position = new Vector2(TabletLayout.Pad, TabletLayout.Pad);
         _tabs.Size = new Vector2(_at.Width - 2 * TabletLayout.Pad, TabletLayout.TabHeight);
         _view.Position = new Vector2(TabletLayout.Pad, HandbookScreen.BodyTop);
@@ -174,7 +176,7 @@ public partial class HandbookPanel : CanvasLayer
         const int s = TabletLayout.ArtScale;
         var art = new Vector2(_at.Width + TabletLayout.ArtAround * s, _at.Height + TabletLayout.ArtAround * s);
         var rest = ((screen - art) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
-        _tablet.Position = rest + new Vector2(0, _tablet.Drop(rest.Y));
+        _tablet.Lay(rest.X, rest.Y, _at.Width, _at.Height);
         int height = BodyHeight();
         _scroll = _at.Scrolled(_scroll, 0, height);
         if (_sections.Count > 0)

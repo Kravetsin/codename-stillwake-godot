@@ -38,9 +38,6 @@ public static class TabletLayout
     /// <summary>Below the screen, the bezel's bottom edge; beside it, either side's outer edge: where wings bolted on meet it.</summary>
     public const int BezelBelow = (ArtAround - ScreenTop) * ArtScale, BezelSide = RightMetal * ArtScale;
 
-    /// <summary>How far past the bottom edge the tablet slides from its rest to be gone: the stylus's tip too, and a few pixels more.</summary>
-    public const int Lift = ScreenTop * ArtScale + 4;
-
     /// <summary>
     /// A scrollbar's thumb beside a view <paramref name="view"/> tall over content <paramref name="content"/> tall,
     /// scrolled <paramref name="scroll"/> down: its top and length down the view; none while the content fits.

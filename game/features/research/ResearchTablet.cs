@@ -18,8 +18,8 @@ public partial class ResearchTablet : CanvasLayer
 {
     /// <summary>Seconds between reads of the world: a panel reads on a timer, never every frame.</summary>
     private const double ReadEvery = 0.25;
-    /// <summary>The gap kept between the tablet's art and the window's edge, and the height of the strip about what is picked.</summary>
-    private const int Margin = 12, DetailTall = 116, ButtonWide = 200;
+    /// <summary>The height of the strip about what is picked, and the width of its button.</summary>
+    private const int DetailTall = 116, ButtonWide = 200;
 
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
@@ -111,8 +111,20 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_strip, _view, _detail]) _tablet.OnScreen(part);
         PaintTabs();
         _page.Show(true);
-        _key = new TabletKey(ui, inWorld, world, worldId, _keep, Bulb, Open);
+        _key = new TabletKey(world, worldId, _keep, Bulb, Toggle);
         AddChild(_key);
+    }
+
+    /// <summary>The tablet itself, which rises from the edge.</summary>
+    public Tablet Tablet => _tablet;
+
+    /// <summary>The tablet's key, for the edge to set in place.</summary>
+    public WristKey Cap => _key.Cap;
+
+    private void Toggle()
+    {
+        if (Shown) Close();
+        else Open();
     }
 
     /// <summary>Whether it is out: what Esc puts away before it opens the menu.</summary>
@@ -145,8 +157,8 @@ public partial class ResearchTablet : CanvasLayer
         if (!_keep.Write()) GD.PushWarning("The board was not kept.");
     }
 
-    /// <summary>Where the key on the HUD lies on the screen: what the markers keep out of.</summary>
-    public Rect2 KeyCovers => _key.Covers;
+    /// <summary>Where the key lies on the screen: what a recording points at.</summary>
+    public Rect2 KeyCovers => _key.Cap.GetGlobalRect();
 
     /// <summary>The bulb over the hero: what the tablet's key tells of what is new, for <see cref="HeroBulb"/> to draw.</summary>
     public BulbSignal Bulb { get; } = new();
@@ -194,10 +206,9 @@ public partial class ResearchTablet : CanvasLayer
     {
         var screen = _tablet.GetViewportRect().Size;
         const int s = TabletLayout.ArtScale, around = TabletLayout.ArtAround * s, pad = TabletLayout.Pad;
-        float width = Mathf.Floor(screen.X - around - 2 * Margin), height = Mathf.Floor(screen.Y - around - 2 * Margin);
-        _tablet.Size = new Vector2(width, height);
+        float width = TabletPeek.ScreenWidth(screen.X), height = Mathf.Floor(screen.Y - around - 2 * TabletPeek.Margin);
         var rest = ((screen - new Vector2(width + around, height + around)) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
-        _tablet.Position = rest + new Vector2(0, _tablet.Drop(rest.Y));
+        _tablet.Lay(rest.X, rest.Y, width, height);
         const int bodyTop = pad + TabletLayout.TabHeight + pad;
         _strip.Position = new Vector2(pad, pad);
         _strip.Size = new Vector2(width - 2 * pad, TabletLayout.TabHeight);

@@ -45,8 +45,11 @@ public sealed record Tip(string? Name, IReadOnlyList<TipLine> Lines)
     /// </summary>
     public (float X, float Y, float W, float H)? Anchor { get; init; }
 
+    /// <summary>Said over what it tells of (<see cref="TipPlace.Over"/>) and not beside the pointer: a key at the screen's foot, whose neighbours it would cover.</summary>
+    public bool Over { get; init; }
+
     public bool Equals(Tip? other) =>
-        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture && Anchor == other.Anchor;
+        other is not null && Name == other.Name && Lines.SequenceEqual(other.Lines) && Equals(Card, other.Card) && Picture == other.Picture && Anchor == other.Anchor && Over == other.Over;
 
     public override int GetHashCode()
     {

@@ -4,66 +4,47 @@ using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
-using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The tablet's key on the HUD (docs/plans/board.md), one seam right of the gauge row: a press takes the tablet out, as T does, and its cap, a frosted lens with a bulb's shade
-/// in it, lights from within when the board or the market has something new ([key-lens](../../../docs/decisions/2026-11-02-key-lens.md)). It reads for itself, for the tablet reads nothing while away.
+/// The tablet's key, on the tablet's top edge (<see cref="TabletEdge"/>): a press does what T does, and its cap, a frosted lens with a bulb's shade in it, lights from within when
+/// the board or the market has something new ([key-lens](../../../docs/decisions/2026-11-02-key-lens.md)). It reads for itself, for the tablet reads nothing while away.
 /// </summary>
-public partial class TabletKey : CanvasLayer
+public partial class TabletKey : Node
 {
     private const double RefreshS = 0.25;
     /// <summary>The market's orders: a sale moves no version, so they are read on the timer.</summary>
     private static readonly Content.TechNode[] Orders = [.. Content.Research.Nodes.Where(n => n is { Gate: true, Tab: Content.Research.Market })];
 
-    private readonly Ui _ui;
-    private readonly Func<bool> _inWorld;
     private readonly Func<Registry?> _world;
     private readonly Func<uint> _worldId;
     private readonly BoardKeep _keep;
     private readonly BulbSignal _bulb;
     private readonly Key _key;
-    private readonly TipSpots _tips;
     private (object Knowledge, int Version)? _readAt;
     private double _sinceRead = RefreshS;
 
-    /// <param name="ui">The slots' size, which its place follows, and the one tooltip.</param>
-    /// <param name="inWorld">Whether a world is played: with none it is hidden.</param>
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
     /// <param name="keep">What is kept of the board, shared with the page.</param>
     /// <param name="bulb">The bulb over the hero, told what is new.</param>
-    /// <param name="open">Takes the tablet out.</param>
-    public TabletKey(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<uint> worldId, BoardKeep keep, BulbSignal bulb, Action open)
+    /// <param name="press">Takes the tablet out or puts it away.</param>
+    public TabletKey(Func<Registry?> world, Func<uint> worldId, BoardKeep keep, BulbSignal bulb, Action press)
     {
-        (_ui, _inWorld, _world, _worldId, _keep, _bulb) = (ui, inWorld, world, worldId, keep, bulb);
-        _key = new Key(open) { Visible = false };
-        void Place()
-        {
-            var row = Slots.GaugeRowOf(ui.Slot);
-            _key.Position = new Vector2(row.EnergyX + row.EnergyWidth + WristLook.TabGap, Slots.GaugeTop(ui.Slot));
-        }
-        Place();
-        ui.SlotScale.Subscribe(Place);
-        Layer = ScreenLayers.Hud;
-        AddChild(_key);
-        _tips = new TipSpots(ui.Tip);
-        _tips.Add(_key, () => new Tip(T("research.key")));
+        (_world, _worldId, _keep, _bulb) = (world, worldId, keep, bulb);
+        _key = new Key(press);
     }
 
-    /// <summary>Where it lies on the screen.</summary>
-    public Rect2 Covers => _key.GetGlobalRect();
+    /// <summary>The key itself, for the edge to set in place.</summary>
+    public WristKey Cap => _key;
 
     public override void _Process(double delta)
     {
-        _tips.Frame(_key.IsVisibleInTree() && !_ui.TreeOpen.Get() && !_ui.MenuOpen.Get() ? _key.GetViewport().GetMousePosition() : null);
         _sinceRead += delta;
         if (_sinceRead < RefreshS) return;
         _sinceRead = 0;
         var m = _world();
-        _key.Visible = m != null && _inWorld();
         if (m == null) return;
         _keep.Of(_worldId());
         var at = ((object)m.Knowledge, m.Knowledge.Version);
@@ -77,8 +58,6 @@ public partial class TabletKey : CanvasLayer
         _key.Lit = _keep.Seen.Lit;
         _bulb.Read(_keep.Seen, _keep.Seen.Unread.Count, _keep.Seen.Open);
     }
-
-    public override void _ExitTree() => _tips.Show(null);
 
     /// <summary>A wrist key whose cap is the lens, lit by <see cref="KeyGlow"/>, with the soft light it casts on what is round it.</summary>
     private sealed partial class Key : WristKey

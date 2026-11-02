@@ -25,4 +25,15 @@ public static class TipPlace
         if (y + card.H > screen.H - edge) y = pointer.Y - drop - card.H;
         return (x, Math.Max(edge, Math.Min(y, screen.H - edge - card.H)));
     }
+
+    /// <summary>
+    /// Where a tip <paramref name="tip"/> large goes for what it tells of at <paramref name="spot"/>, on a screen <paramref name="screen"/> large: centred
+    /// <paramref name="gap"/> above it, so a key at the screen's foot keeps its neighbours in view; below it with no room above; <paramref name="edge"/> inside the sides.
+    /// </summary>
+    public static (float X, float Y) Over((float X, float Y, float W, float H) spot, (float W, float H) tip, (float W, float H) screen, float gap, float edge)
+    {
+        float x = Math.Max(edge, Math.Min(spot.X + (spot.W - tip.W) / 2, screen.W - tip.W - edge));
+        float y = spot.Y - gap - tip.H;
+        return (x, y < edge ? spot.Y + spot.H + gap : y);
+    }
 }

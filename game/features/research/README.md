@@ -10,7 +10,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `ResearchTablet.cs`  | the tablet: its tabs, the head and the strip below, T, the read timer     | yes   |
 | `ITabletPage.cs`     | what the tablet asks of a page on a tab                                   | yes   |
 | `BoardPage.cs`       | the first tab: the board of notes, threads and shapes                     | yes   |
-| `TabletKey.cs`       | the tablet's key on the HUD, its cap a lens that lights                   | yes   |
+| `TabletKey.cs`       | the tablet's key, on its edge, its cap a lens that lights                 | yes   |
 | `HeroBulb.cs`        | the bulb over this player's hero as a note starts waiting                 | yes   |
 | `RingsPage.cs`       | a tab of rings: a hub, nodes, what the strip says of what is picked       | yes   |
 | `InkDraw.cs`         | draws the board's strokes                                                 | yes   |

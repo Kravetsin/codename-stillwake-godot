@@ -14,7 +14,7 @@ namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// This player's hands on the ship and the views that explain it (App.tsx's part of the TypeScript game
-/// for these features): the plan and its menu, cables, the pipes and air, the air overlay's chip, and
+/// for these features): the plan and its menu, cables, the pipes and air, the air overlay's key, and
 /// the words by the pointer, sharing one <see cref="Shared.Ui"/>. Each frame the building takes the
 /// buttons, but while the plan is wiring, when the cables take them (0108), or piping, the pipes (0109), by the card of its menu (0110). With the plan away, while the
 /// right button digs, the walls round the pointer fade, so the back wall shows (<see cref="Lit.SeeThrough"/>).
@@ -25,7 +25,7 @@ public partial class Hands : Node2D
     public PlanHand Plan { get; }
     public WorldButtons Mouse { get; } = new();
     public BuildMenu Menu { get; }
-    public OverlayBar Overlays { get; }
+    public AirKey Air { get; }
 
     private readonly BuildingView _building;
     private readonly PowerView _power;
@@ -52,8 +52,8 @@ public partial class Hands : Node2D
         _machines = new MachineTips(Ui,
             (m, x, spec) => Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id)),
             (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)));
-        Overlays = new OverlayBar(Ui);
-        foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Overlays, _tip]) AddChild(node);
+        Air = new AirKey(Ui);
+        foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Air, _tip]) AddChild(node);
     }
 
     /// <summary>

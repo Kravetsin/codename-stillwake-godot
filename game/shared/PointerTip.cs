@@ -20,7 +20,7 @@ public partial class PointerTip : CanvasLayer
     /// <summary>The reason's size and its outline, in pixels of the world: it grows and shrinks with the zoom, as world text does.</summary>
     private const float ReasonSize = 10, ReasonStroke = 3, ReasonOffset = 12;
     /// <summary>The tip's widest, its padding and its gap from the pointer and the screen's edge, in pixels.</summary>
-    private const float Widest = 260, PadX = 8, Edge = 6;
+    private const float Widest = 260, PadX = 8, Edge = 6, FromSpot = 6;
     /// <summary>An item's card's gap past the slot under the pointer, and its drop below the pointer, in pixels.</summary>
     private const float FromSlot = 8, CardDrop = 8;
     private static readonly Vector2 FromPointer = new(14, 16);
@@ -101,6 +101,12 @@ public partial class PointerTip : CanvasLayer
         {
             var (x, y) = TipPlace.Near((pointed.X, pointed.Y), slot, (_panel.Size.X, _panel.Size.Y), (screen.X, screen.Y), FromSlot, CardDrop, Edge);
             _panel.Position = new Vector2(x, y);
+            return;
+        }
+        if (tip.Over && tip.Anchor is { } spot)
+        {
+            var (x, y) = TipPlace.Over(spot, (_panel.Size.X, _panel.Size.Y), (screen.X, screen.Y), FromSpot, Edge);
+            _panel.Position = new Vector2(Mathf.Round(x), Mathf.Round(y));
             return;
         }
         var at = pointed + FromPointer + Vector2.One * (_ui.OnPointer.Get() / 2);
