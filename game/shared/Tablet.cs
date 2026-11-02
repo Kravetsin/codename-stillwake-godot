@@ -24,7 +24,7 @@ public partial class Tablet : Panel
     private readonly TabletMotion _motion = new();
     private readonly NinePatchRect _frame = new()
     {
-        Texture = GD.Load<Texture2D>("res://art/tablet_frame.png"),
+        Texture = WristArt.Slices("res://art/tablet_frame.png"),
         PatchMarginLeft = 74,
         PatchMarginRight = 77,
         PatchMarginTop = 21,
@@ -37,7 +37,7 @@ public partial class Tablet : Panel
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Stop,
     };
-    private readonly TextureRect _plate = Art("res://art/tablet_plate.png"), _stylus = Art("res://art/tablet_stylus.png");
+    private readonly TextureRect _plate = Art("tablet_plate"), _stylus = Art("tablet_stylus");
     /// <summary>The status lamp dark, over the art's lit one, while the screen is off; its glow while it is on.</summary>
     private readonly ColorRect _ledOff = new() { Color = new Color("1f3b2a"), Size = new Vector2(2, 2), MouseFilter = MouseFilterEnum.Ignore };
     private readonly TextureRect _ledGlow = ScreenGlow.Of(LedLight, 0), _wash = ScreenGlow.Of(ScreenLight, 40f / 560);
@@ -135,9 +135,9 @@ public partial class Tablet : Panel
         _glass.DrawColoredPolygon([new(206, 0), new(222, 0), new(92, h), new(76, h)], glare with { A = 0.03f });
     }
 
-    private static TextureRect Art(string path) => new()
+    private static TextureRect Art(string name) => new()
     {
-        Texture = GD.Load<Texture2D>(path),
+        Texture = PixelArt.Picture(name),
         TextureFilter = TextureFilterEnum.Nearest,
         MouseFilter = MouseFilterEnum.Ignore,
     };
