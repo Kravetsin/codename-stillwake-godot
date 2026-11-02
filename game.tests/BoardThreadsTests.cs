@@ -89,7 +89,7 @@ public class BoardThreadsTests
         BoardThing[] things = [new("sold", [("p", 1)], null, true)];
         var read = Read(["p"]);
         var picture = BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, null);
-        Assert.False(picture.Shows.ContainsKey("sold"));
+        Assert.Equal(BoardShow.Unseen, picture.Shows["sold"]);
         Assert.Empty(picture.Threads);
     }
 
@@ -123,8 +123,8 @@ public class BoardThreadsTests
     public void TheSolarPanelHasNoSilhouette()
     {
         string[] parts = ["frame", "solarCell", "wire", "circuit", "photoPanel"];
-        Assert.DoesNotContain("solarPanel", Picture(Read(parts)).Shows.Keys);
-        Assert.DoesNotContain("solarPanel", Picture(Read(parts), picked: "frame").Shows.Keys);
+        Assert.Equal(BoardShow.Unseen, Picture(Read(parts)).Shows["solarPanel"]);
+        Assert.Equal(BoardShow.Unseen, Picture(Read(parts), picked: "frame").Shows["solarPanel"]);
         Assert.Equal(BoardShow.Note, Picture(Read(parts, [.. Spec.Research.StartKnown, "solarPanel"])).Shows["solarPanel"]);
     }
 

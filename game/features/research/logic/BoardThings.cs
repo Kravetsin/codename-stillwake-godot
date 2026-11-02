@@ -8,7 +8,7 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>A blueprint or craft as the board sees it (docs/plans/board.md).</summary>
 /// <param name="Parts">Each thing it costs, and how many of it are enough.</param>
 /// <param name="Stations">The machines that make it, for a craft; null for a blueprint.</param>
-/// <param name="Market">Whether only the market opens it: no slot, thread or silhouette till bought.</param>
+/// <param name="Market">Whether only the market opens it: it holds a slot, but shows no thread or silhouette till bought.</param>
 public sealed record BoardThing(string Id, IReadOnlyList<(string Item, int Enough)> Parts, IReadOnlyList<string>? Stations, bool Market);
 
 /// <summary>Every blueprint and craft the board may show. Upgrades are the market page's rows, never notes.</summary>

@@ -96,11 +96,34 @@ public class BoardSlotsTests
     }
 
     [Fact]
-    public void WhatTheMarketOpensTakesNoSlotTillBought()
+    public void WhatTheMarketOpensHoldsItsSlotByItsPartSoBuyingItMovesNothing()
     {
         string[] found = ["frame", "solarCell", "wire", "circuit", "photoPanel"];
-        Assert.DoesNotContain(Slots(found), s => s.Id == "solarPanel");
-        Assert.True(Slot(Slots(found, [.. Start, "solarPanel"]), "solarPanel").Row);
+        var before = Slots(found);
+        var after = Slots(found, [.. Start, "solarPanel"]);
+        Assert.False(Slot(after, "solarPanel").Row);
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void WhatTheMarketOpensStandsInTheRowOnlyWithNoPartNoted()
+    {
+        var bought = Slot(Slots(["scrapChunk"], ["solarPanel"]), "solarPanel");
+        Assert.True(bought.Row);
+    }
+
+    [Property(MaxTest = 40)]
+    public Property EverythingStandsInsideTheBoardWhateverWasFoundFirst() => Prop.ForAll(Seeds, seed =>
+    {
+        var slots = Slots(Drawn(seed, AllItems.Length));
+        Assert.All(slots, s => Assert.True(BoardBox.Inside(s.X, s.Y), $"{s.Id} stands at {s.X}, {s.Y}"));
+    });
+
+    [Fact]
+    public void AFullRowStaysInsideTheBoard()
+    {
+        var slots = Slots(["hullPlate"], [.. BoardThings.All.Select(t => t.Id)]);
+        Assert.All(slots, s => Assert.True(BoardBox.Inside(s.X, s.Y), $"{s.Id} stands at {s.X}, {s.Y}"));
     }
 
     [Fact]
