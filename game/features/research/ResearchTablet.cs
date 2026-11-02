@@ -136,7 +136,6 @@ public partial class ResearchTablet : CanvasLayer
         if (Shown) _keep.Seen.Closed();
         _ui.TreeOpen.Set(false);
         _page.LetGo();
-        _board.Away();
         KeepBoard();
     }
 

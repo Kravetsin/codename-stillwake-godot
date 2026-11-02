@@ -15,21 +15,23 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// The tablet's first tab: the scavenger's board (docs/plans/board.md), blank till the first find. Notes written with a stylus where <see cref="BoardSlots"/>
 /// stands them, threads to shapes sketched by outline, dragged and zoomed (<see cref="TechCamera"/>). A click picks and says what is known of it in
-/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardKeep"/>). What landed has a loop drawn round it until the tablet is put away ([tablet-key](../../../docs/decisions/2026-10-31-tablet-key.md)).
+/// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardKeep"/>). What landed has a loop drawn round it until the player touches it ([board-thoughts](../../../docs/decisions/2026-11-02-board-thoughts.md)).
 /// Unread entries wait beside the board, one shown large; a click lands it at its place ([the pile](../../../docs/decisions/2026-11-02-board-pile.md), <see cref="BoardPile"/>).
 /// </summary>
 public sealed class BoardPage : ITabletPage
 {
     private static readonly Color Light = new("d8e0ec"), Drawn = new("b4bfd0"), NoteFill = new("172033"), CardFill = new("131b2c"), Pressed = new("2a3550"),
-        Behind = new("55617a"), Dim = new("94a3b8"), Fresh = new("dbe3ef"), Plain = new("7f8ba0"), Screen = new("0f172a"), New = new("f2b84b");
+        Behind = new("55617a"), Dim = new("94a3b8"), Fresh = new("dbe3ef"), Plain = new("7f8ba0"), New = new("f2b84b");
 
     /// <summary>Under this zoom words would be too small to read, and only pictures show.</summary>
     private const double WordsFrom = 0.5;
     /// <summary>What a note is drawn in, and what shrinks that to the board at zoom 1: the strokes' wander is the candidate's own.</summary>
     private const float InkLeft = -74, InkTop = -90, InkWide = 148, InkTall = 180, InkScale = 0.45f;
-    /// <summary>A note on the board at zoom 1: half of it, its picture and where that stands, its word's size and room, a shape's picture.</summary>
-    private const float HalfWide = InkWide * InkScale / 2, HalfTall = InkTall * InkScale / 2, PictureUp = 10, NameTop = 10, NameWide = 60, NameTall = 29, ShapePicture = 47;
+    /// <summary>A note on the board at zoom 1: half of it, its picture and where that stands, its words' size and room.</summary>
+    private const float HalfWide = InkWide * InkScale / 2, HalfTall = InkTall * InkScale / 2, PictureUp = 10, NameTop = 10, NameWide = 62, NameTall = 29;
     private const int Icon = 40, NameSize = 11;
+    /// <summary>The line of a shape's lack at zoom 1: where it stands, how tall it is, and the picture of what it lacks.</summary>
+    private const float LackTop = 16, LackTall = 16, LackPicture = 15;
     /// <summary>What a thread takes as a box, and the room kept round what a view holds.</summary>
     private const float ThreadHalfWide = 36, ThreadHalfTall = 42, FrameWide = 46, FrameTall = 52;
     /// <summary>The loop round a new note, from the note's centre at zoom 1.</summary>
@@ -41,15 +43,17 @@ public sealed class BoardPage : ITabletPage
     /// <summary>The outlines shown of the unread, and how far each stands from the one before.</summary>
     private const int Sheets = 4, SheetBy = 7;
     /// <summary>Seconds of an entry's flight, of a thread drawing itself, of a new entry coming up and of the board settling once the pile is gone.</summary>
-    private const double Slide = 0.42, ThreadDraws = 0.4, CardComes = 0.16, Settling = 0.6, TagWrites = 0.4;
+    private const double Slide = 0.42, ThreadDraws = 0.4, CardComes = 0.16, Settling = 0.6;
     /// <summary>Of a flight: how far along the entry has become a note, how small it is by then, and how far aside a new entry starts.</summary>
     private const float NoteFrom = 0.55f, CardLeast = 0.3f, CardFrom = 90;
     /// <summary>A note's width in flight as it lands, against the card it was.</summary>
     private const float NoteLands = 72;
 
     /// <summary>What a thing on the board is made of, kept so a read only restyles it.</summary>
-    private sealed record NoteView(Control Root, Control Box, TextureRect Picture, Label Name, Line2D Mark)
+    private sealed record NoteView(Control Root, Control Box, TextureRect Picture, Label Name, Line2D Mark, HBoxContainer Lack, Label LackWords)
     {
+        public TextureRect? LackPicture { get; set; }
+        public string? LackOf { get; set; }
         public BoardShow Show { get; set; } = BoardShow.Unseen;
         public BoardSketch Sketch { get; set; }
         public InkPoint[][] Ink { get; set; } = [];
@@ -104,8 +108,6 @@ public sealed class BoardPage : ITabletPage
     private readonly List<Control> _down = [];
     /// <summary>How far the threads of a note just landed are drawn.</summary>
     private readonly Dictionary<string, float> _growing = new(StringComparer.Ordinal);
-    private readonly Label _tag = Text("", Light, 14);
-    private string? _tagged;
     private Tween? _glide;
     /// <summary>What will be on the board once the pile is down: what it is framed by while reading.</summary>
     private List<string> _ahead = [];
@@ -143,10 +145,6 @@ public sealed class BoardPage : ITabletPage
         _board.AddChild(_map);
         _board.AddChild(_front);
         view.AddChild(_board);
-        _tag.Visible = false;
-        _tag.LabelSettings.OutlineSize = 4;
-        _tag.LabelSettings.OutlineColor = Screen;
-        _front.AddChild(_tag);
         BuildSide();
         view.AddChild(_side);
         view.AddChild(_flyers);
@@ -346,7 +344,6 @@ public sealed class BoardPage : ITabletPage
         _flights.Clear();
         ClearDown();
         _growing.Clear();
-        _tag.VisibleRatio = 1;
         Hold();
     }
 
@@ -364,24 +361,7 @@ public sealed class BoardPage : ITabletPage
         _share = _narrow ? SideShare : 0;
     }
 
-    /// <summary>The tablet put away: the words by the closest shape go.</summary>
-    public void Away() => Tag(null);
-
-    /// <summary>Writes what <paramref name="id"/> lacks beside it; null for nothing.</summary>
-    private void Tag(string? id, string words = "")
-    {
-        _tagged = id;
-        _tag.Visible = id != null;
-        _tag.Text = words;
-        _tag.ResetSize();
-        _tag.MoveToFront();
-        _placedAt = null;
-        if (id == null) return;
-        _tag.VisibleRatio = 0;
-        NewTween().TweenMethod(Callable.From<float>(t => _tag.VisibleRatio = t), 0f, 1f, TagWrites);
-    }
-
-    /// <summary>The pile gone and the last flight down: the board opens to the whole view, framing all that stands, and the closest shape says what it lacks. Too much to frame, it goes to that shape.</summary>
+    /// <summary>The pile gone and the last flight down: the board opens to the whole view, framing all that stands. Too much to frame, it goes to the shape closest to done.</summary>
     private void Settle()
     {
         _narrow = false;
@@ -393,9 +373,6 @@ public sealed class BoardPage : ITabletPage
         if (zoom >= WordsFrom && around is var (l, t, r, b)) GlideTo((l + r) / 2, (t + b) / 2, zoom, Settling);
         else if (closest != null) GlideTo(SpotOf(closest).X, SpotOf(closest).Y, WordsFrom, Settling);
         else _share = 0;
-        if (closest == null) return;
-        string lack = LackOf(BoardThings.All.First(t => t.Id == closest));
-        if (lack.Length > 0) Tag(closest, lack);
     }
 
     /// <summary>The first thing <paramref name="thing"/> lacks, in words: what was never had is not named.</summary>
@@ -470,24 +447,10 @@ public sealed class BoardPage : ITabletPage
         {
             if (!view.Root.Visible) continue;
             view.Root.Position = (origin + At(id) * zoom).Round();
-            view.Name.Visible = words && view.Show == BoardShow.Note;
+            bool note = view.Show == BoardShow.Note;
+            view.Name.Visible = words && note;
+            view.Lack.Visible = words && !note && view.LackWords.Text.Length > 0;
         }
-        if (_tagged is not { } tagged) return;
-        var at = origin + At(tagged) * zoom;
-        float by = FrameWide * zoom + 6;
-        var right = new Vector2(at.X + by, at.Y - _tag.Size.Y / 2);
-        var left = new Vector2(at.X - by - _tag.Size.X, right.Y);
-        // On a note the words would be lost among its own, so they keep to the free side if there is one.
-        bool goLeft = at.X >= Wide - 240 || OverANote(new Rect2(right, _tag.Size), tagged) && !OverANote(new Rect2(left, _tag.Size), tagged);
-        _tag.Position = (goLeft ? left : right).Round();
-    }
-
-    /// <summary>Whether a note other than <paramref name="but"/> stands under a rectangle of the view.</summary>
-    private bool OverANote(Rect2 rect, string but)
-    {
-        float zoom = (float)_camera.Zoom;
-        var half = new Vector2(HalfWide, HalfTall) * zoom;
-        return _notes.Any(n => n.Key != but && n.Value.Root.Visible && n.Value.Show == BoardShow.Note && new Rect2(n.Value.Root.Position - half, half * 2).Intersects(rect));
     }
 
     /// <summary>Sets every note at the size <paramref name="zoom"/> shows it; words are never scaled, so they stay sharp.</summary>
@@ -500,18 +463,22 @@ public sealed class BoardPage : ITabletPage
 
     private void SizeOf(NoteView view, float zoom)
     {
-        bool note = view.Show == BoardShow.Note, words = Words;
+        bool words = Words;
         var half = new Vector2(HalfWide, HalfTall) * zoom;
         view.Box.Position = -half;
         view.Box.Size = half * 2;
         view.Box.QueueRedraw();
-        float icon = !note ? ShapePicture * zoom : words ? Icon * zoom : HalfWide * 2 * zoom * 0.75f;
-        view.Picture.Position = new Vector2(-icon / 2, -icon / 2 - (note && words ? PictureUp * zoom : 0));
+        float icon = words ? Icon * zoom : HalfWide * 2 * zoom * 0.75f;
+        view.Picture.Position = new Vector2(-icon / 2, -icon / 2 - (words ? PictureUp * zoom : 0));
         view.Picture.Size = new Vector2(icon, icon);
-        view.Picture.TextureFilter = !note || zoom < 1 ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.Nearest;
+        view.Picture.TextureFilter = view.Show != BoardShow.Note || zoom < 1 ? CanvasItem.TextureFilterEnum.Linear : CanvasItem.TextureFilterEnum.Nearest;
         view.Name.LabelSettings.FontSize = Math.Max(8, Mathf.RoundToInt(NameSize * zoom));
         view.Name.Position = new Vector2(-NameWide / 2, NameTop) * zoom;
         view.Name.Size = new Vector2(NameWide, NameTall) * zoom;
+        view.LackWords.LabelSettings.FontSize = view.Name.LabelSettings.FontSize;
+        view.Lack.Position = new Vector2(-NameWide / 2, LackTop) * zoom;
+        view.Lack.Size = new Vector2(NameWide, LackTall) * zoom;
+        if (view.LackPicture != null) view.LackPicture.CustomMinimumSize = new Vector2(LackPicture, LackPicture) * zoom;
         view.Mark.Scale = new Vector2(zoom, zoom);
         view.Mark.Width = LoopWidth / zoom;
     }
@@ -543,7 +510,6 @@ public sealed class BoardPage : ITabletPage
         _ahead = Reading ? BoardView.Of(slots, BoardThings.All, read, null).Shows.Where(s => s.Value != BoardShow.Unseen).Select(s => s.Key).ToList() : [];
         _had = [.. drawn.Found, .. drawn.Granted];
         if (_pile.Top is { } top) _had.Add(top);
-        if (_tagged != null && _picture.Shows.GetValueOrDefault(_tagged) != BoardShow.Silhouette) Tag(null);
         Restyle();
         Grow();
         if (Reading)
@@ -568,7 +534,6 @@ public sealed class BoardPage : ITabletPage
         _notes.Clear();
         (_box, _viewWas, _picked, _key, _sizedAt, _centred) = (default, default, null, null, null, false);
         Reset();
-        Tag(null);
     }
 
     private void Restyle()
@@ -588,6 +553,7 @@ public sealed class BoardPage : ITabletPage
             Inked(view, id, show, note ? default : BoardInk.SketchOf(pencil));
             view.Box.QueueRedraw();
             view.Mark.Visible = note && _keep.Seen.Marked(id);
+            if (!note) SayLack(view, BoardThings.All.First(t => t.Id == id));
             if (note) view.Picture.Material = null;
             else Sketched(view.Picture, pencil);
             view.Root.Modulate = _picked == null || Tie(id) != null ? Colors.White : new Color(1, 1, 1, 0.3f);
@@ -601,6 +567,26 @@ public sealed class BoardPage : ITabletPage
         (view.Show, view.Sketch) = (show, sketch);
         float seed = BoardInk.Seed(id);
         view.Ink = show == BoardShow.Note ? BoardInk.Box(InkLeft, InkTop, InkWide, InkTall, seed, 4, 12) : BoardInk.Corners(InkLeft, InkTop, InkWide, InkTall, sketch.Side, seed);
+        _sizedAt = null;
+    }
+
+    /// <summary>Writes in a shape's box the first thing it lacks: how many and its picture, which stays readable when the board is small. What was never had shows no picture.</summary>
+    private void SayLack(NoteView view, BoardThing thing)
+    {
+        var lack = BoardPile.Lack(thing, _read!);
+        string? what = lack.Parts.Count > 0 ? lack.Parts[0].Item : lack.Station;
+        string words = lack.Parts.Count > 0 ? T(_had.Contains(what!) ? "research.board.more" : "research.board.moreUnknown", ("n", lack.Parts[0].More)) : what == null ? "" : T(_had.Contains(what) ? "research.board.needs" : "research.board.needsUnknown");
+        view.LackWords.Text = words;
+        string? shown = what != null && _had.Contains(what) ? what : null;
+        if (shown == view.LackOf) return;
+        view.LackOf = shown;
+        view.LackPicture?.QueueFree();
+        view.LackPicture = null;
+        if (shown == null) return;
+        view.LackPicture = _strip.Picture(shown, Mathf.RoundToInt(LackPicture));
+        view.LackPicture.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
+        view.LackPicture.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
+        view.Lack.AddChild(view.LackPicture);
         _sizedAt = null;
     }
 
@@ -639,6 +625,10 @@ public sealed class BoardPage : ITabletPage
         name.ClipText = true;
         name.MaxLinesVisible = 2;
         root.AddChild(name);
+        var lack = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center, Visible = false }, 2);
+        var lackWords = Text("", Dim, NameSize);
+        lack.AddChild(lackWords);
+        root.AddChild(lack);
         var loop = BoardInk.Loop(BoardInk.Seed(id), LoopWide, LoopTall);
         var mark = new Line2D
         {
@@ -653,7 +643,7 @@ public sealed class BoardPage : ITabletPage
         root.AddChild(mark);
         parent.AddChild(root);
         _sizedAt = null;
-        var view = new NoteView(root, box, picture, name, mark);
+        var view = new NoteView(root, box, picture, name, mark, lack, lackWords);
         box.Draw += () => DrawNote(id, view);
         return view;
     }
@@ -714,6 +704,8 @@ public sealed class BoardPage : ITabletPage
         (_pressed, _moved, _held) = (true, 0, ThingAt(at));
         if (_held is not { } id) return;
         _notes[id].Root.MoveToFront();
+        _keep.Seen.Touch(id);
+        _notes[id].Mark.Visible = false;
         var (x, y) = _camera.ToMap(at.X, at.Y);
         _heldBy = new Vector2((float)x, (float)y) - At(id);
     }
@@ -741,7 +733,6 @@ public sealed class BoardPage : ITabletPage
     {
         if (Reading) return;
         _picked = ThingAt(at);
-        if (_picked != null) Tag(null);
         _readSoon();
     }
 
@@ -877,13 +868,14 @@ public sealed class BoardPage : ITabletPage
         {
             var takes = Flow(10);
             foreach (var (item, count) in link.Takes) takes.AddChild(PartOf(item, count, note));
-            facts.AddChild(Fact(T("research.takes"), From, takes, 3));
+            string heading = note || thing == null ? "research.takes" : BoardPile.Lack(thing, _read!).Parts.Count > 0 ? "research.board.needMore" : "research.board.haveEnough";
+            facts.AddChild(Fact(T(heading), From, takes, 3));
         }
-        if (thing != null)
+        if (thing != null || link.MadeAt.Count > 0)
         {
             var at = Flow(10);
             foreach (string station in link.MadeAt) at.AddChild(StationOf(station));
-            if (link.MadeAt.Count == 0) at.AddChild(Text(T(thing.Stations == null ? "research.builtInPlace" : "research.atLifepod"), Style.Slate500));
+            if (link.MadeAt.Count == 0) at.AddChild(Text(T(thing!.Stations == null ? "research.builtInPlace" : "research.atLifepod"), Style.Slate500));
             facts.AddChild(Fact(T("research.madeAt"), MadeAt, at, 2));
         }
         if (link.UsedIn.Count > 0) facts.AddChild(Fact(T("research.usedIn"), UsedIn, _strip.Pictures(link.UsedIn, TipOf, used => !_had.Contains(used)), 5));
@@ -924,7 +916,7 @@ public sealed class BoardPage : ITabletPage
         if (_picked is not { } picked) return null;
         if (picked == id) return Picked;
         var link = TechLinks.Of(picked);
-        return link.MadeAt.Contains(id) ? MadeAt : link.From.Contains(id) || link.Takes.Any(t => t.Item == id) ? From : link.UsedIn.Contains(id) ? UsedIn : null;
+        return link.MadeAt.Contains(id) ? MadeAt : link.Takes.Any(t => t.Item == id) ? From : link.UsedIn.Contains(id) ? UsedIn : null;
     }
 
     /// <summary>Where <paramref name="id"/> stands on the board: where it was moved to, else its slot.</summary>
@@ -950,7 +942,7 @@ public sealed class BoardPage : ITabletPage
         _back.DrawSetTransform(new Vector2((float)-_box.Left, (float)-_box.Top));
         foreach (var (note, shape) in _picture.Threads)
         {
-            bool fresh = _keep.Seen.Marked(note);
+            bool fresh = _keep.Seen.Fresh(note);
             float drawn = _growing.GetValueOrDefault(note, 1);
             var tip = InkDraw.Stroke(_back, ThreadOf(note, shape), (fresh ? Fresh : Plain) with { A = _picked == null ? 1 : 0.3f }, (fresh ? 1.5f : 1.1f) * seen, InkDraw.Least * seen, drawn);
             if (drawn < 1) InkDraw.Nib(_back, tip, Light, seen);

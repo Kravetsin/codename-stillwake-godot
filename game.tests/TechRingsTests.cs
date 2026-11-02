@@ -50,7 +50,6 @@ public class TechRingsTests
     {
         Assert.Contains(Link("wire").MadeAt, m => m == "workbench");
         Assert.Contains(Link("coil").Takes, t => t.Item == "wire");
-        Assert.Contains("wire", Link("coil").From);
     }
 
     [Fact]
@@ -69,6 +68,15 @@ public class TechRingsTests
     public void AStationTiesToWhatIsMadeAtIt()
     {
         Assert.Contains("wire", Link("workbench").UsedIn);
-        Assert.Contains("furnace", Link("plate").From);
+        Assert.Contains("furnace", Link("iron").MadeAt);
+    }
+
+    [Fact]
+    public void OnlyDirectTiesCount()
+    {
+        Assert.Contains("iron", Link("furnace").UsedIn);
+        Assert.DoesNotContain("plate", Link("furnace").UsedIn);
+        Assert.DoesNotContain("furnace", Link("plate").MadeAt);
+        Assert.DoesNotContain(Link("plate").Takes, t => t.Item == "furnace");
     }
 }
