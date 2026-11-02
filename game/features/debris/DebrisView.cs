@@ -56,7 +56,6 @@ public partial class DebrisView(Ui ui) : Node2D
     private readonly Dictionary<int, Shown> _shown = new();
     /// <summary>Pictures not drawn now, small pieces' and wrecks' apart, as their materials differ: kept, never freed.</summary>
     private readonly Stack<Shown> _small = new(), _wrecks = new();
-    private static readonly Dictionary<(string Item, int Look), Texture2D> Textures = new();
     /// <summary>The piece aimed at, outlined over the rest.</summary>
     private readonly Outline _aimed = new(1);
     private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2);
@@ -317,11 +316,6 @@ public partial class DebrisView(Ui ui) : Node2D
     /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), or its item's as the world draws it (a tool's
     /// as it is held), a pixel of art a pixel of the world; each loaded once.
     /// </summary>
-    private static Texture2D PictureOf(string item, int id)
-    {
-        if (!DebrisLooks.Of.ContainsKey(item)) return ItemIcons.Icon(item);
-        var key = (item, Content.Looks.Of(item, id));
-        if (!Textures.TryGetValue(key, out var texture)) Textures[key] = texture = GD.Load<Texture2D>(DebrisLooks.PictureOf(item, id));
-        return texture;
-    }
+    private static Texture2D PictureOf(string item, int id) =>
+        DebrisLooks.NameOf(item, id) is { } name ? PixelArt.Picture(name) : ItemIcons.Icon(item);
 }

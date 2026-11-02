@@ -24,8 +24,8 @@ public partial class FarWrecks : DriftLayer
     public FarWrecks() : base(Seed, WreckTile, WreckMean, WreckParallax, WreckDrift, Reach)
     {
         TextureFilter = TextureFilterEnum.LinearWithMipmaps;
-        var cores = DebrisLooks.Of.Where(k => DebrisLooks.Wrecks.ContainsKey(k.Key)).SelectMany(k => Paths(k.Value)).ToList();
-        var pieces = DebrisLooks.Of.Where(k => !DebrisLooks.Wrecks.ContainsKey(k.Key)).SelectMany(k => Paths(k.Value)).ToList();
+        var cores = DebrisLooks.Of.Where(k => DebrisLooks.Wrecks.ContainsKey(k.Key)).SelectMany(k => DebrisLooks.NamesOf(k.Value)).ToList();
+        var pieces = DebrisLooks.Of.Where(k => !DebrisLooks.Wrecks.ContainsKey(k.Key)).SelectMany(k => DebrisLooks.NamesOf(k.Value)).ToList();
         (_atlas, var regions) = Atlas(cores.Concat(pieces).ToList());
         _cores = regions[..cores.Count];
         _pieces = regions[cores.Count..];
@@ -34,8 +34,15 @@ public partial class FarWrecks : DriftLayer
     /// <summary>The farthest a wreck reaches from its middle, in its plane's pixels: the largest core's half-diagonal and a piece's beyond it, at the largest.</summary>
     private static readonly float Reach = (DebrisLooks.Wrecks.Values.Max(s => new Vector2(s.W, s.H).Length() / 2) + 26) * WreckScaleMax;
 
-    private static IEnumerable<string> Paths((string Look, int Count) look) =>
-        Enumerable.Range(1, look.Count).Select(n => $"res://art/debris/{look.Look}_{n:00}.png");
+    /// <summary>A picture's pixels at the world's size: its hi-res drawing brought down to it, for the atlas is laid out by these and only ever drawn small.</summary>
+    private static Image ImageOf(string name)
+    {
+        var logical = PixelArt.Logical(name).GetImage();
+        if (HiRes.Load(name) is not { } fine) return logical;
+        fine.FixAlphaEdges();
+        fine.Resize(logical.GetWidth(), logical.GetHeight(), Image.Interpolation.Lanczos);
+        return fine;
+    }
 
     protected override void DrawSpot(Vector2 at, uint hash)
     {
@@ -69,15 +76,15 @@ public partial class FarWrecks : DriftLayer
     }
 
     /// <summary>
-    /// The pictures at <paramref name="paths"/> in a row of one texture, each grey — its lightness lifted
+    /// The pictures named <paramref name="names"/> in a row of one texture, each grey — its lightness lifted
     /// to at least <see cref="WreckLift"/>, so the wreck is soft, not drawn in its outlines — with mipmaps,
     /// and where each lies, its clear border included.
     /// </summary>
-    private static (Texture2D, Rect2[]) Atlas(List<string> paths)
+    private static (Texture2D, Rect2[]) Atlas(List<string> names)
     {
-        var images = paths.Select(p =>
+        var images = names.Select(n =>
         {
-            var image = GD.Load<Texture2D>(p).GetImage();
+            var image = ImageOf(n);
             image.Convert(Image.Format.Rgba8);
             return image;
         }).ToList();

@@ -36,5 +36,13 @@ public static class DebrisLooks
 
     /// <summary>The picture piece <paramref name="id"/> of <paramref name="item"/> wears (<c>Content.Looks.Of</c>), or null to draw the item; a look's own, by its number from 0, too.</summary>
     public static string? PictureOf(string item, int id) =>
-        Of.TryGetValue(item, out var look) ? $"res://art/debris/{look.Look}_{Content.Looks.Of(item, id) + 1:00}.png" : null;
+        NameOf(item, id) is { } name ? $"res://art/{name}.png" : null;
+
+    /// <summary>The same picture by the name <c>PixelArt.Picture</c> takes, which picks up its hi-res drawing, or null to draw the item.</summary>
+    public static string? NameOf(string item, int id) =>
+        Of.TryGetValue(item, out var look) ? $"debris/{look.Look}_{Content.Looks.Of(item, id) + 1:00}" : null;
+
+    /// <summary>Every picture of a look by the name <c>PixelArt.Picture</c> takes.</summary>
+    public static IEnumerable<string> NamesOf((string Look, int Count) look) =>
+        Enumerable.Range(1, look.Count).Select(n => $"debris/{look.Look}_{n:00}");
 }
