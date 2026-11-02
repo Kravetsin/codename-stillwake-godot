@@ -43,6 +43,7 @@ public static partial class Ru
         ["use.open.growCapsule"] = "[E] Открыть капсулу роста",
         ["use.open.droneBay"] = "[E] Открыть отсек дронов",
         ["use.loadCanister"] = "[E] Вставить баллон",
+        ["use.pourWater"] = "[E] Залить бутылку воды",
         ["use.catch"] = "[E] Поймать",
         ["use.chop"] = "[Удерж. ЛКМ] Ломать",
         ["use.dig"] = "[Удерж. ЛКМ] Копать",

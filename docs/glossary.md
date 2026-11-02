@@ -38,9 +38,13 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - клапан / valve → `Valve`, `MakeValve`, `SetValve`, `tool.valve` → Pipes
 - порт, вход, выход / port, input, output → `Port`, `Way.In`, `Way.Out` (`c/Fluids.cs`), `PortAt` (2026-10-29-typed-ports) → Pipes, Grid
 - среда / fluid **≠** (what a pipe carries) → `Fluids` (`air`, `water`); a line's: `FluidAt` → Pipes
-- цистерна / cistern → machine `cistern`: water in on its left, out on its right (2026-10-29-typed-ports) → Pipes
+- цистерна / cistern → machine `cistern`: water poured in by the bottle, given on to an electrolyser (2026-11-02-water-to-oxygen) → Water
+- вода, бутылка / water, bottle → item `water` (`Content.Water.Item`), melted of ice → Water
+- электролизёр / electrolyser → machine `electrolyser`: a cistern's water into a tank's liquid oxygen (2026-11-02-water-to-oxygen) → Water
 - трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
-- генератор / generator **≠** → `"generator"` is the oxygen generator (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
+- генератор / generator **≠** → `"generator"` is the oxygen vaporizer (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
+- испаритель / vaporizer → machine `generator`: a tank's liquid oxygen into air on power (2026-10-30-liquid-oxygen) → Atmosphere
+- жидкий кислород / liquid oxygen → fluid `liquidOxygen`: what a tank holds and a liquid pipe carries → Atmosphere, Pipes
 - чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
 - светочувствительная панель / photosensitive panel → item `photoPanel`, in the solar panel's cost, had only of one taken apart

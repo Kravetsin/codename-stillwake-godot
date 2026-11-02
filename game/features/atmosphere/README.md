@@ -15,6 +15,7 @@
 | `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
 | `VentLight.cs` | Air escaping into space (0075), luminous: out of each opening a room vents through, a jet of fast pale streaks and … |
 | `logic/Atmosphere.En.cs` | Its player text (`En`) |
+| `logic/AirSays.cs` | What the pointer's tip says of the air's machines: a tank its liquid, a vaporizer or the pod the air it makes. |
 | `logic/Atmosphere.Ru.cs` | Russian |
 
 Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` (`RoomsAir`, `AiredCells`,
@@ -32,6 +33,7 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | `AirView.cs` | venting rooms lit red on the beat and their air streaming out, the motes, fresh air from filling vents; with O the air overlay | yes   |
 | `VentLight.cs` | the breaches in light (0075): jets, condensation, shimmer, frost | yes |
 | `TankLooks.cs` | each tank's sight glass filled to its oxygen, and its light | yes   |
+| `logic/AirSays.cs` | by the pointer (`MachineTips`, out of every overlay): a tank `Liquid O₂ · 9000/36000`, a vaporizer or the pod `Makes 20 O₂ a second` (`MakesAt`, to a tenth; none unpiped, dry or unpowered) (tested) | no |
 
 - The overlay draws each room's air in an ordered dither, a pixel of the world at a time, drifting like a
   gas and lit at its front; a cell eases in and out over about 220 ms (`AirField.EaseMs`) and cells blend

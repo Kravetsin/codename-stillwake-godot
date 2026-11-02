@@ -205,12 +205,12 @@ public class StoreTests
     // Burners (0101 amends 0045): a fire is lit only while its network takes more than its panels make.
 
     /// <summary>
-    /// Sixteen wide: an aired room with a burner generator cabled to a bank and a lamp, a panel out in space above
-    /// cabled to the generator with <paramref name="panel"/>.
+    /// Sixteen wide: a room aired by a vaporizer, its tank and panel under the hull (liquid-oxygen), with a burner
+    /// generator cabled to a bank and a lamp, a panel out in space above cabled to the generator with <paramref name="panel"/>.
     /// </summary>
     private static Scenario Fired(bool panel = false)
     {
-        var w = new Scenario(Layout.Parse(
+        var w = new Scenario(AirTesting.Vaporized(
             ["PPP             ", "                ", "################", "#BB.TT..QQ.L...#", "#BB.TTV.QQ.....#", "################"],
             ["", "", "", "    o", "    ---"],
             panel ? [((1, 3), (8, 3)), ((11, 3), (8, 3)), ((0, 0), (1, 3))] : [((1, 3), (8, 3)), ((11, 3), (8, 3))]),
@@ -261,7 +261,7 @@ public class StoreTests
     [Fact]
     public void ABurnerOnNoNetworkNeverLights()
     {
-        var w = new Scenario(Layout.Parse(
+        var w = new Scenario(AirTesting.Vaporized(
             ["############", "#BB.TT.....#", "#BB.TTV....#", "############"], ["", "    o", "    ---"]), doubled: true).GiveItems(0, ("planks", 4));
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 1)); i++) w.Run();
         int from = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "planks");

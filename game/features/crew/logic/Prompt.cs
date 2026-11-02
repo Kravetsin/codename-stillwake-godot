@@ -41,6 +41,7 @@ public static class Prompts
         return press.Command switch
         {
             LoadCanister => new Prompt("use.loadCanister", press.Problem),
+            Sim.Water.PourWater => new Prompt("use.pourWater", press.Problem),
             Grab => new Prompt("use.catch", press.Problem),
             HewWrecks => new Prompt("use.chop", press.Problem),
             Hew => new Prompt("use.dig", press.Problem),

@@ -14,7 +14,7 @@ public class PodAirTests
 {
     private const int Width = 20;
     private static int Cell(int x, int y) => y * Width + x;
-    private static readonly int Port = Cell(1, 6), FreeEnd = Cell(2, 6), Door = Cell(17, 3);
+    private static readonly int Port = Cell(6, 6), FreeEnd = Cell(5, 6), Door = Cell(17, 3);
 
     private static readonly string[] OneRoom =
     [
@@ -28,7 +28,7 @@ public class PodAirTests
         "####################",
     ];
 
-    private static readonly string[] Piped = ["", "", "", "", "", "", " --"];
+    private static readonly string[] Piped = ["", "", "", "", "", "", "     --"];
 
     private static Scenario Room(bool piped = true) => new(Layout.Parse(OneRoom, piped ? Piped : null));
 
@@ -45,6 +45,8 @@ public class PodAirTests
         Assert.Empty(w.M.Power.Networks);
         Assert.Equal(15 * 6, Aired(w));
         Assert.Equal(1000, w.M.Atmosphere.MadeShare(Pod(w)));
+        // What the pointer tells of it: a unit a tick, no liquid needed.
+        Assert.Equal(1000, w.M.Atmosphere.MakesAt(Pod(w)));
     }
 
     [Fact]
@@ -53,6 +55,7 @@ public class PodAirTests
         var w = Room(piped: false).Run(600);
         Assert.Equal(0, Aired(w));
         Assert.Equal(0, w.M.Atmosphere.OxygenIn(Pod(w)));
+        Assert.Equal(0, w.M.Atmosphere.MakesAt(Pod(w)));
     }
 
     [Fact]
@@ -115,7 +118,7 @@ public class PodAirTests
             "#OOOOOO..#..VV.....#",
             "####################",
         ];
-        string[] under = ["", "", "", "", "", "            -", " ------------"];
+        string[] under = ["", "", "", "", "", "            -", "      -------"];
         var w = new Scenario(Layout.Parse(rows, under)).Run(1200);
         // Both rooms, every cell.
         Assert.Equal(8 * 6 + 9 * 6, Aired(w));
@@ -130,7 +133,7 @@ public class PodAirTests
         Assert.Single(w.M.Pipes.Spans);
 
         string[] rows = [.. OneRoom];
-        var far = new Scenario(Layout.Parse(rows, ["", "", "", "", "", "", " -----------"]));
+        var far = new Scenario(Layout.Parse(rows, ["", "", "", "", "", "", "      ------"]));
         var span = far.M.Pipes.Spans.Single();
         far.Do(new CutPipe(span.A, span.B)).Run();
         Assert.Empty(far.Refusals);

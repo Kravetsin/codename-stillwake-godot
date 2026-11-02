@@ -214,7 +214,7 @@ public class PlanetYieldsTests
     /// <summary>A furnace and an electric smelter in an aired room, powered; peer 0 carrying copper ore and planks.</summary>
     private static Scenario Smelting()
     {
-        var w = new Scenario(Layout.Parse(
+        var w = new Scenario(AirTesting.Vaporized(
                 ["PPP       ", "          ", "##########", "#FF.TT.EE#", "#FF.TTVEE#", "##########"],
                 ["", "", "", "    o", "    ---"], [((0, 0), (7, 3))]), doubled: true)
             .GiveItems(0, ("copperOre", 4), ("planks", 2));

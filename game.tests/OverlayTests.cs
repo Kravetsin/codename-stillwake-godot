@@ -129,8 +129,9 @@ public class ExplainTests
 {
     private const int Minute = 60 * World.TicksPerSecond;
 
-    // Rates below are as the sim counts them, every ten minutes: ten times a minute's.
-    private static RoomAir Room(RoomStatus status = RoomStatus.Vacuum, int aired = 0, int leak = 0, int oxygen = 0,
+    // Rates below are as the sim counts them, every ten minutes: ten times a minute's. Oxygen is the liquid behind the room's
+    // vaporizers, null with none feeding it (liquid-oxygen); one vaporizer at full power makes 12000.
+    private static RoomAir Room(RoomStatus status = RoomStatus.Vacuum, int aired = 0, int leak = 0, int? oxygen = null,
         int made = 0, int? lasts = null, string? problem = null, int room = 1) =>
         new(room, status, aired, leak, oxygen, made, lasts, problem);
 
@@ -145,19 +146,23 @@ public class ExplainTests
     [Fact]
     public void TellsAnAiredRoomHowLongItsPipesHoldItItsLeakCountedInOrThatTheyAreDry()
     {
-        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280, lasts: 6 * Minute);
-        Assert.Equal(["Aired · 96 cells", "O₂ in pipes: 1280 · lasts 6 min"], Explain.Of(aired, 96));
-        // With no supply, its own 96 cells go through the hull: 96 of 198 a minute.
+        // 1200 made and 198 leaked a minute: 1002 to spare, and the 1280 of liquid leave at the leak, 7757 ticks.
+        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280, made: 12000, lasts: 7757);
+        Assert.Equal(["Aired · 96 cells", "Vaporizer keeps up · +1002/min · tanks last 6 min"], Explain.Of(aired, 96));
+        // With no supply, its own 96 cells go through the hull: 96 of 198 a minute. So with the tanks dry, the vaporizer
+        // unpowered, or none feeding the room.
         Assert.Equal("No supply · lasts 30 s", Explain.Of(aired with { Oxygen = 0, Lasts = 0 }, 96)[1]);
+        Assert.Equal("No supply · lasts 30 s", Explain.Of(aired with { Made = 0, Lasts = null }, 96)[1]);
+        Assert.Equal("No supply · lasts 30 s", Explain.Of(aired with { Oxygen = null, Made = 0, Lasts = null }, 96)[1]);
     }
 
     [Fact]
     public void CountsWhoBreathesInTheRoomAUnitABreathIntoHowLongTheAirLasts()
     {
-        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280);
-        // 198 leaked and 60 breathed a minute: 1280 last a little under five minutes.
-        Assert.Equal("O₂ in pipes: 1280 · lasts 4 min", Explain.Of(aired, 96, 1)[1]);
-        Assert.Equal("O₂ in pipes: 1280 · lasts ∞", Explain.Of(aired with { Leak = 0 }, 96)[1]);
+        var aired = Room(RoomStatus.Aired, aired: 96, leak: 1980, oxygen: 1280, made: 12000);
+        // 198 leaked and 60 breathed a minute: 942 to spare, and 1280 last a little under five minutes.
+        Assert.Equal("Vaporizer keeps up · +942/min · tanks last 4 min", Explain.Of(aired, 96, 1)[1]);
+        Assert.Equal("Vaporizer keeps up · +1200/min · tanks last ∞", Explain.Of(aired with { Leak = 0 }, 96)[1]);
     }
 
     [Fact]
@@ -167,30 +172,34 @@ public class ExplainTests
             Explain.Of(Room(aired: 30, leak: 600, problem: "atmosphere.noVent"), 48));
 
     [Fact]
-    public void TellsARoomFedByAGeneratorWhetherItKeepsUpAndHowLongTheAirLastsIfNot()
+    public void TellsARoomFedByAVaporizerWhetherItKeepsUpHowLongItsTanksLastAndHowLongTheAirLastsIfNot()
     {
         var fed = Room(RoomStatus.Aired, aired: 32, leak: 480, oxygen: 40, made: 2000);
-        // 200 made, 48 leaked and 60 breathed a minute each: 32 to spare with two, 28 short with three.
-        Assert.Equal(["Aired · 32 cells", "Generator keeps up · +32/min"], Explain.Of(fed, 32, 2));
-        Assert.Equal("Generator falls short · lasts 2 min", Explain.Of(fed, 32, 3)[1]);
-        Assert.Equal(["Filling · 10/32 cells", "Generator keeps up · +152/min"], Explain.Of(fed with { Status = RoomStatus.Filling, Aired = 10 }, 32));
+        // 200 made, 48 leaked and 60 breathed a minute each: 32 to spare with two, and the 40 of liquid leave at the 168 drawn.
+        Assert.Equal(["Aired · 32 cells", "Vaporizer keeps up · +32/min · tanks last 15 s"], Explain.Of(fed, 32, 2));
+        // 28 short with three: the room's own 32 cells pay it.
+        Assert.Equal("Vaporizer falls short · lasts 1 min", Explain.Of(fed, 32, 3)[1]);
+        Assert.Equal(["Filling · 10/32 cells", "Vaporizer keeps up · +152/min · tanks last 50 s"], Explain.Of(fed with { Status = RoomStatus.Filling, Aired = 10 }, 32));
         // A rate that is no whole number of units a minute reads to a tenth.
-        Assert.Equal("Generator keeps up · +31.5/min", Explain.Of(fed with { Leak = 485 }, 32, 2)[1]);
+        Assert.Equal("Vaporizer keeps up · +31.5/min · tanks last 15 s", Explain.Of(fed with { Leak = 485 }, 32, 2)[1]);
     }
 
     [Fact]
     public void TellsAVentingRoomHowSoonItsPipesDrainIfItHasAPipedVentToDrainThem()
     {
-        var venting = Room(RoomStatus.Venting, oxygen: 450, lasts: 2);
-        Assert.Equal(["Venting to space", "O₂ in pipes: 450 · gone in 1 s"], Explain.Of(venting, 96));
-        Assert.Equal(["Venting to space"], Explain.Of(venting with { Oxygen = 0, Lasts = null }, 96));
+        // Its vent drains 8 a tick, but liquid leaves at most at its vaporizer's 1: 450 ticks.
+        var venting = Room(RoomStatus.Venting, oxygen: 450, made: 12000, lasts: 450);
+        Assert.Equal(["Venting to space", "Liquid O₂ in tanks: 450 · gone in 23 s"], Explain.Of(venting, 96));
+        // No vaporizer feeding it: nothing drains.
+        Assert.Equal(["Venting to space"], Explain.Of(venting with { Oxygen = null, Made = 0, Lasts = null }, 96));
     }
 
     [Fact]
     public void TellsAFillingRoomHowFarItIsAndARoomInVacuumWhy()
     {
-        Assert.Equal(["Filling · 40/96 cells", "O₂ in pipes: 900"], Explain.Of(Room(RoomStatus.Filling, aired: 40, oxygen: 900), 96));
-        Assert.Equal(["No air · 48 cells", "Pipes empty: load a canister into a tank"], Explain.Of(Room(problem: "atmosphere.dry"), 48));
+        // Its vaporizer unpowered: the liquid waiting behind it.
+        Assert.Equal(["Filling · 40/96 cells", "Liquid O₂ in tanks: 900"], Explain.Of(Room(RoomStatus.Filling, aired: 40, oxygen: 900), 96));
+        Assert.Equal(["No air · 48 cells", "The tank behind the vaporizer is empty: load a canister"], Explain.Of(Room(oxygen: 0, problem: "atmosphere.dry"), 48));
     }
 
     [Fact]

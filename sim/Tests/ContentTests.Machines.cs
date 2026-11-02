@@ -23,6 +23,14 @@ public partial class ContentTests
     }
 
     [Fact]
+    public void MachinesTakeOnTheirLeftAndGiveOnTheirRight()
+    {
+        foreach (var m in Machines.All)
+            foreach (var p in m.Ports)
+                Assert.True(p.X == (p.Way == Way.In ? 0 : m.Width - 1), $"{m.Kind} {p.Way} at {p.X}");
+    }
+
+    [Fact]
     public void MachinesBuiltIntoTheShipAreTheLifepodAloneAMapDrawsItAndItCostsNothing()
     {
         Assert.Equal(["lifepod"], Machines.All.Where(m => m.Fixed).Select(m => m.Kind));

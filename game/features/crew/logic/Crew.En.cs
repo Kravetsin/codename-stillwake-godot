@@ -43,6 +43,7 @@ public static partial class En
         ["use.open.growCapsule"] = "[E] Open grow capsule",
         ["use.open.droneBay"] = "[E] Open drone bay",
         ["use.loadCanister"] = "[E] Load a canister",
+        ["use.pourWater"] = "[E] Pour a bottle of water",
         ["use.catch"] = "[E] Catch",
         ["use.chop"] = "[Hold LMB] Break",
         ["use.dig"] = "[Hold LMB] Dig",

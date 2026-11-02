@@ -347,13 +347,13 @@ public class WreckTests
     {
         var w = new Scenario(Wreck);
         Build(w, "vent", At(37, 19));
-        int free = At(53, 20), bend = At(53, 19), mid = At(45, 19), vent = At(37, 19);
+        int free = At(56, 20), bend = At(56, 19), mid = At(45, 19), vent = At(37, 19);
         w.GiveItems(0, ("tube", 40));
         w.Do(new LayPipe(free, bend)).Do(new LayPipe(bend, mid)).Do(new LayPipe(mid, vent)).Run();
         Assert.Empty(w.Refusals);
         w.Run(1200);
         Assert.All(Cells(36, 39, 13, 20), c => Assert.True(w.M.Atmosphere.AiredAt(c)));
-        w.Do(new CutPipe(At(52, 20), free)).Run();
+        w.Do(new CutPipe(At(57, 20), free)).Run();
         Assert.Equal("pipes.fixed", Assert.Single(w.Refusals).Reason);
     }
 

@@ -21,13 +21,13 @@ was redrawn since.
 | `burner/make.cjs` | `machine_burnerGenerator`, `burner_wheel_0-3` | none | `node tools/ship-art/burner/make.cjs [file] [zoom]` | exact 5/5 |
 | `weapons/gen.js` | candidates; `held_fireAxe` is `hero_axe`, `icon_fireAxe` was `items/fireAxe` | hero parts | `node tools/ship-art/weapons/gen.js [outDir]` | 1/2; icon gone |
 | `drill/gen.js` (uses `weapons/`) | candidates, once `items/drill` and `hero_drill(_spin1-3)` | scenes | `node tools/ship-art/drill/gen.js [outDir]` | `hero_drill*` drifted; icon gone |
-| `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod`; others were `hero_harpoon(_loaded)`, `items/harpoon` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
+| `harpoon/gen.js` (uses `weapons/`) | candidates; `rod_spring` is `hero_harpoon_rod` | scenes | `node tools/ship-art/harpoon/gen.js [outDir]` | `hero_harpoon_rod` exact; others drifted |
 | `screwdriver/screwdriver.js` | `hero_screwdriver`, `tool_screwdriver` | none | `node tools/ship-art/screwdriver/screwdriver.js <outDir>` | exact 2/2 |
 | `engine/engine.gd` (Godot) | `machine_engine`; `items/` `nozzle`, `fuelPump`, `igniter` | none | `-- <artDir> [sheet]` | exact 4/4 |
 | `suit/suit.gd` (Godot) | `items/helmet`, `suit`, `helmetLamp`, `cape`; `hero_headLamp` | none | as jetpack's | exact |
 | `jetpack/jetpack.gd` (Godot) | `items/jetpack`, `hero_jetpack` | none | `-- <root>` (writes `<root>/art/...`; dirs must exist) | exact 2/2 |
 | `photo-panel/photo-panel.gd` (Godot) | `items/photoPanel` | none | `-- <artDir>` | exact 1/1 |
-| `cistern/cistern.gd` (Godot) | `machine_cistern` | none | `-- <file>` | exact 1/1 |
+| `cistern/cistern.gd`, `water/water.gd` (Godot) | `machine_cistern`; `items/water`, `machine_electrolyser` | none | `-- <file>`/`<artDir>` | exact 3/3 |
 | `computer/computer.gd` (Godot) | `*computer*`, `*radarAntenna*`; `items/` `processor`, `display`, `transceiver` | none | `-- <artDir> [preview]` | exact 29/29 |
 | `debris-v1/gen.js` | `debris/` `crate_01-08`, `hull_01-12`, `pod_01-04`, `scrap_01-12` | none | `node tools/ship-art/debris-v1/gen.js [outDir]` | exact 36/36 |
 | `debris/gen.js` | `debris/` `asteroid_01-06`, `smallrock_01-06`, `bigrock_01-06`, `orerock_01-06`, `hold_01-04`, `pods_01-04`, `engine_01-04` (styles A, B) | `game/art/debris` | `node tools/ship-art/debris/gen.js [finalDir]` | exact 36/36 |
@@ -43,7 +43,7 @@ was redrawn since.
 | `grow-capsule/drones.js` | the first drone bay and drone icon placeholders | none | `node tools/ship-art/grow-capsule/drones.js <outDir>` | 0/2, drifted (`drones/`) |
 | `clod-icon/icon.js` | `items/soilClod` | `game/art/items`, `farm/tools` lib | `node tools/ship-art/clod-icon/icon.js game/art/items <outDir>` | exact 1/1 |
 | `tablet/export.cjs` (headless Chrome) | `tablet_frame`, `tablet_plate`, `tablet_stylus` | Chrome | `node tools/ship-art/tablet/export.cjs <outDir>` | exact 3/3 |
-| `arc-bench/paint.js` | six candidate benches; the pick, `vise/`: `machine_arcBench`, `arcBench_*` (0099) | `hero_drill`, `module_arc_coil`, previews | `node tools/ship-art/arc-bench/paint.js [outDir]`, then copy `vise/`'s five | exact 5/5 |
+| `arc-bench/paint.js` | candidates; the pick, `vise/`: `machine_arcBench`, `arcBench_*` (0099) | `hero_drill`, `module_arc_coil`, previews | `node tools/ship-art/arc-bench/paint.js [outDir]`, then copy `vise/`'s five | exact 5/5 |
 | `arc-bench/accumulator.js` | `items/accumulator`, `items/accumulator_empty` (placeholder, 0099) | none | `node tools/ship-art/arc-bench/accumulator.js [itemsDir]` | exact 2/2 |
 | `economy/` | candidates, `pick.html`; picks (`picks.json`): `machine_workbench`, `machine_crusher`, their `_work_0-3`; `items/` `asteroidOre`, `ironOre`, `gravel`, `quartz`, `alloyPlate`, `hide`, `fat` | none | `node build.js [outDir]`, then `node pick.js [outDir] [artDir]` | exact 17/17 |
 | `walls/` | candidates, `pick.html`; picks (`picks.json`): hull walls, edges, back walls | none | `node build.js`, then `node pick.js` | exact 86/86 |

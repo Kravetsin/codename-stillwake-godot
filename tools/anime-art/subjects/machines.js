@@ -189,10 +189,9 @@ const cistern = (a) => {
     lite: 'M7 5.4L25 5.4C26.5 5.4 28 6.5 28.6 8L3.4 8C4 6.5 5.5 5.4 7 5.4Z', spec: band(6.6, 6.2, 17, 6.8), shade: 'M3 19L29 19L29 19.2C29 21.8 27 23.8 24.4 23.8L7.6 23.8C5 23.8 3 21.8 3 19.2Z',
     lines: ['M7.8 5.6L7.8 23.6', 'M24.2 5.6L24.2 23.6'] });
   a.flat(band(4, 11, 7.6, 11.6), '#d4dae2'); a.flat(band(24.6, 11, 28, 11.6), '#6a708c');
-  // The window: its frame, dark glass; the fill is drawn over it (tank_fill_*).
+  // The window: its frame, dark glass; its water is drawn over it (cistern_fill_*), as the sim says.
   a.shape(rr(11.6, 9.4, 8.8, 12.4, .5), DARK, { outer: false, lite: band(11.8, 9.5, 20.2, 10) });
   a.flat(band(13, 11, 19, 21), '#0e1c30');
-  a.flat(band(13, 15, 19, 21), '#2c8ca8'); a.flat(band(13, 15, 19, 15.6), '#8ce0ec'); a.flat(band(13.6, 15.6, 14.4, 21), '#58b8cc');
   for (const [x, y] of [[12.1, 10], [19.9, 10], [12.1, 21.2], [19.9, 21.2]]) a.flat(ell(x, y, .35), '#a8693c');
   for (const x of [8.6, 19.6]) a.shape(rr(x, 23.4, 3.8, 3, .2), GUN, { lite: band(x, 23.4, x + 1.4, 26.4) });
   box(a, 1, 26.6, 30, 2.8, STEEL, { spec: true });
@@ -286,7 +285,7 @@ const lifepod = (a) => {
   rivets(a, [11, 15], [33, 15], [11, 26], [33, 26]);
   box(a, 8.4, 39.4, 27.2, 8.6, GUN);
   hazard(a, 10, 41.4, 24, 1.6);
-  fitting(a, 4, 44, 0);
+  fitting(a, 44, 44, 48);
 };
 const generator = (a) => {
   for (const x of [5, 22]) a.shape(rr(x, .4, 2.4, 2.4, .2), GUN, { lite: band(x, .4, x + 1, 2.8) });
@@ -297,6 +296,7 @@ const generator = (a) => {
   for (const x of [15, 18.6, 22.2]) a.flat(band(x, 24, x + 2, 25.4), '#f0c460');
   feet(a, 29, 3, [2, 5], [22.6, 5]);
   fitting(a, 4, 20, 0);
+  fitting(a, 28, 4, 32);
 };
 const tank = (a) => {
   a.shape(rr(11, .8, 6, 1.8, .3), COPPER, { lite: band(11.2, .9, 16.8, 1.3) });
@@ -309,6 +309,7 @@ const tank = (a) => {
   box(a, 5, 25, 20, 1.6, STEEL, { l: .4, b: .4 });
   feet(a, 26.6, 5.4, [6.6, 3.6], [19.8, 3.6]);
   fitting(a, 4, 20, 0);
+  fitting(a, 28, 20, 32);
 };
 const computer = (a) => {
   // Monitor on its neck, a box of parts beside it, the desk and its drawers.
@@ -544,11 +545,58 @@ const podGlass = (a) => {
 const arcAlight = (a) => { a.line('M14.4 14L16.4 13.4L17.6 14.6L20.4 14', { w: 3, c: '#c8b8ff' }); a.line('M14.4 14L16.4 13.4L17.6 14.6L20.4 14', { w: 1.4, c: '#ffffff' }); };
 const arcFront = (a) => { a.flat(rr(12, 9.6, 11, 2.8, .4), '#6c3a30'); for (let i = 0; i < 6; i++) a.flat(rr(12.6 + i * 1.75, 10, 1.1, 2, .2), i % 2 ? '#f0a040' : '#ffc060'); };
 
+// ---------- water (2026-11-02-water-to-oxygen) ----------
+const LOX = { base: '#a8d8ff', lite: '#e4f4ff' };
+const WATERED = { base: '#2c8ca8', lite: '#8ce0ec', glint: '#58b8cc' };
+/** Three glass columns over a steel base: liquid oxygen on the left, the reservoir of water between, hydrogen bubbling right and out at its top. */
+const electrolyser = (a) => {
+  a.tube('M6.9 3.6L6.9 .4', 1.4, GUN);
+  const column = (x, top, fluid, level) => {
+    a.shape(rr(x, top, 7.6, 37.6 - top, .6), GLASS, { lite: band(x + .3, top, x + 1.6, 37.6), shade: band(x + 6, top, x + 7.6, 37.6) });
+    a.flat(band(x + .6, level, x + 7, 37.2), fluid.base);
+    a.flat(band(x + .6, level, x + 7, level + .7), fluid.lite);
+    a.shape(rr(x - .5, top - 2.4, 8.6, 2.6, .3), COPPER, { lite: band(x - .3, top - 2.3, x + 8, top - 1.8) });
+  };
+  column(3, 5.8, WATERED, 30);
+  column(12, 9.6, WATERED, 16);
+  column(21, 5.8, LOX, 18);
+  for (const x of [6.9, 24.5]) a.line(`M${x} 6.6L${x} 34`, { w: 1, c: '#8f99ad' });
+  a.tube('M10.4 34.6L12.2 34.6', 1.2, GUN);
+  a.tube('M19.8 34.6L21.6 34.6', 1.2, GUN);
+  box(a, 1, 36, 30, 11.6, STEEL, { spec: true });
+  inner(a, 13, 40, 6, 5, GUN);
+  a.flat(ell(16, 42.5, 1), '#2f3a33');
+  // Its ports fitted as a tank's are: water in on the left, oxygen out on the right (ports-left-to-right).
+  fitting(a, 4, 44, 0);
+  fitting(a, 28, 44, 32);
+};
+/** Where bubbles rise: the left column above its water, the reservoir's water, the right column's liquid, by x and the rows they span. */
+const RISES = [[5, 8, 29], [8.6, 8, 29], [14.6, 17, 36], [17.4, 17, 36], [23, 19, 36], [26.4, 19, 36]];
+/** The electrolyser at work, frame <f>: its lamp green, bubbles up each column, two rows a frame. */
+const bubbles = (f) => (a) => {
+  a.flat(ell(16, 42.5, 1), '#7fe08a');
+  a.flat(ell(15.7, 42.2, .4), '#d8ffd8');
+  RISES.forEach(([x, lo, hi], i) => {
+    const span = hi - lo;
+    for (let k = 0; k < 2; k++) a.flat(ell(x, hi - ((i * 5 + k * span / 2 + f * 2) % span), .5), '#eef8fb');
+  });
+};
+/** The electrolyser standing: its lamp red. */
+const stalled = (a) => { a.flat(ell(16, 42.5, 1), '#e05555'); a.flat(ell(15.7, 42.2, .4), '#ffd0c8'); };
+/** A cistern's water up its window by quarters, <n> of 4; none at 0. */
+const cisternFill = (n) => (a) => {
+  if (n === 0) return;
+  const top = 21 - 2.5 * n;
+  a.flat(band(13, top, 19, 21), WATERED.base);
+  a.flat(band(13, top, 19, top + .6), WATERED.lite);
+  a.flat(band(13.6, top + .6, 14.4, 21), WATERED.glint);
+};
+
 Subjects.machines = function () {
   const whole = { furnace: [32, 32, furnace], former: [32, 32, former], crusher: [32, 32, crusher], assembler: [32, 32, assembler], workbench: [32, 40, workbench], arcBench: [32, 32, arcBench],
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, burnerGenerator],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], droneBay: [32, 32, droneBay], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
-    computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod] };
+    computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 32, (a) => { radarBase(a); dish(2)(a); }));
@@ -568,6 +616,9 @@ Subjects.machines = function () {
   for (let f = 0; f < 2; f++) out(`computer_lights_${f}`, flat(48, 32, computerLights(f)));
   for (let f = 0; f < 3; f++) out(`fire_${f}`, flat(10, 11, fire(f)));
   for (let n = 0; n < 6; n++) out(`tank_fill_${n}`, flat(32, 32, fill(n)));
+  for (let n = 0; n < 5; n++) out(`cistern_fill_${n}`, flat(32, 32, cisternFill(n)));
+  for (let f = 0; f < 4; f++) out(`electrolyser_work_${f}`, flat(32, 48, bubbles(f)));
+  out('electrolyser_stalled', flat(32, 48, stalled));
   out('growCapsule_work_0', flat(32, 48, growLight));
   out('lifepod_glass', flat(48, 48, podGlass));
   out('arcBench_alight', flat(32, 32, arcAlight));

@@ -41,17 +41,20 @@ public class MagneticFlareTests
 {
     /// <summary>
     /// A panel out in space feeding a generator and two lamps in a chain, and a capacitor feeding a burner generator; a third
-    /// lamp cabled to nothing. Drawn a character a 16 px cell, doubled.
+    /// lamp cabled to nothing; out in space too, a tank of liquid oxygen piped to the generator's input (liquid-oxygen).
+    /// Drawn a character a 16 px cell, doubled.
     /// </summary>
     private static readonly string[] Rows =
     [
-        "PPP             ",
-        "                ",
+        "PPP.TT          ",
+        "    TT          ",
         "################",
         "#GG.L.L.QQ.BB.L#",
         "#GG.....QQ.BBKK#",
         "################",
     ];
+    // The tank's liquid from its output on its right, down to the hull and along it to the generator's input.
+    private static readonly string[] Under = ["     o", "     --", " ------", " -", " -"];
     private static readonly Pairs Cables = [((0, 0), (1, 3)), ((1, 3), (4, 3)), ((4, 3), (6, 3)), ((0, 0), (8, 3)), ((8, 3), (11, 3))];
     private const int Width = 2 * 16;
     private static int At(int x, int y) => 2 * y * Width + 2 * x;
@@ -63,7 +66,7 @@ public class MagneticFlareTests
     private static MagneticFlares.Flare Starting => MagneticFlares.StartingSpace;
 
     private static Scenario World(bool meteors = false, IReadOnlyList<string>? known = null, uint seed = 1) =>
-        new(Layout.Parse(Rows, null, Cables) with { Meteors = meteors, Known = known }, seed, with: m => [new Breaker(m.Power)], doubled: true);
+        new(Layout.Parse(Rows, Under, Cables) with { Meteors = meteors, Known = known }, seed, with: m => [new Breaker(m.Power)], doubled: true);
 
     private static int Id(Scenario w, int cell) => w.M.Grid.MachineAt(cell)!.Id;
     private static Scenario Break(Scenario w, int cell) => w.Do(new BreakMachine(Id(w, cell))).Run();
@@ -175,7 +178,8 @@ public class MagneticFlareTests
     public void AFixedSeedBreaksTheMachinesItDraws()
     {
         int[] Strike(uint seed) => [.. World(seed: seed).Do(new FlareNow(1)).Run().M.Power.Broken];
-        Assert.Equal(new[] { 3, 6 }, Strike(7));
+        var w = World(seed: 7).Do(new FlareNow(1)).Run();
+        Assert.Equal(new[] { Id(w, Lamp), Id(w, Burner) }, w.M.Power.Broken);
         // The picks are drawn, not the first in id order: seeds differ.
         Assert.True(Enumerable.Range(1, 10).Select(s => string.Join(",", Strike((uint)s))).Distinct().Count() > 2);
     }
@@ -200,7 +204,7 @@ public class MagneticFlareTests
             // Each machine's satisfaction and whether its fire is wanted, read in construction after the strike, before Power's
             // derivation finds the networks again.
             var seen = new Dictionary<int, (int Satisfaction, bool Needed)>();
-            var w = new Scenario(Layout.Parse(Rows, null, Cables), seed, with: m =>
+            var w = new Scenario(Layout.Parse(Rows, Under, Cables), seed, with: m =>
                 [new Watcher(() => { foreach (var x in m.Grid.Machines) seen[x.Id] = (m.Power.Satisfaction(x.Id), m.Power.Needed(x.Id)); })],
                 doubled: true).Run();
             // Every user on the network is served and a fire is wanted, the generator drawing more than the panel makes.
@@ -360,7 +364,7 @@ public class MagneticFlareTests
         var w = World(meteors: true);
         Break(w, Lamp);
         w.Do(new Repair(Id(w, Lamp))).Do(new FlareNow(Starting.Warning)).Run(5);
-        var loaded = new Scenario(Layout.Parse(Rows, null, Cables) with { Meteors = true }, with: m => [new Breaker(m.Power)], doubled: true)
+        var loaded = new Scenario(Layout.Parse(Rows, Under, Cables) with { Meteors = true }, with: m => [new Breaker(m.Power)], doubled: true)
             .Reload(w.World.Save());
         Assert.Equal(w.World.Hash(), loaded.World.Hash());
         Assert.Equal(w.M.Building.RepairProgress(Id(w, Lamp)), loaded.M.Building.RepairProgress(Id(w, Lamp)));

@@ -102,11 +102,11 @@ public enum MachineTrait
     None = 0,
     /// <summary>Takes any item into any slot and serves it back: a crate. Drones store in it and take from it.</summary>
     Container = 1,
-    /// <summary>Stores its network's oxygen, filled by a canister loaded into it: a tank.</summary>
+    /// <summary>Stores liquid oxygen, filled by a canister loaded into it, given to the vaporizers on its network: a tank.</summary>
     Gas = 2,
     /// <summary>
-    /// Feeds the pipes it stands on: a vent piped to it is fed, and blows, airs its room and hums. One that stores no
-    /// <see cref="Gas"/> makes its air on power: the generator.
+    /// Turns liquid oxygen from the tanks on its input's network into air on power, into a store of its own that the vents
+    /// on its output's network draw from: the generator, the player's "oxygen vaporizer" (liquid-oxygen).
     /// </summary>
     AirSource = 4,
     /// <summary>Lets its network's air into the room it stands in.</summary>
@@ -127,6 +127,10 @@ public enum MachineTrait
     Sells = 1024,
     /// <summary>Sends its capsule by itself whenever it is home and there is something to sell (Trade): the auto trade station.</summary>
     AutoSends = 2048,
+    /// <summary>Holds water, poured in by the bottle and given on through its output (Water): the cistern.</summary>
+    HoldsWater = 4096,
+    /// <summary>Splits the water of the cisterns on its input's network into liquid oxygen for the tanks on its output's (Water): the electrolyser.</summary>
+    Electrolyses = 8192,
 }
 
 /// <summary>
@@ -140,10 +144,12 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
-        // Water's first ports (typed-ports): it holds nothing yet, so it needs no power and air ignores it.
-        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
-        new("generator", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        // Holds water poured in by the bottle and gives it on to an electrolyser (water); it needs no power and air ignores it.
+        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
+        new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        // Splits a cistern's water into liquid oxygen for a tank, the hydrogen let go (water): water in on its left, oxygen out on its right.
+        new("electrolyser", 4, 6, [new(0, 5, Way.In, Fluids.Water), new(3, 5, Way.Out, Fluids.LiquidOxygen)], [("glass", 6), ("plate", 4), ("tube", 4), ("circuit", 2)], BuildTicks: 200, Draws: 5, Plug: (16, 41), Has: MachineTrait.Electrolyses, Menu: new(MenuTabs.Air, 35), Char: 'y', Means: "electrolyser: draw its whole footprint"),
         // Of the one photosensitive panel nothing makes: its blueprint is the black market's, for many credits (black-market).
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
         new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
@@ -186,7 +192,7 @@ public static class Machines
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
         new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
         // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
-        new("lifepod", 6, 6, [new(0, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
+        new("lifepod", 6, 6, [new(5, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The last crew's piles in the hold (the-scoop): never built, an axe breaks one and its cost is what it holds, a first reward for
         // making the axe. The cargo holds a world's one photosensitive panel. An axe takes 4 a hit, two hits a second.
         new("pileHull", 4, 4, [], [("scrapChunk", 6), ("hullPlate", 3)], BuildTicks: 180, Strength: 24, Char: 'a', Means: "pile of hull plates: draw its whole footprint"),
