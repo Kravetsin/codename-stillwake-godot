@@ -18,7 +18,7 @@ namespace Stillwake.Game.Dev;
 public partial class LooksDemo(LookEditor editor) : Node
 {
     /// <summary>When each step goes, in seconds: the editor opened, each picker moved on, the editor closed.</summary>
-    private static readonly (double At, int Picker, int By)[] Picks = [(1.2, 0, 3), (1.6, 1, 2), (2.0, 2, 2), (2.4, 3, -1), (2.8, 4, 2), (3.2, 4, -1)];
+    private static readonly (double At, int Picker, int By)[] Picks = [(1.2, 0, 3), (1.6, 1, 2), (2.0, 2, 2), (2.4, 3, -1), (2.8, 4, 2), (3.2, 4, -1), (3.6, 5, 1)];
     private const double OpenAt = 0.6, CloseAt = 4.4;
 
     private double _t;

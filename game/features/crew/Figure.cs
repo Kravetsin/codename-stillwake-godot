@@ -103,16 +103,11 @@ public partial class Figure : Node2D
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
     private int? _colour;
 
-    /// <summary>The player's mark on a suit, whose colours stay as drawn: lit, so it reads in a dark room, tinted by the player's colour. On the helmet, the chest and the pack; bare, the chest alone.</summary>
-    private readonly Sprite2D _markHelmet = NewMark(), _markChest = NewMark(), _markPack = NewMark(), _markStripe = NewMark("hero_mark_stripe");
-    private static readonly Vector2 HelmetMark = new(2.8f - 6.5f, 3.8f - 12), StripeMark = new(5f - 6.5f, 2f - 12), ChestMark = new(9.1f - 6, 4.7f), PackMark = new(2.2f, 5.3f);
-    private static Sprite2D NewMark(string picture = "hero_mark") => new() { Texture = MarkDrawn ? PixelArt.Picture(picture) : null, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded }, Visible = false };
-    private static readonly bool MarkDrawn = HiRes.Load("hero_mark") != null;
-    private static void Mark(Node2D on, Vector2 at, Sprite2D mark)
-    {
-        mark.Position = at;
-        on.AddChild(mark);
-    }
+    /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
+    private readonly Sprite2D _trackerLight = new() { Centered = false, Offset = TrackerAt, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
+    private readonly Sprite2D _tracker = new() { Centered = false, Offset = TrackerAt };
+    private static readonly Vector2 TrackerAt = -Joints["shin"] - new Vector2(HiRes.FigureMargin, HiRes.FigureMargin);
+    private static Texture2D? _trackerStrapPicture, _trackerLightPicture;
 
     private Limbs? _shown;
     private (int X, int Y)? _last;
@@ -237,10 +232,6 @@ public partial class Figure : Node2D
         (_shell, _visor) = (Part("shell", joint: "helmet"), Part("visor", joint: "helmet"));
         foreach (var n in new Node2D[] { _headPart, _facePart, _faceLight, _beard, _hair, _shell, _visor }) _helmet.AddChild(n);
         // The helmet lamp on its brow (0077), not the player's colour; its lens drawn again unlit: it is the light.
-        Mark(_helmet, HelmetMark, _markHelmet);
-        Mark(_helmet, StripeMark, _markStripe);
-        Mark(chest, ChestMark, _markChest);
-        Mark(pack, PackMark, _markPack);
         _headLamp = new Sprite2D { Texture = HeadLampArt.Picture, Centered = false, Offset = HeadLampArt.On - Joints["helmet"], Visible = false };
         Lit.Set(_headLamp);
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
@@ -590,11 +581,7 @@ public partial class Figure : Node2D
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
-        var tint = new Color((uint)(colour << 8 | 0xff));
-        foreach (var mark in new[] { _markHelmet, _markStripe, _markChest, _markPack }) mark.Modulate = tint;
-        _markHelmet.Visible = _markStripe.Visible = helmet && MarkDrawn;
-        _markChest.Visible = MarkDrawn;
-        _markPack.Visible = body && MarkDrawn;
+        _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
         _pack.Visible = body;
         _shell.Visible = _visor.Visible = helmet;
         _hair.Visible = !helmet;
@@ -603,10 +590,10 @@ public partial class Figure : Node2D
         HeadLamp = _lampWorn;
     }
 
-    /// <summary>The picture a part is drawn with: bare, the jumpsuit's in place of the suit's; the look's face, hair and beard.</summary>
+    /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
-        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when !_bodyWorn => "jumpsuit_" + part,
+        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when !_bodyWorn => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
@@ -633,6 +620,14 @@ public partial class Figure : Node2D
         view = new Node2D();
         var bend = new Node2D { Position = new Vector2(0, (float)size.Upper) };
         bend.AddChild(Part(lower, far));
+        if (lower == "shin" && !far)
+        {
+            Lit.Set(_tracker);
+            _tracker.Texture = _trackerStrapPicture ??= HiRes.Texture(HiRes.Load("hero_tracker")!);
+            _trackerLight.Texture = _trackerLightPicture ??= HiRes.Texture(HiRes.Load("hero_tracker_light")!);
+            bend.AddChild(_tracker);
+            bend.AddChild(_trackerLight);
+        }
         view.AddChild(bend);
         view.AddChild(Part(upper, far));
         return new Limb(view, bend);
@@ -938,6 +933,7 @@ public static class SuitArt
     {
         var key = (part, colour, skin, hair, far);
         if (Made.TryGetValue(key, out var kept)) return kept;
+        if (HiRes.Load($"hero_{part}") is { } inked) return Inked(key, inked, part, skin, hair, far);
         var image = GD.Load<Texture2D>($"res://art/hero_{part}.png").GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
@@ -956,25 +952,42 @@ public static class SuitArt
                 if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
                     image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
             }
-        // A hi-res part has no ramps to swap: scaled to the look's skin and hair, its far limbs darkened as the pixel ones are, any suit in the colours drawn.
-        Texture2D made;
-        if (HiRes.Load($"hero_{part}") is { } fine)
-        {
-            var tint = LookTint.Of(part, skin, hair);
-            float shade = far ? (float)FarShade : 1;
-            if (far || tint != null)
-                for (int y = 0; y < fine.GetHeight(); y++)
-                    for (int x = 0; x < fine.GetWidth(); x++)
-                    {
-                        var c = fine.GetPixel(x, y);
-                        var (r, g, b) = tint?.Apply(c.R, c.G, c.B) ?? (c.R, c.G, c.B);
-                        fine.SetPixel(x, y, new Color(r * shade, g * shade, b * shade, c.A));
-                    }
-            made = HiRes.Texture(fine);
-        }
-        else made = ImageTexture.CreateFromImage(image);
+        var made = ImageTexture.CreateFromImage(image);
         Made[key] = made;
         Bytes[made] = (image.GetWidth(), image.GetHeight(), image.GetData());
         return made;
+    }
+
+    /// <summary>
+    /// A hi-res part has no ramps to swap: scaled to the look's skin and hair, its far limbs darkened, any suit in the colours drawn. Clothes
+    /// lie over a skin picture of their own, tinted alone, for no colour test tells rags from skin. What a body crumbles into is the picture shrunk.
+    /// </summary>
+    private static Texture2D Inked((string Part, int Colour, int Skin, int Hair, bool Far) key, Image fine, string part, int skin, int hair, bool far)
+    {
+        if (HiRes.Load($"hero_{part}_skin") is { } under)
+        {
+            Tint(under, LookTint.Of($"{part}_skin", skin, hair), 1);
+            under.BlendRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), Vector2I.Zero);
+            fine = under;
+        }
+        Tint(fine, LookTint.Of(part, skin, hair), far ? (float)FarShade : 1);
+        var small = (Image)fine.Duplicate();
+        small.Resize(fine.GetWidth() / HiRes.Scale, fine.GetHeight() / HiRes.Scale, Image.Interpolation.Nearest);
+        var made = HiRes.Texture(fine);
+        Made[key] = made;
+        Bytes[made] = (small.GetWidth(), small.GetHeight(), small.GetData());
+        return made;
+    }
+
+    private static void Tint(Image image, LookTint? tint, float shade)
+    {
+        if (tint == null && shade == 1) return;
+        for (int y = 0; y < image.GetHeight(); y++)
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                var c = image.GetPixel(x, y);
+                var (r, g, b) = tint?.Apply(c.R, c.G, c.B) ?? (c.R, c.G, c.B);
+                image.SetPixel(x, y, new Color(r * shade, g * shade, b * shade, c.A));
+            }
     }
 }

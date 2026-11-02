@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://0dd5e6cfthk4"
-path="res://.godot/imported/hero_jumpsuit_thigh.png-e50cbc58bdd46e5e97c34385210229d0.ctex"
+uid="uid://dwb34qrga3xet"
+path="res://.godot/imported/hero_outfit_3_shin.png-a340d74355f1b41221ca9a7265beb552.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_jumpsuit_thigh.png"
-dest_files=["res://.godot/imported/hero_jumpsuit_thigh.png-e50cbc58bdd46e5e97c34385210229d0.ctex"]
+source_file="res://art/hd/hero_outfit_3_shin.png"
+dest_files=["res://.godot/imported/hero_outfit_3_shin.png-a340d74355f1b41221ca9a7265beb552.ctex"]
 
 [params]
 

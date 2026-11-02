@@ -121,7 +121,8 @@ public class LooksTests
         from c in Gen.Choose(-2, 9)
         from f in Gen.Choose(-2, 9)
         from b in Gen.Choose(-2, 9)
-        select new Look(s, h, c, f, b);
+        from o in Gen.Choose(-2, 9)
+        select new Look(s, h, c, f, b, o);
 
     private static readonly Gen<Step> Steps =
         from type in Gen.Elements("choose", "enter", "leave", "run", "run", "drain")

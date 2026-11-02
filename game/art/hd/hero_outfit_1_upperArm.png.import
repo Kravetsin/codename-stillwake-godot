@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b1y81atxyncjr"
-path="res://.godot/imported/hero_mark_stripe.png-480ce1583de95e9649631f2c66ba7a60.ctex"
+uid="uid://svppvkseitso"
+path="res://.godot/imported/hero_outfit_1_upperArm.png-cfcde2d8c85f953853ce6c1fdd0434cd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_mark_stripe.png"
-dest_files=["res://.godot/imported/hero_mark_stripe.png-480ce1583de95e9649631f2c66ba7a60.ctex"]
+source_file="res://art/hd/hero_outfit_1_upperArm.png"
+dest_files=["res://.godot/imported/hero_outfit_1_upperArm.png-cfcde2d8c85f953853ce6c1fdd0434cd.ctex"]
 
 [params]
 

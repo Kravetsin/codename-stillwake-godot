@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://sjxahdx6fdkw"
-path="res://.godot/imported/hero_jumpsuit_upperArm.png-2474baa798d1e4a353647f891972542a.ctex"
+uid="uid://j050dd5xnlly"
+path="res://.godot/imported/hero_outfit_1_forearm.png-25ec4fe0b5389dec358e5fa6b712ef8a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_jumpsuit_upperArm.png"
-dest_files=["res://.godot/imported/hero_jumpsuit_upperArm.png-2474baa798d1e4a353647f891972542a.ctex"]
+source_file="res://art/hd/hero_outfit_1_forearm.png"
+dest_files=["res://.godot/imported/hero_outfit_1_forearm.png-25ec4fe0b5389dec358e5fa6b712ef8a.ctex"]
 
 [params]
 

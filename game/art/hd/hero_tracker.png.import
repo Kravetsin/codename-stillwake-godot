@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://jupm1u8d7qmc"
-path="res://.godot/imported/hero_jumpsuit_torso.png-68ea6416f39828c95fa4bf4009a39dca.ctex"
+uid="uid://btupnebhim370"
+path="res://.godot/imported/hero_tracker.png-bfb51d90b96bed8c1f49cf13933a473e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_jumpsuit_torso.png"
-dest_files=["res://.godot/imported/hero_jumpsuit_torso.png-68ea6416f39828c95fa4bf4009a39dca.ctex"]
+source_file="res://art/hd/hero_tracker.png"
+dest_files=["res://.godot/imported/hero_tracker.png-bfb51d90b96bed8c1f49cf13933a473e.ctex"]
 
 [params]
 
