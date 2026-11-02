@@ -9,7 +9,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship building**
 - Grid — sim/Grid · f/grid: `Grid.cs` GridModule, `Placement`, `SetDoor`, trait queries, `MachinesWith`; c/`Structures.cs` (`Structure` codes, `StructureSpec`, `Trait`, 0112); c/`Machines.cs` (`MachineSpec`, `MachineTrait`, 0113); `Doorways.cs`; `ChangeLog.cs` `GridLayers`; `GridView.cs`, `DoorSlides.cs`
-- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`, `WallStats.cs` (a wall card's leak and meteor numbers); c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
+- Building — sim/Building · f/building: `Building.cs` BuildingModule, `PlacePlan`, `IBuildingOps`; `Rules.cs`; `Costs.cs`; `Repairs.cs` (`Repair`); `BuildMenu.cs`, `PlanHand.cs`, `Tools.cs`, `Drag.cs`, `WallStats.cs` (a wall card's leak and meteor numbers); c/`Builds.cs`, c/`Menu.cs` (`MenuSlot`, `MenuTabs`: the menu from content, 0114)
 - Rooms — sim/Rooms: `Rooms.cs` RoomsModule (rooms from walls and doors). Drawn: r/`ShipTiles.cs`, `BlueprintArt.cs`, `DoorShape.cs`
 
 **Air** — Atmosphere — sim/Atmosphere · f/atmosphere: `Atmosphere.cs` AtmosphereModule, `LoadCanister`; `Air.cs` (vaporizers, draws); `Order.cs`; `AirView.cs`, `TankLooks.cs`, `VentLight.cs`; c/`Air.cs`
@@ -24,13 +24,13 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Furnace — sim/Furnace · f/furnace: `Furnace.cs` FurnaceModule; `FurnaceView.cs`, `Flames.cs`; c/`Furnace.cs`
 - Drones — sim/Logistics · f/logistics: `Logistics.cs` LogisticsModule; `Jobs.cs`; `Flight.cs`; `LogisticsView.cs`, `Served.cs`; c/`Logistics.cs`
 
-**Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `TechPanel.cs`, `logic/TechMap.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
+**Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `ResearchTablet.cs`, `RingsPage.cs`, `StripParts.cs`, `logic/TechRings.cs`, `logic/TechLinks.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
 
 **Crew and hero movement**
 - Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
 - Players — sim/Players: `Players.cs` PlayersModule (what is the player's, not a surface's)
 
-**Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Pounce.cs`, `Spawn.cs`, `Shots.cs` (shots: `Fire`, the flight); sim/Core `ShotFlight.cs`; `CreaturesView.cs`, `ShotsView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; f/crew `HeroView.Guns.cs`, `GunHand.cs`; game/shared `ShotStreaks.cs`, `ShotEnds.cs`, `ShotDraws.cs`, `PixelBursts.cs`; c/`Creatures.cs`, `Shots.cs`; gc/`CreatureLooks.cs`
+**Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Ward.cs`, `Pounce.cs`, `Spawn.cs`, `Shots.cs` (shots: `Fire`, the flight); sim/Core `ShotFlight.cs`; `CreaturesView.cs`, `ShotsView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; f/crew `HeroView.Guns.cs`, `GunHand.cs`; game/shared `ShotStreaks.cs`, `ShotEnds.cs`, `ShotDraws.cs`, `PixelBursts.cs`; c/`Creatures.cs`, `Shots.cs`; gc/`CreatureLooks.cs`
 
 **Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; the fog at a planet's sides: f/fog `FogView.cs`, game/shared `FogEdges.cs`, `FogShare.cs`, f/crew `FogMove.cs`, gc/`FogLooks.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
 
@@ -38,7 +38,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Debris and wrecks**
 - Debris — sim/Debris · f/debris: `Debris.cs` DebrisModule, `Hit`; `Drift.cs` (zones, spawns); `DebrisView.cs`, `BreakView.cs`, `Finds.cs`; c/`Debris.cs`, `Wreck.cs`, `Wreckage.cs`
-- Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `MeteorView.cs`; c/`Meteors.cs`
+- Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `Flares.cs` (magnetic flares, `FlareNow`); `MeteorView.cs`; c/`Meteors.cs`, c/`MagneticFlares.cs`
 - Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats), `Launch` (its descent and return, `Flights`, `Owners`); `Content.Landing`; client game/features/landing: `PodSeats.cs`, `LaunchKey.cs` (Descend / Return), `FlightOverlay.cs` (the white-out); the seated hero: f/crew `SeatedHeroes.cs`
 
 **Light** — f/light: `LightView.cs`, `Lightmap.cs`, `Sources.cs`, `StarField.cs`; f/effects: `EffectsView.cs`, `Impacts.cs`; r/`Lit.cs`, `Luminous.cs`, `Flares.cs`; gc/`Light.cs`, `Fx.cs`
@@ -47,7 +47,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship computer** — f/computer: `ComputerPanel.cs`, `RadarScreen.cs`, `ComputerScreens.cs`, `Readout.cs` (programs brought by modules on its network); c/`Programs.cs`
 
-**UI and tablet** — game/shared: `Tablet.cs`, `TabletLayout.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
+**UI and tablet** — game/shared: `Tablet.cs`, `TabletLayout.cs`, `CreditLine.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
 
 **Net and co-op** — net/Net: `Host.cs`, `Client.cs`, `Session.cs`, `Playout.cs`; net/Tests `Desync.cs`; game/net: `EnetLink.cs`, `RelayLink.cs`; game/`Main.Sessions.cs` (hosting, joining, worlds on disk, the title); sim/Core: `Sim.cs` World, `Module.cs` Command, `Rng.cs`; sim/Registry: `Registry.cs`, `Migrations.cs`; game/platform: `Saves.cs`
 

@@ -222,6 +222,24 @@ public class SentryTests
     }
 
     [Fact]
+    public void ItsWreckGoneASaveOnTheTickItDiesLoadsItGoneItsScrapRolledOnce()
+    {
+        var (a, pieceA, _) = OnAWreck();
+        var (b, pieceB, _) = OnAWreck();
+        ((DebrisState)a.M.Debris.Slice).Pieces.Remove(pieceA);
+        ((DebrisState)b.M.Debris.Slice).Pieces.Remove(pieceB);
+        // No shot flying: its death in its own step is swept by nothing else.
+        a.Run();
+        b.Run().Reload();
+        Assert.Equal(a.World.Hash(), b.World.Hash());
+        a.Run();
+        b.Run();
+        Assert.Equal(a.World.Hash(), b.World.Hash());
+        Assert.Empty(b.M.Creatures.Creatures);
+        Assert.InRange(b.M.Items.Floor.Where(s => s.Item == "scrapChunk").Sum(s => s.Count), 3, 5);
+    }
+
+    [Fact]
     public void ItsWreckGoneMidPounceItDiesInFlight()
     {
         var (w, piece, c) = OnAWreck();

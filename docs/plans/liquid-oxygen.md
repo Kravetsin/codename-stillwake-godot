@@ -215,6 +215,10 @@ in `main`, holding nothing. "The typed-ports ADR" below is `docs/decisions/2026-
 
 ### L-2 — The wreck starts with an empty tank and a crate of two canisters
 
+*Overtaken 2026-11-02:* `main`'s scoop ([the-scoop](../decisions/2026-10-31-the-scoop.md)) replaced the wreck; it has no
+tank or generator, and its pod makes the room's air from nothing. L-1's interim wreck was dropped in the merge, and
+L-2 has nothing left to do unless the user wants canisters at the start.
+
 **Rules, as the player meets them:**
 - The tank in room B starts empty.
 - A crate stands in room A's top-left corner, on the generator: drawing columns 46–47, row 20.

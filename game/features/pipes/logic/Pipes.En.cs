@@ -11,6 +11,7 @@ public static partial class En
         ["pipes.tooLong"] = "Too long for one pipe",
         ["pipes.twice"] = "Already piped",
         ["pipes.noPipe"] = "No pipe here",
+        ["pipes.fixed"] = "This pipe is part of the pod",
         ["pipes.noJoint"] = "Valves go on a joint",
         ["pipes.already"] = "Already a valve",
         ["pipes.noValve"] = "There is no valve here",

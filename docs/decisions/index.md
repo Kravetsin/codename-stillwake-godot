@@ -165,6 +165,30 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [typed-ports](2026-10-29-typed-ports.md) | Ports take or give one fluid | accepted |  |
 | [wall-roles](2026-10-29-wall-roles.md) | Walls either armour or seal | accepted |  |
 | [weak-meteors-till-landing](2026-10-29-weak-meteors-till-landing.md) | Weak meteors till landing | accepted |  |
+| [free-repair](2026-10-30-free-repair.md) | A repair takes only work | accepted |  |
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
+| [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
+| [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
+| [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted |  |
 | [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
-| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph |
+| [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | accepted |  |
+| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule |
+| [trade-capsule](2026-10-30-trade-capsule.md) | Goods leave by capsule | accepted |  |
+| [black-market](2026-10-31-black-market.md) | The black market | accepted |  |
+| [ci-scope](2026-10-31-ci-scope.md) | A PR runs what its paths can break | accepted |  |
+| [ci-tests-in-release](2026-10-31-ci-tests-in-release.md) | CI runs the tests in Release | accepted |  |
+| [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted |  |
+| [hold-piles](2026-10-31-hold-piles.md) | The hold's piles | accepted |  |
+| [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
+| [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | accepted |  |
+| [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted |  |
+| [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour |
+| [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
+| [guards-in-ink](2026-11-01-guards-in-ink.md) | The guards in ink | accepted |  |
+| [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
+| [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
+| [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
+| [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
+| [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
+| [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
+| [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |

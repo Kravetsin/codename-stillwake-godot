@@ -71,7 +71,7 @@ public sealed class Registry
         Knowledge = ship?.Knowledge ?? new KnowledgeModule(ResearchModule.Ids);
         Grid = new GridModule();
         Rooms = new RoomsModule(Grid);
-        Items = new ItemsModule(Grid, Rooms);
+        Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Items, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
@@ -80,8 +80,8 @@ public sealed class Registry
         Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players);
         // Building reads where heroes are and the pipes only as its commands apply, never in a system, so it keeps its place in
         // the run order and the saves', before pipes and crew (0077: a wall does not finish on a hero; 2026-10-29-typed-ports).
-        Building = new BuildingModule(Grid, Grid, Items, Items, Power, Research, Crafting, Crew, Crew, Pipes);
-        Hazards = new HazardsModule(Grid, Grid);
+        Building = new BuildingModule(Grid, Grid, Items, Items, Power, Power, Research, Crafting, Crew, Crew, Pipes);
+        Hazards = new HazardsModule(Grid, Grid, Power, Power, Research);
         Debris = new DebrisModule(Grid, Crew, Rooms, Items, Items);
         Furnace = new FurnaceModule(Grid, Items, Items, Atmosphere, Atmosphere, Power, Power, Crafting, Crafting);
         Logistics = new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting);
@@ -110,11 +110,11 @@ public sealed class Registry
     }
 
     /// <summary>
-    /// The wreck as content draws it, a character a 16 px cell, doubled to the 8 px cells (0104), with no zone and no space
-    /// round it but its own: for dev worlds and tests whose cells are the drawing's, doubled.
+    /// The wreck as content draws it, a character a cell, with no zone and no space round it but its own: for dev worlds and
+    /// tests whose cells are the drawing's.
     /// </summary>
     public static readonly Layout WreckMap =
-        Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under, Content.Wreck.Cables).Doubled() with { Known = Content.Research.StartKnown, DebrisAtStart = Content.Debris.AtStart };
+        Layout.Parse(Content.Wreck.Rows, Content.Wreck.Under).WithMaterials(Content.Wreck.Materials) with { Known = Content.Research.StartKnown, DebrisAtStart = Content.Debris.AtStart };
 
     /// <summary>The world every new game starts in: the wreck centred in a world of <c>Content.World</c>'s size, inside its build zone (0048).</summary>
     public static readonly Layout Wreck = WreckMap.InWorld() with { Meteors = true };

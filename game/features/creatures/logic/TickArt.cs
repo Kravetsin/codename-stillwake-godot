@@ -17,6 +17,9 @@ public sealed class TickArt
     /// <summary>A colour, 0..255 a channel.</summary>
     public readonly record struct Rgb(double R, double G, double B)
     {
+        /// <summary>As a flare takes a colour.</summary>
+        public (int, int, int) Bytes => ((int)R, (int)G, (int)B);
+
         public static Rgb Mix(Rgb a, Rgb b, double t) => new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t);
     }
 
@@ -28,10 +31,10 @@ public sealed class TickArt
     /// <summary>
     /// What it is doing, the page's <c>P</c>: crouched (1, −0.5 a hop up), walking (0..1) and how far its legs have gone, its legs
     /// folded for flight (0..1), its eye's colour and brightness (lit at 1 and over), where it looks across (−1..1, its own way),
-    /// how far its death's cracks have spread (0..1, none at 0), its front claw raised to work at a line (0..1) and its mandible open (0..1).
+    /// how far its death's cracks have spread (0..1, none at 0), its front claw raised to work at a line (0..1), its mandible open (0..1) and how alert it stands (0..1).
     /// </summary>
     public readonly record struct Pose(double Crouch, double Walk, double Gait, double Fly, Rgb Eye, double EyeAmp, double Look, double Cracks = 0,
-        double Saw = 0, double Jaw = 0);
+        double Saw = 0, double Jaw = 0, double Alert = 0);
 
     /// <summary>
     /// Where its parts are this frame, in its own pixels (origin the middle of its feet): the eye, its nozzle, its near feet, the
@@ -185,7 +188,7 @@ public sealed class TickArt
             }
     }
 
-    private static void Put(byte[] into, int i, uint c)
+    internal static void Put(byte[] into, int i, uint c)
     {
         into[i * 4] = (byte)(c & 255);
         into[i * 4 + 1] = (byte)((c >> 8) & 255);
@@ -194,14 +197,14 @@ public sealed class TickArt
     }
 
     /// <summary>A colour packed as the page packs it: alpha high, red low; 0 is nothing.</summary>
-    private static uint Pack(Rgb c, double a = 1) =>
+    internal static uint Pack(Rgb c, double a = 1) =>
         (uint)Round(Math.Clamp(a, 0, 1) * 255) << 24 | (uint)Math.Clamp(Round(c.B), 0, 255) << 16 | (uint)Math.Clamp(Round(c.G), 0, 255) << 8
         | (uint)Math.Clamp(Round(c.R), 0, 255);
 
     /// <summary>JavaScript's <c>Math.round</c>: halves up, as the page rounds.</summary>
-    private static int Round(double v) => (int)Math.Floor(v + 0.5);
+    internal static int Round(double v) => (int)Math.Floor(v + 0.5);
 
-    private static double Lerp(double a, double b, double t) => a + (b - a) * t;
+    internal static double Lerp(double a, double b, double t) => a + (b - a) * t;
 
     private static int Index(double x, double y)
     {

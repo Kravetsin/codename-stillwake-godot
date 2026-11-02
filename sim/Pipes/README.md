@@ -63,7 +63,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
 - **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
-  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
+  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, `pipes.fixed` (inside a machine never taken apart: the pod's), then whether the refund fits; `MakeValve(Cell,
   Valve)` — making one, `pipes.notAboard`, `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 
 ## Invariants

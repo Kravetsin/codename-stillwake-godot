@@ -38,10 +38,68 @@ public static class AsciiArt
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['y'] = none ? 0xe05555u : 0xf0b44cu });
 
 
+    /// <summary>A wrench on an orange plate over a machine a flare broke: it wants a hand, not power.</summary>
+    public static ImageTexture Broken() => Texture("broken",
+        [
+        "..KKKKKKKKK..",
+        ".KrrrrrrrrrK.",
+        "KrrrrrrwrrwrK",
+        "KrrrrrrwwrwrK",
+        "KrrrrrrwwwwrK",
+        "KrrrrrwwwwrrK",
+        "KrrrrwwwrrrrK",
+        "KrrrwwwrrrrrK",
+        "KrrwwwrrrrrrK",
+        "KrwwwrrrrrrrK",
+        "KrwwrrrrrrrrK",
+        ".KrrrrrrrrrK.",
+        "..KKKKKKKKK..",
+    ],
+        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['r'] = 0xe0662a, ['w'] = 0xf4f6f8 });
+
     /// <summary>A cable's plug, in a socket it is plugged into.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['h'] = 0x7c8794, ['l'] = 0xc5ccd8 });
+
+    /// <summary>What an upgrade of <paramref name="kind"/> is drawn as on the tree: a bag, a belt, a capsule.</summary>
+    public static ImageTexture Upgrade(string kind) => kind switch
+    {
+        Content.Upgrades.Bag => Texture("upgrade-bag",
+            ["....KKKK....", "...Kw..wK...", "..KKKKKKKK..", ".KbbbbbbbbK.", ".KbbbbbbbbK.", ".KbbKKKKbbK.", ".KbbKyyKbbK.", ".KbbKKKKbbK.", ".KbbbbbbbbK.", ".KbbbbbbbbK.", "..KKKKKKKK.."],
+            new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0xc5ccd8, ['b'] = 0x7c6a4f, ['y'] = 0xf0b44c }),
+        Content.Upgrades.Belt => Texture("upgrade-belt",
+            ["............", "............", "KKKKKKKKKKKK", "bbbKKKKKKbbb", "bbbKyyyyKbbb", "bbbKyKKyKbbb", "bbbKyyyyKbbb", "bbbKKKKKKbbb", "KKKKKKKKKKKK", "............"],
+            new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['b'] = 0x7c6a4f, ['y'] = 0xf0b44c }),
+        _ => Capsule(),
+    };
+
+    /// <summary>A trade station's capsule, nose up.</summary>
+    public static ImageTexture Capsule() => Texture("capsule",
+        ["....KK....", "...KwwK...", "..KwwwwK..", "..KwbbwK..", "..KwbbwK..", "..KwwwwK..", "..KwwwwK..", "..KyyyyK..", ".KKwwwwKK.", ".KwKKKKwK.", ".KK....KK."],
+        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0xc5ccd8, ['b'] = 0x4da3d6, ['y'] = 0xf0b44c });
+
+    /// <summary>The coin credits are written with.</summary>
+    public static ImageTexture Credit() => Texture("credit",
+    [
+        "....KKKKKKKK....",
+        "..KKyyyyyyyyKK..",
+        ".KyyhhhhhhhhyyK.",
+        ".KyhhyyyyyyyhoK.",
+        "KyhhyyyKKKyyyhoK",
+        "KyhyyyKKKKKyyyoK",
+        "KyhyyKKyyyKKyyoK",
+        "KyhyyKKyyyyyyyoK",
+        "KyhyyKKyyyyyyyoK",
+        "KyhyyKKyyyKKyyoK",
+        "KyhyyyKKKKKyyyoK",
+        "KyyoyyyKKKyyyooK",
+        ".KyoooyyyyyyooK.",
+        ".KyyoooooooooyK.",
+        "..KKyyyyyyyyKK..",
+        "....KKKKKKKK....",
+    ],
+        new Dictionary<char, uint> { ['K'] = 0x3a2a10, ['y'] = 0xf0c050, ['h'] = 0xffe9a0, ['o'] = 0xb8862c });
 
     /// <summary>A book with a star on its cover: the Handbook's (0066), a placeholder till its picture is picked.</summary>
     public static ImageTexture Book() => Texture("book",

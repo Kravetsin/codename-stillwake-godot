@@ -26,7 +26,7 @@ public sealed record AirStream(double X, double Y, double? Heading, double PerSe
         var streams = new List<AirStream>();
         foreach (var room in air)
         {
-            bool pouring = room.Oxygen > 0 && room.Made > 0;
+            bool pouring = room.Made > 0 && room.Oxygen != 0;
             if (room.Status != RoomStatus.Venting || (room.Aired == 0 && !pouring)) continue;
             var openings = openingsOf(room.Room);
             double perSecond = Math.Min(PerOpening, PerRoom / Math.Max(1, openings.Count));

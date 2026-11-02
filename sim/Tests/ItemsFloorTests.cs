@@ -293,7 +293,7 @@ public class ItemsFloorTests
         Drop(w, Own(0), 20, At(2, 3));
         int id = Assert.Single(Floor(w)).Id;
         // Peer 1 has room for 15 more: its inventory is canisters but for one slot of scrap.
-        w.GiveItems(1, ("canister", Content.Items.Get("canister").Stack * (36 - 1)), ("scrap", Content.Items.Get("scrap").Stack - 15));
+        w.GiveItems(1, ("canister", Content.Items.Get("canister").Stack * (Content.Inventory.Slots - 1)), ("scrap", Content.Items.Get("scrap").Stack - 15));
         Assert.Equal(15, w.M.Items.PickUpAmount(1, id));
         w.Do(new PickUp(id) { From = 1 }).Run();
         var left = Assert.Single(Floor(w));

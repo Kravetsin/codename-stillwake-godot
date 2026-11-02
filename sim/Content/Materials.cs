@@ -43,10 +43,13 @@ namespace Stillwake.Content;
 /// <param name="Clear">
 /// See-through (2026-10-29-clear-glass): light passes a wall or back wall of it as air. Drawn only: the sim gives it no rule.
 /// </param>
+/// <param name="As">
+/// The material it is otherwise taken for by the client: drawn with its pictures, and picked as its card. None for any other.
+/// </param>
 public sealed record Material(
     string Id, int Code, int Strength, int Leak, IReadOnlyList<(string Item, int Count)> Cost, int BuildTicks, bool Natural = false,
     bool Hurts = false, bool Grows = false, Tread Footing = Tread.Deck, MaterialLook Look = MaterialLook.Cut, MenuSlot? Menu = null,
-    MenuSlot? BackMenu = null, string? In = null, int Armour = 0, bool Clear = false)
+    MenuSlot? BackMenu = null, string? In = null, int Armour = 0, bool Clear = false, string? As = null)
 {
     /// <summary>The <see cref="Strength"/> of a material nothing breaks.</summary>
     public const int Unbreakable = 0;
@@ -54,8 +57,8 @@ public sealed record Material(
     /// <summary>Whether weapons break a wall of it (0077): natural and not <see cref="Unbreakable"/>.</summary>
     public bool Breaks => Natural && Strength != Unbreakable;
 
-    /// <summary>Whether a wall of it may be planned and built: it takes work, and costs something.</summary>
-    public bool Built => BuildTicks > 0;
+    /// <summary>Whether a wall of it may be planned and built: it takes work, costs something, and has a card.</summary>
+    public bool Built => BuildTicks > 0 && Menu != null;
 }
 
 /// <summary>What boots on a material sound like (0093): a deck's plates, rock, soil (grass or moss over it heard as such), the ruins' metal.</summary>
@@ -80,6 +83,8 @@ public static class Materials
         // Metal hull (2026-10-29-wall-roles): patched scrap and riveted plates stand up to meteors, and leak at their seams. Scrap is
         // patched of a raw chunk, so a hole is mended with no furnace and no air (2026-10-29-weak-meteors-till-landing).
         new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110), Armour: 2),
+        // A wreck's original plates: scrap in every rule, there only so the client can dress them; a wall built in their place is scrap, clean.
+        new("wreckScrap", Code: 14, Strength: 2, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Armour: 2, As: "scrap"),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120), Armour: 5),
         // The seals: whole sheets no air gets through, and any meteor breaks. Alike but for their look, the player's choice.
         new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1, Clear: true),

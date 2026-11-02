@@ -18,6 +18,8 @@ public static class Style
     // sans.tres is the project's default font (gui/theme/custom_font), so every Control falls back to it.
     public static readonly Font Mono = GD.Load<Font>("res://render/fonts/mono.tres");
     public static readonly Font Sans = GD.Load<Font>("res://render/fonts/sans.tres");
+    /// <summary>Unhinted, for a screen of small words far from the pixel grid: the tech tree's.</summary>
+    public static readonly Font Clear = GD.Load<Font>("res://render/fonts/clear.tres");
     public static readonly Font Bold = GD.Load<Font>("res://render/fonts/semibold.tres");
 
     /// <summary><c>rounded border bg-… border-… p-…</c>.</summary>

@@ -13,7 +13,8 @@
 Oxygen: liquid in tanks, turned into air by vaporizers (liquid-oxygen), and how it fills rooms, is used in them and vents into space.
 
 - **Depends on:** `Grid` (machines, walls by material), `Items` (canisters), `Rooms` (cells, vents, hull,
-  openings), `Pipes` (which stores a vent reaches, which tanks a vaporizer), `Power` (a vaporizer's share).
+  openings), `Pipes` (which stores a vent reaches, which tanks a vaporizer), `Power` (a vaporizer's share;
+  the piped pod draws none, so makes in full).
 - **State** (`AtmosphereState`, internal, all saved): `Tanks` — liquid in each tank, gas in each vaporizer's store, holding any, by
   machine id, in id order; `Making` — each vaporizer's work toward its next unit; `Aired` — cells holding air,
   sorted; `Clock` — for the fill and leak beats. Derived: `Orders` by room id and what they were found from
@@ -38,7 +39,7 @@ Oxygen: liquid in tanks, turned into air by vaporizers (liquid-oxygen), and how 
 - **Vaporizers** (liquid-oxygen; kind `generator`, `AirSource`) turn the liquid of the tanks (`Gas`) on their input's
   network into gas in their store, up to `Air.GeneratorStore`: with room and liquid behind, `Making` grows by
   `Air.GeneratorRate` × satisfaction, a unit each `Air.LeakEvery × 1000` taken from those tanks in id order; the rest
-  is kept, else it stands. A vent is **fed** when a vaporizer's output is on its network, **supplied** when a store
+  is kept, else it stands. A source with no input (the pod, 2026-10-31-the-scoop) makes air from nothing. A vent is **fed** when a vaporizer's output is on its network, **supplied** when a store
   feeding it holds gas or a vaporizer feeding it is powered with liquid behind (read after the vaporizers).
 - **A tick of air,** in the simulation phase, in order (no ADR):
   1. The survey is gathered; each vaporizer, in id order, makes its share; tanks and stores are read again.
@@ -57,11 +58,11 @@ Oxygen: liquid in tanks, turned into air by vaporizers (liquid-oxygen), and how 
   at the tick's end.
 - **Canisters** (no ADR): a tank holds up to `Air.TankCapacity` of liquid; `LoadCanister` takes a canister from
   the sender (free in creative) and adds `Air.Canister`, refused if the tank would spill. A tank taken apart takes its oxygen
-  with it, in the construction phase, looked for only when the grid's log names a machine's cell.
+  with it (construction phase, looked for when the grid's log names a machine's cell).
 - **The survey** (no ADR) — vents by room, stores by network, tanks behind each vaporizer, aired cells by room — is
   kept between ticks, gathered afresh only when the pipes' `Version` moved or every room was found again; else only changed
-  rooms and the vents in space are redone. Satisfaction and tanks holding oxygen are reread on the first call after
-  a canister, a tank taken apart, or the tick's start. Machines are walked by trait (`MachinesWith`,
+  rooms and the vents in space are redone. Satisfaction and what is held are reread after a canister, a tank taken
+  apart, or the tick's start. Machines are walked by trait (`MachinesWith`,
   0113), a vaporizer's ports by its spec's `Ports` order. Walks over cells cover all rooms at once
   (`IRoomsQueries.RoomOfCells`).
 - **`Aired` is edited in place** for up to 32 cells changed (a binary search each), merged into a new list for more.
@@ -96,7 +97,7 @@ Oxygen: liquid in tanks, turned into air by vaporizers (liquid-oxygen), and how 
 - A wall facing a one-cell gap is no hull: the gap is a tiny room open to space (`Rooms`), so it leaks nothing.
 - A wall's material changed without its code (taken apart and rebuilt in one tick, which no player can do)
   reaches the leaks only once its room is found again.
-- A vaporizer cannot be switched off; one vaporizer fills a room at a cell a tick: build more.
-- Oxygen in a tank taken apart is lost, not refunded as canisters. A valve under a tank is not worked with E.
-- A cell aired by a fill and taken by a leak on one tick stays aired, so that cell of the leak is free: one cell a
-  room a tick at most, only on the tick its network runs dry.
+- A vaporizer cannot be switched off; one fills a room a cell a tick: build more.
+- A valve under a tank is not worked with E; a tank taken apart refunds no canisters.
+- A cell aired by a fill and taken by a leak on one tick stays aired: the leak is free while a room fills from an
+  empty store (liquid-oxygen).

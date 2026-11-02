@@ -41,13 +41,14 @@ public static class Explain
 
     /// <summary>
     /// Whether a room's vaporizers keep up with its leak and its breathers, by how much a minute and how long the
-    /// <paramref name="liquid"/> behind them lasts at that draw; or, falling short, how long its own air lasts the difference.
+    /// <paramref name="liquid"/> behind them lasts at that draw, for ever when the pod feeds it (null); or, falling short, how
+    /// long its own air lasts the difference.
     /// </summary>
-    private static string Generated(RoomAir air, int liquid, int breathers)
+    private static string Generated(RoomAir air, int? liquid, int breathers)
     {
         double spare = air.Made - air.Leak - Breathing(breathers);
         return spare >= 0
-            ? En.T("air.keepsUp", ("n", PerMinute(spare)), ("time", Lasting(liquid, air.Leak, breathers)))
+            ? En.T("air.keepsUp", ("n", PerMinute(spare)), ("time", liquid is int held ? Lasting(held, air.Leak, breathers) : "∞"))
             : En.T("air.fallsShort", ("time", Lasting(air.Aired, -spare, 0)));
     }
 
@@ -58,10 +59,11 @@ public static class Explain
     /// </summary>
     public static List<string> Of(RoomAir air, int volume, int breathers = 0)
     {
-        // With no powered vaporizer turning liquid into air, the room lives on its own air.
-        bool supplied = air.Oxygen > 0 && air.Made > 0;
+        // Air is made by a powered vaporizer with liquid behind it, or by the pod, its air never running out (no liquid to
+        // count: null, 2026-10-31-the-scoop); else the room lives on its own air.
+        bool supplied = air.Made > 0 && air.Oxygen != 0;
         string lasts = supplied
-            ? Generated(air, air.Oxygen!.Value, breathers)
+            ? Generated(air, air.Oxygen, breathers)
             : En.T("air.lastsNot", ("time", Lasting(air.Aired, air.Leak, breathers)));
         string[] problem = air.Problem is { } why ? [En.T(why)] : [];
         return air.Status switch
@@ -83,9 +85,9 @@ public static class Explain
     }
 
     /// <summary>
-    /// The rooms losing oxygen into space: venting through a piped vent, a breach or a meteor's hole. A
-    /// room open to space with no piped vent loses nothing, so the start's breached room stays quiet.
+    /// The rooms losing oxygen into space: venting through a piped vent, a breach or a meteor's hole, stored air running out or
+    /// made air pouring through (the pod's). A room open to space with no piped vent loses nothing, so it stays quiet.
     /// </summary>
     public static HashSet<int> Draining(IEnumerable<RoomAir> rooms) =>
-        rooms.Where(r => r.Status == RoomStatus.Venting && r.Lasts != null).Select(r => r.Room).ToHashSet();
+        rooms.Where(r => r.Status == RoomStatus.Venting && (r.Lasts != null || r.Made > 0)).Select(r => r.Room).ToHashSet();
 }

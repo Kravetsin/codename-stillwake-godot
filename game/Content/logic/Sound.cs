@@ -257,6 +257,9 @@ public static class Sound
     public static readonly Cue RelicHum = new(["res://audio/power/charger-hum-1.ogg"], -14, Pitch: 0, Loops: true, Heard: new(6, 28), Tune: 1.5f);
 
     /// <summary>A battery in a charging station come full: one soft blip, where the station stands.</summary>
+    /// <summary>A trade station's capsule thrown off: a door's thud, low.</summary>
+    public static readonly Cue CapsuleOff = DoorClose with { Tune = 0.6f };
+
     public static readonly Cue ChargeFull = new(Shots("power/charge-full", 1), -10, Pitch: 0, Heard: new(8, 32));
     /// <summary>How far something breaking carries: a wreck, a cell of ground, a tree or a ruin's piece. Full within 12 cells, gone at 56.</summary>
     public static readonly Reach BreakReach = new(12, 56);
@@ -401,7 +404,7 @@ public static class Sound
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath),
-        // The sixleg the loper's; the heavier tapir lower, the small fluff higher (placeholders all).
+        // The sixleg the loper's; the heavier tapir lower (placeholders all).
         [Stillwake.Content.Creatures.Sixleg.Id] = (
             Glowcap with { Tune = 0.8f, Pitch = 0.12f },
             LandSoft with { VolumeDb = -3, Tune = 1.35f, Pitch = 0.1f, Heard = ToolReach },
@@ -410,10 +413,6 @@ public static class Sound
             Glowcap with { Tune = 0.68f, Pitch = 0.1f },
             LandSoft with { VolumeDb = -2, Tune = 1.1f, Pitch = 0.1f, Heard = ToolReach },
             CreatureDeath with { Tune = 0.88f }),
-        [Stillwake.Content.Creatures.Fluff.Id] = (
-            Glowcap with { Tune = 1.0f, Pitch = 0.14f },
-            LandSoft with { VolumeDb = -5, Tune = 1.6f, Pitch = 0.12f, Heard = ToolReach },
-            CreatureDeath with { Tune = 1.15f }),
     };
 
     /// <summary>
@@ -441,16 +440,38 @@ public static class Sound
     };
 
     /// <summary>
-    /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch.
-    /// This player's own on Suit, a friend's on World.
+    /// An Istukan's sounds (the warden, its audition page's picks): waking, taking the hero in, its crouch's hydraulics, its leap,
+    /// coming to rest (a hero's landing on alloy), a blow on it (a tool on alloy), killed, and shut down with its relic or wall gone.
+    /// All on the World bus: a planet has air.
+    /// </summary>
+    public sealed record IstukanCues(Cue Wake, Cue Alert, Cue WindUp, Cue Pounce, Cue Land, Cue Hit, Cue Killed, Cue ShutDown);
+
+    /// <summary>Each species drawn as the Istukan (<c>CreatureLooks.Istukans</c>): its cues, levelled as the sentry's.</summary>
+    public static readonly IReadOnlyDictionary<string, IstukanCues> Istukans = new Dictionary<string, IstukanCues>
+    {
+        [Stillwake.Content.Creatures.Warden.Id] = new(
+            Wake: new(Shots("creatures/warden-wake", 1), -1.5f, Heard: ToolReach),
+            Alert: new(Shots("creatures/warden-alert", 1), -1.5f, Heard: ToolReach),
+            WindUp: new(Shots("creatures/warden-windup", 1), -1.5f, Heard: ToolReach),
+            Pounce: new(Shots("creatures/warden-pounce", 1), -1.5f, Heard: ToolReach),
+            Land: LandAlloy,
+            Hit: Ground["alloy"].Hit,
+            Killed: new(Shots("creatures/warden-death", 1), -1.5f, Heard: BreakReach),
+            ShutDown: new(Shots("creatures/warden-shutdown", 1), -1.5f, Heard: BreakReach)),
+    };
+
+    /// <summary>
+    /// A creature's hit on a hero, by the creature (0103): a ram's heavy thud, but the sentry's pounce, a metal gauntlet's punch, and
+    /// the warden's, a boxer's. This player's own on Suit, a friend's on World.
     /// </summary>
     public static readonly IReadOnlyDictionary<string, Cue> RamHits = new Dictionary<string, Cue>
     {
         [Stillwake.Content.Creatures.Sentry.Id] = new(Shots("creatures/sentry-punch", 1), -1.5f, Heard: ToolReach),
+        [Stillwake.Content.Creatures.Warden.Id] = new(Shots("creatures/warden-punch", 1), -1.5f, Heard: ToolReach),
     };
 
     /// <summary>The growths with no sound of their own: in the rock, gone with their stone; or fixed, never felled.</summary>
-    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack"];
+    public static readonly IReadOnlyList<string> Unheard = ["moss", "mica", "heatCrack", "fossil", "rubble", "mural", "crack", Stillwake.Content.Ruins.PostLeft, Stillwake.Content.Ruins.PostRight];
 
     private static Dictionary<string, (Cue? Hit, Cue Fall)> Sounding(params (string[] Kinds, Cue? Hit, Cue Fall)[] groups) =>
         groups.SelectMany(g => g.Kinds.Select(kind => (kind, g.Hit, g.Fall))).ToDictionary(k => k.kind, k => (k.Hit, k.Fall));
@@ -570,7 +591,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

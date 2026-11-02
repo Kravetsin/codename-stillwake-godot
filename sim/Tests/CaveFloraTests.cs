@@ -68,7 +68,7 @@ public class CaveFloraTests
     [Fact]
     public void TheFirstPlanetGrowsEveryCaveKindWhereItMayAndEachBandItsOwn()
     {
-        var l = Terrain.Generate(PlanetTypes.First, 1, out _, out _, out var spires, out var homes);
+        var (l, _, spires, homes) = PlanetTesting.First(1);
         Assert.Null(Misplaced(l, PlanetTypes.First, spires, homes));
         Assert.All(Flora.Cave, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // The cold band's crystals are ice, the deep's amber, the ember band's ember: each band has its own look.
@@ -95,7 +95,7 @@ public class CaveFloraTests
 
     [Fact]
     public void AnotherSeedGrowsOtherCaves() =>
-        Assert.False(CaveGrowth(Terrain.Generate(PlanetTypes.First, 1)).SequenceEqual(CaveGrowth(Terrain.Generate(PlanetTypes.First, 2))));
+        Assert.False(CaveGrowth(PlanetTesting.First(1).Layout).SequenceEqual(CaveGrowth(PlanetTesting.First(2).Layout)));
 
     [Fact]
     public void TheGreatHallsAreGardensAndTheTunnelsSparse()

@@ -406,8 +406,9 @@ public static class Terrain
     /// <summary>
     /// The spires (0085), stamped last over all that grew: <see cref="Ground.Spires"/> at columns the seed chooses, each in a
     /// band of its own so they spread and never overlap, every column of each at least <see cref="Ground.RuinClear"/> from the
-    /// middle; each anchored at the highest surface across it (<paramref name="top"/>), <see cref="Ground.SpireRise"/> of its rows
-    /// above that, moved down or up only where the grid is too small to hold it. Its cells overwrite the rows and the materials
+    /// middle, at the column nearest the seed's pick in its band whose hall's roof lies <see cref="Content.Ruins.HallCover"/> under
+    /// the lowest surface across it, or at the pick where none does; each anchored at the highest surface across its tip
+    /// (<paramref name="top"/>), <see cref="Ground.SpireRise"/> of its rows above that, moved down or up only where the grid is too small to hold it. Its cells overwrite the rows and the materials
     /// but where it keeps the ground; what grew in its box, or lay in the rock a cell round it, goes, and its own growths are
     /// set. The other growths beside it were found before it and stay as they are.
     /// </summary>
@@ -429,11 +430,27 @@ public static class Terrain
         for (int k = 0; k < g.Spires; k++)
         {
             // Within its band, a spire's width short of its end: the next one starts past it.
-            int at = k * band + (int)((long)Lattice(seed, SpireAt, k, 0) * (band - wide) / Whole);
-            int x0 = at < left ? from + at : rightFrom + (at - left);
-            int anchor = int.MaxValue;
-            for (int x = x0; x < x0 + wide; x++) anchor = Math.Min(anchor, top[x]);
-            int y0 = Math.Clamp(anchor, rise, lowest) - rise;
+            int room = band - wide, first = k * band, pick = first + (int)((long)Lattice(seed, SpireAt, k, 0) * room / Whole), at = -1;
+            int Left(int i) => i < left ? from + i : rightFrom + (i - left);
+            int RowOf(int left0)
+            {
+                int anchor = int.MaxValue;
+                for (int x = left0 + Content.Ruins.SpireTip; x < left0 + Content.Ruins.SpireTip + Content.Ruins.SpireTipWide; x++) anchor = Math.Min(anchor, top[x]);
+                return Math.Clamp(anchor, rise, lowest) - rise;
+            }
+            bool Covered(int i)
+            {
+                int left0 = Left(i), ground = 0;
+                for (int x = left0; x < left0 + wide; x++) ground = Math.Max(ground, top[x]);
+                return RowOf(left0) + Content.Ruins.SpireHall >= ground + Content.Ruins.HallCover;
+            }
+            for (int d = 0; d <= room && at < 0; d++)
+            {
+                if (pick - d >= first && Covered(pick - d)) at = pick - d;
+                else if (pick + d < first + room && Covered(pick + d)) at = pick + d;
+            }
+            if (at < 0) at = pick;
+            int x0 = Left(at), y0 = RowOf(x0);
             // What grew in its box goes, and what lay in the rock round it, which the spire's alloy may now close off from its cave.
             bool In(int cell, int by) => cell % w >= x0 - by && cell % w < x0 + wide + by && cell / w >= y0 - by && cell / w < y0 + tall + by;
             flora.RemoveAll(p => Stamped(p, w, x0, x0 + wide - 1, In));

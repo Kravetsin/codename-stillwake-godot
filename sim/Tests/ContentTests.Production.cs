@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -145,7 +144,7 @@ public partial class ContentTests
         static string Titled(string id) => id.Length == 0 ? "" : char.ToUpperInvariant(id[0]) + id[1..];
         return Materials.All.SelectMany(m => new[] { $"wall{Titled(m.Id)}", $"backWall{Titled(m.Id)}" })
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
+            .Concat(Machines.All.Where(m => m.Menu != null).Select(m => m.Kind));
     }
 
     [Fact]
@@ -313,7 +312,7 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// What only the wreck's own machines give, taken apart: the photosensitive panel of its solar panel, had once, never
+    /// What only the wreck's own machines give, taken apart: the photosensitive panel in its cargo pile, had once, never
     /// made. Every item is had of something else besides.
     /// </summary>
     private static readonly string[] WrecksOwn = ["photoPanel"];
@@ -351,17 +350,15 @@ public partial class ContentTests
             foreach (var entry in Loot.Of(item) ?? []) had.Add(entry.Item);
         }
         var known = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
+        foreach (var node in Content.Research.Nodes.Where(n => n.Tab == Content.Research.Market)) known.Add(node.Id);
         var built = new HashSet<string>(StringComparer.Ordinal);
-        var done = new HashSet<string>(StringComparer.Ordinal);
+        var walked = Stillwake.Sim.Research.Blueprints.All.Where(b => Content.Research.Node(b.Id)?.Tab != Content.Research.Market).Select(b => (b.Id, b.Cost, Craft: false))
+            .Concat(Crafts.All.Where(c => Content.Research.Node(c.Item)?.Tab != Content.Research.Market).Select(c => (Id: c.Item, c.Cost, Craft: true))).ToList();
         for (bool more = true; more;)
         {
             more = false;
-            foreach (var node in Content.Research.Nodes.Where(n => !done.Contains(n.Id) && n.Needs.All(done.Contains)))
-            {
-                if (!node.Deposit.All(d => had.Contains(d.Item))) continue;
-                more |= done.Add(node.Id);
-                foreach (string id in node.Opens) more |= known.Add(id);
-            }
+            foreach (var (id, cost, craft) in walked.Where(w => !known.Contains(w.Id) && w.Cost.All(c => had.Contains(c.Item))))
+                if (!craft || stations.Any(s => built.Contains(s.Machine) && s.Rows.Any(r => r.Contains(id)))) more |= known.Add(id);
             foreach (var station in stations)
             {
                 var spec = Machines.Get(station.Machine);
@@ -390,12 +387,47 @@ public partial class ContentTests
 
     /// <summary>Every blueprint and craft is known from the start or opened by exactly one block; a block opens nothing else.</summary>
     [Fact]
-    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrKnownFromTheStart()
+    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrComesByTheRuleAlone()
     {
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.SelectMany(n => n.Opens).Concat(Content.Research.StartKnown).ToList();
+        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(["tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit"]).ToList();
         Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
         Assert.Equal(opened.Count, opened.Distinct().Count());
+    }
+
+    /// <summary>
+    /// The gates before the Former are paid by hand at a workbench (first-hour-pace): in seconds of its work, however many things
+    /// a gate asks for, each no more than it takes a hero to sit through.
+    /// </summary>
+    [Theory]
+    [InlineData("firstMetal", 0)]
+    [InlineData("press", 330)]
+    [InlineData("machinery", 960)]
+    public void AGateBeforeTheFormerIsAtMostSoManySecondsOfTheWorkbench(string gate, int seconds)
+    {
+        int speed = Stations.Get("workbench").Speed;
+        int Ticks(string item) => Crafts.TryGet(item, out var craft) && Stations.Get("workbench").Rows.Any(r => r.Contains(item))
+            ? craft.Ticks * 1000 / speed + craft.Cost.Sum(c => c.Count * Ticks(c.Item))
+            : 0;
+        int total = Content.Research.Node(gate)!.Deposit.Sum(d => d.Count * Ticks(d.Item));
+        Assert.True(total <= seconds * 20, $"{gate}: {total / 20} s of the workbench");
+    }
+
+    /// <summary>
+    /// The way to power and the press, under the rule: at most this much of the workbench's work. Each item is made as many times as
+    /// its own count or what is made from it asks, the more: a rotor's gear counts towards the gears too.
+    /// </summary>
+    [Fact]
+    public void TheFormerAndBurnerAreUnderstoodWithin540SecondsOfTheBench()
+    {
+        var bench = Stations.Get("workbench");
+        var made = Crafts.All.Where(c => bench.Rows.Any(r => r.Contains(c.Item))).ToList();
+        var parts = Machines.Get("former").Cost.Concat(Machines.Get("burnerGenerator").Cost).Select(c => c.Item).ToHashSet(StringComparer.Ordinal);
+        int Times(string item) => Math.Max(
+            parts.Contains(item) ? Stillwake.Sim.Research.Understanding.Enough(item) : 0,
+            made.Sum(c => c.Cost.Where(x => x.Item == item).Sum(x => x.Count * Times(c.Item))));
+        int total = made.Sum(c => Times(c.Item) * (c.Ticks * 1000 / bench.Speed));
+        Assert.True(total <= 540 * 20, $"{total / 20} s of the workbench");
     }
 
     /// <summary>Losing one station shuts what is made at it and everything after: the walk bites.</summary>
@@ -408,11 +440,11 @@ public partial class ContentTests
         Assert.DoesNotContain("dropPod", known);
     }
 
-    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing.</summary>
+    /// <summary>Selling refined pays: a priced craft or a fixed yield is worth more than what goes in, or nothing would be worth processing. Soil is dug, its craft for a ship with no ground.</summary>
     [Fact]
     public void EveryPricedCraftAndYieldSellsForMoreThanItsPricedInputs()
     {
-        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null))
+        foreach (var craft in Crafts.All.Where(c => Market.PriceOf(c.Item) != null && c.Item != "soil"))
         {
             int inputs = craft.Cost.Sum(c => (Market.PriceOf(c.Item) ?? 0) * c.Count);
             Assert.True(Market.PriceOf(craft.Item) > inputs, $"{craft.Item}: {Market.PriceOf(craft.Item)} for {inputs}");
@@ -420,6 +452,8 @@ public partial class ContentTests
         foreach (var item in Content.Items.All.Where(i => i.Yields != null && Market.PriceOf(i.Id) != null))
         {
             int yields = item.Yields!.Sum(y => (Market.PriceOf(y.Item) ?? 0) * y.Count);
+            // A byproduct pays what it does on average: crushing ore pays by its quartz, gravel now being cheap.
+            yields += item.Byproducts?.Sum(b => (Market.PriceOf(b.Item) ?? 0) * b.Min / (b.OneIn ?? 1)) ?? 0;
             if (yields > 0) Assert.True(yields > Market.PriceOf(item.Id) * item.SmeltTakes, $"{item.Id}: {item.SmeltTakes} at {Market.PriceOf(item.Id)} yield {yields}");
         }
     }
@@ -439,7 +473,7 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start or what it needs opens, at a
+    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start, its ring or a ring further in opens, at a
     /// station they open; what wreckage gives needs no one to open it.
     /// </summary>
     [Fact]
@@ -447,26 +481,14 @@ public partial class ContentTests
     {
         var (given, _) = Reachable([]);
         var prints = Stillwake.Sim.Research.Blueprints.All.ToDictionary(b => b.Id);
-        HashSet<string> Behind(TechNode node)
-        {
-            var opened = new HashSet<string>(Content.Research.StartKnown, StringComparer.Ordinal);
-            void Walk(TechNode each)
-            {
-                foreach (string need in each.Needs)
-                {
-                    var before = Content.Research.Node(need)!;
-                    opened.UnionWith(before.Opens);
-                    Walk(before);
-                }
-            }
-            Walk(node);
-            opened.UnionWith(node.Opens);
-            return opened;
-        }
-        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate))
+        var tabs = Content.Research.Tabs.Select(t => t.Id).ToList();
+        // A ring is bought in any order: a block may take what its own ring opens, or what is further in, never further out.
+        HashSet<string> Behind(TechNode node) => new(Content.Research.StartKnown.Concat(Content.Research.Nodes
+            .Where(n => tabs.IndexOf(n.Tab) < tabs.IndexOf(node.Tab) || (n.Tab == node.Tab && n.Ring <= node.Ring)).Where(n => !n.Gate).Select(n => n.Id)), StringComparer.Ordinal);
+        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null))
         {
             var opened = Behind(node);
-            foreach (string id in node.Opens)
+            string id = node.Id;
             {
                 bool craft = Crafts.TryGet(id, out var recipe);
                 var cost = craft ? recipe!.Cost : prints[id].Cost;
@@ -494,6 +516,9 @@ public partial class ContentTests
     [Fact]
     public void AStepIsWorthItsInputsAndTimeMarkedUpPerUnitRoundedUp()
     {
+        // What the ground gives for a swing is worth next to nothing, whatever a recipe would make of it.
+        Assert.Equal(1, Market.PriceOf("soil"));
+        Assert.Equal(1, Market.PriceOf("rock"));
         Assert.Equal(20, Market.WorthOf("scrapChunk"));
         Assert.Equal(8, Market.WorthOf("scrap")); // (20 + 3) x 1.25 / 4 = 7.19
         Assert.Equal(22, Market.WorthOf("wire")); // (2 x 8 + 1.5) x 1.25 = 21.875
@@ -516,8 +541,7 @@ public partial class ContentTests
     {
         var (had, known) = Reachable([]);
         Assert.Contains("tradeStation", known);
-        Assert.Contains("techStation", known);
-        Assert.All(Machines.Get("tradeStation").Cost.Concat(Machines.Get("techStation").Cost), c => Assert.Contains(c.Item, had));
+        Assert.All(Machines.Get("tradeStation").Cost, c => Assert.Contains(c.Item, had));
         Assert.Contains("scrapChunk", had);
     }
 
@@ -707,16 +731,21 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// The photosensitive panel (2026-10-29-photo-panel) is had only of a solar panel taken apart: no debris, loot, smelt,
-    /// craft, growth or creature gives one. The wreck starts knowing the solar panel, so its own panel builds again, and no
-    /// second one.
+    /// The photosensitive panel (2026-10-29-photo-panel) is had only of the hold's cargo pile or a solar panel taken apart: no
+    /// debris, loot, smelt, craft, growth or creature gives one, so a world has one solar panel.
     /// </summary>
     [Fact]
-    public void OnlyASolarPanelTakenApartGivesAPhotosensitivePanelAndTheWreckKnowsTheSolarPanel()
+    public void OnlyTheCargoPileOrASolarPanelTakenApartGivesAPhotosensitivePanelAndTheBlackMarketSellsItsBlueprint()
     {
         Assert.Equal(["photoPanel"], WrecksOwn);
+        Assert.Contains(("photoPanel", 1), Machines.Get("pileCargo").Cost);
         Assert.Contains(("photoPanel", 1), Machines.Get("solarPanel").Cost);
-        Assert.Contains("solarPanel", Content.Research.StartKnown);
+        Assert.DoesNotContain("solarPanel", Content.Research.StartKnown);
+        var listing = Content.Research.Node("solarPanel")!;
+        Assert.Equal("blackMarket", listing.Tab);
+        Assert.Empty(listing.Needs);
+        // Dear: more than any upgrade but the last bag's.
+        Assert.InRange(Stillwake.Sim.Research.Prices.Of(listing), 8000, 15000);
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item)
             .Concat(DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).SelectMany(k => Loot.Of(k.Item) ?? []).Select(e => e.Item))
             .Concat(Content.Items.All.SelectMany(i => (i.Yields ?? []).Select(y => y.Item).Concat((i.Byproducts ?? []).Select(b => b.Item))))

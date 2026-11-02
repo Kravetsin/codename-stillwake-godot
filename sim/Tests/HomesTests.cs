@@ -294,7 +294,7 @@ public class HomesTests
     /// its lava, its ceiling <c>HomeDeepLeast</c> to <c>HomeDeepMost</c> under the lowest surface across it (or moved up to fit),
     /// every cell of it as its prefab draws it, nothing grown in its box but its pieces, each where its anchor holds it.
     /// </summary>
-    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, IReadOnlyList<(int X, int Y, Ruins.Home Home)> homes, int[] surface)
+    private static string? Wrong(Ground g, Layout l, IReadOnlyList<(int X, int Y)> spires, IReadOnlyList<(int X, int Y, Ruins.Home Home)> homes, IReadOnlyList<int> surface)
     {
         int w = l.Width, middle = w / 2, floor = l.Height - g.CoreRows;
         if (homes.Count != g.Homes) return $"{homes.Count} homes";
@@ -383,14 +383,14 @@ public class HomesTests
     {
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.First, seed, out _, out var surface, out var spires, out var homes);
+            var (l, surface, spires, homes) = PlanetTesting.First(seed);
             Assert.Null(Wrong(PlanetTypes.First.Ground, l, spires, homes, surface));
             Assert.Equal(Ruins.Homes.Select(h => h.Id).Order(StringComparer.Ordinal), homes.Select(h => h.Home.Id).Order(StringComparer.Ordinal));
         }
     }
 
     [Fact]
-    public void TheSmallPlanetHoldsOneHomeBesideItsSpireEveryScheme()
+    public void TheSmallPlanetHoldsOneHomeEveryScheme()
     {
         var schemes = new HashSet<string>(StringComparer.Ordinal);
         foreach (uint seed in Enumerable.Range(1, 50).Select(s => (uint)s))
@@ -408,7 +408,7 @@ public class HomesTests
     {
         var ids = Flora.Every.Select(k => k.Id).ToList();
         Assert.Equal(ids.Count, ids.Distinct(StringComparer.Ordinal).Count());
-        Assert.Equal(51, Ruins.Pieces.Count);
+        Assert.Equal(53, Ruins.Pieces.Count);
         Assert.All(Ruins.Pieces, p =>
         {
             Assert.True(p.Across >= 1 && p.Tall >= 1 && p.Strength >= 0, p.Id);
@@ -431,14 +431,14 @@ public class HomesTests
     }
 
     [Fact]
-    public void TheSpiresChamberIsFurnishedEachPieceHeldAndClearOfItsCache()
+    public void TheSpiresHallIsFurnishedEachPieceHeldAndClearOfItsCache()
     {
         // Held() takes every piece's cell for open: a cache's is not.
         Assert.Null(Held(new Ruins.Home("spire", Ruins.Spire, Ruins.SpireFurnishing)));
         Assert.Contains(Ruins.SpireFurnishing, p => p.Kind == Ruins.Cradle);
         foreach (uint seed in Enumerable.Range(1, 20).Select(s => (uint)s))
         {
-            var l = Terrain.Generate(PlanetTypes.Small, seed, out _, out _, out var spires, out _);
+            var l = Terrain.Generate(PlanetTypes.SmallSpire, seed, out _, out _, out var spires, out _);
             var (x0, y0) = spires.Single();
             Assert.All(Ruins.SpireFurnishing, q => Assert.Contains(l.Flora!, p => p.Kind == q.Kind && p.Cell == (y0 + q.Y) * l.Width + x0 + q.X));
         }

@@ -29,7 +29,7 @@ another surface exists.
 `Wreck` is the world every new game starts in: the wreck of `Content.Wreck` centred in a world of
 `Content.World`'s size, its build zone in the middle (`Layout.InWorld`,
 [0048](../../docs/decisions/0048-a-big-world-a-build-zone-inside-it.md)). `WreckMap` is the wreck as
-drawn, 192×96 a character a 16 px cell, doubled to 384×192 cells (`Layout.Doubled`, 0104), with no zone: dev runs and the
+drawn, a character a cell in a box of 384×192 ([the-scoop](../../docs/decisions/2026-10-31-the-scoop.md)), with no zone: dev runs and the
 tests whose cells are the drawing's play it.
 
 ## Migrations

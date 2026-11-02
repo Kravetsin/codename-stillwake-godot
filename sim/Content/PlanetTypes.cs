@@ -152,23 +152,19 @@ public static class PlanetTypes
         LodeOver = 42000,
         LodeMost = 1000,
         // Neutral creatures only on the first planet (the user's word), spawned by habitat (the user's rule, 2026-10-22): the
-        // loper, the tapir and the sixleg on the open ground; the fluff on cave floors of the cold band and, more, the garden's.
-        // Nothing yet in the amber and ember bands: their kinds come later.
+        // loper, the tapir and the sixleg on the open ground. Nothing yet in the caves: their kinds come later.
         Creatures =
         [
             new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 3),
             new(Content.Creatures.Tapir.Id, Content.Creatures.Place.Surface, 2),
             new(Content.Creatures.Sixleg.Id, Content.Creatures.Place.Surface, 2),
-            new(Content.Creatures.Fluff.Id, Content.Creatures.Place.Band, 2, Band: 0),
-            new(Content.Creatures.Fluff.Id, Content.Creatures.Place.Band, 3, Band: 1),
         ],
     };
 
     /// <summary>
     /// The first planet grown small, 128 × 96, for tests and the fuzz: the same generator, a fraction of the cells. Low hills,
-    /// caves a little nearer the surface, a chasm and a hall of its size, one spire (0085), so the fuzz digs alloy, and one home
-    /// (0091), its scheme by the seed, anywhere it fits beside the spire, for a home is wider than the columns left beside a
-    /// clear middle there.
+    /// caves a little nearer the surface, a chasm and a hall of its size, and one home (0091), its scheme by the seed, anywhere it
+    /// fits, for a home is wider than the columns left beside a clear middle there. No spire: its hall and a home cannot share so few columns.
     /// </summary>
     public static readonly PlanetType Small = First with
     {
@@ -195,7 +191,7 @@ public static class PlanetTypes
             HallTall = 8,
             HallFrom = 28,
             Clear = 16,
-            Spires = 1,
+            Spires = 0,
             RuinClear = 24,
             Homes = 1,
             HomeClear = 0,
@@ -207,6 +203,13 @@ public static class PlanetTypes
         },
     };
 
+    /// <summary>The small planet with a spire (0085) in place of its home, for tests and the fuzz, wide enough for one: 192 × 96.</summary>
+    public static readonly PlanetType SmallSpire = Small with
+    {
+        Id = "smallSpirePlanet",
+        Ground = Small.Ground with { Width = 192, Spires = 1, RuinClear = 8, Homes = 0 },
+    };
+
     /// <summary>Every type, in the order <see cref="Surfaces.All"/> lists them; ids never reused, for saves hold them.</summary>
-    public static readonly IReadOnlyList<PlanetType> All = [First, Small];
+    public static readonly IReadOnlyList<PlanetType> All = [First, Small, SmallSpire];
 }

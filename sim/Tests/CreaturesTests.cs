@@ -516,14 +516,12 @@ public class CreaturesTests
     }
 
     /// <summary>
-    /// Every grazer drops hide and fat with its biomass, by its size: the tapir the most, the fluff the least, a fat only now
-    /// and then; the sentry none.
+    /// Every grazer drops hide and fat with its biomass, by its size: the tapir the most; the sentry none.
     /// </summary>
     [Theory]
     [InlineData("tapir", 2, 3, 2, 3)]
     [InlineData("loper", 1, 2, 1, 2)]
     [InlineData("sixleg", 1, 2, 1, 2)]
-    [InlineData("fluff", 1, 1, 0, 1)]
     public void AGrazerKilledDropsHideAndFatByItsSize(string species, int hideLeast, int hideMost, int fatLeast, int fatMost)
     {
         const int kills = 20;
@@ -787,9 +785,9 @@ public class CreaturesTests
     }
 
     [Fact]
-    public void TheFirstPlanetsKindsSpawnByHabitatTheWalkersUnderTheSkyTheFluffOnCaveFloors()
+    public void TheFirstPlanetsKindsSpawnByHabitatTheWalkersUnderTheSkyNoneInTheCaves()
     {
-        // The user's rule: by habitat. Under the sky the loper, the tapir and the sixleg, each drawn; in the cold band's caves the fluff alone.
+        // The user's rule: by habitat. Under the sky the loper, the tapir and the sixleg, each drawn; in the caves none yet.
         string[] Spawned(Layout map)
         {
             var w = CreaturesTesting.Planet(map).Breathing();
@@ -802,10 +800,8 @@ public class CreaturesTests
             return [.. w.M.Creatures.Creatures.Select(c => c.Species).Distinct().Order(StringComparer.Ordinal)];
         }
         Assert.Equal([Tune.Loper.Id, Tune.Sixleg.Id, Tune.Tapir.Id], Spawned(Wide(700, 12)));
-        Assert.Equal([Tune.Fluff.Id], Spawned(Wide(700, 12, '.')));
-        var first = Spec.PlanetTypes.First.Creatures;
-        Assert.All(first.Where(h => h.Species == Tune.Fluff.Id), h => Assert.Equal((Tune.Place.Band, true), (h.Place, h.Band is 0 or 1)));
-        Assert.All(first.Where(h => h.Species != Tune.Fluff.Id), h => Assert.Equal(Tune.Place.Surface, h.Place));
+        Assert.Empty(Spawned(Wide(700, 12, '.')));
+        Assert.All(Spec.PlanetTypes.First.Creatures, h => Assert.Equal(Tune.Place.Surface, h.Place));
     }
 
     [Fact]
@@ -816,7 +812,8 @@ public class CreaturesTests
         var rng = new Rng(new RngState { S = 7 });
         for (int t = 0; t < 400; t++)
         {
-            if (w.M.Creatures.Fuzz(rng, (int)rng.Below(2)) is { } c) w.Do(c);
+            // A clinger let out on a wreck drifting by has a piece to cling to: not what this is about.
+            if (w.M.Creatures.Fuzz(rng, (int)rng.Below(2)) is { } c && !(c is Release r && Tune.Get(r.Species).Body is Tune.Clinger)) w.Do(c);
             w.Run();
         }
         // The stream's pieces drift by, none a derelict: each looked at, none guarded.

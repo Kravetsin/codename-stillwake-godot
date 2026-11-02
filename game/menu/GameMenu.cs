@@ -20,7 +20,7 @@ public partial class GameMenu : CanvasLayer
 {
     private readonly Ui _ui;
     private readonly Func<bool> _busy, _inWorld, _owns;
-    private readonly Action _putAway, _handbook;
+    private readonly Action _putAway, _handbook, _tree;
     private readonly Func<string> _save, _foot;
     private readonly VBoxContainer _main, _settings;
     private readonly Func<string?> _updateTo, _updating;
@@ -34,6 +34,7 @@ public partial class GameMenu : CanvasLayer
     /// <param name="busy">Whether anything is open or in hand that Esc puts away first.</param>
     /// <param name="putAway">Closes the inventory and its crate and the Handbook, and puts the plan away.</param>
     /// <param name="handbook">Opens the Handbook (0066): a line here says J does, for a player who has not found it.</param>
+    /// <param name="tree">Opens the tech tree: a line here says T does.</param>
     /// <param name="look">Opens the look editor.</param>
     /// <param name="suits">The suit colours' row, shown in the settings.</param>
     /// <param name="save">Saves the world, and says how it went as an i18n key.</param>
@@ -46,10 +47,10 @@ public partial class GameMenu : CanvasLayer
     /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
     /// <param name="update">Fetches the newer release and restarts into it.</param>
     /// <param name="updating">How an update stands while it runs.</param>
-    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Action handbook, Action look, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
+    public GameMenu(Ui ui, Func<bool> busy, Action putAway, Action handbook, Action tree, Action look, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
         Action exitToTitle, Action quit, Func<string> foot, string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
-        (_ui, _busy, _putAway, _handbook, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, handbook, save, inWorld, owns, foot);
+        (_ui, _busy, _putAway, _handbook, _tree, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, handbook, tree, save, inWorld, owns, foot);
         (_updateTo, _updating) = (updateTo, updating);
         Layer = ScreenLayers.Menu;
         Visible = false;
@@ -76,6 +77,11 @@ public partial class GameMenu : CanvasLayer
         {
             Show(MenuPage.Closed);
             _handbook();
+        }));
+        _main.AddChild(Choice("menu.tree", () =>
+        {
+            Show(MenuPage.Closed);
+            _tree();
         }));
         _main.AddChild(Choice("menu.look", () =>
         {

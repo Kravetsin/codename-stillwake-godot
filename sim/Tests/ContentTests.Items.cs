@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -16,7 +15,7 @@ public partial class ContentTests
     {
         foreach (var item in Content.Items.All) Assert.True(item.Stack > 0, item.Id);
         // Natural ground (0077) is dug into what it costs: soil, and stone into rock.
-        foreach (var material in Materials.All.Where(m => !m.Natural)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
+        foreach (var material in Materials.All.Where(m => !m.Natural && m.As == null)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
     }
 
     [Fact]
@@ -71,7 +70,6 @@ public partial class ContentTests
         Assert.Equal(ItemGroup.Salvage, Content.Items.Get("scrapChunk").Group);
         Assert.Equal(ItemGroup.Material, Content.Items.Get("scrap").Group);
         Assert.InRange(Inventory.Hotbar, 1, Inventory.Slots - 1);
-        Assert.Equal(0, Inventory.Slots % Inventory.Hotbar);
     }
 
     [Fact]

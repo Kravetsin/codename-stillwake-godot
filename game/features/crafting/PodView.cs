@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Features.Light;
 using Stillwake.Game.Render;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Crew;
@@ -18,7 +19,7 @@ namespace Stillwake.Game.Features.Crafting;
 /// at the hatch and the glow fades. Drawn unlit, for a screen and a glowing glass give their own light,
 /// and each lights the room round it a little in its colour (a <see cref="Glow"/>).
 /// </summary>
-public partial class PodView : Node2D
+public partial class PodView : Node2D, ILightSource
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>What the pods are doing is read this often; the screens run every frame.</summary>
@@ -28,6 +29,7 @@ public partial class PodView : Node2D
     /// <summary>Seconds the glass glows on once a hero is made.</summary>
     private const double Afterglow = 1.2;
     /// <summary>How much of its colour a screen's light gives, ready and at work, and the glass's at its brightest.</summary>
+    private static readonly (float R, float G, float B) Pale = Stillwake.Game.Light.Pod;
     private const float ReadyLight = 0.22f, WorkingLight = 0.4f, GlassLight = 0.6f;
 
     private static readonly Color Dark = new("04130d"), Green = new("4ade80"), GreenLo = new("167a40"), Amber = new("fbbf24"),
@@ -38,6 +40,7 @@ public partial class PodView : Node2D
     private readonly IItemsQueries _items;
     private readonly ICrewQueries _crew;
     private readonly List<(Vector2 Corner, Doing Doing, bool Holds)> _pods = [];
+    private readonly List<LightSource> _lights = [];
     /// <summary>The glass lit from inside, and its glow on the room, over the pod heroes are made at.</summary>
     private readonly Sprite2D _glass = new()
     {
@@ -102,6 +105,9 @@ public partial class PodView : Node2D
         QueueRedraw();
     }
 
+    /// <summary>Each pod's own light, for the light feature.</summary>
+    public IReadOnlyList<LightSource> Lights => _lights;
+
     /// <summary>Each pod's screen lighting the room: steady green ready, flickering with the dots at work.</summary>
     private void Light()
     {
@@ -110,6 +116,12 @@ public partial class PodView : Node2D
             var glow = new Glow();
             AddChild(glow);
             _screens.Add(glow);
+        }
+        _lights.Clear();
+        foreach (var (corner, _, _) in _pods)
+        {
+            var middle = corner + new Vector2(24, 12);
+            _lights.Add(new LightSource(middle.X, middle.Y, Pale, 1, Stillwake.Game.Light.LampReach, Stillwake.Game.Light.LampKeep, Stillwake.Game.Light.LampMost));
         }
         for (int i = 0; i < _screens.Count; i++)
         {

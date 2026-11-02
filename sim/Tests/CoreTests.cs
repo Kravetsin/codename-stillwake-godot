@@ -66,6 +66,27 @@ public class CoreTests
     }
 
     [Fact]
+    public void AWorldKeepsItsIdThroughASaveAndHashesAlike()
+    {
+        var w = new Scenario(Map);
+        var world = World.Create(1, Layout.Parse(["#.#"]), w.Modules(), 7);
+        Assert.Equal(7u, world.Id);
+        var loaded = World.Load(world.Save(), w.Modules());
+        Assert.Equal(7u, loaded.Id);
+        Assert.Equal(world.Hash(), loaded.Hash());
+        Assert.NotEqual(world.Hash(), World.Create(1, Layout.Parse(["#.#"]), w.Modules()).Hash());
+    }
+
+    [Fact]
+    public void AWorldWithNoIdSavesWithoutOne()
+    {
+        var w = new Scenario(Map);
+        using var save = System.Text.Json.JsonDocument.Parse(w.World.Save());
+        Assert.False(save.RootElement.TryGetProperty("id", out _));
+        Assert.Equal(0u, World.Load(w.World.Save(), w.Modules()).Id);
+    }
+
+    [Fact]
     public void RefusesASaveOfAnotherSetOfModules()
     {
         var w = new Scenario(Map);

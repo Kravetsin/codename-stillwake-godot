@@ -189,6 +189,10 @@ public partial class EffectsView : Node2D
             double b = LuminousMath.Brightness(g) * (g.Look.Matter ? MatterLight : 1);
             if (b > 0.006) Blob(_light, SoftDots.Dot, g.X, g.Y, g.Size * 2, ColourOf(LuminousMath.RampAt(g.Look.Ramp, g.Age), b));
         }
+        // A wisp of light rather than matter: the dark of space would hide one the room must light.
+        foreach (var g in live)
+            if (g.Look.Kind == Glimmer.Wisp && !g.Look.Matter) Wisp(_light, g, LuminousMath.RampAt(g.Look.Ramp, g.Age));
+        _light.DrawSetTransform(Vector2.Zero);
         foreach (var g in live)
         {
             if (g.Look.Low || g.Look.Matter && g.Look.Kind != Glimmer.Chip || g.Look.Halo <= 0 && g.Look.Kind != Glimmer.Chip) continue;

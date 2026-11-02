@@ -29,10 +29,11 @@ pipes.
   canister in about 9000 ticks instead of about 1125: liquid leaves at most at the vaporizers' rate. The air overlay's
   `Lasts` shows that; its `Oxygen` is the liquid behind the vaporizers feeding the room.
 - **A room in vacuum says why**: no vent, not piped to a vaporizer, the tank behind it dry, or no power.
-- **Saves** keep their bytes with a new meaning (format 39): a tank's oxygen is liquid, a generator's store and work its
+- **Saves** keep their bytes with a new meaning (format 43): a tank's oxygen is liquid, a generator's store and work its
   gas and progress. Old ships piped tank to vent lose their supply and the player re-pipes; nothing was released.
-- **The wreck**, until its crate comes: a tank in the torn room B, one canister's worth in it, piped to the
-  vaporizer, which is piped to the vent.
+- **The pod takes no liquid** ([the-scoop](2026-10-31-the-scoop.md)): an air source with no input port makes its air from
+  nothing, so the starting room keeps its air with no tank; an air source with an input, the vaporizer, makes it only
+  from the liquid behind it. The starting wreck has no tank, so it needs no canisters to begin.
 
 Rejected: liquid and gas kept only inside machines, with one pipe fluid (the chain would not read in the pipes); a new
 kind id for the vaporizer (a migration of every slice for a name).

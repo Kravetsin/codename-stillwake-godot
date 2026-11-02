@@ -45,6 +45,9 @@ public static class Surfaces
         /// <summary>The weaker meteors striking it till then (2026-10-29-weak-meteors-till-landing); <see cref="Meteors"/> when none.</summary>
         public Meteors.Shower? MeteorsBeforeLanding { get; init; }
 
+        /// <summary>The magnetic flares that break its machines (2026-10-30-magnetic-flare); none on a planet.</summary>
+        public MagneticFlares.Flare? Flares { get; init; }
+
         /// <summary>
         /// Whether its tools break what stands on its grid, and nothing on it is taken apart by a mark (a planet: the fan of rays);
         /// else the plan alone takes things apart and its tools break nothing of its grid (the ship).
@@ -67,8 +70,14 @@ public static class Surfaces
         public bool Allows(string kind) => Builds == null || Builds.Contains(kind, StringComparer.Ordinal);
     }
 
-    /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was, sentries on the derelicts and the starting space's meteors.</summary>
-    public static readonly Kind Ship = new("ship", []) { Guards = [Creatures.Derelicts], Meteors = Content.Meteors.StartingSpace, MeteorsBeforeLanding = Content.Meteors.BeforeLanding };
+    /// <summary>The ship, surface 0: its grid is the world's layout; every rule as it always was, sentries on the derelicts, the starting space's meteors and flares.</summary>
+    public static readonly Kind Ship = new("ship", [])
+    {
+        Guards = [Creatures.Derelicts],
+        Meteors = Content.Meteors.StartingSpace,
+        MeteorsBeforeLanding = Content.Meteors.BeforeLanding,
+        Flares = MagneticFlares.StartingSpace,
+    };
 
     /// <summary>
     /// Ground under open sky, a cliff, hills and a cave down a shaft with a ladder, drawn by hand for tests and --strip, a character a 16 px cell and doubled as it opens (0104): under

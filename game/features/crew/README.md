@@ -8,28 +8,30 @@ commands reach the sim; others' heroes come through the host.
 
 | File | Holds |
 | --- | --- |
-| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`, a `Step` at 60/s (0047, 0106) |
-| `logic/Rig.cs` | the figure's joints and limbs; the fist and what it holds (0040) |
-| `logic/Pose.cs` | poses, the head's turn, `Jumped`/`Landed`, the air's blend (0090) |
-| `logic/Motion.cs` | lean and landing, read from motion (0090) |
+| `logic/Hero.cs` | the controller: `Hero`, `Step` (0047, 0106) |
+| `logic/Rig.cs` | the figure's joints and limbs; the fist (0040) |
+| `logic/Pose.cs` | poses, the head's turn, the air's blend (0090) |
+| `logic/Motion.cs` | lean and landing (0090) |
+| `logic/LookTint.cs` | skin, hair on hi-res parts |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan |
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
-| `logic/HarpoonLine.cs` | the harpoon's line as drawn |
+| `logic/HarpoonLine.cs` | the harpoon's line |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
 | `logic/Seating.cs` | a hero in or flying a drop pod |
 | `logic/FogMove.cs` | across a planet's fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
-| `UsePrompt.cs` | the prompt at the bottom middle |
+| `UsePrompt.cs` | the prompt at the bottom |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
 | `logic/Remote.cs` | what is sent of heroes, and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
+| `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
-| `Figure.cs` | the sprite rig, lit, posed, dressed; dust (0075, 0090) |
+| `Figure.cs` | the sprite rig, lit, dressed; dust (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, with its lining |
@@ -64,7 +66,7 @@ commands reach the sim; others' heroes come through the host.
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`) at any frame rate, drawn between its last two steps; floats only in drawing.
+  (`Net.Clock`) at any frame rate, drawn between two steps; floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` a step to the
   nearest fit, carrying no speed (0089).
@@ -82,8 +84,8 @@ commands reach the sim; others' heroes come through the host.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
 - **Camera:** leads where last moved, eases height, snaps to a new place.
-- **Jetpack and swim** (0047): afloat the hero swims on its tether; with a jetpack it ties none and Shift thrusts;
-  `Thrust` is sent while own thrust differs from the sim's.
+- **Jetpack and swim** (0047): afloat the hero swims on its tether, through floors; with a jetpack it ties none and Shift thrusts;
+  `Thrust` is sent while it differs from the sim's.
 - **A canister** (0047, 0081): right click sends `Refill` if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
@@ -103,11 +105,10 @@ commands reach the sim; others' heroes come through the host.
 ## The hands
 
 - **What the hand holds shows** (`HeldLook`); on a plan the screwdriver twists.
-- **Left is the front, right the back** (0107, 0108): the screwdriver works plans on the left button; the plan,
-  wiring, lays cables; a tool on the right does nothing.
-- **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck
-  under the pointer, else the nearest small piece in space. Outlined green or red; `UsePrompt` says why. A plan
-  in hand (0022): E does nothing.
+- **Left is the front, right the back** (0107, 0108): the screwdriver works plans, or repairs what is broken, on the
+  left button; the plan, wiring, lays cables; a tool on the right, nothing.
+- **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck under the
+  pointer, else the nearest small piece afloat. Outlined green or red; `UsePrompt` says why. Plan in hand: E idle.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
   strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.

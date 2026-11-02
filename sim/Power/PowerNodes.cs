@@ -108,11 +108,12 @@ internal static class PowerNodes
     /// while one rests, its modules folded in (0086). Its stores, holding what <paramref name="stored"/> says by machine
     /// id, settle the tick (<see cref="Settle"/>, 0101); satisfaction is <c>floor(1000 × served / demand)</c>, served
     /// being supply and what the stores gave, at most 1000, and 1000 with nothing drawn. Flows are each cabled store's
-    /// this tick, by machine id: in above 0, out below. A powered machine with no cable is on no network.
+    /// this tick, by machine id: in above 0, out below. A powered machine with no cable is on no network; a
+    /// <paramref name="broken"/> one stays a node and makes, draws and stores nothing, its satisfaction left out.
     /// </summary>
     public static (List<PowerNetwork> Networks, Dictionary<int, int> Satisfaction, List<(int Machine, int Flow)> Flows) Find(
         IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, int> draw, Func<Machine, bool> making,
-        Func<int, int> stored)
+        Func<int, int> stored, Func<int, bool> broken)
     {
         var ends = new List<int>(cables.Count * 2);
         foreach (var c in cables) { ends.Add(c.A); ends.Add(c.B); }
@@ -156,7 +157,7 @@ internal static class PowerNodes
             var m = grid.MachineAt(nodes[at]);
             if (m == null || m.Cell != nodes[at]) continue;
             var s = Spec(m);
-            if (!IsPowered(s)) continue;
+            if (!IsPowered(s) || broken(m.Id)) continue;
             int network = networkOf[at];
             // A fire needs no stars: its module rests it while it is out.
             if (s.Makes is int makes && making(m) && (s.FuelSlot != null || UnderStars(grid, rooms, m)))

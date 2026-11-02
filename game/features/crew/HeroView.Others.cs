@@ -195,7 +195,7 @@ public partial class HeroView
         if (rod == Rod.Seated || muzzle is not { } at)
         {
             (line, picture.Visible) = (null, false);
-            light.Step(rod, default, default, default, null, elapsedMs);
+            light.Step(rod, default, default, default, muzzle, elapsedMs);
             return;
         }
         var gun = Thousandths(at);
@@ -204,9 +204,11 @@ public partial class HeroView
         // Stuck in the structure it keeps the way it flew in; riding a piece or winding back, it points along the line.
         if (rod is Rod.Reeling or Rod.Returning && far > 1) pointing = ((tip.X - gun.X) / far, (tip.Y - gun.Y) / far);
         var eye = (tip.X - pointing.X * RodLength, tip.Y - pointing.Y * RodLength);
-        line ??= new HarpoonLine(gun, eye, seed);
-        line.Update(gun, eye, HarpoonShot.Taut(rod), elapsedMs);
-        picture.Visible = true;
+        var end = HarpoonLine.EndOf(gun, tip, pointing, RodLength);
+        line ??= new HarpoonLine(gun, end, seed);
+        line.Update(gun, end, HarpoonShot.Taut(rod), elapsedMs);
+        // Flying or winding back, none of it shows over the gun while its eye is in there; stuck, a hero hanging may be that close.
+        picture.Visible = end != gun || rod is not (Rod.Flying or Rod.Returning);
         picture.Position = Pixels(eye);
         picture.Rotation = (float)Math.Atan2(pointing.Y, pointing.X);
         light.Step(rod, Pixels(tip), Unit(pointing), Pixels(eye), at, elapsedMs);

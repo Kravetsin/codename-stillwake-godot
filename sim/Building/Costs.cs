@@ -69,6 +69,11 @@ internal static class Costs
         return BuiltAt(grid, plan.Cell, plan.Clear!) is { } built ? ApartTicks(built.BuildTicks) : 1;
     }
 
+    /// <summary>Ticks of work repairing a broken <paramref name="kind"/> takes: its build ticks' share, rounded up.</summary>
+    public static int RepairTicks(string kind) => ShareUp(Machines.Get(kind).BuildTicks);
+
+    private static int ShareUp(int n) => (n * RepairRules.Share + 999) / 1000;
+
     /// <summary>The parts a blueprint's work is split into, each paid with one item as it begins: as many as its cost has items.</summary>
     public static int PartsOf(Cost cost) => cost.Sum(c => c.Count);
 

@@ -52,6 +52,7 @@ public partial class EnergyBar : CanvasLayer
         _tab.Visible = Shown != null;
         if (Shown is not { } belt) return;
         _tab.Motion.Read(belt.Share);
+        _tab.Most = belt.Most;
         _tab.Low = belt.Low;
         _tab.Bright = belt.Worn ? 1 : Look.NoBattery;
     }
@@ -76,6 +77,7 @@ public partial class EnergyBar : CanvasLayer
         }
 
         public GaugeMotion Motion { get; } = new();
+        public int Most { get; set; }
         public bool Low { get; set; }
         public float Bright { get; set; } = 1;
 
@@ -103,7 +105,7 @@ public partial class EnergyBar : CanvasLayer
             var colour = AsciiArt.Colour(Low ? Look.EnergyLow : Look.Energy).Lerp(Colors.White, flash);
             colour.A = pulse * Bright;
             DrawTextureRect(Bolt, BoltAt, false, Colors.White with { A = Bright });
-            var groups = Charges.Grouped(Charges.UnitsOf(Motion.Trail)).Split(Charges.Thin);
+            var groups = Charges.Grouped(Charges.UnitsOf(Motion.Trail, Most)).Split(Charges.Thin);
             // Right-aligned, a group at a time from the right, a thin space between.
             float x = Size.X - Look.EnergyRight;
             for (int i = groups.Length - 1; i >= 0; i--)

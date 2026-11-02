@@ -344,7 +344,8 @@ public class BudgetTests(ITestOutputHelper output)
         string[] under = ["", "", "", "", " o  --", " ---", "", ""];
         string[] Rows(string[] of) => [.. Enumerable.Range(0, 256).Select(y => string.Concat(Enumerable.Repeat(of[y % 8].PadRight(8), 32)))];
         var cables = from ty in Enumerable.Range(0, 32) from tx in Enumerable.Range(0, 32) select ((8 * tx, 8 * ty + 7), (8 * tx + 3, 8 * ty + 4));
-        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under), [.. cables]), doubled: true);
+        // Knowing little, so the rule's walk is timed too: the furnaces move what it follows every tick.
+        var w = new Scenario(Layout.Parse(Rows(tile), Rows(under), [.. cables]) with { Known = Content.Research.StartKnown }, doubled: true);
         foreach (var m in w.M.Grid.Machines)
         {
             if (m.Kind == "furnace") w.FillCrate(m.Id, ("scrapChunk", 10), ("planks", 50));
@@ -355,13 +356,34 @@ public class BudgetTests(ITestOutputHelper output)
         var ticks = Time(w.World, 300, _ => []);
         var furnaces = w.M.Grid.Machines.Where(m => m.Kind == "furnace").ToList();
         int burning = furnaces.Count(m => w.M.Furnace.At(m.Id).Burning);
-        int selling = w.M.Grid.Machines.Count(m => m.Kind == "tradeStation" && w.M.Trade.SellingFrom(m.Id) != null);
+        int selling = w.M.Grid.Machines.Count(m => m.Kind == "tradeStation" && w.M.Trade.Worth(m.Id) > 0);
         output.WriteLine($"{w.M.Grid.Machines.Count} machines, {burning} of {furnaces.Count} furnaces burning, {selling} trade stations selling");
         output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
         Assert.True(burning > 1000 && selling > 1000, "the machines stand idle");
         // Two thousand machines, more than a world will hold: twice the budget. A desk took about 2.6 ms before liquid oxygen,
         // 3.2–3.7 ms with a vaporizer and a panel to each room.
         Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
+    }
+
+    /// <summary>
+    /// The rule's walk (docs/plans/board.md) at its dearest: nothing known yet, every part looked up, and something counted before
+    /// every pass, as a world of busy furnaces has. Timed by itself: its share is too small to tell from a whole tick's noise.
+    /// </summary>
+    [Fact]
+    public void TheRulesWalkTakesAFractionOfATick()
+    {
+        var w = new Scenario(Layout.Parse(["##########", "#II......#", "##########"], null) with { Known = [] }, doubled: true).Run();
+        const int Passes = 2000;
+        var clock = Stopwatch.StartNew();
+        for (int i = 0; i < Passes; i++)
+        {
+            w.M.Knowledge.Obtain("scrapChunk", 1);
+            w.M.Research.Walk();
+        }
+        clock.Stop();
+        double mean = clock.Elapsed.TotalMilliseconds / Passes;
+        output.WriteLine($"a walk: {mean:F4} ms mean");
+        Assert.True(mean < Within(0.2), $"a walk takes {mean:F4} ms");
     }
 
     /// <summary>

@@ -27,6 +27,8 @@ public sealed partial class AtmosphereModule
         public readonly Dictionary<int, int> MadeOn = new();
         /// <summary>Each vaporizer's satisfaction, in thousandths, by id: read with <see cref="MadeOn"/>.</summary>
         public readonly Dictionary<int, int> Power = new();
+        /// <summary>The air sources that take no liquid in, the pod: they make air from nothing (2026-10-31-the-scoop). Only looked up.</summary>
+        public readonly HashSet<int> Endless = [];
         /// <summary>How many cells of each room are aired, by room id: rooms are named by cells.</summary>
         public int[] AiredIn = [];
         /// <summary>Per cell, whether it holds air: kept in step with every change of the aired cells.</summary>
@@ -73,7 +75,7 @@ public sealed partial class AtmosphereModule
         s.Power.Clear();
         foreach (var (network, generator) in s.Generators)
         {
-            int satisfied = _power.Satisfaction(generator);
+            int satisfied = MadeShare(generator);
             s.Power[generator] = satisfied;
             s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + satisfied;
         }
@@ -97,6 +99,7 @@ public sealed partial class AtmosphereModule
         {
             var cells = _grid.PortsOf(m);
             var ports = Content.Machines.Get(m.Kind).Ports;
+            if (!ports.Any(p => p.Way == Way.In)) s.Endless.Add(m.Id);
             for (int i = 0; i < cells.Count; i++)
             {
                 if (_pipes.NetworkAt(cells[i]) is not int network) continue;
@@ -238,7 +241,7 @@ public sealed partial class AtmosphereModule
     {
         if (GasOn(s, network) > 0) return true;
         foreach (int vaporizer in ListAt(s.StoresOn, network))
-            if (s.Power.GetValueOrDefault(vaporizer) > 0 && LiquidBehind(s, vaporizer) > 0) return true;
+            if (s.Power.GetValueOrDefault(vaporizer) > 0 && (s.Endless.Contains(vaporizer) || LiquidBehind(s, vaporizer) > 0)) return true;
         return false;
     }
 
@@ -341,7 +344,8 @@ public sealed partial class AtmosphereModule
             // The liquid behind the vaporizers feeding the room, each tank counted once.
             var tanks = new SortedSet<int>();
             foreach (int v in vaporizers) foreach (int t in ListAt(s.Behind, v)) tanks.Add(t);
-            int? oxygen = vaporizers.Count == 0 ? null : HeldBy(s, [.. tanks]);
+            // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out.
+            int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]);
             var now = Status(s, room);
             int leak = LeakOf(room);
             // Venting, each vent drains its network, so a network under two vents drains twice.
@@ -410,11 +414,15 @@ public sealed partial class AtmosphereModule
         return (int)(DueBy(beat + 1) - DueBy(beat));
     }
 
+    /// <summary>How much of its rate generator <paramref name="generator"/> makes, in thousandths: as much as its power, or all of it if it draws none.</summary>
+    public int MadeShare(int generator) =>
+        _grid.MachineById(generator) is { } m && Content.Machines.Get(m.Kind).Draws is null or 0 ? 1000 : _power.Satisfaction(generator);
+
     /// <summary>
-    /// Each vaporizer, in id order, after lower ids have drawn, works toward its next unit by <c>Air.GeneratorRate</c> ×
-    /// its power's satisfaction, but only while its store has room and the tanks behind it hold liquid; else its work
-    /// stands, so nothing is made from nothing and nothing lost. Each unit it finishes takes a unit of liquid from those
-    /// tanks in id order into its store; what room or liquid leaves unmade stays in its work.
+    /// Each air source, in id order, after lower ids have drawn, works toward its next unit by <c>Air.GeneratorRate</c> ×
+    /// <see cref="MadeShare"/>, but only while its store has room and, if it takes liquid in (the vaporizer), the tanks
+    /// behind it hold some; else its work stands. Each unit a vaporizer finishes takes a unit of liquid from those tanks in
+    /// id order; one with no input (the piped pod) makes its air from nothing. What room or liquid leaves unmade stays.
     /// </summary>
     private void Produce(Survey s)
     {
@@ -426,19 +434,22 @@ public sealed partial class AtmosphereModule
         bool added = false;
         foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
         {
-            // The work kept and the vaporizers are both in id order: one pass finds each one's.
+            // A pod on no pipe is only a pod: nothing to store, nothing saved.
+            if (Content.Machines.Get(m.Kind).Draws is null or 0 && !OnAPipe(m)) continue;
+            // The work kept and the sources are both in id order: one pass finds each one's.
             while (next < was.Count && was[next].Generator < m.Id) next++;
             int part = next < was.Count && was[next].Generator == m.Id ? was[next].Part : 0;
+            bool endless = s.Endless.Contains(m.Id);
             var store = TankOf(m.Id, sorted);
-            int room = Content.Air.GeneratorStore - (store?.Oxygen ?? 0), liquid = LiquidBehind(s, m.Id);
+            int room = Content.Air.GeneratorStore - (store?.Oxygen ?? 0), liquid = endless ? int.MaxValue : LiquidBehind(s, m.Id);
             if (room > 0 && liquid > 0)
             {
-                part += Content.Air.GeneratorRate * _power.Satisfaction(m.Id);
+                part += Content.Air.GeneratorRate * MadeShare(m.Id);
                 int made = Math.Min(part / unit, Math.Min(room, liquid));
                 part -= made * unit;
                 if (made > 0)
                 {
-                    int left = made;
+                    int left = endless ? 0 : made;
                     foreach (int tank in ListAt(s.Behind, m.Id))
                     {
                         if (left == 0) break;
@@ -459,6 +470,13 @@ public sealed partial class AtmosphereModule
         }
         State.Making = making;
         if (added) State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+    }
+
+    private bool OnAPipe(Machine m)
+    {
+        foreach (int port in _grid.PortsOf(m))
+            if (_pipes.NetworkAt(port) != null) return true;
+        return false;
     }
 
     /// <summary>Tank <paramref name="id"/>'s oxygen among the first <paramref name="count"/> tanks, which are in id order; null for none.</summary>

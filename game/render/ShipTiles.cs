@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Content;
+using Stillwake.Sim;
 
 namespace Stillwake.Game.Render;
 
@@ -58,8 +59,9 @@ public sealed class ShipTiles
                     for (int half = 0; half < 2; half++)
                     {
                         var top = tops.GetRegion(new Rect2I(v * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
-                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile.
-                        if (!top.IsInvisible()) pictures.Add(Picture(TopName(natural, v, front, half), top, Relief.None));
+                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile; a hi-res picture may draw where the pixels did not.
+                        string name = TopName(natural, v, front, half);
+                        if (!top.IsInvisible() || HiRes.Load(name)?.IsInvisible() == false) pictures.Add(Picture(name, top, Relief.None));
                     }
             // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
             // several on the second.
@@ -72,12 +74,14 @@ public sealed class ShipTiles
                 pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Drawn, Drawn, side, side)), Relief.None));
             }
         }
-        foreach (var material in Materials.All.Select(m => m.Id))
+        foreach (var material in Materials.All.Where(m => m.As == null).Select(m => m.Id))
         {
             // Walls are no things standing in the light: flat.
             pictures.Add(Picture($"wall_{material}", Relief.None));
             for (int open = 1; open < 16; open++) pictures.Add(Picture($"wall-edge_{material}_{open}", Relief.None));
         }
+        var fineMade = new Dictionary<string, Image>();
+        AddWreckDress(pictures, fineMade);
         foreach (var name in (string[])[.. HullBacks, "back_iron_plain", "back_iron_grille", .. StructureTiles])
             pictures.Add(Picture(name, Relief.None));
         foreach (var natural in Materials.All.Where(m => m.Natural)) pictures.Add(Picture(BackName(natural.Id), Relief.None));
@@ -96,45 +100,69 @@ public sealed class ShipTiles
             var slid = DoorShape.Slid(PixelsOf(p.Closed)!, PixelsOf(p.Open)!, PixelsOf(p.OverClosed)!, PixelsOf(p.OverOpen)!,
                 PixelsOf(p.NextClosed), PixelsOf(p.NextOpen), Drawn, p.Shift, p.Hatch);
             pictures.Add(Picture(p.Name, Image.CreateFromData(Drawn, Drawn, false, Image.Format.Rgba8, slid), p.Hatch ? Relief.Down : Relief.Across));
+            if (FineSlid(p) is { } fine) fineMade[p.Name] = fine;
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
         foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
+        {
             pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
+            if (HiRes.On && FineWhole(kind) is { } fine) fineMade[PieceName(kind)] = fine;
+        }
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
         foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));
 
         // Shelves of pictures, tallest first, a cell at a time.
         var order = pictures.OrderByDescending(p => p.Diffuse.GetHeight()).ThenBy(p => p.Name, System.StringComparer.Ordinal).ToList();
-        int x = 0, y = 0, shelf = 0;
+        // Hi-res, a cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
+        int clear = HiRes.On ? 1 : 0;
+        int x = clear, y = clear, shelf = 0;
         foreach (var (name, diffuse, _) in order)
         {
             var size = new Vector2I(diffuse.GetWidth() / Cell, diffuse.GetHeight() / Cell);
-            if (x + size.X > Across) (x, y, shelf) = (0, y + shelf, 0);
+            if (x + size.X + clear > Across) (x, y, shelf) = (clear, y + shelf, 0);
             _placed[name] = (new Vector2I(x, y), size);
-            x += size.X;
-            shelf = Mathf.Max(shelf, size.Y);
+            x += size.X + clear;
+            shelf = Mathf.Max(shelf, size.Y + clear);
         }
         int down = y + shelf;
-        var atlas = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
+        int S = HiRes.Scale;
+        var atlas = Image.CreateEmpty(Across * Cell * S, down * Cell * S, false, Image.Format.Rgba8);
         var normals = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
         normals.Fill(Flat);
         foreach (var (name, diffuse, normal) in pictures)
         {
             var at = _placed[name].At * Cell;
-            atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
             normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
+            if (!HiRes.On)
+            {
+                atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
+                continue;
+            }
+            var fine = fineMade.GetValueOrDefault(name) ?? HiRes.Load(name);
+            if (fine != null && fine.GetSize() != diffuse.GetSize() * S && fine.GetSize().X % (Cell * S) != 0 && !name.StartsWith("valve_", StringComparison.Ordinal)) GD.PushError($"hi-res {name}: {fine.GetSize()} for {diffuse.GetSize()}");
+            if (fine == null)
+            {
+                fine = (Image)diffuse.Duplicate();
+                fine.Resize(diffuse.GetWidth() * S, diffuse.GetHeight() * S, Image.Interpolation.Nearest);
+            }
+            fine.FixAlphaEdges();
+            var box = new Rect2I(at * S, diffuse.GetSize() * S);
+            // A valve is centred in its padded cells (see Picture), so its smaller drawing is too.
+            atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + (box.Size - fine.GetSize()) / 2);
+            Extrude(atlas, box, Cell * S / 2);
         }
+        if (HiRes.On) atlas.GenerateMipmaps();
 
-        Texture = new CanvasTexture
-        {
-            DiffuseTexture = ImageTexture.CreateFromImage(atlas),
-            NormalTexture = ImageTexture.CreateFromImage(normals),
-        };
+        Texture = HiRes.On
+            ? HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals))
+            : new CanvasTexture { DiffuseTexture = ImageTexture.CreateFromImage(atlas), NormalTexture = ImageTexture.CreateFromImage(normals) };
         var source = new TileSetAtlasSource
         {
             Texture = Texture,
             TextureRegionSize = new Vector2I(Cell, Cell),
+            // Godot's padding copies pictures by the size the atlas reports, not its pixels: Extrude does this instead.
+            UseTexturePadding = !HiRes.On,
         };
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
@@ -157,6 +185,59 @@ public sealed class ShipTiles
             var spec = name.StartsWith("machine_") && Machines.TryGet(name["machine_".Length..], out var m) ? m : null;
             int rise = spec != null ? Mathf.Max(0, size.Y - spec.Height) : 0, reach = spec?.Exhaust ?? 0;
             source.GetTileData(at, 0).TextureOrigin = -(size - Vector2I.One) * Cell / 2 + new Vector2I(reach * Cell, rise * Cell);
+        }
+    }
+
+    /// <summary>A door's panel part way open from the hi-res pictures, its panel told by what differs between shut and open; none unless all of them are drawn.</summary>
+    private static Image? FineSlid(DoorShape.SlidPicture p)
+    {
+        byte[]? Fine(string? name) => name != null && HiRes.Load(name) is { } image ? image.GetData() : null;
+        int Side = Drawn * HiRes.Scale;
+        if (Fine(p.Closed) is not { } closed || Fine(p.Open) is not { } open || Fine(p.OverClosed) is not { } overClosed || Fine(p.OverOpen) is not { } overOpen) return null;
+        var slid = DoorShape.Slid(closed, open, overClosed, overOpen, Fine(p.NextClosed), Fine(p.NextOpen), Side, p.Shift * HiRes.Scale, p.Hatch);
+        return Image.CreateFromData(Side, Side, false, Image.Format.Rgba8, slid);
+    }
+
+    /// <summary>Copies the edges of <paramref name="box"/> outward <paramref name="by"/> pixels, so a tile sampled past its edge meets itself, not clear.</summary>
+    private static void Extrude(Image atlas, Rect2I box, int by)
+    {
+        var (x, y, w, h) = (box.Position.X, box.Position.Y, box.Size.X, box.Size.Y);
+        for (int i = 1; i <= by; i++)
+        {
+            atlas.BlitRect(atlas, new Rect2I(x, y, 1, h), new Vector2I(x - i, y));
+            atlas.BlitRect(atlas, new Rect2I(x + w - 1, y, 1, h), new Vector2I(x + w - 1 + i, y));
+        }
+        for (int i = 1; i <= by; i++)
+        {
+            atlas.BlitRect(atlas, new Rect2I(x - by, y, w + 2 * by, 1), new Vector2I(x - by, y - i));
+            atlas.BlitRect(atlas, new Rect2I(x - by, y + h - 1, w + 2 * by, 1), new Vector2I(x - by, y + h - 1 + i));
+        }
+    }
+
+    /// <summary>The wreck's dress (<see cref="WreckDress"/>): a picture a cell, a torn one the piece of scrap's wall that lies there in a new world, cut by its mask.</summary>
+    private static void AddWreckDress(List<(string Name, Image Diffuse, Image Normal)> pictures, Dictionary<string, Image> fine)
+    {
+        Image over = Art("wreck_dress"), masks = Art("wreck_tears"), scrap = Art("wall_scrap");
+        Image? fineOver = HiRes.Load("wreck_dress"), fineMasks = HiRes.Load("wreck_tears"), fineScrap = HiRes.Load("wall_scrap");
+        int side = Cell * HiRes.Scale;
+        var corner = Layout.OffsetInWorld(Wreck.Width, Wreck.Height);
+        var (across, down) = (scrap.GetWidth() / Cell, scrap.GetHeight() / Cell);
+        foreach (var (x, y, look) in WreckDress.Cells())
+        {
+            var inSheet = new Rect2I(x * Cell, y * Cell, Cell, Cell);
+            if (look != 'T')
+            {
+                pictures.Add(Picture(WreckDress.OverName(x, y), over.GetRegion(inSheet), Relief.None));
+                if (fineOver != null) fine[WreckDress.OverName(x, y)] = fineOver.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side));
+                continue;
+            }
+            var inWall = new Vector2I((x + Wreck.Left + corner.X) % across * Cell, (y + Wreck.Top + corner.Y) % down * Cell);
+            var wall = scrap.GetRegion(new Rect2I(inWall, Cell, Cell));
+            var torn = WreckDress.Torn(wall.GetData(), masks.GetRegion(inSheet).GetData());
+            pictures.Add(Picture(WreckDress.TornName(x, y), Image.CreateFromData(Cell, Cell, false, Image.Format.Rgba8, torn), Relief.None));
+            if (fineMasks == null || fineScrap == null) continue;
+            var fineTorn = WreckDress.Torn(fineScrap.GetRegion(new Rect2I(inWall * HiRes.Scale, side, side)).GetData(), fineMasks.GetRegion(new Rect2I(inSheet.Position * HiRes.Scale, side, side)).GetData());
+            fine[WreckDress.TornName(x, y)] = Image.CreateFromData(side, side, false, Image.Format.Rgba8, fineTorn);
         }
     }
 
@@ -257,7 +338,7 @@ public sealed class ShipTiles
     private static Image Art(string name)
     {
         if (MadeImages.TryGetValue(name, out var made)) return made;
-        var image = PixelArt.Picture(name).GetImage();
+        var image = PixelArt.Logical(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
         if (!Halved(name)) return image;
@@ -285,7 +366,7 @@ public sealed class ShipTiles
         if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open]
             && Materials.TryGet(material, out var m) && m.Natural)
             return GroundArt.Edge(material, int.Parse(open), Drawn);
-        var image = PixelArt.Picture(name).GetImage();
+        var image = PixelArt.Logical(name).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
         return image;
@@ -304,6 +385,37 @@ public sealed class ShipTiles
         if (spec.Draw != StructureDraw.Door) return (Image)Art(spec.Tile!).Duplicate();
         var build = Builds.Get(kind);
         return Art(DoorShape.Whole(spec.Join == Join.Row, 1)[0]).GetRegion(new Rect2I(0, 0, build.Across * Cell, build.Tall * Cell));
+    }
+
+    /// <summary><see cref="Whole"/> in hi-res; null with no such picture.</summary>
+    private static Image? FineWhole(string kind)
+    {
+        var spec = Structures.ByBuild(kind)!;
+        if (spec.Draw != StructureDraw.Door) return HiRes.Load(spec.Tile!);
+        var build = Builds.Get(kind);
+        return HiRes.Load(DoorShape.Whole(spec.Join == Join.Row, 1)[0])?.GetRegion(new Rect2I(0, 0, build.Across * Cell * HiRes.Scale, build.Tall * Cell * HiRes.Scale));
+    }
+
+    /// <summary>
+    /// The picture <paramref name="name"/>, whose pixels are <paramref name="logical"/>, for what lays pictures together itself (a build
+    /// card): at <see cref="HiRes.Scale"/> times those pixels, its hi-res one or them grown. Off, <paramref name="logical"/> as it is.
+    /// </summary>
+    public static Image FineImageOf(string name, Image logical)
+    {
+        if (!HiRes.On) return logical;
+        var fine = name.StartsWith("piece_", StringComparison.Ordinal) ? FineWhole(name["piece_".Length..]) : HiRes.Load(name);
+        var want = logical.GetSize() * HiRes.Scale;
+        if (fine == null)
+        {
+            fine = (Image)logical.Duplicate();
+            fine.Resize(want.X, want.Y, Image.Interpolation.Nearest);
+            return fine;
+        }
+        if (!name.StartsWith("pipe_", StringComparison.Ordinal) || fine.GetSize() == want) return fine;
+        // A card's pipe runs across its 16 px, as DrawnImageOf's does; the hi-res one is its middle cell alone, so that cell repeats.
+        var run = Image.CreateEmpty(want.X, want.Y, false, Image.Format.Rgba8);
+        for (int x = 0; x < want.X; x += fine.GetWidth()) run.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), new Vector2I(x, (want.Y - fine.GetHeight()) / 2));
+        return run;
     }
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
@@ -328,7 +440,7 @@ public sealed class ShipTiles
     public static int RiseOf(string kind)
     {
         if (Rises.TryGetValue(kind, out int kept)) return kept;
-        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Picture($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
+        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Logical($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
         return Rises[kind] = rise;
     }
 

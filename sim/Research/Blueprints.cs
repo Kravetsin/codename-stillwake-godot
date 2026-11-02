@@ -16,14 +16,14 @@ public static class Blueprints
 
     /// <summary>
     /// Every blueprint there is, with what it places and costs: walls and back walls by material but bedrock, never built
-    /// (0077, 0084); builds; machines but those built into the ship (the lifepod).
+    /// (0077, 0084); builds; machines with a card in the menu, never the lifepod nor a pile.
     /// </summary>
     public static readonly IReadOnlyList<Blueprint> All =
     [
         .. Content.Materials.All.Where(m => m.Built).Select(m => Of(Placement.Wall(m.Id), m.Cost)),
         .. Content.Materials.All.Where(m => m.Built).Select(m => Of(Placement.BackWall(m.Id), m.Cost)),
         .. Content.Builds.All.Select(b => Of(new Placement("structure", b.Id), b.Cost)),
-        .. Content.Machines.All.Where(m => !m.Fixed).Select(m => Of(new Placement("machine", m.Kind), m.Cost)),
+        .. Content.Machines.All.Where(m => m.Menu != null).Select(m => Of(new Placement("machine", m.Kind), m.Cost)),
     ];
 
     private static readonly HashSet<string> Ids = All.Select(b => b.Id).ToHashSet(StringComparer.Ordinal);

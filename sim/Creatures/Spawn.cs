@@ -1,4 +1,5 @@
 using Stillwake.Content;
+using Stillwake.Sim.Building;
 using Stillwake.Sim.Debris;
 using Spec = Stillwake.Content.Creatures;
 
@@ -10,6 +11,53 @@ namespace Stillwake.Sim.Creatures;
 /// </summary>
 public sealed partial class CreaturesModule
 {
+    /// <summary>Kept in a posted creature's <c>Mem</c>: the own cells of its post and its relic, set as it appears.</summary>
+    internal const string PostKey = "post", RelicKey = "relic";
+
+    /// <summary>
+    /// A creature at each standing post, by cell, whose arena's relic stands, with a hero in the keep box of where it stands and none
+    /// tied to it yet: no draw. Under a full cap, or with something built where it stands, the post waits for a later beat.
+    /// </summary>
+    private void Posted()
+    {
+        var all = State.Creatures;
+        foreach (var post in _built.Posts)
+        {
+            if (all.Count >= Spec.Max) return;
+            var to = Flora.Get(post.Kind).Post!;
+            var spec = Spec.Get(to.Species);
+            var (x, y) = Standing(spec, post.Cell % _grid.Width + to.StandX, post.Cell / _grid.Width + to.StandY);
+            if (!AnyHeroKeeps(x, y) || RelicIn(ArenaOf(post)) is not int relic || Overlaps(spec.Body, x, y) || all.Exists(c => c.Recall(PostKey) == post.Cell)) continue;
+            var creature = Add(spec, x, y);
+            creature.Keep(PostKey, post.Cell);
+            creature.Keep(RelicKey, relic);
+        }
+    }
+
+    /// <summary>The arena of <paramref name="post"/>, in cells.</summary>
+    private Box ArenaOf(Plant post)
+    {
+        var to = Flora.Get(post.Kind).Post!;
+        int x = post.Cell % _grid.Width, y = post.Cell / _grid.Width;
+        return new Box(x + to.Left, y + to.Top, x + to.Right, y + to.Bottom);
+    }
+
+    /// <summary>The own cell of the relic standing in <paramref name="arena"/>; null for none, or one taken.</summary>
+    private int? RelicIn(Box arena)
+    {
+        foreach (var r in _built.Relics)
+            if (!r.Taken && arena.Contains(r.Cell % _grid.Width, r.Cell / _grid.Width)) return r.Cell;
+        return null;
+    }
+
+    /// <summary>Whether a body with its bottom middle at (<paramref name="x"/>, <paramref name="y"/>) is in some hero's keep box.</summary>
+    private bool AnyHeroKeeps(int x, int y)
+    {
+        foreach (var at in _heroes)
+            if (Within(Down(x, Unit), Down(y - 1, Unit), at, Spec.Keep)) return true;
+        return false;
+    }
+
     /// <summary>
     /// Round each hero in id order with fewer than <c>Creatures.PerKeep</c> in its keep box, while the surface is under its cap: three
     /// draws, always taken — the side, the columns out, the habitat by weight — then the first place down that column, within the

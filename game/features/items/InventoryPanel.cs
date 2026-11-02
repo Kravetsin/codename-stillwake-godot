@@ -72,6 +72,7 @@ public partial class InventoryPanel : CanvasLayer
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
     private SortButton? _crateKey;
+    private Button? _send;
     private SortSweep _sweep = null!;
     private TextureRect _heldIcon = null!;
     private Label _heldCount = null!, _creative = null!;
@@ -84,7 +85,7 @@ public partial class InventoryPanel : CanvasLayer
     private HBoxContainer? _stored;
     private Label? _storedText, _rate;
     /// <summary>A trade station's: the ship's credits.</summary>
-    private Label? _credits;
+    private readonly CreditLine _credits = new(Tablet.FontSize);
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
     private string? _tooCold;
     /// <summary>The slots, each saying what it holds in the one tooltip.</summary>
@@ -145,6 +146,9 @@ public partial class InventoryPanel : CanvasLayer
 
     /// <summary>What a furnace or a burner generator is doing, by machine id: the furnace module's <c>At</c>.</summary>
     public Func<int, Smelting>? Furnace { get; set; }
+
+    /// <summary>The trade module, for a trade station's capsule: what it would carry and whether it is away.</summary>
+    public Stillwake.Sim.Trade.TradeModule? Trade { get; set; }
 
     /// <summary>The stations, for an electric smelter's or a grow capsule's panel: how far its work is, whether it works, whether it is too cold.</summary>
     public CraftingModule? Crafting { get; set; }
@@ -218,6 +222,8 @@ public partial class InventoryPanel : CanvasLayer
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
+        // What the ship has earned, on the display's metal: it is spent at the tablet, the workbench and the station alike.
+        grid.Mount(_credits, screen => new Vector2(screen.X + WristLook.SideKeyOut, screen.Y - WristLook.SideKeyDown));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -260,7 +266,7 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _credits, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null, null);
+        (_frame, _progress, _problem, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
         (_stored, _storedText, _rate) = (null, null, null);
     }
 
@@ -465,6 +471,8 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var box in _slots)
         {
             var p = box.Place;
+            // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
+            box.Visible = _items!.SlotOpen(p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,

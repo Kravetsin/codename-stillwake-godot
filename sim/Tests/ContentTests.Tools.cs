@@ -1,6 +1,5 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
@@ -10,14 +9,13 @@ namespace Stillwake.Sim.Tests;
 public partial class ContentTests
 {
     [Fact]
-    public void TheAxeIsAToolCraftedAtThePodKnownFromTheStartThatHitsAndSwingsInWholeUnits()
+    public void TheAxeIsAToolCraftedAtThePodThatHitsAndSwingsInWholeUnits()
     {
         Assert.True(Weapons.Axe.Damage > 0);
         Assert.True(Weapons.Axe.Pace > 0);
         Assert.True(Content.Items.TryGet(Weapons.Axe.Item, out var axe));
         Assert.Equal(1, axe!.Stack);
         Assert.True(Crafts.TryGet(Weapons.Axe.Item, out _));
-        Assert.Contains(Weapons.Axe.Item, Content.Research.StartKnown);
     }
 
     [Fact]
@@ -107,8 +105,12 @@ public partial class ContentTests
         Assert.True(Content.Items.TryGet(Harpoon.Item, out var harpoon));
         Assert.Equal(1, harpoon!.Stack);
         Assert.True(Crafts.TryGet(Harpoon.Item, out var craft));
-        Assert.Equal([("tube", 1), ("coil", 1), ("wire", 4)], craft!.Cost);
+        Assert.Equal([("tube", 1), ("wire", 8)], craft!.Cost);
         Assert.DoesNotContain(Harpoon.Item, Content.Research.StartKnown);
+        // Before the nailer, whose targets are only met flying (first-hour-pace), and with what it is made of.
+        var ring = Content.Research.Node(Harpoon.Item)!.Ring;
+        Assert.True(ring < Content.Research.Node("nailer")!.Ring);
+        Assert.All(craft.Cost, c => Assert.True(Content.Research.Node(c.Item)!.Ring <= ring, c.Item));
     }
 
     /// <summary>

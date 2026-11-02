@@ -1,12 +1,11 @@
 using System.Reflection;
 using Stillwake.Content;
-using Stillwake.Game;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Machine footprints, builds, the drone bay, air, power and light.</summary>
+/// <summary>Machine footprints, builds, the drone bay, air and power.</summary>
 public partial class ContentTests
 {
     [Fact]
@@ -31,7 +30,7 @@ public partial class ContentTests
         Assert.Empty(pod.Cost);
         Assert.Equal((0, null, null), (pod.Inputs, pod.Makes, pod.Draws));
         Assert.Contains(Legend.Map, e => Legend.MachineOf(e.Char) == "lifepod");
-        Assert.Single(Layout.Parse(Wreck.Rows).Doubled().Machines(), m => m.Kind == "lifepod");
+        Assert.Single(Layout.Parse(Wreck.Rows).Machines(), m => m.Kind == "lifepod");
         var (x, y) = Content.Crew.PodHatch;
         Assert.True(x >= 0 && x < pod.Width && y >= 0 && y < pod.Height);
     }
@@ -141,43 +140,6 @@ public partial class ContentTests
     }
 
     [Fact]
-    public void PowerLetsTheWrecksOnePanelRunItsGeneratorInFull()
-    {
+    public void PowerLetsASolarPanelRunAGeneratorInFull() =>
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);
-        Assert.NotEmpty(Wreck.Cables);
-    }
-
-    // Light
-
-    [Fact]
-    public void LightFadesInAirMoreThroughMachinesAndACellThickWallLetsNextToNoneThrough()
-    {
-        Assert.True(Light.Margin >= 0);
-        Assert.True(Light.Rounds >= 1);
-        foreach (float keep in (float[])[Light.StarKeep, Light.StarMachine, Light.WallIn, Light.WallDeep, Light.WallOut])
-        {
-            Assert.True(keep > 0);
-            Assert.True(keep < 1);
-        }
-        Assert.True(Light.StarMachine < Light.StarKeep);
-        // Through a wall a cell thick, into the cell beyond: a tenth at most.
-        Assert.True(Light.WallIn * Light.WallOut * Light.StarKeep < 0.1f);
-    }
-
-    [Fact]
-    public void LightComesInColoursAbove0SourcesAtMostTwiceWhiteNeverLeavingACornerBlack()
-    {
-        foreach (var (r, g, b) in (List<(float, float, float)>)[Light.Star, Light.Lamp, Light.Fire])
-            foreach (float n in (float[])[r, g, b])
-            {
-                Assert.True(n > 0);
-                Assert.True(n <= 2);
-            }
-        foreach (float n in (float[])[Light.Ambient.R, Light.Ambient.G, Light.Ambient.B])
-        {
-            Assert.True(n > 0);
-            Assert.True(n < 1);
-        }
-        Assert.True(Light.Particle > 0);
-    }
 }

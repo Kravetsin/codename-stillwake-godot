@@ -71,7 +71,7 @@ public static class Testbed
     /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, the air's chain (liquid-oxygen): a tank
     /// piped along the floor to an oxygen vaporizer, the vaporizer's air to the vent; and a capacitor bank on the supply crate by the pod; room two
     /// a tank by its door, the arc bench, the
-    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the tech station, the trade station on the drone bay, the charging station
+    /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
     /// and the burner generator, two cisterns over the smelter and the assembler, the first piped to the second, and two vaporizers
     /// one over the other right of the grow capsule, the tank's liquid along the floor to both, their air to the vent past the farm's crate;
     /// then the airlock, no vent in it. The ship's computer hangs over room one's vaporizer, the radar

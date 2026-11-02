@@ -27,6 +27,11 @@ public sealed class PowerState
     [JsonInclude] internal List<int> Resting { get; set; } = [];
     /// <summary>What each store holds, by machine id, sorted; only those holding something (0101).</summary>
     [JsonInclude] internal List<StoreCharge> Stores { get; set; } = [];
+    /// <summary>The machines a magnetic flare broke, by id, sorted: they make, draw and store nothing till repaired.</summary>
+    [JsonIgnore] internal List<int> Broken { get; set; } = [];
+    /// <summary>Broken as saved: none written while none is, so a world no flare struck saves as before flares.</summary>
+    [JsonInclude, JsonPropertyName("broken"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<int>? SavedBroken { get => Broken.Count > 0 ? Broken : null; set => Broken = value ?? []; }
     /// <summary>Derived: the networks the cables join, in id order.</summary>
     [JsonIgnore] internal List<PowerNetwork> Networks { get; set; } = [];
     /// <summary>Derived: each cabled user's satisfaction in thousandths, by machine id; only looked up.</summary>
@@ -46,7 +51,7 @@ public interface IPowerQueries
     int? NodeAt(int cell);
     /// <summary>The network node <paramref name="node"/> is on, if a cable ends there.</summary>
     PowerNetwork? NetworkOf(int node);
-    /// <summary>The share of its draw machine <paramref name="machineId"/> gets, in thousandths; 0 off every network.</summary>
+    /// <summary>The share of its draw machine <paramref name="machineId"/> gets, in thousandths; 0 off every network or broken.</summary>
     int Satisfaction(int machineId);
     /// <summary>
     /// Whether a structure a cable ends on at <paramref name="cell"/> has power enough: its network has some to give, made or
@@ -79,6 +84,10 @@ public interface IPowerQueries
     /// its draw, its modules in it, times its share, rounded down; 0 while it charges nothing. What its panel's rate says.
     /// </summary>
     int ChargeRate(int machineId);
+    /// <summary>The machines a magnetic flare broke, by id, sorted (2026-10-30-magnetic-flare).</summary>
+    IReadOnlyList<int> Broken { get; }
+    /// <summary>Whether machine <paramref name="machineId"/> is broken: it makes, draws and stores nothing till repaired.</summary>
+    bool IsBroken(int machineId);
     /// <summary>Why peer <paramref name="peer"/>'s <see cref="Lay"/> from <paramref name="a"/> to <paramref name="b"/> would be refused: what the cable ghost shows.</summary>
     string? LayProblem(int peer, int a, int b);
     /// <summary>Why a <see cref="Move"/> from node <paramref name="from"/> to cell <paramref name="to"/> would be refused: what a dragged end shows.</summary>
@@ -99,6 +108,15 @@ public interface IPowerOps
 
     /// <summary>Machine <paramref name="machineId"/> was just built (0110): every cable ending on a peg at its plug's cell plugs into it.</summary>
     void Plug(int machineId);
+
+    /// <summary>
+    /// Breaks powered machine <paramref name="machineId"/> (2026-10-30-magnetic-flare): every query sees it at once, the networks
+    /// from the next derivation. Its cables, slots and what its store holds stay.
+    /// </summary>
+    void Break(int machineId);
+
+    /// <summary>Machine <paramref name="machineId"/> is repaired: it works again, its networks from the next derivation.</summary>
+    void Mend(int machineId);
 }
 
 /// <summary>
@@ -117,6 +135,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private readonly Func<Machine, bool> _making;
     private readonly Func<int, int> _stored;
     private readonly Predicate<StoreCharge> _storeStanding;
+    private readonly Func<int, bool> _broken;
 
     public override string Id => "power";
 
@@ -131,6 +150,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _making = m => !IsResting(m.Id);
         _stored = StoredIn;
         _storeStanding = s => _grid.MachineById(s.Machine) != null;
+        _broken = IsBroken;
         Handles<Lay>(c => LayProblem(c.From, c.A, c.B), ApplyLay);
         Handles<Move>(c => MoveProblem(c.Node, c.To, c.Cable), ApplyMove);
         Handles<Cut>(CutProblem, ApplyCut);
@@ -143,13 +163,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
             // A machine taken apart rests no more: nothing else tells it to work again. A store taken apart loses what it held.
             if (!State.Resting.TrueForAll(_standing)) State.Resting = State.Resting.FindAll(_standing);
             if (!State.Stores.TrueForAll(_storeStanding)) State.Stores = State.Stores.FindAll(_storeStanding);
+            if (!State.Broken.TrueForAll(_standing)) State.Broken = State.Broken.FindAll(_standing);
             Rebuild();
         });
     }
 
     protected override PowerState Init(Layout layout) => new() { Cables = StartingCables(layout) };
 
-    public override void Rebuild() => (State.Networks, State.Satisfaction, State.Flows) = Find(_grid, _rooms, State.Cables, _draw, _making, _stored);
+    public override void Rebuild() => (State.Networks, State.Satisfaction, State.Flows) = Find(_grid, _rooms, State.Cables, _draw, _making, _stored, _broken);
 
     /// <summary>Where store <paramref name="machineId"/> stands in <c>Stores</c>, or its complement where it would go.</summary>
     private int StoreIndex(int machineId)
@@ -273,6 +294,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     private bool IsResting(int machineId) => State.Resting.BinarySearch(machineId) >= 0;
 
+    public bool IsBroken(int machineId) => State.Broken.BinarySearch(machineId) >= 0;
+
     /// <summary>What <paramref name="m"/> draws while it draws, its modules folded in, rounded up (0086).</summary>
     private int DrawOf(Machine m) => Spec(m).Draws is int draws ? Boost.Cost(draws, _items.Boost(m.Id).Draw) : 0;
 
@@ -282,7 +305,10 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     public IReadOnlyList<PowerNetwork> Networks => State.Networks;
     public int? NodeAt(int cell) => PowerNodes.NodeAt(_grid, cell);
     public PowerNetwork? NetworkOf(int node) => State.Networks.Find(n => n.Nodes.Contains(node));
-    public int Satisfaction(int machineId) => State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
+    public IReadOnlyList<int> Broken => State.Broken;
+
+    // Broken checked here too: a flare strikes in construction, after this tick's networks were found.
+    public int Satisfaction(int machineId) => !IsBroken(machineId) && State.Satisfaction.TryGetValue(machineId, out int s) ? s : 0;
 
     public bool Feeds(int cell) =>
         NodeAt(cell) == cell && NetworkOf(cell) is { } n && (n.Supply > 0 || n.Stored > 0) && n.Satisfaction >= 1000;
@@ -299,7 +325,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     }
 
     public bool Needed(int machineId) =>
-        _grid.MachineById(machineId) is { } m && NetworkOf(m.Cell) is { } network && network.Demand + network.Intake > network.Steady;
+        !IsBroken(machineId) && _grid.MachineById(machineId) is { } m && NetworkOf(m.Cell) is { } network && network.Demand + network.Intake > network.Steady;
 
     // Both are never negative, so integer division is the floor.
     public int ChargeRate(int machineId) =>
@@ -367,12 +393,27 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     {
         var m = _grid.MachineById(machineId)!;
         Rehome(m.Cell, PlugCell(_grid, m));
+        Mend(machineId);
     }
 
     public void Plug(int machineId)
     {
         var m = _grid.MachineById(machineId)!;
         if (IsPowered(Spec(m))) Rehome(PlugCell(_grid, m), m.Cell);
+    }
+
+    public void Break(int machineId)
+    {
+        if (_grid.MachineById(machineId) is not { } m || !IsPowered(Spec(m)))
+            throw new InvalidOperationException($"Machine {machineId} is not a powered machine to break.");
+        int at = State.Broken.BinarySearch(machineId);
+        if (at < 0) State.Broken.Insert(~at, machineId);
+    }
+
+    public void Mend(int machineId)
+    {
+        int at = State.Broken.BinarySearch(machineId);
+        if (at >= 0) State.Broken.RemoveAt(at);
     }
 
     /// <summary>

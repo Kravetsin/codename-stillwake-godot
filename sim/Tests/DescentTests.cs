@@ -268,6 +268,8 @@ public class DescentTests
         var laid = w.M.Items.Floor.GroupBy(s => s.Item).ToDictionary(g => g.Key, g => g.Sum(s => s.Count));
         Assert.Equal(2, laid["biofuel"]);
         Assert.All(Machines.Get("dropPod").Cost, c => Assert.Equal(c.Count, laid[c.Item]));
+        // A pod set down is no find: nothing here counts as obtained (docs/plans/board.md).
+        Assert.Empty(w.M.Knowledge.Obtained);
     }
 
     /// <summary>

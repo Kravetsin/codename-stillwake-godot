@@ -14,7 +14,8 @@ public static class FloraLooks
     /// A kind's pictures: how many, and how many pixels the lowest drawn row of each sinks under the ground's top edge, the rows
     /// there cut off: planted in the ground, not set on it.
     /// </summary>
-    public sealed record Look(int Variants, int Sink);
+    /// <param name="Ink">What else its pictures may be drawn as in the ink art, each the same size with its light in the same place, one a plant.</param>
+    public sealed record Look(int Variants, int Sink, IReadOnlyList<string>? Ink = null);
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
     {
@@ -24,8 +25,15 @@ public static class FloraLooks
         ["bellTeal"] = new(2, 1),
         ["bellViolet"] = new(2, 1),
         ["bellAmber"] = new(2, 1),
-        ["tuft"] = new(3, 1),
+        ["tuft"] = new(3, 1, ["tuft", "tuftReed", "tuftFungus"]),
     };
+
+    /// <summary>The picture a plant of <paramref name="kind"/> is drawn with, by a hash of its cell; its shape and light are read from <c>{kind}_{variant}</c> whatever this says.</summary>
+    public static string Drawn(string kind, int variant, uint hash, bool ink)
+    {
+        var look = Of[kind];
+        return ink && look.Ink is { } kinds ? $"planet/{kinds[(int)(hash / (uint)look.Variants % (uint)kinds.Count)]}_{variant}" : $"planet/{kind}_{variant}";
+    }
 
     /// <summary>
     /// The light a glowing part casts (a seed pod, a berry, a bell), as a lamp's falling off by <see cref="LightKeep"/> a cell

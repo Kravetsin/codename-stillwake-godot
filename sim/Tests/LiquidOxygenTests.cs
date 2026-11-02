@@ -183,27 +183,29 @@ public class LiquidOxygenTests
     }
 
     [Fact]
-    public void AnOldSaveLoadsItsTanksAsLiquidAndItsGeneratorsAsVaporizersNotPiped()
+    public void AnOldSaveLoadsItsTanksAsLiquidATankPipedToAVentNotPipedAndThePodStillAiring()
     {
-        // A format-38 save of a tank drawn straight to a vent: the tank keeps its oxygen as liquid, the room nothing.
+        // A format-42 save of a tank drawn straight to a vent: the tank keeps its oxygen as liquid, the room nothing.
         var old = new Scenario(Layout.Parse(["########", "#.TT...#", "#.TTV..#", "########"], ["", "  o", "  ---"]), doubled: true);
         var save = JsonNode.Parse(old.World.Save())!.AsObject();
-        save["format"] = 38;
+        save["format"] = 42;
         var w = old.Reload(Migrations.Upgrade(save.ToJsonString())).Run(100);
         Assert.Equal(Content.Air.Canister, Oxygen(w, Ids(w, "tank")[0]));
         Assert.Equal("atmosphere.notPiped", Air(w).Problem);
 
-        // The format-38 wreck: its generator's old span now joins its input to the vent; store and work kept.
-        string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "format-38.json"));
+        // The format-42 wreck: its pod takes no liquid in (2026-10-31-the-scoop), so its store and work are kept and it still
+        // airs its room.
+        string fixture = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", "format-42.json"));
         var slice = JsonNode.Parse(fixture)!["slices"]!["atmosphere"]!;
         var m = new Registry();
         World.Load(Migrations.Upgrade(fixture), m.All);
-        int generator = m.Grid.MachinesOf("generator")[0].Id;
+        int generator = m.Grid.MachinesOf("lifepod")[0].Id;
         int stored = slice["tanks"]!.AsArray().Where(t => (int)t!["tank"]! == generator).Select(t => (int)t!["oxygen"]!).SingleOrDefault();
         int part = slice["making"]!.AsArray().Where(g => (int)g!["generator"]! == generator).Select(g => (int)g!["part"]!).SingleOrDefault();
         Assert.Equal(stored, m.Atmosphere.OxygenIn(generator));
         Assert.Equal(part, ((AtmosphereState)m.Atmosphere.Slice).Making.Find(g => g.Generator == generator)?.Part ?? 0);
-        Assert.False(m.Atmosphere.Fed(m.Grid.MachinesOf("vent")[0].Id));
+        Assert.True(m.Atmosphere.Fed(generator));
+        Assert.True(m.Atmosphere.Supplied(generator));
     }
 
     [Property(MaxTest = 60)]

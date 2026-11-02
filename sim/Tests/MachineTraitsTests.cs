@@ -14,14 +14,16 @@ public class MachineTraitsTests
     [Theory]
     [InlineData(MachineTrait.Container, new[] { "crate" })]
     [InlineData(MachineTrait.Gas, new[] { "tank" })]
-    [InlineData(MachineTrait.AirSource, new[] { "generator" })]
-    [InlineData(MachineTrait.Vents, new[] { "vent" })]
+    [InlineData(MachineTrait.AirSource, new[] { "generator", "lifepod" })]
+    [InlineData(MachineTrait.Vents, new[] { "vent", "lifepod" })]
     [InlineData(MachineTrait.Zone, new[] { "droneBay" })]
-    [InlineData(MachineTrait.Glow, new[] { "lamp", "arcLamp" })]
+    [InlineData(MachineTrait.Glow, new[] { "lamp", "arcLamp", "emergencyLamp" })]
     [InlineData(MachineTrait.Fire, new[] { "furnace", "burnerGenerator" })]
     [InlineData(MachineTrait.Computer, new[] { "computer" })]
     [InlineData(MachineTrait.Seats, new[] { "dropPod" })]
     [InlineData(MachineTrait.Lands, new[] { "dropPod" })]
+    [InlineData(MachineTrait.Sells, new[] { "tradeStation", "autoTradeStation" })]
+    [InlineData(MachineTrait.AutoSends, new[] { "autoTradeStation" })]
     public void EachTraitIsWhatItsMachinesAre(MachineTrait trait, string[] kinds)
     {
         Assert.Equal(kinds, Machines.All.Where(m => m.Is(trait)).Select(m => m.Kind));
@@ -43,9 +45,9 @@ public class MachineTraitsTests
     /// and gives it out, and is no air source (liquid-oxygen).
     /// </summary>
     [Fact]
-    public void AnAirSourceMakesGasFromLiquidOnPowerAndATankIsNone()
+    public void AnAirSourceBuiltMakesGasFromLiquidOnPowerAndATankIsNone()
     {
-        foreach (var m in Machines.All.Where(m => m.Is(MachineTrait.AirSource)))
+        foreach (var m in Machines.All.Where(m => m.Is(MachineTrait.AirSource) && !m.Fixed))
         {
             Assert.NotNull(m.Draws);
             Assert.False(m.Is(MachineTrait.Gas));

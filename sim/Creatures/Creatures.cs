@@ -110,6 +110,18 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     /// <summary>Whether <paramref name="c"/> is alerted: a guard that has noticed a hero and will pounce.</summary>
     public static bool Alerted(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Guard && c.Act == null && c.Step == GuardDrive.Alerted;
 
+    /// <summary>Whether <paramref name="c"/> is a guard still asleep at its post.</summary>
+    public static bool Asleep(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Ward && c.Step == WardDrive.Asleep;
+
+    /// <summary>Whether <paramref name="c"/> is a guard stuck where its flight ended.</summary>
+    public static bool Stuck(Creature c) => Spec.Get(c.Species).Brain[c.Drive] is Spec.Ward && c.Act == null && c.Step == WardDrive.Stuck;
+
+    /// <summary>The own cell of the post <paramref name="c"/> is tied to; null for one tied to none.</summary>
+    public static int? PostOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Posted ? c.Recall(PostKey) : null;
+
+    /// <summary>The own cell of the relic <paramref name="c"/> is tied to; null for one tied to none.</summary>
+    public static int? RelicOf(Creature c) => Spec.Get(c.Species).Lifetime == Spec.Lifetime.Posted ? c.Recall(RelicKey) : null;
+
     /// <summary>Whether <paramref name="c"/> is clamped on to its wreck: a clinger not flying.</summary>
     public static bool Clamped(Creature c) => Spec.Get(c.Species).Body is Spec.Clinger && c.Recall(ClingerBody.Mounted) == 1;
 
@@ -158,6 +170,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     public string? ReleaseProblem(string species, int cell)
     {
         var spec = Spec.Get(species);
+        if (spec.Lifetime == Spec.Lifetime.Posted) return "creatures.notHere";
         if (cell < 0 || cell >= _grid.Width * _grid.Height) return "creatures.blocked";
         if (State.Creatures.Count(c => !c.Dead) >= Spec.Max) return "creatures.full";
         return RuleBook.Body(spec.Body).ReleaseProblem(this, spec, cell);
@@ -215,6 +228,7 @@ public sealed partial class CreaturesModule : Module<CreaturesState>
     internal void Kill(Creature c, Spec.Species spec, int away)
     {
         c.Dead = true;
+        if (spec.Lifetime == Spec.Lifetime.Posted) _building.FellPost(c.Recall(PostKey));
         // Out of its top row, so what it gives flies out of it (2026-10-29-kill-feel); anyone may sweep it up at once.
         _items.Spray(Loots.Roll(spec.Yields, Random), TopCell(c, spec), away);
     }
