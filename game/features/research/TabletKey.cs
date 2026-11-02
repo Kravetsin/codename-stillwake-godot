@@ -9,8 +9,8 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The tablet's key on the HUD (docs/plans/board.md), one seam right of the gauge row: a press takes the tablet out, as T does, and a lamp in its metal says
-/// the board has something new ([tablet-key](../../../docs/decisions/2026-10-31-tablet-key.md)). It reads for itself, for the tablet reads nothing while away.
+/// The tablet's key on the HUD (docs/plans/board.md), one seam right of the gauge row: a press takes the tablet out, as T does, and its cap, a frosted lens with a bulb's shade
+/// in it, lights from within when the board or the market has something new ([key-lens](../../../docs/decisions/2026-11-02-key-lens.md)). It reads for itself, for the tablet reads nothing while away.
 /// </summary>
 public partial class TabletKey : CanvasLayer
 {
@@ -80,57 +80,52 @@ public partial class TabletKey : CanvasLayer
 
     public override void _ExitTree() => _tips.Show(null);
 
-    /// <summary>A wrist key whose face shows the board, lit as the sort key is, and above the face the lamp, dark or lit.</summary>
-    private sealed partial class Key(Action pressed) : WristKey(new Vector2(WristLook.TabHeight, WristLook.TabHeight))
+    /// <summary>A wrist key whose cap is the lens, lit by <see cref="KeyGlow"/>, with the soft light it casts on what is round it.</summary>
+    private sealed partial class Key : WristKey
     {
-        private static readonly Color Ink = new("8b98ad"), Afterglow = new("e0f2fe"), Hover = new("bae6fd"), Sky = new("38bdf8"), Held = new("7dd3fc"), LampLit = new("f2b84b"), LampOff = new("3a2f18"), Rim = new("0e1014");
+        /// <summary>The colour of the light it casts, how far it reaches and how much of it is whole, as picked.</summary>
+        private static readonly Color Light = new(250 / 255f, 200 / 255f, 120 / 255f, 0.17f);
+        private const float Reach = 108, Core = 0.1f;
+        /// <summary>How much brighter the light and the lens are under the pointer, and how much less while held; and how the dark lens cools under the pointer.</summary>
+        private const float HoverBy = 1.15f, HeldBy = 0.75f, LensHover = 1.14f;
+        private static readonly Color CoolHover = new(1.17f, 1.3f, 1.42f);
 
-        /// <summary>Three cards and the threads between them, from the glyph's corner; 14 wide, 16 tall.</summary>
-        private static readonly Rect2[] Cards =
-        [
-            new(0, 0, 5, 5), new(9, 5, 5, 5), new(2, 11, 5, 5),
-            new(5, 2, 1, 1), new(6, 3, 1, 1), new(7, 4, 1, 1), new(8, 5, 1, 1), new(3, 5, 1, 6),
-        ];
+        private readonly Action _pressed;
+        private readonly KeyGlow _glow = new();
+        private readonly TextureRect _light = ScreenGlow.Of(Light, Core);
 
-        private bool _lit;
-
-        public bool Lit
+        public Key(Action pressed) : base(new Vector2(WristLook.TabHeight, WristLook.TabHeight))
         {
-            set
-            {
-                if (value == _lit) return;
-                _lit = value;
-                QueueRedraw();
-            }
+            _pressed = pressed;
+            TextureFilter = TextureFilterEnum.Nearest;
+            _light.Size = new Vector2(Reach, Reach);
+            _light.Position = (CustomMinimumSize - _light.Size) / 2;
+            _light.Visible = false;
+            AddChild(_light);
         }
 
-        protected override void Pressed() => pressed();
+        public bool Lit { private get; set; }
+
+        protected override void Pressed() => _pressed();
+
+        public override void _Process(double delta)
+        {
+            base._Process(delta);
+            if (_glow.Step(delta, Lit)) QueueRedraw();
+            float lit = (float)_glow.Lit, by = lit * (State switch { KeyState.Hover => HoverBy, KeyState.Down => HeldBy, _ => 1 });
+            _light.Visible = lit > 0;
+            // Added to what is under it: its colour scales the light, as a wrist screen's lamp flares.
+            _light.SelfModulate = new Color(by, by, by);
+        }
 
         protected override void DrawCap(Rect2 face)
         {
-            Face(face);
-            var (ink, glow, strength) = State switch
-            {
-                KeyState.Down => (Colors.White, Held, 1f),
-                KeyState.Hover => (Hover, Sky, 0.6f),
-                _ => (Ink.Lerp(Afterglow, After), Sky, After),
-            };
-            var at = new Vector2(Mathf.Round(face.Position.X + (face.Size.X - 14) / 2), Mathf.Round(face.Position.Y + (face.Size.Y - 16) / 2) + (State == KeyState.Down ? 1 : 0));
-            if (strength > 0)
-            {
-                Glyph(at, glow with { A = 0.12f * strength }, 2);
-                Glyph(at, glow with { A = 0.3f * strength }, 1);
-            }
-            Glyph(at, ink, 0);
-            var lamp = new Rect2(Size.X - 13, 0, 10, 4);
-            DrawRect(lamp, Rim);
-            DrawRect(lamp.Grow(-1), _lit ? LampLit : LampOff);
-        }
-
-        /// <summary>The cards and threads at <paramref name="at"/>; <paramref name="grow"/> wider for their glow.</summary>
-        private void Glyph(Vector2 at, Color ink, float grow)
-        {
-            foreach (var r in Cards) DrawRect(new Rect2(at + r.Position, r.Size).Grow(grow), ink);
+            string down = State == KeyState.Down ? "_down" : "";
+            float lit = (float)_glow.Lit;
+            var tint = State == KeyState.Hover ? CoolHover.Lerp(new Color(LensHover, LensHover, LensHover), lit) : Colors.White;
+            DrawRect(face.Grow(1), new Color("0e1014"));
+            DrawTextureRect(PixelArt.Picture($"key_lens_dark{down}"), face, false, tint);
+            if (lit > 0) DrawTextureRect(PixelArt.Picture($"key_lens_lit{down}"), face, false, tint with { A = lit });
         }
     }
 }
