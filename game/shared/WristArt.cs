@@ -1,4 +1,5 @@
 using Godot;
+using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Shared;
 
@@ -32,10 +33,22 @@ public static class WristArt
         return art;
     }
 
+    /// <summary>
+    /// A 9-slice's picture at <paramref name="path"/>. Its hi-res one reports the pixel picture's size, so margins stay in art pixels;
+    /// without mipmaps, for a tiled stretch's jump in the texture would pick a coarse one, a line at each repeat.
+    /// </summary>
+    public static Texture2D Slices(string path)
+    {
+        if (HiRes.Load(path["res://art/".Length..^".png".Length]) is not { } fine) return GD.Load<Texture2D>(path);
+        var texture = ImageTexture.CreateFromImage(fine);
+        texture.SetSizeOverride(fine.GetSize() / HiRes.Scale);
+        return new CanvasTexture { DiffuseTexture = texture, TextureFilter = CanvasItem.TextureFilterEnum.Linear };
+    }
+
     /// <summary>Gives <paramref name="art"/> another piece's texture and margins.</summary>
     public static void Use(NinePatchRect art, WristPiece piece)
     {
-        art.Texture = GD.Load<Texture2D>(piece.Texture);
+        art.Texture = Slices(piece.Texture);
         (art.PatchMarginLeft, art.PatchMarginTop, art.PatchMarginRight, art.PatchMarginBottom) =
             (piece.Patch.Left, piece.Patch.Top, piece.Patch.Right, piece.Patch.Bottom);
     }
