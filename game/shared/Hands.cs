@@ -33,7 +33,7 @@ public partial class Hands : Node2D
     private readonly PipesView _pipesBuilt = new();
     private readonly AirView _air;
     private readonly PointerTip _tip;
-    private readonly Features.Water.WaterTip _water;
+    private readonly MachineTips _machines;
     private string? _overlayWas;
     /// <summary>What this player carries is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
     private const double CarriedEveryMs = 250;
@@ -48,7 +48,10 @@ public partial class Hands : Node2D
         _air = new AirView(Ui);
         Menu = new BuildMenu(Plan, Ui);
         _tip = new PointerTip(Ui);
-        _water = new Features.Water.WaterTip(Ui);
+        // What the pointer on a machine tells: water's, then the air's.
+        _machines = new MachineTips(Ui,
+            (m, x, spec) => Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id)),
+            (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)));
         Overlays = new OverlayBar(Ui);
         foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Overlays, _tip]) AddChild(node);
     }
@@ -83,7 +86,7 @@ public partial class Hands : Node2D
         bool seeThrough = Plan.SeesThrough(!wiring && !piping && Layering.Back(buttons.HoldsLeft, buttons.HoldsRight));
         Lit.SeeThrough(pointer is { } at && seeThrough ? new Vector2((float)at.X, (float)at.Y) * ShipCamera.Cell : null);
         _power.Frame(client, m, buttons, wiring ? cuts : [], pointer, bodies, elapsedMs);
-        _water.Frame(m, client.World.Tick, pointer);
+        _machines.Frame(m, client.World.Tick, pointer);
         _pipesBuilt.Frame(client, m);
         _pipes.Visible = piping;
         if (piping) _pipes.Frame(client, m, laid, Plan.ToolCard.Get() == Tools.Valve, cuts, pointer, elapsedMs);

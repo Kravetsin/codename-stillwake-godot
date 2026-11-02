@@ -20,5 +20,7 @@ public static partial class En
         ["atmosphere.notPiped"] = "Vent not piped to a vaporizer",
         ["atmosphere.unpowered"] = "Vaporizer has no power",
         ["atmosphere.dry"] = "The tank behind the vaporizer is empty: load a canister",
+        ["air.tank"] = "Liquid O₂ · {held}/{of}",
+        ["air.makes"] = "Makes {n} O₂ a second",
     };
 }

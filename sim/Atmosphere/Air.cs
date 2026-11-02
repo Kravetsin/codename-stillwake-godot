@@ -21,8 +21,10 @@ public sealed partial class AtmosphereModule
         public readonly Dictionary<int, List<int>> VentsIn = new();
         /// <summary>The vaporizers feeding each network, their output port on it, in id order: draws take from their stores.</summary>
         public readonly Dictionary<int, List<int>> StoresOn = new();
-        /// <summary>The tanks on each vaporizer's input network, by vaporizer id, in id order: what it turns into air.</summary>
+        /// <summary>The tanks whose output is on each vaporizer's input network, by vaporizer id, in id order: what it turns into air.</summary>
         public readonly Dictionary<int, List<int>> Behind = new();
+        /// <summary>Each tank with its output on a network, in id order, and the tanks whose input is on that network: what it pours into.</summary>
+        public readonly List<(int Tank, List<int> Into)> Pours = [];
         /// <summary>The satisfaction, in thousandths, of the vaporizers feeding each network, summed: 0 when none is powered.</summary>
         public readonly Dictionary<int, int> MadeOn = new();
         /// <summary>Each vaporizer's satisfaction, in thousandths, by id: read with <see cref="MadeOn"/>.</summary>
@@ -90,10 +92,27 @@ public sealed partial class AtmosphereModule
         foreach (var m in _grid.MachinesWith(MachineTrait.Vents))
             foreach (int port in _grid.PortsOf(m))
                 if (_pipes.NetworkAt(port) is int network) s.Vents.Add((m.Cell, network));
+        // A tank gives through its output and takes through its input, its ports in its spec's order.
         var tanksOn = new Dictionary<int, List<int>>();
+        var takersOn = new Dictionary<int, List<int>>();
+        var outputs = new List<(int Tank, int Network)>();
         foreach (var m in _grid.MachinesWith(MachineTrait.Gas))
-            foreach (int port in _grid.PortsOf(m))
-                if (_pipes.NetworkAt(port) is int network) AddTo(tanksOn, network, m.Id);
+        {
+            var cells = _grid.PortsOf(m);
+            var ports = Content.Machines.Get(m.Kind).Ports;
+            for (int i = 0; i < cells.Count; i++)
+            {
+                if (_pipes.NetworkAt(cells[i]) is not int network) continue;
+                if (ports[i].Way == Way.In) AddTo(takersOn, network, m.Id);
+                else
+                {
+                    AddTo(tanksOn, network, m.Id);
+                    outputs.Add((m.Id, network));
+                }
+            }
+        }
+        foreach (var (tank, network) in outputs)
+            if (takersOn.TryGetValue(network, out var into)) s.Pours.Add((tank, into));
         // A vaporizer's ports come in its spec's order: its output feeds a network, its input draws the tanks on another.
         foreach (var m in _grid.MachinesWith(MachineTrait.AirSource))
         {
@@ -472,6 +491,51 @@ public sealed partial class AtmosphereModule
         if (added) State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
     }
 
+    /// <summary>
+    /// Tanks in a line (tanks-in-a-line): each tank holding liquid, in id order, pours up to <c>Air.TankFlow</c> into the tanks
+    /// whose input is on its output's network, in id order, as much as each has room for. A later tank pours on in the same
+    /// tick, so a line fills from its last tank.
+    /// </summary>
+    private void Pour(Survey s)
+    {
+        bool added = false;
+        foreach (var (tank, into) in s.Pours)
+        {
+            if (!s.Held.TryGetValue(tank, out var giver)) continue;
+            int left = Math.Min(giver.Oxygen, Content.Air.TankFlow);
+            foreach (int other in into)
+            {
+                if (left == 0) break;
+                if (other == tank) continue;
+                var taker = s.Held.GetValueOrDefault(other);
+                int poured = Math.Min(left, Content.Air.TankCapacity - (taker?.Oxygen ?? 0));
+                if (poured <= 0) continue;
+                if (taker == null)
+                {
+                    State.Tanks.Add(taker = new TankAir { Tank = other });
+                    s.Held[other] = taker;
+                    added = true;
+                }
+                taker.Oxygen += poured;
+                giver.Oxygen -= poured;
+                left -= poured;
+            }
+        }
+        if (added) State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+    }
+
+    /// <summary>
+    /// How fast air source <paramref name="source"/> makes air while its store has room, in thousandths of a unit a tick, rounded
+    /// down: its rate by its <see cref="MadeShare"/> while it is piped and has liquid behind it (the pod needs none); else none.
+    /// </summary>
+    public int MakesAt(int source)
+    {
+        if (_grid.MachineById(source) is not { } m || !Content.Machines.Get(m.Kind).Is(MachineTrait.AirSource) || !OnAPipe(m)) return 0;
+        var s = Gather();
+        if (!s.Endless.Contains(source) && LiquidBehind(s, source) == 0) return 0;
+        return (int)((long)Content.Air.GeneratorRate * MadeShare(source) / Content.Air.LeakEvery);
+    }
+
     private bool OnAPipe(Machine m)
     {
         foreach (int port in _grid.PortsOf(m))
@@ -502,6 +566,7 @@ public sealed partial class AtmosphereModule
     /// </summary>
     private void StepAir()
     {
+        Pour(Gather());
         Produce(Gather());
         // What the vaporizers made and took is read again: a store may be new, a tank emptied.
         _readFor = null;

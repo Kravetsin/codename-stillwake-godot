@@ -9,7 +9,7 @@ internal static class HandPiped
     /// <summary>
     /// <paramref name="map"/>, drawn a character a 16 px cell, its one tank <c>TT</c> made a vaporizer <c>GG</c>, the tank's id
     /// kept; under the hull, past a row of space, an empty tank and a solar panel cabled to the vaporizer, ids after every
-    /// other, the liquid drawn up through the floor from the tank's port to the vaporizer's input. Doubled as the map's own.
+    /// other, the liquid drawn from the tank's output on its right, under the panel, up through the floor to the vaporizer's input. Doubled as the map's own.
     /// </summary>
     public static Layout Chained(string map)
     {
@@ -17,8 +17,9 @@ internal static class HandPiped
         int height = drawn.Height, ty = drawn.Rows.ToList().FindIndex(r => r.Contains('T')), tx = drawn.Rows[ty].IndexOf('T');
         string At(string chars) => new string(' ', tx) + chars;
         var rows = drawn.Rows.Select(r => r.Replace('T', 'G')).Concat(["", At("TTPPP"), At("TT")]).ToArray();
-        // From the vaporizer's bottom row, its input's, down to the tank's, its port's.
-        var under = Enumerable.Range(0, height + 3).Select(y => y > ty ? At("-") : "").ToArray();
+        // From the vaporizer's bottom row, its input's, down past the floor, round the tank's right and into its output there.
+        var under = Enumerable.Range(0, height + 3)
+            .Select(y => y <= ty ? "" : y < height ? At("-") : y == height ? At("---") : y == height + 1 ? At("  -") : At(" --")).ToArray();
         return Layout.Parse(rows, under, [((tx + 2, height + 1), (tx, ty))]);
     }
 

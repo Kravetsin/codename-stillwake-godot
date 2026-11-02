@@ -45,6 +45,8 @@ public class PodAirTests
         Assert.Empty(w.M.Power.Networks);
         Assert.Equal(15 * 6, Aired(w));
         Assert.Equal(1000, w.M.Atmosphere.MadeShare(Pod(w)));
+        // What the pointer tells of it: a unit a tick, no liquid needed.
+        Assert.Equal(1000, w.M.Atmosphere.MakesAt(Pod(w)));
     }
 
     [Fact]
@@ -53,6 +55,7 @@ public class PodAirTests
         var w = Room(piped: false).Run(600);
         Assert.Equal(0, Aired(w));
         Assert.Equal(0, w.M.Atmosphere.OxygenIn(Pod(w)));
+        Assert.Equal(0, w.M.Atmosphere.MakesAt(Pod(w)));
     }
 
     [Fact]

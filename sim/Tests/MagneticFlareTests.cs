@@ -53,7 +53,8 @@ public class MagneticFlareTests
         "#GG.....QQ.BBKK#",
         "################",
     ];
-    private static readonly string[] Under = ["     o", " ----", " -", " -", " -"];
+    // The tank's liquid from its output on its right, down to the hull and along it to the generator's input.
+    private static readonly string[] Under = ["     o", "     --", " ------", " -", " -"];
     private static readonly Pairs Cables = [((0, 0), (1, 3)), ((1, 3), (4, 3)), ((4, 3), (6, 3)), ((0, 0), (8, 3)), ((8, 3), (11, 3))];
     private const int Width = 2 * 16;
     private static int At(int x, int y) => 2 * y * Width + 2 * x;

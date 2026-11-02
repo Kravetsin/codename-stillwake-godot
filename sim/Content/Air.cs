@@ -29,4 +29,10 @@ public static class Air
     public const int VentDrain = 8;
     public const int GeneratorRate = 12000;
     public const int GeneratorStore = 160;
+
+    /// <summary>
+    /// What a tank passes a tick to the tanks piped from its output to their inputs (tanks-in-a-line): a canister moves on
+    /// in some 22 seconds, so a line fills its last tank while the player watches.
+    /// </summary>
+    public const int TankFlow = 20;
 }

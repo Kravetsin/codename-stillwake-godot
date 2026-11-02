@@ -87,7 +87,7 @@ public partial class PipesOverlay : Node2D
         var pipes = m.Pipes;
         int width = _width = grid.Width;
         var byId = grid.Machines.ToDictionary(x => x.Id);
-        // Oxygen flows from where it comes in: a tank's port while it holds liquid (liquid-oxygen), a vaporizer's output
+        // Oxygen flows from where it comes in: a tank's output while it holds liquid (liquid-oxygen), a vaporizer's output
         // while powered or holding gas, its input feeding nothing; the pod's always (it draws no power).
         IEnumerable<int> SourcesOn(HashSet<int> own, IEnumerable<int> machines)
         {
@@ -99,7 +99,7 @@ public partial class PipesOverlay : Node2D
                 bool vaporizer = spec.Is(Stillwake.Content.MachineTrait.AirSource) && (m.Atmosphere.MadeShare(id) > 0 || m.Atmosphere.OxygenIn(id) > 0);
                 var cells = grid.PortsOf(x);
                 for (int p = 0; p < cells.Count; p++)
-                    if (own.Contains(cells[p]) && (tank || vaporizer && spec.Ports[p].Way == Stillwake.Content.Way.Out)) yield return cells[p];
+                    if (own.Contains(cells[p]) && (tank || vaporizer) && spec.Ports[p].Way == Stillwake.Content.Way.Out) yield return cells[p];
             }
         }
         var colourOf = new Dictionary<int, Color>();

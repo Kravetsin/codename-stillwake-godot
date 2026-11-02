@@ -566,11 +566,9 @@ const electrolyser = (a) => {
   box(a, 1, 36, 30, 11.6, STEEL, { spec: true });
   inner(a, 13, 40, 6, 5, GUN);
   a.flat(ell(16, 42.5, 1), '#2f3a33');
-  // Pipe ends at its ports: water in on the left, oxygen out on the right (ports-left-to-right), a ring of each one's colour.
-  for (const [x, ring] of [[0, WATERED], [28.6, LOX]]) {
-    a.shape(rr(x, 40.6, 3.4, 5, .3), DARK, { lite: band(x + .2, 40.6, x + 3.2, 41.2) });
-    a.flat(band(x === 0 ? 2.2 : 28.6, 41, x === 0 ? 3.4 : 29.8, 45.4), ring.base);
-  }
+  // Its ports fitted as a tank's are: water in on the left, oxygen out on the right (ports-left-to-right).
+  fitting(a, 4, 44, 0);
+  fitting(a, 28, 44, 32);
 };
 /** Where bubbles rise: the left column above its water, the reservoir's water, the right column's liquid, by x and the rows they span. */
 const RISES = [[5, 8, 29], [8.6, 8, 29], [14.6, 17, 36], [17.4, 17, 36], [23, 19, 36], [26.4, 19, 36]];

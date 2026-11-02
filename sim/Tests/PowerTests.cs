@@ -40,9 +40,10 @@ public class PowerTests
     ];
     private static readonly string[] Under = ["", "", "", "  --", "   -"];
 
-    /// <summary>The same room with no vent pipe, a tank holding a canister under each generator in space, piped up to its liquid input.</summary>
+    /// <summary>The same room with no vent pipe, a tank holding a canister under each generator in space, piped from its output up to its liquid input.</summary>
     private static readonly string[] Tanked = [.. Rows, " TT TT          ", " TT TT          "];
-    private static readonly string[] TankedUnder = ["", "", "", "", " -  -", " -  -", " -o -o", " -  -"];
+    // Each tank's liquid from its output on its right, round it and up to its generator's input; the two lines never touch.
+    private static readonly string[] TankedUnder = ["", "", "", "", " -  ---", " ---  -", "  o- o-", "  -- --"];
     private const int Width = 2 * 16;
     /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left.</summary>
     private static int At(int x, int y) => 2 * y * Width + 2 * x;

@@ -22,6 +22,11 @@ public interface IAtmosphereQueries
     bool Supplied(int vent);
     /// <summary>The liquid in tank <paramref name="tank"/>, or the gas in vaporizer <paramref name="tank"/>'s store; none for one never filled, or no tank at all.</summary>
     int OxygenIn(int tank);
+    /// <summary>
+    /// How fast air source <paramref name="source"/> (a vaporizer, the pod) makes air while its store has room, in thousandths of a
+    /// unit a tick: none unpiped, with no liquid behind it or no power. What the pointer tells of it.
+    /// </summary>
+    int MakesAt(int source);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
     string? CanisterProblem(int tank, int peer);
     /// <summary>Room <paramref name="room"/>'s state (TypeScript's <c>roomStatus</c>); vacuum for no room. One survey a call: for every room, read <see cref="RoomsAir"/>.</summary>

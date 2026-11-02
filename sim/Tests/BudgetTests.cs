@@ -422,7 +422,7 @@ public class BudgetTests(ITestOutputHelper output)
         for (int k = 0; k < 11; k++) Stamp('F', 4 + 6 * k, 7, 2, 2);
         foreach (int x in new[] { 10, 30, 50 }) Stamp('K', x, 10, 2, 1);
         // The gas line on row 16, each vaporizer's output (its top right character's right cell) up to it; the liquid line
-        // on row 19, each vaporizer's input down to it and each tank's port up to it.
+        // on row 19, each vaporizer's input down to it and each tank's output, on its right, round and up to it.
         Pipe(4, 67, H, H);
         Pipe(2, 62, H + 3, H + 3);
         var cables = new List<((int, int), (int, int))>();
@@ -437,7 +437,8 @@ public class BudgetTests(ITestOutputHelper output)
         foreach (int t in new[] { 4, 20, 36, 52 })
         {
             Stamp('T', t, H + 4, 2, 2);
-            Pipe(t, t, H + 4, H + 5);
+            Pipe(t + 1, t + 2, H + 5, H + 5);
+            Pipe(t + 2, t + 2, H + 3, H + 5);
             under[H + 4][t + 1] = 'o';
         }
         for (int j = 0; j < Panels; j++)

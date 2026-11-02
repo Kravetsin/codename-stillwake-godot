@@ -556,7 +556,7 @@ public class DesyncTests(ITestOutputHelper output)
         // drawn on every peer; the crusher's quartz, one ore in two, is drawn too.
         // The room is aired by the chain under its hull, in space (liquid-oxygen): it leaks some 1.2 units a tick and a
         // vaporizer makes 1, so three, each powered by a panel, their outputs (each one's top right character's right cell)
-        // on a gas line up to the vent; a filled tank on a liquid line to their inputs.
+        // on a gas line up to the vent; a filled tank, its output on its right, on a liquid line to their inputs.
         var layout = Layout.Parse(
             [
                 "###############################",
@@ -573,7 +573,7 @@ public class DesyncTests(ITestOutputHelper output)
                 "",
                 "  PPP PPP PPP",
             ],
-            ["", "", "", "      -", "      -", "    ---------", "   --  --  --", "  -   -   -", "  ---------", "  -o", "  -"],
+            ["", "", "", "      -", "      -", "    ---------", "   --  --  --", "  -   -   -", "  ---------", "   o-", "   --"],
             [
                 ((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2)), ((22, 2), (28, 2)),
                 ((2, 12), (2, 6)), ((6, 12), (6, 6)), ((10, 12), (10, 6)),

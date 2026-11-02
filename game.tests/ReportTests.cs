@@ -83,7 +83,7 @@ public class ReportTests
         // (liquid-oxygen): the air spreads from the vent, nearest cells first.
         var s = WorldFrom(Layout.Parse(
             ["PPP      ", "#########", "#..V....#", "#GG.....#", "#GG.....#", "#########", " TT", " TT"],
-            ["", "", "   -", "  --", " -", " -", " -o", " -"],
+            ["", "", "   -", "  --", " -", " ---", "  o-", "  --"],
             [((0, 0), (1, 3))]).Doubled());
         var air = s.M.Atmosphere;
         for (int i = 0; i < 600 && !air.AiredAt(At(5, 3)); i++) s.World.Step([]);

@@ -198,7 +198,8 @@ public class AirTests
                 " TT   TT",
                 " PPP PPP",
             ],
-            ["", "", "", " -    -", " -    -", " -    -", " -    -", " -    -"],
+            // Each tank's liquid from its output on its right, round it and up to its vaporizer's input.
+            ["", "", "", " -    -", " -    -", " ---  ---", "   -    -", "  --   --"],
             [((1, 8), (1, 2)), ((5, 8), (6, 2))]));
         var w = s.W;
         int dry = s.Tanks[0], wet = s.Tanks[1];
