@@ -21,7 +21,9 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 
 - A blueprint is named as the build menu names its card: a wall or back wall by kind and material (`wallIron`), anything
   else by the grid's name (`floor`, `furnace`). A craft by the item it makes. Cables are no blueprint and always known.
-- **The black market** is a tab of the tree, open from the start: a block there is bought like any, at a high price and no stage.
+- **The black market** is a tab of the tree, its first ring open from the start: a block there is bought like any, and every upgrade stands there. Its later rings open by **orders**
+  ([board](../../docs/plans/board.md)): a gate there is done when `Knowledge.SoldOf` meets what it asks and its own ring is reached, with no command. Sales count from the world's
+  start, so a later ring may open at once; without the reach an order met early would open a ring past a shut one. Nothing is deposited there.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`, empty); a map with none knows
   everything. In creative mode everything is known and every node done.
 - **The rule** ([board](../../docs/plans/board.md)): a blueprint or craft is understood, and granted, once every part's count
@@ -40,7 +42,7 @@ Knowing blueprints and crafts ([tablet-tree](../../docs/decisions/2026-10-30-tab
 | Key | When |
 | --- | --- |
 | `research.bought` | the block is bought already |
-| `research.locked` | what it needs is not done; no such node; a buy of a gate, a deposit at a block |
+| `research.locked` | what it needs is not done; no such node; a buy of a gate, a deposit at a block or at a market gate |
 | `research.noCredits` | short of its price |
 | `research.gateOpen` | the gate is full already |
 | `research.nothingToDeposit` | the sender carries nothing it lacks |

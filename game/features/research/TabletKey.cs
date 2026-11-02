@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -14,6 +15,8 @@ namespace Stillwake.Game.Features.Research;
 public partial class TabletKey : CanvasLayer
 {
     private const double RefreshS = 0.25;
+    /// <summary>The market's orders: a sale moves no version, so they are read on the timer.</summary>
+    private static readonly Content.TechNode[] Orders = [.. Content.Research.Nodes.Where(n => n is { Gate: true, Tab: Content.Research.Market })];
 
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
@@ -68,6 +71,7 @@ public partial class TabletKey : CanvasLayer
             var read = BoardPage.ReadOf(m);
             _keep.Seen.Read(BoardView.NotesOf(BoardSlots.Of(read.Found, BoardThings.All, read.Granted), read));
         }
+        _keep.Seen.ReadOrders(Orders.Count(m.Research.Done));
         _key.Lit = _keep.Seen.Lit;
     }
 

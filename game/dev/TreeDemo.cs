@@ -11,7 +11,7 @@ namespace Stillwake.Game.Dev;
 /// <summary>
 /// <c>-- --tree</c>: the wreck with credits to spend, and a script through the tech tree on the tablet: T taking it out, a drag starting on
 /// a node (which must pick nothing), a click on it (which must buy nothing), the strip's button buying it, a far node's ties, the wheel
-/// out to the whole map, the hub, the other tab, T putting it away, the bag. Played through Godot's own input, for recordings with
+/// out to the whole map, the hub, the other tab, the market with an order part sold, T putting it away, the bag. An order met before T lights the key. Played through Godot's own input, for recordings with
 /// <c>--write-movie</c>; each step is printed with its time.
 /// </summary>
 public partial class TreeDemo(Func<Registry> m) : Node
@@ -26,6 +26,14 @@ public partial class TreeDemo(Func<Registry> m) : Node
         root["slices"]!["knowledge"]!["credits"] = Credits;
         // Enough of the furnace's parts: it shows done, unbought.
         root["slices"]!["knowledge"]!["obtained"] = new JsonArray(new JsonObject { ["item"] = "scrapChunk", ["count"] = 10 }, new JsonObject { ["item"] = "hullPlate", ["count"] = 5 });
+        // The first order sold, the second all but its plates, the third begun.
+        root["slices"]!["knowledge"]!["sold"] = new JsonArray(
+            new JsonObject { ["item"] = "gear", ["count"] = 20 },
+            new JsonObject { ["item"] = "glass", ["count"] = 8 },
+            new JsonObject { ["item"] = "iron", ["count"] = 20 },
+            new JsonObject { ["item"] = "planks", ["count"] = 20 },
+            new JsonObject { ["item"] = "plate", ["count"] = 10 },
+            new JsonObject { ["item"] = "scrapChunk", ["count"] = 40 });
         var slots = new JsonArray();
         for (int i = 0; i < Content.Inventory.Total; i++) slots.Add(null);
         slots[0] = new JsonObject { ["item"] = "scrap", ["count"] = 12 };
@@ -47,7 +55,8 @@ public partial class TreeDemo(Func<Registry> m) : Node
         var away = new Vector2(-120, -60);
         (double At, string What, Action Do)[] script =
         [
-            (0.8, "T opens it", () => TabletHands.Press(Key.T)),
+            (0.5, "the plates sold: an order met, the key lit", () => m().Knowledge.Sell("plate", 20)),
+            (1.0, "T opens it: the market's tab lit", () => TabletHands.Press(Key.T)),
             (1.4, "from the board to the ship's rings", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
             (1.45, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
             (2.0, "point at the workbench", () => _hands.Point(_tree.ScreenOf("workbench"))),
@@ -74,12 +83,14 @@ public partial class TreeDemo(Func<Registry> m) : Node
             (8.5, "wheel in on the hub", () => _hands.Wheel(_tree.HubAt, MouseButton.WheelUp, 8)),
             (9.0, "the other tab", () => _hands.Mouse(_tree.TabAt(2), MouseButton.Left, true)),
             (9.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (9.2, "the black market", () => _hands.Mouse(_tree.TabAt(3), MouseButton.Left, true)),
+            (9.2, "the black market: its tab no longer lit", () => _hands.Mouse(_tree.TabAt(3), MouseButton.Left, true)),
             (9.25, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (9.35, "click the solar panel on sale", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
-            (9.4, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (9.6, "T puts it away", () => TabletHands.Press(Key.T)),
-            (10.1, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
+            (9.6, "click the solar panel on sale", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
+            (9.65, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (10.2, "click the hub: what is sold of the order, no button", () => _hands.Mouse(_tree.HubAt, MouseButton.Left, true)),
+            (10.25, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (11.2, "T puts it away", () => TabletHands.Press(Key.T)),
+            (11.7, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {

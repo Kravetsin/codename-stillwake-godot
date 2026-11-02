@@ -54,9 +54,14 @@ public class ResearchTests
         }
     }
 
-    /// <summary>Gives peer 0 what <paramref name="gate"/> asks for and puts it in.</summary>
+    /// <summary>Gives peer 0 what <paramref name="gate"/> asks for and puts it in; on the market, has it sold.</summary>
     private static void Fill(Scenario w, TechNode gate)
     {
+        if (gate.Tab == ResearchSpec.Market)
+        {
+            foreach (var (item, count) in gate.Deposit) w.M.Knowledge.Sell(item, count);
+            return;
+        }
         w.GiveItems(0, [.. gate.Deposit]);
         w.Do(new Deposit(gate.Id)).Run();
     }
@@ -425,7 +430,7 @@ public class ResearchTests
                 }
                 else if (s.Gate != null) w.Do(new Deposit(s.Gate)).Run();
                 else if (s.Block != null) Buy(s.Block);
-                else if (ResearchSpec.Nodes.FirstOrDefault(n => !w.M.Research.Done(n)) is { } next)
+                else if (ResearchSpec.Nodes.FirstOrDefault(n => !w.M.Research.Done(n) && !(n.Gate && n.Tab == ResearchSpec.Market)) is { } next)
                 {
                     if (next.Gate)
                     {

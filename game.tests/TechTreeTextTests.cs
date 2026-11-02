@@ -14,7 +14,7 @@ public class TechTreeTextTests
         Assert.All(Spec.Research.Tabs, t => Assert.True(Table.ContainsKey($"research.tab.{t.Id}"), t.Id));
         Assert.All(Spec.Research.Tabs.SelectMany(t => t.Branches), b => Assert.True(Table.ContainsKey($"research.branch.{b}"), b));
         Assert.All(Spec.Research.Nodes.Where(n => n.Gate), g => Assert.True(Table.ContainsKey($"research.gate.{g.Id}"), g.Id));
-        Assert.All(["bought", "locked", "noCredits", "gateOpen", "nothingToDeposit"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
+        Assert.All(["sold", "orderAbout", "bought", "locked", "noCredits", "gateOpen", "nothingToDeposit"], why => Assert.True(Table.ContainsKey($"research.{why}"), why));
     }
 
     [Fact]
