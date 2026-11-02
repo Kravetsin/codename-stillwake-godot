@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Godot;
+using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -12,8 +13,8 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public partial class CapeView(Cape cape, bool inside) : Node2D
 {
-    private static readonly Texture2D Outside = GD.Load<Texture2D>("res://art/hero_cape.png"), Lining = GD.Load<Texture2D>("res://art/hero_cape_lining.png"),
-        Hood = GD.Load<Texture2D>("res://art/hero_cape_hood.png"), Collar = GD.Load<Texture2D>("res://art/hero_cape_collar.png");
+    private static readonly Texture2D Outside = PixelArt.Picture("hero_cape"), Lining = PixelArt.Picture("hero_cape_lining"),
+        Hood = PixelArt.Picture("hero_cape_hood"), Collar = PixelArt.Picture("hero_cape_collar");
     /// <summary>Where the collar lies, its top left, from the feet: round the neck over the cape's top, from the back to the clasp.</summary>
     private static readonly Vector2 CollarAt = new(-10.5f, (float)-(Rig.Neck + 1.5));
     /// <summary>The clasp at the throat, a pixel of brass on the outside.</summary>

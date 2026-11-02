@@ -80,6 +80,8 @@ public static class Light
     /// cells, so a room is lit to walk and its corners dark, and fires, screens and glows read in it.
     /// </summary>
     public static readonly (float R, float G, float B) Lamp = (0.8f, 0.64f, 0.42f);
+    /// <summary>A lifepod's own light, pale and cold, needing no power: what shows the first room (the-scoop).</summary>
+    public static readonly (float R, float G, float B) Pod = (0.5f, 0.72f, 0.62f);
     public const float LampKeep = 0.86f;
     public const int LampReach = 16;
     public const float LampMost = 1f;
@@ -102,6 +104,8 @@ public static class Light
     public static readonly IReadOnlyDictionary<string, LampLight> Lamps = new Dictionary<string, LampLight>(System.StringComparer.Ordinal)
     {
         ["lamp"] = new(Lamp, 1, LampReach, LampKeep, 0xffd9a0ff),
+        // The hold's red battery lamp (the-scoop): enough to find the piles by, not to work by comfortably.
+        ["emergencyLamp"] = new((1f, 0.22f, 0.16f), 0.75f, LampReach, LampKeep, 0xff3a2cff),
         // An arc makers' lamp (0091): their cold light, brighter and further.
         ["arcLamp"] = new(ArcLamp, ArcLampStrength, ArcLampReach, ArcLampKeep, 0xb4dcffff, Glass: true),
     };

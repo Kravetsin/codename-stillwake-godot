@@ -40,7 +40,10 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - среда / fluid **≠** (what a pipe carries) → `Fluids` (`air`, `water`); a line's: `FluidAt` → Pipes
 - цистерна / cistern → machine `cistern`: water in on its left, out on its right (2026-10-29-typed-ports) → Pipes
 - трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
-- генератор / generator **≠** → `"generator"` is the oxygen generator (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
+- генератор / generator **≠** → `"generator"` is the oxygen vaporizer (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
+- испаритель / vaporizer → machine `generator`: a tank's liquid oxygen into air on power (2026-10-30-liquid-oxygen) → Atmosphere
+- жидкий кислород / liquid oxygen → fluid `liquidOxygen`: what a tank holds and a liquid pipe carries → Atmosphere, Pipes
+- чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
 - светочувствительная панель / photosensitive panel → item `photoPanel`, in the solar panel's cost, had only of one taken apart
 - аккумулятор / accumulator → item `accumulator` (belt equipment); the machine is `capacitorBank` "Capacitor bank" **≠** → Items, Power
@@ -56,11 +59,14 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- станция технологий / tech station → machine `techStation`, `TechPanel` → Research
-- дерево технологий, категория, блок, ворота / tech tree, category, block, gate → `Content.Research.Categories`, `TechCategory`, `TechNode` → Research
+- дерево технологий / tech tree → `ResearchTablet`, `RingsPage` on the tablet (T), `Content.Research` → Research
+- дерево технологий, кольцо, ветка, таб, блок, ворота, хаб / tech tree, ring, branch, tab, block, gate, hub → `Content.Research.Tabs`, `TechTab`, `TechRing`, `TechNode` → Research
+- связи ноды / a node's ties → `TechLinks` (client)
 - взнос / deposit → `Deposit`, `Knowledge.Deposits` → Research
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
-- торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade
+- улучшения, слоты инвентаря, пояса, терминала / upgrades → `Content.Upgrades`, `Items.SlotOpen` → Items, Research
+- торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`
+- капсула с товаром / trade capsule → `SendCapsule`, `Flight`, `Market.CapsuleFlight` → Trade; `CapsuleFlights` drawn in f/research
 - кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade
 - чертёж / blueprint → `Blueprint`, `Blueprints` → Research
 - ящик / crate → machine `crate`; item `cargoCrate` is salvage → Items
@@ -91,6 +97,9 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 - обломок / debris piece **≠** → `Piece`, `Hit`, `Reel` (sim/Debris); a wreck is debris of kind wreckage → Debris
 - метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
+- вспышка, магнитная буря / magnetic flare → `MagneticFlares.Flare`, `FlareNow`, `FlareComing` (sim/Hazards `Flares.cs`) → Hazards
+- сломан, поломка / broken → `IPowerQueries.IsBroken`, `IPowerOps.Break` → Power
+- ремонт, починить / repair → `Repair`, `RepairProgress`, `RepairRules` (sim/Building `Repairs.cs`) → Building
 - планета / planet → `PlanetType` (`c/PlanetTypes.cs`), `Surface`, `Terrain` (sim/Core) → Core, Building
 - копать / dig → `Dig`, `Crack` (sim/Building `Digging.cs`) → Building
 - жила, руда / vein, ore → `Vein` (`c/Veins.cs`), materials `copperVein`, `iceVein` (`Material.In`), drawn in `Terrain` → Core
@@ -101,6 +110,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - существо / creature **≠** → `Creature`, `CreaturesModule` → Creatures
 - лопер / loper → `Creatures.Loper` = `"loper"` → Creatures
 - сентри / sentry → `Creatures.Sentry` = `"sentry"`: a `Clinger` on a wreck, `Guard`, `Return`, `CutTether`, `Pounce`; dev `--sentry` (`=fight`: a line sawn, struck, its wreck broken; `=crawl`) → Creatures
+- страж шпиля / spire guard → `Creatures.Warden` = `"warden"`: a `Walker` at a `Post`, `Ward`, `Pounce`; dev `--ground=spire-guards`
+- истукан / Istukan → the warden's look: `CreatureLooks.Istukans`, f/creatures `IstukanBodies`, `IstukanArt`, `IstukanMotion`; sounds `Sound.Istukans`
 - клещ / tick → the sentry's look (its pick page's «Клещ»): `CreatureLooks.Ticks`, f/creatures `TickBodies`, `TickArt`, `TickMotion`; sounds `Sound.Ticks`
 - вид / species → `Content.Creatures.Species`, composed of a body (`Shape`: `Walker`), `Life`, a faction, a brain and moves → Creatures
 - побуждение / drive **≠** → `Drive` (`Graze`, `Flee`, `Retaliate`, `Escape`), its rule a `DriveRule`; a creature's `Drive`, `DriveLeft`, `Step` → Creatures

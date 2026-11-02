@@ -46,6 +46,10 @@ moving on every frame at 240 Hz, let go between two steps, and moved off a hull 
   of a network with stores adds what they hold of full under what it makes and draws; out of every overlay, with no card
   in hand, the pointer on a bank shows the one tooltip saying only "8 400 / 12 000 ↑" (`StoreGauge.Reading`: grouped as
   the wrist's energy tab, ↑ charging, ↓ giving out), read from `IPowerQueries.Store` as the world runs (`PowerView`).
+- **A magnetic flare without a word** (magnetic-flare): while one is coming (`HazardsModule.FlareComing`) the cables glow
+  pale blue over themselves, unlit, brighter and pulsing faster toward the strike (`FlareLook.CableGlow`). A machine it
+  broke (`IPowerQueries.Broken`) is dimmed over its footprint under its bolt and throws a few blue-white sparks now and
+  then; a broken user's bolt blinks red as one with no power does.
 - A cable is the same rope throughout: laid, it is the rope it was dragged as from the first press; a
   carried end is the real cable, highlighted white (red where it may not be let go); dropped on a node
   it waits there until the world moves it and goes on from where it hangs, never snapping back unless the

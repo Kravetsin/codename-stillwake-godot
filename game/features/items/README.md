@@ -29,7 +29,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `SlotFlights.cs` | a shifted stack flying to where it landed (0075) |
 | `PickUpPopups.cs` | "Scrap (12)" rising over the hero's head (0075) |
 | `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
-| `ItemsDemo.cs` | `-- --items`: a room with a crate, a furnace and a tech station, for recordings |
+| `ItemsDemo.cs` | `-- --items`: a room with a crate and a furnace, for recordings |
 | `logic/Items.En.cs` | Its player text (`En`) |
 
 The wrist computer's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`WristPieces`, `WristArt`,

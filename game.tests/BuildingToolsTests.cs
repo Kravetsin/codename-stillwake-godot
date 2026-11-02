@@ -36,7 +36,7 @@ public class BuildingToolsTests
         var expected = Materials.All.Where(m => m.Built).Select(m => $"wall:{m.Id}")
             .Concat(Materials.All.Where(m => Blueprints.Has(Placement.BackWall(m.Id))).Select(m => $"backWall:{m.Id}"))
             .Concat(Builds.All.Select(b => b.Id))
-            .Concat(Machines.All.Where(m => !m.Fixed).Select(m => m.Kind));
+            .Concat(Machines.All.Where(m => m.Menu != null).Select(m => m.Kind));
         Assert.Equal(expected.Order(StringComparer.Ordinal), carded.Order(StringComparer.Ordinal));
     }
 
@@ -348,12 +348,11 @@ public class BuildingToolsTests
     [Fact]
     public void ShowsAndPicksOnlyTheCardsTheWorldKnows()
     {
-        // The tank and the wall of the scrap the hull is of, in a world knowing only its start.
+        // The tank and the wall of the scrap the hull is of, in a world knowing little.
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"])
             with
-        { Known = Research.StartKnown });
+        { Known = ["tradeStation", "wallScrap"] });
         var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
-        Assert.Contains("techStation", known);
         Assert.Contains("tradeStation", known);
         Assert.DoesNotContain("furnace", known);
         Assert.DoesNotContain("crate", known);

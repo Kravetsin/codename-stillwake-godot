@@ -302,9 +302,10 @@ public partial class Main
         }
     }
 
-    /// <summary>Saves the world when this machine keeps it: before every way out.</summary>
+    /// <summary>Saves the world when this machine keeps it, and the board's layout, which every machine keeps: before every way out.</summary>
     private void SaveIfOwned()
     {
+        _tablet?.KeepBoard();
         if (_role != "guest") SaveNow();
     }
 
@@ -389,7 +390,7 @@ public partial class Main
     private void NewWorld(string name)
     {
         string id = _index.Create(name, DateTime.Now);
-        var world = World.Create(1, Registry.Wreck, Modules());
+        var world = World.Create(1, Registry.Wreck, Modules(), (uint)Random.Shared.NextInt64(1, 1L << 32));
         _index.Write(id, world.Save());
         Enter(world, id, Roster.Empty());
     }

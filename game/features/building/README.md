@@ -61,25 +61,26 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   (`PlanTip`) shows its card's picture and name, then an item a row; shown only while it lacks something.
 - **A mark's tip** (0064, `MarkTip`): its card's picture and name, then what it gives back, "+2" in green
   (`RefundOf`). A lacking blueprint under the pointer is told first.
-- **The menu is a docked rugged tablet of fixed size** (0073, 0107): bottom middle, two slot sizes, 10 by 2 cards a
+- **The menu is a docked rugged tablet of fixed size** (0073, 0107): bottom middle, 10 by 2 cards a
   step larger than inventory slots, the card in hand edged sky blue; the wheel over it scrolls a row, never the
   hotbar. B slides it in and out (`TabletMotion`); put away it takes no input. Picking a card leaves it open; one
   taken by Q is scrolled into view; it opens on the tab it closed on.
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. The field takes every key,
-  the hero standing still; Enter or a click elsewhere ends typing, Esc clears (`DropSearch`, before the game menu's
-  Esc); a tab clicked or a card Q takes that the words miss ends it; put away, it is forgotten.
+  Enter or a click elsewhere ends typing, Esc clears (`DropSearch`, before the game menu's
+  Esc); a tab clicked or a card Q takes ends it; put away, it is forgotten.
 - **The hint** (no ADR, `HintOf`): one line under the cards, cut by an ellipsis.
 - **Plans are ghosts** (0064, `PlanTiles`): their own picture greyed, lifted toward white, a little blue, unlit, back
   walls fainter, joined to what is planned and built beside them. Planned back walls draw just over the rooms' air
   (`Layers.PlanBacks`), the rest over the ship. The ghost in hand is green where the sim takes it, red where not (0022).
 - **Dashes** (0064): round each group of plans (walls, back walls, ladders, doors, hatches, floors; each machine
   alone) marching dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
-  valves are not outlined, unless marked. Silhouettes are found on the CPU per picture, never from the atlas; the mesh
-  is rebuilt only when plans, grid, zoom or screen height change.
+  valves are not outlined, unless marked. Silhouettes are found per picture on the CPU; the mesh is rebuilt only when
+  plans, grid, zoom or screen change.
 - **A blueprint turns real as worked** (0063): from the bottom up (floors and conduits from the left), the cut at
-  `Progress / TicksFor`, a pixel at a time, following ticks not frames; the real share lit as the grid draws it, the
+  `Progress / TicksFor`, a pixel at a time, by ticks; the real share lit as the grid draws it, the
   rest the unlit ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top down as worked.
+- **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
 - **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero,
   not the worker, so every peer sees the same; a molten spot, smoke, shimmer; the cut glows; a blueprint finished is
   swept by light.

@@ -33,6 +33,7 @@ public static class PlanetLooks
     {
         [Stillwake.Content.PlanetTypes.First.Id] = First,
         [Stillwake.Content.PlanetTypes.Small.Id] = First,
+        [Stillwake.Content.PlanetTypes.SmallSpire.Id] = First,
         [Stillwake.Content.Surfaces.TestStrip.Id] = First,
     };
 }

@@ -5,7 +5,7 @@ namespace Stillwake.Content;
 /// <summary>A machine: what it costs, its footprint, and what it does with power and items.</summary>
 /// <param name="Width">Footprint in cells, from the machine's top-left cell: twice what a map draws it, a character a 16 px cell (0104).</param>
 /// <param name="Ports">Where pipes connect, inside the footprint, each its way and fluid; none for a crate.</param>
-/// <param name="Cost">Whole units of items it takes from its builder, and gives back when taken apart.</param>
+/// <param name="Cost">Whole units of items it takes from its builder, and gives back when taken apart: all a pile is.</param>
 /// <param name="BuildTicks">Ticks of a hero's work to build it.</param>
 /// <param name="Makes">
 /// Power it makes a tick, cabled to a network: one with a <paramref name="FuelSlot"/> while its fire
@@ -51,7 +51,10 @@ namespace Stillwake.Content;
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
 /// <paramref name="FuelSlot"/> implies.
 /// </param>
-/// <param name="Menu">Its card in the build menu (0114); none for one never built (the lifepod).</param>
+/// <param name="Strength">
+/// Broken by tools at this much block damage, anywhere, giving its cost; never marked (the-scoop): a pile. Null for one only a mark takes apart.
+/// </param>
+/// <param name="Menu">Its card in the build menu (0114), and with it a blueprint; none for one never built (the lifepod, the piles).</param>
 /// <param name="Char">Its character in an ASCII map (<see cref="Legend"/>): drawn over its whole footprint, a character a 16 px cell; null for none.</param>
 /// <param name="Means">What the map character means, for the legend; given with <paramref name="Char"/>.</param>
 public sealed record MachineSpec(
@@ -74,6 +77,7 @@ public sealed record MachineSpec(
     string? Takes = null,
     int? Exhaust = null,
     MachineTrait Has = MachineTrait.None,
+    int? Strength = null,
     MenuSlot? Menu = null,
     char? Char = null,
     string? Means = null)
@@ -98,18 +102,18 @@ public enum MachineTrait
     None = 0,
     /// <summary>Takes any item into any slot and serves it back: a crate. Drones store in it and take from it.</summary>
     Container = 1,
-    /// <summary>Stores its network's oxygen, filled by a canister loaded into it: a tank.</summary>
+    /// <summary>Stores liquid oxygen, filled by a canister loaded into it, given to the vaporizers on its network: a tank.</summary>
     Gas = 2,
     /// <summary>
-    /// Feeds the pipes it stands on: a vent piped to it is fed, and blows, airs its room and hums. One that stores no
-    /// <see cref="Gas"/> makes its air on power: the generator.
+    /// Turns liquid oxygen from the tanks on its input's network into air on power, into a store of its own that the vents
+    /// on its output's network draw from: the generator, the player's "oxygen vaporizer" (liquid-oxygen).
     /// </summary>
     AirSource = 4,
     /// <summary>Lets its network's air into the room it stands in.</summary>
     Vents = 8,
     /// <summary>Keeps the machines in its zone going with its drones: the drone bay (0062).</summary>
     Zone = 16,
-    /// <summary>Gives light as it gets power, its colour and reach the client's lamp looks: lamps.</summary>
+    /// <summary>Gives light as it gets power, or always if it draws none, its colour and reach the client's lamp looks: lamps.</summary>
     Glow = 32,
     /// <summary>A fire burns in it, fuel from its <see cref="MachineSpec.FuelSlot"/> (0023): implied by that slot, never declared.</summary>
     Fire = 64,
@@ -119,10 +123,10 @@ public enum MachineTrait
     Seats = 256,
     /// <summary>Stands only on a launch platform, the row under it wholly a run of one (<c>grid.noPlatform</c>): the drop pod, its landers to come.</summary>
     Lands = 512,
-    /// <summary>Sells what its slots hold for the ship's credits (Trade): the trade station.</summary>
+    /// <summary>Sends what its slots hold for the ship's credits by capsule (Trade): the trade stations.</summary>
     Sells = 1024,
-    /// <summary>Opens the tech tree on E (Research): the tech station.</summary>
-    Tech = 2048,
+    /// <summary>Sends its capsule by itself whenever it is home and there is something to sell (Trade): the auto trade station.</summary>
+    AutoSends = 2048,
 }
 
 /// <summary>
@@ -136,11 +140,11 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas | MachineTrait.AirSource, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
         // Water's first ports (typed-ports): it holds nothing yet, so it needs no power and air ignores it.
         new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
-        new("generator", 4, 4, [new(0, 2, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
-        // Built of the one photosensitive panel nothing makes: known from the start, so the wreck's own can be built again.
+        new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        // Of the one photosensitive panel nothing makes: its blueprint is the black market's, for many credits (black-market).
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
         new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
         new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
@@ -149,9 +153,10 @@ public static class Machines
         new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         // Where the tree is walked: resources open its tiers, credits buy its blueprints (2026-10-30-trade-and-tech). No power, no slots.
-        new("techStation", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Has: MachineTrait.Tech, Menu: new(MenuTabs.Production, 20), Char: 'A', Means: "tech station: draw its whole footprint"),
-        // Sells what is put in for the ship's credits, a unit at a time; of raw salvage, so the first credits need nothing made.
-        new("tradeStation", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 120, Slots: 4, Has: MachineTrait.Sells, Menu: new(MenuTabs.Production, 17), Char: '$', Means: "trade station: draw its whole footprint"),
+        // Sends what is put in for the ship's credits by capsule; of raw salvage, so the first credits need nothing made.
+        new("tradeStation", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 120, Slots: 8, Has: MachineTrait.Sells, Menu: new(MenuTabs.Production, 17), Char: '$', Means: "trade station: draw its whole footprint"),
+        // A trade station that needs no hand on its button, so drones can run the selling alone.
+        new("autoTradeStation", 4, 4, [], [("frame", 4), ("plate", 4), ("wire", 10), ("circuit", 2)], BuildTicks: 200, Slots: 8, Has: MachineTrait.Sells | MachineTrait.AutoSends, Menu: new(MenuTabs.Production, 18), Char: 'A', Means: "auto trade station: draw its whole footprint"),
         new("crate", 4, 2, [], [("planks", 8), ("plate", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
         new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),
@@ -180,7 +185,16 @@ public static class Machines
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
         new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
-        new("lifepod", 6, 6, [], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
+        // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
+        new("lifepod", 6, 6, [new(0, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
+        // The last crew's piles in the hold (the-scoop): never built, an axe breaks one and its cost is what it holds, a first reward for
+        // making the axe. The cargo holds a world's one photosensitive panel. An axe takes 4 a hit, two hits a second.
+        new("pileHull", 4, 4, [], [("scrapChunk", 6), ("hullPlate", 3)], BuildTicks: 180, Strength: 24, Char: 'a', Means: "pile of hull plates: draw its whole footprint"),
+        new("pileScrap", 3, 3, [], [("scrapChunk", 6), ("hullPlate", 1)], BuildTicks: 140, Strength: 20, Char: 'b', Means: "pile of scrap: draw its whole footprint"),
+        new("pileCargo", 3, 3, [], [("planks", 4), ("hullPlate", 2), ("scrapChunk", 1), ("photoPanel", 1)], BuildTicks: 160, Strength: 20, Char: 'e', Means: "pile of cargo: draw its whole footprint"),
+        new("pileBits", 2, 2, [], [("scrapChunk", 3), ("hullPlate", 2), ("planks", 2)], BuildTicks: 140, Strength: 12, Char: 'f', Means: "pile of odds and ends: draw its whole footprint"),
+        // What shows the hold before anything makes power: the last crew's battery lamps, needing none (the-scoop).
+        new("emergencyLamp", 2, 2, [], [("scrapChunk", 1)], BuildTicks: 40, Has: MachineTrait.Glow, Char: 'i', Means: "emergency lamp: draw its whole footprint"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
         new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),

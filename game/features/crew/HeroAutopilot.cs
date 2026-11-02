@@ -183,8 +183,11 @@ public sealed class HeroAutopilot
             Hold(Still, 25, Beside(-6, 4)),
             Until(new HeroInput(-1, 0, false), (h, p) => p.Stopped(h)),
             Press(45, 21),
+            Until(new HeroInput(-1, 0, false), (h, p) => p.Stopped(h)),
+            Press(42, 21),
             Until(new HeroInput(-1, 0, false), (h, p) => h.Anchor != null && p.Stopped(h)),
             Hold(new HeroInput(-1, -1, false), 40),
+            Until(new HeroInput(1, 0, false), (h, _) => Block(h) >= 38),
             Until(new HeroInput(0, 1, false), (h, _) => h.Y >= 23 * Drawn),
             Walk(1, h => Block(h) >= 49),
             Wait(20),
@@ -250,6 +253,16 @@ public sealed class HeroAutopilot
             Wait(60),
         ]);
     }
+
+    /// <summary><c>-- --anime=walk</c> on the testbed: from the smelter to the door of room two, opened, through it and back, all at a walk.</summary>
+    public static HeroAutopilot Stroll() => new(
+    [
+        Wait(20),
+        Walk(-1, h => Block(h) <= 24),
+        Wait(10),
+        Walk(1, h => Block(h) >= 28),
+        Wait(60),
+    ]);
 
     /// <summary>
     /// <c>-- --fly</c> (<c>FarDemo</c>): floating out past the stream with a jetpack worn, it waits while
@@ -540,24 +553,26 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
-    /// The climb out of a spire (0096, <c>--ground=spire-climb --autopilot</c>), as <c>SpireClimbTests</c> climbs it: from its chamber
-    /// floor under the light a held jump onto the slab, a running jump off its edge onto the first ledge, three more off each
-    /// ledge's edge by turns, the last up through the hole into the room, and out right through the plug the demo dug.
+    /// The climb out of a spire (0096, <c>--ground=spire-climb --autopilot</c>), as <c>SpireClimbTests</c> climbs it: from its hall's
+    /// floor under the light a held jump up and left onto the step, a running jump off its edge up through the roof's hole onto the first
+    /// ledge, two more off each ledge's edge by turns, the last up through the hole into the room, and out right through the plug the demo dug.
     /// </summary>
     public static HeroAutopilot SpireClimb()
     {
-        int? light = null;
-        // The hero starts under the light, in the middle of the spire's fifth character: its left side nine cells left.
+        int? aboard = null, light = null, floor = null;
+        // The hero starts under the light, in the middle of the shaft's fifth character: the shaft's left side nine cells left.
         int At(double blocks) => (int)((light!.Value - 9) * Hero.Unit + blocks * Drawn);
         HeroInput Side(int dir) => new(dir, 0, false);
         Act Landed(int dir) => Until(Side(dir), (h, p) => p.Steps > 3 && h.Airborne == 0);
         return new HeroAutopilot(
         [
-            Wait(240),
-            Until(Still, (h, _) => (light ??= Column(h)) >= 0),
-            Jump(1), Landed(1),
-            Until(Side(-1), (h, _) => h.X <= At(6.3)), Jump(-1), Landed(-1),
-            Until(Side(1), (h, _) => h.X >= At(3.7)), Jump(1), Landed(1),
+            // Aboard till the demo beams it down, then settled on the floor.
+            Until(Still, (h, _) => (aboard ??= h.X) != h.X),
+            Wait(60),
+            Until(Still, (h, _) => (light ??= Column(h)) >= 0 && (floor ??= h.Y) >= 0),
+            // Straight up past the step's underside, ten cells over the floor, then left onto it.
+            Jump(), Until(Still, (h, _) => h.Y < floor!.Value - 10 * Hero.Unit), Landed(-1),
+            Until(Side(1), (h, _) => h.X >= At(2.7)), Jump(1), Landed(1),
             Until(Side(-1), (h, _) => h.X <= At(5.3)), Jump(-1), Landed(-1),
             Until(Side(1), (h, _) => h.X >= At(3.7)), Jump(1), Landed(1),
             Hold(Side(1), 60),

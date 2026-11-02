@@ -49,6 +49,9 @@ public sealed class TickMotion(Func<double> random)
     /// <summary>Its cut: how often its claw saws a second, its rear up and tilt, its recoil as the line snaps.</summary>
     public const double SawHz = 8, RecoilS = 0.4;
 
+    /// <summary>How far its gait goes a pixel it crawls.</summary>
+    public const double GaitPerPixel = 1.6;
+
     /// <summary>How long its death's cracks take to spread before it bursts: the hold every creature is held killed (<c>KillLooks.PopMs</c>).</summary>
     public const double CracksS = KillLooks.PopMs / 1000;
 
@@ -57,7 +60,7 @@ public sealed class TickMotion(Func<double> random)
     private double _clock, _sinceAlert = 99, _sinceClamp = 99, _sinceLaunch = 99, _sinceHit = 99, _sinceRed = 99, _sinceSnap = 99, _sinceCut = 99, _gait;
     private int _flightLeft;
     private TickArt.Rgb _eye = Watching;
-    private double _crouch, _fly, _walk, _thrust, _angle, _saw;
+    private double _crouch, _fly, _walk, _thrust, _angle, _saw, _alert;
 
     /// <summary>The way it faces: 1 right, −1 left.</summary>
     public int Face { get; private set; } = 1;
@@ -150,7 +153,7 @@ public sealed class TickMotion(Func<double> random)
         _fly += (fly - _fly) * Follow(dt, flying ? 0.02 : 0.04);
         // The sim's crawl is slow, a few pixels a second: its legs step in full at it, a stride every few pixels.
         _walk += ((flying ? 0 : Math.Clamp(Math.Abs(s.Crawl) / 4, 0, 1)) - _walk) * Follow(dt, 0.1);
-        if (!flying) _gait += Math.Abs(s.Crawl) * dt * 1.6;
+        if (!flying) _gait += Math.Abs(s.Crawl) * dt * GaitPerPixel;
         Mags = flying ? 0 : Math.Clamp(_sinceClamp / 0.05, 0, 1);
 
         double angle = 0;
@@ -195,7 +198,8 @@ public sealed class TickMotion(Func<double> random)
             : _sinceSnap < RecoilS ? -Face * 2.5 * Math.Exp(-_sinceSnap * 12)
             : s.WindingUp ? (random() - 0.5) * 0.5 * _crouch
             : 0;
-        Pose = new TickArt.Pose(_crouch, _walk, _gait, _fly, _eye, amp, look, Saw: _saw, Jaw: sawing ? Math.Round(0.5 + 0.5 * Math.Sin(_clock * Math.Tau * 11)) : 0);
+        _alert += ((s.Alerted || Hot ? 1 : 0) - _alert) * Follow(dt, 0.06);
+        Pose = new TickArt.Pose(_crouch, _walk, _gait, _fly, _eye, amp, look, Saw: _saw, Jaw: sawing ? Math.Round(0.5 + 0.5 * Math.Sin(_clock * Math.Tau * 11)) : 0, Alert: _alert);
         return moments;
     }
 

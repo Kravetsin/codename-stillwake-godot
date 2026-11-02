@@ -21,9 +21,11 @@ public readonly record struct Picked(Place Place, int Count);
 /// a queued station's (the Former's two, the assembler's three); 0 for any other, which takes it into its first slot.
 /// </param>
 /// <param name="Free">The modules the open machine has an empty socket for (0086): one shifted from the hero's slots is fitted.</param>
+/// <param name="Open">Whether a slot of the hero's is open yet (2026-10-30-room-upgrades); none given, all are.</param>
 public sealed record SlotClick(
     Place Place, Stack? Stack, bool Right, bool Shift, int? Crate, IReadOnlyList<Stack?> Inventory,
-    int? FuelSlot = null, bool Charger = false, int Inputs = 0, IReadOnlyList<Stack?>? CrateSlots = null, IReadOnlyList<string>? Free = null)
+    int? FuelSlot = null, bool Charger = false, int Inputs = 0, IReadOnlyList<Stack?>? CrateSlots = null, IReadOnlyList<string>? Free = null,
+    Func<Place, bool>? Open = null)
 {
     /// <summary>
     /// A click on the slot at <paramref name="place"/> of what <paramref name="reading"/> shows, the machine it shows open as
@@ -35,7 +37,7 @@ public sealed record SlotClick(
         int inputs = reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         return new SlotClick(
             place, reading.At(place), right, shift, crate, reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, reading.Crate,
-            crate != null ? reading.Free : null);
+            crate != null ? reading.Free : null, reading.Open);
     }
 }
 
@@ -43,7 +45,7 @@ public sealed record SlotClick(
 /// <param name="Fitted">Whether the module is fitted there.</param>
 /// <param name="Carried">What the stack picked holds, as shown; null with none picked.</param>
 /// <param name="Inventory">The hero's slots as shown: where a module taken out goes.</param>
-public sealed record SocketClick(int Machine, string Module, bool Fitted, bool Shift, Stack? Carried, IReadOnlyList<Stack?> Inventory);
+public sealed record SocketClick(int Machine, string Module, bool Fitted, bool Shift, Stack? Carried, IReadOnlyList<Stack?> Inventory, Func<Place, bool>? Open = null);
 
 /// <summary>One end of a stack's flight (<see cref="Flight"/>): a slot, or a machine's module socket.</summary>
 public abstract record Spot;
@@ -94,7 +96,7 @@ public static class Clicks
         if (picked is { } held)
             return click.Carried?.Item == click.Module && !click.Fitted ? new Clicked(null, new Fit(held.Place, click.Machine)) : new Clicked(picked);
         if (!click.Fitted) return new Clicked(null);
-        return click.Shift ? TakeOut(click.Machine, click.Module, click.Inventory) : new Clicked(null, TakesOut: true);
+        return click.Shift ? TakeOut(click.Machine, click.Module, click.Inventory, click.Open) : new Clicked(null, TakesOut: true);
     }
 
     /// <summary>
@@ -102,9 +104,9 @@ public static class Clicks
     /// <paramref name="inventory"/>, the hotbar first, flying there: a socket shift-clicked, or clicked and let go on itself.
     /// Nothing with no slot empty.
     /// </summary>
-    public static Clicked TakeOut(int machine, string module, IReadOnlyList<Stack?> inventory)
+    public static Clicked TakeOut(int machine, string module, IReadOnlyList<Stack?> inventory, Func<Place, bool>? open = null)
     {
-        int free = Enumerable.Range(0, InventorySpec.Slots).FirstOrDefault(i => inventory[i] == null, -1);
+        int free = Enumerable.Range(0, InventorySpec.Slots).FirstOrDefault(i => inventory[i] == null && open?.Invoke(new Place(i)) != false, -1);
         return free < 0 ? new Clicked(null) : Flying(true, new Clicked(null, new Unfit(machine, module, free)), module);
     }
 
@@ -170,12 +172,12 @@ public static class Clicks
         bool charges = click.Charger && spec.Capacity != null;
         if (own && !charges && Equipment.Is(click.Place))
         {
-            int free = Enumerable.Range(0, InventorySpec.Slots).FirstOrDefault(i => click.Inventory[i] == null, -1);
+            int free = Enumerable.Range(0, InventorySpec.Slots).FirstOrDefault(i => click.Inventory[i] == null && click.Open?.Invoke(new Place(i)) != false, -1);
             return free >= 0 ? new Target(free) : null;
         }
         if (own && !charges && spec.Equip is string kind)
         {
-            var slots = Equipment.Of(kind).ToList();
+            var slots = Equipment.Of(kind).Where(p => click.Open?.Invoke(p) != false).ToList();
             var slot = slots.FirstOrDefault(s => click.Inventory[s.Slot] == null) ?? slots.FirstOrDefault();
             return slot != null ? new Target(slot.Slot) : null;
         }
@@ -200,6 +202,8 @@ public static class Clicks
     {
         bool hotbar = click.Place.Slot < Hotbar.Row;
         int from = hotbar ? Hotbar.Row : 0, to = hotbar ? InventorySpec.Slots : Hotbar.Row;
+        // Slots open from the first on, so the bag ends at the first closed one.
+        while (to > from && click.Open?.Invoke(new Place(to - 1)) == false) to--;
         return RoomFor(click.Inventory, from, to, stack) is int slot ? new Target(slot) : null;
     }
 

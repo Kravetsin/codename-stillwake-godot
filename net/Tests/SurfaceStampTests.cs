@@ -92,6 +92,20 @@ public class SurfaceStampTests
     }
 
     [Fact]
+    public void AJoinerHasTheHostsWorldId()
+    {
+        var game = Definition.Game();
+        var world = game.Load(World.Create(1, Layout.Parse(["#.S.#"]), game.Make(), 7).Save());
+        var (host, own) = LocalSession.Create(world, "b1");
+        var (toPeer, fromHost) = Loopback.Create<ToClient, ToHost>();
+        host.Admit(toPeer);
+        Client? joined = null;
+        Client.Join(game.Load, fromHost, "b1", c => joined = c, why => throw why);
+        Assert.Equal(7u, joined!.World.Id);
+        Assert.Equal(own.World.Hash(), joined.World.Hash());
+    }
+
+    [Fact]
     public void ADesyncOnAnotherSurfaceIsReportedByThatSurfaceAndModule()
     {
         var game = Definition.Game();

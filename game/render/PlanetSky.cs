@@ -38,19 +38,19 @@ public partial class PlanetSky : Node2D
     /// <param name="set">The folder of its pictures under <c>art</c>: its planet type's backdrop (<see cref="PlanetLooks"/>, 0095).</param>
     public PlanetSky(string set)
     {
-        var sky = PixelArt.Picture($"{set}/sky");
+        var sky = PixelArt.Far($"{set}/sky");
         _above.Color = TopOf(sky);
         AddChild(_above);
         AddChild(_sky = Layer(sky, repeat: false));
         AddChild(_giant = Layer(PixelArt.Picture($"{set}/giant"), repeat: false));
-        AddChild(_clouds = Layer(PixelArt.Picture($"{set}/clouds"), repeat: true));
+        AddChild(_clouds = Layer(PixelArt.Far($"{set}/clouds"), repeat: true));
         _sun = Layer(PixelArt.Picture($"{set}/sun"), repeat: false);
         _sun.Material = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add };
         AddChild(_sun);
         foreach (var (name, top, follows) in Land)
         {
-            var texture = PixelArt.Picture($"{set}/{name}");
-            var under = new ColorRect { Color = BottomOf(texture), MouseFilter = Control.MouseFilterEnum.Ignore };
+            var texture = PixelArt.Far($"{set}/{name}");
+            var under = new ColorRect { Color = BottomOf(PixelArt.Logical($"{set}/{name}")), MouseFilter = Control.MouseFilterEnum.Ignore };
             var sprite = Layer(texture, repeat: true);
             AddChild(under);
             AddChild(sprite);
@@ -98,8 +98,9 @@ public partial class PlanetSky : Node2D
     private static void Spread(Sprite2D layer, float x, float zoom, Vector2 screen, float y)
     {
         float across = screen.X / zoom;
-        layer.RegionRect = new Rect2(Mathf.PosMod(x - across / 2, layer.Texture.GetWidth()), 0, across, layer.Texture.GetHeight());
-        layer.Position = new Vector2(0, y);
+        // From its second row: a smoothly sampled repeat would blend its bottom row into its top, a line across the sky.
+        layer.RegionRect = new Rect2(Mathf.PosMod(x - across / 2, layer.Texture.GetWidth()), 1, across, layer.Texture.GetHeight() - 1);
+        layer.Position = new Vector2(0, y + zoom);
         layer.Scale = Vector2.One * zoom;
     }
 
@@ -109,7 +110,7 @@ public partial class PlanetSky : Node2D
 
     private static Color PixelOf(Texture2D texture, int row)
     {
-        var image = texture.GetImage();
+        var image = (texture is CanvasTexture { DiffuseTexture: { } painted } ? painted : texture).GetImage();
         if (image.IsCompressed()) image.Decompress();
         return image.GetPixel(0, row);
     }

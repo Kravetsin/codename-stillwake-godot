@@ -1,0 +1,9 @@
+[gd_resource type="FontVariation" load_steps=2 format=3]
+
+[sub_resource type="SystemFont" id="SystemFont_clear"]
+font_names = PackedStringArray("Segoe UI", "sans-serif")
+hinting = 0
+subpixel_positioning = 1
+
+[resource]
+base_font = SubResource("SystemFont_clear")

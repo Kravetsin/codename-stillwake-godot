@@ -50,6 +50,7 @@ public partial class Main : Node2D, ITogether
     private static readonly string SessionBuild = $"{Build}+{Stillwake.Net.Wire.Fingerprint(World.CommandTypesOf(new Registry().All))}";
 
     private Session? _session;
+    private ResearchTablet? _tablet;
     /// <summary>Playing together as the menu shows it; the link it runs over, and the guests by their peer on it.</summary>
     private TogetherState _together = TogetherState.Alone;
     private Action? _stopLink;
@@ -210,7 +211,7 @@ public partial class Main : Node2D, ITogether
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
             // suit's gauge, so the red edges and the dark of passing out cover it as they cover the rest of the HUD.
-            var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id)) : null, _hands.Ui);
+            var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id), Equipment.Of(Content.Charge.Belt).Count(_m.Items.SlotOpen)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);
@@ -227,6 +228,7 @@ public partial class Main : Node2D, ITogether
                 yield return building.Covers;
                 yield return overlays.Covers;
                 if (fabricator.Covers is { } crafts) yield return crafts;
+                if (_tablet != null) yield return _tablet.KeyCovers;
             }
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
@@ -252,13 +254,15 @@ public partial class Main : Node2D, ITogether
         AddChild(dev);
         // The Handbook (0066): each section a feature's own page; what opening it puts away is wired here, so no feature reaches into another.
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
+        // The tech tree on the tablet: put away and putting away as the computer's window.
+        var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0);
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
             {
                 _items?.Panel.Close();
                 _hands.Ui.OpenComputer.Set(null);
-                _hands.Ui.OpenTech.Set(null);
+                tech.Close();
                 _hands.Plan.PutPlanAway();
             },
         };
@@ -270,16 +274,16 @@ public partial class Main : Node2D, ITogether
             if (_hands.Ui.OpenComputer.Get() == null) return;
             _items?.Panel.Close();
             handbook.Close();
+            tech.Close();
             _hands.Plan.PutPlanAway();
         });
         AddChild(computer);
-        // A tech station's window, put away and putting away as the computer's.
-        var tech = new TechPanel(_hands.Ui, () => _session != null ? _m : null, () => (_session as Session)?.Client.Id ?? 0, command => _session?.Client.Send(command));
-        _hands.Ui.OpenTech.Subscribe(() =>
+        _hands.Ui.TreeOpen.Subscribe(() =>
         {
-            if (_hands.Ui.OpenTech.Get() == null) return;
+            if (!_hands.Ui.TreeOpen.Get()) return;
             _items?.Panel.Close();
             handbook.Close();
+            _hands.Ui.OpenComputer.Set(null);
             _hands.Plan.PutPlanAway();
         });
         AddChild(tech);
@@ -306,6 +310,7 @@ public partial class Main : Node2D, ITogether
                 _hands.Plan.PutPlanAway();
             },
             handbook: handbook.Open,
+            tree: tech.Open,
             look: () => lookEditor.Open(_look ?? Sim.Players.Look.Zero),
             suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
@@ -348,7 +353,6 @@ public partial class Main : Node2D, ITogether
         _items?.Panel.Close();
         _hands.Ui.OpenCrate.Set(null);
         _hands.Ui.OpenComputer.Set(null);
-        _hands.Ui.OpenTech.Set(null);
         _hands.Ui.AimedPiece.Set(null);
         _hands.Plan.PutPlanAway();
         Stages.Clear();
@@ -379,11 +383,13 @@ public partial class Main : Node2D, ITogether
         }
         _grid = View<GridView>();
         var fires = View<FurnaceView>()!;
-        var power = _m.Power;
+        var (power, hazards) = (_m.Power, _m.Hazards);
         AddChild(_light = new LightView(_m.Grid, Game.Light.SkyOf(_m.Rules), ground: _m.Rules is Content.PlanetType)
         {
             // --lit: every lamp at full power, to measure the light on the reference world; --dark: every lamp out, to see what glows.
-            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => power.Satisfaction(lamp.Id) / 1000f,
+            // A flare coming makes them falter as one short of power does (magnetic-flare).
+            LampShare = Has("--lit") ? _ => 1f : Has("--dark") ? _ => 0f : lamp => Features.Light.LampPower.ShareOf(Stillwake.Content.Machines.Get(lamp.Kind).Draws, power.Satisfaction(lamp.Id))
+                * Features.Hazards.FlareLook.LampShare(Features.Hazards.FlareLook.Near(hazards.FlareLeft, (_session as Session)?.Progress ?? 0, hazards.FlareRules.Warning)),
             Fire = m => fires.BlazeOf(m.Id),
             FireAt = FurnaceView.LightAt,
             HeadLamps = () => _hero?.HeadLamps() ?? [],
@@ -474,6 +480,7 @@ public partial class Main : Node2D, ITogether
         SyncGrid(client);
         _frameLog?.Mark("grid");
         if (_items != null) _items.Panel.Furnace = _m.Furnace.At;
+        if (_items != null) _items.Panel.Trade = _m.Trade;
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
@@ -484,7 +491,7 @@ public partial class Main : Node2D, ITogether
         _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
         _frameLog?.Mark("debris");
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
-        _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, CreatureLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, CreatureLooks.Palette), _seed);
+        _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, CreatureLooks.PaletteOf.GetValueOrDefault(_m.Rules.Id, CreatureLooks.Palette), _seed);
         _frameLog?.Mark("creatures");
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");

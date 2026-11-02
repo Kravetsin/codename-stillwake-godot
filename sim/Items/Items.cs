@@ -1,5 +1,6 @@
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim.Items;
@@ -45,6 +46,7 @@ public interface IItemsQueries
     IReadOnlyList<Stack?> Crate(int id);
     bool CanSmelt(int id);
     bool Creative { get; }
+    bool SlotOpen(Place place);
     IReadOnlyList<(string Item, int Count)> Totals(int peer);
     string? ShortOf(int peer, IReadOnlyList<(string Item, int Count)> cost);
     string? FullFor(int peer, IReadOnlyList<(string Item, int Count)> cost);
@@ -105,15 +107,37 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     private readonly IGridQueries _grid;
     private readonly IRoomsQueries _rooms;
 
-    /// <summary>An inventory's own slots, before its equipment: what giving, taking and picking up use.</summary>
-    private const int Own = Content.Inventory.Slots;
+    private readonly IKnowledgeQueries _knowledge;
+    private readonly IKnowledgeOps _knowledgeOps;
+
+    /// <summary>An inventory's own slots open now, before its equipment: what giving, taking and picking up use (2026-10-30-room-upgrades).</summary>
+    private int Own => OpenOf(Content.Upgrades.Bag, Content.Inventory.Start, Content.Inventory.Slots);
+
+    /// <summary>The first <paramref name="start"/> slots of a kind and what upgrades add, in creative mode all <paramref name="most"/>.</summary>
+    private int OpenOf(string kind, int start, int most) =>
+        State.Creative ? most : Math.Min(most, start + Content.Upgrades.Added(kind, _knowledge.Granted));
+
+    /// <summary>A trade station's slots open now: those past them take nothing in, as a machine's outputs.</summary>
+    private int InputsOf(MachineSpec spec) =>
+        spec.Is(MachineTrait.Sells) ? OpenOf(Content.Upgrades.TradeSlots, Content.Upgrades.TradeStart, spec.Slots ?? 0) : spec.Inputs ?? spec.Slots ?? 0;
+
+    /// <summary>Whether <paramref name="place"/> is open: not one waiting on an upgrade, which holds nothing and is not shown.</summary>
+    public bool SlotOpen(Place place)
+    {
+        if (place.Crate is int id) return HolderOf(id) is not { } spec || !spec.Is(MachineTrait.Sells) || place.Slot < InputsOf(spec);
+        if (place.Slot < Content.Inventory.Slots) return place.Slot < Own;
+        int belt = Array.IndexOf(Belt, place.Slot);
+        return belt < 0 || belt < OpenOf(Content.Upgrades.Belt, Content.Inventory.BeltStart, Belt.Length);
+    }
 
     public override string Id => "items";
 
-    public ItemsModule(IGridQueries grid, IRoomsQueries rooms)
+    public ItemsModule(IGridQueries grid, IRoomsQueries rooms, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
         _grid = grid;
         _rooms = rooms;
+        _knowledge = knowledge;
+        _knowledgeOps = knowledgeOps;
         Handles<Drop>(DropProblem, ApplyDrop);
         Handles<PickUp>(c => PickUpProblem(c.From, c.Id), ApplyPickUp);
         Handles<SetCreative>(_ => null, c => State.Creative = c.On);
@@ -338,7 +362,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public bool Equipped(int peer, string item)
     {
         var slots = Inventory(peer);
-        for (int i = Own; i < slots.Count; i++)
+        for (int i = Content.Inventory.Slots; i < slots.Count; i++)
             if (slots[i]?.Item == item) return true;
         return false;
     }
@@ -350,7 +374,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public string? WornIn(int peer, string kind)
     {
         int at = Content.Inventory.Equipment.ToList().IndexOf(kind);
-        return at < 0 ? null : Inventory(peer)[Own + at]?.Item;
+        return at < 0 ? null : Inventory(peer)[Content.Inventory.Slots + at]?.Item;
     }
 
     /// <summary>
@@ -372,7 +396,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     [
         .. Enumerable.Range(0, Content.Inventory.Equipment.Count)
             .Where(i => Content.Inventory.Equipment[i] == Content.Charge.Belt)
-            .Select(i => Own + i),
+            .Select(i => Content.Inventory.Slots + i),
     ];
 
     // Operations.
@@ -413,6 +437,8 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         var outputs = Smelted(slots, inputs, besides);
         if (outputs == null || Stacks.TakenFrom(slots, 0, Content.Items.Get(slots[0]!.Item).SmeltTakes, out var left, out _) != null)
             throw new InvalidOperationException("items.smelt: nothing to smelt; check CanSmelt");
+        Obtained(Content.Items.Get(slots[0]!.Item).Yields!);
+        Obtained(besides);
         SetMachine(id, [.. left.Take(inputs), .. outputs]);
     }
 
@@ -429,6 +455,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         if (Stacks.IsNothing(cost)) return;
         var slots = Outputs(id, cost) ?? throw new InvalidOperationException("items.output: no room; check OutputFull first");
+        Obtained(cost);
         SetMachine(id, slots);
     }
 
@@ -451,6 +478,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     public IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
         if (Stacks.IsNothing(cost)) return [];
+        Obtained(cost);
         var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
         Stacks.SetInventory(State, peer, slots);
         DropAt(peer, left, cell);
@@ -464,9 +492,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         return given;
     }
 
+    /// <summary>What the crew obtains is counted where a stack is born: here, never when one only moves or a payment comes back.</summary>
+    private void Obtained(IReadOnlyList<(string Item, int Count)> cost)
+    {
+        foreach (var (item, count) in Stacks.Entries(cost)) _knowledgeOps.Obtain(item, count);
+    }
+
     /// <summary>Lets <paramref name="cost"/> fall on cell <paramref name="cell"/> as if peer <paramref name="peer"/> dropped it there, still; <see cref="FloorStack.Nobody"/> for a stack anyone may take at once.</summary>
     public void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
     {
+        if (peer == FloorStack.Nobody) Obtained(cost);
         foreach (var (item, count) in Stacks.Entries(cost))
             if (count > 0) FloorRules.LayDown(State, new Stack(item, count), cell, 0, _grid.Width, peer);
     }
@@ -478,6 +513,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// </summary>
     public void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away)
     {
+        Obtained(loot);
         bool afloat = _rooms.Afloat(cell);
         foreach (var (item, count) in SprayRules.Pieces(Stacks.Entries(loot), Content.Floor.SprayMost))
         {
@@ -629,7 +665,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     private void ApplySort(Sort c) => SetSide(c.From, new Target(Crate: c.Crate), Sorted(SideOf(c.From, new Target(Crate: c.Crate)), c.Crate));
 
     /// <summary><paramref name="slots"/> sorted as <see cref="Sort"/> sorts them: a crate's all, an inventory's own past the hotbar.</summary>
-    private static Stack?[] Sorted(IReadOnlyList<Stack?> slots, int? crate) =>
+    private Stack?[] Sorted(IReadOnlyList<Stack?> slots, int? crate) =>
         crate == null ? Stacks.Sorted(slots, Content.Inventory.Hotbar, Own) : Stacks.Sorted(slots, 0, slots.Count);
 
     private string? DropProblem(Drop c)
@@ -761,13 +797,13 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     private bool IsCrate(int id) => HolderOf(id) != null;
 
     /// <summary>How many of machine <paramref name="id"/>'s first slots take items in: all of a crate's, none of a machine holding none.</summary>
-    private int InputsOf(int id) => HolderOf(id) is { } spec ? spec.Inputs ?? spec.Slots ?? 0 : 0;
+    private int InputsOf(int id) => HolderOf(id) is { } spec ? InputsOf(spec) : 0;
 
     /// <summary>Machine <paramref name="id"/>'s slots with <paramref name="cost"/> placed in its outputs, or null when it does not fit or holds no items.</summary>
     private Stack?[]? Outputs(int id, IReadOnlyList<(string Item, int Count)> cost)
     {
         if (HolderOf(id) is not { } spec) return null;
-        int inputs = spec.Inputs ?? spec.Slots ?? 0;
+        int inputs = InputsOf(spec);
         var slots = Crate(id);
         return Stacks.Placed(slots.Skip(inputs).ToList(), cost) is { } placed ? [.. slots.Take(inputs), .. placed] : null;
     }
@@ -838,10 +874,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// </summary>
     private string? Moved(
         IReadOnlyList<Stack?> from, IReadOnlyList<Stack?> to, bool same, Place src, Target dst, int count,
-        out Stack?[] after, out Stack?[] into) =>
-        Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate == null ? Own : null)
-        ?? (src.Crate is int a ? Stacks.Unfit(HolderOf(a)!, after) : Stacks.Misfit(after))
-        ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
+        out Stack?[] after, out Stack?[] into)
+    {
+        (after, into) = ([], []);
+        if (dst.Slot is int slot && !SlotOpen(new Place(slot, dst.Crate))) return "items.noSlot";
+        return Stacks.Moved(from, to, same, src, dst, count, out after, out into, dst.Crate == null ? Own : null)
+            ?? (src.Crate is int a ? Stacks.Unfit(HolderOf(a)!, after) : Stacks.Misfit(after))
+            ?? (dst.Crate is int b ? Stacks.Unfit(HolderOf(b)!, into) : Stacks.Misfit(into));
+    }
 
     /// <summary>
     /// A fed station's outputs after one smelt of its input: its yields and <paramref name="besides"/> placed, by default

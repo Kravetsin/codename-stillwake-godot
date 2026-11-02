@@ -9,11 +9,14 @@ namespace Stillwake.Sim.Research;
 /// <param name="Placement">What a blueprint places; null for a craft, named by the item it makes.</param>
 public sealed record Recipe(string Id, Placement? Placement, IReadOnlyList<(string Item, int Count)> Cost, bool Known);
 
-/// <summary>Buys the tree's block <paramref name="Block"/> at tech station <paramref name="Machine"/>, with the ship's credits.</summary>
-public sealed record BuyBlock(int Machine, string Block) : Command;
+/// <summary>Buys the tree's block <paramref name="Block"/>, with the ship's credits, from anywhere.</summary>
+public sealed record BuyBlock(string Block) : Command;
 
-/// <summary>Puts what the sender carries of what gate <paramref name="Gate"/> asks for into it, at tech station <paramref name="Machine"/>.</summary>
-public sealed record Deposit(int Machine, string Gate) : Command;
+/// <summary>Puts what the sender carries of what gate <paramref name="Gate"/> asks for into it, from anywhere.</summary>
+public sealed record Deposit(string Gate) : Command;
+
+/// <summary>What the rule grants by: a thing, how many of each part are enough, and for a craft the machines that make it; null for a blueprint.</summary>
+internal sealed record Walkable(string Id, (string Item, int Enough)[] Parts, string[]? Stations);
 
 /// <summary>
 /// The research slice: empty, as what is known, earned and deposited is the world's <c>Knowledge</c>. Public so modules can be
@@ -43,7 +46,7 @@ public interface IResearchQueries
 }
 
 /// <summary>
-/// Knowing blueprints and crafts (2026-10-30-trade-and-tech): what the world knows, the tree it buys more of at tech stations, and
+/// Knowing blueprints and crafts (2026-10-30-trade-and-tech): what the world knows, the tree it buys more of, and
 /// its gates' deposits. The state is the world's <c>Knowledge</c>; research holds the rules.
 /// </summary>
 public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
@@ -55,14 +58,24 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         .. Content.Crafts.All.Select(c => (c.Item, (Placement?)null, c.Cost)),
     ];
 
-    /// <summary>The id of every blueprint, then every craft: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
-    public static readonly IReadOnlyList<string> Ids = Every.Select(e => e.Id).ToList();
+    /// <summary>The id of every blueprint, then every craft, then every upgrade: what a map with no <c>Layout.Known</c> is granted (<c>Knowledge</c>).</summary>
+    public static readonly IReadOnlyList<string> Ids = [.. Every.Select(e => e.Id), .. Content.Upgrades.All.Select(u => u.Id)];
+
+    /// <summary>What the rule walks: every blueprint and craft in <see cref="Every"/>'s order, but what only the market opens. Upgrades are no recipes.</summary>
+    internal static readonly Walkable[] Walked =
+    [
+        .. Every.Where(e => Content.Research.Node(e.Id) is not { Tab: Content.Research.Market }).Select(e => new Walkable(
+            e.Id,
+            [.. e.Cost.Select(c => (c.Item, Understanding.Enough(c.Item)))],
+            e.Placement != null ? null : [.. Content.Stations.All.Where(s => s.Rows.Any(r => r.Contains(e.Id))).Select(s => s.Machine)])),
+    ];
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
+    private int _knowledgeSeen = -1, _gridSeen = -1;
 
     public override string Id => "research";
 
@@ -75,9 +88,40 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         _knowledgeOps = knowledgeOps;
         Handles<BuyBlock>(c => BuyProblem(c), Apply);
         Handles<Deposit>(c => DepositProblem(c), Apply);
+        System(Phase.Derivation, Walk);
     }
 
     protected override ResearchState Init(Layout layout) => new();
+
+    public override void Rebuild()
+    {
+        _knowledgeSeen = -1;
+        _gridSeen = -1;
+    }
+
+    /// <summary>
+    /// Grants what the rule allows (docs/plans/board.md), when a count or the grid has moved. One pass is enough: the rule reads
+    /// counts and the grid, never what is granted, and a loaded world walks on its first tick, so it matches one that kept running.
+    /// </summary>
+    internal void Walk()
+    {
+        if (_knowledge.Version == _knowledgeSeen && _grid.Version == _gridSeen) return;
+        for (int i = 0; i < Walked.Length; i++)
+            if (!_knowledge.Granted(Walked[i].Id) && Understood(Walked[i])) _knowledgeOps.Grant(Walked[i].Id);
+        _knowledgeSeen = _knowledge.Version;
+        _gridSeen = _grid.Version;
+    }
+
+    /// <summary>Whether each part of <paramref name="thing"/> is enough and, for a craft, a machine that makes it stands on this surface.</summary>
+    private bool Understood(Walkable thing)
+    {
+        for (int i = 0; i < thing.Parts.Length; i++)
+            if (_knowledge.ObtainedOf(thing.Parts[i].Item) < thing.Parts[i].Enough) return false;
+        if (thing.Stations is not { } stations) return true;
+        for (int i = 0; i < stations.Length; i++)
+            if (_grid.MachinesOf(stations[i]).Count > 0) return true;
+        return false;
+    }
 
     // Queries.
 
@@ -92,7 +136,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     public bool Done(TechNode node)
     {
         if (_items.Creative) return true;
-        if (!node.Gate) return node.Opens.All(_knowledge.Granted);
+        if (!node.Gate) return _knowledge.Granted(node.Id);
         foreach (var (item, count) in node.Deposit)
             if (_knowledge.DepositOf(node.Id, item) < count) return false;
         return true;
@@ -116,24 +160,17 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     // Commands.
 
-    private bool IsTechStation(int machine) => _grid.MachineById(machine) is { } m && Machines.Is(m.Kind, MachineTrait.Tech);
-
-    private string? BuyProblem(BuyBlock c)
-    {
-        if (!IsTechStation(c.Machine)) return "research.noMachine";
-        return Content.Research.Node(c.Block) is { } block ? BuyProblem(block) : "research.locked";
-    }
+    private string? BuyProblem(BuyBlock c) => Content.Research.Node(c.Block) is { } block ? BuyProblem(block) : "research.locked";
 
     private void Apply(BuyBlock c)
     {
         var block = Content.Research.Node(c.Block)!;
         _knowledgeOps.Spend(Prices.Of(block));
-        foreach (string id in block.Opens) _knowledgeOps.Grant(id);
+        _knowledgeOps.Grant(block.Id);
     }
 
     private string? DepositProblem(Deposit c)
     {
-        if (!IsTechStation(c.Machine)) return "research.noMachine";
         if (Content.Research.Node(c.Gate) is not { Gate: true } gate) return "research.locked";
         if (Done(gate)) return "research.gateOpen";
         if (!Reached(gate)) return "research.locked";
@@ -161,14 +198,12 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         return taken;
     }
 
-    /// <summary>Buys and deposits by hand, refused ones too: at a tech station when one stands, at any node.</summary>
+    /// <summary>Buys and deposits by hand, refused ones too, at any node.</summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(8) != 0) return null;
-        var stations = _grid.MachinesWith(MachineTrait.Tech);
-        int machine = stations.Count > 0 && rng.Below(8) != 0 ? stations[(int)rng.Below((uint)stations.Count)].Id : (int)rng.Below(64);
         var nodes = Content.Research.Nodes;
         var node = nodes[(int)rng.Below((uint)nodes.Count)];
-        return node.Gate ? new Deposit(machine, node.Id) { From = from } : new BuyBlock(machine, node.Id) { From = from };
+        return node.Gate ? new Deposit(node.Id) { From = from } : new BuyBlock(node.Id) { From = from };
     }
 }

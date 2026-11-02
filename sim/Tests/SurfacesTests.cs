@@ -60,6 +60,22 @@ public class SurfacesTests
 
     // Slice 1: routing.
 
+    /// <summary>The tablet buys from anywhere (2026-10-30-tablet-tree): off the ship too, the world's credits spent.</summary>
+    [Fact]
+    public void BuysFromAnotherSurface()
+    {
+        var w = new Scenario(Layout.Parse(Ship.Split('\n')) with { Known = Content.Research.StartKnown }, doubled: true);
+        w.Do(new Enter(w.M.Crew.Spawn)).Do(new OpenSurface(Strip)).Run();
+        w.M.Knowledge.Earn(100_000);
+        var surface = w.World.Surfaces[^1].Id;
+        w.Do(new Transfer(surface)).Run();
+        Assert.Equal(surface, w.World.SurfaceOf(0));
+        var block = Content.Research.Nodes.First(n => !n.Gate && n.Needs.Length == 0);
+        w.Do(new Stillwake.Sim.Research.BuyBlock(block.Id)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(100_000 - Stillwake.Sim.Research.Prices.Of(block), w.M.Knowledge.Credits);
+    }
+
     [Fact]
     public void AWorldIsTheShipAloneWithEveryPeerOnIt()
     {
@@ -348,9 +364,12 @@ public class SurfacesTests
             }
             var copy = World.Load(world.Save(), new Registry().All);
             int to = (world.SurfaceOf(t.peer) + 1) % world.Surfaces.Count;
+            // One waking this very tick wakes aboard, wherever it just went (0076).
+            bool waking = Registry.On(world, world.SurfaceOf(t.peer)).Crew.HeroOf(t.peer)?.Out == 1;
+            int lands = waking ? 0 : to;
             world.Step([new Transfer(to) { From = t.peer }]);
             copy.Step([]);
-            return (Totals(world).SequenceEqual(Totals(copy)) && world.SurfaceOf(t.peer) == to).Label($"to {to}: {string.Join(",", Totals(world))} against {string.Join(",", Totals(copy))}");
+            return (Totals(world).SequenceEqual(Totals(copy)) && world.SurfaceOf(t.peer) == lands).Label($"to {to}, on {world.SurfaceOf(t.peer)}: {string.Join(",", Totals(world))} against {string.Join(",", Totals(copy))}");
         });
     }
 

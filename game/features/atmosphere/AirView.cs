@@ -300,7 +300,7 @@ public partial class AirView : Node2D
             .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && a.Status == RoomStatus.Filling)
             .Select(x => ((x.Cell % width + Middle(x.Kind).X) * Cell, (x.Cell / width + Middle(x.Kind).Y) * Cell)).ToList();
         _blowing = m.Grid.Machines
-            .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Fed(x.Id) && m.Rooms.RoomAt(x.Cell) is int room && _byRoom.TryGetValue(room, out var a) && (a.Oxygen > 0 || a.Made > 0))
+            .Where(x => Machines.Is(x.Kind, MachineTrait.Vents) && m.Atmosphere.Supplied(x.Id))
             .Select(x => new Vector2((float)((x.Cell % width + Middle(x.Kind).X) * Cell), (float)((x.Cell / width + Middle(x.Kind).Y) * Cell))).ToList();
         var pod = m.Grid.Machines.FirstOrDefault(x => Machines.Get(x.Kind).Fixed);
         _reach = null;

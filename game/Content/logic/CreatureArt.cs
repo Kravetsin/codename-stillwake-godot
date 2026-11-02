@@ -115,39 +115,6 @@ public static partial class CreatureArt
                 new("eye", "eye", "head", 2.2f, -1, Drive.Eye),
                 new("ear", "ear", "head", 1, -2.8f, Drive.Ear),
             ]),
-        ["fluff"] = new("fluff", Gait.Waddle, Headless: true,
-            Glow: 31,
-            Eye: new(6.5f, -14, (0.8f, 1.2f), (2.296f, 3.288f)),
-            Pose: new(EarUp: 0, EarBack: -1.35f, EarPerk: 0.15f, LegAmp: 0, Lift: 2, TailAmp: 0.2f, TailFlee: -0.4f, Graze: 0.18f, Hop: 0),
-            Parts: new Dictionary<string, Part>
-            {
-                ["body"] = new(28, 29, 15, 27, [25, 26, 28, 27]),
-                ["ear"] = new(7, 13, 2, 11, [31, 27], Glow: true),
-                ["earFar"] = new(7, 13, 2, 11, [31, 27], Glow: true),
-                ["leg"] = new(8, 8, 4, 5, [27]),
-                ["legFar"] = new(8, 8, 4, 5, [27]),
-                ["tail"] = new(11, 12, 8, 7, [25]),
-                ["marks"] = new(28, 29, 15, 27, [31], Glow: true),
-                ["eye_open"] = new(12, 12, 6, 6, [29]),
-                ["eye_wide"] = new(16, 16, 8, 8, [29]),
-                ["lid_half"] = new(14, 14, 7, 7, [25, 29]),
-                ["lid_blink"] = new(14, 14, 7, 7, [25, 29]),
-                ["pupil"] = new(10, 10, 5, 5, [31, 29]),
-                ["pupil_wide"] = new(8, 8, 4, 4, [29, 31]),
-            },
-            Rig:
-            [
-                new("earFar", "earFar", "body", 0, -22.8f, Drive.Ear, Base: -0.35f),
-                new("legFH", "legFar", "body", -2, -1.2f, Drive.Leg, Phase: 0),
-                new("legFF", "legFar", "body", 7, -1.2f, Drive.Leg, Phase: 0.5f),
-                new("tail", "tail", "body", -11.5f, -11, Drive.Tail),
-                new("legNH", "leg", "body", -5, -0.8f, Drive.Leg, Phase: 0.5f),
-                new("legNF", "leg", "body", 4, -0.8f, Drive.Leg, Phase: 0),
-                new("body", "body", null, 0, 0, Drive.Body),
-                new("marks", "marks", "body", 0, 0, Drive.None),
-                new("eye", "eye", "body", 6.5f, -14, Drive.Eye),
-                new("ear", "ear", "body", 4.5f, -23, Drive.Ear, Base: -0.1f),
-            ]),
     };
 
     /// <summary>Each palette's ramps by index (the index maps' R), six tones each, outline to highlight: a planet's creatures recoloured by one.</summary>

@@ -48,7 +48,7 @@ public class LogisticsTests
     /// </summary>
     internal static Scenario Aired(string[] rows, string[]? under = null, int drones = 2, IReadOnlyList<((int, int), (int, int))>? cables = null, int charge = Content.Charge.Drone)
     {
-        var w = new Scenario(Layout.Parse(rows, under, cables), doubled: true);
+        var w = new Scenario(AirTesting.Vaporized(rows, under, cables), doubled: true);
         for (int i = 0; i < 2000 && !AllAired(w); i++) w.Run();
         Assert.True(AllAired(w));
         foreach (var bay in w.M.Grid.MachinesOf(Tune.Bay)) Dock(w, bay.Id, drones, charge);
@@ -544,7 +544,9 @@ public class LogisticsTests
         w.Put(0, new Stack("wire", 1), crate: station);
         w.FillCrate(Left, ("wire", 100));
         Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Left), "wire") < 100, 900));
-        Assert.True(RunUntil(w, () => w.M.Research.Credits > Content.Market.PriceOf("wire"), 900));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(station), "wire") > 1, 900));
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(station)).Run(Content.Market.CapsuleFlight);
+        Assert.True(w.M.Research.Credits > Content.Market.PriceOf("wire"));
         // Held by hand, an unpriced stack stays, and none comes after it.
         w.Put(1, new Stack("arcShard", 1), crate: station);
         w.FillCrate(Right, ("arcShard", 4));
@@ -561,9 +563,10 @@ public class LogisticsTests
         int station = w.M.Grid.MachinesOf("tradeStation")[0].Id;
         w.Put(0, new Stack("wire", 1), crate: station);
         w.Put(1, new Stack("gear", 1), crate: station);
-        Assert.True(RunUntil(w, () => w.M.Items.Crate(station).All(s => s == null), 900));
+        w.Do(new Stillwake.Sim.Trade.SendCapsule(station)).Run();
+        Assert.All(w.M.Items.Crate(station), s => Assert.Null(s));
         w.FillCrate(Right, ("gear", 1));
-        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station).All(s => s == null), 1800));
+        Assert.True(RunUntil(w, () => Count(w.M.Items.Crate(Right), "gear") == 0 && w.M.Items.Crate(station)[1]?.Item == "gear", 1800));
         Assert.Equal("wire", w.M.Items.KeptAt(station, 0));
         Assert.Equal("gear", w.M.Items.KeptAt(station, 1));
     }
@@ -694,17 +697,18 @@ public class LogisticsTests
         Assert.Equal(Chunks, w.M.Items.HeldFor(w.M.Grid.MachinesOf("furnace").Single().Id, "scrapChunk"));
     }
 
-    /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right.</summary>
+    /// <summary>Wide: a bay on the left with a crate (2), a furnace (3) in its zone and a furnace (4) beyond it, and a second bay (5) on the right,
+    /// aired by two vaporizers: one cannot keep up with its leak (liquid-oxygen).</summary>
     private static readonly string[] Wide =
     [
         "##############################################",
         "#............................................#",
-        "#RR....TT......FF.....FF.......RR............#",
-        "#RR.KK.TTV.....FF.....FF.......RR............#",
+        "#RR....TT......FF.....FF.......RR........TT..#",
+        "#RR.KK.TTV.....FF.....FF.......RR........TTV.#",
         "##############################################",
     ];
 
-    private static readonly string[] WideUnder = ["", "", "       o", "       ---"];
+    private static readonly string[] WideUnder = ["", "", "       o                                 o", "       ---                               ---"];
 
     [Fact]
     public void AMachineOutsideTheZoneIsIgnoredAndOneInsideTwoZonesGetsOneDelivery()

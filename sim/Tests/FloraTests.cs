@@ -37,7 +37,7 @@ public class FloraTests
     [Fact]
     public void TheFirstPlanetGrowsEveryKindOnItsSurfaceAndNoneInItsCaves()
     {
-        var l = Terrain.Generate(PlanetTypes.First, 1);
+        var l = PlanetTesting.First(1).Layout;
         Assert.True(OnTheSurface(l));
         Assert.All(Flora.All, k => Assert.Contains(l.Flora!, p => p.Kind == k.Id));
         // Most columns of open soil stay bare: a few hundred plants across two thousand columns.
@@ -78,7 +78,7 @@ public class FloraTests
 
     [Fact]
     public void AnotherSeedGrowsOtherPlants() =>
-        Assert.False(Terrain.Generate(PlanetTypes.First, 1).Flora!.SequenceEqual(Terrain.Generate(PlanetTypes.First, 2).Flora!));
+        Assert.False(PlanetTesting.First(1).Layout.Flora!.SequenceEqual(PlanetTesting.First(2).Layout.Flora!));
 
     /// <summary>Soil under open ground, with a flower at (2, 1) and an acacia at (5, 1), whose trunk stands up to the top row.</summary>
     private static Scenario Meadow()

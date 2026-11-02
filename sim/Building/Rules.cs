@@ -85,7 +85,11 @@ public sealed partial class BuildingModule
         if (MarkedCell(cell, layer) is not int at) return "building.nothingThere";
         // Where tools break what stands, nothing is marked: a planet's things go to tools alone (the fan of rays).
         if (Rules.ToolsBreak) return "building.notHere";
-        if (layer == "machine" && _grid.MachineAt(at) is { } machine && IsFixed(machine.Kind)) return "building.fixed";
+        if (layer == "machine" && _grid.MachineAt(at) is { } machine)
+        {
+            if (IsFixed(machine.Kind)) return "building.fixed";
+            if (Machines.Get(machine.Kind).Strength != null) return "building.needsAxe";
+        }
         if (IsMarked(layer, at)) return "building.planned";
         return InUse(at, layer);
     }
@@ -135,9 +139,9 @@ public sealed partial class BuildingModule
         return State.Instant && place.Kind == "wall" && HeroIn(cell) ? "building.heroInside" : null;
     }
 
-    /// <summary>A wall or back wall of a material no blueprint builds (0077): of bedrock; creative mode too.</summary>
+    /// <summary>A wall or back wall of a material no blueprint builds (0077), of bedrock, or a machine none does, a pile; creative mode too.</summary>
     private static bool Unbuilt(Placement place) =>
-        place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _) && !Research.Blueprints.Has(place);
+        ((place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _)) || (place.Layer == "machine" && Machines.TryGet(place.Kind, out _))) && !Research.Blueprints.Has(place);
 
     /// <summary>
     /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative

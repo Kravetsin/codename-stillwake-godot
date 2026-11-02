@@ -37,6 +37,8 @@ public static class SurfaceViews
     public static readonly IReadOnlyList<SurfaceView> All =
     [
         new(c => new GridView(c.M.Grid) { HeldBack = c.Arrivals.Holds, HeldBackVersion = () => c.Arrivals.Version }),
+        // What still moves on the wreck: nothing on a surface with no tear of it (2026-10-31-the-scoop).
+        new(c => new WreckMotionView(c.M.Grid), Fades: true),
         new(c => new DigView(c.M.Grid, c.M.Building)),
         new(c => new Features.Flora.FloraView(c.M.Grid, c.M.Building)),
         // A planet's caves: their stone tinted by depth under their growth (0080).
@@ -48,6 +50,7 @@ public static class SurfaceViews
         // Its core: lava under the caves, glowing.
         new(c => c.M.Rules is Content.PlanetType p ? new LavaView(c.M.Grid, p.Ground) : null),
         new(c => new StationScreens(c.M.Grid, c.M.Trade), Fades: true),
+        new(c => new CapsuleFlights(c.M.Grid, c.M.Trade, c.Progress)),
         new(c => new Features.Computer.ComputerScreens(c.M.Grid, c.M.Power), Fades: true),
         new(c => new Features.Power.ChargerLights(c.M.Grid, c.M.Items, c.M.Power), Fades: true),
         new(c => new Features.Power.StoreLights(c.M.Grid, c.M.Power), Fades: true),
@@ -66,6 +69,8 @@ public static class SurfaceViews
         new(c => new Features.Creatures.ShotsView(c.M, c.Progress, c.Peer, c.Tick, c.Hosts)),
         // Meteors seen coming and striking the hull, where its place has them (2026-10-28-hull-meteors).
         new(c => c.M.Rules.Meteors != null ? new Features.Hazards.MeteorView(c.M.Grid, c.M.Hazards, c.Progress, c.Tick) : null),
+        // A magnetic flare's aurora over the stars and its flash, wherever one may strike: by hand on any surface (magnetic-flare).
+        new(c => new Features.Hazards.AuroraView(c.M.Grid, c.M.Power, c.M.Hazards, c.Progress, c.Tick)),
         // The fires last, before the light Main makes after these: each frame a fire picks its picture, then its light follows it.
         new(c => new FurnaceView(c.M.Grid, c.M.Furnace), Fades: true),
         // A planet's fog at its sides (fog-edges): a screen layer over all of these and the heroes, under what is read.

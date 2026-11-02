@@ -57,14 +57,20 @@ public class AirTests
         }
     }
 
-    /// <summary>A world from <paramref name="map"/> in creative mode, its vent piped to its tank through a valve if asked.</summary>
-    private static Setup SetUp(string map = Room, bool valve = false)
+    /// <summary>
+    /// A world from <paramref name="map"/> in creative mode, its tank made the chain (<see cref="AirTesting.Chained"/>): a
+    /// vaporizer where the tank was drawn, the tank under the hull, a panel powering the vaporizer; its vent piped to the
+    /// vaporizer's output through a valve if asked.
+    /// </summary>
+    private static Setup SetUp(string map = Room, bool valve = false) => SetUp(AirTesting.Chained(map), valve);
+
+    private static Setup SetUp(Layout drawn, bool valve = false)
     {
-        var w = new Scenario(AirTesting.OneThick(map)).Do(new Items.SetCreative(true));
-        // From the vent's port to the tank's, a span, or two through a valve.
-        var run = AirTesting.Line(9, 1, 1, 1, 3).ToArray();
-        if (valve) w.Pipe(run[0], At(1, 2), run[^1]).Do(new MakeValve(At(1, 2), true));
-        else w.Pipe(run[0], run[^1]);
+        var w = new Scenario(AirTesting.OneThick(drawn)).Do(new Items.SetCreative(true));
+        // From the vent's port to the vaporizer's output, a span, or two through a valve on the vaporizer's top-left.
+        int output = w.Output(At(1, 2));
+        if (valve) w.Pipe(At(1, 1), At(1, 2), output).Do(new MakeValve(At(1, 2), true));
+        else w.Pipe(At(1, 1), output);
         w.Run();
         var tanks = w.M.Grid.Machines.Where(m => m.Kind == "tank").Select(m => m.Id).ToArray();
         int room = w.M.Rooms.RoomAt(At(4, 2)) ?? throw new InvalidOperationException("set up");
@@ -100,11 +106,11 @@ public class AirTests
         Assert.Equal(RoomStatus.Aired, Status(w, room));
     }
 
-    /// <summary>Runs until the tank is empty, at most <paramref name="limit"/> ticks.</summary>
-    private static void DryOut(Scenario w, int tank, int limit = 20000)
+    /// <summary>Runs until the chain is dry, its tank's liquid and its vaporizer's gas both gone, at most <paramref name="limit"/> ticks.</summary>
+    private static void DryOut(Scenario w, int limit = 20000)
     {
-        for (int i = 0; i < limit && Oxygen(w, tank) > 0; i++) w.Run();
-        Assert.Equal(0, Oxygen(w, tank));
+        for (int i = 0; i < limit && w.Held() > 0; i++) w.Run();
+        Assert.Equal(0, w.Held());
     }
 
     // Air.
@@ -112,9 +118,14 @@ public class AirTests
     [Fact]
     public void FillsARoomOutwardFromItsVentCellsPerFillABeatAUnitEach()
     {
-        var s = SetUp();
-        var (w, room, tanks) = s;
+        var s = SetUp(valve: true);
+        var (w, room, _) = s;
+        // The vaporizer fills its store behind the closed valve first, so the fill is not held to the unit a tick it makes.
+        w.Do(new SetValve(At(1, 2), false));
         s.Fill(1);
+        w.Run(Air.GeneratorStore);
+        Assert.Equal(Air.GeneratorStore, w.Gas());
+        w.Do(new SetValve(At(1, 2), true)).Run();
         int clock = w.Air().Clock;
         int first = w.Air().Aired.Count;
         Assert.Equal(RoomStatus.Filling, Status(w, room));
@@ -127,70 +138,78 @@ public class AirTests
         // Every aired cell is as near the vent as any cell still empty, or nearer.
         var empty = w.Air().Orders[room].Where(c => !cells.Contains(c)).ToList();
         Assert.True(cells.Max(FromVent) <= empty.Min(FromVent));
-        // Each cell costs a unit, and the room uses its leak from the tick after its first cells.
-        Assert.Equal(Air.Canister - filled - AirTesting.Leaked(Leak, clock, w.Air().Clock), Oxygen(w, tanks[0]));
+        // Each cell costs a unit of the chain, and the room uses its leak from the tick after its first cells.
+        Assert.Equal(Air.Canister - filled - AirTesting.Leaked(Leak, clock, w.Air().Clock), w.Held());
     }
 
     [Fact]
     public void IsAiredOnceEveryCellIsPaidForThenUsesOnlyItsLeak()
     {
-        var s = SetUp();
+        var s = SetUp(valve: true);
         var w = s.W;
+        // The store filled first behind the closed valve, so it has what the fill and the leak draw while the room fills.
+        w.Do(new SetValve(At(1, 2), false));
         s.Fill(1);
+        w.Run(Air.GeneratorStore);
+        w.Do(new SetValve(At(1, 2), true)).Run();
         int clock = w.Air().Clock;
         AirUp(w, s.Room);
         Assert.Equal(Volume, w.Air().Aired.Count);
         Assert.Equal(w.Air().Aired, w.M.Atmosphere.AiredCells);
         int now = w.Air().Clock;
-        Assert.Equal(Air.Canister - Volume - AirTesting.Leaked(Leak, clock, now), Oxygen(w, s.Tanks[0]));
+        // Paid by the chain, the tank's liquid through the vaporizer's store: a cell a unit, and the leak.
+        Assert.Equal(Air.Canister - Volume - AirTesting.Leaked(Leak, clock, now), w.Held());
         w.Run(Air.TicksPerCell * 3);
-        Assert.Equal(Air.Canister - Volume - AirTesting.Leaked(Leak, clock, w.Air().Clock), Oxygen(w, s.Tanks[0]));
+        Assert.Equal(Air.Canister - Volume - AirTesting.Leaked(Leak, clock, w.Air().Clock), w.Held());
     }
 
     [Fact]
     public void DrawsFromTheTanksOfANetworkOneByOneInIdOrder()
     {
-        var s = SetUp("""
-            #########
-            #V......#
-            #TTTT...#
-            #TTTT...#
-            #########
-            """);
-        var w = s.W;
-        int first = s.Tanks[0], second = s.Tanks[1];
-        // The second tank joins the network through a pipe from its port to the first's.
-        var run = AirTesting.Line(9, 1, 3, 3, 3).ToArray();
-        w.Pipe(run[0], run[^1]).Run();
-        // Loaded on one tick, so the fill has both to draw from at its first beat.
+        var w = SetUp().W;
+        // A second tank, built after the first, joins the vaporizer's input network: a pipe from its port to the input.
+        w.Do(new Place(At(5, 2), new Placement("machine", "tank"))).Run();
+        w.Pipe(At(5, 3), At(1, 3)).Run();
+        var tanks = w.M.Grid.MachinesOf("tank").Select(m => m.Id).ToArray();
+        int first = tanks[0], second = tanks[1];
+        Assert.Equal(new[] { first, second }, w.M.Pipes.Network(w.M.Pipes.NetworkAt(At(1, 3))!.Value)!.Machines.Where(tanks.Contains));
+        // Loaded on one tick, so the vaporizer has both to take from from its first unit.
         w.Do(new LoadCanister(second)).Do(new LoadCanister(first));
-        w.Run(4 * Air.TicksPerCell);
-        Assert.True(Oxygen(w, first) < Air.Canister);
+        w.Run(4);
+        // A unit a tick at full power, all of it from the first.
+        Assert.Equal(Air.Canister - 4, Oxygen(w, first));
         Assert.Equal(Air.Canister, Oxygen(w, second));
-        Assert.Equal(RoomStatus.Filling, Status(w, s.Room));
+        Assert.Equal(RoomStatus.Filling, Status(w, w.M.Rooms.RoomAt(At(4, 2))!.Value));
     }
 
     [Fact]
     public void FillsFromTheFirstVentOfTheRoomWhoseNetworkCanPayNotOneRunDry()
     {
-        var s = SetUp("""
-            #########
-            #V.....V#
-            #TT...TT#
-            #TT...TT#
-            #########
-            """);
+        // Two chains, each vent fed by its own vaporizer, each vaporizer by its own tank under the hull.
+        var s = SetUp(Layout.Parse(
+            [
+                "#########",
+                "#V.....V#",
+                "#GG...GG#",
+                "#GG...GG#",
+                "#########",
+                "",
+                " TT   TT",
+                " TT   TT",
+                " PPP PPP",
+            ],
+            ["", "", "", " -    -", " -    -", " -    -", " -    -", " -    -"],
+            [((1, 8), (1, 2)), ((5, 8), (6, 2))]));
         var w = s.W;
         int dry = s.Tanks[0], wet = s.Tanks[1];
-        // The right vent reaches the right tank's port, at its bottom-left, under the tank.
-        var down = AirTesting.Line(9, 7, 1, 7, 3).ToArray();
-        w.Pipe(down[0], down[^1], AirTesting.Line(9, 7, 3, 6, 3).Last()).Run();
+        w.Pipe(At(7, 1), w.Output(At(6, 2))).Run();
         s.Fill(1, wet);
         w.Run(4 * Air.TicksPerCell);
         int filled = w.Air().Aired.Count;
         Assert.True(filled > 0);
-        Assert.True(Oxygen(w, wet) <= Air.Canister - filled);
+        Assert.True(w.Held() <= Air.Canister - filled);
         Assert.Equal(0, Oxygen(w, dry));
+        Assert.Equal(0, Oxygen(w, w.M.Grid.MachineAt(At(1, 2))!.Id));
         Assert.Equal(RoomStatus.Filling, Status(w, s.Room));
     }
 
@@ -214,24 +233,27 @@ public class AirTests
                 w.Do(new ClearAt(cell, "structure")).Do(new Place(cell, Placement.Wall("iron")));
         s.Fill(2);
         AirUp(w, s.Room);
-        int before = Oxygen(w, s.Tanks[0]);
+        int before = w.Held();
         int leak = (Hull - 2 * 4 + Volume) * Scrap + 2 * 3 * Iron + 2 * Air.DoorLeak;
-        // Spread over the period, paid by the tank: about half by half way, all of it by its end.
+        // Spread over the period, paid by the chain: about half by half way, all of it by its end.
         w.Run(Air.LeakEvery / 2);
-        Assert.InRange(before - Oxygen(w, s.Tanks[0]), leak / 2, (leak + 1) / 2);
+        Assert.InRange(before - w.Held(), leak / 2, (leak + 1) / 2);
         w.Run(Air.LeakEvery / 2);
-        Assert.Equal(before - leak, Oxygen(w, s.Tanks[0]));
+        Assert.Equal(before - leak, w.Held());
         Assert.Equal(Volume, w.Air().Aired.Count);
     }
 
     [Fact]
     public void LeaksItsOwnAirFromTheFarEdgeWhenNoTankPays()
     {
-        var s = SetUp(Deep(40));
+        // Six rows deep: its leak, about half a unit a tick, within the unit a tick one vaporizer makes, so it airs.
+        const int Rows = 6;
+        Assert.True((14 + 14 + 4 * Rows + 14 * 2 * Rows) * Scrap < Air.GeneratorRate);
+        var s = SetUp(Deep(Rows));
         var w = s.W;
         s.Fill(1);
         AirUp(w, s.Room, 2000);
-        DryOut(w, s.Tanks[0], 40000);
+        DryOut(w, 40000);
         int held = w.Air().Aired.Count;
         w.Run(Minute / 20);
         int left = w.Air().Aired.Count;
@@ -239,19 +261,24 @@ public class AirTests
         Assert.True(left > 0);
         // The far end of the room went first: what is left lies nearest the vent.
         Assert.Contains(At(1, 1), w.Air().Aired);
-        Assert.DoesNotContain(At(7, 40), w.Air().Aired);
+        Assert.DoesNotContain(At(7, Rows), w.Air().Aired);
         Assert.Equal(RoomStatus.Vacuum, Status(w, s.Room));
     }
 
     [Fact]
     public void StallsWhenTheNetworkRunsDryAndGoesOnWhenACanisterComes()
     {
-        // Bigger than a canister fills, with its leak to pay on top.
-        var s = SetUp(Deep(330));
+        // A room bigger than a canister leaks more than a vaporizer makes, so it never airs: instead a breach drains the
+        // canister, liquid leaving at the vaporizer's unit a tick, until less is left than the room holds; then it is sealed.
+        var s = SetUp();
         var w = s.W;
         s.Fill(1);
-        DryOut(w, s.Tanks[0], 3000);
-        Assert.True(w.Air().Aired.Count < 330 * 7 * 4);
+        w.Do(new ClearAt(At(8, 2), "structure")).Run();
+        for (int i = 0; i < Air.Canister && Oxygen(w, s.Tanks[0]) > Volume / 2; i++) w.Run();
+        Assert.Equal(Volume / 2, Oxygen(w, s.Tanks[0]));
+        w.Do(new Place(At(8, 2), Wall)).Run();
+        DryOut(w, 1000);
+        Assert.True(w.Air().Aired.Count < Volume);
         Assert.Equal(RoomStatus.Vacuum, Status(w, s.Room));
         w.Run(10 * Air.TicksPerCell);
         int left = w.Air().Aired.Count;
@@ -268,15 +295,18 @@ public class AirTests
         var w = s.W;
         s.Fill(3);
         AirUp(w, s.Room);
-        int before = Oxygen(w, s.Tanks[0]);
+        // The store refills once the room is aired, for the vent to have its drain to take.
+        w.Run(Air.GeneratorStore);
+        Assert.True(w.Gas() >= 3 * Air.VentDrain);
+        int before = w.Held();
         w.Do(new ClearAt(At(8, 2), "structure")).Run();
         Assert.Equal(RoomStatus.Venting, Status(w, s.Room));
         // The breach is a cell of the room now, with air or without.
         Assert.True(AiredIn(w, s.Room).Count <= Volume + 1 - Air.VentLoss);
         Assert.True(AiredIn(w, s.Room).Count > 0);
-        Assert.Equal(before - Air.VentDrain, Oxygen(w, s.Tanks[0]));
+        Assert.Equal(before - Air.VentDrain, w.Held());
         w.Run(2);
-        Assert.Equal(before - 3 * Air.VentDrain, Oxygen(w, s.Tanks[0]));
+        Assert.Equal(before - 3 * Air.VentDrain, w.Held());
         w.Run((Volume + Air.VentLoss - 1) / Air.VentLoss);
         Assert.Empty(w.Air().Aired);
     }
@@ -289,10 +319,11 @@ public class AirTests
         s.Fill(3);
         AirUp(w, s.Room);
         w.Do(new SetValve(At(1, 2), false)).Do(new ClearAt(At(8, 2), "structure")).Run();
-        int cut = Oxygen(w, s.Tanks[0]);
+        int cut = w.Held();
         w.Run(5);
         Assert.Equal(RoomStatus.Venting, Status(w, s.Room));
-        Assert.Equal(cut, Oxygen(w, s.Tanks[0]));
+        // The vaporizer goes on filling its store behind the valve, and nothing leaves the chain.
+        Assert.Equal(cut, w.Held());
     }
 
     [Fact]
@@ -315,13 +346,15 @@ public class AirTests
         var w = s.W;
         s.Fill(3);
         AirUp(w, s.Room);
+        w.Run(Air.GeneratorStore);
+        Assert.True(w.Gas() >= 2 * Air.VentDrain);
         foreach (int y in new[] { 1, 2 })
             w.Do(new ClearAt(At(8, y), "structure")).Do(new ClearAt(At(8, y) + 18, "structure"));
         w.Run();
         Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(At(1, 1)));
-        int before = Oxygen(w, s.Tanks[0]);
+        int before = w.Held();
         w.Run();
-        Assert.Equal(before - Air.VentDrain, Oxygen(w, s.Tanks[0]));
+        Assert.Equal(before - Air.VentDrain, w.Held());
     }
 
     // Two rooms and a door.
@@ -336,18 +369,24 @@ public class AirTests
 
     private static int At15(int x, int y) => AirTesting.Cell(15, x, y);
 
-    /// <summary><see cref="Two"/> with its left room aired from three canisters; its vent's pipe cut after if asked.</summary>
+    /// <summary>
+    /// <see cref="Two"/> made the chain (<see cref="AirTesting.Chained"/>), its left room aired from three canisters and its
+    /// vaporizer's store refilled after, so the vent fills <c>Air.CellsPerFill</c> cells a beat again; its vent's pipe cut
+    /// after if asked.
+    /// </summary>
     private static (Scenario W, int Left, int Door, int Right) TwoRooms(bool cut = false)
     {
-        var w = new Scenario(AirTesting.OneThick(Two)).Do(new Items.SetCreative(true));
-        var run = AirTesting.Line(15, 1, 1, 1, 3).ToArray();
-        w.Pipe(run[0], run[^1]).Run();
+        var w = new Scenario(AirTesting.OneThick(AirTesting.Chained(Two))).Do(new Items.SetCreative(true));
+        int vent = At15(1, 1), output = w.Output(At15(1, 2));
+        w.Pipe(vent, output).Run();
         int tank = w.M.Grid.Machines.FirstOrDefault(m => m.Kind == "tank")?.Id ?? 0;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
         int left = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
         AirUp(w, left);
-        if (cut) w.Do(new CutPipe(run[0], run[^1])).Run();
+        w.Run(Air.GeneratorStore);
+        Assert.True(w.Gas() >= 3 * Air.CellsPerFill);
+        if (cut) w.Do(new CutPipe(vent, output)).Run();
         return (w, left, At15(8, 2), At15(10, 2));
     }
 
@@ -428,7 +467,7 @@ public class AirTests
     [Fact]
     public void LaysARoomOutFromItsMiddleBesideAVentWithNothingBehindItAndAroundItOnceFed()
     {
-        var w = new Scenario("#########\n#.....TT#\n#.....TT#\n#.......#\n#########");
+        var w = new Scenario("#########\n#.....GG#\n#.....GG#\n#.......#\n#########");
         int room = w.M.Rooms.All[0].Id;
         int middle = w.Air().Orders[room][0];
         w.Do(new Place(At(1, 1), new Placement("machine", "vent"))).Run();
@@ -439,7 +478,9 @@ public class AirTests
         w.GiveItems(0, ("tube", 6)).Pipe(Port(w, At(1, 1)), At(3, 3)).Run();
         Assert.Equal(middle, w.Air().Orders[room][0]);
         Assert.False(w.M.Atmosphere.Fed(vent));
-        w.Pipe(At(3, 3), Port(w, At(6, 1))).Run();
+        // Fed once piped to a vaporizer's output, unpowered and dry as it is: what feeds it decides, not what it holds.
+        w.Pipe(At(3, 3), w.Output(At(6, 1))).Run();
+        Assert.Empty(w.Refusals);
         Assert.True(w.M.Atmosphere.Fed(vent));
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
         Assert.True(FreshOrders(w));
@@ -450,8 +491,10 @@ public class AirTests
     [Fact]
     public void LaysARoomOutAgainWhenItsVentsOnlyChangeOrderAVentRebuiltWhereItStood()
     {
-        var w = new Scenario("#########\n#V.TT..V#\n#..TT...#\n#########");
-        w.GiveItems(0, ("tube", 6)).Pipe(Port(w, At(1, 1)), Port(w, At(3, 1)), Port(w, At(7, 1))).Run();
+        var w = new Scenario("#########\n#V.GG..V#\n#..GG...#\n#########");
+        // Both vents fed by the vaporizer between them, through its output.
+        w.GiveItems(0, ("tube", 6)).Pipe(Port(w, At(1, 1)), w.Output(At(3, 1)), Port(w, At(7, 1))).Run();
+        Assert.Empty(w.Refusals);
         int room = w.M.Rooms.All[0].Id;
         Assert.Equal(At(1, 1), w.Air().Orders[room][0]);
         // Taken apart and built again on one tick: the same cells, the vent now last in id order.
@@ -478,12 +521,15 @@ public class AirTests
 
     private static int At23(int x, int y) => AirTesting.Cell(23, x, y);
 
-    /// <summary><see cref="Row"/> with its first room aired from its tank, piped to its vent.</summary>
+    /// <summary>
+    /// <see cref="Row"/> with its first room aired, its tank made the chain (<see cref="AirTesting.Vaporized"/>, the chain's
+    /// tank and panel in space below the row) and its vent piped to the vaporizer's output.
+    /// </summary>
     private static (Scenario W, int Left) AiredRow()
     {
-        var w = new Scenario(Layout.Parse(Row), doubled: true).Do(new Items.SetCreative(true));
-        var run = AirTesting.Line(23, 2, 2, 2, 4).ToArray();
-        w.Pipe(run[0], run[^1]).Run();
+        // The stub right of the tank's bottom row is what Vaporized asks for.
+        var w = new Scenario(AirTesting.Vaporized(Row, ["", "", "", "", "    -"]), doubled: true).Do(new Items.SetCreative(true));
+        w.Pipe(At23(2, 2), w.Output(At23(2, 3))).Run();
         int tank = w.M.Grid.Machines.First(m => m.Kind == "tank").Id;
         for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
         w.Run();
@@ -523,12 +569,25 @@ public class AirTests
         Assert.Equal(before.Leak + Scrap, Of(w, left)!.Leak);
     }
 
+    /// <summary>
+    /// Eight rooms in a row, each with its own chain drawn whole (<see cref="AirTesting.Vaporized"/>): a vent piped to its
+    /// vaporizer's output, a canister in its tank.
+    /// </summary>
+    private static Layout Eight()
+    {
+        string[] tile = ["########", "#V.....#", "#TT....#", "#TT....#", "########"];
+        string[] under = ["", " ---", " o -", "   -"];
+        string[] Repeat(string[] of) => [.. of.Select(r => string.Concat(Enumerable.Repeat(r.PadRight(8), 8)))];
+        return AirTesting.Vaporized(Repeat(tile), Repeat(under));
+    }
+
     /// <summary>More than a few cells a tick: the aired cells are merged into a new list, not edited in place.</summary>
     [Fact]
     public void VentsEightBreachedRoomsAtOnceTheirVentLossEachFromTheFarEdge()
     {
-        var w = new Scenario(BudgetTests.Reference(), doubled: true);
+        var w = new Scenario(Eight(), doubled: true);
         w.Run(300);
+        Assert.All(w.M.Rooms.All, r => Assert.Equal(RoomStatus.Aired, Status(w, r.Id)));
         var before = w.Air().Aired.ToList();
         // Through the top of the hull, both of its cells thick, above the first open cell of eight tiles.
         for (int tile = 0; tile < 8; tile++)
@@ -657,9 +716,11 @@ public class AirTests
         var w = s.W;
         s.Fill(1);
         AirUp(w, s.Room);
+        // The liquid behind its vaporizer, which makes more than the room leaks: the liquid leaves at the leak.
         int held = Oxygen(w, s.Tanks[0]);
+        Assert.True(Leak < Air.GeneratorRate);
         Assert.Equal(
-            new RoomAir(s.Room, RoomStatus.Aired, Volume, Leak, held, 0, (int)((long)held * Air.LeakEvery / Leak), null),
+            new RoomAir(s.Room, RoomStatus.Aired, Volume, Leak, held, Air.GeneratorRate, (int)((long)held * Air.LeakEvery / Leak), null),
             Of(w, s.Room));
     }
 
@@ -707,7 +768,9 @@ public class AirTests
         w.Do(new ClearAt(At(8, 2), "structure")).Run();
         int held = Oxygen(w, s.Tanks[0]);
         var air = Of(w, s.Room)!;
-        Assert.Equal((RoomStatus.Venting, 0, held, (int?)((held + Air.VentDrain - 1) / Air.VentDrain)),
+        // The vent drains more than the vaporizer makes: the liquid leaves at the vaporizer's unit a tick.
+        Assert.True(Air.VentDrain * Air.LeakEvery > Air.GeneratorRate);
+        Assert.Equal((RoomStatus.Venting, 0, (int?)held, (int?)(held * Air.LeakEvery / Air.GeneratorRate)),
             (air.Status, air.Aired, air.Oxygen, air.Lasts));
     }
 
@@ -725,10 +788,17 @@ public class AirTests
         var w = s.W;
         w.Pipe(At(1, 1), At(4, 1), At(7, 1));
         s.Fill(1);
+        AirUp(w, s.Room);
+        w.Run(Air.GeneratorStore);
+        Assert.True(w.Gas() >= 2 * Air.VentDrain);
+        int before = w.Held();
         w.Do(new ClearAt(At(8, 2), "structure")).Run();
+        // Each vent drains the network from the vaporizer's store: two vents, twice the drain.
+        Assert.Equal(before - 2 * Air.VentDrain, w.Held());
         int held = Oxygen(w, s.Tanks[0]);
         var air = Of(w, s.Room)!;
-        Assert.Equal((held, (int?)((held + 2 * Air.VentDrain - 1) / (2 * Air.VentDrain))), (air.Oxygen, air.Lasts));
+        // The network once: its tank's liquid, its vaporizer's making, and the liquid leaving at that unit a tick.
+        Assert.Equal(((int?)held, Air.GeneratorRate, (int?)(held * Air.LeakEvery / Air.GeneratorRate)), (air.Oxygen, air.Made, air.Lasts));
     }
 
     [Fact]
@@ -748,12 +818,13 @@ public class AirTests
         var none = Of(bare, bare.M.Rooms.All[0].Id)!;
         Assert.Equal((RoomStatus.Vacuum, "atmosphere.noVent"), (none.Status, none.Problem));
 
-        var unpiped = new Scenario(Room);
+        // A vent with no pipe to the vaporizer beside it: nothing feeds the room, so it has no oxygen to show either.
+        var unpiped = new Scenario(AirTesting.OneThick(AirTesting.Chained(Room)));
         var room = Of(unpiped, unpiped.M.Rooms.RoomAt(At(4, 2))!.Value)!;
-        Assert.Equal(("atmosphere.notPiped", (int?)null), (room.Problem, room.Lasts));
+        Assert.Equal(("atmosphere.notPiped", (int?)null, (int?)null), (room.Problem, room.Oxygen, room.Lasts));
 
         var s = SetUp();
         var dry = Of(s.W, s.Room)!;
-        Assert.Equal((RoomStatus.Vacuum, "atmosphere.dry", 0), (dry.Status, dry.Problem, dry.Oxygen));
+        Assert.Equal((RoomStatus.Vacuum, "atmosphere.dry", (int?)0), (dry.Status, dry.Problem, dry.Oxygen));
     }
 }

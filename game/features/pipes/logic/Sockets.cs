@@ -6,11 +6,12 @@ namespace Stillwake.Game.Features.Pipes;
 /// <summary>A port as the piping shows it (2026-10-29-typed-ports): a socket in its fluid's colour, an arrow out of the machine or into it.</summary>
 public static class Sockets
 {
-    /// <summary>The colour of a fluid's sockets, as 0xRRGGBB: air the canister's blue, water the cistern's teal.</summary>
+    /// <summary>The colour of a fluid's sockets, as 0xRRGGBB: air the canister's blue, water the cistern's teal, liquid oxygen pale blue.</summary>
     public static uint ColourOf(string fluid) => fluid switch
     {
         Fluids.Air => 0x7fc4f0,
         Fluids.Water => 0x2fa3b8,
+        Fluids.LiquidOxygen => 0xa8d8ff,
         _ => throw new ArgumentException($"no socket colour for fluid {fluid}"),
     };
 

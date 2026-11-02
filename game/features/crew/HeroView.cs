@@ -256,7 +256,7 @@ public partial class HeroView : Node2D
             Centered = false,
             Visible = false,
             ZIndex = Layers.Hero,
-            Texture = GD.Load<Texture2D>(RodLook.Picture),
+            Texture = HeldArt.Of(RodLook.Picture, []),
             Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y),
         };
         Lit.Set(rod);
@@ -594,8 +594,8 @@ public partial class HeroView : Node2D
         _figure.OnPixels = new Vector2((float)feet.X, (float)feet.Y) * (float)Rig.Cell;
     }
 
-    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu or the computer's window.</summary>
-    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.OpenTech.Get() != null ? null : _mouse.Pointer());
+    /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu, the computer's window or the tree.</summary>
+    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.TreeOpen.Get() ? null : _mouse.Pointer());
 
     public override void _UnhandledInput(InputEvent e)
     {

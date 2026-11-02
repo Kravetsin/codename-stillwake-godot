@@ -44,7 +44,7 @@ warm amber and red near the bottom.
   mirrored; one in the rock 24 × 24 round its cell. A picture is `{kind}_{variant}`; a stalactite's or stalagmite's
   `{kind}_{band}_{variant}`, in its band's stone. Moss is one picture per open face of its stone (`top` tufts, `bottom`
   strands, `left`/`right` a film), green in the cold band, teal deeper; a run of moss on one face joins into one strip
-  (`Planting.Strip`). No other kind tiles.
+  (`Planting.Strip`); in ink its pieces are cut to meet at their blocks' edges (`Planting.Piece`, [its ADR](../../../docs/decisions/2026-11-01-moss-in-ink.md)). No other kind tiles.
 - **Redrawn:** a felled growth's chunk (a glowing one puffing spores, a spike its pebbles); the chunks round a grid change.
 - **Pictures** are cut from the cave concept's drawing code by its export, glow blooms in `_glow`: change the code and
   export again, never edit the pictures. The ruins' cache and the spire's lens (0085, 0096): the lens lit while its

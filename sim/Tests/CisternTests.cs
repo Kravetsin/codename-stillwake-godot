@@ -105,13 +105,19 @@ public class CisternTests
         Assert.Equal("vent", u.M.Grid.MachineAt(u.At(16, 6))!.Kind);
     }
 
-    /// <summary>A sealed room: a vent over a tank, two cisterns beside them; drawn a character a 16 px cell.</summary>
+    /// <summary>
+    /// A sealed room: a vent over a vaporizer, two cisterns beside them; under the hull, past a row of space, a tank and a
+    /// solar panel (liquid-oxygen). Drawn a character a 16 px cell.
+    /// </summary>
     private const string Room = """
         #############
         #V..........#
-        #TT...cc.cc.#
-        #TT...cc.cc.#
+        #GG...cc.cc.#
+        #GG...cc.cc.#
         #############
+
+         TTPPP
+         TT
         """;
 
     [Fact]
@@ -121,7 +127,9 @@ public class CisternTests
         {
             var w = new Scenario(AirTesting.OneThick(Room)).Do(new SetCreative(true));
             int Cell(int x, int y) => y * w.M.Grid.Width + x;
-            w.Do(new LayPipe(Cell(2, 6), Cell(2, 2)));
+            // The tank's port up to the vaporizer's input, its output on to the vent's port; the panel cabled to the vaporizer.
+            w.Do(new LayPipe(Cell(2, 14), Cell(2, 6))).Do(new LayPipe(Cell(5, 4), Cell(2, 2)));
+            w.Do(new Power.Lay(Cell(6, 12), Cell(2, 4)));
             int tank = w.M.Grid.MachinesOf("tank")[0].Id;
             for (int i = 0; i < 3; i++) w.Do(new LoadCanister(tank));
             // The first cistern's output to the second's input.
@@ -131,8 +139,10 @@ public class CisternTests
         var (dry, wet) = (Aired(false), Aired(true));
         Assert.Empty(dry.Refusals);
         Assert.Empty(wet.Refusals);
-        Assert.Equal(2, wet.M.Pipes.Networks.Count);
+        // The liquid, the gas and the water.
+        Assert.Equal(3, wet.M.Pipes.Networks.Count);
         string AirOf(Scenario w) => JsonNode.Parse(w.World.Save())!["slices"]!["atmosphere"]!.ToJsonString();
+        Assert.NotEmpty(dry.M.Atmosphere.AiredCells);
         Assert.Equal(AirOf(dry), AirOf(wet));
         Assert.True(dry.M.Atmosphere.OxygenIn(dry.M.Grid.MachinesOf("tank")[0].Id) > 0);
     }

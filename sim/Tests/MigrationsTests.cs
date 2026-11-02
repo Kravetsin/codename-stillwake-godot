@@ -51,6 +51,14 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void TheFluffAWorldHadIsGoneOnUpgradingAndTheOthersStay()
+    {
+        var old = JsonNode.Parse("""{"surfaces":[{"slices":{"creatures":{"creatures":[{"species":"fluff"},{"species":"loper"},{"species":"fluff"}]}}}]}""")!.AsObject();
+        var kept = Migrations.Steps[41 - Migrations.Oldest](old)["surfaces"]![0]!["slices"]!["creatures"]!["creatures"]!.AsArray();
+        Assert.Equal(["loper"], kept.Select(c => c!["species"]!.GetValue<string>()));
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();

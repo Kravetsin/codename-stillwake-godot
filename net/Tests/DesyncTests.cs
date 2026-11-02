@@ -60,6 +60,26 @@ public class DesyncTests(ITestOutputHelper output)
         Assert.Equal(600, run.Ticks);
     }
 
+    [Theory]
+    [MemberData(nameof(Seeds))]
+    public void KeepsEveryClientInSyncOnAShipWithPowerAndPipedAir(uint seed)
+    {
+        var run = Desync.Fuzz(Definition.Game(), seed, layout: PoweredWreck.Layout, joinAt: 300);
+        Assert.Null(run.Desync);
+        Assert.Equal(600, run.Ticks);
+    }
+
+    /// <summary>What the run above is for: its ship's cables and pipes join what they should.</summary>
+    [Fact]
+    public void ItsShipStartsWithItsGeneratorPoweredAndItsVentFed()
+    {
+        var m = new Registry();
+        World.Create(1, PoweredWreck.Layout, m.All);
+        var byKind = m.Grid.Machines.ToDictionary(x => x.Kind);
+        Assert.Contains(m.Power.Networks, n => n.Demand > 0);
+        Assert.True(m.Atmosphere.Fed(byKind["vent"].Id));
+    }
+
     [Fact]
     public void KeepsTheFarFieldInSyncRoundHeroesEnteredAnywhere()
     {
@@ -169,7 +189,9 @@ public class DesyncTests(ITestOutputHelper output)
         // by it, strikes it, harpoons its wreck and reports its pounces' hits; the fuzz strikes and releases besides. A joiner
         // comes in mid-fight, Mem, Target and the wreck's blow in its welcome.
         string sentry = Content.Creatures.Sentry.Id, axe = Content.Weapons.Axe.Item;
-        Covering(41, tried =>
+        // Reeled for twice what it takes the sentry to cut the line, so the cut comes of this script and not of the fuzz's luck.
+        int line = 2 * Content.Creatures.Sentry.Brain.OfType<Content.Creatures.CutTether>().Single().Ticks * Content.Harpoon.ReelSpeed;
+        Covering(42, tried =>
         {
             int alive = 0, pounced = 0, cut = 0;
             var game = Definition.Game();
@@ -197,9 +219,50 @@ public class DesyncTests(ITestOutputHelper output)
                 if (tick % 60 == 0) first.Send(new Enter(Math.Clamp(cy - 1, 0, m.Grid.Height - 1) * width + Math.Clamp(cx - 6, 0, width - 1)));
                 if (tick % 90 == 30) first.Send(new Sim.Creatures.Strike(s.Id, axe));
                 if (tick % 130 == 70 && m.Creatures.ClingsTo(s) is int piece && m.Debris.PieceById(piece) is { } held)
-                    first.Send(new Reel(piece, held.X - 8000, held.Y));
+                    first.Send(new Reel(piece, held.X - line, held.Y));
             });
             return (run, alive >= 300 && pounced >= 1 && cut >= 1 ? null : $"{alive} sentry-ticks, {pounced} pouncing, {cut} after a cut");
+        });
+    }
+
+    [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncWithGuardsInASpiresHall()
+    {
+        // The spire's guards: the first client beamed down stands in the hall, strikes them and reports their pounces' hits, going off
+        // now and then so they calm, and the fuzz digs and strikes besides. A joiner comes in with them awake, Mem and all.
+        string planet = Content.PlanetTypes.SmallSpire.Id, warden = Content.Creatures.Warden.Id, axe = Content.Weapons.Axe.Item;
+        Covering(77, tried =>
+        {
+            int alive = 0, flew = 0, hit = 0;
+            var run = Desync.Fuzz(Definition.Game(), tried, layout: Registry.Wreck, ticks: 1200, joinAt: 600, worldEvery: 6, tamper: (tick, clients) =>
+            {
+                var world = clients[0].World;
+                var first = clients[0];
+                if (world.Surfaces.FirstOrDefault(s => s.Kind == planet) is not { } down)
+                {
+                    if (tick % 20 == 0) first.Send(new OpenSurface(planet));
+                    return;
+                }
+                var on = Registry.On(world, down.Id);
+                var guards = on.Creatures.Creatures.Where(c => c.Species == warden).ToList();
+                alive += guards.Count;
+                flew += guards.Count(c => c.Posture == Sim.Creatures.Posture.Charge);
+                if (world.SurfaceOf(first.Id) != down.Id)
+                {
+                    if (tick % 10 == 0) first.Send(new Transfer(down.Id));
+                    return;
+                }
+                foreach (var c in guards.Where(c => c.Posture == Sim.Creatures.Posture.Charge))
+                {
+                    first.Send(new Sim.Creatures.HitBy(c.Id));
+                    hit++;
+                }
+                if (tick % 10 != 0) return;
+                if (on.Building.Posts.FirstOrDefault() is { } post && tick % 200 < 150) first.Send(new Enter(post.Cell + 3 * on.Grid.Width + 20));
+                else first.Send(new Enter(on.Crew.Spawn));
+                if (guards.Count > 0 && tick % 50 == 0) first.Send(new Sim.Creatures.Strike(guards[0].Id, axe));
+            });
+            return (run, alive >= 100 && flew >= 1 && hit >= 1 ? null : $"{alive} guard-ticks, {flew} flying, {hit} hits");
         });
     }
 
@@ -256,25 +319,29 @@ public class DesyncTests(ITestOutputHelper output)
     public void KeepsAJoinerInSyncWhileRoomsAreFoundAgainAroundDoorsFarFromSpace()
     {
         // Rooms closed by doors three cells and more from space: toggled by the fuzz, they are found
-        // again around the door, and the air follows only those rooms.
+        // again around the door, and the air follows only those rooms. Each top corner room is aired by the chain
+        // (liquid-oxygen): its tank's liquid along row 3 to a vaporizer's input, the air from its output (the right cell
+        // of its top right character) up to a vent; a panel in the space above the ship powers each vaporizer.
         string[] ship =
         [
             "#####################",
-            "#V.....#.....#.....V#",
-            "#TT....D.....D....TT#",
-            "#TT....#..H..#....TT#",
+            "#....V.#.....#....V.#",
+            "#TTGG..D.....DTTGG..#",
+            "#TTGG..#..H..#TTGG..#",
             "###D#######D#####D###",
             "#.....V#.....#......#",
             "#......D.....D......#",
             "#......#.....#......#",
             "#####################",
         ];
-        string[] pipes = ["", " -                 -", " -o               --", " -                -o"];
+        string[] pipes = ["", "     -            -", "  o --        o  --", " ---          ---"];
         string Pad(string row) => ("   " + row).PadRight(27);
         var blank = Enumerable.Repeat("", 3);
+        string[] above = ["", " PPP          PPP", ""];
         var layout = Layout.Parse(
-            [.. blank.Concat(ship).Concat(blank).Select(Pad)],
-            [.. blank.Concat(pipes).Select(Pad)]).Doubled();
+            [.. above.Concat(ship).Concat(blank).Select(Pad)],
+            [.. blank.Concat(pipes).Select(Pad)],
+            [((4, 1), (6, 5)), ((17, 1), (19, 5))]).Doubled();
         // On a stream of modules' commands alone: the world's are drawn in KeepsEveryClientAndAJoinerInSyncAsHeroesMoveBetweenSurfaces.
         Covering(7, tried =>
         {
@@ -298,21 +365,25 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientInSyncWhileAirFillsLeaksAndVentsAndHeroesBreatheIt()
     {
-        // A room with a vent above a tank and the spawn beside them. The first client pipes them and
-        // loads the tank through the pipeline, then the fuzz plays on past two leak beats, breaching
-        // walls and moving heroes in and out as it goes, one kept outside till it passes out.
+        // A room with a vent above a tank, a vaporizer beside them powered by a panel out in space, and the spawn. The first
+        // client pipes the chain (liquid-oxygen), the tank to the vaporizer's input and its output to the vent, and loads the
+        // tank, then the fuzz plays on past two leak beats, breaching walls and moving heroes in and out as it goes, one kept
+        // outside till it passes out.
         var room = Layout.Parse([
             ".............",
             ".###########.",
             ".#V..S.....#.",
-            ".#TT.......#.",
-            ".#TT.......#.",
+            ".#TT..GG...#.",
+            ".#TT..GG...#.",
             ".###########.",
-            ".............",
-        ]).Doubled();
+            "......PPP....",
+        ], cables: [((6, 6), (6, 3))]).Doubled();
         // The cell of the drawing's character at (x, y): its block's top-left, doubled (0104).
         static int Cell(int x, int y) => 2 * y * 26 + 2 * x;
         const int tank = 2;
+        // The tank's port and the vaporizer's input, on their bottom rows' left; the vent's port, and the vaporizer's output,
+        // the right cell of its top right character.
+        int liquid = Cell(2, 4), input = Cell(6, 4), vent = Cell(2, 2), output = Cell(7, 3) + 1;
         Covering(9, tried =>
         {
             int aired = 0, peak = 0;
@@ -329,9 +400,12 @@ public class DesyncTests(ITestOutputHelper output)
                     if (tick <= 40) first.Send(new SetCreative(true));
                     if (tick < 40)
                     {
-                        // The pipe laid again while missing, from the vent's port down to the tank's (0109): the fuzz may cut it meanwhile.
-                        int from = Cell(2, 2), to = Cell(2, 2) + 4 * 26;
-                        if (!game.Module<PipesModule>(first.World).Spans.Any(s => s.A == from && s.B == to)) first.Send(new LayPipe(from, to));
+                        // The pipes laid again while missing (0109): the fuzz may cut them meanwhile.
+                        var spans = game.Module<PipesModule>(first.World).Spans;
+                        foreach (var (from, to) in new[] { (liquid, input), (vent, output) })
+                            if (!spans.Any(s => s.A == from && s.B == to)) first.Send(new LayPipe(from, to));
+                        // The panel's cable too, which the power fuzz may cut: refused while there.
+                        first.Send(new Sim.Power.Lay(Cell(6, 6), Cell(6, 3)));
                     }
                     else if (tick == 40)
                     {
@@ -480,10 +554,30 @@ public class DesyncTests(ITestOutputHelper output)
         // mode, keeps the Former's and the assembler's queues going and the furnace, the smelter, the crusher, the capsule and
         // the generators fed. The capsule starts a hundred ticks of full power from its crop, so the seeds it gives back are
         // drawn on every peer; the crusher's quartz, one ore in two, is drawn too.
+        // The room is aired by the chain under its hull, in space (liquid-oxygen): it leaks some 1.2 units a tick and a
+        // vaporizer makes 1, so three, each powered by a panel, their outputs (each one's top right character's right cell)
+        // on a gas line up to the vent; a filled tank on a liquid line to their inputs.
         var layout = Layout.Parse(
-            ["###############################", "#.......OOO..............gg...#", "#FF.TT..OOOMMBB.EE.YY.BB.gg.kk#", "#FF.TTV.OOOMMBB.EE.YY.BB.gg.kk#", "###############################"],
-            ["", "", "    o", "    ---"],
-            [((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2)), ((22, 2), (28, 2))]).Doubled();
+            [
+                "###############################",
+                "#.......OOO..............gg...#",
+                "#FF.....OOOMMBB.EE.YY.BB.gg.kk#",
+                "#FF...V.OOOMMBB.EE.YY.BB.gg.kk#",
+                "###############################",
+                "",
+                "  GG  GG  GG",
+                "  GG  GG  GG",
+                "",
+                "  TT",
+                "  TT",
+                "",
+                "  PPP PPP PPP",
+            ],
+            ["", "", "", "      -", "      -", "    ---------", "   --  --  --", "  -   -   -", "  ---------", "  -o", "  -"],
+            [
+                ((13, 2), (11, 2)), ((13, 2), (16, 2)), ((13, 2), (19, 2)), ((22, 2), (25, 2)), ((22, 2), (28, 2)),
+                ((2, 12), (2, 6)), ((6, 12), (6, 6)), ((10, 12), (10, 6)),
+            ]).Doubled();
         int crop = Content.Items.Get("seed").SmeltTicks!.Value * 1000;
         string Stocked(string save)
         {
@@ -563,8 +657,8 @@ public class DesyncTests(ITestOutputHelper output)
     public void KeepsEveryClientAndAJoinerInSyncSellingAndBuyingTheTree()
     {
         // Trade and the tree (2026-10-30-trade-and-tech): a stocked trade station earns on its beat, a joiner comes in mid-beat,
-        // the credits and the counter in its welcome, and before its next sale the first client spends them on the salvage tier's blocks: without them in its welcome it refuses.
-        var layout = Layout.Parse(["##########", "#AA$$....#", "#AA$$....#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
+        // the credits and the counter in its welcome, and before its next sale the first client spends them on the first ring's blocks: without them in its welcome it refuses.
+        var layout = Layout.Parse(["##########", "#$$......#", "#$$......#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
         static string Stocked(string save)
         {
             var root = JsonNode.Parse(save)!;
@@ -573,7 +667,7 @@ public class DesyncTests(ITestOutputHelper output)
             root["slices"]!["items"]!["crates"]!.AsArray().Add(new JsonObject { ["id"] = station, ["slots"] = slots });
             return root.ToJsonString();
         }
-        string[] blocks = ["workbench", "furnace", "wire", "plate", "gear", "floor", "crate"];
+        string[] blocks = ["workbench", "furnace"];
         Covering(23, tried =>
         {
             var game = new Definition(() => new Registry().All, Stocked);
@@ -585,10 +679,48 @@ public class DesyncTests(ITestOutputHelper output)
                 earned = Math.Max(earned, knowledge.Credits);
                 bought = Math.Max(bought, blocks.Count(knowledge.Granted));
                 if (tick <= 503 || tick % 40 != 25) return;
-                int tech = game.Module<GridModule>(first.World).MachinesOf("techStation")[0].Id;
-                foreach (string block in blocks) first.Send(new Sim.Research.BuyBlock(tech, block));
+                foreach (string block in blocks) first.Send(new Sim.Research.BuyBlock(block));
             });
-            return (run, earned > 100 && bought >= 3 ? null : $"{earned} credits at most, {bought} blocks bought");
+            return (run, earned > 100 && bought == 2 ? null : $"{earned} credits at most, {bought} blocks bought");
+        });
+    }
+
+    [Fact]
+    public void KeepsEveryClientAndAJoinerInSyncAsTheRuleGrants()
+    {
+        // The rule (docs/plans/board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
+        // the first client's plates reach it and everyone's walk grants on the same tick, the joiner's too.
+        var layout = Layout.Parse(["##########", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
+        static string Seeded(string save)
+        {
+            var root = JsonNode.Parse(save)!;
+            root["slices"]!["knowledge"]!["obtained"] = new JsonArray(new JsonObject { ["item"] = "plate", ["count"] = Sim.Research.Understanding.Enough("plate") - 1 });
+            var inventories = new JsonArray();
+            for (int id = 0; id < 4; id++)
+            {
+                var slots = new JsonArray();
+                for (int i = 0; i < Content.Inventory.Total; i++) slots.Add(null);
+                slots[0] = new JsonObject { ["item"] = "iron", ["count"] = 200 };
+                inventories.Add(new JsonObject { ["id"] = id, ["slots"] = slots });
+            }
+            root["slices"]!["items"]!["inventories"] = inventories;
+            return root.ToJsonString();
+        }
+        Covering(29, tried =>
+        {
+            var game = new Definition(() => new Registry().All, Seeded);
+            bool early = false, granted = false;
+            var run = Desync.Fuzz(game, tried, layout: layout, ticks: 1000, joinAt: 503, tamper: (tick, clients) =>
+            {
+                var first = clients[0];
+                bool known = game.Module<Sim.Knowledge.KnowledgeModule>(first.World).Granted("wallIron");
+                if (tick <= 503) early |= known;
+                granted |= known;
+                if (tick <= 503 || tick % 40 != 25) return;
+                int bench = game.Module<Sim.Grid.GridModule>(first.World).MachinesOf("workbench")[0].Id;
+                first.Send(new Sim.Crafting.Craft(bench, "plate", 1));
+            });
+            return (run, granted && !early ? null : $"granted {granted}, before the joiner {early}");
         });
     }
 

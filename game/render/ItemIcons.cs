@@ -15,7 +15,7 @@ public static class ItemIcons
     /// <summary>An item picture's side, in pixels.</summary>
     public const int Pixels = 16;
 
-    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new();
+    private static readonly Dictionary<string, Texture2D> Icons = new(), Silhouettes = new(), HeldTextures = new();
     private static readonly Dictionary<(string Item, int Side), Texture2D> Baked = new();
     private static readonly Dictionary<string, Image> Held = new();
     private static readonly Dictionary<string, int> ClearRows = new();
@@ -24,7 +24,7 @@ public static class ItemIcons
     /// The picture of <paramref name="item"/> as the world draws it, a pixel of it a pixel of the world, loaded once: a tool's
     /// plain held picture, as large as in the hand; any other item's 16 px picture.
     /// </summary>
-    public static Texture2D Icon(string item) => HeldLook.Of(item) is { } look ? GD.Load<Texture2D>(look.Picture) : Drawn(item);
+    public static Texture2D Icon(string item) => HeldLook.Of(item) is { } look ? HeldTexture(look.Picture) : Drawn(item);
 
     /// <summary>The picture of <paramref name="item"/> where it is drawn <paramref name="side"/> px wide: a tool's icon baked at that side, drawn 1:1; any other item's 16 px picture.</summary>
     public static Texture2D Icon(string item, int side) => HeldLook.Of(item) != null ? Bake(item, side) : Drawn(item);
@@ -49,6 +49,7 @@ public static class ItemIcons
     {
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
         var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Readable(Drawn(item));
+        bool fine = Icon(item) is CanvasTexture;
         int lowest = -1;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
@@ -57,8 +58,8 @@ public static class ItemIcons
                 if (a > 0) lowest = y;
                 image.SetPixel(x, y, new Color(1, 1, 1, a));
             }
-        ClearRows[item] = image.GetHeight() - 1 - lowest;
-        return Silhouettes[item] = ImageTexture.CreateFromImage(image);
+        ClearRows[item] = (image.GetHeight() - 1 - lowest) / (fine ? HiRes.Scale : 1);
+        return Silhouettes[item] = fine ? HiRes.Texture(image) : ImageTexture.CreateFromImage(image);
     }
 
     /// <summary>The clear rows under <paramref name="item"/>'s picture as the world draws it, in that picture's pixels: what a stack on the floor is lowered by to stand on it.</summary>
@@ -71,7 +72,7 @@ public static class ItemIcons
     private static Texture2D Drawn(string item)
     {
         if (!Icons.TryGetValue(item, out var icon))
-            Icons[item] = icon = GD.Load<Texture2D>($"res://art/items/{item}.png");
+            Icons[item] = icon = HiRes.Load($"items/{item}") is { } fine ? HiRes.Texture(fine) : GD.Load<Texture2D>($"res://art/items/{item}.png");
         return icon;
     }
 
@@ -83,11 +84,21 @@ public static class ItemIcons
         return Baked[(item, side)] = ImageTexture.CreateFromImage(Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba));
     }
 
+    // A tool's held picture, or its hi-res one if it has one: an icon bakes from whichever, by its drawn box.
     private static Image HeldImage(string picture)
     {
-        if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = Readable(GD.Load<Texture2D>(picture));
+        if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = HiRes.Load(HeldName(picture)) ?? Readable(GD.Load<Texture2D>(picture));
         return held;
     }
+
+    private static Texture2D HeldTexture(string picture)
+    {
+        if (!HeldTextures.TryGetValue(picture, out var texture))
+            HeldTextures[picture] = texture = HiRes.Load(HeldName(picture)) is { } fine ? HiRes.Texture(fine) : GD.Load<Texture2D>(picture);
+        return texture;
+    }
+
+    private static string HeldName(string picture) => picture["res://art/".Length..^".png".Length];
 
     private static Image Readable(Texture2D texture)
     {

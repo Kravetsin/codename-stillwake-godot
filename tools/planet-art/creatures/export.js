@@ -7,7 +7,7 @@ const L = require('./loper-parts.js'), PNG = require('../png.js');
 const ROOT = path.join(__dirname, '..', '..', '..');
 const ART = process.argv[2] || path.join(ROOT, 'game', 'art'), CS = process.argv[3] || path.join(ROOT, 'game', 'Content', 'CreatureArt.cs');
 // The user's picks, 2026-10-22: «Пушок», «Тапирчик», «Шестиног», «Классика».
-const PICKED = ['classic', 'tapir', 'sixleg', 'fluff'];
+const PICKED = ['classic', 'tapir', 'sixleg'];
 
 const glowing = (P) => P.role.some((r, q) => r === 'glow' && P.tone[q] >= 3);
 function write(file, P, map) { const img = PNG.create(P.w, P.h); Buffer.from(map.buffer, map.byteOffset, map.length).copy(img.data); PNG.encode(img, file); }

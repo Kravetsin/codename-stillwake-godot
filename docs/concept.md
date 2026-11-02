@@ -26,20 +26,23 @@ A living document: what is decided about the game and what is still open. Techni
   debris or another wreck. Harder places bring their own dangers (see meteors below).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
-- **Start:** the hero is left alive in a wreck, a fragment of a ship, and has to make it livable to
-  survive: one small room a weak oxygen generator holds, the lifepod in it, and beside it a room torn
-  half away, a tech station surviving in it. Everything is caught as debris: a furnace built of caught salvage burns
+- **Start:** the hero is left alive in the torn-off scoop of a scavenger, and has to make it livable to
+  survive: an iron room whose air the lifepod makes, a lock each way, the open hold on the left and on the right a
+  landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). Everything is caught as debris: a furnace built of caught salvage burns
   planks from cargo crates and breathes its room's air, and smelts the rest into materials; a crate
   comes after, of planks and iron ([0016](decisions/0016-breathe-where-the-air-is.md),
   [0023](decisions/0023-a-furnace-burns-fuel.md)).
 - **The world** is 2048×1024 cells of space with the wreck in its middle; the ship is built only
   within the middle 1024×512, the build zone, and the space round it is there to fly out into
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
-- **Salvage is sold and blueprints bought:** a trade station sells what is put in it for the ship's credits, a unit at a
-  time, at prices that never fall and always pay more for what is refined; drones keep it stocked. A tech station opens a tree
-  drawn as a map: blocks bought with credits, a few blueprints and crafts together, the first for a few chunks' worth, the engine
-  last and dearest, and gates of resources deposited for good. What things are worth is worked out from their recipes
-  ([tech-graph](decisions/2026-10-30-tech-graph.md)). The wreck knows both stations, scrap walls and the fire axe.
+- **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The tree's rings
+  sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
+- **Salvage is sold and blueprints bought:** a trade station sends what is put in it off by capsule, thirty seconds till its credits
+  come back, however much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. The tablet holds a tree
+  drawn as rings round a hub: the hub takes resources for good and each fill opens the next ring all round, where blueprints and
+  crafts are bought with credits one by one, the first for a few chunks' worth, the engine last and dearest. A node picked
+  shows what it takes, where it is made and what it goes into. What things are worth is worked out from their recipes
+  ([tech-rings](decisions/2026-10-30-tech-rings.md)). The wreck knows both stations, scrap walls and the fire axe.
   Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit
@@ -47,20 +50,21 @@ A living document: what is decided about the game and what is still open. Techni
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
   solar panel is built of solar cells, silicon and glass assembled with wire, and of a photosensitive panel nothing makes:
-  only a panel taken apart gives one back, so the wreck's own, known from the start, can always be built again, and no new
-  one ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
+  only a panel taken apart gives one back, and its blueprint is sold on the black market, a tab of the tech tree, for many credits
+  ([black-market](decisions/2026-10-31-black-market.md), [trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md),
   [photo-panel](decisions/2026-10-29-photo-panel.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,
   never taken apart. Heroes are made at its hatch, at the start bare and after dying in what they wore,
-  their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space,
-  and the room gets none ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)).
+  their air full; standing by it, a hero's air slowly fills with the pod's own, even in a ship open to space
+  ([0028](decisions/0028-the-lifepod-and-crafting-by-machine-only.md)). It also makes its room's air as a first generator, with no power, so
+  the room can always get it back ([the-scoop](decisions/2026-10-31-the-scoop.md)).
 - **Suits are worn** and taken off, a helmet and a body mixed as the player likes: the helmet holds the air, the body
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
-  recipe shows what a thing is made of: the harpoon is a tube, a coil and its line of wire
-  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [0068](decisions/0068-the-harpoon-before-the-jetpack.md)). The pod's
+  recipe shows what a thing is made of: the harpoon is a tube and its line of wire
+  ([0046](decisions/0046-recipes-show-what-a-thing-is-made-of.md), [first-hour-pace](decisions/2026-10-31-first-hour-pace.md)). The pod's
   Fabricator, opened with E under the inventory, where every machine opens ([0058](decisions/0058-one-place-for-every-machine-window.md)), gives only the suit and the
   screwdriver. The first bench is the workbench, built of raw salvage as the furnace is: no power, a fifth of full speed, a
   queue the crew shares, paid when queued, made one at a time into its outputs; it makes the basic parts and the first tools
@@ -102,7 +106,8 @@ A living document: what is decided about the game and what is still open. Techni
   ([0061](decisions/0061-death-leaves-a-body.md)).
 - **Dangers:** yes — the game can hurt you: the cold and the vacuum, lava, grazers that ram when struck, and sentries on
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
-  before, at once. Which others is open.
+  before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
+  the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
 - **Hunting:** a planet's grazers drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
   sentries, scrap. Fat burns twice as long as a plank, or smelts at the furnace into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and of the cold. Both are a
@@ -122,22 +127,24 @@ A living document: what is decided about the game and what is still open. Techni
   its rig.
 - **Look: simple textures carried by light.** Light also tells the ship's state: an unpowered room is
   dark but for helmet lamps, a venting room flashes red, starlight comes in through windows.
-- **Oxygen works like a power grid.** A pipe network holds one pool of oxygen; a vent of a network
-  with oxygen in it fills its room cell by cell, a unit of oxygen a cell, outward from the vent. A
+- **Oxygen works like a power grid.** It comes as liquid: canisters are poured into tanks, and a powered
+  vaporizer turns the liquid of the tanks piped to its input into air for the vents piped to its output
+  ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); only the lifepod makes its room's air from nothing. A vent fed so
+  fills its room cell by cell, a unit of oxygen a cell, outward from the vent. A
   room is a space closed by walls and closed doors around it and back walls behind it, recomputed
   only when something is built, broken or a door moves; a cell holds air or not, and a room's air
   gathers around its vents and stays where it is ([0011](decisions/0011-air-lies-around-the-vents.md)).
-  A hero breathes room air standing where it is, and the suit refills there; the tanks behind
+  A hero breathes room air standing where it is, and the suit refills there; the vaporizers behind
   the room's vents pay for each breath, and without them the breath takes a cell from the patch's
   far edge. A breach or a door left open to space makes a room vent: its air goes and its network
   drains fast until a valve cuts the room off or the hole is patched. A door opened onto an empty
   room joins the two, and the vents fill the rest through the doorway. A room leaks a little all the
   time through what its air touches, the back wall behind each of its cells and every outer hull cell,
-  each as its material decides ([0020](decisions/0020-walls-of-materials-front-and-back.md)), paid like a breath: from the tanks,
+  each as its material decides ([0020](decisions/0020-walls-of-materials-front-and-back.md)), paid like a breath: from the vaporizers,
   or from the room's own air without them. Growth is held back by the fill, the leak and breathing. Without air a hero breathes from the suit tank.
 - **Power runs on cables** laid point to point between machines and anchors, hanging inside the
   ship and taut out in space; a network short of power slows everything on it alike. Solar panels
-  work only under the stars, out in space with no back wall behind them ([0043](decisions/0043-a-solar-panel-needs-the-stars.md)); the oxygen generator is the first thing that needs power
+  work only under the stars, out in space with no back wall behind them ([0043](decisions/0043-a-solar-panel-needs-the-stars.md)); the oxygen vaporizer is the first thing that needs power
   ([0017](decisions/0017-power-runs-on-cables.md)). The first power the player builds is the burner
   generator, of plates, gears, a rotor and wire: the furnace's fire turning a flywheel, it burns
   planks and breathes its room's air, and makes power while it burns, wherever it stands
@@ -172,10 +179,15 @@ A living document: what is decided about the game and what is still open. Techni
   the hole with what they have, a scrap wall of a raw chunk at the least, so repair is a steady cost
   ([weak-meteors-till-landing](decisions/2026-10-29-weak-meteors-till-landing.md)). Harder places, such as the rings round
   a planet, throw stronger ones, which asks for a better hull (hull-meteors, meteor-wave).
+- **Magnetic flares break machines.** Once the player can build an oxygen generator, an aurora spreads across the sky
+  every 8 to 15 minutes, lamps flicker and cables glow; then a flash, and a tenth to three tenths of the electric
+  machines on the networks stop where they stand, cables and all. Held with the screwdriver, each is repaired for the
+  work alone, and a wrench over it says so ([free-repair](decisions/2026-10-30-free-repair.md)). Fuses and
+  shielded walls will protect them later.
 
 ## Open
 
-- Which dangers besides meteors, how often, how they are telegraphed; a peaceful mode as in Raft?
+- Which dangers besides meteors and flares, how often, how they are telegraphed; a peaceful mode as in Raft?
   Directions so far: enemies living in other wrecks, pirate raids.
 - What the jump between places costs in biofuel, and how the radar shows where it goes.
 - How resources move between machines: belts, drones, or hired crew carrying them. In side view

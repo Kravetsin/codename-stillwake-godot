@@ -19,7 +19,7 @@ public class BuildMenuDataTests
                 + "backWallAlloy floor ladder door hatch",
             "air: vent tank cistern generator",
             "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",
-            "production: furnace workbench tradeStation techStation former crusher smelter assembler growCapsule arcBench",
+            "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule arcBench",
             "storage: crate droneBay",
             "ship: computer radarAntenna launchPlatform dropPod engine",
         ], Tools.Tabs.Select(Ids));
@@ -56,7 +56,7 @@ public class BuildMenuDataTests
         var slots = Machines.All.Select(m => m.Menu).Concat(Builds.All.Select(b => b.Menu))
             .Concat(Materials.All.SelectMany(m => new[] { m.Menu, m.BackMenu })).OfType<MenuSlot>();
         Assert.All(slots, s => Assert.Contains(s.Tab, MenuTabs.All));
-        Assert.All(Machines.All, m => Assert.Equal(!m.Fixed, m.Menu != null));
+        Assert.Equal(["lifepod", "pileHull", "pileScrap", "pileCargo", "pileBits", "emergencyLamp"], Machines.All.Where(m => m.Menu == null).Select(m => m.Kind));
         Assert.All(Builds.All, b => Assert.NotNull(b.Menu));
         Assert.All(Materials.All, m => Assert.Equal(m.Built, m.Menu != null && m.BackMenu != null));
         Assert.All(Materials.All, m => Assert.Equal(m.Menu == null, m.BackMenu == null));

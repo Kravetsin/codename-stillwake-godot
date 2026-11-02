@@ -94,7 +94,7 @@ public partial class InventoryPanel
         if (!Shown || _reading is not { } reading) return;
         var held = Held;
         var result = Clicks.OnSocket(held, new SocketClick(
-            socket.Machine, socket.Module, FittedTo(socket.Machine).Contains(socket.Module), shift, held is { } h ? reading.At(h.Place) : null, reading.Inventory));
+            socket.Machine, socket.Module, FittedTo(socket.Machine).Contains(socket.Module), shift, held is { } h ? reading.At(h.Place) : null, reading.Inventory, reading.Open));
         if (result.Command != null || result.TakesOut) _ui.Click();
         if (result.Command != null) (_picked, _dragFrom) = (null, null);
         if (result.TakesOut) _unfitting = socket;
@@ -118,7 +118,7 @@ public partial class InventoryPanel
     {
         var unfitting = _unfitting;
         _unfitting = null;
-        if (unfitting == socket && _reading is { } reading) Act(reading, Clicks.TakeOut(socket.Machine, socket.Module, reading.Inventory));
+        if (unfitting == socket && _reading is { } reading) Act(reading, Clicks.TakeOut(socket.Machine, socket.Module, reading.Inventory, reading.Open));
         else if (Held is { } held && _reading?.At(held.Place)?.Item == socket.Module && GoesIn(socket.Module, socket.Machine)) FitFrom(held.Place, socket);
         _dragFrom = null;
         Refresh();

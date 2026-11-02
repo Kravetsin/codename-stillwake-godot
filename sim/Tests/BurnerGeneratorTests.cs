@@ -10,13 +10,14 @@ namespace Stillwake.Sim.Tests;
 public class BurnerGeneratorTests
 {
     /// <summary>
-    /// Fourteen wide: a sealed room aired by a tank piped to a vent, as the furnace's tests; a burner
-    /// generator cabled to a lamp, and with <paramref name="two"/> a second generator cabled to the first.
+    /// Fourteen wide: a sealed room aired by a vaporizer piped to a vent, its tank and panel under the hull, as the
+    /// furnace's tests (liquid-oxygen); a burner generator cabled to a lamp, and with <paramref name="two"/> a second
+    /// generator cabled to the first.
     /// </summary>
     private static Layout Map(bool two = false)
     {
         string second = two ? "BB" : "..";
-        return Layout.Parse(
+        return AirTesting.Vaporized(
             ["##############", $"#BB.TT..{second}.L.#", $"#BB.TTV.{second}...#", "##############"],
             ["", "    o", "    ---"],
             two ? [((1, 1), (11, 1)), ((1, 1), (8, 1))] : [((1, 1), (11, 1))]);
@@ -113,14 +114,19 @@ public class BurnerGeneratorTests
     public void BreathesItsRoomsAirAsTheFurnaceDoes()
     {
         var w = SetUp();
-        int tank = w.M.Grid.MachineAt(At(4, 1))!.Id;
         var cold = SetUp();
+        // The room aired whole and the vaporizer's store stocked, so every breath is paid from the chain (liquid-oxygen).
+        foreach (var x in new[] { w, cold }) x.Run(200);
+        Assert.Equal(ChainOxygen(cold), ChainOxygen(w));
         Feed(w, 1);
         cold.Run();
         w.Run(4 * FurnaceContent.BreathEvery - 1);
         cold.Run(4 * FurnaceContent.BreathEvery - 1);
-        Assert.Equal(4 * FurnaceContent.Breath, cold.M.Atmosphere.OxygenIn(tank) - w.M.Atmosphere.OxygenIn(tank));
+        Assert.Equal(4 * FurnaceContent.Breath, ChainOxygen(cold) - ChainOxygen(w));
     }
+
+    /// <summary>The oxygen the chain holds: the tank's liquid and the vaporizer's gas (liquid-oxygen).</summary>
+    private static int ChainOxygen(Scenario w) => w.M.Grid.Machines.Sum(m => w.M.Atmosphere.OxygenIn(m.Id));
 
     [Fact]
     public void GoesOutWithoutAirItsFuelLostAndTheLampDark()

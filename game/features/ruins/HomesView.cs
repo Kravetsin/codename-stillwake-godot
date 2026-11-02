@@ -667,7 +667,7 @@ public partial class HomesView : Node2D, ILightSource
 
         static Atlas()
         {
-            var names = Names().Select(n => (Name: n, Image: Rgba(PixelArt.Picture(n).GetImage()))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
+            var names = Names().Select(n => (Name: n, Image: Rgba(PixelArt.Logical(n).GetImage()))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
             int x = 0, y = 0, row = 0;
             foreach (var (name, image) in names)
             {
@@ -683,10 +683,10 @@ public partial class HomesView : Node2D, ILightSource
                 var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
                 pictures.BlitRect(image, whole, (Vector2I)at.Position);
                 if (!ResourceLoader.Exists($"res://art/{name}_glow.png")) continue;
-                glows.BlitRect(Rgba(PixelArt.Picture($"{name}_glow").GetImage()), whole, (Vector2I)at.Position);
+                glows.BlitRect(Rgba(PixelArt.Logical($"{name}_glow").GetImage()), whole, (Vector2I)at.Position);
                 Glows[name] = at;
             }
-            (Pictures, Shine) = (ImageTexture.CreateFromImage(pictures), ImageTexture.CreateFromImage(glows));
+            (Pictures, Shine) = (HiRes.Sheet(pictures, At.Select(p => (p.Key, p.Value))), HiRes.Sheet(glows, Glows.Select(p => (p.Key, p.Value)), "_glow"));
         }
 
         private static IEnumerable<string> Names()

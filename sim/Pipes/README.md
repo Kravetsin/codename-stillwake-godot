@@ -51,8 +51,8 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   A span is refused, after `pipes.twice`, joining two ports that give (`pipes.bothGive`) or take (`pipes.bothTake`), or
   ends of different fluids (`pipes.mixedFluid`): an end's fluid is its port's, else its line's, and a line with no port
   matches any. Only the two ends count: output → joint → output is laid. Valves never mix fluids, as lines ignore them.
-  Air's ports are the tank's, the generator's and the vent's; water's the cistern's, its input left and output right,
-  which holds nothing yet.
+  Liquid oxygen leaves a tank and enters a vaporizer (kind `generator`), air leaves the vaporizer and enters a vent
+  (liquid-oxygen); water's ports are the cistern's, its input left and output right, which holds nothing yet.
 
 ## API
 
@@ -63,7 +63,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   them name would be open, for what a client shows before its tick runs (0014). Static: `LengthOf(width, a, b)`,
   `CostOf(length)`.
 - **Commands:** `LayPipe(A, B)` — `pipes.notAboard` (away from the ship, 0110), `pipes.offGrid`, `pipes.sameCell`, `pipes.outsideZone`, `pipes.tooLong`, `pipes.twice`,
-  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, then whether the refund fits; `MakeValve(Cell,
+  `pipes.bothGive`, `pipes.bothTake`, `pipes.mixedFluid`, then the items' `items.notEnough`; `CutPipe(A, B)` — `pipes.noPipe`, `pipes.fixed` (inside a machine never taken apart: the pod's), then whether the refund fits; `MakeValve(Cell,
   Valve)` — making one, `pipes.notAboard`, `pipes.noJoint`, `pipes.already`, `pipes.noValve`, then the items; `SetValve(Cell, Open)` — `pipes.noValve`.
 
 ## Invariants

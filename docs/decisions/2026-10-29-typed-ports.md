@@ -3,6 +3,9 @@
 - Status: accepted
 - Date: 2026-10-29
 - Builds on [0109](0109-pipes-are-spans.md): spans join ports and joints as before, now by the ports' way and fluid
+- Partly superseded by [liquid-oxygen](2026-10-30-liquid-oxygen.md): the tank now gives liquid oxygen and the generator
+  takes it in and gives air, so "the tank and the generator give air", the tank and generators on one manifold and the
+  drawn tank–generator span below no longer hold
 
 ## Context
 

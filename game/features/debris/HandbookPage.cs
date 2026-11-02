@@ -140,7 +140,7 @@ public partial class HandbookPage : HBoxContainer
 
     /// <summary>Look <paramref name="look"/> of <paramref name="kind"/> (<c>DebrisLooks</c>), or its item's picture for a kind with none.</summary>
     private static Texture2D PictureOf(string kind, int look) =>
-        DebrisLooks.PictureOf(kind, look) is { } path ? GD.Load<Texture2D>(path) : ItemIcons.Icon(kind);
+        DebrisLooks.NameOf(kind, look) is { } name ? PixelArt.Picture(name) : ItemIcons.Icon(kind);
 
     private static TextureRect Blank() => new()
     {
