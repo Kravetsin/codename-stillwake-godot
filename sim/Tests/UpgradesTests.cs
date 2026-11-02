@@ -7,7 +7,7 @@ using Tree = Stillwake.Content.Research;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>Room bought with credits on the tree (2026-10-30-room-upgrades).</summary>
+/// <summary>Room bought with credits on the black market (2026-10-30-room-upgrades).</summary>
 public class UpgradesTests
 {
     private static readonly string[] Rows =
@@ -113,25 +113,15 @@ public class UpgradesTests
     }
 
     [Fact]
-    public void EveryRingOfTheTreeOffersMoreBagAndTheSlotsAddUpToTheMost()
+    public void EveryRingOfTheMarketOffersMoreBagAndTheSlotsAddUpToTheMost()
     {
-        // The black market is a shop, not a stage of the tree.
-        foreach (var tab in Tree.Tabs.Where(t => t.Id != "blackMarket"))
-            for (int ring = 0; ring < tab.Rings.Length; ring++)
-                Assert.Contains(Tree.Nodes, n => n.Tab == tab.Id && n.Ring == ring && Upgrades.Of(n.Id)?.Kind == Upgrades.Bag);
-        Assert.All(Upgrades.All, u => Assert.NotNull(Tree.Node(u.Id)));
+        var market = Tree.Tabs.Single(t => t.Id == Tree.Market);
+        for (int ring = 0; ring < market.Rings.Length; ring++)
+            Assert.Contains(Tree.Nodes, n => n.Tab == market.Id && n.Ring == ring && Upgrades.Of(n.Id)?.Kind == Upgrades.Bag);
+        Assert.All(Upgrades.All, u => Assert.Equal(Tree.Market, Tree.Node(u.Id)?.Tab));
         Assert.Equal(Inventory.Slots, Inventory.Start + Upgrades.Added(Upgrades.Bag, _ => true));
         Assert.Equal(Inventory.Equipment.Count(e => e == "belt"), Inventory.BeltStart + Upgrades.Added(Upgrades.Belt, _ => true));
         Assert.Equal(Machines.Get("tradeStation").Slots, Upgrades.TradeStart + Upgrades.Added(Upgrades.TradeSlots, _ => true));
-    }
-
-    [Fact]
-    public void TheBeltGrowsWithTheStoresItCarries()
-    {
-        static int RingOf(string id) => Tree.Node(id)!.Ring;
-        Assert.Equal(RingOf("battery"), RingOf("belt1"));
-        Assert.Equal(Tree.Node("accumulator")!.Tab, Tree.Node("belt2")!.Tab);
-        Assert.Equal(RingOf("accumulator"), RingOf("belt2"));
     }
 
     [Fact]

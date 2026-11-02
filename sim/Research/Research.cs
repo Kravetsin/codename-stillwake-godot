@@ -35,7 +35,7 @@ public interface IResearchQueries
     IReadOnlyList<Recipe> Recipes();
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's deposit full; every one in creative mode.</summary>
+    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's deposit full, or on the market its order sold and its ring reached; every one in creative mode.</summary>
     bool Done(TechNode node);
     /// <summary>Whether all <paramref name="node"/> needs are done.</summary>
     bool Reached(TechNode node);
@@ -137,8 +137,10 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     {
         if (_items.Creative) return true;
         if (!node.Gate) return _knowledge.Granted(node.Id);
+        // Sales count from the world's start, so without its ring reached an order met early would open a ring past a shut one.
+        if (node.Tab == Content.Research.Market && !Reached(node)) return false;
         foreach (var (item, count) in node.Deposit)
-            if (_knowledge.DepositOf(node.Id, item) < count) return false;
+            if ((node.Tab == Content.Research.Market ? _knowledge.SoldOf(item) : _knowledge.DepositOf(node.Id, item)) < count) return false;
         return true;
     }
 
@@ -171,7 +173,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     private string? DepositProblem(Deposit c)
     {
-        if (Content.Research.Node(c.Gate) is not { Gate: true } gate) return "research.locked";
+        if (Content.Research.Node(c.Gate) is not { Gate: true, Tab: not Content.Research.Market } gate) return "research.locked";
         if (Done(gate)) return "research.gateOpen";
         if (!Reached(gate)) return "research.locked";
         return Taken(c.From, gate).Count == 0 ? "research.nothingToDeposit" : null;

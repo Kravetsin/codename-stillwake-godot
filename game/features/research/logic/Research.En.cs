@@ -17,8 +17,10 @@ public static partial class En
         ["trade.back"] = "Back in {s} s: +{n}",
         ["research.pickHint"] = "Click a node to see what it takes, where it is made and what it goes into",
         ["research.gateAbout"] = "Fill it to open the next ring",
+        ["research.orderAbout"] = "Sell it through a trade station to open the next ring",
         ["research.allOpen"] = "All open",
         ["research.asks"] = "Asks for: yours/needed",
+        ["research.sold"] = "Sold: so far/ordered",
         ["research.opens"] = "Opens",
         ["research.takes"] = "Made from",
         ["research.madeAt"] = "Made at",
@@ -63,5 +65,10 @@ public static partial class En
         ["research.gate.ground"] = "Ground samples",
         ["research.gate.arc"] = "Arc",
         ["research.gate.enginePlans"] = "Engine plans",
+        ["research.gate.order1"] = "First order",
+        ["research.gate.order2"] = "Second order",
+        ["research.gate.order3"] = "Third order",
+        ["research.gate.order4"] = "Fourth order",
+        ["research.gate.order5"] = "Fifth order",
     };
 }
