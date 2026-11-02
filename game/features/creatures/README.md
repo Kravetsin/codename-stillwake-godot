@@ -11,7 +11,8 @@
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |
-| `logic/Creatures.En.cs` | Its player text (`En`) |
+| `logic/Creatures.En.cs` | Its player text |
+| `logic/Creatures.Ru.cs` | Russian |
 | `logic/OwnShots.cs` | The creatures this player's own shots hit, heard as its blows. |
 | `PosedSprite.cs` | A creature drawn as one sprite posed in code: its layers, up to the screen. |
 | `InkRig.cs` | A guard's body in ink: a sprite a picture, as its rig places them. |

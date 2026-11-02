@@ -21,6 +21,7 @@ bay C (the perch), motion "lively". Numbers live in `game/Content/logic/DroneLoo
 | `LogisticsView.cs` | drones in flight and docked, pads, lamps, a bay's beacon and zone; drones heard | yes |
 | `DroneLight.cs`    | drones in light (0075): rotor discs and glints, floor dust under them, lamp trail, shimmer, landing puffs | yes |
 | `logic/Logistics.En.cs` | Its player text (`En`) | no |
+| `logic/Logistics.Ru.cs` | Russian | no |
 
 Tests: `ServedTests`, `HoverTests`, `TrailTests`, `DroneSoundTests`. The testbed (`-- --testbed`, `TestbedTests`) runs two drones from a powered bay through a closed
 door keeping the furnace, Former and grow capsule going from a supply crate, the farm's crate switched off;

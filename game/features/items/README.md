@@ -31,6 +31,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
 | `ItemsDemo.cs` | `-- --items`: a room with a crate and a furnace, for recordings |
 | `logic/Items.En.cs` | Its player text (`En`) |
+| `logic/Items.Ru.cs` | Russian |
 
 The wrist computer's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`WristPieces`, `WristArt`,
 `WristScreen`, `WristKey`, `WristGauge`); charge on screen is `game/shared/logic/Charges.cs`. Files in `logic/` are Godot-free

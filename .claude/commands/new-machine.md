@@ -43,8 +43,8 @@ by name, and a missing one throws on the first frame (`MachineArtTests`). After 
 
 ## 3. Its name — `game/features/building/logic/Building.En.cs`
 
-`["tool.<kind>"] = "Its name"` and `["tool.<kind>.about"] = "What it is for, in a sentence."`, beside the others.
-Player text only through these keys.
+`["tool.<kind>"] = "Its name"` and `["tool.<kind>.about"] = "What it is for, in a sentence."`, beside the others, and both in
+`Building.Ru.cs`. Player text only through these keys.
 
 ## 4. Its spot on the testbed — `game/dev/logic/Testbed.cs`
 

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Godot;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Platform;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
@@ -9,7 +10,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The settings kept on this machine, the game menu's and the title's alike: the slots' size, Normal or Large (0058), heat
+/// The settings kept on this machine, the game menu's and the title's alike: the language (2026-11-02-russian-language), the slots' size, Normal or Large (0058), heat
 /// shimmer On or Off (0075), each applied at once and kept in <c>user://settings.cfg</c>, the one in use lit; and Open logs folder.
 /// </summary>
 public partial class SettingsRows : VBoxContainer
@@ -21,6 +22,9 @@ public partial class SettingsRows : VBoxContainer
     {
         _ui = ui;
         Style.Gap(this, 8);
+        AddChild(Line(T("menu.language")));
+        AddChild(Pair([("menu.langEn", () => _ui.Language.Set(Language.English)), ("menu.langRu", () => _ui.Language.Set(Language.Russian))]));
+        _ui.Language.Subscribe(Paint);
         AddChild(Line(T("menu.slots")));
         AddChild(Pair([("menu.slotsNormal", () => _ui.SlotScale.Set(SlotScale.Normal)), ("menu.slotsLarge", () => _ui.SlotScale.Set(SlotScale.Large))]));
         _ui.SlotScale.Subscribe(Paint);
@@ -54,6 +58,8 @@ public partial class SettingsRows : VBoxContainer
     private void Paint()
     {
         bool large = _ui.SlotScale.Get() == SlotScale.Large, on = Render.Shimmer.Enabled;
+        Light("menu.langEn", _ui.Language.Get() == Language.English);
+        Light("menu.langRu", _ui.Language.Get() == Language.Russian);
         Light("menu.slotsNormal", !large);
         Light("menu.slotsLarge", large);
         Light("menu.on", on);

@@ -61,7 +61,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png` (none for a tool, 2026-10-27-tool-icons),
   `debris/<look>_<nn>.png`, `creatures/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`;
   `_glow`/`_lit` suffixes for light. Loaded by `PixelArt.Picture(name)` = `res://art/<name>.png`.
-- **i18n** (core `game/i18n/logic/En.cs`; a feature's strings are in its `logic/<Name>.En.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),
+- **i18n** (core `game/i18n/logic/En.cs`; a feature's strings are in its `logic/<Name>.En.cs`, Russian in `.Ru.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),
   `material.<id>`, refusals `<moduleId>.<why>`, UI by area (`menu.`, `use.`, `handbook.`, `build.`). Read with `T(key)`.
 - **Tests**: `sim/Tests/<Module>Tests.cs` or `<Rule>Tests.cs`, helpers `<Module>Testing.cs`; client `game.tests/<Class>Tests.cs`
   (Godot-free client code lives in its folder's `logic/`; `Game.Tests.csproj` compiles every `logic/` by glob); `net/Tests/<Topic>Tests.cs`. Docs guard: `game.tests/DocsGuardTests.cs`.

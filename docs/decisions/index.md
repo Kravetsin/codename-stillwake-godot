@@ -196,4 +196,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
 | [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | accepted |  |
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
+| [russian-language](2026-11-02-russian-language.md) | The game speaks Russian | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |

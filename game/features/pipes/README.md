@@ -9,6 +9,7 @@
 | `PipesOverlay.cs` | Every pipe network brought out of the ship while the plan is piping: each network's spans over the ship, slim, in a … |
 | `PipesView.cs` | The pipes as they are built (0109): each span a straight pipe from the middle of one end's cell to the other's, at … |
 | `logic/Pipes.En.cs` | Its player text (`En`) |
+| `logic/Pipes.Ru.cs` | Russian |
 | `logic/Sockets.cs` | A port as the piping shows it (2026-10-29-typed-ports): a socket in its fluid's colour, an arrow out of the machine or … |
 | `logic/TubeRun.cs` | How the pipe's run is laid along a span: its picture has its lit edge on top, and the world's light comes from the upper left. |
 
