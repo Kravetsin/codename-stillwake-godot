@@ -86,7 +86,11 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
         });
         // A cistern taken apart takes its water with it: a few cisterns at most, looked at every tick.
         System(Phase.Construction, () => State.Cisterns.RemoveAll(h => _grid.MachineById(h.Machine) == null));
-        System(Phase.Simulation, Electrolyse);
+        System(Phase.Simulation, () =>
+        {
+            Pour();
+            Electrolyse();
+        });
     }
 
     protected override WaterState Init(Layout layout) => new();
@@ -135,7 +139,8 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
                 foreach (int cistern in cisterns)
                 {
                     if (left == 0) break;
-                    var held = State.Cisterns.Find(h => h.Machine == cistern)!;
+                    // An empty cistern holds no entry: the next one behind pays.
+                    if (State.Cisterns.Find(h => h.Machine == cistern) is not { } held) continue;
                     int taken = Math.Min(held.Amount, left);
                     held.Amount -= taken;
                     left -= taken;
@@ -151,18 +156,53 @@ public sealed partial class WaterModule : Module<WaterState>, IWaterQueries
     }
 
     /// <summary>
+    /// Cisterns in a line (tanks-in-a-line), before the electrolysers draw: each cistern holding water, in id order, pours up to
+    /// <c>Water.CisternFlow</c> into the cisterns whose input is on its output's network, in id order, as much as each has room
+    /// for. A later cistern pours on in the same tick, so a line fills from its last.
+    /// </summary>
+    private void Pour()
+    {
+        bool added = false;
+        foreach (var m in _grid.MachinesWith(MachineTrait.HoldsWater))
+        {
+            if (State.Cisterns.Find(h => h.Machine == m.Id) is not { } giver) continue;
+            int left = Math.Min(giver.Amount, Content.Water.CisternFlow);
+            if (left == 0) continue;
+            foreach (int other in On(MachineTrait.HoldsWater, Way.In, NetworkOf(m, Way.Out)))
+            {
+                if (left == 0) break;
+                if (other == m.Id) continue;
+                var taker = State.Cisterns.Find(h => h.Machine == other);
+                int poured = Math.Min(left, Content.Water.CisternCapacity - (taker?.Amount ?? 0));
+                if (poured <= 0) continue;
+                if (taker == null)
+                {
+                    State.Cisterns.Add(taker = new Held { Machine = other });
+                    added = true;
+                }
+                taker.Amount += poured;
+                giver.Amount -= poured;
+                left -= poured;
+            }
+        }
+        if (added) State.Cisterns.Sort((a, b) => a.Machine.CompareTo(b.Machine));
+    }
+
+    /// <summary>
     /// The cisterns whose output stands on electrolyser <paramref name="m"/>'s input's network, and the tanks whose input stands
     /// on its output's, each in id order.
     /// </summary>
-    private (List<int> Cisterns, List<int> Tanks) Ends(Machine m)
+    private (List<int> Cisterns, List<int> Tanks) Ends(Machine m) =>
+        (On(MachineTrait.HoldsWater, Way.Out, NetworkOf(m, Way.In)), On(MachineTrait.Gas, Way.In, NetworkOf(m, Way.Out)));
+
+    /// <summary>The network machine <paramref name="m"/>'s port of <paramref name="way"/> stands on; null for none, or no such port.</summary>
+    private int? NetworkOf(Machine m, Way way)
     {
-        int? input = null, output = null;
         var cells = _grid.PortsOf(m);
         var ports = Machines.Get(m.Kind).Ports;
         for (int i = 0; i < cells.Count; i++)
-            if (ports[i].Way == Way.In) input = _pipes.NetworkAt(cells[i]);
-            else output = _pipes.NetworkAt(cells[i]);
-        return (On(MachineTrait.HoldsWater, Way.Out, input), On(MachineTrait.Gas, Way.In, output));
+            if (ports[i].Way == way) return _pipes.NetworkAt(cells[i]);
+        return null;
     }
 
     /// <summary>The machines of <paramref name="trait"/> with a port of <paramref name="way"/> on <paramref name="network"/>, in id order.</summary>

@@ -20,10 +20,13 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 - **Pouring.** `PourWater(Cistern)` takes a bottle (`Water.Item`) from the sender (free in creative) and adds `Water.Bottle`.
   Refused, nothing changed: `water.noCistern` (not a machine with `MachineTrait.HoldsWater`), `water.full` (it would spill
   over `Water.CisternCapacity`), `items.notEnough`. Two pours on one tick apply in stamped order.
-- **Electrolysis**, in the simulation phase, each `MachineTrait.Electrolyses` machine in id order: its cisterns are those whose
+- **Cisterns in a line** (tanks-in-a-line), first in the simulation phase: each cistern holding water, in id order, pours up
+  to `Water.CisternFlow` a tick into the cisterns whose input is on its output's network, in id order, as each has room; a
+  later one pours on in the same tick, so a line fills from its last cistern.
+- **Electrolysis**, then, each `MachineTrait.Electrolyses` machine in id order: its cisterns are those whose
   output port is on its input's network, its tanks those whose input port is on its output's. While they hold water and
   have room, its work grows by `Water.ElectrolyserRate` × its power's satisfaction (thousandths); each `Air.LeakEvery × 1000`
-  takes a unit of water from the cisterns in id order and puts a unit of liquid into the tanks in id order
+  takes a unit of water from the cisterns holding any, in id order, and puts a unit of liquid into the tanks in id order
   (`IAtmosphereOps.Fill`). Units made are `min(finished, water, room)`, rounded down, the rest kept; else the work stands.
   At full power it makes one a tick. What it puts in is breathed from next tick: Atmosphere has already run.
 - **A cistern taken apart** takes its water with it, in the construction phase.
@@ -39,11 +42,10 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 ## Invariants
 
 - A cistern holds between nothing and `Water.CisternCapacity`; only those holding any are listed.
-- Water and liquid oxygen together never grow by electrolysis: a unit of water becomes a unit of liquid.
+- Water and liquid oxygen together never grow by electrolysis: a unit of water becomes a unit of liquid. Pouring only moves it.
 
 ## Deliberately not handled
 
-- Cisterns do not pass water to each other: a cistern's input stays unused until something asks for chained cisterns.
 - No empty bottle comes back; water is never bottled again from a cistern.
 - Hydrogen is let go, neither stored nor used. Nothing freezes, boils or spills.
 - An electrolyser cannot be switched off; with no water it stalls, drawing its power.

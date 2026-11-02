@@ -19,4 +19,10 @@ public static class Water
 
     /// <summary>The electrolyser's rate at full power, units every <see cref="Air.LeakEvery"/> ticks: one a tick.</summary>
     public const int ElectrolyserRate = 12000;
+
+    /// <summary>
+    /// What a cistern passes a tick to the cisterns piped from its output to their inputs (tanks-in-a-line), a tank's
+    /// <see cref="Air.TankFlow"/>: a bottle moves on in some 11 seconds.
+    /// </summary>
+    public const int CisternFlow = Air.TankFlow;
 }
