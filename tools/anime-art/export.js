@@ -61,14 +61,18 @@ fs.writeFileSync(path.join(dir, 'page.html'), page);
 
 /** The page's pictures, by the browser's debugging port: a browser's own --dump-dom prints nothing on Windows. */
 async function draw() {
-  const port = 9300 + Math.floor(Math.random() * 500);
-  const child = spawn(browser, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--allow-file-access-from-files', `--user-data-dir=${path.join(dir, 'profile')}`,
-    `--remote-debugging-port=${port}`, 'file:///' + path.join(dir, 'page.html').replace(/\\/g, '/')], { stdio: 'ignore' });
+  const profile = path.join(dir, 'profile');
+  // Port 0, the browser's own choice: a port of ours could be another export's, and its pictures land here.
+  const child = spawn(browser, ['--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--allow-file-access-from-files', `--user-data-dir=${profile}`,
+    '--remote-debugging-port=0', 'file:///' + path.join(dir, 'page.html').replace(/\\/g, '/')], { stdio: 'ignore', windowsHide: true });
   try {
     let target = null;
     for (let i = 0; i < 100 && !target; i++) {
       await new Promise((r) => setTimeout(r, 200));
-      try { target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page' && t.url.includes('page.html')); } catch { /* not up yet */ }
+      try {
+        const port = fs.readFileSync(path.join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0].trim();
+        target = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find((t) => t.type === 'page' && t.url.includes('page.html'));
+      } catch { /* not up yet */ }
     }
     if (!target) throw new Error('The browser never opened the page.');
     const ws = new WebSocket(target.webSocketDebuggerUrl);
@@ -92,8 +96,10 @@ async function draw() {
     ws.close();
     return n;
   } finally {
-    // On Windows the browser's children outlive a plain kill.
-    if (process.platform === 'win32') spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore' }); else child.kill();
+    // On Windows the browser's processes outlive a kill of the one we started, even of its tree: find them all by the profile.
+    if (process.platform === 'win32') spawnSync('powershell', ['-NoProfile', '-Command',
+      `Get-CimInstance Win32_Process -Filter "Name='${path.basename(browser)}'" | Where-Object { $_.CommandLine -like '*${dir}*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }`],
+    { stdio: 'ignore', windowsHide: true }); else child.kill();
   }
 }
 
