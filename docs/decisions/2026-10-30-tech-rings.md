@@ -1,6 +1,6 @@
 # The tech tree is rings round a hub
 
-- Status: accepted
+- Status: superseded by [market-decrypt](2026-11-02-market-decrypt.md)
 - Date: 2026-10-30
 - Supersedes: the layered graph of [tech-graph](2026-10-30-tech-graph.md) and the click-to-buy of [tablet-tree](2026-10-30-tablet-tree.md)
 

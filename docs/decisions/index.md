@@ -170,7 +170,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
 | [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted |  |
 | [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
-| [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | accepted |  |
+| [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | superseded | market-decrypt |
 | [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule |
 | [trade-capsule](2026-10-30-trade-capsule.md) | Goods leave by capsule | accepted |  |
 | [black-market](2026-10-31-black-market.md) | The black market | accepted |  |
@@ -188,8 +188,10 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
+| [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
+| [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | accepted |  |
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
