@@ -162,10 +162,10 @@ const vent = (a) => {
   for (let i = 0; i < 5; i++) { a.flat(band(2.8, 3 + i * 2.1, 13.2, 4 + i * 2.1), '#5a86a8'); a.flat(band(2.8, 3 + i * 2.1, 13.2, 3.3 + i * 2.1), '#a8d0e4'); }
 };
 const crate = (a) => {
-  box(a, .4, 1, 31.2, 14, WOOD, { r: .3, spec: true });
+  box(a, .4, 1, 31.2, 15, WOOD, { r: .3, spec: true });
   for (const y of [5.4, 10]) { a.flat(band(.8, y, 31.2, y + .5), '#402a26'); a.flat(band(.8, y + .5, 31.2, y + .8), '#ad8258'); }
   for (const [x, y] of [[9, 2.6], [20, 7.6], [13, 12]]) a.line(`M${x} ${y}L${x + 3.4} ${y + .2}`, { w: 1.8, c: '#5c3e30' });
-  for (const x of [.6, 26.8]) { inner(a, x, 1, 4.6, 14, STEEL, { l: .5 }); rivets(a, [x + 2.3, 3], [x + 2.3, 8], [x + 2.3, 13]); }
+  for (const x of [.6, 26.8]) { inner(a, x, 1, 4.6, 15, STEEL, { l: .5 }); rivets(a, [x + 2.3, 3], [x + 2.3, 8], [x + 2.3, 13]); }
   inner(a, 13.8, 5.6, 4.4, 4.6, GUN);
   a.flat(rr(15.2, 7, 1.6, 1.8, .2), '#c4ccd8');
 };
@@ -184,6 +184,7 @@ const cistern = (a) => {
   for (const [x, y] of [[12.1, 10], [19.9, 10], [12.1, 21.2], [19.9, 21.2]]) a.flat(ell(x, y, .35), '#a8693c');
   for (const x of [8.6, 19.6]) a.shape(rr(x, 23.4, 3.8, 3, .2), GUN, { lite: band(x, 23.4, x + 1.4, 26.4) });
   box(a, 1, 26.6, 30, 2.8, STEEL, { spec: true });
+  feet(a, 29.4, 2.6, [3, 4], [25, 4]);
 };
 const growCapsule = (a) => {
   // Cap, tall glass with soil in it, the base under it.
@@ -236,8 +237,8 @@ const terminal = (auto) => (a) => {
   if (auto) { led(a, 7, 13, '#54ba74'); led(a, 25, 13, '#f0c460'); }
   a.flat(rr(6, 23, 3.6, 1, .2), '#f6e6b4');
   a.flat(rr(23, 23, 3.6, 1, .2), '#f6e6b4');
-  box(a, 1, 26.6, 30, 3, BRASS, { spec: true });
-  a.flat(band(1.6, 29.4, 30.4, 30), '#4c3a2c');
+  box(a, 1, 26.6, 30, 5.4, BRASS, { spec: true });
+  a.flat(band(1.6, 31.4, 30.4, 32), '#4c3a2c');
 };
 const droneBay = (a) => {
   // A mast with a deck a side at each pair of pads; docks are drawn over it.
@@ -253,9 +254,9 @@ const droneBay = (a) => {
   feet(a, 30.4, 1.4, [3, 4], [25, 4]);
 };
 const lifepod = (a) => {
-  for (const x of [0.6, 4.4]) cyl(a, x, 24, 3.8, 20, TEAL, { r: .5 });
+  for (const x of [0.6, 4.4]) cyl(a, x, 24, 3.8, 24, TEAL, { r: .5 });
   // The console at its right.
-  box(a, 35, 14.8, 9.4, 24, GUN);
+  box(a, 35, 14.8, 9.4, 33.2, GUN);
   a.shape(band(36, 17, 43.4, 23.6), DARK, { outer: false });
   a.flat(band(37.6, 20, 41, 21), '#54ba74');
   for (const y of [25, 29.4, 33.8]) inner(a, 36.4, y, 6.8, 3.4, STEEL);
@@ -269,7 +270,7 @@ const lifepod = (a) => {
   a.flat(poly(21, 18, 27.4, 11.6, 27.4, 13, 21, 19.4), '#7cc0d0');
   a.flat(poly(19, 31, 27.4, 22.6, 27.4, 23.6, 19, 32), '#7cc0d0');
   rivets(a, [11, 15], [33, 15], [11, 26], [33, 26]);
-  box(a, 8.4, 39.4, 27.2, 6.4, GUN);
+  box(a, 8.4, 39.4, 27.2, 8.6, GUN);
   hazard(a, 10, 41.4, 24, 1.6);
 };
 const generator = (a) => {
@@ -279,7 +280,7 @@ const generator = (a) => {
   for (let i = 0; i < 6; i++) { a.flat(band(18.6, 6 + i * 2.2, 26.4, 6.9 + i * 2.2), '#172a44'); a.flat(band(18.6, 6.9 + i * 2.2, 26.4, 7.2 + i * 2.2), '#5a86a8'); }
   a.shape(band(13, 23.4, 26.4, 26), DARK, { outer: false });
   for (const x of [15, 18.6, 22.2]) a.flat(band(x, 24, x + 2, 25.4), '#f0c460');
-  feet(a, 29, 1.8, [2, 5], [22.6, 5]);
+  feet(a, 29, 3, [2, 5], [22.6, 5]);
 };
 const tank = (a) => {
   a.shape(rr(0, 16.6, 6, 3.6, .4), GUN, { lite: band(.2, 16.7, 5.8, 17.2), shade: band(.2, 19.2, 5.8, 20.2) });
@@ -291,7 +292,7 @@ const tank = (a) => {
   for (const [x, y] of [[12.1, 10], [19.9, 10], [12.1, 21.4], [19.9, 21.4]]) a.flat(ell(x, y, .35), '#a8693c');
   a.flat(rr(21.2, 9, 1.8, 1.2, .2), '#6c3a30');
   box(a, 5, 25, 20, 1.6, STEEL, { l: .4, b: .4 });
-  feet(a, 26.6, 3.4, [6.6, 3.6], [19.8, 3.6]);
+  feet(a, 26.6, 5.4, [6.6, 3.6], [19.8, 3.6]);
 };
 const computer = (a) => {
   // Monitor on its neck, a box of parts beside it, the desk and its drawers.
@@ -309,7 +310,7 @@ const computer = (a) => {
   inner(a, 13, 20.4, 7.6, 7, STEEL);
   inner(a, 21.8, 20.4, 7.6, 7, STEEL);
   for (let i = 0; i < 4; i++) { a.flat(band(31.4, 21 + i * 1.6, 43.4, 21.7 + i * 1.6), '#262a42'); }
-  feet(a, 28.6, 2, [4, 4.4], [39.4, 4.4]);
+  feet(a, 28.6, 3.4, [4, 4.4], [39.4, 4.4]);
 };
 const capacitorBank = (a) => {
   for (const x of [2.8, 20]) {
@@ -322,7 +323,7 @@ const capacitorBank = (a) => {
   // StoreLights draws the lit gauge here, by the pixels it was drawn at: six segments 4 × 2 at (14, 8), a step of 3 apart.
   for (let i = 0; i < 6; i++) a.flat(band(14, 8 + i * 3, 18, 10 + i * 3), '#1b2a30');
   box(a, .8, 26, 30.4, 2.6, STEEL, { spec: true });
-  feet(a, 28.6, 2.4, [3, 4], [25, 4]);
+  feet(a, 28.6, 3.4, [3, 4], [25, 4]);
 };
 const engine = (a) => {
   // The bell out into space on the left, the body against the wall on the right.
@@ -355,7 +356,7 @@ const radarBase = (a) => {
   a.tube('M16 20L16 25', 1.8, GUN);
   box(a, 11.4, 23.6, 9.2, 4, GUN);
   a.flat(band(12.6, 25, 19.4, 26), '#a8693c');
-  box(a, 8, 27.8, 16, 2.4, STEEL, { spec: true });
+  box(a, 8, 27.8, 16, 4.2, STEEL, { spec: true });
 };
 const solarPanel = (a) => {
   a.shape(rr(.4, .6, 47.2, 11.8, .4), DARK, { lite: band(.6, .7, 47.4, 1.1) });
