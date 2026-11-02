@@ -197,6 +197,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
+| [key-lens](2026-11-02-key-lens.md) | The tablet's key is a frosted lens that lights | accepted |  |
 | [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | accepted |  |
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [ports-left-to-right](2026-11-02-ports-left-to-right.md) | Ports read left to right | accepted |  |
