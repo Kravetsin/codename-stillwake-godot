@@ -11,8 +11,8 @@ namespace Stillwake.Sim.Tests;
 public class WaterTests
 {
     /// <summary>
-    /// A cell a character: a cistern at (0, 0), its output (3, 2); the electrolyser at (6, 0), its water in at (9, 5) and its
-    /// oxygen out at (6, 5); a tank at (12, 0), its input (15, 2); two panels out in space cabled to the electrolyser.
+    /// A cell a character: a cistern at (0, 0), its output (3, 2); the electrolyser at (6, 0), its water in at (6, 5) and its
+    /// oxygen out at (9, 5); a tank at (12, 0), its input (12, 2) and output (15, 2); two panels out in space cabled to the electrolyser.
     /// </summary>
     private static readonly string[] Rows =
     [
@@ -34,7 +34,7 @@ public class WaterTests
     private static Scenario World() =>
         new Scenario(Layout.Parse(Rows, null, Cables), doubled: false).GiveItems(0, (WaterContent.Item, 9), ("tube", 20)).GiveItems(1, (WaterContent.Item, 1));
 
-    private static Scenario Piped() => World().Do(new LayPipe(At(3, 2), At(9, 5))).Do(new LayPipe(At(6, 5), At(15, 2))).Run();
+    private static Scenario Piped() => World().Do(new LayPipe(At(3, 2), At(6, 5))).Do(new LayPipe(At(9, 5), At(12, 2))).Run();
 
     private static int Id(Scenario w, string kind) => w.M.Grid.MachinesOf(kind)[0].Id;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
@@ -118,7 +118,7 @@ public class WaterTests
     {
         var w = World();
         // A cistern's water to a tank's input: refused; the electrolyser's oxygen to the tank's output: two outputs.
-        w.Do(new LayPipe(At(3, 2), At(15, 2))).Do(new LayPipe(At(6, 5), At(12, 2))).Run();
+        w.Do(new LayPipe(At(3, 2), At(12, 2))).Do(new LayPipe(At(9, 5), At(15, 2))).Run();
         Assert.Equal(["pipes.mixedFluid", "pipes.bothGive"], Reasons(w));
     }
 

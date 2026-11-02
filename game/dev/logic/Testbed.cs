@@ -88,7 +88,8 @@ public static class Testbed
     /// each: some twenty minutes of room two's air, more of room one's, and canisters in the crate for more.
     /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
     /// biofuel in its tank, cabled to the bank, and a lamp cabled to it. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
-    /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block.
+    /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
+    /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
     public static readonly Layout Map = Layout.Parse(
         [
@@ -111,11 +112,9 @@ public static class Testbed
             "",
             "",
             "                    o              --",
-            "                    -            -- -",
-            "         o  --      -            - --",
-            "         - - -      --------------- ---",
-            // Room one's liquid under the floor, round the tank's own input (water).
-            "         ---",
+            "                     --          -- -",
+            "         o  --        -          - --",
+            "          -- -        ------------- ---",
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
@@ -236,13 +235,15 @@ public static class Testbed
         // A drawn pipe meets only even cells and a cistern's output is on an odd one, so that span is laid, not drawn.
         var ports = Machines.Get("cistern").Ports;
         int Port((int X, int Y) at, int i) => (at.Y + ports[i].Y) * Map.Width + at.X + ports[i].X;
-        // The second cistern's water to the electrolyser, its liquid oxygen on to room two's tank, through joints: a span is at
-        // most twelve cells, and both its ports are on odd cells.
+        // The second cistern's water to the electrolyser's input on its left, its liquid oxygen from its right on to room two's
+        // tank, under the tank and up into its input from the left, through joints clear of the drawn lines: a span is at most
+        // twelve cells.
         int Cell(int x, int y) => y * Map.Width + x;
         world.Step([
             new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
-            new Sim.Pipes.LayPipe(Port(CisternTo, 1), Cell(67, 11)), new Sim.Pipes.LayPipe(Cell(67, 11), Cell(77, 13)),
-            new Sim.Pipes.LayPipe(Cell(74, 13), Cell(63, 12)), new Sim.Pipes.LayPipe(Cell(63, 12), Cell(52, 11)), new Sim.Pipes.LayPipe(Cell(52, 11), Cell(43, 10)),
+            new Sim.Pipes.LayPipe(Port(CisternTo, 1), Cell(67, 11)), new Sim.Pipes.LayPipe(Cell(67, 11), Cell(74, 13)),
+            new Sim.Pipes.LayPipe(Cell(77, 13), Cell(65, 13)), new Sim.Pipes.LayPipe(Cell(65, 13), Cell(55, 13)), new Sim.Pipes.LayPipe(Cell(55, 13), Cell(46, 12)),
+            new Sim.Pipes.LayPipe(Cell(46, 12), Cell(38, 12)), new Sim.Pipes.LayPipe(Cell(38, 12), Cell(38, 10)), new Sim.Pipes.LayPipe(Cell(38, 10), Cell(40, 10)),
         ]);
         world.Step([]);
         return world;

@@ -23,7 +23,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
 
 ## Rules
 
-- **A node** is a cell a span ends at: a machine's port (`IGridQueries.PortsOf`: a vent's own cell, a tank's bottom-left)
+- **A node** is a cell a span ends at: a machine's port (`IGridQueries.PortsOf`: inputs on its left, outputs on its right, 2026-11-02-ports-left-to-right)
   or a **joint**, any other cell of the build zone, a wall, a back wall, open space or a machine's other cell alike. A
   joint comes with the first span laid to it and goes with the last cut. A port whose machine is taken apart stays a
   joint; a machine built with a port on a node joins it.
@@ -52,7 +52,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   ends of different fluids (`pipes.mixedFluid`): an end's fluid is its port's, else its line's, and a line with no port
   matches any. Only the two ends count: output → joint → output is laid. Valves never mix fluids, as lines ignore them.
   Liquid oxygen leaves a tank and enters a vaporizer (kind `generator`), air leaves the vaporizer and enters a vent
-  (liquid-oxygen); water leaves a cistern's right and enters an electrolyser, whose liquid oxygen enters a tank's right (water).
+  (liquid-oxygen); water leaves a cistern's right and enters an electrolyser's left, whose liquid oxygen enters a tank's left (water).
 
 ## API
 

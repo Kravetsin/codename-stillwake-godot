@@ -532,30 +532,30 @@ const LOX = { base: '#a8d8ff', lite: '#e4f4ff' };
 const WATERED = { base: '#2c8ca8', lite: '#8ce0ec', glint: '#58b8cc' };
 /** Three glass columns over a steel base: liquid oxygen on the left, the reservoir of water between, hydrogen bubbling right and out at its top. */
 const electrolyser = (a) => {
-  a.tube('M24.5 3.6L24.5 .4', 1.4, GUN);
+  a.tube('M6.9 3.6L6.9 .4', 1.4, GUN);
   const column = (x, top, fluid, level) => {
     a.shape(rr(x, top, 7.6, 37.6 - top, .6), GLASS, { lite: band(x + .3, top, x + 1.6, 37.6), shade: band(x + 6, top, x + 7.6, 37.6) });
     a.flat(band(x + .6, level, x + 7, 37.2), fluid.base);
     a.flat(band(x + .6, level, x + 7, level + .7), fluid.lite);
     a.shape(rr(x - .5, top - 2.4, 8.6, 2.6, .3), COPPER, { lite: band(x - .3, top - 2.3, x + 8, top - 1.8) });
   };
-  column(3, 5.8, LOX, 18);
+  column(3, 5.8, WATERED, 30);
   column(12, 9.6, WATERED, 16);
-  column(21, 5.8, WATERED, 30);
+  column(21, 5.8, LOX, 18);
   for (const x of [6.9, 24.5]) a.line(`M${x} 6.6L${x} 34`, { w: 1, c: '#8f99ad' });
   a.tube('M10.4 34.6L12.2 34.6', 1.2, GUN);
   a.tube('M19.8 34.6L21.6 34.6', 1.2, GUN);
   box(a, 1, 36, 30, 11.6, STEEL, { spec: true });
   inner(a, 13, 40, 6, 5, GUN);
   a.flat(ell(16, 42.5, 1), '#2f3a33');
-  // Pipe ends at its ports: oxygen out on the left, water in on the right, a ring of each one's colour.
-  for (const [x, ring] of [[0, LOX], [28.6, WATERED]]) {
+  // Pipe ends at its ports: water in on the left, oxygen out on the right (ports-left-to-right), a ring of each one's colour.
+  for (const [x, ring] of [[0, WATERED], [28.6, LOX]]) {
     a.shape(rr(x, 40.6, 3.4, 5, .3), DARK, { lite: band(x + .2, 40.6, x + 3.2, 41.2) });
     a.flat(band(x === 0 ? 2.2 : 28.6, 41, x === 0 ? 3.4 : 29.8, 45.4), ring.base);
   }
 };
-/** Where bubbles rise: the left column's liquid, the reservoir's water, the right column above its water, by x and the rows they span. */
-const RISES = [[5, 19, 36], [8.6, 19, 36], [14.6, 17, 36], [17.4, 17, 36], [23, 8, 29], [26.4, 8, 29]];
+/** Where bubbles rise: the left column above its water, the reservoir's water, the right column's liquid, by x and the rows they span. */
+const RISES = [[5, 8, 29], [8.6, 8, 29], [14.6, 17, 36], [17.4, 17, 36], [23, 19, 36], [26.4, 19, 36]];
 /** The electrolyser at work, frame <f>: its lamp green, bubbles up each column, two rows a frame. */
 const bubbles = (f) => (a) => {
   a.flat(ell(16, 42.5, 1), '#7fe08a');

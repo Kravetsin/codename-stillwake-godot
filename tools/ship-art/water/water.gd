@@ -1,7 +1,7 @@
 extends SceneTree
 # Water's pictures (water), in the cistern's palette: the bottle, a glass bottle with a cap and a drop on it; and the
-# electrolyser, variant A, three glass columns over a base: liquid oxygen in the left, hydrogen bubbling in the right and
-# out at its top, the water reservoir between, water piped in on the right, oxygen out on the left.
+# electrolyser, variant A, three glass columns over a base: hydrogen bubbling in the left and out at its top, liquid oxygen
+# in the right, the water reservoir between, water piped in on the left, oxygen out on the right (ports-left-to-right).
 const OUTLINE = Color("1a1e25")
 const STEEL = [Color("9aa0ab"), Color("8f99ad"), Color("7f848f"), Color("6b7385"), Color("5b6170"), Color("474c57")]
 const GLASS = Color("10161d")
@@ -18,8 +18,8 @@ const STUB = [Color("2f353d"), Color("7b838e"), Color("434b56")]
 const LAMP = Color("7fe08a")
 const LAMP_OFF = Color("2f3a33")
 const LAMP_STALLED = Color("e05555")
-# Where bubbles rise: the left column's liquid, the reservoir's water, the right column above its water, by x and the rows they span.
-const RISES = [[5, 19, 36], [8, 19, 36], [14, 17, 36], [17, 17, 36], [23, 8, 29], [26, 8, 29]]
+# Where bubbles rise: the left column above its water, the reservoir's water, the right column's liquid, by x and the rows they span.
+const RISES = [[5, 8, 29], [8, 8, 29], [14, 17, 36], [17, 17, 36], [23, 19, 36], [26, 19, 36]]
 
 var img: Image
 
@@ -93,19 +93,19 @@ func electrolyser(path: String) -> void:
 	rect(14, 41, 17, 43, STEEL[4])
 	put(15, 42, LAMP_OFF)
 	put(16, 42, LAMP_OFF)
-	# Liquid oxygen on the left, the reservoir of water between, hydrogen on the right.
-	column(3, 10, 6, 37, LIQUID, BUBBLE, 18)
+	# Hydrogen on the left, the reservoir of water between, liquid oxygen on the right.
+	column(3, 10, 6, 37, WATER_DEEP, WATER, 30)
 	column(12, 19, 10, 37, WATER, WATER_TOP, 16)
-	column(21, 28, 6, 37, WATER_DEEP, WATER, 30)
-	rect(22, 30, 27, 36, WATER)
-	rect(22, 30, 27, 30, WATER_TOP)
+	column(21, 28, 6, 37, LIQUID, BUBBLE, 18)
+	rect(4, 30, 9, 36, WATER)
+	rect(4, 30, 9, 30, WATER_TOP)
 	cap(4, 9, 3)
 	cap(13, 18, 7)
 	cap(22, 27, 3)
-	# The hydrogen's vent out of the right column's top.
-	rect(24, 0, 25, 3, OUTLINE)
-	put(24, 1, STEEL[1])
-	put(24, 2, STEEL[2])
+	# The hydrogen's vent out of the left column's top.
+	rect(6, 0, 7, 3, OUTLINE)
+	put(7, 1, STEEL[1])
+	put(7, 2, STEEL[2])
 	# Electrodes down the outer columns, and bubbles rising off them.
 	for y in range(7, 34):
 		put(7, y, STEEL[2])
@@ -115,8 +115,8 @@ func electrolyser(path: String) -> void:
 	rect(19, 33, 21, 35, OUTLINE)
 	put(11, 34, WATER)
 	put(20, 34, WATER)
-	stub(0, 3, 2, LIQUID_DEEP)
-	stub(28, 31, 28, WATER)
+	stub(0, 3, 2, WATER)
+	stub(28, 31, 28, LIQUID_DEEP)
 	img.save_png(path)
 	print("wrote ", path)
 

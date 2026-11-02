@@ -116,7 +116,7 @@ public class LiquidOxygenTests
     {
         var w = Chain(Room, RoomUnder);
         var tank = w.M.Grid.MachinesOf("tank")[0];
-        w.Do(new LayPipe(w.M.Grid.PortsOf(tank)[0], w.M.Grid.MachinesOf("vent")[0].Cell)).Run();
+        w.Do(new LayPipe(w.M.Grid.PortsOf(tank)[1], w.M.Grid.MachinesOf("vent")[0].Cell)).Run();
         Assert.Equal(["pipes.mixedFluid"], Reasons(w));
     }
 
@@ -137,12 +137,10 @@ public class LiquidOxygenTests
     public void AValveShutOnTheLiquidLineLeavesTheVaporizerDry()
     {
         var w = Chain(Room, RoomUnder);
-        var vaporizer = w.M.Grid.MachinesOf("generator")[0];
         var tank = w.M.Grid.MachinesOf("tank")[0];
-        int input = w.M.Grid.PortsOf(vaporizer)[0], port = w.M.Grid.PortsOf(tank)[0], joint = Cell(w, 5, 8);
-        // The drawn line replaced by two spans through a joint, made a valve and shut.
-        w.Do(new CutPipe(input, port)).Do(new LayPipe(port, joint)).Do(new LayPipe(joint, input))
-            .Do(new MakeValve(joint, true)).Do(new SetValve(joint, false)).Do(new LoadCanister(tank.Id)).Run(50);
+        // The drawn line's corner under the floor, between the vaporizer's input and the tank's output, made a valve and shut.
+        int joint = Cell(w, 8, 8);
+        w.Do(new MakeValve(joint, true)).Do(new SetValve(joint, false)).Do(new LoadCanister(tank.Id)).Run(50);
         Assert.Empty(w.Refusals);
         Assert.Equal(Content.Air.Canister, Oxygen(w, tank.Id));
         Assert.Equal((RoomStatus.Vacuum, 0, "atmosphere.dry"), (Air(w).Status, Air(w).Oxygen, Air(w).Problem));
@@ -156,7 +154,7 @@ public class LiquidOxygenTests
         // The two liquid lines joined through a joint: both vaporizers draw the lower tank first.
         var w = Chain(Twin, TwinUnder);
         int[] tanks = Ids(w, "tank");
-        var ports = tanks.Select(t => w.M.Grid.PortsOf(w.M.Grid.MachineById(t)!)[0]).ToArray();
+        var ports = tanks.Select(t => w.M.Grid.PortsOf(w.M.Grid.MachineById(t)!)[1]).ToArray();
         int joint = Cell(w, 12, 13);
         w.Do(new LayPipe(ports[0], joint)).Do(new LayPipe(joint, ports[1]))
             .Do(new LoadCanister(tanks[0])).Do(new LoadCanister(tanks[1])).Run();

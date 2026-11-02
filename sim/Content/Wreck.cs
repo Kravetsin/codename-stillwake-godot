@@ -145,7 +145,7 @@ public static class Wreck
         "",
         "",
         "",
-        "                                                    --",
+        "                                                        --",
     ]);
 
     private static string[] Placed(string[] drawing)

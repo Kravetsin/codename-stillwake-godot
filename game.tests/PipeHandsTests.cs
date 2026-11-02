@@ -118,12 +118,12 @@ public class PipeHandsTests
         var w = Machines();
         // From the vaporizer's output: the vents, not the tank, whose liquid is another fluid, nor its own input.
         Assert.Equal([At(0, 4), At(8, 4)], LitFrom(w, Middle(2, 0)));
-        // From its input: the tank only, the vents taking too and air besides.
-        Assert.Equal([At(8, 2)], LitFrom(w, Middle(1, 2)));
+        // From its input: the tank's output only, the vents taking too and air besides, the tank's input taking too.
+        Assert.Equal([At(11, 2)], LitFrom(w, Middle(1, 2)));
         // From a vent: the vaporizer's output, never the tank: a tank piped to a vent is refused.
         Assert.Equal([At(3, 0)], LitFrom(w, Middle(0, 4)));
-        // From the tank: the vaporizer's input.
-        Assert.Equal([At(0, 2)], LitFrom(w, Middle(9, 2)));
+        // From the tank's right half, its output: the vaporizer's input.
+        Assert.Equal([At(0, 2)], LitFrom(w, Middle(10, 2)));
         // From a bare cell: every port.
         Assert.Equal([At(3, 0), At(0, 2), At(8, 2), At(11, 2), At(0, 4), At(8, 4)], LitFrom(w, Middle(5, 0)));
         var hands = new PipeHands();
@@ -161,7 +161,11 @@ public class PipeHandsTests
         var tank = Stillwake.Content.Machines.Get("tank");
         var vaporizer = Stillwake.Content.Machines.Get("generator");
         var vent = Stillwake.Content.Machines.Get("vent");
-        Assert.Equal((-1, 0), Sockets.ArrowOf(tank.Ports[0], tank.Width, tank.Height));
+        // The tank's liquid in on its left and out on its right, both pointing right; an input's head before its socket (> o),
+        // an output's after it (o >).
+        Assert.Equal((1, 0), Sockets.ArrowOf(tank.Ports[0], tank.Width, tank.Height));
+        Assert.Equal((1, 0), Sockets.ArrowOf(tank.Ports[1], tank.Width, tank.Height));
+        Assert.True(Sockets.TipOf(tank.Ports[0]) < 0 && Sockets.TipOf(tank.Ports[1]) > 0);
         // The vaporizer's liquid in on its left, its air out of its top right corner, sideways.
         Assert.Equal((1, 0), Sockets.ArrowOf(vaporizer.Ports[0], vaporizer.Width, vaporizer.Height));
         Assert.Equal((1, 0), Sockets.ArrowOf(vaporizer.Ports[1], vaporizer.Width, vaporizer.Height));

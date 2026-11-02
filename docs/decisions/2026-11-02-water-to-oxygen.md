@@ -3,6 +3,8 @@
 - Status: accepted
 - Date: 2026-11-02
 - Builds on [liquid oxygen](2026-10-30-liquid-oxygen.md) and [typed ports](2026-10-29-typed-ports.md)
+- Partly superseded by [ports left to right](2026-11-02-ports-left-to-right.md): the electrolyser takes water on its left
+  and gives liquid oxygen on its right, the tank takes on its left and gives on its right
 
 ## Context
 

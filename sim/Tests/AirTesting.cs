@@ -68,8 +68,8 @@ public static class AirTesting
     /// A map drawn before liquid oxygen, a tank <c>TT</c> piped along its bottom row rightwards to vents, made the chain
     /// (liquid-oxygen), every drawn cell and machine id kept: the tank's cells become a vaporizer, its id the tank's; its
     /// gas leaves the output on its top row's right and joins the old run past it; under the hull, in space, a tank
-    /// holding the old <c>o</c> and a solar panel cabled to the vaporizer, ids after every other, the liquid drawn up
-    /// through the floor to the vaporizer's input. The rows are doubled as the test's own are (0104).
+    /// holding the old <c>o</c> and a solar panel cabled to the vaporizer, ids after every other, the liquid drawn from the
+    /// tank's output on its right up through the floor to the vaporizer's input. The rows are doubled as the test's own are (0104).
     /// </summary>
     public static Layout Vaporized(
         IReadOnlyList<string> rows, IReadOnlyList<string>? under = null, IReadOnlyList<((int X, int Y) A, (int X, int Y) B)>? cables = null)
@@ -88,7 +88,9 @@ public static class AirTesting
                 below[ty][tx] = ' ';
                 below[ty][tx + 1] = below[ty][tx + 2] = '-';
                 below[ty + 1][tx + 1] = ' ';
-                for (int y = ty + 1; y <= height + 2; y++) below[y][tx] = '-';
+                // Down through the floor, round the tank's right under the panel and into its output there, past its input on the left.
+                for (int y = ty + 1; y <= height; y++) below[y][tx] = '-';
+                below[height][tx + 1] = below[height][tx + 2] = below[height + 1][tx + 2] = below[height + 2][tx + 2] = below[height + 2][tx + 1] = '-';
                 main[height + 1][tx] = main[height + 1][tx + 1] = main[height + 2][tx] = main[height + 2][tx + 1] = 'T';
                 if (filled) below[height + 1][tx + 1] = 'o';
                 main[height + 1][tx + 2] = main[height + 1][tx + 3] = main[height + 1][tx + 4] = 'P';

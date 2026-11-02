@@ -144,8 +144,9 @@ public partial class PipesOverlay : Node2D
             {
                 var (dx, dy) = Sockets.ArrowOf(spec.Ports[i], spec.Width, spec.Height);
                 var (at, colour, arrow) = (PipesView.MiddleOf(cells[i], width), AsciiArt.Colour(Sockets.ColourOf(spec.Ports[i].Fluid)), new Vector2(dx, dy));
-                // A small arrowhead just outside the socket, on the way the fluid goes; built here, so a frame allocates none.
-                var (side, tip) = (new Vector2(-arrow.Y, arrow.X), at + arrow * 8);
+                // A small arrowhead on the way the fluid goes, before an input's socket and after an output's; built here, so a
+                // frame allocates none.
+                var (side, tip) = (new Vector2(-arrow.Y, arrow.X), at + arrow * Sockets.TipOf(spec.Ports[i]));
                 _sockets.Add((at, colour, [tip, tip - arrow * 3 + side * 3, tip - arrow * 3 - side * 3], [colour, colour, colour]));
             }
         }

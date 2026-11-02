@@ -167,9 +167,9 @@ public class AirTests
     public void DrawsFromTheTanksOfANetworkOneByOneInIdOrder()
     {
         var w = SetUp().W;
-        // A second tank, built after the first, joins the vaporizer's input network: a pipe from its port to the input.
+        // A second tank, built after the first, joins the vaporizer's input network: a pipe from its output, three cells right of its input, to the input.
         w.Do(new Place(At(5, 2), new Placement("machine", "tank"))).Run();
-        w.Pipe(At(5, 3), At(1, 3)).Run();
+        w.Pipe(At(5, 3) + 3, At(1, 3)).Run();
         var tanks = w.M.Grid.MachinesOf("tank").Select(m => m.Id).ToArray();
         int first = tanks[0], second = tanks[1];
         Assert.Equal(new[] { first, second }, w.M.Pipes.Network(w.M.Pipes.NetworkAt(At(1, 3))!.Value)!.Machines.Where(tanks.Contains));

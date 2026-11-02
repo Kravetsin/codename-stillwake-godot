@@ -66,7 +66,42 @@ public static class Migrations
                 slices["water"] = new JsonObject { ["cisterns"] = new JsonArray(), ["making"] = new JsonArray() };
             return root;
         },
+        // 44 → 45 (ports-left-to-right): a machine takes on its left and gives on its right, so the tank's and the
+        // electrolyser's ports swapped sides and the pod's moved right; a pipe ending at a port's old cell ends at its new one.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                slices["pipes"]!["spans"] = SpansOf45(slices["grid"]!, slices["pipes"]!["spans"]!.AsArray());
+            return root;
+        },
     ];
+
+    /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>
+    private static JsonArray SpansOf45(JsonNode grid, JsonArray old)
+    {
+        int width = grid["width"]!.GetValue<int>();
+        var moved = new Dictionary<int, int>();
+        foreach (var machine in grid["machines"]!.AsArray())
+        {
+            int cell = machine!["cell"]!.GetValue<int>();
+            int At(int x, int y) => cell + y * width + x;
+            switch (machine["kind"]!.GetValue<string>())
+            {
+                case "tank": (moved[At(0, 2)], moved[At(3, 2)]) = (At(3, 2), At(0, 2)); break;
+                case "electrolyser": (moved[At(3, 5)], moved[At(0, 5)]) = (At(0, 5), At(3, 5)); break;
+                case "lifepod": moved[At(0, 5)] = At(5, 5); break;
+            }
+        }
+        int To(JsonNode span, string end) => moved.TryGetValue(span[end]!.GetValue<int>(), out int now) ? now : span[end]!.GetValue<int>();
+        var spans = old.Select(s => (A: To(s!, "a"), B: To(s!, "b"), Paid: s!["paid"]!.GetValue<bool>()))
+            .Select(s => (A: Math.Min(s.A, s.B), B: Math.Max(s.A, s.B), s.Paid)).Where(s => s.A != s.B)
+            .OrderBy(s => s.A).ThenBy(s => s.B).ToList();
+        var kept = new JsonArray();
+        for (int i = 0; i < spans.Count; i++)
+            if (i == 0 || (spans[i].A, spans[i].B) != (spans[i - 1].A, spans[i - 1].B))
+                kept.Add(new JsonObject { ["a"] = spans[i].A, ["b"] = spans[i].B, ["paid"] = spans[i].Paid });
+        return kept;
+    }
 
     /// <summary>An inventory of 36 own slots, then its equipment, as 38 own slots, then the same equipment.</summary>
     private static JsonArray InventoryOf41(JsonArray old)

@@ -36,6 +36,8 @@ public class TestbedTests
         int electrolyser = m.Grid.MachinesOf("electrolyser").Single().Id;
         Assert.Contains(m.Pipes.Networks, n => n.Machines.Order().SequenceEqual(cisterns.Select(c => c.Id).Order()));
         Assert.Contains(m.Pipes.Networks, n => n.Machines.Contains(electrolyser) && n.Machines.Contains(cisterns[1].Id));
+        // Its liquid oxygen out on its right, to a tank's input on that tank's left.
+        Assert.Contains(m.Pipes.Networks, n => n.Machines.Contains(electrolyser) && n.Machines.Any(id => m.Grid.MachineById(id)!.Kind == "tank"));
         Assert.Null(m.Water.Stalled(electrolyser));
     }
 

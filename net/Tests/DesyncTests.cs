@@ -381,9 +381,9 @@ public class DesyncTests(ITestOutputHelper output)
         // The cell of the drawing's character at (x, y): its block's top-left, doubled (0104).
         static int Cell(int x, int y) => 2 * y * 26 + 2 * x;
         const int tank = 2;
-        // The tank's port and the vaporizer's input, on their bottom rows' left; the vent's port, and the vaporizer's output,
+        // The tank's output, the right cell of its bottom right character; the vaporizer's input on its bottom row's left; the vent's port, and the vaporizer's output,
         // the right cell of its top right character.
-        int liquid = Cell(2, 4), input = Cell(6, 4), vent = Cell(2, 2), output = Cell(7, 3) + 1;
+        int liquid = Cell(3, 4) + 1, input = Cell(6, 4), vent = Cell(2, 2), output = Cell(7, 3) + 1;
         Covering(9, tried =>
         {
             int aired = 0, peak = 0;

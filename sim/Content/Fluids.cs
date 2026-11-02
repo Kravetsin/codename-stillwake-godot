@@ -21,5 +21,8 @@ public enum Way
     Out,
 }
 
-/// <summary>A machine's pipe connection: an offset inside its footprint, the way it works and the fluid it carries.</summary>
+/// <summary>
+/// A machine's pipe connection: an offset inside its footprint, the way it works and the fluid it carries. Inputs sit on a
+/// machine's left column and outputs on its right (<c>ContentTests</c> holds every machine to it), so a line reads left to right.
+/// </summary>
 public sealed record Port(int X, int Y, Way Way, string Fluid);

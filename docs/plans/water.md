@@ -3,6 +3,8 @@
 Status: first pass built on `feat/water` (2026-11-02), what stays true in ADR
 [water-to-oxygen](../decisions/2026-11-02-water-to-oxygen.md) and `sim/Water/README.md`. The ink pictures are drawn in
 `tools/anime-art` (`machines.js`, `items.js`); the pixel ones by `tools/ship-art/water/water.gd`. Nothing is left. The electrolyser draws 5 (one panel), not a stated 6.
+The ports below were moved after play: every machine takes on its left and gives on its right
+([ports-left-to-right](../decisions/2026-11-02-ports-left-to-right.md)).
 
 Builds on typed ports (ADR `2026-10-29-typed-ports`, in `main`: ports In/Out of one fluid; the cistern `cistern` 4×4,
 `(0, 2) In water`, `(3, 2) Out water`, holding nothing yet) and on the liquid-oxygen plan (`docs/plans/liquid-oxygen.md`,

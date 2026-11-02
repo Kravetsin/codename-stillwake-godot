@@ -59,6 +59,18 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void MovesAPipeEndingAtATanksOldPortToItsNewOne()
+    {
+        // A format-44 save's pipe from the tank's old output on its left, the cell its input has now: from its right after the upgrade.
+        var w = new Scenario("TTTT....\nTTTT....\nTTTT....\nTTTT....", cells: true).GiveItems(0, ("tube", 20));
+        w.Do(new Pipes.LayPipe(w.At(0, 2), w.At(6, 2))).Run();
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 44;
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal([new Pipes.PipeSpan(w.At(3, 2), w.At(6, 2), true)], w.M.Pipes.Spans);
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();
