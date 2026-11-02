@@ -1,7 +1,7 @@
 namespace Stillwake.Content;
 
 /// <summary>
-/// A node of the black market's rings: a block opening one blueprint or upgrade, bought with credits, or the gate that opens a ring of
+/// A node of the black market: a block opening one blueprint or upgrade, bought with credits, or the gate, an order, that opens a row of
 /// blocks by what has been sold (docs/plans/board.md).
 /// </summary>
 /// <param name="Id">Its name: a block's the one blueprint or craft it opens, named as <see cref="Research"/> says; a gate's own.</param>
@@ -9,19 +9,18 @@ namespace Stillwake.Content;
 /// <param name="Order">What a gate asks to have been sold. None for a block.</param>
 /// <param name="Times">How many times its worth a block costs.</param>
 /// <param name="Tab">The id of the tab it is drawn on.</param>
-/// <param name="Ring">Its ring on that tab, counted from the middle; a gate's is the ring it opens.</param>
-/// <param name="Branch">The branch it stands on; none for a gate, which stands in the middle.</param>
-public sealed record TechNode(string Id, string[] Needs, IReadOnlyList<(string Item, int Count)> Order, int Times, string Tab, int Ring, string? Branch)
+/// <param name="Ring">Its row on that tab, from the top; a gate's is the row it opens.</param>
+public sealed record TechNode(string Id, string[] Needs, IReadOnlyList<(string Item, int Count)> Order, int Times, string Tab, int Ring)
 {
     /// <summary>Whether it is opened by what is sold rather than bought.</summary>
     public bool Gate => Order.Count > 0;
 }
 
-/// <summary>What a tab's ring is written as: what its gate orders, none for a ring open from the start, and its blocks, each with how many times its worth it costs.</summary>
-public sealed record TechRing(string? Gate, IReadOnlyList<(string Item, int Count)> Order, params (string Branch, string Id, int Times)[] Blocks);
+/// <summary>What a tab's row is written as: what its gate orders, none for a row open from the start, and its blocks, each with how many times its worth it costs.</summary>
+public sealed record TechRing(string? Gate, IReadOnlyList<(string Item, int Count)> Order, params (string Id, int Times)[] Blocks);
 
-/// <summary>A tab of rings: its branches, going round from the top, and its rings, from the middle out.</summary>
-public sealed record TechTab(string Id, string[] Branches, params TechRing[] Rings);
+/// <summary>A tab of rows, from the top; the market page holds them to what fits (a Content test).</summary>
+public sealed record TechTab(string Id, params TechRing[] Rings);
 
 /// <summary>
 /// Knowing blueprints and crafts (docs/plans/board.md). Blueprints are named as the build menu names their cards: a wall
@@ -46,20 +45,16 @@ public static class Research
     /// <summary>However cheap a part, no more than this many are needed to understand it.</summary>
     public const int EnoughMost = 10;
 
-    private const string Better = "upgrades", ForSale = "forSale";
-
     /// <summary>An upgrade: its price its own.</summary>
-    private static (string Branch, string Id, int Times) Up(string id) => (Better, id, 1);
-
-    private static (string Branch, string Id, int Times) Dear(int times, string branch, string id) => (branch, id, times);
+    private static (string Id, int Times) Up(string id) => (id, 1);
 
     /// <summary>What credits buy, by tab: the market alone.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        // Open from the start, at a price rather than a stage (black-market), its later rings by what is sold (docs/plans/board.md).
-        new(Market, [ForSale, Better],
+        // Open from the start, at a price rather than a stage (black-market), its later rows by what is sold (docs/plans/board.md).
+        new(Market,
             new TechRing(null, [],
-                Dear(5, ForSale, "solarPanel"),
+                ("solarPanel", 5),
                 Up("bag1"),
                 Up("bag2"),
                 Up("tradeSlots1")),
@@ -86,7 +81,7 @@ public static class Research
                 Up("belt2"))),
     ];
 
-    /// <summary>Every node: tab by tab, ring by ring, a ring's gate before its blocks.</summary>
+    /// <summary>Every node: tab by tab, row by row, a row's gate before its blocks.</summary>
     public static readonly IReadOnlyList<TechNode> Nodes = [.. Tabs.SelectMany(NodesOf)];
 
     private static readonly Dictionary<string, TechNode> ById = Nodes.ToDictionary(n => n.Id, StringComparer.Ordinal);
@@ -102,11 +97,11 @@ public static class Research
             var each = tab.Rings[ring];
             if (each.Gate is { } id)
             {
-                yield return new TechNode(id, gate == null ? [] : [gate], each.Order, 1, tab.Id, ring, null);
+                yield return new TechNode(id, gate == null ? [] : [gate], each.Order, 1, tab.Id, ring);
                 gate = id;
             }
-            foreach (var (branch, block, times) in each.Blocks)
-                yield return new TechNode(block, gate == null ? [] : [gate], [], times, tab.Id, ring, branch);
+            foreach (var (block, times) in each.Blocks)
+                yield return new TechNode(block, gate == null ? [] : [gate], [], times, tab.Id, ring);
         }
     }
 }

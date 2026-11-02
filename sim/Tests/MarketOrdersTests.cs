@@ -88,6 +88,22 @@ public class MarketOrdersTests
     }
 
     [Fact]
+    public void TheMarketFitsItsPageOrABlockAskingForMoreBringsScrolling()
+    {
+        var market = Tree.Tabs.Single(t => t.Id == Tree.Market);
+        Assert.True(market.Rings.Length <= 6, $"{market.Rings.Length} rows");
+        Assert.All(market.Rings, r => Assert.True(r.Blocks.Length <= 5, $"{r.Gate}: {r.Blocks.Length} goods"));
+    }
+
+    [Fact]
+    public void OnlyTheMarketsFirstRowHasNoOrder()
+    {
+        var market = Tree.Tabs.Single(t => t.Id == Tree.Market);
+        Assert.Null(market.Rings[0].Gate);
+        Assert.All(market.Rings.Skip(1), r => Assert.NotNull(r.Gate));
+    }
+
+    [Fact]
     public void EveryOrderedItemHasAPrice()
     {
         foreach (var gate in Tree.Nodes.Where(n => n.Gate))

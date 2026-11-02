@@ -21,8 +21,16 @@ a plant's control panel.
   filled.
 - **The logic stays:** goods for credits, groups open by orders, orders fill only through ordinary sales.
 
-The design is in [market-decrypt](../plans/market-decrypt.md).
+Client only, with no change to the sim: buying stays `BuyBlock`. A sale at the station fills the order with the tablet away, and when the market next shows, after the tablet's
+rise, the group deciphers character by character, cards in turn, in about 1.6 s. Orders seen stay one count per machine and world, kept with the board, so the lamps and the decipher
+agree and nothing is sent. The hack's marks over the screen are placed by hand and are part of the look.
 
 ## Deliberately not handled
 
-- **Scrolling:** six rows fit, and a Content test fails on a seventh, which brings it.
+- **Scrolling:** six rows fit, and a Content test fails on a seventh or a sixth good in a row, which brings it. A window under about 720 high clips the last rows.
+- **Resuming a decipher** after closing or switching tab: rows show clear, for seeing it once is enough.
+- **Combining or CJK text in the character grid:** only English and Russian exist.
+- **A font of our own:** the tablet's mono, Consolas on the Windows release; another machine falls back to its monospace.
+- **Rescaling the marks:** at another window's size their places scale, their sizes do not.
+- **Repeat purchases:** contraband does not exist yet.
+- **The candidate's flashes** on a sale and a purchase, its thousands commas and its count of goods open: the head and `CreditLine` are shared with the rest of the tablet.

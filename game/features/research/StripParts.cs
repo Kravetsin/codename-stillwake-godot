@@ -12,7 +12,7 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>What every page of the research tablet writes with: the strip's controls, and its words and pictures of a thing.</summary>
 public sealed class StripParts(TipSpots tips)
 {
-    public static readonly Color Line = new("1a1e25"), Faint = new("7a8090"), Warm = new("f0c050"), Bought = new("6fe08a"),
+    public static readonly Color Line = new("1a1e25"), Faint = new("7a8090"), Bought = new("6fe08a"),
         Picked = new("ffffff"), From = new("5eead4"), MadeAt = new("f28fd0"), UsedIn = new("7dd3fc");
 
     /// <summary>Pixels the pointer may move in a press still meant as a click.</summary>
@@ -73,10 +73,10 @@ public sealed class StripParts(TipSpots tips)
     public Button Action { get; } = new() { FocusMode = Control.FocusModeEnum.None };
 
     /// <summary>What the button says when it buys: the word and <see cref="ActionPrice"/>.</summary>
-    public HBoxContainer ActionLine { get; } = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center }, 8);
+    public VBoxContainer ActionLine { get; } = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center }, 6);
 
     /// <summary>The price on the button.</summary>
-    public CreditLine ActionPrice { get; } = new(Tablet.FontSize + 3);
+    public CreditLine ActionPrice { get; } = new(Tablet.FontSize + 3) { Alignment = BoxContainer.AlignmentMode.Center };
 
     /// <summary>Learns what each blueprint places: what its picture and name are drawn from.</summary>
     public void Learn(IResearchQueries research)
@@ -111,7 +111,7 @@ public sealed class StripParts(TipSpots tips)
     /// <summary>What to show of <paramref name="id"/>: a blueprint as the build menu pictures it, a craft or a material as its item.</summary>
     public TextureRect Picture(string id, int size) => new()
     {
-        Texture = Content.Upgrades.Of(id) is { } upgrade ? AsciiArt.Upgrade(upgrade.Kind) : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size),
+        Texture = Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
         StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
         TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
@@ -163,8 +163,8 @@ public sealed class StripParts(TipSpots tips)
         return flow;
     }
 
-    /// <summary>The strip's first column: the large picture, in <paramref name="pencil"/> if it is a shape, the name and what it is.</summary>
-    public Control Title(string name, string about, string? id, Func<string, Tip> tip, double? pencil = null)
+    /// <summary>The strip's first column: the large picture, in <paramref name="pencil"/> if it is a shape, the name and what it is, and <paramref name="under"/> below them.</summary>
+    public Control Title(string name, string about, string? id, Func<string, Tip> tip, double? pencil = null, Control? under = null)
     {
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(250, 0) }, 10);
         if (id != null)
@@ -181,6 +181,7 @@ public sealed class StripParts(TipSpots tips)
         var line = Text(about, Style.Slate500, Tablet.HintSize + 1);
         line.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         words.AddChild(line);
+        if (under != null) words.AddChild(under);
         row.AddChild(words);
         return row;
     }

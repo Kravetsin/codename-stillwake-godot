@@ -64,12 +64,18 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
         Unwritten = true;
     }
 
-    /// <summary>The market shown: its orders met are seen.</summary>
-    public void MarketChosen()
+    /// <summary>
+    /// The market on the screen with <paramref name="met"/> orders met, as the sim says now: they are seen from here on. How many were seen before it, for what to decipher; with
+    /// nothing kept it starts as things stand, and nothing plays.
+    /// </summary>
+    public int SeeOrders(int met)
     {
-        if (!MarketNew) return;
-        _ordersSeen = _orders;
+        _orders = met;
+        int was = _ordersSeen ?? met;
+        if (_ordersSeen != null && met <= was) return was;
+        _ordersSeen = met;
         Unwritten = true;
+        return was;
     }
 
     /// <summary><paramref name="id"/> read: it goes onto the board, marked until the player touches it.</summary>

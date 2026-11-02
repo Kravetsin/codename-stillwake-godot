@@ -46,7 +46,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - генератор / generator **≠** → `"generator"` is the oxygen vaporizer (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
 - испаритель / vaporizer → machine `generator`: a tank's liquid oxygen into air on power (2026-10-30-liquid-oxygen) → Atmosphere
 - жидкий кислород / liquid oxygen → fluid `liquidOxygen`: what a tank holds and a liquid pipe carries → Atmosphere, Pipes
-- чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research
+- чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research; `MarketPage` drawn in f/research
+- расшифровка, каша / the decipher, garbage → `MarketReveal`, `Cipher` (client)
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
 - светочувствительная панель / photosensitive panel → item `photoPanel`, in the solar panel's cost, had only of one taken apart
 - аккумулятор / accumulator → item `accumulator` (belt equipment); the machine is `capacitorBank` "Capacitor bank" **≠** → Items, Power
@@ -62,8 +63,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- дерево технологий / tech tree → `ResearchTablet`, `RingsPage` on the tablet (T), `Content.Research` → Research
-- дерево технологий, кольцо, ветка, таб, блок, ворота, хаб / tech tree, ring, branch, tab, block, gate, hub → `Content.Research.Tabs`, `TechTab`, `TechRing`, `TechNode` → Research
+- дерево технологий / tech tree → `ResearchTablet` on the tablet (T), `Content.Research` → Research
+- строка рынка, таб, блок, заказ / market row, tab, block, order → `Content.Research.Tabs`, `TechTab`, `TechRing`, `TechNode` (`Gate`) → Research
 - связи ноды / a node's ties → `TechLinks` (client)
 - взнос / deposit → `Deposit`, `Knowledge.Deposits` → Research
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research

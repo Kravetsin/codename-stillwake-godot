@@ -35,13 +35,6 @@ public partial class CreditLine : HBoxContainer
         _amount.Text = amount.ToString();
     }
 
-    /// <summary>Sets it at <paramref name="size"/>: on a map, the size it is seen at.</summary>
-    public void Resize(int size)
-    {
-        _amount.LabelSettings.FontSize = size;
-        _coin.CustomMinimumSize = new Vector2(size + 4, size + 4);
-    }
-
     /// <summary>Colours the number: dim for a price out of reach.</summary>
     public void Tint(Color colour) => _amount.LabelSettings.FontColor = colour;
 }
