@@ -58,6 +58,27 @@ public class MigrationsTests
         Assert.Equal(["loper"], kept.Select(c => c!["species"]!.GetValue<string>()));
     }
 
+    /// <summary>What a gate held goes and what it opened stays: granted things, the credits, a bought bag's slot.</summary>
+    [Fact]
+    public void TheGatesDepositsAreGoneOnUpgradingAndWhatTheyOpenedStays()
+    {
+        var old = JsonNode.Parse(File.ReadAllText(Fixture(42)))!.AsObject();
+        var knowledge = old["slices"]!["knowledge"]!.AsObject();
+        knowledge["credits"] = 77;
+        knowledge["deposits"] = new JsonArray(new JsonObject { ["gate"] = "press", ["item"] = "wire", ["count"] = 5 });
+        var granted = knowledge["granted"]!.AsArray().Select(g => g!.GetValue<string>()).Append("bag1").Distinct().Order(StringComparer.Ordinal).ToList();
+        knowledge["granted"] = new JsonArray([.. granted.Select(g => (JsonNode)g)]);
+
+        var upgraded = JsonNode.Parse(Migrations.Upgrade(old.ToJsonString()))!["slices"]!["knowledge"]!.AsObject();
+        Assert.False(upgraded.ContainsKey("deposits"));
+        Assert.Equal(77, upgraded["credits"]!.GetValue<int>());
+        Assert.Equal(granted, upgraded["granted"]!.AsArray().Select(g => g!.GetValue<string>()));
+
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old.ToJsonString()), m.All);
+        Assert.True(m.Items.SlotOpen(new Items.Place(Content.Inventory.Start)));
+    }
+
     [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {

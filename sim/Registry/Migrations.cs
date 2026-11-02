@@ -56,6 +56,12 @@ public static class Migrations
             }
             return root;
         },
+        // 42 → 43: the tree is gone (docs/plans/board.md), its gates' deposits with it; what they opened stays granted.
+        root =>
+        {
+            root["slices"]!["knowledge"]!.AsObject().Remove("deposits");
+            return root;
+        },
     ];
 
     /// <summary>An inventory of 36 own slots, then its equipment, as 38 own slots, then the same equipment.</summary>

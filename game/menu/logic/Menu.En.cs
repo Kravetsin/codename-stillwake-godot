@@ -85,6 +85,6 @@ public static partial class En
         ["menu.connect"] = "Connect",
         ["menu.cancel"] = "Cancel",
         ["menu.handbook"] = "Handbook (J)",
-        ["menu.tree"] = "Tech tree (T)",
+        ["menu.tree"] = "Tablet (T)",
     };
 }

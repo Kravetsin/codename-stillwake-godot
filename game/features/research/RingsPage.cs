@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// A tab of the tablet as a map of rings round a hub (2026-10-30-tech-rings, <see cref="TechRings"/>), dragged and zoomed (<see cref="TechCamera"/>):
-/// the hub asks for what opens the next ring (on the market, what must be sold), the rings filled are lit, a branch a way out. A click picks a node and buys nothing: what it
+/// the hub says what must be sold to open the next ring, the rings opened are lit, a branch a way out. A click picks a node and buys nothing: what it
 /// takes, where it is made and what it goes into light up (<see cref="TechLinks"/>), known or not, and the strip below says so and buys.
 /// A press counts as a click only if the pointer has not moved. Words are set at the size they are seen, never scaled, so they stay sharp;
 /// further out a node keeps its picture and loses its words, and from far it is a plain dot under its branch's name.
@@ -38,7 +38,6 @@ public sealed class RingsPage : ITabletPage
     private readonly TechTab _tab;
     private readonly Control _view;
     private readonly StripParts _strip;
-    private readonly Func<int> _peer;
     private readonly Action<Command> _send;
     private readonly Action _readSoon;
     private readonly TechRings _rings;
@@ -55,7 +54,7 @@ public sealed class RingsPage : ITabletPage
     private readonly List<NodeView> _nodes = [];
     private readonly List<(Label Title, Vector2 Way)> _titles = [];
     private IResearchQueries? _research;
-    private Func<string, int> _carried = _ => 0, _sold = _ => 0;
+    private Func<string, int> _sold = _ => 0;
     private TechNode? _picked, _gate;
     private string? _shown;
     private bool _centred, _out, _pressed;
@@ -64,18 +63,15 @@ public sealed class RingsPage : ITabletPage
 
     private bool Words => _camera.Zoom >= WordsFrom;
     private bool Pictures => _camera.Zoom >= PicturesFrom;
-    /// <summary>Whether its gates ask for what is sold, not for what is put in.</summary>
-    private bool Orders => _tab.Id == Content.Research.Market;
 
     /// <param name="tab">The tab of <c>Content.Research</c> it draws.</param>
     /// <param name="view">The tablet's view, which it draws into.</param>
     /// <param name="strip">The strip below and its words.</param>
-    /// <param name="peer">This player's peer: whose bag a deposit is taken from.</param>
     /// <param name="send">Sends a command to the session.</param>
     /// <param name="readSoon">Has the tablet read on its next frame.</param>
-    public RingsPage(TechTab tab, Control view, StripParts strip, Func<int> peer, Action<Command> send, Action readSoon)
+    public RingsPage(TechTab tab, Control view, StripParts strip, Action<Command> send, Action readSoon)
     {
-        (_tab, _view, _strip, _peer, _send, _readSoon) = (tab, view, strip, peer, send, readSoon);
+        (_tab, _view, _strip, _send, _readSoon) = (tab, view, strip, send, readSoon);
         _rings = new TechRings(tab);
         _own = Content.Research.Nodes.Where(n => n.Tab == tab.Id).ToArray();
         view.AddChild(_map);
@@ -182,17 +178,15 @@ public sealed class RingsPage : ITabletPage
         return open < 0 ? TechRings.HubRadius : _rings.Edges[open];
     }
 
-    /// <summary>Restyles what has changed: a block's state, a gate's deposit, what the bag holds.</summary>
+    /// <summary>Restyles what has changed: a block's state, what a gate has had sold.</summary>
     public void Read(Registry m)
     {
         var research = m.Research;
         _research = research;
         if (_nodes.Count == 0) Build();
-        var totals = m.Items.Totals(_peer());
-        _carried = item => totals.Where(t => t.Item == item).Sum(t => t.Count);
         _sold = m.Knowledge.SoldOf;
         string now = (_picked?.Id ?? "") + '|' + string.Join('|', _own.Select(n => n.Gate
-            ? (research.Done(n) ? "1" : research.Reached(n) ? "0" : "x") + string.Join(',', n.Deposit.Select(d => $"{research.Deposited(n, d.Item)}/{_carried(d.Item)}/{_sold(d.Item)}"))
+            ? (research.Done(n) ? "1" : research.Reached(n) ? "0" : "x") + string.Join(',', n.Order.Select(d => _sold(d.Item)))
             : research.BuyProblem(n) ?? ""));
         if (now == _shown) return;
         _shown = now;
@@ -320,14 +314,14 @@ public sealed class RingsPage : ITabletPage
         }
         if (node.Gate)
         {
-            facts.AddChild(_strip.Title(T($"research.gate.{node.Id}"), T(Orders ? "research.orderAbout" : "research.gateAbout"), null, TipOf));
+            facts.AddChild(_strip.Title(T($"research.gate.{node.Id}"), T("research.orderAbout"), null, TipOf));
             var asks = Flow(14);
-            foreach (var (item, count) in node.Deposit)
+            foreach (var (item, count) in node.Order)
             {
-                var (had, left) = Asked(node, item, count);
+                var (had, left) = Asked(item, count);
                 asks.AddChild(_strip.Named(item, left <= 0 ? $"{_strip.NameOf(item)} ✓" : T("research.asked", ("what", _strip.NameOf(item)), ("had", had), ("left", left)), AskColour(had, left)));
             }
-            facts.AddChild(Fact(T(Orders ? "research.sold" : "research.asks"), GateEdge, asks, 2));
+            facts.AddChild(Fact(T("research.sold"), GateEdge, asks, 2));
             facts.AddChild(Fact(T("research.opens"), GateEdge, _strip.Pictures(Content.Research.Nodes.Where(n => n.Needs.Contains(node.Id) && !n.Gate).Select(n => n.Id).ToList(), TipOf), 4));
             return;
         }
@@ -347,34 +341,22 @@ public sealed class RingsPage : ITabletPage
         facts.AddChild(Fact(T("research.usedIn"), UsedIn, _strip.Pictures(link.UsedIn, TipOf), 5));
     }
 
-    /// <summary>How <paramref name="gate"/> stands on an item it asks <paramref name="count"/> of: what is sold over what it ordered, or what is carried over what it still lacks; nothing left once it has it all.</summary>
-    private (int Had, int Left) Asked(TechNode gate, string item, int count)
-    {
-        if (Orders) return (_sold(item), _sold(item) >= count ? 0 : count);
-        return (_carried(item), _research?.Done(gate) == true ? 0 : count - (_research?.Deposited(gate, item) ?? 0));
-    }
+    /// <summary>How an order stands on an item it asks <paramref name="count"/> of: what is sold over what it ordered; nothing left once it has it all.</summary>
+    private (int Had, int Left) Asked(string item, int count) => (_sold(item), _sold(item) >= count ? 0 : count);
 
-    /// <summary>What is carried or sold set against what is still asked: green with enough, amber with some.</summary>
+    /// <summary>What is sold set against what is ordered: green with enough, amber with some.</summary>
     private static Color AskColour(int had, int left) => left <= 0 || had >= left ? Bought : had > 0 ? Warm : Style.Slate100;
 
     /// <summary>What the button says now, and whether it can be pressed; an order has none, for it fills by selling.</summary>
     private void ShowAction(IResearchQueries research)
     {
         var action = _strip.Action;
-        if (_picked is not { } node || (node.Gate && Orders))
+        if (_picked is not { Gate: false } node)
         {
             action.Visible = false;
             return;
         }
         action.Visible = true;
-        if (node.Gate)
-        {
-            bool takes = research.Reached(node) && !research.Done(node) && node.Deposit.Any(d => d.Count > research.Deposited(node, d.Item) && _carried(d.Item) > 0);
-            _strip.ActionLine.Visible = false;
-            action.Disabled = !takes;
-            action.Text = research.Done(node) ? T("research.gateOpen") : !research.Reached(node) ? T("research.locked") : takes ? T("research.depositHint") : T("research.nothingToDeposit");
-            return;
-        }
         string? why = research.BuyProblem(node);
         action.Disabled = why != null;
         _strip.ActionLine.Visible = why == null;
@@ -382,12 +364,11 @@ public sealed class RingsPage : ITabletPage
         action.Text = why == null ? "" : T(why);
     }
 
-    /// <summary>The strip's button: buys what is picked, or puts into its gate what the bag holds. A page off the screen has nothing picked.</summary>
+    /// <summary>The strip's button: buys what is picked. A page off the screen has nothing picked.</summary>
     private void Act()
     {
-        if (_research is not { } research || _picked is not { } node) return;
-        if (node.Gate) _send(new Deposit(node.Id));
-        else if (research.BuyProblem(node) == null) _send(new BuyBlock(node.Id));
+        if (_research is not { } research || _picked is not { Gate: false } node) return;
+        if (research.BuyProblem(node) == null) _send(new BuyBlock(node.Id));
         _readSoon();
     }
 
@@ -418,7 +399,7 @@ public sealed class RingsPage : ITabletPage
         return link.MadeAt.Contains(node.Id) ? MadeAt : link.From.Contains(node.Id) ? From : link.UsedIn.Contains(node.Id) ? UsedIn : null;
     }
 
-    /// <summary>The hub: its gate's name, and by each thing it still asks for, what the bag holds of it or what is sold over what is still needed.</summary>
+    /// <summary>The hub: its gate's name, and by each thing it orders, what is sold over what is ordered.</summary>
     private void RestyleHub(IResearchQueries research)
     {
         _gate = _own.FirstOrDefault(n => n.Gate && !research.Done(n));
@@ -438,9 +419,9 @@ public sealed class RingsPage : ITabletPage
         Paint(_hub, GateBack, _picked == gate ? Picked : reached ? GateEdge : Far, _picked == gate ? 3 : 2);
         float zoom = (float)_camera.Zoom;
         int size = Math.Max(8, Mathf.RoundToInt(Tablet.FontSize * zoom));
-        foreach (var (item, count) in gate.Deposit)
+        foreach (var (item, count) in gate.Order)
         {
-            var (had, left) = Asked(gate, item, count);
+            var (had, left) = Asked(item, count);
             var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center }, 4);
             row.AddChild(_strip.Picture(item, Mathf.RoundToInt(18 * zoom)));
             row.AddChild(Text(left <= 0 ? "✓" : $"{had}/{left}", AskColour(had, left), size));

@@ -12,14 +12,12 @@ public sealed record Recipe(string Id, Placement? Placement, IReadOnlyList<(stri
 /// <summary>Buys the tree's block <paramref name="Block"/>, with the ship's credits, from anywhere.</summary>
 public sealed record BuyBlock(string Block) : Command;
 
-/// <summary>Puts what the sender carries of what gate <paramref name="Gate"/> asks for into it, from anywhere.</summary>
-public sealed record Deposit(string Gate) : Command;
 
 /// <summary>What the rule grants by: a thing, how many of each part are enough, and for a craft the machines that make it; null for a blueprint.</summary>
 internal sealed record Walkable(string Id, (string Item, int Enough)[] Parts, string[]? Stations);
 
 /// <summary>
-/// The research slice: empty, as what is known, earned and deposited is the world's <c>Knowledge</c>. Public so modules can be
+/// The research slice: empty, as what is known, earned and sold is the world's <c>Knowledge</c>. Public so modules can be
 /// typed by it.
 /// </summary>
 public sealed class ResearchState;
@@ -35,19 +33,18 @@ public interface IResearchQueries
     IReadOnlyList<Recipe> Recipes();
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's deposit full, or on the market its order sold and its ring reached; every one in creative mode.</summary>
+    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's order sold and its ring reached; every one in creative mode.</summary>
     bool Done(TechNode node);
     /// <summary>Whether all <paramref name="node"/> needs are done.</summary>
     bool Reached(TechNode node);
-    /// <summary>How much of <paramref name="item"/> gate <paramref name="gate"/> holds.</summary>
-    int Deposited(TechNode gate, string item);
+
     /// <summary>Why block <paramref name="block"/> cannot be bought now, leaving the machine aside; null when it can.</summary>
     string? BuyProblem(TechNode block);
 }
 
 /// <summary>
-/// Knowing blueprints and crafts (2026-10-30-trade-and-tech): what the world knows, the tree it buys more of, and
-/// its gates' deposits. The state is the world's <c>Knowledge</c>; research holds the rules.
+/// Knowing blueprints and crafts (docs/plans/board.md): what the world knows, what the rule grants it, and the market's rings it
+/// buys more from. The state is the world's <c>Knowledge</c>; research holds the rules.
 /// </summary>
 public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 {
@@ -72,22 +69,19 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
-    private readonly IItemsOps _itemsOps;
     private readonly IKnowledgeQueries _knowledge;
     private readonly IKnowledgeOps _knowledgeOps;
     private int _knowledgeSeen = -1, _gridSeen = -1;
 
     public override string Id => "research";
 
-    public ResearchModule(IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
+    public ResearchModule(IGridQueries grid, IItemsQueries items, IKnowledgeQueries knowledge, IKnowledgeOps knowledgeOps)
     {
         _grid = grid;
         _items = items;
-        _itemsOps = itemsOps;
         _knowledge = knowledge;
         _knowledgeOps = knowledgeOps;
         Handles<BuyBlock>(c => BuyProblem(c), Apply);
-        Handles<Deposit>(c => DepositProblem(c), Apply);
         System(Phase.Derivation, Walk);
     }
 
@@ -138,9 +132,9 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         if (_items.Creative) return true;
         if (!node.Gate) return _knowledge.Granted(node.Id);
         // Sales count from the world's start, so without its ring reached an order met early would open a ring past a shut one.
-        if (node.Tab == Content.Research.Market && !Reached(node)) return false;
-        foreach (var (item, count) in node.Deposit)
-            if ((node.Tab == Content.Research.Market ? _knowledge.SoldOf(item) : _knowledge.DepositOf(node.Id, item)) < count) return false;
+        if (!Reached(node)) return false;
+        foreach (var (item, count) in node.Order)
+            if (_knowledge.SoldOf(item) < count) return false;
         return true;
     }
 
@@ -150,8 +144,6 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
             if (!Done(Content.Research.Node(need)!)) return false;
         return true;
     }
-
-    public int Deposited(TechNode gate, string item) => _knowledge.DepositOf(gate.Id, item);
 
     public string? BuyProblem(TechNode block)
     {
@@ -171,41 +163,11 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
         _knowledgeOps.Grant(block.Id);
     }
 
-    private string? DepositProblem(Deposit c)
-    {
-        if (Content.Research.Node(c.Gate) is not { Gate: true, Tab: not Content.Research.Market } gate) return "research.locked";
-        if (Done(gate)) return "research.gateOpen";
-        if (!Reached(gate)) return "research.locked";
-        return Taken(c.From, gate).Count == 0 ? "research.nothingToDeposit" : null;
-    }
-
-    private void Apply(Deposit c)
-    {
-        foreach (var (item, count) in _itemsOps.Take(c.From, Taken(c.From, Content.Research.Node(c.Gate)!))) _knowledgeOps.AddDeposit(c.Gate, item, count);
-    }
-
-    /// <summary>What <paramref name="peer"/> would put into <paramref name="gate"/> now: of each item, what it lacks or what is carried, the less.</summary>
-    private List<(string Item, int Count)> Taken(int peer, TechNode gate)
-    {
-        var taken = new List<(string Item, int Count)>();
-        var totals = _items.Totals(peer);
-        foreach (var (item, count) in gate.Deposit)
-        {
-            int carried = 0;
-            foreach (var t in totals)
-                if (t.Item == item) carried += t.Count;
-            int put = Math.Min(count - _knowledge.DepositOf(gate.Id, item), carried);
-            if (put > 0) taken.Add((item, put));
-        }
-        return taken;
-    }
-
-    /// <summary>Buys and deposits by hand, refused ones too, at any node.</summary>
+    /// <summary>Buys by hand, refused ones too, at any node.</summary>
     public override Command? Fuzz(Rng rng, int from)
     {
         if (rng.Below(8) != 0) return null;
         var nodes = Content.Research.Nodes;
-        var node = nodes[(int)rng.Below((uint)nodes.Count)];
-        return node.Gate ? new Deposit(node.Id) { From = from } : new BuyBlock(node.Id) { From = from };
+        return new BuyBlock(nodes[(int)rng.Below((uint)nodes.Count)].Id) { From = from };
     }
 }

@@ -44,11 +44,10 @@ public class UnderstandingTests
     }
 
     [Fact]
-    public void ABlueprintIsUnderstoodAtItsCountsAndItsBlockShowsDoneUnbought()
+    public void ABlueprintIsUnderstoodAtItsCountsForNothing()
     {
         var w = Count(Room(), "furnace").Run();
         Assert.True(w.M.Research.Knows("furnace"));
-        Assert.True(w.M.Research.Done(Content.Research.Node("furnace")!));
         Assert.Equal(0, w.M.Research.Credits);
     }
 
