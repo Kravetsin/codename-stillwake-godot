@@ -1,6 +1,6 @@
 # Ink and watercolour
 
-- Status: accepted as the look; the switch still waits on the nature probe in [the plan](../plans/anime-art.md).
+- Status: accepted as the look; the game's default since [the switch](2026-11-02-ink-by-default.md).
 - Supersedes the look, not the plumbing, of [anime cel art](2026-11-01-anime-cel-art.md): hi-res pictures at 4 times, `HiRes`, the
   atlas and the flag stay as they are.
 

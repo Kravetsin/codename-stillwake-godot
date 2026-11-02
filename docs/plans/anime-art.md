@@ -1,104 +1,22 @@
-# Moving the game to the new art
+# Removing the pixel art
 
-The look: [ink and watercolour](../decisions/2026-11-01-ink-and-watercolour.md), its rules in
-[the tool's README](../../tools/anime-art/README.md#the-style). The plumbing and its costs: [anime cel art](../decisions/2026-11-01-anime-cel-art.md).
-This is the way there: 905 pictures, in families, each landing in its own PR, the game never shown half and half to a player.
+The game is drawn in [ink and watercolour](../decisions/2026-11-01-ink-and-watercolour.md) by default ([the switch](../decisions/2026-11-02-ink-by-default.md));
+its rules are in [the tool's README](../../tools/anime-art/README.md#the-style). `-- --pixel-art` still draws the old pixels. What is left is taking them out,
+once the ink has held in play. One PR, small enough to revert.
 
-## Where it stands
+## What goes
 
-Landed, off by default: the plumbing (`HiRes`, the atlas), `tools/anime-art/`, the `--anime` demos, and 385 hi-res pictures:
-the testbed room whole, the hero's first look, ten icons, a stone and soil ground, ice crystals, moss that failed. All of them are
-now drawn in ink and watercolour; scrap has its first rust.
+- `HiRes.On`, `--pixel-art` and every branch on them.
+- The pixel pictures the ink stands in for, and the tools that drew them (`tools/ship-art`, `tools/planet-art` and the like), once nothing reads them for a logical size.
+  Logical pictures are then made by reducing the hi-res ones.
+- What only pixels need: `Halved`, ramps, `Atlas.Band`, `Planting.Strip`, the creatures' pixel painters and `PosedSprite`, `PlateArt`'s drawing (its size and its seat stay).
 
-**[The batch](../decisions/2026-11-02-ink-batch.md)** drew the rest of steps 3 to 7 at once: no picture the game reads is left in pixels. The user
-accepted every family from [contact sheets](https://claude.ai/artifact/FTKnz6KGboMvtkE9GoALx2), not yet in play, so steps 3 to 6 are drawn and step 2's walk remains.
-Many states were never framed in the game (a fitted tool, the seated pod, dark homes), and step 1's measure is still to do. What is left is steps 1, 2 and 7.
+## What stays
 
-## How it lands
-
-**Hi-res stays off by default until the switch.** `main` keeps playing in pixels; `-- --anime-art` turns the new art on for us.
-Off, the atlas stays at its old size too, so a pixel player pays nothing. A family lands as soon as it is done, branches stay
-short, and neither developer sits on a long-lived branch. The switch is one PR at the end.
-
-**A new picture while this runs** is still drawn in pixels, as today: `HiRes.Load` finds no hi-res one and the pixels show. A
-script lists the pictures with no `art/hd/` file, and steps 5 and 6 sweep them. Pixel machines look chunky under the flag until
-then; only we see that, and nothing ships before the switch.
-
-**Picks.** Not 905 of them. The user picks on an Artifact what is a new look: the hero's looks and each family of nature. Icons,
-walls and machines follow the accepted style by palette and kit, and a contact sheet and playing them are the check.
-
-## Steps
-
-Each is one PR, with frames near and far beside the same frame without the flag, read by eye.
-
-### 1. Land the slice
-
-Done: the flag is `--anime-art`, the plumbing off without it, the game drawn as it was. No more art. If the probe fails, reverting
-the plumbing and `art/hd/` is cheap.
-
-**Still to do: measure a mid-range card** with the flag on at zoom 2.5, before more is drawn: `Scale` and the atlas are fixed before 900
-pictures rest on them, and the planet and the rest of the ship will grow the atlas. Report its size against 8192 too, and the load
-time, for every picture is now mipmapped at startup. A miss here changes the plan; at the switch it would redraw everything.
-
-### 2. Nature: the probe the switch waits on
-
-The slice proved the ship and not the planet, which is about a third of the pictures and the hardest of them. The user's notes
-from playing it are this step's list:
-
-- **Grass.** Done for soil: turf over the block's top and thick tufts (`top_soil`), accepted from a frame, and [the flora's tufts](../decisions/2026-11-02-tufts-in-ink.md).
-  The look on other planet types is open. Bushes, rocks and bells are still pixels.
-- **Back walls** must stay dark and quiet behind what stands before them. Darkened on the ship, stone and soil; the stone and soil
-  ones are checked in frames only.
-- **The hull.** Done: [iron and the wreck's dress](../decisions/2026-11-01-iron-and-dress-in-ink.md); the scrap wall stays as it is, by the user's call.
-- **Moss.** Done: [pieces cut to meet along a run](../decisions/2026-11-01-moss-in-ink.md), the user's «Космы», both tones. At the switch `Atlas.Band` and `Planting.Strip` go.
-- **The stone's pattern** was stained glass. Done: large masses of close tone, only some cracks drawn, accepted by the user.
-
-The acacia is drawn (`flora`), and the [far ones on the land behind](../decisions/2026-11-02-far-land-in-ink.md).
-
-**Creatures:** the loper, the tapir and the sixleg are drawn, [as parts on the same rig](../decisions/2026-11-01-creatures-in-ink.md); the
-sentry and the warden [as parts on rigs of their own](../decisions/2026-11-01-guards-in-ink.md). At the switch their pixel painters and `PosedSprite` go.
-
-**Exit:** the user walks a planet's surface and a cave with the flag on and accepts them. If nature does not hold after this step,
-stop and decide again before drawing more: the ship in cel beside pixel nature is not a game we ship.
-
-### 3. The hero whole
-
-Every hair, face and beard of the look editor (only the first of each is drawn; the rest show as pixels on the new head, seen in
-`--store`), the jetpack, the cape, the sheet and its screen, every held tool. These load past `HiRes` by path (`Figure`, `CapeView`,
-`HeldLook`, `HeadLampArt`, `WornPicture`). `HeldArt` blends a tool's fitted modules into its pixels: without this a tool would turn
-pixel once a module is on. Drop amber from the player's colours ([the mark](../decisions/2026-11-01-player-colour-mark.md)), a check
-of each colour against the suit.
-
-### 4. Icons
-
-The 78 items and the tool icons' baking. Most reused by the ship's kit; a contact sheet at 32 and 48 px is the check.
-
-### 5. The ship, the rest
-
-Every material's walls by palette; machines not in the testbed; the glows still pixels (`arcBench_glow`, `fit_glow`,
-`machine_arcLamp_glow`, the pod's porthole). **For each machine, list what the client draws over it at fixed pixels first** and keep
-those spots: the capacitor bank's gauge moved in the slice. Far repetition of plates along a long run.
-
-### 6. The planet, the rest
-
-All planet types' grounds and flora, caves' roots, threads, stalactites and glowcaps, creatures, homes, ruins, debris. Debris and
-far wrecks load past `HiRes` by path (`DebrisLooks`, `FarWrecks`), creatures too (`CreatureLooks`).
-
-### 7. The switch
-
-The interface's frames, which are pixels still (`Tablet`, `WristPieces` count nine-patch margins in logical pixels, `MarkerLayer`);
-a mid-range card measured again against the 60 fps budget, video memory, load time and the size of the download (`art/hd` ships
-lossless, by `export_presets.cfg`); the flag's default turned. Small enough to revert.
-
-A follow-up then removes the pixel art and what only it needs (ramps, `Halved`), logical pictures made by reducing.
-
-## Size
-
-Two agent passes took about an hour for the slice's 385 pictures, generators flattering that. The whole is a guess of 15 to 25 such
-passes, each with the user's eye after it. Steps 2 and 5 will show how far the guess is off.
+`MachineFootTests` compares a machine's ink foot with its pixel picture's: it needs the logical picture or a floor of its own.
 
 ## Deliberately not here
 
-- A shader to repaint suits: the mark replaces it.
+- A shader to repaint suits: [the mark](../decisions/2026-11-01-player-colour-mark.md) replaces it.
 - A style for each planet type beyond its palette, till one is asked for.
 - Tuning for 4K.

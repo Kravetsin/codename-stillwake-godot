@@ -44,8 +44,8 @@ axe's blade and the drill's bit are tested against each creature's body as again
   every peer draws it alike (0106). Faces the way it moves; still, toward a near hero, else the way it last moved.
 - **The body** (`CreatureBody`, 0102): the design its species' `Look` names. Parts in `art/creatures/<design>/` are index maps
   (R the ramp, G the tone) recoloured once at first use by the planet's palette (`CreatureParts`, `CreatureLooks.PaletteOf`),
-  with a white copy for the flash and glow maps a tone up (`tools/planet-art/creatures`). Under
-  `--anime-art`: `InkDesigns`, finished pictures (2026-11-01-creatures-in-ink). A sprite a part in rig order, turned about its
+  with a white copy for the flash and glow maps a tone up (`tools/planet-art/creatures`). Unless
+  `--pixel-art`: `InkDesigns`, finished pictures (2026-11-01-creatures-in-ink). A sprite a part in rig order, turned about its
   pivot (`CreaturePose`), at screen resolution, lit as the world (`Lit`), on `Layers.Creatures` under the heroes. Its eye
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light
@@ -69,7 +69,7 @@ axe's blade and the drill's bit are tested against each creature's body as again
   sparks, smoke. `CutLeft`: it faces the line and saws; `LastCut`: sparks down the line, a recoil. Killed: cracks, sparks, its pixels crumbling. Heard on Suit (`Sound.Ticks`).
 - **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is, only when its pose changes. Asleep a column, lamp dark; woken
   teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World (`Sound.Istukans`). `--ground=spire-guards`, with `--take-at` the cradle.
-- **The guards in ink** ([their ADR](../../../docs/decisions/2026-11-01-guards-in-ink.md)): under `--anime-art` the same motions and anchors, `TickRig` or `IstukanRig` placing `InkRig`'s sprites instead of the pixel painter.
+- **The guards in ink** ([their ADR](../../../docs/decisions/2026-11-01-guards-in-ink.md)): the same motions and anchors, `TickRig` or `IstukanRig` placing `InkRig`'s sprites instead of the pixel painter.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev
