@@ -480,12 +480,25 @@ const computerLights = (f) => (a) => {
   a.flat(rr(29.8, 13, 1, .6, .1), f ? '#54ba74' : '#f0c460');
 };
 const computerRadar = (f) => (a) => {
-  const CX = 20, CY = 12, c = (r) => `M${CX - r} ${CY}A${r} ${r} 0 0 1 ${CX + r} ${CY}`;
-  a.flat(band(9.6, 2.8, 30, 12), '#0e2a20');
-  for (const r of [3.4, 6.4, 8.8]) a.line(c(r), { w: 1.4, c: '#2b7a52' });
-  const t = Math.PI + ((f % 8) / 8) * Math.PI;
-  a.flat(poly(CX, CY, CX + Math.cos(t) * 9, CY + Math.sin(t) * 9, CX + Math.cos(t - .4) * 9, CY + Math.sin(t - .4) * 9), '#54ba74');
-  a.flat(band(26, 11, 30, 12), '#a0f0b0');
+  // A half disc on the screen's floor, a beam crossing it right to left with a fading trail, blips lit as it passes; all held to the screen.
+  const SCREEN = band(9.6, 2.8, 30, 12), CX = 19.8, CY = 12, R = 10.2, beam = (Math.PI * ((f % 8) + .5)) / 8;
+  const at = (r, t) => [CX + Math.cos(t) * r, CY - Math.sin(t) * r];
+  const sector = (r0, r1, t0, t1) => {
+    const n = 24, along = (r, from, to) => Array.from({ length: n + 1 }, (_, i) => at(r, from + ((to - from) * i) / n));
+    return poly(along(r1, t0, t1).concat(along(r0, t1, t0)).flat());
+  };
+  const wedge = (t0, t1, c) => { if (t1 > Math.max(t0, 0)) a.flat(sector(0, R, Math.max(t0, 0), t1), c, { clip: SCREEN }); };
+  a.flat(SCREEN, '#08140f');
+  a.flat(sector(0, R, 0, Math.PI), '#0e2a20', { clip: SCREEN });
+  wedge(beam - .9, beam - .45, '#26804a');
+  for (const [r0, r1] of [[R / 2 - .3, R / 2 + .3], [R - .6, R]]) a.flat(sector(r0, r1, 0, Math.PI), '#2b7a52', { clip: SCREEN });
+  a.flat(band(CX - R, 11.5, CX + R, 12), '#2b7a52', { clip: SCREEN });
+  wedge(beam - .45, beam - .18, '#3fbf6e');
+  wedge(beam - .18, beam, '#a0f0b0');
+  for (const [x, y] of [[14.5, 6.5], [25.5, 8.5], [22.5, 4.5]]) {
+    const since = beam - Math.atan2(CY - y, x - CX);
+    if (since >= 0 && since < 1.6) a.flat(ell(x, y, since < .8 ? .8 : .5), '#ffe08a');
+  }
 };
 const computerScreen = (f) => (a) => {
   a.flat(band(9.6, 2.8, 30, 12), '#0c2438');
