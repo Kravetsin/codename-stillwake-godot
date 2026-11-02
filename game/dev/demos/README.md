@@ -18,7 +18,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `GroundHands.cs` | `--ground`'s hands: the tool held on the cell `GroundDemo` names |
 | `HeroScenarios.cs` | the hero's maps and scripts: `--poses`, `--cape`, `--ledges`, `--ladders`, `--feel`, `--gym`, `--lone-hatch`, `--hills`, `--floor`, `--segments`, `--die`, `--breathe`, `--breathe-air`, `--suit` |
 | `MachineScenarios.cs` | machines and items: `--furnace`, `--items`, `--menu-demo`, `--open`, `--near`, `--marks`, `--card`, `--charger`, `--arc`, `--bench`, `--tree`, `--board`, `--pod`, `--handbook`, `--tool-cards` |
-| `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--layer-demo`, `--shimmer-demo` |
+| `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--mark`, `--layer-demo`, `--shimmer-demo` |
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie` |
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand; `--autopilot` breaks the piles. |
