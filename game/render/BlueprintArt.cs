@@ -92,7 +92,7 @@ public static class BlueprintArt
     }
 
     /// <summary>A card's texture of <paramref name="picture"/>, <see cref="HiRes.Scale"/> times too large, reporting the size its pixels had.</summary>
-    private static Texture2D Card(Image picture) => HiRes.On ? HiRes.Texture(picture) : ImageTexture.CreateFromImage(picture);
+    private static Texture2D Card(Image picture) => HiRes.Texture(picture);
 
     /// <summary>How many cells a side a wall's or a back wall's card shows: enough of its sheet for the material to read.</summary>
     private const int SampleCells = 8;

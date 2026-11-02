@@ -14,17 +14,17 @@
 | `logic/Creatures.En.cs` | Its player text |
 | `logic/Creatures.Ru.cs` | Russian |
 | `logic/OwnShots.cs` | The creatures this player's own shots hit, heard as its blows. |
-| `PosedSprite.cs` | A creature drawn as one sprite posed in code: its layers, up to the screen. |
+| `PosedSprite.cs` | A creature its rig draws: placed, turned about its middle. |
 | `InkRig.cs` | A guard's body in ink: a sprite a picture, as its rig places them. |
 | `CreatureFx.cs` | What the views share of a blow: the nearest hero, its sparks. |
 | `IstukanBodies.cs` | The Istukan (the warden): sprite, lamp, its flight's streak, sparks, the fall. |
-| `logic/IstukanArt.cs` | Its sprite drawn from its pose (the page's `ISTUKAN`): plain C#, tested. |
+| `logic/IstukanArt.cs` | Its pose, its anchors, its lights. |
 | `logic/IstukanMotion.cs` | How it moves and its moments, read off the sim. |
 | `logic/IstukanFate.cs` | Why one is gone: calmed, killed or shut down. |
 | `logic/IstukanRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
 | `TickBodies.cs` | The tick (the sentry), drawn at `TickRig.Size`: sprite, lamp, arcs, burner, sparks, death. |
 | `ShotsView.cs` | Every peer's shots but a guest's own, drawn a tick behind; heard fired; their hits; the sentry's arcs. |
-| `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |
+| `logic/TickArt.cs` | The tick's pose and anchors, the page's leg sums. |
 | `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |
 | `logic/TickRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
 
@@ -43,10 +43,8 @@ axe's blade and the drill's bit are tested against each creature's body as again
 - **Drawn between ticks** (0102): kept at the tick before and the last, drawn `Progress` of the way, a tick behind the
   sim. Upright (0106), only the flinch's and flight's tilt (`CreatureMotion.Tilt`). Whole steps eased by `StepEase` over `CreatureLooks.StepMs`, read from its positions so
   every peer draws it alike (0106). Faces the way it moves; still, toward a near hero, else the way it last moved.
-- **The body** (`CreatureBody`, 0102): the design its species' `Look` names. Parts in `art/creatures/<design>/` are index maps
-  (R the ramp, G the tone) recoloured once at first use by the planet's palette (`CreatureParts`, `CreatureLooks.PaletteOf`),
-  with a white copy for the flash and glow maps a tone up (`tools/planet-art/creatures`). Unless
-  `--pixel-art`: `InkDesigns`, finished pictures (2026-11-01-creatures-in-ink). A sprite a part in rig order, turned about its
+- **The body** (`CreatureBody`, 0102): the design its species' `Look` names, in `InkDesigns`: finished pictures, with a white
+  copy for the flash (`CreatureParts`, 2026-11-01-creatures-in-ink). A sprite a part in rig order, turned about its
   pivot (`CreaturePose`), at screen resolution, lit as the world (`Lit`), on `Layers.Creatures` under the heroes. Its eye
   open, half shut, shut or wide, its pupil on a near hero. Idle with no hero near it grazes; with one near it notices.
 - **Glowing parts give light** (0102): added over it unlit, their spots lights in their colour (`Lights`, the light
@@ -65,12 +63,12 @@ axe's blade and the drill's bit are tested against each creature's body as again
   an own (struck or shot) on Suit heard far (`Sound.Felt`), a friend's on World.
 - **Death** (2026-10-29-kills-crumble): a glint, shock ring and death sound (`Sound.CreatureDeath`); held white `KillLooks.PopMs`, then it
   stands as its pixels, crumbling top down (`shared/PixelBursts`), loot sprayed (`features/items`).
-- **The tick**: drawn each frame from its pose (`TickArt`), lit; eye, cracks and a blow's white over it unlit. `TickMotion` reads the sim: `Clamped` grips,
+- **The tick**: `TickRig` places its pictures from its pose (`TickArt`), lit; eye, cracks and a blow's white over it unlit. `TickMotion` reads the sim: `Clamped` grips,
   else legs folded, nose along its flight. Eye teal, yellow `Alerted` or flying home, red from its crouch on, cyan aiming an arc. Winding up: red arcs. Flying: a burner,
   sparks, smoke. `CutLeft`: it faces the line and saws; `LastCut`: sparks down the line, a recoil. Killed: cracks, sparks, its pixels crumbling. Heard on Suit (`Sound.Ticks`).
-- **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is, only when its pose changes. Asleep a column, lamp dark; woken
+- **The Istukan** ([spire-guards](../../../docs/decisions/2026-10-31-spire-guards.md)): drawn as the tick is. Asleep a column, lamp dark; woken
   teal, waiting yellow, red from its crouch on; flying fists first, a thin streak behind; stuck, shivering. Gone: `IstukanFate`. Heard on World (`Sound.Istukans`). `--ground=spire-guards`, with `--take-at` the cradle.
-- **The guards in ink** ([their ADR](../../../docs/decisions/2026-11-01-guards-in-ink.md)): the same motions and anchors, `TickRig` or `IstukanRig` placing `InkRig`'s sprites instead of the pixel painter.
+- **The guards in ink** ([their ADR](../../../docs/decisions/2026-11-01-guards-in-ink.md)): `TickRig` or `IstukanRig` place `InkRig`'s sprites.
 - **A surface left or a world loaded** (no ADR): every body put away at once, no puff.
 
 ## Dev

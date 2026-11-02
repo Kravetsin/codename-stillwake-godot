@@ -14,7 +14,7 @@ public static class FloraLooks
     /// A kind's pictures: how many, and how many pixels the lowest drawn row of each sinks under the ground's top edge, the rows
     /// there cut off: planted in the ground, not set on it.
     /// </summary>
-    /// <param name="Ink">What else its pictures may be drawn as in the ink art, each the same size with its light in the same place, one a plant.</param>
+    /// <param name="Ink">What else its pictures may be drawn as, each the same size with its light in the same place, one a plant.</param>
     public sealed record Look(int Variants, int Sink, IReadOnlyList<string>? Ink = null);
 
     public static readonly IReadOnlyDictionary<string, Look> Of = new Dictionary<string, Look>
@@ -29,10 +29,10 @@ public static class FloraLooks
     };
 
     /// <summary>The picture a plant of <paramref name="kind"/> is drawn with, by a hash of its cell; its shape and light are read from <c>{kind}_{variant}</c> whatever this says.</summary>
-    public static string Drawn(string kind, int variant, uint hash, bool ink)
+    public static string Drawn(string kind, int variant, uint hash)
     {
         var look = Of[kind];
-        return ink && look.Ink is { } kinds ? $"planet/{kinds[(int)(hash / (uint)look.Variants % (uint)kinds.Count)]}_{variant}" : $"planet/{kind}_{variant}";
+        return look.Ink is { } kinds ? $"planet/{kinds[(int)(hash / (uint)look.Variants % (uint)kinds.Count)]}_{variant}" : $"planet/{kind}_{variant}";
     }
 
     /// <summary>

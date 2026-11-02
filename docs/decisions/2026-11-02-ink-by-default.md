@@ -1,6 +1,6 @@
 # The game is drawn in ink by default
 
-- Status: accepted; the user's call, 2026-11-02. Follows [ink and watercolour](2026-11-01-ink-and-watercolour.md) and [the batch](2026-11-02-ink-batch.md).
+- Status: accepted; the user's call, 2026-11-02; `--pixel-art` removed by [the pixel art is unsupported](2026-11-03-pixels-unsupported.md). Follows [ink and watercolour](2026-11-01-ink-and-watercolour.md) and [the batch](2026-11-02-ink-batch.md).
 
 ## Decision
 

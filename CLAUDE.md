@@ -210,8 +210,8 @@ publishes them. A pick goes into its ADR.
   account. Download the candidates and publish them as the page's own `files` (the frame blocks media from other hosts), played
   from a button through Web Audio. Say what is unheard. Once picked: cut, level and credit them as `CREDITS.md` says.
 - **Art:** drawn in code on a canvas at the game's scale (a cell 8 px, the hero beside it), moving through every state it has.
-  Once picked: exported by the code that drew it, through `tools/`. The game is drawn in ink and watercolour ([the switch](docs/decisions/2026-11-02-ink-by-default.md)): a new picture follows
-  `tools/anime-art/README.md`; `-- --pixel-art` shows the old pixels till they go.
+  Once picked: exported by the code that drew it, through `tools/`. The game is drawn in ink and watercolour ([no more pixels](docs/decisions/2026-11-03-pixels-unsupported.md)): a new picture follows
+  `tools/anime-art/README.md`.
 
 ## Commands
 

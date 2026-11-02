@@ -4,7 +4,7 @@ using Xunit;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// The tick, the sentry's look (its page's candidate 3): its sprite drawn from its pose as the page draws it, and its motion read
+/// The tick, the sentry's look (its page's candidate 3): its rig in its pose, and its motion read
 /// off what the sim says, its moments coming once each.
 /// </summary>
 public class TickTests
@@ -23,69 +23,15 @@ public class TickTests
         Assert.InRange(top, 0, Stillwake.Content.Creatures.Sentry.Body.Height * PixelsPerCell + 1);
     }
 
-    /// <summary>The opaque pixels of <paramref name="rgba"/>, in the tick's own pixels (origin the middle of its feet).</summary>
-    private static List<(int X, int Y)> Opaque(byte[] rgba)
-    {
-        var found = new List<(int, int)>();
-        for (int i = 0; i < TickArt.Width * TickArt.Height; i++)
-            if (rgba[i * 4 + 3] > 0) found.Add((i % TickArt.Width - TickArt.OriginX, i / TickArt.Width - TickArt.OriginY));
-        return found;
-    }
-
-    [Fact]
-    public void StandingItFillsItsThreeByTwoCellsOnItsFeet()
-    {
-        var art = new TickArt();
-        art.Draw(Standing);
-        var drawn = Opaque(art.Albedo);
-        Assert.InRange(drawn.Min(p => p.X), -14, -12);
-        Assert.InRange(drawn.Max(p => p.X), 8, 12);
-        Assert.InRange(drawn.Min(p => p.Y), -16, -10);
-        Assert.Equal(0, drawn.Max(p => p.Y));
-        Assert.Equal(drawn, Opaque(art.Silhouette));
-    }
-
-    [Fact]
-    public void ItsEyeGlowsItsColourAndNothingElseDoesAlive()
-    {
-        var art = new TickArt();
-        var at = art.Draw(Standing with { Eye = TickMotion.Attacking });
-        var lit = Opaque(art.Emission);
-        Assert.Equal(3, lit.Count);
-        Assert.All(lit, p => Assert.True(Math.Abs(p.X - at.Eye.X) <= 1.5 && Math.Abs(p.Y - at.Eye.Y) <= 1.5, $"{p} glows away from its eye"));
-        int i = ((int)at.Eye.Y + TickArt.OriginY) * TickArt.Width + (int)at.Eye.X + TickArt.OriginX;
-        Assert.True(art.Emission[i * 4] > art.Emission[i * 4 + 1], "a red eye glows red");
-    }
-
-    [Fact]
-    public void FlyingItFoldsItsLegsUpOffTheGround()
-    {
-        var art = new TickArt();
-        art.Draw(Standing with { Fly = 1 });
-        Assert.True(Opaque(art.Albedo).Max(p => p.Y) < 0, "its feet still reach the ground in flight");
-    }
-
     [Fact]
     public void WalkingItsFeetStepAndStandingTheyDoNot()
     {
-        var art = new TickArt();
-        var still = art.Draw(Standing).Feet.ToList();
-        Assert.Equal(still, art.Draw(Standing with { Gait = 2 }).Feet);
-        var a = art.Draw(Standing with { Walk = 1, Gait = 0 }).Feet.ToList();
-        var b = art.Draw(Standing with { Walk = 1, Gait = 2 }).Feet.ToList();
+        var rig = new TickRig();
+        var still = rig.Place(Standing).Feet.ToList();
+        Assert.Equal(still, rig.Place(Standing with { Gait = 2 }).Feet);
+        var a = rig.Place(Standing with { Walk = 1, Gait = 0 }).Feet.ToList();
+        var b = rig.Place(Standing with { Walk = 1, Gait = 2 }).Feet.ToList();
         Assert.NotEqual(a, b);
-    }
-
-    [Fact]
-    public void ItsCracksSpreadAsItDies()
-    {
-        var art = new TickArt();
-        art.Draw(Standing);
-        int alive = Opaque(art.Emission).Count;
-        art.Draw(Standing with { Cracks = 0.5 });
-        int half = Opaque(art.Emission).Count;
-        art.Draw(Standing with { Cracks = 1 });
-        Assert.True(alive < half && half < Opaque(art.Emission).Count, "its cracks do not spread");
     }
 
     private static TickMotion.Seen Watching => new(true, false, false, 0, false, 0, 0, 0, 0, (40, 0));
@@ -212,11 +158,10 @@ public class TickTests
     [Fact]
     public void ItsClawRisesToTheLineItSaws()
     {
-        var art = new TickArt();
-        var standing = art.Draw(Standing);
-        var sawing = art.Draw(Standing with { Saw = 1, Jaw = 1 });
-        Assert.Equal((10, -1), standing.Cut);
-        Assert.True(sawing.Cut.Y < -3 && sawing.Cut.X >= 9, $"its claw at {sawing.Cut}");
+        var rig = new TickRig();
+        var standing = rig.Place(Standing);
+        var sawing = rig.Place(Standing with { Saw = 1, Jaw = 1 });
+        Assert.True(sawing.Cut.Y < standing.Cut.Y, $"its claw at {sawing.Cut}, from {standing.Cut}");
     }
 
     private static readonly IEqualityComparer<TickArt.Rgb> Near = EqualityComparer<TickArt.Rgb>.Create(

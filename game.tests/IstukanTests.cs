@@ -3,89 +3,15 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The Istukan, the warden's look (its page's candidate 4): its sprite in every key pose, its motion read off the sim, and why it is gone.</summary>
+/// <summary>The Istukan, the warden's look (its page's candidate 4): its motion read off the sim, and why it is gone.</summary>
 public class IstukanTests
 {
     private const double WakeS = 0.5, Frame = 0.05;
 
-    private static readonly IstukanArt.Pose Standing = new(0, 0, 0, 0, 0, IstukanMotion.Yellow, 1, 1);
-
     private static readonly IstukanMotion.Seen Asleep = new(true, false, 0, false, false, 0, 0, true, null);
     private static readonly IstukanMotion.Seen Up = Asleep with { Asleep = false, Hero = (40, 0) };
 
-    private static List<(int X, int Y)> Opaque(byte[] rgba)
-    {
-        var found = new List<(int, int)>();
-        for (int i = 0; i < IstukanArt.Width * IstukanArt.Height; i++)
-            if (rgba[i * 4 + 3] > 0) found.Add((i % IstukanArt.Width - IstukanArt.OriginX, i / IstukanArt.Width - IstukanArt.OriginY));
-        return found;
-    }
-
     private static IstukanMotion Motion() => new(() => 0.5, WakeS);
-
-    public static TheoryData<string, IstukanArt.Pose> Poses() => new()
-    {
-        { "stand", Standing },
-        { "sleep", Standing with { Fold = 1, Lamp = null, Seam = 0.08 } },
-        { "crouch", Standing with { Crouch = 1, Lamp = IstukanMotion.Red } },
-        { "fly", Standing with { Crouch = 1, Fly = 1, Lamp = IstukanMotion.Red, OnFloor = false } },
-        { "stuck", Standing with { Stuck = 1, Lamp = IstukanMotion.Red } },
-        { "dead", Standing with { Stuck = 1, Dead = 1, Lamp = null, Seam = 0, Dim = 0.22 } },
-    };
-
-    [Theory]
-    [MemberData(nameof(Poses))]
-    public void EveryPoseFitsItsBufferUntouchedAtTheEdges(string _, IstukanArt.Pose pose)
-    {
-        var art = new IstukanArt();
-        art.Draw(pose);
-        var drawn = Opaque(art.Albedo);
-        Assert.NotEmpty(drawn);
-        Assert.True(drawn.Min(p => p.X) > -IstukanArt.OriginX && drawn.Max(p => p.X) < IstukanArt.Width - IstukanArt.OriginX - 1, "cut off at its sides");
-        Assert.True(drawn.Min(p => p.Y) > -IstukanArt.OriginY && drawn.Max(p => p.Y) < IstukanArt.Height - IstukanArt.OriginY - 1, "cut off above or below");
-    }
-
-    [Fact]
-    public void StandingItIsAboutAsTallAsItsFiveCellsOnItsFeet()
-    {
-        var art = new IstukanArt();
-        art.Draw(Standing);
-        var drawn = Opaque(art.Albedo);
-        Assert.InRange(drawn.Min(p => p.Y), -40, -32);
-        Assert.Equal(-1, drawn.Max(p => p.Y));
-    }
-
-    [Fact]
-    public void AsleepItIsANarrowerColumnThanStandingItsLampDark()
-    {
-        var art = new IstukanArt();
-        art.Draw(Standing);
-        var wide = Opaque(art.Albedo);
-        art.Draw(Standing with { Fold = 1, Lamp = null, Seam = 0.08 });
-        var column = Opaque(art.Albedo);
-        Assert.True(column.Max(p => p.X) - column.Min(p => p.X) < wide.Max(p => p.X) - wide.Min(p => p.X), "it does not fold in");
-        // Only the faint core in its chest, the page's, its lamp and seams dark.
-        Assert.Single(Opaque(art.Emission));
-    }
-
-    [Fact]
-    public void ItsLampGlowsItsColourAndItsSilhouetteLeavesItsOutlineOut()
-    {
-        var art = new IstukanArt();
-        var at = art.Draw(Standing with { Lamp = IstukanMotion.Red, Seam = 0 });
-        Assert.All(Opaque(art.Emission), p => Assert.True(Math.Abs(p.X - at.Eye.X) <= 5 && Math.Abs(p.Y - at.Eye.Y) <= 2 || (p.X, p.Y) == ((int)Math.Floor(at.Core.X), (int)Math.Floor(at.Core.Y)), $"{p} glows away from its lamp"));
-        Assert.NotEmpty(Opaque(art.Emission));
-        Assert.True(Opaque(art.Silhouette).Count < Opaque(art.Albedo).Count);
-    }
-
-    [Fact]
-    public void BelowTheFloorIsHiddenOnlyWhileItStandsOnOne()
-    {
-        var art = new IstukanArt();
-        var lying = Standing with { Stuck = 1, Dead = 1, Lamp = null, Seam = 0 };
-        art.Draw(lying);
-        Assert.True(Opaque(art.Albedo).Max(p => p.Y) < 0);
-    }
 
     [Fact]
     public void AsleepItIsDarkThenWokenTealThenYellowThenRedInItsCrouch()

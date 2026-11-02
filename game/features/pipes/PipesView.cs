@@ -27,7 +27,6 @@ public partial class PipesView : Node2D
     private int _width = 1;
     private string _key = "";
     private static Texture2D? _flange, _run;
-    private static Color[]? _profile;
 
     public PipesView()
     {
@@ -39,46 +38,20 @@ public partial class PipesView : Node2D
         foreach (var node in (Node[])[_pipes, _valves, _turns]) AddChild(node);
     }
 
-    /// <summary>
-    /// The pipe art's straight run across its thickness, a colour a row, each its most common along the run: one tube with no
-    /// rivets or seams, drawn whole along a span at any angle (0110).
-    /// </summary>
-    private static Color[] Profile
+    /// <summary>The pipe's riveted run, repeated along a span.</summary>
+    private static Texture2D Run
     {
         get
         {
-            if (_profile != null) return _profile;
-            var image = ShipTiles.ImageOf("pipe_10");
-            var used = image.GetUsedRect();
-            _profile = new Color[used.Size.Y];
-            for (int row = 0; row < used.Size.Y; row++)
-            {
-                var counts = new Dictionary<Color, int>();
-                for (int x = 0; x < image.GetWidth(); x++)
-                {
-                    var c = image.GetPixel(x, used.Position.Y + row);
-                    if (c.A > 0) counts[c] = counts.GetValueOrDefault(c) + 1;
-                }
-                _profile[row] = counts.Count == 0 ? Colors.Transparent : counts.OrderByDescending(e => e.Value).ThenBy(e => e.Key.ToRgba32()).First().Key;
-            }
-            return _profile;
-        }
-    }
-
-    /// <summary>The pipe's riveted run in ink, repeated along a span; none in the old pixels, which draw <see cref="Profile"/>.</summary>
-    private static Texture2D? Run
-    {
-        get
-        {
-            if (_run != null || HiRes.Load("pipe_run") is not { } image) return _run;
-            var texture = HiRes.Texture(image);
+            if (_run != null) return _run;
+            var texture = HiRes.Texture(HiRes.Load("pipe_run")!);
             if (texture is CanvasTexture canvas) canvas.TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled;
             return _run = texture;
         }
     }
 
     /// <summary>A joint's flange: the lone pipe's picture, its middle.</summary>
-    private static Texture2D Flange => _flange ??= HiRes.Load("pipe_0") is { } fine ? HiRes.Texture(fine) : ShipTiles.PictureOf("pipe_0");
+    private static Texture2D Flange => _flange ??= HiRes.Texture(HiRes.Load("pipe_0")!);
 
     /// <summary>Where a node's cell has its middle, in pixels of the world.</summary>
     public static Vector2 MiddleOf(int cell, int width) => new((cell % width + 0.5f) * Cell, (cell / width + 0.5f) * Cell);
@@ -110,9 +83,7 @@ public partial class PipesView : Node2D
             if (TubeRun.LitFromEnd(a.X, a.Y, b.X, b.Y)) (a, b) = (b, a);
             float length = a.DistanceTo(b);
             g.DrawSetTransform(a, (b - a).Angle());
-            if (Run is { } run) g.DrawTextureRect(run, new Rect2(0, -run.GetHeight() / 2f, length, run.GetHeight()), tile: true);
-            else
-                for (int row = 0; row < Profile.Length; row++) g.DrawRect(new Rect2(0, row - Profile.Length / 2f, length, 1), Profile[row]);
+            g.DrawTextureRect(Run, new Rect2(0, -Run.GetHeight() / 2f, length, Run.GetHeight()), tile: true);
         }
         g.DrawSetTransform(Vector2.Zero);
         // A flange at every joint, over the runs that meet there; a machine's port has its socket.
