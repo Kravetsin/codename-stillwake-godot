@@ -230,26 +230,22 @@ public class WreckTests
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
     }
 
-    /// <summary>The first minutes (2026-10-30-tablet-tree): a chunk sold at a trade station built in the room, the first block bought, its machine planned.</summary>
+    /// <summary>The first credits (docs/plans/board.md): chunks sold at a trade station built in the room, the market's first slot bought.</summary>
     [Fact]
-    public void SellsAChunkAtATradeStationBuiltOfSalvageBuysTheFirstBlockAndPlansIt()
+    public void SellsChunksAtATradeStationBuiltOfSalvageAndBuysTheFirstSlot()
     {
         var w = AiredWreck();
         int trade = Build(w, "tradeStation", At(44, 17));
-        int chunk = Stillwake.Content.Market.PriceOf("scrapChunk")!.Value, price = Prices.Of(ResearchSpec.Node("furnace")!), chunks = price / chunk + 1;
+        int chunk = Stillwake.Content.Market.PriceOf("scrapChunk")!.Value, price = Prices.Of(ResearchSpec.Node("bag1")!), chunks = price / chunk + 1;
         w.GiveItems(0, ("scrapChunk", chunks));
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), chunks)).Run();
         w.Do(new Stillwake.Sim.Trade.SendCapsule(trade)).Run(Stillwake.Content.Market.CapsuleFlight);
         Assert.Equal(chunks * chunk, w.M.Research.Credits);
-        w.Do(new BuyBlock("furnace")).Run();
+        Assert.False(w.M.Items.SlotOpen(new Slot(Stillwake.Content.Inventory.Start)));
+        w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(chunks * chunk - price, w.M.Research.Credits);
-        Assert.True(w.M.Research.Knows("furnace"));
-        var furnace = new Placement("machine", "furnace");
-        int cell = Enumerable.Range(0, w.M.Grid.Width * w.M.Grid.Height).First(c => w.M.Building.Problem(c, furnace) == null);
-        w.Do(new PlacePlan(cell, furnace)).Run();
-        Assert.Empty(w.Refusals);
-        Assert.Single(w.M.Building.Plans);
+        Assert.True(w.M.Items.SlotOpen(new Slot(Stillwake.Content.Inventory.Start)));
     }
 
     [Fact]
@@ -376,10 +372,6 @@ public class WreckTests
         Assert.Equal(A.Length, AiredIn(w, A));
         Assert.Equal(Scenario.Full, w.M.Crew.HeroOf(1)?.Air);
     }
-
-    [Fact]
-    public void OpensTheLampWithTheBurnerForNothingBeforeItMakesPower() =>
-        Assert.Equal(ResearchSpec.Node("burnerGenerator")!.Ring, ResearchSpec.Node("lamp")!.Ring);
 
     /// <summary>Each lights the hold, on the wall its bracket reaches: a lamp in mid-air reads as a mistake.</summary>
     [Fact]

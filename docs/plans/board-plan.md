@@ -301,7 +301,7 @@ relaunched by hand keeps a moved note and a second new world does not; format an
 **Done when** a `--tree` sheet shows the market's hub at sold/ordered, its open rings lit as the `ship` tab's are in the same sheet, and
 upgrades gone from the other tabs; the full suite passes; format and docs guard are clean; Research and client READMEs say it.
 
-### B-9 — The tree goes (format 42)
+### B-9 — The tree goes (format 43, the fluff's removal having taken 42)
 
 - **Content:** `ship` and `tech` tabs removed. `TechNode.Deposit` and `TechRing.Deposit` become `Order`; `Gate => Order.Count > 0`. `CraftTimes` goes.
 - **Research:** these go: `Deposit`, `Taken`, `IItemsOps`, `Deposited`, the refusals `research.gateOpen` and `research.nothingToDeposit`, the

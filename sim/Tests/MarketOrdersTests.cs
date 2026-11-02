@@ -21,7 +21,7 @@ public class MarketOrdersTests
     /// <summary>All of <paramref name="id"/>'s order sold, straight into the count.</summary>
     private static void Sell(Scenario w, string id)
     {
-        foreach (var (item, count) in Order(id).Deposit) w.M.Knowledge.Sell(item, count);
+        foreach (var (item, count) in Order(id).Order) w.M.Knowledge.Sell(item, count);
     }
 
     private static string[] Reasons(Scenario w) => [.. w.Refusals.Select(r => r.Reason)];
@@ -32,7 +32,7 @@ public class MarketOrdersTests
         var w = World();
         int station = w.M.Grid.MachinesOf("tradeStation")[0].Id;
         var order = Order("order1");
-        foreach (var (item, count) in order.Deposit)
+        foreach (var (item, count) in order.Order)
         {
             Assert.False(w.M.Research.Done(order));
             w.FillCrate(station, (item, count));
@@ -49,9 +49,9 @@ public class MarketOrdersTests
         var order = Order("order1");
         w.Do(new BuyBlock("bag3")).Run();
         Assert.Equal(["research.locked"], Reasons(w));
-        foreach (var (item, count) in order.Deposit) w.M.Knowledge.Sell(item, count - 1);
+        foreach (var (item, count) in order.Order) w.M.Knowledge.Sell(item, count - 1);
         Assert.False(w.M.Research.Done(order));
-        foreach (var (item, _) in order.Deposit) w.M.Knowledge.Sell(item, 1);
+        foreach (var (item, _) in order.Order) w.M.Knowledge.Sell(item, 1);
         Assert.True(w.M.Research.Done(order));
         w.Do(new BuyBlock("bag3")).Run();
         Assert.Single(w.Refusals);
@@ -80,16 +80,6 @@ public class MarketOrdersTests
     }
 
     [Fact]
-    public void NothingIsPutIntoAMarketGate()
-    {
-        var w = World();
-        w.GiveItems(0, [.. Order("order1").Deposit]);
-        w.Do(new Deposit("order1")).Run();
-        Assert.Equal(["research.locked"], Reasons(w));
-        Assert.All(Order("order1").Deposit, d => Assert.Equal(d.Count, w.M.Items.Totals(0).Single(t => t.Item == d.Item).Count));
-    }
-
-    [Fact]
     public void TheMarketsFirstRingIsOpenFromTheStart()
     {
         var w = World(credits: 100_000);
@@ -100,7 +90,7 @@ public class MarketOrdersTests
     [Fact]
     public void EveryOrderedItemHasAPrice()
     {
-        foreach (var gate in Tree.Nodes.Where(n => n.Gate && n.Tab == Tree.Market))
-            Assert.All(gate.Deposit, d => Assert.NotNull(Market.PriceOf(d.Item)));
+        foreach (var gate in Tree.Nodes.Where(n => n.Gate))
+            Assert.All(gate.Order, d => Assert.NotNull(Market.PriceOf(d.Item)));
     }
 }

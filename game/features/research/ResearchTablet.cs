@@ -47,10 +47,9 @@ public partial class ResearchTablet : CanvasLayer
     /// <param name="ui">Whether it is out, the hand freed as it comes, the menu, under which it takes no key.</param>
     /// <param name="inWorld">Whether a world is played: on the title T does nothing.</param>
     /// <param name="world">The world the hero stands in; null with none played.</param>
-    /// <param name="peer">This player's peer: whose bag a deposit is taken from.</param>
     /// <param name="send">Sends a command to the session.</param>
     /// <param name="worldId">Which world is played, on every machine: what the board's layout is kept under.</param>
-    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<int> peer, Action<Command> send, Func<uint> worldId)
+    public ResearchTablet(Ui ui, Func<bool> inWorld, Func<Registry?> world, Action<Command> send, Func<uint> worldId)
     {
         (_ui, _inWorld, _world) = (ui, inWorld, world);
         _tips = new TipSpots(ui.Tip);
@@ -80,7 +79,7 @@ public partial class ResearchTablet : CanvasLayer
             x += box.CustomMinimumSize.X + 4;
         }
         AddTab(T("research.tab.board"), _board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, _keep));
-        foreach (var tab in Content.Research.Tabs) AddTab(T($"research.tab.{tab.Id}"), new RingsPage(tab, _view, _parts, peer, send, () => _sinceRead = ReadEvery));
+        foreach (var tab in Content.Research.Tabs) AddTab(T($"research.tab.{tab.Id}"), new RingsPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery));
         int market = Content.Research.Tabs.Select(t => t.Id).ToList().IndexOf(Content.Research.Market) + 1;
         _market = _pages[market];
         _marketLamp.Position = new Vector2(_tabBoxes[market].Position.X + _tabBoxes[market].CustomMinimumSize.X - 13, 0);
@@ -208,6 +207,8 @@ public partial class ResearchTablet : CanvasLayer
         _credits.Set(research.Credits);
         var all = Content.Research.Nodes;
         _progress.Text = T("research.progress", ("done", all.Count(research.Done)), ("all", all.Count));
+        // It counts the market's rings alone, and an empty board must not start with a sum to fill.
+        _progress.Visible = _page == _market;
         foreach (var page in _pages) page.Read(m);
         if (_page == _market) _keep.Seen.MarketChosen();
         _marketLamp.Visible = _keep.Seen.MarketNew;
