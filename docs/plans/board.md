@@ -71,11 +71,11 @@ A first cut of the rings, to tune at the playtest (worths from the current recip
 
 | Ring | Order | Worth | Opens |
 | --- | --- | --- | --- |
-| 0 | none | | `bag1`, `bag2`, `tradeSlots1`, solar panel at its 12 000 |
+| 0 | none | | `bag1`, `bag2`, `tradeSlots1` |
 | 1 | 40 scrap chunks, 20 iron, 20 planks | about 1 600 | `bag3`, `bag4`, `tradeSlots2` |
 | 2 | 30 plates, 20 gears | about 2 100 | `bag5`, `bag6`, `belt1`, `tradeSlots3`, `tradeSlots4` |
 | 3 | 20 glass, 20 silicon, 10 frames | about 5 000 | `bag7`, `bag8`, `tradeSlots5` |
-| 4 | 20 circuits | about 3 600 | `bag9`, `tradeSlots6` |
+| 4 | 20 circuits | about 3 600 | solar panel at its 12 000, `bag9`, `tradeSlots6` |
 | 5 | a planet's goods, chosen with its content | | `bag10`, `bag11`, `belt2` |
 
 Contraband, goods sold at a loss, comes after this: it needs a purchase that gives items and a way for them to arrive (`black-market`). Ring 2 is its natural start. Nothing is built for it here.

@@ -54,6 +54,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `debris`  | `debris/*`: rocks lit hard from one side, crates, hull plates, pods, scrap, derelicts; no lettering, for they turn every way |
 | `bulb`    | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb over the hero, straight ink on a canvas, as picked, with no finish |
 | `keylens` | `key_lens_dark`, `key_lens_lit`, each with `_down`: the tablet key's cap, 22 by 22 at the screen's own pixels, as picked, with no finish |
+| `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`: what the market sells that is no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames are repeating runs, so a 9-slice stretch has no seam |
 
 ## Run

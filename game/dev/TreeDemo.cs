@@ -9,9 +9,9 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --tree</c>: the wreck with credits to spend, and a script through the black market on the tablet: T taking it out, a drag starting on
-/// a node (which must pick nothing), a click on it (which must buy nothing), the strip's button buying it, the wheel out to the whole map,
-/// a node's ties, the hub with an order part sold, T putting it away, the bag. An order met before T lights the key. Played through Godot's own input, for recordings with
+/// <c>-- --tree</c>: the wreck with credits to spend, and a script through the black market on the tablet: T taking it out, an order met while away deciphering, a click on a
+/// sealed card (which must pick nothing), a click on an open one (which must buy nothing), the strip's button buying it, an order filled with the market open, the last two
+/// filled with it away, T putting it away, the bag. An order met before T lights the key. Played through Godot's own input, for recordings with
 /// <c>--write-movie</c>; each step is printed with its time.
 /// </summary>
 public partial class TreeDemo(Func<Registry> m) : Node
@@ -57,30 +57,33 @@ public partial class TreeDemo(Func<Registry> m) : Node
         [
             (0.5, "the plates sold: an order met, the key lit", () => m().Knowledge.Sell("plate", 20)),
             (1.0, "T opens it: the market's tab lit", () => TabletHands.Press(Key.T)),
-            (1.4, "from the board to the black market: its tab no longer lit", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
+            (1.4, "from the board to the black market: its tab no longer lit, the second row deciphering", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
             (1.45, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (2.0, "point at the first slot", () => _hands.Point(_tree.ScreenOf("bag1"))),
-            (2.5, "press on it and drag", () => _hands.Mouse(_tree.ScreenOf("bag1"), MouseButton.Left, true)),
-            (2.6, "dragging", () => _hands.Move(_hands.Last + away, MouseButton.Left)),
-            (2.7, "let go: nothing picked", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (3.0, "drag back", () => _hands.Mouse(_tree.ScreenOf("bag1"), MouseButton.Left, true)),
-            (3.1, "dragging", () => _hands.Move(_hands.Last - away, MouseButton.Left)),
-            (3.2, "let go: nothing picked", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (3.5, "click the first slot", () => _hands.Mouse(_tree.ScreenOf("bag1"), MouseButton.Left, true)),
-            (3.55, "let go: picked, nothing bought", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (4.5, "press the button", () => _hands.Mouse(_tree.ActionAt, MouseButton.Left, true)),
-            (4.55, "let go: bought", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (5.0, "wheel out a little: prices stay under their names", () => _hands.Wheel(_tree.ScreenOf("bag1"), MouseButton.WheelDown, 2)),
-            (5.1, "further: pictures, no words", () => _hands.Wheel(_tree.ScreenOf("bag1"), MouseButton.WheelDown, 3)),
-            (5.2, "point at the solar panel: its tip", () => _hands.Point(_tree.ScreenOf("solarPanel"))),
-            (5.5, "far: plain dots", () => _hands.Wheel(_tree.ScreenOf("bag1"), MouseButton.WheelDown, 3)),
-            (6.5, "click the solar panel on sale", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
-            (6.55, "let go: its ties lit", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (7.5, "click the hub: what is sold of the order, no button", () => _hands.Mouse(_tree.HubAt, MouseButton.Left, true)),
-            (7.55, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (8.5, "wheel in on the hub", () => _hands.Wheel(_tree.HubAt, MouseButton.WheelUp, 8)),
-            (9.5, "T puts it away", () => TabletHands.Press(Key.T)),
-            (10.0, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
+            (3.6, "point at a sealed card: not open yet", () => _hands.Point(_tree.ScreenOf("bag9"))),
+            (4.0, "click it: nothing picked", () => _hands.Mouse(_tree.ScreenOf("bag9"), MouseButton.Left, true)),
+            (4.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (4.5, "click the first slot: picked, nothing bought", () => _hands.Mouse(_tree.ScreenOf("bag1"), MouseButton.Left, true)),
+            (4.55, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (5.0, "press the button", () => _hands.Mouse(_tree.ActionAt, MouseButton.Left, true)),
+            (5.05, "let go: bought", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (5.6, "click a slot too dear: the button says so", () => _hands.Mouse(_tree.ScreenOf("bag6"), MouseButton.Left, true)),
+            (5.65, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (6.4, "the third order sold with the market open: it plays at once", () =>
+            {
+                foreach (var (item, count) in (ReadOnlySpan<(string, int)>)[("glass", 12), ("silicon", 20), ("frame", 10)]) m().Knowledge.Sell(item, count);
+            }),
+            (8.6, "T puts it away", () => TabletHands.Press(Key.T)),
+            (9.0, "the last two orders sold with it away", () =>
+            {
+                foreach (var (item, count) in (ReadOnlySpan<(string, int)>)[("circuit", 20), ("copper", 20), ("mica", 10), ("hide", 5)]) m().Knowledge.Sell(item, count);
+            }),
+            (9.6, "T opens it again", () => TabletHands.Press(Key.T)),
+            (9.65, "to the market, if the board took it: two rows deciphering together", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
+            (9.7, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (11.8, "click the solar panel, opened by the fourth order: what it takes", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
+            (11.85, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (12.6, "T puts it away", () => TabletHands.Press(Key.T)),
+            (13.1, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {

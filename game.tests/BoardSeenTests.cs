@@ -165,10 +165,47 @@ public sealed class BoardSeenTests : IDisposable
         seen.Closed();
         Assert.True(seen.Lit);
         seen.Opened();
-        seen.MarketChosen();
+        Assert.Equal(0, seen.SeeOrders(1));
         Assert.False(seen.MarketNew);
         seen.Closed();
         Assert.False(seen.Lit);
+    }
+
+    [Fact]
+    public void TheMarketShownSaysHowManyOrdersWereSeenAndPlaysNoneTwice()
+    {
+        var seen = new BoardSeen([], 1);
+        Assert.Equal(1, seen.SeeOrders(3));
+        Assert.Equal(3, seen.OrdersSeen);
+        Assert.Equal(3, seen.SeeOrders(3));
+        Assert.True(seen.Unwritten);
+    }
+
+    [Fact]
+    public void TheKeysLagOverAnOrderAlreadySeenLightsNothing()
+    {
+        var seen = new BoardSeen([], 1);
+        seen.SeeOrders(2);
+        seen.ReadOrders(1);
+        Assert.False(seen.MarketNew);
+        seen.ReadOrders(2);
+        Assert.False(seen.MarketNew);
+    }
+
+    [Fact]
+    public void WithNothingKeptTheFirstShowingPlaysNothing()
+    {
+        var seen = new BoardSeen([]);
+        Assert.Equal(4, seen.SeeOrders(4));
+        Assert.False(seen.MarketNew);
+    }
+
+    [Fact]
+    public void AnOlderWorldThanWasSeenPlaysNothing()
+    {
+        var seen = new BoardSeen([], 3);
+        Assert.Equal(3, seen.SeeOrders(1));
+        Assert.Equal(3, seen.OrdersSeen);
     }
 
     [Fact]

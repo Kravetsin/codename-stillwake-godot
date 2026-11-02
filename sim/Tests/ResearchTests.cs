@@ -63,6 +63,7 @@ public class ResearchTests
         var w = SetUp(credits: 100_000);
         var panel = new Placement("machine", "solarPanel");
         Assert.Equal("building.unknown", w.M.Building.Problem(At(5, 1), panel));
+        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= ResearchSpec.Node("solarPanel")!.Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
         w.Do(new BuyBlock("solarPanel")).Run();
         Assert.Empty(w.Refusals);
         Assert.NotEqual("building.unknown", w.M.Building.Problem(At(5, 1), panel));
@@ -174,7 +175,7 @@ public class ResearchTests
         Assert.Equal(["building.unknown"], w.Refusals.Select(r => r.Reason));
         w.Refusals.Clear();
         w.Do(new BuyBlock("solarPanel")).Run();
-        Assert.Equal(["research.noCredits"], w.Refusals.Select(r => r.Reason));
+        Assert.Equal(["research.locked"], w.Refusals.Select(r => r.Reason));
     }
 
     [Fact]
