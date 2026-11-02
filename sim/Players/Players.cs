@@ -7,9 +7,9 @@ public sealed record Worn(int Peer, int Colour);
 
 /// <summary>
 /// What a hero's person looks like (2026-10-28-looks-are-printed): indices into the client's skins, hairs, hair colours,
-/// faces and beards (beard 0 none). Not checked: the client draws each by a non-negative modulo of its palette.
+/// faces, beards (beard 0 none) and clothes. Not checked: the client draws each by a non-negative modulo of its palette.
 /// </summary>
-public sealed record Look(int Skin, int Hair, int HairColour, int Face, int Beard)
+public sealed record Look(int Skin, int Hair, int HairColour, int Face, int Beard, [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Outfit = 0)
 {
     /// <summary>Look 0, every index 0: what a peer that never chose wears.</summary>
     public static readonly Look Zero = new(0, 0, 0, 0, 0);

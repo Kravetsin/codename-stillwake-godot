@@ -39,7 +39,7 @@ public static class Settings
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the shimmer in {File}: it holds for this run alone");
     }
 
-    private static readonly string[] LookKeys = ["skin", "hair", "hairColour", "face", "beard"];
+    private static readonly string[] LookKeys = ["skin", "hair", "hairColour", "face", "beard", "outfit"];
 
     /// <summary>The look this player chose, kept from an earlier run; null before it ever chose one.</summary>
     public static Look? Look()
@@ -48,7 +48,7 @@ public static class Settings
         kept.Load(File);
         if (!kept.HasSection("look")) return null;
         var i = LookKeys.Select(k => kept.GetValue("look", k, 0).AsInt32()).ToArray();
-        return new Look(i[0], i[1], i[2], i[3], i[4]);
+        return new Look(i[0], i[1], i[2], i[3], i[4], i[5]);
     }
 
     /// <summary>Keeps <paramref name="look"/> for the next run.</summary>
@@ -56,7 +56,7 @@ public static class Settings
     {
         var kept = new ConfigFile();
         kept.Load(File);
-        int[] i = [look.Skin, look.Hair, look.HairColour, look.Face, look.Beard];
+        int[] i = [look.Skin, look.Hair, look.HairColour, look.Face, look.Beard, look.Outfit];
         for (int k = 0; k < LookKeys.Length; k++) kept.SetValue("look", LookKeys[k], i[k]);
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the look in {File}: it holds for this run alone");
     }

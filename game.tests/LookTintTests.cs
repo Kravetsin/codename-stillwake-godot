@@ -48,22 +48,11 @@ public class LookTintTests
     }
 
     [Fact]
-    public void A_darker_skin_darkens_a_head_all_over_and_a_bare_arm_only_where_skin()
+    public void A_darker_skin_darkens_a_head_and_a_skin_picture_but_no_clothes()
     {
         int deepest = HeroLooks.Skins.Length - 1;
-        var head = LookTint.Of("head", deepest, 0)!.Value;
-        Assert.True(head.Apply(0.8f, 0.7f, 0.2f).R < 0.8f);
-        var arm = LookTint.Of("jumpsuit_forearm", deepest, 0)!.Value;
-        Assert.True(arm.Apply(226 / 255f, 192 / 255f, 159 / 255f).R < 226 / 255f);
-        Assert.Equal((212 / 255f, 163 / 255f, 75 / 255f), arm.Apply(212 / 255f, 163 / 255f, 75 / 255f));
+        Assert.True(LookTint.Of("head", deepest, 0)!.Value.Apply(0.8f, 0.7f, 0.2f).R < 0.8f);
+        Assert.True(LookTint.Of("outfit_1_upperArm_skin", deepest, 0)!.Value.Apply(0.8f, 0.7f, 0.2f).R < 0.8f);
+        Assert.Null(LookTint.Of("outfit_1_upperArm", deepest, 0));
     }
-
-    [Theory]
-    [InlineData(226, 192, 159, true)] // skin, its base
-    [InlineData(160, 102, 95, true)] // skin, its deep
-    [InlineData(212, 163, 75, false)] // the jumpsuit's yellow
-    [InlineData(225, 188, 108, false)] // lit
-    [InlineData(118, 58, 49, false)] // in deep shadow
-    [InlineData(60, 68, 84, false)] // gear
-    public void Skin_is_told_from_the_jumpsuit_and_the_gear(int r, int g, int b, bool skin) => Assert.Equal(skin, LookTint.IsSkin(r / 255f, g / 255f, b / 255f));
 }

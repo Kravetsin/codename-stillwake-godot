@@ -1,6 +1,6 @@
 # The player's colour is a mark
 
-- Status: accepted for the new art ([anime cel](2026-11-01-anime-cel-art.md)); the pixel hero still swaps its ramps until the switch.
+- Status: superseded by [one body, four sets of clothes](2026-11-02-hero-clothes.md) on where the mark sits; a mark, not a repainted suit, stands.
 
 A suit used to be repainted whole in its player's colour (`SuitArt.Of`, a swap of exact ramps). The user wants suits with a style
 and colour of their own later, and repainting would spoil them; smooth art has no exact ramps to swap either, so it would have

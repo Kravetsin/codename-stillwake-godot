@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://chnaymumdogp1"
-path="res://.godot/imported/hero_jumpsuit_forearm.png-3c1e8b53c02b0fa454082ece281d33e9.ctex"
+uid="uid://bmskki7w4oh3d"
+path="res://.godot/imported/hero_outfit_2_torso_skin.png-cec16c921024a16b21e846d67a579462.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://art/hd/hero_jumpsuit_forearm.png"
-dest_files=["res://.godot/imported/hero_jumpsuit_forearm.png-3c1e8b53c02b0fa454082ece281d33e9.ctex"]
+source_file="res://art/hd/hero_outfit_2_torso_skin.png"
+dest_files=["res://.godot/imported/hero_outfit_2_torso_skin.png-cec16c921024a16b21e846d67a579462.ctex"]
 
 [params]
 

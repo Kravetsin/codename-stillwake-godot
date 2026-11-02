@@ -11,6 +11,7 @@ public static partial class En
         ["look.hairColour"] = "Hair colour",
         ["look.face"] = "Face",
         ["look.beard"] = "Beard",
+        ["look.outfit"] = "Clothes",
         ["look.none"] = "None",
         ["look.next"] = "The lifepod prints you in this look the next time it makes your hero.",
         ["look.done"] = "Done",
