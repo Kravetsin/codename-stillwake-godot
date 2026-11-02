@@ -367,7 +367,7 @@ const threadGlow = (t, T) => bloom(mask(t.w, t.h, (fill, stroke) => {
   }
 }), T.glow, 2.2, 1, 1);
 const threadHaze = (t, T) => bloom(mask(t.w, t.h, (fill, stroke) => { for (const s of t.s) stroke(pathOf(s.p), .6); }), T.glow, 3, .42);
-function stacked(c, d) { const x = c.getContext('2d'); x.drawImage(d, 0, 0); return c; }
+function stacked(c, d) { const x = c.getContext('2d'); x.globalCompositeOperation = 'source-over'; x.drawImage(d, 0, 0); return c; }
 
 /* ---- Roots from the surface, drawn wet and split; only a bit of pale new growth at their tips gives light. ---- */
 const ROOT = { dark: '#2e2118', base: '#57432f', lite: '#7c6548', tip: '#a9b98a', glow: '#b4f07c' };
