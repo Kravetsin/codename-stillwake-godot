@@ -30,4 +30,3 @@ into oxygen. Liquid oxygen already reads in the pipes: tanks hold it, vaporizers
 
 - Cisterns passing water to each other; empty bottles; bottling water again; hydrogen; freezing or boiling.
 - Switching an electrolyser off. It shows why it stands by a red lamp and, under the pointer, in words.
-- The ink pictures of the bottle and the electrolyser: pixel art for now, as every picture falls back to it.

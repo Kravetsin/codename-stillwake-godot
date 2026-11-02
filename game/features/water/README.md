@@ -19,4 +19,4 @@ Water as the player sees it ([water-to-oxygen](../../../docs/decisions/2026-11-0
 - **By the pointer:** out of every overlay and with no card in hand, a cistern says `Water · 3.5/8 bottles`; an electrolyser
   `Splitting water into liquid oxygen`, or why it stands (`water.noWater`, `water.tanksFull`, `water.noPower`). Off them, only
   its own tip is taken away, so the capacitor bank's stays.
-- The overlays are pixel art over the ink pictures; they meet the cistern's glass, as the ink cistern keeps its layout.
+- Every picture has an ink version (`tools/anime-art`, `machines.js` and `items.js`) over the pixel one; both keep one layout.

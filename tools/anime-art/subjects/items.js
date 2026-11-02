@@ -644,6 +644,20 @@ P.canister = (a) => {
   a.shape(rr(5.6, 8, 4.8, 3, .2), { base: '#d4d4cc', shade: '#9a9c9c', deep: '#7a7c80', lite: '#ecece6' }, { outer: false, shade: band(9.6, 8, 10.4, 11) });
   a.flat(band(6.6, 9, 9.2, 9.9), '#2a5488');
 };
+const BOTTLE = { base: '#8db4c2', shade: '#56808f', deep: '#3d5f6e', lite: '#cfe6ee', spec: '#f4fbfd' };
+const WATERED = { base: '#2c8ca8', shade: '#1f6f80', deep: '#165a6a', lite: '#7fd8e6', spec: '#d6f4fa' };
+P.water = (a) => {
+  // A glass bottle of melted ice (water): a copper cap, the water in it, a white drop on its side.
+  a.shape(rr(6.2, .8, 3.6, 1.8, .3), COPPERY, { lite: band(6.2, .8, 9.8, 1.3), shade: band(9, .8, 9.8, 2.6) });
+  a.shape(rr(6.8, 2.4, 2.4, 2.6, .2), BOTTLE, { outer: false, lite: band(6.8, 2.4, 7.5, 5), shade: band(8.5, 2.4, 9.2, 5) });
+  a.shape('M5.6 5.2L6.8 4.6L9.2 4.6L10.4 5.2L12 6.8L12 14L11 15.2L5 15.2L4 14L4 6.8Z', BOTTLE, {
+    lite: 'M4 6.8L5.6 5.2L6.8 4.6L6.2 6.4L5.4 15.2L5 15.2L4 14Z', shade: 'M10.4 5.2L12 6.8L12 14L11 15.2L10 15.2L10.6 6.6Z' });
+  a.shape('M4.6 8.4L11.4 8.4L11.4 13.8L10.6 14.6L5.4 14.6L4.6 13.8Z', WATERED, {
+    outer: false, lite: band(4.6, 8.4, 11.4, 9.1), shade: band(10.2, 8.4, 11.4, 14.6), deep: band(4.6, 13.6, 11.4, 14.6) });
+  a.flat('M8 9.6C8 9.6 6.6 11.4 6.6 12.2C6.6 13 7.2 13.5 8 13.5C8.8 13.5 9.4 13 9.4 12.2C9.4 11.4 8 9.6 8 9.6Z', '#eef8fb');
+  a.flat(ell(7.4, 12.2, .35, .5), '#9ad8e8');
+  a.flat(band(4.9, 6.4, 5.4, 12.6), '#e4f4f8');
+};
 P.display = (a) => {
   a.shape('M5.6 12.8L10.4 12.8L10.8 14.2L12 15.2L4 15.2L5.2 14.2Z', GUN, { lite: 'M4 14.6L12 14.6L12 15.2L4 15.2Z', shade: 'M9.4 12.8L10.4 12.8L10.8 14.2L12 15.2L9.4 15.2Z' });
   box(a, .9, 1.4, 14.2, 11.8, GUN, { r: .5, spec: true });
