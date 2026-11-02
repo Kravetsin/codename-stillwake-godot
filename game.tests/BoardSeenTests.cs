@@ -48,7 +48,7 @@ public sealed class BoardSeenTests : IDisposable
         string shape = BoardSlots.Of(["scrap"], BoardThings.All, []).Select(s => s.Id).First(id => id != "scrap");
         seen.Read(Notes(["scrap"], shape));
         Assert.True(seen.Lit);
-        Assert.True(seen.Marked(shape));
+        Assert.Contains(shape, seen.Unread);
     }
 
     [Fact]
@@ -71,12 +71,14 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
-    public void OpeningPutsOutTheDotAndTheMarksStayUntilItCloses()
+    public void OpeningPutsOutTheDotAndALandedNoteIsMarkedUntilItCloses()
     {
         var seen = new BoardSeen([]);
         seen.Read(["scrap"]);
         seen.Opened();
         Assert.False(seen.Lit);
+        Assert.False(seen.Marked("scrap"));
+        seen.Land("scrap");
         Assert.True(seen.Marked("scrap"));
         seen.Closed();
         Assert.False(seen.Lit);
@@ -84,14 +86,16 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
-    public void WhatArrivesWhileItIsOpenIsSeenWhenItCloses()
+    public void ClosingUnreadLeavesTheDotLitAndTheNotesUnread()
     {
         var seen = new BoardSeen([]);
+        seen.Read(["scrap", "iron"]);
         seen.Opened();
-        seen.Read(["scrap"]);
-        Assert.True(seen.Marked("scrap"));
+        seen.Land("scrap");
         seen.Closed();
-        Assert.False(seen.Lit);
+        Assert.True(seen.Lit);
+        Assert.Equal(["iron"], seen.Unread);
+        Assert.Contains("scrap", seen.Seen);
     }
 
     [Fact]

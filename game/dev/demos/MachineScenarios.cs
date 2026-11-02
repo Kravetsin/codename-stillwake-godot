@@ -162,7 +162,7 @@ public sealed class BoardScenario : DevScenario
 
     public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, Args.Given("--board"));
 
-    public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M));
+    public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M, Args.Given("--board")));
 }
 
 [Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]

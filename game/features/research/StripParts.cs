@@ -59,11 +59,14 @@ public sealed class StripParts(TipSpots tips)
     public Placement? PlacementOf(string id) => _placements.GetValueOrDefault(id);
 
     /// <summary>Empties the strip's columns.</summary>
-    public void Clear()
+    public void Clear() => Clear(Facts);
+
+    /// <summary>Empties <paramref name="box"/>.</summary>
+    public static void Clear(Control box)
     {
-        foreach (var child in Facts.GetChildren())
+        foreach (var child in box.GetChildren())
         {
-            Facts.RemoveChild(child);
+            box.RemoveChild(child);
             child.QueueFree();
         }
     }
