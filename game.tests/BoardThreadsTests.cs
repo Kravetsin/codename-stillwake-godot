@@ -94,15 +94,16 @@ public class BoardThreadsTests
     }
 
     [Fact]
-    public void TheEngineShowsOnlyByAClick()
+    public void AClickOnAPlateAddsNoShapeToTheBoard()
     {
         var read = Read(["plate"], counts: new() { ["plate"] = 3 });
         Assert.Equal(BoardShow.Unseen, Picture(read).Shows["engine"]);
-        Assert.Equal(BoardShow.Silhouette, Picture(read, picked: "plate").Shows["engine"]);
+        Assert.Equal(BoardShow.Unseen, Picture(read, picked: "plate").Shows["engine"]);
+        Assert.Equal(Shapes(Picture(read)), Shapes(Picture(read, picked: "plate")));
     }
 
     [Fact]
-    public void PickingAShapeShowsWhatIsOneStepFromItAndNoFurther()
+    public void APickedShapeStaysShownThoughThreadsMoveOnAndShowsNoOther()
     {
         BoardThing Part(string id) => new(id, [("p", 1)], null, false);
         BoardThing[] things =
@@ -114,8 +115,8 @@ public class BoardThreadsTests
         var read = Read(["p"]);
         BoardPicture With(string? picked) => BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, picked);
         Assert.Equal(BoardShow.Unseen, With(null).Shows["mid"]);
-        Assert.Equal(BoardShow.Silhouette, With("top").Shows["mid"]);
-        Assert.Equal(BoardShow.Unseen, With("close1").Shows["mid"]);
+        Assert.Equal(BoardShow.Unseen, With("top").Shows["mid"]);
+        Assert.Equal(BoardShow.Silhouette, With("mid").Shows["mid"]);
     }
 
     [Fact]
