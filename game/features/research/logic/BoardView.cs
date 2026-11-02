@@ -23,8 +23,8 @@ public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<
 public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, IReadOnlyList<(string Note, string Shape)> Threads);
 
 /// <summary>
-/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is known. A shape shows only at a thread's end or
-/// linked to what is picked.
+/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is known. A shape shows at a thread's end or linked
+/// to what is picked. One with every part noted always shows: crowded off its parts' threads, it hangs one from the part noted last.
 /// </summary>
 public static class BoardView
 {
@@ -54,6 +54,13 @@ public static class BoardView
                 threads.Add((slot.Id, shape));
                 ends.Add(shape);
             }
+        }
+        foreach (var slot in slots)
+        {
+            if (notes.Contains(slot.Id) || ends.Contains(slot.Id) || byId.GetValueOrDefault(slot.Id) is not { Parts.Count: > 0 } thing) continue;
+            if (!thing.Parts.All(p => notes.Contains(p.Item))) continue;
+            threads.Add((slots.Last(s => thing.Parts.Any(p => p.Item == s.Id)).Id, slot.Id));
+            ends.Add(slot.Id);
         }
         var shows = new Dictionary<string, BoardShow>(StringComparer.Ordinal);
         foreach (var slot in slots)

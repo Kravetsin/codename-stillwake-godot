@@ -7,7 +7,7 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>What a note's threads run to (docs/plans/board.md): few, so a plate's many uses do not fill the board.</summary>
 public static class BoardThreads
 {
-    /// <summary>How many threads a note has at most.</summary>
+    /// <summary>How many threads a note runs to the closest to done; a shape left with no thread may add one (<see cref="BoardView"/>).</summary>
     public const int Most = 3;
 
     /// <summary>The shapes <paramref name="note"/> is a part of, closest to done first, ties in content order. Never to what the market opens.</summary>
