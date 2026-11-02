@@ -277,6 +277,20 @@ public class ShotsTests
     }
 
     [Fact]
+    public void ANailAtASentrysBodyHighOnItsStiltsHitsIt()
+    {
+        var w = Space();
+        var debris = (DebrisState)w.M.Debris.Slice;
+        debris.Pieces.Add(new Piece { Id = debris.NextId++, Zone = Spec.Debris.Far.Id, Item = "engineBlock", X = 60_000, Y = 10_000, Start = 60_000, SeenAt = debris.Clock });
+        SentryTests.Guarded(w);
+        w.Do(new Crew.Enter(10 * 320 + 54)).Run();
+        w.Do(new Release(Spec.Creatures.Sentry.Id, 8 * 320 + 60)).Run();
+        var sentry = w.M.Creatures.Creatures.Single();
+        w.Do(new Fire(Nailer, sentry.X - 2 * Unit, sentry.Y - 2 * Unit - Unit / 2, Right)).Run();
+        Assert.Equal(Hit, sentry.Damage);
+    }
+
+    [Fact]
     public void ANailOnASentryThenAnAxeOnItsWreckTheNextTickAreBothAnswered()
     {
         var w = Space();

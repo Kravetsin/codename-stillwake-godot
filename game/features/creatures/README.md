@@ -21,7 +21,7 @@
 | `logic/IstukanMotion.cs` | How it moves and its moments, read off the sim. |
 | `logic/IstukanFate.cs` | Why one is gone: calmed, killed or shut down. |
 | `logic/IstukanRig.cs` | Where its parts go in a pose, in ink: plain C#, tested. |
-| `TickBodies.cs` | The tick (the sentry): sprite, lamp, arcs, burner, sparks, death. |
+| `TickBodies.cs` | The tick (the sentry), drawn at `TickRig.Size`: sprite, lamp, arcs, burner, sparks, death. |
 | `ShotsView.cs` | Every peer's shots but a guest's own, drawn a tick behind; heard fired; their hits; the sentry's arcs. |
 | `logic/TickArt.cs` | The tick's sprite drawn from its pose (the page's `drawTick`): plain C#, tested. |
 | `logic/TickMotion.cs` | How a tick moves and its moments, read off the sim. |

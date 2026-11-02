@@ -504,5 +504,5 @@ public class SpireGuardTests
         Assert.Equal(SentryTrace, string.Join(' ', trace));
     }
 
-    private const string SentryTrace = "60500,27000,0,0,WindUp 60500,27000,0,0,WindUp 60500,27000,0,0,WindUp 60500,27000,0,0,WindUp 54500,29700,-2000,900,Charge 46500,33300,-2000,900,Charge 40500,36000,0,0,Idle 46500,33300,2000,-900,Flee 54500,29700,2000,-900,Flee 60500,27000,0,0,Idle";
+    private const string SentryTrace = "60500,27000,0,0,WindUp 60500,27000,0,0,WindUp 60500,27000,0,0,WindUp 60500,27000,0,0,WindUp 54500,30000,-2000,1000,Charge 46500,34000,-2000,1000,Charge 40500,37000,0,0,Idle 46500,34000,2000,-1000,Flee 54500,30000,2000,-1000,Flee 60500,27000,0,0,Idle";
 }

@@ -15,6 +15,9 @@ public readonly record struct InkSlot(string Part, bool Shines, double A, double
 /// </summary>
 public sealed class TickRig
 {
+    /// <summary>How big the ink tick is drawn, of its pictures' size: drawn whole it stood too large for the wreck under it.</summary>
+    public const float Size = 0.65f;
+
     /// <summary>The share of a stride a foot stays planted: it slides back as the body goes on, then swings ahead.</summary>
     private const double Stance = 0.72;
 

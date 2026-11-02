@@ -69,7 +69,7 @@ public partial class TickBodies : Node2D
                 Anchors = Art.Draw(Motion.Pose);
                 Paint(Art.Albedo, Art.Silhouette, Art.Emission);
             }
-            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Motion.Flash);
+            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Motion.Flash, _ink != null ? TickRig.Size : 1);
         }
 
         /// <summary>Where a point of its sprite (<see cref="TickArt.Anchors"/>) is in the world this frame, the middle of its pixel if it has pixels.</summary>
