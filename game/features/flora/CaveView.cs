@@ -499,7 +499,7 @@ public partial class CaveView : Node2D, ILightSource
     {
         if (Glows.TryGetValue(name, out var known)) return known;
         if (!ResourceLoader.Exists($"res://art/{name}_glow.png")) return Glows[name] = null;
-        var texture = PixelArt.Picture($"{name}_glow");
+        var texture = PixelArt.Logical($"{name}_glow");
         var image = texture.GetImage();
         if (image.IsCompressed()) image.Decompress();
         var sum = Vector2.Zero;
