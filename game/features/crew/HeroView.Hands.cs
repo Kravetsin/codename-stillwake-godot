@@ -63,7 +63,7 @@ public partial class HeroView
         var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, driver?.Work ?? 1);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);
-        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister)) _act.Play(Floats);
+        if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister or Sim.Water.PourWater)) _act.Play(Floats);
         // Held on a plan it can work, the hero turns its screwdriver at it.
         bool working = builds && aim is { InReach: true, Work.Problem: null };
         // A right click with a canister in hand breathes it (0047).

@@ -32,8 +32,11 @@ public class TestbedTests
         Assert.All(m.Pipes.Spans, s => Assert.True(m.Pipes.FluidAt(s.A) is not { } a || m.Pipes.FluidAt(s.B) is not { } b || a == b, $"span {s.A}–{s.B}"));
         var cisterns = m.Grid.MachinesOf("cistern");
         Assert.Equal(2, cisterns.Count);
-        var water = m.Pipes.Networks.Single(n => m.Pipes.FluidAt(n.Cells[0]) == Stillwake.Content.Fluids.Water);
-        Assert.Equal(cisterns.Select(c => c.Id).Order(), water.Machines.Order());
+        // The first cistern piped to the second, the second's output to the electrolyser, which splits from the start (water).
+        int electrolyser = m.Grid.MachinesOf("electrolyser").Single().Id;
+        Assert.Contains(m.Pipes.Networks, n => n.Machines.Order().SequenceEqual(cisterns.Select(c => c.Id).Order()));
+        Assert.Contains(m.Pipes.Networks, n => n.Machines.Contains(electrolyser) && n.Machines.Contains(cisterns[1].Id));
+        Assert.Null(m.Water.Stalled(electrolyser));
     }
 
     private static int IdOf(Registry m, string kind) => m.Grid.Machines.Single(x => x.Kind == kind).Id;

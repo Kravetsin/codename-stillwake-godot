@@ -52,7 +52,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   ends of different fluids (`pipes.mixedFluid`): an end's fluid is its port's, else its line's, and a line with no port
   matches any. Only the two ends count: output → joint → output is laid. Valves never mix fluids, as lines ignore them.
   Liquid oxygen leaves a tank and enters a vaporizer (kind `generator`), air leaves the vaporizer and enters a vent
-  (liquid-oxygen); water's ports are the cistern's, its input left and output right, which holds nothing yet.
+  (liquid-oxygen); water leaves a cistern's right and enters an electrolyser, whose liquid oxygen enters a tank's right (water).
 
 ## API
 

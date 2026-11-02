@@ -102,8 +102,10 @@ public static class Items
         // Dug out of a planet's caves (0080): copper ore from its veins, an ingot an ore at the furnace's heat, as slow as rock.
         new("copperOre", 250, Yields: [("copper", 1)], SmeltTicks: 160, Group: ItemGroup.Salvage),
         new("copper", 250),
-        // From ice veins and crystals; nothing melts it yet: the jump's and the engine's cost to come.
-        new("ice", 250),
+        // From ice veins and crystals; melted into a bottle of water at the furnace (water), the jump's and the engine's cost to come.
+        new("ice", 250, Yields: [(Water.Item, 1)], SmeltTicks: 40),
+        // A glass bottle of melted ice, poured into a cistern (water).
+        new(Water.Item, 50),
         // Broken off the deep's crystals and out of geodes: for sensors and machine modules to come.
         new("crystal", 100),
         // Off the violet glowcaps: the farm's second crop, grown as a seed is into less biomass but giving back 1.1 spores on

@@ -111,6 +111,7 @@ public static class Research
                 Block(Materials, "circuit"),
                 Block(Materials, "solarCell"),
                 Block(Machines, "assembler"),
+                Block(Power, "electrolyser"),
                 Block(Machines, "autoTradeStation"),
                 Up("bag6"),
                 Up("tradeSlots4")),

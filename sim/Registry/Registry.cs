@@ -18,6 +18,7 @@ using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 using Stillwake.Sim.Rooms;
 using Stillwake.Sim.Trade;
+using Stillwake.Sim.Water;
 
 namespace Stillwake.Sim;
 
@@ -51,6 +52,7 @@ public sealed class Registry
     public LogisticsModule Logistics { get; }
     public CreaturesModule Creatures { get; }
     public TradeModule Trade { get; }
+    public WaterModule Water { get; }
 
     /// <summary>The rules of the kind of surface this registry runs (0076): what the client draws and allows by.</summary>
     public Surfaces.Kind Rules => Grid.Rules;
@@ -90,7 +92,9 @@ public sealed class Registry
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
         Landing = new LandingModule(Grid, Grid, Power, Crew, Items, Items);
         Trade = new TradeModule(Grid, Items, Items, Knowledge);
-        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade];
+        // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 44, run and saved last.
+        Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
+        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

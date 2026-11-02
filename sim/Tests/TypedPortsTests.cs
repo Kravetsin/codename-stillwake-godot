@@ -121,15 +121,16 @@ public class TypedPortsTests
     [Fact]
     public void KeepsADrawnSpanBetweenTwoOutputsThroughALoad()
     {
-        // The two tanks' ports joined straight by a pipe drawn under them: no longer laid, still kept.
+        // The two tanks' outputs joined straight by a pipe drawn under them, through the first's input (water): no longer
+        // laid, still kept.
         string[] rows = [.. Ship.Split('\n').Select(r => r.Trim())];
         string[] under = ["", "", "", "", "", "", "-------------"];
         var w = new Scenario(Layout.Parse(rows, under));
-        Assert.Equal([new PipeSpan(w.At(0, 6), w.At(12, 6), true)], w.M.Pipes.Spans);
+        Assert.Equal([new PipeSpan(w.At(0, 6), w.At(3, 6), true), new PipeSpan(w.At(3, 6), w.At(12, 6), true)], w.M.Pipes.Spans);
         w.Reload().Run();
-        Assert.Equal([new PipeSpan(w.At(0, 6), w.At(12, 6), true)], w.M.Pipes.Spans);
+        Assert.Equal([new PipeSpan(w.At(0, 6), w.At(3, 6), true), new PipeSpan(w.At(3, 6), w.At(12, 6), true)], w.M.Pipes.Spans);
         // Laid again after the load: already there, before the ports are asked.
-        w.Do(new LayPipe(w.At(0, 6), w.At(12, 6))).Run();
+        w.Do(new LayPipe(w.At(3, 6), w.At(12, 6))).Run();
         Assert.Equal(["pipes.twice"], Reasons(w));
         Assert.Equal(2, Assert.Single(w.M.Pipes.Networks).Machines.Count);
     }

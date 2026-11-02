@@ -127,6 +127,10 @@ public enum MachineTrait
     Sells = 1024,
     /// <summary>Sends its capsule by itself whenever it is home and there is something to sell (Trade): the auto trade station.</summary>
     AutoSends = 2048,
+    /// <summary>Holds water, poured in by the bottle and given on through its output (Water): the cistern.</summary>
+    HoldsWater = 4096,
+    /// <summary>Splits the water of the cisterns on its input's network into liquid oxygen for the tanks on its output's (Water): the electrolyser.</summary>
+    Electrolyses = 8192,
 }
 
 /// <summary>
@@ -140,10 +144,12 @@ public static class Machines
 {
     public static readonly IReadOnlyList<MachineSpec> All =
     [
-        new("tank", 4, 4, [new(0, 2, Way.Out, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
-        // Water's first ports (typed-ports): it holds nothing yet, so it needs no power and air ignores it.
-        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
+        new("tank", 4, 4, [new(0, 2, Way.Out, Fluids.LiquidOxygen), new(3, 2, Way.In, Fluids.LiquidOxygen)], [("plate", 8), ("tube", 2), ("gear", 2)], BuildTicks: 160, Has: MachineTrait.Gas, Menu: new(MenuTabs.Air, 20), Char: 'T', Means: "oxygen tank: draw its whole footprint"),
+        // Holds water poured in by the bottle and gives it on to an electrolyser (water); it needs no power and air ignores it.
+        new("cistern", 4, 4, [new(0, 2, Way.In, Fluids.Water), new(3, 2, Way.Out, Fluids.Water)], [("plate", 4), ("tube", 2)], BuildTicks: 160, Has: MachineTrait.HoldsWater, Menu: new(MenuTabs.Air, 25), Char: 'c', Means: "cistern: draw its whole footprint"),
         new("generator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen), new(3, 0, Way.Out, Fluids.Air)], [("frame", 2), ("rotor", 2), ("tube", 2), ("wire", 4)], BuildTicks: 200, Draws: 4, Plug: (16, 5), Has: MachineTrait.AirSource, Menu: new(MenuTabs.Air, 30), Char: 'G', Means: "oxygen generator: draw its whole footprint"),
+        // Splits a cistern's water into liquid oxygen for a tank, the hydrogen let go (water): water in on its right, oxygen out on its left.
+        new("electrolyser", 4, 6, [new(3, 5, Way.In, Fluids.Water), new(0, 5, Way.Out, Fluids.LiquidOxygen)], [("glass", 6), ("plate", 4), ("tube", 4), ("circuit", 2)], BuildTicks: 200, Draws: 5, Plug: (16, 41), Has: MachineTrait.Electrolyses, Menu: new(MenuTabs.Air, 35), Char: 'y', Means: "electrolyser: draw its whole footprint"),
         // Of the one photosensitive panel nothing makes: its blueprint is the black market's, for many credits (black-market).
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
         new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),

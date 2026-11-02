@@ -74,9 +74,8 @@ Oxygen: liquid in tanks, turned into air by vaporizers (liquid-oxygen), and how 
   aired cells, leak, the liquid behind the vaporizers feeding it (each tank once; null for none), ticks it lasts
   leaving at the lesser of the room's draw and what they make, what they make a period, and why a vacuum gets none
   (`atmosphere.noVent`, `.notPiped`, `.dry`, `.unpowered`). Read on a timer; breathing and other rooms not counted.
-- **Operations** (`IAtmosphereOps`): `Breathe(cell, amount)` — takes up to `amount` for a hero's head or a
-  furnace's fire in `cell`, if it holds air; returns how much. Emptied tanks leave the list at once. Call it in the
-  simulation phase after atmosphere (crew and furnace do).
+- **Operations** (`IAtmosphereOps`): `Breathe(cell, amount)` — up to `amount` for a hero's head or a fire in `cell`,
+  if it holds air, after atmosphere's tick (crew, furnace); returns how much. `Fill(tank, amount)` — liquid, up to capacity.
 - **Commands:** `LoadCanister(Tank)`, refused with `atmosphere.noTank` (a vaporizer too), `atmosphere.tankFull`
   or `items.notEnough`.
 - **Fuzz:** mostly a canister into a tank the grid has, else into ids 0–5, mostly no tank.

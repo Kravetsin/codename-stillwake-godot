@@ -43,6 +43,12 @@ public interface IAtmosphereOps
     /// how many, none anywhere else. Emptied tanks leave the list at once.
     /// </summary>
     int Breathe(int cell, int amount);
+
+    /// <summary>
+    /// Puts up to <paramref name="amount"/> of liquid oxygen into tank <paramref name="tank"/>, as much as it has room for (an
+    /// electrolyser's, water); returns how much. None into anything but a tank.
+    /// </summary>
+    int Fill(int tank, int amount);
 }
 
 /// <summary>
@@ -316,4 +322,20 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     // Operations.
 
     public int Breathe(int cell, int amount) => BreatheAt(cell, amount);
+
+    public int Fill(int tank, int amount)
+    {
+        if (!IsTank(tank)) return 0;
+        int added = Math.Min(amount, Content.Air.TankCapacity - OxygenIn(tank));
+        if (added <= 0) return 0;
+        _readFor = null;
+        var held = State.Tanks.Find(t => t.Tank == tank);
+        if (held != null) held.Oxygen += added;
+        else
+        {
+            State.Tanks.Add(new TankAir { Tank = tank, Oxygen = added });
+            State.Tanks.Sort((a, b) => a.Tank.CompareTo(b.Tank));
+        }
+        return added;
+    }
 }

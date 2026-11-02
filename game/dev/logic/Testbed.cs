@@ -33,7 +33,7 @@ public static class Testbed
     public static readonly IReadOnlyList<string> Crushed = ["rock", "asteroidOre", "ironOre", "gravel"];
 
     /// <summary>What a planet's caves and ruins give (0080, 0085, 0091), the motor made of their copper, a grazer's hide and fat, and the cape of cloth and hide, in the farm's crate too: the first is full.</summary>
-    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
+    public static readonly IReadOnlyList<string> Planet = ["copperOre", "copper", "ice", Content.Water.Item, "crystal", "spore", "mica", "magnetite", "motor", "alloyScrap", "arcShard", "cloth", "hide", "fat", "arcLamp", Cape.Item];
 
     /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart.</summary>
     public static readonly IReadOnlyList<string> Unmade = ["photoPanel"];
@@ -96,9 +96,9 @@ public static class Testbed
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......LUUU...#..TTL.kk.cc.ccJ.GG....L.$$#..L#",
-            "  #.OOOQQ..UUU.RRD..TT..kk.cc.ccggGG......$$DZZ.D",
-            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG...AACBBDZZ.D",
+            "  #.......LUUU...#..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
+            "  #.OOOQQ..UUU.RRD..TT..kk.cc.ccggGG.yy...$$DZZ.D",
+            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.yyAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
             "  #o#########################################__##",
             "  #XXXL#",
@@ -113,14 +113,16 @@ public static class Testbed
             "                    o              --",
             "                    -            -- -",
             "         o  --      -            - --",
-            "         --- -      --------------- ---",
+            "         - - -      --------------- ---",
+            // Room one's liquid under the floor, round the tank's own input (water).
+            "         ---",
         ],
         [
             ((7, 2), (10, 4)), ((7, 2), (11, 6)), ((7, 2), (19, 2)),
             ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (13, 4)),
-            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)),
+            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)),
         ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its 416.</summary>
@@ -227,11 +229,21 @@ public static class Testbed
         // In machine id order, as the slice keeps them.
         save["slices"]!["crafting"]!["queues"] = new JsonArray([.. new[] { Queue("former", "plate", 1, endless: true), Queue("assembler", "circuit", Assembling) }
             .OrderBy(q => (int)q["machine"]!)]);
+        // Both cisterns full of water, for the electrolyser to split from the start.
+        save["slices"]!["water"]!["cisterns"] = new JsonArray([.. machines.Where(m => (string?)m!["kind"] == "cistern").Select(m => (int)m!["id"]!).Order()
+            .Select(id => (JsonNode)new JsonObject { ["machine"] = id, ["amount"] = Content.Water.CisternCapacity })]);
         var world = World.Load(save.ToJsonString(), modules);
         // A drawn pipe meets only even cells and a cistern's output is on an odd one, so that span is laid, not drawn.
         var ports = Machines.Get("cistern").Ports;
         int Port((int X, int Y) at, int i) => (at.Y + ports[i].Y) * Map.Width + at.X + ports[i].X;
-        world.Step([new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0))]);
+        // The second cistern's water to the electrolyser, its liquid oxygen on to room two's tank, through joints: a span is at
+        // most twelve cells, and both its ports are on odd cells.
+        int Cell(int x, int y) => y * Map.Width + x;
+        world.Step([
+            new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
+            new Sim.Pipes.LayPipe(Port(CisternTo, 1), Cell(67, 11)), new Sim.Pipes.LayPipe(Cell(67, 11), Cell(77, 13)),
+            new Sim.Pipes.LayPipe(Cell(74, 13), Cell(63, 12)), new Sim.Pipes.LayPipe(Cell(63, 12), Cell(52, 11)), new Sim.Pipes.LayPipe(Cell(52, 11), Cell(43, 10)),
+        ]);
         world.Step([]);
         return world;
     }

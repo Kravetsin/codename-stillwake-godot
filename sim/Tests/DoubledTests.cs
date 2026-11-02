@@ -29,7 +29,8 @@ public class DoubledTests
         Assert.Equal((1, w.At(1, 1)), (tank.Id, tank.Cell));
         Assert.Equal(16, w.M.Grid.Footprint("tank", tank.Cell)!.Count);
         Assert.Equal(2, w.M.Grid.MachinesOf("vent").Single().Id);
-        Assert.Equal([w.At(1, 2)], w.M.Grid.PortsOf(tank));
+        // Its output at its block's top-left, its input three cells right (water).
+        Assert.Equal([w.At(1, 2), w.At(1, 2) + 3], w.M.Grid.PortsOf(tank));
     }
 
     [Fact]

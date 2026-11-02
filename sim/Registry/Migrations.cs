@@ -59,6 +59,13 @@ public static class Migrations
         // 42 → 43 (liquid-oxygen): the bytes stay, their meaning changes. A tank's oxygen is now liquid, a generator's
         // store and work its gas and progress; a tank piped straight to a vent no longer airs it, and the player re-pipes.
         root => root,
+        // 43 → 44 (water): a module added, its slice empty on the ship and every surface: no cistern held water before it.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                slices["water"] = new JsonObject { ["cisterns"] = new JsonArray(), ["making"] = new JsonArray() };
+            return root;
+        },
     ];
 
     /// <summary>An inventory of 36 own slots, then its equipment, as 38 own slots, then the same equipment.</summary>

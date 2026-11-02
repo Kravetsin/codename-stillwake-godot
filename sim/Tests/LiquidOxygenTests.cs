@@ -126,7 +126,8 @@ public class LiquidOxygenTests
         // Drawn before liquid oxygen: kept, as laid spans are, and feeding nothing.
         var w = new Scenario(Layout.Parse(["########", "#.TT...#", "#.TTV..#", "########"], ["", "  o", "  ---"]), doubled: true).Run(200);
         int vent = Ids(w, "vent")[0];
-        Assert.Single(w.M.Pipes.Spans);
+        // Through the tank's input, which the line passes under (water): two spans.
+        Assert.Equal(2, w.M.Pipes.Spans.Count);
         Assert.False(w.M.Atmosphere.Fed(vent));
         Assert.Equal((RoomStatus.Vacuum, (int?)null, "atmosphere.notPiped"), (Air(w).Status, Air(w).Oxygen, Air(w).Problem));
         Assert.Equal(Content.Air.Canister, Oxygen(w, Ids(w, "tank")[0]));

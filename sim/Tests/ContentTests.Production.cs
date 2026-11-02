@@ -109,7 +109,7 @@ public partial class ContentTests
     [Fact]
     public void SmeltingMakesWholeAmountsInWholeTicksOfItemsThatAreNotSalvageAndChainsOnlyUpInHeat()
     {
-        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz"];
+        string[] refined = ["silicon", "glass", "biomass", "biofuel", "copper", "ironOre", "gravel", "quartz", Content.Water.Item];
         foreach (var spec in Content.Items.All)
         {
             Assert.True(spec.Yields != null == (spec.SmeltTicks != null), spec.Id);
@@ -119,7 +119,7 @@ public partial class ContentTests
             foreach (var (item, amount) in spec.Yields.Concat((spec.Byproducts ?? []).Select(b => (b.Item, b.Max))))
             {
                 // What the Yields type held in TypeScript, materials and canisters, then silicon, glass, biomass, biofuel and
-                // copper, and the crusher's iron ore, gravel and quartz.
+                // copper, and the crusher's iron ore, gravel and quartz; and water melted of ice (water).
                 Assert.True(Materials.TryGet(item, out _) || item == "canister" || refined.Contains(item), item);
                 Assert.True(Content.Items.TryGet(item, out var yielded), item);
                 Assert.Null(Loot.Of(item));

@@ -125,7 +125,7 @@ public class PipeHandsTests
         // From the tank: the vaporizer's input.
         Assert.Equal([At(0, 2)], LitFrom(w, Middle(9, 2)));
         // From a bare cell: every port.
-        Assert.Equal([At(3, 0), At(0, 2), At(8, 2), At(0, 4), At(8, 4)], LitFrom(w, Middle(5, 0)));
+        Assert.Equal([At(3, 0), At(0, 2), At(8, 2), At(11, 2), At(0, 4), At(8, 4)], LitFrom(w, Middle(5, 0)));
         var hands = new PipeHands();
         Do(w, [new ButtonEvent(true, Middle(1, 2)), new ButtonEvent(false, Middle(1, 2))], hands: hands);
         Assert.Empty(hands.Lit);

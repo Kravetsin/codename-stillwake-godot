@@ -461,6 +461,9 @@ public static class Aiming
     {
         var grid = m.Grid;
         if (grid.MachineAt(cell) is { } tank && Stillwake.Content.Machines.Is(tank.Kind, Stillwake.Content.MachineTrait.Gas)) return new Use(new LoadCanister(tank.Id), m.Atmosphere.CanisterProblem(tank.Id, peer));
+        // A bottle is poured into a cistern; an electrolyser says to pipe it from one (water).
+        if (grid.MachineAt(cell) is { } watered && (Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.HoldsWater) || Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.Electrolyses)))
+            return new Use(new Sim.Water.PourWater(watered.Id), m.Water.PourProblem(watered.Id, peer));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
         // A platform opens only with power (Landing): E on a dark one says why, as on an empty canister.
