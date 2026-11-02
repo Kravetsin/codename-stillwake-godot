@@ -5,6 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `logic/Water.En.cs` | Its player text (`En`): the refusals, the pointer's tip. |
+| `logic/Water.Ru.cs` | Russian |
 | `logic/WaterShows.cs` | How water shows without a word and what the pointer says of it: the glass's frame, the bubbles' frame, the tip. |
 | `WaterLooks.cs` | Each cistern's water up its sight glass, each electrolyser's bubbles while it works and its lamp red while it stands. |
 

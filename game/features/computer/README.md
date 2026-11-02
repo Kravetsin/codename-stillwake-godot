@@ -9,6 +9,7 @@ its screen. Only the radar so far, and only a picture.
 | --- | --- |
 | `logic/Readout.cs` | A computer as its screen reads it: powered or not, its programs' buttons, what the screen shows |
 | `logic/Computer.En.cs` | Its player text (`En`) |
+| `logic/Computer.Ru.cs` | Russian |
 | `ComputerPanel.cs` | The window: the monitor, the side panel's buttons, the screen's line or program |
 | `RadarScreen.cs` | The radar program: the ship in the middle, rings, the sweep, a planet's curve below |
 | `ComputerScreens.cs` | Each computer's screen in the world: dark, running text, or the radar's sweep; its rack's lights; its glow |

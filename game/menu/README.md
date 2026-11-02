@@ -60,9 +60,9 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | ------------- | ------------------------------------------------------------------------------ | ----- |
 | `GameMenu.cs` | the menu, its pages and buttons, and Esc for the whole game                    | yes   |
 | `TitleScreen.cs` | the title: its name and choices fading in, the panel slid out, the update notice | yes |
-| `TitleItem.cs` | a title choice: words that light and slide under the pointer, a line under them | yes |
+| `TitleItem.cs` | a title choice: words that light and slide, a line under them | yes |
 | `TitleBackdrop.cs` | the title scene: the stars, the plate, its hero and lamp, what drifts by | yes |
-| `SettingsRows.cs` | the settings kept on this machine, the title's and the game menu's: slots, shimmer, logs | yes |
+| `SettingsRows.cs` | the settings kept on this machine, the title's and the game menu's: language, slots, shimmer, logs | yes |
 | `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
 | `TogetherPage.cs` | host or join on the relay, the password kept                             | yes   |
 | `MenuDemo.cs` | `-- --menu-demo`: a script for recordings, in the items demo's room            | yes   |
@@ -72,13 +72,14 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `logic/PlateArt.cs` | the title's plate: its size, the hero's seat, its pixels | no |
 | `Dither.cs` | the title's shade and glow, blended with noise on the final colour so no bands show | yes |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
-| `logic/Menu.En.cs` | Its player text (`En`) | no |
+| `logic/Menu.En.cs` | Its player text | no |
+| `logic/Menu.Ru.cs` | Russian | no |
 
-`game/shared/logic/Escape.cs` (what one press of Esc does) is tested by `EscapeTests`; the pick by `WorldPickTests`; the scene by `TitleSceneTests`.
+`game/shared/logic/Escape.cs` (a press of Esc) is tested by `EscapeTests`; the pick by `WorldPickTests`; the scene by `TitleSceneTests`.
 
 ## Deliberately not handled
 
-- Keys rebound, sound, video or language settings: there are none to set yet.
+- Keys rebound, sound or video settings: there are none to set yet.
 - Saving while joined to someone else's world: the world is the host's.
 - The testbed played together, saved, refilled or given items by a command: it is for looking, and
   starts afresh each time.

@@ -560,7 +560,7 @@ public partial class BuildMenu : CanvasLayer
             return;
         }
         var lines = CostLine.Lacking(Tools.CostOf(tool, m.Building.CostFor), [], _ui.Carried)
-            .Select(c => new TipLine($"{c.Count} {En.T($"item.{c.Item}")}", c.Tone, c.Item))
+            .Select(c => new TipLine(En.T("research.taken", ("n", c.Count), ("what", En.T($"item.{c.Item}"))), c.Tone, c.Item))
             .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
         // A wall's numbers: what it leaks, how it stands up to the meteors here.
         if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } place })

@@ -1,18 +1,36 @@
 using System.Linq;
 using Godot;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Players;
 
 namespace Stillwake.Game.Platform;
 
 /// <summary>
-/// This machine's player's settings, kept in Godot's user folder as the profile is (0032): the slots'
-/// size (0058), whether heat shimmers (0075) and the hero's look (2026-10-28-looks-are-printed). Read once at the start; a change in the menu is written at once. A file that cannot be read
+/// This machine's player's settings, kept in Godot's user folder as the profile is (0032): the language
+/// (2026-11-02-russian-language), the slots' size (0058), whether heat shimmers (0075) and the hero's look (2026-10-28-looks-are-printed). Read once at the start; a change in the menu is written at once. A file that cannot be read
 /// gives the defaults, one that cannot be written keeps the setting for this run alone.
 /// </summary>
 public static class Settings
 {
     private const string File = "user://settings.cfg";
+
+    /// <summary>The language kept; on a first run Russian on a Russian system, else English.</summary>
+    public static Language Language()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        return Languages.Named(kept.GetValue("ui", "language", "").AsString()) ?? Languages.OfSystem(OS.GetLocaleLanguage());
+    }
+
+    /// <summary>Keeps <paramref name="language"/> for the next run.</summary>
+    public static void Keep(Language language)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        kept.SetValue("ui", "language", Languages.NameOf(language));
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the language in {File}: it holds for this run alone");
+    }
 
     /// <summary>The slots' size kept, <see cref="SlotScale.Normal"/> on a first run.</summary>
     public static SlotScale SlotScale()

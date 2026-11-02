@@ -15,8 +15,8 @@ commands reach the sim; others' heroes come through the host.
 | `logic/LookTint.cs` | skin, hair on hi-res parts |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan |
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
-| `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
-| `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
+| `SwingSmear.cs` | a downstroke's swipe of light (0075) |
+| `logic/SwingArm.cs` | the front arm in swings; aiming the harpoon |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | the harpoon's line |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
@@ -59,9 +59,10 @@ commands reach the sim; others' heroes come through the host.
 | `logic/Markers.cs` | markers' list and shape |
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies from floor stacks (0061) |
-| `BodyView.cs` | each body, its beacon, its tip; gone, it crumbles (0061, 2026-10-29-body-bag) |
+| `BodyView.cs` | each body, its beacon, its tip; gone, it crumbles (0061) |
 | `logic/Rams.cs` | a creature's ram as met here (0103) |
 | `logic/Crew.En.cs` | its player text |
+| `logic/Crew.Ru.cs` | Russian |
 
 ## Guarantees
 

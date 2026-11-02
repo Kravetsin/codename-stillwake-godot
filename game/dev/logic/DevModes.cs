@@ -75,6 +75,10 @@ public static class DevModes
         new("--pick", DevShape.Flag, "with --card, the card in hand"),
         new("--shots", DevShape.Next, "with --charger, the screen saved to that folder at a few moments, then quits"),
         new("--slots", DevShape.Equals, "the slots' size shown for a recording, keeping nothing (Slots.ScaleNamed)"),
+        // The menus.
+        new("--lang", DevShape.Equals, "the language spoken for a recording, en or ru, keeping nothing"),
+        new("--lang-flip", DevShape.Equals, "the other language chosen that many seconds in, as the settings choose it"),
+        new("--title", DevShape.Either, "the title, as with no arguments, =key with that choice's panel open (title.settings)"),
         // Debris, wrecks and the ground.
         new("--arc-drill", DevShape.Flag, "with --asteroid, --planet or --ground, the drill in hand has the arc module fitted (0098)"),
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),

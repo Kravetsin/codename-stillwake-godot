@@ -103,7 +103,7 @@ public static partial class En
         ["tool.vent.about"] = "Airs its room from the oxygen in its pipes.",
         ["tool.tank.about"] = "Stores oxygen. Takes canisters.",
         ["tool.cistern.about"] = "Holds water poured in by the bottle. Piped in on the left, out on the right.",
-        ["tool.electrolyser.about"] = "Splits a cistern's water into liquid oxygen for a tank: water in on the right, oxygen out on the left.",
+        ["tool.electrolyser.about"] = "Splits a cistern's water into liquid oxygen for a tank: water in on the left, oxygen out on the right.",
         ["tool.generator.about"] = "Turns a tank's liquid oxygen into air on power: liquid in on the left, air out on the right.",
         ["tool.solarPanel.about"] = "Makes power where it sees the stars: out in space, no back wall behind it.",
         ["tool.burnerGenerator.about"] = "Makes power while it burns planks, breathing the air of its room. Lights its next fuel only while its network needs more than its panels make.",
