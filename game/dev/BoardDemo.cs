@@ -13,7 +13,7 @@ namespace Stillwake.Game.Dev;
 /// <c>-- --board</c>: the board on the tablet, a world's counts seeded through its save and nothing obtained during the run (docs/plans/board-plan.md,
 /// B-5 to B-7). Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: a find
 /// that lights the key (with something seeded), T, a click on the first note, a click on a shape, the wheel out, a click off everything, the first note dragged
-/// away, T again, a press on the key; each step is printed with its time.
+/// away, the board itself dragged, T again, a press on the key; each step is printed with its time.
 /// </summary>
 public partial class BoardDemo(Func<Registry> m) : Node
 {
@@ -110,6 +110,10 @@ public partial class BoardDemo(Func<Registry> m) : Node
             (6.8, "on", () => Drag(new Vector2(90, 45))),
             (6.9, "and on", () => Drag(new Vector2(90, 45))),
             (7.0, "let go: it stays, its threads with it", LetGo),
+            (7.1, "take the board itself", () => { if (First(BoardShow.Note) is { } note) _hands.Mouse(_tablet.ScreenOf(note) + new Vector2(-300, 120), MouseButton.Left, true); }),
+            (7.2, "drag it up and left", () => Drag(new Vector2(-200, -100))),
+            (7.3, "on: its corner out of the view, the threads still there", () => Drag(new Vector2(-200, -100))),
+            (7.4, "let go", LetGo),
             (7.6, "T puts it away: nothing new, the lamp dark", () => TabletHands.Press(Key.T)),
             (9.0, "press the key: the tablet again", () => _hands.Mouse(_tablet.KeyCovers.GetCenter(), MouseButton.Left, true)),
             (9.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),

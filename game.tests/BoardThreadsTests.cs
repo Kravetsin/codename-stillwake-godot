@@ -46,6 +46,54 @@ public class BoardThreadsTests
     }
 
     [Fact]
+    public void TheBatteryShowsOnceItsPartsAreKnownThoughNoAssemblerStands()
+    {
+        string[] found =
+        [
+            "scrapChunk", "hullPlate", "planks", "scrap", "iron", "nail", "wire", "plate", "gear", "tube", "rotor", "coil", "frame", "canister",
+            "cargoCrate", "rock", "quartz", "ice", "gravel", "ironOre", "asteroidOre", "silicon", "glass", "solarCell", "photoPanel", "circuit",
+        ];
+        var picture = Picture(Read(found, counts: found.ToDictionary(f => f, _ => 3)));
+        Assert.Equal(BoardShow.Silhouette, picture.Shows["battery"]);
+        Assert.Contains(("circuit", "battery"), picture.Threads);
+    }
+
+    [Fact]
+    public void AShapeCrowdedOffEveryPartHangsOneThreadFromThePartFoundLast()
+    {
+        BoardThing Part(string id, string item) => new(id, [(item, 1)], null, false);
+        BoardThing[] things =
+        [
+            new("whole", [("p", 100), ("q", 100)], null, false),
+            new("short", [("p", 100), ("never", 100)], null, false),
+            Part("p1", "p"), Part("p2", "p"), Part("p3", "p"), Part("q1", "q"), Part("q2", "q"), Part("q3", "q"),
+        ];
+        var read = Read(["p", "q"]);
+        var picture = BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, null);
+        Assert.Equal(("q", "whole"), Assert.Single(picture.Threads, t => t.Shape == "whole"));
+        Assert.Equal(BoardShow.Unseen, picture.Shows["short"]);
+    }
+
+    [Fact]
+    public void AShapeWithItsPartsKnownWhichAThreadReachesGetsNoOtherThread()
+    {
+        BoardThing[] things = [new("whole", [("p", 1), ("q", 1)], null, false)];
+        var read = Read(["p", "q"]);
+        var picture = BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, null);
+        Assert.Equal([("p", "whole"), ("q", "whole")], picture.Threads);
+    }
+
+    [Fact]
+    public void WhatTheMarketOpensShowsNoShapeThoughItsPartsAreKnown()
+    {
+        BoardThing[] things = [new("sold", [("p", 1)], null, true)];
+        var read = Read(["p"]);
+        var picture = BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, null);
+        Assert.False(picture.Shows.ContainsKey("sold"));
+        Assert.Empty(picture.Threads);
+    }
+
+    [Fact]
     public void TheEngineShowsOnlyByAClick()
     {
         var read = Read(["plate"], counts: new() { ["plate"] = 3 });
@@ -56,12 +104,18 @@ public class BoardThreadsTests
     [Fact]
     public void PickingAShapeShowsWhatIsOneStepFromItAndNoFurther()
     {
-        var read = Read(["scrap", "iron", "gear"]);
-        var picture = Picture(read, picked: "rotor");
-        Assert.Equal(BoardShow.Silhouette, picture.Shows["rotor"]);
-        Assert.Equal(BoardShow.Note, picture.Shows["gear"]);
-        Assert.Equal(BoardShow.Silhouette, picture.Shows["wire"]);
-        Assert.Equal(BoardShow.Unseen, Picture(read, picked: "gear").Shows["wire"]);
+        BoardThing Part(string id) => new(id, [("p", 1)], null, false);
+        BoardThing[] things =
+        [
+            new("top", [("p", 100), ("mid", 100)], null, false),
+            new("mid", [("p", 100), ("never", 100)], null, false),
+            Part("close1"), Part("close2"), Part("close3"),
+        ];
+        var read = Read(["p"]);
+        BoardPicture With(string? picked) => BoardView.Of(BoardSlots.Of(read.Found, things, read.Granted), things, read, picked);
+        Assert.Equal(BoardShow.Unseen, With(null).Shows["mid"]);
+        Assert.Equal(BoardShow.Silhouette, With("top").Shows["mid"]);
+        Assert.Equal(BoardShow.Unseen, With("close1").Shows["mid"]);
     }
 
     [Fact]
