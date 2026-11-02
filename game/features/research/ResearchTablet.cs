@@ -111,7 +111,7 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_strip, _view, _detail]) _tablet.OnScreen(part);
         PaintTabs();
         _page.Show(true);
-        _key = new TabletKey(ui, inWorld, world, worldId, _keep, Open);
+        _key = new TabletKey(ui, inWorld, world, worldId, _keep, Bulb, Open);
         AddChild(_key);
     }
 
@@ -147,6 +147,9 @@ public partial class ResearchTablet : CanvasLayer
 
     /// <summary>Where the key on the HUD lies on the screen: what the markers keep out of.</summary>
     public Rect2 KeyCovers => _key.Covers;
+
+    /// <summary>The bulb over the hero: what the tablet's key tells of what is new, for <see cref="HeroBulb"/> to draw.</summary>
+    public BulbSignal Bulb { get; } = new();
 
     /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>
     public Vector2 ScreenOf(string id) => _page.ScreenOf(id);

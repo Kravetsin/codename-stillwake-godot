@@ -75,11 +75,13 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
     }
 
     /// <summary>Things new found, for the key to light for: what the seed had not got to.</summary>
-    private void Find()
+    private void Find() => FindOn(m().Knowledge, Finds(value));
+
+    /// <summary><paramref name="count"/> things new found in <paramref name="knowledge"/>; none in a world that found nothing yet.</summary>
+    public static void FindOn(Sim.Knowledge.KnowledgeModule knowledge, int count)
     {
-        var knowledge = m().Knowledge;
         if (knowledge.Obtained.Count == 0) return;
-        foreach (string item in InSpace.Where(i => knowledge.ObtainedOf(i) == 0).Take(Finds(value))) knowledge.Obtain(item, 1);
+        foreach (string item in InSpace.Where(i => knowledge.ObtainedOf(i) == 0).Take(count)) knowledge.Obtain(item, 1);
     }
 
     /// <summary>A press and release at <paramref name="at"/> while an entry is shown.</summary>

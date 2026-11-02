@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Crafting;
+using Stillwake.Game.Features.Crew;
 using Stillwake.Game.Features.Furnace;
 using Stillwake.Game.Features.Items;
 using Stillwake.Game.Menu;
@@ -163,6 +165,22 @@ public sealed class BoardScenario : DevScenario
     public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, Args.Given("--board"));
 
     public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M, Args.Given("--board")));
+}
+
+[Dev("--bulb", "the bulb over the hero as a note starts waiting; =two with a second find, =walk pacing the room, =space out past the hull (BulbDemo)", Shape = DevShape.Either)]
+public sealed class BulbScenario : DevScenario
+{
+    private HeroAutopilot? _script;
+
+    public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, "late");
+
+    public override HeroAutopilot? Script => Args.Given("--bulb") == "walk" ? _script ??= HeroAutopilot.Pace() : null;
+
+    public override Func<Registry, int>? Start => Args.Given("--bulb") == "space"
+        ? m => Enumerable.Range(0, m.Grid.Width).Select(x => m.Grid.Height / 2 * m.Grid.Width + x).First(m.Rooms.Afloat)
+        : null;
+
+    public override void Attach(DevContext c) => c.Add(new BulbDemo(c.M, Args.Given("--bulb") == "two"));
 }
 
 [Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]
