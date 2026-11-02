@@ -201,6 +201,8 @@ public sealed class BoardPage : ITabletPage
             if (show != BoardShow.Unseen) box = box.Holding(SpotOf(id).X, SpotOf(id).Y);
         double left = _box.Left - box.Left, up = _box.Top - box.Top;
         _box = box;
+        // A control is culled by its size: with none, all its threads go as its corner leaves the view.
+        _back.Size = new Vector2((float)box.Wide, (float)box.Tall);
         _camera.Fit(_view.Size.X, _view.Size.Y, box.Wide, box.Tall);
         if (_centred) _camera.Drag(-left * _camera.Zoom, -up * _camera.Zoom);
         _placedAt = null;

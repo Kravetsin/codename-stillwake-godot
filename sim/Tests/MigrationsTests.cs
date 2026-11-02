@@ -58,14 +58,35 @@ public class MigrationsTests
         Assert.Equal(["loper"], kept.Select(c => c!["species"]!.GetValue<string>()));
     }
 
+    /// <summary>What a gate held goes and what it opened stays: granted things, the credits, a bought bag's slot.</summary>
+    [Fact]
+    public void TheGatesDepositsAreGoneOnUpgradingAndWhatTheyOpenedStays()
+    {
+        var old = JsonNode.Parse(File.ReadAllText(Fixture(42)))!.AsObject();
+        var knowledge = old["slices"]!["knowledge"]!.AsObject();
+        knowledge["credits"] = 77;
+        knowledge["deposits"] = new JsonArray(new JsonObject { ["gate"] = "press", ["item"] = "wire", ["count"] = 5 });
+        var granted = knowledge["granted"]!.AsArray().Select(g => g!.GetValue<string>()).Append("bag1").Distinct().Order(StringComparer.Ordinal).ToList();
+        knowledge["granted"] = new JsonArray([.. granted.Select(g => (JsonNode)g)]);
+
+        var upgraded = JsonNode.Parse(Migrations.Upgrade(old.ToJsonString()))!["slices"]!["knowledge"]!.AsObject();
+        Assert.False(upgraded.ContainsKey("deposits"));
+        Assert.Equal(77, upgraded["credits"]!.GetValue<int>());
+        Assert.Equal(granted, upgraded["granted"]!.AsArray().Select(g => g!.GetValue<string>()));
+
+        var m = new Registry();
+        World.Load(Migrations.Upgrade(old.ToJsonString()), m.All);
+        Assert.True(m.Items.SlotOpen(new Items.Place(Content.Inventory.Start)));
+    }
+
     [Fact]
     public void MovesAPipeEndingAtATanksOldPortToItsNewOne()
     {
-        // A format-44 save's pipe from the tank's old output on its left, the cell its input has now: from its right after the upgrade.
+        // A format-45 save's pipe from the tank's old output on its left, the cell its input has now: from its right after the upgrade.
         var w = new Scenario("TTTT....\nTTTT....\nTTTT....\nTTTT....", cells: true).GiveItems(0, ("tube", 20));
         w.Do(new Pipes.LayPipe(w.At(0, 2), w.At(6, 2))).Run();
         var save = JsonNode.Parse(w.World.Save())!.AsObject();
-        save["format"] = 44;
+        save["format"] = 45;
         w.Reload(Migrations.Upgrade(save.ToJsonString()));
         Assert.Equal([new Pipes.PipeSpan(w.At(3, 2), w.At(6, 2), true)], w.M.Pipes.Spans);
     }

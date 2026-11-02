@@ -321,9 +321,8 @@ public partial class ContentTests
     /// What the wreck can come to, walking stations (0057): an item is reachable when it is salvage — what any
     /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
-    /// or its blueprint is known and its cost reachable. A tier opens when the one before it did and its deposit can be had
-    /// (2026-10-30-trade-and-tech); its blocks are bought then, credits not walked, every price being earned by selling; what they
-    /// open is used when its cost is had. Debris of the kinds
+    /// or its blueprint is known and its cost reachable. What the rule grants is known once its parts are had (docs/plans/board.md); what only
+    /// the market opens is taken as bought, credits not walked, every price being earned by selling. Debris of the kinds
     /// <paramref name="never"/> is left out, as if it never drifted by, and so are a planet's items of them. Aboard only: what a
     /// planet gives is not had. What only the wreck's own machines give (<see cref="WrecksOwn"/>) is had from the start.
     /// </summary>
@@ -376,41 +375,13 @@ public partial class ContentTests
         return (had, known);
     }
 
-    /// <summary>Every craft and blueprint opens from the wreck's start, walking the tree on what is caught, dug on a planet or made at its stations.</summary>
+    /// <summary>Every craft and blueprint opens from the wreck's start, walking the rule on what is caught, dug on a planet or made at its stations.</summary>
     [Fact]
-    public void EveryCraftAndBlueprintOpensFromTheWrecksStartWalkingTheTree()
+    public void EveryCraftAndBlueprintOpensFromTheWrecksStartWalkingTheRule()
     {
         var (_, known) = Reachable(Stations.All, planet: true);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item));
         Assert.Equal([], recipes.Where(id => !known.Contains(id)).ToArray());
-    }
-
-    /// <summary>Every blueprint and craft is known from the start or opened by exactly one block; a block opens nothing else.</summary>
-    [Fact]
-    public void EveryBlueprintAndCraftIsInExactlyOneBlockOrComesByTheRuleAlone()
-    {
-        var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => b.Id).Concat(Crafts.All.Select(c => c.Item)).Distinct().Order(StringComparer.Ordinal).ToArray();
-        var opened = Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null).Select(n => n.Id).Concat(["tradeStation", "wallScrap", "backWallScrap", "fireAxe", "screwdriver", "helmet", "suit"]).ToList();
-        Assert.Equal(recipes, opened.Distinct().Order(StringComparer.Ordinal).ToArray());
-        Assert.Equal(opened.Count, opened.Distinct().Count());
-    }
-
-    /// <summary>
-    /// The gates before the Former are paid by hand at a workbench (first-hour-pace): in seconds of its work, however many things
-    /// a gate asks for, each no more than it takes a hero to sit through.
-    /// </summary>
-    [Theory]
-    [InlineData("firstMetal", 0)]
-    [InlineData("press", 330)]
-    [InlineData("machinery", 960)]
-    public void AGateBeforeTheFormerIsAtMostSoManySecondsOfTheWorkbench(string gate, int seconds)
-    {
-        int speed = Stations.Get("workbench").Speed;
-        int Ticks(string item) => Crafts.TryGet(item, out var craft) && Stations.Get("workbench").Rows.Any(r => r.Contains(item))
-            ? craft.Ticks * 1000 / speed + craft.Cost.Sum(c => c.Count * Ticks(c.Item))
-            : 0;
-        int total = Content.Research.Node(gate)!.Deposit.Sum(d => d.Count * Ticks(d.Item));
-        Assert.True(total <= seconds * 20, $"{gate}: {total / 20} s of the workbench");
     }
 
     /// <summary>
@@ -472,34 +443,6 @@ public partial class ContentTests
         Assert.All(Unpriced, id => Assert.Null(Market.PriceOf(id)));
     }
 
-    /// <summary>
-    /// Every line of the tree tells the truth: a block's crafts and blueprints are made only of what the start, its ring or a ring further in opens, at a
-    /// station they open; what wreckage gives needs no one to open it.
-    /// </summary>
-    [Fact]
-    public void NothingIsOpenedBeforeWhatItIsMadeOf()
-    {
-        var (given, _) = Reachable([]);
-        var prints = Stillwake.Sim.Research.Blueprints.All.ToDictionary(b => b.Id);
-        var tabs = Content.Research.Tabs.Select(t => t.Id).ToList();
-        // A ring is bought in any order: a block may take what its own ring opens, or what is further in, never further out.
-        HashSet<string> Behind(TechNode node) => new(Content.Research.StartKnown.Concat(Content.Research.Nodes
-            .Where(n => tabs.IndexOf(n.Tab) < tabs.IndexOf(node.Tab) || (n.Tab == node.Tab && n.Ring <= node.Ring)).Where(n => !n.Gate).Select(n => n.Id)), StringComparer.Ordinal);
-        foreach (var node in Content.Research.Nodes.Where(n => !n.Gate && Upgrades.Of(n.Id) == null))
-        {
-            var opened = Behind(node);
-            string id = node.Id;
-            {
-                bool craft = Crafts.TryGet(id, out var recipe);
-                var cost = craft ? recipe!.Cost : prints[id].Cost;
-                foreach (var (item, _) in cost)
-                    Assert.True(!Crafts.TryGet(item, out _) || given.Contains(item) || opened.Contains(item), $"{id} of {item}, not behind {node.Id}");
-                if (craft && cost.Count > 0)
-                    Assert.True(Stations.All.Any(s => s.Rows.Any(r => r.Contains(id)) && (Machines.Get(s.Machine).Fixed || opened.Contains(s.Machine))), $"{id}: no station behind {node.Id}");
-            }
-        }
-    }
-
     /// <summary>Every need names a node listed before it: the order the window looks for what to do next.</summary>
     [Fact]
     public void EveryNeedIsANodeListedBeforeIt()
@@ -523,16 +466,6 @@ public partial class ContentTests
         Assert.Equal(8, Market.WorthOf("scrap")); // (20 + 3) x 1.25 / 4 = 7.19
         Assert.Equal(22, Market.WorthOf("wire")); // (2 x 8 + 1.5) x 1.25 = 21.875
         Assert.Equal(116, Market.WorthOf("coil")); // (4 x 22 + 4.5) x 1.25 = 115.625
-    }
-
-    /// <summary>First blueprints come for a few chunks; the engine is the dearest of all, so it stays the end of the tree.</summary>
-    [Fact]
-    public void TheFirstBlocksCostAFewChunksAndTheEngineMost()
-    {
-        var prices = Content.Research.Nodes.Where(n => !n.Gate).ToDictionary(n => n.Id, Stillwake.Sim.Research.Prices.Of);
-        Assert.All(new[] { "workbench", "furnace", "wire" }, id => Assert.InRange(prices[id], 1, 12 * Market.WorthOf("scrapChunk")));
-        Assert.Equal(prices.Values.Max(), prices["engine"]);
-        Assert.Single(prices.Values, prices["engine"]);
     }
 
     /// <summary>The first credits need nothing bought: no softlock can stand between the wreck's start and its first sale.</summary>

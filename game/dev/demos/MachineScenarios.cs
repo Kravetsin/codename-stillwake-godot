@@ -147,7 +147,7 @@ public sealed class HandbookScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new HandbookDemo(c.DebrisPage));
 }
 
-[Dev("--tree", "the tech tree on the tablet, in the wreck with credits to spend (TreeDemo)")]
+[Dev("--tree", "the black market on the tablet, in the wreck with credits to spend (TreeDemo)")]
 public sealed class TreeScenario : DevScenario
 {
     public override World Seed(World world, DevSeed seed) => TreeDemo.Seed(world, seed.Modules);

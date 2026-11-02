@@ -39,6 +39,12 @@ public sealed class PlanetScenario : DevScenario
 }
 
 /// <summary>Creatures let out by the hero, with --planet or --strip, hunted by script unless --manual (0102).</summary>
+[Dev("--hitboxes", "with whatever shows creatures, the box each is hit in drawn over it (HitBoxDemo)")]
+public sealed class HitBoxScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new HitBoxDemo(c.World));
+}
+
 [Dev("--creatures", "creatures of every kind let out by the hero, or =kind one kind, hunted by script (CreatureHands, 0102)", Shape = DevShape.Either)]
 public sealed class CreaturesScenario : DevScenario
 {

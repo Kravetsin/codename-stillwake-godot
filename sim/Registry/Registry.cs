@@ -75,7 +75,7 @@ public sealed class Registry
         Rooms = new RoomsModule(Grid);
         Items = new ItemsModule(Grid, Rooms, Knowledge, Knowledge);
         Power = new PowerModule(Grid, Rooms, Items, Items);
-        Research = new ResearchModule(Grid, Items, Items, Knowledge, Knowledge);
+        Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
@@ -92,7 +92,7 @@ public sealed class Registry
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
         Landing = new LandingModule(Grid, Grid, Power, Crew, Items, Items);
         Trade = new TradeModule(Grid, Items, Items, Knowledge);
-        // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 44, run and saved last.
+        // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved last.
         Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
         Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);

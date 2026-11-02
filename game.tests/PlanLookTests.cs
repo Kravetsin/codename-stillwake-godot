@@ -42,6 +42,24 @@ public class PlanLookTests
 
     private static readonly IReadOnlyList<Rim> Square = PlanOutline.RimOf((_, _) => true, Cell, Cell);
 
+    /// <summary>The world's pixels, two fine ones each, of a picture drawn in rows of alpha digits: 9 is opaque, 0 clear.</summary>
+    private static string Coarse(params string[] rows)
+    {
+        int width = rows[0].Length / 2, height = rows.Length / 2;
+        var mask = PlanOutline.Coarse((x, y) => (byte)((rows[y][x] - '0') * 255 / 9), width, height, 2);
+        return string.Concat(mask.Select(on => on ? '#' : '.'));
+    }
+
+    [Fact]
+    public void AnInkPicturesMaskHoldsItsThinLinesAndDropsItsFaintEdge()
+    {
+        // Solid, a line one fine pixel wide across two of the world's, and a faint wash.
+        Assert.Equal("#..", Coarse("990011", "990011"));
+        Assert.Equal("##", Coarse("0990", "0990"));
+        // A soft edge's share under a quarter is not the picture's.
+        Assert.Equal(".#", Coarse("1190", "1190"));
+    }
+
     [Fact]
     public void ARimStepsClockwiseAlongEverySideOfAnOpaquePixelFacingAClearOneOrTheEdge()
     {

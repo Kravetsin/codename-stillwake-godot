@@ -16,7 +16,7 @@ public readonly record struct RingSpot(double X, double Y);
 public sealed class TechRings
 {
     /// <summary>How far from the middle the hub reaches, and the first ring's first row stands.</summary>
-    public const double HubRadius = 96, FirstRow = 200;
+    public const double HubRadius = 96, FirstRow = 230;
     /// <summary>A node's room: along an arc, and from one row to the next; how much further the next ring starts than a next row.</summary>
     public const double Along = 116, Across = 112, RingGap = 26;
 

@@ -23,8 +23,8 @@ public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<
 public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, IReadOnlyList<(string Note, string Shape)> Threads);
 
 /// <summary>
-/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is known. A shape shows only at a thread's end or
-/// linked to what is picked.
+/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is known. A shape shows at a thread's end. One with
+/// every part noted always shows: crowded off its parts' threads, it hangs one from the part noted last. A click adds nothing to the board.
 /// </summary>
 public static class BoardView
 {
@@ -36,7 +36,7 @@ public static class BoardView
         return slots.Select(s => s.Id).Where(id => found.Contains(id) || known.Contains(id)).ToHashSet(StringComparer.Ordinal);
     }
 
-    /// <param name="picked">The note or shape clicked; null for none.</param>
+    /// <param name="picked">The note or shape clicked, which stays shown; null for none.</param>
     public static BoardPicture Of(IReadOnlyList<BoardSlot> slots, IReadOnlyList<BoardThing> things, BoardRead read, string? picked)
     {
         var byId = things.ToDictionary(t => t.Id, StringComparer.Ordinal);
@@ -55,21 +55,18 @@ public static class BoardView
                 ends.Add(shape);
             }
         }
+        foreach (var slot in slots)
+        {
+            if (notes.Contains(slot.Id) || ends.Contains(slot.Id) || byId.GetValueOrDefault(slot.Id) is not { Parts.Count: > 0 } thing) continue;
+            if (!thing.Parts.All(p => notes.Contains(p.Item))) continue;
+            threads.Add((slots.Last(s => thing.Parts.Any(p => p.Item == s.Id)).Id, slot.Id));
+            ends.Add(slot.Id);
+        }
         var shows = new Dictionary<string, BoardShow>(StringComparer.Ordinal);
         foreach (var slot in slots)
             shows[slot.Id] = notes.Contains(slot.Id) ? BoardShow.Note
-                : ends.Contains(slot.Id) || (picked != null && Linked(picked, slot.Id, byId)) ? BoardShow.Silhouette
+                : ends.Contains(slot.Id) || slot.Id == picked ? BoardShow.Silhouette
                 : BoardShow.Unseen;
         return new BoardPicture(shows, threads);
     }
-
-    /// <summary>Whether <paramref name="id"/> is one step from <paramref name="picked"/>, or is it: one takes the other, or one is made at the other.</summary>
-    private static bool Linked(string picked, string id, Dictionary<string, BoardThing> byId)
-    {
-        if (picked == id) return true;
-        return Ties(byId.GetValueOrDefault(picked), id) || Ties(byId.GetValueOrDefault(id), picked);
-    }
-
-    private static bool Ties(BoardThing? thing, string other) =>
-        thing != null && (thing.Parts.Any(p => p.Item == other) || thing.Stations?.Contains(other) == true);
 }

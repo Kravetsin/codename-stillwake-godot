@@ -654,9 +654,9 @@ public class DesyncTests(ITestOutputHelper output)
     }
 
     [Fact]
-    public void KeepsEveryClientAndAJoinerInSyncSellingAndBuyingTheTree()
+    public void KeepsEveryClientAndAJoinerInSyncSellingAndBuyingOnTheMarket()
     {
-        // Trade and the tree (2026-10-30-trade-and-tech): a stocked trade station earns on its beat, a joiner comes in mid-beat,
+        // Trade and the market (docs/plans/board.md): a stocked trade station earns on its beat, a joiner comes in mid-beat,
         // the credits and the counter in its welcome, and before its next sale the first client spends them on the first ring's blocks: without them in its welcome it refuses.
         var layout = Layout.Parse(["##########", "#$$......#", "#$$......#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
         static string Stocked(string save)
@@ -667,7 +667,7 @@ public class DesyncTests(ITestOutputHelper output)
             root["slices"]!["items"]!["crates"]!.AsArray().Add(new JsonObject { ["id"] = station, ["slots"] = slots });
             return root.ToJsonString();
         }
-        string[] blocks = ["workbench", "furnace"];
+        string[] blocks = ["bag1", "tradeSlots1"];
         Covering(23, tried =>
         {
             var game = new Definition(() => new Registry().All, Stocked);

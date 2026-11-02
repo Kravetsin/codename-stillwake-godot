@@ -30,7 +30,7 @@ pipes.
   canister in about 9000 ticks instead of about 1125: liquid leaves at most at the vaporizers' rate. The air overlay's
   `Lasts` shows that; its `Oxygen` is the liquid behind the vaporizers feeding the room.
 - **A room in vacuum says why**: no vent, not piped to a vaporizer, the tank behind it dry, or no power.
-- **Saves** keep their bytes with a new meaning (format 43): a tank's oxygen is liquid, a generator's store and work its
+- **Saves** keep their bytes with a new meaning (format 44): a tank's oxygen is liquid, a generator's store and work its
   gas and progress. Old ships piped tank to vent lose their supply and the player re-pipes; nothing was released.
 - **The pod takes no liquid** ([the-scoop](2026-10-31-the-scoop.md)): an air source with no input port makes its air from
   nothing, so the starting room keeps its air with no tank; an air source with an input, the vaporizer, makes it only

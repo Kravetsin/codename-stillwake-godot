@@ -4,7 +4,7 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// The part of the board the camera keeps in bounds, the first note at the origin: at least a view round that note, which so stands in
-/// the view's middle, and all that was shown with a margin. It only grows, so nothing jumps as a click shows a shape and hides it again.
+/// the view's middle, and all that was shown with a margin. It only grows, so nothing jumps as shapes come and go.
 /// </summary>
 public readonly record struct BoardBox(double Left, double Top, double Right, double Bottom)
 {

@@ -12,7 +12,7 @@ namespace Stillwake.Game.Features.Pipes;
 
 /// <summary>
 /// The pipes as they are built (0109): each span a straight pipe from the middle of one end's cell to the other's, at any
-/// angle, one continuous tube coloured from the pipe art's run, its thickness the art's (0110); a joint a small flange, a valve its wheel, open or
+/// angle, the pipe art's riveted run repeated along it (2026-11-02-pipes-in-ink); a joint a small flange, a valve its wheel, open or
 /// shut as the world has it, heard turning. Lit as the ship is, behind what stands in front. Redrawn when the spans or
 /// valves change, read every frame by a cheap key.
 /// </summary>
@@ -26,7 +26,7 @@ public partial class PipesView : Node2D
     private List<int> _joints = [];
     private int _width = 1;
     private string _key = "";
-    private static Texture2D? _flange;
+    private static Texture2D? _flange, _run;
     private static Color[]? _profile;
 
     public PipesView()
@@ -65,8 +65,20 @@ public partial class PipesView : Node2D
         }
     }
 
+    /// <summary>The pipe's riveted run in ink, repeated along a span; none in the old pixels, which draw <see cref="Profile"/>.</summary>
+    private static Texture2D? Run
+    {
+        get
+        {
+            if (_run != null || HiRes.Load("pipe_run") is not { } image) return _run;
+            var texture = HiRes.Texture(image);
+            if (texture is CanvasTexture canvas) canvas.TextureRepeat = CanvasItem.TextureRepeatEnum.Enabled;
+            return _run = texture;
+        }
+    }
+
     /// <summary>A joint's flange: the lone pipe's picture, its middle.</summary>
-    private static Texture2D Flange => _flange ??= ShipTiles.PictureOf("pipe_0");
+    private static Texture2D Flange => _flange ??= HiRes.Load("pipe_0") is { } fine ? HiRes.Texture(fine) : ShipTiles.PictureOf("pipe_0");
 
     /// <summary>Where a node's cell has its middle, in pixels of the world.</summary>
     public static Vector2 MiddleOf(int cell, int width) => new((cell % width + 0.5f) * Cell, (cell / width + 0.5f) * Cell);
@@ -92,14 +104,15 @@ public partial class PipesView : Node2D
 
     private void PaintPipes(Sketch g)
     {
-        var profile = Profile;
-        float half = profile.Length / 2f;
         foreach (var span in _spans)
         {
             Vector2 a = MiddleOf(span.A, _width), b = MiddleOf(span.B, _width);
+            if (TubeRun.LitFromEnd(a.X, a.Y, b.X, b.Y)) (a, b) = (b, a);
             float length = a.DistanceTo(b);
             g.DrawSetTransform(a, (b - a).Angle());
-            for (int row = 0; row < profile.Length; row++) g.DrawRect(new Rect2(0, row - half, length, 1), profile[row]);
+            if (Run is { } run) g.DrawTextureRect(run, new Rect2(0, -run.GetHeight() / 2f, length, run.GetHeight()), tile: true);
+            else
+                for (int row = 0; row < Profile.Length; row++) g.DrawRect(new Rect2(0, row - Profile.Length / 2f, length, 1), Profile[row]);
         }
         g.DrawSetTransform(Vector2.Zero);
         // A flange at every joint, over the runs that meet there; a machine's port has its socket.

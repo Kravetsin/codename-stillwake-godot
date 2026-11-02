@@ -95,6 +95,56 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
+    public void ANewlyMetOrderLightsTheLampAndAnOrderAlreadySeenDoesNot()
+    {
+        var seen = new BoardSeen([]);
+        seen.ReadOrders(1);
+        Assert.False(seen.Lit);
+        Assert.False(seen.MarketNew);
+        seen.ReadOrders(1);
+        Assert.False(seen.Lit);
+        seen.ReadOrders(2);
+        Assert.True(seen.Lit);
+        Assert.True(seen.MarketNew);
+    }
+
+    [Fact]
+    public void AnOrderStaysNewUntilTheMarketIsChosenWhateverTheTabletDoes()
+    {
+        var seen = new BoardSeen([], 0);
+        seen.ReadOrders(1);
+        seen.Opened();
+        Assert.False(seen.Lit);
+        Assert.True(seen.MarketNew);
+        seen.Closed();
+        Assert.True(seen.Lit);
+        seen.Opened();
+        seen.MarketChosen();
+        Assert.False(seen.MarketNew);
+        seen.Closed();
+        Assert.False(seen.Lit);
+    }
+
+    [Fact]
+    public void AnOrderMetIsStillNewAfterARelaunchAndAFileFromBeforeOrdersStartsAsThingsStand()
+    {
+        var keep = new BoardKeep(_folder);
+        keep.Of(7);
+        keep.Seen.Read([]);
+        keep.Seen.ReadOrders(1);
+        Assert.True(keep.Write());
+        var again = new BoardKeep(_folder);
+        again.Of(7);
+        again.Seen.Read([]);
+        again.Seen.ReadOrders(2);
+        Assert.True(again.Seen.MarketNew);
+        Assert.True(BoardFile.Write(BoardFile.PathOf(_folder, 8), new BoardKept(null, [])));
+        again.Of(8);
+        again.Seen.ReadOrders(2);
+        Assert.False(again.Seen.MarketNew);
+    }
+
+    [Fact]
     public void AJoinedGuestHasNoMarks()
     {
         var seen = new BoardSeen(null);

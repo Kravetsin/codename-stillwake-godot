@@ -1,6 +1,6 @@
-# research (client): the tree on the tablet and the trade station's screen
+# research (client): the tablet and the trade station's screen
 
-The tree as the player walks it ([tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [tech-rings](../../../docs/decisions/2026-10-30-tech-rings.md)). T takes it out
+The board of what the crew has found and the black market's rings ([board](../../../docs/plans/board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md)). T takes the tablet out
 anywhere. A trade station is worked as a crate is, through the items feature's panel.
 
 ## Files
@@ -33,14 +33,16 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 ## Guarantees
 
 - The window reads the sim four times a second. It is built once and only restyled, for a rebuild under the pointer would eat
-  a click. It changes the world only by sending `BuyBlock` and `Deposit`. A press picks only if the pointer did not move; only the strip's button buys or deposits.
+  a click. It changes the world only by sending `BuyBlock`. A press picks only if the pointer did not move; only the strip's button buys.
 - Words are set at the size they are seen and never scaled; further out a node keeps only its picture, and from far it is a plain dot coloured by its state, under its branch's name. What a node is, is said by the pointer: an item's card, or a blueprint's picture and words.
 - The board reads only behind a key of its `Knowledge`, that module's version and the hero's grid's; positions are set only as the camera moves. It takes no way to send a command, so it cannot change the world. Blank till the first find. Its box only grows, and the first note stands in the middle of the view.
+- A shape shows at a thread's end or once every part is noted, and a click adds none: the strip below lists what it takes and goes into. A note runs threads to its three closest to done; a shape with every part noted and no thread gets one from the part noted last, so nothing makeable is lost behind a plate's many uses.
 - A left press on a thing on the board, a note or a shape, carries it once past the click's slack, and it stays where it is let go; anywhere else the press drags the board. A click still only picks. Each machine keeps its own arrangement, never sent: only what was moved, in `user://boards/<World.Id>.json`, written as the tablet closes and on every way out. A lost or bad file means things go back to their slots, a failed write stops nothing, and a world with id 0 (made before ids, or a dev run) keeps no file.
 - A lamp in the metal of the tablet's key lights when a note has appeared since the tablet last closed; opening puts it out, and new notes keep a hand-drawn loop until it closes ([tablet-key](../../../docs/decisions/2026-10-31-tablet-key.md)). What was seen is kept in the same file. With nothing kept it starts as things stand at the first read, so a new world or a late guest has nothing new. Only notes count: more of a known item or a bought upgrade lights nothing.
-- The hub and the strip show what the bag holds over what is still needed.
-- A block is green once bought, edged in amber while it can be bought, dim while out of reach. The hub is violet while its gate takes
-  a deposit, and the rings its gates opened are lit. It opens on the hub the first time, and after that stays where it was left.
+- The hub and the strip show what has been sold over what is ordered, with no button, for an order fills by selling. The head's count of what is open shows on the market alone: an empty board starts with no sum to fill.
+- An order met lights the key's lamp and a lamp on the market's tab until the market is chosen, tablet opened and closed or not. How many were seen is kept in the same file. The key reads them on its timer, for a sale moves no `Version`.
+- A block is green once bought, edged in amber while it can be bought, dim while out of reach. The hub is violet while its order is open,
+  and the rings its orders opened are lit. It opens on the hub the first time, and after that stays where it was left.
 - What is picked ties to others by colour, known or not: teal what it takes, pink where it is made, sky what it goes into; a gate violet to the ring it opens. All else dims.
 - A trade station's screen types lines while it holds what sells, and is dark while not. It is read every 100 ms and drawn
   unlit, for a screen gives its own light.

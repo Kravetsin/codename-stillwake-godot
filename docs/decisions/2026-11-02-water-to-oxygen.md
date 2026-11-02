@@ -26,7 +26,7 @@ into oxygen. Liquid oxygen already reads in the pipes: tanks hold it, vaporizers
   two outputs (`pipes.bothGive`). A drawn line passing under that cell now ends there, harmless on the maps that do it.
 - **The Former's 3 ice → canister stays** (decided with the user): the canister is portable oxygen, the electrolyser the
   base's. The electrolyser gives 4500 a bottle against 3000 an ice the Former's way: a guess until a playtest.
-- **Saves:** a module added, format 44, its slice empty on every surface.
+- **Saves:** a module added, format 45, its slice empty on every surface.
 
 ## Deliberately not handled
 

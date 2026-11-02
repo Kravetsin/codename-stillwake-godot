@@ -20,7 +20,7 @@ also stood after every socket (o >), into or out of the machine, so an input and
   (`(5, 5) Out air`) moved; the cistern, the vaporizer and the vent already kept it. A line reads left to right.
 - **The overlay's arrow shows the way the fluid comes**: an input's head before its socket, pointing at it (> o); an
   output's after it, pointing away (o >). `Sockets.TipOf` places it.
-- **Saves move with the ports**: format 45's step moves every span end at a moved port's old cell to its new one, the
+- **Saves move with the ports**: format 46's step moves every span end at a moved port's old cell to its new one, the
   tank's and the electrolyser's swapped, so a world piped before the change is piped the same after it. The wreck's
   pod pipe is drawn from its new port.
 

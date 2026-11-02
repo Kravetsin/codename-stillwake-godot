@@ -7,14 +7,13 @@ namespace Stillwake.Game.Render;
 
 /// <summary>
 /// The silhouettes of plans and marks, for their dashes (<see cref="PlanOutline"/>): the rim of the opaque pixels of
-/// what a placement is drawn with, read from each picture on its own, never from the ship's atlas, which packs its
+/// what a placement is drawn with, in the world's pixels, read from each picture as it is drawn (its ink, where it has
+/// one) and on its own, never from the ship's atlas, which packs its
 /// pictures with no room round them. Worked out once a picture and once a way of laying them, then kept.
 /// </summary>
 public static class PlanShapes
 {
     private const int Cell = ShipCamera.Cell;
-    /// <summary>A pixel at least this opaque is the picture's, as the aim outline reads a mask.</summary>
-    private const float Opaque = 0.5f;
 
     private static readonly Dictionary<string, (bool[] Mask, int Width, int Height)> Masks = new();
     /// <summary>Each placement's rim by how it joins and which cell of a picture laid over the world it shows.</summary>
@@ -61,12 +60,13 @@ public static class PlanShapes
     private static (bool[] Mask, int Width, int Height) MaskOf(string picture)
     {
         if (Masks.TryGetValue(picture, out var kept)) return kept;
-        var image = ShipTiles.ImageOf(picture);
-        int w = image.GetWidth(), h = image.GetHeight();
-        var mask = new bool[w * h];
-        for (int y = 0; y < h; y++)
-            for (int x = 0; x < w; x++)
-                mask[y * w + x] = image.GetPixel(x, y).A >= Opaque;
-        return Masks[picture] = (mask, w, h);
+        var logical = ShipTiles.ImageOf(picture);
+        int w = logical.GetWidth(), h = logical.GetHeight();
+        // The picture as it is drawn: its pixels are only its size.
+        var drawn = ShipTiles.FineImageOf(picture, logical);
+        if (drawn.GetSize() != logical.GetSize() * HiRes.Scale) drawn = logical;
+        int scale = drawn.GetWidth() / w;
+        byte[] data = drawn.GetData();
+        return Masks[picture] = (PlanOutline.Coarse((x, y) => data[(y * drawn.GetWidth() + x) * 4 + 3], w, h, scale), w, h);
     }
 }

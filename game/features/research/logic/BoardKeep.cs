@@ -24,7 +24,7 @@ public sealed class BoardKeep(string folder)
     {
         if (world == _world) return;
         var kept = BoardFile.Read(BoardFile.PathOf(folder, world));
-        (_world, _moved, Spots, Seen) = (world, false, kept.Moved ?? new(StringComparer.Ordinal), new BoardSeen(kept.Seen));
+        (_world, _moved, Spots, Seen) = (world, false, kept.Moved ?? new(StringComparer.Ordinal), new BoardSeen(kept.Seen, kept.Orders));
     }
 
     /// <summary>Stands <paramref name="id"/> at <paramref name="spot"/>.</summary>
@@ -38,7 +38,7 @@ public sealed class BoardKeep(string folder)
     public bool Write()
     {
         if (_world == 0 || !(_moved || Seen.Unwritten)) return true;
-        if (!BoardFile.Write(BoardFile.PathOf(folder, _world), new BoardKept(Spots, Seen.Seen.ToList()))) return false;
+        if (!BoardFile.Write(BoardFile.PathOf(folder, _world), new BoardKept(Spots, Seen.Seen.ToList(), Seen.OrdersSeen))) return false;
         (_moved, Seen.Unwritten) = (false, false);
         return true;
     }

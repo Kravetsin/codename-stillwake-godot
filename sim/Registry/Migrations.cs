@@ -56,28 +56,34 @@ public static class Migrations
             }
             return root;
         },
-        // 42 → 43 (liquid-oxygen): the bytes stay, their meaning changes. A tank's oxygen is now liquid, a generator's
+        // 42 → 43: the tree is gone (docs/plans/board.md), its gates' deposits with it; what they opened stays granted.
+        root =>
+        {
+            root["slices"]!["knowledge"]!.AsObject().Remove("deposits");
+            return root;
+        },
+        // 43 → 44 (liquid-oxygen): the bytes stay, their meaning changes. A tank's oxygen is now liquid, a generator's
         // store and work its gas and progress; a tank piped straight to a vent no longer airs it, and the player re-pipes.
         root => root,
-        // 43 → 44 (water): a module added, its slice empty on the ship and every surface: no cistern held water before it.
+        // 44 → 45 (water): a module added, its slice empty on the ship and every surface: no cistern held water before it.
         root =>
         {
             foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
                 slices["water"] = new JsonObject { ["cisterns"] = new JsonArray(), ["making"] = new JsonArray() };
             return root;
         },
-        // 44 → 45 (ports-left-to-right): a machine takes on its left and gives on its right, so the tank's and the
+        // 45 → 46 (ports-left-to-right): a machine takes on its left and gives on its right, so the tank's and the
         // electrolyser's ports swapped sides and the pod's moved right; a pipe ending at a port's old cell ends at its new one.
         root =>
         {
             foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
-                slices["pipes"]!["spans"] = SpansOf45(slices["grid"]!, slices["pipes"]!["spans"]!.AsArray());
+                slices["pipes"]!["spans"] = SpansOf46(slices["grid"]!, slices["pipes"]!["spans"]!.AsArray());
             return root;
         },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>
-    private static JsonArray SpansOf45(JsonNode grid, JsonArray old)
+    private static JsonArray SpansOf46(JsonNode grid, JsonArray old)
     {
         int width = grid["width"]!.GetValue<int>();
         var moved = new Dictionary<int, int>();
