@@ -236,8 +236,9 @@ public sealed class BoardPileTests : IDisposable
             seen.Read(all.Take(known));
             pile.Read(seen, slots, Things);
             Took(seen.Seen.Where(id => !before.Contains(id)));
-            // Only what landed since the close is marked: a second landing of an old note would show here.
-            Assert.Equal(sinceClosed.OrderBy(id => id, StringComparer.Ordinal), all.Where(seen.Marked).OrderBy(id => id, StringComparer.Ordinal));
+            // Only what landed since the close is fresh: a second landing of an old note would show here.
+            Assert.Equal(sinceClosed.OrderBy(id => id, StringComparer.Ordinal), all.Where(seen.Fresh).OrderBy(id => id, StringComparer.Ordinal));
+            Assert.Equal(landed.OrderBy(id => id, StringComparer.Ordinal), all.Where(seen.Marked).OrderBy(id => id, StringComparer.Ordinal));
         }
         void Flip()
         {

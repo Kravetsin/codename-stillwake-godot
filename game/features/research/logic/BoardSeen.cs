@@ -6,15 +6,17 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// What is new on the board for this player (docs/plans/board.md): the notes not yet read, one at a time as they land (<see cref="BoardPile"/>), which light
-/// its key while it is away, what landed being marked until it closes; and the market's orders met, which light it until the market is chosen. With nothing
+/// its key while it is away, what landed being marked until the player touches it ([board-thoughts](../../../../docs/decisions/2026-11-02-board-thoughts.md)); and the market's orders met, which light it until the market is chosen. With nothing
 /// kept, what was seen starts as things stand at the first read, so a new world or a late guest has nothing new.
 /// </summary>
 /// <param name="seen">What was kept; null for nothing.</param>
 /// <param name="orders">How many orders met were kept as seen; null for nothing.</param>
-public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null)
+/// <param name="marked">What was kept as marked; null for nothing.</param>
+public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEnumerable<string>? marked = null)
 {
     private HashSet<string>? _seen = seen?.ToHashSet(StringComparer.Ordinal);
     private HashSet<string> _notes = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _marked = marked?.ToHashSet(StringComparer.Ordinal) ?? new(StringComparer.Ordinal);
     private readonly HashSet<string> _landed = new(StringComparer.Ordinal);
     private int? _ordersSeen = orders;
     private int _orders;
@@ -22,6 +24,9 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null)
 
     /// <summary>What was last seen, to keep.</summary>
     public IReadOnlyCollection<string> Seen => _seen ?? [];
+
+    /// <summary>What landed and was not touched yet, to keep.</summary>
+    public IReadOnlyCollection<string> AllMarked => _marked;
 
     /// <summary>The notes not yet read.</summary>
     public IReadOnlyCollection<string> Unread => _seen == null ? [] : _notes.Where(n => !_seen.Contains(n)).ToHashSet(StringComparer.Ordinal);
@@ -64,20 +69,30 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null)
         Unwritten = true;
     }
 
-    /// <summary><paramref name="id"/> read: it goes onto the board, marked until the tablet closes.</summary>
+    /// <summary><paramref name="id"/> read: it goes onto the board, marked until the player touches it.</summary>
     public void Land(string id)
     {
         if (_seen == null || !_seen.Add(id)) return;
+        _marked.Add(id);
         _landed.Add(id);
         Unwritten = true;
     }
 
-    /// <summary>Whether <paramref name="id"/> has landed since the tablet was last put away.</summary>
-    public bool Marked(string id) => _landed.Contains(id);
+    /// <summary>Whether <paramref name="id"/> has landed and the player has not touched it yet.</summary>
+    public bool Marked(string id) => _marked.Contains(id);
+
+    /// <summary>The player took <paramref name="id"/> in hand: it is no longer marked.</summary>
+    public void Touch(string id)
+    {
+        if (_marked.Remove(id)) Unwritten = true;
+    }
+
+    /// <summary>Whether <paramref name="id"/> has landed since the tablet was last put away: its threads stand out till then.</summary>
+    public bool Fresh(string id) => _landed.Contains(id);
 
     public void Opened() => _open = true;
 
-    /// <summary>The tablet put away: the marks go; what was not read stays unread.</summary>
+    /// <summary>The tablet put away: what landed is no longer fresh; what was not read stays unread.</summary>
     public void Closed()
     {
         _open = false;
