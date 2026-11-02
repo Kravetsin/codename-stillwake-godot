@@ -7,12 +7,12 @@ namespace Stillwake.Game.Render;
 /// <summary>
 /// The anime art's pictures: <c>res://art/hd/{name}.png</c>, <see cref="Scale"/> times the pixels of the picture they stand for,
 /// reporting that picture's size so nothing that lays pictures out by their size changes, and sampled smoothly whatever node draws them.
-/// Off until the switch (2026-11-01-anime-cel-art): <c>-- --anime-art</c> or an <c>--anime</c> demo turns it on; off, the game is drawn as it was.
+/// On by default (2026-11-02-ink-by-default): <c>-- --pixel-art</c> draws the game in its old pixels, till those go.
 /// </summary>
 public static class HiRes
 {
     /// <summary>Whether the new art is drawn.</summary>
-    public static readonly bool On = OS.GetCmdlineUserArgs().Any(a => a is "--anime-art" or "--anime" || a.StartsWith("--anime=", System.StringComparison.Ordinal));
+    public static readonly bool On = !OS.GetCmdlineUserArgs().Contains("--pixel-art");
 
     /// <summary>How many pixels of a hi-res picture stand for one of the world's; zoom reaches 2.5, the rest is room for the screen.</summary>
     public static int Scale => On ? 4 : 1;

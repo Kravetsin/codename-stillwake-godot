@@ -181,7 +181,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
 | [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | accepted |  |
 | [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted |  |
-| [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour |
+| [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour, ink-by-default |
 | [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
 | [guards-in-ink](2026-11-01-guards-in-ink.md) | The guards in ink | accepted |  |
 | [ink-and-watercolour](2026-11-01-ink-and-watercolour.md) | Ink and watercolour | accepted |  |
@@ -190,4 +190,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
+| [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |

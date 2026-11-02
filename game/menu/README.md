@@ -69,7 +69,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `logic/Together.cs` | playing together as the menu shows it: the mode, the code, the suits aboard | no |
 | `VersionCorner.cs` | the build in the screen's bottom-right corner, faint, to tell a friend or a bug report | yes |
 | `logic/TitleScene.cs` | the title scene's arithmetic: the plate's sway, what drifts past, when and how | no |
-| `logic/PlateArt.cs` | the title's plate drawn pixel by pixel, the hero's seat on it | no |
+| `logic/PlateArt.cs` | the title's plate: its size, the hero's seat on it, its pixels under `--pixel-art`; in ink it is `art/hd/title_plate` | no |
 | `Dither.cs` | the title's shade and glow, blended with noise on the final colour so no bands show | yes |
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text (`En`) | no |
