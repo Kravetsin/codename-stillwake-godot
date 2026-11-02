@@ -203,6 +203,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [ports-left-to-right](2026-11-02-ports-left-to-right.md) | Ports read left to right | accepted |  |
 | [russian-language](2026-11-02-russian-language.md) | The game speaks Russian | accepted |  |
+| [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted |  |
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |

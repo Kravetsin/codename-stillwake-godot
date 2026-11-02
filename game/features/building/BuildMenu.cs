@@ -17,10 +17,10 @@ namespace Stillwake.Game.Features.Building;
 /// anywhere over the panel; each card a picture of what it builds, its name, cost and use in the one tooltip by the
 /// pointer, so a card is swapped for another at a click and the menu stays open. A plan costs nothing until it is
 /// worked, an item a part (0063), so a card the player carries too little for is as bright as any. It opens on the
-/// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B or Esc puts the plan
-/// away; with it away, the key that takes it out. Q picks the card under the pointer. Only what the world knows is
+/// tab it was closed on. Under the cards, the card in hand and what the buttons do on the tab. B, its key on the tablet's
+/// edge or Esc puts the plan away. Q picks the card under the pointer. Only what the world knows is
 /// shown (0024): a tab with nothing known, not at all, nor its mode. It is the screen of a rugged tablet (0073), which
-/// slides up from the bottom edge as the plan comes out and back down as it goes away. On a wing at its left, aboard, the plan's
+/// rises from the tablet's edge as the plan comes out and back down as it goes away. On a wing at its left, aboard, the plan's
 /// modes' keys, Z, X and C: building, wiring, piping; wiring's and piping's menus are their cards alone (0110).
 /// </summary>
 public partial class BuildMenu : CanvasLayer
@@ -35,7 +35,6 @@ public partial class BuildMenu : CanvasLayer
     private readonly PlanHand _hand;
     private readonly Ui _ui;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly PanelContainer _closed;
     /// <summary>The tablet, its screen the catalogue.</summary>
     private readonly Tablet _open = new();
     private readonly Control _tabs = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -85,22 +84,8 @@ public partial class BuildMenu : CanvasLayer
         _root.Theme = new Theme { DefaultFont = Mono, DefaultFontSize = FontSize };
         AddChild(_root);
 
-        _closed = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        _closed.AddThemeStyleboxOverride("panel", Render.Style.Box(Render.Style.Slate900 with { A = 0.9f }, Render.Style.Slate700, 4));
-        var keys = new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        keys.AddThemeConstantOverride("separation", 16);
-        keys.AddChild(Tablet.Text(En.T("build.open"), Render.Style.Slate400));
-        keys.AddChild(Tablet.Text(En.T("build.openTree"), Render.Style.Slate400));
-        _closed.AddChild(keys);
-        _closed.AnchorLeft = _closed.AnchorRight = 0.5f;
-        _closed.AnchorTop = _closed.AnchorBottom = 1;
-        _closed.GrowHorizontal = Control.GrowDirection.Both;
-        _closed.GrowVertical = Control.GrowDirection.Begin;
-        _closed.OffsetBottom = -Slots.Margin;
-        _root.AddChild(_closed);
+        Cap = new EdgeKey(PlanKey.Bricks, hand.Toggle, hand.PlanOut.Get);
 
-        _open.AnchorLeft = _open.AnchorRight = 0.5f;
-        _open.AnchorTop = _open.AnchorBottom = 1;
         // The wheel anywhere over the tablet scrolls the cards; it never reaches the hotbar or the camera.
         _open.GuiInput += e => Scroll(e, _open);
         _open.Bezel.GuiInput += e => Scroll(e, _open.Bezel);
@@ -203,8 +188,6 @@ public partial class BuildMenu : CanvasLayer
     private void LayOut()
     {
         _at = new Catalogue(_ui.Slot);
-        _open.OffsetLeft = -(_at.Width / 2);
-        _open.OffsetRight = _at.Width - _at.Width / 2;
         SizeKeys();
         Dock();
         _tabs.Position = new Vector2(Catalogue.Pad, Catalogue.Pad);
@@ -252,16 +235,14 @@ public partial class BuildMenu : CanvasLayer
         over.AcceptEvent();
     }
 
-    /// <summary>The screen at its dock, 12 px above the bottom edge, less how far the tablet has slid down.</summary>
+    /// <summary>The wings at the dock of the screen, 12 px above the bottom edge, less how far the tablet has slid down: behind it, as it is still wider than they lie apart, until it is up.</summary>
     private void Dock()
     {
-        _open.OffsetTop = -Slots.Margin - _at.Height + _drop;
-        _open.OffsetBottom = -Slots.Margin + _drop;
         // The modes' wing the frame's height on its left; the layers' on its right from its top, the stylus clipped over it.
         var (modes, focus) = (_modes.Size, _focus.Size);
         _modes.OffsetRight = -(_at.Width / 2) - TabletLayout.BezelSide + PlanWing.Tuck;
         _modes.OffsetLeft = _modes.OffsetRight - modes.X;
-        _modes.OffsetTop = _open.OffsetTop - TabletLayout.BezelAbove;
+        _modes.OffsetTop = -Slots.Margin - _at.Height + _drop - TabletLayout.BezelAbove;
         _modes.OffsetBottom = _modes.OffsetTop + modes.Y;
         _focus.OffsetLeft = _at.Width - _at.Width / 2 + TabletLayout.BezelSide - PlanWing.Tuck;
         _focus.OffsetRight = _focus.OffsetLeft + focus.X;
@@ -295,14 +276,17 @@ public partial class BuildMenu : CanvasLayer
     }
 
 
-    /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its chip shows once it is gone.</summary>
+    /// <summary>The tablet slid and its screen lit for this frame (<see cref="Tablet.Step"/>); its wings go with it once it is gone.</summary>
     public override void _Process(double delta)
     {
         bool open = _hand.PlanOut.Get();
         if (!open && _search.HasFocus()) _search.ReleaseFocus();
         _open.Step(open, delta);
-        _closed.Visible = !open && !_open.Shown;
-        int drop = _open.Drop(GetViewport().GetVisibleRect().Size.Y - Slots.Margin - _at.Height);
+        var window = GetViewport().GetVisibleRect().Size;
+        float restTop = window.Y - Slots.Margin - _at.Height;
+        if (_open.Shown) _open.Lay(window.X / 2 - _at.Width / 2, restTop, _at.Width, _at.Height);
+        else _modes.Visible = _focus.Visible = false;
+        int drop = _open.Drop(restTop);
         if (drop != _drop)
         {
             _drop = drop;
@@ -385,16 +369,22 @@ public partial class BuildMenu : CanvasLayer
         GetViewport().SetInputAsHandled();
     }
 
-    /// <summary>Where the menu lies on the screen, open or as its closed chip: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => !_open.Visible ? _closed.GetGlobalRect()
+    /// <summary>Where the menu lies on the screen while it is out: what the crew's markers keep out of.</summary>
+    public Rect2? Covers => !_open.Visible ? null
         : new[] { _modes, _focus }.Where(w => w.Visible).Aggregate(_open.Covers, (all, w) => all.Merge(w.GetGlobalRect()));
+
+    /// <summary>The tablet itself, which rises from the edge.</summary>
+    public Tablet Tablet => _open;
+
+    /// <summary>The key that takes the plan out and puts it away, for the edge to set in place.</summary>
+    public EdgeKey Cap { get; }
 
     /// <summary>One frame: what the world knows; prices weigh what this player carries (<see cref="Ui.Carried"/>).</summary>
     public void Frame(Registry m)
     {
         bool open = _hand.PlanOut.Get();
         // The bezel's top at its dock, wherever the tablet is in its slide.
-        _ui.MenuTop = open ? _open.GetGlobalRect().Position.Y - _drop - TabletLayout.BezelAbove : null;
+        _ui.MenuTop = open ? GetViewport().GetVisibleRect().Size.Y - Slots.Margin - _at.Height - TabletLayout.BezelAbove : null;
         if (!open)
         {
             _tips.Show(null);

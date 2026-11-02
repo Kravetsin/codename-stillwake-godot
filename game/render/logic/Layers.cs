@@ -124,11 +124,14 @@ public static class ScreenLayers
     /// <summary>The Handbook's window (0066), over the HUD and the bars, under the dev panel and the menu.</summary>
     public const int Handbook = 11;
 
+    /// <summary>The tablet's top edge and its keys (<c>Shared.TabletEdge</c>), over every tablet, whose top they ride on.</summary>
+    public const int TabletEdge = 12;
+
     /// <summary>The dev panel, then the game menu over it all.</summary>
-    public const int Dev = 12, Menu = 20;
+    public const int Dev = 13, Menu = 20;
 
     /// <summary>A drop pod's flight whiting out the screen (<c>Features.Landing.FlightOverlay</c>): over the HUD and the dev panel, under the menu.</summary>
-    public const int Flight = 13;
+    public const int Flight = 14;
 
     /// <summary>The title's scene, under its words and over all else, so nothing of the game behind shows (2026-10-25-title-scene).</summary>
     public const int TitleScene = 19;

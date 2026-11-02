@@ -52,6 +52,7 @@ public partial class Main : Node2D, ITogether
 
     private Session? _session;
     private ResearchTablet? _tablet;
+    private TabletEdge? _edge;
     /// <summary>Playing together as the menu shows it; the link it runs over, and the guests by their peer on it.</summary>
     private TogetherState _together = TogetherState.Alone;
     private Action? _stopLink;
@@ -227,16 +228,15 @@ public partial class Main : Node2D, ITogether
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
-            var (panel, fabricator, building, overlays) = (_items.Panel, _fabricator, _hands.Menu, _hands.Overlays);
+            var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()
             {
                 foreach (var covered in panel.Covers()) yield return covered;
                 yield return gauge.Covers;
                 yield return energy.Covers;
-                yield return building.Covers;
-                yield return overlays.Covers;
+                if (building.Covers is { } plan) yield return plan;
                 if (fabricator.Covers is { } crafts) yield return crafts;
-                if (_tablet != null) yield return _tablet.KeyCovers;
+                if (_edge != null) yield return _edge.Covers;
             }
             AddChild(new MarkerLayer(_hands.Ui, _camera, () => _session is Session s && _hero is { Placed: true } h ? (h, _m, s.Client.Id) : null, Hud));
             _camera.DevControls = false;
@@ -296,6 +296,20 @@ public partial class Main : Node2D, ITogether
             _hands.Plan.PutPlanAway();
         });
         AddChild(tech);
+        // The plan out by its key on the edge puts away what B does from the keyboard, and the Handbook with it.
+        _hands.Plan.PlanOut.Subscribe(() =>
+        {
+            if (!_hands.Plan.PlanOut.Get()) return;
+            tech.Close();
+            handbook.Close();
+        });
+        // The tablet's top edge along the foot: every tablet rises from it, and its keys ride on the one that is up.
+        var edge = _edge = new TabletEdge(_hands.Ui, () => _session != null && _hero != null);
+        edge.Put(_hands.Air.Cap, "overlay.key");
+        edge.Put(_hands.Menu.Cap, "build.key");
+        edge.Put(tech.Cap, "research.key");
+        foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
+        AddChild(edge);
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {

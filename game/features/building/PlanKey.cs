@@ -127,15 +127,25 @@ public partial class PlanKey : WristKey
     /// <summary>Building: a wall of bricks in three courses, each laid half a brick over the one under it.</summary>
     private void BuildIcon(Color ink)
     {
+        foreach (var brick in Bricks) DrawRect(brick, ink);
+    }
+
+    /// <summary>The wall of bricks, in a square of <see cref="Side"/>: this key's picture at the art's scale, the edge's build key's at the screen's.</summary>
+    public static readonly Rect2[] Bricks = MakeBricks();
+
+    private static Rect2[] MakeBricks()
+    {
+        var bricks = new System.Collections.Generic.List<Rect2>();
         for (int row = 0; row < 3; row++)
         {
             float y = 2 + row * 4, shift = row % 2 == 0 ? 0 : -3;
             for (float x = shift; x < Side; x += 7)
             {
                 float left = Mathf.Max(x, 0), right = Mathf.Min(x + 6, Side);
-                DrawRect(new Rect2(left, y, right - left, 3), ink);
+                bricks.Add(new Rect2(left, y, right - left, 3));
             }
         }
+        return [.. bricks];
     }
 
     /// <summary>Wiring: a lightning bolt.</summary>

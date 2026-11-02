@@ -12,6 +12,8 @@ namespace Stillwake.Game.Menu;
 public partial class VersionCorner : CanvasLayer
 {
     private const double ReadMs = 500;
+    /// <summary>Left of the tablet's stylus and above the metal of its edge, which run along the screen's foot.</summary>
+    private const int FromRight = 44, FromFoot = 24;
 
     private readonly string _version;
     private readonly Func<double?> _lag;
@@ -31,7 +33,9 @@ public partial class VersionCorner : CanvasLayer
             VerticalAlignment = VerticalAlignment.Bottom,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
-        _label.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.BottomRight, Control.LayoutPresetMode.KeepSize, 8);
+        _label.SetAnchorsPreset(Control.LayoutPreset.BottomRight);
+        _label.OffsetLeft = _label.OffsetRight = -FromRight;
+        _label.OffsetTop = _label.OffsetBottom = -FromFoot;
         _label.GrowHorizontal = Control.GrowDirection.Begin;
         _label.GrowVertical = Control.GrowDirection.Begin;
         AddChild(_label);
