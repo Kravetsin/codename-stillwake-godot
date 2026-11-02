@@ -36,21 +36,22 @@ const powerSocket = (a) => { a.shape(ell(2.5, 2.5, 2), { base: '#868fa2', shade:
 
 /** A hatch segment by what it joins (right 2, left 8): its frame, the same open and shut; the plate between, only shut, so FineSlid finds exactly it. */
 function hatch(links, shut) {
-  const c = canvas(64, 64), x = c.getContext('2d');
-  x.setTransform(4, 0, 0, 4, 0, 0);
-  const R = (a, y, b, h, col) => { x.fillStyle = col; x.fillRect(a, y, b - a, h); };
   const left = links & 8 ? 0 : 1, right = links & 2 ? 16 : 15;
-  if (shut) {
-    R(left, 1, right, 6, '#d97f3a');
-    R(left, 1, right, 1.25, '#f6b06a');
-    R(left, 5.25, right, 1.75, '#a9542a');
-    for (const px of [3, 8, 13]) R(px, 3, px + 1.5, 1, '#6c3a30');
-  }
-  R(0, 0, 16, 1, '#160c08');
-  R(0, 7, 16, 1, '#160c08');
-  R(0, .25, 16, .5, '#7a5236');
-  if (!(links & 8)) { R(0, 0, 1, 8, '#160c08'); R(.25, .25, .5, 7.5, '#7a5236'); }
-  if (!(links & 2)) { R(15, 0, 1, 8, '#160c08'); R(15.25, .25, .5, 7.5, '#3d2519'); }
+  const frame = bake({ w: 16, h: 16, draw: (a) => {
+    a.shape(band(0, 0, 16, 1), DARK, { outer: false, lite: band(0, .2, 16, .5) });
+    a.shape(band(0, 7, 16, 8), DARK, { outer: false, lite: band(0, 7.2, 16, 7.5) });
+    if (!(links & 8)) a.shape(band(0, 0, 1, 8), DARK, { outer: false, lite: band(.2, .2, .5, 7.8) });
+    if (!(links & 2)) a.shape(band(15, 0, 16, 8), DARK, { outer: false });
+  } });
+  const c = canvas(64, 64), x = c.getContext('2d');
+  if (shut) x.drawImage(bake({ w: 16, h: 16, draw: (a) => {
+    a.shape(band(left, 1, right, 7), STEEL, { outer: false, lite: band(left, 1, right, 1.5), shade: band(left, 5.4, right, 7), lines: [`M${left} 5.4L${right} 5.4`] });
+    // Hazard across its leading edge: a plate that shuts on someone says so; the only bright thing on it.
+    for (const px of [2, 6, 10, 14]) a.flat(poly(px, 1.7, px + 1.8, 1.7, px + 1.1, 3, px - .7, 3), '#c8a030', { clip: band(left, 1, right, 7) });
+    if (!(links & 8)) { a.flat(band(3, 4, 7, 4.9), '#1a1c28'); a.flat(band(3, 4, 7, 4.2), '#0f111b'); }
+    if (!(links & 2)) { a.shape(band(10.6, 3.6, 13.8, 5.6), { base: '#c8a030', shade: '#8e7028', deep: '#685428', lite: '#e4c45c', spec: '#f4e49c', ink: '#1e1808' }, { outer: false, lite: band(10.6, 3.6, 13.8, 4), shade: band(10.6, 5, 13.8, 5.6) }); }
+  } }), 0, 0);
+  x.drawImage(frame, 0, 0);
   return c;
 }
 /** A launch deck piece: studs along its top, ended where it joins nothing; open, its middle gapes. */

@@ -26,7 +26,7 @@ public static class BlueprintArt
     /// <summary>Which sides of a cell, a bit each, as the pictures are numbered.</summary>
     private const int Up = 1, Right = 2, Down = 4, Left = 8, AllSides = 15;
 
-    private static readonly Dictionary<Placement, ImageTexture> Thumbs = new();
+    private static readonly Dictionary<Placement, Texture2D> Thumbs = new();
 
     /// <summary>
     /// The pictures <paramref name="placement"/> is drawn with, as the ship draws it built: <paramref name="linked"/>
@@ -67,10 +67,10 @@ public static class BlueprintArt
         if (Thumbs.TryGetValue(placement, out var kept)) return kept;
         var spec = Structures.ByBuild(placement.Kind);
         if (placement.Kind == "backWall" || spec is { Draw: StructureDraw.Autotile })
-            return Thumbs[placement] = ImageTexture.CreateFromImage(Sample(placement, spec != null));
+            return Thumbs[placement] = Card(Sample(placement, spec != null));
         int linked = placement.Layer == "conduit" ? Left | Right : 0;
         var layers = new List<(Image Image, Vector2I At)>();
-        int side = ShipTiles.Drawn;
+        int side = ShipTiles.Drawn * HiRes.Scale;
         var size = new Vector2I(side, side);
         // A piece a 16 px cell square is its own art; a door's, its doorway one segment long, shut.
         IReadOnlyList<TilePiece> pieces = spec is { Draw: StructureDraw.Paired } ? [new(TileLayer.Fixtures, spec.Tile!)]
@@ -78,7 +78,7 @@ public static class BlueprintArt
             : PiecesOf(placement, linked);
         foreach (var piece in pieces)
         {
-            var image = ShipTiles.DrawnImageOf(piece.Picture);
+            var image = ShipTiles.FineImageOf(piece.Picture, ShipTiles.DrawnImageOf(piece.Picture));
             // A sheet gives its first 16 px; a 16 px picture cut over its cells, all of it (0104).
             if (piece.Cut && !ShipTiles.CutDrawn(piece.Picture)) image = image.GetRegion(new Rect2I(0, 0, side, side));
             // A valve's wheel sits in the middle of its cell, as the grid lays it.
@@ -88,8 +88,11 @@ public static class BlueprintArt
         }
         var picture = Image.CreateEmpty(size.X, size.Y, false, Image.Format.Rgba8);
         foreach (var (image, at) in layers) picture.BlendRect(image, new Rect2I(Vector2I.Zero, image.GetSize()), at);
-        return Thumbs[placement] = ImageTexture.CreateFromImage(picture);
+        return Thumbs[placement] = Card(picture);
     }
+
+    /// <summary>A card's texture of <paramref name="picture"/>, <see cref="HiRes.Scale"/> times too large, reporting the size its pixels had.</summary>
+    private static Texture2D Card(Image picture) => HiRes.On ? HiRes.Texture(picture) : ImageTexture.CreateFromImage(picture);
 
     /// <summary>How many cells a side a wall's or a back wall's card shows: enough of its sheet for the material to read.</summary>
     private const int SampleCells = 8;
@@ -100,16 +103,19 @@ public static class BlueprintArt
     /// </summary>
     private static Image Sample(Placement placement, bool wall)
     {
-        var sheet = ShipTiles.ImageOf(PiecesOf(placement, AllSides)[0].Picture);
-        var picture = Image.CreateEmpty(SampleCells * Cell, SampleCells * Cell, false, Image.Format.Rgba8);
+        string name = PiecesOf(placement, AllSides)[0].Picture;
+        var sheet = ShipTiles.FineImageOf(name, ShipTiles.ImageOf(name));
+        int cell = Cell * HiRes.Scale;
+        var picture = Image.CreateEmpty(SampleCells * cell, SampleCells * cell, false, Image.Format.Rgba8);
         for (int j = 0; j < SampleCells; j++)
             for (int i = 0; i < SampleCells; i++)
             {
-                var at = new Vector2I(i, j) * Cell;
-                picture.BlitRect(sheet, new Rect2I(at.X % sheet.GetWidth(), at.Y % sheet.GetHeight(), Cell, Cell), at);
+                var at = new Vector2I(i, j) * cell;
+                picture.BlitRect(sheet, new Rect2I(at.X % sheet.GetWidth(), at.Y % sheet.GetHeight(), cell, cell), at);
                 int open = (j == 0 ? Up : 0) | (i == SampleCells - 1 ? Right : 0) | (j == SampleCells - 1 ? Down : 0) | (i == 0 ? Left : 0);
                 if (!wall || open == 0) continue;
-                var edge = ShipTiles.ImageOf(ShipTiles.EdgeName(placement.Material!, open));
+                string edgeName = ShipTiles.EdgeName(placement.Material!, open);
+                var edge = ShipTiles.FineImageOf(edgeName, ShipTiles.ImageOf(edgeName));
                 picture.BlendRect(edge, new Rect2I(Vector2I.Zero, edge.GetSize()), at);
             }
         return wall ? picture : Lifted(picture);
