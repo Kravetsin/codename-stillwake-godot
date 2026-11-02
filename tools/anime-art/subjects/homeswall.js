@@ -104,9 +104,9 @@ const curtain = (a) => {
 // The hologram of a family: two grown and a child, drawn in light, over a low dark base that keeps three points. When it dies only the base is left.
 // Each: a head, shoulders that come off its neck and stop at the base, and the scan's rows across the chest.
 const FIGS = [
-  { head: [4.6, 4.3, 1.9, 2.2], neck: 'M4 6.4L4 7.6M5.2 6.4L5.2 7.6', body: 'M1.8 14L2 10.6C2.2 9 3 8 4 7.6L5.2 7.6C6.2 8 7.2 9 7.4 10.6L7.8 14Z', rows: ['M2.3 10.4L7.1 10.4', 'M2.1 12.2L7.5 12.2'] },
-  { head: [11.7, 8.2, 1.5, 1.7], neck: 'M11.2 9.8L11.2 10.6M12.2 9.8L12.2 10.6', body: 'M9.6 14L9.8 12.2C10 11.2 10.6 10.8 11.2 10.6L12.2 10.6C12.8 10.8 13.4 11.2 13.6 12.2L13.8 14Z', rows: ['M10 12.6L13.4 12.6'] },
-  { head: [18, 3.2, 2, 2.3], neck: 'M17.3 5.4L17.3 6.6M18.7 5.4L18.7 6.6', body: 'M15.2 14L15.4 9.6C15.6 8 16.4 7 17.3 6.6L18.7 6.6C19.6 7 20.4 8 20.6 9.6L21 14Z', rows: ['M15.7 9.4L20.3 9.4', 'M15.5 11.2L20.5 11.2', 'M15.4 12.8L20.7 12.8'] },
+  { head: [4.6, 4.3, 1.9, 2.2], neck: 'M4 6.4L4 7.6M5.2 6.4L5.2 7.6', body: 'M1.8 14L1.7 9.8C1.8 8.8 2.6 8.4 4 7.6L5.2 7.6C6.6 8.4 7.5 8.8 7.7 9.8L7.8 14Z', rows: ['M2.3 10.4L7.1 10.4', 'M2.1 12.2L7.5 12.2'] },
+  { head: [11.7, 8.2, 1.5, 1.7], neck: 'M11.2 9.8L11.2 10.6M12.2 9.8L12.2 10.6', body: 'M9.6 14L9.5 11.8C9.6 11.2 10.2 11 11.2 10.6L12.2 10.6C13.2 11 13.8 11.2 13.9 11.8L13.8 14Z', rows: ['M10 12.6L13.4 12.6'] },
+  { head: [18, 3.2, 2, 2.3], neck: 'M17.3 5.4L17.3 6.6M18.7 5.4L18.7 6.6', body: 'M15.2 14L15 8.8C15.1 7.8 16 7.4 17.3 6.6L18.7 6.6C20 7.4 20.9 7.8 21 8.8L21 14Z', rows: ['M15.7 9.4L20.3 9.4', 'M15.5 11.2L20.5 11.2', 'M15.4 12.8L20.7 12.8'] },
 ];
 const holoBase = (a) => {
   a.shape(rr(2, 14.2, 18, 4, .4), SOOT, { lite: band(2, 14.2, 20, 14.7), shade: band(2, 17, 20, 18.2) });
