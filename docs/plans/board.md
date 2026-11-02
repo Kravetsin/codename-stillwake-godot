@@ -135,7 +135,7 @@ Contraband, goods sold at a loss, comes after this: it needs a purchase that giv
 
 - **Build and take apart counts as taken apart.** We keep no record of what the crew built. Knowing a node means its parts are already at `Enough`, so the loop only helps through `StartKnown`: a trade station for chunks and hull plates, about 9 s a cycle, scrap walls for chunks. It saves about a minute and hurts nobody.
 - **Loot that drifts off counts.** It was seen coming out, as the handbook's record already holds.
-- **No landing animation:** no stagger for a burst, no replay when the tablet opens, no picture over the hero beyond what a catch already shows. The lamp says something is new; a stagger is the first thing to add if that is not enough.
+- **No picture over the hero** beyond what a catch already shows. The lamp says something is new, and [the pile](../decisions/2026-11-02-board-pile.md) shows it when the tablet opens.
 - **The board does not state the goal.** Nothing says an engine and a radar end the stage. A player finds them by following what they make; the playtest will show whether they do.
 - **Who the mafia is.** It has no characters and no text but its orders. Where it comes from, and why it does not fetch the hero, is left for the story; no mechanic rests on it.
 - **Orders are written by hand,** in `Content`: the market is a small chosen catalogue, unlike the board.
