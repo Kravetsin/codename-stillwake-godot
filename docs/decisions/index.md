@@ -191,6 +191,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
 | [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
+| [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
 | [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | accepted |  |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |

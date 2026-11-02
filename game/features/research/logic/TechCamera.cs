@@ -25,8 +25,11 @@ public sealed class TechCamera
     /// <summary>Where the map's top-left is in the view.</summary>
     public double Y { get; private set; }
 
-    /// <summary>The smallest it is drawn: all of the map in view, and never above life size for it.</summary>
-    public double Least => Math.Min(1, Math.Min(_viewWide / _mapWide, _viewTall / _mapTall));
+    /// <summary>The smallest it may ever be drawn, however large the map: past this, what is on it stops reading. None by default.</summary>
+    public double Floor { get; init; }
+
+    /// <summary>The smallest it is drawn: all of the map in view, or as near as <see cref="Floor"/> allows, and never above life size for it.</summary>
+    public double Least => Math.Min(1, Math.Max(Floor, Math.Min(_viewWide / _mapWide, _viewTall / _mapTall)));
 
     /// <summary>The view and the map now, in pixels: the map is kept in bounds of them.</summary>
     public void Fit(double viewWide, double viewTall, double mapWide, double mapTall)
