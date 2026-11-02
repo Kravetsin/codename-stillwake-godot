@@ -67,7 +67,7 @@ public sealed class BoardPage : ITabletPage
     private readonly Action _readSoon;
     private readonly Func<uint> _worldId;
     private readonly BoardKeep _keep;
-    private readonly TechCamera _camera = new();
+    private readonly TechCamera _camera = new() { Floor = BoardBox.Smallest };
     // The board's part of the view: nothing on the board shows past it, under the entry and the stack.
     private readonly Control _board = new() { MouseFilter = Control.MouseFilterEnum.Ignore, ClipContents = true };
     // What scales is under _map, what is set at its seen size under _front.

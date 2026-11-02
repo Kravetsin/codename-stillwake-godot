@@ -5,6 +5,35 @@ namespace Stillwake.Game.Tests;
 
 public class TechCameraTests
 {
+    [Fact]
+    public void AFloorStopsTheWheelThoughTheMapWouldNeedLessToFit()
+    {
+        var camera = new TechCamera { Floor = 0.33 };
+        camera.Fit(1000, 500, 8000, 4000);
+        Assert.Equal(0.33, camera.Least);
+        camera.Wheel(-30, 500, 250);
+        Assert.Equal(0.33, camera.Zoom);
+    }
+
+    [Fact]
+    public void AMapLargerThanTheViewAtTheFloorCanBeDraggedAcross()
+    {
+        var camera = new TechCamera { Floor = 0.33 };
+        camera.Fit(1000, 500, 8000, 4000);
+        camera.Wheel(-30, 500, 250);
+        camera.Drag(-1e6, -1e6);
+        Assert.Equal(1000 - 8000 * 0.33, camera.X, 6);
+        Assert.Equal(500 - 4000 * 0.33, camera.Y, 6);
+    }
+
+    [Fact]
+    public void AMapThatFitsAboveTheFloorStillStopsWhereItFits()
+    {
+        var camera = new TechCamera { Floor = 0.33 };
+        camera.Fit(1000, 500, 1000, 1000);
+        Assert.Equal(0.5, camera.Least);
+    }
+
     private static TechCamera Over(double viewWide = 1000, double viewTall = 500, double mapWide = 2000, double mapTall = 2000)
     {
         var camera = new TechCamera();
