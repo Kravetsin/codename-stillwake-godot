@@ -88,6 +88,20 @@ public class MarketOrdersTests
     }
 
     [Fact]
+    public void TheSolarPanelIsSoldOnlyOnceTheFourthOrderIsMet()
+    {
+        var w = World(credits: 100_000);
+        foreach (string order in (string[])["order1", "order2", "order3"]) Sell(w, order);
+        w.Do(new BuyBlock("solarPanel")).Run();
+        Assert.Equal(["research.locked"], Reasons(w));
+        w.Refusals.Clear();
+        Sell(w, "order4");
+        w.Do(new BuyBlock("solarPanel")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Done(Tree.Node("solarPanel")!));
+    }
+
+    [Fact]
     public void TheMarketFitsItsPageOrABlockAskingForMoreBringsScrolling()
     {
         var market = Tree.Tabs.Single(t => t.Id == Tree.Market);

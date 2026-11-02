@@ -14,7 +14,7 @@ public partial class MarketFaults : Control
     /// <summary>A slice of what is under it, drawn <c>By</c> pixels along.</summary>
     private static readonly (float X, float Wide, float Y, float Tall, float By)[] Slips = [(270, 926, 189, 1, 3), (8, 1188, 365, 1, -2), (570, 400, 596, 2, 4)];
     private static readonly Vector2[] Dead = [new(582, 97), new(1160, 259), new(258, 476), new(910, 423)];
-    private static readonly Vector2[] Stuck = [new(442, 234), new(1074, 52), new(1175, 611)];
+    private static readonly Vector2[] Stuck = [new(442, 234), new(1074, 52), new(930, 628)];
     private const float ColumnX = 957, ColumnFrom = 40, ColumnTo = 636;
 
     private static readonly Shader Slipped = new()

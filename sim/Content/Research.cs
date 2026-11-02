@@ -51,10 +51,9 @@ public static class Research
     /// <summary>What credits buy, by tab: the market alone.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        // Open from the start, at a price rather than a stage (black-market), its later rows by what is sold (docs/plans/board.md).
+        // Open from the start, its later rows by what is sold (docs/plans/board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
         new(Market,
             new TechRing(null, [],
-                ("solarPanel", 5),
                 Up("bag1"),
                 Up("bag2"),
                 Up("tradeSlots1")),
@@ -73,6 +72,7 @@ public static class Research
                 Up("bag8"),
                 Up("tradeSlots5")),
             new("order4", [("circuit", 20)],
+                ("solarPanel", 5),
                 Up("bag9"),
                 Up("tradeSlots6")),
             new("order5", [("copper", 20), ("mica", 10), ("hide", 5)],

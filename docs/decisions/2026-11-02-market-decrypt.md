@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-02
-- Amends [black-market](2026-10-31-black-market.md): the market gets a look of its own
+- Amends [black-market](2026-10-31-black-market.md): the market gets a look of its own, and the solar panel a stage
 - Supersedes [tech-rings](2026-10-30-tech-rings.md): with the tree gone, nothing is drawn as rings
 
 ## Context
@@ -20,6 +20,7 @@ a plant's control panel.
 - **One colour does not belong to the tablet:** a poison accent, `#ff2d78`, on what can be bought and the order being
   filled.
 - **The logic stays:** goods for credits, groups open by orders, orders fill only through ordinary sales.
+- **The solar panel moves to the fourth order's row,** at its same price, the user's idea. Sold from the start it was a blueprint nothing could yet build, for its cells come from the assembler, and the fourth order asks for circuits from that same bench. It also gives a decipher something other than one more slot to open on.
 
 Client only, with no change to the sim: buying stays `BuyBlock`. A sale at the station fills the order with the tablet away, and when the market next shows, after the tablet's
 rise, the group deciphers character by character, cards in turn, in about 1.6 s. Orders seen stay one count per machine and world, kept with the board, so the lamps and the decipher

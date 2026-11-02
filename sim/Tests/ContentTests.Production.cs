@@ -676,7 +676,7 @@ public partial class ContentTests
         Assert.DoesNotContain("solarPanel", Content.Research.StartKnown);
         var listing = Content.Research.Node("solarPanel")!;
         Assert.Equal("blackMarket", listing.Tab);
-        Assert.Empty(listing.Needs);
+        Assert.Equal(["order4"], listing.Needs);
         // Dear: more than any upgrade but the last bag's.
         Assert.InRange(Stillwake.Sim.Research.Prices.Of(listing), 8000, 15000);
         var given = DebrisSpec.Zones.SelectMany(z => z.Tiers).SelectMany(t => t.Kinds).Select(k => k.Item)

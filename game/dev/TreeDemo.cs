@@ -66,7 +66,7 @@ public partial class TreeDemo(Func<Registry> m) : Node
             (4.55, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
             (5.0, "press the button", () => _hands.Mouse(_tree.ActionAt, MouseButton.Left, true)),
             (5.05, "let go: bought", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (5.6, "click the solar panel: too dear, what it takes", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
+            (5.6, "click a slot too dear: the button says so", () => _hands.Mouse(_tree.ScreenOf("bag6"), MouseButton.Left, true)),
             (5.65, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
             (6.4, "the third order sold with the market open: it plays at once", () =>
             {
@@ -80,8 +80,10 @@ public partial class TreeDemo(Func<Registry> m) : Node
             (9.6, "T opens it again", () => TabletHands.Press(Key.T)),
             (9.65, "to the market, if the board took it: two rows deciphering together", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
             (9.7, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
-            (12.2, "T puts it away", () => TabletHands.Press(Key.T)),
-            (12.7, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
+            (11.8, "click the solar panel, opened by the fourth order: what it takes", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),
+            (11.85, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (12.6, "T puts it away", () => TabletHands.Press(Key.T)),
+            (13.1, "Tab: the bag, the credits on its metal", () => TabletHands.Press(Key.Tab)),
         ];
         while (_step < script.Length && _t >= script[_step].At)
         {
