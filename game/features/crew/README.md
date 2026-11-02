@@ -8,22 +8,22 @@ commands reach the sim; others' heroes come through the host.
 
 | File | Holds |
 | --- | --- |
-| `logic/Hero.cs` | the controller: `Hero`, `HeroInput`, `Ship`, `Step` (0047, 0106) |
+| `logic/Hero.cs` | the controller: `Hero`, `Step` (0047, 0106) |
 | `logic/Rig.cs` | the figure's joints and limbs; the fist (0040) |
 | `logic/Pose.cs` | poses, the head's turn, the air's blend (0090) |
-| `logic/Motion.cs` | lean and landing, read from motion (0090) |
-| `logic/LookTint.cs` | a look's skin and hair on a hi-res part, which has no ramps to swap |
+| `logic/Motion.cs` | lean and landing (0090) |
+| `logic/LookTint.cs` | skin, hair on hi-res parts |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan |
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
 | `logic/SwingArm.cs` | the front arm through swings; aiming the harpoon |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
-| `logic/HarpoonLine.cs` | the harpoon's line as drawn |
+| `logic/HarpoonLine.cs` | the harpoon's line |
 | `logic/Prompt.cs` | what E does at the aim, or why not |
 | `logic/Seating.cs` | a hero in or flying a drop pod |
 | `logic/FogMove.cs` | across a planet's fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
-| `UsePrompt.cs` | the prompt at the bottom middle |
+| `UsePrompt.cs` | the prompt at the bottom |
 | `logic/Tether.cs` | the tether as drawn, a reeled rope |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/Motor.cs` | the `Run` sent till the sim agrees (0055) |
