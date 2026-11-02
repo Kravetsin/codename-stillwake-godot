@@ -38,6 +38,26 @@ public static class PlanOutline
     private static readonly int[] Turns = [1, 0, 3];
 
     /// <summary>
+    /// A picture <paramref name="scale"/> times finer than the world as a <paramref name="width"/> by <paramref name="height"/>
+    /// mask of the world's pixels, row by row: one is the picture's when its share of <paramref name="alpha"/> (0..255) reaches
+    /// a quarter, so a line thinner than a pixel of the world holds, and a stray speck of wash does not.
+    /// </summary>
+    public static bool[] Coarse(System.Func<int, int, byte> alpha, int width, int height, int scale)
+    {
+        var mask = new bool[width * height];
+        for (int y = 0; y < height; y++)
+            for (int x = 0; x < width; x++)
+            {
+                int sum = 0;
+                for (int j = 0; j < scale; j++)
+                    for (int i = 0; i < scale; i++)
+                        sum += alpha(x * scale + i, y * scale + j);
+                mask[y * width + x] = sum * 4 >= 255 * scale * scale;
+            }
+        return mask;
+    }
+
+    /// <summary>
     /// The rim of the opaque pixels of a <paramref name="width"/> by <paramref name="height"/> mask, row by row: a step
     /// along every side of an opaque pixel facing a clear one or the mask's edge.
     /// </summary>
