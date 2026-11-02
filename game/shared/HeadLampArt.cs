@@ -1,4 +1,5 @@
 using Godot;
+using Stillwake.Game.Render;
 
 namespace Stillwake.Game.Shared;
 
@@ -9,7 +10,7 @@ namespace Stillwake.Game.Shared;
 public static class HeadLampArt
 {
     /// <summary>The lamp's picture, from the side, facing +x.</summary>
-    public static Texture2D Picture => GD.Load<Texture2D>("res://art/hero_headLamp.png");
+    public static Texture2D Picture => PixelArt.Picture("hero_headLamp");
 
     /// <summary>Where the picture's top left sits on the helmet's picture, in the helmet's pixels: on its brow.</summary>
     public static readonly Vector2 On = new(8, -1);

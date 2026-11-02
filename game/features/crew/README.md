@@ -12,6 +12,7 @@ commands reach the sim; others' heroes come through the host.
 | `logic/Rig.cs` | the figure's joints and limbs; the fist (0040) |
 | `logic/Pose.cs` | poses, the head's turn, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing, read from motion (0090) |
+| `logic/LookTint.cs` | a look's skin and hair on a hi-res part, which has no ramps to swap |
 | `logic/Aim.cs` | reach, the aim, what the hands send, a tool's fan |
 | `logic/AxeSwing.cs` | the axe's swing (0038-0040, 0075) |
 | `SwingSmear.cs` | the swipe of light of a downstroke (0075) |
