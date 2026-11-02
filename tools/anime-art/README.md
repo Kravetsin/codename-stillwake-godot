@@ -1,8 +1,7 @@
 # Anime art
 
 Draws the anime art's pictures in code and writes them into `game/art/hd/`, where `game/render/HiRes.cs` picks
-them up in place of the pixel pictures of the same names, by default ([the switch](../../docs/decisions/2026-11-02-ink-by-default.md)); `-- --pixel-art` shows
-the old ones.
+them up in place of the logical pictures of the same names, which still give a picture its size and shape ([the plan](../../docs/plans/anime-art.md)).
 
 ## The style
 

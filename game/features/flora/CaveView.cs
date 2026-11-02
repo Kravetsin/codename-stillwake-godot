@@ -220,19 +220,9 @@ public partial class CaveView : Node2D, ILightSource
                 {
                     if ((open & face) == 0) return;
                     bool Runs(int n) => _moss.Contains(n) && (FacesOpen(n, across, tall) & face) != 0;
-                    bool goesBefore = Runs(own + before), goesAfter = Runs(own + after);
-                    if (HiRes.On)
-                    {
-                        // In ink no pixel can stretch: its pieces join at their blocks' edges, drawn to meet there.
-                        var (px, py, pw, ph) = Planting.Piece(face, goesBefore, goesAfter);
-                        pictures.Add((name, corner, new Rect2I(px, py, pw, ph), face == Planting.Faces.Up));
-                        return;
-                    }
-                    var band = Atlas.Band[(tone, face)];
-                    int thick = (int)(face is Planting.Faces.Up or Planting.Faces.Down ? band.Size.Y : band.Size.X);
-                    if (Planting.Strip(face, x, y, Cell, across, tall, thick, goesBefore, goesAfter) is (int sx, int sy, int sw, int sh))
-                        (face == Planting.Faces.Up ? patch.Front : patch.Pictures).Items.Add((new Rect2(sx, sy, sw, sh), band));
-                    pictures.Add((name, corner, null, face == Planting.Faces.Up));
+                    // Its pieces join at their blocks' edges, drawn to meet there.
+                    var (px, py, pw, ph) = Planting.Piece(face, Runs(own + before), Runs(own + after));
+                    pictures.Add((name, corner, new Rect2I(px, py, pw, ph), face == Planting.Faces.Up));
                 }
                 Face(Planting.Faces.Up, $"caves/{tone}_top_{v}", -across, across);
                 Face(Planting.Faces.Down, $"caves/{tone}_bottom_{(v + 1) % look.Variants}", -across, across);
@@ -588,9 +578,6 @@ public partial class CaveView : Node2D, ILightSource
         /// <summary>Each picture's first and last rows with anything drawn in them: its top and its base.</summary>
         public static readonly Dictionary<string, (int Top, int Bottom)> Used = new();
 
-        /// <summary>A pixel of each moss tone's band along each face, stretched along a run of it: its colour, its thickness.</summary>
-        public static readonly Dictionary<(string Tone, Planting.Faces Face), Rect2> Band = new();
-
         static Atlas()
         {
             var names = Names().Select(n => (Name: n, Image: ImageOf(n))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
@@ -612,33 +599,8 @@ public partial class CaveView : Node2D, ILightSource
                 Used[name] = (used.Position.Y, used.End.Y - 1);
                 if (GlowOf(name) is { } glow) glows.BlitRect(Faded(Rgba(glow.Texture.GetImage())), whole, (Vector2I)at.Position);
             }
-            foreach (string tone in (string[])["moss", "mossGreen"])
-                foreach (var (face, name, line, thick) in MossBands)
-                    Band[(tone, face)] = BandOf(names.Where(n => n.Name.StartsWith($"caves/{tone}_{name}_", StringComparison.Ordinal)).ToList(), face, line, thick);
             var placed = names.Select(n => (n.Name, At[n.Name])).ToList();
             (Pictures, Glows) = (HiRes.Sheet(pictures, placed), HiRes.Sheet(glows, placed, "_glow"));
-        }
-
-        /// <summary>
-        /// Where each face's band of moss lies in its pictures, which are 24 × 24 round their cell: its row, along a top or a
-        /// bottom, or its column, down a side; and how many pixels thick it is.
-        /// </summary>
-        private static readonly (Planting.Faces Face, string Name, int Line, int Thick)[] MossBands =
-            [(Planting.Faces.Up, "top", 4, 1), (Planting.Faces.Down, "bottom", 19, 2), (Planting.Faces.Left, "left", 4, 1), (Planting.Faces.Right, "right", 19, 1)];
-
-        /// <summary>The first pixel of a moss face's band in its pictures, <paramref name="thick"/> across it, in the atlas.</summary>
-        private static Rect2 BandOf(List<(string Name, Image Image)> pictures, Planting.Faces face, int line, int thick)
-        {
-            bool across = face is Planting.Faces.Up or Planting.Faces.Down;
-            foreach (var (name, image) in pictures)
-                for (int i = 0; i < 24; i++)
-                {
-                    var (px, py) = across ? (i, line) : (line, i);
-                    if (image.GetPixel(px, py).A < 0.5f) continue;
-                    var at = At[name].Position + new Vector2(px, py);
-                    return across ? new Rect2(at, new Vector2(1, thick)) : new Rect2(at, new Vector2(thick, 1));
-                }
-            throw new InvalidOperationException($"No band of moss along {face} in its pictures.");
         }
 
         /// <summary>The name of every cave picture: each kind's variants, by band for those that are, moss by tone and face.</summary>

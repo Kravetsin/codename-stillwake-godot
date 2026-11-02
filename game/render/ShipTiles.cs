@@ -106,7 +106,7 @@ public sealed class ShipTiles
         foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
         {
             pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
-            if (HiRes.On && FineWhole(kind) is { } fine) fineMade[PieceName(kind)] = fine;
+            if (FineWhole(kind) is { } fine) fineMade[PieceName(kind)] = fine;
         }
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
@@ -114,8 +114,8 @@ public sealed class ShipTiles
 
         // Shelves of pictures, tallest first, a cell at a time.
         var order = pictures.OrderByDescending(p => p.Diffuse.GetHeight()).ThenBy(p => p.Name, System.StringComparer.Ordinal).ToList();
-        // Hi-res, a cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
-        int clear = HiRes.On ? 1 : 0;
+        // A cell clear round each picture: smooth sampling and mipmaps reach past a picture's edge.
+        const int clear = 1;
         int x = clear, y = clear, shelf = 0;
         foreach (var (name, diffuse, _) in order)
         {
@@ -126,7 +126,7 @@ public sealed class ShipTiles
             shelf = Mathf.Max(shelf, size.Y + clear);
         }
         int down = y + shelf;
-        int S = HiRes.Scale;
+        const int S = HiRes.Scale;
         var atlas = Image.CreateEmpty(Across * Cell * S, down * Cell * S, false, Image.Format.Rgba8);
         var normals = Image.CreateEmpty(Across * Cell, down * Cell, false, Image.Format.Rgba8);
         normals.Fill(Flat);
@@ -134,11 +134,6 @@ public sealed class ShipTiles
         {
             var at = _placed[name].At * Cell;
             normals.BlitRect(normal, new Rect2I(Vector2I.Zero, normal.GetSize()), at);
-            if (!HiRes.On)
-            {
-                atlas.BlitRect(diffuse, new Rect2I(Vector2I.Zero, diffuse.GetSize()), at);
-                continue;
-            }
             var fine = fineMade.GetValueOrDefault(name) ?? HiRes.Load(name);
             if (fine != null && fine.GetSize() != diffuse.GetSize() * S && fine.GetSize().X % (Cell * S) != 0 && !name.StartsWith("valve_", StringComparison.Ordinal)) GD.PushError($"hi-res {name}: {fine.GetSize()} for {diffuse.GetSize()}");
             if (fine == null)
@@ -152,17 +147,15 @@ public sealed class ShipTiles
             atlas.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), box.Position + (box.Size - fine.GetSize()) / 2);
             Extrude(atlas, box, Cell * S / 2);
         }
-        if (HiRes.On) atlas.GenerateMipmaps();
+        atlas.GenerateMipmaps();
 
-        Texture = HiRes.On
-            ? HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals))
-            : new CanvasTexture { DiffuseTexture = ImageTexture.CreateFromImage(atlas), NormalTexture = ImageTexture.CreateFromImage(normals) };
+        Texture = HiRes.Sampled(ImageTexture.CreateFromImage(atlas), new Vector2I(Across * Cell, down * Cell), ImageTexture.CreateFromImage(normals));
         var source = new TileSetAtlasSource
         {
             Texture = Texture,
             TextureRegionSize = new Vector2I(Cell, Cell),
             // Godot's padding copies pictures by the size the atlas reports, not its pixels: Extrude does this instead.
-            UseTexturePadding = !HiRes.On,
+            UseTexturePadding = false,
         };
         Set.AddSource(source, 0);
         foreach (var (name, (at, size)) in _placed)
@@ -398,11 +391,10 @@ public sealed class ShipTiles
 
     /// <summary>
     /// The picture <paramref name="name"/>, whose pixels are <paramref name="logical"/>, for what lays pictures together itself (a build
-    /// card): at <see cref="HiRes.Scale"/> times those pixels, its hi-res one or them grown. Off, <paramref name="logical"/> as it is.
+    /// card): at <see cref="HiRes.Scale"/> times those pixels, its hi-res one or them grown.
     /// </summary>
     public static Image FineImageOf(string name, Image logical)
     {
-        if (!HiRes.On) return logical;
         var fine = name.StartsWith("piece_", StringComparison.Ordinal) ? FineWhole(name["piece_".Length..]) : HiRes.Load(name);
         var want = logical.GetSize() * HiRes.Scale;
         if (fine == null)

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Godot;
 
 namespace Stillwake.Game.Render;
@@ -7,15 +6,11 @@ namespace Stillwake.Game.Render;
 /// <summary>
 /// The anime art's pictures: <c>res://art/hd/{name}.png</c>, <see cref="Scale"/> times the pixels of the picture they stand for,
 /// reporting that picture's size so nothing that lays pictures out by their size changes, and sampled smoothly whatever node draws them.
-/// On by default (2026-11-02-ink-by-default): <c>-- --pixel-art</c> draws the game in its old pixels, till those go.
 /// </summary>
 public static class HiRes
 {
-    /// <summary>Whether the new art is drawn.</summary>
-    public static readonly bool On = !OS.GetCmdlineUserArgs().Contains("--pixel-art");
-
     /// <summary>How many pixels of a hi-res picture stand for one of the world's; zoom reaches 2.5, the rest is room for the screen.</summary>
-    public static int Scale => On ? 4 : 1;
+    public const int Scale = 4;
 
     /// <summary>The world's pixels a hi-res hero part has clear round its pixel picture's box: for its outline, which a limb's box would cut.</summary>
     public const int FigureMargin = 3;
@@ -24,7 +19,7 @@ public static class HiRes
     public static Image? Load(string name)
     {
         string path = $"res://art/hd/{name}.png";
-        if (!On || !ResourceLoader.Exists(path)) return null;
+        if (!ResourceLoader.Exists(path)) return null;
         var image = GD.Load<Texture2D>(path).GetImage();
         if (image.IsCompressed()) image.Decompress();
         image.Convert(Image.Format.Rgba8);
@@ -37,7 +32,6 @@ public static class HiRes
     /// </summary>
     public static Texture2D Sheet(Image logical, IEnumerable<(string Name, Rect2 At)> placed, string suffix = "")
     {
-        if (!On) return ImageTexture.CreateFromImage(logical);
         var sheet = (Image)logical.Duplicate();
         sheet.Resize(logical.GetWidth() * Scale, logical.GetHeight() * Scale, Image.Interpolation.Nearest);
         foreach (var (name, at) in placed)

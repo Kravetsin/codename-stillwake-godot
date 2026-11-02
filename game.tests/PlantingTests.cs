@@ -58,17 +58,7 @@ public class PlantingTests
     }
 
     [Fact]
-    public void AMossBandRunsTheWholeEdgeOfItsBlockAlongARunAndALonePieceKeepsItsEnds()
-    {
-        Assert.Null(Planting.Strip(Faces.Down, 4, 6, Cell, 2, 2, 2, before: false, after: false));
-        Assert.Equal((32, 63, 16, 2), Planting.Strip(Faces.Down, 4, 6, Cell, 2, 2, 2, before: true, after: false));
-        Assert.Equal((32, 48, 16, 1), Planting.Strip(Faces.Up, 4, 6, Cell, 2, 2, 1, before: false, after: true));
-        Assert.Equal((32, 48, 1, 16), Planting.Strip(Faces.Left, 4, 6, Cell, 2, 2, 1, before: true, after: true));
-        Assert.Equal((47, 48, 1, 16), Planting.Strip(Faces.Right, 4, 6, Cell, 2, 2, 1, before: true, after: false));
-    }
-
-    [Fact]
-    public void InInkAPieceIsCutAtItsBlocksEdgeWhereARunGoesOnAndKeepsItsEndsWhereItStops()
+    public void APieceIsCutAtItsBlocksEdgeWhereARunGoesOnAndKeepsItsEndsWhereItStops()
     {
         Assert.Equal((0, 0, 24, 24), Planting.Piece(Faces.Up, before: false, after: false));
         Assert.Equal((4, 0, 20, 24), Planting.Piece(Faces.Up, before: true, after: false));

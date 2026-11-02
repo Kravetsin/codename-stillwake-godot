@@ -78,30 +78,11 @@ public static class Planting
         return best;
     }
 
-    /// <summary>
-    /// The band along <paramref name="face"/> of moss at cell (<paramref name="x"/>, <paramref name="y"/>), its block
-    /// <paramref name="across"/> by <paramref name="tall"/> cells, drawn the whole edge of its block, <paramref name="thick"/>
-    /// pixels, where a run of it goes on <paramref name="before"/> or <paramref name="after"/> it along that face: a run joins,
-    /// rather than repeating a piece with its ends. Null for a lone piece, which keeps its own ends.
-    /// </summary>
-    public static (int X, int Y, int W, int H)? Strip(Faces face, int x, int y, int cell, int across, int tall, int thick, bool before, bool after)
-    {
-        if (!before && !after) return null;
-        int left = x * cell, top = y * cell, wide = across * cell, high = tall * cell;
-        return face switch
-        {
-            Faces.Up => (left, top, wide, thick),
-            Faces.Down => (left, top + high - 1, wide, thick),
-            Faces.Left => (left, top, thick, high),
-            _ => (left + wide - 1, top, thick, high),
-        };
-    }
-
     /// <summary>How far a piece of moss's picture reaches past its block on every side, and its whole size round a block of 16.</summary>
     private const int PieceOver = 4, PieceSize = 24;
 
     /// <summary>
-    /// What of a moss picture in ink shows along <paramref name="face"/>: cut at its block's edge where a run of it goes on
+    /// What of a moss picture shows along <paramref name="face"/>: cut at its block's edge where a run of it goes on
     /// <paramref name="before"/> or <paramref name="after"/> it, its torn end kept where the run stops (2026-11-01-moss-in-ink).
     /// </summary>
     public static (int X, int Y, int W, int H) Piece(Faces face, bool before, bool after)

@@ -34,20 +34,17 @@ public partial class IstukanBodies : Node2D
 
     private sealed partial class Shown : PosedSprite
     {
-        public readonly IstukanArt Art = new();
         private readonly IstukanRig _rig = new();
-        private readonly InkRig? _ink;
+        private readonly InkRig _ink;
 
-        public Shown() : base(IstukanArt.Width, IstukanArt.Height, IstukanArt.OriginX, IstukanArt.OriginY, Middle)
+        public Shown() : base(Middle)
         {
-            if (!HiRes.On) return;
             _ink = new InkRig(CreatureArt.InkIstukan.Id, CreatureArt.InkIstukan.Parts) { Position = new Vector2(0, Middle) };
             AddChild(_ink);
         }
 
         public IstukanMotion Motion = null!;
         public IstukanArt.Anchors Anchors;
-        public IstukanArt.Pose? Painted;
         public S.IstukanCues Cues = null!;
         public Vector2 From, To, Drawn;
         public int Tick = -1, Damage, Post, Relic;
@@ -57,32 +54,19 @@ public partial class IstukanBodies : Node2D
         /// <summary>The walls its post holds on to: any of them dug out fells it.</summary>
         public readonly List<int> Holds = [];
 
-        /// <summary>Its sprite in its motion's pose, painted only if that changed, at its place, turned and facing as it flies.</summary>
+        /// <summary>Its sprite in its motion's pose, at its place, turned and facing as it flies.</summary>
         public void Show(Vector2 feet)
         {
-            if (_ink != null)
-            {
-                Anchors = _rig.Place(Motion.Pose, Motion.Clock);
-                _ink.Show(_rig.Slots, Motion.Flash, Motion.Pose.Dim);
-            }
-            else if (Painted != Motion.Pose)
-            {
-                Painted = Motion.Pose;
-                Anchors = Art.Draw(Motion.Pose);
-                Paint(Art.Albedo, Art.Silhouette, Art.Emission);
-            }
-            Place(feet, Motion.Shake, Motion.Angle, Motion.Face, Motion.Flash);
+            Anchors = _rig.Place(Motion.Pose, Motion.Clock);
+            _ink.Show(_rig.Slots, Motion.Flash, Motion.Pose.Dim);
+            Place(feet, Motion.Shake, Motion.Angle, Motion.Face);
         }
 
         /// <summary>Where a point of its sprite (<see cref="IstukanArt.Anchors"/>) is in the world this frame.</summary>
         public Vector2 World((double X, double Y) at) => Transform * new Vector2((float)at.X, (float)at.Y + Middle);
 
         /// <summary>Its pixels in the world as they stand now, for a burst.</summary>
-        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into)
-        {
-            if (_ink != null) _ink.Pixels(into, Transform);
-            else PaintInto(into, Art.Albedo);
-        }
+        public void PaintInto(Dictionary<(int X, int Y), (byte R, byte G, byte B)> into) => _ink.Pixels(into, Transform);
     }
 
     private readonly Dictionary<int, Shown> _shown = new();
@@ -183,7 +167,7 @@ public partial class IstukanBodies : Node2D
         one.Cues = S.Istukans[c.Species];
         // Into its hall till it has a hero to face.
         one.Motion.Face = one.Relic % grid.Width * Unit >= c.X ? 1 : -1;
-        (one.Painted, one.DropSpeed, one.Modulate, one.Visible) = (null, 0, Colors.White, true);
+        (one.DropSpeed, one.Modulate, one.Visible) = (0, Colors.White, true);
         return one;
     }
 

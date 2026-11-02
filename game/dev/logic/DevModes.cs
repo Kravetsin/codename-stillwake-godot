@@ -63,7 +63,6 @@ public static class DevModes
         new("--pose-sheet", DevShape.Equals, "the hero's holds drawn alone and saved to that folder, nothing else made (PoseSheet)"),
         new("--pose-item", DevShape.Equals, "with --pose-sheet, the item held; the drill by default"),
         new("--dress-sheet", DevShape.Equals, "the hero bare, in a helmet, a body and suited, in every colour, saved to that PNG, nothing else made (DressSheet)"),
-        new("--pixel-art", DevShape.Flag, "the game in its old pixel art, to compare (HiRes)"),
         // Ship and doors.
         new("--doors", DevShape.Flag, "opens and shuts doors for recordings (Autopilot.At)"),
         new("--toggle", DevShape.Flag, "the first doorway opened and shut on alternate ticks, one always in flight"),

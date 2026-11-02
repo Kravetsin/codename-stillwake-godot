@@ -56,7 +56,7 @@ public partial class CreatureBody : Node2D
     public void Dress(string species, string palette, CreatureVariety.Individual one)
     {
         string look = Spec.Creatures.Get(species).Look;
-        var design = HiRes.On && CreatureArt.InkDesigns.TryGetValue(look, out var ink) ? ink : CreatureArt.Designs[look];
+        var design = CreatureArt.InkDesigns.TryGetValue(look, out var ink) ? ink : CreatureArt.Designs[look];
         (Modulate, _white) = (Colors.White, 0);
         if (design != _design || palette != _palette) Make(design, palette);
         var v = CreatureLooks.Varieties[species];
