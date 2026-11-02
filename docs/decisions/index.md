@@ -189,4 +189,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | accepted |  |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
+| [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |

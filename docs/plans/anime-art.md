@@ -10,6 +10,10 @@ Landed, off by default: the plumbing (`HiRes`, the atlas), `tools/anime-art/`, t
 the testbed room whole, the hero's first look, ten icons, a stone and soil ground, ice crystals, moss that failed. All of them are
 now drawn in ink and watercolour; scrap has its first rust.
 
+**[The batch](../decisions/2026-11-02-ink-batch.md)** drew the rest of steps 3 to 7 at once: no picture the game reads is left in pixels. It is a first
+pass nobody but its authors has judged: each step below stays open until the user accepts its family or sends it back, and what is left of the step
+is that. Step 1's measure is still to do, and the flag's default still off.
+
 ## How it lands
 
 **Hi-res stays off by default until the switch.** `main` keeps playing in pixels; `-- --anime-art` turns the new art on for us.

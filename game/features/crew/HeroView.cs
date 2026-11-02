@@ -256,7 +256,7 @@ public partial class HeroView : Node2D
             Centered = false,
             Visible = false,
             ZIndex = Layers.Hero,
-            Texture = GD.Load<Texture2D>(RodLook.Picture),
+            Texture = HeldArt.Of(RodLook.Picture, []),
             Offset = -new Vector2((float)RodLook.Eye.X, (float)RodLook.Eye.Y),
         };
         Lit.Set(rod);

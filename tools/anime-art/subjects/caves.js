@@ -23,6 +23,7 @@ const GROUNDS = {
   ] },
 };
 const VEIN = { base: '#6cb4e4', shade: '#3c74b4', lite: '#b4e4fa', spec: '#ffffff', ink: '#0f1c34' };
+const COPPER_VEIN = { base: '#a8683c', shade: '#6a3a24', lite: '#d49a68', spec: '#f0c8a0', ink: '#1e1008' };
 
 /** Points on the sheet's torus, and each one's cell as a polygon: a Voronoi of half-planes, the neighbours' copies round it included so it tiles. */
 function cellsOf(W, H, n, seed) {
@@ -81,14 +82,14 @@ function groundSheet(look, seed, dim) {
 }
 
 /** Ice flecks over a wall of stone, in a few clusters, as the vein's sheet draws them. */
-function veined(base) {
+function veined(base, paint = VEIN, seed = 0x1ce) {
   return { ...base, draw(a) {
     base.draw(a);
-    const r = rng(0x1ce);
+    const r = rng(seed);
     for (const [cx, cy, n] of [[30, 18, 14], [84, 40, 18], [112, 12, 9], [58, 54, 10]])
       for (let i = 0; i < n; i++) {
         const x = cx + (r() - .5) * 18, y = cy + (r() - .5) * 13, s = .9 + r() * 1.3;
-        a.shape(poly(x, y - s, x + s * .8, y, x, y + s, x - s * .8, y), VEIN, { outer: false, shade: poly(x, y - s, x + s * .8, y, x, y + s), spec: poly(x - .3, y - s * .5, x, y - s * .7, x, y) });
+        a.shape(poly(x, y - s, x + s * .8, y, x, y + s, x - s * .8, y), paint, { outer: false, shade: poly(x, y - s, x + s * .8, y, x, y + s), spec: poly(x - .3, y - s * .5, x, y - s * .7, x, y) });
       }
   } };
 }
@@ -353,13 +354,15 @@ Subjects.caves = function () {
   out('wall_iceVein', bake(veined(stone)));
   out('back_stone', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('back_iceVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
+  out('wall_copperVein', bake(veined(stone, COPPER_VEIN, 0x2c7)));
+  out('back_copperVein', bake(groundSheet(GROUNDS.stone, 0x5702, true)));
   out('wall_soil', bake(groundSheet(GROUNDS.soil, 0x5703, false)));
   out('back_soil', bake(groundSheet(GROUNDS.soil, 0x5704, true)));
   const edges = {
-    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
+    stone: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, iceVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, copperVein: { lite: '#7c8290', shade: '#2f3244', ink: '#0f111b' }, soil: { lite: '#7c6654', shade: '#33242a', ink: '#140c0e' },
   };
   for (const [name, look] of Object.entries(edges)) for (let open = 1; open < 16; open++) out(`wall-edge_${name}_${open}`, AnimeEdge(open, look));
-  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
+  for (const [name, look] of [['stone', GROUNDS.stone], ['iceVein', GROUNDS.stone], ['copperVein', GROUNDS.stone], ['soil', GROUNDS.soil]]) {
     for (let v = 0; v < 4; v++) for (const front of [false, true]) for (let half = 0; half < 2; half++) out(`top_${name}_${v}_${front ? 'front' : 'back'}_${half}`, topOf(look, v, front, half));
     for (let k = 0; k < 11; k++) out(`detail_${name}_${k}`, detailOf(look, k));
   }

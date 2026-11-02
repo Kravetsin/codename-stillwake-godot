@@ -221,7 +221,7 @@ public partial class Figure : Node2D
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
         var chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
-        _jetpack = new Sprite2D { Texture = GD.Load<Texture2D>("res://art/hero_jetpack.png"), Centered = false, Visible = false };
+        _jetpack = new Sprite2D { Texture = PixelArt.Picture("hero_jetpack"), Centered = false, Visible = false };
         _jetpack.Position = pack.Position + new Vector2(-2, -1);
         Lit.Set(_jetpack);
         torso.AddChild(pack);
@@ -251,7 +251,7 @@ public partial class Figure : Node2D
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
         _screen = new Sprite2D
         {
-            Texture = GD.Load<Texture2D>("res://art/hero_sheet_screen.png"),
+            Texture = PixelArt.Picture("hero_sheet_screen"),
             Centered = false,
             Offset = -Joints["sheet"],
             Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded },
@@ -260,7 +260,7 @@ public partial class Figure : Node2D
         _plan.AddChild(_glow);
         _tool = new Sprite2D
         {
-            Texture = GD.Load<Texture2D>("res://art/hero_screwdriver.png"),
+            Texture = PixelArt.Picture("hero_screwdriver"),
             Hframes = 3,
             Centered = false,
             Offset = -Grip,
@@ -298,15 +298,6 @@ public partial class Figure : Node2D
         _smear.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
-    }
-
-    private static readonly Dictionary<string, Texture2D> Pictures = new();
-
-    /// <summary>A held item's picture, loaded once.</summary>
-    private static Texture2D Picture(string path)
-    {
-        if (!Pictures.TryGetValue(path, out var picture)) Pictures[path] = picture = GD.Load<Texture2D>(path);
-        return picture;
     }
 
     /// <summary>The boots' <paramref name="cue"/> at the feet, on the World bus, silent while floating.</summary>
@@ -866,7 +857,7 @@ public partial class Figure : Node2D
             _spinFrame = _spin > 0 ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % frames : 0;
             int frame = (int)_spinFrame;
             var parts = PartsOf(item);
-            _held.Texture = item.Loaded != null && Loaded ? Picture(item.Loaded) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
+            _held.Texture = item.Loaded != null && Loaded ? HeldArt.Of(item.Loaded, []) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
             bool lit = Spinning && item.Lamp != null;
             _lamp.Visible = _lampGlow.Visible = lit;
             // Held by its grip in the fist.
@@ -881,7 +872,7 @@ public partial class Figure : Node2D
             _charged.Visible = item.Charged != null && Charge > 0;
             if (_charged.Visible)
             {
-                (_charged.Texture, _charged.Offset) = (Picture(item.Charged!), _held.Offset);
+                (_charged.Texture, _charged.Offset) = (HeldArt.Of(item.Charged!, []), _held.Offset);
                 _charged.Modulate = new Color(1, 1, 1, (float)Charge);
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
@@ -965,16 +956,19 @@ public static class SuitArt
                 if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
                     image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
             }
-        // The slice's hi-res part has no ramps to swap: its far limbs darkened as the pixel ones are, any suit in the colours drawn.
+        // A hi-res part has no ramps to swap: scaled to the look's skin and hair, its far limbs darkened as the pixel ones are, any suit in the colours drawn.
         Texture2D made;
         if (HiRes.Load($"hero_{part}") is { } fine)
         {
-            if (far)
+            var tint = LookTint.Of(part, skin, hair);
+            float shade = far ? (float)FarShade : 1;
+            if (far || tint != null)
                 for (int y = 0; y < fine.GetHeight(); y++)
                     for (int x = 0; x < fine.GetWidth(); x++)
                     {
                         var c = fine.GetPixel(x, y);
-                        fine.SetPixel(x, y, new Color(c.R * (float)FarShade, c.G * (float)FarShade, c.B * (float)FarShade, c.A));
+                        var (r, g, b) = tint?.Apply(c.R, c.G, c.B) ?? (c.R, c.G, c.B);
+                        fine.SetPixel(x, y, new Color(r * shade, g * shade, b * shade, c.A));
                     }
             made = HiRes.Texture(fine);
         }
