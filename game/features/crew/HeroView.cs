@@ -316,6 +316,9 @@ public partial class HeroView : Node2D
     /// <summary>Other heroes where they are drawn this frame, by peer: what sways the cables besides this one, what the markers point at.</summary>
     public IReadOnlyList<(int Id, Hero Hero)> Others { get; private set; } = [];
 
+    /// <summary>Where the hero's helmet and feet are drawn this frame, for what hangs over its head; null while it is not shown.</summary>
+    public (Vector2 Head, Vector2 Feet)? Shown => _placed && _figure.Visible ? (_figure.HeadAt, _figure.Stance.Feet) : null;
+
     /// <summary>
     /// Where every helmet lamp worn on this surface shines from as drawn this frame, in the world's pixels, and the way it
     /// points, where its head looks, and the helmet's neck, inside the hero (0077): this hero's and each friend's shown, so a friend's beam lights a cave for

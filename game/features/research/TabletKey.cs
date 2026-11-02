@@ -23,6 +23,7 @@ public partial class TabletKey : CanvasLayer
     private readonly Func<Registry?> _world;
     private readonly Func<uint> _worldId;
     private readonly BoardKeep _keep;
+    private readonly BulbSignal _bulb;
     private readonly Key _key;
     private readonly TipSpots _tips;
     private (object Knowledge, int Version)? _readAt;
@@ -33,10 +34,11 @@ public partial class TabletKey : CanvasLayer
     /// <param name="world">The world the hero stands in; null with none played.</param>
     /// <param name="worldId">Which world is played: what the board is kept under.</param>
     /// <param name="keep">What is kept of the board, shared with the page.</param>
+    /// <param name="bulb">The bulb over the hero, told what is new.</param>
     /// <param name="open">Takes the tablet out.</param>
-    public TabletKey(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<uint> worldId, BoardKeep keep, Action open)
+    public TabletKey(Ui ui, Func<bool> inWorld, Func<Registry?> world, Func<uint> worldId, BoardKeep keep, BulbSignal bulb, Action open)
     {
-        (_ui, _inWorld, _world, _worldId, _keep) = (ui, inWorld, world, worldId, keep);
+        (_ui, _inWorld, _world, _worldId, _keep, _bulb) = (ui, inWorld, world, worldId, keep, bulb);
         _key = new Key(open) { Visible = false };
         void Place()
         {
@@ -73,6 +75,7 @@ public partial class TabletKey : CanvasLayer
         }
         _keep.Seen.ReadOrders(Orders.Count(m.Research.Done));
         _key.Lit = _keep.Seen.Lit;
+        _bulb.Read(_keep.Seen, _keep.Seen.Unread.Count, _keep.Seen.Open);
     }
 
     public override void _ExitTree() => _tips.Show(null);

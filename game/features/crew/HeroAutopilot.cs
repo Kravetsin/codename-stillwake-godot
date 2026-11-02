@@ -283,6 +283,9 @@ public sealed class HeroAutopilot
         ]);
     }
 
+    /// <summary><c>-- --bulb=walk</c>: left along the room and back, not stopping.</summary>
+    public static HeroAutopilot Pace() => new([Wait(60), Hold(new HeroInput(-1, 0, false), 80), Hold(new HeroInput(1, 0, false), 80), Wait(60)]);
+
     /// <summary>
     /// <c>-- --aside</c>: a few steps left of the spawn, then still, so a window recording another peer's
     /// hero at the spawn does not draw its own over it.

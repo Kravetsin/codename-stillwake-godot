@@ -256,6 +256,7 @@ public partial class Main : Node2D, ITogether
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         // The tablet: put away and putting away as the computer's window.
         var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0);
+        AddChild(new HeroBulb(tech.Bulb, () => _hero?.Shown is { } shown ? new HeadSpot(shown.Head, shown.Feet, _hero.Floats) : null));
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
