@@ -24,13 +24,14 @@ public sealed class BoardKeep(string folder)
     {
         if (world == _world) return;
         var kept = BoardFile.Read(BoardFile.PathOf(folder, world));
-        (_world, _moved, Spots, Seen) = (world, false, kept.Moved ?? new(StringComparer.Ordinal), new BoardSeen(kept.Seen, kept.Orders, kept.Marked));
+        var spots = (kept.Moved ?? []).ToDictionary(s => s.Key, s => BoardBox.Within(s.Value), StringComparer.Ordinal);
+        (_world, _moved, Spots, Seen) = (world, false, spots, new BoardSeen(kept.Seen, kept.Orders, kept.Marked));
     }
 
-    /// <summary>Stands <paramref name="id"/> at <paramref name="spot"/>.</summary>
+    /// <summary>Stands <paramref name="id"/> at <paramref name="spot"/>, or at the board's edge short of it.</summary>
     public void Move(string id, BoardSpot spot)
     {
-        Spots[id] = spot;
+        Spots[id] = BoardBox.Within(spot);
         _moved = true;
     }
 

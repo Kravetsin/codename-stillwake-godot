@@ -231,6 +231,24 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
+    public void AThingCarriedPastTheBoardStopsAtItsEdge()
+    {
+        var keep = new BoardKeep(_folder);
+        keep.Move("scrap", new BoardSpot(1e6, -1e6));
+        Assert.Equal(new BoardSpot(BoardBox.ReachWide, -BoardBox.ReachTall), keep.Spots["scrap"]);
+    }
+
+    [Fact]
+    public void AThingKeptPastTheBoardComesBackAtItsEdge()
+    {
+        BoardFile.Write(BoardFile.PathOf(_folder, 7), new BoardKept(new Dictionary<string, BoardSpot> { ["scrap"] = new(-1e6, 1e6), ["wire"] = new(3, 4) }));
+        var keep = new BoardKeep(_folder);
+        keep.Of(7);
+        Assert.Equal(new BoardSpot(-BoardBox.ReachWide, BoardBox.ReachTall), keep.Spots["scrap"]);
+        Assert.Equal(new BoardSpot(3, 4), keep.Spots["wire"]);
+    }
+
+    [Fact]
     public void AWorldWithNoIdKeepsNoFile()
     {
         var keep = new BoardKeep(_folder);

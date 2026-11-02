@@ -14,6 +14,7 @@ namespace Stillwake.Game.Dev;
 /// B-5 to B-7). Bare it is blank; <c>=first</c>, <c>=near</c>, <c>=burst</c>, <c>=circuit</c> and <c>=late</c> are stills along the way. Script: finds
 /// that light the key (with something seeded; 6 with <c>=burst</c>, 15 with <c>=late</c>), T, three entries clicked down, the rest taken at once, a click on the first note, a
 /// click on a shape, the wheel out, a click off everything, the first note dragged away, the board itself dragged, T again, a press on the key; each step is printed with its time.
+/// <c>=bought</c> has everything found and the solar panel bought: T, a click on it, the wheel all the way out, the first note carried to the edge.
 /// </summary>
 public partial class BoardDemo(Func<Registry> m, string? value) : Node
 {
@@ -36,6 +37,7 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         "burst" => [("scrap", Plenty), ("iron", Plenty)],
         "circuit" => [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)],
         "late" => [.. InSpace.SkipLast(Finds(value)).Select(i => (i, Plenty))],
+        "bought" => [.. InSpace.Select(i => (i, Plenty))],
         _ => [],
     };
 
@@ -58,6 +60,7 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
         }
         var root = JsonNode.Parse(world.Save())!;
         root["slices"]!["knowledge"]!["obtained"] = new JsonArray([.. Found(value).Select(f => (JsonNode)new JsonObject { ["item"] = f.Item, ["count"] = f.Count })]);
+        if (value == "bought") root["slices"]!["knowledge"]!["granted"] = new JsonArray("solarPanel");
         return World.Load(root.ToJsonString(), modules());
     }
 
@@ -141,6 +144,19 @@ public partial class BoardDemo(Func<Registry> m, string? value) : Node
             (12.0, "press the key: the tablet again", () => _hands.Mouse(_tablet.KeyCovers.GetCenter(), MouseButton.Left, true)),
             (12.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
         ];
+        if (value == "bought")
+            script =
+            [
+                (0.5, "T opens it on the board", () => TabletHands.Press(Key.T)),
+                (1.0, "take all: what the walk just understood", () => PressWhileReading(_tablet.TakeAllAt)),
+                (2.5, "click the solar panel", () => Click("solarPanel")),
+                (2.55, "let go: its ties lit", LetGo),
+                (4.0, "click off and wheel all the way out", () => { LetGo(); _hands.Wheel(GetViewport().GetVisibleRect().GetCenter(), MouseButton.WheelDown, 30); }),
+                (5.0, "take the first note", () => Click(First(BoardShow.Note))),
+                (5.1, "carry it", () => Drag(new Vector2(400, 200))),
+                (5.2, "on, past the edge", () => Drag(new Vector2(400, 200))),
+                (5.3, "let go: it stands at the edge", LetGo),
+            ];
         while (_step < script.Length && _t >= script[_step].At)
         {
             GD.Print($"{script[_step].At}s: {script[_step].What}");

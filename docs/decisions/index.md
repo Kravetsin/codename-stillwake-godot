@@ -188,6 +188,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [iron-and-dress-in-ink](2026-11-01-iron-and-dress-in-ink.md) | Iron and the wreck's dress in ink | accepted |  |
 | [moss-in-ink](2026-11-01-moss-in-ink.md) | Moss in ink | accepted |  |
 | [player-colour-mark](2026-11-01-player-colour-mark.md) | The player's colour is a mark | superseded | hero-clothes |
+| [board-edges](2026-11-02-board-edges.md) | The board has edges, and what is bought stands by its parts | accepted |  |
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
 | [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
 | [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | accepted |  |
