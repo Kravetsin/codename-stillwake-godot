@@ -13,7 +13,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `TabletKey.cs`       | the tablet's key, on its edge, its cap a lens that lights                 | yes   |
 | `HeroBulb.cs`        | the bulb over this player's hero as a note starts waiting                 | yes   |
 | `MarketPage.cs`      | the black market: a row per group, its order and its goods as cards       | yes   |
-| `MarketFaults.cs`    | the hack's marks over the screen while the market shows                   | yes   |
+| `MarketFaults.cs`    | the hack's mark over the screen while the market shows                    | yes   |
 | `InkDraw.cs`         | draws the board's strokes                                                 | yes   |
 | `StripParts.cs`      | what pages write with: the strip's controls, a thing's words and pictures | yes   |
 | `StationScreens.cs`  | a trade station's screen, drawn over its picture                          | yes   |

@@ -24,7 +24,7 @@ a plant's control panel.
 
 Client only, with no change to the sim: buying stays `BuyBlock`. A sale at the station fills the order with the tablet away, and when the market next shows, after the tablet's
 rise, the group deciphers character by character, cards in turn, in about 1.6 s. Orders seen stay one count per machine and world, kept with the board, so the lamps and the decipher
-agree and nothing is sent. The hack's marks over the screen are placed by hand and are part of the look.
+agree and nothing is sent. The hack's mark over the screen, a bled column, is placed by hand and is part of the look.
 
 ## Deliberately not handled
 
@@ -32,6 +32,7 @@ agree and nothing is sent. The hack's marks over the screen are placed by hand a
 - **Resuming a decipher** after closing or switching tab: rows show clear, for seeing it once is enough.
 - **Combining or CJK text in the character grid:** only English and Russian exist.
 - **A font of our own:** the tablet's mono, Consolas on the Windows release; another machine falls back to its monospace.
-- **Rescaling the marks:** at another window's size their places scale, their sizes do not.
+- **Rescaling the mark:** at another window's size its place scales, its width does not.
 - **Repeat purchases:** contraband does not exist yet.
+- **The candidate's dead and stuck pixels and slipped slices:** the user saw the pixels in the game as a broken tab, not as a hack, and the slices leave the same dashes on every card's edge.
 - **The candidate's flashes** on a sale and a purchase, its thousands commas and its count of goods open: the head and `CreditLine` are shared with the rest of the tablet.

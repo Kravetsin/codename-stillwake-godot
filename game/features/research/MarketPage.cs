@@ -92,7 +92,7 @@ public sealed class MarketPage : ITabletPage
         strip.Action.Pressed += Act;
     }
 
-    /// <summary>The hack's marks over the tablet's screen, for the tablet to lay there.</summary>
+    /// <summary>The hack's mark over the tablet's screen, for the tablet to lay there.</summary>
     public MarketFaults Faults { get; } = new();
 
     public Vector2 ScreenOf(string id) => _rows.SelectMany(r => r.Cards).First(c => c.Node.Id == id).Box.GetGlobalRect().GetCenter();
