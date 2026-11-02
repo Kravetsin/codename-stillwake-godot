@@ -48,7 +48,7 @@ of a surface (`Module[] surface = [...]`). Saved slices follow that order, so a 
 
 A view per thing it draws (a line in `game/SurfaceViews.cs` for a view of the surface), its panel, its overlay; it reads
 the module's queries and sends its commands, nothing else. Its strings, refusal reasons included, in
-`logic/<Module>.En.cs`. A demo, if it needs one: `/new-demo`.
+`logic/<Module>.En.cs`, Russian in `logic/<Module>.Ru.cs`. A demo, if it needs one: `/new-demo`.
 
 ## 6. Docs
 

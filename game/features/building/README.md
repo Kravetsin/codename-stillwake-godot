@@ -18,9 +18,10 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip. |
 | `logic/WallStats.cs` | A wall's card numbers: leak, meteor resistance, share of meteors breaking it. |
 | `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud. |
-| `PlanKey.cs` | A key in a wing: a layer's (0110), a mode's (plan-modes). |
-| `PlanWing.cs` | The tablet's metal wings for the keys: modes left, layers right. |
-| `logic/Building.En.cs` | Its player text (`En`) |
+| `PlanKey.cs` | A key in a wing: a layer's, a mode's (0110). |
+| `PlanWing.cs` | The tablet's wings for the keys: modes left, layers right. |
+| `logic/Building.En.cs` | Its player text |
+| `logic/Building.Ru.cs` | Russian |
 
 Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `ScreenGlow`), `game/i18n/logic/En.cs`,
 `game/render/` (`Buttons`, `WorldButtons`, `BlueprintArt`, `PlanTiles`, `PlanCut`, `BuiltParts`, `Blueprint`,

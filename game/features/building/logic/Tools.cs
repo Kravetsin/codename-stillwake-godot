@@ -12,17 +12,24 @@ namespace Stillwake.Game.Features.Building;
 /// <summary>What a drag does: a card's placement on the left button, or a removal on the right (0030, 0108).</summary>
 public abstract record Act;
 
-/// <summary>A card in hand: what the left button plans in the world with it, the right marking its layer for removal; <c>Id</c> names its text.</summary>
-public abstract record Tool(string Id, string Label) : Act;
+/// <summary>
+/// A card in hand: what the left button plans in the world with it, the right marking its layer for removal; <c>Id</c> names its text.
+/// <paramref name="Name"/> and <paramref name="Material"/> are i18n keys, read as it is shown, so the cards change language with the game.
+/// </summary>
+public abstract record Tool(string Id, string Name, string? Material = null) : Act
+{
+    /// <summary>The card's name in the language spoken now.</summary>
+    public string Label => Material is { } material ? $"{En.T(Name)}: {En.T(material)}" : En.T(Name);
+}
 
 /// <summary>A card that places <paramref name="Placement"/> along a drag of the left button, and marks its layer along one of the right (0108).</summary>
-public sealed record PlaceTool(string Id, Placement Placement, string Label) : Tool(Id, Label);
+public sealed record PlaceTool(string Id, Placement Placement, string Name, string? Material = null) : Tool(Id, Name, Material);
 
 /// <summary>
 /// A card of the wiring's or the piping's menu (0110, plan modes): what the left button lays by hand, paid from the inventory
 /// as it is laid; <paramref name="Item"/> is the one whose count the card shows.
 /// </summary>
-public sealed record HandCard(string Id, string Label, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Label);
+public sealed record HandCard(string Id, string Name, string Item, IReadOnlyList<(string Item, int Count)> Cost) : Tool(Id, Name);
 
 /// <summary>
 /// A removal from <paramref name="Layers"/>, in the order they are taken (0110).
@@ -80,15 +87,14 @@ public static class Tools
     /// <summary>The overlays by their features' ids.</summary>
     public const string Power = "power", Pipes = "pipes", Air = "atmosphere";
 
-    private static PlaceTool Place(string id, Placement placement, string? label = null) =>
-        new(id, placement, label ?? En.T($"tool.{id}"));
+    private static PlaceTool Place(string id, Placement placement) => new(id, placement, $"tool.{id}");
 
     /// <summary>
     /// A material's wall or back wall card (0077, 0084, 0108): its id and its text's key, <paramref name="kind"/>, followed by the
     /// material's name.
     /// </summary>
     private static PlaceTool OfMaterial(string kind, Material m, Placement placement) =>
-        new(kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..], placement, $"{En.T($"tool.{kind}")}: {En.T($"material.{m.Id}")}");
+        new(kind + char.ToUpperInvariant(m.Id[0]) + m.Id[1..], placement, $"tool.{kind}", $"material.{m.Id}");
 
     /// <summary>
     /// The build menu's tabs from content (0114): <see cref="MenuTabs.All"/> in order, each with the cards whose
@@ -157,11 +163,11 @@ public static class Tools
     };
 
     /// <summary>The wiring's card (0110): a cable, a wire each.</summary>
-    public static readonly HandCard Cable = new("cable", En.T("tool.cable"), "wire", Content.Power.CableCost);
+    public static readonly HandCard Cable = new("cable", "tool.cable", "wire", Content.Power.CableCost);
 
     /// <summary>The piping's cards (0110): a pipe, a tube per started <see cref="Piping.CellsPerItem"/> cells; a valve on a joint.</summary>
-    public static readonly HandCard Pipe = new("pipe", En.T("tool.pipe"), Piping.Item, [(Piping.Item, 1)]),
-        Valve = new("valve", En.T("tool.valve"), "gear", Piping.ValveCost);
+    public static readonly HandCard Pipe = new("pipe", "tool.pipe", Piping.Item, [(Piping.Item, 1)]),
+        Valve = new("valve", "tool.valve", "gear", Piping.ValveCost);
 
     /// <summary>The plan's modes in the order of their keys, Z, X and C.</summary>
     public static readonly IReadOnlyList<PlanMode> Modes = [PlanMode.Build, PlanMode.Wiring, PlanMode.Piping];

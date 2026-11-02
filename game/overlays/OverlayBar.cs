@@ -17,7 +17,7 @@ public partial class OverlayBar : CanvasLayer
 
     private readonly Ui _ui;
     private readonly PanelContainer _chip = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly Label _label = new() { Text = $"O {En.T("overlay.air")}" };
+    private readonly Label _label = new();
     private bool? _shown;
 
     public OverlayBar(Ui ui)
@@ -44,6 +44,7 @@ public partial class OverlayBar : CanvasLayer
 
     public override void _Process(double delta)
     {
+        _label.Text = $"O {En.T("overlay.air")}";
         // Lit while air shows, which is whenever it is wanted: under a build tab's own overlay too.
         bool on = _ui.AirOn.Get();
         if (on == _shown) return;

@@ -334,6 +334,7 @@ public partial class Main
         AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, new SettingsRows(_hands.Ui), Quit,
             Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status,
             testbed: OS.IsDebugBuild() ? PlayTestbed : null));
+        if (_dev.Given("--title") is { Length: > 0 } page) _title.Open(page);
         if (_next is { } said) _title.Say(said);
         _next = null;
     }

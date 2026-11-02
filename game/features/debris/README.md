@@ -16,6 +16,7 @@
 | `logic/Finds.cs` | The Handbook's debris: loot slots revealed item by item, ranges, chances, tally, tips. |
 | `HandbookPage.cs` | The Handbook's Debris section: the kinds' rows and the chosen kind's entry. |
 | `logic/Debris.En.cs` | Its player text (`En`) |
+| `logic/Debris.Ru.cs` | Russian |
 
 The debris drifting past the ship, drawn only: the sim (`sim/Debris`) spawns, moves and hands out what a catch gives.
 Catching is the hero's hands, aimed as everything E works is (`features/crew`, `Aiming.AimAt`), sending `Grab`;

@@ -29,6 +29,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `logic/BoardView.cs` | What the board shows: a note, a silhouette or nothing, and its threads | no |
 | `logic/CapsulePath.cs` | Where a capsule is drawn along its flight | no |
 | `logic/Research.En.cs` | Its player text (`En`) | no |
+| `logic/Research.Ru.cs` | Russian | no |
 | `logic/TechCamera.cs` | How the map lies in the view: dragged, zoomed, kept in bounds | no |
 | `logic/TechLinks.cs` | How a thing ties to the others, worked out from the recipes | no |
 | `logic/TechRings.cs` | Where each block stands on a tab, from its ring and branch | no |

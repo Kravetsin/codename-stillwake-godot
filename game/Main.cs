@@ -17,6 +17,7 @@ using Stillwake.Game.Features.Items;
 using Stillwake.Game.Features.Light;
 using Stillwake.Game.Features.Research;
 using Stillwake.Game.Features.Sound;
+using Stillwake.Game.I18n;
 using Stillwake.Game.Menu;
 using Stillwake.Game.Platform;
 using Stillwake.Game.Render;
@@ -160,6 +161,9 @@ public partial class Main : Node2D, ITogether
         _playerKey = Profile.Key(_dev.All);
         _cheat = Has("--cheat");
         _look = Settings.Look() ?? (_dev.None ? null : Sim.Players.Look.Zero);
+        // Before anything is made that says anything.
+        var language = _dev.Value("--lang");
+        Speaking = language != null ? Languages.Named(language) ?? Language.English : Settings.Language();
         if (PoseSheetOnly() || DressSheetOnly()) return;
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
@@ -176,6 +180,10 @@ public partial class Main : Node2D, ITogether
         var slots = _dev.Value("--slots");
         _hands.Ui.SlotScale.Set(slots != null ? Slots.ScaleNamed(slots) : Settings.SlotScale());
         if (slots == null) _hands.Ui.SlotScale.Subscribe(() => Settings.Keep(_hands.Ui.SlotScale.Get()));
+        _hands.Ui.Language.Set(Speaking);
+        _hands.Ui.Language.Subscribe(() => Speak(_hands.Ui.Language.Get(), keep: language == null));
+        if (_dev.Value("--lang-flip") is { } flipAt)
+            GetTree().CreateTimer(double.Parse(flipAt, System.Globalization.CultureInfo.InvariantCulture)).Timeout += () => _hands.Ui.Language.Set(Speaking == Language.Russian ? Language.English : Language.Russian);
         Shimmer.Enabled = Settings.Shimmer();
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
@@ -246,7 +254,7 @@ public partial class Main : Node2D, ITogether
         // Every way out saves first: the window's close as well.
         GetTree().AutoAcceptQuit = false;
         _updater.BeforeRestart = SaveIfOwned;
-        if (_dev.None) ShowTitle();
+        if (_dev.None || _dev.Given("--title") != null) ShowTitle();
         else if (hostAs != null) Host(hostAs.Length > 0 ? hostAs : null);
         else if (join != null) Join(join.Length > 0 ? join : "127.0.0.1", BadNetwork.From(_dev.All), Relay());
         else Alone();
@@ -320,6 +328,28 @@ public partial class Main : Node2D, ITogether
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
         AddDevDemos(menu, suits, debrisPage, _stages);
+    }
+
+    /// <summary>
+    /// Speaks <paramref name="now"/> from here on, what is on screen included: every label and button says its text again
+    /// (<see cref="Languages.Retold"/>), the dev panel staying English; what holds numbers is told anew by whoever keeps it current.
+    /// </summary>
+    private void Speak(Language now, bool keep)
+    {
+        var was = Speaking;
+        Speaking = now;
+        if (keep) Settings.Keep(now);
+        Retell(GetTree().Root, was, now);
+        _title?.Worlds.Refresh();
+    }
+
+    private static void Retell(Node node, Language from, Language to)
+    {
+        if (node is DevPanel) return;
+        if (node is Label label) label.Text = Languages.Retold(label.Text, from, to);
+        else if (node is Button button) button.Text = Languages.Retold(button.Text, from, to);
+        else if (node is LineEdit line) line.PlaceholderText = Languages.Retold(line.PlaceholderText, from, to);
+        foreach (var child in node.GetChildren()) Retell(child, from, to);
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>

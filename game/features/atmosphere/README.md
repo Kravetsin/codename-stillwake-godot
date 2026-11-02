@@ -15,6 +15,7 @@
 | `TankLooks.cs` | What each oxygen tank holds, without a word: pale oxygen up its sight glass by fifths (`TankFill`), the glass dark … |
 | `VentLight.cs` | Air escaping into space (0075), luminous: out of each opening a room vents through, a jet of fast pale streaks and … |
 | `logic/Atmosphere.En.cs` | Its player text (`En`) |
+| `logic/Atmosphere.Ru.cs` | Russian |
 
 Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` (`RoomsAir`, `AiredCells`,
 `OxygenIn`), `sim/Rooms` (`RoomOfCells`, `RoomAt`, `RoomById`), `sim/Grid` (`Built`, `MachinesWith`: tanks by `Gas`, vents by `Vents`, 0113) and `sim/Crew` (`Heroes`).

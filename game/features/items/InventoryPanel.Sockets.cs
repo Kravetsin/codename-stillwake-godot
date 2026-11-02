@@ -137,7 +137,7 @@ public partial class InventoryPanel
         if (FittedTo(socket.Machine).Contains(socket.Module))
         {
             var tip = reading.TipOf(socket.Module);
-            return tip with { Card = tip.Card! with { Use = new CardKey("LMB", T("card.takeOut")) } };
+            return tip with { Card = tip.Card! with { Use = new CardKey(T("key.lmb"), T("card.takeOut")) } };
         }
         return new Tip(T("module.empty"));
     }

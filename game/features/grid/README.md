@@ -12,6 +12,7 @@
 | `GridView.cs` | The ship in pixel art, a `TileMapLayer` per kind of picture: back walls behind … |
 | `LavaView.cs` | The planet's lava (its core, `Content.Lava`), drawn as the cave concepts drew it (0087): over its own tiles, unlit … |
 | `logic/Grid.En.cs` | Its player text (`En`) |
+| `logic/Grid.Ru.cs` | Russian |
 | `logic/WreckMotion.cs` | What still moves on the wreck: wires, arcs and a thread of vapour, each while its tear shows (2026-10-31-the-scoop). |
 | `WreckMotionView.cs` | Steps `WreckMotion` and paints its wires, unlit, over the hull. |
 

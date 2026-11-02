@@ -1,7 +1,7 @@
 # Glossary
 
 Game words → code. One line a term: Russian / English → identifiers → module (`sim/X`, `f/x` = `game/features/x`).
-**≠** marks a term whose code name differs from the game word. Ids are strings in `sim/Content`; names in each feature's `logic/<Name>.En.cs`
+**≠** marks a term whose code name differs from the game word. Ids are strings in `sim/Content`; names in each feature's `logic/<Name>.En.cs` and `.Ru.cs`
 (`item.<id>`, `tool.<build>`). Where the code lives: [map.md](map.md).
 
 ## Ship and building

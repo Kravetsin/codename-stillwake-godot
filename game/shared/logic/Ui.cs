@@ -244,6 +244,9 @@ public sealed class Ui
     /// </summary>
     public Store<(float Left, float Bottom)?> InventoryFoot { get; } = new(null);
 
+    /// <summary>The language spoken: set from the settings file at the start and by the menu's Settings.</summary>
+    public Store<I18n.Language> Language { get; } = new(I18n.Language.English);
+
     /// <summary>How large every item slot is drawn: set from the settings file at the start and by the menu's Settings.</summary>
     public Store<SlotScale> SlotScale { get; } = new(Shared.SlotScale.Normal);
 

@@ -19,6 +19,7 @@ socket are the power feature's (`PlatformLamps`).
 | `logic/Arrivals.cs` | the pods just come down on the surface seen and for how long, held back from the grid till they stand | no |
 | `logic/Whiteout.cs` | how white the screen is, from the own flight's ticks left and a surface switch made while white | no |
 | `logic/Landing.En.cs` | Its player text (`En`): the landing refusals and the key's two words | no |
+| `logic/Landing.Ru.cs` | Russian | no |
 
 ## Rules
 

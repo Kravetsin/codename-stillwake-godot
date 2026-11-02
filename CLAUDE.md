@@ -232,7 +232,7 @@ allowed) for us and CI alike: another SDK's `dotnet format` indents differently,
 ## Conventions
 
 - English in code, comments, commits and docs. Player-facing text is i18n keys shown through `T(key)`
-  (refusal reasons use the sim's keys): a feature's in its `logic/<Name>.En.cs`.
+  (refusal reasons use the sim's keys): a feature's in its `logic/<Name>.En.cs`, its Russian beside it in `logic/<Name>.Ru.cs`; a new key fails `RuFilesTests` until translated.
 - Comments only for a non-obvious why, at most two lines; `///` summaries on public members say what
   they are for. Longer reasoning goes to `docs/`.
 - Commits follow Conventional Commits with the module as scope: `feat(atmosphere): vent rooms open to
