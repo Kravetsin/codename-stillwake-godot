@@ -33,8 +33,8 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | Subject   | Pictures                                                                                                  |
 | --------- | --------------------------------------------------------------------------------------------------------- |
 | `hero`    | `hero_<part>`: the rig's parts, suit and bare, helmet shell and visor apart; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_mark`, `hero_mark_stripe`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
-| `machines` | `machine_<kind>` and their working overlays, fire, tank fill; exposes `AnimeKit` |
-| `zfittings` | pipes, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, charge bars, held axe and drill; sorts after `machines` to read `AnimeKit` |
+| `machines` | `machine_<kind>` and their working overlays, fire, tank fill; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
+| `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, charge bars, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items`   | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
 | `room`    | `wall_` and `wall-edge_` of scrap and iron, `back_scrap`, `back_iron_*`, `door_closed_*`, `door_open_*`   |
 | `wreck`   | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |

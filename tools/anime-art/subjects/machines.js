@@ -156,10 +156,23 @@ const arcBench = (a) => {
   a.tube('M27.8 7.2L21.8 7.2', 1.5, COPPER);
   a.shape(rr(25.6, 5.6, 4.4, 2.2, .4), BRASS, { lite: band(25.8, 5.7, 29.8, 6.2) });
 };
+const PIPE = { base: '#7f8796', shade: '#555b70', deep: '#3a3e50', lite: '#a9b1be', spec: '#dfe7f2' };
+/** Where a pipe meets a machine: a bolted plate on the port's middle (x, y, sim's Machines.Ports), a neck of the pipe's own 4 px out to the picture's edge. */
+const fitting = (a, x, y, edge) => {
+  const x0 = Math.min(x, edge), x1 = Math.max(x, edge), lip = edge === 0 ? .1 : edge - 1.1;
+  a.shape(band(x0, y - 2.5, x1, y + 2.5), PIPE, { lite: band(x0, y - 2.5, x1, y - 1.5), shade: band(x0, y + .9, x1, y + 2.5) });
+  a.shape(rr(lip, y - 2.8, 1, 5.6, .2), GUN, { lite: band(lip, y - 2.8, lip + 1, y - 1.7), shade: band(lip, y + 1.1, lip + 1, y + 2.8) });
+  a.shape(rr(x - 3.1, y - 3.1, 6.2, 6.2, .4), GUN, { lite: band(x - 3.1, y - 3.1, x + 3.1, y - 2.4), shade: [band(x - 3.1, y + 2.3, x + 3.1, y + 3.1), band(x + 2.4, y - 3.1, x + 3.1, y + 3.1)] });
+  a.flat(ell(x, y, 2), '#14151c');
+  a.flat(ell(x, y, 1.3), PIPE.shade);
+  a.flat(ell(x - .2, y - .25, .65), PIPE.base);
+  rivets(a, [x - 2.4, y - 2.4], [x + 2.4, y - 2.4], [x - 2.4, y + 2.4], [x + 2.4, y + 2.4]);
+};
 const vent = (a) => {
   box(a, 1, 1, 14, 14, NAVY, { r: .3, s: .8, b: .8, l: .5 });
   a.shape(band(2.4, 2.4, 13.6, 13.6), DARK, { outer: false });
   for (let i = 0; i < 5; i++) { a.flat(band(2.8, 3 + i * 2.1, 13.2, 4 + i * 2.1), '#5a86a8'); a.flat(band(2.8, 3 + i * 2.1, 13.2, 3.3 + i * 2.1), '#a8d0e4'); }
+  fitting(a, 4, 4, 0);
 };
 const crate = (a) => {
   box(a, .4, 1, 31.2, 15, WOOD, { r: .3, spec: true });
@@ -172,7 +185,6 @@ const crate = (a) => {
 const cistern = (a) => {
   a.shape(rr(13.5, .6, 5, 2.4, .3), COPPER, { lite: band(13.7, .7, 18.3, 1.2) });
   cyl(a, 14.6, 2.6, 2.8, 3.4, GUN, { outer: false });
-  for (const x of [.4, 28.6]) a.shape(rr(x, 13, 3, 3.6, .3), DARK, { lite: band(x + .2, 13, x + 2.8, 13.6) });
   a.shape(rr(3, 5.4, 26, 18.4, 4.6), STEEL, {
     lite: 'M7 5.4L25 5.4C26.5 5.4 28 6.5 28.6 8L3.4 8C4 6.5 5.5 5.4 7 5.4Z', spec: band(6.6, 6.2, 17, 6.8), shade: 'M3 19L29 19L29 19.2C29 21.8 27 23.8 24.4 23.8L7.6 23.8C5 23.8 3 21.8 3 19.2Z',
     lines: ['M7.8 5.6L7.8 23.6', 'M24.2 5.6L24.2 23.6'] });
@@ -185,6 +197,8 @@ const cistern = (a) => {
   for (const x of [8.6, 19.6]) a.shape(rr(x, 23.4, 3.8, 3, .2), GUN, { lite: band(x, 23.4, x + 1.4, 26.4) });
   box(a, 1, 26.6, 30, 2.8, STEEL, { spec: true });
   feet(a, 29.4, 2.6, [3, 4], [25, 4]);
+  fitting(a, 4, 20, 0);
+  fitting(a, 28, 20, 32);
 };
 const growCapsule = (a) => {
   // Cap, tall glass with soil in it, the base under it.
@@ -272,6 +286,7 @@ const lifepod = (a) => {
   rivets(a, [11, 15], [33, 15], [11, 26], [33, 26]);
   box(a, 8.4, 39.4, 27.2, 8.6, GUN);
   hazard(a, 10, 41.4, 24, 1.6);
+  fitting(a, 4, 44, 0);
 };
 const generator = (a) => {
   for (const x of [5, 22]) a.shape(rr(x, .4, 2.4, 2.4, .2), GUN, { lite: band(x, .4, x + 1, 2.8) });
@@ -281,9 +296,9 @@ const generator = (a) => {
   a.shape(band(13, 23.4, 26.4, 26), DARK, { outer: false });
   for (const x of [15, 18.6, 22.2]) a.flat(band(x, 24, x + 2, 25.4), '#f0c460');
   feet(a, 29, 3, [2, 5], [22.6, 5]);
+  fitting(a, 4, 20, 0);
 };
 const tank = (a) => {
-  a.shape(rr(0, 16.6, 6, 3.6, .4), GUN, { lite: band(.2, 16.7, 5.8, 17.2), shade: band(.2, 19.2, 5.8, 20.2) });
   a.shape(rr(11, .8, 6, 1.8, .3), COPPER, { lite: band(11.2, .9, 16.8, 1.3) });
   a.shape('M6 25L6 7C6 4 8 2.4 11 2.4L19 2.4C22 2.4 24 4 24 7L24 25Z', STEEL, {
     lite: band(8, 2.6, 11.6, 25), spec: band(9, 4, 9.8, 20), shade: [band(21, 2, 24, 25), band(6, 23.4, 24, 25)], lines: ['M6.3 7L23.7 7'] });
@@ -293,6 +308,7 @@ const tank = (a) => {
   a.flat(rr(21.2, 9, 1.8, 1.2, .2), '#6c3a30');
   box(a, 5, 25, 20, 1.6, STEEL, { l: .4, b: .4 });
   feet(a, 26.6, 5.4, [6.6, 3.6], [19.8, 3.6]);
+  fitting(a, 4, 20, 0);
 };
 const computer = (a) => {
   // Monitor on its neck, a box of parts beside it, the desk and its drawers.
@@ -557,5 +573,5 @@ Subjects.machines = function () {
   out('arcBench_alight', flat(32, 32, arcAlight));
   out('arcBench_front', flat(32, 32, arcFront));
 };
-window.AnimeKit = { STEEL, GUN, DARK, COPPER, band, box, inner, cyl, rivets, hazard };
+window.AnimeKit = { STEEL, GUN, DARK, COPPER, PIPE, band, box, inner, cyl, rivets, hazard };
 })();

@@ -2,34 +2,55 @@
 (function () {
 'use strict';
 const { ell, rr, poly, bake, canvas } = Anime;
-const { STEEL, GUN, DARK, band } = window.AnimeKit;
-const G = { lite: '#868fa2', base: '#5c6474', shade: '#383c58', ink: '#14162a' };
+const { STEEL, GUN, DARK, PIPE, band, rivets } = window.AnimeKit;
 
-/** A pipe by its arms (up 1, right 2, down 4, left 8), one cell, in crisp final pixels so runs meet exactly at cell borders. */
+/** The pipe's run, a sheet repeated along a span: riveted seam, a rust patch at a rivet, a collar every sheet. It is 4 px thick, rows 2 to 6 of 8. */
+const pipeRun = (a) => {
+  const w = 24, y0 = 2, y1 = 6, clip = band(0, y0, w, y1);
+  a.flat(clip, PIPE.base);
+  a.flat(band(0, y0, w, y0 + 1), PIPE.lite);
+  a.flat(band(0, y1 - 1.4, w, y1), PIPE.shade);
+  a.flat(band(0, y1 - .5, w, y1), PIPE.deep);
+  a.flat(poly(15.1, 4.5, 17.2, 4.3, 17.7, 5, 16.8, 5.95, 16.2, 5.5, 15.4, 5.9, 15.2, 5.2), '#6e5646', { clip });
+  a.flat(poly(15.8, 4.7, 16.8, 4.6, 16.9, 5.3, 16, 5.4), '#4f3d36', { clip });
+  for (const y of [y0, y1]) a.line(`M-1 ${y}L${w} ${y}`, { w: 3 });
+  a.line(`M-1 4.7L${w} 4.7`, { w: 1.1 });
+  rivets(a, [3.5, 4], [8, 4], [16.2, 4], [20.5, 4]);
+  a.shape(rr(10.6, y0 - .6, 2.8, 5.2, .3), GUN, { lite: band(10.6, y0 - .6, 13.4, y0 + .2), shade: band(10.6, y1 - .5, 13.4, y1 + .6), lines: ['M12 1.6L12 6.4'] });
+};
+/** A joint's bolted flange, its middle the cell's. */
+const flange = (a) => {
+  a.shape(ell(4, 4, 3.7), GUN, { shade: .6, lite: ell(3.5, 3.4, 2.6) });
+  a.flat(ell(4, 4, 2), PIPE.shade);
+  a.flat(ell(3.8, 3.7, 1.2), PIPE.base);
+  for (let i = 0; i < 6; i++) rivets(a, [4 + Math.cos(.26 + i * Math.PI / 3) * 2.85, 4 + Math.sin(.26 + i * Math.PI / 3) * 2.85]);
+};
+/** A pipe by its arms (up 1, right 2, down 4, left 8), one cell, what a build card lays together: the run's body, the flange where a run turns or ends. */
 function pipe(open) {
-  const S = 32, c = canvas(S, S), x = c.getContext('2d'), R = 10, r = 6, m = S / 2;
-  const across = (y0, h) => { x.fillStyle = G.ink; x.fillRect(y0.x, y0.y, y0.w, y0.h); };
-  const horiz = (x0, x1) => { x.fillStyle = G.ink; x.fillRect(x0, m - r - 2, x1 - x0, 2 * r + 4); x.fillStyle = G.base; x.fillRect(x0, m - r, x1 - x0, 2 * r); x.fillStyle = G.lite; x.fillRect(x0, m - r, x1 - x0, 3); x.fillStyle = G.shade; x.fillRect(x0, m + r - 4, x1 - x0, 4); };
-  const vert = (y0, y1) => { x.fillStyle = G.ink; x.fillRect(m - r - 2, y0, 2 * r + 4, y1 - y0); x.fillStyle = G.base; x.fillRect(m - r, y0, 2 * r, y1 - y0); x.fillStyle = G.lite; x.fillRect(m - r, y0, 3, y1 - y0); x.fillStyle = G.shade; x.fillRect(m + r - 4, y0, 4, y1 - y0); };
-  if (open & 8) horiz(0, m);
-  if (open & 2) horiz(m, S);
-  if (open & 1) vert(0, m);
-  if (open & 4) vert(m, S);
-  // The joint over the arms, only where a run turns or ends: a straight run stays one line.
-  if (open !== 5 && open !== 10) {
-    x.fillStyle = G.ink; x.fillRect(m - R - 2, m - R - 2, 2 * R + 4, 2 * R + 4);
-    x.fillStyle = G.base; x.fillRect(m - R, m - R, 2 * R, 2 * R);
-    x.fillStyle = G.lite; x.fillRect(m - R, m - R, 2 * R, 4);
-    x.fillStyle = G.shade; x.fillRect(m - R, m + R - 4, 2 * R, 4); x.fillRect(m + R - 4, m - R, 4, 2 * R);
-  }
-  return c;
+  return bake({ w: 8, h: 8, draw: (a) => {
+    const arm = (x0, y0, x1, y1, lit, dark) => { a.flat(band(x0, y0, x1, y1), PIPE.base); a.flat(lit, PIPE.lite); a.flat(dark, PIPE.shade); };
+    if (open & 8) arm(0, 2, 4, 6, band(0, 2, 4, 3), band(0, 4.6, 4, 6));
+    if (open & 2) arm(4, 2, 8, 6, band(4, 2, 8, 3), band(4, 4.6, 8, 6));
+    if (open & 1) arm(2, 0, 6, 4, band(2, 0, 3, 4), band(4.6, 0, 6, 4));
+    if (open & 4) arm(2, 4, 6, 8, band(2, 4, 3, 8), band(4.6, 4, 6, 8));
+    if (open & 10) for (const y of [2, 6]) a.line(`M${open & 8 ? -1 : 4} ${y}L${open & 2 ? 9 : 4} ${y}`, { w: 3 });
+    if (open & 5) for (const x of [2, 6]) a.line(`M${x} ${open & 1 ? -1 : 4}L${x} ${open & 4 ? 9 : 4}`, { w: 3 });
+    if (open !== 5 && open !== 10) flange(a);
+  } });
 }
 const valve = (open) => (a) => {
-  const m = open ? { base: '#3fae5c', shade: '#256a3c', lite: '#86e08c', spec: '#e0ffe0', ink: '#0d2a18' } : { base: '#d0483c', shade: '#8a2c30', lite: '#f08c74', spec: '#ffe0d0', ink: '#2c0c10' };
-  a.shape(ell(5, 5, 4), m, { shade: .7, lite: ell(4.5, 4.4, 2.6) });
-  a.flat(ell(5, 5, 2.2), m.shade);
-  a.flat(ell(5, 5, 1.2), m.base);
-  a.flat(ell(4.8, 4.8, .5), m.spec);
+  const m = open ? { base: '#3fae5c', shade: '#256a3c', deep: '#1a4c2c', lite: '#86e08c', spec: '#e0ffe0' } : { base: '#d0483c', shade: '#8a2c30', deep: '#5c1c22', lite: '#f08c74', spec: '#ffe0d0' };
+  const turn = open ? .4 : .4 + Math.PI / 4, corners = [];
+  for (let i = 0; i < 8; i++) corners.push(5 + Math.cos(Math.PI / 8 + i * Math.PI / 4) * 4.7, 5 + Math.sin(Math.PI / 8 + i * Math.PI / 4) * 4.7);
+  a.shape(poly(corners), GUN, { shade: .6, lite: ell(4.4, 4.2, 3) });
+  a.shape(ell(5, 5, 3.8), m, { shade: .6, lite: ell(4.6, 4.5, 2.7) });
+  a.flat(ell(5, 5, 2.4), '#14151c');
+  for (let i = 0; i < 3; i++) {
+    const t = turn + (i / 3) * Math.PI * 2, c = Math.cos(t), s = Math.sin(t), w = .5, R = 2.8;
+    a.flat(poly(5 - s * w, 5 + c * w, 5 + c * R - s * w, 5 + s * R + c * w, 5 + c * R + s * w, 5 + s * R - c * w, 5 + s * w, 5 - c * w), m.base);
+  }
+  a.flat(ell(5, 5, 1.1), m.lite);
+  a.flat(ell(4.75, 4.7, .45), m.spec);
 };
 const socket = (a) => { a.shape(ell(4, 4, 3.2), DARK, { outer: true, lite: .0001 }); a.flat(ell(4, 4, 1.6), '#12131e'); a.flat(band(2.6, 3.6, 5.4, 4.4), '#4f9cbc'); };
 const powerSocket = (a) => { a.shape(ell(2.5, 2.5, 2), { base: '#868fa2', shade: '#474c68', lite: '#c4ccd8', spec: '#ffffff' }, { shade: .4 }); a.flat(ell(2.5, 2.5, 1), '#12131e'); };
@@ -143,6 +164,7 @@ const drill = (spin) => (a) => {
 };
 
 Subjects.zfittings = function () {
+  out('pipe_run', bake({ w: 24, h: 8, tile: true, draw: pipeRun }));
   for (let n = 0; n < 16; n++) out(`pipe_${n}`, pipe(n));
   out('valve_open', bake({ w: 10, h: 10, draw: valve(true) }));
   out('valve_closed', bake({ w: 10, h: 10, draw: valve(false) }));

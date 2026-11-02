@@ -191,4 +191,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
+| [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
