@@ -58,12 +58,12 @@ public abstract partial class PosedSprite : Node2D
     }
 
     /// <summary>At <paramref name="feet"/>, shaken across, turned about its middle, facing 1 right or −1 left, a blow's white over it.</summary>
-    protected void Place(Vector2 feet, double shake, double angle, int face, double flash)
+    protected void Place(Vector2 feet, double shake, double angle, int face, double flash, float size = 1)
     {
         _white.Modulate = new Color(1, 1, 1, (float)flash);
-        Position = feet + new Vector2((float)shake, -_middle);
+        Position = feet + new Vector2((float)shake, -_middle * size);
         Rotation = (float)angle;
-        Scale = new Vector2(face, 1);
+        Scale = new Vector2(face * size, size);
     }
 
     /// <summary>The world's pixels of <paramref name="albedo"/> as it stands now, for a burst.</summary>

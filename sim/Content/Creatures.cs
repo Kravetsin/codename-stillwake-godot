@@ -184,7 +184,7 @@ public static class Creatures
     public static readonly Species Sixleg = Loper with { Id = "sixleg", Look = "sixleg", Life = Loper.Life with { Hp = 14 } };
 
     /// <summary>
-    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by two, its eye a lamp, the tick
+    /// The sentry (2026-10-26-creatures-are-composed): a robot clamped to a derelict, three cells by three, its eye a lamp, the tick
     /// the user picked. Watching, it crawls along its perch at 0.8 cells a second. A hero within 40 cells alerts it (the user's
     /// word: it sees far); alerted a second, a hero within twenty and it pounces: a crouch of 0.8 s, then a flight of half a
     /// second at 40 cells a second, its return's, some twenty cells, six units of a suit if it hits; farther, within its notice,
@@ -194,7 +194,7 @@ public static class Creatures
     /// jetpack. Thirty hit points, five of the nailer's nails; never knocked. A harpoon on its wreck is cut 0.8 s after it bites.
     /// It dies with its wreck, dropping scrap and two or three circuits, a fighter's share of what is rare. Placeholder numbers, for a play pass.
     /// </summary>
-    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 2, Crawl: 40),
+    public static readonly Species Sentry = new("sentry", Look: "sentry", Body: new Clinger(Width: 3, Height: 3, Crawl: 40),
         Life: new(Hp: 30, Knock: 0, Hop: 0), Faction: Machines, Lifetime: Lifetime.Wild,
         Brain: [new CutTether(Ticks: 16), new Return(Speed: 2000), new Guard(Notice: 40, Strike: 20, AlertTicks: 20)],
         Moves: [new Pounce(WindUp: 16, Speed: 2000, Ticks: 10, Damage: 6), new Shoot(WindUp: 12, Lock: 4, Recover: 40, Projectile: "bolt", Reach: 60, Lingers: 10)],

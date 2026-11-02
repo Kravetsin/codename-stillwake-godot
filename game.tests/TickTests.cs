@@ -11,6 +11,18 @@ public class TickTests
 {
     private static readonly TickArt.Pose Standing = new(0, 0, 0, 0, TickMotion.Watching, 1, 0);
 
+    [Fact]
+    public void ItsHitBoxReachesTheTopOfItsBodyInInk()
+    {
+        const int PixelsPerCell = 8;
+        var rig = new TickRig();
+        rig.Place(Standing);
+        var body = rig.Slots.First(s => s.Part == "body");
+        double top = (CreatureArt.InkTick.Parts["body"].PivotY - body.Y) * TickRig.Size;
+        // Within a pixel: its soft edge.
+        Assert.InRange(top, 0, Stillwake.Content.Creatures.Sentry.Body.Height * PixelsPerCell + 1);
+    }
+
     /// <summary>The opaque pixels of <paramref name="rgba"/>, in the tick's own pixels (origin the middle of its feet).</summary>
     private static List<(int X, int Y)> Opaque(byte[] rgba)
     {
