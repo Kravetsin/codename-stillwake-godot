@@ -12,7 +12,8 @@ public readonly record struct BoardSpot(double X, double Y);
 /// <param name="Moved">What was moved and to where: only that, every other thing standing in its slot.</param>
 /// <param name="Seen">The notes this player last saw; none if there has been no read yet.</param>
 /// <param name="Orders">How many of the market's orders met this player last saw; none if there has been no read yet.</param>
-public sealed record BoardKept(Dictionary<string, BoardSpot>? Moved = null, List<string>? Seen = null, int? Orders = null);
+/// <param name="Marked">What landed and this player has not touched yet.</param>
+public sealed record BoardKept(Dictionary<string, BoardSpot>? Moved = null, List<string>? Seen = null, int? Orders = null, List<string>? Marked = null);
 
 /// <summary>
 /// What this machine's player keeps of a world's board, in a file of its own (docs/plans/board.md).

@@ -9,13 +9,12 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// How a thing ties to the others (2026-10-30-tech-rings), worked out from the recipes: what it takes, where it is made,
-/// and what takes it, known or not, so a player sees the way ahead.
+/// and what takes it, known or not, so a player sees the way ahead. Only direct ties: a furnace ties to iron and not to all that iron goes into, for the player follows a chain themselves ([board-thoughts](../../../../docs/decisions/2026-11-02-board-thoughts.md)).
 /// </summary>
 /// <param name="Takes">What one of it takes: what is bought or raw alike.</param>
-/// <param name="From">The crafts of what it takes, and the stations that smelt, crush or grow what it takes.</param>
-/// <param name="MadeAt">The stations it is made at, those a player builds; none for what is built where it stands.</param>
-/// <param name="UsedIn">The things that take what it makes, or are made at it.</param>
-public sealed record TechLink(IReadOnlyList<(string Item, int Count)> Takes, IReadOnlyList<string> From, IReadOnlyList<string> MadeAt, IReadOnlyList<string> UsedIn);
+/// <param name="MadeAt">The stations it is made at, smelted, crushed or grown in, those a player builds; none for what is built where it stands.</param>
+/// <param name="UsedIn">The things that take it, are made at it, or come out of it.</param>
+public sealed record TechLink(IReadOnlyList<(string Item, int Count)> Takes, IReadOnlyList<string> MadeAt, IReadOnlyList<string> UsedIn);
 
 /// <summary>Every thing's <see cref="TechLink"/>: an item, a blueprint, a craft or a block of the tree.</summary>
 public static class TechLinks
@@ -35,25 +34,23 @@ public static class TechLinks
 
     private static TechLink Worked(string thing)
     {
-        var takes = CostOf(thing);
-        var from = takes.SelectMany(t => Sources(t.Item)).Where(id => id != thing).Distinct().ToList();
-        var madeAt = StationsOf(thing).Where(id => id != thing).Distinct().ToList();
-        var used = Users.Where(id => id != thing && (CostOf(id).Any(c => Makes(thing, c.Item)) || StationsOf(id).Contains(thing))).ToList();
-        return new TechLink(takes, from, madeAt, used);
+        var madeAt = StationsOf(thing).Concat(WorkedAt(thing)).Where(id => id != thing).Distinct().ToList();
+        var used = Users.Where(id => id != thing && (CostOf(id).Any(c => c.Item == thing) || StationsOf(id).Contains(thing))).Concat(ComesOutOf(thing)).Distinct().ToList();
+        return new TechLink(CostOf(thing), madeAt, used);
     }
-
-    private static bool Makes(string thing, string item) => thing == item || Sources(item).Contains(thing);
 
     private static bool Built(string id) => Prints.ContainsKey(id);
 
-    /// <summary>What <paramref name="item"/> comes from: its craft, and the stations that smelt, crush or grow it out of something.</summary>
-    private static IEnumerable<string> Sources(string item)
-    {
-        if (Crafts.TryGet(item, out _)) yield return item;
-        foreach (var source in Content.Items.All.Where(i => i.Yields?.Any(y => y.Item == item) == true))
-            foreach (var station in Stations.All.Where(s => s.Fed && s.Process == source.Process && s.Heat >= source.Heat))
-                if (Built(station.Machine)) yield return station.Machine;
-    }
+    /// <summary>The stations a player builds that smelt, crush or grow <paramref name="item"/> out of something.</summary>
+    private static IEnumerable<string> WorkedAt(string item) =>
+        Content.Items.All.Where(i => i.Yields?.Any(y => y.Item == item) == true).SelectMany(ComingFrom);
+
+    /// <summary>What comes out of what station <paramref name="machine"/> works.</summary>
+    private static IEnumerable<string> ComesOutOf(string machine) =>
+        Content.Items.All.Where(i => i.Yields != null && ComingFrom(i).Contains(machine)).SelectMany(i => i.Yields!.Select(y => y.Item));
+
+    private static IEnumerable<string> ComingFrom(ItemSpec source) =>
+        Stations.All.Where(s => s.Fed && s.Process == source.Process && s.Heat >= source.Heat && Built(s.Machine)).Select(s => s.Machine);
 
     /// <summary>The stations a player builds that make the craft <paramref name="id"/>.</summary>
     private static IEnumerable<string> StationsOf(string id) =>
