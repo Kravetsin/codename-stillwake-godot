@@ -19,7 +19,7 @@ public sealed partial class CrewModule
         if (rng.Below(8) == 0) return new Thrust(rng.Below(2) == 0) { From = from };
         if (rng.Below(12) == 0) return new Refill { From = from };
         if (rng.Below(5) == 0) return new PickColour((int)rng.Below(Content.Crew.Colours + 1)) { From = from };
-        if (rng.Below(10) == 0) return new ChooseLook(new Look(Pick(), Pick(), Pick(), Pick(), Pick())) { From = from };
+        if (rng.Below(10) == 0) return new ChooseLook(new Look(Pick(), Pick(), Pick(), Pick(), Pick(), Pick())) { From = from };
         int cells = _grid.Width * _grid.Height;
         int cell = rng.Below(4) != 0 ? State.Spawn + (int)rng.Below(9) - 4 : (int)rng.Below((ulong)cells + 100) - 50;
         return new Enter(cell) { From = from };

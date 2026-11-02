@@ -718,6 +718,9 @@ public class DesyncTests(ITestOutputHelper output)
                 granted |= known;
                 if (tick <= 503 || tick % 40 != 25) return;
                 int bench = game.Module<Sim.Grid.GridModule>(first.World).MachinesOf("workbench")[0].Id;
+                // The fuzz moves the bag's iron into machines: a spawn pays for each plate, and spawns are never obtained.
+                first.Send(new Sim.Items.SetCreative(true));
+                first.Send(new Sim.Items.Spawn("iron", 2));
                 first.Send(new Sim.Crafting.Craft(bench, "plate", 1));
             });
             return (run, granted && !early ? null : $"granted {granted}, before the joiner {early}");

@@ -92,20 +92,20 @@ commands reach the sim; others' heroes come through the host.
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
 - **Markers** (0061): home, own newest body, friends heard, on the edge.
-- **Dressed as worn**: helmet and body apart; bare, hair and a jumpsuit; a lamp only on a helmet.
+- **Dressed as worn**: helmet and body apart; bare, hair and clothes; a lamp only on a helmet; the colour on the near shin.
 
 ## Others' heroes
 
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
   by item id and `Busy` kind (0037).
-- Drawn 150 ms behind (0013), walking on 100 ms past the last sample, hidden after three silent seconds; only those
+- Drawn 150 ms behind (0013), walking on 100 ms past the last sample, hidden after 3 silent s; only those
   on this surface (0076). A friend's axe swings once per swing number heard (0038); its rod plays out by `RemoteRod`
   (0065); its drill spins while the sim says it runs (0055).
 
 ## The hands
 
 - **What the hand holds shows** (`HeldLook`); on a plan the screwdriver twists.
-- **Left is the front, right the back** (0107, 0108): the screwdriver works plans, or repairs what is broken, on the
+- **Left is the front, right the back** (0107, 0108): the screwdriver works plans or repairs, on the
   left button; the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece afloat. Outlined green or red; `UsePrompt` says why. Plan in hand: E idle.
@@ -123,5 +123,5 @@ commands reach the sim; others' heroes come through the host.
 ## Deliberately not handled
 
 - Friends are marked only while heard; markers one way overlap; friends have no names.
-- A body is drawn as its peer is dressed now; the first colour once it left.
+- A body is drawn as its peer is dressed now; once it left, the first colour.
 - Others' swings are not held on contact. A friend's gun hangs, its aim unsent.

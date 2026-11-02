@@ -26,6 +26,7 @@ A living document: what is decided about the game and what is still open. Techni
   debris or another wreck. Harder places bring their own dangers (see meteors below).
 - **No hand-holding:** no tutorial text and no highlighted "click here". The player learns by trying,
   picks their own path and pace; the world hints by colour, light and motion only.
+- **Who:** a scavenger who was a slave aboard a ship, thin, in what was issued, a tracker still on the leg.
 - **Start:** the hero is left alive in the torn-off scoop of a scavenger, and has to make it livable to
   survive: an iron room whose air the lifepod makes, a lock each way, the open hold on the left and on the right a
   landing where debris comes straight at them ([the-scoop](decisions/2026-10-31-the-scoop.md)); in the hold, under red lamps, the piles its last crew gathered reward the first axe ([hold-piles](decisions/2026-10-31-hold-piles.md)). Everything is caught as debris: a furnace built of caught salvage burns

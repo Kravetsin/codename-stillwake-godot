@@ -48,7 +48,7 @@ public sealed class BoardSeenTests : IDisposable
         string shape = BoardSlots.Of(["scrap"], BoardThings.All, []).Select(s => s.Id).First(id => id != "scrap");
         seen.Read(Notes(["scrap"], shape));
         Assert.True(seen.Lit);
-        Assert.True(seen.Marked(shape));
+        Assert.Contains(shape, seen.Unread);
     }
 
     [Fact]
@@ -71,27 +71,73 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
-    public void OpeningPutsOutTheDotAndTheMarksStayUntilItCloses()
+    public void OpeningPutsOutTheDotAndALandedNoteIsMarkedUntilItIsTouched()
     {
         var seen = new BoardSeen([]);
         seen.Read(["scrap"]);
         seen.Opened();
         Assert.False(seen.Lit);
+        Assert.False(seen.Marked("scrap"));
+        seen.Land("scrap");
         Assert.True(seen.Marked("scrap"));
         seen.Closed();
         Assert.False(seen.Lit);
+        Assert.True(seen.Marked("scrap"));
+        seen.Touch("scrap");
         Assert.False(seen.Marked("scrap"));
     }
 
     [Fact]
-    public void WhatArrivesWhileItIsOpenIsSeenWhenItCloses()
+    public void WhatLandedIsFreshOnlyUntilTheTabletCloses()
     {
         var seen = new BoardSeen([]);
-        seen.Opened();
         seen.Read(["scrap"]);
-        Assert.True(seen.Marked("scrap"));
+        seen.Opened();
+        seen.Land("scrap");
+        Assert.True(seen.Fresh("scrap"));
         seen.Closed();
-        Assert.False(seen.Lit);
+        Assert.False(seen.Fresh("scrap"));
+    }
+
+    [Fact]
+    public void AMarkLastsThroughARestartUntilTouched()
+    {
+        var keep = new BoardKeep(_folder);
+        keep.Of(9);
+        keep.Seen.Read([]);
+        keep.Seen.Read(["scrap", "iron"]);
+        keep.Seen.Land("scrap");
+        keep.Seen.Land("iron");
+        keep.Seen.Touch("iron");
+        Assert.True(keep.Write());
+        var again = new BoardKeep(_folder);
+        again.Of(9);
+        Assert.True(again.Seen.Marked("scrap"));
+        Assert.False(again.Seen.Marked("iron"));
+        again.Seen.Touch("scrap");
+        Assert.True(again.Seen.Unwritten);
+    }
+
+    [Fact]
+    public void AFileFromBeforeMarksHasNoneMarked()
+    {
+        Assert.True(BoardFile.Write(BoardFile.PathOf(_folder, 10), new BoardKept(null, ["scrap"])));
+        var keep = new BoardKeep(_folder);
+        keep.Of(10);
+        Assert.False(keep.Seen.Marked("scrap"));
+    }
+
+    [Fact]
+    public void ClosingUnreadLeavesTheDotLitAndTheNotesUnread()
+    {
+        var seen = new BoardSeen([]);
+        seen.Read(["scrap", "iron"]);
+        seen.Opened();
+        seen.Land("scrap");
+        seen.Closed();
+        Assert.True(seen.Lit);
+        Assert.Equal(["iron"], seen.Unread);
+        Assert.Contains("scrap", seen.Seen);
     }
 
     [Fact]

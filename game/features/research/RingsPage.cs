@@ -396,7 +396,7 @@ public sealed class RingsPage : ITabletPage
         if (picked == node) return Picked;
         if (picked.Gate) return node.Needs.Contains(picked.Id) ? GateEdge : null;
         var link = TechLinks.Of(picked.Id);
-        return link.MadeAt.Contains(node.Id) ? MadeAt : link.From.Contains(node.Id) ? From : link.UsedIn.Contains(node.Id) ? UsedIn : null;
+        return link.MadeAt.Contains(node.Id) ? MadeAt : link.Takes.Any(t => t.Item == node.Id) ? From : link.UsedIn.Contains(node.Id) ? UsedIn : null;
     }
 
     /// <summary>The hub: its gate's name, and by each thing it orders, what is sold over what is ordered.</summary>
@@ -462,7 +462,7 @@ public sealed class RingsPage : ITabletPage
                 if (_rings.Spots.ContainsKey(id)) _back.DrawLine(At(picked.Id), At(id), colour with { A = 0.7f }, 2, true);
         }
         Ties(link.UsedIn, UsedIn);
-        Ties(link.From, From);
+        Ties(link.Takes.Select(t => t.Item), From);
         Ties(link.MadeAt, MadeAt);
     }
 

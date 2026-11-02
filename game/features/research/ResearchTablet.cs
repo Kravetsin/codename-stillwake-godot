@@ -124,7 +124,8 @@ public partial class ResearchTablet : CanvasLayer
         if (Shown) return;
         _ui.Hand.Set(Holding.Free);
         _keep.Seen.Opened();
-        _page.Show(true);
+        if (_keep.Seen.Unread.Count > 0 && _page != _board) Choose(_board);
+        else _page.Show(true);
         _sinceRead = ReadEvery;
         _ui.TreeOpen.Set(true);
     }
@@ -155,6 +156,15 @@ public partial class ResearchTablet : CanvasLayer
 
     /// <summary>Where the hub's middle is on the screen: what a recording points at.</summary>
     public Vector2 HubAt => ((RingsPage)_page).HubAt;
+
+    /// <summary>Whether the board shows an entry to read: what a recording waits on.</summary>
+    public bool Reading => _board.Reading;
+
+    /// <summary>Where the entry shown large is on the screen: what a recording points at.</summary>
+    public Vector2 EntryAt => _board.EntryAt;
+
+    /// <summary>Where the "Take all" button is on the screen: what a recording points at.</summary>
+    public Vector2 TakeAllAt => _board.TakeAllAt;
 
     /// <summary>Where tab <paramref name="index"/> is on the screen: what a recording points at.</summary>
     public Vector2 TabAt(int index) => _tabBoxes[index].GetGlobalRect().GetCenter();
