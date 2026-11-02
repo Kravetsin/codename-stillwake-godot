@@ -54,12 +54,18 @@ public sealed class TechCamera
     }
 
     /// <summary>Brings the map's point to the middle of the view, at life size or as near as the map allows.</summary>
-    public void Centre(double mapX, double mapY)
+    public void Centre(double mapX, double mapY) => Look(mapX, mapY, Math.Max(1, Least));
+
+    /// <summary>Brings the map's point to the middle of the view at <paramref name="zoom"/>, as near as the map allows.</summary>
+    public void Look(double mapX, double mapY, double zoom)
     {
-        Zoom = Math.Max(1, Least);
+        Zoom = Math.Clamp(zoom, Least, Most);
         (X, Y) = (_viewWide / 2 - mapX * Zoom, _viewTall / 2 - mapY * Zoom);
         Keep();
     }
+
+    /// <summary>The zoom that holds <paramref name="wide"/> by <paramref name="tall"/> of a map in a view, never above life size.</summary>
+    public static double Fitting(double viewWide, double viewTall, double wide, double tall) => Math.Min(1, Math.Min(viewWide / wide, viewTall / tall));
 
     /// <summary>The point of the map at a point of the view.</summary>
     public (double X, double Y) ToMap(double x, double y) => ((x - X) / Zoom, (y - Y) / Zoom);

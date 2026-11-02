@@ -30,6 +30,35 @@ public sealed class StripParts(TipSpots tips)
             """,
     };
 
+    /// <summary>A shape on the board: its picture's outline alone, broken where <c>gaps</c> says, hatched inside as <c>hatch</c> says.</summary>
+    private static readonly Shader SketchShape = new()
+    {
+        Code = """
+            shader_type canvas_item;
+            uniform float edge = 0.3;
+            uniform float gaps = 1.0;
+            uniform float hatch = 0.0;
+            const vec3 INK = vec3(0.706, 0.749, 0.816);
+            float solid(sampler2D picture, vec2 at) {
+                return at.x < 0.0 || at.y < 0.0 || at.x > 1.0 || at.y > 1.0 ? 0.0 : texture(picture, at).a;
+            }
+            float lines(float along, float every, float wide, float soft) {
+                float from = abs(mod(along, every) - every / 2.0);
+                return 1.0 - smoothstep(wide / 2.0 - soft, wide / 2.0 + soft, from);
+            }
+            void fragment() {
+                vec2 by = max(vec2(0.014), TEXTURE_PIXEL_SIZE);
+                float inside = solid(TEXTURE, UV);
+                float around = min(min(solid(TEXTURE, UV + vec2(by.x, 0.0)), solid(TEXTURE, UV - vec2(by.x, 0.0))), min(solid(TEXTURE, UV + vec2(0.0, by.y)), solid(TEXTURE, UV - vec2(0.0, by.y))));
+                float along = (UV.x - UV.y) * 116.0;
+                float soft = max(fwidth(along) * 0.7, 0.05);
+                float outline = clamp(inside - around, 0.0, 1.0) * (1.0 - gaps * lines(along, 11.0, 5.0, soft)) * edge;
+                float strokes = inside * lines(along, 7.0, 1.2, soft) * hatch;
+                COLOR = vec4(INK, max(outline, strokes) * COLOR.a);
+            }
+            """,
+    };
+
     private const int Big = 64, Entry = 24, UsedLarge = 32, UsedSmall = 24, UsedManyFrom = 20;
 
     private readonly Dictionary<string, Placement?> _placements = new(StringComparer.Ordinal);
@@ -97,6 +126,17 @@ public sealed class StripParts(TipSpots tips)
         material.SetShaderParameter("pencil", (float)pencil);
     }
 
+    /// <summary>Draws <paramref name="picture"/> as a sketch of its outline, <paramref name="pencil"/> of the way to being understood.</summary>
+    public static void Sketched(TextureRect picture, double pencil)
+    {
+        if (picture.Material is not ShaderMaterial material) picture.Material = material = new ShaderMaterial { Shader = SketchShape };
+        var sketch = BoardInk.SketchOf(pencil);
+        material.SetShaderParameter("edge", sketch.Edge);
+        material.SetShaderParameter("gaps", sketch.Gaps);
+        material.SetShaderParameter("hatch", sketch.Hatch);
+        picture.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
+    }
+
     /// <summary>The pale picture of what is not known: no name by it.</summary>
     public TextureRect Unseen(string id)
     {
@@ -132,7 +172,7 @@ public sealed class StripParts(TipSpots tips)
             var picture = Picture(id, Big);
             picture.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
             picture.MouseFilter = Control.MouseFilterEnum.Ignore;
-            if (pencil is { } done) Pale(picture, done);
+            if (pencil is { } done) Sketched(picture, done);
             Tips.Add(picture, () => tip(id));
             row.AddChild(picture);
         }
