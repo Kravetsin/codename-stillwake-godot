@@ -104,7 +104,10 @@ public sealed class ShipTiles
         }
         // A piece whole (0104), laid from its top-left as a machine is: what a plan, a ghost or a mark of one draws.
         foreach (var kind in Builds.All.Where(b => Builds.PieceOf(b.Id) != null).Select(b => b.Id))
+        {
             pictures.Add(Picture(PieceName(kind), Made(PieceName(kind), Whole(kind)), Relief.None));
+            if (HiRes.On && FineWhole(kind) is { } fine) fineMade[PieceName(kind)] = fine;
+        }
         pictures.Add(Picture("valve_open", Relief.None, centred: true));
         pictures.Add(Picture("valve_closed", Relief.None, centred: true));
         foreach (var kind in Machines.All.Select(m => m.Kind)) pictures.Add(Picture($"machine_{kind}", Relief.Round));
@@ -382,6 +385,37 @@ public sealed class ShipTiles
         if (spec.Draw != StructureDraw.Door) return (Image)Art(spec.Tile!).Duplicate();
         var build = Builds.Get(kind);
         return Art(DoorShape.Whole(spec.Join == Join.Row, 1)[0]).GetRegion(new Rect2I(0, 0, build.Across * Cell, build.Tall * Cell));
+    }
+
+    /// <summary><see cref="Whole"/> in hi-res; null with no such picture.</summary>
+    private static Image? FineWhole(string kind)
+    {
+        var spec = Structures.ByBuild(kind)!;
+        if (spec.Draw != StructureDraw.Door) return HiRes.Load(spec.Tile!);
+        var build = Builds.Get(kind);
+        return HiRes.Load(DoorShape.Whole(spec.Join == Join.Row, 1)[0])?.GetRegion(new Rect2I(0, 0, build.Across * Cell * HiRes.Scale, build.Tall * Cell * HiRes.Scale));
+    }
+
+    /// <summary>
+    /// The picture <paramref name="name"/>, whose pixels are <paramref name="logical"/>, for what lays pictures together itself (a build
+    /// card): at <see cref="HiRes.Scale"/> times those pixels, its hi-res one or them grown. Off, <paramref name="logical"/> as it is.
+    /// </summary>
+    public static Image FineImageOf(string name, Image logical)
+    {
+        if (!HiRes.On) return logical;
+        var fine = name.StartsWith("piece_", StringComparison.Ordinal) ? FineWhole(name["piece_".Length..]) : HiRes.Load(name);
+        var want = logical.GetSize() * HiRes.Scale;
+        if (fine == null)
+        {
+            fine = (Image)logical.Duplicate();
+            fine.Resize(want.X, want.Y, Image.Interpolation.Nearest);
+            return fine;
+        }
+        if (!name.StartsWith("pipe_", StringComparison.Ordinal) || fine.GetSize() == want) return fine;
+        // A card's pipe runs across its 16 px, as DrawnImageOf's does; the hi-res one is its middle cell alone, so that cell repeats.
+        var run = Image.CreateEmpty(want.X, want.Y, false, Image.Format.Rgba8);
+        for (int x = 0; x < want.X; x += fine.GetWidth()) run.BlitRect(fine, new Rect2I(Vector2I.Zero, fine.GetSize()), new Vector2I(x, (want.Y - fine.GetHeight()) / 2));
+        return run;
     }
 
     /// <summary>The back wall of a natural <paramref name="material"/> (0077), a tile cut a cell at a time as scrap's is.</summary>
