@@ -47,4 +47,3 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 - No empty bottle comes back; water is never bottled again from a cistern.
 - Hydrogen is let go, neither stored nor used. Nothing freezes, boils or spills.
 - An electrolyser cannot be switched off; with no water it stalls, drawing its power.
-- A stalled electrolyser says why only through `Stalled`; the client shows it in a later pass.

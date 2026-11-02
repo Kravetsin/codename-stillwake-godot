@@ -61,6 +61,7 @@ public static class SurfaceViews
         // A pod in the air from this surface: the deck sliding, the pod falling through (the descent's pictures).
         new(c => new Features.Landing.PodFlights(c.M.Grid, c.M.Landing, c.M.Crew, c.Progress, c.Arrivals), Fades: true),
         new(c => new Features.Atmosphere.TankLooks(c.M.Grid, c.M.Atmosphere), Fades: true),
+        new(c => new Features.Water.WaterLooks(c.M.Grid, c.M.Water), Fades: true),
         new(c => new PodView(c.M.Grid, c.M.Crafting, c.M.Items, c.M.Crew), Fades: true),
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),

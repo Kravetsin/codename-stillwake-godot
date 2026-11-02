@@ -29,5 +29,5 @@ into oxygen. Liquid oxygen already reads in the pipes: tanks hold it, vaporizers
 ## Deliberately not handled
 
 - Cisterns passing water to each other; empty bottles; bottling water again; hydrogen; freezing or boiling.
-- Switching an electrolyser off. It says why it stalls only to the sim (`Stalled`) until the client shows it.
+- Switching an electrolyser off. It shows why it stands by a red lamp and, under the pointer, in words.
 - The ink pictures of the bottle and the electrolyser: pixel art for now, as every picture falls back to it.

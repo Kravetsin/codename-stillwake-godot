@@ -1,9 +1,8 @@
 # Design: Water (ice → bottle → cistern → electrolyser → liquid oxygen)
 
 Status: first pass built on `feat/water` (2026-11-02), what stays true in ADR
-[water-to-oxygen](../decisions/2026-11-02-water-to-oxygen.md) and `sim/Water/README.md`. Left, all on `feat/water` till the user is
-satisfied: showing why an electrolyser stalls; its bubbles only while it works; the cistern's sight glass showing its
-level; the ink pictures of the bottle and the electrolyser. The electrolyser draws 5 (one panel), not a stated 6.
+[water-to-oxygen](../decisions/2026-11-02-water-to-oxygen.md) and `sim/Water/README.md`. Left: the ink pictures of the bottle, the electrolyser and
+the overlays (they need Node's `wash.js`). The electrolyser draws 5 (one panel), not a stated 6.
 
 Builds on typed ports (ADR `2026-10-29-typed-ports`, in `main`: ports In/Out of one fluid; the cistern `cistern` 4×4,
 `(0, 2) In water`, `(3, 2) Out water`, holding nothing yet) and on the liquid-oxygen plan (`docs/plans/liquid-oxygen.md`,
