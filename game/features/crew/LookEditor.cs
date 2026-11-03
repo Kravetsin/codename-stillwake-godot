@@ -65,7 +65,7 @@ public partial class LookEditor : CanvasLayer
         window.AddChild(view);
         row.AddChild(Style.Panel(Style.Slate700, window));
         // Made on the title, before any world has a player colour to ask for: it gets its own on opening.
-        _figure = new Figure(Suits.All[0], own: false);
+        _figure = new Figure(Suits.All[0], own: false) { GivesLight = false };
         Unlit(_figure);
         view.AddChild(_figure);
         view.AddChild(new Camera2D { Zoom = new Vector2(Zoom, Zoom), Position = new Vector2(0, (float)(-Rig.H / 2)), Enabled = true });

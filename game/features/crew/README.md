@@ -86,7 +86,7 @@ commands reach the sim; others' heroes come through the host.
   in fog it glides, `FogMove` across a seam (fog-edges).
 - **Camera:** leads, eases height, snaps.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
-  `Thrust` sent while it differs from the sim's.
+  `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
   key on the tablet's edge, dim while refused.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
@@ -94,8 +94,8 @@ commands reach the sim; others' heroes come through the host.
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
 - **Markers** (0061): home, own newest body, friends heard.
-- **Dressed as worn**: helmet and body apart, later ones in their own pictures; bare, hair and clothes; a lamp on a
-  helmet; the colour on the near shin; a switched body lit by `SuitOn` and charge (`SuitGlow`).
+- **Dressed as worn**: helmet and body apart, later ones in own pictures; bare, hair, clothes; a helmet lamp; the
+  colour on the near shin; a switched body lit by `SuitOn` and charge (`SuitGlow`); both light round (hero-lights).
 
 ## Others' heroes
 
