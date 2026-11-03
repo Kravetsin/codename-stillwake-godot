@@ -231,13 +231,34 @@ public class PowerDriverAimTests
         var delivered = w.M.Building.Plans[0].Delivered;
         Assert.NotEmpty(delivered);
         var carried = w.M.Items.Totals(0);
-        var tip = SquareTip.Of(w.M.Building, Aiming.SquareAt(Width, 10, (6, 4), 2)!.Value.Cells, carried)!;
+        var tip = SquareTip.Of(w.M.Building, w.M.Grid, Aiming.SquareAt(Width, 10, (6, 4), 2)!.Value.Cells, carried)!;
         var expected = cost.Select(c => new CostLine(c.Item, carried.Where(h => h.Item == c.Item).Sum(h => h.Count),
             3 * c.Count - delivered.Where(d => d.Item == c.Item).Sum(d => d.Count))).ToList();
         Assert.Equal(new PlanTip(Scrap, expected).Tip, tip);
         // Mixed blueprints say their sum without one name; none lacking anything, no tip.
         w.Step(new PlacePlan(C(6, 3), Placement.Wall("iron")));
-        Assert.Null(SquareTip.Of(w.M.Building, Aiming.SquareAt(Width, 10, (6, 4), 2)!.Value.Cells, carried)!.Name);
-        Assert.Null(SquareTip.Of(w.M.Building, [C(9, 6)], carried));
+        Assert.Null(SquareTip.Of(w.M.Building, w.M.Grid, Aiming.SquareAt(Width, 10, (6, 4), 2)!.Value.Cells, carried)!.Name);
+        Assert.Null(SquareTip.Of(w.M.Building, w.M.Grid, [C(9, 6)], carried));
+    }
+
+    [Fact]
+    public void TheSquaresTipOverMarksSumsWhatTheyAllGiveBackDifferentWallsToo()
+    {
+        var w = Hall().Step(new SetCreative(true));
+        // The square round the hall's bottom-left corner: the floor's wall at (0, 9) and (1, 9), the side wall at (0, 8).
+        var cells = Aiming.SquareAt(Width, 10, (1, 9), 2)!.Value.Cells;
+        var wall = w.M.Building.CostFor(Tools.BuiltAt(C(0, 9), "structure", w.M.Grid)!);
+        w.Step(new Deconstruct(C(0, 9), "structure"), new Deconstruct(C(1, 9), "structure"));
+        // Two walls alike: under their name, each item twice what one gives back.
+        var two = SquareTip.Of(w.M.Building, w.M.Grid, cells, [])!;
+        Assert.NotNull(two.Name);
+        Assert.Equal(wall.Where(c => c.Count > 0).Select(c => $"+{2 * c.Count}"), two.Lines.Select(l => l.Text));
+        // A back wall marked too: all three summed, with no one name.
+        var back = w.M.Building.CostFor(Tools.BuiltAt(C(1, 8), "back", w.M.Grid)!);
+        w.Step(new Deconstruct(C(1, 8), "back"));
+        var three = SquareTip.Of(w.M.Building, w.M.Grid, cells, [])!;
+        Assert.Null(three.Name);
+        var summed = wall.Concat(wall).Concat(back).GroupBy(c => c.Item).Select(g => $"+{g.Sum(c => c.Count)}");
+        Assert.Equal(summed, three.Lines.Select(l => l.Text));
     }
 }

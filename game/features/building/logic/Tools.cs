@@ -225,6 +225,14 @@ public static class Tools
         return null;
     }
 
+    /// <summary>What mark <paramref name="mark"/> takes down, as the card that places it would: a machine whichever of its cells is marked; none once gone.</summary>
+    public static Placement? MarkedOf(IGridQueries grid, Sim.Building.Plan mark) =>
+        mark.Clear is { } layer ? BuiltAt(MarkedAt(grid, mark), layer, grid) : null;
+
+    /// <summary>Where a mark's thing is drawn from: a machine's top-left, whichever of its cells is marked; else its cell.</summary>
+    public static int MarkedAt(IGridQueries grid, Sim.Building.Plan p) =>
+        p.Clear == "machine" && grid.MachineAt(p.Cell) is { } machine ? machine.Cell : p.Cell;
+
     /// <summary>What is built at <paramref name="cell"/> in <paramref name="layer"/>, as the card that places it would: what a mark takes out.</summary>
     public static Placement? BuiltAt(int cell, string layer, IGridQueries grid)
     {

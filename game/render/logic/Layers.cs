@@ -95,6 +95,9 @@ public static class Layers
     // The plan (building): blueprints, their marks and bars, the ghost of a drag, the hands at work.
     public const int Plans = 19, PlanMarks = 20, PlanGhost = 21, PlanHands = 22;
 
+    /// <summary>The power driver's square, over the pale ghosts of the plans it works, else lost under them (driver-square).</summary>
+    public const int SquareAim = PlanMarks;
+
     /// <summary>Dust, sparks, embers and air over everything in the world, plans included (effects).</summary>
     public const int Effects = 23;
 
