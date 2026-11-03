@@ -592,6 +592,49 @@ const driver = (step) => (a) => {
   a.flat('M11.6 3.05L12.8 3L12.9 3.45L11.7 3.45Z', RUST);
 };
 
+// The power driver, the user's pick «Пистолет»: a short pistol-grip driver in worn green enamel, a battery slab under the grip with
+// three charge lights. A state is { f: 0..2, the frame the chuck's knurl and the hex bit have turned to; mode: 'idle' | 'run' | 'flat' }.
+const ENAMEL = { base: '#56706c', shade: '#3b4f4e', deep: '#2a3838', lite: '#76908a', spec: '#b8c8c0' };
+const CHIP = '#8e96a2';
+// Full saturation only for what works or warns: the running lamp is the game's own (HeldLook.LampColour), the flat one red.
+const ON = '#9dff8a', OFF = '#1f2a23', CHARGED = '#4f9a58', WARN = '#ff4a36', WARN_DIM = '#7a2620';
+/** Slanted knurling that steps along a collar as it turns, a third of its pitch a frame, as the screwdriver's ribs roll. */
+const knurl = (a, clip, x0, y0, x1, y1, f, c) => {
+  const p = .8, sl = (y1 - y0) * .35;
+  for (let x = x0 - 1.8 + (f % 3) * p / 3; x < x1 + .4; x += p) a.flat(poly(x, y0, x + .28, y0, x + .28 + sl, y1, x + sl, y1), c, { clip });
+};
+/** A hex bit side-on: its facet's edge runs down the shank a third of the way each frame, so it reads as turning. */
+const hexBit = (a, x0, x1, yc, r, f) => {
+  a.shape(poly(x0, yc - r, x1 - .8, yc - r, x1, yc - .16, x1, yc + .16, x1 - .8, yc + r, x0, yc + r), BLADE,
+    { lite: band(x0, yc - r, x1, yc - r * .35), shade: band(x0, yc + r * .4, x1 + .2, yc + r + .2) });
+  a.flat(band(x0 + .9, yc - r, x0 + 1.2, yc + r), BLADE.deep);
+  const e = [-.5, .05, .55][f % 3];
+  a.line(`M${x0 + 1.4} ${yc + r * e}L${x1 - .9} ${yc + r * e}`, { w: .7 });
+};
+const powerDriver = (s) => (a) => {
+  const f = s.f;
+  a.shape('M4.4 5L8.4 5L8 6.4C7.7 7.6 7.6 8.8 7.8 10.2L4.2 10.2C4 8.8 4 7.4 4.4 5Z', RUBBER,
+    { shade: band(3, 9.5, 9, 10.4), lines: ['M4.5 6.6L7.9 6.6', 'M4.4 7.5L7.7 7.5', 'M4.3 8.4L7.6 8.4', 'M4.3 9.3L7.7 9.3'] });
+  a.shape('M8.2 5.4L9.2 5.4L9.3 6.2L8.5 7.2L8.1 6.6Z', DARK(), { shade: .3 });
+  a.shape('M1.6 .6L9.6 .6C10.4 .6 10.8 1.1 10.8 1.8L10.8 4.6C10.8 5.3 10.4 5.7 9.6 5.7L1.8 5.7C1 5.7 .5 5.1 .5 4.3L.5 1.8C.5 1.1 .9 .6 1.6 .6Z', ENAMEL,
+    { lite: band(.6, .7, 10.6, 1.5), spec: band(2.8, .95, 8.4, 1.15), shade: band(.4, 4.7, 11, 5.8), lines: ['M6.6 .8L6.6 5.6'] });
+  for (const x of [2.2, 3, 3.8]) a.flat(poly(x, 2.1, x + .45, 2.1, x + .35, 4, x - .1, 4), '#1a1410');
+  a.flat(poly(9.6, .7, 10.5, 1, 10.6, 1.9, 10, 1.5), CHIP);
+  a.flat(poly(.6, 3.6, 1, 3.3, 1.1, 4.6, .6, 4.8), CHIP);
+  a.flat(poly(5.2, 5, 6.2, 4.9, 6, 5.6, 5.3, 5.6), ENAMEL.deep);
+  a.glow(ell(1.3, 2.8, .42), s.mode === 'run' ? ON : s.mode === 'flat' ? WARN_DIM : OFF, s.mode === 'run' ? { core: ell(1.25, 2.72, .16) } : {});
+  const collar = rr(10.6, 1.3, 2, 3.6, .3);
+  a.shape(collar, GUN(), { lite: band(10.6, 1.35, 12.6, 1.9), shade: band(10.6, 4.2, 12.6, 4.95) });
+  knurl(a, collar, 10.6, 1.3, 12.6, 4.9, f, GUN().deep);
+  a.shape(poly(12.5, 1.9, 13.8, 2.3, 13.8, 3.9, 12.5, 4.3), DARK(), { lite: band(12.5, 1.9, 13.8, 2.6), shade: .35 });
+  hexBit(a, 13.6, 16, 3.1, .55, f);
+  a.shape(rr(2.4, 9.8, 7.4, 2.8, .45), GUN(), { lite: band(2.5, 9.85, 9.7, 10.4), shade: band(2.4, 12, 9.9, 12.7), lines: ['M8.4 9.9L8.4 12.5'] });
+  a.shape(rr(3.6, 9.4, 2.2, .7, .2), DARK(), { outer: false });
+  a.shape(ell(9.05, 11.2, .32), STEEL(), { outer: false, edge: false, shade: band(8.73, 11.25, 9.37, 11.52), lines: ['M8.83 11.3L9.27 11.1'] });
+  // Charged: three steady lights; running: bright; flat: dark, the first warning red.
+  [3.3, 4.6, 5.9].forEach((x, i) => a.glow(rr(x, 10.9, .8, .6, .15), s.mode === 'flat' ? (i === 0 ? WARN : OFF) : s.mode === 'run' ? ON : CHARGED));
+};
+
 // Hand: how far the hand tools' drawings shrink to the fist; the screwdriver 17 px long drawn, 10 px shown.
 const LIGHT = [0, -1], Margin = 3, Px = 4, Hand = 0.6;
 const part = (p) => bake({ ...p, margin: Margin, light: LIGHT });
@@ -661,6 +704,15 @@ Subjects.hero = function () {
   turns.forEach((t, i) => twist.getContext('2d').drawImage(t, i * 10 * Px, 0));
   out('hero_screwdriver', twist);
   out('hero_screwdriver_held', turns[0]);
+  // The power driver to the same fist: charged in the hand; at work its chuck turned by the motor, or flat, by the wrist, as the screwdriver's.
+  const strip = (mode) => {
+    const c = canvas(30 * Px, 8 * Px);
+    [0, 1, 2].forEach((f) => c.getContext('2d').drawImage(small(10, 8, powerDriver({ f, mode })), f * 10 * Px, 0));
+    return c;
+  };
+  out('hero_powerDriver_held', small(10, 8, powerDriver({ f: 0, mode: 'idle' })));
+  out('hero_powerDriver', strip('run'));
+  out('hero_powerDriver_flat', strip('flat'));
   // The helmet whole, for its card: shrunk a little into the pixel picture's box, which its round shell overhangs.
   out('hero_helmet', bake({ ...suitPart('s_head'), units: 1.12, shift: [.35, .75], light: LIGHT }));
   const helmet = part(suitPart('s_head'));

@@ -77,14 +77,13 @@ commands reach the sim; others' heroes come through the host.
   hole is walked down (0106). Down slides into a hole, drops through floors; a wall, door, hatch or
   ladder under the feet holds; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
-- **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut on letting Space go, eased apex and speed,
+- **Jump and walk feel** (0089): coyote time, jump buffer, a short hop on letting Space go, eased apex,
   `AirControl` aloft.
 - **The figure answers its motion** (0090), read from what is sent, so friends move alike; it sits on the title and in a pod.
-- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): sending `HitBy`/`Bolted`;
-  thrown at once, keys masked `Hero.Reel` steps.
+- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).
-- **Camera:** leads where last moved, eases height, snaps to a new place.
+- **Camera:** leads, eases height, snaps to a new place.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack ties none, Shift thrusts,
   `Thrust` sent while it differs from the sim's.
 - **A canister** (0047, 0081): right click sends `Refill` if the sim takes it.
@@ -92,7 +91,7 @@ commands reach the sim; others' heroes come through the host.
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
-- **Markers** (0061): home, own newest body, friends heard, on the edge.
+- **Markers** (0061): home, own newest body, friends heard.
 - **Dressed as worn**: helmet and body apart; bare, hair and clothes; a lamp only on a helmet; the colour on the near shin.
 
 ## Others' heroes
@@ -101,11 +100,11 @@ commands reach the sim; others' heroes come through the host.
   by item id and `Busy` kind (0037).
 - Drawn 150 ms behind (0013), walking on 100 ms past the last sample, hidden after 3 silent s; only those
   on this surface (0076). A friend's axe swings once per swing number heard (0038); its rod plays out by `RemoteRod`
-  (0065); its drill spins while the sim says it runs (0055).
+  (0065); its drill or power driver runs as the sim says (0055).
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`); on a plan the screwdriver twists.
+- **What the hand holds shows** (`HeldLook`); on a plan a builder twists, or its motor turns it (`Twist`, `Driven`).
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck under the
@@ -118,8 +117,8 @@ commands reach the sim; others' heroes come through the host.
   a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
 - **The drill** (0054, 0055): held in one hand (one-arm-holds); left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
-- **The power driver** (power-driver): left held runs it as the drill, never spun or heard as one; running, it works the
-  2×2 square (`SquareAt`, `WorkTargets`). Right click: square or cell (`Ui.DriverSquare`).
+- **The power driver** (power-driver): left held runs it as the drill; running, it works the 2×2 square (`SquareAt`,
+  `WorkTargets`), heard there (`BiteLoop`), its ratchet silent (`Ui.Driven`). Right click: square or cell.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump short of a ledge by the foot's lift is mantled.
 

@@ -110,7 +110,9 @@ public partial class HeroView
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
         bool runs = running != null && running == drill;
         Drill(client, m, runs ? pointer : null, drill);
-        _figure.Spinning = runs;
+        // The power driver running: its chuck turns at its work, and its motor is heard there; flat, the wrist twists it (power-driver).
+        bool drives = HeldLook.Drives(running);
+        _figure.Spinning = runs || drives;
         // Loaded while its fan strikes something, a wreck or the ground, or its bit a creature. Its hits sound and look as what
         // they hit, where they hit it (0093, 0094); the bit throws nothing of its own.
         bool works = runs && (!Aiming.FanOf(m, _current, Aiming.PointOf(pointer!.Value), running!).IsEmpty
@@ -158,6 +160,7 @@ public partial class HeroView
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
             : null;
+        _driverHeard.Step(drives && working, _busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null, elapsedMs / 1000);
         ShowHands(_figure, _wields, FittedOf(m, client.Id, _wields), _busy, _swing.Phase is double phase ? (_swing.At, phase) : null);
         // The computer opens its own window; every other machine its slots under the inventory.
         if (uses.Open is int open && m.Grid.MachineById(open) is { } machine)
@@ -224,6 +227,50 @@ public partial class HeroView
         {
             var (spread, _) = StrikeTrain.Vary(_strikeSpread, S.DrillWhirPitch, 0);
             _whir.PlayAt(at, (float)speed * spread, _drillMotor.GainDb(S.DrillMotor));
+        }
+    }
+
+    /// <summary>
+    /// A hero's power driver heard where it works (power-driver), on the World bus as the ratchet it stands in for: its bite, its
+    /// loop and its run-down, played as its <see cref="BiteLoop"/> says, following the work; letting go, the bite and loop fade out.
+    /// </summary>
+    private sealed class DriverHeard
+    {
+        public readonly Heard2D Bite = Cues.Player2D(S.PowerDriverBite, S.World), Loop = Cues.Player2D(S.PowerDriverLoop, S.World),
+            Off = Cues.Player2D(S.PowerDriverOff, S.World);
+        public BiteLoop Hum;
+        /// <summary>Where it last worked, in the world's pixels.</summary>
+        public Vector2 At;
+        private double _fadeS;
+
+        public Node[] Players => [Bite, Loop, Off];
+
+        /// <summary>One frame: whether it works (<paramref name="works"/>), and where, in the world's pixels.</summary>
+        public void Step(bool works, Vector2? at, double elapsedS)
+        {
+            if (at is { } now) At = now;
+            switch (Hum.Step(works, elapsedS))
+            {
+                case BiteCue.Bite:
+                    (_fadeS, Loop.OffsetDb) = (0, 0);
+                    Loop.Stop();
+                    Bite.PlayAt(At);
+                    break;
+                case BiteCue.Loop:
+                    Loop.PlayAt(At);
+                    break;
+                case BiteCue.Off:
+                    _fadeS = S.PowerDriverFadeS;
+                    Off.PlayAt(At);
+                    break;
+            }
+            Bite.GlobalPosition = Loop.GlobalPosition = At;
+            if (_fadeS <= 0) return;
+            _fadeS = System.Math.Max(0, _fadeS - elapsedS);
+            Bite.OffsetDb = Loop.OffsetDb = Mathf.LinearToDb((float)System.Math.Max(_fadeS / S.PowerDriverFadeS, 1e-4));
+            if (_fadeS > 0) return;
+            Bite.Stop();
+            Loop.Stop();
         }
     }
 

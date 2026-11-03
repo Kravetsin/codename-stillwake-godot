@@ -62,3 +62,38 @@ public struct TouchHold
         return _left > 0;
     }
 }
+
+/// <summary>What a <see cref="BiteLoop"/> starts or stops this frame.</summary>
+public enum BiteCue { None, Bite, Loop, Off }
+
+/// <summary>
+/// A motor heard in three cuts (power-driver), apart from Godot: its bite once as it starts on its work, its loop once the bite
+/// has played <see cref="S.PowerDriverBiteS"/>, its run-down as its work lapses past <see cref="S.PowerDriverHoldS"/>.
+/// It keeps the ratchet by it quiet (<see cref="Quiets"/>) while it works and <see cref="S.PowerDriverQuietS"/> after.
+/// </summary>
+public struct BiteLoop
+{
+    private TouchHold _working, _quiet;
+    private bool _on, _looping;
+    private double _onS;
+
+    /// <summary>Whether a ratchet beside it stays silent: its work is heard as the motor, the last of it landing after it stops.</summary>
+    public bool Quiets { get; private set; }
+
+    /// <summary>One frame, <paramref name="elapsedS"/> after the last, its motor at work or not (<paramref name="works"/>): what to play or stop.</summary>
+    public BiteCue Step(bool works, double elapsedS)
+    {
+        Quiets = _quiet.Step(works, elapsedS, S.PowerDriverQuietS);
+        bool on = _working.Step(works, elapsedS, S.PowerDriverHoldS);
+        if (on != _on)
+        {
+            (_on, _looping, _onS) = (on, false, 0);
+            return on ? BiteCue.Bite : BiteCue.Off;
+        }
+        if (!on || _looping) return BiteCue.None;
+        _onS += elapsedS;
+        if (_onS < S.PowerDriverBiteS) return BiteCue.None;
+        _looping = true;
+        return BiteCue.Loop;
+    }
+}

@@ -67,7 +67,9 @@ the energy tab says why. This is the user's pick.
 - **Look:** «Пистолет» (`pistol` on the pick page): a short pistol-grip driver in worn green enamel, a battery slab under the grip
   with three charge lights (green running, red flat). Drawn into `tools/anime-art/subjects/hero.js` (`hero_powerDriver`,
   `_held`, its turning frames) and `items.js` (`items/powerDriver`) from the page's `candidates.js`; `HeldLook.PowerDriver`.
-  `game.tests/ItemCardTests.cs:378`, which holds every builder to the screwdriver's look, changes with it.
+  `game.tests/ItemCardTests.cs:378`, which holds every builder to the screwdriver's look, changes with it. Its icon is its held
+  picture, as every tool's (`ToolIconTests`), so `items.js` draws none. Both builders are drawn to the fist (`Hand`, 0.6).
+  The chuck turns and the motor is heard whenever the sim runs it at work, in either mode: a friend's mode is not sent.
 - **Sound:** «Винт в металл: петля» (The-Sacha-Rush, freesound 455339, CC0): the bite once (12.80–13.60 s), the steady stretch
   looped while held (13.60–14.30 s, a 100 ms seam), the run-down on letting go (14.30–14.62 s); levelled as the drill's whir.
   A `Cue` set beside `Screwdriver`, played from the worked square while the driver runs at a target; credited in
@@ -114,7 +116,6 @@ shows the block on load, as the market is derived. The new item changes what `It
 - `building.heroInside`: walls round the hero's own cells wait, as with the screwdriver.
 - Two players on one plan finish it sooner; their later `Work` comes back `building.noPlan`, harmless.
 - Marks taken apart four at a time drop four refunds at the hero (`GiveOrDrop`).
-- A friend's driver is not drawn turning nor heard by others till its look and cue land; then as the drill is.
 - Up to 4 × 2 targets × 5 `Work` a frame from one peer after a stall, against 5 today; no cap on commands was found in `net/Net`
   (its only limit is ticks run per update), to be confirmed by a co-op run.
 - Any sim check of the tool, the square or the run on `Work`.

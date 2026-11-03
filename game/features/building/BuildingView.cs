@@ -304,7 +304,9 @@ public partial class BuildingView : Node2D
         var tip = new Vector2((float)x, (float)y);
         int cell = (int)(box.Position.Y / Cell) * grid.Width + (int)(box.Position.X / Cell);
         _glow.Sparked(glow, tip, heading, bursts, rooms.Afloat(cell), FloorUnder(grid, tip));
-        _screwdriver.PlayAt(tip);
+        // A power driver at work there is heard as its motor, not the ratchet (power-driver).
+        var near = box.Grow(Cell);
+        if (!_ui.Driven.Any(d => near.HasPoint(new Vector2(d.X, d.Y)))) _screwdriver.PlayAt(tip);
     }
 
     /// <summary>The top of the first solid cell under <paramref name="at"/>, in pixels, within <see cref="FloorDepth"/> cells; none past it.</summary>

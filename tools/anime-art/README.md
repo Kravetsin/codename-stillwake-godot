@@ -77,4 +77,4 @@ and the light are the engine's, one for every subject (`engine.js`), per world p
 - A `top_*` picture lays its ground line on row 16; rows above it stand on the cell above, rows below lie over the block, in its `front` picture.
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
   run, px 4 and 20 of 24: every variant has the same cross-section there, its torn end past them.
-- A tool held in the fist (about 4 px) is drawn to it: `hero.js` shrinks the screwdriver's paths by `Hand` (0.6, 10 px long), the pen kept.
+- A tool held in the fist (about 4 px) is drawn to it: `hero.js` shrinks the screwdriver's and the power driver's paths by `Hand` (0.6: 10 px long), the pen kept.

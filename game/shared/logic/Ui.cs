@@ -284,6 +284,12 @@ public sealed class Ui
     public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
 
     /// <summary>
+    /// Where every power driver's motor is heard at work, and a moment after, in the world's pixels (power-driver). Set by <c>crew</c>
+    /// every frame; <c>building</c> keeps the ratchet of a plan by one silent, its motor heard for it.
+    /// </summary>
+    public IReadOnlyList<(float X, float Y)> Driven { get; set; } = [];
+
+    /// <summary>
     /// The piece of debris the hands would grab or chop, and whether the sim would refuse it: <c>crew</c> sets it while
     /// the pointer is on one within reach, <c>debris</c> outlines that piece.
     /// </summary>

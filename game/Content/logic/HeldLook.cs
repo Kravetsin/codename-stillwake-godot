@@ -16,13 +16,14 @@ namespace Stillwake.Game;
 /// <see cref="Clamp"/> between the vise's jaws (<see cref="BenchLook.Clamp"/>): where a tool is clamped is its own, so any
 /// tool sits on the bench with nothing drawn for it. A gun held to charge lays its <see cref="Charged"/> picture, the same size, over
 /// it as it fills (2026-10-27-the-railgun), and the arc crackles over its own <see cref="Arcs"/> as a drill's coil does, more
-/// as it fills.
+/// as it fills. A builder works plans by a strip of three frames of its picture's size and grip: twisted by the wrist (<see cref="Twist"/>),
+/// or, while its motor runs, turned by it (<see cref="Driven"/>).
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     double Elbow = 0, (double X, double Y)? Clamp = null, string? Charged = null,
-    IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null)
+    IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -63,7 +64,18 @@ public sealed record HeldLook(
     /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works): the fist round its ribbed handle, held square to
     /// the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
     /// </summary>
-    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 1.2), System.Math.PI / 2, (7.8, 1.2), (9.6, 1.2), Clamp: (2.4, 1.2));
+    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 1.2), System.Math.PI / 2, (7.8, 1.2), (9.6, 1.2), Clamp: (2.4, 1.2),
+        Twist: "res://art/hero_screwdriver.png");
+
+    /// <summary>
+    /// The power driver, <c>art/hero_powerDriver_held.png</c> (power-driver), the user's pick, «Пистолет»: a short pistol-grip driver in
+    /// worn green enamel, a battery slab under the grip with three charge lights, steady green; held as a pistol is, the barrel along the
+    /// forearm, the hex bit the edge, to the screwdriver's fist. At work its motor turns the chuck and the bit, the lights bright
+    /// (<c>hero_powerDriver.png</c>); flat, the wrist twists it as the screwdriver, the first light red (<c>hero_powerDriver_flat.png</c>).
+    /// No module fits it; its clamp the barrel.
+    /// </summary>
+    public static readonly HeldLook PowerDriver = new("res://art/hero_powerDriver_held.png", (3.6, 4.56), 0, (8.16, 1.86), (9.6, 1.86), Clamp: (3.6, 1.8),
+        Twist: "res://art/hero_powerDriver_flat.png", Driven: "res://art/hero_powerDriver.png");
 
     /// <summary>
     /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red
@@ -92,10 +104,13 @@ public sealed record HeldLook(
     public static HeldLook? Of(string? item) =>
         item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
         : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun
-        : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
+        : item == Content.Screwdrivers.PowerDriver.Item ? PowerDriver : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
     /// <summary>Whether <paramref name="item"/> is the drill, a module in it or not: aimed, run on the belt, drilling what its bit touches.</summary>
     public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item;
+
+    /// <summary>Whether <paramref name="item"/>, running, has its motor turn it at its work (<see cref="Driven"/>): the power driver.</summary>
+    public static bool Drives(string? item) => Of(item)?.Driven != null;
 }
 
 /// <summary>

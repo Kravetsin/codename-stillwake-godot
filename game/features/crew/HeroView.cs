@@ -81,6 +81,8 @@ public partial class HeroView : Node2D
         public StrikeTrain Burns;
         /// <summary>Its drill's hits on the ground as played here, at the drill's pace (0093).</summary>
         public DrillPace Drill;
+        /// <summary>Its power driver's motor, heard where it works while the sim says it runs (power-driver).</summary>
+        public readonly DriverHeard Driver = new();
     }
 
     /// <summary>Each other hero drawn, by peer id.</summary>
@@ -148,6 +150,8 @@ public partial class HeroView : Node2D
     private StrikeTrain _grains;
     private MotorSound _drillMotor;
     private TouchHold _onPiece;
+    /// <summary>This hero's power driver, heard where it works while it runs (power-driver).</summary>
+    private readonly DriverHeard _driverHeard = new();
     /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, muffled out in space as all there is, its envelope eased in and out (0047, 0059).</summary>
     private readonly AudioStreamPlayer _thrustLoop = Cues.Player(S.Thrust, S.Suit);
     private LoopEnvelope _thrustSound;
@@ -240,6 +244,7 @@ public partial class HeroView : Node2D
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady,
                      _ownShotEnds })
             AddChild(player);
+        foreach (var player in _driverHeard.Players) AddChild(player);
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
@@ -487,6 +492,7 @@ public partial class HeroView : Node2D
         var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding, passedOut);
         // The hands first, so the frame a hit goes draws the blade meeting the wreck; a swing begun turns the hero.
         UseHands(client, m, shown, pointer, passedOut, pose, elapsedMs, handFree: !HoldsPlan);
+        _ui.Driven = [.. _shownOthers.Values.Select(o => o.Driver).Append(_driverHeard).Where(d => d.Hum.Quiets).Select(d => (d.At.X, d.At.Y))];
         drawn = drawn with { Facing = _current.Facing };
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var (helmet, body) = Suits.WornBy(m.Items, client.Id);

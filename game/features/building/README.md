@@ -71,20 +71,19 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. The field takes every key,
   Enter or a click elsewhere ends typing, Esc clears first (`DropSearch`); a tab clicked or a card Q takes ends it; put away, it is forgotten.
 - **The hint** (`HintOf`): one line under the cards, cut by an ellipsis.
-- **Plans are ghosts** (0064, `PlanTiles`): their own picture greyed toward white, a little blue, unlit, back
-  walls fainter, joined to what is planned and built beside them. Planned back walls draw just over the rooms' air
+- **Plans are ghosts** (0064, `PlanTiles`): their picture greyed, a little blue, unlit, back walls fainter, joined to what is planned and built beside them. Planned back walls draw just over the rooms' air
   (`Layers.PlanBacks`), the rest over the ship. The ghost in hand is green where the sim takes it, red where not (0022).
 - **Dashes** (0064): round each group of plans (walls, back walls, ladders, doors, hatches, floors; each machine
   alone) marching dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
-  valves are not outlined, unless marked. The mesh is rebuilt only when plans, grid, zoom or screen change.
+  valves are not outlined, unless marked. Rebuilt only when plans, grid, zoom or screen change.
 - **A blueprint turns real as worked** (0063): from the bottom up (floors and conduits from the left), the cut at
-  `Progress / TicksFor`, a pixel at a time, by ticks; the real share lit as the grid draws it, the
-  rest the unlit ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).
+  `Progress / TicksFor`, a pixel at a time, by ticks; the real share lit, the
+  rest the ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top down as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.
 - **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero,
-  not the worker, so every peer sees the same; a molten spot, smoke, shimmer; the cut glows; a blueprint finished is
-  swept by light.
+  not the worker, so every peer sees the same; a molten spot, smoke, shimmer; the cut glows; finished, swept by light. The
+  ratchet there; by a running power driver, its motor (`Ui.Driven`).
 - **Digging** (0077, 0079): a crack's stage is its share of the wall's strength; a hit's own look is the crew's (0094).
 
 ## Deliberately not handled
