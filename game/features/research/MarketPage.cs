@@ -33,7 +33,7 @@ public sealed class MarketPage : ITabletPage
     private static readonly Texture2D Coin = Signs.Credit();
 
     /// <summary>The order's inset; an asked item's row and how far apart they are; an unlock's tile and its gap; where a tile's picture's middle lies and how tall it is.</summary>
-    private const int SideIn = 12, AskTall = 40, AskStride = 46, LockedSide = 32, LockedGap = 3, PictureAt = 34, PictureTall = 44, CoinSide = 16;
+    private const int SideIn = 12, AskTall = 40, AskStride = 46, LockedSide = 32, LockedGap = 3, PictureAt = 34, PictureTall = 44;
     /// <summary>Where the strip's words start; how many characters' worth of a tile's decipher its picture takes.</summary>
     private const int WordsAt = 116, PictureChars = 6;
 
@@ -579,7 +579,7 @@ public sealed class MarketPage : ITabletPage
             {
                 bool had = research.Done(step);
                 string price = Prices.Of(step).ToString();
-                float chip = CoinSide + 3 + Width(Strong, price, 11) + 12;
+                float chip = CreditLine.CoinOf(11) + 3 + Width(Strong, price, 11) + 12;
                 if (x + chip > wide) break;
                 Frame(card, new Rect2(x, 75, chip, 20), had ? ChipHad : Chip, had ? ChipHadEdge : ChipEdge, 1, 10);
                 Credits(card, price, x + 6, 89, 11, Strong, had ? Faint : Gold, had ? 0.4f : 1, false);
@@ -619,9 +619,10 @@ public sealed class MarketPage : ITabletPage
     /// <summary>An amount as <see cref="CreditLine"/> writes it, the coin before the number, from <paramref name="x"/> or about it as its middle.</summary>
     private static void Credits(CanvasItem on, string amount, float x, float y, int size, Font font, Color colour, float coin, bool centred)
     {
-        float wide = CoinSide + 3 + Width(font, amount, size), left = Mathf.Round(centred ? x - wide / 2 : x);
-        on.DrawTextureRect(Coin, new Rect2(left, Mathf.Round(y - size * 0.36f - CoinSide / 2f), CoinSide, CoinSide), false, Colors.White with { A = coin });
-        Say(on, font, amount, left + CoinSide + 3, y, size, colour);
+        int side = CreditLine.CoinOf(size);
+        float wide = side + 3 + Width(font, amount, size), left = Mathf.Round(centred ? x - wide / 2 : x);
+        on.DrawTextureRect(Coin, new Rect2(left, Mathf.Round(y - size * 0.36f - side / 2f), side, side), false, Colors.White with { A = coin });
+        Say(on, font, amount, left + side + 3, y, size, colour);
     }
 
     /// <summary>A small count in a box, its right edge at <paramref name="right"/>.</summary>
