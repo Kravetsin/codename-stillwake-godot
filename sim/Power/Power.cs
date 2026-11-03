@@ -60,7 +60,8 @@ public interface IPowerQueries
     bool Feeds(int cell);
     /// <summary>
     /// What machine <paramref name="machineId"/> draws while it draws: its <c>Draws</c> × (1000 + its modules' draw) / 1000,
-    /// rounded up, a cost (0086); 0 for one drawing none. What its panel's bolt says.
+    /// rounded up, a cost (0086), times the batteries it charges for one charging each (one at least); 0 for one drawing none.
+    /// What its panel's bolt says.
     /// </summary>
     int Draw(int machineId);
     /// <summary>
@@ -146,7 +147,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _items = items;
         _itemsOps = itemsOps;
         _standing = id => _grid.MachineById(id) != null;
-        _draw = m => Drawing(m) ? DrawOf(m) : 0;
+        _draw = m => Drawing(m) ? DrawOf(m) * Times(m) : 0;
         _making = m => !IsResting(m.Id);
         _stored = StoredIn;
         _storeStanding = s => _grid.MachineById(s.Machine) != null;
@@ -260,6 +261,16 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         return false;
     }
 
+    /// <summary>How many times its draw a machine draws: a station charging each slot (<c>ChargesEach</c>), once a slot short of full; any other once.</summary>
+    private int Times(Machine m)
+    {
+        if (!Spec(m).ChargesEach) return 1;
+        int shortOf = 0;
+        foreach (var held in _items.Crate(m.Id))
+            if (held != null && Short(held)) shortOf += 1;
+        return shortOf;
+    }
+
     /// <summary>Whether <paramref name="held"/> holds less charge than it can: a battery not yet full.</summary>
     private static bool Short(Stack held) => Content.Items.Get(held.Item).Capacity is int full && held.Charge < full;
 
@@ -269,8 +280,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// <summary>
     /// Each charging station, in id order, puts what it draws into what it holds short of full: its <c>Draws</c> in
     /// power-ticks times its satisfaction, stored scaled (<c>Charge.Scale</c>), rounded down, shared evenly between
-    /// those slots, the rest of the division one each to the first in slot order, never past full. Drawing 3, the
-    /// charger fills a battery of 1800 in 600 ticks at full power, twice that at half; a bay shares its 4 between its drones.
+    /// those slots, the rest of the division one each to the first in slot order, never past full. Drawing 3 a battery, the
+    /// charger fills each of 1800 in 600 ticks at full power, twice that at half; a bay shares its 4 between its drones.
     /// </summary>
     private void Charge()
     {
@@ -312,7 +323,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     public bool Feeds(int cell) =>
         NodeAt(cell) == cell && NetworkOf(cell) is { } n && (n.Supply > 0 || n.Stored > 0) && n.Satisfaction >= 1000;
-    public int Draw(int machineId) => _grid.MachineById(machineId) is { } m ? DrawOf(m) : 0;
+    public int Draw(int machineId) => _grid.MachineById(machineId) is { } m ? DrawOf(m) * Math.Max(1, Times(m)) : 0;
 
     public bool Charges(int machineId) =>
         _grid.MachineById(machineId) is { } m && Spec(m).Charges && Drawing(m) && Satisfaction(machineId) > 0;
@@ -329,7 +340,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     // Both are never negative, so integer division is the floor.
     public int ChargeRate(int machineId) =>
-        Charges(machineId) ? DrawOf(_grid.MachineById(machineId)!) * Content.Charge.Scale * Satisfaction(machineId) / 1000 : 0;
+        Charges(machineId) ? DrawOf(_grid.MachineById(machineId)!) * Times(_grid.MachineById(machineId)!) * Content.Charge.Scale * Satisfaction(machineId) / 1000 : 0;
 
     public string? LayProblem(int peer, int a, int b)
     {

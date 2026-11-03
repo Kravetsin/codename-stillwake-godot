@@ -1,6 +1,6 @@
 # The black market looks hacked
 
-- Status: accepted
+- Status: superseded by [market-grid](2026-11-03-market-grid.md)
 - Date: 2026-11-02
 - Amends [black-market](2026-10-31-black-market.md): the market gets a look of its own, and the solar panel a stage
 - Supersedes [tech-rings](2026-10-30-tech-rings.md): with the tree gone, nothing is drawn as rings
