@@ -4,12 +4,12 @@ using Stillwake.Sim.Items;
 namespace Stillwake.Sim.Debris;
 
 /// <summary>
-/// Empties net <c>Machine</c> into the sender's inventory, the E on a debris net (docs/plans/net.md): every entry, in catch order,
+/// Empties net <c>Machine</c> into the sender's inventory, the E on a debris net (docs/decisions/2026-11-03-debris-net.md): every entry, in catch order,
 /// gives what fits; what does not stays in the net.
 /// </summary>
 public sealed record Collect(int Machine) : Command;
 
-/// <summary>The debris nets (docs/plans/net.md): pieces caught into them, collected out of them, dropped with a net gone.</summary>
+/// <summary>The debris nets (docs/decisions/2026-11-03-debris-net.md): pieces caught into them, collected out of them, dropped with a net gone.</summary>
 public sealed partial class DebrisModule
 {
     /// <summary>The grid's <c>Version</c> the nets were last looked at by <see cref="DropGone"/>: looked at again only when it moves.</summary>

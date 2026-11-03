@@ -169,7 +169,7 @@ public static class Machines
         // A trade station that needs no hand on its button, so drones can run the selling alone.
         new("autoTradeStation", 4, 4, [], [("frame", 4), ("plate", 4), ("wire", 10), ("circuit", 2)], BuildTicks: 200, Slots: 8, Has: MachineTrait.Sells | MachineTrait.AutoSends, Menu: new(MenuTabs.Production, 18), Char: 'A', Means: "auto trade station: draw its whole footprint"),
         new("crate", 4, 2, [], [("planks", 8), ("plate", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),
-        // The debris net (docs/plans/net.md): hung on the bow, its cells in space, it holds the small pieces drifting into it.
+        // The debris net (docs/decisions/2026-11-03-debris-net.md): hung on the bow, its cells in space, it holds the small pieces drifting into it.
         new("net", 2, 6, [], [("wire", 6), ("tube", 4)], BuildTicks: 80, Has: MachineTrait.Catches, Menu: new(MenuTabs.Storage, 15), Char: 'n', Means: "debris net: draw its whole footprint, in space, a hull wall left of every row"),
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
         new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),

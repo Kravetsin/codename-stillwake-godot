@@ -58,7 +58,7 @@ public static class Debris
         ("soilClod", 2),
     ];
 
-    /// <summary>How many pieces a debris net holds, whatever each is (docs/plans/net.md); a full one lets everything pass.</summary>
+    /// <summary>How many pieces a debris net holds, whatever each is (docs/decisions/2026-11-03-debris-net.md); a full one lets everything pass.</summary>
     public const int NetHolds = 10;
 
     /// <summary>The kinds a debris net catches: small salvage and the containers; wrecks, clods and asteroids pass through it.</summary>

@@ -86,7 +86,7 @@ public sealed class FoundKind
 }
 
 /// <summary>
-/// A piece a debris net caught (docs/plans/net.md): held in net <see cref="Net"/> till a hero collects what it gives. Read by
+/// A piece a debris net caught (docs/decisions/2026-11-03-debris-net.md): held in net <see cref="Net"/> till a hero collects what it gives. Read by
 /// others, changed by debris alone.
 /// </summary>
 public sealed class NetEntry

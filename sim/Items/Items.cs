@@ -488,7 +488,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits, counting only that as obtained, and returns the
-    /// rest: what a debris net keeps of an entry a hero collects (docs/plans/net.md).
+    /// rest: what a debris net keeps of an entry a hero collects (docs/decisions/2026-11-03-debris-net.md).
     /// </summary>
     public IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost)
     {

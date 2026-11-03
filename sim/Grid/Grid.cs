@@ -667,7 +667,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     }
 
     /// <summary>
-    /// Whether a debris net of <paramref name="spec"/> at <paramref name="cell"/> hangs on the hull's right side (docs/plans/net.md):
+    /// Whether a debris net of <paramref name="spec"/> at <paramref name="cell"/> hangs on the hull's right side (docs/decisions/2026-11-03-debris-net.md):
     /// a wall directly left of every row of it, every cell of it space with no back wall, so it never catches inside a room.
     /// </summary>
     private bool HangsOnHull(int cell, MachineSpec spec)

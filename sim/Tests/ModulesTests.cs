@@ -161,7 +161,7 @@ public class ModulesTests
     }
 
     /// <summary>
-    /// A hull a wall down its bow, four debris nets hung on it, the stream already out and catching (docs/plans/net.md): what
+    /// A hull a wall down its bow, four debris nets hung on it, the stream already out and catching (docs/decisions/2026-11-03-debris-net.md): what
     /// Debris' fuzz draws <c>Collect</c> on, most of its draws refused elsewhere.
     /// </summary>
     private static readonly Layout Nets = Layout.Parse(

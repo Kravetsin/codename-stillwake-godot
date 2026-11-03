@@ -14,7 +14,7 @@ using Machines = Stillwake.Content.Machines;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The debris net (docs/plans/net.md): hung on the bow, catching small pieces, emptied by E, dropping them when it goes.</summary>
+/// <summary>The debris net (docs/decisions/2026-11-03-debris-net.md): hung on the bow, catching small pieces, emptied by E, dropping them when it goes.</summary>
 public class NetTests
 {
     private const int Width = 16;
