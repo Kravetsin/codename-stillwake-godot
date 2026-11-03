@@ -7,74 +7,82 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Research;
-using static Stillwake.Game.Features.Research.StripParts;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The black market as the tablet's own interface hacked ([market-decrypt](../../../docs/decisions/2026-11-02-market-decrypt.md)): a row per group, its order on the left and its
-/// goods as cards on the right, what is not open garbage that deciphers as its order fills (<see cref="MarketReveal"/>). A click picks; only the strip's button buys. Built once and
-/// restyled, for a rebuild under the pointer would eat a click; each head and card draws itself, and repaints only when what it says has changed.
+/// The black market as a darknet storefront ([market-grid](../../../docs/decisions/2026-11-03-market-grid.md)): the order being filled down the left, tabs over a grid of
+/// tiles, a picture and a price each, the rest in the strip. What an order opens deciphers into the grid (<see cref="MarketReveal"/>). A click picks; only the strip's
+/// button buys. Built once and restyled, for a rebuild under the pointer would eat a click; each part draws itself, and repaints only when what it says has changed.
 /// </summary>
 public sealed class MarketPage : ITabletPage
 {
-    /// <summary>The one colour that does not belong to the tablet: what can be bought and the order being filled.</summary>
-    public static readonly Color Poison = new("ff2d78"), PoisonDark = new("5a1030");
+    /// <summary>The storefront's colours that the tablet paints with: behind it, its strip and edges, its accent and the words on it, a button that cannot be pressed.</summary>
+    public static readonly Color Back = new("0f1113"), StripFill = new("121417"), Edge = new("23282d"), Accent = new("d9512f"), OnAccent = new("fff4ee"),
+        Off = new("16191c"), OffEdge = new("2d3238"), Dim = new("7d858d"), Dear = new("7a7466");
 
-    private static readonly Font Plain = Style.Mono, Heavy = new FontVariation { BaseFont = Style.Mono, VariationEmbolden = 0.6f };
+    private static readonly Color Panel = new("15181b"), TileFill = new("1a1e22"), TileEdge = new("262b31"), Words = new("d8dce0"), Faint = new("3a4047"),
+        AccentDark = new("4a1d12"), Own = new("6fbf73"), Picked = new("f2f4f6"), Gold = new("f0c050"), Plan = new("4f8fbf"), PlanWord = new("6fa3c8"),
+        AskFill = new("111417"), Pill = new("1b1f23"), Badge = new("2a3036"), Empty = new("16191c"), Locked = new("0c0e10"), LockedEdge = new("1d2125"),
+        Opening = new("121518"), Chip = new("22272c"), ChipEdge = new("30363c"), ChipHad = new("16191c"), ChipHadEdge = new("1f2328"),
+        Had = new(0.5f, 0.52f, 0.55f, 0.75f);
+
+    private static readonly Font Plain = Style.Clear, Strong = Style.Bold, Garbled = Style.Mono, Spaced = new FontVariation { BaseFont = Style.Bold, SpacingGlyph = 1 };
     private static readonly StyleBoxFlat Look = new();
-    private static readonly Color Dim = new(0.55f, 0.55f, 0.6f, 0.85f), HadBefore = new(1, 1, 1, 0.75f);
+    private static readonly Texture2D Coin = AsciiArt.Credit();
 
-    private const int NameSize = 12, PriceSize = 13, AboutSize = 11, ScrapSize = 10, HeadSize = 14, HeadLine = 11, LineTall = 15;
-    /// <summary>Where a card's words start and how much of its width they leave; where its picture's middle lies and the box it fits; a head's order, small and large.</summary>
-    private const int WordsAt = 56, WordsSpare = 62, PictureAt = 28, PictureWide = 44, PictureTall = 40, SmallPicture = 24, LargePicture = 40, SmallStride = 78;
-    /// <summary>Below this height a met order folds to a line; above these a card has room for its words.</summary>
-    private const int FoldsBelow = 90, AboutFromTall = 90, AboutFromWide = 260;
-    /// <summary>The garbage standing for a picture: its cells, and how far apart they are.</summary>
-    private const int BlockCells = 7, BlockStride = 6, BlockCell = 5;
+    /// <summary>The order's inset; an asked item's row and how far apart they are; an unlock's tile and its gap; where a tile's picture's middle lies and how tall it is.</summary>
+    private const int SideIn = 12, AskTall = 40, AskStride = 46, LockedSide = 32, LockedGap = 3, PictureAt = 34, PictureTall = 44, CoinSide = 16;
+    /// <summary>Where the strip's words start; how many characters' worth of a tile's decipher its picture takes.</summary>
+    private const int WordsAt = 116, PictureChars = 6;
 
-    private sealed class Card(TechNode node, int row, int index, Control box, TextureRect picture)
+    private sealed class Tile(MarketGood good, Control box, TextureRect picture)
     {
-        public TechNode Node { get; } = node;
-        public int Row { get; } = row;
-        public int Index { get; } = index;
+        public MarketGood Good { get; } = good;
         public Control Box { get; } = box;
         public TextureRect Picture { get; } = picture;
-        public MarketCard State { get; set; }
+        public bool Ladder => Good.Shelf == MarketShelf.Upgrades;
+        public MarketState State { get; set; }
+        public MarketFresh Fresh { get; set; }
+        /// <summary>The row deciphering it, its place among the tiles deciphering, and how many those are.</summary>
+        public (int Row, int Index, int Count) Opening { get; set; }
         public int Stamp { get; set; } = -1;
     }
 
-    private sealed class Row(int index, TechNode? gate, Control head, TextureRect[] pictures, Card[] cards)
-    {
-        public int Index { get; } = index;
-        public TechNode? Gate { get; } = gate;
-        public Control Head { get; } = head;
-        public TextureRect[] Pictures { get; } = pictures;
-        public Card[] Cards { get; } = cards;
-        public int Stamp { get; set; } = -1;
-    }
+    private static readonly (MarketShelf? Shelf, string Key)[] Shelves =
+        [(null, "research.market.shelf.all"), (MarketShelf.Upgrades, "research.market.shelf.upgrades"), (MarketShelf.Blueprints, "research.market.shelf.blueprints")];
 
-    private readonly TechTab _tab;
     private readonly Control _view;
     private readonly StripParts _strip;
     private readonly Action<Command> _send;
     private readonly Action _readSoon;
     private readonly Func<BoardSeen> _seen;
     private readonly TechNode[] _orders;
+    private readonly IReadOnlyList<MarketGood> _goods;
     private readonly MarketReveal _reveal;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
-    private readonly ColorRect _back = new() { Color = Style.Slate950, MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly List<Row> _rows = [];
+    private readonly Control _side = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly Control _tabs = new() { MouseFilter = Control.MouseFilterEnum.Stop };
+    private readonly Control _slots = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
+    private readonly List<Tile> _tiles = [];
+    private readonly List<TextureRect> _asks = [];
+    private readonly List<(MarketShelf? Shelf, Rect2 At)> _tabAt = [];
+    private readonly List<(float At, string Words)> _madeFrom = [];
+    private List<Tile> _inView = [], _shownAll = [];
     private IResearchQueries? _research;
     private Func<string, int> _sold = _ => 0;
-    private TechNode? _picked;
-    private Label? _stripPrice;
+    private TechNode? _order;
+    private string? _askedFor;
+    private MarketShelf? _shelf;
+    private Tile? _picked;
+    private string? _filledFor;
+    private Control? _card;
+    private TextureRect? _cardPicture;
     private string? _shown;
     private bool _out;
-    private int _met;
+    private int _met, _sideStamp = -1;
     private Vector2 _laidIn;
-    private double[] _laidBy = [];
 
     /// <param name="tab">The tab of <c>Content.Research</c> it draws.</param>
     /// <param name="view">The tablet's view, which it draws into.</param>
@@ -84,37 +92,44 @@ public sealed class MarketPage : ITabletPage
     /// <param name="seen">What this machine has seen of the orders, for the world played.</param>
     public MarketPage(TechTab tab, Control view, StripParts strip, Action<Command> send, Action readSoon, Func<BoardSeen> seen)
     {
-        (_tab, _view, _strip, _send, _readSoon, _seen) = (tab, view, strip, send, readSoon, seen);
+        (_view, _strip, _send, _readSoon, _seen) = (view, strip, send, readSoon, seen);
         _orders = Content.Research.Nodes.Where(n => n.Gate && n.Tab == tab.Id).ToArray();
+        _goods = MarketGoods.Of(tab);
         _reveal = new MarketReveal(tab.Rings.Length);
-        _root.AddChild(_back);
+        _side.Draw += DrawSide;
+        _tabs.Draw += DrawTabs;
+        _tabs.GuiInput += PickShelf;
+        _slots.Draw += DrawSlots;
+        foreach (var part in (Control[])[_side, _tabs, _slots]) _root.AddChild(part);
         view.AddChild(_root);
         strip.Action.Pressed += Act;
     }
 
-    /// <summary>The hack's mark over the tablet's screen, for the tablet to lay there.</summary>
-    public MarketFaults Faults { get; } = new();
+    /// <summary>What lies behind the storefront, the strip's too, for the tablet to lay over its screen.</summary>
+    public ColorRect Body { get; } = new() { Color = Back, MouseFilter = Control.MouseFilterEnum.Ignore, Visible = false };
 
-    public Vector2 ScreenOf(string id) => _rows.SelectMany(r => r.Cards).First(c => c.Node.Id == id).Box.GetGlobalRect().GetCenter();
+    /// <summary>A tile's middle by its good's id, or a tab's by its shelf's name in lower case (<c>all</c>, <c>blueprints</c>).</summary>
+    public Vector2 ScreenOf(string id)
+    {
+        if (_tiles.FirstOrDefault(t => t.Good.Id == id) is { } tile) return tile.Box.GetGlobalRect().GetCenter();
+        var (_, at) = _tabAt.First(t => (t.Shelf?.ToString() ?? "All").Equals(id, StringComparison.OrdinalIgnoreCase));
+        return _tabs.GlobalPosition + at.GetCenter();
+    }
 
     public void Show(bool shown)
     {
-        _out = _root.Visible = Faults.Visible = shown;
-        if (shown)
-        {
-            _reveal.Came();
-        }
-        else
-        {
-            _picked = null;
-            _reveal.Clear();
-        }
+        _out = _root.Visible = Body.Visible = shown;
+        if (shown) _reveal.Came();
+        else _reveal.Clear();
+        _picked = null;
+        _filledFor = null;
+        _card = null;
         _shown = null;
     }
 
     public void Step(double delta)
     {
-        if (_rows.Count == 0) return;
+        if (_tiles.Count == 0) return;
         bool playing = _reveal.Playing;
         _reveal.Step(delta);
         Lay();
@@ -126,162 +141,176 @@ public sealed class MarketPage : ITabletPage
         var research = m.Research;
         _research = research;
         _sold = m.Knowledge.SoldOf;
-        if (_rows.Count == 0) Build();
+        if (_tiles.Count == 0) Build();
         _met = _orders.Count(research.Done);
         if (_out) _reveal.Play(_seen().SeeOrders(_met), _met);
-        var cards = _rows.SelectMany(r => r.Cards);
-        string now = (_picked?.Id ?? "") + '|' + string.Join('|', cards.Select(c => research.BuyProblem(c.Node) ?? "")) + '|' + string.Join(',', _orders.SelectMany(o => o.Order).Select(d => _sold(d.Item)));
+        foreach (var tile in _tiles) tile.State = MarketGoods.StateOf(tile.Good, research.Done, research.Reached, research.BuyProblem);
+        _order = _orders.FirstOrDefault(o => research.Reached(o) && !research.Done(o));
+        string now = string.Join('|', _tiles.Select(t => $"{t.State.Tile}{t.State.Next?.Id}{t.State.Bought}{t.State.Opened}")) + '|' + _order?.Id + '|'
+            + string.Join(',', _order?.Order.Select(d => _sold(d.Item)) ?? []);
         if (now == _shown) return;
         _shown = now;
-        foreach (var row in _rows)
-        {
-            foreach (var card in row.Cards) card.State = MarketRows.StateOf(research.Done(card.Node), research.Reached(card.Node), research.BuyProblem(card.Node));
-            Restyle(row);
-        }
-        if (_out) ShowAction(research);
+        Restyle();
     }
 
     private void Build()
     {
         _strip.Learn(_research!);
-        for (int r = 0; r < _tab.Rings.Length; r++)
+        foreach (var good in _goods)
         {
-            var ring = _tab.Rings[r];
-            var head = new Control { MouseFilter = Control.MouseFilterEnum.Pass, ClipContents = true };
-            var pictures = ring.Order.Select(d => PictureOf(d.Item)).ToArray();
-            foreach (var picture in pictures) head.AddChild(picture);
-            _root.AddChild(head);
-            var row = new Row(r, ring.Gate is { } gate ? Content.Research.Node(gate) : null, head, pictures, ring.Blocks.Select((b, i) => CardOf(Content.Research.Node(b.Id)!, r, i)).ToArray());
-            head.Draw += () => DrawHead(row);
-            _strip.Tips.Add(head, () => HeadTip(row));
-            for (int i = 0; i < pictures.Length; i++)
+            var box = new Control { MouseFilter = Control.MouseFilterEnum.Stop, Visible = false };
+            var picture = PictureOf(good.Steps[0].Id, PictureTall);
+            box.AddChild(picture);
+            _slots.AddChild(box);
+            var tile = new Tile(good, box, picture);
+            box.Draw += () => DrawTile(tile);
+            box.GuiInput += e =>
             {
-                string item = ring.Order[i].Item;
-                _strip.Tips.Add(pictures[i], () => TipOf(item));
-            }
-            _rows.Add(row);
+                if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+                box.AcceptEvent();
+                _reveal.ClearCard(good.Id);
+                Pick(tile);
+            };
+            _strip.Tips.Add(box, () => Cleared(tile).Playing ? null : TipOf(good.Steps[0].Id));
+            _tiles.Add(tile);
         }
         Lay();
-        if (_out) Fill();
     }
 
-    private Card CardOf(TechNode node, int row, int index)
+    private TextureRect PictureOf(string id, int size)
     {
-        var box = new Control { MouseFilter = Control.MouseFilterEnum.Stop };
-        var picture = PictureOf(node.Id);
-        box.AddChild(picture);
-        _root.AddChild(box);
-        var card = new Card(node, row, index, box, picture);
-        box.Draw += () => DrawCard(card);
-        box.GuiInput += e =>
-        {
-            if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
-            box.AcceptEvent();
-            if (card.State == MarketCard.Sealed) return;
-            _reveal.ClearCard(row, index);
-            Pick(node);
-        };
-        _strip.Tips.Add(box, () => card.State == MarketCard.Sealed ? new Tip(T("research.locked")) : TipOf(node.Id));
-        return card;
-    }
-
-    private TextureRect PictureOf(string id)
-    {
-        var picture = _strip.Picture(id, PictureTall);
+        var picture = _strip.Picture(id, size);
         picture.CustomMinimumSize = Vector2.Zero;
         return picture;
     }
 
-    /// <summary>The rows where they lie in the view now: only when its size or the tall row has moved.</summary>
+    /// <summary>The order, the tabs and the grid where they lie in the view now: only when its size has moved.</summary>
     private void Lay()
     {
         var size = _view.Size;
-        var weights = _reveal.Weights(_met);
-        if (size == _laidIn && weights.SequenceEqual(_laidBy)) return;
-        (_laidIn, _laidBy) = (size, weights);
-        _back.Size = size;
-        var rows = MarketRows.Of(size.Y, weights);
-        float cardsFrom = MarketRows.HeadWide + MarketRows.Gap, cardsWide = size.X - cardsFrom;
-        foreach (var row in _rows)
+        if (size == _laidIn) return;
+        _laidIn = size;
+        var (wide, tall) = MarketGrid.GridIn(size.X, size.Y);
+        float left = MarketGrid.SideWide + MarketGrid.SideGap;
+        _side.Size = new Vector2(MarketGrid.SideWide, size.Y);
+        _tabs.Position = new Vector2(left, 0);
+        _tabs.Size = new Vector2(wide, MarketGrid.TabsTall);
+        _slots.Position = new Vector2(left, MarketGrid.TabsTall);
+        _slots.Size = new Vector2(wide, tall);
+        LayTiles();
+        _side.QueueRedraw();
+        _tabs.QueueRedraw();
+    }
+
+    /// <summary>The tiles of the shelf shown in order, as many as the grid holds; the rest hidden.</summary>
+    private void LayTiles()
+    {
+        var (columns, rows, wide, tall) = MarketGrid.Of(_slots.Size.X, _slots.Size.Y);
+        foreach (var tile in _tiles) tile.Box.Visible = false;
+        for (int i = 0; i < _inView.Count && i < columns * rows; i++)
         {
-            var (at, tall) = rows[row.Index];
-            float top = Mathf.Round(at), high = Mathf.Round(at + tall) - top;
-            row.Head.Position = new Vector2(0, top);
-            row.Head.Size = new Vector2(MarketRows.HeadWide, high);
-            LayHead(row);
-            foreach (var card in row.Cards)
+            var at = Slot(i, columns, wide, tall);
+            var tile = _inView[i];
+            tile.Box.Position = at.Position;
+            tile.Box.Size = at.Size;
+            tile.Box.Visible = true;
+            tile.Picture.Position = new Vector2(10, PictureAt - PictureTall / 2);
+            tile.Picture.Size = new Vector2(at.Size.X - 20, PictureTall);
+        }
+        _slots.QueueRedraw();
+    }
+
+    private static Rect2 Slot(int i, int columns, float wide, float tall)
+    {
+        float x = i % columns * (wide + MarketGrid.Gap), y = i / columns * (tall + MarketGrid.Gap);
+        var from = new Vector2(Mathf.Round(x), Mathf.Round(y));
+        return new Rect2(from, new Vector2(Mathf.Round(x + wide), Mathf.Round(y + tall)) - from);
+    }
+
+    /// <summary>What the sim says now, everywhere: the tiles shown and their order, what deciphers, the order's pictures, the strip and its button.</summary>
+    private void Restyle()
+    {
+        if (_research is not { } research) return;
+        _shownAll = [.. _tiles.Where(t => MarketGoods.Shown(t.Good, research.Reached))];
+        _inView = [.. MarketGoods.Sorted(_goods, research.Reached, _shelf).Select(g => _tiles.First(t => t.Good == g))];
+        int fresh = 0;
+        foreach (var tile in _inView)
+        {
+            tile.Fresh = MarketGoods.FreshOf(tile.Good, research.Reached, _reveal.Plays);
+            if (tile.Fresh != MarketFresh.None) fresh++;
+        }
+        int index = 0;
+        foreach (var tile in _inView.Where(t => t.Fresh != MarketFresh.None))
+            tile.Opening = (tile.Good.Steps.Where(s => research.Reached(s) && _reveal.Plays(s.Ring)).Max(s => s.Ring), index++, fresh);
+        LayTiles();
+        foreach (var tile in _tiles)
+        {
+            tile.Stamp = -1;
+            tile.Box.QueueRedraw();
+            tile.Picture.Visible = Cleared(tile).Picture;
+            tile.Picture.Modulate = OwnedPlan(tile) ? Had : Colors.White;
+        }
+        AskPictures();
+        _sideStamp = -1;
+        _side.QueueRedraw();
+        _tabs.QueueRedraw();
+        if (!_out) return;
+        if (Current?.Good.Id != _filledFor) Fill();
+        if (_cardPicture != null && Current is { } picked) _cardPicture.Modulate = OwnedPlan(picked) ? Had : Colors.White;
+        _card?.QueueRedraw();
+        ShowAction();
+    }
+
+    private static bool OwnedPlan(Tile tile) => !tile.Ladder && tile.State.Tile == MarketTile.Owned;
+
+    /// <summary>The pictures of what the order asks for: made afresh for a new order, hidden while its head is garbage, dim once enough is sold.</summary>
+    private void AskPictures()
+    {
+        if (_order?.Id != _askedFor)
+        {
+            _askedFor = _order?.Id;
+            foreach (var old in _asks) old.QueueFree();
+            _asks.Clear();
+            foreach (var (item, _) in _order?.Order ?? [])
             {
-                var (left, wide) = MarketRows.Card(cardsWide, row.Cards.Length, card.Index);
-                float from = Mathf.Round(cardsFrom + left);
-                card.Box.Position = new Vector2(from, top);
-                card.Box.Size = new Vector2(Mathf.Round(cardsFrom + left + wide) - from, high);
-                card.Picture.Size = new Vector2(PictureWide, PictureTall);
-                card.Picture.Position = new Vector2(PictureAt - PictureWide / 2, Mathf.Round((high - PictureTall) / 2));
+                var picture = PictureOf(item, AskTall);
+                picture.Size = new Vector2(32, 30);
+                _side.AddChild(picture);
+                _strip.Tips.Add(picture, () => TipOf(item));
+                _asks.Add(picture);
             }
         }
-    }
-
-    /// <summary>A head's pictures of what it orders: hidden while it is garbage, small in a line once met, large with what is sold under them.</summary>
-    private void LayHead(Row row)
-    {
-        if (row.Gate is not { } gate || _research is not { } research) return;
-        bool closed = !research.Reached(gate) || _reveal.HeadDeciphering(row.Index), fold = research.Done(gate) && row.Head.Size.Y < FoldsBelow;
-        float column = (MarketRows.HeadWide - 16f) / row.Pictures.Length;
-        for (int i = 0; i < row.Pictures.Length; i++)
+        if (_order is not { } order) return;
+        bool garbage = _reveal.HeadDeciphering(order.Ring);
+        for (int i = 0; i < _asks.Count; i++)
         {
-            var picture = row.Pictures[i];
-            picture.Visible = !closed;
-            int side = fold ? SmallPicture : LargePicture;
-            var middle = fold ? new Vector2(22 + i * SmallStride, row.Head.Size.Y - 20) : new Vector2(8 + i * column + column / 2, 48);
-            picture.Size = new Vector2(side, side);
-            picture.Position = (middle - picture.Size / 2).Round();
-            picture.Modulate = research.Done(gate) || _sold(gate.Order[i].Item) >= gate.Order[i].Count ? Dim : Colors.White;
+            var (item, want) = order.Order[i];
+            _asks[i].Position = new Vector2(SideIn + 21 - 16, 74 + i * AskStride + 5);
+            _asks[i].Visible = !garbage;
+            _asks[i].Modulate = _sold(item) >= want ? Had : Colors.White;
         }
     }
 
-    private void Restyle(Row row)
-    {
-        row.Stamp = -1;
-        row.Head.QueueRedraw();
-        LayHead(row);
-        foreach (var card in row.Cards)
-        {
-            card.Stamp = -1;
-            card.Box.QueueRedraw();
-            card.Picture.Visible = card.State != MarketCard.Sealed && !_reveal.Deciphering(row.Index, card.Index);
-            card.Picture.Modulate = card.State == MarketCard.Dear ? Dim : card.State == MarketCard.Bought ? HadBefore : Colors.White;
-        }
-    }
-
-    /// <summary>What a decipher has moved on: a head or a card that says something new this frame, its picture once it is done.</summary>
+    /// <summary>What a decipher has moved on: a tile or the order that says something new this frame, a picture once it shows.</summary>
     private void Repaint()
     {
-        foreach (var row in _rows)
+        foreach (var tile in _tiles)
         {
-            int said = _reveal.HeadDeciphering(row.Index) ? _reveal.HeadStepOf(row.Index) * 1000 + _reveal.HeadShown(row.Index, 999) : -1;
-            if (said != row.Stamp)
-            {
-                row.Stamp = said;
-                row.Head.QueueRedraw();
-                LayHead(row);
-            }
-            foreach (var card in row.Cards)
-            {
-                bool playing = _reveal.Deciphering(row.Index, card.Index);
-                int now = playing ? _reveal.StepOf(row.Index) * 1000 + _reveal.CardShown(row.Index, card.Index, 999) : -1;
-                if (now == card.Stamp) continue;
-                card.Stamp = now;
-                card.Box.QueueRedraw();
-                card.Picture.Visible = card.State != MarketCard.Sealed && !playing;
-            }
+            var cleared = Cleared(tile);
+            int now = cleared.Playing ? cleared.Step * 1000 + cleared.Price * 30 + cleared.Status + (cleared.Picture ? 500 : 0) : -1;
+            if (now == tile.Stamp) continue;
+            tile.Stamp = now;
+            tile.Box.QueueRedraw();
+            tile.Picture.Visible = cleared.Picture;
         }
+        int said = _order is { } order && _reveal.HeadDeciphering(order.Ring) ? _reveal.HeadStepOf(order.Ring) * 1000 + _reveal.HeadShown(order.Ring, 999) : -1;
+        if (said == _sideStamp) return;
+        _sideStamp = said;
+        _side.QueueRedraw();
+        AskPictures();
     }
 
-    public void Pointer(InputEvent e)
-    {
-        if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) Pick(null);
-        else Zoom(e, _view);
-    }
+    public void Pointer(InputEvent e) => Zoom(e, _view);
 
     public void LetGo() { }
 
@@ -291,73 +320,104 @@ public sealed class MarketPage : ITabletPage
         if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown }) over.AcceptEvent();
     }
 
-    private void Pick(TechNode? node)
+    private void PickShelf(InputEvent e)
     {
-        _picked = node;
-        _shown = null;
-        _readSoon();
-        Fill();
+        if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press) return;
+        _tabs.AcceptEvent();
+        foreach (var (shelf, at) in _tabAt)
+        {
+            if (!at.HasPoint(press.Position) || shelf == _shelf) continue;
+            _shelf = shelf;
+            Restyle();
+        }
     }
+
+    private void Pick(Tile tile)
+    {
+        _picked = tile;
+        _readSoon();
+        Restyle();
+    }
+
+    /// <summary>The good the strip is about: the one picked, or the first on the shelf shown, or the first at all.</summary>
+    private Tile? Current => _picked != null && _shownAll.Contains(_picked) ? _picked : _inView.FirstOrDefault() ?? _shownAll.FirstOrDefault();
 
     public void Fill()
     {
         _strip.Clear();
-        _stripPrice = null;
-        var facts = _strip.Facts;
-        if (_picked is not { } node)
+        _card = null;
+        _cardPicture = null;
+        _madeFrom.Clear();
+        if (Current is not { } tile)
         {
-            var hint = Text(T("research.pickHint"), Style.Slate500);
-            hint.SizeFlagsVertical = Control.SizeFlags.ShrinkCenter;
-            facts.AddChild(hint);
+            _filledFor = null;
             return;
         }
-        string id = node.Id;
-        _stripPrice = Text(Prices.Of(node).ToString(), Style.Slate500, PriceSize + 3);
-        _stripPrice.LabelSettings.Font = Heavy;
-        var title = _strip.Title(_strip.NameOf(id), AboutOf(id), id, TipOf, under: _stripPrice);
-        title.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill;
-        facts.AddChild(title);
-        var link = TechLinks.Of(id);
-        if (link.Takes.Count > 0)
+        _filledFor = tile.Good.Id;
+        string id = tile.Good.Steps[0].Id;
+        var card = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, SizeFlagsHorizontal = Control.SizeFlags.ExpandFill, SizeFlagsVertical = Control.SizeFlags.ExpandFill };
+        card.Draw += () => DrawCard(card, tile);
+        var picture = PictureOf(id, 80);
+        picture.Position = new Vector2(7, 10);
+        picture.Size = new Vector2(86, 80);
+        _strip.Tips.Add(picture, () => TipOf(id));
+        card.AddChild(picture);
+        if (!tile.Ladder)
         {
-            var takes = Flow(10);
-            foreach (var (item, count) in link.Takes) takes.AddChild(_strip.Named(item, T("research.taken", ("n", count), ("what", _strip.NameOf(item))), Style.Slate100));
-            facts.AddChild(Fact(T("research.takes"), Style.Slate400, takes, 3));
+            float x = WordsAt + Width(Spaced, T("research.takes").ToUpperInvariant(), 10) + 14;
+            foreach (var (item, count) in TechLinks.Of(id).Takes)
+            {
+                var one = PictureOf(item, 20);
+                one.Position = new Vector2(x + 2, 75);
+                one.Size = new Vector2(20, 20);
+                _strip.Tips.Add(one, () => TipOf(item));
+                card.AddChild(one);
+                string words = T("research.taken", ("n", count), ("what", _strip.NameOf(item)));
+                _madeFrom.Add((x, words));
+                x += 30 + Width(Plain, words, 12) + 14;
+            }
         }
-        if (link.MadeAt.Count > 0 || _strip.PlacementOf(id) != null)
-        {
-            var at = Flow(10);
-            foreach (string where in link.MadeAt) at.AddChild(_strip.Named(where, _strip.NameOf(where), Style.Slate100));
-            if (link.MadeAt.Count == 0) at.AddChild(Text(T("research.builtInPlace"), Style.Slate500));
-            facts.AddChild(Fact(T("research.madeAt"), Style.Slate400, at, 2));
-        }
-        if (link.UsedIn.Count > 0) facts.AddChild(Fact(T("research.usedIn"), Style.Slate400, _strip.Pictures(link.UsedIn, TipOf), 5));
+        _strip.Facts.AddChild(card);
+        (_card, _cardPicture) = (card, picture);
+        picture.Modulate = OwnedPlan(tile) ? Had : Colors.White;
     }
 
-    /// <summary>What the button says now and whether it can be pressed; none with nothing picked.</summary>
-    private void ShowAction(IResearchQueries research)
+    /// <summary>What the button says now and whether it can be pressed: the price to buy at, or why not.</summary>
+    private void ShowAction()
     {
         var action = _strip.Action;
-        if (_picked is not { } node)
+        if (Current is not { } tile || _research is not { } research)
         {
             action.Visible = false;
             return;
         }
         action.Visible = true;
-        string? why = research.BuyProblem(node);
-        action.Disabled = why != null;
-        _strip.ActionLine.Visible = why == null;
-        _strip.ActionPrice.Set(Prices.Of(node));
-        _strip.ActionPrice.Tint(Style.Slate100);
-        action.Text = why == null ? "" : T(why);
-        if (_stripPrice != null) _stripPrice.LabelSettings.FontColor = why == null ? Poison : Style.Slate500;
+        var state = tile.State;
+        bool can = state.Tile == MarketTile.Affordable;
+        action.Disabled = !can;
+        action.Text = "";
+        var word = _strip.ActionWord;
+        word.Text = state.Tile switch
+        {
+            MarketTile.Affordable => T("research.buy"),
+            MarketTile.Dear => T(research.BuyProblem(state.Next!) ?? "research.noCredits"),
+            MarketTile.Waiting => T("research.market.waits"),
+            _ => T(tile.Ladder ? "research.market.boughtOut" : "research.bought"),
+        };
+        word.LabelSettings.Font = can ? Strong : Plain;
+        word.LabelSettings.FontSize = can ? 20 : 12;
+        word.LabelSettings.FontColor = can ? OnAccent : Dim;
+        _strip.ActionPrice.Visible = state.Next != null;
+        if (state.Next is not { } next) return;
+        _strip.ActionPrice.Set(Prices.Of(next));
+        _strip.ActionPrice.Tint(can ? OnAccent : Dear);
     }
 
-    /// <summary>The strip's button: buys what is picked. A page off the screen has nothing picked.</summary>
+    /// <summary>The strip's button: buys the step the good picked offers. A page off the screen has nothing picked.</summary>
     private void Act()
     {
-        if (_research is not { } research || _picked is not { } node) return;
-        if (research.BuyProblem(node) == null) _send(new BuyBlock(node.Id));
+        if (_research is not { } research || Current?.State.Next is not { } next) return;
+        if (research.BuyProblem(next) == null) _send(new BuyBlock(next.Id));
         _readSoon();
     }
 
@@ -366,12 +426,6 @@ public sealed class MarketPage : ITabletPage
         Content.Upgrades.Of(id) is { } upgrade ? T($"upgrade.{upgrade.Kind}.about")
         : Table.ContainsKey($"tool.{id}.about") ? T($"tool.{id}.about")
         : Table.ContainsKey($"item.{id}.kind") ? T($"item.{id}.kind") : "";
-
-    private Tip? HeadTip(Row row)
-    {
-        if (row.Gate is not { } gate || _research is not { } research) return null;
-        return !research.Reached(gate) ? new Tip(T("research.locked")) : research.Done(gate) ? null : new Tip(T("research.orderAbout"));
-    }
 
     private Tip TipOf(string id)
     {
@@ -383,133 +437,233 @@ public sealed class MarketPage : ITabletPage
         return new Tip(_strip.NameOf(id), lines) { Picture = placement };
     }
 
-    private void DrawCard(Card card)
+    /// <summary>The words a tile says under its picture: the price of its next step, or why there is none.</summary>
+    private static string PriceOf(Tile tile) => tile.State.Tile switch
     {
-        var box = card.Box;
-        float wide = box.Size.X, tall = box.Size.Y;
-        string id = card.Node.Id, name = _strip.NameOf(id), price = Prices.Of(card.Node).ToString();
-        uint place = Cipher.Place(id);
-        bool playing = _reveal.Deciphering(card.Row, card.Index), closed = card.State == MarketCard.Sealed || playing, picked = _picked == card.Node && !closed;
-        int step = playing ? _reveal.StepOf(card.Row) : 0, shown = !closed ? int.MaxValue : playing ? _reveal.CardShown(card.Row, card.Index, name.Length + price.Length) : 0;
-        var (fill, edge, width) =
-            closed ? (Style.Slate950, playing ? Poison : Style.Slate800, 1)
-            : picked ? (Style.Slate700, Colors.White, 2)
-            : card.State == MarketCard.Affordable ? (Style.Slate800, Poison, 2)
-            : card.State == MarketCard.Bought ? (Style.Slate900, Style.Slate800, 1)
-            : (Style.Slate900, Style.Slate700, 1);
-        Frame(box, new Rect2(0, 0, wide, tall), fill, edge, width);
-        if (closed) DrawBlock(box, place, tall, step, playing ? PoisonDark : Style.Slate800);
-        float cell = Cell(Plain, NameSize), least = LineTall * 2;
-        var lines = Cipher.Wrap(name, Math.Max(8, (int)((wide - WordsSpare) / cell)), 2);
-        var about = tall > AboutFromTall && wide > AboutFromWide ? Cipher.Wrap(AboutOf(id), (int)((wide - WordsSpare - 4) / Cell(Plain, AboutSize)), 2) : [];
-        float block = lines.Count * LineTall + 18 + about.Count * 14, top = Mathf.Round((tall - Math.Max(block, least)) / 2) + 11;
-        int at = 0;
-        bool cursor = playing;
-        for (int i = 0; i < lines.Count; i++)
-        {
-            string line = lines[i];
-            int clear = Math.Clamp(shown - at, 0, line.Length);
-            float y = top + i * LineTall;
-            var colour = closed ? (playing ? Style.Slate300 : Style.Slate500) : card.State == MarketCard.Bought ? Style.Slate500 : card.State == MarketCard.Dear ? Style.Slate400 : Style.Slate100;
-            Say(box, Plain, closed ? Cipher.Of(line, place + (uint)i * 5, clear, step) : line, WordsAt, y, NameSize, colour);
-            if (cursor && clear < line.Length)
-            {
-                cursor = false;
-                box.DrawRect(new Rect2(WordsAt + clear * cell, y - 10, cell, 12), Poison);
-                Say(box, Plain, line[clear] == ' ' ? " " : Cipher.Garble(place, clear, step).ToString(), WordsAt + clear * cell, y, NameSize, Colors.White);
-            }
-            at += line.Length;
-        }
-        float under = top + lines.Count * LineTall + 3;
-        if (closed) Say(box, Heavy, Cipher.Of(price, place + 77, Math.Clamp(shown - at, 0, price.Length), step), WordsAt, under, PriceSize, playing ? Poison : Style.Slate600);
-        else if (card.State == MarketCard.Bought) Say(box, Plain, T("research.bought"), WordsAt, under, NameSize, Bought);
-        else Say(box, Heavy, price, WordsAt, under, PriceSize, card.State == MarketCard.Affordable ? Poison : Style.Slate500);
-        for (int i = 0; i < about.Count; i++)
-            Say(box, Plain, closed ? Cipher.Of(about[i], place + 41 + (uint)i, 0) : about[i], WordsAt, under + 16 + i * 14, AboutSize, closed ? Style.Slate700 : Style.Slate500);
-        if (closed) return;
-        // What the cipher left on a card it let go: two characters that never cleared.
-        string left = $"{Cipher.Garble(place, 1)}{Cipher.Garble(place, 2)}";
-        Say(box, Plain, left, wide - 6 - 2 * Cell(Plain, ScrapSize), tall - 6, ScrapSize, Style.Slate600);
+        MarketTile.Waiting => T("research.market.nextOrder"),
+        MarketTile.Owned => T(tile.Ladder ? "research.market.allBought" : "research.market.owned"),
+        _ => Prices.Of(tile.State.Next!).ToString(),
+    };
+
+    /// <summary>A kind of upgrade's count: how many of those opened are bought.</summary>
+    private static string CountOf(Tile tile) => tile.Ladder ? $"{tile.State.Bought}/{tile.State.Opened}" : "";
+
+    /// <summary>What of a tile has cleared: whether it deciphers and on which step, its picture, and how many characters of its price and its count.</summary>
+    private (bool Playing, int Step, bool Picture, int Price, int Status) Cleared(Tile tile)
+    {
+        string price = PriceOf(tile), count = CountOf(tile);
+        var (row, index, all) = tile.Opening;
+        if (tile.Fresh == MarketFresh.None || !_reveal.Deciphering(tile.Good.Id, row, index, all)) return (false, 0, true, price.Length, count.Length);
+        bool more = tile.Fresh == MarketFresh.More;
+        int picture = more ? 0 : PictureChars, shown = _reveal.CardShown(tile.Good.Id, row, index, all, picture + price.Length + count.Length), rest = shown - picture;
+        return (true, _reveal.StepOf(row), more || shown >= picture, Math.Clamp(rest, 0, price.Length), Math.Max(0, rest - price.Length));
     }
 
-    /// <summary>Garbage where a picture will be: a block of cells, the same at the same place.</summary>
-    private static void DrawBlock(Control box, uint place, float tall, int step, Color colour)
+    private void DrawTile(Tile tile)
     {
-        float left = PictureAt - BlockCells * BlockStride / 2f, top = Mathf.Round((tall - BlockCells * BlockStride) / 2);
-        for (int j = 0; j < BlockCells; j++)
-            for (int i = 0; i < BlockCells; i++)
-                if (Cipher.Garble(place, i + j * BlockCells, step) % 3 == 0) box.DrawRect(new Rect2(left + i * BlockStride, top + j * BlockStride, BlockCell, BlockCell), colour);
+        var box = tile.Box;
+        float wide = box.Size.X, tall = box.Size.Y, middle = wide / 2, under = tall - 12;
+        var cleared = Cleared(tile);
+        uint place = Cipher.Place(tile.Good.Id);
+        bool picked = Current == tile && !cleared.Playing;
+        Frame(box, new Rect2(0, 0, wide, tall), cleared.Playing ? Opening : TileFill, picked ? Picked : cleared.Playing ? Accent : TileEdge, picked ? 2 : 1);
+        if (!cleared.Picture) Block(box, place, new Vector2(Mathf.Round(middle - 18), PictureAt - 18), 36, 6, cleared.Step, AccentDark);
+        string price = PriceOf(tile), count = CountOf(tile);
+        bool garbled = cleared.Price < price.Length;
+        string said = garbled ? Cipher.Of(price, place + 7, cleared.Price, cleared.Step) : price;
+        if (OwnedPlan(tile))
+        {
+            SayMiddle(box, Strong, said, middle, under, 11, Own);
+            Check(box, new Vector2(wide - 15, 6), 9, Own);
+        }
+        else if (tile.State.Tile is MarketTile.Waiting or MarketTile.Owned) SayMiddle(box, garbled ? Garbled : Plain, said, middle, under, 10, Dim);
+        else Credits(box, said, middle, under, garbled ? 11 : 12, garbled ? Garbled : Strong, garbled ? Dim : tile.State.Tile == MarketTile.Affordable ? Gold : Dear, garbled ? 0.3f : 1, true);
+        if (tile.Ladder)
+        {
+            bool hidden = cleared.Status < count.Length;
+            Tag(box, hidden ? Cipher.Of(count, place + 13, cleared.Status, cleared.Step) : count, wide - 4, 4, hidden ? AccentDark : Badge);
+        }
+        else if (!OwnedPlan(tile) && cleared.Picture) box.DrawRect(new Rect2(5, 6, 3, 10), Plan);
     }
 
-    private void DrawHead(Row row)
+    /// <summary>Outlines where no good is yet.</summary>
+    private void DrawSlots()
     {
-        var head = row.Head;
-        float wide = head.Size.X, tall = head.Size.Y;
-        const int Left = 10;
-        if (row.Gate is not { } gate || _research is not { } research)
+        var (columns, rows, wide, tall) = MarketGrid.Of(_slots.Size.X, _slots.Size.Y);
+        for (int i = _inView.Count; i < columns * rows; i++) Frame(_slots, Slot(i, columns, wide, tall), Colors.Transparent, Empty, 1);
+    }
+
+    private void DrawTabs()
+    {
+        _tabAt.Clear();
+        float x = 0;
+        foreach (var (shelf, key) in Shelves)
         {
-            Frame(head, new Rect2(0, 0, wide, tall), Style.Slate900, Style.Slate800, 1);
-            Say(head, Heavy, T("research.market.forSale"), Left, 26, HeadSize, Style.Slate100);
-            Say(head, Plain, Fitted(T("research.market.fromStart"), wide - 2 * Left, HeadLine), Left, 46, HeadLine, Style.Slate500);
+            bool on = shelf == _shelf;
+            string word = T(key), n = _shownAll.Count(t => shelf == null || t.Good.Shelf == shelf).ToString();
+            var font = on ? Strong : Plain;
+            float words = Width(font, word, 13), number = Width(Plain, n, 11), wide = words + number + 26;
+            Say(_tabs, font, word, x + 8, 18, 13, on ? Words : Dim);
+            Frame(_tabs, new Rect2(x + 12 + words, 7, number + 8, 14), on ? AccentDark : Pill, Colors.Transparent, 0, 7);
+            Say(_tabs, Plain, n, x + 16 + words, 18, 11, on ? Words : Dim);
+            if (on) _tabs.DrawRect(new Rect2(x + 4, 25, wide - 8, 2), Accent);
+            _tabAt.Add((shelf, new Rect2(x, 0, wide, 26)));
+            x += wide + 6;
+        }
+        _tabs.DrawRect(new Rect2(0, 27, _tabs.Size.X, 1), Edge);
+        SayRight(_tabs, Plain, T("research.market.sort"), _tabs.Size.X, 18, 11, Dim);
+    }
+
+    /// <summary>The order being filled: what it asks for and what is sold of it, garbage while the order before it opens it, and what it unlocks as garbage.</summary>
+    private void DrawSide()
+    {
+        float tall = _side.Size.Y, wide = MarketGrid.SideWide - 2 * SideIn;
+        Frame(_side, new Rect2(0, 0, MarketGrid.SideWide, tall), Panel, Edge, 1);
+        Caps(_side, T("research.market.order"), SideIn, 20, Dim);
+        if (_order is not { } order || _research is null)
+        {
+            if (_research != null) Say(_side, Plain, Fitted(T("research.market.allFilled"), Plain, 12, wide), SideIn, 42, 12, Dim);
             return;
         }
-        bool opening = _reveal.HeadDeciphering(row.Index), done = research.Done(gate), active = research.Reached(gate) && !done;
-        Frame(head, new Rect2(0, 0, wide, tall), active ? Style.Slate800 : Style.Slate900, active ? Poison : Style.Slate800, active ? 2 : 1);
-        string name = T($"research.gate.{gate.Id}");
-        if (!research.Reached(gate) || opening)
+        bool garbage = _reveal.HeadDeciphering(order.Ring), full = order.Order.All(d => _sold(d.Item) >= d.Count);
+        int step = _reveal.HeadStepOf(order.Ring);
+        uint place = Cipher.Place(order.Id);
+        string Clear(string text, uint at) => garbage ? Cipher.Of(text, at, _reveal.HeadShown(order.Ring, text.Length), step) : text;
+        if (full && !_reveal.Playing) CapsRight(_side, T("research.market.filled"), SideIn + wide, 20, Own);
+        string name = T($"research.gate.{order.Id}");
+        if (garbage) Say(_side, Garbled, Clear(name, place), SideIn, 42, 15, Dim);
+        else Say(_side, Strong, Fitted(name, Strong, 17, wide), SideIn, 42, 17, Words);
+        Say(_side, Plain, Fitted(Clear(T("research.market.sell"), place + 1), Plain, 11, wide), SideIn, 60, 11, Dim);
+        float y = 74;
+        for (int i = 0; i < order.Order.Count; i++)
         {
-            uint place = Cipher.Place(gate.Id);
-            int step = _reveal.HeadStepOf(row.Index);
-            Say(head, Heavy, Cipher.Of(name, place, opening ? _reveal.HeadShown(row.Index, name.Length) : 0, step), Left, 26, HeadSize, opening ? Poison : Style.Slate600);
-            string asks = string.Join(' ', gate.Order.Select(d => $"{_strip.NameOf(d.Item)} {d.Count}"));
-            Say(head, Plain, Fitted(Cipher.Of(asks, place + 3, opening ? _reveal.HeadShown(row.Index, asks.Length) : 0, step), wide - 2 * Left, HeadLine), Left, 46, HeadLine, Style.Slate700);
-            return;
-        }
-        if (done && tall < FoldsBelow)
-        {
-            Say(head, Heavy, name, Left, 22, HeadSize, Style.Slate400);
-            SayRight(head, T("research.market.filled"), wide - Left, 22, HeadLine, Bought);
-            for (int i = 0; i < gate.Order.Count; i++) Say(head, Plain, gate.Order[i].Count.ToString(), 22 + i * SmallStride + 16, tall - 15, HeadLine, Style.Slate500);
-            return;
-        }
-        Say(head, Heavy, name, Left, 20, HeadSize, done ? Style.Slate400 : Style.Slate100);
-        SayRight(head, T("research.market.soFar"), wide - Left, 20, ScrapSize, Style.Slate500);
-        float column = (wide - 16) / gate.Order.Count;
-        for (int i = 0; i < gate.Order.Count; i++)
-        {
-            var (item, want) = gate.Order[i];
+            var (item, want) = order.Order[i];
             int have = Math.Min(want, _sold(item));
-            float middle = 8 + i * column + column / 2;
-            SayMiddle(head, Fitted(_strip.NameOf(item), column - 4, HeadLine), middle, 82, HeadLine, Style.Slate400);
-            SayMiddle(head, $"{have}/{want}", middle, 97, NameSize, have >= want ? Bought : Style.Slate100);
-            var bar = new Rect2(middle - column / 2 + 5, 104, column - 10, 4);
-            head.DrawRect(bar, Style.Slate700);
-            head.DrawRect(bar with { Size = new Vector2(bar.Size.X * have / want, bar.Size.Y) }, have >= want ? Bought : Poison);
+            bool enough = have >= want;
+            Frame(_side, new Rect2(SideIn, y, wide, AskTall), AskFill, Colors.Transparent, 0);
+            if (garbage) Block(_side, Cipher.Place(item), new Vector2(SideIn + 6, y + 5), 30, 5, step, Faint);
+            string words = Fitted(_strip.NameOf(item), Plain, 12, wide - 52 - 40);
+            Say(_side, Plain, Clear(words, place + 10 + (uint)i), SideIn + 44, y + 17, 12, garbage ? Dim : Words);
+            SayRight(_side, Strong, Clear($"{have}/{want}", place + 20 + (uint)i), SideIn + wide - 8, y + 17, 12, enough ? Own : Words);
+            var bar = new Rect2(SideIn + 44, y + 27, wide - 52, 4);
+            _side.DrawRect(bar, Faint);
+            _side.DrawRect(bar with { Size = new Vector2(bar.Size.X * have / want, bar.Size.Y) }, enough ? Own : Accent);
+            y += AskStride;
         }
+        y += 10;
+        var opens = MarketGoods.Unlocks(_goods, order.Ring);
+        Caps(_side, T("research.market.unlocks", ("n", opens.Count)), SideIn, y, Dim);
+        y += 10;
+        int across = (int)((wide + LockedGap) / (LockedSide + LockedGap)), room = (int)((tall - 10 - y + LockedGap) / (LockedSide + LockedGap)) * across;
+        for (int i = 0; i < opens.Count && i < room; i++)
+        {
+            var at = new Vector2(SideIn + i % across * (LockedSide + LockedGap), y + i / across * (LockedSide + LockedGap));
+            Frame(_side, new Rect2(at, new Vector2(LockedSide, LockedSide)), Locked, LockedEdge, 1);
+            Block(_side, Cipher.Place(opens[i].Id), at + new Vector2(6, 6), 20, 5, 0, Faint);
+        }
+    }
+
+    /// <summary>The strip: the picture large, what kind of good it is, its name and what it is, then its prices bought and not, or what it is made from.</summary>
+    private void DrawCard(Control card, Tile tile)
+    {
+        if (_research is not { } research) return;
+        float wide = card.Size.X, room = wide - WordsAt - 12;
+        string id = tile.Good.Steps[0].Id;
+        Frame(card, new Rect2(0, 0, 100, 100), TileFill, TileEdge, 1);
+        Caps(card, T(tile.Ladder ? "research.market.kind.upgrade" : "research.market.kind.blueprint"), WordsAt, 14, tile.Ladder ? Dim : PlanWord);
+        Say(card, Strong, Fitted(_strip.NameOf(id), Strong, 18, room), WordsAt, 36, 18, Words);
+        Say(card, Plain, Fitted(AboutOf(id), Plain, 12, room), WordsAt, 55, 12, Dim);
+        if (tile.Ladder)
+        {
+            float x = WordsAt + Caps(card, T("research.market.boughtOf", ("n", tile.State.Bought), ("m", tile.State.Opened)), WordsAt, 88, Dim) + 14;
+            foreach (var step in tile.Good.Steps.Where(research.Reached))
+            {
+                bool had = research.Done(step);
+                string price = Prices.Of(step).ToString();
+                float chip = CoinSide + 3 + Width(Strong, price, 11) + 12;
+                if (x + chip > wide) break;
+                Frame(card, new Rect2(x, 75, chip, 20), had ? ChipHad : Chip, had ? ChipHadEdge : ChipEdge, 1, 10);
+                Credits(card, price, x + 6, 89, 11, Strong, had ? Faint : Gold, had ? 0.4f : 1, false);
+                x += chip + 5;
+            }
+            return;
+        }
+        float after = WordsAt + Caps(card, T("research.takes"), WordsAt, 88, Dim) + 14;
+        if (_madeFrom.Count == 0) Say(card, Plain, T("research.market.nothing"), after, 89, 12, Dim);
+        foreach (var (at, words) in _madeFrom)
+        {
+            Frame(card, new Rect2(at, 73, 24, 24), TileFill, TileEdge, 1);
+            Say(card, Plain, words, at + 30, 89, 12, Words);
+        }
+    }
+
+    /// <summary>Garbage where a picture will be: <paramref name="cells"/> by <paramref name="cells"/> filling <paramref name="side"/>, the same at the same place.</summary>
+    private static void Block(CanvasItem on, uint place, Vector2 at, float side, int cells, int step, Color colour)
+    {
+        float cell = side / cells;
+        for (int j = 0; j < cells; j++)
+            for (int i = 0; i < cells; i++)
+                if (Cipher.Garble(place, i + j * cells, step) % 3 == 0) on.DrawRect(new Rect2(at.X + i * cell, at.Y + j * cell, Math.Max(1, cell - 1), Math.Max(1, cell - 1)), colour);
     }
 
     /// <summary>A flat box with a thin edge; the one <see cref="StyleBoxFlat"/> is set afresh for each, for drawing it copies what it says.</summary>
-    private static void Frame(CanvasItem on, Rect2 rect, Color fill, Color edge, int width)
+    private static void Frame(CanvasItem on, Rect2 rect, Color fill, Color edge, int width, int radius = 3)
     {
         Look.BgColor = fill;
         Look.BorderColor = edge;
         Look.SetBorderWidthAll(width);
-        Look.SetCornerRadiusAll(4);
-        Look.AntiAliasing = false;
+        Look.SetCornerRadiusAll(radius);
+        Look.AntiAliasing = radius > 3;
         on.DrawStyleBox(Look, rect);
     }
 
-    /// <summary>The width of a character: the grid garbage and clear words stand on, measured, for the font is the machine's.</summary>
-    private static float Cell(Font font, int size) => font.GetCharSize('0', size).X;
+    /// <summary>An amount as <see cref="CreditLine"/> writes it, the coin before the number, from <paramref name="x"/> or about it as its middle.</summary>
+    private static void Credits(CanvasItem on, string amount, float x, float y, int size, Font font, Color colour, float coin, bool centred)
+    {
+        float wide = CoinSide + 3 + Width(font, amount, size), left = Mathf.Round(centred ? x - wide / 2 : x);
+        on.DrawTextureRect(Coin, new Rect2(left, Mathf.Round(y - size * 0.36f - CoinSide / 2f), CoinSide, CoinSide), false, Colors.White with { A = coin });
+        Say(on, font, amount, left + CoinSide + 3, y, size, colour);
+    }
 
-    private static string Fitted(string text, float wide, int size) => Cipher.Trim(text, (int)(wide / Cell(Plain, size)));
+    /// <summary>A small count in a box, its right edge at <paramref name="right"/>.</summary>
+    private static void Tag(CanvasItem on, string text, float right, float top, Color fill)
+    {
+        float wide = Width(Strong, text, 10) + 8;
+        Frame(on, new Rect2(right - wide, top, wide, 14), fill, Colors.Transparent, 0);
+        Say(on, Strong, text, right - wide + 4, top + 10.5f, 10, Words);
+    }
+
+    private static void Check(CanvasItem on, Vector2 at, float side, Color colour) =>
+        on.DrawPolyline([at + new Vector2(0, side * 0.5f), at + new Vector2(side * 0.38f, side * 0.88f), at + new Vector2(side, side * 0.1f)], colour, 2, true);
+
+    /// <summary>A heading in spaced capitals; how wide it came out.</summary>
+    private static float Caps(CanvasItem on, string text, float x, float y, Color colour)
+    {
+        string caps = text.ToUpperInvariant();
+        Say(on, Spaced, caps, x, y, 10, colour);
+        return Width(Spaced, caps, 10);
+    }
+
+    private static void CapsRight(CanvasItem on, string text, float right, float y, Color colour) =>
+        Caps(on, text, right - Width(Spaced, text.ToUpperInvariant(), 10), y, colour);
+
+    private static float Width(Font font, string text, int size) => font.GetStringSize(text, HorizontalAlignment.Left, -1, size).X;
+
+    /// <summary><paramref name="text"/> cut with an ellipsis to fit <paramref name="wide"/>.</summary>
+    private static string Fitted(string text, Font font, int size, float wide)
+    {
+        if (Width(font, text, size) <= wide) return text;
+        int n = text.Length;
+        while (n > 1 && Width(font, text[..(n - 1)] + "…", size) > wide) n--;
+        return text[..(n - 1)] + "…";
+    }
 
     private static void Say(CanvasItem on, Font font, string text, float x, float y, int size, Color colour) =>
         on.DrawString(font, new Vector2(x, y), text, HorizontalAlignment.Left, -1, size, colour);
 
-    private static void SayRight(CanvasItem on, string text, float right, float y, int size, Color colour) =>
-        Say(on, Plain, text, right - text.Length * Cell(Plain, size), y, size, colour);
+    private static void SayRight(CanvasItem on, Font font, string text, float right, float y, int size, Color colour) =>
+        Say(on, font, text, right - Width(font, text, size), y, size, colour);
 
-    private static void SayMiddle(CanvasItem on, string text, float middle, float y, int size, Color colour) =>
-        Say(on, Plain, text, middle - text.Length * Cell(Plain, size) / 2, y, size, colour);
+    private static void SayMiddle(CanvasItem on, Font font, string text, float middle, float y, int size, Color colour) =>
+        Say(on, font, text, middle - Width(font, text, size) / 2, y, size, colour);
 }

@@ -1,6 +1,6 @@
 # research (client): the tablet and the trade station's screen
 
-The board of what the crew has found and the black market ([board](../../../docs/plans/board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [market-decrypt](../../../docs/decisions/2026-11-02-market-decrypt.md)). T takes the tablet out
+The board of what the crew has found and the black market ([board](../../../docs/plans/board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [market-grid](../../../docs/decisions/2026-11-03-market-grid.md)). T takes the tablet out
 anywhere. A trade station is worked as a crate is, through the items feature's panel.
 
 ## Files
@@ -12,15 +12,15 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 | `BoardPage.cs`       | the first tab: the board of notes, threads and shapes                     | yes   |
 | `TabletKey.cs`       | the tablet's key, on its edge, its cap a lens that lights                 | yes   |
 | `HeroBulb.cs`        | the bulb over this player's hero as a note starts waiting                 | yes   |
-| `MarketPage.cs`      | the black market: a row per group, its order and its goods as cards       | yes   |
-| `MarketFaults.cs`    | the hack's mark over the screen while the market shows                    | yes   |
+| `MarketPage.cs`      | the black market: the order being filled, tabs and a grid of goods        | yes   |
 | `InkDraw.cs`         | draws the board's strokes                                                 | yes   |
 | `StripParts.cs`      | what pages write with: the strip's controls, a thing's words and pictures | yes   |
 | `StationScreens.cs`  | a trade station's screen, drawn over its picture                          | yes   |
 | `CapsuleFlights.cs`  | a trade station's capsule going off behind the hull and coming back       | yes   |
-| `logic/Cipher.cs` | The market's garbage, and how its lines break | no |
-| `logic/MarketReveal.cs` | How far each row of the market has deciphered | no |
-| `logic/MarketRows.cs` | Where the market's rows and cards lie, and a card's state | no |
+| `logic/Cipher.cs` | The market's garbage | no |
+| `logic/MarketReveal.cs` | How far each order's decipher has gone | no |
+| `logic/MarketGoods.cs` | The market's goods and what each tile says | no |
+| `logic/MarketGrid.cs` | Where the order, the tabs and the tiles lie | no |
 | `logic/BoardBox.cs` | The part of the board the camera keeps in bounds | no |
 | `logic/BoardFile.cs` | What this machine's player moved on a world's board, in its own file | no |
 | `logic/BoardInk.cs` | What the board is written with: a stylus's strokes | no |
@@ -52,7 +52,7 @@ anywhere. A trade station is worked as a crate is, through the items feature's p
 - The lens on the tablet's key lights while a note is unread and the tablet is away ([key-lens](../../../docs/decisions/2026-11-02-key-lens.md)). What was read is kept in the same file. With nothing kept it starts as things stand at the first read, so a new world or a late guest has nothing new.
 - Unread notes wait beside the board as a pile ([the pile](../../../docs/decisions/2026-11-02-board-pile.md)): the tablet opens on the board with any unread, shows the top one large and the count, and draws nothing of the unread as a note. Only the player's click lands an entry, the whole card shrinking into its note and its thread drawing; nothing lands by itself, and "Take all" lands the rest at once. A flip counts at the click: a close mid-pile resumes on the next one. Parts come before what they make; an arrival joins under the top. What landed keeps a hand-drawn loop until the player presses it, through a close and a restart, kept in the same file ([board-thoughts](../../../docs/decisions/2026-11-02-board-thoughts.md)); its threads stand out only until the tablet closes.
 - A find with the board whole lands at once with its loop, the camera left alone. While reading, the board holds still, framing all that will stand on it, or follows the entry if that is too much for words to show; once a pile empties it opens to the whole view. Every shape says the first thing it lacks inside its box, always; what was never had is not named. A pick ties only what is direct: what it takes, where it is made, what takes it or comes out of it. Strokes are the same for the same thing on every run and every frame. While reading, a click on the board does nothing, and the pile's controls take no keyboard focus.
-- The market never scrolls: at most 6 rows of 5 goods, held by a Content test. A head shows what is sold over what is ordered. A click picks a card; a sealed one picks nothing and says so.
+- The market shows only the order being filled; what orders opened lies in one grid, a tile per kind of upgrade buying its cheapest step opened. It never scrolls: a test fails once the goods outgrow 1280x720.
 - Garbage is only a look: what the sim says is reached can be picked and bought mid-decipher, and picking it clears it. The same on every read (`Cipher`); its clock never touches the sim.
 - Orders seen are one count (`BoardSeen.SeeOrders`), so lamp and decipher agree: what was new plays after the tablet's rise, or at once if it was up. Closing or leaving the tab shows it clear; a late guest or a lost file plays nothing.
 - An order met lights the key and the market tab's lamp until the market is chosen; the count is kept in the same file. The key reads them on its timer: a sale moves no `Version`.
