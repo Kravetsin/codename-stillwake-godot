@@ -61,9 +61,9 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Costs** (0063, `CostLine.Lacking`): what this player carries (`Ui.Carried`, every 250 ms) over
   the cost less what was put in, green when covered, red when not, alike in menu and tip. A blueprint's tip
   (`PlanTip`) shows its card's picture and name, then an item a row; shown only while it lacks something. The power
-  driver's square sums its blueprints' (`SquareTip`).
+  driver's square sums its blueprints', else its marks' (`SquareTip`).
 - **A mark's tip** (0064, `MarkTip`): its card's picture and name, then what it gives back, "+2", green
-  (`RefundOf`). A lacking blueprint under the pointer is told first.
+  (`RefundOf`). A lacking blueprint is told first.
 - **The menu is a docked rugged tablet of fixed size** (0073, 0107): bottom middle, 10 by 2 cards a
   step larger than inventory slots, the card in hand edged sky blue; the wheel over it scrolls a row, never the
   hotbar. B slides it in and out (`TabletMotion`); put away it takes no input. Picking a card leaves it open; one
