@@ -61,8 +61,8 @@ public class MachineFootTests
         return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
     }
 
-    /// <summary>The lamps, hung from the ceiling by their plug at the top: nothing of theirs stands on the floor.</summary>
-    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp"];
+    /// <summary>The lamps, hung from the ceiling by their plug at the top, and the debris net, hung on the hull: nothing of theirs stands on the floor.</summary>
+    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp", "net"];
 
     [Fact]
     public void EveryMachineStandsOnItsPicturesFoot()
