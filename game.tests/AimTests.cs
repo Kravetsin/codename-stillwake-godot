@@ -268,6 +268,28 @@ public class AimTests
     }
 
     [Fact]
+    public void WorksAMachinePlanOverThePictureItRaisesAboveItsFootprint()
+    {
+        var world = Drawn("""
+            ##########
+            #........#
+            #........#
+            #........#
+            ##########
+            """);
+        int width = world.M.Grid.Width, bench = 6 * width + 8;
+        world.Step(new PlacePlan(bench, new Placement("machine", "workbench")));
+        int plan = world.M.Building.Plans.Single().Id;
+        static int Rise(string kind) => kind == "workbench" ? 3 : 0;
+        var hero = HeroOn(4, 2);
+        // The screwdriver works the plan from its picture's top row, three over the footprint's, as from the footprint.
+        Assert.Equal(plan, Aiming.AimAt(world.M, 0, hero, (10.5, 3.5), riseOf: Rise)?.Work?.Plan);
+        Assert.Equal(bench + 2, Aiming.AimAt(world.M, 0, hero, (10.5, 3.5), riseOf: Rise)?.Cell);
+        Assert.Null(Aiming.AimAt(world.M, 0, hero, (10.5, 2.5), riseOf: Rise)?.Work);
+        Assert.Null(Aiming.AimAt(world.M, 0, hero, (10.5, 3.5))?.Work);
+    }
+
+    [Fact]
     public void OpensOnAPressWithinReachAndOnNoPressOrOutOfReach()
     {
         var crate = Room.M.Grid.Machines.First(c => c.Kind == "crate");
