@@ -1,5 +1,6 @@
 using Stillwake.Game.Features.Creatures;
 using Xunit;
+using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
@@ -17,17 +18,31 @@ public class CreatureInkTests
     [MemberData(nameof(Looks))]
     public void AnInkDesignStandsForALookAndEveryPartOfItsRigIsDrawnAtFourTimes(string look)
     {
-        Assert.True(CreatureArt.Designs.ContainsKey(look), look);
+        Assert.Contains(look, Spec.Creatures.All.Select(s => s.Look));
         var design = CreatureArt.InkDesigns[look];
         Assert.True(design.Ink);
         Assert.True(CreatureLooks.Runs.ContainsKey(design.Id), $"{design.Id} has no gait");
-        Assert.All(design.Rig, n => Assert.True(n.Part == "eye" || design.Parts.ContainsKey(n.Part), $"{n.Id}'s part {n.Part}"));
+        var ids = design.Rig.Select(n => n.Id).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Single(design.Rig, n => n.Parent == null);
+        Assert.All(design.Rig, n =>
+        {
+            Assert.True(n.Part == "eye" ? n.Drive == CreatureArt.Drive.Eye : design.Parts.ContainsKey(n.Part), $"{n.Id}'s part {n.Part}");
+            // A parent is posed before its children are drawn from it: it comes in the rig, never the node itself.
+            Assert.True(n.Parent == null || ids.Contains(n.Parent) && n.Parent != n.Id, $"{n.Id}'s parent {n.Parent}");
+        });
         foreach (var (name, part) in design.Parts)
         {
-            using var png = new BinaryReader(File.OpenRead(Path.Combine(Art, design.Id, name + ".png")));
-            png.BaseStream.Seek(16, SeekOrigin.Begin);
-            Assert.Equal((part.W * 4, part.H * 4), (BigEndian(png), BigEndian(png)));
+            Assert.Equal((part.W * 4, part.H * 4), Png.Size(Path.Combine(Art, design.Id, name + ".png")));
+            Assert.Equal(part.Glow, File.Exists(Path.Combine(Art, design.Id, name + "_glow.png")));
         }
+    }
+
+    [Fact]
+    public void EveryWalkerIsDrawnInInk()
+    {
+        var walkers = Spec.Creatures.All.Where(s => s.Body is Spec.Creatures.Walker && !CreatureLooks.Istukans.Contains(s.Look));
+        Assert.All(walkers, s => Assert.True(CreatureArt.InkDesigns.ContainsKey(s.Look), $"{s.Id}: no design in ink for {s.Look}"));
     }
 
     [Theory]
@@ -106,11 +121,5 @@ public class CreatureInkTests
         Assert.Equal(255, reduced[3]);
         Assert.True(reduced[2] > reduced[0] * 3, "blue outweighs the half-covered red");
         Assert.Equal(0, reduced[7]);
-    }
-
-    private static int BigEndian(BinaryReader r)
-    {
-        var b = r.ReadBytes(4);
-        return b[0] << 24 | b[1] << 16 | b[2] << 8 | b[3];
     }
 }

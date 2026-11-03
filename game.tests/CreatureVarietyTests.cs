@@ -9,7 +9,7 @@ namespace Stillwake.Game.Tests;
 
 /// <summary>
 /// One creature differs from the next of its kind (0102): its looks from its id and its surface's seed alone, the same on every
-/// peer, within its species' bounds, and its coat never leaving the palette.
+/// peer, within its species' bounds.
 /// </summary>
 public class CreatureVarietyTests
 {
@@ -20,22 +20,17 @@ public class CreatureVarietyTests
 
     [Theory]
     [MemberData(nameof(Species))]
-    public void EverySpeciesVariesInRampsItsDesignIsPaintedInAndEveryPaletteHas(string species)
+    public void EverySpeciesVariesWithinItsBounds(string species)
     {
         Assert.True(CreatureLooks.Varieties.TryGetValue(species, out var v), $"{species} has no variety");
-        var design = CreatureArt.Designs[Spec.Creatures.Get(species).Look];
-        Assert.Contains(v.Coat, design.Parts["body"].Ramps);
         Assert.InRange(v.Least, 500, 1000);
         Assert.InRange(v.Most, 1000, 1500);
-        // At most a tone either way: shaded past it a coat would be another ramp's.
+        // At most a tone either way.
         Assert.InRange(v.Shade, 0, 4);
         Assert.InRange(v.Morph, -4, 4);
-        Assert.InRange(v.Blend, 0, 500);
         Assert.InRange(v.Drop, 0, 999);
         Assert.InRange(v.Faint, 0, 1000);
         Assert.True(v.MorphOneIn >= 0);
-        foreach (var palette in CreatureArt.Palettes.Values)
-            Assert.All(new[] { v.Coat, v.Toward, v.Away }, r => Assert.True(palette.ContainsKey(r), $"{species}: ramp {r}"));
     }
 
     [Property(MaxTest = 300)]
@@ -93,44 +88,8 @@ public class CreatureVarietyTests
     }
 
     [Fact]
-    public void ACoatStaysInThePaletteBetweenItsOwnRampAndItsNeighboursATonEitherSideAndNothingElseChanges()
-    {
-        foreach (var (species, v) in CreatureLooks.Varieties)
-            foreach (var (name, ramps) in CreatureArt.Palettes)
-                for (int shade = -4; shade <= 4; shade++)
-                    for (int hue = -CreatureVariety.HueSteps; hue <= CreatureVariety.HueSteps; hue++)
-                    {
-                        var one = CreatureVariety.Plain with { Shade = shade, Hue = hue };
-                        foreach (var ramp in ramps.Keys)
-                            for (int tone = 0; tone < 6; tone++)
-                            {
-                                var got = CreatureVariety.Tone(ramps, v, one, ramp, tone);
-                                if (ramp != v.Coat || tone == 0 || shade == 0 && hue == 0)
-                                {
-                                    // Its outline, eye, glow and every other ramp as painted.
-                                    Assert.Equal(ramps[ramp][tone], got);
-                                    continue;
-                                }
-                                int lo = Math.Max(1, tone - 1), hi = Math.Min(5, tone + 1);
-                                var kin = ramps[hue < 0 ? v.Toward : v.Away];
-                                var near = Enumerable.Range(lo, hi - lo + 1).SelectMany(t => hue == 0 ? new[] { ramps[ramp][t] } : [ramps[ramp][t], kin[t]]).ToList();
-                                string at = $"{species} {name} shade {shade} hue {hue} tone {tone}";
-                                Assert.InRange(got.R, near.Min(c => c.R), near.Max(c => c.R));
-                                Assert.InRange(got.G, near.Min(c => c.G), near.Max(c => c.G));
-                                Assert.InRange(got.B, near.Min(c => c.B), near.Max(c => c.B));
-                                if (hue == 0 && shade % 4 == 0) Assert.True(got == ramps[ramp][Math.Clamp(tone + shade / 4, 1, 5)], at);
-                            }
-                    }
-    }
-
-    [Fact]
-    public void APlainCreatureIsDrawnAsPainted()
-    {
-        var v = CreatureLooks.Varieties["loper"];
-        var ramps = CreatureArt.Palettes["savanna"];
-        for (int tone = 0; tone < 6; tone++) Assert.Equal(ramps[v.Coat][tone], CreatureVariety.Tone(ramps, v, CreatureVariety.Plain, v.Coat, tone));
+    public void APlainCreatureWearsEveryMarking() =>
         Assert.All(Enumerable.Range(0, 40), m => Assert.True(CreatureVariety.Wears(CreatureVariety.Plain, m)));
-    }
 
     [Fact]
     public void MarkingsAreTheTouchingRunsOfPaintedPixelsNumberedAsTheyAreFirstMet()

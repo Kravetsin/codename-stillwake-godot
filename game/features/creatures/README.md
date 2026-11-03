@@ -7,7 +7,7 @@
 | `CreatureBody.cs` | One creature's body (0102) in the design its species names: its rig's parts, posed. |
 | `logic/CreatureGait.cs` | How fast a creature's legs go (0102). |
 | `logic/CreatureMotion.cs` | How one creature's body reacts (0102) to what the sim decided and to blows. |
-| `CreatureParts.cs` | The creatures' parts as pictures (0102): each index map of `art/creatures` recoloured once, at first use, by a palette … |
+| `CreatureParts.cs` | The creatures' parts as pictures (0102), drawn in ink (`art/hd/creatures`): each read once and shared by every individual, … |
 | `logic/CreaturePose.cs` | What each node of a creature's rig does this frame (0102), the loper page's pose ported (its `pose()`, the user's … |
 | `logic/CreatureVariety.cs` | How one creature differs from the next of its kind (0102). |
 | `CreaturesView.cs` | The creatures: each drawn between ticks where the sim put it, facing the way it goes, its … |

@@ -37,7 +37,7 @@ public class CreatureGaitTests
     {
         foreach (var species in Spec.Creatures.All.Where(s => CreatureLooks.Varieties.ContainsKey(s.Id)))
         {
-            var run = CreatureLooks.Runs[species.Look];
+            var run = CreatureLooks.Runs[CreatureArt.InkDesigns[species.Look].Id];
             double walk = CreatureGait.StridesAt(Px(((Spec.Creatures.Walker)species.Body).Walk), run), flee = CreatureGait.StridesAt(Px(((Spec.Creatures.Walker)species.Body).Run), run);
             // Before: 2.6 a second walking, 7.3 fleeing at 30 cells a second.
             Assert.InRange(walk, 1.7, 2.7);
@@ -89,7 +89,7 @@ public class CreatureGaitTests
     [Fact]
     public void ItGallopsOnlyAtAFlightAndItsLegsRestStanding()
     {
-        var run = CreatureLooks.Runs["classic"];
+        var run = CreatureLooks.Runs["inkLoper"];
         CreatureGait At(double speed)
         {
             var g = new CreatureGait(run);
@@ -111,7 +111,7 @@ public class CreatureGaitTests
     [MemberData(nameof(Designs))]
     public void APoseStandsItsLegsStillAndShowsEachEyeStateAndMovesOnlyALittleFromFrameToFrame(string design)
     {
-        var drawn = CreatureArt.Designs.Values.Concat(CreatureArt.InkDesigns.Values).Single(d => d.Id == design);
+        var drawn = CreatureArt.InkDesigns.Values.Single(d => d.Id == design);
         var pose = new CreaturePose(drawn, CreatureLooks.Runs[design]);
         var rig = drawn.Rig;
         CreaturePose.Doing Still(double eye = 1, double graze = 0) => new(0.3, 0, 0, 0, 0, graze, 0, 1000, 0, eye, null);

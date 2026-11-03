@@ -4,8 +4,7 @@ namespace Stillwake.Game;
 
 /// <summary>
 /// The creatures' looks the user picked on the loper page (0102), what <see cref="CreatureArt"/>'s generated data means: each design
-/// a rig of parts painted as index maps — a pixel's R its ramp, its G its tone, outline to highlight — recoloured at load by a
-/// palette, turned and moved about pivots in the world's pixels, its origin the middle of its feet, facing right, y down.
+/// a rig of parts drawn in ink, turned and moved about pivots in the world's pixels, its origin the middle of its feet, facing right, y down.
 /// </summary>
 public static partial class CreatureArt
 {
@@ -35,20 +34,11 @@ public static partial class CreatureArt
     public sealed record Design(
         string Id, Gait Gait, bool Headless, int Glow, Eye Eye, Pose Pose, IReadOnlyDictionary<string, Part> Parts, IReadOnlyList<Node> Rig, bool Ink = false);
 
-    /// <summary>The parts every design's eye is drawn from: whites calm and wide, pupils calm and wide, half and shut lids.</summary>
+    /// <summary>The parts a design's eye may be drawn from: whites calm and wide, pupils calm and wide, half and shut lids.</summary>
     public static readonly string[] EyeParts = ["eye_open", "eye_wide", "pupil", "pupil_wide", "lid_half", "lid_blink"];
-
-    /// <summary>Where a part's picture is: an index map in its design's folder.</summary>
-    public static string PictureOf(string design, string part) => $"res://art/creatures/{design}/{part}.png";
-
-    /// <summary>Where a part's glow map is.</summary>
-    public static string GlowOf(string design, string part) => $"res://art/creatures/{design}/{part}_glow.png";
 }
 
-/// <summary>
-/// How each design moves at speed and lights the dark (0102): its gait's numbers, the palette each planet's creatures are
-/// recoloured by, and the light their glowing parts cast.
-/// </summary>
+/// <summary>How each design moves at speed and lights the dark (0102): its gait's numbers, how its individuals differ, and the light their glowing parts cast.</summary>
 public static class CreatureLooks
 {
     /// <summary>How long after this player's own strike the sim's damage rising is that strike's, already shown, in milliseconds.</summary>
@@ -66,9 +56,6 @@ public static class CreatureLooks
     /// <summary>Each design's: the tapir heavier and slower, the six legs quicker and lower.</summary>
     public static readonly IReadOnlyDictionary<string, Run> Runs = new Dictionary<string, Run>
     {
-        ["classic"] = new(Stride: 10, MostStrides: 3.2, Reach: 0.6, Bound: 3.5, Rock: 0.07, Stretch: 0.05),
-        ["tapir"] = new(Stride: 11, MostStrides: 2.6, Reach: 0.45, Bound: 2.5, Rock: 0.05, Stretch: 0.04),
-        ["sixleg"] = new(Stride: 9, MostStrides: 2.8, Reach: 0.5, Bound: 1.5, Rock: 0.03, Stretch: 0.03),
         ["inkLoper"] = new(Stride: 12, MostStrides: 3.2, Reach: 0.26, Bound: 3.5, Rock: 0.07, Stretch: 0.05),
         ["inkTapir"] = new(Stride: 11, MostStrides: 2.6, Reach: 0.36, Bound: 2.2, Rock: 0.05, Stretch: 0.03),
         ["inkSixleg"] = new(Stride: 11, MostStrides: 2.8, Reach: 0.32, Bound: 1.5, Rock: 0.03, Stretch: 0.03),
@@ -90,19 +77,8 @@ public static class CreatureLooks
     /// <summary>How long a creature's drawing takes to close a step of its own, two cells, up or down (<c>StepEase</c>, 0106), in milliseconds.</summary>
     public const double StepMs = 100;
 
-    /// <summary>The palette each planet type's creatures are recoloured by: the first planet's the page's «Саванна».</summary>
-    public static readonly IReadOnlyDictionary<string, string> PaletteOf = new Dictionary<string, string>
-    {
-        [Stillwake.Content.PlanetTypes.First.Id] = "savanna",
-        [Stillwake.Content.PlanetTypes.Small.Id] = "savanna",
-        [Stillwake.Content.PlanetTypes.SmallSpire.Id] = "savanna",
-    };
-
     /// <summary>What an individual in ink differs by, its picture multiplied: a share lighter a quarter tone of its shade, and warmer or cooler a step of its tint.</summary>
     public const float InkShade = 0.05f, InkHue = 0.035f;
-
-    /// <summary>The palette of a surface whose type names none, as the test strip's.</summary>
-    public const string Palette = "savanna";
 
     /// <summary>
     /// The light a glowing part casts (the tapir's pod, the sixleg's berries): from its glowing
@@ -135,25 +111,20 @@ public static class CreatureLooks
     public const float TickEyeLight = 0.45f, TickActingLight = 1.35f, TickBurnerLight = 0.9f;
     public const int TickBurnerReach = 8;
 
-    /// <summary>The ramps the parts are painted in (the index maps' R, the page's): its fur's two, belly, markings and skin.</summary>
-    public const int FurA = 24, FurB = 25, Belly = 26, Mark = 27, Skin = 28;
-
     /// <summary>
     /// How one creature of a species differs from the next (the user's word, 2026-10-22: by size and colour), drawn only:
-    /// <paramref name="Least"/> to <paramref name="Most"/> thousandths of its design's size; its <paramref name="Coat"/> ramp
-    /// shaded up to <paramref name="Shade"/> quarter tones lighter or darker and blended up to <paramref name="Blend"/>
-    /// thousandths toward <paramref name="Toward"/> or <paramref name="Away"/>, the palette's own ramps, in two steps either way;
-    /// one in <paramref name="MorphOneIn"/> a morph, its coat <paramref name="Morph"/> quarter tones off; each marking dropped
-    /// <paramref name="Drop"/> thousandths of the time, those kept at least <paramref name="Faint"/> thousandths opaque.
+    /// <paramref name="Least"/> to <paramref name="Most"/> thousandths of its design's size; shaded up to <paramref name="Shade"/>
+    /// quarter tones lighter or darker (<see cref="InkShade"/>); one in <paramref name="MorphOneIn"/> a morph, <paramref name="Morph"/>
+    /// quarter tones off; each marking dropped <paramref name="Drop"/> thousandths of the time, those kept at least
+    /// <paramref name="Faint"/> thousandths opaque.
     /// </summary>
-    public sealed record Variety(
-        int Least, int Most, int Coat, int Shade, int Toward, int Away, int Blend, int MorphOneIn, int Morph, int Drop, int Faint);
+    public sealed record Variety(int Least, int Most, int Shade, int MorphOneIn, int Morph, int Drop, int Faint);
 
-    /// <summary>Each species': the loper tan to rosy or ashen, its stripes one to three; the tapir pale at times.</summary>
+    /// <summary>Each species': the loper's stripes one to three; the tapir pale at times.</summary>
     public static readonly IReadOnlyDictionary<string, Variety> Varieties = new Dictionary<string, Variety>
     {
-        ["loper"] = new(Least: 860, Most: 1140, Coat: FurA, Shade: 3, Toward: FurB, Away: Skin, Blend: 420, MorphOneIn: 7, Morph: -4, Drop: 350, Faint: 450),
-        ["tapir"] = new(Least: 880, Most: 1160, Coat: FurB, Shade: 3, Toward: FurA, Away: Skin, Blend: 450, MorphOneIn: 7, Morph: 4, Drop: 250, Faint: 500),
-        ["sixleg"] = new(Least: 880, Most: 1120, Coat: FurB, Shade: 3, Toward: FurA, Away: Belly, Blend: 450, MorphOneIn: 7, Morph: -4, Drop: 300, Faint: 450),
+        ["loper"] = new(Least: 860, Most: 1140, Shade: 3, MorphOneIn: 7, Morph: -4, Drop: 350, Faint: 450),
+        ["tapir"] = new(Least: 880, Most: 1160, Shade: 3, MorphOneIn: 7, Morph: 4, Drop: 250, Faint: 500),
+        ["sixleg"] = new(Least: 880, Most: 1120, Shade: 3, MorphOneIn: 7, Morph: -4, Drop: 300, Faint: 450),
     };
 }

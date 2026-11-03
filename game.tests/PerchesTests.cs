@@ -14,7 +14,7 @@ public class PerchesTests
     /// </summary>
     private static List<Wreckage.Perch> Measured(string png)
     {
-        var (w, h, pixels) = CreatureArtTests.Pixels(png);
+        var (w, h, pixels) = Png.Pixels(png);
         var tops = new int[w];
         for (int x = 0; x < w; x++)
         {

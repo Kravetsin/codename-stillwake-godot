@@ -116,11 +116,11 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
 
     /// <summary>
     /// Shows <paramref name="creatures"/>'s creatures within <paramref name="view"/> (cells) and <see cref="Margin"/> round it,
-    /// <paramref name="progress"/> of the way from the last tick to the next, recoloured by <paramref name="palette"/> (the planet's,
-    /// <see cref="CreatureLooks.PaletteOf"/>), each creature its own individual by its id and the surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
+    /// <paramref name="progress"/> of the way from the last tick to the next, each creature its own individual by its id and the
+    /// surface's <paramref name="seed"/> (<see cref="CreatureVariety"/>).
     /// </summary>
     public void Frame(Client client, CreaturesModule creatures, IDebrisQueries debris, IBuildingQueries built, IGridQueries grid, IRoomsQueries rooms, Spec.Surfaces.Kind rules,
-        Rect2 view, double progress, double elapsedMs, string palette, uint seed)
+        Rect2 view, double progress, double elapsedMs, uint seed)
     {
         _clockMs += elapsedMs;
         // Another surface, or a load: what was shown was another world's, gone without a puff.
@@ -135,7 +135,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
             _istukans.Reset();
             _of = creatures;
         }
-        (_palette, _seed) = (palette, seed);
+        _seed = seed;
         _bursts.On(grid, rooms, rules);
         OwnShots.Of(creatures.Hits, client.Id, _shotByOwn);
         foreach (int id in _shotByOwn)
@@ -238,7 +238,6 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
         }
     }
 
-    private string _palette = CreatureLooks.Palette;
     private uint _seed;
 
     /// <summary>
@@ -404,7 +403,7 @@ public partial class CreaturesView(Ui ui) : Node2D, ILightSource
     {
         var body = _pool.Count > 0 ? _pool.Pop() : Made();
         var individual = CreatureVariety.Of(CreatureLooks.Varieties[c.Species], _seed, c.Id);
-        body.Dress(c.Species, _palette, individual);
+        body.Dress(c.Species, individual);
         Trace?.Invoke($"creatures look: {c.Species} {c.Id} {individual}");
         body.Visible = true;
         var at = new Vector2(c.X, c.Y);

@@ -39,11 +39,11 @@ Six hairs (short, curls, long, bun, ponytail, cropped), five faces (calm, stern,
 ## Ramps
 
 Each ramp is four shades, light, own, shade, outline. A picture is drawn in one ramp per kind and recoloured by
-swapping each shade for the same shade of another, as `SuitArt.Of` does for suits.
+swapping each shade for the same shade of another, as the game did for suits before it drew in ink.
 
 | Kind | Keys in `parts.js` | Drawn in | Variants |
 | ---- | ------------------ | -------- | -------- |
-| suit | `l s d o` | `Suits.ShadesOf(Suits.Drawn)` | the four `Suits.All` |
+| suit | `l s d o` | the shades of `0xe0a030` | the four `Suits.All` |
 | skin | `L S D O` | `SKINS[2]` | 7, light to deep |
 | hair | `1 2 3 4` | `HAIRS[1]` | 6: black, brown, copper, blond, grey, rose |
 
