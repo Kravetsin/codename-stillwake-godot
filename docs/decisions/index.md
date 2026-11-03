@@ -214,6 +214,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [driver-at-work](2026-11-03-driver-at-work.md) | The power driver runs only at its work | accepted |  |
 | [driver-square](2026-11-03-driver-square.md) | The power driver's square in teal, over the plans | accepted |  |
 | [edge-lenses](2026-11-03-edge-lenses.md) | The tablet edge's keys are frosted lenses, and the journal has one | accepted |  |
+| [hero-lights](2026-11-03-hero-lights.md) | The hero's own lights light what is round them | accepted |  |
 | [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
 | [loss-shows-white](2026-11-03-loss-shows-white.md) | Every loss shows white | accepted |  |
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
