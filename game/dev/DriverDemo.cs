@@ -13,11 +13,13 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// A script for the power driver (<c>-- --driver-demo=MODE</c>, power-driver) in a lit room: a 4×4 run of iron wall plans
+/// A script for the power driver (<c>-- --driver-demo=MODE</c>, power-driver) in a lit room: a 4Г—4 run of iron wall plans
 /// beside the hero, the driver first in the hotbar, plates to pay, and the left button held on the run from tick 68.
-/// <c>square</c> with a battery on the belt: the 2×2 square outlined and four walls going up at once; <c>cell</c> the same,
+/// <c>square</c> with a battery on the belt: the 2Г—2 square outlined and four walls going up at once; <c>cell</c> the same,
 /// switched to one cell by a right click first; <c>flat</c> with no battery: one cell, as the screwdriver; <c>short</c> the square
-/// with two plates for its four walls: two wait, and its tip says what all four still need.
+/// with two plates for its four walls: two wait, and its tip says what all four still need; <c>hover</c> the pointer on the run,
+/// never pressed: the square shows before the press; <c>nothing</c> the left button held on the bare floor beside the run: no
+/// square, and the belt's charge, logged, stays as it was.
 /// </summary>
 public sealed class DriverDemo(Hands hands, string mode)
 {
@@ -65,17 +67,17 @@ public sealed class DriverDemo(Hands hands, string mode)
         if (grid.MachinesOf("lamp").Select(l => l.Cell).DefaultIfEmpty(-1).Min() is not (>= 0 and var lamp)) return;
         int w = grid.Width, x0 = lamp % w + Dx, y0 = lamp / w + Dy;
         // Each step once, on the first frame of its tick or after: frames outnumber ticks.
-        int tick = client.World.Tick switch { >= 68 => 68, >= 60 => 60, >= 50 => 50, >= 10 => 10, _ => -1 };
+        int tick = client.World.Tick switch { >= 120 => 120, >= 68 => 68, >= 60 => 60, >= 50 => 50, >= 10 => 10, _ => -1 };
         if (tick <= _done) return;
         _done = tick;
         switch (tick)
         {
             case 10:
-                log($"a {Side}×{Side} run of iron walls planned");
+                log($"a {Side}Г—{Side} run of iron walls planned");
                 for (int y = y0; y < y0 + Side; y++)
                     for (int x = x0; x < x0 + Side; x++) client.Send(new PlacePlan(y * w + x, Placement.Wall("iron")));
                 // On the corner inside the run's bottom-left quarter: the square is that quarter.
-                _pointer = (x0 + 1.1, y0 + Side - 0.9);
+                _pointer = mode == "nothing" ? (x0 - 5.1, y0 + Side - 0.9) : (x0 + 1.1, y0 + Side - 0.9);
                 hands.Mouse.Buttons.OnPointer(false, 0, _pointer.Value);
                 break;
             case 50 when mode == "cell":
@@ -85,9 +87,14 @@ public sealed class DriverDemo(Hands hands, string mode)
             case 60:
                 hands.Mouse.Buttons.OnPointer(false, 0, _pointer!.Value);
                 break;
+            case 68 when mode == "hover":
+                break;
             case 68:
-                log("the left button held on the run");
+                log($"the left button held {(mode == "nothing" ? "on the bare floor" : "on the run")}, the belt at {m.Items.BeltCharge(0).Charge}");
                 hands.Mouse.Buttons.OnPointer(true, Buttons.Left, _pointer!.Value);
+                break;
+            case 120:
+                log($"the belt at {m.Items.BeltCharge(0).Charge}");
                 break;
         }
     }

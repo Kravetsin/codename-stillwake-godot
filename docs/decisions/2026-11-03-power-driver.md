@@ -1,6 +1,8 @@
 # The power driver works a square
 
 - Status: accepted.
+- Partly superseded by [driver-at-work](2026-11-03-driver-at-work.md): it runs and draws only while it works, and its square
+  shows by the charge, only over plans or marks.
 - Builds on [0107](0107-left-is-front-right-is-back.md) (the screwdriver builds), [0055](0055-an-electric-tool-draws-while-it-runs.md)
   (an electric tool draws while it runs) and [0104](0104-the-cell-is-8-px.md) (the 2×2 stamp).
 

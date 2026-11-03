@@ -52,17 +52,36 @@ public class PowerDriverAimTests
     }
 
     [Fact]
-    public void ItWorksTheSquareOnlyWhileTheDriverRunsInItsModeElseOneCell()
+    public void ItWorksTheSquareWhileChargedInItsModeRunningOrNotElseOneCell()
     {
         var driver = Spec.Screwdrivers.PowerDriver;
-        Assert.Equal(2, Aiming.SideOf(driver, square: true, running: driver.Item));
-        // Switched to one cell, flat (not running), or another item running: one cell.
-        Assert.Equal(1, Aiming.SideOf(driver, square: false, running: driver.Item));
-        Assert.Equal(1, Aiming.SideOf(driver, square: true, running: null));
-        Assert.Equal(1, Aiming.SideOf(driver, square: true, running: Spec.Weapons.Drill.Item));
+        // Charged, it shows the square before the press, not only once the sim runs it.
+        Assert.Equal(2, Aiming.SideOf(driver, square: true, charged: true));
+        // Switched to one cell, or flat: one cell.
+        Assert.Equal(1, Aiming.SideOf(driver, square: false, charged: true));
+        Assert.Equal(1, Aiming.SideOf(driver, square: true, charged: false));
         // The screwdriver is always one cell; so is a hand with no builder.
-        Assert.Equal(1, Aiming.SideOf(Spec.Screwdrivers.Basic, square: true, running: Spec.Screwdrivers.Basic.Item));
-        Assert.Equal(1, Aiming.SideOf(null, square: true, running: driver.Item));
+        Assert.Equal(1, Aiming.SideOf(Spec.Screwdrivers.Basic, square: true, charged: true));
+        Assert.Equal(1, Aiming.SideOf(null, square: true, charged: true));
+    }
+
+    [Fact]
+    public void TheSquareShowsOnlyOverAPlanOrAMarkElseThePointerAimsAtOneCell()
+    {
+        var w = Hall().Step(new SetCreative(true));
+        // Over the hall's empty floor: no square, so no outline and no work at nothing.
+        Assert.Null(Aiming.WorkedSquare(w.M, 0, CellHero(2, 8), (6, 4), 2));
+        // One wall planned in it: the whole square shows, its one target that plan.
+        w.Step(new PlacePlan(C(6, 4), Scrap));
+        var planned = Aiming.WorkedSquare(w.M, 0, CellHero(2, 8), (6, 4), 2);
+        Assert.Equal((5, 3), (planned!.Value.Square.X, planned.Value.Square.Y));
+        Assert.Equal([w.M.Building.PlansAt(C(6, 4))[0].Id], planned.Value.Targets.Select(t => t.Plan));
+        // A back wall marked to come down shows it too.
+        w.Step(new Deconstruct(C(10, 4), "back"));
+        var marked = Aiming.WorkedSquare(w.M, 0, CellHero(9, 8), (10, 4), 2);
+        Assert.Equal([w.M.Building.PlansAt(C(10, 4))[0].Id], marked!.Value.Targets.Select(t => t.Plan));
+        // One cell, there is no square at all.
+        Assert.Null(Aiming.WorkedSquare(w.M, 0, CellHero(2, 8), (6, 4), 1));
     }
 
     [Fact]
