@@ -416,9 +416,9 @@ public partial class HeroView
         _tracedSquare = (square, [.. targets]);
         _traced = null;
         _outline.Dashed = false;
-        _outline.ZIndex = Layers.Aim;
+        _outline.ZIndex = Layers.SquareAim;
         _outline.Begin();
-        AimOutline.Square(_outline, m, square, targets, AimReady, AimRefused);
+        AimOutline.Square(_outline, m, square, targets, Outline.SquareReady, AimRefused);
         _outline.End();
     }
 }
