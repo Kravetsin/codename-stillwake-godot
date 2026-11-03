@@ -47,6 +47,20 @@ public class PromptTests
     }
 
     [Fact]
+    public void NamesThePowerDriverInHandElseTheScrewdriver()
+    {
+        var planned = new TestWorld("#...#");
+        planned.Step(new PlacePlan(2, new Placement("structure", "floor")), new Deconstruct(0, "structure"));
+        static Aim Work(int plan) => new(0, true, Work: new WorkAim(plan, null));
+        string driver = Stillwake.Content.Screwdrivers.PowerDriver.Item;
+        Assert.Equal(["use.build.powerDriver", "use.takeApart.powerDriver"], new[] { 1, 2 }.Select(plan => Prompts.Of(planned.M, Work(plan), driver)?.Action));
+        Assert.Equal("use.repair.powerDriver", Prompts.Of(planned.M, new Aim(0, true, Work: new WorkAim(0, null, 7)), driver)?.Action);
+        // The screwdriver, or a hand with no words of its own, says the screwdriver's.
+        Assert.Equal("use.build", Prompts.Of(planned.M, Work(1), Stillwake.Content.Screwdrivers.Basic.Item)?.Action);
+        Assert.Equal("use.build", Prompts.Of(planned.M, Work(1), "drill")?.Action);
+    }
+
+    [Fact]
     public void OffersNothingOutOfReachOrWithNothingToDo()
     {
         var door = new SetDoor(At(2, 1), false);

@@ -1,6 +1,7 @@
 # The power driver's square in teal, over the plans
 
 - Status: accepted
+- Partly superseded by [builder-aim](2026-11-03-builder-aim.md): one cell of work on a plan glows teal over the plans too.
 - Date: 2026-11-03
 - Builds on [driver-at-work](2026-11-03-driver-at-work.md), whose "a stronger frame" this settles, and on
   [power-driver](2026-11-03-power-driver.md) (the square's tip).

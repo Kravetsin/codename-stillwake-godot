@@ -45,7 +45,7 @@ public partial class HeroView
         var square = squared?.Square;
         var targets = squared?.Targets;
         _ui.WorkedSquare = square?.Cells;
-        var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim);
+        var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim, driver?.Item);
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
         else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
@@ -402,10 +402,12 @@ public partial class HeroView
         if (traced == _traced && _tracedSquare == null) return;
         _traced = traced;
         _tracedSquare = null;
+        // A plan or a mark aimed at glows as the driver's square does, teal over the plans' pale ghosts (driver-square).
+        bool plan = aim?.Work is { Repair: null };
         _outline.Dashed = back;
-        _outline.ZIndex = Layers.Aim;
+        _outline.ZIndex = plan ? Layers.SquareAim : Layers.Aim;
         _outline.Begin();
-        if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : AimReady);
+        if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : plan ? Outline.SquareReady : AimReady);
         _outline.End();
     }
 

@@ -15,22 +15,24 @@ public sealed record Prompt(string Action, string? Problem);
 /// <summary>The prompt for E (apps/game/src/features/crew/prompt.ts).</summary>
 public static class Prompts
 {
-    /// <summary>
-    /// What E would do at <paramref name="aim"/> within reach, in words; nothing out of reach or with
-    /// nothing to do. A door or valve says what its press would make of it (<see cref="Aiming.AimAt"/>).
-    /// </summary>
     /// <summary>What E does for a hero sitting in a drop pod, wherever the pointer is: it leaves.</summary>
     public static readonly Prompt Seated = new("use.alight", null);
 
-    public static Prompt? Of(Registry m, Aim? aim)
+    /// <summary>
+    /// What E would do at <paramref name="aim"/> within reach, in words; nothing out of reach or with
+    /// nothing to do. A door or valve says what its press would make of it (<see cref="Aiming.AimAt"/>). A builder's work
+    /// names the builder <paramref name="held"/> when it has its own words (use.build.powerDriver), else the screwdriver.
+    /// </summary>
+    public static Prompt? Of(Registry m, Aim? aim, string? held = null)
     {
         if (aim is not { InReach: true }) return null;
-        if (aim.Work is { Repair: not null } repair) return new Prompt("use.repair", repair.Problem);
+        string By(string action) => held != null && I18n.En.Table.ContainsKey($"{action}.{held}") ? $"{action}.{held}" : action;
+        if (aim.Work is { Repair: not null } repair) return new Prompt(By("use.repair"), repair.Problem);
         if (aim.Work is { } work)
         {
             var plan = m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan);
             string action = plan?.Clear != null ? "use.takeApart" : "use.build";
-            return new Prompt(action, work.Problem);
+            return new Prompt(By(action), work.Problem);
         }
         // A drop pod is boarded, its slot opening as the hero sits: said as a seat, with why not.
         if (aim.Press is { Command: Sim.Landing.Board } board) return new Prompt("use.board", board.Problem);
