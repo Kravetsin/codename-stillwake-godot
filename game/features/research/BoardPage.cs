@@ -13,7 +13,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The tablet's first tab: the scavenger's board (docs/plans/board.md), blank till the first find. Notes written with a stylus where <see cref="BoardSlots"/>
+/// The tablet's first page: the scavenger's board (docs/plans/board.md), blank till the first find. Notes written with a stylus where <see cref="BoardSlots"/>
 /// stands them, threads to shapes sketched by outline, dragged and zoomed (<see cref="TechCamera"/>). A click picks and says what is known of it in
 /// the strip below; it buys nothing, for it takes no way to send a command. A thing dragged stays where it is let go, on this machine only (<see cref="BoardKeep"/>). What landed has a loop drawn round it until the player touches it ([board-thoughts](../../../docs/decisions/2026-11-02-board-thoughts.md)).
 /// Unread entries wait beside the board, one shown large; a click lands it at its place ([the pile](../../../docs/decisions/2026-11-02-board-pile.md), <see cref="BoardPile"/>).

@@ -217,6 +217,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
 | [loss-shows-white](2026-11-03-loss-shows-white.md) | Every loss shows white | accepted |  |
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
+| [market-key](2026-11-03-market-key.md) | The black market has its own key on the tablet's edge, the tablet no tabs, the credits always in sight | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |

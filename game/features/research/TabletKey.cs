@@ -9,12 +9,12 @@ namespace Stillwake.Game.Features.Research;
 
 /// <summary>
 /// The tablet's key, on the tablet's top edge (<see cref="TabletEdge"/>): a press does what T does, and its cap, a frosted lens with a bulb's shade in it, lights from within when
-/// the board or the market has something new ([key-lens](../../../docs/decisions/2026-11-02-key-lens.md)). It reads for itself, for the tablet reads nothing while away.
+/// a note is unread ([key-lens](../../../docs/decisions/2026-11-02-key-lens.md)). It reads for itself, for the tablet reads nothing while away.
 /// </summary>
 public partial class TabletKey : Node
 {
     private const double RefreshS = 0.25;
-    /// <summary>The market's orders: a sale moves no version, so they are read on the timer.</summary>
+    /// <summary>The market's orders, read here for the market's key: a sale moves no version, so they are read on the timer.</summary>
     private static readonly Content.TechNode[] Orders = [.. Content.Research.Nodes.Where(n => n is { Gate: true, Tab: Content.Research.Market })];
 
     private readonly Func<Registry?> _world;

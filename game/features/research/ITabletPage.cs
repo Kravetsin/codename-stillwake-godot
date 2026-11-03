@@ -3,7 +3,7 @@ using Stillwake.Sim;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>A tab of the research tablet: what <see cref="ResearchTablet"/> asks of whatever it shows there.</summary>
+/// <summary>A page of the research tablet, the board or the market: what <see cref="ResearchTablet"/> asks of whatever it shows there.</summary>
 public interface ITabletPage
 {
     /// <summary>Puts it on the screen, read afresh, or takes it off, nothing left picked.</summary>

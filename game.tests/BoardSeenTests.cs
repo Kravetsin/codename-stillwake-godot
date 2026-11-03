@@ -141,17 +141,16 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
-    public void ANewlyMetOrderLightsTheLampAndAnOrderAlreadySeenDoesNot()
+    public void ANewlyMetOrderLightsTheMarketsKeyNotTheTablets()
     {
         var seen = new BoardSeen([]);
         seen.ReadOrders(1);
-        Assert.False(seen.Lit);
         Assert.False(seen.MarketNew);
         seen.ReadOrders(1);
-        Assert.False(seen.Lit);
+        Assert.False(seen.MarketNew);
         seen.ReadOrders(2);
-        Assert.True(seen.Lit);
         Assert.True(seen.MarketNew);
+        Assert.False(seen.Lit);
     }
 
     [Fact]
@@ -160,15 +159,14 @@ public sealed class BoardSeenTests : IDisposable
         var seen = new BoardSeen([], 0);
         seen.ReadOrders(1);
         seen.Opened();
-        Assert.False(seen.Lit);
         Assert.True(seen.MarketNew);
         seen.Closed();
-        Assert.True(seen.Lit);
+        Assert.True(seen.MarketNew);
         seen.Opened();
         Assert.Equal(0, seen.SeeOrders(1));
         Assert.False(seen.MarketNew);
         seen.Closed();
-        Assert.False(seen.Lit);
+        Assert.False(seen.MarketNew);
     }
 
     [Fact]

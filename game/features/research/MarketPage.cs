@@ -511,7 +511,6 @@ public sealed class MarketPage : ITabletPage
             x += wide + 6;
         }
         _tabs.DrawRect(new Rect2(0, 27, _tabs.Size.X, 1), Edge);
-        SayRight(_tabs, Plain, T("research.market.sort"), _tabs.Size.X, 18, 11, Dim);
     }
 
     /// <summary>The order being filled: what it asks for and what is sold of it, garbage while the order before it opens it, and what it unlocks as garbage.</summary>

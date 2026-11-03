@@ -11,8 +11,8 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// The research tablet (2026-10-30-tablet-tree), nearly the whole screen: T takes it out anywhere and puts it away; Esc, Tab, E and B put
-/// it away too. A tab a page (<see cref="ITabletPage"/>) over a strip about what is picked, the credits above. The world runs on behind it.
+/// The research tablet (2026-10-30-tablet-tree), nearly the whole screen: T takes it out on the board anywhere, M on the market (2026-11-03-market-key), and
+/// each puts it away from its own page; Esc, Tab, E and B put it away too. A page (<see cref="ITabletPage"/>) over a strip about what is picked. The world runs on behind it.
 /// </summary>
 public partial class ResearchTablet : CanvasLayer
 {
@@ -25,9 +25,6 @@ public partial class ResearchTablet : CanvasLayer
     private readonly Func<bool> _inWorld;
     private readonly Func<Registry?> _world;
     private readonly Tablet _tablet = new();
-    private readonly Control _strip = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly HBoxContainer _head = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, GrowHorizontal = Control.GrowDirection.Begin, Alignment = BoxContainer.AlignmentMode.End }, 16);
-    private readonly CreditLine _credits = new(Tablet.FontSize + 1);
     private readonly Control _view = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly Panel _detail = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly TipSpots _tips;
@@ -36,12 +33,9 @@ public partial class ResearchTablet : CanvasLayer
     private readonly BoardPage _board;
     private readonly BoardKeep _keep = new(ProjectSettings.GlobalizePath("user://boards"));
     private readonly TabletKey _key;
-    private readonly ColorRect _marketLamp = new() { Color = new Color("0e1014"), MouseFilter = Control.MouseFilterEnum.Ignore, Size = new Vector2(10, 4), Visible = false };
     private readonly MarketPage _market;
-    private readonly List<PanelContainer> _tabBoxes = [];
     private ITabletPage _page;
     private double _sinceRead = ReadEvery;
-    private int _hoveredTab = -1;
 
     /// <param name="ui">Whether it is out, the hand freed as it comes, the menu, under which it takes no key.</param>
     /// <param name="inWorld">Whether a world is played: on the title T does nothing.</param>
@@ -58,34 +52,10 @@ public partial class ResearchTablet : CanvasLayer
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(root);
         root.AddChild(_tablet);
-        float x = 0;
-        void AddTab(string title, ITabletPage page)
-        {
-            int index = _pages.Count;
-            _pages.Add(page);
-            var box = Tablet.Tab(title, null, x);
-            foreach (var label in box.FindChildren("*", nameof(Label), true, false).OfType<Label>()) label.LabelSettings.Font = Style.Clear;
-            box.GuiInput += e =>
-            {
-                if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
-                Choose(_pages[index]);
-                box.AcceptEvent();
-            };
-            box.MouseEntered += () => HoverTab(index);
-            box.MouseExited += () => HoverTab(-1);
-            _strip.AddChild(box);
-            _tabBoxes.Add(box);
-            x += box.CustomMinimumSize.X + 4;
-        }
-        AddTab(T("research.tab.board"), _board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, _keep));
+        _pages.Add(_board = new BoardPage(_view, _parts, () => _sinceRead = ReadEvery, worldId, _keep));
         var tab = Content.Research.Tabs.Single(t => t.Id == Content.Research.Market);
-        AddTab(T($"research.tab.{tab.Id}"), _market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen));
-        _marketLamp.Position = new Vector2(_tabBoxes[^1].Position.X + _tabBoxes[^1].CustomMinimumSize.X - 13, 0);
-        _marketLamp.AddChild(new ColorRect { Color = new Color("f2b84b"), MouseFilter = Control.MouseFilterEnum.Ignore, Position = Vector2.One, Size = new Vector2(8, 2) });
-        _strip.AddChild(_marketLamp);
-        _page = _pages[0];
-        _head.AddChild(_credits);
-        _strip.AddChild(_head);
+        _pages.Add(_market = new MarketPage(tab, _view, _parts, send, () => _sinceRead = ReadEvery, () => _keep.Seen));
+        _page = _board;
         _view.GuiInput += e => _page.Pointer(e);
         _detail.AddChild(_parts.Facts);
         var action = _parts.Action;
@@ -101,11 +71,11 @@ public partial class ResearchTablet : CanvasLayer
         // The wheel over the bezel zooms as over the map; it never reaches the hotbar.
         _tablet.GuiInput += e => _page.Zoom(e, _tablet);
         _tablet.Bezel.GuiInput += e => _page.Zoom(e, _tablet.Bezel);
-        foreach (var part in (Control[])[_market.Body, _strip, _view, _detail]) _tablet.OnScreen(part);
-        PaintTabs();
+        foreach (var part in (Control[])[_market.Body, _view, _detail]) _tablet.OnScreen(part);
         PaintDetail();
         _page.Show(true);
         _key = new TabletKey(world, worldId, _keep, Bulb, Toggle);
+        MarketCap = new EdgeKey("market", ToggleMarket, () => _keep.Seen.MarketNew || Shown && _page == _market);
         AddChild(_key);
     }
 
@@ -115,22 +85,38 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>The tablet's key, for the edge to set in place.</summary>
     public WristKey Cap => _key.Cap;
 
+    /// <summary>The market's own key beside it, so the market is one press away (2026-11-03-market-key): lit while the market is out, or an order met is unseen.</summary>
+    public EdgeKey MarketCap { get; }
+
+    /// <summary>T and the tablet's key: take it out on the board, go to the board from the market, or put it away from the board.</summary>
     private void Toggle()
     {
-        if (Shown) Close();
-        else Open();
+        if (!Shown) Open();
+        else if (_page == _board) Close();
+        else Choose(_board);
     }
 
     /// <summary>Whether it is out: what Esc puts away before it opens the menu.</summary>
     public bool Shown => _ui.TreeOpen.Get();
 
     /// <summary>Takes it out, the hand freed. What it puts away is <c>Main</c>'s to say, as it listens to <see cref="Ui.TreeOpen"/>.</summary>
-    public void Open()
+    public void Open() => Open(_board);
+
+    /// <summary>The market key and M: takes it out on the market, goes over to it from the board, or puts it away from the market.</summary>
+    public void ToggleMarket()
+    {
+        if (!Shown) Open(_market);
+        else if (_page == _market) Close();
+        else Choose(_market);
+    }
+
+    /// <summary>Takes it out on <paramref name="page"/>.</summary>
+    private void Open(ITabletPage page)
     {
         if (Shown) return;
         _ui.Hand.Set(Holding.Free);
         _keep.Seen.Opened();
-        if (_keep.Seen.Unread.Count > 0 && _page != _board) Choose(_board);
+        if (page != _page) Choose(page);
         else _page.Show(true);
         _sinceRead = ReadEvery;
         _ui.TreeOpen.Set(true);
@@ -172,9 +158,6 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Where the "Take all" button is on the screen: what a recording points at.</summary>
     public Vector2 TakeAllAt => _board.TakeAllAt;
 
-    /// <summary>Where tab <paramref name="index"/> is on the screen: what a recording points at.</summary>
-    public Vector2 TabAt(int index) => _tabBoxes[index].GetGlobalRect().GetCenter();
-
     public override void _Process(double delta)
     {
         bool open = Shown && _world() != null;
@@ -200,29 +183,21 @@ public partial class ResearchTablet : CanvasLayer
         float width = TabletPeek.ScreenWidth(screen.X), height = Mathf.Floor(screen.Y - around - 2 * TabletPeek.Margin);
         var rest = ((screen - new Vector2(width + around, height + around)) / 2 + new Vector2(TabletLayout.ScreenLeft * s, TabletLayout.ScreenTop * s)).Round();
         _tablet.Lay(rest.X, rest.Y, width, height);
-        const int bodyTop = pad + TabletLayout.TabHeight + pad;
-        _strip.Position = new Vector2(pad, pad);
-        _strip.Size = new Vector2(width - 2 * pad, TabletLayout.TabHeight);
-        _head.Size = new Vector2(_head.GetCombinedMinimumSize().X, TabletLayout.TabHeight);
-        _head.Position = new Vector2(_strip.Size.X - _head.Size.X, 0);
         _detail.Position = new Vector2(pad, height - pad - DetailTall);
         _detail.Size = new Vector2(width - 2 * pad, DetailTall);
         _parts.Facts.Position = new Vector2(pad, pad);
         _parts.Facts.Size = new Vector2(_detail.Size.X - ButtonWide - 3 * pad, DetailTall - 2 * pad);
         _parts.Action.Position = new Vector2(_detail.Size.X - ButtonWide - pad, pad);
         _parts.Action.Size = new Vector2(ButtonWide, DetailTall - 2 * pad);
-        _view.Position = new Vector2(pad, bodyTop);
-        _view.Size = new Vector2(width - 2 * pad, _detail.Position.Y - pad - bodyTop);
-        _market.Body.Position = new Vector2(0, bodyTop - pad / 2);
-        _market.Body.Size = new Vector2(width, height - _market.Body.Position.Y);
+        _view.Position = new Vector2(pad, pad);
+        _view.Size = new Vector2(width - 2 * pad, _detail.Position.Y - 2 * pad);
+        _market.Body.Size = new Vector2(width, height);
     }
 
-    /// <summary>The head's credits, then every page: each restyles only what has changed.</summary>
+    /// <summary>Every page: each restyles only what has changed.</summary>
     private void Read(Registry m)
     {
-        _credits.Set(m.Research.Credits);
         foreach (var page in _pages) page.Read(m);
-        _marketLamp.Visible = _keep.Seen.MarketNew;
     }
 
     private void Choose(ITabletPage page)
@@ -233,19 +208,7 @@ public partial class ResearchTablet : CanvasLayer
         _page.Show(true);
         _page.Fill();
         _sinceRead = ReadEvery;
-        PaintTabs();
         PaintDetail();
-    }
-
-    private void HoverTab(int index)
-    {
-        _hoveredTab = index;
-        PaintTabs();
-    }
-
-    private void PaintTabs()
-    {
-        for (int i = 0; i < _tabBoxes.Count; i++) Tablet.PaintTab(_tabBoxes[i], _pages[i] == _page, i == _hoveredTab);
     }
 
     /// <summary>The strip in the look of the page shown: the market's its own.</summary>
@@ -272,13 +235,13 @@ public partial class ResearchTablet : CanvasLayer
         if (key.PhysicalKeycode is Key.Tab or Key.E or Key.B) Close();
     }
 
-    /// <summary>T takes it out and puts it away, in a world with the menu shut.</summary>
+    /// <summary>T does what the tablet's key does, M what the market's does, in a world with the menu shut.</summary>
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.T }) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.T or Key.M } key) return;
         if (!_inWorld() || _ui.MenuOpen.Get()) return;
-        if (Shown) Close();
-        else Open();
+        if (key.PhysicalKeycode == Key.M) ToggleMarket();
+        else Toggle();
         GetViewport().SetInputAsHandled();
     }
 }
