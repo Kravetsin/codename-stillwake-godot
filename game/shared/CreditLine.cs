@@ -17,10 +17,9 @@ public partial class CreditLine : HBoxContainer
         AddThemeConstantOverride("separation", 3);
         AddChild(_coin = new TextureRect
         {
-            Texture = AsciiArt.Credit(),
+            Texture = Signs.Credit(),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            TextureFilter = TextureFilterEnum.Nearest,
             CustomMinimumSize = new Vector2(size + 4, size + 4),
             MouseFilter = MouseFilterEnum.Ignore,
         });

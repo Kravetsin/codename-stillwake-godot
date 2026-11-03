@@ -20,10 +20,9 @@ public partial class MachineFrame : WristScreen
     private readonly Label _name = new() { LabelSettings = NameText, SizeFlagsHorizontal = SizeFlags.ExpandFill, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextureRect _bolt = new()
     {
-        Texture = AsciiArt.Bolt(false),
+        Texture = Signs.Bolt(false),
         ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
         StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        TextureFilter = TextureFilterEnum.Nearest,
         CustomMinimumSize = new Vector2(10, 13),
         SizeFlagsVertical = SizeFlags.ShrinkCenter,
         MouseFilter = MouseFilterEnum.Ignore,
