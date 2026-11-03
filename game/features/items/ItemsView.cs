@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
@@ -55,11 +56,12 @@ public partial class ItemsView : Node2D
     /// <summary>
     /// Shows the client's world through the current registry's queries, a resync bringing new ones;
     /// <paramref name="hero"/> is none until the hero is placed. <paramref name="progress"/> is how far
-    /// the world is between its last tick and the next.
+    /// the world is between its last tick and the next. <paramref name="netHolds"/> is what a net holds, each piece where it is
+    /// drawn, for a collect's loot to fly from (<see cref="OwnCatches"/>).
     /// </summary>
     public void Frame(
         Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, IResearchQueries research, DebrisModule debris,
-        HeroSpot? hero, double progress, double elapsedMs)
+        Func<int, IReadOnlyList<(int Piece, (double X, double Y) At)>> netHolds, HeroSpot? hero, double progress, double elapsedMs)
     {
         (Hero, Grid) = (hero, grid);
         var taking = Reach.PickingUp(client.InFlight);
@@ -67,8 +69,8 @@ public partial class ItemsView : Node2D
         if (hero is { Out: true } && !_wasOut) Panel.Close();
         _wasOut = hero?.Out ?? false;
         // What the hero walks over, it picks up, saying so over its head at once; passed out, nothing.
-        // What its own catches just put into the inventory, over its head too: a grab's loot is drawn as it runs.
-        var caught = _catches.Read(client.InFlight, debris.CaughtFrom, piece => DrawnAt(debris, piece, progress));
+        // What its own catches just put into the inventory, over its head too: a grab's or a net's collect's loot, drawn as it runs.
+        var caught = _catches.Read(client.InFlight, piece => debris.CaughtFrom(piece, client.Id), piece => DrawnAt(debris, piece, progress), netHolds);
         if (hero is { } spot)
         {
             // A catch's loot flies home from where the piece was, one icon after another (0075).

@@ -316,6 +316,6 @@ public partial class DebrisView(Ui ui) : Node2D
     /// The picture piece <paramref name="id"/> wears (<see cref="DebrisLooks"/>), or its item's as the world draws it (a tool's
     /// as it is held), a pixel of art a pixel of the world; each loaded once.
     /// </summary>
-    private static Texture2D PictureOf(string item, int id) =>
+    internal static Texture2D PictureOf(string item, int id) =>
         DebrisLooks.NameOf(item, id) is { } name ? PixelArt.Picture(name) : ItemIcons.Icon(item);
 }

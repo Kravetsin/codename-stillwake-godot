@@ -12,6 +12,7 @@ public static partial class En
         ["grid.noSuchMaterial"] = "No such material",
         ["grid.noSuchMachine"] = "No such machine",
         ["grid.noExhaust"] = "Its nozzle must go out through the hull into space",
+        ["grid.notOnHull"] = "Hang it outside, on the hull's right side",
         ["grid.noPlatform"] = "Stands only on a launch platform",
         ["grid.noGround"] = "Needs flat ground under it",
         ["grid.underPlatform"] = "Not under a launch platform: the pod falls through here",

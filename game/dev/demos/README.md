@@ -19,7 +19,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `HeroScenarios.cs` | the hero's maps and scripts: `--poses`, `--cape`, `--ledges`, `--ladders`, `--feel`, `--gym`, `--lone-hatch`, `--hills`, `--floor`, `--segments`, `--die`, `--breathe`, `--breathe-air`, `--suit` |
 | `MachineScenarios.cs` | machines and items: `--furnace`, `--items`, `--menu-demo`, `--open`, `--near`, `--marks`, `--card`, `--charger`, `--arc`, `--bench`, `--tree`, `--board`, `--bulb`, `--pod`, `--handbook`, `--tool-cards` |
 | `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--mark`, `--layer-demo`, `--shimmer-demo`, `--driver-demo` |
-| `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie` |
+| `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie`, `--net`, `--net-press` |
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand; `--autopilot` breaks the piles. |
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |

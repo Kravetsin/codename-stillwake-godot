@@ -18,7 +18,7 @@ public partial class HazardsTests
     private static readonly Content.Meteors.Shower Shower = Content.Meteors.StartingSpace, Weak = Content.Meteors.BeforeLanding;
 
     /// <summary>Opens a planet on <paramref name="w"/>, as a hero landing does: the landed shower falls from its next tick.</summary>
-    private static Scenario Landed(Scenario w) => w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
+    internal static Scenario Landed(Scenario w) => w.Do(new OpenSurface(Content.PlanetTypes.Small.Id)).Run();
 
     /// <summary>
     /// A meteor's strike seen from outside: where, how hard, its tick; the walls standing round it just before, ascending, and the
@@ -103,7 +103,7 @@ public partial class HazardsTests
     /// A meteor of <paramref name="power"/> striking <paramref name="cell"/> on the next tick, set through the save, and that tick run:
     /// the walls and the back walls it broke, ascending.
     /// </summary>
-    private static (List<int> Walls, List<int> Backs) StrikeAt(Scenario w, int cell, int power, bool landed = true)
+    internal static (List<int> Walls, List<int> Backs) StrikeAt(Scenario w, int cell, int power, bool landed = true)
     {
         if (landed) Landed(w);
         var grid = w.M.Grid;

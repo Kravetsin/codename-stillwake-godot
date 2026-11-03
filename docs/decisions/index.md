@@ -209,6 +209,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
 | [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
 | [charger-two](2026-11-03-charger-two.md) | The charger holds two batteries, drawing for each | accepted |  |
+| [debris-net](2026-11-03-debris-net.md) | The debris net | accepted |  |
 | [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
 | [loss-shows-white](2026-11-03-loss-shows-white.md) | Every loss shows white | accepted |  |
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |

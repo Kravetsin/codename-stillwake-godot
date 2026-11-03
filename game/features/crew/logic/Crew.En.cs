@@ -45,6 +45,7 @@ public static partial class En
         ["use.loadCanister"] = "[E] Load a canister",
         ["use.pourWater"] = "[E] Pour a bottle of water",
         ["use.catch"] = "[E] Catch",
+        ["use.collect"] = "[E] Empty the net",
         ["use.chop"] = "[Hold LMB] Break",
         ["use.dig"] = "[Hold LMB] Dig",
         ["use.openDoor"] = "[E] Open door",

@@ -216,10 +216,12 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     /// <summary>
     /// What each map character means, found once rather than per cell, for a planet's map is millions of cells: its structure,
-    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire, under the stars it needs.
+    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire, under the stars it needs; a debris
+    /// net, hung only in space.
     /// </summary>
     private static readonly (int Structure, bool Bare)[] Looks = Enumerable.Range(0, char.MaxValue + 1)
-        .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind && Content.Machines.Get(kind) is { Makes: not null, FuelSlot: null }))
+        .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind
+            && Content.Machines.Get(kind) is var spec && (spec is { Makes: not null, FuelSlot: null } || spec.Is(MachineTrait.Catches))))
         .ToArray();
 
     /// <summary>
@@ -592,6 +594,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
                 if (cells.Any(UnderPlatform)) return "grid.underPlatform";
                 if (Content.Machines.Get(p.Kind).Exhaust is int reach && !ExhaustsThroughHull(cell, Content.Machines.Get(p.Kind).Height, reach))
                     return "grid.noExhaust";
+                if (Content.Machines.Is(p.Kind, MachineTrait.Catches) && !HangsOnHull(cell, Content.Machines.Get(p.Kind))) return "grid.notOnHull";
                 if (!Content.Machines.Is(p.Kind, MachineTrait.Lands)) return null;
                 // Off the ship a pod is only ever landed by its module, on the ground.
                 if (Surfaces is { Here: not 0 }) return RowUnder(p.Kind, cell, Solid) ? null : "grid.noGround";
@@ -659,6 +662,22 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
             if (walls == 0) return false;
             for (int k = walls; k < Math.Max(walls + 1, reach); k++)
                 if (!IsSpace(x0 - 1 - k, y)) return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Whether a debris net of <paramref name="spec"/> at <paramref name="cell"/> hangs on the hull's right side (docs/decisions/2026-11-03-debris-net.md):
+    /// a wall directly left of every row of it, every cell of it space with no back wall, so it never catches inside a room.
+    /// </summary>
+    private bool HangsOnHull(int cell, MachineSpec spec)
+    {
+        int x0 = cell % State.Width, y0 = cell / State.Width;
+        for (int y = y0; y < y0 + spec.Height; y++)
+        {
+            if (!IsWall(x0 - 1, y)) return false;
+            for (int x = x0; x < x0 + spec.Width; x++)
+                if (!IsSpace(x, y)) return false;
         }
         return true;
     }

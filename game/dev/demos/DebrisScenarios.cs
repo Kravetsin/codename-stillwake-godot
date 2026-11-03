@@ -128,3 +128,20 @@ public sealed class SentryScenario : DevScenario
         }
     }
 }
+
+[Dev("--net", "the scoop with a debris net on its bow, the hero out beside it; =N pieces held (NetDemo)", Shape = DevShape.Either)]
+[Dev("--net-press", "--net's scene, E pressed on the net two seconds in; =N pieces held (NetDemo)", Shape = DevShape.Either)]
+public sealed class NetScenario : DevScenario
+{
+    public override Layout? Map => Registry.Wreck;
+
+    public override World Seed(World world, DevSeed seed) =>
+        NetDemo.Seed(world, seed.M, seed.Modules, int.TryParse(Args.Given("--net") ?? Args.Given("--net-press"), out int held) ? held : 0);
+
+    public override Func<Registry, int>? Start => NetDemo.StartOf;
+
+    public override void Attach(DevContext c)
+    {
+        if (Args.Given("--net-press") != null) c.Add(new NetDemo(c.World));
+    }
+}

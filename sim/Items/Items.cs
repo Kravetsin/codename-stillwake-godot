@@ -86,6 +86,7 @@ public interface IItemsOps
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
+    IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
     void Charge(int id, int slot, int amount);
@@ -482,6 +483,25 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
         Stacks.SetInventory(State, peer, slots);
         DropAt(peer, left, cell);
+        return Given(cost, left);
+    }
+
+    /// <summary>
+    /// Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits, counting only that as obtained, and returns the
+    /// rest: what a debris net keeps of an entry a hero collects (docs/decisions/2026-11-03-debris-net.md).
+    /// </summary>
+    public IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost)
+    {
+        if (Stacks.IsNothing(cost)) return [];
+        var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
+        Stacks.SetInventory(State, peer, slots);
+        Obtained(Given(cost, left));
+        return left;
+    }
+
+    /// <summary>What of <paramref name="cost"/> went in, <paramref name="left"/> left over: by item, in the order the cost first names it.</summary>
+    private static List<(string Item, int Count)> Given(IReadOnlyList<(string Item, int Count)> cost, IReadOnlyList<(string Item, int Count)> left)
+    {
         var given = new List<(string Item, int Count)>();
         foreach (var (item, _) in cost)
         {

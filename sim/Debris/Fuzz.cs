@@ -1,3 +1,5 @@
+using Stillwake.Content;
+
 namespace Stillwake.Sim.Debris;
 
 public sealed partial class DebrisModule
@@ -7,9 +9,17 @@ public sealed partial class DebrisModule
     /// small piece, whichever is drawn — else one already gone or never spawned. Most are refused, as few
     /// fuzzed heroes stand in space; those that are not take the piece, chop at the wreck till it breaks,
     /// or reel it to a point anywhere from a grid's size before the grid to one past it, so the clamp works.
+    /// A quarter of the draws instead collect from a debris net, mostly one that stands, else any machine id or none: on a map
+    /// without nets, refused.
     /// </summary>
     public override Command? Fuzz(Rng rng, int from)
     {
+        if (rng.Below(4) == 0)
+        {
+            var nets = _grid.MachinesWith(MachineTrait.Catches);
+            int net = nets.Count > 0 && rng.Below(4) != 0 ? nets[(int)rng.Below((uint)nets.Count)].Id : (int)rng.Below((uint)_grid.Machines.Count + 2);
+            return new Collect(net) { From = from };
+        }
         var pieces = State.Pieces;
         uint kind = rng.Below(3);
         int piece = pieces.Count > 0 && rng.Below(4) != 0

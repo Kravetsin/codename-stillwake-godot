@@ -103,6 +103,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 ## World
 
 - обломок / debris piece **≠** → `Piece`, `Hit`, `Reel` (sim/Debris); a wreck is debris of kind wreckage → Debris
+- сеть, сеть для обломков / debris net → machine `net`, trait `Catches`, `Collect`, `NetEntry`, `DebrisModule.Held` (sim/Debris `Nets.cs`) → Debris
 - метеор / meteor → `Meteor`, `MeteorHit`, `Meteors.Shower` → Hazards
 - вспышка, магнитная буря / magnetic flare → `MagneticFlares.Flare`, `FlareNow`, `FlareComing` (sim/Hazards `Flares.cs`) → Hazards
 - сломан, поломка / broken → `IPowerQueries.IsBroken`, `IPowerOps.Break` → Power

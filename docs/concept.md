@@ -97,7 +97,8 @@ A living document: what is decided about the game and what is still open. Techni
 - **Catching:** by hand on the tether, within reach; farther out, a hand harpoon made at the Fabricator
   shoots a rod on a line up to 20 cells into a piece, small or a wreck, and a second click reels it in to just before
   the gun, to catch with E or chop with the axe; it fires again 5 s after its shot
-  ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md)).
+  ([0044](decisions/0044-the-harpoon-reels-a-piece-to-a-point.md)); a net hung on the bow holds ten small pieces drifting into
+  it till a hero empties it with E ([the-debris-net](decisions/2026-11-03-debris-net.md)).
 - **Wreckage** drifts among the small debris, too big to catch: a hull section, a cargo container,
   a machine block, an electronics rack, oxygen tanks, a shield slab and, rarely, a soil clod, each broken with the fire axe
   into what its picture shows it holds, floating where it was
@@ -199,7 +200,7 @@ A living document: what is decided about the game and what is still open. Techni
 - Art direction: style and mood; where sprites and character parts come from (drawn or rendered from
   3D).
 - Which customization is cosmetic and which comes with equipment.
-- What else catches: a harpoon or hook on the deck; drones later?
+- What else catches: drones, catching on their own or emptying the nets?
 - Planets: landing as in Starbound, for new resources and maybe growing plants; what it gives and how
   it works.
 - Parallel activities for 4+ players on one ship.

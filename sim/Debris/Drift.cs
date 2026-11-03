@@ -16,18 +16,23 @@ public sealed partial class DebrisModule
     /// <summary>Where each hero on the grid is this tick, by its reported cell, in id order; refilled every tick.</summary>
     private readonly List<(int X, int Y)> _heroes = [];
 
-    /// <summary>How many of the last catches <see cref="_caught"/> keeps: far more than one frame of four heroes catches.</summary>
-    public const int CaughtKept = 32;
+    /// <summary>How many of the last catches <see cref="_caught"/> keeps: more than four heroes each emptying a full net on one tick.</summary>
+    public const int CaughtKept = 64;
     /// <summary>
-    /// The last catches, oldest first: each piece and what it put into the inventory. Never saved nor hashed, read by
-    /// nothing in the sim; only the client asks it (<see cref="CaughtFrom"/>), for its own grabs just run.
+    /// The last catches, oldest first: each piece, its catcher and what it put into the inventory, by a grab or a collect of a
+    /// net's entry. Never saved nor hashed, read by nothing in the sim; only the client asks it (<see cref="CaughtFrom"/>), for
+    /// its own grabs and collects just run.
     /// </summary>
-    private readonly List<(int Piece, IReadOnlyList<(string Item, int Count)> Gave)> _caught = [];
+    private readonly List<(int Piece, int By, IReadOnlyList<(string Item, int Count)> Gave)> _caught = [];
 
-    /// <summary>The hull is found again after a create and a load: the grid's version starts over then. The catches before are forgotten.</summary>
+    /// <summary>
+    /// The hull is found again after a create and a load, and the nets looked at again: the grid's version starts over then. The
+    /// catches before are forgotten.
+    /// </summary>
     public override void Rebuild()
     {
         _hullAt = int.MinValue;
+        _heldAt = int.MinValue;
         _caught.Clear();
     }
 
@@ -120,6 +125,8 @@ public sealed partial class DebrisModule
     private void Drift()
     {
         var s = State;
+        // Before anything moves or is caught: a net gone this tick lets go of its pieces, and catches nothing more.
+        DropGone();
         // A world begins with pieces already on their way, as if the ship had drifted a while.
         if (s.Clock == 0 && s.AtStart > 0 && Rules.Debris && Hull() is { } first)
         {
@@ -129,8 +136,9 @@ public sealed partial class DebrisModule
         s.Clock += 1;
         FindHeroes();
         // Moved, then gone past its end where no hero sees it, or past the grid's edge, or, round the
-        // heroes, left behind by them all; the rest kept in order.
+        // heroes, left behind by them all, or caught in a net, in id order; the rest kept in order.
         var pieces = s.Pieces;
+        bool nets = _grid.MachinesWith(MachineTrait.Catches).Count > 0;
         int kept = 0;
         for (int i = 0; i < pieces.Count; i++)
         {
@@ -139,6 +147,7 @@ public sealed partial class DebrisModule
             else piece.X -= piece.Speed;
             if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit)) continue;
             if (ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)) continue;
+            if (nets && Catch(piece)) continue;
             pieces[kept++] = piece;
         }
         pieces.RemoveRange(kept, pieces.Count - kept);

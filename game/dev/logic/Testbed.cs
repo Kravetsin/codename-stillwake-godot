@@ -90,7 +90,7 @@ public static class Testbed
     /// room two has two. A canister in each tank airs the rooms as the world is made, then the tanks go in full, four canisters
     /// each: some twenty minutes of room two's air, more of room one's, and canisters in the crate for more.
     /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
-    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
+    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
     /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
     /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
@@ -105,9 +105,9 @@ public static class Testbed
             "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.yyAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
             "  #o#########################################__##",
-            "  #XXXL#",
-            "  #XXX.#",
-            "  ######",
+            "  #XXXL#n",
+            "  #XXX.#n",
+            "  ######n",
         ],
         [
             "",

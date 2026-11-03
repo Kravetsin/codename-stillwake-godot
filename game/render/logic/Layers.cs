@@ -41,6 +41,12 @@ public static class Layers
     /// <summary>A screen or a lamp on a machine's face beside its socket: a station's (research), a tank's sight glass (atmosphere).</summary>
     public const int Screens = Sockets;
 
+    /// <summary>
+    /// A debris net's pieces over its booms (the machine's picture), its plates on the hull's face with them, then the net in front of
+    /// them (debris).
+    /// </summary>
+    public const int NetHeld = Sockets, NetFront = Fittings;
+
     /// <summary>Grommets, pegs and plugs on the wall's face, then the bolts over machines short of power (power).</summary>
     public const int Fittings = 6, Bolts = 7;
 
