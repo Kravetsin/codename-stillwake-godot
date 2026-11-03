@@ -47,6 +47,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - испаритель / vaporizer → machine `generator`: a tank's liquid oxygen into air on power (2026-10-30-liquid-oxygen) → Atmosphere
 - жидкий кислород / liquid oxygen → fluid `liquidOxygen`: what a tank holds and a liquid pipe carries → Atmosphere, Pipes
 - чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research; `MarketPage` drawn in f/research
+- товар, плитка рынка / a good, a market tile → `MarketGood`, `MarketGoods` (client): a kind of upgrade's blocks as one ladder, or a blueprint
 - расшифровка, каша / the decipher, garbage → `MarketReveal`, `Cipher` (client)
 - панель / solar panel → machine `solarPanel` → Power (also: a UI panel, `*Panel.cs`)
 - светочувствительная панель / photosensitive panel → item `photoPanel`, in the solar panel's cost, had only of one taken apart

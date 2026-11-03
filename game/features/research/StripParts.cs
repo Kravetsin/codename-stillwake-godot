@@ -72,8 +72,11 @@ public sealed class StripParts(TipSpots tips)
     /// <summary>The strip's button, what a page has it do.</summary>
     public Button Action { get; } = new() { FocusMode = Control.FocusModeEnum.None };
 
-    /// <summary>What the button says when it buys: the word and <see cref="ActionPrice"/>.</summary>
+    /// <summary>What the button says: <see cref="ActionWord"/> and <see cref="ActionPrice"/>.</summary>
     public VBoxContainer ActionLine { get; } = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, Alignment = BoxContainer.AlignmentMode.Center }, 6);
+
+    /// <summary>The button's word: what it does, or why it cannot.</summary>
+    public Label ActionWord { get; } = Text("", Style.Slate100);
 
     /// <summary>The price on the button.</summary>
     public CreditLine ActionPrice { get; } = new(Tablet.FontSize + 3) { Alignment = BoxContainer.AlignmentMode.Center };
