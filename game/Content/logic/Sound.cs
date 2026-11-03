@@ -170,6 +170,22 @@ public static class Sound
     public const double DrillTouchHoldS = 0.1;
 
     /// <summary>
+    /// The power driver's motor while it runs at its work (power-driver), the user's pick «Винт в металл: петля», heard where it works on
+    /// the World bus, as the screwdriver's ratchet it stands in for: the screw biting once (<see cref="PowerDriverBiteS"/> long), then
+    /// its strained stretch looped till it stops, then the motor running down. Levelled as the drill's whir, at <see cref="ToolIdleDb"/>.
+    /// </summary>
+    public static readonly Cue PowerDriverBite = new(Shots("building/power-driver-bite", 1), ToolIdleDb, Pitch: 0.03f, Heard: Screwdriver.Heard);
+    public static readonly Cue PowerDriverLoop = new(["res://audio/building/power-driver-loop-1.ogg"], ToolIdleDb, Loops: true, Heard: Screwdriver.Heard);
+    public static readonly Cue PowerDriverOff = new(Shots("building/power-driver-off", 1), ToolIdleDb, Pitch: 0.03f, Heard: Screwdriver.Heard);
+
+    /// <summary>
+    /// The power driver's timing, in seconds: its bite's length, the loop taking over as it ends; how long its work may lapse
+    /// before it runs down, so a frame without a plan does not break it; how long the plans by it keep the ratchet silent after,
+    /// as the last work sent still lands; and how fast the bite and the loop fade as it lets go.
+    /// </summary>
+    public const double PowerDriverBiteS = 0.8, PowerDriverHoldS = 0.1, PowerDriverQuietS = 0.4, PowerDriverFadeS = 0.12;
+
+    /// <summary>
     /// The Former's press (0059), where it stands, on the World bus: a 10-ton punch press's stroke, once each time its head comes
     /// down in its pictures (every 0.44 s at its 4 × 110 ms), each its pitch scale within ±<see cref="FormerStrokePitch"/> and its
     /// volume within ±<see cref="FormerStrokeVolumeDb"/>. Soft, 3 dB over its motor, so it tells the press works without pounding.
@@ -588,7 +604,7 @@ public static class Sound
     /// <summary>The descent's cues, made from others declared above.</summary>
     public static readonly IReadOnlyList<Cue> Pod = [PodThrust, PodRelease, PodTouchdown, PodRumble, PodFlash, PodBlast];
 
-    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
+    public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
         LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];

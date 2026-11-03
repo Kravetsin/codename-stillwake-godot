@@ -44,6 +44,7 @@ public partial class HeroView
                 var drum = Cues.Player2D(S.Drum, S.World);
                 AddChild(drum);
                 shown = _shownOthers[id] = new Other(new Figure(Suits.Of(m.Players, id), own: false), NewRod(), drum);
+                foreach (var player in shown.Driver.Players) AddChild(player);
                 _others.AddChild(shown.Figure);
             }
             var hero = seen.Hero;
@@ -67,7 +68,10 @@ public partial class HeroView
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);
             shown.Figure.Aim = seen.Busy is { Work: Handwork.Drill, At: var drilled } ? Pixels(drilled) : rodAim is { } aimed ? Pixels(aimed) : null;
-            shown.Figure.Spinning = HeldLook.IsDrill(m.Items.Running(id));
+            shown.Figure.Spinning = HeldLook.IsDrill(running) || HeldLook.Drives(running);
+            // Its power driver heard where it works while the sim says it runs, as this hero's is (power-driver).
+            shown.Driver.Step(HeldLook.Drives(running) && seen.Busy is { Work: Handwork.Work }, seen.Busy is { Work: Handwork.Work, At: var worked } ? Pixels(worked) : null,
+                elapsedMs / 1000);
             if (Busy.BeamsAnew(shown.Busy, seen.Busy)) shown.Figure.Beam([Pixels(seen.Busy!.Value.At)]);
             shown.Figure.Loaded = shown.Rod.Loaded;
             shown.Figure.Jetpack = m.Items.Equipped(id, Content.Jetpack.Item);

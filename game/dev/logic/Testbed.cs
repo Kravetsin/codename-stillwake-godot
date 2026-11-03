@@ -38,11 +38,14 @@ public static class Testbed
     /// <summary>What nothing makes, in the farm's crate too: a solar panel's photosensitive panel, had only of one taken apart.</summary>
     public static readonly IReadOnlyList<string> Unmade = ["photoPanel"];
 
-    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of the crusher's, of planks for soil, of what a planet gives and of what nothing makes.</summary>
-    public static IEnumerable<string> FarmCrate => [.. Farm, .. Crushed, "planks", .. Planet, .. Unmade];
+    /// <summary>Tools the full crate has no slot left for, in the farm's crate too: the power driver (power-driver).</summary>
+    public static readonly IReadOnlyList<string> Spare = [Screwdrivers.PowerDriver.Item];
+
+    /// <summary>What the farm's crate holds: a full stack of each of the farm's items, of the crusher's, of planks for soil, of what a planet gives, of what nothing makes and the spare tools.</summary>
+    public static IEnumerable<string> FarmCrate => [.. Farm, .. Crushed, "planks", .. Planet, .. Unmade, .. Spare];
 
     /// <summary>Whether <paramref name="item"/> goes in the farm's crate rather than the full one.</summary>
-    public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item);
+    public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
     /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an

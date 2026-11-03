@@ -274,6 +274,94 @@ public static class Aiming
         return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
     }
 
+    /// <summary>
+    /// The side of the square <paramref name="driver"/> works (power-driver): its <c>Area</c> while this player's mode is the
+    /// <paramref name="square"/> and the sim says it runs (<paramref name="running"/>, on the belt's charge); else 1, one cell.
+    /// </summary>
+    public static int SideOf(Spec.Screwdriver? driver, bool square, string? running) =>
+        driver is { Area: > 1 } d && square && running == d.Item ? d.Area : 1;
+
+    /// <summary>
+    /// How fast <paramref name="driver"/> works (power-driver): at most its <c>Work</c> ticks on one plan a tick, and its
+    /// <c>Area</c> squared over all, while it runs or needs no charge; an electric one flat works as the basic screwdriver.
+    /// </summary>
+    public static (int Pace, int Budget) PaceOf(Spec.Screwdriver? driver, string? running)
+    {
+        var d = driver is { } b && (running == b.Item || Spec.Items.Get(b.Item).Draw == null) ? b : Spec.Screwdrivers.Basic;
+        return (d.Work, d.Area * d.Area);
+    }
+
+    /// <summary>
+    /// The ticks of work each of <paramref name="count"/> plans gets a tick, in their order: a tick each while
+    /// <paramref name="budget"/> lasts, then round again, at most <paramref name="pace"/> on one (power-driver).
+    /// </summary>
+    public static int[] SharesOf(int count, int pace, int budget)
+    {
+        var shares = new int[count];
+        for (int round = 0; round < pace; round++)
+            for (int i = 0; i < count && budget > 0; i++, budget--) shares[i]++;
+        return shares;
+    }
+
+    /// <summary>
+    /// The square of side <paramref name="side"/> worked round <paramref name="point"/>, in cells: its top-left column and row
+    /// as the placing stamp lies (<see cref="Brush"/>, 0104), kept on the grid, and its cells in the order they are worked,
+    /// the bottom row first, left to right. None with the point off the grid.
+    /// </summary>
+    public static (int X, int Y, int[] Cells)? SquareAt(int width, int height, (double X, double Y) point, int side)
+    {
+        if (point.X < 0 || point.Y < 0 || point.X >= width || point.Y >= height) return null;
+        var (x, y) = Brush.Corner(width, height, point, side, side);
+        var cells = new List<int>();
+        for (int row = Math.Min(y + side, height) - 1; row >= y; row--)
+            for (int col = x; col < Math.Min(x + side, width); col++) cells.Add(row * width + col);
+        return (x, y, [.. cells]);
+    }
+
+    /// <summary>
+    /// What a square's <paramref name="cells"/> give the left button to work, in their order: in each cell the hero of peer
+    /// <paramref name="peer"/> reaches, each layer's oldest plan that can be worked (when none can, its oldest, to show why),
+    /// the front's before the back wall's, else a broken machine's repair (magnetic-flare), as <see cref="AimAt"/> chooses for
+    /// one cell. A plan or machine under several cells is worked once, at the first. A cell with nothing, a crate or out of
+    /// reach gives nothing and stops none of the others.
+    /// </summary>
+    public static List<WorkAim> WorkTargets(Registry m, int peer, Hero hero, IReadOnlyList<int> cells)
+    {
+        var grid = m.Grid;
+        var plans = m.Building;
+        var targets = new List<WorkAim>();
+        void Add(WorkAim target)
+        {
+            if (!targets.Any(t => t.Plan == target.Plan && t.Repair == target.Repair)) targets.Add(target);
+        }
+        foreach (int cell in cells)
+        {
+            if (!Reaches(hero, cell, grid.Width)) continue;
+            var here = plans.PlansAt(cell);
+            if (here.Count == 0)
+            {
+                if (grid.MachineAt(cell) is { } machine && m.Power.IsBroken(machine.Id))
+                    Add(new WorkAim(0, plans.RepairProblem(machine.Id), machine.Id));
+                continue;
+            }
+            var layers = here.Select(p => p.Place?.Layer ?? p.Clear).Distinct().OrderBy(l => l == "back").ToList();
+            foreach (var layer in layers)
+            {
+                var of = here.Where(p => (p.Place?.Layer ?? p.Clear) == layer).Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer))).ToList();
+                Add(of.FirstOrDefault(w => w.Problem == null) ?? of[0]);
+            }
+        }
+        return targets;
+    }
+
+    /// <summary>
+    /// <paramref name="aim"/> as the prompt says it while a square is worked: its work the first of <paramref name="targets"/>
+    /// that can be worked, else the first, to show why, within reach; with no target, no work, so the pointer's press is said.
+    /// </summary>
+    public static Aim OverSquare(Aim aim, IReadOnlyList<WorkAim> targets) => targets.Count == 0
+        ? aim with { Work = null }
+        : aim with { InReach = true, Work = targets.FirstOrDefault(t => t.Problem == null) ?? targets[0] };
+
     /// <summary>A point in cells, in thousandths of a cell.</summary>
     public static Point PointOf((double X, double Y) cells) =>
         new((int)Math.Round(cells.X * Hero.Unit), (int)Math.Round(cells.Y * Hero.Unit));
@@ -473,22 +561,31 @@ public static class Aiming
     /// pressed, unless the sim would refuse it. Held on a plan, it sends <paramref name="pace"/> <see cref="Work"/> (the
     /// screwdriver's) for every tick released since the last it sent for, so a peer drawing fewer frames than the ticks it
     /// runs builds as fast as any other; a hold just begun sends one tick's. A tick that begins a part of a blueprint pays
-    /// its item (0063). <paramref name="tick"/> is the client's world tick.
+    /// its item (0063). <paramref name="tick"/> is the client's world tick. With <paramref name="targets"/> (a square's,
+    /// <see cref="WorkTargets"/>), each that can be worked is worked so, in their order, in place of the aim's own work,
+    /// <paramref name="budget"/> ticks a tick at most over all of them (<see cref="SharesOf"/>),
+    /// the aim out of reach or not.
     /// </summary>
-    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1)
+    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1, IReadOnlyList<WorkAim>? targets = null,
+        int? budget = null)
     {
-        if (aim is not { InReach: true }) return new([], null, -1);
-        // A drop pod boarded opens with it; one the sim would refuse neither seats nor opens.
-        if (pressed && aim.Crate is int pod && aim.Press?.Command is Board) return aim.Press.Problem == null ? new([aim.Press.Command], pod, -1) : new([], null, -1);
-        if (pressed && aim.Crate is int crate) return new([], crate, -1);
         var commands = new List<Command>();
-        // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
-        if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hew or HewWrecks)) commands.Add(press.Command);
-        if (aim.Work is not { Problem: null } work || !held) return new(commands, null, -1);
+        if (aim is { InReach: true })
+        {
+            // A drop pod boarded opens with it; one the sim would refuse neither seats nor opens.
+            if (pressed && aim.Crate is int pod && aim.Press?.Command is Board) return aim.Press.Problem == null ? new([aim.Press.Command], pod, -1) : new([], null, -1);
+            if (pressed && aim.Crate is int crate) return new([], crate, -1);
+            // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
+            if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hew or HewWrecks)) commands.Add(press.Command);
+        }
+        var work = (targets ?? (aim is { InReach: true, Work: { } own } ? [own] : [])).Where(t => t.Problem == null).ToList();
+        if (work.Count == 0 || !held) return new(commands, null, -1);
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;
         int due = fresh ? 1 : Math.Min(tick - workedOnTick, MaxWorkPerFrame);
-        for (int i = 0; i < due * pace; i++) commands.Add(work.Repair is int machine ? new Repair(machine) : new Work(work.Plan));
+        var shares = SharesOf(work.Count, pace, budget ?? pace * work.Count);
+        for (int t = 0; t < work.Count; t++)
+            for (int i = 0; i < due * shares[t]; i++) commands.Add(work[t].Repair is int machine ? new Repair(machine) : new Work(work[t].Plan));
         return new(commands, null, due > 0 ? tick : workedOnTick);
     }
 }

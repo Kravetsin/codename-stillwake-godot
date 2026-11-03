@@ -320,7 +320,7 @@ public class ArcModuleTests
         var w = new Scenario(Layout.Parse(Sealed), doubled: true).GiveItems(0, (Arc, 2)).GiveItems(1, (Arc, 1), ("iron", 9)).GiveItems(2, (Arc, 2));
         int before = Arcs(w);
         var rng = new Rng(new RngState { S = (uint)seed.Get });
-        for (int i = 0; i < 300; i++)
+        for (int i = 0; i < 16000; i++)
             if (w.M.Items.Fuzz(rng, i % 3) is { } c and not Spawn) w.Do(c).Run();
         return (Arcs(w) == before).Label($"{Arcs(w)} arc modules of {before}");
     }
@@ -332,7 +332,7 @@ public class ArcModuleTests
         var rng = new Rng(new RngState { S = 11 });
         int fits = 0, unfits = 0;
         // Long enough that an item added, shifting every draw, still leaves each refusal drawn.
-        for (int i = 0; i < 8000; i++)
+        for (int i = 0; i < 16000; i++)
         {
             if (w.M.Items.Fuzz(rng, i % 3) is not { } c) continue;
             int refused = w.Refusals.Count;
@@ -359,7 +359,7 @@ public class ArcModuleTests
         var b = Make();
         var rng = new Rng(new RngState { S = 5 });
         int fitted = 0;
-        for (int i = 0; i < 1500; i++)
+        for (int i = 0; i < 16000; i++)
         {
             if (i == 700) b.Reload(a.World.Save());
             if (a.M.Items.Fuzz(rng, i % 3) is not { } c) continue;

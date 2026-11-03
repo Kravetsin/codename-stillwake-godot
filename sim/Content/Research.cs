@@ -66,6 +66,7 @@ public static class Research
                 Up("bag5"),
                 Up("bag6"),
                 Up("belt1"),
+                ("powerDriver", 4),
                 Up("tradeSlots3"),
                 Up("tradeSlots4")),
             new("order3", [("glass", 20), ("silicon", 20), ("frame", 10)],
