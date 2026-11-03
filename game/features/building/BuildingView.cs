@@ -115,6 +115,9 @@ public partial class BuildingView : Node2D
             var s = Drag.SpotAt(width, height, p);
             return s.Y * width + s.X;
         }
+        // Over a machine's risen picture (0099) the pointer means that machine: for its tip, Q, and a removal of machines.
+        (double X, double Y) Over((double X, double Y) p) => Risen.Over(grid, building, p, ShipTiles.RiseOf);
+        static bool TakesMachines(Act act) => act is Remove { Layers: var layers } && layers.Contains("machine");
 
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
@@ -136,11 +139,11 @@ public partial class BuildingView : Node2D
             {
                 // The first button down has the drag; another pressed meanwhile is let be. The right removes in the focused layer, card or none (0110).
                 if (_drag == null && _hand.PlanOut.Get() && Tools.ActOf(tool, back, _hand.Focus.Get()) is { } act && Drag.OnGrid(width, height, button.At))
-                    _drag = (act, back, button.At, tool);
+                    _drag = (act, back, TakesMachines(act) ? Over(button.At) : button.At, tool);
                 return;
             }
             if (_drag is not { } under || under.Right != back) return;
-            Send(under.Act, under.From, button.At);
+            Send(under.Act, under.From, TakesMachines(under.Act) ? Over(button.At) : button.At);
             _drag = null;
         }
         foreach (var button in left) DragWith(button, back: false);
@@ -150,7 +153,7 @@ public partial class BuildingView : Node2D
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(at), grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(Over(at)), grid, building, m.Research) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
@@ -159,8 +162,9 @@ public partial class BuildingView : Node2D
 
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
-        ShowTray(onGrid ? CellAt(pointer!.Value) : null, grid, building);
-        Ghost(tool, pointer, onGrid, grid, building, _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null);
+        ShowTray(onGrid ? CellAt(Over(pointer!.Value)) : null, grid, building);
+        var hovered = _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
+        Ghost(tool, (_drag?.Act ?? hovered) is { } shown && TakesMachines(shown) && pointer is { } ptr ? Over(ptr) : pointer, onGrid, grid, building, hovered);
         bool shafts = _hand.PlanOut.Get() && _hand.Builds;
         _shafts.Show(shafts ? grid : null, shafts ? PlatformsOf(grid, building) : [], shafts ? _ghostPlatform : []);
     }

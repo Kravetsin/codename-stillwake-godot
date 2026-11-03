@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `AsciiArt.cs` | Small pictures drawn as ASCII in code, made once under a key and kept. |
+| `AsciiArt.cs` | Small pictures drawn as ASCII in code, kept under a key. |
 | `logic/Blueprint.cs` | How plans join the plans beside them when drawn. |
 | `BlueprintArt.cs` | What a placement looks like built: for plans, ghosts and build menu thumbnails. |
 | `logic/Bolts.cs` | The electric arcs in the world (0075). |
@@ -29,7 +29,7 @@
 | `logic/WreckDress.cs` | Which of the wreck's plates show rust, stripes or a tear, on a world or a dev grid; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
-| `HiRes.cs` | The anime art's pictures, 4 times their logical pixels, reporting the logical size and sampled smoothly. |
+| `HiRes.cs` | The anime art's pictures, 4x their logical pixels, sized as logical, sampled smoothly. |
 | `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon at each side, and their white silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
@@ -37,6 +37,7 @@
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
 | `Outline.cs` | A soft light inside the silhouette of what is aimed at, breathing. |
 | `PixelArt.cs` | The pictures from `game/art/hd`, far layers, relief. |
+| `logic/Risen.cs` | The pointer over a machine's risen picture means the machine (0099). |
 | `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
 | `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
@@ -50,11 +51,11 @@
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
 | `Shimmer.cs` | Heat shimmer (0075). |
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
-| `ShipTiles.cs` | Every picture of the ship's cells in one atlas with one normal map, built once (`Shared`) for every view and surface. |
+| `ShipTiles.cs` | Every picture of the ship's cells in one atlas with one normal map, built once (`Shared`) for all. |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
 | `logic/Stages.cs` | The effects of each draw layer, a stage a z, and the figures' held stages (effects-on-their-layer). |
-| `Stars.cs` | Space behind the ship: a tile of stars over the whole screen; its sprite also drawn behind the title. |
+| `Stars.cs` | Space behind the ship: a tile of stars over the screen, also behind the title. |
 | `WorldShot.cs` | A small picture of the world as the camera sees it, no HUD in it: the title's world cards. |
 | `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
