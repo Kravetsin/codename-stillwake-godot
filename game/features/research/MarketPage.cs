@@ -30,7 +30,7 @@ public sealed class MarketPage : ITabletPage
 
     private static readonly Font Plain = Style.Clear, Strong = Style.Bold, Garbled = Style.Mono, Spaced = new FontVariation { BaseFont = Style.Bold, SpacingGlyph = 1 };
     private static readonly StyleBoxFlat Look = new();
-    private static readonly Texture2D Coin = AsciiArt.Credit();
+    private static readonly Texture2D Coin = Signs.Credit();
 
     /// <summary>The order's inset; an asked item's row and how far apart they are; an unlock's tile and its gap; where a tile's picture's middle lies and how tall it is.</summary>
     private const int SideIn = 12, AskTall = 40, AskStride = 46, LockedSide = 32, LockedGap = 3, PictureAt = 34, PictureTall = 44, CoinSide = 16;

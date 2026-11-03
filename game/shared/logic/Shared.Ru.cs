@@ -18,7 +18,6 @@ public static partial class Ru
         ["card.reload"] = "ПЕРЕЗАРЯД",
         ["card.reel"] = "ЛЕБЁДКА",
         ["card.perSecond"] = "{n}/с",
-        ["card.sells"] = "Продаётся за {n}",
         ["card.smeltsHere"] = "Плавится здесь",
         ["card.burnsHere"] = "Горит здесь",
         ["card.growsHere"] = "Растёт здесь",

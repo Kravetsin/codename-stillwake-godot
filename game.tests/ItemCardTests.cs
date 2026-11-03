@@ -206,7 +206,6 @@ public class ItemCardTests
         Assert.Equal(Spec.Market.PriceOf("iron"), With(false).TipOf("iron").Card!.Price);
         Assert.Null(With(false).TipOf("fireAxe").Card!.Price);
         Assert.Equal("Iron", With(false).TipOf("iron").Name);
-        Assert.Equal("Sells for 3", T("card.sells", ("n", 3)));
     }
 
     [Fact]
