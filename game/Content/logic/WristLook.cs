@@ -77,11 +77,8 @@ public static class WristLook
     public const uint LetGo = 0xd6f6ff;
     public const float LetGoAlpha = 0.3f;
 
-    /// <summary>The cells' colours: unlit, and the unlit cell's top edge.</summary>
-    public const uint CellOff = 0x16203a, CellOffTop = 0x1f2b46;
-
-    /// <summary>Oxygen's sky, red in danger; energy's green, amber while the belt runs low (the slot bar's own).</summary>
-    public const uint Suit = 0x38bdf8, SuitLow = 0xef4444, Energy = 0x7ee36b, EnergyLow = 0xf2b84b;
+    /// <summary>Oxygen's sky, a surge's wash (its lamps are pictures: the gauge subject); energy's green, amber while the belt runs low (the slot bar's own).</summary>
+    public const uint Suit = 0x38bdf8, Energy = 0x7ee36b, EnergyLow = 0xf2b84b;
 
     /// <summary>How bright the energy tab is with no battery on the belt.</summary>
     public const float NoBattery = 0.35f;

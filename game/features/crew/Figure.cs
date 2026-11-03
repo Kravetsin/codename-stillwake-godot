@@ -74,7 +74,9 @@ public partial class Figure : Node2D
     private const float FaceLight = 0.6f;
     private static readonly Material Added = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private Look _look = Look.Zero;
-    private bool _helmetWorn, _bodyWorn, _lampWorn;
+    private bool _bodyWorn, _lampWorn;
+    /// <summary>The helmet worn, its item; null bare.</summary>
+    private string? _helmetWorn;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
     private static readonly Vector2 VisorOn = new(4, -5);
@@ -151,8 +153,7 @@ public partial class Figure : Node2D
     /// to grip again, the hand sinking.
     /// </summary>
     private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
-    /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
-    private static readonly Vector2 Grip = new(3, 2);
+    /// <summary>The builder at work (<see cref="HeldLook.Twist"/>, <see cref="HeldLook.Driven"/>): a frame of its strip, by its grip.</summary>
     private readonly Sprite2D _tool;
     /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
     private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
@@ -249,14 +250,7 @@ public partial class Figure : Node2D
         };
         _plan.AddChild(_screen);
         _plan.AddChild(_glow);
-        _tool = new Sprite2D
-        {
-            Texture = PixelArt.Picture("hero_screwdriver"),
-            Hframes = 3,
-            Centered = false,
-            Offset = -Grip,
-            Visible = false,
-        };
+        _tool = new Sprite2D { Hframes = 3, Centered = false, Visible = false };
         Lit.Set(_tool);
         _held = new Sprite2D { Centered = false, Visible = false };
         Lit.Set(_held);
@@ -373,7 +367,7 @@ public partial class Figure : Node2D
         set
         {
             _lampWorn = value;
-            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn;
+            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
         }
     }
 
@@ -401,7 +395,10 @@ public partial class Figure : Node2D
     /// <summary>How full the charge of the gun held is, 0..1 (2026-10-27-the-railgun): its charged picture laid over it that bright.</summary>
     public double Charge { get; set; }
 
-    /// <summary>Whether the drill held runs (0054, 0055): its bit spins up and its lamp lights; stopped, the lamp goes out and the bit winds down.</summary>
+    /// <summary>
+    /// Whether the electric tool held runs (0054, 0055): the drill's bit spins up and its lamp lights, stopped, the lamp goes out and the
+    /// bit winds down; the power driver's chuck turns at its work, flat, the wrist twists it (power-driver).
+    /// </summary>
     public bool Spinning { get; set; }
 
     /// <summary>The drill's light and arcs on the held stage, made with it the first time a drill runs in the hand.</summary>
@@ -565,11 +562,11 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> and
-    /// <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
+    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> (its item, null for
+    /// none) and <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
     /// 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
     /// </summary>
-    public void Wear(int colour, bool helmet = true, bool body = true, Look? look = null)
+    public void Wear(int colour, string? helmet = "helmet", bool body = true, Look? look = null)
     {
         look ??= Look.Zero;
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
@@ -583,9 +580,11 @@ public partial class Figure : Node2D
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
         _pack.Visible = body;
-        _shell.Visible = _visor.Visible = helmet;
-        _hair.Visible = !helmet;
-        _beard.Visible = !helmet && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        _shell.Visible = _visor.Visible = helmet != null;
+        _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
+        _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
+        _hair.Visible = helmet == null;
+        _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
     }
@@ -597,6 +596,8 @@ public partial class Figure : Node2D
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
+        // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
+        "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
         _ => part,
     };
@@ -757,6 +758,10 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(held.X + (point.X - held.X) * thrust, held.Y + (point.Y - held.Y) * thrust), Rig.Arm, 1);
         }
         double work = 0, twist = 0;
+        // A builder at work, the screwdriver if the hand holds none (a friend's, a frame late): its motor turns it, else the wrist.
+        var builder = item?.Twist != null ? item : HeldLook.Screwdriver;
+        _spin = Spinning ? Math.Min(1, _spin + elapsedMs / HeldLook.SpinUpMs) : Math.Max(0, _spin - elapsedMs / HeldLook.SpinDownMs);
+        bool driven = working && Spinning && builder.Driven != null;
         if (working && _workAt is { } plan)
         {
             // Toward the plan, from the shoulder.
@@ -764,8 +769,8 @@ public partial class Figure : Node2D
             work = Math.Atan2(dy, dx);
             double cycle = _workMs % TwistMs / TwistMs;
             twist = Math.Min(1, cycle / TurnShare);
-            // Rising as the wrist turns over, sinking as it turns back to grip again.
-            double rise = cycle < TurnShare ? Math.Sin(twist * Math.PI / 2) : Math.Cos((cycle - TurnShare) / (1 - TurnShare) * Math.PI / 2);
+            // Rising as the wrist turns over, sinking as it turns back to grip again; held still while the motor turns it.
+            double rise = driven ? 0 : cycle < TurnShare ? Math.Sin(twist * Math.PI / 2) : Math.Cos((cycle - TurnShare) / (1 - TurnShare) * Math.PI / 2);
             double reach = WorkReach * (Rig.Arm.Upper + Rig.Arm.Lower) + TwistPush * rise;
             // Up, square to the tool: the side the knuckles come over.
             double ux = Math.Sin(work), uy = -Math.Cos(work);
@@ -836,8 +841,11 @@ public partial class Figure : Node2D
             var hand = Rig.EndOf(frontArm, Rig.Arm);
             _tool.Position = new Vector2((float)hand.X, (float)(-Rig.Shoulder + hand.Y));
             _tool.Rotation = (float)work;
-            // Three steps of the ribs a turn, held on the way back: they roll on one way only.
-            _tool.Frame = (int)Math.Min(2, Math.Floor(twist * 3));
+            (_tool.Texture, _tool.Offset) = (HeldArt.Of(driven ? builder.Driven! : builder.Twist!, []), -new Vector2((float)builder.Grip.X, (float)builder.Grip.Y));
+            // Turned by its motor, its frames in turn as a drill's spin; by the wrist, three steps of the ribs a turn, held on the way back:
+            // they roll on one way only.
+            _spinFrame = driven ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % 3 : 0;
+            _tool.Frame = driven ? (int)_spinFrame : (int)Math.Min(2, Math.Floor(twist * 3));
         }
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
@@ -846,7 +854,6 @@ public partial class Figure : Node2D
         if (inHand && item != null)
         {
             var fist = Rig.FistOf(frontArm);
-            _spin = Spinning ? Math.Min(1, _spin + elapsedMs / HeldLook.SpinUpMs) : Math.Max(0, _spin - elapsedMs / HeldLook.SpinDownMs);
             // Through the picture and its spin frames in turn; still, it stops on the picture.
             int frames = 1 + (item.Spin?.Count ?? 0);
             _spinFrame = _spin > 0 ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % frames : 0;

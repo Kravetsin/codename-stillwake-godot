@@ -12,13 +12,13 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `StoreScenario.cs` | `--store` |
 | `AnimeScenario.cs` | `--anime`, `=bare`, `=bag`, `=walk`, `=door`, `=cave`, `=colours`, `=colours-dark`: the anime slice's frames (tools/anime-art) |
 | `PlatformScenario.cs` | `--platform`: launch platforms, a run cabled and lit green, one uncabled and red, a piece alone; `--descent`: the pod down and back |
-| `TestbedScenarios.cs` | `--testbed`, and the scenarios played on it: `--jetpack`, `--charge`, `--dust` |
+| `TestbedScenarios.cs` | `--testbed`, and the scenarios played on it: `--jetpack`, `--charge`, `--dust`, `--signs` |
 | `WreckScenarios.cs` | `--wreck`, `--wrecks`, `--harpoon` (seeded hosting too), `--grapple` |
 | `GroundScenario.cs` | `--ground=<mode>` with its modifiers (`--axe`, `--precise`, `--take-at`, `--ground-offset`, `--sprint`) |
 | `GroundHands.cs` | `--ground`'s hands: the tool held on the cell `GroundDemo` names |
 | `HeroScenarios.cs` | the hero's maps and scripts: `--poses`, `--cape`, `--ledges`, `--ladders`, `--feel`, `--gym`, `--lone-hatch`, `--hills`, `--floor`, `--segments`, `--die`, `--breathe`, `--breathe-air`, `--suit` |
 | `MachineScenarios.cs` | machines and items: `--furnace`, `--items`, `--menu-demo`, `--open`, `--near`, `--marks`, `--card`, `--charger`, `--arc`, `--bench`, `--tree`, `--board`, `--bulb`, `--pod`, `--handbook`, `--tool-cards` |
-| `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--mark`, `--layer-demo`, `--shimmer-demo` |
+| `PlanScenarios.cs` | the plan's hand scripts: `--plan-demo`, `--mark`, `--layer-demo`, `--shimmer-demo`, `--driver-demo` |
 | `DebrisScenarios.cs` | `--debris` (seeded hosting too), `--fly`, `--asteroid`, `--sortie`, `--net`, `--net-press` |
 | `MeteorScenario.cs` | `--meteors`: the new game's wreck with its first meteor seen coming at once; `=N` its power |
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand; `--autopilot` breaks the piles. |

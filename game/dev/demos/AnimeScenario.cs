@@ -66,7 +66,7 @@ public sealed class AnimeScenario : DevScenario
         {
             int colour = Features.Crew.Suits.All[i];
             var figure = new Figure(colour, own: false);
-            figure.Wear(colour, i != 3, i != 2);
+            figure.Wear(colour, i switch { 3 => null, 1 => Spec.Helmet.Heavy, _ => Spec.Helmet.Basic }, i != 2);
             row.AddChild(figure);
             var hero = new Hero(0, 0, 0, 0, false, i % 2 == 0 ? 1 : -1);
             for (int t = 0; t < 40; t++) figure.Show(hero, Pose.Stand, 0.15, false, 1000.0 / 60);

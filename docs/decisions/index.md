@@ -210,6 +210,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
 | [charger-two](2026-11-03-charger-two.md) | The charger holds two batteries, drawing for each | accepted |  |
 | [debris-net](2026-11-03-debris-net.md) | The debris net | accepted |  |
+| [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
+| [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
+| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |

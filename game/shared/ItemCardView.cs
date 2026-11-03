@@ -48,7 +48,8 @@ public static class ItemCardView
     private static readonly LabelSettings HintText = Style.Text(Style.Mono, 11, Hint);
     private static readonly LabelSettings DotText = Style.Text(Style.Mono, 11, Style.Slate500);
     private static readonly LabelSettings KeyText = Style.Text(BoldMono, 10, Style.Slate300);
-    private static readonly LabelSettings PriceText = Style.Text(Style.Mono, 11, Style.Amber400);
+    /// <summary>A sale price's number, the coin a little larger (<see cref="CreditLine"/>).</summary>
+    private const int PriceSize = 12;
     private static readonly LabelSettings FireText = Style.Text(Style.Mono, 11, Style.Orange400);
     private static readonly LabelSettings SmeltText = Style.Text(Style.Mono, 11, Style.Amber400);
     private static readonly LabelSettings GrowText = Style.Text(Style.Mono, 11, Style.Green400);
@@ -146,7 +147,13 @@ public static class ItemCardView
         foreach (var module in card.Fitted)
             column.AddChild(TechStrip(new CardTech(Content.Modules.Get(module).Tech, T("card.fitted", ("module", T($"item.{module}"))))));
         if (card.Here is not (SlotMark.None or SlotMark.Fits)) column.AddChild(HereStrip(card.Here, card.Output));
-        if (card.Price is int price) column.AddChild(Text(T("card.sells", ("n", price)), PriceText, HorizontalAlignment.Left));
+        // What a unit sells for, as every price is written: the coin and the number, no words.
+        if (card.Price is int price)
+        {
+            var sells = new CreditLine(PriceSize) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
+            sells.Set(price);
+            column.AddChild(sells);
+        }
         if (card.Station is { } station) column.AddChild(Station(station));
     }
 
@@ -223,11 +230,10 @@ public static class ItemCardView
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 4);
         row.AddChild(new TextureRect
         {
-            Texture = AsciiArt.Bolt(false),
+            Texture = Signs.Bolt(false),
             CustomMinimumSize = new Vector2(7, 9),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
             SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });

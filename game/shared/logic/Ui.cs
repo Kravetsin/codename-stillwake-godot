@@ -172,6 +172,18 @@ public sealed class Ui
     public Store<string?> Wielded { get; } = new(null);
 
     /// <summary>
+    /// Whether the power driver works its square or one cell (power-driver): this player's, not saved, the square at the start;
+    /// <c>crew</c> switches it on a right click with the driver in hand.
+    /// </summary>
+    public Store<bool> DriverSquare { get; } = new(true);
+
+    /// <summary>
+    /// The cells the power driver's square works this frame, set by <c>crew</c>; none while the hands work one cell. A
+    /// blueprint's cost under the pointer is then the square's (<c>building</c>).
+    /// </summary>
+    public IReadOnlyList<int>? WorkedSquare { get; set; }
+
+    /// <summary>
     /// Whether the air overlay is wanted, and so drawn: O switches it, outside building too, for air keeps the crew
     /// alive, and under any build tab, a tab's own overlay drawn over it (<see cref="OverlayOn"/> stays the tab's).
     /// </summary>
@@ -270,6 +282,12 @@ public sealed class Ui
     /// frame; <c>debris</c> strikes a wreck a bit is on where the bit is, a share of an axe's hit at a time (0094).
     /// </summary>
     public IReadOnlyList<(float X, float Y, string Tool)> Bits { get; set; } = [];
+
+    /// <summary>
+    /// Where every power driver's motor is heard at work, and a moment after, in the world's pixels (power-driver). Set by <c>crew</c>
+    /// every frame; <c>building</c> keeps the ratchet of a plan by one silent, its motor heard for it.
+    /// </summary>
+    public IReadOnlyList<(float X, float Y)> Driven { get; set; } = [];
 
     /// <summary>
     /// The piece of debris the hands would grab or chop, and whether the sim would refuse it: <c>crew</c> sets it while

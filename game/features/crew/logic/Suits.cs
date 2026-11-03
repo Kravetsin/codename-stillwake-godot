@@ -15,8 +15,8 @@ public static class Suits
     public static int Of(IPlayersQueries players, int id) =>
         players.ColourOf(id) is int i && i >= 0 && i < All.Length ? All[i] : All[0];
 
-    /// <summary>Whether <paramref name="peer"/> wears a helmet and a suit's body (2026-10-27-suits-are-worn): what its figure is drawn in.</summary>
-    public static (bool Helmet, bool Body) WornBy(IItemsQueries items, int peer) =>
-        (items.WornIn(peer, Stillwake.Content.Helmet.Slot) != null, items.WornIn(peer, Stillwake.Content.Suit.Slot) != null);
+    /// <summary>The helmet <paramref name="peer"/> wears, its item or null, and whether a suit's body (2026-10-27-suits-are-worn): what its figure is drawn in.</summary>
+    public static (string? Helmet, bool Body) WornBy(IItemsQueries items, int peer) =>
+        (items.WornIn(peer, Stillwake.Content.Helmet.Slot), items.WornIn(peer, Stillwake.Content.Suit.Slot) != null);
 
 }

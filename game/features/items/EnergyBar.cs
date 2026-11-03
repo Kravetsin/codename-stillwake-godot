@@ -64,7 +64,7 @@ public partial class EnergyBar : CanvasLayer
     private sealed partial class Tab : Control
     {
         private const int FontSize = 13, ThinWidth = 3;
-        private static readonly Texture2D Bolt = AsciiArt.Bolt(false);
+        private static readonly Texture2D Bolt = Signs.Bolt(false);
         private static readonly Rect2 BoltAt = new(9, 6, 14, 18);
 
         private readonly NinePatchRect _frame = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);

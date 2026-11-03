@@ -18,7 +18,6 @@ public static partial class En
         ["card.reload"] = "RELOAD",
         ["card.reel"] = "REEL",
         ["card.perSecond"] = "{n}/s",
-        ["card.sells"] = "Sells for {n}",
         ["card.smeltsHere"] = "Smelts here",
         ["card.burnsHere"] = "Burns here",
         ["card.growsHere"] = "Grows here",

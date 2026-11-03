@@ -26,7 +26,7 @@
 | `HeldArt.cs` | A held tool's pictures with its modules' overlays (`HeldParts`, 0098). |
 | `logic/HitBurst.cs` | A hit's look thrown where it lands (0094). |
 | `logic/IconCanvas.cs` | A glowing line icon's pixels (`IconLooks`). |
-| `logic/WreckDress.cs` | Which of the wreck's plates show rust, stripes or a tear, on a world or a dev grid; a torn cell's pixels. |
+| `logic/WreckDress.cs` | Which wreck plates show rust, stripes or a tear; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
 | `HiRes.cs` | The anime art's pictures, 4x their logical pixels, sized as logical, sampled smoothly. |
@@ -43,7 +43,7 @@
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
 | `PlanTiles.cs` | The ship's tile layers again, for plans and ghosts. |
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
-| `logic/PixelDust.cs` | The pixels a killed creature crumbles into: hanging, flying, heaping, fading (2026-10-29-kills-crumble). |
+| `logic/PixelDust.cs` | The pixels a killed creature crumbles into: hanging, flying, heaping, fading. |
 | `PixelsLayer.cs` | Those pixels in one multimesh, lit. |
 | `logic/Reduce.cs` | A hi-res picture brought down to the world's pixels. |
 | `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
@@ -52,9 +52,10 @@
 | `Shimmer.cs` | Heat shimmer (0075). |
 | `ShipCamera.cs` | The camera over the ship: centring and zoom steps with `-` and `=`. |
 | `ShipTiles.cs` | Every picture of the ship's cells in one atlas with one normal map, built once (`Shared`) for all. |
+| `Signs.cs` | The picked signs: the power bolt, its warnings and the credit chip (ink-signs). |
 | `Sketch.cs` | A node drawn by a callback: lines, boxes and dots a view works out itself. |
 | `SoftDots.cs` | Soft round pictures luminous things are drawn with (0075). |
-| `logic/Stages.cs` | The effects of each draw layer, a stage a z, and the figures' held stages (effects-on-their-layer). |
+| `logic/Stages.cs` | Each draw layer's effects, a stage a z, and the figures' held stages. |
 | `Stars.cs` | Space behind the ship: a tile of stars over the screen, also behind the title. |
 | `WorldShot.cs` | A small picture of the world as the camera sees it, no HUD in it: the title's world cards. |
 | `Strokes.cs` | Many soft-edged strokes of light in one draw call (0075). |

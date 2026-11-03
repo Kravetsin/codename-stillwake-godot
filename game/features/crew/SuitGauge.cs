@@ -41,7 +41,7 @@ public partial class SuitGauge : CanvasLayer
     private readonly Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> _read;
     private readonly WristGauge _gauge = new(
         ItemIcons.Icon(CrewSpec.Canister), new Rect2(8, 7, 16, 16), Look.SuitMeterLeft, Look.SuitCells,
-        AsciiArt.Colour(Look.Suit), AsciiArt.Colour(Look.SuitLow));
+        AsciiArt.Colour(Look.Suit));
     private readonly ColorRect _vignette = new(), _letGo = new(), _dark = new() { Color = new Color(0, 0, 0, 0) };
     private static readonly Shader Edges = new() { Code = VignetteShader };
     private readonly ShaderMaterial _edges = new() { Shader = Edges }, _relief = new() { Shader = Edges };

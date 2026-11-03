@@ -206,7 +206,6 @@ public class ItemCardTests
         Assert.Equal(Spec.Market.PriceOf("iron"), With(false).TipOf("iron").Card!.Price);
         Assert.Null(With(false).TipOf("fireAxe").Card!.Price);
         Assert.Equal("Iron", With(false).TipOf("iron").Name);
-        Assert.Equal("Sells for 3", T("card.sells", ("n", 3)));
     }
 
     [Fact]
@@ -375,6 +374,9 @@ public class ItemCardTests
     [Fact]
     public void EveryScrewdriverIsHeldInTheHandSoTheToolInUseShowsWithoutTheHotbar()
     {
-        foreach (var driver in Spec.Screwdrivers.All) Assert.Same(HeldLook.Screwdriver, HeldLook.Of(driver.Item));
+        // Each in its own look: the screwdriver, and the power driver as the user picked it (power-driver).
+        Assert.Same(HeldLook.Screwdriver, HeldLook.Of(Spec.Screwdrivers.Basic.Item));
+        Assert.Same(HeldLook.PowerDriver, HeldLook.Of(Spec.Screwdrivers.PowerDriver.Item));
+        foreach (var driver in Spec.Screwdrivers.All) Assert.NotNull(HeldLook.Of(driver.Item)?.Twist);
     }
 }

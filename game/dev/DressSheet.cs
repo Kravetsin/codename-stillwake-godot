@@ -67,7 +67,7 @@ public partial class DressSheet(string path) : Node
         var c = _cases[_case];
         Lit.Ambient(c.InDark ? Dark : (1, 1, 1));
         _figure = new Figure(c.Colour, own: false);
-        _figure.Wear(c.Colour, c.Helmet, c.Body);
+        _figure.Wear(c.Colour, c.Helmet ? Stillwake.Content.Helmet.Basic : null, c.Body);
         _figure.HeadLamp = c.Lamp;
         _figure.Jetpack = c.Jetpack;
         _world.AddChild(_figure);

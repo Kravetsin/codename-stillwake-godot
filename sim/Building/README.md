@@ -36,8 +36,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   machine holding items, a fitted module (0086) or queued crafts (0057) is marked only empty, `building.notEmpty`,
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
-- **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while the screwdriver is held on a
-  plan (0107); the sim checks no tool. Two heroes work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
+- **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while a builder is held on a
+  plan (0107, power-driver); the sim checks no tool. Two work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded

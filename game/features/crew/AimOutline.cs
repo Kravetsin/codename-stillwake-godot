@@ -58,6 +58,28 @@ public static class AimOutline
         OneCell(outline, grid, aim.Cell, colour);
     }
 
+    /// <summary>
+    /// The power driver's <paramref name="square"/>, in cells, as one box, in <paramref name="refused"/> when it has targets and the
+    /// sim would refuse them all; and each of its <paramref name="targets"/> as one aim at it is outlined, in its own colour (power-driver).
+    /// </summary>
+    public static void Square(Outline outline, Registry m, (int X, int Y, int Side) square, IReadOnlyList<WorkAim> targets, Color ready, Color refused)
+    {
+        int width = m.Grid.Width;
+        bool none = targets.Count > 0 && targets.All(t => t.Problem != null);
+        outline.AddBox(new Rect2(square.X * Cell, square.Y * Cell, square.Side * Cell, square.Side * Cell), none ? refused : ready);
+        foreach (var target in targets)
+        {
+            var colour = target.Problem == null ? ready : refused;
+            if (target.Repair is int id)
+            {
+                if (m.Grid.MachineById(id) is { } machine) Machine(outline, machine.Kind, machine.Cell, width, colour);
+                continue;
+            }
+            foreach (var plan in m.Building.Plans)
+                if (plan.Id == target.Plan) Plan(outline, m, plan, colour);
+        }
+    }
+
     private static Vector2 CornerOf(int cell, int width) => new(cell % width * Cell, cell / width * Cell);
 
     /// <summary>The box round <paramref name="cells"/>, in pixels.</summary>

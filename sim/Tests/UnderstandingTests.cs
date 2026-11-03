@@ -101,12 +101,16 @@ public class UnderstandingTests
         Assert.True(w.M.Research.Knows("wire"));
     }
 
-    [Fact]
-    public void WhatOnlyTheMarketOpensIsNeverGrantedByCounts()
+    /// <summary>A blueprint and a craft (2026-11-03-the-heavy-helmet), the craft's machine standing.</summary>
+    [Theory]
+    [InlineData("solarPanel")]
+    [InlineData("heavyHelmet")]
+    public void WhatOnlyTheMarketOpensIsNeverGrantedByCounts(string id)
     {
-        var w = Count(Room(), "solarPanel").Run(3);
-        Assert.False(w.M.Research.Knows("solarPanel"));
-        Assert.DoesNotContain(ResearchModule.Walked, t => t.Id == "solarPanel");
+        var w = Count(Room(), id);
+        w.Do(new Place(w.At(1, 1), Bench)).Run(3);
+        Assert.False(w.M.Research.Knows(id));
+        Assert.DoesNotContain(ResearchModule.Walked, t => t.Id == id);
     }
 
     [Fact]
