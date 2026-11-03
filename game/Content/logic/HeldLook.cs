@@ -63,7 +63,7 @@ public sealed record HeldLook(
     /// (<c>hero_screwdriver.png</c>, drawn by the figure while it works): the fist round its ribbed handle, held square to
     /// the forearm as the axe is, the shaft's point the edge. No module fits it, so it never lies on a bench; its clamp the handle.
     /// </summary>
-    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (3, 2), System.Math.PI / 2, (13, 2), (16, 2), Clamp: (4, 2));
+    public static readonly HeldLook Screwdriver = new("res://art/hero_screwdriver_held.png", (1.8, 1.2), System.Math.PI / 2, (7.8, 1.2), (9.6, 1.2), Clamp: (2.4, 1.2));
 
     /// <summary>
     /// The railgun, <c>art/hero_railgun.png</c> (2026-10-27-the-railgun), the user's pick, «Конденсаторы»: a squat housing with a red

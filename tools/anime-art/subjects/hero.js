@@ -592,7 +592,8 @@ const driver = (step) => (a) => {
   a.flat('M11.6 3.05L12.8 3L12.9 3.45L11.7 3.45Z', RUST);
 };
 
-const LIGHT = [0, -1], Margin = 3, Px = 4;
+// Hand: how far the hand tools' drawings shrink to the fist; the screwdriver 17 px long drawn, 10 px shown.
+const LIGHT = [0, -1], Margin = 3, Px = 4, Hand = 0.6;
 const part = (p) => bake({ ...p, margin: Margin, light: LIGHT });
 const SUIT = { torso: 's_torso', pack: 's_pack', upperArm: 's_upper', forearm: 's_fore', thigh: 's_thigh', shin: 's_shin' };
 const BOXES = { torso: ['b_torso', 12, 15, 6, 0], upperArm: ['b_upper', 5, 9, 2.5, 2.5], forearm: ['b_fore', 5, 10, 2.5, 2.9], thigh: ['b_thigh', 6, 12, 3, 2.5], shin: ['b_shin', 9, 11, 3, 2.18] };
@@ -652,9 +653,12 @@ Subjects.hero = function () {
   out('hero_nailer_loaded', plain(26, 11, nailer(true)));
   out('hero_railgun', plain(40, 14, railgun));
   out('hero_railgun_charged', plain(40, 14, railgunCharged));
-  const turns = [0, 1, 2].map((t) => plain(17, 5, driver(t)));
-  const twist = canvas(51 * Px, 5 * Px);
-  turns.forEach((t, i) => twist.getContext('2d').drawImage(t, i * 17 * Px, 0));
+  // Hand tools drawn to the fist (about 4 px across): their paths shrunk by Hand, the pen's weights kept the hero's.
+  const L = Anime.LINE, W = { outer: L.outer / Hand, edge: L.edge / Hand, panel: L.panel / Hand };
+  const small = (w, h, draw) => bake({ w, h, draw, light: LIGHT, units: 1 / Hand, W });
+  const turns = [0, 1, 2].map((t) => small(10, 3, driver(t)));
+  const twist = canvas(30 * Px, 3 * Px);
+  turns.forEach((t, i) => twist.getContext('2d').drawImage(t, i * 10 * Px, 0));
   out('hero_screwdriver', twist);
   out('hero_screwdriver_held', turns[0]);
   // The helmet whole, for its card: shrunk a little into the pixel picture's box, which its round shell overhangs.

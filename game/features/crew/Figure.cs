@@ -152,7 +152,7 @@ public partial class Figure : Node2D
     /// </summary>
     private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
     /// <summary>The screwdriver's grip in its picture, a frame of <c>hero_screwdriver.png</c>.</summary>
-    private static readonly Vector2 Grip = new(3, 2);
+    private static readonly Vector2 Grip = new(1.8f, 1.2f);
     private readonly Sprite2D _tool;
     /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
     private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
