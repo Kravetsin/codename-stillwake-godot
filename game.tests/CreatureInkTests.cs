@@ -1,4 +1,5 @@
 using Stillwake.Game.Features.Creatures;
+using Stillwake.Game.Render;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -116,10 +117,15 @@ public class CreatureInkTests
             255, 0, 0, 128, 0, 0, 255, 255, 9, 9, 9, 0, 9, 9, 9, 0,
             0, 0, 255, 255, 0, 0, 0, 0, 9, 9, 9, 255, 9, 9, 9, 0,
         ];
-        var reduced = CreatureVariety.Reduced(rgba, 4, 2, 2);
+        var reduced = Reduce.Pixels(rgba, 4, 2, 2);
         Assert.Equal(8, reduced.Length);
         Assert.Equal(255, reduced[3]);
         Assert.True(reduced[2] > reduced[0] * 3, "blue outweighs the half-covered red");
         Assert.Equal(0, reduced[7]);
+        // Soft, each square as covered as its pixels are: a glow's weight kept.
+        var soft = Reduce.Pixels(rgba, 4, 2, 2, soft: true);
+        Assert.Equal((128 + 255 + 255) / 4, soft[3]);
+        Assert.Equal(255 / 4, soft[7]);
+        Assert.Equal((9, 9, 9), (soft[4], soft[5], soft[6]));
     }
 }

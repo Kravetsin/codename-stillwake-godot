@@ -667,7 +667,7 @@ public partial class HomesView : Node2D, ILightSource
 
         static Atlas()
         {
-            var names = Names().Select(n => (Name: n, Image: Rgba(PixelArt.Logical(n).GetImage()))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
+            var names = Names().Select(n => (Name: n, Image: HiRes.Logical(n))).OrderByDescending(p => p.Image.GetHeight()).ThenBy(p => p.Name, StringComparer.Ordinal).ToList();
             int x = 0, y = 0, row = 0;
             foreach (var (name, image) in names)
             {
@@ -680,11 +680,8 @@ public partial class HomesView : Node2D, ILightSource
             foreach (var (name, image) in names)
             {
                 var at = At[name];
-                var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
-                pictures.BlitRect(image, whole, (Vector2I)at.Position);
-                if (!ResourceLoader.Exists($"res://art/{name}_glow.png")) continue;
-                glows.BlitRect(Rgba(PixelArt.Logical($"{name}_glow").GetImage()), whole, (Vector2I)at.Position);
-                Glows[name] = at;
+                pictures.BlitRect(image, new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y), (Vector2I)at.Position);
+                if (HiRes.Has($"{name}_glow")) Glows[name] = at;
             }
             (Pictures, Shine) = (HiRes.Sheet(pictures, At.Select(p => (p.Key, p.Value))), HiRes.Sheet(glows, Glows.Select(p => (p.Key, p.Value)), "_glow"));
         }
@@ -698,13 +695,6 @@ public partial class HomesView : Node2D, ILightSource
                     if (art.Dark) yield return $"homes/{kind}_{v}_dark";
                     if (HomesLooks.FedLooks.Contains(kind)) yield return $"homes/{kind}_{v}_fed";
                 }
-        }
-
-        private static Image Rgba(Image image)
-        {
-            if (image.IsCompressed()) image.Decompress();
-            if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
-            return image;
         }
     }
 }

@@ -38,40 +38,30 @@ public sealed class ShipTiles
     private ShipTiles()
     {
         var pictures = new List<(string Name, Image Diffuse, Image Normal)>();
-        // A planet's ground (0079): its walls and back walls drawn in art/planet, their edges made here; by name as the hull's are.
-        // A vein is drawn as the stone it runs through (Material.In): its wall that stone's flecked with its ore, the rest that stone's.
-        static string ArtOf(string natural) => Materials.Get(natural).In ?? natural;
+        // A planet's ground (0079): its walls and back walls drawn by name as the hull's are, a vein's its own; their edges made here.
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
-            var wall = Art($"planet/wall_{ArtOf(natural)}");
-            Made($"wall_{natural}", ArtOf(natural) == natural ? wall : GroundArt.Vein(wall, natural));
+            Made($"wall_{natural}", Art($"wall_{natural}"));
             for (int open = 1; open < 16; open++) Made($"wall-edge_{natural}_{open}", GroundArt.Edge(natural, open));
-            // Its back wall recedes behind it, paler, cooler and darker (0088).
-            Made(BackName(natural), GroundArt.Recede(Art($"planet/back_{ArtOf(natural)}")));
+            Made(BackName(natural), Art(BackName(natural)));
         }
         foreach (var natural in Materials.All.Where(m => m.Natural).Select(m => m.Id))
         {
             // Its living edge, up into the cell above (0082): two 16 px cells tall, behind the heroes and before them; each 16 px
-            // column in two halves, a cell each (0104), a cell showing the half its column's parity picks.
-            var tops = Art($"planet/top_{ArtOf(natural)}");
+            // column in two halves, a cell each (0104), a cell showing the half its column's parity picks. One not drawn (bedrock
+            // has no tufts before the heroes) is no tile.
             for (int v = 0; v < GroundArt.TopVariants; v++)
                 foreach (bool front in (bool[])[false, true])
                     for (int half = 0; half < 2; half++)
-                    {
-                        var top = tops.GetRegion(new Rect2I(v * Drawn + half * Cell, front ? 2 * Drawn : 0, Cell, 2 * Drawn));
-                        // A row with nothing in it (bedrock has no tufts before the heroes) is no tile; a hi-res picture may draw where the pixels did not.
-                        string name = TopName(natural, v, front, half);
-                        if (!top.IsInvisible() || HiRes.Load(name)?.IsInvisible() == false) pictures.Add(Picture(name, top, Relief.None));
-                    }
-            // Its details over its whole 16 px cells, each cut into the cells it covers: singles along the sheet's first row, features over
-            // several on the second.
-            var details = Art($"planet/detail_{ArtOf(natural)}");
-            for (int k = 0; k < GroundDetails.Singles; k++)
-                pictures.Add(Picture(DetailName(natural, k), details.GetRegion(new Rect2I(k * Drawn, 0, Drawn, Drawn)), Relief.None));
-            for (int f = 0, at = 0; f < GroundDetails.Features.Length; at += GroundDetails.Features[f++])
+                        if (TopName(natural, v, front, half) is var name && HiRes.Has(name) && !HiRes.Load(name)!.IsInvisible())
+                            pictures.Add(Picture(name, Relief.None));
+            // Its details over its whole 16 px cells, each cut into the cells it covers: singles a 16 px cell, features over several. A
+            // material with none drawn (plaster) has them clear.
+            for (int k = 0; k < GroundDetails.Singles + GroundDetails.Features.Length; k++)
             {
-                int side = GroundDetails.Features[f] * Drawn;
-                pictures.Add(Picture(DetailName(natural, GroundDetails.Singles + f), details.GetRegion(new Rect2I(at * Drawn, Drawn, side, side)), Relief.None));
+                string name = DetailName(natural, k);
+                int side = (k < GroundDetails.Singles ? 1 : GroundDetails.Features[k - GroundDetails.Singles]) * Drawn;
+                pictures.Add(Picture(name, HiRes.Has(name) ? Art(name) : Image.CreateEmpty(side, side, false, Image.Format.Rgba8), Relief.None));
             }
         }
         foreach (var material in Materials.All.Where(m => m.As == null).Select(m => m.Id))
@@ -324,45 +314,22 @@ public sealed class ShipTiles
         return MadeImages.TryGetValue(name, out var image) ? image : Art(name);
     }
 
-    /// <summary>
-    /// The picture <c>res://art/{name}.png</c> as pixels to work on; one of a cell alone drawn at 16 px (<see cref="Halved"/>) at half
-    /// its size, kept as made so every reader of it (a plan, an outline, the light's panels) sees the same.
-    /// </summary>
-    private static Image Art(string name)
-    {
-        if (MadeImages.TryGetValue(name, out var made)) return made;
-        var image = PixelArt.Logical(name).GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        if (!Halved(name)) return image;
-        // A pipe keeps its 16 px thickness: its middle cell of the picture, the arms running on to the edges as they did.
-        if (name.StartsWith("pipe_", StringComparison.Ordinal)) image = image.GetRegion(new Rect2I((Drawn - Cell) / 2, (Drawn - Cell) / 2, Cell, Cell));
-        else image.Resize(Mathf.Max(1, image.GetWidth() * Cell / Drawn), Mathf.Max(1, image.GetHeight() * Cell / Drawn), Image.Interpolation.Nearest);
-        return Made(name, image);
-    }
+    /// <summary>The picture <paramref name="name"/> at the world's pixels (<see cref="HiRes.Logical"/>), or one made here, to work on.</summary>
+    private static Image Art(string name) => MadeImages.TryGetValue(name, out var made) ? made : HiRes.Logical(name);
 
     /// <summary>
-    /// Whether <paramref name="name"/> is a picture of one cell drawn at 16 px, now drawn at half its size in the 8 px cell (0104), till
-    /// it is drawn anew: the hull's edges, and a pipe's middle cut out at its own thickness. A valve's wheel, a door and a hatch are whole.
-    /// </summary>
-    public static bool Halved(string name) =>
-        name.StartsWith("pipe_", StringComparison.Ordinal)
-        || name.StartsWith("wall-edge_", StringComparison.Ordinal);
-
-    /// <summary>
-    /// The picture <paramref name="name"/> at the 16 px it was drawn at (0104), for a build card's, which shows it as it was before
-    /// the cell was halved: what <see cref="Halved"/> halves at its own size, a ground's edges made at it; every other as it is.
+    /// The picture <paramref name="name"/> at the 16 px a cell was drawn at (0104), for a build card's, which shows a pipe and a wall's
+    /// edges as they were before the cell was halved: a pipe's cell run across it, its middle; an edge at twice its size. Every other as it is.
     /// </summary>
     public static Image DrawnImageOf(string name)
     {
-        if (!Halved(name)) return ImageOf(name);
-        if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open]
-            && Materials.TryGet(material, out var m) && m.Natural)
-            return GroundArt.Edge(material, int.Parse(open), Drawn);
-        var image = PixelArt.Logical(name).GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        return image;
+        if (name.StartsWith("wall-edge_", StringComparison.Ordinal) && name.Split('_') is [_, var material, var open])
+            return Materials.TryGet(material, out var m) && m.Natural ? GroundArt.Edge(material, int.Parse(open), Drawn) : HiRes.Logical(name, HiRes.Scale * Cell / Drawn);
+        if (!name.StartsWith("pipe_", StringComparison.Ordinal)) return ImageOf(name);
+        var cell = Art(name);
+        var run = Image.CreateEmpty(Drawn, Drawn, false, Image.Format.Rgba8);
+        for (int x = 0; x < Drawn; x += Cell) run.BlitRect(cell, new Rect2I(Vector2I.Zero, cell.GetSize()), new Vector2I(x, (Drawn - Cell) / 2));
+        return run;
     }
 
     /// <summary>The picture of a piece of <paramref name="kind"/> whole (0104): a ladder's or a door segment's.</summary>
@@ -432,7 +399,7 @@ public sealed class ShipTiles
     public static int RiseOf(string kind)
     {
         if (Rises.TryGetValue(kind, out int kept)) return kept;
-        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (PixelArt.Logical($"machine_{kind}").GetHeight() + Cell - 1) / Cell - spec.Height) : 0;
+        int rise = Machines.TryGet(kind, out var spec) ? Mathf.Max(0, (HiRes.Load($"machine_{kind}")!.GetHeight() / HiRes.Scale + Cell - 1) / Cell - spec.Height) : 0;
         return Rises[kind] = rise;
     }
 

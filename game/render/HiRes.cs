@@ -26,6 +26,27 @@ public static class HiRes
         return image;
     }
 
+    /// <summary>Whether <paramref name="name"/> has a hi-res picture.</summary>
+    public static bool Has(string name) => ResourceLoader.Exists($"res://art/hd/{name}.png");
+
+    private static readonly Dictionary<(string, int, bool), Image> Reduced = new();
+
+    /// <summary>
+    /// The picture <paramref name="name"/> at the world's pixels, its hi-res one reduced <paramref name="by"/> times (<see cref="Reduce.Pixels"/>), a
+    /// copy: what reads a picture's size or shape (a light's panel, a planting row, a tile's cells) rather than draws it; <paramref name="soft"/> keeps
+    /// part-covered pixels part clear, for what weighs a glow.
+    /// </summary>
+    public static Image Logical(string name, int by = Scale, bool soft = false)
+    {
+        if (!Reduced.TryGetValue((name, by, soft), out var made))
+        {
+            var fine = Load(name) ?? throw new System.InvalidOperationException($"No picture {name}");
+            int w = fine.GetWidth(), h = fine.GetHeight();
+            Reduced[(name, by, soft)] = made = Image.CreateFromData(w / by, h / by, false, Image.Format.Rgba8, Reduce.Pixels(fine.GetData(), w, h, by, soft));
+        }
+        return (Image)made.Duplicate();
+    }
+
     /// <summary>
     /// A packed sheet of <paramref name="placed"/> pictures: <paramref name="logical"/> grown <see cref="Scale"/> times, each picture with a
     /// hi-res one (named with <paramref name="suffix"/>) put in its place, at the size <paramref name="logical"/> reports.

@@ -36,7 +36,7 @@
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
 | `Outline.cs` | A soft light inside the silhouette of what is aimed at, breathing. |
-| `PixelArt.cs` | The ship's pictures from `game/art`, a pixel of art a pixel of the world. |
+| `PixelArt.cs` | The pictures from `game/art/hd`, far layers, relief. |
 | `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
 | `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
@@ -44,6 +44,7 @@
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
 | `logic/PixelDust.cs` | The pixels a killed creature crumbles into: hanging, flying, heaping, fading (2026-10-29-kills-crumble). |
 | `PixelsLayer.cs` | Those pixels in one multimesh, lit. |
+| `logic/Reduce.cs` | A hi-res picture brought down to the world's pixels. |
 | `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |
@@ -66,7 +67,7 @@ features' READMEs) and in its own `///` summaries.
 ## Rules
 
 - **A planet's sky** (`PlanetSky`, 0079) replaces space on a surface with daylight, shown by `Stars`: gradient, gas
-  giant, drifting cloud and sun, then far mesas, a ridge and hills with trees (`art/planet`, the set its kind's
+  giant, drifting cloud and sun, then far mesas, a ridge and hills with trees (`art/hd/planet`, the set its kind's
   `PlanetLooks.Backdrop` names, 0095), each layer repeating. The land lies on the world's surface, each layer following
   its share of the camera; sun, giant and clouds hang at fixed shares of the screen. Each layer's bottom colour fills
   the screen under it (no ADR).
@@ -90,8 +91,8 @@ features' READMEs) and in its own `///` summaries.
   redraws only when the screen reaches past the tiles drawn (a tile of margin each way) or the zoom changes.
 
 - **A tool's icon** (2026-10-27-tool-icons): an item with a held look has no 16 px picture. `ItemIcons.Icon(item, side)` bakes
-  its held picture for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size, a
-  pixel a pixel of the world: a tool's plain held picture, any other's 16 px one. Held pictures are read back at load.
+  its held picture for the side it is drawn at (`ToolIcon`), drawn 1:1. `Icon(item)` is the world's, at its real size:
+  a tool's plain held picture, any other's 16 px one.
 
 ## Deliberately not handled
 

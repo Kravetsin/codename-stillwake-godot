@@ -57,7 +57,7 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   `back_*`, seamless tiles cut a cell at a time; edges made at start (`render/GroundArt.cs`, `Content/logic/GroundLooks.cs`):
   a dark outline by open sides, lit lines inside. The ruins' alloy (0085) is drawn the same way (`wall_alloy`,
   `back_alloy`, `top_alloy`, `detail_alloy`; placeholders till the user picks).
-- **Back walls recede** (0088): a natural back wall's picture is paled, cooled and darkened at load (`GroundArt.Recede`);
+- **Back walls recede** (0088): a natural back wall is painted paler, cooler and darker than its wall (`tools/anime-art`);
   walls cast a soft three-tone shadow on it along open edges (`render/logic/GroundShadow.cs`, `GroundShadow.Of` of the three by
   three round a cell; atlas `render/ShadowTiles.cs`), on its own layer, multiplying. A changed cell redraws its corner
   neighbours' shadows too. The hull's back walls are left as they are.

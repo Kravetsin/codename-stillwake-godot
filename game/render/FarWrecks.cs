@@ -37,10 +37,9 @@ public partial class FarWrecks : DriftLayer
     /// <summary>A picture's pixels at the world's size: its hi-res drawing brought down to it, for the atlas is laid out by these and only ever drawn small.</summary>
     private static Image ImageOf(string name)
     {
-        var logical = PixelArt.Logical(name).GetImage();
-        if (HiRes.Load(name) is not { } fine) return logical;
+        var fine = HiRes.Load(name)!;
         fine.FixAlphaEdges();
-        fine.Resize(logical.GetWidth(), logical.GetHeight(), Image.Interpolation.Lanczos);
+        fine.Resize(fine.GetWidth() / HiRes.Scale, fine.GetHeight() / HiRes.Scale, Image.Interpolation.Lanczos);
         return fine;
     }
 

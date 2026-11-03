@@ -485,13 +485,11 @@ public partial class CaveView : Node2D, ILightSource
     private static Color Colour((float R, float G, float B) c) => new(c.R, c.G, c.B);
 
     /// <summary>What of picture <paramref name="name"/> glows, its middle by brightness, and its brightest pixels, the brightest first; null for none.</summary>
-    private static (Texture2D Texture, Vector2 Middle, Vector2[] Brightest)? GlowOf(string name)
+    private static (Vector2 Middle, Vector2[] Brightest)? GlowOf(string name)
     {
         if (Glows.TryGetValue(name, out var known)) return known;
-        if (!ResourceLoader.Exists($"res://art/{name}_glow.png")) return Glows[name] = null;
-        var texture = PixelArt.Logical($"{name}_glow");
-        var image = texture.GetImage();
-        if (image.IsCompressed()) image.Decompress();
+        if (!HiRes.Has($"{name}_glow")) return Glows[name] = null;
+        var image = HiRes.Logical($"{name}_glow", soft: true);
         var sum = Vector2.Zero;
         float weight = 0;
         var points = new List<(Vector2 At, float A)>();
@@ -508,10 +506,10 @@ public partial class CaveView : Node2D, ILightSource
         var brightest = new List<Vector2>();
         foreach (var (at, _) in points.OrderByDescending(p => p.A).ThenBy(p => p.At.Y).ThenBy(p => p.At.X))
             if (brightest.All(b => b.DistanceTo(at) > 3)) brightest.Add(at);
-        return Glows[name] = (texture, weight > 0 ? sum / weight : texture.GetSize() / 2, brightest.ToArray());
+        return Glows[name] = (weight > 0 ? sum / weight : (Vector2)image.GetSize() / 2, brightest.ToArray());
     }
 
-    private static readonly Dictionary<string, (Texture2D, Vector2, Vector2[])?> Glows = new();
+    private static readonly Dictionary<string, (Vector2, Vector2[])?> Glows = new();
 
     /// <summary>A glow's: added over what lies under it, unlit, for it gives light.</summary>
     private static readonly CanvasItemMaterial GlowMaterial = new()
@@ -567,7 +565,8 @@ public partial class CaveView : Node2D, ILightSource
 
     /// <summary>
     /// Every cave picture packed into one texture, a row of the tallest first, a pixel apart, and each one's glow into a second
-    /// at the same place: a chunk is drawn in a batch for its pictures and one for its glows, not one a picture.
+    /// at the same place: a chunk is drawn in a batch for its pictures and one for its glows, not one a picture. The pictures'
+    /// world-sized images only lay the sheets out and say where each is drawn; the hi-res ones are what is seen.
     /// </summary>
     private static class Atlas
     {
@@ -593,11 +592,9 @@ public partial class CaveView : Node2D, ILightSource
             foreach (var (name, image) in names)
             {
                 var at = At[name];
-                var whole = new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y);
-                pictures.BlitRect(image, whole, (Vector2I)at.Position);
+                pictures.BlitRect(image, new Rect2I(0, 0, (int)at.Size.X, (int)at.Size.Y), (Vector2I)at.Position);
                 var used = image.GetUsedRect();
                 Used[name] = (used.Position.Y, used.End.Y - 1);
-                if (GlowOf(name) is { } glow) glows.BlitRect(Faded(Rgba(glow.Texture.GetImage())), whole, (Vector2I)at.Position);
             }
             var placed = names.Select(n => (n.Name, At[n.Name])).ToList();
             (Pictures, Glows) = (HiRes.Sheet(pictures, placed), HiRes.Sheet(glows, placed, "_glow"));
@@ -622,33 +619,7 @@ public partial class CaveView : Node2D, ILightSource
                 }
         }
 
-        /// <summary>How many pixels in from its picture's edge a glow fades out over: cut off at the edge, its bloom drew the picture's box.</summary>
-        private const int FadeIn = 3;
-
-        /// <summary><paramref name="glow"/> fading to nothing at its edges, over <see cref="FadeIn"/> pixels.</summary>
-        private static Image Faded(Image glow)
-        {
-            int w = glow.GetWidth(), h = glow.GetHeight();
-            for (int y = 0; y < h; y++)
-                for (int x = 0; x < w; x++)
-                {
-                    int edge = Math.Min(Math.Min(x, w - 1 - x), Math.Min(y, h - 1 - y));
-                    if (edge >= FadeIn) continue;
-                    var c = glow.GetPixel(x, y);
-                    float keep = (edge + 0.5f) / FadeIn;
-                    glow.SetPixel(x, y, c with { A = c.A * keep * keep });
-                }
-            return glow;
-        }
-
-        private static Image ImageOf(string name) => Rgba(PixelArt.Logical(name).GetImage());
-
-        private static Image Rgba(Image image)
-        {
-            if (image.IsCompressed()) image.Decompress();
-            if (image.GetFormat() != Image.Format.Rgba8) image.Convert(Image.Format.Rgba8);
-            return image;
-        }
+        private static Image ImageOf(string name) => HiRes.Logical(name);
     }
 
     /// <summary>The glints the beam falls on this frame: a white point and a cross of its colour, twinkling.</summary>

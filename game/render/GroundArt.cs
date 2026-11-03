@@ -5,7 +5,7 @@ namespace Stillwake.Game.Render;
 /// <summary>
 /// The pictures of a planet's natural ground made here rather than drawn (0077, 0079): the edges of a cell by its open sides,
 /// in its material's lines (<see cref="GroundLooks"/>), and the cracks a dig leaves. Its walls, back
-/// walls, details and living edges are drawn, in <c>art/planet</c>. Every pixel is a hash of where it is: the same on every machine and run.
+/// walls, details and living edges are drawn, in <c>art/hd</c>. Every pixel is a hash of where it is: the same on every machine and run.
 /// </summary>
 public static class GroundArt
 {
@@ -41,28 +41,6 @@ public static class GroundArt
         return image;
     }
 
-
-    /// <summary>
-    /// A natural back wall's <paramref name="picture"/> receding behind its ground (0088): paler, cooler and darker, by
-    /// <see cref="GroundLooks.BackPale"/>, <see cref="GroundLooks.BackCool"/> and <see cref="GroundLooks.BackDim"/>.
-    /// </summary>
-    public static Image Recede(Image picture)
-    {
-        var (cr, cg, cb) = GroundLooks.CoolShift;
-        double dim = GroundLooks.BackDim, pale = GroundLooks.BackPale, cool = GroundLooks.BackCool;
-        double kr = (1 + cr * cool) * dim, kg = (1 + cg * cool) * dim, kb = (1 + cb * cool) * dim;
-        // RGBA8 bytes: a pixel at a time through Godot costs a call each.
-        byte[] data = picture.GetData();
-        for (int i = 0; i < data.Length; i += 4)
-        {
-            double r = data[i], g = data[i + 1], b = data[i + 2], grey = 0.3 * r + 0.59 * g + 0.11 * b;
-            data[i] = Byte((r + (grey - r) * pale) * kr);
-            data[i + 1] = Byte((g + (grey - g) * pale) * kg);
-            data[i + 2] = Byte((b + (grey - b) * pale) * kb);
-        }
-        return Image.CreateFromData(picture.GetWidth(), picture.GetHeight(), false, Image.Format.Rgba8, data);
-    }
-
     /// <summary>
     /// The cracks a dug cell shows at <paramref name="stage"/>, 0 to 2 (0077): more lines, longer, from a dent in its middle.
     /// </summary>
@@ -92,28 +70,6 @@ public static class GroundArt
         for (int y = my - stage / 2; y <= my + 1 + stage / 2; y++)
             for (int x = mx - stage / 2; x <= mx + 1 + (stage + 1) / 2; x++)
                 image.SetPixel(x, y, dark);
-        return image;
-    }
-
-    /// <summary>
-    /// The wall of <paramref name="vein"/>: the picture of the stone it runs through, <see cref="GroundLooks.VeinFlecks"/> of its
-    /// 2 px blocks flecked with its ore (<see cref="GroundLooks"/>' colour), each lit at its top left and shaded at its bottom right.
-    /// </summary>
-    public static Image Vein(Image stone, string vein)
-    {
-        var look = GroundLooks.Of[vein];
-        var image = (Image)stone.Duplicate();
-        for (int by = 0; by < image.GetHeight() / 2; by++)
-            for (int bx = 0; bx < image.GetWidth() / 2; bx++)
-            {
-                if (Hash(bx, by, 11) % 100 >= GroundLooks.VeinFlecks) continue;
-                for (int i = 0; i < 4; i++)
-                {
-                    int x = 2 * bx + i % 2, y = 2 * by + i / 2;
-                    if (image.GetPixel(x, y).A8 == 0) continue;
-                    image.SetPixel(x, y, i switch { 0 => Colour(look.Fleck), 3 => Colour(look.Colour, 0.62), _ => Colour(look.Colour) });
-                }
-            }
         return image;
     }
 
