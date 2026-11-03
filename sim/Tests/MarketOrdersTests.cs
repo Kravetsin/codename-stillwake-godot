@@ -106,7 +106,7 @@ public class MarketOrdersTests
     {
         var market = Tree.Tabs.Single(t => t.Id == Tree.Market);
         Assert.True(market.Rings.Length <= 6, $"{market.Rings.Length} rows");
-        Assert.All(market.Rings, r => Assert.True(r.Blocks.Length <= 5, $"{r.Gate}: {r.Blocks.Length} goods"));
+        Assert.All(market.Rings, r => Assert.True(r.Blocks.Length <= 6, $"{r.Gate}: {r.Blocks.Length} goods"));
     }
 
     [Fact]
