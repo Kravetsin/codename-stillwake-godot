@@ -24,6 +24,32 @@ public class AirCuesTests
         Assert.NotNull(Report.RefillOf(null, [new Exert(true)]));
     }
 
+    /// <summary>V flips the suit's mode from the last one sent and not yet applied, else the sim's (2026-11-03-the-regen-suit).</summary>
+    [Fact]
+    public void SwitchesTheSuitsModeFromWhatWasLastSent()
+    {
+        Assert.Equal(new SuitMode(true), Report.SuitModeOf(false, null, []));
+        Assert.Equal(new SuitMode(false), Report.SuitModeOf(true, null, []));
+        // Pressed twice before the host runs the first: the second takes it back.
+        Assert.Equal(new SuitMode(false), Report.SuitModeOf(false, null, [new SuitMode(true), new Exert(true)]));
+        Assert.Equal(new SuitMode(true), Report.SuitModeOf(true, null, [new SuitMode(true), new SuitMode(false)]));
+        // On is never sent where the sim would refuse it; off always is.
+        Assert.Null(Report.SuitModeOf(false, "crew.noSuitMode", []));
+        Assert.Equal(new SuitMode(false), Report.SuitModeOf(true, "crew.noSuitMode", []));
+    }
+
+    /// <summary>After a breath the wave reaches the boots first and the collar last, and rests between (2026-11-03-the-regen-suit).</summary>
+    [Fact]
+    public void TheSuitsWaveClimbsFromTheBootsToTheCollar()
+    {
+        double shin = SuitGlow.UpOf("shin")!.Value, torso = SuitGlow.UpOf("torso")!.Value;
+        Assert.True(SuitGlow.Bands(0.02, shin) > SuitGlow.Bands(0.02, torso));
+        Assert.True(SuitGlow.Bands(torso * SuitGlow.Climb, torso) > SuitGlow.Bands(torso * SuitGlow.Climb, shin));
+        Assert.Equal(1, SuitGlow.Bands(torso * SuitGlow.Climb, torso), 6);
+        Assert.Equal(SuitGlow.Rest, SuitGlow.Bands(0.99, shin), 6);
+        Assert.Null(SuitGlow.UpOf("head"));
+    }
+
     [Fact]
     public void BreathesNoCanisterTheSimWouldRefuse()
     {

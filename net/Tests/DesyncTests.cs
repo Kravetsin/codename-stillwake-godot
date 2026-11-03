@@ -716,8 +716,11 @@ public class DesyncTests(ITestOutputHelper output)
                 bool known = game.Module<Sim.Knowledge.KnowledgeModule>(first.World).Granted("wallIron");
                 if (tick <= 503) early |= known;
                 granted |= known;
-                if (tick <= 503 || tick % 40 != 25) return;
-                int bench = game.Module<Sim.Grid.GridModule>(first.World).MachinesOf("workbench")[0].Id;
+                if (tick <= 503 || tick % 10 != 5) return;
+                // Often, at a built bench: the fuzz tears machines down, the bench too, and lays plans, which are no station.
+                var crafting = game.Module<CraftingModule>(first.World);
+                if (game.Module<Sim.Grid.GridModule>(first.World).MachinesOf("workbench").FirstOrDefault(m => crafting.StationOf(m.Id) != null) is not { } built) return;
+                int bench = built.Id;
                 // The fuzz moves the bag's iron into machines: a spawn pays for each plate, and spawns are never obtained.
                 first.Send(new Sim.Items.SetCreative(true));
                 first.Send(new Sim.Items.Spawn("iron", 2));

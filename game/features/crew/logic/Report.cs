@@ -101,4 +101,20 @@ public static class Report
             if (c is Refill) return null;
         return problem == null ? new Refill() : null;
     }
+
+    /// <summary>
+    /// <c>SuitMode</c> flipping the suit's mode on a press (V, its edge key; 2026-11-03-the-regen-suit): from the last one in
+    /// <paramref name="inFlight"/>, sent and not yet applied, else from the sim's <paramref name="on"/>; switching on only
+    /// where <paramref name="problem"/>, <c>SuitModeProblem</c>'s, is null. Off is always sent.
+    /// </summary>
+    public static SuitMode? SuitModeOf(bool on, string? problem, IReadOnlyList<Command> inFlight)
+    {
+        for (int i = inFlight.Count - 1; i >= 0; i--)
+            if (inFlight[i] is SuitMode sent)
+            {
+                on = sent.On;
+                break;
+            }
+        return on ? new SuitMode(false) : problem == null ? new SuitMode(true) : null;
+    }
 }

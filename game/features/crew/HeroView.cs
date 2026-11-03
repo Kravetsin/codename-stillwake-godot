@@ -192,8 +192,10 @@ public partial class HeroView : Node2D
     private Point? _thrust;
     /// <summary>Each hero's jetpack plume, by peer, made the first time it shows (0075).</summary>
     private readonly Dictionary<int, JetPlume> _plumes = new();
-    /// <summary>Whether the player asked to breathe a canister, from the inventory, since the last frame.</summary>
+    /// <summary>Whether the player asked to breathe a canister, from the inventory, R or its edge key, since the last frame.</summary>
     private bool _breathe;
+    /// <summary>Whether the player asked to switch its suit's mode, by V or its edge key, since the last frame.</summary>
+    private bool _switchSuit;
     // A canister breathed is heard in the helmet, never muffled; a friend's on World, where it is.
     private readonly AudioStreamPlayer _breathes = Cues.Player(S.AirFill, S.Helmet);
     private readonly Heard2D _othersBreathe = Cues.Player2D(S.AirFill, S.World, voices: 2);
@@ -225,6 +227,7 @@ public partial class HeroView : Node2D
             (_beamAt, _beamLeftMs) = (Middle(cells[0]), Figure.BeamMs);
         };
         _ui.Breathed += () => _breathe = true;
+        _ui.SuitSwitched += () => _switchSuit = true;
         _mouse = mouse;
         _autopilot = autopilot;
         _sender = new HeroSender(hero => _sendTo?.SendHero(hero.Encode()));
@@ -460,6 +463,12 @@ public partial class HeroView : Node2D
         for (int burnt = _burns.Due(elapsedMs, Burns(m, known), 1 / S.LavaBurnEveryS); burnt > 0; burnt--) _burn.Play();
         if (_breathe && !passedOut) Breathe(client, m);
         _breathe = false;
+        if (_switchSuit && Report.SuitModeOf(m.Crew.HeroOf(client.Id)?.SuitOn ?? false, m.Crew.SuitModeProblem(client.Id), client.InFlight) is { } mode)
+        {
+            client.Send(mode);
+            _ui.Click();
+        }
+        _switchSuit = false;
 
         // Others' heroes in, this one out once its hands are known: through the host, never through the simulation.
         bool holdsPlan = HoldsPlan && !passedOut;
@@ -497,6 +506,7 @@ public partial class HeroView : Node2D
         double look = passedOut ? 0 : Poses.LookOf(_current, pointer);
         var (helmet, body) = Suits.WornBy(m.Items, client.Id);
         _figure.Wear(Suits.Of(m.Players, client.Id), helmet, body, m.Players.LookOf(client.Id));
+        _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
@@ -613,6 +623,9 @@ public partial class HeroView : Node2D
         if (e is not InputEventKey { Pressed: true, Echo: false } key) return;
         if (key.PhysicalKeycode == Key.Space) _jump = true;
         if (key.PhysicalKeycode == Key.E) _use = true;
+        // R breathes a canister as a right click on one does; V switches the suit's mode (2026-11-03-the-regen-suit).
+        if (key.PhysicalKeycode == Key.R) _breathe = true;
+        if (key.PhysicalKeycode == Key.V) _switchSuit = true;
     }
 
     /// <summary>The input for the next controller step, by the keys' places on the keyboard; a jump counts for one step only.</summary>

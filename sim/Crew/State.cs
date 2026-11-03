@@ -30,6 +30,11 @@ public sealed class Hero
     /// share is exact over time (2026-10-27-the-cape-is-worn).
     /// </summary>
     [JsonInclude] public int Spared { get; internal set; }
+    /// <summary>
+    /// Whether its suit's mode is switched on (<see cref="SuitMode"/>): the hero's, kept while no body with <c>Switch</c> is
+    /// worn, working only while one is (<see cref="ICrewQueries.SuitOn"/>; 2026-11-03-the-regen-suit).
+    /// </summary>
+    [JsonInclude] public bool SuitOn { get; internal set; }
 }
 
 /// <summary>

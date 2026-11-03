@@ -41,6 +41,12 @@ public sealed record Thrust(bool On) : Command;
 /// <summary>The sender's hero breathes a canister it carries, refilling its air.</summary>
 public sealed record Refill : Command;
 
+/// <summary>
+/// The sender's hero switches its suit's mode on (<c>On</c>) or off: V, or its key on the tablet's edge; on only in a body
+/// with <c>Switch</c> (2026-11-03-the-regen-suit).
+/// </summary>
+public sealed record SuitMode(bool On) : Command;
+
 /// <summary>What any module or the client may read of the heroes.</summary>
 public interface ICrewQueries
 {
@@ -76,6 +82,13 @@ public interface ICrewQueries
     /// (2026-10-27-the-cape-is-worn). The frost is drawn that much lighter.
     /// </summary>
     int Warmth(int peer);
+    /// <summary>
+    /// Whether hero <paramref name="peer"/>'s suit's mode works: switched on, in a body with <c>Switch</c>; false with no hero
+    /// (2026-11-03-the-regen-suit).
+    /// </summary>
+    bool SuitOn(int peer);
+    /// <summary>Why hero <paramref name="peer"/> could not switch its suit's mode on now: none, or no body with a mode; null when it could.</summary>
+    string? SuitModeProblem(int peer);
 }
 
 /// <summary>How another module may change a hero.</summary>
@@ -161,6 +174,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
             var hero = HeroOf(c.From)!;
             hero.Air = Math.Min(CapacityOf(c.From), hero.Air + CanisterRefill);
         });
+        Handles<SuitMode>(c => c.On ? SuitModeProblem(c.From) : HeroOf(c.From) == null ? "crew.noHero" : null, c => HeroOf(c.From)!.SuitOn = c.On);
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
         System(Phase.Simulation, () =>
         {
@@ -208,6 +222,12 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 // Thin air (0076): what the air falls short of the breath, and the cold without a body, paid one breath in ThinAir.
                 bool beat = Rules.ThinAir is not int every || State.Clock / Content.Crew.BreathEvery % every == 0;
                 if (net < 0 && !beat) net = 0;
+                // The regen suit gives back what the breath took, paid from the belt after any tool's draw; never the cold.
+                if (net < 0 && SuitOn(hero.Id) && _items.WornIn(hero.Id, Content.Suit.Slot) == Content.Suit.Regen)
+                {
+                    int made = Math.Min(Content.Suit.RegenMost, -net);
+                    if (_itemsOps.Drain(hero.Id, made * Content.Suit.RegenCost)) net += made;
+                }
                 int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat), Content.Cape.Warmth) + (Burns(hero.Cell) ? Content.Lava.Burn : 0);
                 hero.Air = Math.Max(0, hero.Air + net - cold);
                 if (hero.Air == 0 && (net < 0 || cold > 0)) PassOut(hero);
@@ -289,6 +309,16 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         if (hero.Air >= CapacityOf(peer)) return "crew.suitFull";
         return _items.ShortOf(peer, Canister);
     }
+
+    public bool SuitOn(int peer) => HeroOf(peer) is { SuitOn: true } && Switched(peer);
+
+    public string? SuitModeProblem(int peer)
+    {
+        if (HeroOf(peer) == null) return "crew.noHero";
+        return Switched(peer) ? null : "crew.noSuitMode";
+    }
+
+    private bool Switched(int peer) => _items.WornIn(peer, Content.Suit.Slot) is { } body && Content.Items.Get(body).Switch;
 
     /// <summary>The map's first lifepod makes heroes at its hatch; a map without one wakes them at its first S.</summary>
     protected override CrewState Init(Layout layout)

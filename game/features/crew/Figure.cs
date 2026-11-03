@@ -74,7 +74,16 @@ public partial class Figure : Node2D
     private const float FaceLight = 0.6f;
     private static readonly Material Added = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private Look _look = Look.Zero;
-    private bool _bodyWorn, _lampWorn;
+    private bool _lampWorn;
+    /// <summary>The suit's body worn, its item; null bare.</summary>
+    private string? _bodyWorn = Stillwake.Content.Suit.Basic;
+    /// <summary>A switched body's lights drawn unlit over its parts (2026-11-03-the-regen-suit): each band layer, its part, its part's name, whether a far limb's.</summary>
+    private readonly List<(Sprite2D Light, Sprite2D Part, string Name, bool Far)> _bands = [];
+    /// <summary>The collar's arcs and the socket's pip of an empty belt, over the chest.</summary>
+    private readonly Sprite2D _arcs = new() { Centered = false, Material = Unshaded }, _pip = new() { Centered = false, Material = Unshaded };
+    private Sprite2D _chest = null!;
+    private static readonly Material Unshaded = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
+    private static readonly Dictionary<string, Texture2D?> Lights = new();
     /// <summary>The helmet worn, its item; null bare.</summary>
     private string? _helmetWorn;
 
@@ -215,8 +224,10 @@ public partial class Figure : Node2D
         var torso = new Node2D();
         var pack = _pack = Part("pack");
         pack.Position = new Vector2((float)-Back, (float)(-Rig.Shoulder - Rig.H * 0.02));
-        var chest = Part("torso");
+        var chest = _chest = Part("torso");
         chest.Position = new Vector2(0, (float)-Rig.Neck);
+        chest.AddChild(_arcs);
+        chest.AddChild(_pip);
         _jetpack = new Sprite2D { Texture = PixelArt.Picture("hero_jetpack"), Centered = false, Visible = false };
         _jetpack.Position = pack.Position + new Vector2(-2, -1);
         Lit.Set(_jetpack);
@@ -340,6 +351,9 @@ public partial class Figure : Node2D
 
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
+
+    /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
+    public (bool On, bool Charged, double Phase) Suit { get; set; }
 
     /// <summary>Whether the hero wears a jetpack on its back (0047).</summary>
     public bool Jetpack
@@ -563,10 +577,10 @@ public partial class Figure : Node2D
 
     /// <summary>
     /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> (its item, null for
-    /// none) and <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
-    /// 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
+    /// none) and <paramref name="body"/> (its item, null bare, 2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0
+    /// without one, 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
     /// </summary>
-    public void Wear(int colour, string? helmet = "helmet", bool body = true, Look? look = null)
+    public void Wear(int colour, string? helmet = "helmet", string? body = "suit", Look? look = null)
     {
         look ??= Look.Zero;
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
@@ -579,7 +593,11 @@ public partial class Figure : Node2D
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
-        _pack.Visible = body;
+        _pack.Visible = body != null;
+        foreach (var (light, part, name, _) in _bands)
+            (light.Texture, light.Offset) = (body is { } b ? LightOf($"hero_{b}_{name}_lit") : null, part.Offset);
+        (_arcs.Texture, _arcs.Offset) = (body is { } a ? LightOf($"hero_{a}_arcs") : null, _chest.Offset);
+        (_pip.Texture, _pip.Offset) = (body is { } p ? LightOf($"hero_{p}_pip") : null, _chest.Offset);
         _shell.Visible = _visor.Visible = helmet != null;
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
@@ -592,7 +610,9 @@ public partial class Figure : Node2D
     /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
-        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when !_bodyWorn => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
+        "torso" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn == null => $"outfit_{HeroLooks.Wrap(_look.Outfit, HeroLooks.Outfits)}_{part}",
+        // A later body's own pictures, as a later helmet's (2026-11-03-the-regen-suit).
+        "torso" or "pack" or "upperArm" or "forearm" or "thigh" or "shin" when _bodyWorn is { } body && body != Stillwake.Content.Suit.Basic => $"{body}_{part}",
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
@@ -609,7 +629,36 @@ public partial class Figure : Node2D
         Lit.Set(sprite);
         _parts.Add((sprite, name, far));
         _joints[sprite] = sprite.Offset;
+        if (SuitGlow.UpOf(name) != null)
+        {
+            var light = new Sprite2D { Centered = false, Material = Unshaded, Visible = false };
+            sprite.AddChild(light);
+            _bands.Add((light, sprite, name, far));
+        }
         return sprite;
+    }
+
+    /// <summary>A body's light picture, loaded once; none for a body without it.</summary>
+    private static Texture2D? LightOf(string name)
+    {
+        if (!Lights.TryGetValue(name, out var light))
+            Lights[name] = light = HiRes.Has(name) ? HiRes.Texture(HiRes.Load(name)!) : null;
+        return light;
+    }
+
+    /// <summary>A switched body's lights as its suit is now (<see cref="Suit"/>): the wave, the arcs and the empty belt's pip.</summary>
+    private void ShowSuit()
+    {
+        var (on, charged, phase) = Suit;
+        bool glows = on && charged;
+        foreach (var (light, _, name, far) in _bands)
+        {
+            light.Visible = glows && light.Texture != null;
+            if (light.Visible) light.Modulate = new Color(1, 1, 1, (float)(SuitGlow.Bands(phase, SuitGlow.UpOf(name)!.Value) * (far ? SuitArt.FarShade : 1)));
+        }
+        _arcs.Visible = glows && _arcs.Texture != null;
+        _arcs.Modulate = new Color(1, 1, 1, (float)SuitGlow.Arcs(_timeMs));
+        _pip.Visible = on && !charged && _pip.Texture != null && SuitGlow.Pip(_timeMs);
     }
 
     /// <summary>
@@ -662,6 +711,7 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
+        ShowSuit();
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
         // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.
         if (_last is var (lx, ly))

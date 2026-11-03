@@ -66,10 +66,12 @@ public sealed class AnimeScenario : DevScenario
         {
             int colour = Features.Crew.Suits.All[i];
             var figure = new Figure(colour, own: false);
-            figure.Wear(colour, i switch { 3 => null, 1 => Spec.Helmet.Heavy, _ => Spec.Helmet.Basic }, i != 2);
+            figure.Wear(colour, i switch { 3 => null, 1 => Spec.Helmet.Heavy, _ => Spec.Helmet.Basic }, i switch { 2 => null, 1 or 3 => Spec.Suit.Regen, _ => Spec.Suit.Basic });
+            // The regen suit on (2026-11-03-the-regen-suit): the second's wave at its pack, the fourth's belt empty, its pip lit.
+            if (i is 1 or 3) figure.Suit = (true, i == 1, 0.35);
             row.AddChild(figure);
             var hero = new Hero(0, 0, 0, 0, false, i % 2 == 0 ? 1 : -1);
-            for (int t = 0; t < 40; t++) figure.Show(hero, Pose.Stand, 0.15, false, 1000.0 / 60);
+            for (int t = 0; t < 60; t++) figure.Show(hero, Pose.Stand, 0.15, false, 1000.0 / 60);
             figure.Position = new Vector2((column + i * spacing) * (float)Rig.Cell, floor * (float)Rig.Cell);
         }
     }

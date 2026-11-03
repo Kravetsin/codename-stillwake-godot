@@ -41,12 +41,17 @@ public partial class TabletEdge : CanvasLayer
         _root.AddChild(_saddle);
     }
 
-    /// <summary>Sets <paramref name="key"/> on the edge, next along, saying the i18n key <paramref name="says"/> under the pointer.</summary>
+    /// <summary>
+    /// Sets <paramref name="key"/> on the edge, next along, saying the i18n key <paramref name="says"/> under the pointer, and under
+    /// it, an edge key that can do nothing now, why.
+    /// </summary>
     public void Put(Control key, string says)
     {
         key.Position = new Vector2(TabletPeek.KeyIn + _keys++ * TabletPeek.KeyStride, TabletPeek.KeyDown);
         _saddle.AddChild(key);
-        _tips.Add(key, () => new Tip(T(says)) { Over = true });
+        _tips.Add(key, () => (key as EdgeKey)?.Why() is { } why
+            ? new Tip(T(says), new TipLine(T(why), Tone.Dim)) { Over = true }
+            : new Tip(T(says)) { Over = true });
     }
 
     /// <summary>A tablet that rises from the edge: while it is up the keys ride on it.</summary>

@@ -41,6 +41,7 @@ namespace Stillwake.Content;
 /// <param name="Tank">
 /// A helmet: the air it holds, in units, the hero's whole pool while worn (2026-10-27-suits-are-worn); 0 for anything else.
 /// </param>
+/// <param name="Switch">A body with a mode its wearer switches on and off, by V or its key on the tablet's edge (2026-11-03-the-regen-suit).</param>
 public sealed record ItemSpec(
     string Id,
     int Stack,
@@ -57,7 +58,8 @@ public sealed record ItemSpec(
     int? Draw = null,
     bool Gear = false,
     ItemGroup Group = ItemGroup.Material,
-    int Tank = 0);
+    int Tank = 0,
+    bool Switch = false);
 
 /// <summary>The groups a sort orders a bag or a crate by (0008), in this order: tools first, the rest last.</summary>
 public enum ItemGroup
@@ -219,6 +221,7 @@ public static class Items
         // out; both free at the pod.
         new(Helmet.Basic, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 45),
         new(Suit.Basic, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable),
+        new(Suit.Regen, 1, Equip: Suit.Slot, Gear: true, Group: ItemGroup.Wearable, Switch: true),
         // For the jetpack's long flights (2026-11-03-the-heavy-helmet): 100, not twice 45, so it reads as more than a doubling.
         new(Helmet.Heavy, 1, Equip: Helmet.Slot, Gear: true, Group: ItemGroup.Wearable, Tank: 100),
         // Softens enemies' blows and the cold a fifth (2026-10-27-the-cape-is-worn).
