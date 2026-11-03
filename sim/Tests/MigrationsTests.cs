@@ -106,6 +106,28 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void GivesADroneBayItsFuelSlotEmpty()
+    {
+        // A format-47 save's bay held four slots; after the upgrade it holds five, its drones where they were.
+        var w = new Scenario("RRRR\nRRRR\nRRRR\nRRRR", cells: true);
+        int bay = w.M.Grid.MachinesOf("droneBay").Single().Id;
+        w.Put(1, new Items.Stack("drone", 1, 7), crate: bay);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 47;
+        foreach (var held in save["slices"]!["items"]!["crates"]!.AsArray()) held!["slots"]!.AsArray().RemoveAt(4);
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal([null, new Items.Stack("drone", 1, 7), null, null, null], w.M.Items.Crate(bay));
+
+        // On a surface too: a bay there padded, a crate of another kind left as it was.
+        static JsonObject Slices(string kind) => JsonNode.Parse(
+            """{"grid":{"machines":[{"id":3,"kind":"KIND"}]},"items":{"crates":[{"id":3,"slots":[null,null,null,null]}]}}""".Replace("KIND", kind))!.AsObject();
+        var old = new JsonObject { ["slices"] = Slices("crate"), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices("droneBay") }) };
+        var upgraded = Migrations.Steps[47 - Migrations.Oldest](old);
+        Assert.Equal(4, upgraded["slices"]!["items"]!["crates"]![0]!["slots"]!.AsArray().Count);
+        Assert.Equal(5, upgraded["surfaces"]![0]!["slices"]!["items"]!["crates"]![0]!["slots"]!.AsArray().Count);
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();

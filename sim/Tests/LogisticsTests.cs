@@ -497,9 +497,9 @@ public class LogisticsTests
         var w = PoweredRooms(drones: 3, charge: 0).Put(3, Drone(), crate: Bay);
         w.Run();
         Assert.True(w.M.Power.Charges(Bay));
-        var before = w.M.Items.Crate(Bay).Select(s => s!.Charge).ToArray();
+        var before = w.M.Items.Crate(Bay).Take(4).Select(s => s!.Charge).ToArray();
         w.Run(10);
-        var gained = w.M.Items.Crate(Bay).Select((s, i) => s!.Charge - before[i]).ToArray();
+        var gained = w.M.Items.Crate(Bay).Take(4).Select((s, i) => s!.Charge - before[i]).ToArray();
         // Four power-ticks a tick between the three short of full, the rest of the division to the first.
         Assert.Equal([13340, 13330, 13330, 0], gained);
     }
