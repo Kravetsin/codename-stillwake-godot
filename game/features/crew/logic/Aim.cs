@@ -276,10 +276,11 @@ public static class Aiming
 
     /// <summary>
     /// The side of the square <paramref name="driver"/> works (power-driver): its <c>Area</c> while this player's mode is the
-    /// <paramref name="square"/> and the sim says it runs (<paramref name="running"/>, on the belt's charge); else 1, one cell.
+    /// <paramref name="square"/> and the belt can pay its draw (<paramref name="charged"/>), running or not, so the square shows
+    /// before the press and holds while the run catches up; else 1, one cell.
     /// </summary>
-    public static int SideOf(Spec.Screwdriver? driver, bool square, string? running) =>
-        driver is { Area: > 1 } d && square && running == d.Item ? d.Area : 1;
+    public static int SideOf(Spec.Screwdriver? driver, bool square, bool charged) =>
+        driver is { Area: > 1 } d && square && charged ? d.Area : 1;
 
     /// <summary>
     /// How fast <paramref name="driver"/> works (power-driver): at most its <c>Work</c> ticks on one plan a tick, and its
@@ -316,6 +317,19 @@ public static class Aiming
         for (int row = Math.Min(y + side, height) - 1; row >= y; row--)
             for (int col = x; col < Math.Min(x + side, width); col++) cells.Add(row * width + col);
         return (x, y, [.. cells]);
+    }
+
+    /// <summary>
+    /// The square of side <paramref name="side"/> the hero of peer <paramref name="peer"/> works at <paramref name="point"/>
+    /// (power-driver), with its <see cref="WorkTargets"/>: only while it holds a plan, a mark or a broken machine; over nothing,
+    /// none, and the pointer aims at one cell as the screwdriver's does.
+    /// </summary>
+    public static ((int X, int Y, int[] Cells) Square, List<WorkAim> Targets)? WorkedSquare(Registry m, int peer, Hero hero,
+        (double X, double Y) point, int side)
+    {
+        if (side < 2 || SquareAt(m.Grid.Width, m.Grid.Height, point, side) is not { } square) return null;
+        var targets = WorkTargets(m, peer, hero, square.Cells);
+        return targets.Count > 0 ? (square, targets) : null;
     }
 
     /// <summary>

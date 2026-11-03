@@ -117,8 +117,8 @@ commands reach the sim; others' heroes come through the host.
   a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
 - **The drill** (0054, 0055): held in one hand (one-arm-holds); left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
-- **The power driver** (power-driver): left held runs it; running, it works the 2×2 square (`SquareAt`, `SharesOf`,
-  `WorkTargets`), heard there (`BiteLoop`), its ratchet silent (`Ui.Driven`). Right click: square or cell.
+- **The power driver** (driver-at-work): runs only at work; charged, the 2×2 square over plans or marks
+  (`WorkedSquare`, `SharesOf`), heard there (`BiteLoop`), its ratchet silent (`Ui.Driven`). Right click: square or cell.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump short of a ledge by the foot's lift is mantled.
 
