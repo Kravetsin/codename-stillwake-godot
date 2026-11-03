@@ -321,6 +321,14 @@ public sealed class Ui
     public void Breathe() => Breathed?.Invoke();
 
     /// <summary>
+    /// This player asked to switch its suit's mode (2026-11-03-the-regen-suit): the suit's key on the tablet's edge says so;
+    /// <c>crew</c> sends it, as it does for V.
+    /// </summary>
+    public event Action? SuitSwitched;
+
+    public void SwitchSuit() => SuitSwitched?.Invoke();
+
+    /// <summary>
     /// This player's hero breathed a canister in (0047, 0081): <c>crew</c> sent the refill, once a breath, whether asked
     /// from the inventory or from the hand. <c>items</c> pulses the slot it was breathed from; the suit gauge surges.
     /// </summary>

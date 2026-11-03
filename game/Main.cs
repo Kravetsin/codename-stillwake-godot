@@ -308,6 +308,9 @@ public partial class Main : Node2D, ITogether
         edge.Put(_hands.Air.Cap, "overlay.key");
         edge.Put(_hands.Menu.Cap, "build.key");
         edge.Put(tech.Cap, "research.key");
+        edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, () => _session is Session s && _m.Crew.SuitOn(s.Client.Id),
+            () => _session is Session s ? _m.Crew.SuitModeProblem(s.Client.Id) : "crew.noHero"), "suit.key");
+        edge.Put(Features.Crew.SuitKeys.Canister(_hands.Ui, () => _session is Session s ? _m.Crew.RefillProblem(s.Client.Id) : "crew.noHero"), "canister.key");
         foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
         AddChild(edge);
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));

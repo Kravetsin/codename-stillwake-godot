@@ -58,6 +58,14 @@ public class ResearchTests
     }
 
     /// <summary>The user's prices (2026-11-03-the-heavy-helmet): a craft's block priced by its worth, as a blueprint's.</summary>
+    /// <summary>The regen suit's blueprint (2026-11-03-the-regen-suit): eight times its worth, twelve thousand, beside the belt's third slot.</summary>
+    [Fact]
+    public void TheRegenSuitCostsTwelveThousandOnTheBeltsRow()
+    {
+        Assert.Equal(12000, Prices.Of(Node("regenSuit")));
+        Assert.Equal(Node("belt2").Ring, Node("regenSuit").Ring);
+    }
+
     [Fact]
     public void TheHeavyHelmetCostsFiveThousandAndTheCanistersUpgradeTenAndBoughtTheHelmetIsCraftable()
     {

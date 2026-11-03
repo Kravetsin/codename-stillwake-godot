@@ -51,15 +51,15 @@ public class TabletPeekTests
     {
         // The art at the rim's place: 12 in, 682 down, 1256 across, what the page the look was picked on drew.
         var (x, y) = TabletPeek.SaddleAt(12, 682, 1256);
-        Assert.Equal(577, x);
+        Assert.Equal(543, x);
         Assert.Equal(686, y);
         Assert.True(y + TabletPeek.SaddleTall >= Tall, "the metal runs off the foot, with no edge showing under the keys");
     }
 
     [Fact]
-    public void ThreeKeysFitTheMetalTheySitOn()
+    public void FiveKeysFitTheMetalTheySitOn()
     {
-        int last = TabletPeek.KeyIn + 2 * TabletPeek.KeyStride + 30;
+        int last = TabletPeek.KeyIn + 4 * TabletPeek.KeyStride + 30;
         Assert.Equal(TabletPeek.SaddleWide, last + TabletPeek.KeyIn);
     }
 }

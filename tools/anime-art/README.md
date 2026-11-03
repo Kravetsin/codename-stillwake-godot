@@ -31,7 +31,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 
 | Subject | Pictures |
 | --- | --- |
-| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, and the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, its card `items/heavyHelmet`); `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, and `hero_tracker_light`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
+| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, `items/heavyHelmet`), the regen suit's (`hero_regenSuit_<part>`, lights `_lit`, `_arcs`, `_pip`; `items/regenSuit`); `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, `hero_tracker_light`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
 | `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
 | `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, charge bars, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items` | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |

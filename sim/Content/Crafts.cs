@@ -37,6 +37,8 @@ public static class Crafts
         new("jetpack", [("frame", 1), ("tube", 3), ("coil", 2), ("gear", 2), ("canister", 1), ("wire", 4)], Ticks: 240),
         // Its blueprint only the black market sells (2026-11-03-the-heavy-helmet), four times its worth: the user's 5000 (ResearchTests).
         new("heavyHelmet", [("frame", 1), ("plate", 4), ("tube", 2), ("glass", 3), ("canister", 2), ("wire", 4)], Ticks: 240),
+        // Its blueprint only the black market sells (2026-11-03-the-regen-suit): cables, a coil and circuits round a frame.
+        new("regenSuit", [("frame", 1), ("plate", 2), ("coil", 2), ("circuit", 2), ("wire", 6), ("tube", 2)], Ticks: 240),
         new("battery", [("plate", 2), ("coil", 2), ("wire", 4), ("circuit", 1)], Ticks: 120),
         // A plate bent into a band, wire and a coil for its glowing bulb: the workbench's, so it comes before the first cave (0077).
         new("helmetLamp", [("plate", 1), ("wire", 2), ("coil", 1)], Ticks: 60),

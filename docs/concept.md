@@ -64,6 +64,8 @@ A living document: what is decided about the game and what is still open. Techni
   keeps the cold out; the basic ones free at the pod, more to come ([suits-are-worn](decisions/2026-10-27-suits-are-worn.md)). The heavy
   helmet holds 100 to the basic 45, its blueprint sold on the black market by the jetpack's time; a canister upgrade there makes
   a canister breathed give 40 instead of 20 ([heavy-helmet](decisions/2026-11-03-the-heavy-helmet.md)).
+  The regen suit, a body sold there with the belt's third slot, turns belt charge into air while its mode is on (V): a
+  unit a breath at most, so it holds the air at rest and only slows its fall in flight ([regen-suit](decisions/2026-11-03-the-regen-suit.md)).
 - **Parts are made by machines only,** as in Subnautica and RimWorld: wire of scrap; plates, gears and
   tubes of iron; and of those parts a rotor (a gear and wire), a frame (plates) and a coil (wire). A
   recipe shows what a thing is made of: the harpoon is a tube and its line of wire

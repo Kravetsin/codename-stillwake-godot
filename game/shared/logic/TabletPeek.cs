@@ -14,8 +14,8 @@ public static class TabletPeek
     /// <summary>How much of the dark screen shows above the window's foot, and how tall the rim's screen is laid, past the foot whatever it shows.</summary>
     public const int ScreenShows = 6, RimTall = 64;
 
-    /// <summary>The metal the keys sit on: its size, how far its top stands above the bezel's, and how far the keys lie in from its left and top, a key's stride apart.</summary>
-    public const int SaddleWide = 110, SaddleTall = 36, SaddleAbove = 12, KeyIn = 6, KeyDown = 2, KeyStride = 34;
+    /// <summary>The metal the five keys sit on: its size, how far its top stands above the bezel's, and how far the keys lie in from its left and top, a key's stride apart.</summary>
+    public const int SaddleWide = 178, SaddleTall = 36, SaddleAbove = 12, KeyIn = 6, KeyDown = 2, KeyStride = 34;
 
     /// <summary>How much more of the art's width lies on the stylus's side than the other: the metal's middle is that much left of the art's.</summary>
     private const int StylusSide = 16;
