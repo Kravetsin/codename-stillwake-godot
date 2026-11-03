@@ -87,11 +87,11 @@ public class ChargeTests
     // The charging station.
 
     [Fact]
-    public void TheStationIsOneByTwoDrawsThreeAndIsBoughtInTheTree()
+    public void TheStationIsOneByTwoDrawsThreeABatteryForTwoAndIsBoughtInTheTree()
     {
         var spec = Machines.Get("charger");
         // One by two as a map draws it, a character a 16 px cell (0104).
-        Assert.Equal((1, 2, 3, 1, true), (spec.Width / 2, spec.Height / 2, spec.Draws, spec.Slots, spec.Charges));
+        Assert.Equal((1, 2, 3, 2, true, true), (spec.Width / 2, spec.Height / 2, spec.Draws, spec.Slots, spec.Charges, spec.ChargesEach));
         Assert.Equal(["frame", "coil", "wire", "circuit"], spec.Cost.Select(c => c.Item));
         Assert.DoesNotContain("charger", Content.Research.StartKnown);
         Assert.Equal(600, Full / PerTick);
@@ -112,6 +112,46 @@ public class ChargeTests
         Assert.Equal(Charged(Full), InStation(w));
         Assert.Equal(0, w.M.Power.Networks[0].Demand);
         Assert.False(w.M.Power.Charges(Charger));
+    }
+
+    /// <summary>The station of <see cref="Station"/> with a second panel beside the first: ten made, enough for two batteries.</summary>
+    private static Scenario TwoPanels()
+    {
+        string[] rows = ["PPPPPP   ", "         ", "#########", "#C.KK...#", "#C......#", "#########"];
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3)), ((3, 0), (1, 3))]), doubled: true);
+        Assert.Equal("charger", w.M.Grid.MachineById(w.M.Grid.MachinesOf("charger").Single().Id)!.Kind);
+        return w;
+    }
+
+    [Fact]
+    public void FillsTwoBatteriesEachAsFastAsOneAloneDrawingThreeForEachShortOfFull()
+    {
+        var w = TwoPanels();
+        int charger = w.M.Grid.MachinesOf("charger").Single().Id;
+        w.Put(0, Charged(0), crate: charger).Put(1, Charged(Full / 2), crate: charger);
+        w.Run(10);
+        Assert.Equal((10, 6, 1000), (w.M.Power.Networks[0].Supply, w.M.Power.Networks[0].Demand, w.M.Power.Networks[0].Satisfaction));
+        Assert.Equal(6, w.M.Power.Draw(charger));
+        Assert.Equal([Charged(10 * PerTick), Charged(Full / 2 + 10 * PerTick)], w.M.Items.Crate(charger));
+        // The second full after 300, the first charging on alone at 3 until 600.
+        w.Run(300);
+        Assert.Equal((3, 3), (w.M.Power.Networks[0].Demand, w.M.Power.Draw(charger)));
+        Assert.Equal([Charged(310 * PerTick), Charged(Full)], w.M.Items.Crate(charger));
+        w.Run(290);
+        Assert.Equal([Charged(Full), Charged(Full)], w.M.Items.Crate(charger));
+        w.Run();
+        Assert.Equal((0, 3), (w.M.Power.Networks[0].Demand, w.M.Power.Draw(charger)));
+    }
+
+    [Fact]
+    public void TwoBatteriesOnOnePanelDrawSixOfItsFiveAndShareWhatItGives()
+    {
+        var w = Station().Put(0, Charged(0), crate: Charger).Put(1, Charged(0), crate: Charger);
+        w.Run(10);
+        Assert.Equal((5, 6, 833), (w.M.Power.Networks[0].Supply, w.M.Power.Networks[0].Demand, w.M.Power.Networks[0].Satisfaction));
+        // 6 drawn at 833 a thousand, stored, split evenly: 2499 each a tick.
+        int each = 2 * PerTick * 833 / 1000 / 2;
+        Assert.Equal([Charged(10 * each), Charged(10 * each)], w.M.Items.Crate(Charger));
     }
 
     [Fact]

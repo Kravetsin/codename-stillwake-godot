@@ -29,8 +29,12 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Charges">
 /// A charging station: what it draws, scaled by its satisfaction, goes into what its slots hold short of full, shared
-/// between them (<see cref="Charge"/>): the charger's one, a drone bay's four. Its slots take only items with a
+/// between them (<see cref="Charge"/>): the charger's two, a drone bay's four. Its slots take only items with a
 /// <c>Capacity</c>, and it draws only while one is short of full.
+/// </param>
+/// <param name="ChargesEach">
+/// A charging station that draws its <c>Draws</c> for each slot short of full rather than once for them all
+/// (2026-11-03-charger-two): two batteries in the charger take 6, each filling as fast as one alone.
 /// </param>
 /// <param name="Store">
 /// A store of its network's energy (0101): it takes in what the network makes beyond what it draws and gives it back
@@ -72,6 +76,7 @@ public sealed record MachineSpec(
     int? FuelSlot = null,
     bool Fixed = false,
     bool Charges = false,
+    bool ChargesEach = false,
     StoreSpec? Store = null,
     bool Tunes = false,
     string? Takes = null,
@@ -179,7 +184,7 @@ public static class Machines
         // power comes before the Former.
         new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
-        new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 1, Charges: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
+        new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 2, Charges: true, ChargesEach: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
         // a minute at its most taken in fills it, two of a spare panel's. Basic infrastructure, not arc-gated; a bigger arc store may come later.
         new("capacitorBank", 4, 4, [], [("frame", 2), ("coil", 6), ("plate", 6), ("circuit", 2)], BuildTicks: 200, Plug: (16, 4), Store: new(12000, 10, 10), Menu: new(MenuTabs.Power, 60), Char: 'Q', Means: "capacitor bank: draw its whole footprint (0101)"),

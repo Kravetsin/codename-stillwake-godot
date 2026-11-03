@@ -115,7 +115,7 @@ public static partial class En
         ["tool.furnace.about"] = "Smelts salvage into materials, burning planks and breathing the air of its room.",
         ["tool.crate.about"] = "Holds items. Open it with E.",
         ["tool.net.about"] = "Hung outside on the hull's right side, it catches scrap, hull plates, crates and supply pods drifting into it, up to ten. Press E on it, even from inside, to take what it holds.",
-        ["tool.charger.about"] = "Fills a battery from its cable's power, slower when the network is short. Draws nothing when empty or full.",
+        ["tool.charger.about"] = "Fills two batteries from its cable's power, each as fast as one alone, drawing its power for each; slower when the network is short. Draws nothing when empty or full.",
         ["tool.capacitorBank.about"] = "Keeps the power its network makes and nothing draws, and gives it back when the network is short.",
         ["tool.computer.about"] = "The ship's computer: opens with E, a program for every module on its cable network.",
         ["tool.radarAntenna.about"] = "A radar dish for the roof. Cabled to the computer's network, it brings the radar.",

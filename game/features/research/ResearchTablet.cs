@@ -19,7 +19,7 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Seconds between reads of the world: a panel reads on a timer, never every frame.</summary>
     private const double ReadEvery = 0.25;
     /// <summary>The height of the strip about what is picked, and the width of its button.</summary>
-    private const int DetailTall = 116, ButtonWide = 200, BuySize = 20;
+    private const int DetailTall = 116, ButtonWide = 200;
 
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
@@ -28,7 +28,6 @@ public partial class ResearchTablet : CanvasLayer
     private readonly Control _strip = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly HBoxContainer _head = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore, GrowHorizontal = Control.GrowDirection.Begin, Alignment = BoxContainer.AlignmentMode.End }, 16);
     private readonly CreditLine _credits = new(Tablet.FontSize + 1);
-    private readonly Label _progress = Text("", Style.Slate100);
     private readonly Control _view = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly Panel _detail = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly TipSpots _tips;
@@ -85,33 +84,26 @@ public partial class ResearchTablet : CanvasLayer
         _marketLamp.AddChild(new ColorRect { Color = new Color("f2b84b"), MouseFilter = Control.MouseFilterEnum.Ignore, Position = Vector2.One, Size = new Vector2(8, 2) });
         _strip.AddChild(_marketLamp);
         _page = _pages[0];
-        _head.AddChild(_progress);
         _head.AddChild(_credits);
         _strip.AddChild(_head);
         _view.GuiInput += e => _page.Pointer(e);
-        var look = new StyleBoxFlat { BgColor = new Color("0d1218"), BorderColor = Line };
-        look.SetBorderWidthAll(1);
-        look.SetCornerRadiusAll(2);
-        _detail.AddThemeStyleboxOverride("panel", look);
         _detail.AddChild(_parts.Facts);
         var action = _parts.Action;
-        action.ClipText = true;
-        action.AddThemeFontOverride("font", Style.Mono);
-        action.AddThemeFontSizeOverride("font_size", Tablet.FontSize + 1);
         PaintAction();
         _detail.AddChild(action);
         _parts.ActionLine.SetAnchorsPreset(Control.LayoutPreset.FullRect);
-        var buy = Text(T("research.buy"), Style.Slate100, BuySize);
-        buy.LabelSettings.Font = Style.Mono;
-        buy.HorizontalAlignment = HorizontalAlignment.Center;
-        _parts.ActionLine.AddChild(buy);
+        var word = _parts.ActionWord;
+        word.HorizontalAlignment = HorizontalAlignment.Center;
+        word.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        _parts.ActionLine.AddChild(word);
         _parts.ActionLine.AddChild(_parts.ActionPrice);
         action.AddChild(_parts.ActionLine);
         // The wheel over the bezel zooms as over the map; it never reaches the hotbar.
         _tablet.GuiInput += e => _page.Zoom(e, _tablet);
         _tablet.Bezel.GuiInput += e => _page.Zoom(e, _tablet.Bezel);
-        foreach (var part in (Control[])[_strip, _view, _detail, _market.Faults]) _tablet.OnScreen(part);
+        foreach (var part in (Control[])[_market.Body, _strip, _view, _detail]) _tablet.OnScreen(part);
         PaintTabs();
+        PaintDetail();
         _page.Show(true);
         _key = new TabletKey(world, worldId, _keep, Bulb, Toggle);
         AddChild(_key);
@@ -221,18 +213,14 @@ public partial class ResearchTablet : CanvasLayer
         _parts.Action.Size = new Vector2(ButtonWide, DetailTall - 2 * pad);
         _view.Position = new Vector2(pad, bodyTop);
         _view.Size = new Vector2(width - 2 * pad, _detail.Position.Y - pad - bodyTop);
-        _market.Faults.Size = new Vector2(width, height);
+        _market.Body.Position = new Vector2(0, bodyTop - pad / 2);
+        _market.Body.Size = new Vector2(width, height - _market.Body.Position.Y);
     }
 
-    /// <summary>The head's credits and progress, then every page: each restyles only what has changed.</summary>
+    /// <summary>The head's credits, then every page: each restyles only what has changed.</summary>
     private void Read(Registry m)
     {
-        var research = m.Research;
-        _credits.Set(research.Credits);
-        var all = Content.Research.Nodes;
-        _progress.Text = T("research.progress", ("done", all.Count(research.Done)), ("all", all.Count));
-        // It counts the market alone, and an empty board must not start with a sum to fill.
-        _progress.Visible = _page == _market;
+        _credits.Set(m.Research.Credits);
         foreach (var page in _pages) page.Read(m);
         _marketLamp.Visible = _keep.Seen.MarketNew;
     }
@@ -246,6 +234,7 @@ public partial class ResearchTablet : CanvasLayer
         _page.Fill();
         _sinceRead = ReadEvery;
         PaintTabs();
+        PaintDetail();
     }
 
     private void HoverTab(int index)
@@ -259,25 +248,21 @@ public partial class ResearchTablet : CanvasLayer
         for (int i = 0; i < _tabBoxes.Count; i++) Tablet.PaintTab(_tabBoxes[i], _pages[i] == _page, i == _hoveredTab);
     }
 
-    /// <summary>Poison to be pressed, dark with its reason when it cannot.</summary>
+    /// <summary>The strip in the look of the page shown: the market's its own.</summary>
+    private void PaintDetail()
+    {
+        var look = _page == _market ? Style.Box(MarketPage.StripFill, MarketPage.Edge, radius: 3) : Style.Box(new Color("0d1218"), Line, radius: 2);
+        _detail.AddThemeStyleboxOverride("panel", look);
+    }
+
+    /// <summary>The market's accent to be pressed, dark with its reason when it cannot.</summary>
     private void PaintAction()
     {
-        StyleBoxFlat Look(Color fill, Color edge)
-        {
-            var box = new StyleBoxFlat { BgColor = fill, BorderColor = edge };
-            box.SetBorderWidthAll(2);
-            box.SetCornerRadiusAll(3);
-            return box;
-        }
         var action = _parts.Action;
-        action.AddThemeStyleboxOverride("normal", Look(MarketPage.PoisonDark, MarketPage.Poison));
-        action.AddThemeStyleboxOverride("hover", Look(new Color("7a1742"), MarketPage.Poison));
-        action.AddThemeStyleboxOverride("pressed", Look(new Color("420b23"), MarketPage.Poison));
-        action.AddThemeStyleboxOverride("disabled", Look(new Color("14181f"), Line));
-        action.AddThemeColorOverride("font_color", Style.Slate100);
-        action.AddThemeColorOverride("font_hover_color", Colors.White);
-        action.AddThemeColorOverride("font_pressed_color", Colors.White);
-        action.AddThemeColorOverride("font_disabled_color", Faint);
+        action.AddThemeStyleboxOverride("normal", Style.Box(MarketPage.Accent, MarketPage.Accent, radius: 3));
+        action.AddThemeStyleboxOverride("hover", Style.Box(new Color("e3633f"), new Color("e3633f"), radius: 3));
+        action.AddThemeStyleboxOverride("pressed", Style.Box(new Color("b8432a"), new Color("b8432a"), radius: 3));
+        action.AddThemeStyleboxOverride("disabled", Style.Box(MarketPage.Off, MarketPage.OffEdge, radius: 3));
     }
 
     /// <summary>Tab, E and B put it away and go on to what they do.</summary>
