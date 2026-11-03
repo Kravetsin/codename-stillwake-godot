@@ -10,6 +10,8 @@ public static partial class En
         ["upgrade.belt.about"] = "One more battery on the belt, for the whole crew.",
         ["upgrade.tradeSlots"] = "+1 trade station slot",
         ["upgrade.tradeSlots.about"] = "One more kind of goods in each trade station's capsule.",
+        ["upgrade.canister"] = "Canisters: twice the air",
+        ["upgrade.canister.about"] = "A canister breathed fills the suit with twice the air, for the whole crew.",
         ["trade.notStation"] = "No trade station here",
         ["trade.capsuleAway"] = "The capsule is away",
         ["trade.nothingToSell"] = "Nothing to sell",

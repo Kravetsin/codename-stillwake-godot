@@ -23,6 +23,9 @@ public static class Helmet
     /// <summary>The basic helmet, made for nothing at the lifepod.</summary>
     public static readonly string Basic = "helmet";
 
+    /// <summary>The heavy helmet (2026-11-03-the-heavy-helmet): more than twice the basic's air, for the jetpack's long flights; its blueprint sold on the black market.</summary>
+    public static readonly string Heavy = "heavyHelmet";
+
     /// <summary>The kind of equipment slot a helmet is worn in: the head.</summary>
     public static readonly string Slot = "head";
 

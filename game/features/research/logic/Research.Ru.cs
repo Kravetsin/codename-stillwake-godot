@@ -10,6 +10,8 @@ public static partial class Ru
         ["upgrade.belt.about"] = "Ещё одна батарея на поясе, на всю команду.",
         ["upgrade.tradeSlots"] = "+1 ячейка торговой станции",
         ["upgrade.tradeSlots.about"] = "Ещё один вид товара в капсуле каждой торговой станции.",
+        ["upgrade.canister"] = "Баллоны: вдвое больше воздуха",
+        ["upgrade.canister.about"] = "Вдохнутый баллон даёт скафандру вдвое больше воздуха, на всю команду.",
         ["trade.notStation"] = "Здесь нет торговой станции",
         ["trade.capsuleAway"] = "Капсула в пути",
         ["trade.nothingToSell"] = "Нечего продавать",

@@ -1,12 +1,12 @@
 namespace Stillwake.Content;
 
-/// <summary>An upgrade bought on the tree (2026-10-30-room-upgrades): one more slot of its <c>Kind</c> for the whole crew, for <c>Credits</c>.</summary>
+/// <summary>An upgrade bought on the tree (2026-10-30-room-upgrades): one more step of its <c>Kind</c> for the whole crew, a slot or a canister's air, for <c>Credits</c>.</summary>
 public sealed record Upgrade(string Id, string Kind, int Credits);
 
-/// <summary>What the credits can buy besides blueprints: more room. Each is a node of <see cref="Research.Tabs"/>, granted as a blueprint is.</summary>
+/// <summary>What the credits can buy besides blueprints: more room, and more air a canister. Each is a node of <see cref="Research.Tabs"/>, granted as a blueprint is.</summary>
 public static class Upgrades
 {
-    public const string Bag = "bag", Belt = "belt", TradeSlots = "tradeSlots";
+    public const string Bag = "bag", Belt = "belt", TradeSlots = "tradeSlots", Canister = "canister";
 
     /// <summary>The slots of a trade station open from the start; <see cref="MachineSpec.Slots"/> is how many it can come to.</summary>
     public const int TradeStart = 2;
@@ -32,6 +32,8 @@ public static class Upgrades
         new("tradeSlots4", TradeSlots, 1800),
         new("tradeSlots5", TradeSlots, 4000),
         new("tradeSlots6", TradeSlots, 5000),
+        // A canister breathed gives Crew.CanisterUp more (2026-11-03-the-heavy-helmet): one step, no more yet.
+        new("canister1", Canister, 10000),
     ];
 
     private static readonly Dictionary<string, Upgrade> ById = All.ToDictionary(u => u.Id, StringComparer.Ordinal);
@@ -39,7 +41,7 @@ public static class Upgrades
     /// <summary>The upgrade named <paramref name="id"/>; null for none.</summary>
     public static Upgrade? Of(string id) => ById.GetValueOrDefault(id);
 
-    /// <summary>The slots of <paramref name="kind"/> that the upgrades <paramref name="granted"/> add.</summary>
+    /// <summary>The steps of <paramref name="kind"/> that the upgrades <paramref name="granted"/> add.</summary>
     public static int Added(string kind, Func<string, bool> granted)
     {
         int added = 0;
