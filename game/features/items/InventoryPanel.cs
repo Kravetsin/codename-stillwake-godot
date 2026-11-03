@@ -78,12 +78,12 @@ public partial class InventoryPanel : CanvasLayer
     private Label _heldCount = null!, _creative = null!;
     private ProgressBar? _progress;
     private Label? _problem;
-    /// <summary>A charging station's: the bar of what its battery holds, and what it does now in words.</summary>
-    private ColorRect? _charged;
-    private Label? _station;
-    /// <summary>A charging station's numbers over its bar: what its battery holds of full, and what goes in a tick while it charges.</summary>
-    private HBoxContainer? _stored;
-    private Label? _storedText, _rate;
+    /// <summary>
+    /// A charging station's line a slot: what its battery holds of full and what goes in a tick while it charges, over the
+    /// bar of it, and what it does now in words.
+    /// </summary>
+    private sealed record ChargerLine(ColorRect Charged, Label Station, HBoxContainer Stored, Label StoredText, Label Rate);
+    private readonly List<ChargerLine> _chargerLines = [];
     /// <summary>A trade station's: the ship's credits.</summary>
     private readonly CreditLine _credits = new(Tablet.FontSize);
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
@@ -266,8 +266,8 @@ public partial class InventoryPanel : CanvasLayer
         foreach (var socket in _lentSockets) _tipSpots.Add(socket, () => SocketTip(socket));
         _tipSpots.Show(null);
         _built = null;
-        (_frame, _progress, _problem, _charged, _station, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null, null, null);
-        (_stored, _storedText, _rate) = (null, null, null);
+        (_frame, _progress, _problem, _tooCold, _hovered, _crateGrid, _crateKey) = (null, null, null, null, null, null, null);
+        _chargerLines.Clear();
     }
 
     /// <summary>

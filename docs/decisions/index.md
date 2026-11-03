@@ -199,7 +199,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
 | [key-lens](2026-11-02-key-lens.md) | The tablet's key is a frosted lens that lights | accepted |  |
-| [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | accepted |  |
+| [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | superseded | market-grid |
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [ports-left-to-right](2026-11-02-ports-left-to-right.md) | Ports read left to right | accepted |  |
 | [russian-language](2026-11-02-russian-language.md) | The game speaks Russian | accepted |  |
@@ -207,6 +207,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
+| [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
+| [charger-two](2026-11-03-charger-two.md) | The charger holds two batteries, drawing for each | accepted |  |
+| [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |

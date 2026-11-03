@@ -11,7 +11,7 @@ namespace Stillwake.Game.Dev;
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
 /// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
 /// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
-/// generator lit, a battery charging, the Former pressing plates endlessly from the iron in its
+/// generator lit, a battery charging beside a full one, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting quartz, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
 /// the farm's items, seeds, what the crusher takes and gives, planks, and what a planet's caves give; and drones (0062): two in a powered bay in room one beside a supply crate of
 /// twenty stacks of chunks, planks, iron and seeds, the farm's crate switched off. The furnace already holds chunks and
@@ -211,7 +211,7 @@ public static class Testbed
                 ["slots"] = Slots("furnace", [.. FurnaceHolds.Select(h => Stack(h.Item, h.Count))]),
             },
             new() { ["id"] = Id(BenchHolds.Kind), ["slots"] = Slots(BenchHolds.Kind, [Stack(BenchHolds.Tool, 1)]) },
-            new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging)]) },
+            new() { ["id"] = Id("charger"), ["slots"] = Slots("charger", [Battery(Charging), Battery(1000)]) },
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },

@@ -11,11 +11,12 @@ public partial class ContentTests
     // Items
 
     [Fact]
-    public void ItemsStackWholeNumbersAndEveryHullMaterialIsOne()
+    public void ItemsStackWholeNumbersAndEveryHullMaterialCostsItems()
     {
         foreach (var item in Content.Items.All) Assert.True(item.Stack > 0, item.Id);
-        // Natural ground (0077) is dug into what it costs: soil, and stone into rock.
-        foreach (var material in Materials.All.Where(m => !m.Natural && m.As == null)) Assert.Contains(material.Id, Content.Items.All.Select(i => i.Id));
+        // A hull material need not be an item itself: cast scrap costs scrap (2026-11-03-cast-scrap).
+        foreach (var material in Materials.All.Where(m => !m.Natural && m.As == null))
+            foreach (var (item, _) in material.Cost) Assert.Contains(item, Content.Items.All.Select(i => i.Id));
     }
 
     [Fact]

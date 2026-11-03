@@ -85,6 +85,8 @@ public static class Materials
         new("scrap", Code: 1, Strength: 2, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 10), BackMenu: new(MenuTabs.Structure, 110), Armour: 2),
         // A wreck's original plates: scrap in every rule, there only so the client can dress them; a wall built in their place is scrap, clean.
         new("wreckScrap", Code: 14, Strength: 2, Leak: 30, Cost: [("scrapChunk", 1)], BuildTicks: 7, Armour: 2, As: "scrap"),
+        // Scrap cast clean of its rust (2026-11-03-cast-scrap): scrap in every number but its cost, two of a chunk's four once smelted.
+        new("castScrap", Code: 15, Strength: 2, Leak: 30, Cost: [("scrap", 2)], BuildTicks: 7, Menu: new(MenuTabs.Structure, 12), BackMenu: new(MenuTabs.Structure, 112), Armour: 2),
         new("iron", Code: 2, Strength: 5, Leak: 24, Cost: [("plate", 1)], BuildTicks: 14, Look: MaterialLook.Panels, Menu: new(MenuTabs.Structure, 20), BackMenu: new(MenuTabs.Structure, 120), Armour: 5),
         // The seals: whole sheets no air gets through, and any meteor breaks. Alike but for their look, the player's choice.
         new("glass", Code: 11, Strength: 1, Leak: 6, Cost: [("glass", 2)], BuildTicks: 10, Menu: new(MenuTabs.Structure, 22), BackMenu: new(MenuTabs.Structure, 122), Armour: 1, Clear: true),

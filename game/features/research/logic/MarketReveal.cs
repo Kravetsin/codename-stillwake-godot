@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// How far each row of the market has deciphered ([market-decrypt](../../../../docs/decisions/2026-11-02-market-decrypt.md)): a clock of its own that never touches the sim. Row 0 is
-/// open from the start; row <c>n</c> opens with order <c>n</c>, which deciphers its cards and the next row's head. Rows opened together start together.
+/// How far each order's decipher has gone ([market-grid](../../../../docs/decisions/2026-11-03-market-grid.md)): a clock of its own that never touches the sim. Row <c>n</c>
+/// opens with order <c>n</c>, which deciphers the goods it opened and the next order's head. Rows opened together start together.
 /// </summary>
 /// <param name="rows">How many rows the market has.</param>
 public sealed class MarketReveal(int rows)
@@ -13,7 +13,7 @@ public sealed class MarketReveal(int rows)
     /// <summary>Seconds a row's decipher takes, and how long it holds off as the market comes up: the tablet's rise.</summary>
     public const double Takes = 1.6, Rise = 0.2;
 
-    /// <summary>The part of a decipher the head takes, and the rows' heights move in; of a card's own span, where it starts and ends, and how much later each card starts than the last.</summary>
+    /// <summary>The part of a decipher the head takes; of a tile's own span, where the first starts and ends, and how much later each starts than the last at most.</summary>
     private const double HeadEnds = 0.3, CardStarts = 0.1, CardEnds = 0.62, CardAfter = 0.08;
 
     /// <summary>How many steps of garbage a whole decipher goes through.</summary>
@@ -21,7 +21,7 @@ public sealed class MarketReveal(int rows)
 
     // Seconds into a row's decipher, below 0 while it holds off; null when it is not playing.
     private readonly double?[] _at = new double?[rows];
-    private readonly HashSet<(int Row, int Card)> _cleared = [];
+    private readonly HashSet<string> _cleared = new(StringComparer.Ordinal);
     private double _hold;
 
     /// <summary>Whether any row is deciphering, or about to.</summary>
@@ -60,15 +60,17 @@ public sealed class MarketReveal(int rows)
         }
     }
 
-    /// <summary>A card shows clear from now on: picking it clears it, for garbage is only a look.</summary>
-    public void ClearCard(int row, int card) => _cleared.Add((row, card));
+    /// <summary>Whether <paramref name="row"/> is deciphering, or about to.</summary>
+    public bool Plays(int row) => row >= 0 && row < _at.Length && _at[row] != null;
 
-    /// <summary>Whether card <paramref name="card"/> of <paramref name="row"/> still has garbage in it.</summary>
-    public bool Deciphering(int row, int card) => Part(row) is { } part && !_cleared.Contains((row, card)) && Span(part, CardStarts + card * CardAfter, CardEnds + card * CardAfter) < 1;
+    /// <summary>A good shows clear from now on: picking it clears it, for garbage is only a look.</summary>
+    public void ClearCard(string id) => _cleared.Add(id);
 
-    /// <summary>How many of <paramref name="count"/> characters of a card have cleared.</summary>
-    public int CardShown(int row, int card, int count) =>
-        Part(row) is { } part && !_cleared.Contains((row, card)) ? (int)(Span(part, CardStarts + card * CardAfter, CardEnds + card * CardAfter) * count) : count;
+    /// <summary>Whether good <paramref name="id"/>, tile <paramref name="index"/> of the <paramref name="count"/> that <paramref name="row"/> deciphers, still has garbage in it.</summary>
+    public bool Deciphering(string id, int row, int index, int count) => Of(id, row, index, count) is { } part && part < 1;
+
+    /// <summary>How many of <paramref name="chars"/> characters of that good have cleared.</summary>
+    public int CardShown(string id, int row, int index, int count, int chars) => Of(id, row, index, count) is { } part ? (int)(part * chars) : chars;
 
     /// <summary>Whether a row's head still has garbage in it: the row above is opening it.</summary>
     public bool HeadDeciphering(int row) => row > 0 && Part(row - 1) is { } part && part < HeadEnds;
@@ -76,34 +78,22 @@ public sealed class MarketReveal(int rows)
     /// <summary>How many of <paramref name="count"/> characters of a row's head have cleared.</summary>
     public int HeadShown(int row, int count) => row > 0 && Part(row - 1) is { } part ? (int)(Span(part, 0, HeadEnds) * count) : count;
 
-    /// <summary>Which step of garbage a row's cards are on, the row itself opening them.</summary>
+    /// <summary>Which step of garbage a row's goods are on, the row itself opening them.</summary>
     public int StepOf(int row) => Part(row) is { } part ? (int)(part * Steps) : 0;
 
     /// <summary>Which step of garbage a row's head is on, the row above opening it.</summary>
     public int HeadStepOf(int row) => row > 0 ? StepOf(row - 1) : 0;
 
-    /// <summary>
-    /// How far each row is the tall one, the row of the order being filled, with <paramref name="met"/> orders met: the one whose head is clear and whose order is not, passing to
-    /// the next in the first part of a decipher.
-    /// </summary>
-    public double[] Weights(int met)
+    /// <summary>How far through its own span a good is; null when it shows clear. Each starts a little after the last, all done before the decipher is.</summary>
+    private double? Of(string id, int row, int index, int count)
     {
-        var weights = new double[_at.Length];
-        for (int row = 1; row < weights.Length; row++)
-        {
-            double head = row == 1 ? 1 : row - 1 <= met ? Opened(row - 1) : 0, filled = row <= met ? Opened(row) : 0;
-            weights[row] = head * (1 - filled);
-        }
-        return weights;
+        if (Part(row) is not { } part || _cleared.Contains(id)) return null;
+        double after = count > 1 ? Math.Min(CardAfter, (1 - CardEnds - CardStarts) / (count - 1)) : 0;
+        return Span(part, CardStarts + index * after, CardEnds + index * after);
     }
 
-    /// <summary>How far a row of an order met has opened: all the way, unless its decipher is still in its first part.</summary>
-    private double Opened(int row) => Part(row) is { } part ? Ease(Span(part, 0, HeadEnds)) : 1;
-
     /// <summary>What part of its decipher a row has gone through, 0 while it holds off; null when it is not playing.</summary>
-    private double? Part(int row) => _at[row] is { } at ? Math.Max(0, at) / Takes : null;
+    private double? Part(int row) => row >= 0 && row < _at.Length && _at[row] is { } at ? Math.Max(0, at) / Takes : null;
 
     private static double Span(double part, double from, double to) => Math.Clamp((part - from) / (to - from), 0, 1);
-
-    private static double Ease(double part) => 1 - Math.Pow(1 - part, 3);
 }

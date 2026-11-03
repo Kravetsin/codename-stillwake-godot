@@ -80,6 +80,18 @@ public static class Migrations
                 slices["pipes"]!["spans"] = SpansOf46(slices["grid"]!, slices["pipes"]!["spans"]!.AsArray());
             return root;
         },
+        // 46 → 47 (2026-11-03-charger-two): the charger holds two batteries; what one held stays in its first slot.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var chargers = slices["grid"]!["machines"]!.AsArray().Where(m => m!["kind"]!.GetValue<string>() == "charger").Select(m => m!["id"]!.GetValue<int>()).ToHashSet();
+                foreach (var held in slices["items"]!["crates"]!.AsArray())
+                    if (chargers.Contains(held!["id"]!.GetValue<int>()))
+                        while (held["slots"]!.AsArray().Count < 2) held["slots"]!.AsArray().Add(null);
+            }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>
