@@ -31,7 +31,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 
 | Subject   | Pictures                                                                                                  |
 | --------- | --------------------------------------------------------------------------------------------------------- |
-| `hero`    | `hero_<part>`: the suit's parts, helmet shell and visor apart; `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, and `hero_tracker_light`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
+| `hero`    | `hero_<part>`: the suit's parts, helmet shell and visor apart, and the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, its card `items/heavyHelmet`); `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, and `hero_tracker_light`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
 | `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
 | `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, charge bars, held axe and drill; sorts after `machines` to read `AnimeKit` |
 | `items`   | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
@@ -53,7 +53,7 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `debris`  | `debris/*`: rocks lit hard from one side, crates, hull plates, pods, scrap, derelicts; no lettering, for they turn every way |
 | `bulb`    | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb over the hero, straight ink on a canvas, as picked, with no finish |
 | `keylens` | `key_lens_dark`, `key_lens_lit`, each with `_down`: the tablet key's cap, 22 by 22 at the screen's own pixels, as picked, with no finish |
-| `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`: what the market sells that is no item |
+| `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames are repeating runs, so a 9-slice stretch has no seam |
 
 ## Run

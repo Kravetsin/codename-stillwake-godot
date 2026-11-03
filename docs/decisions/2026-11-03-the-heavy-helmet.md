@@ -30,4 +30,7 @@ the helmet's, so the bigger suit is a helmet; the body stays as it is.
 - The upgrade is the stronger buy, for flight is paid in canisters, which stack by twenty: it halves the ice a flight costs. Hence
   its price and its later row; both are first guesses for the playtest.
 - At the world's last cells, short of off the grid, the heavy helmet outlasts the basic one a breath or two. Nothing is there.
-- The helmet is drawn as the basic one until its look is picked; the upgrade's market icon likewise waits for its pick.
+- **Looks, as picked** from eight helmets and four icons: a diver's steel bell, a barred port in front and one at the temple, bolted
+  to a breastplate, its hose to the pack ("a bit jokey, but it fits"); the upgrade, two canisters strapped, their valves joined by a
+  tee. The others were rejected as the basic helmet with bottles stuck on: a later helmet is designed whole. A helmet other than the
+  basic one has its own `hero_<id>_shell` and `_visor` and its lamp's place (`HeadLampArt.OnOf`).

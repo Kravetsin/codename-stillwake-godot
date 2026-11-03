@@ -125,7 +125,7 @@ public partial class LookEditor : CanvasLayer
     {
         for (int i = 0; i < Pickers.Length; i++)
             _values[i].Text = i == 4 && _picks[i] == 0 ? T("look.none") : $"{_picks[i] + (i == 4 ? 0 : 1)} / {Pickers[i].Count - (i == 4 ? 1 : 0)}";
-        _figure.Wear(_colour(), helmet: false, body: false, Chosen);
+        _figure.Wear(_colour(), helmet: null, body: false, Chosen);
     }
 
     public override void _Process(double delta)
