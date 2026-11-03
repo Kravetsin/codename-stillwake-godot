@@ -161,6 +161,23 @@ public class BuildingDeliveryTests
     }
 
     [Fact]
+    public void BlueprintsBuildCastScrapOfSmeltedScrapAndGiveItBackTakenApartNeverAChunk()
+    {
+        var w = Stocked(Open);
+        var cast = Materials.Get("castScrap");
+        int scrap = CostIn(cast.Cost, "scrap");
+        PlacePlan(w, At(1, 1), Placement.Wall("castScrap"));
+        Hold(w, 1, cast.BuildTicks);
+        Assert.Empty(w.Refusals);
+        Assert.Equal(cast, w.M.Grid.WallAt(At(1, 1)));
+        Assert.Equal(StockScrap - scrap, Count(w, "scrap"));
+        w.Do(new Deconstruct(At(1, 1), "structure")).Run();
+        Hold(w, 2, Costs.ApartTicks(cast.BuildTicks));
+        Assert.Null(w.M.Grid.WallAt(At(1, 1)));
+        Assert.Equal((StockScrap, 0), (Count(w, "scrap"), Count(w, "scrapChunk")));
+    }
+
+    [Fact]
     public void BlueprintsArePaidInTheCostsOrderEachPartWithTheFirstItemCarriedAndStillLacking()
     {
         // A vent: its plates, then its tubes, a part each.
