@@ -14,17 +14,18 @@ namespace Stillwake.Game.Features.Power;
 
 /// <summary>
 /// What each charging station says without a word (0053): its light pulsing green while it charges,
-/// steady once its battery is full on a network that makes power, dark empty or unpowered; a battery in
-/// its bay with its charge rising up it. Drawn unlit over its picture (<c>machine_charger.png</c>), its
+/// steady once what it holds is full on a network that makes power, dark empty or unpowered; a battery in
+/// each of its bays, one over the other, with its charge rising up it (2026-11-03-charger-two). Drawn unlit over its picture (<c>machine_charger.png</c>), its
 /// light lighting the room round it a little in the same green (a <see cref="Glow"/>), none when dark.
-/// Heard where it stands: a low hum while it charges, faded in and out, and a blip as its battery comes full.
+/// Heard where it stands: a low hum while it charges, faded in and out, and a blip as a battery comes full.
 /// </summary>
 public partial class ChargerLights : Node2D
 {
     /// <summary>What the stations are doing is read this often; the pulse runs every frame.</summary>
     private const double RefreshMs = 100;
-    /// <summary>The light and the bay in the station's picture, in pixels from its top-left.</summary>
-    private static readonly Rect2I Lens = new(5, 7, 6, 2), Bay = new(5, 12, 6, 12);
+    /// <summary>The light and the bays in the station's picture, a bay a slot from the top, in pixels from its top-left.</summary>
+    private static readonly Rect2I Lens = new(5, 7, 6, 2);
+    private static readonly Rect2I[] Bays = [new(5, 13, 6, 7), new(5, 21, 6, 7)];
     /// <summary>How often the light pulses a second while it charges, and how much of its colour its light gives.</summary>
     private const double Pulses = 0.8;
     private const float ChargingLight = 0.6f, FullLight = 0.45f;
@@ -34,7 +35,7 @@ public partial class ChargerLights : Node2D
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IPowerQueries _power;
-    private readonly List<(Vector2 Corner, Look Look, float Share, ChargeBar? Bar)> _stations = [];
+    private readonly List<(Vector2 Corner, Look Look, (float Share, ChargeBar? Bar)[] Held)> _stations = [];
     /// <summary>Each station's hum and its envelope, and what it did at the last read, by machine id.</summary>
     private readonly Dictionary<int, Heard> _heard = new();
     private readonly List<int> _gone = [];
@@ -45,7 +46,7 @@ public partial class ChargerLights : Node2D
         public Heard2D Hum { get; } = hum;
         public LoopEnvelope Envelope;
         public bool Charging, Seen;
-        public float Share;
+        public float[] Shares = [];
     }
     private readonly List<Glow> _glows = [];
     private double _sinceRead = RefreshMs, _clock;
@@ -84,13 +85,13 @@ public partial class ChargerLights : Node2D
             foreach (var m in _grid.MachinesOf(kind))
             {
                 var corner = new Vector2(m.Cell % _grid.Width, m.Cell / _grid.Width) * ShipCamera.Cell;
-                var held = _items.Crate(m.Id) is { Count: > 0 } slots ? slots[0] : null;
-                float share = held == null ? -1 : Charges.Share(held);
+                var held = _items.Crate(m.Id).Take(Bays.Length).Select(h => h == null ? (-1f, (ChargeBar?)null) : (Charges.Share(h), Charges.BarOf(h))).ToArray();
+                bool any = held.Any(h => h.Item1 >= 0), full = any && held.All(h => h.Item1 < 0 || h.Item1 >= 1);
                 var look = _power.Charges(m.Id) ? Look.Charging
-                    : held != null && share >= 1 && Powered(m) ? Look.Full
+                    : full && Powered(m) ? Look.Full
                     : Look.Dark;
-                _stations.Add((corner, look, share, held == null ? null : Charges.BarOf(held)));
-                Listen(m.Id, corner, look == Look.Charging, share);
+                _stations.Add((corner, look, held));
+                Listen(m.Id, corner, look == Look.Charging, [.. held.Select(h => h.Item1)]);
             }
         _gone.Clear();
         foreach (var (id, heard) in _heard)
@@ -102,18 +103,21 @@ public partial class ChargerLights : Node2D
         }
     }
 
-    /// <summary>A station read: its hum placed and told whether it charges, and the blip once its battery comes full.</summary>
-    private void Listen(int id, Vector2 corner, bool charging, float share)
+    /// <summary>A station read: its hum placed and told whether it charges, and the blip once a battery comes full.</summary>
+    private void Listen(int id, Vector2 corner, bool charging, float[] shares)
     {
         var middle = corner + new Vector2(ShipCamera.Cell, 2 * ShipCamera.Cell);
         if (!_heard.TryGetValue(id, out var heard))
         {
-            heard = _heard[id] = new Heard(Cues.Player2D(S.ChargerHum, S.World)) { Share = share };
+            heard = _heard[id] = new Heard(Cues.Player2D(S.ChargerHum, S.World)) { Shares = shares };
             AddChild(heard.Hum);
         }
         heard.Hum.Position = middle;
-        if (Charges.CameFull(heard.Charging, heard.Share, share)) _full.PlayAt(GlobalTransform * middle);
-        (heard.Charging, heard.Share, heard.Seen) = (charging, share, true);
+        bool cameFull = false;
+        for (int i = 0; i < shares.Length; i++)
+            cameFull |= Charges.CameFull(heard.Charging, i < heard.Shares.Length ? heard.Shares[i] : -1, shares[i]);
+        if (cameFull) _full.PlayAt(GlobalTransform * middle);
+        (heard.Charging, heard.Shares, heard.Seen) = (charging, shares, true);
     }
 
     /// <summary>Every station's hum faded in while it charges and out after; begun somewhere along its loop, so two never hum in step.</summary>
@@ -155,7 +159,7 @@ public partial class ChargerLights : Node2D
             var glow = _glows[i];
             glow.Visible = i < _stations.Count && _stations[i].Look != Look.Dark;
             if (!glow.Visible) continue;
-            var (corner, look, _, _) = _stations[i];
+            var (corner, look, _) = _stations[i];
             glow.Position = corner + (Vector2)Lens.Position + (Vector2)Lens.Size / 2;
             glow.Colour = Green * ((look == Look.Charging ? ChargingLight : FullLight) * (0.6f + 0.4f * Brightness(look)));
         }
@@ -163,20 +167,25 @@ public partial class ChargerLights : Node2D
 
     public override void _Draw()
     {
-        foreach (var (corner, look, share, bar) in _stations)
+        foreach (var (corner, look, held) in _stations)
         {
             var lens = new Rect2(corner + Lens.Position, Lens.Size);
             DrawRect(lens, look == Look.Dark ? Empty : Dim.Lerp(Green, Brightness(look)));
-            if (share < 0) continue;
-            // The battery standing in the bay, its charge rising from the foot.
-            var shell = new Rect2(corner + Bay.Position + new Vector2(1, 1), Bay.Size - new Vector2(2, 1));
-            DrawRect(shell, Shell);
-            var inside = shell.Grow(-1);
-            DrawRect(inside, Empty);
-            float filled = Mathf.Round(inside.Size.Y * share);
-            if (filled > 0)
-                DrawRect(new Rect2(inside.Position + new Vector2(0, inside.Size.Y - filled), new Vector2(inside.Size.X, filled)), bar == ChargeBar.Low ? new Color(Charges.Amber) : Green);
-            DrawRect(new Rect2(shell.Position + new Vector2(2, -1), new Vector2(shell.Size.X - 4, 1)), Shell);
+            for (int i = 0; i < held.Length; i++)
+                if (held[i].Share >= 0) DrawBattery(corner + Bays[i].Position, Bays[i].Size, held[i].Share, held[i].Bar);
         }
+    }
+
+    /// <summary>A battery standing in a bay at <paramref name="at"/>, its charge rising from the foot.</summary>
+    private void DrawBattery(Vector2 at, Vector2I size, float share, ChargeBar? bar)
+    {
+        var shell = new Rect2(at + new Vector2(1, 1), size - new Vector2(2, 1));
+        DrawRect(shell, Shell);
+        var inside = shell.Grow(-1);
+        DrawRect(inside, Empty);
+        float filled = Mathf.Round(inside.Size.Y * share);
+        if (filled > 0)
+            DrawRect(new Rect2(inside.Position + new Vector2(0, inside.Size.Y - filled), new Vector2(inside.Size.X, filled)), bar == ChargeBar.Low ? new Color(Charges.Amber) : Green);
+        DrawRect(new Rect2(shell.Position + new Vector2(2, -1), new Vector2(shell.Size.X - 4, 1)), Shell);
     }
 }
