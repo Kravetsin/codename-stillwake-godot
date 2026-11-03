@@ -20,7 +20,7 @@ public class BuildMenuDataTests
             "air: vent tank cistern generator electrolyser",
             "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",
             "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule arcBench",
-            "storage: crate droneBay",
+            "storage: crate net droneBay",
             "ship: computer radarAntenna launchPlatform dropPod engine",
         ], Tools.Tabs.Select(Ids));
     }
@@ -42,7 +42,7 @@ public class BuildMenuDataTests
         var tabs = Tools.TabsOf(Materials.All, Builds.All, [.. Machines.All, press, shed, unlisted]);
 
         Assert.Equal("power: solarPanel burnerGenerator lamp arcLamp press charger capacitorBank", Ids(tabs.Single(t => t.Id == "power")));
-        Assert.Equal("storage: shed crate droneBay", Ids(tabs.Single(t => t.Id == "storage")));
+        Assert.Equal("storage: shed crate net droneBay", Ids(tabs.Single(t => t.Id == "storage")));
         Assert.DoesNotContain(tabs.SelectMany(t => t.Tools), t => t.Id == "unlisted");
         var card = Assert.IsType<PlaceTool>(tabs.SelectMany(t => t.Tools).Single(t => t.Id == "press"));
         Assert.Equal(new Sim.Grid.Placement("machine", "press"), card.Placement);

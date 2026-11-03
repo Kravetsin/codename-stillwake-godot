@@ -12,6 +12,7 @@ public static partial class Ru
         ["grid.noSuchMaterial"] = "Нет такого материала",
         ["grid.noSuchMachine"] = "Нет такой машины",
         ["grid.noExhaust"] = "Сопло должно выходить сквозь обшивку в космос",
+        ["grid.notOnHull"] = "Вешай снаружи, на правый борт",
         ["grid.noPlatform"] = "Ставится только на посадочную платформу",
         ["grid.noGround"] = "Нужна ровная земля",
         ["grid.underPlatform"] = "Не под посадочной платформой: здесь падает капсула",

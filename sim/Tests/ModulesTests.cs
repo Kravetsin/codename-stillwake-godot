@@ -160,6 +160,40 @@ public class ModulesTests
         Assert.True(behind >= 2, $"the log was outrun {behind} times");
     }
 
+    /// <summary>
+    /// A hull a wall down its bow, four debris nets hung on it, the stream already out and catching (docs/plans/net.md): what
+    /// Debris' fuzz draws <c>Collect</c> on, most of its draws refused elsewhere.
+    /// </summary>
+    private static readonly Layout Nets = Layout.Parse(
+        [.. Enumerable.Range(0, 32).Select(y => y is >= 4 and < 28 ? "    #nn".PadRight(40) : new string(' ', 40))]) with
+    { DebrisAtStart = Content.Debris.Max };
+
+    [Theory]
+    [InlineData(4u)]
+    [InlineData(11u)]
+    public void SavesLoadsAndKeepsTwoWorldsAlikeWhileDebrisNetsCatchAndAreCollected(uint seed)
+    {
+        var rng = new Rng(new RngState { S = seed });
+        var (a, b) = (new Registry(), new Registry());
+        var first = World.Create(seed, Nets, a.All);
+        var second = World.Create(seed, Nets, b.All);
+        int collected = 0, held = 0;
+        for (int i = 0; i < 400; i++)
+        {
+            var commands = RandomCommands(first, rng);
+            var refused = first.Step(commands);
+            second.Step(commands);
+            collected += commands.Count(c => c is Debris.Collect && !refused.Any(r => r.Command == c));
+            held = Math.Max(held, a.Debris.Held.Count);
+            Assert.Equal(first.Hash(), second.Hash());
+            if (i % 50 != 25) continue;
+            var loaded = World.Load(first.Save(), new Registry().All);
+            Assert.Equal(first.Hash(), loaded.Hash());
+            second = loaded;
+        }
+        Assert.True(held > 0 && collected > 0, $"nets held {held} at most and {collected} collects applied");
+    }
+
     [Fact]
     public void DrawsTheCommandsOfEveryModuleThatHasAny()
     {

@@ -20,8 +20,7 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
   `Crates`, machines holding something, by id; `Creative`; `Floor` (`FloorStack`, id order) and `NextFloorId`; `Ticks`;
   `Kept` (0062); `Running`, one `Runner` a peer (0055); `Fitted`, by machine then module (0086), saved only when set.
-- **Start:** every inventory and machine empty; `Kit` gives `Inventory.Kit` (the screwdriver; 0107)
-  to a peer's first hero.
+- **Start:** all empty; `Kit` gives `Inventory.Kit` (the screwdriver; 0107) to a peer's first hero.
 
 ## Rules
 
@@ -36,7 +35,8 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (`Stacks.Misfit`, 0047). Worn items
   are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there, a suit for Crew (2026-10-27-suits-are-worn).
-- **Obtained** (board.md): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `DropAt` for `Nobody` count; the rest moves or refunds.
+- **Obtained** (board.md): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `DropAt` for `Nobody` count, `GiveWhatFits` what it gave
+  (what fits, the rest returned: a debris net's collect); the rest moves or refunds.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full.
@@ -92,8 +92,8 @@ negative cost throws.
 
 - Ownership across sessions: an inventory or body is a peer id's, after a load whoever joins in that slot. A body
   outlasts its owner leaving and is anyone's.
-- Reach is the client's. A stale pick, or a drone after a sort, takes what is there then.
+- Reach is the client's. A stale pick, or a drone after a sort, takes what is there.
 - A stack pushed out of a wall in space with no room in reach drifts away.
-- A module in a machine gone other than by `Building` would stay in `Fitted`: nothing a player does causes it.
-- A fit shows once its tick runs (0014). Of two drills carried the fitted one works (0098).
-- Charge never leaks; short of a tick's draw, it waits to be charged (0053).
+- A module in a machine gone but by `Building` stays in `Fitted`: no player causes it.
+- A fit shows once its tick runs (0014). Of two drills the fitted one works (0098).
+- Charge never leaks; short of a tick's draw, it waits (0053).

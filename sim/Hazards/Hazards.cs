@@ -171,8 +171,14 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// The wall at <paramref name="cell"/> broken (2026-10-29-holes-not-planned): lost, refunding nothing, and left unplanned, for the
     /// player to patch with what they have. Pipes are spans, running through it untouched (0109); a mark on it is dropped by building.
+    /// A debris net hung on it, in the next cell of its row, goes with it, refunding nothing; debris drops what it held.
     /// </summary>
-    private void Break(int cell) => _ops.Clear(cell, "structure");
+    private void Break(int cell)
+    {
+        _ops.Clear(cell, "structure");
+        int next = cell + 1;
+        if (next % _grid.Width != 0 && _grid.MachineAt(next) is { } net && Machines.Is(net.Kind, MachineTrait.Catches)) _ops.Clear(next, "machine");
+    }
 
     /// <summary>The blast a meteor of <paramref name="power"/> sets off: what it may spend reaching cells and breaking walls.</summary>
     public static int Charge(int power, Meteors.Shower shower) => shower.Charge + power * shower.PerPower;
@@ -199,7 +205,8 @@ public sealed partial class HazardsModule : Module<HazardsState>
 
     /// <summary>
     /// The walls open to the drift, top row first: in each row of what is built, inside the zone, the first thing met walking
-    /// left from the right, when it is a wall that breaks. A door, window, ladder or machine met first shields its row.
+    /// left from the right, when it is a wall that breaks. A door, window, ladder or machine met first shields its row, but a
+    /// debris net, which the aim passes to the wall it hangs on.
     /// </summary>
     private void Targets()
     {
@@ -214,7 +221,8 @@ public sealed partial class HazardsModule : Module<HazardsState>
             for (int x = right; x >= left; x--)
             {
                 int cell = y * width + x;
-                if (_grid.StructureAt(cell) == Structure.Empty && _grid.MachineAt(cell) == null) continue;
+                if (_grid.StructureAt(cell) == Structure.Empty
+                    && (_grid.MachineAt(cell) is not { } m || Machines.Is(m.Kind, MachineTrait.Catches))) continue;
                 if (HitProblem(cell) == null) _targets.Add(cell);
                 break;
             }

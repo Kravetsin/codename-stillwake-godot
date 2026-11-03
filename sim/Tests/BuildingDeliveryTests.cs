@@ -444,10 +444,11 @@ public class BuildingDeliveryTests
 
     private static readonly string[] Counted = ["scrap", "iron", "plate", "gear", "tube"];
 
-    /// <summary>What the heroes carry, what lies on the floor and what blueprints were given, of <paramref name="item"/>.</summary>
+    /// <summary>What the heroes carry, what lies on the floor, what blueprints were given and what debris nets hold, of <paramref name="item"/>.</summary>
     private static int Held(Scenario w, string item) =>
         Enumerable.Range(0, 5).Sum(peer => Count(w, item, peer)) + Lying(w, item)
-        + w.M.Building.Plans.Sum(p => p.Delivered.Where(s => s.Item == item).Sum(s => s.Count));
+        + w.M.Building.Plans.Sum(p => p.Delivered.Where(s => s.Item == item).Sum(s => s.Count))
+        + w.M.Debris.Held.Sum(e => e.Items.Where(s => s.Item == item).Sum(s => s.Count));
 
     /// <summary>What is built of <paramref name="item"/> on the 180 cells of the doubled map: what taking it all apart would give.</summary>
     private static int Built(Scenario w, string item)

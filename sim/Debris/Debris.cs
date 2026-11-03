@@ -95,6 +95,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
         Handles<HewWrecks>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), Apply);
         Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
+        Handles<Collect>(c => CollectProblem(c.From, c.Machine), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
         System(Phase.Simulation, Drift);
     }

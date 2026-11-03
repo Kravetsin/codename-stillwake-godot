@@ -31,7 +31,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   interval is drawn again.
 - **Open to the drift** (debris drifts right to left): in each row of what is built, inside the zone, the first thing
   met walking left from the right, when it is a wall that breaks (`HitProblem` none). A door, window, ladder or machine
-  met first shields its row.
+  met first shields its row; a debris net (`Catches`) does not: the aim passes it to the wall it hangs on.
 - **`Warning` ticks later it strikes** (3 s): if a wall still stands there and power ≥ its material's `Armour` (wall-roles: scrap 2,
   iron 5), a blast of `Charge(power)` spreads from it as a wave, cheapest way first: a cell costs `Meteors.Step` (aslant
   `Diagonal`), a wall `PerStrength` a point of its armour more, and breaks; what is left goes on, so walls soak it. It goes
@@ -41,6 +41,8 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 - **A wall broken** is cleared, lost, refunding nothing, its pipes left whole (0109), and nothing is planned in its place:
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
+  A `Catches` machine in the next cell of its row (x + 1 on the grid), a net hung on it, is cleared with it, refunding
+  nothing; `debris` drops what it held on the same tick (it runs after). The net's cells still stop a blast.
 - `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its armour.
 - **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
   reaching 0. Then, with none drawn, where the kind has `Flares`, the world is not `Calm` and `Knows("generator")`, the next
@@ -64,12 +66,13 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 
 ## Invariants
 
-- A meteor only ever turns a wall into an empty cell and takes back walls away; it adds nothing, a plan neither.
+- A meteor only ever turns a wall into an empty cell, takes back walls away and the nets hung on walls it breaks; it adds
+  nothing, a plan neither.
 - A strike breaks between `ceil(n × PercentMin / 100)` and `ceil(n × PercentMax / 100)` of its `n` candidates.
 
 ## Deliberately not handled
 
-- Meteors hit walls only, never doors, windows, machines, solar panels or heroes; they come only from the right, never
+- Meteors hit walls only, never doors, windows, machines (a net only with its wall), solar panels or heroes; they come only from the right, never
   through an open door.
 - A hit breaks or does nothing: no damage adds up. A blast slips aslant between two walls meeting at a corner, and leaves
   doors and machines it meets whole. Showers do not change with where the ship goes yet.

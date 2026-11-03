@@ -58,6 +58,12 @@ public static class Debris
         ("soilClod", 2),
     ];
 
+    /// <summary>How many pieces a debris net holds, whatever each is (docs/plans/net.md); a full one lets everything pass.</summary>
+    public const int NetHolds = 10;
+
+    /// <summary>The kinds a debris net catches: small salvage and the containers; wrecks, clods and asteroids pass through it.</summary>
+    public static readonly IReadOnlyList<string> NetCatches = ["scrapChunk", "hullPlate", "cargoCrate", "supplyPod"];
+
     /// <summary>The stream past the ship, as it always was: by the hull, in one tier.</summary>
     public static readonly DebrisZone Ship = new("ship", new ByHull(Margin, Lead), Every, Jitter, Max, DriftMin, DriftMax, [new(0, Kinds)]);
 

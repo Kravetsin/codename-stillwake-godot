@@ -48,7 +48,8 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   doorway's group), rows from its column's top; any other structure its own cell.
 - `PlacementProblem(cell, placement)`: a machine with an `Exhaust` (the engine) also needs, in every row of its footprint, one
   wall or more left of it, then space up to its nozzle's tip or a cell past the wall: else `grid.noExhaust`
-  ([the-engine-through-the-hull](../../docs/decisions/2026-10-25-the-engine-through-the-hull.md)); `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
+  ([the-engine-through-the-hull](../../docs/decisions/2026-10-25-the-engine-through-the-hull.md)); one that `Catches` (a debris net)
+  needs a wall left of every row and every cell space with no back wall: else `grid.notOnHull`; `AfterToggles(commands)` — the codes the `SetDoor`s among them would set, for a
   client's own toggles in flight (0014); not a copy of the layer.
 - **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
   `Clear(cell, layer)` (a whole machine), `SetDoorway(cell, open)` (a whole doorway as `SetDoor` sets it: Landing's
@@ -57,7 +58,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
   `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
-  `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.noPlatform` (a machine that `Lands` with the row
+  `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.notOnHull`, `grid.noPlatform` (a machine that `Lands` with the row
   under it not all launch platform), `grid.noGround` (off the ship, where only Landing places a pod, the row under it not all
   solid), `grid.underPlatform` (a structure or machine in a launch platform's shaft: under it, to the grid's edge),
   `grid.shaftBlocked` (a platform over a shaft not empty). `Taken(cell)`, `ClearBelow(cell)`: the shaft's test; `OnRun`.
@@ -67,7 +68,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 A structure's map character is its spec's `Char` (`#` wall, `=` floor, `H` ladder, `D`/`d` door, `h`/`o` hatch, `_`/`~` launch
 platform, `%` the grate
 fixture); `-` pipe, `v`/`x` valve, a machine by its spec's `Char`. A machine is drawn as its whole footprint. Every character
-but a space has a back wall of the default hull. Machines take ids by their top-left cells in reading order.
+but a space has a back wall of the default hull, a solar panel's and a net's excepted. Machines take ids by their top-left cells in reading order.
 
 Maps are drawn a character a 16 px cell and doubled (`Layout.Doubled()`): a character fills its 2×2 cells, a `Flat` structure
 (floor, hatch) its top row only, `S` its bottom-left, a conduit its top-left toward its neighbours. A test of a rule per cell
