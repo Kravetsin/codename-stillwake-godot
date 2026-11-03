@@ -6,6 +6,7 @@ using Stillwake.Game.Features.Sound;
 using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Sim.Players;
+using L = Stillwake.Game.Light;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Crew;
@@ -77,10 +78,16 @@ public partial class Figure : Node2D
     private bool _lampWorn;
     /// <summary>The suit's body worn, its item; null bare.</summary>
     private string? _bodyWorn = Stillwake.Content.Suit.Basic;
-    /// <summary>A switched body's lights drawn unlit over its parts (2026-11-03-the-regen-suit): each band layer, its part, its part's name, whether a far limb's.</summary>
-    private readonly List<(Sprite2D Light, Sprite2D Part, string Name, bool Far)> _bands = [];
+    /// <summary>A switched body's lights drawn unlit over its parts (2026-11-03-the-regen-suit): each band layer, its part, its part's name, whether a far limb's, the light it gives (2026-11-03-hero-lights).</summary>
+    private readonly List<(Sprite2D Light, Sprite2D Part, string Name, bool Far, Glow Glow)> _bands = [];
     /// <summary>The collar's arcs and the socket's pip of an empty belt, over the chest.</summary>
     private readonly Sprite2D _arcs = new() { Centered = false, Material = Unshaded }, _pip = new() { Centered = false, Material = Unshaded };
+    /// <summary>The light the tracker, the arcs and the pip give (2026-11-03-hero-lights), and every light of the hero's own.</summary>
+    private readonly Glow _trackerGlow = new() { Reach = L.TrackerReach, Keep = L.TrackerKeep }, _arcsGlow = new() { Reach = L.SuitReach, Keep = L.SuitKeep },
+        _pipGlow = new() { Reach = L.SuitReach, Keep = L.SuitKeep, Colour = new Color(L.SuitPip.R, L.SuitPip.G, L.SuitPip.B) * L.SuitPipLight };
+    private readonly List<Glow> _glows = [];
+    private bool _givesLight = true;
+    private static readonly Color SuitLight = new(L.SuitLight.R, L.SuitLight.G, L.SuitLight.B);
     private Sprite2D _chest = null!;
     private static readonly Material Unshaded = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private static readonly Dictionary<string, Texture2D?> Lights = new();
@@ -156,9 +163,9 @@ public partial class Figure : Node2D
     /// <summary>
     /// Working a plan, the screwdriver in the front hand (0030), the arm reaching out a share
     /// <see cref="WorkReach"/> of its length, the tool held at one angle as a hand holds it. Each
-    /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it — the handle's ribs rolling
+    /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it вЂ” the handle's ribs rolling
     /// on three steps, the knuckles coming over so the hand, seen from the side, rises
-    /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on — then lets go and turns back
+    /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on вЂ” then lets go and turns back
     /// to grip again, the hand sinking.
     /// </summary>
     private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
@@ -228,6 +235,8 @@ public partial class Figure : Node2D
         chest.Position = new Vector2(0, (float)-Rig.Neck);
         chest.AddChild(_arcs);
         chest.AddChild(_pip);
+        Gives(_arcs, _arcsGlow);
+        Gives(_pip, _pipGlow);
         _jetpack = new Sprite2D { Texture = PixelArt.Picture("hero_jetpack"), Centered = false, Visible = false };
         _jetpack.Position = pack.Position + new Vector2(-2, -1);
         Lit.Set(_jetpack);
@@ -354,6 +363,17 @@ public partial class Figure : Node2D
 
     /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
     public (bool On, bool Charged, double Phase) Suit { get; set; }
+
+    /// <summary>Whether its tracker and lit bands light the world round them; off for a figure in a window of its own, out of the world.</summary>
+    public bool GivesLight
+    {
+        get => _givesLight;
+        set
+        {
+            _givesLight = value;
+            foreach (var glow in _glows) glow.Visible = value;
+        }
+    }
 
     /// <summary>Whether the hero wears a jetpack on its back (0047).</summary>
     public bool Jetpack
@@ -593,11 +613,12 @@ public partial class Figure : Node2D
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
+        _trackerGlow.Colour = _trackerLight.Modulate * L.Tracker;
         _pack.Visible = body != null;
-        foreach (var (light, part, name, _) in _bands)
-            (light.Texture, light.Offset) = (body is { } b ? LightOf($"hero_{b}_{name}_lit") : null, part.Offset);
-        (_arcs.Texture, _arcs.Offset) = (body is { } a ? LightOf($"hero_{a}_arcs") : null, _chest.Offset);
-        (_pip.Texture, _pip.Offset) = (body is { } p ? LightOf($"hero_{p}_pip") : null, _chest.Offset);
+        foreach (var (light, part, name, _, glow) in _bands)
+            Show(light, glow, body is { } b ? $"hero_{b}_{name}_lit" : null, part.Offset);
+        Show(_arcs, _arcsGlow, body is { } a ? $"hero_{a}_arcs" : null, _chest.Offset);
+        Show(_pip, _pipGlow, body is { } p ? $"hero_{p}_pip" : null, _chest.Offset);
         _shell.Visible = _visor.Visible = helmet != null;
         _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
         _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
@@ -633,9 +654,25 @@ public partial class Figure : Node2D
         {
             var light = new Sprite2D { Centered = false, Material = Unshaded, Visible = false };
             sprite.AddChild(light);
-            _bands.Add((light, sprite, name, far));
+            _bands.Add((light, sprite, name, far, Gives(light, new Glow { Reach = L.SuitReach, Keep = L.SuitKeep })));
         }
         return sprite;
+    }
+
+    /// <summary>A light of the hero's own (2026-11-03-hero-lights): a glow on <paramref name="light"/>, lighting round it while it shows.</summary>
+    private Glow Gives(Sprite2D light, Glow glow)
+    {
+        glow.Visible = _givesLight;
+        light.AddChild(glow);
+        _glows.Add(glow);
+        return glow;
+    }
+
+    /// <summary>A body's light layer drawn with picture <paramref name="name"/>, none without, at <paramref name="at"/>; its glow at the picture's middle.</summary>
+    private static void Show(Sprite2D light, Glow glow, string? name, Vector2 at)
+    {
+        (light.Texture, light.Offset) = (name != null ? LightOf(name) : null, at);
+        glow.Position = at + (light.Texture != null ? HiRes.MiddleOf(name!) : Vector2.Zero);
     }
 
     /// <summary>A body's light picture, loaded once; none for a body without it.</summary>
@@ -651,13 +688,17 @@ public partial class Figure : Node2D
     {
         var (on, charged, phase) = Suit;
         bool glows = on && charged;
-        foreach (var (light, _, name, far) in _bands)
+        foreach (var (light, _, name, far, glow) in _bands)
         {
             light.Visible = glows && light.Texture != null;
-            if (light.Visible) light.Modulate = new Color(1, 1, 1, (float)(SuitGlow.Bands(phase, SuitGlow.UpOf(name)!.Value) * (far ? SuitArt.FarShade : 1)));
+            if (!light.Visible) continue;
+            float strength = (float)(SuitGlow.Bands(phase, SuitGlow.UpOf(name)!.Value) * (far ? SuitArt.FarShade : 1));
+            light.Modulate = new Color(1, 1, 1, strength);
+            glow.Colour = SuitLight * (L.SuitBand * strength);
         }
         _arcs.Visible = glows && _arcs.Texture != null;
         _arcs.Modulate = new Color(1, 1, 1, (float)SuitGlow.Arcs(_timeMs));
+        _arcsGlow.Colour = SuitLight * (L.SuitArcs * _arcs.Modulate.A);
         _pip.Visible = on && !charged && _pip.Texture != null && SuitGlow.Pip(_timeMs);
     }
 
@@ -677,6 +718,7 @@ public partial class Figure : Node2D
             _trackerLight.Texture = _trackerLightPicture ??= HiRes.Texture(HiRes.Load("hero_tracker_light")!);
             bend.AddChild(_tracker);
             bend.AddChild(_trackerLight);
+            Gives(_trackerLight, _trackerGlow).Position = TrackerAt + HiRes.MiddleOf("hero_tracker_light");
         }
         view.AddChild(bend);
         view.AddChild(Part(upper, far));

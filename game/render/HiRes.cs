@@ -47,6 +47,25 @@ public static class HiRes
         return (Image)made.Duplicate();
     }
 
+    private static readonly Dictionary<string, Vector2> Middles = new();
+
+    /// <summary>The middle of light picture <paramref name="name"/> by brightness, in the world's pixels from its corner: where a light it shows gives off.</summary>
+    public static Vector2 MiddleOf(string name)
+    {
+        if (Middles.TryGetValue(name, out var known)) return known;
+        var image = Logical(name, soft: true);
+        var sum = Vector2.Zero;
+        float weight = 0;
+        for (int y = 0; y < image.GetHeight(); y++)
+            for (int x = 0; x < image.GetWidth(); x++)
+            {
+                float a = image.GetPixel(x, y).A;
+                sum += new Vector2(x + 0.5f, y + 0.5f) * a;
+                weight += a;
+            }
+        return Middles[name] = weight > 0 ? sum / weight : (Vector2)image.GetSize() / 2;
+    }
+
     /// <summary>
     /// A packed sheet of <paramref name="placed"/> pictures: <paramref name="logical"/> grown <see cref="Scale"/> times, each picture with a
     /// hi-res one (named with <paramref name="suffix"/>) put in its place, at the size <paramref name="logical"/> reports.
