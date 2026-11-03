@@ -113,7 +113,7 @@ public static partial class En
         ["tool.arcBench.about"] = "A vise with a sky shard in its jaw: clamp a tool in it to fit it with a module, and wind shards into what the arc makes. Needs no power.",
         ["tool.furnace.about"] = "Smelts salvage into materials, burning planks and breathing the air of its room.",
         ["tool.crate.about"] = "Holds items. Open it with E.",
-        ["tool.charger.about"] = "Fills a battery from its cable's power, slower when the network is short. Draws nothing when empty or full.",
+        ["tool.charger.about"] = "Fills two batteries from its cable's power, each as fast as one alone, drawing its power for each; slower when the network is short. Draws nothing when empty or full.",
         ["tool.capacitorBank.about"] = "Keeps the power its network makes and nothing draws, and gives it back when the network is short.",
         ["tool.computer.about"] = "The ship's computer: opens with E, a program for every module on its cable network.",
         ["tool.radarAntenna.about"] = "A radar dish for the roof. Cabled to the computer's network, it brings the radar.",

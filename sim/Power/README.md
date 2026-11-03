@@ -38,8 +38,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   anywhere, any other only under the stars: every cell in space with no back wall behind (0043).
 - **Demand:** each drawing user's `Draws` × (1000 + its modules' `Draw`) / 1000, rounded up (0086). A station
   (`Content.Stations`) draws whenever crafting does not rest it, whatever its slots hold (0057); any other with slots, the
-  engine, only while its first holds something; a charging station only while something it holds is short of full (0053); none
-  told to rest. A machine taken apart leaves `Resting`.
+  engine, only while its first holds something; a charging station only while something it holds is short of full (0053), a
+  `ChargesEach` one (charger-two) once for each such slot; none told to rest. A machine taken apart leaves `Resting`.
 - **Satisfaction** (0017): `floor(1000 × served / demand)`, at most 1000, 1000 with no demand; served is supply plus
   what stores give out. Every user on it works at that share, a resting one included.
 - **Stores** (0101): a machine with a `Store` holds up to its `Capacity` in power-ticks. `PowerNodes.Settle`, in
@@ -48,8 +48,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   met. A store never takes from another. The simulation phase adds each flow to what it holds.
 - **A fire is wanted** (`Needed`, 0101) while the network draws, or its stores could take in, more than its panels make
   (`Steady`); `furnace` lights a burner's next fuel only then. Other fires are not counted, so two burn together.
-- **Charging** (0053): each tick in simulation, after the networks, in machine id order, a charging station puts its
-  `Draws` × satisfaction / 1000 in thousandths (`Content.Charge.Scale`), rounded down, evenly into the slots short of
+- **Charging** (0053): each tick in simulation, after the networks, in machine id order, a charging station puts what it
+  draws × satisfaction / 1000 in thousandths (`Content.Charge.Scale`), rounded down, evenly into the slots short of
   full, the remainder one each to the first in slot order (`IItemsOps.Charge`), never past full. A drone bay shares it
   between docked drones (0062) and takes no module. Power owns this: it knows satisfaction and depends on items.
 - **Broken** (magnetic-flare): a machine `hazards` broke stays a node, makes, draws and stores nothing, its store keeping
@@ -61,7 +61,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 
 - **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Feeds(cell)`, a structure a cable
   ends on with power enough: its network makes or stores some and covers its demand (a launch platform's lamp); `Satisfaction(machineId)`,
-  0 off every network; `Draw(machineId)`, modules folded in (0086); `LayProblem(peer, a, b)` and
+  0 off every network; `Draw(machineId)`, modules (0086) and a charger's slots in; `LayProblem(peer, a, b)` and
   `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100);
   `Broken`, `IsBroken(machineId)`.
@@ -96,5 +96,4 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - No priorities, switches or overload; a store holds nothing back and never leaks. A store taken apart loses its charge.
 - A broken drone bay still sends drones (logistics reads no power), the engine's draw is read by none; a broken
   burner's lit fire burns on for nothing.
-- Networks are found from scratch every tick: tens of cables. A cache would also have to follow slots and rests,
-  which do not move the grid's `Version`.
+- Networks are found anew every tick: tens of cables. A cache would have to follow slots and rests too.

@@ -92,6 +92,20 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void GivesAChargerHoldingABatteryItsSecondSlotEmpty()
+    {
+        // A format-46 save's charger held one slot; after the upgrade it holds two, its battery in the first.
+        var w = new Scenario("CC\nCC\nCC\nCC", cells: true);
+        int charger = w.M.Grid.MachinesOf("charger").Single().Id;
+        w.Put(0, new Items.Stack("battery", 1, 7), crate: charger);
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 46;
+        foreach (var held in save["slices"]!["items"]!["crates"]!.AsArray()) held!["slots"]!.AsArray().RemoveAt(1);
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal([new Items.Stack("battery", 1, 7), null], w.M.Items.Crate(charger));
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();
