@@ -15,7 +15,8 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 `Surfaces.Kind.Flares`, `Content/MagneticFlares.cs`).
 
 - **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them); `Power`
-  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares).
+  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares); `Items` (`DropAt`, a broken net's cost):
+  the one place that knows a meteor, not a screwdriver, took the net, and Items runs before it.
 - **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no hazards
   (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
   `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`); `FlareIn`, ticks till the flare drawn strikes, 0 for none.
@@ -41,8 +42,9 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 - **A wall broken** is cleared, lost, refunding nothing, its pipes left whole (0109), and nothing is planned in its place:
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
-  A `Catches` machine in the next cell of its row (x + 1 on the grid), a net hung on it, is cleared with it, refunding
-  nothing; `debris` drops what it held on the same tick (it runs after). The net's cells still stop a blast.
+  A `Catches` machine in the next cell of its row (x + 1 on the grid), a net hung on it, is cleared with it, its whole
+  `Machines` cost (6 wire, 4 tube) dropped at its cell for anyone (`DropAt(Nobody)`), once however many of its walls break;
+  `debris` drops what it held on the same tick (it runs after). The net's cells still stop a blast.
 - `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its armour.
 - **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
   reaching 0. Then, with none drawn, where the kind has `Flares`, the world is not `Calm` and `Knows("generator")`, the next
@@ -67,7 +69,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 ## Invariants
 
 - A meteor only ever turns a wall into an empty cell, takes back walls away and the nets hung on walls it breaks; it adds
-  nothing, a plan neither.
+  nothing but a broken net's cost on the floor, a plan neither.
 - A strike breaks between `ceil(n × PercentMin / 100)` and `ceil(n × PercentMax / 100)` of its `n` candidates.
 
 ## Deliberately not handled

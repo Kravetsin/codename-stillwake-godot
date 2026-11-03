@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Stillwake.Content;
 using Stillwake.Sim.Grid;
+using Stillwake.Sim.Items;
 using Stillwake.Sim.Power;
 using Stillwake.Sim.Research;
 
@@ -36,19 +37,21 @@ public sealed partial class HazardsModule : Module<HazardsState>
     private readonly IPowerQueries _power;
     private readonly IPowerOps _powerOps;
     private readonly IResearchQueries _research;
+    private readonly IItemsOps _items;
     private readonly List<int> _targets = [], _blast = [], _backs = [];
     private int[] _spent = [];
     private List<int>[] _byCost = [];
 
     public override string Id => "hazards";
 
-    public HazardsModule(IGridQueries grid, IGridOps ops, IPowerQueries power, IPowerOps powerOps, IResearchQueries research)
+    public HazardsModule(IGridQueries grid, IGridOps ops, IPowerQueries power, IPowerOps powerOps, IResearchQueries research, IItemsOps items)
     {
         _grid = grid;
         _ops = ops;
         _power = power;
         _powerOps = powerOps;
         _research = research;
+        _items = items;
         Handles<MeteorHit>(c => HitProblem(c.Cell), c => Break(c.Cell));
         Handles<FlareNow>(FlareNowProblem, c => State.FlareIn = c.Ticks);
         // In construction, as a command would: building drops a mark on the broken wall and the rooms see the hole on its tick.
@@ -171,13 +174,16 @@ public sealed partial class HazardsModule : Module<HazardsState>
     /// <summary>
     /// The wall at <paramref name="cell"/> broken (2026-10-29-holes-not-planned): lost, refunding nothing, and left unplanned, for the
     /// player to patch with what they have. Pipes are spans, running through it untouched (0109); a mark on it is dropped by building.
-    /// A debris net hung on it, in the next cell of its row, goes with it, refunding nothing; debris drops what it held.
+    /// A debris net hung on it, in the next cell of its row, goes with it, its whole cost floating at its cell for anyone to take
+    /// (2026-11-03-debris-net); debris drops what it held.
     /// </summary>
     private void Break(int cell)
     {
         _ops.Clear(cell, "structure");
         int next = cell + 1;
-        if (next % _grid.Width != 0 && _grid.MachineAt(next) is { } net && Machines.Is(net.Kind, MachineTrait.Catches)) _ops.Clear(next, "machine");
+        if (next % _grid.Width == 0 || _grid.MachineAt(next) is not { } net || !Machines.Is(net.Kind, MachineTrait.Catches)) return;
+        _ops.Clear(next, "machine");
+        _items.DropAt(FloorStack.Nobody, Machines.Get(net.Kind).Cost, net.Cell);
     }
 
     /// <summary>The blast a meteor of <paramref name="power"/> sets off: what it may spend reaching cells and breaking walls.</summary>

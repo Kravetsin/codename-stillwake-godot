@@ -7,6 +7,7 @@ using Stillwake.Sim.Crew;
 using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Hazards;
+using Stillwake.Sim.Items;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 using Loot = Stillwake.Content.Loot;
@@ -366,7 +367,37 @@ public class NetTests
         Assert.Empty(w.M.Grid.MachinesOf("net"));
         Assert.Empty(w.M.Debris.Held);
         Assert.Equal((1, 1), (Lying(w, "scrapChunk"), Lying(w, "hullPlate")));
-        Assert.All(w.M.Items.Floor, s => Assert.Equal(4 * 10 + 6, s.Cell));
+        Assert.All(w.M.Items.Floor.Where(s => s.Item is "scrapChunk" or "hullPlate"), s => Assert.Equal(4 * 10 + 6, s.Cell));
+    }
+
+    [Fact]
+    public void BreakTheNetDroppingItsWholeBuildCostAtItsCellForAnyoneOnceThoughTheBlastBreaksManyOfItsWalls()
+    {
+        var w = Struck();
+        int cell = w.M.Grid.MachinesOf("net")[0].Cell;
+        var (walls, _) = HazardsTests.StrikeAt(w, 3 * 10 + 5, 4);
+        Assert.True(walls.Count(c => c % 10 == 5 && c / 10 is >= 1 and <= 6) > 1);
+        Assert.Empty(w.M.Grid.MachinesOf("net"));
+        foreach (var (item, count) in Machines.Get("net").Cost)
+        {
+            var lying = w.M.Items.Floor.Where(s => s.Item == item).ToList();
+            Assert.Equal(count, lying.Sum(s => s.Count));
+            Assert.All(lying, s => Assert.Equal((cell, FloorStack.Nobody), (s.Cell, s.By)));
+        }
+        Assert.Equal((1, 1), (Lying(w, "scrapChunk"), Lying(w, "hullPlate")));
+    }
+
+    [Fact]
+    public void ATakenApartNetRefundsItsCostToItsWorkerAsBeforeLeavingNoneOfItLying()
+    {
+        var w = Caught(Quiet(), "scrapChunk");
+        w.Do(new Deconstruct(At(6, 2), "machine")).Run();
+        int plan = Assert.Single(w.M.Building.Plans).Id;
+        var before = Machines.Get("net").Cost.Select(c => Count(w, c.Item, 1)).ToList();
+        for (int i = 0; i < Costs.ApartTicks(Machines.Get("net").BuildTicks); i++) w.Do(new Work(plan) { From = 1 }).Run();
+        Assert.Empty(w.M.Grid.MachinesOf("net"));
+        Assert.Equal(Machines.Get("net").Cost.Select((c, i) => before[i] + c.Count), Machines.Get("net").Cost.Select(c => Count(w, c.Item, 1)));
+        Assert.All(Machines.Get("net").Cost, c => Assert.Equal(0, Lying(w, c.Item)));
     }
 
     [Fact]
