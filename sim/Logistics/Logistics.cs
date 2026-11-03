@@ -60,7 +60,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     {
         if (_grid.MachineById(machine) is not { } target) return false;
         foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
-            if (Flood(bay) && InFlood(target)) return true;
+            if (Flood(bay, vacuum: false) && InFlood(target)) return true;
         return false;
     }
 
@@ -73,7 +73,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
         if (_grid.MachineById(machine) is not { } target) return false;
         foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
         {
-            if (!Flood(bay) || !InFlood(target)) continue;
+            if (!Flood(bay, vacuum: false) || !InFlood(target)) continue;
             foreach (var m in _grid.Machines)
             {
                 if (m.Id == machine || FirstOffered(m) is not int start || !Served(m.Id) || !InFlood(m)) continue;

@@ -32,7 +32,7 @@ public sealed partial class LogisticsModule
         {
             if ((State.Ticks + bay.Id) % BayOf(bay).LookEvery != 0) continue;
             int slot = ReadySlot(bay.Id);
-            if (slot < 0 || !Flood(bay)) continue;
+            if (slot < 0 || !Flood(bay, vacuum: false)) continue;
             if (FindJob(bay.Cell) is { } job && Affords(_items.Crate(bay.Id)[slot]!.Charge, bay.Cell, job, bay)) Launch(bay, slot, job);
         }
     }
@@ -50,7 +50,7 @@ public sealed partial class LogisticsModule
     private void Next(Drone d, Machine bay)
     {
         d.Leg = Leg.Home;
-        if (!Flood(d.Cell, ZoneBox(bay)) || FindJob(d.Cell) is not { } job) return;
+        if (!Flood(d.Cell, ZoneBox(bay), vacuum: false) || FindJob(d.Cell) is not { } job) return;
         if (Affords(d.Stack.Charge, d.Cell, job, bay)) Take(d, job);
         else d.Low = true;
     }
@@ -65,7 +65,7 @@ public sealed partial class LogisticsModule
     /// <summary>Launches the drone in slot <paramref name="slot"/> of <paramref name="bay"/> on <paramref name="job"/>, from the bay's first passable cell.</summary>
     private void Launch(Machine bay, int slot, Job job)
     {
-        int cell = StartOf(bay);
+        int cell = StartOf(bay, vacuum: false);
         var stack = _itemsOps.TakeFrom(bay.Id, slot, 1) ?? throw new InvalidOperationException("logistics.launch: no drone docked");
         var (x, y) = Centre(cell);
         var d = new Drone { Id = State.NextId++, Bay = bay.Id, Stack = stack, X = x, Y = y, Cell = cell, To = cell };
@@ -113,12 +113,12 @@ public sealed partial class LogisticsModule
         int budget = BayOf(bay).Speed;
         while (true)
         {
-            if (d.To != d.Cell && !Passable(d.To)) d.To = d.Cell;
+            if (d.To != d.Cell && !Passable(d.To, vacuum: false)) d.To = d.Cell;
             var (tx, ty) = Centre(d.To);
             if (d.X == tx && d.Y == ty)
             {
                 d.Cell = d.To;
-                if (!Passable(d.Cell))
+                if (!Passable(d.Cell, vacuum: false))
                 {
                     Drop(d);
                     return;
@@ -130,7 +130,7 @@ public sealed partial class LogisticsModule
                     if (!Arrive(d, goal, bay)) return;
                     continue;
                 }
-                var (step, home) = Search(d.Cell, goal, bay, box);
+                var (step, home) = Search(d.Cell, Foot(goal), bay, box, vacuum: false);
                 if (home < 0)
                 {
                     Drop(d);
@@ -189,7 +189,7 @@ public sealed partial class LogisticsModule
                 {
                     // What did not fit goes on to a crate with room, else lies here.
                     var rest = d.Cargo! with { Count = left };
-                    if (Flood(d.Cell, ZoneBox(bay)) && Storage(goal.Id, rest) is { } to && to.Crate != goal.Id)
+                    if (Flood(d.Cell, ZoneBox(bay), vacuum: false) && Storage(goal.Id, rest) is { } to && to.Crate != goal.Id)
                     {
                         (d.Cargo, d.Target) = (rest, to.Crate);
                         return true;
@@ -238,11 +238,26 @@ public sealed partial class LogisticsModule
 
     // Cells.
 
-    /// <summary>Where a drone may be: a cell holding air, or a doorway's (door or hatch), open or closed; drones never open them.</summary>
-    private bool Passable(int cell) =>
-        _air.AiredAt(cell) || Doorways.IsDoorway(_grid.StructureAt(cell));
+    /// <summary>
+    /// Where a drone may be: a cell holding air, or a doorway's (door or hatch), open or closed; drones never open them. With
+    /// <paramref name="vacuum"/>, a salvage drone's, any cell not built up, or a doorway's (salvage-drones). A parameter, never
+    /// a field: the queries flood between ticks on one peer only.
+    /// </summary>
+    private bool Passable(int cell, bool vacuum)
+    {
+        int s = _grid.StructureAt(cell);
+        return Doorways.IsDoorway(s) || (vacuum ? !Structures.Solid(s) : _air.AiredAt(cell));
+    }
 
     private (int X, int Y) Centre(int cell) => (cell % _grid.Width * Unit + Unit / 2, cell / _grid.Width * Unit + Unit / 2);
+
+    /// <summary>The cells machine <paramref name="m"/> covers, a goal for <see cref="Search"/>.</summary>
+    private Box Foot(Machine m)
+    {
+        var spec = Machines.Get(m.Kind);
+        int x = m.Cell % _grid.Width, y = m.Cell / _grid.Width;
+        return new Box(x, y, x + spec.Width - 1, y + spec.Height - 1);
+    }
 
     /// <summary>Whether machine <paramref name="m"/> covers <paramref name="cell"/>.</summary>
     private bool Covers(Machine m, int cell)
@@ -263,14 +278,14 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>The first cell of bay <paramref name="bay"/>, in reading order, a drone may be in; -1 for none.</summary>
-    private int StartOf(Machine bay)
+    private int StartOf(Machine bay, bool vacuum)
     {
         var spec = Machines.Get(bay.Kind);
         for (int dy = 0; dy < spec.Height; dy++)
             for (int dx = 0; dx < spec.Width; dx++)
             {
                 int cell = bay.Cell + dy * _grid.Width + dx;
-                if (Passable(cell)) return cell;
+                if (Passable(cell, vacuum)) return cell;
             }
         return -1;
     }
@@ -300,7 +315,7 @@ public sealed partial class LogisticsModule
     /// The cells drones of <paramref name="bay"/> reach: breadth first from its passable cells through passable cells
     /// inside its zone. Whether there are any: none for a bay with no air about it. Read with <see cref="InFlood"/>.
     /// </summary>
-    private bool Flood(Machine bay)
+    private bool Flood(Machine bay, bool vacuum)
     {
         Begin(ZoneBox(bay));
         int tail = 0;
@@ -309,25 +324,25 @@ public sealed partial class LogisticsModule
             for (int dx = 0; dx < spec.Width; dx++)
             {
                 int cell = bay.Cell + dy * _grid.Width + dx;
-                if (!Passable(cell)) continue;
+                if (!Passable(cell, vacuum)) continue;
                 _seen[Local(cell)] = _stamp;
                 _queue[tail++] = cell;
             }
-        return Spread(tail);
+        return Spread(tail, vacuum);
     }
 
-    /// <summary>The cells a drone at <paramref name="cell"/> reaches inside <paramref name="box"/>, as <see cref="Flood(Machine)"/>; false outside it.</summary>
-    private bool Flood(int cell, Box box)
+    /// <summary>The cells a drone at <paramref name="cell"/> reaches inside <paramref name="box"/>, as <see cref="Flood(Machine, bool)"/>; false outside it.</summary>
+    private bool Flood(int cell, Box box, bool vacuum)
     {
         Begin(box);
-        if (!InBox(cell) || !Passable(cell)) return Spread(0);
+        if (!InBox(cell) || !Passable(cell, vacuum)) return Spread(0, vacuum);
         _seen[Local(cell)] = _stamp;
         _queue[0] = cell;
-        return Spread(1);
+        return Spread(1, vacuum);
     }
 
     /// <summary>A flood on from the <paramref name="tail"/> cells queued; whether there were any.</summary>
-    private bool Spread(int tail)
+    private bool Spread(int tail, bool vacuum)
     {
         if (tail == 0)
         {
@@ -342,7 +357,7 @@ public sealed partial class LogisticsModule
             Neighbours(c, around);
             foreach (int n in around)
             {
-                if (n < 0 || !InBox(n) || _seen[Local(n)] == _stamp || !Passable(n)) continue;
+                if (n < 0 || !InBox(n) || _seen[Local(n)] == _stamp || !Passable(n, vacuum)) continue;
                 _seen[Local(n)] = _stamp;
                 _queue[tail++] = n;
             }
@@ -364,12 +379,12 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>
-    /// From <paramref name="from"/>, through passable cells inside <paramref name="box"/>: the first step on a shortest
-    /// path to any cell of <paramref name="goal"/>, and the cells to any of <paramref name="bay"/>'s, the way home. Breadth
+    /// From <paramref name="from"/>, through passable cells inside <paramref name="box"/> (<see cref="Passable"/>): the first step on a shortest
+    /// path to any cell of box <paramref name="goal"/>, and the cells to any of <paramref name="bay"/>'s, the way home. Breadth
     /// first; of paths as short, the one least under ceilings (<see cref="Hug"/>), then neighbours up, left, right, down,
     /// so ties go to the lowest cell; -1 for either with no path.
     /// </summary>
-    private (int Step, int Home) Search(int from, Machine goal, Machine bay, Box box)
+    private (int Step, int Home) Search(int from, Box goal, Machine bay, Box box, bool vacuum)
     {
         Begin(box);
         if (!InBox(from)) return (-1, -1);
@@ -397,17 +412,17 @@ public sealed partial class LogisticsModule
                     if (via < _hug[ln]) (_parent[ln], _hug[ln]) = (c, via);
                     continue;
                 }
-                if (!Passable(n)) continue;
+                if (!Passable(n, vacuum)) continue;
                 (_seen[ln], _parent[ln], _dist[ln], _hug[ln]) = (_stamp, c, d, _hug[lc] + Hug(n));
                 if (home < 0 && Covers(bay, n)) home = d;
-                if (first < 0 && Covers(goal, n)) (first, near) = (tail, d);
+                if (first < 0 && goal.Contains(n % _grid.Width, n / _grid.Width)) (first, near) = (tail, d);
                 _queue[tail++] = n;
             }
         }
         if (first < 0) return (-1, home);
         int best = _queue[first];
         for (int i = first + 1; i < tail && _dist[Local(_queue[i])] == near; i++)
-            if (Covers(goal, _queue[i]) && _hug[Local(_queue[i])] < _hug[Local(best)]) best = _queue[i];
+            if (goal.Contains(_queue[i] % _grid.Width, _queue[i] / _grid.Width) && _hug[Local(_queue[i])] < _hug[Local(best)]) best = _queue[i];
         int step = best;
         while (_parent[Local(step)] != from) step = _parent[Local(step)];
         return (step, home);
