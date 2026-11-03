@@ -155,6 +155,28 @@ public class PowerDriverAimTests
     }
 
     [Fact]
+    public void RunningItSharesFourTicksATickOverTheSquareTwoAtMostOnOnePlan()
+    {
+        var driver = Spec.Screwdrivers.PowerDriver;
+        Assert.Equal((2, 4), Aiming.PaceOf(driver, running: driver.Item));
+        // Flat, or another item running: the screwdriver's tick a tick on one plan.
+        Assert.Equal((1, 1), Aiming.PaceOf(driver, running: null));
+        Assert.Equal((1, 1), Aiming.PaceOf(driver, running: "drill"));
+        Assert.Equal((1, 1), Aiming.PaceOf(Spec.Screwdrivers.Basic, running: null));
+        // Four walls a tick each; fewer plans twice; three, the first in the square's order gets the fourth tick.
+        Assert.Equal([1, 1, 1, 1], Aiming.SharesOf(4, 2, 4));
+        Assert.Equal([2, 2], Aiming.SharesOf(2, 2, 4));
+        Assert.Equal([2], Aiming.SharesOf(1, 2, 4));
+        Assert.Equal([2, 1, 1], Aiming.SharesOf(3, 2, 4));
+        // So the square is never slower than one cell, and a machine under it goes at twice the screwdriver's pace.
+        WorkAim[] three = [new(3, null), new(4, null), new(5, null)];
+        var sent = Aiming.UsesOf(new Aim(1, false), pressed: false, held: true, 5, 4, pace: 2, three, budget: 4).Commands;
+        Assert.Equal(new Command[] { new Work(3), new Work(3), new Work(4), new Work(5) }, sent);
+        var one = Aiming.UsesOf(new Aim(1, true, Work: new WorkAim(7, null)), pressed: false, held: true, 5, 4, pace: 2, budget: 4).Commands;
+        Assert.Equal(new Command[] { new Work(7), new Work(7) }, one);
+    }
+
+    [Fact]
     public void TheScrewdriverStillWorksTheOnePlanUnderThePointer()
     {
         // A wall planned and the back wall marked in one cell: one cell, one plan, the oldest it can work.

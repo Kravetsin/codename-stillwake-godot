@@ -28,6 +28,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - кисть / brush → `game/shared/logic/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
 - ступенька / step → step-up in f/crew `Hero` (`StepUp`, `StepOnto`), drawn by `game/shared/logic/StepEase.cs` (0106) → Crew
 - отвёртка / screwdriver → item `screwdriver`, `c/Screwdrivers.cs`; works plans → Building
+- шуруповёрт / power driver **≠** бур → item `powerDriver`, `Screwdrivers.PowerDriver` (`Area` 2); f/crew `SquareAt`, `WorkTargets`, `Ui.DriverSquare` → Building, Crew
 - комната / room → `Room`, `RoomsModule.RoomAt` → Rooms
 
 ## Air, power, pipes

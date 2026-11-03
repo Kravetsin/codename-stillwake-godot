@@ -209,3 +209,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
+| [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |

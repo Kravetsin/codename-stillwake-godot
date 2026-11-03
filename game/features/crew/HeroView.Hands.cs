@@ -66,7 +66,9 @@ public partial class HeroView
             client.Send(new Sim.Landing.Alight());
             _ui.OpenCrate.Set(null);
         }
-        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, driver?.Work ?? 1, targets);
+        // Running, four ticks of work a tick over the square, two at most on one plan; flat, the screwdriver's one (power-driver).
+        var (pace, budget) = Aiming.PaceOf(driver, m.Items.Running(client.Id));
+        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, pace, targets, budget);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister or Sim.Water.PourWater)) _act.Play(Floats);

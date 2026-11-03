@@ -282,6 +282,28 @@ public static class Aiming
         driver is { Area: > 1 } d && square && running == d.Item ? d.Area : 1;
 
     /// <summary>
+    /// How fast <paramref name="driver"/> works (power-driver): at most its <c>Work</c> ticks on one plan a tick, and its
+    /// <c>Area</c> squared over all, while it runs or needs no charge; an electric one flat works as the basic screwdriver.
+    /// </summary>
+    public static (int Pace, int Budget) PaceOf(Spec.Screwdriver? driver, string? running)
+    {
+        var d = driver is { } b && (running == b.Item || Spec.Items.Get(b.Item).Draw == null) ? b : Spec.Screwdrivers.Basic;
+        return (d.Work, d.Area * d.Area);
+    }
+
+    /// <summary>
+    /// The ticks of work each of <paramref name="count"/> plans gets a tick, in their order: a tick each while
+    /// <paramref name="budget"/> lasts, then round again, at most <paramref name="pace"/> on one (power-driver).
+    /// </summary>
+    public static int[] SharesOf(int count, int pace, int budget)
+    {
+        var shares = new int[count];
+        for (int round = 0; round < pace; round++)
+            for (int i = 0; i < count && budget > 0; i++, budget--) shares[i]++;
+        return shares;
+    }
+
+    /// <summary>
     /// The square of side <paramref name="side"/> worked round <paramref name="point"/>, in cells: its top-left column and row
     /// as the placing stamp lies (<see cref="Brush"/>, 0104), kept on the grid, and its cells in the order they are worked,
     /// the bottom row first, left to right. None with the point off the grid.
@@ -541,9 +563,11 @@ public static class Aiming
     /// runs builds as fast as any other; a hold just begun sends one tick's. A tick that begins a part of a blueprint pays
     /// its item (0063). <paramref name="tick"/> is the client's world tick. With <paramref name="targets"/> (a square's,
     /// <see cref="WorkTargets"/>), each that can be worked is worked so, in their order, in place of the aim's own work,
+    /// <paramref name="budget"/> ticks a tick at most over all of them (<see cref="SharesOf"/>),
     /// the aim out of reach or not.
     /// </summary>
-    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1, IReadOnlyList<WorkAim>? targets = null)
+    public static Uses UsesOf(Aim? aim, bool pressed, bool held, int tick, int workedOnTick, int pace = 1, IReadOnlyList<WorkAim>? targets = null,
+        int? budget = null)
     {
         var commands = new List<Command>();
         if (aim is { InReach: true })
@@ -559,8 +583,9 @@ public static class Aiming
         // A hold just begun sends one; so does a load that took the world's tick back.
         bool fresh = workedOnTick < 0 || tick < workedOnTick;
         int due = fresh ? 1 : Math.Min(tick - workedOnTick, MaxWorkPerFrame);
-        foreach (var target in work)
-            for (int i = 0; i < due * pace; i++) commands.Add(target.Repair is int machine ? new Repair(machine) : new Work(target.Plan));
+        var shares = SharesOf(work.Count, pace, budget ?? pace * work.Count);
+        for (int t = 0; t < work.Count; t++)
+            for (int i = 0; i < due * shares[t]; i++) commands.Add(work[t].Repair is int machine ? new Repair(machine) : new Work(work[t].Plan));
         return new(commands, null, due > 0 ? tick : workedOnTick);
     }
 }
