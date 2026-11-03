@@ -50,7 +50,7 @@ public partial class PlanetSky : Node2D
         foreach (var (name, top, follows) in Land)
         {
             var texture = PixelArt.Far($"{set}/{name}");
-            var under = new ColorRect { Color = BottomOf(PixelArt.Logical($"{set}/{name}")), MouseFilter = Control.MouseFilterEnum.Ignore };
+            var under = new ColorRect { Color = BottomOf(texture), MouseFilter = Control.MouseFilterEnum.Ignore };
             var sprite = Layer(texture, repeat: true);
             AddChild(under);
             AddChild(sprite);
@@ -106,12 +106,13 @@ public partial class PlanetSky : Node2D
 
     private static Color TopOf(Texture2D texture) => PixelOf(texture, 0);
 
-    private static Color BottomOf(Texture2D texture) => PixelOf(texture, texture.GetHeight() - 1);
+    private static Color BottomOf(Texture2D texture) => PixelOf(texture, -1);
 
+    /// <summary>The first pixel of row <paramref name="row"/> of the picture as drawn, counted from its bottom below 0.</summary>
     private static Color PixelOf(Texture2D texture, int row)
     {
         var image = (texture is CanvasTexture { DiffuseTexture: { } painted } ? painted : texture).GetImage();
         if (image.IsCompressed()) image.Decompress();
-        return image.GetPixel(0, row);
+        return image.GetPixel(0, row < 0 ? image.GetHeight() + row : row);
     }
 }

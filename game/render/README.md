@@ -36,7 +36,7 @@
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
 | `MarchingDashes.cs` | Dashes marching along `OutlineRun`s. |
 | `Outline.cs` | A soft light inside the silhouette of what is aimed at, breathing. |
-| `PixelArt.cs` | The ship's pictures from `game/art`, a pixel of art a pixel of the world. |
+| `PixelArt.cs` | The ship's pictures from `game/art/hd`, drawn at the world's pixels; far layers; relief. |
 | `logic/PlanCut.cs` | Where a plan being built stops being a plan (0063). |
 | `logic/PlanOutline.cs` | The dashed line round each group of plans and marks (0064). |
 | `PlanShapes.cs` | The silhouettes of plans and marks, for their dashes. |
@@ -44,6 +44,7 @@
 | `PlanetSky.cs` | A planet's sky behind its ground (0079). |
 | `logic/PixelDust.cs` | The pixels a killed creature crumbles into: hanging, flying, heaping, fading (2026-10-29-kills-crumble). |
 | `PixelsLayer.cs` | Those pixels in one multimesh, lit. |
+| `logic/Reduce.cs` | A hi-res picture brought down to the world's pixels, for what reads its size or shape. |
 | `logic/Rope.cs` | A rope between two ends: points under speed, gravity and a slow drift. |
 | `logic/Scatter.cs` | Where the backdrop's things lie, by a hash of seed and tile. |
 | `ShadowTiles.cs` | `GroundShadow`'s shadows as tiles of one `TileSet` (0088). |

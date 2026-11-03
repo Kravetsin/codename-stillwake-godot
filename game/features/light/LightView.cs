@@ -45,12 +45,11 @@ public partial class LightView : Node2D
     /// Of a doorway two cells thick (0104), in pixels of both: its 16 px picture's, so no light falls past the panel drawn.
     /// </summary>
     private static readonly Lightmap.Panels DoorPanels = new(
-        PanelOf(PixelArt.Logical("door_closed_0").GetImage(), across: false),
-        PanelOf(PixelArt.Logical(DoorShape.Picture(hatch: true, 0, 1, 0)).GetImage(), across: true));
+        PanelOf(HiRes.Logical("door_closed_0"), across: false),
+        PanelOf(HiRes.Logical(DoorShape.Picture(hatch: true, 0, 1, 0)), across: true));
 
     private static (int From, int To) PanelOf(Image picture, bool across)
     {
-        if (picture.IsCompressed()) picture.Decompress();
         var used = picture.GetUsedRect();
         return across ? (used.Position.Y, used.End.Y) : (used.Position.X, used.End.X);
     }

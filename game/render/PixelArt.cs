@@ -4,9 +4,9 @@ using Godot;
 namespace Stillwake.Game.Render;
 
 /// <summary>
-/// The ship's pictures from <c>game/art</c> (exported from the TypeScript ASCII art, a pixel of art a
-/// pixel of the world), and for those lit with relief a normal map of each picture's whole shape, so
-/// the side toward a lamp is the brighter.
+/// The ship's pictures from <c>game/art/hd</c>, each drawn at the size of the world's pixels it stands for,
+/// and for those lit with relief a normal map of each picture's whole shape, so the side toward a lamp is
+/// the brighter.
 /// </summary>
 public static class PixelArt
 {
@@ -21,27 +21,27 @@ public static class PixelArt
         return texture;
     }
 
-    /// <summary>A far, soft layer of land: its hi-res file may be any size, and draws at the size of the pixel picture.</summary>
+    /// <summary>How many of a far, soft layer's hi-res pixels stand for one of the world's: drawn soft, at half the others' detail.</summary>
+    public const int FarScale = 2;
+
+    /// <summary>A far, soft layer of land or sky, at <see cref="FarScale"/>.</summary>
     public static Texture2D Far(string name)
     {
         if (!Loaded.TryGetValue(name, out var texture))
-            Loaded[name] = texture = HiRes.Load(name) is { } fine ? HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(fine)), (Vector2I)Logical(name).GetSize()) : Logical(name);
+        {
+            var fine = HiRes.Load(name) ?? throw new System.InvalidOperationException($"No picture {name}");
+            Loaded[name] = texture = HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(fine)), fine.GetSize() / FarScale);
+        }
         return texture;
     }
-
-    /// <summary>The pixel picture <c>res://art/{name}.png</c> itself: what reads its pixels (a shape, a size) rather than draws it.</summary>
-    public static Texture2D Logical(string name) => GD.Load<Texture2D>($"res://art/{name}.png");
 
     /// <summary>The picture with its normal map, for a picture drawn on its own (a socket).</summary>
     public static CanvasTexture Lit(string name)
     {
         if (WithNormals.TryGetValue(name, out var kept)) return kept;
-        var image = Logical(name).GetImage();
-        if (image.IsCompressed()) image.Decompress();
+        var image = HiRes.Logical(name);
         var normal = ImageTexture.CreateFromImage(VolumeMap(image));
-        kept = HiRes.Load(name) is { } fine
-            ? HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(fine)), image.GetSize(), normal)
-            : new CanvasTexture { DiffuseTexture = Logical(name), NormalTexture = normal };
+        kept = HiRes.Sampled(ImageTexture.CreateFromImage(HiRes.Mipped(HiRes.Load(name)!)), image.GetSize(), normal);
         WithNormals[name] = kept;
         return kept;
     }

@@ -61,7 +61,7 @@ public static class CreatureParts
             if (kind == Kind.White) (data[o], data[o + 1], data[o + 2]) = ((byte)255, (byte)255, (byte)255);
         }
         var texture = Made[key] = HiRes.Texture(Image.CreateFromData(w, h, false, Image.Format.Rgba8, data));
-        if (kind == Kind.Colour) Pixels[texture] = (w / HiRes.Scale, h / HiRes.Scale, CreatureVariety.Reduced(data, w, h, HiRes.Scale));
+        if (kind == Kind.Colour) Pixels[texture] = (w / HiRes.Scale, h / HiRes.Scale, Reduce.Pixels(data, w, h, HiRes.Scale));
         return texture;
     }
 
@@ -86,7 +86,7 @@ public static class CreatureParts
         var key = (design.Id, part);
         if (Spots.TryGetValue(key, out var known)) return known;
         var (fw, fh, fine) = InkPicture($"creatures/{design.Id}/{part}_glow");
-        var (w, h, data) = (fw / HiRes.Scale, fh / HiRes.Scale, CreatureVariety.Reduced(fine, fw, fh, HiRes.Scale));
+        var (w, h, data) = (fw / HiRes.Scale, fh / HiRes.Scale, Reduce.Pixels(fine, fw, fh, HiRes.Scale));
         var pivot = new Vector2(design.Parts[part].PivotX, design.Parts[part].PivotY);
         var squares = new Dictionary<(int, int), (Vector2 Sum, Vector3 Colour, int Count)>();
         for (int y = 0; y < h; y++)
