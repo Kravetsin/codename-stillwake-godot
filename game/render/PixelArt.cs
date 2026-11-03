@@ -13,11 +13,11 @@ public static class PixelArt
     private static readonly Dictionary<string, Texture2D> Loaded = new();
     private static readonly Dictionary<string, CanvasTexture> WithNormals = new();
 
-    /// <summary>The picture <c>res://art/{name}.png</c>, loaded once.</summary>
+    /// <summary>The picture <c>res://art/hd/{name}.png</c>, loaded once.</summary>
     public static Texture2D Picture(string name)
     {
         if (!Loaded.TryGetValue(name, out var texture))
-            Loaded[name] = texture = HiRes.Load(name) is { } fine ? HiRes.Texture(fine) : Logical(name);
+            Loaded[name] = texture = HiRes.Texture(HiRes.Load(name) ?? throw new System.InvalidOperationException($"No picture {name}"));
         return texture;
     }
 

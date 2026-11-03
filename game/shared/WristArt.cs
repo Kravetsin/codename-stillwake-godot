@@ -39,7 +39,7 @@ public static class WristArt
     /// </summary>
     public static Texture2D Slices(string path)
     {
-        if (HiRes.Load(path["res://art/".Length..^".png".Length]) is not { } fine) return GD.Load<Texture2D>(path);
+        var fine = HiRes.Load(path["res://art/".Length..^".png".Length]) ?? throw new System.InvalidOperationException($"No picture {path}");
         var texture = ImageTexture.CreateFromImage(fine);
         texture.SetSizeOverride(fine.GetSize() / HiRes.Scale);
         return new CanvasTexture { DiffuseTexture = texture, TextureFilter = CanvasItem.TextureFilterEnum.Linear };

@@ -48,8 +48,7 @@ public static class ItemIcons
     public static Texture2D Silhouette(string item)
     {
         if (Silhouettes.TryGetValue(item, out var kept)) return kept;
-        var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Readable(Drawn(item));
-        bool fine = Icon(item) is CanvasTexture;
+        var image = HeldLook.Of(item) is { } look ? (Image)HeldImage(look.Picture).Duplicate() : Fine($"items/{item}");
         int lowest = -1;
         for (int y = 0; y < image.GetHeight(); y++)
             for (int x = 0; x < image.GetWidth(); x++)
@@ -58,8 +57,8 @@ public static class ItemIcons
                 if (a > 0) lowest = y;
                 image.SetPixel(x, y, new Color(1, 1, 1, a));
             }
-        ClearRows[item] = (image.GetHeight() - 1 - lowest) / (fine ? HiRes.Scale : 1);
-        return Silhouettes[item] = fine ? HiRes.Texture(image) : ImageTexture.CreateFromImage(image);
+        ClearRows[item] = (image.GetHeight() - 1 - lowest) / HiRes.Scale;
+        return Silhouettes[item] = HiRes.Texture(image);
     }
 
     /// <summary>The clear rows under <paramref name="item"/>'s picture as the world draws it, in that picture's pixels: what a stack on the floor is lowered by to stand on it.</summary>
@@ -71,8 +70,7 @@ public static class ItemIcons
 
     private static Texture2D Drawn(string item)
     {
-        if (!Icons.TryGetValue(item, out var icon))
-            Icons[item] = icon = HiRes.Load($"items/{item}") is { } fine ? HiRes.Texture(fine) : GD.Load<Texture2D>($"res://art/items/{item}.png");
+        if (!Icons.TryGetValue(item, out var icon)) Icons[item] = icon = HiRes.Texture(Fine($"items/{item}"));
         return icon;
     }
 
@@ -84,27 +82,20 @@ public static class ItemIcons
         return Baked[(item, side)] = ImageTexture.CreateFromImage(Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba));
     }
 
-    // A tool's held picture, or its hi-res one if it has one: an icon bakes from whichever, by its drawn box.
+    // A tool's held picture: an icon bakes from it, by its drawn box.
     private static Image HeldImage(string picture)
     {
-        if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = HiRes.Load(HeldName(picture)) ?? Readable(GD.Load<Texture2D>(picture));
+        if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = Fine(HeldName(picture));
         return held;
     }
 
     private static Texture2D HeldTexture(string picture)
     {
-        if (!HeldTextures.TryGetValue(picture, out var texture))
-            HeldTextures[picture] = texture = HiRes.Load(HeldName(picture)) is { } fine ? HiRes.Texture(fine) : GD.Load<Texture2D>(picture);
+        if (!HeldTextures.TryGetValue(picture, out var texture)) HeldTextures[picture] = texture = HiRes.Texture(Fine(HeldName(picture)));
         return texture;
     }
 
     private static string HeldName(string picture) => picture["res://art/".Length..^".png".Length];
 
-    private static Image Readable(Texture2D texture)
-    {
-        var image = texture.GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        return image;
-    }
+    private static Image Fine(string name) => HiRes.Load(name) ?? throw new System.InvalidOperationException($"No picture {name}");
 }

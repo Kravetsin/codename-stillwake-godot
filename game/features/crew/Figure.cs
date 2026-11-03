@@ -912,10 +912,8 @@ public partial class Figure : Node2D
 }
 
 /// <summary>
-/// The hero's pictures in any suit and skin (<c>textureOf</c> of art.ts): <c>art/hero_*.png</c> are drawn in
-/// <see cref="Suits.Drawn"/>, <see cref="HeroLooks.SkinDrawn"/> and <see cref="HeroLooks.HairDrawn"/>, and each of their
-/// shades becomes the same shade of another; gear, eyes, glass and the plan's sheet keep their colours. Made once a
-/// part, colour, skin and hair.
+/// The hero's pictures in any skin and hair (<c>art/hd/hero_*.png</c>), tinted from those they are drawn in
+/// (<see cref="HeroLooks.SkinDrawn"/>, <see cref="HeroLooks.HairDrawn"/>), the far limbs darkened. Made once a part, colour, skin and hair.
 /// </summary>
 public static class SuitArt
 {
@@ -933,33 +931,12 @@ public static class SuitArt
     {
         var key = (part, colour, skin, hair, far);
         if (Made.TryGetValue(key, out var kept)) return kept;
-        if (HiRes.Load($"hero_{part}") is { } inked) return Inked(key, inked, part, skin, hair, far);
-        var image = GD.Load<Texture2D>($"res://art/hero_{part}.png").GetImage();
-        if (image.IsCompressed()) image.Decompress();
-        image.Convert(Image.Format.Rgba8);
-        var swaps = new Dictionary<int, int>();
-        void Swap(int[] from, int[] to)
-        {
-            for (int i = 0; i < from.Length; i++) swaps[from[i]] = far ? Suits.Shade(to[i], FarShade) : to[i];
-        }
-        Swap(Suits.ShadesOf(Suits.Drawn), Suits.ShadesOf(colour));
-        Swap(HeroLooks.Skins[HeroLooks.SkinDrawn], HeroLooks.Skins[skin]);
-        Swap(HeroLooks.Hairs[HeroLooks.HairDrawn], HeroLooks.Hairs[hair]);
-        for (int y = 0; y < image.GetHeight(); y++)
-            for (int x = 0; x < image.GetWidth(); x++)
-            {
-                var c = image.GetPixel(x, y);
-                if (c.A8 > 0 && swaps.TryGetValue((c.R8 << 16) | (c.G8 << 8) | c.B8, out int to))
-                    image.SetPixel(x, y, new Color((uint)(to << 8 | c.A8)));
-            }
-        var made = ImageTexture.CreateFromImage(image);
-        Made[key] = made;
-        Bytes[made] = (image.GetWidth(), image.GetHeight(), image.GetData());
-        return made;
+        var fine = HiRes.Load($"hero_{part}") ?? throw new System.InvalidOperationException($"No picture hero_{part}");
+        return Inked(key, fine, part, skin, hair, far);
     }
 
     /// <summary>
-    /// A hi-res part has no ramps to swap: scaled to the look's skin and hair, its far limbs darkened, any suit in the colours drawn. Clothes
+    /// A part has no ramps to swap: scaled to the look's skin and hair, its far limbs darkened, any suit in the colours drawn. Clothes
     /// lie over a skin picture of their own, tinted alone, for no colour test tells rags from skin. What a body crumbles into is the picture shrunk.
     /// </summary>
     private static Texture2D Inked((string Part, int Colour, int Skin, int Hair, bool Far) key, Image fine, string part, int skin, int hair, bool far)
