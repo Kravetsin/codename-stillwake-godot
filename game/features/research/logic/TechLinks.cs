@@ -39,6 +39,15 @@ public static class TechLinks
         return new TechLink(CostOf(thing), madeAt, used);
     }
 
+    /// <summary>The build menu's tab (<see cref="MenuTabs"/>) the blueprint <paramref name="id"/> is built from; null for anything else.</summary>
+    public static string? MenuTabOf(string id) => !Prints.TryGetValue(id, out var print) ? null : print.Placement switch
+    {
+        { Layer: "machine", Kind: var kind } => Machines.All.FirstOrDefault(m => m.Kind == kind)?.Menu?.Tab,
+        { Kind: "wall", Material: var material } => Materials.All.FirstOrDefault(m => m.Id == material)?.Menu?.Tab,
+        { Kind: "backWall", Material: var material } => Materials.All.FirstOrDefault(m => m.Id == material)?.BackMenu?.Tab,
+        { Kind: var kind } => Builds.All.FirstOrDefault(b => b.Id == kind)?.Menu?.Tab,
+    };
+
     private static bool Built(string id) => Prints.ContainsKey(id);
 
     /// <summary>The stations a player builds that smelt, crush or grow <paramref name="item"/> out of something.</summary>
