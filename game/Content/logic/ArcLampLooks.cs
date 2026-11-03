@@ -13,7 +13,7 @@ public static class ArcLampLooks
 {
     public const string Kind = "arcLamp";
 
-    /// <summary>Its pictures (<c>tools/homes-art/export.js</c>, from its icon): the body; its glass alight while lit; the glow, a cell's margin round it.</summary>
+    /// <summary>Its pictures (<c>tools/anime-art</c>): the body; its glass alight while lit; the glow, a cell's margin round it.</summary>
     public const string Body = "machine_arcLamp", Alight = "machine_arcLamp_lit", Glow = "machine_arcLamp_glow";
 
     /// <summary>How opaque each of its pictures is drawn, back to front: <see cref="Body"/>, <see cref="Alight"/> over it, <see cref="Glow"/> added.</summary>

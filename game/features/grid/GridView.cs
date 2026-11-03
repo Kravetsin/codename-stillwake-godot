@@ -24,7 +24,7 @@ public partial class GridView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
 
-    /// <summary>Which sides of a cell: up, right, down, left, a bit each (SIDE in ship-art.ts).</summary>
+    /// <summary>Which sides of a cell: up, right, down, left, a bit each.</summary>
     private const int Up = 1, Right = 2, Down = 4, Left = 8;
 
     /// <summary>Where the wreck's maps lie in this grid.</summary>
@@ -527,7 +527,7 @@ public partial class GridView : Node2D
         return natural;
     }
 
-    /// <summary>A number for <paramref name="cell"/> that looks random, the same every time (hashOf in ship-art.ts).</summary>
+    /// <summary>A number for <paramref name="cell"/> that looks random, the same every time.</summary>
     private static uint HashOf(int cell)
     {
         uint h = unchecked((uint)cell ^ 0x9e3779b9u) * 0x85ebca6bu;

@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using Stillwake.Game.Features.Water;
 using Xunit;
 using Spec = Stillwake.Content;
@@ -8,9 +7,6 @@ namespace Stillwake.Game.Tests;
 /// <summary>How water shows without a word and what the pointer says of it (water).</summary>
 public class WaterShowsTests
 {
-    private static string Here([CallerFilePath] string path = "") => path;
-    private static readonly string Art = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Here())!, "..", "game", "art"));
-
     [Fact]
     public void ACisternShowsItsWaterUpItsGlassByQuartersAnyWaterAtLeastOne()
     {
@@ -44,6 +40,6 @@ public class WaterShowsTests
     {
         var names = Enumerable.Range(0, WaterShows.Full + 1).Select(i => $"cistern_fill_{i}")
             .Concat(Enumerable.Range(0, WaterShows.Frames).Select(i => $"electrolyser_work_{i}")).Append("electrolyser_stalled");
-        Assert.All(names, name => Assert.True(File.Exists(Path.Combine(Art, name + ".png")), name));
+        Assert.All(names, name => Assert.True(Png.Has(name), name));
     }
 }

@@ -1,7 +1,7 @@
 # Anime art
 
 Draws the anime art's pictures in code and writes them into `game/art/hd/`, where `game/render/HiRes.cs` picks
-them up in place of the logical pictures of the same names, which still give a picture its size and shape ([the plan](../../docs/plans/anime-art.md)).
+them up: the game's only pictures, reduced to the world's pixels where a size or shape is needed ([the pixels gone](../../docs/decisions/2026-11-03-pixel-art-removed.md)).
 
 ## The style
 

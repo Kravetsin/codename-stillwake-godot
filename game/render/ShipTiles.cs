@@ -269,7 +269,7 @@ public sealed class ShipTiles
     /// <summary>
     /// The picture <paramref name="name"/> and its normal map (<see cref="PixelArt.VolumeMap"/>), a flat one without relief, filled out to
     /// whole cells: from the top-left (a floor along the top of its cell) or round the middle
-    /// (a valve's wheel, as ship-art.ts lays it).
+    /// (a valve's wheel).
     /// </summary>
     private static (string, Image, Image) Picture(string name, Relief relief, bool centred = false) => Picture(name, Art(name), relief, centred);
 

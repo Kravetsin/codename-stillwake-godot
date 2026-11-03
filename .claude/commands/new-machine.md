@@ -34,12 +34,13 @@ One line in `Machines.All`, beside the machines of its kind, with a comment abov
 
 Every number a designer may tune lives here or in `sim/Content`, never in a module.
 
-## 2. Its picture — `game/art/machine_<kind>.png`
+## 2. Its picture — `game/art/hd/machine_<kind>.png`
 
-`Width × 8` by `Height × 8` pixels (more only with a rise, as the arc bench's vise: `ShipTiles.RiseOf`). The grid draws it
-by name, and a missing one throws on the first frame (`MachineArtTests`). After adding it:
-`godot --headless --path game --import` makes its `.import`; commit both. A painter script, if you wrote one, goes in
-`tools/ship-art/machines/` with its row in `tools/ship-art/README.md`.
+Drawn in code in `tools/anime-art/subjects/machines.js` and written by `node tools/anime-art/export.js machines`, after
+the user picks its look (CLAUDE.md, Art and sound picks). `Width × 32` by `Height × 32` pixels, four to a world's pixel
+(more only with a rise, as the arc bench's vise: `ShipTiles.RiseOf`). The grid draws it by name, and a missing one throws
+on the first frame (`MachineArtTests`). After adding it: `godot --headless --path game --import` makes its `.import`;
+commit both.
 
 ## 3. Its name — `game/features/building/logic/Building.En.cs`
 

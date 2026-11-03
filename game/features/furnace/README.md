@@ -49,8 +49,8 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
 
 ## Art
 
-`art/machine_burnerGenerator.png` and `art/burner_wheel_*.png` were drawn as ASCII in the furnace's
-scrap palette (ship-art.ts) and exported, as the other machines were: a squat box of scrap, its mouth
+`art/hd/machine_burnerGenerator.png` and `art/hd/burner_wheel_*.png`, drawn by `tools/anime-art` as the
+other machines are: a squat box of scrap, its mouth
 the furnace's grate, a stovepipe, a dynamo plate with a window onto its copper windings, a flywheel
 on it, its socket under the window.
 

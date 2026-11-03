@@ -29,7 +29,6 @@ public partial class TitleBackdrop : CanvasLayer
     /// <summary>The lamp's light round it, where the lamp is.</summary>
     private readonly Node2D _glowAt = new();
     private readonly ColorRect _glow = Dither.Glow(Red, 96);
-    private readonly PlateArt _art = PlateArt.Of(7);
     private readonly List<(Drifter Path, double From, Node2D Drawn, Figure? Figure)> _drifting = [];
     private readonly Random _rng = new();
     private double _seconds, _nextDrifter = TitleScene.FirstDrifter, _nextShard, _look = TitleScene.HeadHangs;
@@ -46,7 +45,7 @@ public partial class TitleBackdrop : CanvasLayer
         _scene.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
         _scene.AddChild(_behind);
         _scene.AddChild(_plate);
-        var plate = new Sprite2D { Texture = HiRes.Texture(HiRes.Load("title_plate")!), Centered = false, Position = new Vector2(-_art.Width / 2f, -_art.Height / 2f) };
+        var plate = new Sprite2D { Texture = HiRes.Texture(HiRes.Load("title_plate")!), Centered = false, Position = new Vector2(-PlateArt.Width / 2f, -PlateArt.Height / 2f) };
         _lamp.Texture = Dot();
         _plate.AddChild(plate);
         _plate.AddChild(_tether);
@@ -60,7 +59,7 @@ public partial class TitleBackdrop : CanvasLayer
     }
 
     /// <summary>A pixel of the plate, from its top-left, in the plate's own frame about its middle.</summary>
-    private Vector2 OnPlate((int X, int Y) pixel) => new(pixel.X - _art.Width / 2f, pixel.Y - _art.Height / 2f);
+    private Vector2 OnPlate((int X, int Y) pixel) => new(pixel.X - PlateArt.Width / 2f, pixel.Y - PlateArt.Height / 2f);
 
     public override void _Process(double delta)
     {
@@ -80,7 +79,7 @@ public partial class TitleBackdrop : CanvasLayer
         // The lamp: off, a quick flare, a slow fade; its red on the hero as it burns.
         double phase = _seconds % BlinkSeconds;
         float lit = phase < LitSeconds ? (float)Math.Sin(phase / LitSeconds * Math.PI) : 0;
-        var lamp = OnPlate(_art.Lamp) + new Vector2(0, -1);
+        var lamp = OnPlate(PlateArt.Lamp) + new Vector2(0, -1);
         _lamp.Position = lamp;
         _lamp.Modulate = new Color(0.35f, 0.08f, 0.06f).Lerp(Red, lit);
         _glowAt.Position = lamp;
@@ -99,7 +98,7 @@ public partial class TitleBackdrop : CanvasLayer
         }
         // The hero's head hangs; it lifts a little, slowly, to an astronaut going by before it, and sinks again.
         double look = TitleScene.HeadHangs - TitleScene.HeadSighs * Poses.Sigh(_seconds * 1000);
-        var seat = OnPlate(_art.Seat) * TitleScene.PlateScale + _plate.Position;
+        var seat = OnPlate(PlateArt.Seat) * TitleScene.PlateScale + _plate.Position;
         for (int i = _drifting.Count - 1; i >= 0; i--)
         {
             var (path, from, drawn, figure) = _drifting[i];
@@ -116,7 +115,7 @@ public partial class TitleBackdrop : CanvasLayer
             if (x > seat.X + 20 && x < seat.X + 260) look = Math.Min(look, Math.Max(TitleScene.HeadLifts, Poses.HeadTurn(x - seat.X, y - (seat.Y - Rig.Neck))));
         }
         _look += (look - _look) * (1 - Math.Exp(-delta / TitleScene.HeadSeconds));
-        _hero.OnPixels = OnPlate(_art.Seat);
+        _hero.OnPixels = OnPlate(PlateArt.Seat);
         _hero.Show(new Hero(0, 0, 0, 0, false, 1), Pose.Sit, _look, false, delta * 1000);
         Tether();
     }
@@ -124,8 +123,8 @@ public partial class TitleBackdrop : CanvasLayer
     /// <summary>The tether from the hero's belt to its ring on the plate, hanging slack and stirring.</summary>
     private void Tether()
     {
-        var belt = OnPlate(_art.Seat) + new Vector2(-2, -(float)(Rig.Hip * 0.15));
-        var ring = OnPlate(_art.Anchor);
+        var belt = OnPlate(PlateArt.Seat) + new Vector2(-2, -(float)(Rig.Hip * 0.15));
+        var ring = OnPlate(PlateArt.Anchor);
         const int points = 14;
         var line = new Vector2[points];
         float sag = 7 + 1.5f * Mathf.Sin((float)_seconds * 0.7f);

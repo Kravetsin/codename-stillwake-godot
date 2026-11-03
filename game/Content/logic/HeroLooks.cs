@@ -3,7 +3,7 @@ namespace Stillwake.Game;
 /// <summary>
 /// What a hero's person looks like under the suit (2026-10-28-one-head): the skin and hair ramps its pictures are
 /// recoloured into and how many of each picture there are. Client data: the sim checks no index. The pictures are
-/// painted by <c>tools/hero-art</c>, whose <c>parts.js</c> holds these ramps too (<c>HeroLooksTests</c> keeps them alike).
+/// painted by <c>tools/anime-art</c> in the skin <see cref="SkinDrawn"/> and the hair <see cref="HairDrawn"/>.
 /// Colours are 0xRRGGBB, each ramp light, own, shade and outline.
 /// </summary>
 public static class HeroLooks

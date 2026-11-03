@@ -8,7 +8,7 @@ public static class Creatures
 {
     /// <summary>
     /// A species, composed (2026-10-26-creatures-are-composed): its <paramref name="Look"/>, the design the client draws it in (its
-    /// parts in <c>game/art/creatures/</c>); its <paramref name="Body"/>, how it is shaped and moves; its <paramref name="Life"/>;
+    /// parts in <c>game/art/hd/creatures/</c>); its <paramref name="Body"/>, how it is shaped and moves; its <paramref name="Life"/>;
     /// its <paramref name="Faction"/>, one of <see cref="Factions"/>; how long it lives; its <paramref name="Brain"/>, the drives it
     /// may follow, the first ranked highest; its <paramref name="Moves"/>, the acts it may make; what it gives when it dies, drawn
     /// entry by entry as a container's loot is. Each record is served by one rule in the creatures module.
