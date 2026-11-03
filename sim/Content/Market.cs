@@ -48,7 +48,7 @@ public static class Market
     /// <summary>What has a worth but no one buys: tools and what is worn, what stores or flies by itself, the arc's.</summary>
     private static readonly HashSet<string> Unsold = new(StringComparer.Ordinal)
     {
-        "arcShard", "arcModule", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "powerDriver", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "heavyHelmet", "suit", "regenSuit", "cape",
+        "arcShard", "arcModule", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "powerDriver", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "heavyHelmet", "suit", "regenSuit", "cape",
     };
 
     private static readonly Dictionary<string, int> Worths = Worked();

@@ -81,8 +81,8 @@ public partial class ContentTests
         Assert.NotEmpty(holding);
         Assert.All(holding, i => Assert.Equal(1, i.Stack));
         Assert.All(holding, i => Assert.True(i.Capacity > 0, i.Id));
-        // Batteries are worn on the belt; a drone holds its own and flies on it (0062).
-        Assert.All(holding.Where(i => i.Id != Content.Logistics.Drone), i => Assert.Equal(Charge.Belt, i.Equip));
+        // Batteries are worn on the belt; a drone holds its own and flies on it (0062), a salvage drone too (salvage-drones).
+        Assert.All(holding.Where(i => i.Id != Content.Logistics.Drone && i.Id != Content.Logistics.SalvageDrone), i => Assert.Equal(Charge.Belt, i.Equip));
         Assert.Contains(holding, i => i.Id == Content.Logistics.Drone);
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
         // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose

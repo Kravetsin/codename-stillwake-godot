@@ -21,7 +21,10 @@ public static class Logistics
     /// <summary>A docked drone launches only holding at least this, stored: half of full, so one home low charges a while first.</summary>
     public const int LaunchAt = Charge.Drone / 2;
 
+    /// <summary>Ticks of flight one canister from a bay's fuel slot gives a salvage drone, spent at launch: 30 s (salvage-drones).</summary>
+    public const int TripAir = 600;
+
     // Not consts: every constant of this table is a whole number (ContentTests).
-    /// <summary>The machine that launches drones, and the item a drone is while it is not flying.</summary>
-    public static readonly string Bay = "droneBay", Drone = "drone";
+    /// <summary>The machine that launches drones, the item a drone is while it is not flying, and a salvage drone's (salvage-drones).</summary>
+    public static readonly string Bay = "droneBay", Drone = "drone", SalvageDrone = "salvageDrone";
 }
