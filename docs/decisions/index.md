@@ -207,5 +207,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
+| [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |

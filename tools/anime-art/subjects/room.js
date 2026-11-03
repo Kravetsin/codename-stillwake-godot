@@ -1,4 +1,5 @@
-// The ship's room: scrap walls as riveted plates, their back wall, their edges, and a door, shut and open.
+// The ship's room: scrap walls as riveted plates, rusted as the wreck's (its rust is wreck.js's), and cast clean; their back walls, their
+// edges, and a door, shut and open.
 (function () {
 'use strict';
 const { ell, rr, poly, rng, bake, canvas } = Anime;
@@ -81,7 +82,8 @@ const seam = (a, rows) => {
   }
 };
 
-const wallScrap = {
+/** The scrap sheet: patched plates, rusted as the wreck's, or the same plates cast clean of it (2026-11-03-cast-scrap). */
+const wallScrap = (rusty) => ({
   w: SHEET_W, h: SHEET_H, tile: true, K: 2,
   draw(a) {
     const r = rng(0x5c7a9);
@@ -89,23 +91,26 @@ const wallScrap = {
     for (const row of rows) for (const p of row) plate(a, p, r, PLATE[Math.floor(r() * PLATE.length)]);
     // Rust eats out from the seams, where water sat: each patch placed by hand, its edge torn, a darker heart on the seam.
     for (const [x, y, rx, ry] of [[22, 13, 9, 3], [64, 25, 6, 2.5], [101, 40, 11, 3.5], [8, 51, 7, 3], [47, 40, 5, 2], [86, 13, 6, 2.2], [120, 25, 5, 2], [33, 51, 8, 2.6], [72, 51, 4, 2]]) {
-      a.flat(tornBlotch(r, x, y, rx, ry), '#8a4f2e');
-      a.flat(tornBlotch(r, x, y, rx * .55, ry * .55), '#5c3220');
+      const outer = tornBlotch(r, x, y, rx, ry), heart = tornBlotch(r, x, y, rx * .55, ry * .55);
+      if (rusty) { a.flat(outer, '#8a4f2e'); a.flat(heart, '#5c3220'); }
     }
+    if (rusty) AnimeSheetRust(a, RUST_BARE);
     seam(a, rows);
     // What makes it scrap: patches bolted over the seams, a rusty one, and cracks.
     const patches = [[100, 10, 9, 9], [15, 44, 7, 9], [19, 50, 11, 8], [120, 37, 11, 8], [50, 24, 8, 6], [84, 54, 10, 7]];
     patches.forEach(([x, y, w, h], i) => {
-      const m = i === 2 ? RUST : PLATE[i % 3], d = rr(x, y, w, h, .5);
+      const m = i === 2 && rusty ? RUST : PLATE[i % 3], d = rr(x, y, w, h, .5);
       a.shape(d, m, { lite: poly(x, y, x + w, y, x + w - .5, y + .8, x + .5, y + .8), shade: [poly(x, y + h - 1, x + w, y + h - 1, x + w, y + h, x, y + h), poly(x + w - .9, y, x + w, y, x + w, y + h, x + w - .9, y + h)] });
       for (const [rx, ry] of [[x + 1.2, y + 1.3], [x + w - 1.7, y + 1.3], [x + 1.2, y + h - 1.9], [x + w - 1.7, y + h - 1.9]])
         a.shape(ell(rx, ry, .45), RIVET, { outer: false, edge: false, spec: ell(rx - .1, ry - .15, .15) });
     });
     for (const [x, y, len] of [[30, 16, 7], [71, 3, 6], [43, 42, 8], [96, 30, 9], [58, 56, 5], [112, 19, 6]]) crack(a, r, x, y, len);
     // Rust runs from a few rivets.
-    for (const [x, y, h] of [[33, 16, 3], [76, 29, 4], [108, 41, 3]]) a.flat(`M${x} ${y}L${x + .8} ${y}L${x + .5} ${y + h}L${x + .25} ${y + h + .6}Z`, '#8e6044');
+    if (rusty) for (const [x, y, h] of [[33, 16, 3], [76, 29, 4], [108, 41, 3]]) a.flat(`M${x} ${y}L${x + .8} ${y}L${x + .5} ${y + h}L${x + .25} ${y + h + .6}Z`, '#8e6044');
   },
-};
+});
+/** How much of a plate every scrap wall keeps bare of the wreck's rust: heavy, yet each plate still shows its metal. */
+const RUST_BARE = .8;
 
 const BACK = [
   { base: '#272c38', shade: '#1f2330', lite: '#2e3440', spec: '#2e3440', ink: '#0f1118' },
@@ -280,10 +285,12 @@ function doorPicture(piece, shut) {
 }
 
 Subjects.room = function () {
-  out('wall_scrap', bake(wallScrap));
+  out('wall_scrap', bake(wallScrap(true)));
+  out('wall_castScrap', bake(wallScrap(false)));
   out('back_scrap', bake(backScrap));
+  out('back_castScrap', bake(backScrap));
   const look = { lite: '#b4bcc8', shade: '#3e4258', ink: '#10121c' };
-  for (let open = 1; open < 16; open++) out(`wall-edge_scrap_${open}`, edge(open, look));
+  for (const material of ['scrap', 'castScrap']) for (let open = 1; open < 16; open++) out(`wall-edge_${material}_${open}`, edge(open, look));
   out('wall_iron', bake(wallIron));
   out('back_iron_plain', bake(backIron(false)));
   out('back_iron_grille', bake(backIron(true)));

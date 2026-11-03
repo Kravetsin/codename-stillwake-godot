@@ -18,6 +18,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - шахта под платформой / platform shaft → the column under a launch platform to the grid's edge, kept empty: `grid.underPlatform`, `grid.shaftBlocked`, `IGridQueries.ClearBelow`, `Taken`, `landing.shaftBlocked`; f/building `Shafts` → Grid, Building
 - стена / wall → `Structure.Wall` + a material (`c/Materials.cs`), `tool.wall`, `tool.wallScrap` … → Grid
 - задняя стена / back wall → `Back.Wall`, layer `"back"`, `tool.backWall` → Grid
+- литой лом / cast scrap → material `castScrap` (`c/Materials.cs`), walls of smelted `scrap`; лом в стене / patched scrap is `scrap` → Grid
 - обшивка / hull **≠** → the ship's walls (`Structure.Wall`; "hull wall" in `tool.wallScrap.about`); item `hullPlate`, `hullSection` are salvage → Grid, Debris
 - слой / layer → `GridLayers` (`sim/Grid/ChangeLog.cs`), f/building `PlanKey`, `Placement` layer → Grid, Building
 - план / plan → `Plan`, `PlacePlan`, `CancelPlan`, `Work` (`sim/Building`); f/building `PlanHand`, `BuildMenu`; план мод / plan modes (Z X C) `PlanMode`, `PlanHand.Mode`; r/`PlanTiles`, `PlanOutline` → Building

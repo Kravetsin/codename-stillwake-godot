@@ -89,17 +89,40 @@ function wear() {
   return (wearMemo = { smooth, near });
 }
 
-/** The rust field at a point: from the seams under it, the map's weight setting how far, the map's edge ending it raggedly. */
+/** The noise rust is grown of: over the wreck's drawing, which never repeats. */
+const OVER_WRECK = {
+  lumps, flecks,
+  bloom: (X, Y) => (pn(X / 19, Y / 19, SEED + 11) * 2 + pn(X / 9, Y / 9, SEED + 12)) / 3,
+  mass: (X, Y) => pn(X * .5, Y * .5, SEED + 7),
+};
+/** Noise whose lattice is a whole number of cells across the scrap sheet, so the sheet tiles with no seam. */
+function sheetPn(x, y, s, cell) {
+  const nx = Math.max(1, Math.round(SHEET_W / cell)), ny = Math.max(1, Math.round(SHEET_H / cell));
+  const u = mod(x, SHEET_W) / SHEET_W * nx, v = mod(y, SHEET_H) / SHEET_H * ny, X = Math.floor(u), Y = Math.floor(v), fu = sm(u - X), fv = sm(v - Y);
+  const at = (i, j) => h2(mod(i, nx), mod(j, ny), s), a = at(X, Y), b = at(X + 1, Y), c = at(X, Y + 1), d = at(X + 1, Y + 1);
+  return a + (b - a) * fu + (c - a) * fv + (a - b - c + d) * fu * fv;
+}
+/** The same noise over the scrap sheet itself. */
+const OVER_SHEET = {
+  lumps: (x, y, s) => (sheetPn(x, y, s, 15) * 4 + sheetPn(x, y, s + 1, 7.5) * 2 + sheetPn(x, y, s + 2, 3.7)) / 7,
+  flecks: (x, y, s) => sheetPn(x, y, s, 1 / 1.5),
+  bloom: (X, Y) => (sheetPn(X, Y, SEED + 11, 19) * 2 + sheetPn(X, Y, SEED + 12, 9)) / 3,
+  mass: (X, Y) => sheetPn(X, Y, SEED + 7, 2),
+};
+/** How far into a patch a point lies: from the seam beside it, the weight setting how far, a wall that takes none ending it raggedly. */
+function rustOf(N, seam, weight, near, X, Y) {
+  const reach = 3 + 2.6 * Math.max(0, Math.min(1, (weight - .5) * 2.2)) + 3.4 * (N.lumps(X, Y, SEED + 3) - .5), bloom = N.bloom(X, Y);
+  return 1 - seam / Math.max(1.5, reach * (.5 + bloom * 1.5)) + (N.lumps(X, Y, SEED) - .5) * 1.05 + (bloom - .5) * 2.4 - (1 - Math.min(1, near / 6)) * 1.5;
+}
+/** The rust field at a point of the wreck: from the seams under it, the map's weight setting how far, the map's edge ending it raggedly. */
 function rustField(X, Y) {
-  const { smooth, near } = wear(), i = (Y | 0) * WIDTH + (X | 0), weight = smooth[i], seam = seamAt(X, Y);
-  const reach = 3 + 2.6 * Math.max(0, Math.min(1, (weight - .5) * 2.2)) + 3.4 * (lumps(X, Y, SEED + 3) - .5);
-  const bloom = (pn(X / 19, Y / 19, SEED + 11) * 2 + pn(X / 9, Y / 9, SEED + 12)) / 3;
-  const f = 1 - seam / Math.max(1.5, reach * (.5 + bloom * 1.5)) + (lumps(X, Y, SEED) - .5) * 1.05 + (bloom - .5) * 2.4 - (1 - Math.min(1, near[i] / 6)) * 1.5;
-  return { f, seam };
+  const { smooth, near } = wear(), i = (Y | 0) * WIDTH + (X | 0), seam = seamAt(X, Y);
+  return { f: rustOf(OVER_WRECK, seam, smooth[i], near[i], X, Y), seam };
 }
 /** A point's rust tone by how far it lies inside its patch: specks past the edge, masses of two tones, a dark heart. */
-function rustTone(X, Y) {
-  const { f } = rustField(X, Y), fine = flecks(X, Y, SEED + 5), fine2 = flecks(X, Y, SEED + 6), mass = pn(X * .5, Y * .5, SEED + 7);
+function rustTone(X, Y) { return toneOf(OVER_WRECK, rustField(X, Y).f, X, Y); }
+function toneOf(N, f, X, Y) {
+  const fine = N.flecks(X, Y, SEED + 5), fine2 = N.flecks(X, Y, SEED + 6), mass = N.mass(X, Y);
   if (f < 0) return f > -.55 && fine > .6 - f * (.34 / .55) ? (fine2 > .55 ? 2 : 1) : -1;
   if (f < .09) return fine > .4 ? 1 : fine2 > .55 ? 2 : -1;
   if (f > .8) return fine2 > .6 ? 3 : 2;
@@ -119,6 +142,17 @@ function byOpenSide(X, Y) {
   const cx = X >> 3, cy = Y >> 3, u = X - cx * 8, v = Y - cy * 8, m = 1.25;
   return (u < m && !isWall(cx - 1, cy)) || (u > 8 - m && !isWall(cx + 1, cy)) || (v < m && !isWall(cx, cy - 1)) || (v > 8 - m && !isWall(cx, cy + 1));
 }
+/**
+ * The wreck's rust over the scrap sheet itself (2026-11-03-cast-scrap), for room.js to paint into wall_scrap: every scrap wall rusts as the
+ * wreck's plates do, lighter by <bare>, so the dress still reads heavier. Its tones are the dress's, drawn on <a>, the sheet's bake.
+ */
+window.AnimeSheetRust = (a, bare) => {
+  raster(a, RUST, GW, GH, (gx, gy) => {
+    const seam = seams()[gy * GW + gx];
+    return seam >= .28 ? toneOf(OVER_SHEET, rustOf(OVER_SHEET, seam, 0, 1e4, gx / Q, gy / Q) - bare, gx / Q, gy / Q) : -1;
+  });
+};
+
 const dress = () => ({
   w: WIDTH, h: HEIGHT(),
   draw(a) {
