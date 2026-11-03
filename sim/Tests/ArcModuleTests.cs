@@ -331,7 +331,8 @@ public class ArcModuleTests
         var w = World().GiveItems(1, (Arc, 2)).GiveItems(2, (Arc, 1));
         var rng = new Rng(new RngState { S = 11 });
         int fits = 0, unfits = 0;
-        for (int i = 0; i < 4000; i++)
+        // Long enough that an item added, shifting every draw, still leaves each refusal drawn.
+        for (int i = 0; i < 8000; i++)
         {
             if (w.M.Items.Fuzz(rng, i % 3) is not { } c) continue;
             int refused = w.Refusals.Count;

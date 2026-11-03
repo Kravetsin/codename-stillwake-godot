@@ -615,6 +615,50 @@ function trackerLight() {
   return c;
 }
 
+// ---------- The heavy helmet, as picked (2026-11-03-the-heavy-helmet): a diver's steel bell, a barred port in front, a small one at
+// the temple, bolted to a breastplate, its hose from the nape to the pack. In the basic helmet's box and joint, facing +x. ----------
+const BST = { base: '#7f8796', shade: '#59606f', deep: '#3d4250', lite: '#a5acb8', spec: '#d6dbe2' };
+const BELL_BRASS = { base: '#a5874c', shade: '#6e5636', deep: '#4c3b2a', lite: '#cdb57c', spec: '#efe0b0' };
+const BELL_RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e' };
+const BELL_PORT = ell(10.1, 6.2, 2.15, 2.25), BELL_SIDE = ell(5.4, 5.6, 1.15, 1.25);
+const BELL_GLASS = BELL_PORT + BELL_SIDE, BELL_BARS = [rr(9.05, 3.7, .6, 5, .2), rr(10.95, 3.75, .6, 4.9, .2)];
+const sq = (x0, y0, x1, y1) => poly(x0, y0, x1, y0, x1, y1, x0, y1);
+const fx = (n) => +n.toFixed(2);
+const rustAt = (a, x, y, s) => {
+  a.flat(poly(x - s, y - .2 * s, x - .3 * s, y - .7 * s, x + .5 * s, y - .5 * s, x + s, y + .1 * s, x + .4 * s, y + .45 * s, x - .5 * s, y + .4 * s), '#6e4630');
+  a.flat(poly(x - .4 * s, y - .1 * s, x + .1 * s, y - .3 * s, x + .4 * s, y + .05 * s, x, y + .3 * s), '#3f2a24');
+};
+/** A corrugated hose on a quadratic curve, its ribs across it. */
+const hose = (a, p, w, ribs) => {
+  a.tube(`M${p[0]} ${p[1]}Q${p[2]} ${p[3]} ${p[4]} ${p[5]}`, w, BELL_RUBBER, { spec: false });
+  const at = (t) => { const s = 1 - t; return [s * s * p[0] + 2 * s * t * p[2] + t * t * p[4], s * s * p[1] + 2 * s * t * p[3] + t * t * p[5]]; };
+  let d = '';
+  for (let i = 1; i < ribs; i++) {
+    const A = at(i / ribs), B = at(i / ribs + .01), dx = B[0] - A[0], dy = B[1] - A[1], l = Math.hypot(dx, dy) || 1, nx = (-dy / l) * w * .42, ny = (dx / l) * w * .42;
+    d += `M${fx(A[0] + nx)} ${fx(A[1] + ny)}L${fx(A[0] - nx)} ${fx(A[1] - ny)}`;
+  }
+  a.line(d, { w: .8 });
+};
+const port = (a, d, lite) => a.shape(d, GL, { outer: false, lite });
+function heavyHelmet(a) {
+  hose(a, [-.3, 7.4, -1.9, 11, -.5, 14.6], 1.15, 7);
+  a.shape(rr(2.4, -.6, 1.7, 1.3, .3), BELL_BRASS, { shade: .35 });
+  a.shape(ell(6.4, 5.4, 6.1, 6), BST, { shade: .9, deep: 'M-1 9.6C2 11 10 11 14 9.6L14 12L-1 12Z', lite: 'M1.6 2.6C3 .3 9.4 -.3 11.3 2.2L10.4 2.6C8.4 1.1 4.4 1.1 2.6 3Z',
+    lines: ['M3.6 -.1C2 3 2 8 3.6 11', 'M8.3 -.2C8 .4 8 .8 8.2 1.2', 'M2 6.6L2.6 7'] });
+  a.shape(rr(-1, 5.8, 1.8, 2, .4), BELL_BRASS, { shade: .4, lines: ['M-.1 5.9L-.1 7.7'] });
+  a.shape(ell(5.4, 5.6, 1.7, 1.8), BELL_BRASS, { shade: .35 });
+  port(a, BELL_SIDE, 'M4.4 4.8C5 4.3 5.9 4.3 6.4 4.8L6.3 5.1C5.8 4.8 5 4.8 4.5 5.1Z');
+  a.shape(ell(10.1, 6.2, 2.95, 3.05), BELL_BRASS, { shade: .45, lines: ['M7.6 4.6L7.9 4.9', 'M12.6 7.9L12.3 8.1'] });
+  port(a, BELL_PORT, 'M8.3 4.9C9.3 4 11 4 11.9 4.9L11.8 5.4C10.9 4.6 9.3 4.6 8.4 5.4Z');
+  for (const x of [9.05, 10.95]) a.shape(rr(x, 3.7, .6, 5, .2), BST, { outer: false, shade: .3, lite: sq(x, 3.7, x + .25, 8.7) });
+  a.shape(rr(2.2, 9.4, 8.6, 1.3, .3), BELL_BRASS, { shade: .35 });
+  a.shape('M-.8 13.8C-.6 11.6 1.4 10.4 3.4 10.2L9.6 10.2C11.6 10.4 13.6 11.6 13.8 13.8L13.6 14.9L-.6 14.9Z', BST,
+    { lite: 'M.6 11.4C1.4 10.7 2.4 10.4 3.4 10.3L9.6 10.3C10.6 10.4 11.6 10.7 12.4 11.4Z', deep: sq(-1, 14, 14, 15), lines: ['M6.2 10.4L6.2 14.6'] });
+  for (const x of [1, 3.8, 8.6, 11.4]) { a.shape(rr(x - .5, 11.3, 1, .9, .2), BELL_BRASS, { outer: false, shade: .3 }); a.line(`M${x - .7} 11.2L${x - .2} 11.5M${x + .7} 11.2L${x + .2} 11.5`, { w: .8 }); }
+  rustAt(a, 11.9, 12.7, .7); rustAt(a, 2.6, 9.2, .5);
+  a.line('M4.6 2.4L5.3 2.9M5.3 2.9L5.9 2.7', { w: .9 });
+}
+
 Subjects.hero = function () {
   for (const [name, id] of Object.entries(SUIT)) out('hero_' + name, part(suitPart(id)));
   OUTFITS.forEach((clothes, n) => {
@@ -659,21 +703,38 @@ Subjects.hero = function () {
   out('hero_screwdriver_held', turns[0]);
   // The helmet whole, for its card: shrunk a little into the pixel picture's box, which its round shell overhangs.
   out('hero_helmet', bake({ ...suitPart('s_head'), units: 1.12, shift: [.35, .75], light: LIGHT }));
-  const helmet = part(suitPart('s_head'));
-  const glass = new Path2D(GLASS), place = (x) => { x.setTransform(Px, 0, 0, Px, Margin * Px, Margin * Px); };
+  const [shell, visor] = cut(faded.s_head, GLASS, []);
+  out('hero_helmet_shell', shell);
+  out('hero_visor', visor);
+  const [heavyShell, heavyVisor] = cut(heavyHelmet, BELL_GLASS, BELL_BARS);
+  out('hero_heavyHelmet_shell', heavyShell);
+  out('hero_heavyHelmet_visor', heavyVisor);
+  // Its card: the bell fitted into the 16 px square by the box its hose and breastplate reach (picked with its look).
+  const [x0, y0, x1, y1] = [-1.8, -1, 13.8, 14.9], w = x1 - x0, h = y1 - y0, u = Math.max(w, h) / 15.4;
+  out('items/heavyHelmet', bake({ w: 16, h: 16, light: [-0.6, -0.8], units: u, shift: [(16 * u - w) / 2 - x0, (16 * u - h) / 2 - y0],
+    W: { outer: .9 * u, edge: .26 * u, panel: .14 * u }, draw: heavyHelmet }));
+};
+
+/** A helmet's two pictures: the shell with its glass taken out (what crosses the glass, <paramref name="bars"/>, kept), and the glass alone at GLASS_SEEN over the face. */
+function cut(draw, glassD, bars) {
+  const helmet = part({ w: 13, h: 12, draw });
+  const mask = canvas(helmet.width, helmet.height), m = mask.getContext('2d');
+  m.setTransform(Px, 0, 0, Px, Margin * Px, Margin * Px);
+  m.fill(new Path2D(glassD));
+  m.globalCompositeOperation = 'destination-out';
+  for (const bar of bars) m.fill(new Path2D(bar));
   const shell = canvas(helmet.width, helmet.height), sx = shell.getContext('2d');
   sx.drawImage(helmet, 0, 0);
   sx.globalCompositeOperation = 'destination-out';
-  place(sx); sx.fill(glass);
-  out('hero_helmet_shell', shell);
+  sx.drawImage(mask, 0, 0);
   const visor = canvas(helmet.width, helmet.height), vx = visor.getContext('2d');
   vx.globalAlpha = GLASS_SEEN;
   vx.drawImage(helmet, 0, 0);
   vx.globalAlpha = 1;
   vx.globalCompositeOperation = 'destination-in';
-  place(vx); vx.fill(glass);
-  out('hero_visor', visor);
-};
+  vx.drawImage(mask, 0, 0);
+  return [shell, visor];
+}
 
 })();
 

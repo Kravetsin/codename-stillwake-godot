@@ -212,3 +212,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
+| [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |

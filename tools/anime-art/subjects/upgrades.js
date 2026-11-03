@@ -1,4 +1,4 @@
-// What the market sells that is no item: the bag, the belt and the trade station's slot, as picked with the market (the market-decrypt ADR).
+// What the market sells that is no item: the bag, the belt, the trade station's slot (picked with the market, the market-decrypt ADR) and the canisters' twice the air (heavy-helmet).
 (function () {
 'use strict';
 const { ell, rr, poly } = Anime;
@@ -28,6 +28,15 @@ const POUCH = { base: '#7c6a4f', shade: '#5c4d3b', deep: '#41372d', lite: '#9c88
 const STRAP = { base: '#4b4033', shade: '#352c25', deep: '#251f1b', lite: '#6b5c49', spec: '#8f7f6a', ink: '#17120f' };
 const BRASS = { base: '#a98a4c', shade: '#6e5436', deep: '#4c3a2c', lite: '#d4b878', spec: '#f6e6b4' };
 const HANDLE = { base: '#7d8598', shade: '#555c70', spec: '#c5ccd8' };
+// The oxygen bottle's blue, as items/canister paints it.
+const CAN = { base: '#3f78b0', shade: '#2a5488', deep: '#1c3c68', lite: '#70a4d0', spec: '#c4e0f0' };
+/** A standing bottle, its shoulders round, its valve cap above: x, y its top left, w by h its body. */
+const bottle = (a, x, y, w, h) => {
+  const band = K.band;
+  a.shape(rr(x + w * .3, y - 1.6, w * .4, 1.9, .3), K.M.GUN, { lite: band(x + w * .3, y - 1.6, x + w * .7, y - 1.1), shade: band(x + w * .58, y - 1.6, x + w * .7, y + .3) });
+  a.shape(`M${x} ${y + 2}Q${x} ${y} ${x + w * .3} ${y}L${x + w * .7} ${y}Q${x + w} ${y} ${x + w} ${y + 2}L${x + w} ${y + h - .8}Q${x + w} ${y + h} ${x + w - .8} ${y + h}L${x + .8} ${y + h}Q${x} ${y + h} ${x} ${y + h - .8}Z`, CAN, {
+    lite: band(x, y + .4, x + w * .3, y + h), shade: band(x + w * .72, y, x + w, y + h), deep: band(x, y + h - .9, x + w, y + h), spec: band(x + w * .14, y + 2, x + w * .24, y + h * .6) });
+};
 
 const PICTURES = {
   bag(a) {
@@ -72,6 +81,21 @@ const PICTURES = {
     K.rivet(a, 5.4, 11.7, .32); K.rivet(a, 10.6, 11.7, .32);
     K.rust(a, 4.9, 8.9, .5);
     a.line('M9.2 6.8L9.9 7.5', { w: .8 });
+  },
+  // Canisters give twice the air (2026-11-03-the-heavy-helmet), as picked: two bottles strapped, their valves joined by a brass tee.
+  canister(a) {
+    const band = K.band;
+    a.shape('M4.4 1.6L11.6 1.6L11.6 2.8L8.6 2.8L8.6 3.6L7.4 3.6L7.4 2.8L4.4 2.8Z', BRASS, { shade: band(4.4, 2.3, 11.6, 2.9), lite: band(4.4, 1.6, 11.6, 1.95) });
+    a.shape(rr(7.3, .4, 1.4, 1.4, .3), BRASS, { shade: band(7.3, 1.2, 8.7, 1.8) });
+    bottle(a, 1.4, 4.4, 6, 10.6);
+    bottle(a, 8.6, 4.4, 6, 10.6);
+    a.shape('M.8 8.6L15.2 8.4L15.2 10.8L.8 11Z', STRAP, { lite: band(.8, 8.6, 15.2, 9.1), shade: band(.8, 10.2, 15.2, 11), lines: ['M1.2 9.6L6.8 9.5', 'M9.2 9.5L14.8 9.4'] });
+    a.shape(rr(6.6, 8, 2.8, 3.4, .3), BRASS, { shade: band(6.6, 10.6, 9.4, 11.4) });
+    a.flat(rr(7.2, 8.7, 1.6, 2, .2), '#14162a');
+    a.flat(band(7.6, 8.7, 8, 10.7), BRASS.lite);
+    K.rust(a, 13.2, 13.4, .5);
+    K.chip(a, 2.2, 6, 1, '#70a4d0');
+    a.line('M10.4 12.4L11.2 12.9', { w: .8 });
   },
 };
 
