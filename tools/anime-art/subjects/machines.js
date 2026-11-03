@@ -221,8 +221,11 @@ const charger = (a) => {
   a.shape(band(3.4, 5.8, 12.4, 28), DARK, { outer: false, deep: band(3.4, 5.8, 12.4, 6.6) });
   inner(a, 4.4, 7, 7, 3.4, GUN);
   a.flat(band(5.2, 8, 10.6, 9.2), '#12131e');
-  a.shape(band(5, 13, 11, 27.6), { ...NAVY, base: '#223c5c', lite: '#2f4e70' }, { outer: false, lite: band(5, 13, 11, 13.7) });
-  a.flat(rr(6.6, 25.4, 2.8, .8, .2), '#5a86a8');
+  // Two bays, one over the other, a battery each (2026-11-03-charger-two): ChargerLights.Bays.
+  for (const [top, foot] of [[13, 20], [21, 27.6]]) {
+    a.shape(band(5, top, 11, foot), { ...NAVY, base: '#223c5c', lite: '#2f4e70' }, { outer: false, lite: band(5, top, 11, top + .7) });
+    a.flat(rr(6.6, foot - 1.6, 2.8, .8, .2), '#5a86a8');
+  }
   a.shape(rr(1, 29.6, 14, 2, .3), NAVY, { lite: band(1.2, 29.6, 14.8, 30.1) });
 };
 const burnerGenerator = (a) => {

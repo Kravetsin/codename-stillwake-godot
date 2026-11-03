@@ -108,8 +108,9 @@ public class TestbedTests
         Assert.All(m.Grid.Machines.Where(x => Spec.Machines.Get(x.Kind).Draws != null), x => Assert.Equal(1000, m.Power.Satisfaction(x.Id)));
         int charger = IdOf(m, "charger");
         Assert.True(m.Power.Charges(charger));
-        // Charged both ticks, by its own panel on the roof.
+        // Charged both ticks, by its own panel on the roof; the full one beside it draws nothing.
         Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery / 1000 * Testbed.Charging + 2 * Spec.Machines.Get("charger").Draws!.Value * Spec.Charge.Scale), m.Items.Crate(charger)[0]);
+        Assert.Equal(new Stack("battery", 1, Spec.Charge.Battery), m.Items.Crate(charger)[1]);
         // The Former at work on the second tick, once the generator's power reaches it.
         int former = IdOf(m, "former");
         Assert.True(m.Crafting.Works(former));
