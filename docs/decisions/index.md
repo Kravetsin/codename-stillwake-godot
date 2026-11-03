@@ -207,6 +207,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
+| [builder-aim](2026-11-03-builder-aim.md) | One cell of work glows as the square does | accepted |  |
 | [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
 | [charger-two](2026-11-03-charger-two.md) | The charger holds two batteries, drawing for each | accepted |  |
 | [debris-net](2026-11-03-debris-net.md) | The debris net | accepted |  |
