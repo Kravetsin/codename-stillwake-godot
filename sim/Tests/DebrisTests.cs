@@ -916,6 +916,33 @@ public class DebrisTests
         return null;
     }
 
+    /// <summary>
+    /// A salvage drone's take (salvage-drones): the piece gone, a container's loot rolled from the world's draw as a net's catch
+    /// is, the kind and all it gave recorded as found, no catch reported for a popup; one gone is null.
+    /// </summary>
+    [Fact]
+    public void CatchTakesThePieceRollsItsLootAndRecordsItFound()
+    {
+        var w = new Scenario(Space);
+        var state = (DebrisState)w.M.Debris.Slice;
+        var piece = new Piece { Id = state.NextId++, Zone = DebrisSpec.Ship.Id, Item = "cargoCrate", X = 12500, Y = 3500 };
+        state.Pieces.Add(piece);
+        var loot = w.M.Debris.Catch(piece.Id);
+        Assert.NotNull(loot);
+        Assert.NotEmpty(loot);
+        Assert.All(loot, l => Assert.Contains(l.Item, Gives("cargoCrate")));
+        Assert.Empty(Pieces(w));
+        var found = w.M.Debris.Found.Single(f => f.Kind == "cargoCrate");
+        Assert.Equal(loot.Select(l => l.Item).Distinct(), found.Seen);
+        Assert.Null(w.M.Debris.CaughtFrom(piece.Id));
+        Assert.Null(w.M.Debris.Catch(piece.Id));
+
+        // Salvage is caught as itself.
+        var chunk = new Piece { Id = state.NextId++, Zone = DebrisSpec.Ship.Id, Item = "scrapChunk", X = 12500, Y = 3500 };
+        state.Pieces.Add(chunk);
+        Assert.Equal([("scrapChunk", 1)], w.M.Debris.Catch(chunk.Id));
+    }
+
     private static (int Left, int Right, int Top, int Bottom)? HullOf(IGridQueries grid)
     {
         var cells = Enumerable.Range(0, grid.Width * grid.Height).Where(c => grid.StructureAt(c) != Structure.Empty).ToList();

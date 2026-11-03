@@ -75,7 +75,7 @@ public sealed partial class DebrisModule
     /// middle in a net's cell, the net holding fewer than <c>Debris.NetHolds</c>. A container's loot is rolled then, once the
     /// place is sure, so a full net draws nothing; the kind is recorded as found, with no popup. True when caught.
     /// </summary>
-    private bool Catch(Piece piece)
+    private bool CatchInNet(Piece piece)
     {
         if (piece.Reel != null || !Content.Debris.NetCatches.Contains(piece.Item, StringComparer.Ordinal)) return false;
         int cell = CellOf(piece.X, piece.Y, _grid.Width);
