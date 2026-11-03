@@ -22,7 +22,6 @@ public static partial class Ru
         ["crew.suitFull"] = "Скафандр полон",
         ["crew.noSuitMode"] = "У твоего костюма нет режима",
         ["suit.key"] = "Режим костюма (V)",
-        ["canister.key"] = "Вдохнуть баллон (R)",
         ["markers.home"] = "Спасательная капсула",
         ["markers.friend"] = "Напарник",
         ["markers.body"] = "Твоё тело",

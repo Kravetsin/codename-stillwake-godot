@@ -5,6 +5,7 @@ public static partial class En
     private static readonly Strings Handbook = new()
     {
         ["handbook.title"] = "Handbook",
+        ["handbook.key"] = "Handbook (J)",
         ["handbook.hint"] = "Click: choose · Wheel: scroll · J: close",
         ["handbook.debris"] = "Debris",
         ["handbook.unknown"] = "???",

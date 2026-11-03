@@ -35,7 +35,7 @@ own will come, so the switch is one mode for every body that has one. A canister
   without it, the bands dark and a red pip blinking at the socket. A later body has its own `hero_<id>_<part>`, its lights
   `_lit`, `_arcs` and `_pip`, drawn unlit over it. The "capacitor spine" was picked for a later suit, after the planet
   descent; its ability comes with it.
-- **The keys' glyphs** are placeholders, a body and a canister, until the user picks them on their page.
+- **The keys' glyphs** were placeholders; [edge-lenses](2026-11-03-edge-lenses.md) draws the mode's as a lens and drops the canister's key.
 
 ## Consequences
 

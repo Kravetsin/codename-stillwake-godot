@@ -45,6 +45,7 @@ public partial class HandbookPanel : CanvasLayer
     public HandbookPanel(Ui ui, Func<bool> inWorld, IReadOnlyList<HandbookSection> sections)
     {
         (_ui, _inWorld, _sections) = (ui, inWorld, sections);
+        Cap = new EdgeKey("journal", () => Toggle(), () => _open);
         Layer = ScreenLayers.Handbook;
         var root = new Control { MouseFilter = Control.MouseFilterEnum.Ignore, Theme = new Theme { DefaultFont = Style.Mono, DefaultFontSize = Tablet.FontSize } };
         root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
@@ -108,6 +109,9 @@ public partial class HandbookPanel : CanvasLayer
         _ui.Hand.Set(Holding.Free);
         _open = true;
     }
+
+    /// <summary>The key on the tablet's edge that does what J does, lit while it is out (2026-11-03-edge-lenses).</summary>
+    public EdgeKey Cap { get; }
 
     /// <summary>The tablet itself, which rises from the edge.</summary>
     public Tablet Tablet => _tablet;
@@ -211,10 +215,16 @@ public partial class HandbookPanel : CanvasLayer
     /// <summary>J takes it out and puts it away, in a world with the menu shut.</summary>
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.J }) return;
-        if (!_inWorld() || _ui.MenuOpen.Get()) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.J } || !Toggle()) return;
+        GetViewport().SetInputAsHandled();
+    }
+
+    /// <summary>Takes it out or puts it away, as J and its key do, in a world with the menu shut; whether it did.</summary>
+    private bool Toggle()
+    {
+        if (!_inWorld() || _ui.MenuOpen.Get()) return false;
         if (_open) Close();
         else Open();
-        GetViewport().SetInputAsHandled();
+        return true;
     }
 }

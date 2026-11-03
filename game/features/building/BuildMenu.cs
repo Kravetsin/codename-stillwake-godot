@@ -84,7 +84,7 @@ public partial class BuildMenu : CanvasLayer
         _root.Theme = new Theme { DefaultFont = Mono, DefaultFontSize = FontSize };
         AddChild(_root);
 
-        Cap = new EdgeKey(PlanKey.Bricks, hand.Toggle, hand.PlanOut.Get);
+        Cap = new EdgeKey("build", hand.Toggle, hand.PlanOut.Get);
 
         // The wheel anywhere over the tablet scrolls the cards; it never reaches the hotbar or the camera.
         _open.GuiInput += e => Scroll(e, _open);
