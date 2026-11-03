@@ -320,7 +320,7 @@ public partial class PowerView : Node2D
             int satisfaction = m.Power.Satisfaction(machine.Id);
             if (!broken && (spec.Draws == null || satisfaction >= 1000)) continue;
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
-            var texture = broken ? AsciiArt.Broken() : AsciiArt.Bolt(satisfaction == 0);
+            var texture = broken ? Signs.Broken() : Signs.Bolt(satisfaction == 0);
             var bolt = new Sprite2D
             {
                 Texture = texture,
@@ -359,7 +359,7 @@ public partial class PowerView : Node2D
             var at = CableShape.MiddleOf(m.Grid, machine.Cell);
             _unplugged.AddChild(new Sprite2D
             {
-                Texture = AsciiArt.Unplugged(),
+                Texture = Signs.Unplugged(),
                 Position = new Vector2((float)at.X, (float)at.Y) * Cell,
                 Material = Unlit,
             });

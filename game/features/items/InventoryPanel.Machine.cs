@@ -229,7 +229,7 @@ public partial class InventoryPanel
         var body = Style.Gap(new VBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 6);
         body.AddChild(_crateGrid = Grid(Enumerable.Range(0, spec.Slots ?? 0).Select(i => new Place(i, crate))));
         body.AddChild(_send = Style.Button("", () => Send(new Stillwake.Sim.Trade.SendCapsule(crate))));
-        _send.Icon = AsciiArt.Credit();
+        _send.Icon = Signs.Credit();
         return body;
     }
 

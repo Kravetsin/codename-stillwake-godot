@@ -27,36 +27,6 @@ public static class AsciiArt
     public static Color Colour(uint rgb, float alpha = 1) =>
         new(((rgb >> 16) & 0xff) / 255f, ((rgb >> 8) & 0xff) / 255f, (rgb & 0xff) / 255f, alpha);
 
-    /// <summary>A plug hanging loose: over a machine that makes or draws power with no cable to it.</summary>
-    public static ImageTexture Unplugged() => Texture("unplugged",
-        ["..K.K..", "..K.K..", ".KKKKK.", ".KwwwK.", ".KwwwK.", "..KwK..", "...K..."],
-        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0x9aa3ad });
-
-    /// <summary>A bolt over a machine short of power: red with none, amber with some.</summary>
-    public static ImageTexture Bolt(bool none) => Texture($"bolt:{none}",
-        ["....KKK", "...KyyK", "..KyyK.", ".KyyKKK", "KyyyyyK", "KKKyyK.", "..KyyK.", ".KyyK..", ".KKK..."],
-        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['y'] = none ? 0xe05555u : 0xf0b44cu });
-
-
-    /// <summary>A wrench on an orange plate over a machine a flare broke: it wants a hand, not power.</summary>
-    public static ImageTexture Broken() => Texture("broken",
-        [
-        "..KKKKKKKKK..",
-        ".KrrrrrrrrrK.",
-        "KrrrrrrwrrwrK",
-        "KrrrrrrwwrwrK",
-        "KrrrrrrwwwwrK",
-        "KrrrrrwwwwrrK",
-        "KrrrrwwwrrrrK",
-        "KrrrwwwrrrrrK",
-        "KrrwwwrrrrrrK",
-        "KrwwwrrrrrrrK",
-        "KrwwrrrrrrrrK",
-        ".KrrrrrrrrrK.",
-        "..KKKKKKKKK..",
-    ],
-        new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['r'] = 0xe0662a, ['w'] = 0xf4f6f8 });
-
     /// <summary>A cable's plug, in a socket it is plugged into.</summary>
     public static ImageTexture Plug() => Texture("power-plug",
         [".KKK.", "KhhhK", "KhlhK", "KhhhK", ".KKK."],
@@ -66,28 +36,6 @@ public static class AsciiArt
     public static ImageTexture Capsule() => Texture("capsule",
         ["....KK....", "...KwwK...", "..KwwwwK..", "..KwbbwK..", "..KwbbwK..", "..KwwwwK..", "..KwwwwK..", "..KyyyyK..", ".KKwwwwKK.", ".KwKKKKwK.", ".KK....KK."],
         new Dictionary<char, uint> { ['K'] = 0x1a1e25, ['w'] = 0xc5ccd8, ['b'] = 0x4da3d6, ['y'] = 0xf0b44c });
-
-    /// <summary>The coin credits are written with.</summary>
-    public static ImageTexture Credit() => Texture("credit",
-    [
-        "....KKKKKKKK....",
-        "..KKyyyyyyyyKK..",
-        ".KyyhhhhhhhhyyK.",
-        ".KyhhyyyyyyyhoK.",
-        "KyhhyyyKKKyyyhoK",
-        "KyhyyyKKKKKyyyoK",
-        "KyhyyKKyyyKKyyoK",
-        "KyhyyKKyyyyyyyoK",
-        "KyhyyKKyyyyyyyoK",
-        "KyhyyKKyyyKKyyoK",
-        "KyhyyyKKKKKyyyoK",
-        "KyyoyyyKKKyyyooK",
-        ".KyoooyyyyyyooK.",
-        ".KyyoooooooooyK.",
-        "..KKyyyyyyyyKK..",
-        "....KKKKKKKK....",
-    ],
-        new Dictionary<char, uint> { ['K'] = 0x3a2a10, ['y'] = 0xf0c050, ['h'] = 0xffe9a0, ['o'] = 0xb8862c });
 
     /// <summary>A book with a star on its cover: the Handbook's (0066), a placeholder till its picture is picked.</summary>
     public static ImageTexture Book() => Texture("book",
