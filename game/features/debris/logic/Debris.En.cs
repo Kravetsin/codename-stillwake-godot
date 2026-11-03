@@ -11,5 +11,6 @@ public static partial class En
         ["debris.noNet"] = "The net is gone",
         ["debris.netEmpty"] = "The net is empty",
         ["debris.bagFull"] = "No room in the bag",
+        ["debris.netHolds"] = "{held}/{of}",
     };
 }

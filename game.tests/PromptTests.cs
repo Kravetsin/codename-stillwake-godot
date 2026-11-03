@@ -33,6 +33,7 @@ public class PromptTests
         Assert.Equal(["use.closeValve", "use.openValve"], valves);
         Assert.Equal(new Prompt("use.loadCanister", "items.notEnough"), Prompts.Of(M, Press(3, new LoadCanister(1), "items.notEnough")));
         Assert.Equal("use.catch", Prompts.Of(M, Press(3, new Grab(1)))?.Action);
+        Assert.Equal(new Prompt("use.collect", "debris.netEmpty"), Prompts.Of(M, Press(3, new Collect(1), "debris.netEmpty")));
         Assert.Equal("use.openCrate", Prompts.Of(M, new Aim(3, true, Crate: 4))?.Action);
     }
 
@@ -57,7 +58,7 @@ public class PromptTests
     [Fact]
     public void HasWordsForEveryActionAndTellsTwoPromptsApart()
     {
-        string[] actions = ["use.build", "use.takeApart", "use.openCrate", "use.loadCanister", "use.catch", "use.openDoor", "use.closeDoor", "use.openValve", "use.closeValve"];
+        string[] actions = ["use.build", "use.takeApart", "use.openCrate", "use.loadCanister", "use.catch", "use.collect", "use.openDoor", "use.closeDoor", "use.openValve", "use.closeValve"];
         Assert.All(actions, action => Assert.True(Table.ContainsKey(action), action));
         var a = new Prompt("use.catch", null);
         Assert.Equal(a, a with { });

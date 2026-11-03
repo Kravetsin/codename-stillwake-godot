@@ -45,6 +45,7 @@ public static partial class Ru
         ["use.loadCanister"] = "[E] Вставить баллон",
         ["use.pourWater"] = "[E] Залить бутылку воды",
         ["use.catch"] = "[E] Поймать",
+        ["use.collect"] = "[E] Опустошить сеть",
         ["use.chop"] = "[Удерж. ЛКМ] Ломать",
         ["use.dig"] = "[Удерж. ЛКМ] Копать",
         ["use.openDoor"] = "[E] Открыть дверь",

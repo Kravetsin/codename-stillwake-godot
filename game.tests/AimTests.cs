@@ -109,6 +109,29 @@ public class AimTests
     }
 
     [Fact]
+    public void EmptiesADebrisNetOnAPressThroughTheWallItHangsOnOrCarriesWhyItCannot()
+    {
+        // A room, its right wall at column 5, a net hung outside on it; a character a cell.
+        var w = new TestWorld(Layout.Parse(["        ", "  ####  ", .. Enumerable.Repeat("  #..#nn", 6), "  ####  ", "        "]));
+        int net = w.M.Grid.MachinesOf("net")[0].Id;
+        var inside = CellHero(3, 7);
+        (double, double) onNet = (6.5, 5.5);
+        Assert.Equal(new Use(new Collect(net), "debris.netEmpty"), Aiming.AimAt(w.M, 0, inside, onNet)?.Press);
+        w.Edit(root => root["slices"]!["debris"]!["held"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject
+        {
+            ["net"] = net,
+            ["id"] = 1,
+            ["kind"] = "scrapChunk",
+            ["cell"] = 4 * 8 + 6,
+            ["items"] = new System.Text.Json.Nodes.JsonArray(new System.Text.Json.Nodes.JsonObject { ["item"] = "scrapChunk", ["count"] = 1 }),
+        }));
+        var aim = Aiming.AimAt(w.M, 0, inside, onNet);
+        Assert.Equal(new Use(new Collect(net), null), aim?.Press);
+        Assert.True(aim!.InReach);
+        Assert.Equal([new Collect(net)], Aiming.UsesOf(aim, pressed: true, held: false, 3, -1).Commands);
+    }
+
+    [Fact]
     public void ReachesCellsWhoseMiddleIsAtMostTheReachFromTheMiddleOfTheBody()
     {
         // A character a cell: the reach is measured to cells' middles.

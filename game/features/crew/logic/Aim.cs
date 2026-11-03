@@ -458,6 +458,9 @@ public static class Aiming
         // A bottle is poured into a cistern; an electrolyser says to pipe it from one (water).
         if (grid.MachineAt(cell) is { } watered && (Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.HoldsWater) || Stillwake.Content.Machines.Is(watered.Kind, Stillwake.Content.MachineTrait.Electrolyses)))
             return new Use(new Sim.Water.PourWater(watered.Id), m.Water.PourProblem(watered.Id, peer));
+        // A debris net is emptied into the inventory, from outside or through the wall it hangs on (docs/decisions/2026-11-03-debris-net.md).
+        if (grid.MachineAt(cell) is { } net && Stillwake.Content.Machines.Is(net.Kind, Stillwake.Content.MachineTrait.Catches))
+            return new Use(new Collect(net.Id), m.Debris.CollectProblem(peer, net.Id));
         int structure = shown?.StructureAt(grid, cell) ?? grid.StructureAt(cell);
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
         // A platform opens only with power (Landing): E on a dark one says why, as on an empty canister.

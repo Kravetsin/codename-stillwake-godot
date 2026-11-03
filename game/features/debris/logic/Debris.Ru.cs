@@ -11,5 +11,6 @@ public static partial class Ru
         ["debris.noNet"] = "Сети больше нет",
         ["debris.netEmpty"] = "Сеть пуста",
         ["debris.bagFull"] = "Нет места в сумке",
+        ["debris.netHolds"] = "{held}/{of}",
     };
 }
