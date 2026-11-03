@@ -32,7 +32,7 @@ commands reach the sim; others' heroes come through the host.
 | `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
-| `SuitKeys.cs` | V and R on the tablet's edge |
+| `SuitKeys.cs` | V on the tablet's edge |
 | `Figure.cs` | the sprite rig, lit, dressed; dust (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
@@ -87,8 +87,8 @@ commands reach the sim; others' heroes come through the host.
 - **Camera:** leads, eases height, snaps.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while it differs from the sim's.
-- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; both
-  keys on the tablet's edge, dim while refused.
+- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
+  key on the tablet's edge, dim while refused.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the

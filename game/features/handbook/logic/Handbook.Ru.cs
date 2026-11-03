@@ -5,6 +5,7 @@ public static partial class Ru
     private static readonly Strings Handbook = new()
     {
         ["handbook.title"] = "Справочник",
+        ["handbook.key"] = "Справочник (J)",
         ["handbook.hint"] = "Клик: выбрать · Колесо: листать · J: закрыть",
         ["handbook.debris"] = "Обломки",
         ["handbook.unknown"] = "???",

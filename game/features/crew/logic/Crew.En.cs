@@ -22,7 +22,6 @@ public static partial class En
         ["crew.suitFull"] = "Your suit is full",
         ["crew.noSuitMode"] = "Your suit has no mode",
         ["suit.key"] = "Suit mode (V)",
-        ["canister.key"] = "Breathe a canister (R)",
         ["markers.home"] = "Lifepod",
         ["markers.friend"] = "Crewmate",
         ["markers.body"] = "Your body",

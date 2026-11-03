@@ -130,8 +130,8 @@ public partial class PlanKey : WristKey
         foreach (var brick in Bricks) DrawRect(brick, ink);
     }
 
-    /// <summary>The wall of bricks, in a square of <see cref="Side"/>: this key's picture at the art's scale, the edge's build key's at the screen's.</summary>
-    public static readonly Rect2[] Bricks = MakeBricks();
+    /// <summary>The wall of bricks, in a square of <see cref="Side"/>: this key's picture at the art's scale.</summary>
+    private static readonly Rect2[] Bricks = MakeBricks();
 
     private static Rect2[] MakeBricks()
     {
