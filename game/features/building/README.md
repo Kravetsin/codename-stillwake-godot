@@ -12,6 +12,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `logic/PlanHand.cs` | Card in hand and plan out, in step with `Ui.Hand`, `Ui.OverlayOn`; the focused layer. |
 | `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
 | `BuildingView.cs` | Plans and marks drawn, the tips, the buttons, the pipette, plan work. |
+| `logic/SquareTip.cs` | The power driver's square's cost. |
 | `BuildGlow.cs` | Work's light (0075): sparks, glints, molten spot, cut, sweep. |
 | `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
@@ -50,33 +51,32 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   each read: wiring the cables, piping the pipes; else air whenever O wants it.
 - **A surface's build list** (0076, `Tools.Allowed`): only cards the hero's surface allows are shown or picked by Q.
 - **Placing** (0104, 0111, `Drag.StrokeOf`): a click places one cell; a drag places along a line, walls and back walls
-  fill the rectangle within `Drag.MostAcross` of where it began (no ADR); a machine once where it began. Each cell is
+  fill the rectangle within `Drag.MostAcross` of where it began; a machine once where it began. Each cell is
   its own `PlacePlan`, ascending, none twice. Pieces go whole, a piece's length a step: a ladder's or door segment's
   2×2, a hatch's 2×1, one `PlacePlan` at its top-left; a doorway joins as built ones by the kind planned (`CodeOf`).
   Only digging keeps the 2×2 brush, Ctrl for one cell (0104). Q picks the known card under the pointer (0022).
-- **The menu only plans** (0107): plans are built and marks taken down by the screwdriver from the hotbar, the left
+- **The menu only plans** (0107): plans are built and marks taken down by a screwdriver from the hotbar, the left
   held within reach, `Screwdriver.Work` ticks per tick, at most five a frame; each part of a blueprint takes an item as
   it begins (0063). No delivery apart from work.
-- **Costs** (0063; colours no ADR, `CostLine.Lacking`): what this player carries (`Ui.Carried`, every 250 ms) over
+- **Costs** (0063, `CostLine.Lacking`): what this player carries (`Ui.Carried`, every 250 ms) over
   the cost less what was put in, green when covered, red when not, alike in menu and tip. A blueprint's tip
-  (`PlanTip`) shows its card's picture and name, then an item a row; shown only while it lacks something.
-- **A mark's tip** (0064, `MarkTip`): its card's picture and name, then what it gives back, "+2" in green
+  (`PlanTip`) shows its card's picture and name, then an item a row; shown only while it lacks something. The power
+  driver's square sums its blueprints' (`SquareTip`).
+- **A mark's tip** (0064, `MarkTip`): its card's picture and name, then what it gives back, "+2", green
   (`RefundOf`). A lacking blueprint under the pointer is told first.
 - **The menu is a docked rugged tablet of fixed size** (0073, 0107): bottom middle, 10 by 2 cards a
   step larger than inventory slots, the card in hand edged sky blue; the wheel over it scrolls a row, never the
   hotbar. B slides it in and out (`TabletMotion`); put away it takes no input. Picking a card leaves it open; one
-  taken by Q is scrolled into view; it opens on the tab it closed on.
+  taken by Q is scrolled into view; it opens on its last tab.
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. The field takes every key,
-  Enter or a click elsewhere ends typing, Esc clears (`DropSearch`, before the game menu's
-  Esc); a tab clicked or a card Q takes ends it; put away, it is forgotten.
-- **The hint** (no ADR, `HintOf`): one line under the cards, cut by an ellipsis.
-- **Plans are ghosts** (0064, `PlanTiles`): their own picture greyed, lifted toward white, a little blue, unlit, back
+  Enter or a click elsewhere ends typing, Esc clears first (`DropSearch`); a tab clicked or a card Q takes ends it; put away, it is forgotten.
+- **The hint** (`HintOf`): one line under the cards, cut by an ellipsis.
+- **Plans are ghosts** (0064, `PlanTiles`): their own picture greyed toward white, a little blue, unlit, back
   walls fainter, joined to what is planned and built beside them. Planned back walls draw just over the rooms' air
   (`Layers.PlanBacks`), the rest over the ship. The ghost in hand is green where the sim takes it, red where not (0022).
 - **Dashes** (0064): round each group of plans (walls, back walls, ladders, doors, hatches, floors; each machine
   alone) marching dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
-  valves are not outlined, unless marked. Silhouettes are found per picture on the CPU; the mesh is rebuilt only when
-  plans, grid, zoom or screen change.
+  valves are not outlined, unless marked. The mesh is rebuilt only when plans, grid, zoom or screen change.
 - **A blueprint turns real as worked** (0063): from the bottom up (floors and conduits from the left), the cut at
   `Progress / TicksFor`, a pixel at a time, by ticks; the real share lit as the grid draws it, the
   rest the unlit ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).

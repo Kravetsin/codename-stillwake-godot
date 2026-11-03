@@ -172,6 +172,18 @@ public sealed class Ui
     public Store<string?> Wielded { get; } = new(null);
 
     /// <summary>
+    /// Whether the power driver works its square or one cell (power-driver): this player's, not saved, the square at the start;
+    /// <c>crew</c> switches it on a right click with the driver in hand.
+    /// </summary>
+    public Store<bool> DriverSquare { get; } = new(true);
+
+    /// <summary>
+    /// The cells the power driver's square works this frame, set by <c>crew</c>; none while the hands work one cell. A
+    /// blueprint's cost under the pointer is then the square's (<c>building</c>).
+    /// </summary>
+    public IReadOnlyList<int>? WorkedSquare { get; set; }
+
+    /// <summary>
     /// Whether the air overlay is wanted, and so drawn: O switches it, outside building too, for air keeps the crew
     /// alive, and under any build tab, a tab's own overlay drawn over it (<see cref="OverlayOn"/> stays the tab's).
     /// </summary>

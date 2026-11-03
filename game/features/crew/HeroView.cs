@@ -105,6 +105,8 @@ public partial class HeroView : Node2D
     /// cell's structure, valve and machine, and the brush's square; traced again only when one of them changes.
     /// </summary>
     private (int Cell, int? Plan, bool Refused, int Structure, int Valve, int? Machine, bool Back)? _traced;
+    /// <summary>The power driver's square last outlined and what it worked, or none while the aim is (<see cref="TraceSquare"/>).</summary>
+    private ((int X, int Y, int Side) Square, List<WorkAim> Targets)? _tracedSquare;
     private int _steps;
     /// <summary>The world tick the last <c>Enter</c> went out on: the report waits <c>Crew.ReportEvery</c> after it (0050).</summary>
     private int _reportedAt = -Content.Crew.ReportEvery;

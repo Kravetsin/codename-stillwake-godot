@@ -67,26 +67,26 @@ commands reach the sim; others' heroes come through the host.
 ## Guarantees
 
 - Lengths and speeds are integer thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`) at any frame rate, drawn between two steps; floats only in drawing.
+  (`Net.Clock`), drawn between two steps; floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
-  stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it `Hero.PushStep` a step to the
+  stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089).
-- Doors are walked as this peer shows them, own toggles in flight made (0014). A press asks for the other state
+- Doors are walked as this peer shows them (0014). A press asks for the other state
   (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
-- **Holes and floors:** a standing step stops where the body fits over a hole and falls in; a step-deep
-  hole is walked down (0106). Down over a hole slides in. Down on floors drops through them; a wall, door, hatch or
+- **Holes and floors:** a step stops where the body fits over a hole, and falls in; a step-deep
+  hole is walked down (0106). Down slides into a hole, drops through floors; a wall, door, hatch or
   ladder under the feet holds; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
-- **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut when Space is let go, eased apex; speed
-  eased toward the keys, `AirControl` of it in the air.
-- **The figure answers its motion** (0090), read from what is sent, so friends move alike. It sits on the title and in a pod (`Sit`, `Strapped`).
-- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): the client's word, sending `HitBy`/`Bolted`;
+- **Jump and walk feel** (0089): coyote time, jump buffer, the rise cut on letting Space go, eased apex and speed,
+  `AirControl` aloft.
+- **The figure answers its motion** (0090), read from what is sent, so friends move alike; it sits on the title and in a pod.
+- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): sending `HitBy`/`Bolted`;
   thrown at once, keys masked `Hero.Reel` steps.
 - **Surfaces** (0076): `Ship.Of` takes the surface's rules: nothing floats on a planet, gravity is the kind's `Fall`;
-  in a planet's fog it glides, and `FogMove` moves it across a seam (fog-edges).
+  in fog it glides, `FogMove` across a seam (fog-edges).
 - **Camera:** leads where last moved, eases height, snaps to a new place.
-- **Jetpack and swim** (0047): afloat the hero swims on its tether, through floors; with a jetpack it ties none and Shift thrusts;
-  `Thrust` is sent while it differs from the sim's.
+- **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack ties none, Shift thrusts,
+  `Thrust` sent while it differs from the sim's.
 - **A canister** (0047, 0081): right click sends `Refill` if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, and every `Crew.ReportEvery`
@@ -106,11 +106,11 @@ commands reach the sim; others' heroes come through the host.
 ## The hands
 
 - **What the hand holds shows** (`HeldLook`); on a plan the screwdriver twists.
-- **Left is the front, right the back** (0107, 0108): the screwdriver works plans or repairs, on the
-  left button; the plan, wiring, lays cables; a tool on the right, nothing.
+- **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
+  the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan, machine (its rise too, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece afloat. Outlined green or red; `UsePrompt` says why. Plan in hand: E idle.
-- **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if the sim's query
+- **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if it
   strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
@@ -118,6 +118,8 @@ commands reach the sim; others' heroes come through the host.
   a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
 - **The drill** (0054, 0055): held in one hand (one-arm-holds); left held sends `Run` until the sim runs it, and hits every
   `Pace` ticks.
+- **The power driver** (power-driver): left held runs it as the drill, never spun or heard as one; running, it works the
+  2×2 square (`SquareAt`, `WorkTargets`). Right click: square or cell (`Ui.DriverSquare`).
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump short of a ledge by the foot's lift is mantled.
 

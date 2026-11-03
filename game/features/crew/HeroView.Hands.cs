@@ -37,8 +37,14 @@ public partial class HeroView
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
         var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, ShipTiles.RiseOf) : null;
-        var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, aim);
-        TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
+        // The power driver running in its mode works the square round the pointer, every layer of each cell (power-driver).
+        int side = Aiming.SideOf(driver, _ui.DriverSquare.Get(), m.Items.Running(client.Id));
+        var square = side > 1 && aim != null && !passedOut ? Aiming.SquareAt(m.Grid.Width, m.Grid.Height, pointer!.Value, side) : null;
+        var targets = square is { Cells: var cells } ? Aiming.WorkTargets(m, client.Id, _current, cells) : null;
+        _ui.WorkedSquare = square?.Cells;
+        var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim);
+        if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
+        else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
         _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan && pointer is { } on
             ? AimGlow.FieldOf(m.Grid, fan.Ground.Tool, fan.Ground.X, fan.Ground.Y, AngleOf(fan.Ground, on)) : null,
@@ -60,15 +66,16 @@ public partial class HeroView
             client.Send(new Sim.Landing.Alight());
             _ui.OpenCrate.Set(null);
         }
-        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, driver?.Work ?? 1);
+        var uses = Aiming.UsesOf(aim, !passedOut && pressed || acts && grab, builds, client.World.Tick, _workedOnTick, driver?.Work ?? 1, targets);
         _workedOnTick = uses.WorkedOnTick;
         foreach (var command in uses.Commands) client.Send(command);
         if (uses.Open != null || uses.Commands.Any(c => c is Sim.Debris.Grab or Sim.Atmosphere.LoadCanister or Sim.Water.PourWater)) _act.Play(Floats);
-        // Held on a plan it can work, the hero turns its screwdriver at it.
-        bool working = builds && aim is { InReach: true, Work.Problem: null };
-        // A right click with a canister in hand breathes it (0047).
+        // Held on a plan it can work, the hero turns its screwdriver at it; on a square, while any of its plans can be worked.
+        bool working = builds && (targets != null ? targets.Any(t => t.Problem == null) : aim is { InReach: true, Work.Problem: null });
+        // A right click with a canister in hand breathes it (0047); with the power driver, switches its square and one cell.
         bool rightClicked = _mouse.Buttons.TakeRightClick();
         if (rightClicked && acts && _ui.Wielded.Get() == Content.Crew.Canister) Breathe(client, m);
+        if (rightClicked && acts && driver is { Area: > 1 }) _ui.DriverSquare.Set(!_ui.DriverSquare.Get());
         // The axe: a swing begun toward the pointer plays through and, as it strikes, its fan hits what it meets, let go or not;
         // put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).
         bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
@@ -94,13 +101,14 @@ public partial class HeroView
             if (bites || strikes.Count > 0) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
-        // its power every tick it runs (0055), and its fan hits what it meets each Pace ticks. Flat, it winds down.
+        // its power every tick it runs (0055), and its fan hits what it meets each Pace ticks. Flat, it winds down. The power
+        // driver runs so whenever the left button builds with it, at plans or not (power-driver); it is no drill.
         bool wieldsDrill = acts && drill != null && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
-        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : null, _mouse.Buttons.HoldsLeft, _grabHeld);
+        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : builds ? driver!.Item : null, _mouse.Buttons.HoldsLeft, _grabHeld);
         // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
-        bool runs = running != null;
+        bool runs = running != null && running == drill;
         Drill(client, m, runs ? pointer : null, drill);
         _figure.Spinning = runs;
         // Loaded while its fan strikes something, a wreck or the ground, or its bit a creature. Its hits sound and look as what
@@ -145,7 +153,7 @@ public partial class HeroView
             : (_aimsGun || _aimsDrill) && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
-        _busy = working ? new Busy(Handwork.Work, Middle(aim!.Cell))
+        _busy = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
             : _swing.Phase != null ? new Busy(Handwork.Chop, _swing.At, _swing.Count)
             : runs ? new Busy(Handwork.Drill, Aiming.PointOf(pointer!.Value))
             : _beamLeftMs > 0 && !handFree && !passedOut ? new Busy(Handwork.Beam, _beamAt)
@@ -319,6 +327,9 @@ public partial class HeroView
     /// <summary>The middle of <paramref name="cell"/>, in thousandths of a cell.</summary>
     private Point Middle(int cell) => new(cell % _width * Hero.Unit + Hero.Unit / 2, cell / _width * Hero.Unit + Hero.Unit / 2);
 
+    /// <summary>The middle of the square <paramref name="side"/> cells across from column <paramref name="x"/>, row <paramref name="y"/>, in thousandths of a cell.</summary>
+    private static Point Middle(int x, int y, int side) => new(x * Hero.Unit + side * Hero.Unit / 2, y * Hero.Unit + side * Hero.Unit / 2);
+
     /// <summary>The angle from <paramref name="hew"/>'s hand to <paramref name="pointer"/>, in cells, in radians: the pointer's own, not a step of the turn.</summary>
     private static double AngleOf(Sim.Building.Hew hew, (double X, double Y) pointer) =>
         System.Math.Atan2(pointer.Y * Hero.Unit - hew.Y, pointer.X * Hero.Unit - hew.X);
@@ -336,12 +347,26 @@ public partial class HeroView
         var traced = aim is { } a
             ? (a.Cell, a.Work?.Plan, refuse, shown.StructureAt(grid, a.Cell), shown.ValveOpenAt(m.Pipes, a.Cell) switch { null => 0, true => 1, false => 2 }, grid.MachineAt(a.Cell)?.Id, back)
             : ((int, int?, bool, int, int, int?, bool)?)null;
-        if (traced == _traced) return;
+        if (traced == _traced && _tracedSquare == null) return;
         _traced = traced;
+        _tracedSquare = null;
         _outline.Dashed = back;
         _outline.ZIndex = Layers.Aim;
         _outline.Begin();
         if (aim != null) AimOutline.Trace(_outline, m, aim, shown, refuse ? AimRefused : AimReady);
+        _outline.End();
+    }
+
+    /// <summary>The power driver's <paramref name="square"/> outlined, its side showing the mode, and each of its <paramref name="targets"/> (power-driver).</summary>
+    private void TraceSquare(Registry m, (int X, int Y, int Side) square, IReadOnlyList<WorkAim> targets)
+    {
+        if (_tracedSquare is { } was && was.Square == square && was.Targets.SequenceEqual(targets)) return;
+        _tracedSquare = (square, [.. targets]);
+        _traced = null;
+        _outline.Dashed = false;
+        _outline.ZIndex = Layers.Aim;
+        _outline.Begin();
+        AimOutline.Square(_outline, m, square, targets, AimReady, AimRefused);
         _outline.End();
     }
 }

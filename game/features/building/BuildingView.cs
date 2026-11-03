@@ -460,10 +460,17 @@ public partial class BuildingView : Node2D
     /// Beside the pointer (<see cref="Ui.CostTip"/>), what the blueprint at <paramref name="cell"/> builds and,
     /// row by row, what this player carries against what it still needs, counting down a part at a time as it
     /// is paid, while it lacks something (once all is paid the plan, real all over, says the rest); else what a
-    /// mark there takes down and what that gives back (<see cref="BuildingModule.RefundOf"/>); nothing anywhere else.
+    /// mark there takes down and what that gives back (<see cref="BuildingModule.RefundOf"/>); nothing anywhere else. While the
+    /// power driver works a square (<see cref="Ui.WorkedSquare"/>), what all its blueprints need together (<see cref="SquareTip"/>).
     /// </summary>
     private void ShowTray(int? cell, IGridQueries grid, BuildingModule building)
     {
+        // The power driver's square says what its blueprints need together (power-driver).
+        if (cell != null && _ui.WorkedSquare is { } square && SquareTip.Of(building, square, _ui.Carried) is { } summed)
+        {
+            _ui.CostTip.Set(summed);
+            return;
+        }
         var plans = cell is int c ? building.PlansAt(c) : [];
         var plan = plans.FirstOrDefault(p => p.Place != null && building.Lacking(p.Id).Count > 0);
         Tip? tip = null;
