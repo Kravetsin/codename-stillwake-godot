@@ -28,10 +28,11 @@ public class MarketGoodsTests
     [Fact]
     public void EachKindOfUpgradeIsOneGoodItsBlocksInOrderThenTheRest()
     {
-        Assert.Equal(["bag", "tradeSlots", "belt", "solarPanel"], Goods.Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "powerDriver", "solarPanel"], Goods.Select(g => g.Id));
         Assert.Equal(Enumerable.Range(1, 11).Select(i => "bag" + i), Good("bag").Steps.Select(s => s.Id));
         Assert.Equal(MarketShelf.Upgrades, Good("belt").Shelf);
         Assert.Equal(MarketShelf.Blueprints, Good("solarPanel").Shelf);
+        Assert.Equal(MarketShelf.Blueprints, Good("powerDriver").Shelf);
     }
 
     [Fact]
@@ -93,8 +94,8 @@ public class MarketGoodsTests
     public void UpgradesComeFirstThenBlueprintsNewestFirst()
     {
         var goods = Goods.Append(new MarketGood("older", MarketShelf.Blueprints, [Content.Research.Node("bag1")!]));
-        Assert.Equal(["bag", "tradeSlots", "belt", "solarPanel", "older"], MarketGoods.Sorted(goods, Met(5), null).Select(g => g.Id));
-        Assert.Equal(["solarPanel", "older"], MarketGoods.Sorted(goods, Met(5), MarketShelf.Blueprints).Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "solarPanel", "powerDriver", "older"], MarketGoods.Sorted(goods, Met(5), null).Select(g => g.Id));
+        Assert.Equal(["solarPanel", "powerDriver", "older"], MarketGoods.Sorted(goods, Met(5), MarketShelf.Blueprints).Select(g => g.Id));
     }
 
     [Fact]
@@ -109,5 +110,5 @@ public class MarketGoodsTests
 
     [Fact]
     public void AnOrderUnlocksEachKindOnce() =>
-        Assert.Equal(["bag", "tradeSlots", "belt"], MarketGoods.Unlocks(Goods, 2).Select(g => g.Id));
+        Assert.Equal(["bag", "tradeSlots", "belt", "powerDriver"], MarketGoods.Unlocks(Goods, 2).Select(g => g.Id));
 }
