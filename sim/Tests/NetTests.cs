@@ -246,6 +246,37 @@ public class NetTests
         Assert.Equal("debris.bagFull", w.M.Debris.CollectProblem(2, NetId(w)));
     }
 
+    /// <summary>
+    /// A collect reports what each entry put into the inventory, by its piece, as a grab does (<c>CaughtFrom</c>), for the
+    /// collector's popups: an entry partly given only what went in, one given nothing, or a refused collect, nothing new.
+    /// </summary>
+    [Fact]
+    public void ReportsWhatACollectGaveByEachPieceForItsCollectorAsAGrabDoes()
+    {
+        var w = Caught(Quiet(), "scrapChunk", "hullPlate");
+        int scrap = w.M.Debris.Held[0].Id, plate = w.M.Debris.Held[1].Id;
+        State(w).Held[0].Stacks = [new("scrapChunk", 3)];
+        w.GiveItems(2, ("scrapChunk", Content.Items.Get("scrapChunk").Stack - 1));
+        Fill(w, 2);
+        Assert.Null(w.M.Debris.CaughtFrom(scrap, 2));
+        w.Do(new Collect(NetId(w)) { From = 2 }).Run();
+        Assert.Empty(w.Refusals);
+        var gave = w.M.Debris.CaughtFrom(scrap, 2);
+        Assert.Equal([("scrapChunk", 1)], gave);
+        Assert.Null(w.M.Debris.CaughtFrom(plate, 2));
+        Assert.Null(w.M.Debris.CaughtFrom(scrap, 3));
+        // Refused for a full bag: the last report stands, the very one, so a reader sees nothing new.
+        w.Do(new Collect(NetId(w)) { From = 2 }).Run();
+        Assert.Equal(["debris.bagFull"], Reasons(w));
+        Assert.Same(gave, w.M.Debris.CaughtFrom(scrap, 2));
+        // Another peer collects the rest: its own report, not the first collector's.
+        w.Do(new Collect(NetId(w)) { From = 3 }).Run();
+        Assert.Equal([("scrapChunk", 2)], w.M.Debris.CaughtFrom(scrap, 3));
+        Assert.Equal([("hullPlate", 1)], w.M.Debris.CaughtFrom(plate, 3));
+        Assert.Same(gave, w.M.Debris.CaughtFrom(scrap, 2));
+        Assert.Equal([("hullPlate", 1)], w.M.Debris.CaughtFrom(plate));
+    }
+
     [Fact]
     public void RefusesNoNetAnEmptyNetAndABagWithNoRoomLeavingTheWorldAsItWas()
     {

@@ -5,7 +5,7 @@ namespace Stillwake.Sim.Debris;
 
 /// <summary>
 /// Empties net <c>Machine</c> into the sender's inventory, the E on a debris net (docs/decisions/2026-11-03-debris-net.md): every entry, in catch order,
-/// gives what fits; what does not stays in the net.
+/// gives what fits; what does not stays in the net. What each entry gave is reported as a grab's catch is (<see cref="DebrisModule.CaughtFrom"/>).
 /// </summary>
 public sealed record Collect(int Machine) : Command;
 
@@ -53,6 +53,15 @@ public sealed partial class DebrisModule
             {
                 // On past an entry that does not fit: a later one may.
                 var left = _items.GiveWhatFits(c.From, [.. entry.Stacks.Select(s => (s.Item, s.Count))]);
+                var gave = new List<(string Item, int Count)>();
+                // An entry's stacks are by item, each once (LootOf), so what is left of each is its one line of left.
+                foreach (var stack in entry.Stacks)
+                {
+                    int given = stack.Count - left.Where(l => l.Item == stack.Item).Sum(l => l.Count);
+                    if (given > 0) gave.Add((stack.Item, given));
+                }
+                // Reported as a grab is, for the collector's popups; an entry that gave nothing, not at all.
+                if (gave.Count > 0) Report(entry.Id, c.From, gave);
                 if (left.Count == 0) continue;
                 entry.Stacks = [.. left.Select(l => new Stack(l.Item, l.Count))];
             }

@@ -65,7 +65,8 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   aim, so E cannot send it twice.
 - **Nets** (2026-11-03-debris-net): the grid draws the booms (`machine_net`); `NetView` the plates on the hull's face, then
   each held piece in its own look at its place by load (`NetShows.Place`), then `net_front_<held>` sagging over them. Read
-  every 100 ms; a catch pops in. E on a net sends `Collect` (`Aiming`), through its wall too; its tip says "7/10".
+  every 100 ms; a catch pops in. E on a net sends `Collect` (`Aiming`), through its wall too; its tip says "7/10". What a
+  collect gave shows as a grab's (items' `OwnCatches`), flying from where `NetShows.Lying` says each piece lay.
 
 ## The Handbook's Debris section (0066, 0083)
 

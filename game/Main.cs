@@ -529,7 +529,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
-        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, SpotOf(_hero), session.Progress, delta * 1000);
+        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, delta * 1000);
         if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
@@ -541,6 +541,11 @@ public partial class Main : Node2D, ITogether
         ShowHands(client, delta * 1000);
         _frameLog?.Mark("hands");
     }
+
+    /// <summary>The pieces net <paramref name="net"/> holds, each where the debris feature draws it: what a collect's loot flies home from.</summary>
+    private IReadOnlyList<(int Piece, (double X, double Y) At)> NetHolds(int net) => _m.Grid.MachineById(net) is { } machine
+        ? NetShows.Lying([.. _m.Debris.HeldIn(net).Select(e => e.Id)], machine.Cell, _m.Grid.Width)
+        : [];
 
     /// <summary>Where the hero stands for its items: what a drop is thrown from, what it picks up.</summary>
     private HeroSpot? SpotOf(HeroView? view)

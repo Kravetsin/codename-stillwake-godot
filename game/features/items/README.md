@@ -14,7 +14,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Fit` and `Unfi
 | `logic/Reading.cs` | the slots with own moves in flight (0014); marks, ghosts, tips; the open machine's module host |
 | `logic/Reach.cs` | `HeroSpot`; pick-ups and the magnet |
 | `logic/FloorFeel.cs` | a stack's landing (2026-10-29-kill-feel) |
-| `logic/OwnCatches.cs` | what this peer's own grabs put into its inventory, and where each piece was |
+| `logic/OwnCatches.cs` | what this peer's own grabs and net collects put into its inventory, and where each piece was |
 | `PickUpFlights.cs` | a stack picked up flying home to the chest (0075) |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
 | `SortSweep.cs` | a sort's light across the sorted grid (0081) |
@@ -86,13 +86,15 @@ and tested in `game.tests/`.
 - **Pick-up** (no ADR): a stack the hero's body overlaps is picked up unless refused, vanishing, flying home;
   loot nobody dropped within `Floor.PickUpReach` cells too, pulled in (2026-10-29-kill-feel); a body's all within
   `Floor.BodyReach`, in one popup line; never while passed out (0061), which also closes the inventory.
-- **Own catches** (0075): a grab seen in flight then gone has run; `CaughtFrom` gives each item a popup line and a
-  flight home from the piece. Only this peer's; a refused or already-gone grab shows nothing.
+- **Own catches** (0075): a grab or a net's `Collect` seen in flight then gone has run; `CaughtFrom` (this peer's) gives each
+  item of each piece a popup line and a flight home from where it was drawn, drifting or in the net (`NetHolds`), only
+  when the answer is new since the command set off: a refused grab or collect, or a second E on an emptied net, shows nothing.
 
 ## Main's hook
 
 `Main` makes an `ItemsView` with the hands' `Ui` and calls `Frame(...)` every frame after the hero's, so own grabs are
-seen in flight; `HeroSpot` carries the hero's feet, facing, cell and passed-out state, so this never reads crew.
+seen in flight, with `NetHolds` (debris's `NetShows.Lying`: where a net's pieces are drawn); `HeroSpot` carries the
+hero's feet, facing, cell and passed-out state, so this never reads crew.
 
 ## Deliberately not handled
 

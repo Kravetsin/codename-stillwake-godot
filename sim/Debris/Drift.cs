@@ -16,13 +16,14 @@ public sealed partial class DebrisModule
     /// <summary>Where each hero on the grid is this tick, by its reported cell, in id order; refilled every tick.</summary>
     private readonly List<(int X, int Y)> _heroes = [];
 
-    /// <summary>How many of the last catches <see cref="_caught"/> keeps: far more than one frame of four heroes catches.</summary>
-    public const int CaughtKept = 32;
+    /// <summary>How many of the last catches <see cref="_caught"/> keeps: more than four heroes each emptying a full net on one tick.</summary>
+    public const int CaughtKept = 64;
     /// <summary>
-    /// The last catches, oldest first: each piece and what it put into the inventory. Never saved nor hashed, read by
-    /// nothing in the sim; only the client asks it (<see cref="CaughtFrom"/>), for its own grabs just run.
+    /// The last catches, oldest first: each piece, its catcher and what it put into the inventory, by a grab or a collect of a
+    /// net's entry. Never saved nor hashed, read by nothing in the sim; only the client asks it (<see cref="CaughtFrom"/>), for
+    /// its own grabs and collects just run.
     /// </summary>
-    private readonly List<(int Piece, IReadOnlyList<(string Item, int Count)> Gave)> _caught = [];
+    private readonly List<(int Piece, int By, IReadOnlyList<(string Item, int Count)> Gave)> _caught = [];
 
     /// <summary>
     /// The hull is found again after a create and a load, and the nets looked at again: the grid's version starts over then. The

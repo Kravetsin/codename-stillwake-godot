@@ -21,8 +21,8 @@ Handbook's record of kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056
   Reel, SeenAt }`, in thousandths of a cell (`Unit`); `NextId`, never reused; `Clock`; `Beats`, each zone's next due
   clock; `AtStart`; `Found` (0066), `FoundKind { Kind, Items, Looks }` in the order first found; `Held`, every net's
   entries `{ Net, Id, Kind, Cell, Items }` in catch order, not written while empty. **Not saved, never hashed:** the last
-  `CaughtKept` (32) grabs, for the client (`CaughtFrom`). **Derived:** the hull's bounds, kept by the grid's log (0051);
-  the grid version the nets were last looked at.
+  `CaughtKept` (64) grabs and collected entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the
+  grid version the nets were last looked at.
 
 ## Zones
 
@@ -33,7 +33,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 
 ## Rules
 
-- Each simulation tick: a net gone drops what it held; every piece drifts left, or toward its reel's point; one past its
+- Each simulation tick: a net gone drops what it held; each piece drifts left, or toward its reel's point; one past its
   `End` is gone once no view holds it, past the grid's left edge at once; then the catch, in id order; then each zone,
   in content order, on its beat (0052).
 - **No zone on a surface without debris** (`Surfaces.Kind.Debris`, 0076): nothing spawns or is drawn from the Rng.
@@ -50,7 +50,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 - **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while within some `Hard` box and
   seen less than `Linger` ago.
 - **First tick:** a world puts out `Layout.DebrisAtStart` of the stream (at most `Max`), placed evenly along its way.
-- Nothing collides: pieces pass through the hull and each other (0006), but a net.
+- Nothing collides (0006) but a net.
 - **`Grab(Piece)`** (0034): the sender gets the salvage item, or a container's `Loot` drawn by `LootOf` as it applies;
   what does not fit floats at the hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (the hero's reported
   cell or the piece's middle not in space), `debris.tooBig` (a wreck).
@@ -68,10 +68,11 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
   holds a `Catches` machine with fewer than `NetHolds` (10) entries: it leaves `Pieces` for an entry, a container's
   loot rolled then (a full net draws nothing), `Found` recorded; no `CaughtFrom`.
 - **`Collect(Machine)`**: entries of that net in catch order, each giving what fits (`GiveWhatFits`, counted obtained),
-  on past one that does not; an emptied one goes. Refused `debris.noNet` (no machine, or none that catches),
-  `debris.netEmpty`, `debris.bagFull` (one of nothing it holds fits). No reach: the client's, through the wall too.
+  on past one that does not, each give reported as a grab's (`CaughtFrom`); an emptied one goes. Refused `debris.noNet`
+  (no `Catches` machine), `debris.netEmpty`, `debris.bagFull` (nothing fits). No reach: the client's, through the wall too.
 - **A net gone** (a meteor, a screwdriver): when the grid's `Version` moved, every entry whose net is no `Catches`
-  machine drops its items at its `Cell` (`DropAt(Nobody)`), in catch order. Ids are never reused: a net built again is empty.
+  machine drops its items at its `Cell` (`DropAt(Nobody)`), in catch order (its cost: `hazards`, or the worker's
+  refund). Ids are never reused: a net built again is empty.
 
 ## Invariants
 

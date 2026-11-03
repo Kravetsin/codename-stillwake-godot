@@ -155,14 +155,22 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         PieceById(piece) is { } p && p.Damage + damage >= (Content.Wreckage.HpOf(p.Item) ?? throw new InvalidOperationException($"debris.hit: {p.Item} is no wreck"));
 
     /// <summary>
-    /// What catching piece <paramref name="id"/> put into its catcher's inventory, by item, or null when no catch of it
-    /// is among the last <see cref="CaughtKept"/>: for the client to show its own catch over its hero (none if all fell).
+    /// What the last catch of piece <paramref name="id"/>, by peer <paramref name="by"/> or by anyone, put into its catcher's
+    /// inventory, by item, or null when no such catch is among the last <see cref="CaughtKept"/>: a grab of it drifting, or a
+    /// collect of it out of a net, each a new list. For the client to show its own catch over its hero (none if all fell).
     /// </summary>
-    public IReadOnlyList<(string Item, int Count)>? CaughtFrom(int id)
+    public IReadOnlyList<(string Item, int Count)>? CaughtFrom(int id, int? by = null)
     {
         for (int i = _caught.Count - 1; i >= 0; i--)
-            if (_caught[i].Piece == id) return _caught[i].Gave;
+            if (_caught[i].Piece == id && (by == null || _caught[i].By == by)) return _caught[i].Gave;
         return null;
+    }
+
+    /// <summary>Notes that catching piece <paramref name="id"/> put <paramref name="gave"/> into peer <paramref name="by"/>'s inventory (<see cref="CaughtFrom"/>).</summary>
+    private void Report(int id, int by, IReadOnlyList<(string Item, int Count)> gave)
+    {
+        if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
+        _caught.Add((id, by, gave));
     }
 
     /// <summary>
@@ -287,9 +295,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         var loot = LootOf(piece.Item, Random);
         // From the roll, not from what went in: what floats off a full inventory was seen all the same.
         Record(piece, loot);
-        var gave = _items.GiveOrDrop(c.From, loot, hero.Cell);
-        if (_caught.Count == CaughtKept) _caught.RemoveAt(0);
-        _caught.Add((piece.Id, gave));
+        Report(piece.Id, c.From, _items.GiveOrDrop(c.From, loot, hero.Cell));
     }
 
     private void Apply(HewWrecks c)

@@ -18,10 +18,12 @@ net, early, so salvage piles up while the crew works indoors. Drones that empty 
    fills. Everything else (wrecks, soil clods, asteroids) passes through, and a full net lets everything pass. The pointer over
    it shows its count, «7/10»; nothing else on screen says it in words.
 4. A hero presses E on it, outside or inside through the wall it hangs on, within the reach every machine's E has, and everything
-   goes into the inventory; what does not fit stays in the net. Refusals show in the prompt as every E's do: «The net is empty»,
-   «No room in the bag», «The net is gone».
+   goes into the inventory; what does not fit stays in the net. It looks as catching a piece by hand does: each piece taken
+   flies from where it lay in the net to the hero, and the text over the hero's head names what went into the inventory.
+   Refusals show in the prompt as every E's do: «The net is empty», «No room in the bag», «The net is gone».
 5. Meteors aim past the net to the wall behind it; a meteor breaking that wall breaks the net with it, and what it held floats
-   out where it was caught. So does a net taken apart by hand.
+   out where it was caught, and the net's own 6 wire and 4 tube float at its cell for anyone to take. A net taken apart by
+   hand drops what it held too and refunds its cost to its worker, as every machine does.
 
 ## Decisions
 
@@ -34,8 +36,14 @@ net, early, so salvage piles up while the crew works indoors. Drones that empty 
   on the spot starts empty.
 - **`Collect`** walks the net's entries in catch order and gives each what fits (`Items.GiveWhatFits`), going on past one that
   does not, since a later one may. Not `Grab` (one piece, outside only) nor `Move` (it needs slots).
+- **Collect shows as a Grab:** each entry's give is reported as a grab's (`CaughtFrom`, by piece and catcher), and the client's
+  `OwnCatches` turns an own `Collect` gone from flight into the same popups and flights home as a `Grab`, from where each piece
+  lies in the net. One path for both, so the two never drift apart. The catch into the net still shows nothing.
 - **A net gone** drops its entries' items at their cells as floor stacks, one rule for a meteor and the screwdriver: taking a
   full net apart by mistake would otherwise lose ten pieces.
+- **A meteor drops the net's cost:** `Hazards` drops its whole `Machines` cost at the net's cell (`DropAt(Nobody)`). Hazards
+  owns it because its `Break` is the one place that knows a meteor, not a screwdriver, took the net; the screwdriver's
+  refund to the worker and the broken walls' nothing stay as they were.
 - **The look is the pick, `sling`, «Гамак на стрелах»:** two pipe booms with struts, a steel-cable net with crimped joins slung
   between them, its edges lashed with copper, drawn by `tools/anime-art/subjects/net.js`. The booms are the machine's picture;
   the plates bolting them to the hull lie over the wall's face; the held pieces, each in its own debris look, heap in catch
@@ -50,6 +58,8 @@ net, early, so salvage piles up while the crew works indoors. Drones that empty 
 - The wall behind taken apart by hand: the net stays hanging, as the engine does.
 - A full net raises no alert beyond its sag and the pointer's count.
 - A partly collected container keeps its look in the net.
+- A piece caught into the net while the hero's own E on it is still on its way to the host is given without its popup:
+  the client shows the pieces the net held when E was pressed.
 - A piece through two nets: the first reached catches it.
 - Ten pieces in 2×6 cells overlap heavily, and the biggest stick out past the net's sides. Accepted as a net full of junk; if it
   reads badly in a playtest, the footprint grows to 3×6, the catch rate staying, since rows decide it.

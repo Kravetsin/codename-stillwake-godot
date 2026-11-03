@@ -1,3 +1,4 @@
+using System.Linq;
 using Stillwake.Game.Features.Debris;
 using Xunit;
 using Spec = Stillwake.Content;
@@ -41,6 +42,21 @@ public class NetShowsTests
                 Assert.True(fullerY >= y && fullerX <= x, $"piece {k} from {held} to {held + 1}");
             }
         Assert.NotEqual(NetShows.Place(1, 0), NetShows.Place(Spec.Debris.NetHolds, 0));
+    }
+
+    [Fact]
+    public void TellsWhereEachPieceItHoldsLiesInTheWorldWhereNetViewDrawsIt()
+    {
+        // A net at (6, 2) of a grid 16 wide, holding 9, 4 and 7 in catch order.
+        var lying = NetShows.Lying([9, 4, 7], 2 * 16 + 6, 16);
+        Assert.Equal([9, 4, 7], lying.Select(l => l.Piece));
+        for (int k = 0; k < 3; k++)
+        {
+            var (x, y, _) = NetShows.Place(3, k);
+            // In floats, as NetView adds them on the net's corner.
+            Assert.Equal(((double)(6 * Camera.Cell + x), (double)(2 * Camera.Cell + y)), lying[k].At);
+        }
+        Assert.Empty(NetShows.Lying([], 0, 16));
     }
 
     [Fact]
