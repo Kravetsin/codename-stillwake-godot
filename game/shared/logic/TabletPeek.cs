@@ -15,7 +15,7 @@ public static class TabletPeek
     public const int ScreenShows = 6, RimTall = 64;
 
     /// <summary>The metal the five keys sit on: its size, how far its top stands above the bezel's, and how far the keys lie in from its left and top, a key's stride apart.</summary>
-    public const int SaddleWide = 178, SaddleTall = 36, SaddleAbove = 12, KeyIn = 6, KeyDown = 2, KeyStride = 34;
+    public const int SaddleWide = 212, SaddleTall = 36, SaddleAbove = 12, KeyIn = 6, KeyDown = 2, KeyStride = 34;
 
     /// <summary>How much more of the art's width lies on the stylus's side than the other: the metal's middle is that much left of the art's.</summary>
     private const int StylusSide = 16;
@@ -48,6 +48,12 @@ public static class TabletPeek
     public static (float X, float Y) SaddleAt(float artLeft, float artTop, float artWide) => (
         MathF.Round(artLeft + (artWide - StylusSide) / 2 - SaddleWide / 2f),
         artTop + TabletLayout.BezelAbove - SaddleAbove);
+
+    /// <summary>The credits' display over the art's charge (market-key): its size, and how far its left edge lies in from the art's right and its top below the art's.</summary>
+    public const int DisplayWide = 60, DisplayTall = 14, DisplayIn = 153, DisplayDown = 18;
+
+    /// <summary>Where the credits' display lies on a tablet's art whose right edge is at <paramref name="artRight"/> and top at <paramref name="artTop"/>.</summary>
+    public static (float X, float Y) DisplayAt(float artRight, float artTop) => (MathF.Round(artRight - DisplayIn), MathF.Round(artTop + DisplayDown));
 
     private static float Lerp(float from, float to, float t) => from + (to - from) * t;
 }

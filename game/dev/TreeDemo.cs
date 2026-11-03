@@ -56,9 +56,8 @@ public partial class TreeDemo(Func<Registry> m) : Node
         (double At, string What, Action Do)[] script =
         [
             (0.5, "the plates sold: an order met, the key lit", () => m().Knowledge.Sell("plate", 20)),
-            (1.0, "T opens it: the market's tab lit", () => TabletHands.Press(Key.T)),
-            (1.4, "from the board to the black market: its tab no longer lit, the second row deciphering", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
-            (1.45, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (1.0, "T opens it on the board: the market's key lit, the tablet's dark", () => TabletHands.Press(Key.T)),
+            (1.4, "M goes over to the black market: the second row deciphering", () => TabletHands.Press(Key.M)),
             (3.6, "point at the inventory slot: its name", () => _hands.Point(_tree.ScreenOf("bag"))),
             (4.0, "click it: picked, nothing bought", () => _hands.Mouse(_tree.ScreenOf("bag"), MouseButton.Left, true)),
             (4.05, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
@@ -72,14 +71,13 @@ public partial class TreeDemo(Func<Registry> m) : Node
             {
                 foreach (var (item, count) in (ReadOnlySpan<(string, int)>)[("glass", 12), ("silicon", 20), ("frame", 10)]) m().Knowledge.Sell(item, count);
             }),
-            (8.6, "T puts it away", () => TabletHands.Press(Key.T)),
+            (8.6, "M puts it away from the market", () => TabletHands.Press(Key.M)),
             (9.0, "the last two orders sold with it away", () =>
             {
                 foreach (var (item, count) in (ReadOnlySpan<(string, int)>)[("circuit", 20), ("copper", 20), ("mica", 10), ("hide", 5)]) m().Knowledge.Sell(item, count);
             }),
-            (9.6, "T opens it again", () => TabletHands.Press(Key.T)),
-            (9.65, "to the market, if the board took it: two rows deciphering together", () => _hands.Mouse(_tree.TabAt(1), MouseButton.Left, true)),
-            (9.7, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
+            (9.6, "the market's key on the edge opens it on the market: two rows deciphering together", () => _hands.Mouse(_tree.MarketCap.GetGlobalRect().GetCenter(), MouseButton.Left, true)),
+            (9.65, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
             (11.8, "the blueprints' tab: the solar panel alone", () => _hands.Mouse(_tree.ScreenOf("blueprints"), MouseButton.Left, true)),
             (11.85, "let go", () => _hands.Mouse(_hands.Last, MouseButton.Left, false)),
             (12.3, "click the solar panel, opened by the fourth order: what it is made from", () => _hands.Mouse(_tree.ScreenOf("solarPanel"), MouseButton.Left, true)),

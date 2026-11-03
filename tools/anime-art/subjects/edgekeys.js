@@ -19,6 +19,7 @@ const fill = (d) => ({ fill: d }), stroke = (d, w, thin = 0.3) => ({ stroke: d, 
  * The air: three strokes that swell and taper, the top one curling up, the lowest down.
  * The build: three offset courses of bricks with mortar between, a corner knocked off one.
  * The journal (pick `open`): an open book, its pages curving up from the gutter, the leaves fanning at the foot, two lines a page.
+ * The market (pick `onion`): a bulb from a pointed neck, two inner layers paler.
  */
 const MOTIFS = {
   suit: {
@@ -48,15 +49,20 @@ const MOTIFS = {
     lamp: [fill('M 2.6 6.0 Q 4.6 5.6 6.6 6.4 L 6.6 7.2 Q 4.6 6.4 2.6 6.8 Z'), fill('M 2.6 8.6 Q 4.6 8.2 6.6 9.0 L 6.6 9.8 Q 4.6 9.0 2.6 9.4 Z'),
       fill('M 9.4 6.4 Q 11.4 5.6 13.4 6.0 L 13.4 6.8 Q 11.4 6.4 9.4 7.2 Z'), fill('M 9.4 9.0 Q 11.4 8.2 13.4 8.6 L 13.4 9.4 Q 11.4 9.0 9.4 9.8 Z')],
   },
+  market: {
+    solid: [fill('M 8 0.8 Q 8.5 2.6 9.7 3.7 Q 14.9 6.5 14.3 11.0 Q 13.5 15.2 8 15.4 Q 2.5 15.2 1.7 11.0 Q 1.1 6.5 6.3 3.7 Q 7.5 2.6 8 0.8 Z')],
+    band: [fill('M 8 4.6 Q 4.0 7.4 4.6 11.2 Q 5.2 14.0 8 14.4 Q 5.9 13.4 5.8 11.0 Q 5.6 7.6 8 4.6 Z'), fill('M 8 4.6 Q 12.0 7.4 11.4 11.2 Q 10.8 14.0 8 14.4 Q 10.1 13.4 10.2 11.0 Q 10.4 7.6 8 4.6 Z')],
+  },
 };
 /** Seeds per key, so the glass's grain differs between keys but never between runs. */
-const SEED = { air: 11, build: 23, suit: 37, journal: 59 };
+const SEED = { air: 11, build: 23, suit: 37, journal: 59, market: 71 };
 /** Two short scratches per lens, placed by hand: x, y, length, slope. */
 const SCRATCHES = {
   air: [[2, 17, 6, 0.4], [15, 2, 4, 0.6]],
   build: [[3, 3, 5, 0.5], [14, 18, 5, -0.3]],
   suit: [[2, 15, 5, 0.5], [16, 4, 4, 0.7]],
   journal: [[14, 17, 5, -0.4], [2, 3, 5, 0.5]],
+  market: [[3, 18, 5, 0.3], [15, 3, 4, 0.6]],
 };
 
 // ---------- rasterising: Uint8Array N×N, RES samples to a face pixel ----------
