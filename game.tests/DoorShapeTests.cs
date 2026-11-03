@@ -158,9 +158,8 @@ public class DoorShapeTests
     [Fact]
     public void EveryHatchPictureIsInTheArtFolder()
     {
-        string art = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");
         var pictures = DoorShape.HatchPictures.ToList();
         Assert.Equal(8, pictures.Count);
-        foreach (var picture in pictures) Assert.True(File.Exists(Path.Combine(art, picture + ".png")), picture);
+        foreach (var picture in pictures) Assert.True(Png.Has(picture), picture);
     }
 }

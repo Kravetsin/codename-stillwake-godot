@@ -19,16 +19,15 @@ expect docs CLAUDE.md
 expect docs sim/Grid/README.md
 expect docs net/Net/README.md
 expect docs game/features/light/README.md
-expect docs tools/ship-art/README.md
+expect docs tools/anime-art/README.md
 
 expect client game/Main.cs
 expect client game/features/light/logic/Lightmap.cs
 expect client game/assets/ship.png
 expect client game.tests/SoundTests.cs
-# Not docs: SoundTests reads the first, HeroLooksTests the second.
+# Not docs: SoundTests reads it.
 expect client game/audio/CREDITS.md
-expect client tools/hero-art/parts.js
-expect client tools/ship-art/export.mjs
+expect client tools/anime-art/export.js
 expect client docs/map.md game/Main.cs
 expect client game/Main.cs docs/map.md
 

@@ -124,12 +124,8 @@ public class WreckDressTests
     [InlineData("wreck_tears")]
     public void ItsSheetsCoverTheDrawing(string name)
     {
-        var head = File.ReadAllBytes(Path.Combine(Art, $"{name}.png")).AsSpan(16, 8);
-        Assert.Equal(592, System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(head));
-        Assert.True(System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(head[4..]) >= WreckDress.Cells().Max(c => c.Y + 1) * 8);
+        var (w, h) = Png.SizeOf(name);
+        Assert.Equal(592, w);
+        Assert.True(h >= WreckDress.Cells().Max(c => c.Y + 1) * 8);
     }
-
-    private static string Here([System.Runtime.CompilerServices.CallerFilePath] string path = "") => path;
-
-    private static readonly string Art = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(Here())!, "..", "game", "art"));
 }

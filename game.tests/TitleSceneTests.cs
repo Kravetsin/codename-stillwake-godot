@@ -9,37 +9,20 @@ namespace Stillwake.Game.Tests;
 public class TitleSceneTests
 {
     [Fact]
-    public void ThePlateIsTheSameForASeedAndItsSeatALevelEdgeWithSpaceAboveAndToItsRight()
+    public void ThePlatesSeatLampAndRingSitOnItsPaintedTopItsSeatAnEdgeWithSpaceAboveAndToItsRight()
     {
-        var plate = PlateArt.Of(7);
-        Assert.Equal(plate.Pixels, PlateArt.Of(7).Pixels);
-        var (x, y) = plate.Seat;
-        Assert.Equal(PlatePixel.Lit, plate.At(x, y));
-        Assert.Equal(PlatePixel.Lit, plate.At(x - 6, y));
-        for (int up = 1; up < 10; up++) Assert.Equal(PlatePixel.None, plate.At(x, y - up));
+        var (w, h, plate) = Png.Logical("title_plate");
+        Assert.Equal((PlateArt.Width, PlateArt.Height), (w, h));
+        bool Drawn(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && plate[y * w + x] >> 24 != 0;
+        // The top below the rib, which stands out of the plate's left third.
+        int TopOf(int x) => Enumerable.Range(PlateArt.Seat.Y - 4, h - PlateArt.Seat.Y + 4).First(y => Drawn(x, y));
+        foreach (var (x, y) in new[] { PlateArt.Seat, PlateArt.Lamp, PlateArt.Anchor })
+            Assert.InRange(TopOf(x), y - 1, y + 1);
+        var (sx, sy) = PlateArt.Seat;
+        for (int up = 2; up < 10; up++) Assert.False(Drawn(sx, sy - up), $"drawn {up} above the seat");
         // The legs hang past the end: nothing a few pixels to its right, all the way down.
-        for (int down = 0; down < 20; down++) Assert.Equal(PlatePixel.None, plate.At(x + 4, y + down));
-    }
-
-    [Fact]
-    public void TheLampAndTheTetherRingSitOnThePlatesLitTop()
-    {
-        var plate = PlateArt.Of(7);
-        foreach (var (x, y) in new[] { plate.Lamp, plate.Anchor })
-        {
-            Assert.Equal(PlatePixel.Lit, plate.At(x, y));
-            Assert.Equal(PlatePixel.None, plate.At(x, y - 1));
-        }
-    }
-
-    [Fact]
-    public void ThePlateIsBentDownAndTornAtItsLeftWithWiresHangingFromItsTears()
-    {
-        var plate = PlateArt.Of(7);
-        int TopOf(int x) => Enumerable.Range(PlateArt.RibHigh, plate.Height - PlateArt.RibHigh).First(y => plate.At(x, y) != PlatePixel.None);
-        Assert.True(TopOf(10) > plate.Seat.Y + 4, "the left end is not bent down");
-        Assert.Contains(PlatePixel.Wire, plate.Pixels);
-        Assert.Contains(PlatePixel.Rib, plate.Pixels);
+        for (int down = 0; down < 20; down++) Assert.False(Drawn(sx + 4, sy + down), $"drawn {down} under the seat's right");
+        Assert.True(TopOf(10) > sy + 4, "the left end is not bent down");
     }
 
     [Fact]

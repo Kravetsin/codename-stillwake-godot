@@ -3,14 +3,12 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A machine's ink picture reaches as low as its pixel one: its corner is laid by the logical size, so a shorter drawing hangs over the floor.</summary>
+/// <summary>A machine's picture reaches its bottom edge: its corner is laid by its size, so a shorter drawing hangs over the floor.</summary>
 public class MachineFootTests
 {
     private const int Scale = 4;
-    /// <summary>How far above the pixel picture's foot, in logical pixels, the wash's soft edge may end.</summary>
+    /// <summary>How far above the picture's bottom, in the world's pixels, the wash's soft edge may end.</summary>
     private const double Slack = 0.75;
-
-    private static string Art => Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art");
 
     private static int BigEndian(byte[] b, int at) => b[at] << 24 | b[at + 1] << 16 | b[at + 2] << 8 | b[at + 3];
 
@@ -63,16 +61,17 @@ public class MachineFootTests
         return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
     }
 
+    /// <summary>The lamps, hung from the ceiling by their plug at the top: nothing of theirs stands on the floor.</summary>
+    private static readonly string[] Hung = ["arcLamp", "emergencyLamp", "lamp"];
+
     [Fact]
-    public void EveryMachineStandsAsLowAsItsPixelPicture()
+    public void EveryMachineStandsOnItsPicturesFoot()
     {
         var floating = new List<string>();
-        foreach (string ink in Directory.GetFiles(Path.Combine(Art, "hd"), "machine_*.png"))
+        foreach (var m in Stillwake.Content.Machines.All.Where(m => !Hung.Contains(m.Kind)))
         {
-            string pixels = Path.Combine(Art, Path.GetFileName(ink));
-            if (!File.Exists(pixels)) continue;
-            double over = RowsUnderFoot(ink) / (double)Scale - RowsUnderFoot(pixels);
-            if (over > Slack) floating.Add($"{Path.GetFileNameWithoutExtension(ink)} {over:0.##}");
+            double over = RowsUnderFoot(Png.Of($"machine_{m.Kind}")) / (double)Scale;
+            if (over > Slack) floating.Add($"{m.Kind} {over:0.##}");
         }
         Assert.True(floating.Count == 0, "Ending above the floor: " + string.Join(", ", floating));
     }

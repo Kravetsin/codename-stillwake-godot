@@ -1,16 +1,51 @@
+using Stillwake.Game.Render;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Pictures in <c>game/art</c> read straight from their files, as the tools write them.</summary>
+/// <summary>Pictures in <c>game/art/hd</c> read straight from their files, as the tools write them, and brought to the world's pixels as the game brings them.</summary>
 internal static class Png
 {
+    /// <summary>How many pixels of a hi-res picture stand for one of the world's (<c>HiRes.Scale</c>, which needs Godot).</summary>
+    public const int Scale = 4;
+
+    /// <summary>The hi-res pictures' folder.</summary>
+    public static readonly string Hd = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "hd"));
+
+    /// <summary>The file of the hi-res picture <paramref name="name"/> (<c>items/arcLamp</c>, or a <c>res://art/…png</c> path).</summary>
+    public static string Of(string name) =>
+        Path.Combine(Hd, (name.StartsWith("res://art/", StringComparison.Ordinal) ? name["res://art/".Length..^".png".Length] : name) + ".png");
+
+    /// <summary>Whether <paramref name="name"/> has a hi-res picture.</summary>
+    public static bool Has(string name) => File.Exists(Of(name));
+
     /// <summary>A PNG's width and height, from its header.</summary>
     public static (int W, int H) Size(string png)
     {
         Assert.True(File.Exists(png), png);
         var head = File.ReadAllBytes(png);
         return (head[16] << 24 | head[17] << 16 | head[18] << 8 | head[19], head[20] << 24 | head[21] << 16 | head[22] << 8 | head[23]);
+    }
+
+    /// <summary>The size of picture <paramref name="name"/> in the world's pixels: its hi-res one's over <see cref="Scale"/>.</summary>
+    public static (int W, int H) SizeOf(string name)
+    {
+        var (w, h) = Size(Of(name));
+        return (w / Scale, h / Scale);
+    }
+
+    /// <summary>
+    /// Picture <paramref name="name"/> at the world's pixels as the game reads it for a shape, or <paramref name="soft"/> for a glow's
+    /// weight (<see cref="Reduce.Pixels"/>): each pixel's ARGB.
+    /// </summary>
+    public static (int W, int H, uint[] Argb) Logical(string name, bool soft = false)
+    {
+        var (w, h, rgba) = Pixels(Of(name));
+        var reduced = Reduce.Pixels(rgba, w, h, Scale, soft);
+        var argb = new uint[reduced.Length / 4];
+        for (int i = 0; i < argb.Length; i++)
+            argb[i] = (uint)reduced[i * 4 + 3] << 24 | (uint)reduced[i * 4] << 16 | (uint)reduced[i * 4 + 1] << 8 | reduced[i * 4 + 2];
+        return (w / Scale, h / Scale, argb);
     }
 
     /// <summary>An RGBA, 8-bit, unfiltered or filtered PNG's pixels.</summary>

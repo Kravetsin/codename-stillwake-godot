@@ -112,11 +112,8 @@ public class ToolIconTests
         });
 
     [Fact]
-    public void OnlyAToolHasNoIconDrawn()
-    {
-        string items = System.IO.Path.Combine(System.AppContext.BaseDirectory, "..", "..", "..", "..", "game", "art", "items");
-        Assert.All(Spec.Items.All, i => Assert.Equal(HeldLook.Of(i.Id) == null, System.IO.File.Exists(System.IO.Path.Combine(items, $"{i.Id}.png"))));
-    }
+    public void OnlyAToolHasNoIconDrawn() =>
+        Assert.All(Spec.Items.All, i => Assert.Equal(HeldLook.Of(i.Id) == null, Png.Has($"items/{i.Id}")));
 
     private static System.Func<int, int, (int R, int G, int B, int A)> Baked(Picture picture, int side)
     {

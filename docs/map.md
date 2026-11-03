@@ -59,10 +59,10 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - **Content by id**: `grep -rn '"<id>"' sim/Content`. Systems ask a machine's `MachineTrait` (0113) or a structure's `Trait` (0112), never its kind. Items `Items.cs`, machines `Machines.cs`, materials `Materials.cs`,
   creatures `Creatures.cs`, planet types `PlanetTypes.cs`, builds `Builds.cs`, recipes `Crafts.cs`, stations `Stations.cs`.
   ASCII map characters: `Legend.cs`. A content file is named after its module or catalogue.
-- **Art**: `game/art/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png` (none for a tool, 2026-10-27-tool-icons),
+- **Art**: `game/art/hd/machine_<kind>.png`, `<kind>_work_<n>.png` (a station at work), `items/<itemId>.png` (none for a tool, 2026-10-27-tool-icons),
   `debris/<look>_<nn>.png`, `creatures/<design>/<part>.png`, `planet/`, `caves/`, `homes/<piece>_<n>.png`;
-  `_glow`/`_lit` suffixes for light. Drawn from `art/hd/<name>.png` at four times the size (`PixelArt.Picture(name)`), and
-  reduced to the world's pixels for a size or shape (`HiRes.Logical`); the pixel picture beside it is read only by the export and tests, till [it goes](plans/anime-art.md).
+  `_glow`/`_lit` suffixes for light. Drawn at four times the world's pixels (`PixelArt.Picture(name)`), and
+  reduced to them for a size or shape (`HiRes.Logical`); the only pictures (2026-11-03-pixel-art-removed).
 - **i18n** (core `game/i18n/logic/En.cs`; a feature's strings are in its `logic/<Name>.En.cs`, Russian in `.Ru.cs`): `item.<itemId>` (+ `.kind`, `.key`, `.hint`), `tool.<build>` (+ `.about`),
   `material.<id>`, refusals `<moduleId>.<why>`, UI by area (`menu.`, `use.`, `handbook.`, `build.`). Read with `T(key)`.
 - **Tests**: `sim/Tests/<Module>Tests.cs` or `<Rule>Tests.cs`, helpers `<Module>Testing.cs`; client `game.tests/<Class>Tests.cs`
