@@ -97,7 +97,7 @@ public partial class TabletEdge : CanvasLayer
 
     public override void _ExitTree() => _tips.Show(null);
 
-    /// <summary>The credits on a dark display over the art's charge: the coin and the number, read on a timer.</summary>
+    /// <summary>The credits on a dark display over the art's charge: the coin and the number, read on a timer, counted to and flared (<see cref="CountFlare"/>).</summary>
     private sealed partial class CreditDisplay : Control
     {
         private const double ReadEvery = 0.25;
@@ -105,6 +105,7 @@ public partial class TabletEdge : CanvasLayer
         private static readonly Texture2D Coin = Signs.Credit();
         private readonly Func<int?> _credits;
         private int? _shown;
+        private CountFlare _flare = new();
         private double _since = ReadEvery;
 
         public CreditDisplay(Func<int?> credits)
@@ -116,10 +117,15 @@ public partial class TabletEdge : CanvasLayer
 
         public override void _Process(double delta)
         {
+            _flare.Step(delta);
+            if (_flare.Heat > 0 || _flare.Shown != _shown) QueueRedraw();
             _since += delta;
             if (_since < ReadEvery) return;
             _since = 0;
             int? now = _credits();
+            // With no world the next one starts afresh, shown at once.
+            if (now is { } credits) _flare.Read(credits);
+            else _flare = new();
             if (now == _shown) return;
             _shown = now;
             QueueRedraw();
@@ -129,12 +135,11 @@ public partial class TabletEdge : CanvasLayer
         {
             DrawRect(new Rect2(Vector2.Zero, Size), Rim);
             DrawRect(new Rect2(Vector2.One, Size - 2 * Vector2.One), Glass);
-            if (_shown is not { } credits) return;
-            const int size = 11, coin = 9;
-            string amount = credits.ToString();
-            var font = Style.Clear;
-            float wide = font.GetStringSize(amount, HorizontalAlignment.Left, -1, size).X, right = Size.X - 3;
-            DrawString(font, new Vector2(right - wide, Size.Y / 2 + size * 0.36f), amount, HorizontalAlignment.Left, -1, size, Gold);
+            if (_shown == null) return;
+            const int size = 11, coin = 12;
+            float right = Size.X - 3;
+            float wide = FlareText.DrawRight(this, Style.Clear, size, _flare.Shown.ToString(), right, Size.Y / 2 + size * 0.36f, Gold,
+                _flare.Up ? FlareText.Rise : FlareText.Fall, _flare.HeatOf, _flare.Up);
             DrawTextureRect(Coin, new Rect2(right - wide - 2 - coin, (Size.Y - coin) / 2, coin, coin), false);
         }
     }

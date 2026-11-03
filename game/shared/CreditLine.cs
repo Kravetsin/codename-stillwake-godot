@@ -10,7 +10,7 @@ public partial class CreditLine : HBoxContainer
     private readonly TextureRect _coin;
     private int? _shown;
 
-    /// <param name="size">The number's font size; the coin is drawn a little larger.</param>
+    /// <param name="size">The number's font size; the coin is drawn larger (<see cref="CoinOf"/>).</param>
     public CreditLine(int size)
     {
         MouseFilter = MouseFilterEnum.Ignore;
@@ -20,11 +20,14 @@ public partial class CreditLine : HBoxContainer
             Texture = Signs.Credit(),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-            CustomMinimumSize = new Vector2(size + 4, size + 4),
+            CustomMinimumSize = new Vector2(CoinOf(size), CoinOf(size)),
             MouseFilter = MouseFilterEnum.Ignore,
         });
         AddChild(_amount = new Label { LabelSettings = new LabelSettings { Font = Style.Clear, FontSize = size, FontColor = new Color("f0c050") }, MouseFilter = MouseFilterEnum.Ignore });
     }
+
+    /// <summary>The coin's side beside a number of <paramref name="size"/>: the upright chip reads only this large (credit-counter).</summary>
+    public static int CoinOf(int size) => size + 7;
 
     /// <summary>Shows <paramref name="amount"/>.</summary>
     public void Set(int amount)
