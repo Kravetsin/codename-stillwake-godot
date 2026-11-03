@@ -29,31 +29,32 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 
 ## What it draws
 
-| Subject   | Pictures                                                                                                  |
-| --------- | --------------------------------------------------------------------------------------------------------- |
-| `hero`    | `hero_<part>`: the suit's parts, helmet shell and visor apart; `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, and `hero_tracker_light`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
+| Subject | Pictures |
+| --- | --- |
+| `hero` | `hero_<part>`: the suit's parts, helmet shell and visor apart, and the heavy helmet's (`hero_heavyHelmet_shell`, `_visor`, its card `items/heavyHelmet`); `hero_outfit_<n>_<part>`, each set of clothes, with `_skin` under what shows skin; every hair, face and beard, tinted by `LookTint`; cape, jetpack, lamp, sheet, held tools; `hero_tracker`, and `hero_tracker_light`: the player's colour, white, tinted by Modulate. Top-lit, so facing changes nothing |
 | `machines` | `machine_<kind>` and their working overlays, fire, tank and cistern fill, the electrolyser's bubbles; a machine's `fitting` stands on its port in `Machines.Ports`; exposes `AnimeKit` |
 | `zfittings` | `pipe_run` (repeated along a span), `pipe_<arms>`, valves, sockets, hatches, platforms, ladder, floor, drone, lamps, charge bars, held axe and drill; sorts after `machines` to read `AnimeKit` |
-| `items`   | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
-| `room`    | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
-| `wreck`   | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |
-| `piles`   | `machine_pile*`: the hold's heaps                                                                         |
-| `smelter` | `machine_smelter`, `smelter_work_*`                                                                       |
+| `items` | `items/<id>`: every item; `_empty` states are the full picture's calls with only the changing part dark; `tool_screwdriver` |
+| `room` | `wall_`, `wall-edge_` and `back_` of scrap (rusted by `wreck`'s `AnimeSheetRust`), cast scrap (clean) and iron, `door_*` |
+| `wreck` | `wreck_dress`, `wreck_tears` (a mask, no finish), from `sim/Content/Wreck.cs`; its rust grows from `wall_scrap`'s seams |
+| `piles` | `machine_pile*`: the hold's heaps |
+| `smelter` | `machine_smelter`, `smelter_work_*` |
 | `shipwalls`, `grounds`, `doors` | `wall_`, `back_`, `wall-edge_` of glass, mica, hide and of alloy, bedrock, lava, plaster, with `detail_` and `top_` under the atlas's names; `door_*_0` and the links `room` leaves |
-| `caves`   | stone, ice and copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
+| `caves` | stone, ice and copper veins and soil (`wall_`, `back_`, `wall-edge_`, `top_`, `detail_`), `caves/moss_*`, `caves/mossGreen_*`, `caves/crystalIce*` |
 | `creatures` | `creatures/<id>/<part>`, and `Content/logic/CreatureInk.cs`, their numbers: the picked designs of the rigged creatures |
 | `tick`, `warden` | `creatures/inkTick/*`, `creatures/inkIstukan/*`, and `Content/logic/TickInk.cs`, `IstukanInk.cs`: the picked guards, posed by `TickRig` and `IstukanRig` |
-| `backdrop` | `planet/far`, `planet/ridge`, `planet/hills` and their far acacias, at 2x: soft and always far            |
-| `tufts`   | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn`         |
-| `flora`   | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
-| `shrubs`  | `planet/bush_*`, `rock_*`, `bell*_*` and their `_glow`: dead thorn, boulders of the ground's stone, hooded bells; light only in `_glow` |
-| `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun`                                              |
+| `backdrop` | `planet/far`, `planet/ridge`, `planet/hills` and their far acacias, at 2x: soft and always far |
+| `tufts` | `planet/tuft_*`, `tuftReed_*`, `tuftFungus_*`: one plant of three to a tuft, by `FloraLooks.Drawn` |
+| `flora` | `planet/acacia_*` and their `_glow`: the pods stand where the logical glow picture has them, for the game lights from there |
+| `shrubs` | `planet/bush_*`, `rock_*`, `bell*_*` and their `_glow`: dead thorn, boulders of the ground's stone, hooded bells; light only in `_glow` |
+| `heavens` | `planet/sky`, `clouds` (far layers, any size), `giant`, `sun` |
 | `cavelife` | `caves/` crystals, dripstone, fungi, threads, roots, heat cracks, geodes, fossils, the spire's cache and lamp, with their `_glow`: dim, lit by the glow |
 | `homes`, `homeskeep`, `homeslights`, `homeswall`, `homesruin` | `homes/*` and their `_dark`, `_fed`, `_glow`; `ruins/spireLens_*`. `homes.js` exposes `HomeKit`; the others sort after it |
-| `debris`  | `debris/*`: rocks lit hard from one side, crates, hull plates, pods, scrap, derelicts; no lettering, for they turn every way |
-| `bulb`    | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb over the hero, straight ink on a canvas, as picked, with no finish |
-| `keylens` | `key_lens_dark`, `key_lens_lit`, each with `_down`: the tablet key's cap, 22 by 22 at the screen's own pixels, as picked, with no finish |
-| `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`: what the market sells that is no item |
+| `debris` | `debris/*`: rocks lit hard from one side, crates, hull plates, pods, scrap, derelicts; no lettering, for they turn every way |
+| `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb over the hero, straight ink on a canvas, as picked, with no finish |
+| `keylens` | `key_lens_dark`, `key_lens_lit`, each with `_down`: the tablet key's cap, 22 by 22 at the screen's pixels, no finish |
+| `signs`, `credit`, `gauge` | `sign_*`: a screen's bolt, red bolt, plug, wrench; `credit`: the chip; `gauge_lamp[Wide]_<shape>_<tone>`: the air lamps |
+| `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames are repeating runs, so a 9-slice stretch has no seam |
 
 ## Run

@@ -52,6 +52,7 @@ public static class Research
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
         // Open from the start, its later rows by what is sold (docs/plans/board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
+        // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet).
         new(Market,
             new TechRing(null, [],
                 Up("bag1"),
@@ -71,11 +72,13 @@ public static class Research
             new("order3", [("glass", 20), ("silicon", 20), ("frame", 10)],
                 Up("bag7"),
                 Up("bag8"),
-                Up("tradeSlots5")),
+                Up("tradeSlots5"),
+                ("heavyHelmet", 4)),
             new("order4", [("circuit", 20)],
                 ("solarPanel", 5),
                 Up("bag9"),
-                Up("tradeSlots6")),
+                Up("tradeSlots6"),
+                Up("canister1")),
             new("order5", [("copper", 20), ("mica", 10), ("hide", 5)],
                 Up("bag10"),
                 Up("bag11"),

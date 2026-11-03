@@ -74,7 +74,9 @@ public partial class Figure : Node2D
     private const float FaceLight = 0.6f;
     private static readonly Material Added = new CanvasItemMaterial { BlendMode = CanvasItemMaterial.BlendModeEnum.Add, LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private Look _look = Look.Zero;
-    private bool _helmetWorn, _bodyWorn, _lampWorn;
+    private bool _bodyWorn, _lampWorn;
+    /// <summary>The helmet worn, its item; null bare.</summary>
+    private string? _helmetWorn;
 
     /// <summary>The visor's middle on the helmet, from the neck, facing +x: where air breathed in is drawn to.</summary>
     private static readonly Vector2 VisorOn = new(4, -5);
@@ -365,7 +367,7 @@ public partial class Figure : Node2D
         set
         {
             _lampWorn = value;
-            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn;
+            _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
         }
     }
 
@@ -560,11 +562,11 @@ public partial class Figure : Node2D
     }
 
     /// <summary>
-    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> and
-    /// <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
+    /// The figure in <paramref name="colour"/>, 0xRRGGBB, the player's, wearing a suit's <paramref name="helmet"/> (its item, null for
+    /// none) and <paramref name="body"/> or not (2026-10-27-suits-are-worn), its person in <paramref name="look"/> (look 0 without one,
     /// 2026-10-28-looks-are-printed): its pictures recoloured, when any of it changes.
     /// </summary>
-    public void Wear(int colour, bool helmet = true, bool body = true, Look? look = null)
+    public void Wear(int colour, string? helmet = "helmet", bool body = true, Look? look = null)
     {
         look ??= Look.Zero;
         if (_colour == colour && _helmetWorn == helmet && _bodyWorn == body && _look == look) return;
@@ -578,9 +580,11 @@ public partial class Figure : Node2D
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
         _pack.Visible = body;
-        _shell.Visible = _visor.Visible = helmet;
-        _hair.Visible = !helmet;
-        _beard.Visible = !helmet && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
+        _shell.Visible = _visor.Visible = helmet != null;
+        _headLamp.Offset = HeadLampArt.OnOf(helmet) - Joints["helmet"];
+        _lens.Position = _headLamp.Offset + HeadLampArt.Lens;
+        _hair.Visible = helmet == null;
+        _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
     }
@@ -592,6 +596,8 @@ public partial class Figure : Node2D
         "face" => $"face_{HeroLooks.Wrap(_look.Face, HeroLooks.Faces)}",
         "hair" => $"hair_{HeroLooks.Wrap(_look.Hair, HeroLooks.HairStyles)}",
         "beard" => $"beard_{Math.Max(HeroLooks.Wrap(_look.Beard, HeroLooks.Beards + 1) - 1, 0)}",
+        // A later helmet's own pictures (2026-11-03-the-heavy-helmet); the basic one's keep their first names.
+        "shell" or "visor" when _helmetWorn is { } worn && worn != Stillwake.Content.Helmet.Basic => $"{worn}_{part}",
         "shell" => "helmet_shell",
         _ => part,
     };

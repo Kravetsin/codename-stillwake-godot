@@ -35,6 +35,9 @@ public static class Crew
     /// </summary>
     public const int CanisterRefill = 20;
 
+    /// <summary>What each canister upgrade bought (<c>Upgrades.Canister</c>) adds to <see cref="CanisterRefill"/>: one makes a canister 40 (2026-11-03-the-heavy-helmet).</summary>
+    public const int CanisterUp = 20;
+
     /// <summary>
     /// The fewest ticks between two of a client's reports of its hero's cell while the sim's is not the
     /// body's: once a second, so the drain past the field follows a hero flying out (0050).

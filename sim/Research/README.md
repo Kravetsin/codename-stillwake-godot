@@ -30,8 +30,9 @@ Knowing blueprints and crafts ([board](../../docs/plans/board.md), [tablet-tree]
   the derivation phase, checks when a count or that surface's grid has moved, and on a load's first tick. What only the market
   opens (`Content.Research.Market`) and upgrades stay outside it. Known stays known, its machine gone or not.
 - **A node is reached** when everything it `Needs` is done: a block needs its ring's gate, a gate the gate before it. A block is done when everything it opens is known.
-- **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits. An upgrade
-  (`Content.Upgrades`) is bought and granted the same way, and `Items` reads what it opens.
+- **A block is bought** with `BuyBlock` once reached, from anywhere. `Prices.Of` leaves the ship's credits: what it opens
+  is worth (a blueprint its cost, a craft its item, heavy-helmet) times its `Times`, to two figures. An upgrade
+  (`Content.Upgrades`) is bought and granted the same way, and `Items` and `Crew` read what it opens.
 
 ## Refusals
 

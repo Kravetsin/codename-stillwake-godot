@@ -57,6 +57,21 @@ public class ResearchTests
         Assert.True(w.M.Research.Done(bag));
     }
 
+    /// <summary>The user's prices (2026-11-03-the-heavy-helmet): a craft's block priced by its worth, as a blueprint's.</summary>
+    [Fact]
+    public void TheHeavyHelmetCostsFiveThousandAndTheCanistersUpgradeTenAndBoughtTheHelmetIsCraftable()
+    {
+        Assert.Equal(5000, Prices.Of(Node("heavyHelmet")));
+        Assert.Equal(10000, Prices.Of(Node("canister1")));
+        var w = SetUp(credits: 100_000);
+        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= Node("heavyHelmet").Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
+        Assert.False(w.M.Research.Knows("heavyHelmet"));
+        w.Do(new BuyBlock("heavyHelmet")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Knows("heavyHelmet"));
+        Assert.Equal(100_000 - 5000, w.M.Research.Credits);
+    }
+
     [Fact]
     public void WhatABlockOpensIsPlannedOnceBought()
     {

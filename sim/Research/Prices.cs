@@ -12,14 +12,12 @@ public static class Prices
     /// <summary>What block <paramref name="node"/> costs in credits; 0 for a gate.</summary>
     public static int Of(TechNode node) => ByNode.GetValueOrDefault(node.Id);
 
-    /// <summary>
-    /// What the blueprint, upgrade or craft <paramref name="id"/> is worth: a blueprint what it is built of, an upgrade its own
-    /// price, a craft its item's worth (the power driver, power-driver).
-    /// </summary>
+    /// <summary>What the blueprint, craft or upgrade <paramref name="id"/> is worth: a blueprint what it is built of, a craft what it makes, an upgrade its own price.</summary>
     public static int WorthOf(string id)
     {
         if (Upgrades.Of(id) is { } upgrade) return upgrade.Credits;
-        return Prints.TryGetValue(id, out var print) ? print.Cost.Sum(c => c.Count * Market.WorthOf(c.Item)) : Market.WorthOf(id);
+        if (Prints.TryGetValue(id, out var print)) return print.Cost.Sum(c => c.Count * Market.WorthOf(c.Item));
+        return Market.WorthOf(id);
     }
 
     private static int Worked(TechNode node) => Rounded(node.Times * WorthOf(node.Id));

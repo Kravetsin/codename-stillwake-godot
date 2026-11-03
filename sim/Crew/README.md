@@ -13,7 +13,7 @@ Heroes inside the sim: where each is, as its client says, and how it breathes: t
 hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 
 - **Depends on:** `Atmosphere` (`Breathe`, `AiredAt`); `Grid` (`Width`, `Height`, `Zone`, `WallAt`); `Items` (`Equipped`, `WornIn`,
-  `ShortOf`, `Creative`; ops `Take`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`).
+  `ShortOf`, `Creative`; ops `Take`, `StopRunning`, `LeaveBody`, `Kit`); `Players` (`Worn`, `IPlayersOps`); `Knowledge` (`Granted`).
 - **State** (`CrewState`, all saved): `Spawn` — the first lifepod's hatch (`Content.Crew.PodHatch`), else the
   first `S`, else cell 0; `Pod` — that pod's top-left, or null (`Fixed`); `Clock`; `Heroes` — by peer id, in id
   order (`Hero`): cell, air, ticks out, exerting, thrusting, thrust ticks toward the next unit, the cape's `Spared`.
@@ -44,21 +44,20 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
   the spawn. A hero waking off the ship wakes aboard, its body left behind.
 - **Exertion** (no ADR): `Exert(On)`, sent on a change of running by speed (not for a swim, 0047). Exerting, a
   breath costs `Crew.Exerted` units, room air or suit alike. Passing out ends it.
-- **The jetpack** (0047): `Thrust(On)`
-  is sent while the client's thrust differs from the sim's. Each tick, before the breath, a conscious hero
-  thrusting with a jetpack `Equipped` counts a tick; every `Jetpack.TicksPerUnit` its suit pays a unit, never
-  below nothing, the remainder kept. Thrust stops when the jetpack is off, on a planet (nothing floats, 0076)
-  or on passing out, a thrust landing on a hero out cleared that tick. The flight is the client's.
+- **The jetpack** (0047): `Thrust(On)` is sent while the client's thrust differs from the sim's. Each tick, before
+  the breath, a conscious hero thrusting with a jetpack `Equipped` counts a tick; every `Jetpack.TicksPerUnit` its
+  suit pays a unit, never below nothing. Thrust stops with the jetpack off, on a planet (0076) or passed out, a
+  thrust landing on a hero out cleared that tick. The flight is the client's.
 - **Electric tools** (0055): `Items` owns runs; crew stops one (`StopRunning`) every tick a hero is out.
-- **A canister** (no ADR): `Refill` takes one (`Take`; none in creative) and adds `Crew.CanisterRefill` to the
-  air, up to capacity.
+- **A canister** (heavy-helmet): `Refill` takes one (`Take`; none in creative) and adds `CanisterRefill` to the
+  air, up to capacity: `Crew.CanisterRefill`, `Crew.CanisterUp` more per canister upgrade.
 - **Passing out is death** (0061): a suit at zero passes the
   hero out for `Crew.PassOut` ticks, then it is made again at the spawn, full, in what it wore. That tick crew calls
   `LeaveBody(peer, cell)` at the reported cell, or the spawn if off the grid; `Items` leaves all but gear there.
   The client moves its hero there when it wakes.
 - **The cold past the field** (0050): the field is the
   build zone grown by `Field.Margin`. `EdgeCost(cell)` is 0 inside, past it the square of the depth by the deeper
-  axis toward `Field.EdgeCost` at the grid's edge and off it (rounded up; its summary has the formula). Each breath, after breath
+  axis toward `Field.EdgeCost` at the grid's edge, `Field.OffGrid` off it (rounded up). Each breath, after breath
   and refill, the suit alone pays it for the reported cell, never below nothing. No zone (a planet, 0076): no cold.
   With no body, where `AiredAt` is false, it pays `Crew.BareCold` more, on thin air on the shortfall's beat; `Cold(peer)` says it.
 - **Lava burns** (0087): `Burns(cell)`: lava
@@ -74,7 +73,7 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 
 ## API
 
-- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `Cold(peer)`, `Warmth(peer)` (the frost);
+- **Queries** (`ICrewQueries`): `Spawn`; `ByPod(cell)`; `EdgeCost(cell)`; `CapacityOf(peer)`; `CanisterRefill`; `Cold(peer)`, `Warmth(peer)` (the frost);
   `HeroOf(id)` — `Hero` (`Id`, `Cell`, `Air`, `Out`) or null; `Heroes` — live, read-only, in id order. On the
   module: `Burns(cell)`; `RefillProblem(peer)`, so the client sends no `Refill` the sim would refuse.
 - **Commands:** `Enter(Cell)`, `ChooseLook(Look)`, never refused; `PickColour(Colour)` —
@@ -93,7 +92,7 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 ## Deliberately not handled
 
 - A `Move` or `Drop` landing while out finds the slots emptied: it moves what is left or is refused.
-- The body falls at the reported cell; the client moves its figure there as it passes out.
+- The body falls at the reported cell.
 - The sim trusts the client's cell (0002): cold and lava are paid up to a second late, a dive out and back free.
 - Peer ids last a session but are saved: after a load a hero belongs to whoever connects in its slot. Heroes of
   peers who left before a save stay, with their colours.

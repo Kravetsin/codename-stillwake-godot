@@ -1,6 +1,7 @@
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Players;
 
 namespace Stillwake.Sim.Crew;
@@ -62,6 +63,8 @@ public interface ICrewQueries
     /// (2026-10-27-suits-are-worn). Its air is cut to it each tick.
     /// </summary>
     int CapacityOf(int peer);
+    /// <summary>What a canister breathed gives any hero's air: <c>Crew.CanisterRefill</c>, and <c>Crew.CanisterUp</c> more for each canister upgrade bought.</summary>
+    int CanisterRefill { get; }
     /// <summary>
     /// What the cold takes from hero <paramref name="peer"/>'s air a breath where it was last reported: the edge's cold, and
     /// with no body worn where the air is not aired <c>Crew.BareCold</c> (on thin air paid on fewer breaths than this says); 0 with no
@@ -106,14 +109,17 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     private readonly IItemsOps _itemsOps;
     private readonly IPlayersQueries _players;
     private readonly IPlayersOps _playersOps;
+    private readonly IKnowledgeQueries _knowledge;
 
     private static readonly IReadOnlyList<(string Item, int Count)> Canister = [(Content.Crew.Canister, 1)];
 
     public CrewModule(
-        IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps)
+        IAtmosphereQueries air, IAtmosphereOps atmosphere, IGridQueries grid, IItemsQueries items, IItemsOps itemsOps, IPlayersQueries players, IPlayersOps playersOps,
+        IKnowledgeQueries knowledge)
     {
         _players = players;
         _playersOps = playersOps;
+        _knowledge = knowledge;
         _air = air;
         _grid = grid;
         _items = items;
@@ -153,7 +159,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
         {
             _itemsOps.Take(c.From, Canister);
             var hero = HeroOf(c.From)!;
-            hero.Air = Math.Min(CapacityOf(c.From), hero.Air + Content.Crew.CanisterRefill);
+            hero.Air = Math.Min(CapacityOf(c.From), hero.Air + CanisterRefill);
         });
         // After atmosphere in the simulation phase, so a breath reads this tick's air.
         System(Phase.Simulation, () =>
@@ -313,7 +319,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public int EdgeCost(int cell)
     {
         int width = _grid.Width, height = _grid.Height;
-        if (cell < 0 || cell >= width * height) return Content.Field.EdgeCost;
+        if (cell < 0 || cell >= width * height) return Content.Field.OffGrid;
         var zone = _grid.Zone;
         int margin = Content.Field.Margin;
         int left = zone.Left - margin, right = zone.Right + margin, top = zone.Top - margin, bottom = zone.Bottom + margin;
@@ -372,6 +378,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public int CapacityOf(int peer) =>
         _items.WornIn(peer, Content.Helmet.Slot) is { } helmet ? Content.Items.Get(helmet).Tank : Content.Crew.Lungs;
+
+    public int CanisterRefill =>
+        Content.Crew.CanisterRefill + Content.Crew.CanisterUp * Content.Upgrades.Added(Content.Upgrades.Canister, _knowledge.Granted);
 
     public int Cold(int peer) => HeroOf(peer) is { } hero ? ColdAt(peer, hero.Cell, bare: true) : 0;
 
