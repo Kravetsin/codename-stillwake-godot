@@ -29,18 +29,18 @@ public static class WristLook
     public const int SuitMeterLeft = 30, MeterRight = 12;
 
     /// <summary>
-    /// A drop between two reads this big, of full, is a hit: the lost part flashes, then drains. Just over a running
-    /// breath (2 of 45 suit units, 4.4 %), so breathing never flashes.
+    /// A drop between two reads this big, of full, is a hit: its lost part flashes too. Just over a running breath (2 of
+    /// 45 suit units, 4.4 %), so breathing never flashes; a big refill eases in.
     /// </summary>
     public const double BigDrop = 0.05;
 
-    /// <summary>How long the lost part stays whole after a hit before it drains, and how long its flash fades.</summary>
-    public const double TrailHoldS = 0.15, FlashS = 0.3;
+    /// <summary>How long a lost part stays whole before it drains, and how long a hit's flash fades.</summary>
+    public const double TrailHoldS = 0.6, FlashS = 0.3;
 
     /// <summary>How fast the lost part drains: this much of full a second, and this much more for each of full still lost.</summary>
-    public const double TrailDrain = 0.5, TrailDrainPerGap = 5;
+    public const double TrailDrain = 0.2, TrailDrainPerGap = 4;
 
-    /// <summary>A small change slides at an even pace over this long: a breath's second, so a steady drain moves steadily.</summary>
+    /// <summary>A small rise slides at an even pace over this long, so a slow refill moves steadily.</summary>
     public const double SlideS = 1.0;
 
     /// <summary>A big refill eases out at this rate a second, never slower than <see cref="RiseFloor"/> of full a second.</summary>

@@ -10,7 +10,7 @@ namespace Stillwake.Game.Shared;
 /// A gauge in its tab under the wrist computer's cuff (0074, 0081): the screen, the game's picture of what it measures,
 /// and a row of hand-cut lamps (the ink-signs ADR) lit as far as <see cref="Motion"/> shows, the lamp at the edge lit pixel
 /// by pixel, so the gauge flows rather than ticks, a bright line leading it while it moves. Low, the lamps turn red and
-/// pulse, the last one blinking faster; after a hit the lost part flashes pale and drains; refilling, light runs along the
+/// pulse, the last one blinking faster; what is lost stays lit white a moment, then drains; refilling, light runs along the
 /// lit lamps and motes rise off them; a canister breathed surges (<see cref="Surge"/>), air breathed again sends a wave
 /// across (<see cref="Wave"/>). The crew's suit gauge; it reads the sim on its own timer and hands the share here.
 /// </summary>
@@ -81,7 +81,7 @@ public partial class WristGauge : Control
     /// <summary>animate-pulse: down to half and back every two seconds, as the gauge pulsed before.</summary>
     public static float Pulse(double clock) => 0.75f + 0.25f * Mathf.Cos((float)(clock * Math.PI));
 
-    /// <summary>Lamp <paramref name="shape"/> in <paramref name="tone"/>: dark, sky, red or pale.</summary>
+    /// <summary>Lamp <paramref name="shape"/> in <paramref name="tone"/>: dark, sky, red, pale or white.</summary>
     private Texture2D Lamp(int shape, string tone) => PixelArt.Picture($"{_lamps}_{shape}_{tone}");
 
     /// <summary>
@@ -158,8 +158,8 @@ public partial class WristGauge : Control
                 DrawLamp(pale, cell, x0 - 2, all, a);
             }
             if (lost <= share) continue;
-            // The lost part after a hit, from the fill to the trail's edge: pale, brighter while it flashes.
-            DrawLamp(pale, cell, litTo, lost >= 1 ? all : x0 + cw * lost, m.Flash > 0 ? 0.5f + 0.5f * (float)m.Flash : 0.5f);
+            // The part just lost, from the fill to the trail's edge: white, whole while a hit flashes.
+            DrawLamp(Lamp(shape, "white"), cell, litTo, lost >= 1 ? all : x0 + cw * lost, (0.85f + 0.15f * (float)m.Flash) * Bright);
         }
         if (_cells.Count == 0) return;
         int meter = _cells[^1].X + _cells[^1].Width;

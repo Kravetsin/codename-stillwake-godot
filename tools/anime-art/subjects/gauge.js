@@ -1,6 +1,6 @@
-// The suit gauge's lamps, as picked (the ink-signs ADR): hand-cut lamps with an ink hairline and light in hard steps, five shapes in four
-// tones (unlit, the air's sky, danger's red, pale for the light running over them), 17 by 10 for normal slots and 26 by 10 for large, a
-// pixel of margin for the line. Laid one a cell by WristGauge, which cuts the lit one at the fill.
+// The suit gauge's lamps, as picked (the ink-signs ADR): hand-cut lamps with an ink hairline and light in hard steps, five shapes in five
+// tones (unlit, the air's sky, danger's red, pale for the light running over them, white for what was just lost), 17 by 10 for normal
+// slots and 26 by 10 for large, a pixel of margin for the line. Laid one a cell by WristGauge, which cuts the lit one at the fill.
 (function () {
 'use strict';
 const { poly, rng } = Anime;
@@ -16,6 +16,7 @@ const TONES = {
   sky: tone('#38bdf8', '#c4f0ff', '#1d8cc2', '#146893'),
   red: tone('#ef4444', '#ffb8b0', '#b42828', '#841b20'),
   pale: tone('#dcf5ff', '#ffffff', '#b2e2f6', '#8ccbe6'),
+  white: { base: '#f3f6f9', lite: '#ffffff', shade: '#cfd8e0', deep: '#aeb9c4', spec: '#ffffff' },
 };
 
 /** Lamp v's outline, w wide: a slightly leaning, slightly crooked box with one corner cut. */
