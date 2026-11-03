@@ -16,7 +16,8 @@ with this work (see Docs); drones in general: [0062](../decisions/0062-drones-ke
 2. Craft it at the assembler (nozzle 2, tube 2, plate 3, circuit 2) → its card says "No crate with room in reach: it does not fly".
 3. Open a drone bay (E) → four drone slots, then the fuel slot with a faint canister in it.
 4. Put the salvage drone in a drone slot → it sits folded on that slot's pad, eye lit.
-5. Shift-click canisters → they go into the fuel slot; a canister lies in the tilted breech; the slot lamp turns amber; the dial rises.
+5. Shift-click canisters → they go into the fuel slot; a canister lies in the tilted breech; the slot lamp turns amber.
+   The salvage drone charges on its pad like any drone; its pad lamps show the charge.
 6. A scrap chunk drifts into the bay's zone and a served crate inside has an empty slot → at the bay's next look the fuel
    count drops by one, the valve opens and the vane turns. The drone lifts on puffs and passes the shut door (it stays shut).
    Outside, its net is open and a quiet jetpack hiss plays while it is out.
@@ -57,7 +58,8 @@ Terms, as Logistics uses them today:
 - **Across(crate)**: the ticks to cross a crate's footprint, as the charge estimate counts it.
 
 1. **Content** (`sim/Content`):
-   - `Items.cs`: add `new("salvageDrone", 1, Group: ItemGroup.Other)` beside `drone` (:185). It has no `Capacity`: it holds no charge.
+   - `Items.cs`: add `salvageDrone` beside `drone` (:185), with the same stack, group and `Capacity` as the drone. It has
+     a battery like any drone: it charges on its pad and spends charge in flight; the canister's air only drives its nozzles.
    - `Crafts.cs`: add `new("salvageDrone", [("nozzle", 2), ("tube", 2), ("plate", 3), ("circuit", 2)], Ticks: 240)` beside `drone` (:61).
    - `Stations.cs:51`: add it to the assembler row `["battery", "drone", "salvageDrone", "deckDrive"]`.
    - `Market.cs:51`: add it to `Unsold`. Also add it to `ContentTests.Production.cs:433` `Unpriced`.
@@ -72,11 +74,11 @@ Terms, as Logistics uses them today:
      and that item goes nowhere else. Why: `Takes` filters the whole machine, and `Charges` rejects anything without a `Capacity`.
    - The droneBay row (`Machines.cs:205`) becomes `Slots: 5, SlotTakes: (4, "canister")`.
    - `Stacks.Unfit` (`sim/Items/Stacks.cs:302`): the `SlotTakes` check goes first. A wrong item in that slot, or that
-     item in another slot, is refused with `items.notTaken`. After it comes the `Charges` check, which skips the fuel slot
-     and accepts `SalvageDrone`, a constant check rather than an `ItemSpec` flag.
+     item in another slot, is refused with `items.notTaken`. After it comes the `Charges` check (`items.notBattery`),
+     which skips the fuel slot; the salvage drone passes it unchanged, since it has a `Capacity`.
    - `Receiving` (`Deliveries.cs:64`) gives the same answers. The canister goes only to its slot. Everything else goes to
      every slot but that one, so `PutIn` docks a `salvageDrone` and never docks a drone into the fuel slot.
-   - `Power` needs no change: `Short` counts only items with a `Capacity`, so a bay holding only a salvage drone and canisters draws nothing.
+   - `Power` and charging need no change: the bay charges a salvage drone on its pad as it charges a drone, and canisters (no `Capacity`) draw nothing.
 3. **Save format 48:**
    - `World.SaveFormat` 47 → 48 (`sim/Core/Sim.cs:18`).
    - New step in `Migrations.Steps` (`sim/Registry/Migrations.cs`, after the 46→47 step ending at :94): in the ship's
@@ -107,23 +109,25 @@ Terms, as Logistics uses them today:
      - `Load` (`internal List<Stack>`, saved as `"load"`, null while empty, the `NetEntry.Stacks` pattern; public
        `IReadOnlyList<Stack> Loaded` marked `[JsonIgnore]`, as `NetEntry.Items` is, so it is never saved or hashed).
    - The crate it delivers to is kept in the existing `Target`.
-   - Why a new `Air` field, not `Stack.Charge`: Items' invariant says a non-zero `Charge` sits only on items with a
-     `Capacity` (`ChargeTests`), and the salvage drone has none.
+   - Why a new `Air` field, not `Stack.Charge`: the charge is its battery, spent and checked as an ordinary drone's;
+     air is a second, separate supply.
    - Claims are derived by a scan over `State.Drones`, as `Spoken` does. Nothing is stored, so nothing needs rebuilding.
    - `LogisticsModule` constructor adds `IDebrisQueries, IDebrisOps, IRoomsQueries`. Add `../Debris/Debris.csproj` to
      `Logistics.csproj`. `Registry.cs:89` becomes `new LogisticsModule(Grid, Atmosphere, Items, Items, Crafting, Debris, Debris, Rooms)`.
      Debris is registered before Logistics, so a same-tick grab or net catch wins.
 7. **Launch** (new `sim/Logistics/Salvage/Salvage.cs`, a partial of `LogisticsModule`; Phase.Simulation inside today's `Look`):
    - When a bay's look comes, it tries an ordinary launch first, as today. If it launched none, it tries a salvage
-     launch. A salvage launch needs no power: the drone flies on air, not charge.
-     - a docked `salvageDrone` in the first slot holding one;
+     launch. Like an ordinary launch it needs the drone charged to `LaunchAt` and the trip affordable on its charge
+     (`Affords`), not the bay's power: a bay without power still launches a charged drone, it just stops charging.
+     - a docked `salvageDrone` charged to `LaunchAt` in the first slot holding one;
      - a canister in `SlotTakes`;
      - a vacuum flood from the bay;
      - a target (rules below);
      - a served crate in the flood with an empty slot (a cheap stand-in for "room for the load", which is unknown
        before the catch; what does not fit is handled by delivery);
-     - `AffordsAir(TripAir, …)`: `TicksOver(bay, Manhattan bay→target + target→nearest crate + Across(crate) + crate→bay + Spare)`.
-     A target that fails this is skipped, and the next one is tried.
+     - `AffordsAir(TripAir, …)`: `TicksOver(bay, Manhattan bay→target + target→nearest crate + Across(crate) + crate→bay + Spare)`,
+       and the same trip affordable on its charge.
+     A target that fails either is skipped, and the next one is tried.
    - If all hold, it takes one canister with `TakeFrom` (spent), then the drone (`Air = TripAir`, `Leg.Source`, `Piece` or `Floor` set).
    - Targets, all inside `ZoneBox` and in the vacuum flood, not claimed by any drone:
      - a piece whose kind is in `Debris.NetCatches`, with `Reel == null` and `_rooms.RoomAt(middle) == Space`; its cell is `Debris.CellOf(middle)`;
@@ -133,7 +137,8 @@ Terms, as Logistics uses them today:
      before stacks, then the lowest id. Iterate `_debris.Pieces` and `_items.Floor` lists only.
    - Planets fall out of this: no debris zone spawns without `Surfaces.Kind.Debris`, and `Afloat` is false on every planet. With no targets there is no launch.
 8. **Flight** (`Fly`, :97, branches on the drone's kind):
-   - Each tick a salvage drone checks first, as the charge code does: `Air < 1` → `Drop` (:229). Otherwise it pays one `Air` and moves.
+   - Each tick a salvage drone pays charge as an ordinary drone does, and air: it checks first, as the charge code does
+     (`Air < 1` → `Drop`, :229), then pays one `Air` and moves.
    - Every place that lays `Cargo` today also lays `Load`: `GoalOf` (:164, goal gone), the `Arrive` Home case (:204) and `Drop` (:233).
    - At each cell centre:
      - Leg.Source: the goal is the target's cell. A target gone, reeled, out of space or out of the zone sends it to `Next`.
@@ -145,7 +150,7 @@ Terms, as Logistics uses them today:
        on the way: re-pick as above, else lay the load at `d.Cell`.
      - Salvage `Next`: the next target from `d.Cell` by step 7's order whose trip `AffordsAir` over the vacuum flood,
        else Home (`Low` if a target exists but is not affordable).
-   - Turn home: `d.Air < TicksOver(bay, home + Spare)` gives Home `Low`, as charge does.
+   - Turn home: low charge (today's rule) or `d.Air < TicksOver(bay, home + Spare)`, whichever comes first, gives Home `Low`.
    - Docking: as today; air is lost and any load is laid at the bay. A bay gone drops the drone (existing rule).
    - Why: today's `Fly` pays charge, moves only through air, and serves machines only.
 
@@ -156,7 +161,7 @@ Terms, as Logistics uses them today:
    - `Reading.GhostOf` (:65): the `SlotTakes` slot gets a new `SlotMark.Breathes`, a canister ghost.
    - `Lights` (:81): the Docks ghost lights for `drone` or `salvageDrone`; Breathes for `canister`.
    - `Click.Shifted` (`logic/Click.cs:168`): a stack of the `SlotTakes` item goes to that slot.
-   - Tooltip `logistics.fuel`. A salvage drone's slot shows no bar (no `Capacity`).
+   - Tooltip `logistics.fuel`. A salvage drone's slot shows its charge bar, as a drone's does.
 10. **Card line:** `ItemCard.About` (`game/shared/logic/ItemCard.cs`) is set in `ItemCards.Card` (:31) when the table
     has `item.<id>.about`, and `ItemCardView` shows it under the kind on a plain card. Why: plain-item cards show no words today.
 11. **i18n, En and Ru:**
@@ -195,7 +200,8 @@ Terms, as Logistics uses them today:
     - Pictures:
       - `machine_droneBay`, `droneBay_front`;
       - `droneBay_lamps_{0..4,low,off}`;
-      - `droneBay_fuel_*`: off, empty, then a canister in with gauge 1 to 4 × (still, feeding a, feeding b), 14 in all;
+      - `droneBay_fuel_*`: off, empty, a canister in (still, feeding a, feeding b), 5 in all; the art's dial stays on
+        the body with its needle fixed (too small to read, the user's call);
       - `droneBay_beacon_{on,off}`, `droneBay_canister`.
     - It writes `logistics/logic/BayInk.cs`: `Pads` [(-1,1),(19,4),(-1,15),(19,18)], `Feet` 11.4, the lamp, fuel and beacon boxes, and the breech's point, angle and slide-in offset.
     - Add both subjects to the README's table. Run `node tools/anime-art/export.js salvage bay`, then `tools/snap.ps1` to import.
@@ -205,7 +211,6 @@ Terms, as Logistics uses them today:
     - `DrawDocks` (:448) draws a salvage drone `DockFeet − Feet` higher; a new `_fronts` node draws `droneBay_front` over docked drones.
     - `DrawGlowing` (:462) draws the pad lamps from `Charges.Share` and the fuel state:
       - can: the fuel slot holds a canister;
-      - gauge: the canisters in it, by quarters of a stack;
       - feeding: 1 s after its count drops, by `FLOW_STEP`;
       - off: no power.
     - `DrawFlying` (:502): a salvage drone draws its fly picture by `Grip`, then the held piece (`DebrisLooks.NameOf(Caught,
@@ -221,7 +226,9 @@ Scenario tests (`sim/Tests/SalvageTests.cs`). The map is a sealed aired room wit
 wall to space. The stream is quiet and pieces are drifted in, as `NetTests.Quiet`/`Drift` do.
 - Slots, power and passage:
   - `ACanisterGoesOnlyInTheFuelSlotAndTheSalvageDroneOnlyInADroneSlot` (refusals `items.notTaken`)
-  - `ABayHoldingOnlyASalvageDroneAndCanistersDrawsNoPower`
+  - `ASalvageDroneChargesOnItsPadAndCanistersDrawNoPower`
+  - `AnUnchargedSalvageDroneDoesNotLaunchAndAChargedOneLaunchesFromAnUnpoweredBay`
+  - `LowChargeTurnsItHomeAsLowAirDoes`
   - `ASalvageDroneFliesOutThroughAShutDoorTakesAScrapChunkAndPutsItInTheCrate` (the door stays shut)
   - `OrdinaryDronesStillNeverLeaveTheAirAndSalvageDronesServeNoMachine`
 - What it takes:
@@ -319,9 +326,10 @@ Client tests (`game.tests`):
 
 ## Decided (were open questions)
 
-1. Pad lamps under a docked salvage drone: dark; it has no battery.
-2. The fuel dial: canisters in the slot, by quarters of a stack.
-3. A target one full canister cannot cover is skipped (step 7).
+1. The salvage drone has a battery like any drone; its pad lamps show its charge (user).
+2. The fuel dial shows nothing: too small to read (user).
+3. A target one full canister cannot cover is skipped (step 7; user).
 4. A hero's body floating in space is left (step 7).
-5. An unpowered bay still launches salvage drones; only the bay's lamps go dark (step 7).
+5. A bay without power launches a salvage drone only if it is charged, as ordinary drones (user).
 6. One launch per bay per look, the ordinary one first (step 7).
+7. A canister spent on a target that vanished is not refunded (user).
