@@ -1,3 +1,4 @@
+using Stillwake.Content;
 using Stillwake.Game.Features.Research;
 using Xunit;
 
@@ -39,6 +40,15 @@ public class TechLinksTests
     {
         Assert.Contains("wire", Link("workbench").UsedIn);
         Assert.Contains("furnace", Link("iron").MadeAt);
+    }
+
+    [Fact]
+    public void ABlueprintNamesTheBuildMenuTabItSitsIn()
+    {
+        Assert.Equal(MenuTabs.Production, TechLinks.MenuTabOf("furnace"));
+        Assert.Equal(MenuTabs.Structure, TechLinks.MenuTabOf("wallScrap"));
+        Assert.Equal(MenuTabs.Structure, TechLinks.MenuTabOf("backWallScrap"));
+        Assert.Null(TechLinks.MenuTabOf("iron"));
     }
 
     [Fact]

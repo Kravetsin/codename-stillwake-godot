@@ -380,7 +380,7 @@ public sealed class BoardPage : ITabletPage
     {
         var lack = BoardPile.Lack(thing, _read!);
         if (lack.Parts is [var (item, more), ..]) return _had.Contains(item) ? T("research.pile.lackPart", ("n", more), ("what", _strip.NameOf(item))) : T("research.pile.unknown");
-        if (lack.Station is { } station) return _had.Contains(station) ? T("research.pile.lackStation", ("what", _strip.NameOf(station))) : T("research.pile.noStation");
+        if (lack.Station is { } station) return _had.Contains(station) ? T("research.pile.lackStation", ("what", _strip.NameOf(station))) : T("research.pile.lackNoStation");
         return "";
     }
 
@@ -842,6 +842,8 @@ public sealed class BoardPage : ITabletPage
             : Line("research.takes", string.Join(", ", link.Takes.Select(t => T("research.taken", ("n", t.Count), ("what", _strip.NameOf(t.Item))))));
         if (link.MadeAt.Count > 0)
             yield return Line("research.madeAt", string.Join(", ", link.MadeAt.Select(s => _had.Contains(s) ? _strip.NameOf(s) : T("research.pile.noStation")).Distinct()));
+        else if (TechLinks.MenuTabOf(id) != null)
+            yield return Line("research.builtAt", BuiltFrom(id));
         var named = link.UsedIn.Where(u => _had.Contains(u) || _picture.Shows.GetValueOrDefault(u) != BoardShow.Unseen).Take(3).Select(_strip.NameOf).ToList();
         if (named.Count > 0)
         {
@@ -854,9 +856,13 @@ public sealed class BoardPage : ITabletPage
         if (BoardThreads.Of(id, BoardThings.All, Shape, Pencil) is [var next, ..])
         {
             string lack = LackOf(BoardThings.All.First(t => t.Id == next));
-            yield return Line("research.pile.next", lack.Length == 0 ? _strip.NameOf(next) : $"{_strip.NameOf(next)}, {lack}");
+            yield return Line("research.pile.next", lack.Length == 0 ? _strip.NameOf(next) : $"{_strip.NameOf(next)} — {lack}");
         }
     }
+
+    /// <summary>Where the player finds the blueprint <paramref name="id"/> to build: the build menu and its tab.</summary>
+    private static string BuiltFrom(string id) =>
+        TechLinks.MenuTabOf(id) is { } tab ? T("research.builtInPlace", ("menu", T("build.key")), ("tab", T($"build.tab.{tab}"))) : T("build.key");
 
     /// <summary>What is known of <paramref name="id"/>: what it takes, where it is made, what it goes into.</summary>
     private void FactsOf(string id, Control facts)
@@ -875,8 +881,9 @@ public sealed class BoardPage : ITabletPage
         {
             var at = Flow(10);
             foreach (string station in link.MadeAt) at.AddChild(StationOf(station));
-            if (link.MadeAt.Count == 0) at.AddChild(Text(T(thing!.Stations == null ? "research.builtInPlace" : "research.atLifepod"), Style.Slate500));
-            facts.AddChild(Fact(T("research.madeAt"), MadeAt, at, 2));
+            bool built = link.MadeAt.Count == 0 && thing!.Stations == null;
+            if (link.MadeAt.Count == 0) at.AddChild(Text(built ? BuiltFrom(id) : T("research.atLifepod"), Style.Slate500));
+            facts.AddChild(Fact(T(built ? "research.builtAt" : "research.madeAt"), MadeAt, at, 2));
         }
         if (link.UsedIn.Count > 0) facts.AddChild(Fact(T("research.usedIn"), UsedIn, _strip.Pictures(link.UsedIn, TipOf, used => !_had.Contains(used)), 5));
     }
