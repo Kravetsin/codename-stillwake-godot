@@ -4,7 +4,7 @@ using Look = Stillwake.Game.WristLook;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A wrist gauge between its four reads a second (0081): smooth, a hit flashing then draining, a refill easing in.</summary>
+/// <summary>A wrist gauge between its four reads a second (0081): every loss white, held, then drained; a hit flashing; a refill easing in.</summary>
 public class GaugeMotionTests
 {
     private const double Frame = 1.0 / 60, Read = 0.25;
@@ -44,7 +44,9 @@ public class GaugeMotionTests
         Run(motion, 0.1);
         Assert.Equal(0.8, motion.Trail);
         Assert.InRange(motion.Flash, 0.6, 0.7);
-        // Then it drains, never back up, and is gone within a second; the flash long over.
+        // Whole for its hold, then it drains, never back up, and is gone within a second more; the flash long over.
+        Run(motion, Look.TrailHoldS - 0.1 - Frame);
+        Assert.Equal(0.8, motion.Trail);
         Run(motion, 1.0, (before, now) => Assert.True(now.Trail <= before.Trail));
         Assert.Equal((0.5, 0.5, 0.0), (motion.Fill, motion.Trail, motion.Flash));
     }
@@ -55,9 +57,9 @@ public class GaugeMotionTests
         var hit = At(0.6);
         hit.Read(0.6 - Look.BigDrop - 1e-9);
         Assert.Equal(1, hit.Flash);
-        var slide = At(0.6);
-        slide.Read(0.6 - Look.BigDrop + 0.001);
-        Assert.Equal((0.6, 0.0), (slide.Fill, slide.Flash));
+        var small = At(0.6);
+        small.Read(0.6 - Look.BigDrop + 0.001);
+        Assert.Equal((0.6 - Look.BigDrop + 0.001, 0.6, 0.0), (small.Fill, small.Trail, small.Flash));
     }
 
     [Fact]
@@ -70,37 +72,68 @@ public class GaugeMotionTests
     }
 
     [Fact]
-    public void ASlowDrainMovesSmoothlyAndLeavesNoTrail()
+    public void EveryBreathLostStaysWhiteForItsHoldThenDrainsWithoutAFlash()
     {
         // A breath a second out of air: the read falls by a unit every fourth read.
         var motion = At(1);
-        double unit = 1.0 / Content.Items.Get(Content.Helmet.Basic).Tank, read = 1, largest = 0;
+        double unit = 1.0 / Content.Items.Get(Content.Helmet.Basic).Tank, read = 1;
         for (int r = 1; r <= 40; r++)
         {
-            if (r % 4 == 0) read -= unit;
+            bool breath = r % 4 == 0;
+            double edge = motion.Trail;
+            if (breath) read -= unit;
             motion.Read(read);
+            Assert.Equal(read, motion.Fill, 9);
+            double ran = 0;
             Run(motion, Read, (before, now) =>
             {
-                Assert.Equal(now.Fill, now.Trail);
-                largest = Math.Max(largest, before.Fill - now.Fill);
+                ran += Frame;
+                Assert.True(now.Trail <= before.Trail && now.Trail >= now.Fill);
+                // Held whole as long as its hold, then gone well before the next breath.
+                if (breath && ran < Look.TrailHoldS - Frame) Assert.Equal(edge, now.Trail);
             });
             Assert.Equal(0, motion.Flash);
+            if (r % 4 == 3) Assert.Equal(read, motion.Trail, 9);
         }
-        // Never a step: no frame moves it more than a breath spread over its slide.
-        Assert.InRange(largest, 1e-6, unit / Look.SlideS * Frame * 1.01);
-        Run(motion, Look.SlideS);
-        Assert.Equal(read, motion.Fill, 9);
     }
 
     [Fact]
-    public void ASmallChangeSlidesAtAnEvenPaceOverTheSlide()
+    public void ASteadyDrainTrailsAWhiteBandAsWideAsItsHold()
     {
-        var motion = At(0.5);
-        motion.Read(0.48);
+        // A battery spent every read, as the energy tab reads it.
+        var motion = At(1);
+        double read = 1, step = 0.01;
+        for (int r = 0; r < 20; r++)
+        {
+            motion.Read(read -= step);
+            Run(motion, Read);
+        }
+        double band = motion.Trail - motion.Fill;
+        Assert.InRange(band, step * (Look.TrailHoldS / Read - 1), step * (Look.TrailHoldS / Read + 2));
+    }
+
+    [Fact]
+    public void ASmallRiseSlidesAtAnEvenPaceOverTheSlide()
+    {
+        var motion = At(0.48);
+        motion.Read(0.5);
         Run(motion, Look.SlideS / 2);
         Assert.Equal(0.49, motion.Fill, 3);
         Run(motion, Look.SlideS / 2 + Frame);
-        Assert.Equal(0.48, motion.Fill, 9);
+        Assert.Equal(0.5, motion.Fill, 9);
+    }
+
+    [Fact]
+    public void ADropWhileARiseIsUnderWayStopsItLowerAndLosesNothingShown()
+    {
+        var motion = At(0.2);
+        motion.Read(0.6);
+        Run(motion, 0.1);
+        double shown = motion.Fill;
+        motion.Read(0.45);
+        Assert.Equal((shown, shown), (motion.Fill, motion.Trail));
+        Run(motion, 2);
+        Assert.Equal((0.45, 0.45), (motion.Fill, motion.Trail));
     }
 
     [Fact]
@@ -136,6 +169,18 @@ public class GaugeMotionTests
         Assert.Equal((0.3, 0.9, 1.0), (motion.Fill, motion.Trail, motion.Flash));
         Run(motion, 2);
         Assert.Equal(0.3, motion.Trail);
+    }
+
+    [Fact]
+    public void AShareShownForANewCapacityLosesNothing()
+    {
+        // The helmet put on: 20 of the lungs' 20 become 20 of its 45.
+        var motion = At(1);
+        motion.Read(0.7);
+        motion.Show(20.0 / 45);
+        Assert.Equal((20.0 / 45, 20.0 / 45, 0.0), (motion.Fill, motion.Trail, motion.Flash));
+        Run(motion, Look.TrailHoldS);
+        Assert.Equal(20.0 / 45, motion.Trail);
     }
 
     [Fact]

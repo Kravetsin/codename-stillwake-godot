@@ -46,6 +46,7 @@ public partial class SuitGauge : CanvasLayer
     private static readonly Shader Edges = new() { Code = VignetteShader };
     private readonly ShaderMaterial _edges = new() { Shader = Edges }, _relief = new() { Shader = Edges };
     private double _sinceRead = RefreshS, _vignetteShown, _darkShown;
+    private int _capacity;
     /// <summary>How long since the danger let go, while its pale edge shows; below 0 otherwise.</summary>
     private double _letGoS = -1;
     private SuitDanger _danger;
@@ -99,8 +100,11 @@ public partial class SuitGauge : CanvasLayer
             (int suit, int capacity, _danger, bool inAir) = _read();
             var back = _cues.Read(suit, capacity, _danger, inAir, _sinceRead);
             _sinceRead = 0;
+            // A helmet put on or off changes the share with nothing lost: shown at once, no white.
+            if (_capacity != 0 && capacity != _capacity) _gauge.Motion.Show((double)suit / capacity);
             // A hit is more than the dearest breath, running bare in the cold: bare lungs are small enough for a breath to look like one.
-            _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
+            else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
+            _capacity = capacity;
             _gauge.Low = _danger != SuitDanger.None;
             if (back.BreathesAgain)
             {
