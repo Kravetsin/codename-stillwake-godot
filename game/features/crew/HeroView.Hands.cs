@@ -37,10 +37,13 @@ public partial class HeroView
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
         var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, ShipTiles.RiseOf) : null;
-        // The power driver running in its mode works the square round the pointer, every layer of each cell (power-driver).
-        int side = Aiming.SideOf(driver, _ui.DriverSquare.Get(), m.Items.Running(client.Id));
-        var square = side > 1 && aim != null && !passedOut ? Aiming.SquareAt(m.Grid.Width, m.Grid.Height, pointer!.Value, side) : null;
-        var targets = square is { Cells: var cells } ? Aiming.WorkTargets(m, client.Id, _current, cells) : null;
+        // The power driver charged in its mode works the square round the pointer while it holds plans or marks, every layer of
+        // each cell, shown before the press; over nothing the pointer aims at one cell (power-driver).
+        bool charged = driver != null && Content.Items.Get(driver.Item).Draw is int pays && m.Items.CanDrain(client.Id, pays);
+        int side = Aiming.SideOf(driver, _ui.DriverSquare.Get(), charged);
+        var squared = aim != null && !passedOut ? Aiming.WorkedSquare(m, client.Id, _current, pointer!.Value, side) : null;
+        var square = squared?.Square;
+        var targets = squared?.Targets;
         _ui.WorkedSquare = square?.Cells;
         var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim);
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
@@ -104,10 +107,10 @@ public partial class HeroView
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and its fan hits what it meets each Pace ticks. Flat, it winds down. The power
-        // driver runs so whenever the left button builds with it, at plans or not (power-driver); it is no drill.
+        // driver runs only while it works a plan, so a press at nothing draws no charge (power-driver); it is no drill.
         bool wieldsDrill = acts && drill != null && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
-        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : builds ? driver!.Item : null, _mouse.Buttons.HoldsLeft, _grabHeld);
+        var running = Motor.Wanted(m.Items, client.Id, _aimsDrill ? drill : working ? driver!.Item : null, _mouse.Buttons.HoldsLeft, _grabHeld);
         // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
         bool runs = running != null && running == drill;
