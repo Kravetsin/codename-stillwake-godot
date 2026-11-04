@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Crew;
 /// </summary>
 public static class Suits
 {
-    public static readonly int[] All = [0xe8b04a, 0x5fc8c0, 0xa08cf0, 0x8cd06a];
+    public static readonly int[] All = [0xe8b04a, 0x5fc8c0, 0xa08cf0, 0x8cd06a, 0x5a8ef0, 0xe88cc8];
 
     /// <summary>The suit colour hero <paramref name="id"/> wears, as the sim says; the first while the sim does not know it.</summary>
     public static int Of(IPlayersQueries players, int id) =>

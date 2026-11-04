@@ -19,7 +19,7 @@ public static class Crew
     public const int BreathEvery = 20;
     public const int Refill = 3;
     public const int PassOut = 100;
-    public const int Colours = 4;
+    public const int Colours = 6;
     public const int Exerted = 2;
     /// <summary>The pod's air a breath: twice a calm breath, so a hero's air fills by the pod even in vacuum, slowly; a bare one's holds.</summary>
     public const int PodRefill = 2;

@@ -78,6 +78,8 @@ public static class DevModes
         new("--lang", DevShape.Equals, "the language spoken for a recording, en or ru, keeping nothing"),
         new("--lang-flip", DevShape.Equals, "the other language chosen that many seconds in, as the settings choose it"),
         new("--title", DevShape.Either, "the title, as with no arguments, =key with that choice's panel open (title.settings)"),
+        new("--host-pick", DevShape.Flag, "with --title=title.together, Host pressed: its worlds, or the password asked when none is kept"),
+        new("--key-card", DevShape.Either, "the card a host's code shows on, made up, no relay reached; =menu the Esc menu's instead (KeyCard)"),
         // Debris, wrecks and the ground.
         new("--arc-drill", DevShape.Flag, "with --asteroid, --planet or --ground, the drill in hand has the arc module fitted (0098)"),
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),

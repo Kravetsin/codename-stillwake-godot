@@ -6,33 +6,33 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The title's Play together panel (the approved mockup, coop-flow, 0031): Host and Join side by side; hosting,
-/// the session's code large with Copy, the suits aboard and Stop hosting; joining, one field for a
-/// friend's code. The playtest server's password is asked once, on its own, the first time it is
-/// needed or after the server did not take it, and kept on this machine.
+/// The title's Play together panel (the approved mockup, coop-flow, 0031): Host and Join side by side. Host picks the
+/// world to open as Worlds does, an existing one or a new one, and plays it, its code shown as it opens
+/// (<see cref="KeyCard"/>); Join is one field for a friend's code. The playtest server's password is asked once, on its
+/// own, the first time it is needed or after the server did not take it, and kept on this machine.
 /// </summary>
 public partial class TogetherPage : VBoxContainer
 {
     /// <summary>Where the password is kept, on this machine only.</summary>
     private const string File = "user://coop.cfg";
 
-    private enum View { Choose, Join, Password }
+    private enum View { Choose, Pick, Join, Password }
 
     private readonly ITogether _together;
     private readonly Action _back;
     private readonly ConfigFile _kept = new();
-    private readonly VBoxContainer _choose, _hosting, _joining, _asking;
-    private readonly Label _code, _hostStatus, _joinStatus, _askStatus;
-    private readonly HBoxContainer _suits;
+    private readonly VBoxContainer _choose, _joining, _asking;
+    private readonly WorldsPanel _worlds;
+    private readonly Label _joinStatus, _askStatus;
     private readonly LineEdit _codeField, _passwordField;
-    private readonly Button _copy;
     private View _view = View.Choose;
     private Action<string>? _pending;
-    private string? _shownSuits;
+    private string _password = "";
     private TogetherState? _handled;
     private readonly Label _chooseStatus;
 
-    public TogetherPage(ITogether together, Action back)
+    /// <param name="worlds">A Worlds panel playing what it plays (an id) and makes (a name) through the two actions given.</param>
+    public TogetherPage(ITogether together, Func<Action<string>, Action<string>, WorldsPanel> worlds, Action back)
     {
         (_together, _back) = (together, back);
         _kept.Load(File);
@@ -40,22 +40,14 @@ public partial class TogetherPage : VBoxContainer
 
         _choose = Style.Gap(new VBoxContainer(), 8);
         var pair = Style.Gap(new HBoxContainer { Alignment = AlignmentMode.Center }, 8);
-        pair.AddChild(Big("menu.hostTitle", "menu.hostWhat", () => WithPassword(_together.HostTogether)));
+        pair.AddChild(Big("menu.hostTitle", "menu.hostWhat", Host));
         pair.AddChild(Big("menu.joinTitle", "menu.joinWhat", () => Show(View.Join)));
         _choose.AddChild(pair);
         _choose.AddChild(_chooseStatus = Line("", Style.Red300, 12));
         AddChild(_choose);
 
-        _hosting = Style.Gap(new VBoxContainer(), 6);
-        _hosting.AddChild(Line(T("menu.tellCode"), Style.Slate400, 11));
-        _hosting.AddChild(_code = Line("", Style.Sky200, 32));
-        var tools = Style.Gap(new HBoxContainer { Alignment = AlignmentMode.Center }, 8);
-        tools.AddChild(_copy = Style.Button(T("menu.copy"), Copy, size: 13, padX: 14, padY: 5));
-        _hosting.AddChild(tools);
-        _hosting.AddChild(_suits = Style.Gap(new HBoxContainer { Alignment = AlignmentMode.Center }, 6));
-        _hosting.AddChild(_hostStatus = Line("", Style.Green400, 12));
-        _hosting.AddChild(Style.Button(T("menu.stopHosting"), () => _together.StopTogether(), size: 14, padX: 16, padY: 6));
-        AddChild(_hosting);
+        _worlds = worlds(id => _together.HostTogether(_password, id, ""), name => _together.HostTogether(_password, null, name));
+        AddChild(_worlds);
 
         _joining = Style.Gap(new VBoxContainer(), 6);
         _joining.AddChild(Line(T("menu.friendsCode"), Style.Slate400, 11));
@@ -94,7 +86,16 @@ public partial class TogetherPage : VBoxContainer
         Show(View.Choose);
     }
 
-    /// <summary>Back a step: from joining or the password to the choice, else out of the page.</summary>
+    /// <summary>Forgets the password kept: the server did not take it as a world opened, so the next Host or Join asks again.</summary>
+    public static void ForgetPassword()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        kept.SetValue("coop", "password", "");
+        kept.Save(File);
+    }
+
+    /// <summary>Back a step: from picking, joining or the password to the choice, else out of the page.</summary>
     private void Back()
     {
         if (_view != View.Choose && _together.Together.Mode == TogetherMode.Alone) Show(View.Choose);
@@ -103,6 +104,17 @@ public partial class TogetherPage : VBoxContainer
 
     /// <summary>Shown afresh each time the page opens.</summary>
     public void Opened() => Show(View.Choose);
+
+    /// <summary>Host: the worlds to open, once the password is known.</summary>
+    public void Host() => WithPassword(Pick);
+
+    /// <summary>The worlds to host, under the password given.</summary>
+    private void Pick(string password)
+    {
+        _password = password;
+        _worlds.Refresh();
+        Show(View.Pick);
+    }
 
     private void Show(View view)
     {
@@ -118,6 +130,7 @@ public partial class TogetherPage : VBoxContainer
     /// <summary>Runs <paramref name="act"/> with the password kept, asking for it first when there is none.</summary>
     private void WithPassword(Action<string> act)
     {
+        _kept.Load(File);
         string kept = (string)_kept.GetValue("coop", "password", "");
         if (kept != "")
         {
@@ -152,40 +165,23 @@ public partial class TogetherPage : VBoxContainer
         if (_view == View.Choose) Show(View.Join);
     }
 
-    private void Copy()
-    {
-        if (_together.Together.Code is { } code) DisplayServer.ClipboardSet(code);
-        _copy.Text = T("menu.copied");
-    }
-
     public override void _Process(double delta)
     {
         if (!IsVisibleInTree()) return;
         var state = _together.Together;
-        // The server did not take the password: ask again, for whatever was tried.
+        // The server did not take the password: ask again, to join; a host has left the title by then.
         if (state.PasswordRefused && !ReferenceEquals(state, _handled))
         {
             _handled = state;
-            _pending = _view == View.Join ? password => _together.JoinTogether(Codes.Typed(_codeField.Text), password) : _together.HostTogether;
+            _pending = password => _together.JoinTogether(Codes.Typed(_codeField.Text), password);
             _askStatus.Text = T("menu.passRefused");
             _kept.SetValue("coop", "password", "");
             Show(View.Password);
         }
-        bool hosting = state.Mode is TogetherMode.Opening or TogetherMode.Hosting;
-        _hosting.Visible = hosting;
-        _asking.Visible = !hosting && _view == View.Password;
-        _joining.Visible = !hosting && !_asking.Visible && (_view == View.Join || state.Mode is TogetherMode.Joining or TogetherMode.Joined);
-        _choose.Visible = !hosting && !_asking.Visible && !_joining.Visible;
-        if (hosting)
-        {
-            _code.Text = state.Mode == TogetherMode.Opening ? "····" : state.Code ?? "";
-            int friends = Math.Max(0, state.Suits.Count - 1);
-            _hostStatus.Text = state.Mode == TogetherMode.Opening ? T("menu.opening")
-                : friends == 0 ? T("menu.waiting")
-                : T(friends == 1 ? "menu.oneAboard" : "menu.manyAboard", ("count", friends));
-            ShowSuits(state);
-        }
-        else _copy.Text = T("menu.copy");
+        _asking.Visible = _view == View.Password;
+        _worlds.Visible = _view == View.Pick;
+        _joining.Visible = !_asking.Visible && (_view == View.Join || state.Mode is TogetherMode.Joining or TogetherMode.Joined);
+        _choose.Visible = !_asking.Visible && !_joining.Visible && !_worlds.Visible;
         _chooseStatus.Text = state.Mode == TogetherMode.Alone && !state.PasswordRefused ? state.Problem ?? "" : "";
         if (_joining.Visible)
         {
@@ -196,17 +192,6 @@ public partial class TogetherPage : VBoxContainer
                 _ => state.Problem ?? (_joinStatus.Text == T("menu.codeShort") ? _joinStatus.Text : ""),
             };
         }
-    }
-
-    /// <summary>A small figure in each suit aboard, this player's first.</summary>
-    private void ShowSuits(TogetherState state)
-    {
-        string key = string.Join(",", state.Suits);
-        if (key == _shownSuits) return;
-        _shownSuits = key;
-        foreach (var child in _suits.GetChildren()) child.QueueFree();
-        foreach (int suit in state.Suits)
-            _suits.AddChild(new ColorRect { Color = new Color((uint)(suit << 8 | 0xff)), CustomMinimumSize = new Vector2(12, 16) });
     }
 
     private static Button Big(string title, string what, Action pressed)

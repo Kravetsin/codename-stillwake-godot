@@ -10,8 +10,9 @@ namespace Stillwake.Game.Menu;
 
 /// <summary>
 /// The game menu on Esc (0031): resume, the Handbook (J, 0066), save, settings (the suit's colour, the slots' size, heat shimmer), save and exit to the title,
-/// save and quit — a guest leaves and quits without saving — over a darkened screen, the world, when it
-/// was saved and the code while hosting at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
+/// save and quit — a guest leaves and quits without saving — over a darkened screen; while hosting, the code friends join by
+/// with Copy (<see cref="KeyBox"/>) over them; the world, when it
+/// was saved at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
 /// in hand first and opens the menu only when nothing is. The world runs on behind it, alone too: in
 /// co-op every peer must keep stepping, and alone a pause is not worth a second way to run the world.
 /// While it is open it keeps every key and click from the game behind it.
@@ -22,6 +23,8 @@ public partial class GameMenu : CanvasLayer
     private readonly Func<bool> _busy, _inWorld, _owns;
     private readonly Action _putAway, _handbook, _tree;
     private readonly Func<string> _save, _foot;
+    private readonly Func<TogetherState> _together;
+    private readonly KeyBox _key;
     private readonly VBoxContainer _main, _settings;
     private readonly Func<string?> _updateTo, _updating;
     private readonly Button _update, _saveButton, _exitButton, _quitButton;
@@ -42,16 +45,17 @@ public partial class GameMenu : CanvasLayer
     /// <param name="owns">Whether this machine keeps the world it plays, so saves it; a guest does not.</param>
     /// <param name="exitToTitle">Saves if it owns the world, leaves it and goes to the title.</param>
     /// <param name="quit">Saves if it owns the world, and quits the game.</param>
-    /// <param name="foot">The world, when it was saved, and the code while hosting.</param>
+    /// <param name="foot">The world, when it was saved, and why hosting stopped.</param>
+    /// <param name="together">How playing together stands: while hosting, the code is shown with Copy.</param>
     /// <param name="version">This build, as the menu shows it at its foot.</param>
     /// <param name="updateTo">A newer release's tag, once one is known to be out.</param>
     /// <param name="update">Fetches the newer release and restarts into it.</param>
     /// <param name="updating">How an update stands while it runs.</param>
     public GameMenu(Ui ui, Func<bool> busy, Action putAway, Action handbook, Action tree, Action look, Control suits, Func<string> save, Func<bool> inWorld, Func<bool> owns,
-        Action exitToTitle, Action quit, Func<string> foot, string version, Func<string?> updateTo, Action update, Func<string?> updating)
+        Action exitToTitle, Action quit, Func<string> foot, Func<TogetherState> together, string version, Func<string?> updateTo, Action update, Func<string?> updating)
     {
         (_ui, _busy, _putAway, _handbook, _tree, _save, _inWorld, _owns, _foot) = (ui, busy, putAway, handbook, tree, save, inWorld, owns, foot);
-        (_updateTo, _updating) = (updateTo, updating);
+        (_updateTo, _updating, _together) = (updateTo, updating, together);
         Layer = ScreenLayers.Menu;
         Visible = false;
 
@@ -68,6 +72,7 @@ public partial class GameMenu : CanvasLayer
         panel.AddChild(column);
 
         _main = Style.Gap(new VBoxContainer(), 8);
+        _main.AddChild(_key = new KeyBox(together, 28) { Visible = false });
         _main.AddChild(_update = Choice("menu.update", update));
         _update.Visible = false;
         _main.AddChild(_updateLine = Line("", Style.Sky200, 11));
@@ -127,6 +132,7 @@ public partial class GameMenu : CanvasLayer
     {
         if (_page != MenuPage.Main) return;
         _footLine.Text = _foot();
+        _key.Visible = HostKey.Code(_together()) != null;
         string? tag = _updateTo(), how = _updating();
         _update.Visible = tag != null && how == null;
         if (tag != null) _update.Text = T("menu.update", ("version", tag));

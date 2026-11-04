@@ -143,6 +143,8 @@ public partial class Main : Node2D, ITogether
     private DateTime? _savedAt;
     private string? _saveProblem;
     private TitleScreen? _title;
+    /// <summary>The code shown as a hosted world opens.</summary>
+    private KeyCard? _keyCard;
     /// <summary>Who plays on this machine (0032), and who is who in the world it keeps.</summary>
     private string _playerKey = "";
     private Roster _roster = Roster.Empty();
@@ -323,8 +325,11 @@ public partial class Main : Node2D, ITogether
             _session?.Client.Send(new Sim.Crew.ChooseLook(look));
         });
         AddChild(lookEditor);
+        // Before the menu, which so hears Esc first and puts it away.
+        var keyCard = _keyCard = new KeyCard(_hands.Ui, () => Together);
+        AddChild(keyCard);
         var menu = new GameMenu(_hands.Ui,
-            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
+            busy: () => (_items?.Panel.Shown ?? false) || handbook.Shown || computer.Shown || tech.Shown || lookEditor.Shown || keyCard.Shown || _hands.Plan.PlanOut.Get() || dev.Searching,
             putAway: () =>
             {
                 // A search in the build menu or the dev panel goes first, what else is open staying so.
@@ -334,12 +339,13 @@ public partial class Main : Node2D, ITogether
                 computer.Close();
                 tech.Close();
                 lookEditor.Close();
+                keyCard.Close();
                 _hands.Plan.PutPlanAway();
             },
             handbook: handbook.Open,
             tree: tech.Open,
             look: () => lookEditor.Open(_look ?? Sim.Players.Look.Zero),
-            suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot,
+            suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot, together: () => Together,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
         AddChild(menu);

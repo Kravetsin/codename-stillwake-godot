@@ -18,6 +18,9 @@ public partial class Updater : Node
 
     public Updater(Updates.Version own) => _own = own;
 
+    /// <summary>The release zip this build updates from, by its suffix; none where no release is built.</summary>
+    private static string? Platform => OS.HasFeature("windows") ? "windows" : OS.HasFeature("macos") ? "macos" : null;
+
     /// <summary>A newer release to update to, once GitHub has said so.</summary>
     public Updates.Release? Available { get; private set; }
 
@@ -27,7 +30,7 @@ public partial class Updater : Node
     public override void _Ready()
     {
         AddChild(_http);
-        if (OS.HasFeature("editor") || _own.Release == null) return;
+        if (OS.HasFeature("editor") || _own.Release == null || Platform == null) return;
         _http.RequestCompleted += Checked;
         _http.Request(Updates.LatestUrl, ["User-Agent: Stillwake", "Accept: application/vnd.github+json"]);
     }
@@ -36,7 +39,7 @@ public partial class Updater : Node
     {
         _http.RequestCompleted -= Checked;
         if (result != (long)HttpRequest.Result.Success || code != 200) return;
-        _latest = Updates.Read(System.Text.Encoding.UTF8.GetString(body));
+        _latest = Updates.Read(System.Text.Encoding.UTF8.GetString(body), Platform!);
         if (_latest is { } r && Updates.Newer(r.Tag, _own.Release)) Available = r;
     }
 
@@ -69,12 +72,23 @@ public partial class Updater : Node
         try
         {
             string folder = ProjectSettings.GlobalizePath("user://update");
-            string files = Path.Combine(folder, "files");
-            Unpack(Path.Combine(folder, "Stillwake.zip"), files);
+            string files = Path.Combine(folder, "files"), zip = Path.Combine(folder, "Stillwake.zip");
             string exe = OS.GetExecutablePath();
-            string script = Path.Combine(folder, "update.cmd");
-            File.WriteAllText(script, Updates.Script(OS.GetProcessId(), files, Path.GetDirectoryName(exe)!, exe));
-            OS.CreateProcess("cmd.exe", ["/c", script]);
+            if (Platform == "macos")
+            {
+                // The executable is Stillwake.app/Contents/MacOS/Stillwake: the bundle is two above its folder.
+                string app = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(exe)!, "..", ".."));
+                string script = Path.Combine(folder, "update.sh");
+                File.WriteAllText(script, Updates.MacScript(OS.GetProcessId(), zip, files, app));
+                OS.CreateProcess("/bin/sh", [script]);
+            }
+            else
+            {
+                Unpack(zip, files);
+                string script = Path.Combine(folder, "update.cmd");
+                File.WriteAllText(script, Updates.WindowsScript(OS.GetProcessId(), files, Path.GetDirectoryName(exe)!, exe));
+                OS.CreateProcess("cmd.exe", ["/c", script]);
+            }
             BeforeRestart?.Invoke();
             GetTree().Quit();
         }
