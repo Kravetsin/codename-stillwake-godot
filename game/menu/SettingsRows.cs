@@ -24,10 +24,8 @@ public partial class SettingsRows : VBoxContainer
         Style.Gap(this, 8);
         AddChild(Line(T("menu.language")));
         AddChild(Pair([("menu.langEn", () => _ui.Language.Set(Language.English)), ("menu.langRu", () => _ui.Language.Set(Language.Russian))]));
-        _ui.Language.Subscribe(Paint);
         AddChild(Line(T("menu.slots")));
         AddChild(Pair([("menu.slotsNormal", () => _ui.SlotScale.Set(SlotScale.Normal)), ("menu.slotsLarge", () => _ui.SlotScale.Set(SlotScale.Large))]));
-        _ui.SlotScale.Subscribe(Paint);
         AddChild(Line(T("menu.shimmer")));
         AddChild(Pair([("menu.on", () => Shimmer(true)), ("menu.off", () => Shimmer(false))]));
         AddChild(Line(T("menu.screen")));
@@ -36,6 +34,20 @@ public partial class SettingsRows : VBoxContainer
         var logs = Style.Button(T("menu.logs"), Logs.OpenFolder, size: 14, padX: 16, padY: 6);
         AddChild(logs);
         Paint();
+    }
+
+    // Heard only while in a tree: the title's rows are freed as a world starts, and painting them then broke every later listener.
+    public override void _EnterTree()
+    {
+        _ui.Language.Subscribe(Paint);
+        _ui.SlotScale.Subscribe(Paint);
+        Paint();
+    }
+
+    public override void _ExitTree()
+    {
+        _ui.Language.Unsubscribe(Paint);
+        _ui.SlotScale.Unsubscribe(Paint);
     }
 
     private static void Keep(bool on)

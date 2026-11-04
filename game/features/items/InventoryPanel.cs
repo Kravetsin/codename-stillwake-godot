@@ -254,6 +254,8 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Takes down everything <see cref="Build"/> and the machine's panel made, before they are built at another size.</summary>
     private void Clear()
     {
+        // The credit line lives on through a rebuild: taken off the bag's screen before that is freed with it.
+        _credits.GetParent()?.RemoveChild(_credits);
         foreach (var node in _root.GetChildren().Concat(_over.GetChildren()))
         {
             node.GetParent().RemoveChild(node);

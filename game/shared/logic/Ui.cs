@@ -26,6 +26,9 @@ public sealed class Store<T>(T initial)
 
     /// <summary>Calls <paramref name="listener"/> after every change from now on.</summary>
     public void Subscribe(Action listener) => _listeners.Add(listener);
+
+    /// <summary>Stops calling <paramref name="listener"/>: a node that outlives no tree of its own, the title's settings.</summary>
+    public void Unsubscribe(Action listener) => _listeners.Remove(listener);
 }
 
 /// <summary>Stores of lists, told only when what they hold changes: a tip set every frame redraws nothing.</summary>
