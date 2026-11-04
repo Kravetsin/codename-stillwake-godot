@@ -46,6 +46,7 @@ public static partial class En
         ["research.noCredits"] = "Not enough credits",
         ["research.board.hint"] = "Click anything on the board to see what it is made from, where, and what is made from it",
         ["research.board.part"] = "{what} {have}/{enough}",
+        ["research.board.partDone"] = "{what} ✓",
         ["research.board.more"] = "{n} more",
         ["research.board.moreUnknown"] = "{n} more ?",
         ["research.board.needs"] = "needs",
