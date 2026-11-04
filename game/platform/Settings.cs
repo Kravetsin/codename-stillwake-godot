@@ -8,7 +8,7 @@ namespace Stillwake.Game.Platform;
 
 /// <summary>
 /// This machine's player's settings, kept in Godot's user folder as the profile is (0032): the language
-/// (2026-11-02-russian-language), the slots' size (0058), whether heat shimmers (0075) and the hero's look (2026-10-28-looks-are-printed). Read once at the start; a change in the menu is written at once. A file that cannot be read
+/// (2026-11-02-russian-language), the slots' size (0058), whether heat shimmers (0075), how the window takes the screen and the hero's look (2026-10-28-looks-are-printed). Read once at the start; a change in the menu is written at once. A file that cannot be read
 /// gives the defaults, one that cannot be written keeps the setting for this run alone.
 /// </summary>
 public static class Settings
@@ -56,6 +56,39 @@ public static class Settings
         kept.SetValue("effects", "shimmer", on);
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the shimmer in {File}: it holds for this run alone");
     }
+
+    /// <summary>How the window takes the screen: in a window unless chosen otherwise.</summary>
+    public static ScreenMode Screen()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        return Screens.Named(kept.GetValue("video", "screen", "").AsString());
+    }
+
+    /// <summary>Keeps <paramref name="mode"/> for the next run.</summary>
+    public static void Keep(ScreenMode mode)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        kept.SetValue("video", "screen", Screens.NameOf(mode));
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the screen mode in {File}: it holds for this run alone");
+    }
+
+    /// <summary>The mode the window is in now: a dev run keeps the window its command line made.</summary>
+    public static ScreenMode Shown() => DisplayServer.WindowGetMode() switch
+    {
+        DisplayServer.WindowMode.ExclusiveFullscreen => ScreenMode.Fullscreen,
+        DisplayServer.WindowMode.Fullscreen => ScreenMode.Borderless,
+        _ => ScreenMode.Windowed,
+    };
+
+    /// <summary>Puts the window in <paramref name="mode"/>; a frameless one is Godot's full screen, which leaves other windows a click away.</summary>
+    public static void Apply(ScreenMode mode) => DisplayServer.WindowSetMode(mode switch
+    {
+        ScreenMode.Fullscreen => DisplayServer.WindowMode.ExclusiveFullscreen,
+        ScreenMode.Borderless => DisplayServer.WindowMode.Fullscreen,
+        _ => DisplayServer.WindowMode.Windowed,
+    });
 
     private static readonly string[] LookKeys = ["skin", "hair", "hairColour", "face", "beard", "outfit"];
 

@@ -188,6 +188,8 @@ public partial class Main : Node2D, ITogether
         if (_dev.Value("--lang-flip") is { } flipAt)
             GetTree().CreateTimer(double.Parse(flipAt, System.Globalization.CultureInfo.InvariantCulture)).Timeout += () => _hands.Ui.Language.Set(Speaking == Language.Russian ? Language.English : Language.Russian);
         Shimmer.Enabled = Settings.Shimmer();
+        // The screen as kept; a dev run keeps the window its command line made, so a frame or a recording is its size.
+        if (_dev.None) Settings.Apply(Settings.Screen());
         ItemIcons.MakeSilhouettes();
         _debris = new DebrisView(_hands.Ui);
         AddChild(_stars = new Stars());

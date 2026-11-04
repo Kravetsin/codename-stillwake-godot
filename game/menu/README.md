@@ -31,11 +31,11 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   Esc closes the inventory and its crate and the Handbook and puts the plan away (0022), all at once; only with
   nothing open or in hand does it open the menu.
 - **Resume** closes it. **Handbook (J)** closes it and opens the Handbook (0066), its line naming
-  the key. **Look** opens the look editor (`features/crew`). **Settings** holds the suit's colour (`features/crew`'s `SuitColours`: the one
-  worn ringed, those others wear dimmed, a free one a click away sending `crew`'s `PickColour`,
-  refused by the sim), the **slot size**, Normal (40 px) or Large (56 px), the one in use lit (`Ui.SlotScale`,
-  0058: applied at once, kept on this machine in `user://settings.cfg` by `platform/Settings`), **heat shimmer**
-  On or Off (0075, `Shimmer.Enabled`, on by default, kept there too), and **Open logs folder**.
+  the key. **Look** opens the look editor (`features/crew`). **Settings** holds the suit's colour (`features/crew`'s
+  `SuitColours`, a free one a click away sending `crew`'s `PickColour`), the **slot size**, Normal (40 px) or Large
+  (56 px) (`Ui.SlotScale`, 0058: applied at once, kept on this machine in `user://settings.cfg` by
+  `platform/Settings`), **heat shimmer** On or Off (0075, `Shimmer.Enabled`, kept there too), the
+  **screen** in a window, full screen or frameless (a dev run keeps its window), and **Open logs folder**.
   **Save** writes the world to its folder, the save before kept as its
   backup. **Save & exit to title** saves, leaves (a host's guests let go) and reloads the scene to the
   title; **Save & quit** quits, as the window's close would. A guest keeps nothing: **Leave to title**

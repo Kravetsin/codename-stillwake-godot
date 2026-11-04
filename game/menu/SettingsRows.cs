@@ -11,7 +11,7 @@ namespace Stillwake.Game.Menu;
 
 /// <summary>
 /// The settings kept on this machine, the game menu's and the title's alike: the language (2026-11-02-russian-language), the slots' size, Normal or Large (0058), heat
-/// shimmer On or Off (0075), each applied at once and kept in <c>user://settings.cfg</c>, the one in use lit; and Open logs folder.
+/// shimmer On or Off (0075), the screen (in a window, full screen, frameless), each applied at once and kept in <c>user://settings.cfg</c>, the one in use lit; and Open logs folder.
 /// </summary>
 public partial class SettingsRows : VBoxContainer
 {
@@ -30,6 +30,9 @@ public partial class SettingsRows : VBoxContainer
         _ui.SlotScale.Subscribe(Paint);
         AddChild(Line(T("menu.shimmer")));
         AddChild(Pair([("menu.on", () => Shimmer(true)), ("menu.off", () => Shimmer(false))]));
+        AddChild(Line(T("menu.screen")));
+        AddChild(Pair([("menu.windowed", () => Screen(ScreenMode.Windowed)), ("menu.fullscreen", () => Screen(ScreenMode.Fullscreen)),
+            ("menu.borderless", () => Screen(ScreenMode.Borderless))]));
         var logs = Style.Button(T("menu.logs"), Logs.OpenFolder, size: 14, padX: 16, padY: 6);
         AddChild(logs);
         Paint();
@@ -44,6 +47,13 @@ public partial class SettingsRows : VBoxContainer
     private void Shimmer(bool on)
     {
         Keep(on);
+        Paint();
+    }
+
+    private void Screen(ScreenMode mode)
+    {
+        Settings.Apply(mode);
+        Settings.Keep(mode);
         Paint();
     }
 
@@ -64,6 +74,10 @@ public partial class SettingsRows : VBoxContainer
         Light("menu.slotsLarge", large);
         Light("menu.on", on);
         Light("menu.off", !on);
+        var screen = Settings.Shown();
+        Light("menu.windowed", screen == ScreenMode.Windowed);
+        Light("menu.fullscreen", screen == ScreenMode.Fullscreen);
+        Light("menu.borderless", screen == ScreenMode.Borderless);
     }
 
     private void Light(string key, bool lit) =>
