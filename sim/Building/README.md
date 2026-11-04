@@ -26,7 +26,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 ## Rules
 
-- **Blueprint checks, in order:** `building.fixed` (the lifepod, never planned nor marked, 0028); `building.needsAxe` (a pile, marked); `building.notHere`
+- **Blueprint checks, in order:** `building.fixed` (the lifepod, 0028); `building.needsAxe` (a pile, marked); `building.notHere`
   (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock and machines with no card always, 0077); the
   grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`; ports (`SeatProblem`, `pipes.*`). Structure
   and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
@@ -37,7 +37,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
 - **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while a builder is held on a
-  plan (0107, power-driver); no tool checked. Two work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
+  plan (0107, power-driver); no tool checked. A blueprint takes its `BuildTicks`; a mark takes those
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
@@ -49,7 +49,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
-  while a hero's reported cell, or one above or under, is the plan's. Building runs before crew.
+  while its cell is in a standing body round a hero's reported middle (3 rows up, 2 down, 1 aside). Building runs before crew.
   So does a last tick the grid or `SeatProblem` refuses (a pod or pipe since).
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
