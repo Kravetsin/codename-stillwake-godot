@@ -36,9 +36,9 @@ public static class Prompts
         }
         // A drop pod is boarded, its slot opening as the hero sits: said as a seat, with why not.
         if (aim.Press is { Command: Sim.Landing.Board } board) return new Prompt("use.board", board.Problem);
-        // Named for what it opens, by its kind's own words (use.open.<kind>): a furnace, the lifepod's Fabricator; else a crate.
+        // Named for what it opens, by its kind's own words (use.open.<kind>, every kind that opens has them): a furnace, the lifepod's Fabricator.
         if (aim.Crate is int opens)
-            return new Prompt(m.Grid.MachineById(opens)?.Kind is { } kind && I18n.En.Table.ContainsKey($"use.open.{kind}") ? $"use.open.{kind}" : "use.openCrate", null);
+            return new Prompt($"use.open.{m.Grid.MachineById(opens)?.Kind ?? "crate"}", null);
         if (aim.Press is not { } press) return null;
         return press.Command switch
         {
