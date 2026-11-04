@@ -72,6 +72,7 @@ public partial class Figure : Node2D
     private const float BootOverlap = 1f;
 
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
+    private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp, _lens;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
@@ -235,8 +236,10 @@ public partial class Figure : Node2D
         _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
+        _backHip = backLeg;
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
+        _frontHip = frontLeg;
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
         _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
@@ -990,6 +993,8 @@ public partial class Figure : Node2D
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
+        _frontHip.Position = new Vector2((float)Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt)));
+        _backHip.Position = new Vector2((float)-Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt)));
         _frontLeg.Bend(shown.FrontLeg, shown.FrontFoot);
         _backLeg.Bend(shown.BackLeg, shown.BackFoot);
         if (cues.Sparks > 0)

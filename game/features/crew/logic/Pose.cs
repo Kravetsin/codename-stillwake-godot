@@ -9,7 +9,7 @@ public enum Pose { Stand, Walk, Run, Air, Climb, Float, Lie, Tumble, Sit, Strapp
 
 /// <summary>
 /// Each limb's bend (<see cref="Rig"/>), and how the whole body is placed: <see cref="Tilt"/> radians
-/// it turns forward around its middle, a body lying down at -π/2; <see cref="Lift"/> pixels it rises,
+/// it turns forward around its middle, a body lying down at -ПЂ/2; <see cref="Lift"/> pixels it rises,
 /// drifting in space, and on the floor below zero by as much as the lower foot is short of it, so bent
 /// legs never float and straight ones never sink in; <see cref="Lying"/> whether it rests on the floor
 /// however it is turned, rather than standing on its feet. <see cref="FrontFoot"/> and <see cref="BackFoot"/>, how far each boot
@@ -301,7 +301,7 @@ public static class Poses
         double Corner(double along)
         {
             double x = hipX + ankle.X + along * cos + Rig.Sole * sin;
-            double y = Rig.H / 2 - Rig.Hip + ankle.Y - along * sin + Rig.Sole * cos;
+            double y = Rig.H / 2 - Rig.Hip - Rig.HipRise(hipX, tilt) + ankle.Y - along * sin + Rig.Sole * cos;
             return x * s + y * c - Rig.H / 2;
         }
         return Math.Max(Corner(-Rig.Heel), Corner(Rig.Toe));
@@ -428,8 +428,8 @@ public static class Poses
         return new Limbs(
             FrontArm: B(-Feel.Run.Pump * s, 1.5 + 0.2 * c),
             BackArm: B(Feel.Run.Pump * s, 1.5 - 0.2 * c),
-            FrontLeg: Running(cycle + RunLead, Feel.Run.Lean * LegsUpright),
-            BackLeg: Running(cycle + RunLead + 0.5, Feel.Run.Lean * LegsUpright),
+            FrontLeg: Running(cycle + RunLead),
+            BackLeg: Running(cycle + RunLead + 0.5),
             Tilt: Feel.Run.Lean, Lift: 0, Lying: false);
     }
 
@@ -438,9 +438,6 @@ public static class Poses
     /// as the walk has it, rather than with it.
     /// </summary>
     private const double RunLead = 0.7;
-
-    /// <summary>How much of the run's lean its legs swing back toward the floor's up: some, so a foot comes down under the body, not all, so the whole body still leans into the run.</summary>
-    private const double LegsUpright = 0.5;
 
     /// <summary>
     /// In the air (0090): from rising into falling as the speed up or down says, the knees tucked near the top, the legs
@@ -639,8 +636,11 @@ public static class Poses
             Tilt: -Feel.Run.BackLean, Lift: 0, Lying: false);
     }
 
-    /// <summary>The cycle a running leg is halfway through its time on the floor at, the other half a cycle on.</summary>
-    private const double MidStance = Stance / 2 - RunLead + 1;
+    /// <summary>
+    /// The cycle a running leg on the floor stands upright under its hip at, the body leaning as a run does, the other half a
+    /// cycle on: where its sole reaches lowest, so the body rides lowest there and the knee need hardly give.
+    /// </summary>
+    private const double MidStance = (0.4 - 0.06 - Feel.Run.Lean) * Stance / 0.95 - RunLead + 1;
 
     /// <summary>
     /// How high the running body rides <paramref name="cycle"/> strides in (2026-11-04-hero-gait), from 0 at the middle of each
@@ -676,17 +676,16 @@ public static class Poses
 
     /// <summary>
     /// A running leg at <paramref name="cycle"/> through its stride: on the floor from under the hips to behind them, nearly
-    /// straight; then off it, the heel kicked up and the knee brought through high. Swung <paramref name="lean"/> back toward the
-    /// floor's up from the body's, which leans into the run (<see cref="LegsUpright"/>).
+    /// straight; then off it, the heel kicked up and the knee brought through high.
     /// </summary>
-    private static Bend Running(double cycle, double lean)
+    private static Bend Running(double cycle)
     {
         double p = cycle - Math.Floor(cycle);
-        if (p < Stance) return B(lean + 0.4 - 0.95 * p / Stance, -0.12);
+        if (p < Stance) return B(0.4 - 0.95 * p / Stance, -0.12);
         double u = (p - Stance) / (1 - Stance);
         // Back from behind to high ahead, then down to meet the floor under the hips again.
         double thigh = u < 0.7 ? -0.6 + 1.85 * Math.Sin(u / 0.7 * Math.PI / 2) : 1.25 - 0.85 * (u - 0.7) / 0.3;
-        return B(lean + thigh, -(0.12 + 2.1 * Math.Sin(u * Math.PI)));
+        return B(thigh, -(0.12 + 2.1 * Math.Sin(u * Math.PI)));
     }
 
     /// <summary>

@@ -123,7 +123,7 @@ public class PoseTests
             foreach (double along in new[] { -Rig.Heel, Rig.Toe })
             {
                 double x = hipX + ankle.X + along * Math.Cos(turn) + Rig.Sole * Math.Sin(turn);
-                double y = -Rig.Hip + ankle.Y - along * Math.Sin(turn) + Rig.Sole * Math.Cos(turn) + Rig.H / 2;
+                double y = -Rig.Hip - Rig.HipRise(hipX, l.Tilt) + ankle.Y - along * Math.Sin(turn) + Rig.Sole * Math.Cos(turn) + Rig.H / 2;
                 double c = Math.Cos(l.Tilt), s = Math.Sin(l.Tilt);
                 yield return new Vec(x * c - y * s, x * s + y * c - Rig.H / 2 - l.Lift);
             }

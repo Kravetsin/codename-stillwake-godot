@@ -34,6 +34,12 @@ public static class Rig
     /// <summary>Hips apart, so two legs read as two even standing still.</summary>
     public const double HipApart = W * 0.14;
 
+    /// <summary>
+    /// How far a hip <paramref name="hipX"/> ahead sits higher in the body turned <paramref name="tilt"/>, so the hips stay level as
+    /// it leans: turned about its middle, the front hip came lower, and a run's step on the near leg sat a pixel under the far one's.
+    /// </summary>
+    public static double HipRise(double hipX, double tilt) => hipX * Math.Sin(2 * tilt) / 2;
+
     public static readonly Segments Arm = new(H * 0.145, H * 0.145, W * 0.27);
 
     /// <summary>A leg's reach is the hip's height.</summary>

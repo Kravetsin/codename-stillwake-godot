@@ -15,12 +15,27 @@ public class RunTests
     public void ARunLeansWellInAndRidesHigherBetweenSteps()
     {
         Assert.True(LimbsOf(Pose.Run, Running, At(0)).Tilt >= 0.28);
-        // Mid-step a foot is down; between the steps the body rides higher, the feet only just off the floor.
-        var mid = LimbsOf(Pose.Run, Running, At(Stride.Run * 0.51));
-        var between = LimbsOf(Pose.Run, Running, At(Stride.Run * 0.26));
+        // Mid-step a foot is down; between the steps the body rides higher, both feet off the floor.
+        var seen = Enumerable.Range(0, 100).Select(k => LimbsOf(Pose.Run, Running, At(Stride.Run * k / 100))).ToList();
+        var mid = seen.MinBy(l => l.Lift);
+        var between = seen.MaxBy(l => l.Lift);
         Assert.True(Math.Abs(PoseTests.Soles(mid).Max(p => p.Y)) < 0.05, $"mid-step the lowest sole is at {PoseTests.Soles(mid).Max(p => p.Y)}");
-        Assert.True(PoseTests.Soles(between).Max(p => p.Y) < -0.1, $"between steps the lowest sole is at {PoseTests.Soles(between).Max(p => p.Y)}");
-        Assert.True(between.Lift - mid.Lift > HeroMotion.Run.Bounce * 0.8);
+        Assert.True(PoseTests.Soles(between).Max(p => p.Y) < -0.2, $"between steps the lowest sole is at {PoseTests.Soles(between).Max(p => p.Y)}");
+        Assert.InRange(between.Lift - mid.Lift, HeroMotion.Run.Bounce * 0.9, HeroMotion.Run.Bounce * 1.01);
+    }
+
+    [Fact]
+    public void ARunNeverCrouchesTheLegOnTheFloorNearlyStraight()
+    {
+        // Held to a smooth ride, the knee on the floor once folded over a radian, a run in a crouch.
+        for (int k = 0; k < 100; k++)
+        {
+            var l = LimbsOf(Pose.Run, Running, At(Stride.Run * k / 100));
+            var soles = PoseTests.Soles(l).ToList();
+            foreach (var (leg, at) in new[] { (l.FrontLeg, 0), (l.BackLeg, 2) })
+                if (Math.Max(soles[at].Y, soles[at + 1].Y) > -0.05)
+                    Assert.True(leg.Lower > -0.55, $"the knee on the floor folded {leg.Lower} at {k / 100.0}");
+        }
     }
 
     [Theory]
@@ -35,10 +50,10 @@ public class RunTests
         Limbs Ran(double cycle) => LimbsOf(Pose.Run, Running, moment with { Cycle = cycle, Gait = 1, Moving = 1 });
         for (double cycle = 0; cycle < 1; cycle += frame / 4)
         {
-            Assert.True(Math.Abs(Ran(cycle + frame).Lift - Ran(cycle).Lift) < 0.45, $"the body jumped {Ran(cycle + frame).Lift - Ran(cycle).Lift} px at {cycle}");
+            Assert.True(Math.Abs(Ran(cycle + frame).Lift - Ran(cycle).Lift) < 0.35, $"the body jumped {Ran(cycle + frame).Lift - Ran(cycle).Lift} px at {cycle}");
             Assert.True(PoseTests.Soles(Ran(cycle)).Max(p => p.Y) < 0.05, $"a sole {PoseTests.Soles(Ran(cycle)).Max(p => p.Y)} under the floor at {cycle}");
+            Assert.True(Math.Abs(Ran(cycle + 0.5).Lift - Ran(cycle).Lift) < 0.05, $"one step at {Ran(cycle).Lift}, the other at {Ran(cycle + 0.5).Lift}");
         }
-        Assert.True(Math.Abs(Ran(0.01).Lift - Ran(0.51).Lift) < 0.05, $"one step at {Ran(0.01).Lift}, the other at {Ran(0.51).Lift}");
     }
 
     [Theory]
