@@ -22,10 +22,11 @@ public readonly record struct Picked(Place Place, int Count);
 /// </param>
 /// <param name="Free">The modules the open machine has an empty socket for (0086): one shifted from the hero's slots is fitted.</param>
 /// <param name="Open">Whether a slot of the hero's is open yet (2026-10-30-room-upgrades); none given, all are.</param>
+/// <param name="SlotTakes">The open machine's slot that holds one item only, and that item: a drone bay's fuel slot of canisters.</param>
 public sealed record SlotClick(
     Place Place, Stack? Stack, bool Right, bool Shift, int? Crate, IReadOnlyList<Stack?> Inventory,
     int? FuelSlot = null, bool Charger = false, int Inputs = 0, IReadOnlyList<Stack?>? CrateSlots = null, IReadOnlyList<string>? Free = null,
-    Func<Place, bool>? Open = null)
+    Func<Place, bool>? Open = null, (int Slot, string Item)? SlotTakes = null)
 {
     /// <summary>
     /// A click on the slot at <paramref name="place"/> of what <paramref name="reading"/> shows, the machine it shows open as
@@ -37,7 +38,7 @@ public sealed record SlotClick(
         int inputs = reading.Kind is string queued && Content.Stations.TryGet(queued, out var station) && !station.Fed ? spec?.Inputs ?? 0 : 0;
         return new SlotClick(
             place, reading.At(place), right, shift, crate, reading.Inventory, spec?.FuelSlot, spec?.Charges == true, inputs, reading.Crate,
-            crate != null ? reading.Free : null, reading.Open);
+            crate != null ? reading.Free : null, reading.Open, spec?.SlotTakes);
     }
 }
 
@@ -161,7 +162,7 @@ public static class Clicks
     /// that is worn goes onto the first free equipment slot of its kind, or swaps with the first worn there;
     /// what is worn goes onto the first free own slot, the hotbar first. A battery goes into an open charging
     /// station instead. Anything else, and anything in a crate, goes to the other side of an open crate, a
-    /// fuel into a furnace's fuel slot, and into a queued station's inputs onto its own kind there, else the first empty
+    /// fuel into a furnace's fuel slot, a canister into a drone bay's fuel slot, and into a queued station's inputs onto its own kind there, else the first empty
     /// one, else the first, as the sim puts a move naming none. With no machine open, the bag and the hotbar are the
     /// two sides (<see cref="Across"/>).
     /// </summary>
@@ -184,6 +185,7 @@ public static class Clicks
         if (click.Crate is not int crate) return own ? Across(click, stack) : null;
         if (!own) return new Target();
         if (spec.BurnTicks != null && click.FuelSlot != null) return new Target(click.FuelSlot, crate);
+        if (click.SlotTakes is { } takes && takes.Item == stack.Item) return new Target(takes.Slot, crate);
         return new Target(InputFor(click, stack), crate);
     }
 

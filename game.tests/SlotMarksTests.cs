@@ -79,7 +79,8 @@ public class SlotMarksTests
         Assert.Equal(SlotMark.Grows, Reading.GhostOf("growCapsule", 0));
         Assert.Equal(SlotMark.Burns, Reading.GhostOf("burnerGenerator", 0));
         Assert.Equal(SlotMark.Charges, Reading.GhostOf("charger", 0));
-        for (int slot = 0; slot < Spec.Machines.Get(Spec.Logistics.Bay).Slots; slot++) Assert.Equal(SlotMark.Docks, Reading.GhostOf(Spec.Logistics.Bay, slot));
+        var bay = Spec.Machines.Get(Spec.Logistics.Bay);
+        for (int slot = 0; slot < bay.Slots; slot++) Assert.Equal(slot == bay.SlotTakes!.Value.Slot ? SlotMark.Breathes : SlotMark.Docks, Reading.GhostOf(Spec.Logistics.Bay, slot));
         // A crate takes anything, and a queued station's inputs any cost: no ghost.
         Assert.Equal(SlotMark.None, Reading.GhostOf("crate", 0));
         Assert.All(Spec.Stations.All.Where(s => !s.Fed), s => Assert.Equal(SlotMark.None, Reading.GhostOf(s.Machine, 0)));
@@ -101,6 +102,11 @@ public class SlotMarksTests
         Assert.False(Open("charger").Lights(SlotMark.Charges, "rock"));
         Assert.True(Open(Spec.Logistics.Bay).Lights(SlotMark.Docks, Spec.Logistics.Drone));
         Assert.False(Open(Spec.Logistics.Bay).Lights(SlotMark.Docks, "battery"));
+        Assert.True(Open(Spec.Logistics.Bay).Lights(SlotMark.Docks, Spec.Logistics.SalvageDrone));
+        Assert.False(Open(Spec.Logistics.Bay).Lights(SlotMark.Docks, Spec.Crew.Canister));
+        Assert.True(Open(Spec.Logistics.Bay).Lights(SlotMark.Breathes, Spec.Crew.Canister));
+        Assert.False(Open(Spec.Logistics.Bay).Lights(SlotMark.Breathes, Spec.Logistics.SalvageDrone));
+        Assert.False(Open("crate").Lights(SlotMark.Breathes, Spec.Crew.Canister));
         Assert.False(furnace.Lights(SlotMark.None, "rock"));
     }
 

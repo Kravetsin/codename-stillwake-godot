@@ -62,11 +62,19 @@ public partial class InventoryPanel
         _shown.AddChild(_frame);
     }
 
-    /// <summary>A drone bay's four slots, each showing a faint drone's mark while empty: drones dock there and charge, each slot's bar its drone's charge (0062).</summary>
+    /// <summary>
+    /// A drone bay's four slots, each showing a faint drone's mark while empty: drones of either kind dock there and charge,
+    /// each slot's bar its drone's charge (0062); a gap, then its fuel slot of canisters, a faint canister while empty (salvage-drones).
+    /// </summary>
     private Control BayBody(int crate, Content.MachineSpec spec)
     {
         var row = Style.Gap(new HBoxContainer(), Slots.Gap);
-        for (int i = 0; i < spec.Slots; i++) row.AddChild(Box(new Place(i, crate)));
+        int fuel = spec.SlotTakes?.Slot ?? -1;
+        for (int i = 0; i < spec.Slots; i++)
+        {
+            if (i == fuel) row.AddChild(new Control { CustomMinimumSize = new Vector2(Slots.Gap * 3, 0), MouseFilter = Control.MouseFilterEnum.Ignore });
+            row.AddChild(Box(new Place(i, crate)));
+        }
         return row;
     }
 

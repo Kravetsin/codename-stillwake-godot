@@ -55,6 +55,9 @@ public static class Testbed
     /// </summary>
     public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
 
+    /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
+    public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
+
     /// <summary>The ship computer's and the radar's parts, one each in the supply crate: the full crate has no slot left for them.</summary>
     public static readonly IReadOnlyList<string> ComputerParts = ["processor", "display", "transceiver"];
 
@@ -187,7 +190,7 @@ public static class Testbed
         static JsonObject Stack(string item, int count) => new() { ["item"] = item, ["count"] = count };
         static JsonObject Battery(int thousandths) =>
             new() { ["item"] = "battery", ["count"] = 1, ["charge"] = Charge.Battery / 1000 * thousandths };
-        static JsonObject Drone() => new() { ["item"] = Logistics.Drone, ["count"] = 1, ["charge"] = Charge.Drone };
+        static JsonObject Drone(string item) => new() { ["item"] = item, ["count"] = 1, ["charge"] = Items.Get(item).Capacity };
         static JsonArray Slots(string kind, IEnumerable<JsonNode?> stacks)
         {
             var slots = new JsonArray([.. stacks]);
@@ -201,7 +204,7 @@ public static class Testbed
         items["creative"] = true;
         var held = new List<JsonObject>
         {
-            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
+            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
             new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1)), FittedDrill(Modules.Arc.Item)]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
@@ -217,7 +220,7 @@ public static class Testbed
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
             new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },
-            new() { ["id"] = Id(Logistics.Bay), ["slots"] = Slots(Logistics.Bay, Enumerable.Range(0, Drones).Select(_ => Drone())) },
+            new() { ["id"] = Id(Logistics.Bay), ["slots"] = Slots(Logistics.Bay, [.. Enumerable.Range(0, Drones).Select(_ => Drone(Logistics.Drone)), .. InBay.Select(Drone)]) },
         };
         // The slice keeps its machines in id order; the lifepod's may hold something already.
         var crates = items["crates"]!.AsArray().Select(c => c!.DeepClone().AsObject()).Concat(held).OrderBy(c => (int)c["id"]!);

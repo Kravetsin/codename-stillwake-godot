@@ -407,7 +407,7 @@ public partial class InventoryPanel : CanvasLayer
         else if (_crateGrid != null) _sweep.Run(_crateGrid);
     }
 
-    /// <summary>A stack's tip; an empty bay slot says a drone docks there, an empty kept one what drones keep it full of (0062).</summary>
+    /// <summary>A stack's tip; an empty bay slot says a drone docks there, its empty fuel slot that canisters go in, an empty kept one what drones keep it full of (0062).</summary>
     private Tip? SlotTip(SlotBox box)
     {
         if (_reading?.At(box.Place) is { } stack) return box.Place.Crate == null ? _reading.HereTipOf(stack) : _reading.TipOf(stack);
@@ -416,7 +416,12 @@ public partial class InventoryPanel : CanvasLayer
             var name = T("logistics.kept", ("item", T($"item.{kept}")));
             return Supplied?.Invoke(id, kept) == false ? new Tip(name, new TipLine(T("logistics.noneInReach"), Tone.Bad)) : new Tip(name);
         }
-        return box.GhostMark == SlotMark.Docks ? new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)) : null;
+        return box.GhostMark switch
+        {
+            SlotMark.Docks => new Tip(T("item.drone"), new TipLine(T("logistics.drone"), Tone.Dim)),
+            SlotMark.Breathes => new Tip(T("item.canister"), new TipLine(T("logistics.fuel"), Tone.Dim)),
+            _ => null,
+        };
     }
 
     public override void _Process(double delta)

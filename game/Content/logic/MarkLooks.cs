@@ -68,6 +68,18 @@ public static class MarkLooks
             new Stroke([(.27f, .67f), (.39f, .67f)], Weight: 0.75f),
         ],
         Core: 0xeefaff, Rim: 0x7dd3fc, Glow: 0x38bdf8, IconMotion.Spin);
+
+    /// <summary>What a drone bay's fuel slot takes (salvage-drones): a canister upright, its valve on top, the air's pale blue, two puffs rising off it.</summary>
+    public static readonly Look Breathes = new(Ring,
+        [
+            new Stroke([(.41f, .43f), (.45f, .38f), (.55f, .38f), (.59f, .43f), (.59f, .79f), (.41f, .79f), (.41f, .43f)], Moves: false),
+            new Stroke([(.45f, .325f), (.55f, .325f)], Moves: false, Weight: 0.8f),
+            new Stroke([(.41f, .53f), (.59f, .53f)], Moves: false, Weight: 0.7f),
+            new Stroke([(.45f, .27f), (.5f, .245f), (.55f, .27f)], Weight: 0.7f),
+            new Stroke([(.465f, .21f), (.5f, .19f), (.535f, .21f)], Weight: 0.6f),
+        ],
+        Core: 0xf0f8ff, Rim: 0x9cc8f0, Glow: 0x5a9cd8, IconMotion.Puff);
+
     public static readonly IReadOnlyDictionary<SlotMark, Look> All = new Dictionary<SlotMark, Look>
     {
         [SlotMark.Smelts] = Smelts,
@@ -75,6 +87,7 @@ public static class MarkLooks
         [SlotMark.Grows] = Grows,
         [SlotMark.Charges] = Charges,
         [SlotMark.Docks] = Docks,
+        [SlotMark.Breathes] = Breathes,
     };
 
     /// <summary>Mark <paramref name="mark"/>'s icon; throws for <see cref="SlotMark.None"/> and for <see cref="SlotMark.Fits"/>, whose icon is its module's tech's.</summary>

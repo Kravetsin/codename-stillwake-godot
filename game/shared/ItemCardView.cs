@@ -72,7 +72,7 @@ public static class ItemCardView
     /// <summary>The card of <paramref name="card"/>, sized to its content.</summary>
     public static Control Build(ItemCard card) => card.Tool ? ToolCard(card) : card.Worn ? WornCard(card) : Compact(card);
 
-    /// <summary>Name and kind on one line; a key where it has one, a drone's charge; then the bands and a station's block.</summary>
+    /// <summary>Name and kind on one line, under them its line where it has one; a key where it has one, a drone's charge; then the bands and a station's block.</summary>
     private static Control Compact(ItemCard card)
     {
         var line = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, 8);
@@ -80,7 +80,13 @@ public static class ItemCardView
         var kind = Text(card.Kind, KindText, HorizontalAlignment.Left);
         kind.SizeFlagsVertical = Control.SizeFlags.ShrinkEnd;
         line.AddChild(kind);
-        var column = Column(0, Padded(line, 9, 5, 9, 6));
+        var column = Column(0, Padded(line, 9, 5, 9, card.About == null ? 6 : 2));
+        if (card.About is { } about)
+        {
+            var words = Text(about, DetailText, HorizontalAlignment.Left);
+            (words.AutowrapMode, words.CustomMinimumSize) = (TextServer.AutowrapMode.WordSmart, new Vector2(ToolWidth - 2 * Pad, 0));
+            column.AddChild(Padded(words, 9, 0, 9, 6));
+        }
         // A canister is breathed with a key of its own: the one thing its slot cannot say.
         if (card.Use is { } how) column.AddChild(Ruled(UseRow(how, null)));
         if (card.Charge is { } charge) column.AddChild(Meter(charge));

@@ -15,5 +15,6 @@ public static partial class En
         ["logistics.drone"] = "put a drone here to fly",
         ["logistics.kept"] = "Drones keep this full: {item}",
         ["logistics.noneInReach"] = "none in reach",
+        ["logistics.fuel"] = "canisters here: a salvage drone takes one a flight",
     };
 }

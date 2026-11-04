@@ -59,11 +59,11 @@ public class TestbedTests
     [Fact]
     public void ItsCratesHoldAFullStackOfEveryItemAHeroCanCarryAndNoWreckageTheFarmsInASecond()
     {
-        Assert.True(Testbed.Carried.Count(i => !Testbed.InFarmCrate(i.Id) && !Testbed.InSupply.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
+        Assert.True(Testbed.Carried.Count(i => !Testbed.InFarmCrate(i.Id) && !Testbed.InSupply.Contains(i.Id) && !Testbed.InBay.Contains(i.Id)) < Spec.Machines.Get("crate").Slots);
         var m = Built.Value;
         var crate = m.Items.Crate(Crates(m)[0]);
         var farm = m.Items.Crate(Crates(m)[1]);
-        Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
+        Assert.All(Testbed.Carried.Where(i => !Testbed.InSupply.Contains(i.Id) && !Testbed.InBay.Contains(i.Id)), item => Assert.Contains(new Stack(item.Id, item.Stack), Testbed.InFarmCrate(item.Id) ? farm : crate));
         // A drill with the arc fitted (0098), in the supply crate by the door: no bench fits one yet.
         Assert.Contains(new Stack(Spec.Weapons.Drill.Item, 1, Module: Spec.Modules.Arc.Item), m.Items.Crate(CrateAt(m, Testbed.Supply)));
         Assert.Contains(new Stack(Spec.HelmetLamp.Item, 1), m.Items.Crate(CrateAt(m, Testbed.Supply)));
@@ -79,6 +79,9 @@ public class TestbedTests
         Assert.Contains(crate, stack => stack is { Item: "canister" });
         // A battery of each kind: the crate's empty one, as every carried item at its stack, and one charged full.
         Assert.Contains(new Stack("battery", 1, Spec.Charge.Battery), crate);
+        // The salvage drone docked beside the two drones, charged, with no canister to fly on.
+        Assert.Equal(new Stack(Spec.Logistics.SalvageDrone, 1, Spec.Charge.Drone), m.Items.Crate(IdOf(m, Spec.Logistics.Bay))[Testbed.Drones]);
+        Assert.Null(m.Items.Crate(IdOf(m, Spec.Logistics.Bay))[Spec.Machines.Get(Spec.Logistics.Bay).SlotTakes!.Value.Slot]);
     }
 
     [Fact]
