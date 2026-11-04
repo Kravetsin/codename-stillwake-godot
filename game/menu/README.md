@@ -77,6 +77,9 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 
 `game/shared/logic/Escape.cs` (a press of Esc) is tested by `EscapeTests`; the pick by `WorldPickTests`; the keys by `BindsTests`; the scene by `TitleSceneTests`.
 
+The settings rows, made anew per title and world, hear `Ui`'s stores only while in the tree (`StoreWatch.Watch`,
+`StoreTests`): `Ui` outlives them.
+
 ## Deliberately not handled
 
 - Sound settings: none to set yet. Mouse buttons, chords and gamepads are not bound.
