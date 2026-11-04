@@ -8,6 +8,7 @@ using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using Air = Stillwake.Content.Air;
+using Doors = Stillwake.Content.Doors;
 using Materials = Stillwake.Content.Materials;
 using Structure = Stillwake.Content.Structure;
 
@@ -423,12 +424,15 @@ public class AirTests
     {
         var (w, _, door, right) = TwoRooms();
         w.Do(new SetDoor(door, true)).Run(3);
+        // The vent cut, the little air let in stays where it is (as when a door joins an empty room) while the door moves.
+        w.Do(new CutPipe(At15(1, 1), w.Output(At15(1, 2)))).Run(Doors.SwingTicks - 3);
         // Past the doorway, which fills its block (0104).
         var inRight = w.Air().Aired.Where(c => c % 30 > At15(8, 0) + 1).ToList();
         Assert.NotEmpty(inRight);
         w.Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
         Assert.Equal(inRight, AiredIn(w, shut));
+        Assert.True(inRight.Count < w.M.Rooms.RoomById(shut)!.Volume, "the room filled before the door could shut");
         // Its order starts at its middle, yet the air stays where it came in.
         Assert.Equal(At15(11, 2), w.Air().Orders[shut][0]);
         w.Run(10);
@@ -442,7 +446,7 @@ public class AirTests
         w.Do(new SetDoor(door, true)).Run();
         Assert.Equal(RoomStatus.Filling, Status(w, left));
         AirUp(w, left);
-        w.Do(new SetDoor(door, false)).Run();
+        w.Run(Doors.SwingTicks).Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
         int volume = w.M.Rooms.RoomById(shut)!.Volume;
         Assert.Equal(volume, AiredIn(w, shut).Count);

@@ -20,6 +20,7 @@ public static partial class En
         // Not in the TypeScript: its types kept a placement to the layers there are.
         ["grid.noSuchLayer"] = "No such layer",
         ["grid.noDoor"] = "There is no door here",
+        ["grid.doorBusy"] = "The door is still moving",
         ["hazards.noWall"] = "There is no wall here",
         ["hazards.neverBreaks"] = "This never breaks",
         ["hazards.flareComing"] = "A flare is coming already",

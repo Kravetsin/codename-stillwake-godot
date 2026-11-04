@@ -12,6 +12,9 @@ public static class Back
 
 public sealed record Machine(int Id, string Kind, int Cell);
 
+/// <summary>A doorway still moving: its first <c>Cell</c>, the ticks <c>Left</c> before it takes another toggle.</summary>
+public sealed record DoorSwing(int Cell, int Left);
+
 /// <summary>What may be put in a cell: a layer, a kind, and a material for walls and back walls.</summary>
 public sealed record Placement(string Layer, string Kind, string? Material = null)
 {
@@ -36,6 +39,11 @@ public sealed class GridState
     /// <summary>Every machine, in id order: ids only grow, and a new one goes last.</summary>
     [JsonInclude] internal List<Machine> Machines { get; set; } = [];
     [JsonInclude] internal int NextMachineId { get; set; } = 1;
+    /// <summary>The doorways still moving from their last toggle, in the order toggled (2026-11-04-door-swing).</summary>
+    [JsonIgnore] internal List<DoorSwing> Swings { get; set; } = [];
+    /// <summary>The swings as saved: none written while no door moves, so a still ship saves as before.</summary>
+    [JsonInclude, JsonPropertyName("swings"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<DoorSwing>? SavedSwings { get => Swings.Count > 0 ? Swings : null; set => Swings = value ?? []; }
     /// <summary>Derived: the id of the machine covering each cell, 0 for none.</summary>
     [JsonIgnore] internal int[] Occupancy { get; set; } = [];
     /// <summary>Derived: every machine by its id; only looked up.</summary>
@@ -142,6 +150,8 @@ public interface IGridQueries
     /// other cell is as the world has it; a cell set back is listed at its own code. The world is untouched.
     /// </summary>
     IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles);
+    /// <summary>Why <see cref="SetDoor"/> would be refused on <paramref name="cell"/> now: <c>grid.noDoor</c>, <c>grid.doorBusy</c> while it moves, or null.</summary>
+    string? DoorProblem(int cell, bool open);
 }
 
 /// <summary>How a module that depends on the grid may change it.</summary>
@@ -175,8 +185,11 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         _structureAt = c => State.Structure[c];
         _now = ValueAt;
         // A launch platform is no door to open by hand: it opens with power, by its own module's command (Landing).
-        Handles<SetDoor>(c => IsDoorway(State.Structure, c.Cell) && !Doorways.IsPlatform(State.Structure[c.Cell]) ? null : "grid.noDoor",
-            c => SetDoorway(c.Cell, c.Open));
+        Handles<SetDoor>(c => DoorProblem(c.Cell, c.Open), c =>
+        {
+            if (Toggle(c.Cell, c.Open) is int first) State.Swings.Add(new DoorSwing(first, Doors.SwingTicks));
+        });
+        System(Phase.Simulation, Settle);
     }
 
     /// <summary>Every write to a layer goes through here, so the log misses none: it holds what the cell held before.</summary>
@@ -456,7 +469,6 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     private bool InBounds(int cell) => cell >= 0 && cell < State.Width * State.Height;
     private bool InZone(int cell) => State.Zone.Contains(cell % State.Width, cell / State.Width);
-    private bool IsDoorway(int[] structure, int cell) => InBounds(cell) && Doorways.IsDoorway(structure[cell]);
 
     public IReadOnlyList<int>? Footprint(string kind, int cell)
     {
@@ -496,36 +508,82 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
         return cells;
     }
 
-    public void SetDoorway(int cell, bool open)
+    public void SetDoorway(int cell, bool open) => Toggle(cell, open);
+
+    /// <summary>Sets the doorway <paramref name="cell"/> is in; the doorway's first cell when that changed it, else null.</summary>
+    private int? Toggle(int cell, bool open)
     {
         // Already as asked, a doorway is left alone, the version too: nothing derived from the grid is redone.
         int to = Doorways.Toggled(State.Structure[cell], open);
         var doorway = DoorwayOf(cell, _structureAt);
-        if (!Differs(State.Structure, doorway, to)) return;
+        if (!Differs(_structureAt, doorway, to)) return null;
         State.Version++;
         foreach (int c in doorway) Set(State.Structure, GridLayers.Structure, c, to);
+        return First(doorway);
+    }
+
+    public string? DoorProblem(int cell, bool open) => DoorProblem(cell, open, _structureAt, Moving);
+
+    /// <summary>
+    /// <see cref="DoorProblem(int, bool)"/> with the codes as <paramref name="codeAt"/> reads them, a doorway moving as
+    /// <paramref name="moving"/> says of its first cell. Already as asked, a moving door refuses nothing: two peers opening it at once
+    /// leave it open, unrefused (0071).
+    /// </summary>
+    private string? DoorProblem(int cell, bool open, Func<int, int> codeAt, Func<int, bool> moving)
+    {
+        if (!InBounds(cell) || !Doorways.IsDoorway(codeAt(cell)) || Doorways.IsPlatform(codeAt(cell))) return "grid.noDoor";
+        var doorway = DoorwayOf(cell, codeAt);
+        return Differs(codeAt, doorway, Doorways.Toggled(codeAt(cell), open)) && moving(First(doorway)) ? "grid.doorBusy" : null;
+    }
+
+    /// <summary>Whether the doorway whose first cell is <paramref name="first"/> is still moving from its last toggle.</summary>
+    private bool Moving(int first)
+    {
+        foreach (var swing in State.Swings)
+            if (swing.Cell == first) return true;
+        return false;
+    }
+
+    /// <summary>Counts every moving doorway down a tick; one at rest takes toggles again.</summary>
+    private void Settle()
+    {
+        var swings = State.Swings;
+        for (int i = swings.Count - 1; i >= 0; i--)
+            if (swings[i].Left <= 1) swings.RemoveAt(i);
+            else swings[i] = swings[i] with { Left = swings[i].Left - 1 };
+    }
+
+    private static int First(List<int> doorway)
+    {
+        int first = int.MaxValue;
+        foreach (int c in doorway) if (c < first) first = c;
+        return first;
     }
 
     public IReadOnlyDictionary<int, int> AfterToggles(IReadOnlyList<Command> toggles)
     {
         // Only the toggled cells: copying the layers cost a big world 16 MB a tick while a toggle was in flight.
         var structure = new Dictionary<int, int>();
+        var moved = new List<int>();
         int StructureAt(int c) => structure.TryGetValue(c, out int code) ? code : State.Structure[c];
+        bool MovingHere(int first) => Moving(first) || moved.Contains(first);
         foreach (var t in toggles)
         {
-            if (t is SetDoor door && InBounds(door.Cell) && Doorways.IsDoorway(StructureAt(door.Cell)) && !Doorways.IsPlatform(StructureAt(door.Cell)))
+            if (t is SetDoor door && DoorProblem(door.Cell, door.Open, StructureAt, MovingHere) == null)
             {
                 int to = Doorways.Toggled(StructureAt(door.Cell), door.Open);
-                foreach (int cell in DoorwayOf(door.Cell, StructureAt)) structure[cell] = to;
+                var doorway = DoorwayOf(door.Cell, StructureAt);
+                if (Differs(StructureAt, doorway, to)) moved.Add(First(doorway));
+                foreach (int cell in doorway) structure[cell] = to;
             }
         }
         return structure;
     }
 
-    private static bool Differs(int[] layer, List<int> cells, int code)
+    private static bool Differs(Func<int, int> codeAt, List<int> cells, int code)
     {
         foreach (int cell in cells)
-            if (layer[cell] != code) return true;
+            if (codeAt(cell) != code) return true;
         return false;
     }
 
