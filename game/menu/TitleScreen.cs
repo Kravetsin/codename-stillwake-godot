@@ -36,14 +36,19 @@ public partial class TitleScreen : CanvasLayer
     private string? _open;
     private double _seconds, _panelShown;
 
-    /// <summary>The Worlds panel: what it has picked is what Play together hosts.</summary>
+    /// <summary>The Worlds panel.</summary>
     public WorldsPanel Worlds { get; }
+
+    /// <summary>The Play together panel.</summary>
+    public TogetherPage Together { get; }
 
     /// <param name="continueWorld">The world Continue plays, or none on a first run.</param>
     /// <param name="play">Continue: plays that world, or a new one.</param>
+    /// <param name="hostWorlds">A Worlds panel for Play together's Host, hosting what it plays and makes (<see cref="TogetherPage"/>).</param>
     /// <param name="settings">The settings kept on this machine (<see cref="SettingsRows"/>).</param>
     /// <param name="testbed">Plays the dev testbed (<c>Dev.Testbed</c>): given only in a debug build, so a release shows no choice.</param>
-    public TitleScreen(Func<WorldEntry?> continueWorld, Action play, WorldsPanel worlds, ITogether together, Control settings, Action quit,
+    public TitleScreen(Func<WorldEntry?> continueWorld, Action play, WorldsPanel worlds, ITogether together,
+        Func<Action<string>, Action<string>, WorldsPanel> hostWorlds, Control settings, Action quit,
         string version, Func<string?> updateTo, Action update, Func<string?> updating, Action? testbed = null)
     {
         (_continue, _updateTo, _updating) = (continueWorld, updateTo, updating);
@@ -65,7 +70,7 @@ public partial class TitleScreen : CanvasLayer
         column.AddChild(_name = new Label { Text = "STILLWAKE", LabelSettings = new LabelSettings { Font = spaced, FontSize = 44, FontColor = Style.Sky200, ShadowColor = new Color(0, 0, 0, 0.7f), ShadowSize = 4 } });
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 28), MouseFilter = Control.MouseFilterEnum.Ignore });
         _continueItem = Item(column, "title.continue", play, 26);
-        var pages = new (string Key, Control Page)[] { ("title.worlds", worlds), ("title.together", new TogetherPage(together, () => Open(null))), ("title.settings", settings) };
+        var pages = new (string Key, Control Page)[] { ("title.worlds", worlds), ("title.together", Together = new TogetherPage(together, hostWorlds, () => Open(null))), ("title.settings", settings) };
         foreach (var (key, page) in pages) _pages[key] = (Item(column, key, () => Open(_open == key ? null : key), 20), page);
         Item(column, "title.quit", quit, 20);
         if (testbed != null) Item(column, "title.testbed", testbed, 14);
@@ -127,7 +132,7 @@ public partial class TitleScreen : CanvasLayer
             item.Active = k == key;
         }
         if (key == "title.worlds") Worlds.Refresh();
-        if (key == "title.together" && _pages[key].Page is TogetherPage together) together.Opened();
+        if (key == "title.together") Together.Opened();
     }
 
     /// <summary>Any key or click while the name and choices fade in brings them at once; Esc closes the panel open.</summary>
