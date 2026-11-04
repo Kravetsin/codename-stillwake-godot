@@ -75,9 +75,10 @@ canvas from `Anime.bake({ w, h, draw })`: `w` and `h` the logical picture's pixe
 and the light are the engine's, one for every subject (`engine.js`), per world pixel; use them, not numbers of your own.
 `wash.js` loads after the engine and replaces `bake`; a picture drawn straight on a canvas skips the finish.
 
-- A picture must be exactly 4 times the logical one; the game reports the logical size and lays out by it.
+- A picture is exactly 4 times the logical one; the game lays out by that.
 - A sheet that repeats takes `tile: true`. A door's shut and open pictures differ only by the panel, or pixels stay behind.
-- A `top_*` picture lays its ground line on row 16; rows above it stand on the cell above, rows below lie over the block, in its `front` picture.
+- A `top_*` picture has its ground line on row 16: rows above stand on the cell above, rows below lie over the block (`front`).
 - A cave picture keeps the rows its logical one uses (`LOGICAL` in the page), or its plant floats. Moss is cut at its block's edges along a
   run, px 4 and 20 of 24: every variant has the same cross-section there, its torn end past them.
-- A tool held in the fist (about 4 px) is drawn to it: `hero.js` shrinks the screwdriver's and the power driver's paths by `Hand` (0.6: 10 px long), the pen kept.
+- A tool in the fist (about 4 px) is drawn to it: `hero.js` shrinks the two drivers' paths by `Hand` (0.6: 10 px long), the pen
+  kept. Each held tool's `icons/` copy is 384 px long, for its icon (driver-icons).

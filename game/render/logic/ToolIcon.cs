@@ -11,7 +11,8 @@ namespace Stillwake.Game.Render;
 /// </summary>
 public static class ToolIcon
 {
-    // Sub-samples along each side of an output pixel: the mock page's ×8 nearest upscale before its smooth draw.
+    // Sub-samples along each side of an output pixel: the mock page's ×8 nearest upscale before its smooth draw, fewer once
+    // the picture is fitted down, where two a source pixel already average it (driver-icons).
     private const int Samples = 8;
 
     /// <summary>
@@ -24,14 +25,15 @@ public static class ToolIcon
         var icon = new byte[side * side * 4];
         if (DrawnBox(rgba, width, height) is not var (left, top, w, h)) return icon;
         double scale = ScaleOf(w, h, side), middleX = left + w / 2.0, middleY = top + h / 2.0, half = side / 2.0;
+        int samples = scale >= 1 ? Samples : Math.Clamp((int)Math.Ceiling(2 / scale), 2, Samples);
         for (int oy = 0; oy < side; oy++)
             for (int ox = 0; ox < side; ox++)
             {
                 long alpha = 0, red = 0, green = 0, blue = 0;
-                for (int sy = 0; sy < Samples; sy++)
-                    for (int sx = 0; sx < Samples; sx++)
+                for (int sy = 0; sy < samples; sy++)
+                    for (int sx = 0; sx < samples; sx++)
                     {
-                        double u = (ox + (sx + 0.5) / Samples - half) / scale, v = (oy + (sy + 0.5) / Samples - half) / scale;
+                        double u = (ox + (sx + 0.5) / samples - half) / scale, v = (oy + (sy + 0.5) / samples - half) / scale;
                         // The turn undone: the icon's (u, v) is the picture's +x along (1, −1)/√2 and +y along (1, 1)/√2.
                         int x = (int)Math.Floor(middleX + (u - v) / Math.Sqrt(2)), y = (int)Math.Floor(middleY + (u + v) / Math.Sqrt(2));
                         if (x < 0 || y < 0 || x >= width || y >= height) continue;
@@ -46,7 +48,7 @@ public static class ToolIcon
                 icon[o] = (byte)((red + alpha / 2) / alpha);
                 icon[o + 1] = (byte)((green + alpha / 2) / alpha);
                 icon[o + 2] = (byte)((blue + alpha / 2) / alpha);
-                icon[o + 3] = (byte)((alpha + Samples * Samples / 2) / (Samples * Samples));
+                icon[o + 3] = (byte)((alpha + samples * samples / 2) / (samples * samples));
             }
         Bleed(icon, side);
         return icon;

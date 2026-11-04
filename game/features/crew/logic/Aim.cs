@@ -322,14 +322,28 @@ public static class Aiming
     /// <summary>
     /// The square of side <paramref name="side"/> the hero of peer <paramref name="peer"/> works at <paramref name="point"/>
     /// (power-driver), with its <see cref="WorkTargets"/>: only while it holds a plan, a mark or a broken machine; over nothing,
-    /// none, and the pointer aims at one cell as the screwdriver's does.
+    /// none, and the pointer aims at one cell as the screwdriver's does. None too while the pointer's own work,
+    /// <paramref name="under"/>, is a thing of its own (<see cref="IsWhole"/>): a station is aimed at whole, as by the screwdriver.
     /// </summary>
     public static ((int X, int Y, int[] Cells) Square, List<WorkAim> Targets)? WorkedSquare(Registry m, int peer, Hero hero,
-        (double X, double Y) point, int side)
+        (double X, double Y) point, int side, WorkAim? under = null)
     {
-        if (side < 2 || SquareAt(m.Grid.Width, m.Grid.Height, point, side) is not { } square) return null;
+        if (side < 2 || under is { } own && IsWhole(m, own)) return null;
+        if (SquareAt(m.Grid.Width, m.Grid.Height, point, side) is not { } square) return null;
         var targets = WorkTargets(m, peer, hero, square.Cells);
         return targets.Count > 0 ? (square, targets) : null;
+    }
+
+    /// <summary>
+    /// Whether <paramref name="work"/> is on a thing larger than its cell, worked as one: a machine's blueprint, mark or repair,
+    /// or a piece of several cells, a ladder or a doorway (0104).
+    /// </summary>
+    public static bool IsWhole(Registry m, WorkAim work)
+    {
+        if (work.Repair != null) return true;
+        if (m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan) is not { } plan) return false;
+        if (plan.Place is { } place) return place.Layer == "machine" || m.Grid.Footprint(place.Kind, plan.Cell) is { Count: > 1 };
+        return plan.Clear == "machine" || plan.Clear == "structure" && m.Grid.PieceOf(plan.Cell).Count > 1;
     }
 
     /// <summary>

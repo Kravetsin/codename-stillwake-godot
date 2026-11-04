@@ -203,6 +203,8 @@
   }
   /** The one line of every subject, in world pixels: heavy outside, thin between shapes, thinner on panels. */
   const LINE = { outer: 0.9, edge: 0.26, panel: 0.14 };
+  // A held tool's icon picture is drawn this many pixels along, so the board's card and a zoomed note fit it down, never up.
+  const ICON_LONG = 384;
   /** The one light of the world: from the upper left. The hero's comes from the way it faces and mirrors with it. */
   const LIGHT = [-0.6, -0.8];
   /**
@@ -223,6 +225,6 @@
     cx.drawImage(I, 0, 0);
     return boxDown(C, K);
   }
-  window.Anime = { ell, rr, poly, star, rng, P, canvas, bake, boxDown, LINE, LIGHT, INK };
+  window.Anime = { ell, rr, poly, star, rng, P, canvas, bake, boxDown, LINE, LIGHT, INK, ICON_LONG };
   window.Subjects = {};
 })();
