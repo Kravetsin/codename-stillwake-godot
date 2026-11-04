@@ -24,10 +24,12 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// Each bay whose turn it is, in id order, launches its first docked drone charged to <c>LaunchAt</c> on the job
-    /// found from the bay, when its charge covers it; launching none, it tries a salvage drone (<see cref="LookOut"/>).
+    /// found from the bay, when its charge covers it; launching none, it tries a salvage drone (<see cref="LookOut"/>). First the
+    /// air kept by bays taken apart is gone.
     /// </summary>
     private void Look()
     {
+        ForgetGoneBays();
         foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
         {
             if ((State.Ticks + bay.Id) % BayOf(bay).LookEvery != 0) continue;
@@ -91,8 +93,9 @@ public sealed partial class LogisticsModule
     /// <summary>
     /// A tick of one drone: it pays the tick's draw from its charge, and a salvage drone a tick of its air, then flies.
     /// Ahead blocked, it turns back to the centre it left. At a centre it acts: in a cell it may not be in, its bay gone,
-    /// or with no way home it drops where it is; in its goal it arrives; on a job whose goal it can no longer reach, or
-    /// with no more charge, or air, than the way home and <see cref="Spare"/> cells, it turns home, its cargo with it;
+    /// or with no way home it drops where it is; in its goal it arrives; a salvage drone whose target it can no longer reach
+    /// drops it for the next (<see cref="NextOut"/>); on a job whose goal it can no longer reach, or with no more charge, or
+    /// air, than the way home and <see cref="Spare"/> cells, it turns home, its cargo with it;
     /// else it takes the first step of a path found from here. Between centres it moves on.
     /// </summary>
     private void Fly(Drone d)
@@ -148,6 +151,12 @@ public sealed partial class LogisticsModule
                 {
                     Drop(d);
                     return;
+                }
+                if (salvage && step < 0 && d.Leg == Leg.Source)
+                {
+                    // Its target out of reach from here, under the hull, say: dropped for the next, never followed.
+                    NextOut(d, bay);
+                    continue;
                 }
                 if (d.Leg != Leg.Home && (step < 0 || d.Stack.Charge < Cost(bay, home + Spare) || (salvage && d.Air < TicksOver(bay, home + Spare))))
                 {
@@ -217,20 +226,24 @@ public sealed partial class LogisticsModule
         }
     }
 
-    /// <summary>Drone <paramref name="d"/> home: docked in the first free slot of its bay, or laid down where it is with none, what it carries laid there.</summary>
+    /// <summary>
+    /// Drone <paramref name="d"/> home: docked in the first free slot of its bay, or laid down where it is with none, what it
+    /// carries laid there; a salvage drone's air left kept by the bay (salvage-trips).
+    /// </summary>
     private void Dock(Drone d, Machine bay)
     {
+        if (d.Air > 0) Keep(bay.Id, KeptBy(bay.Id) + d.Air);
         if (_itemsOps.PutIn(bay.Id, d.Stack) > 0) _itemsOps.LayDown(d.Stack, d.Cell);
         LayCarried(d, d.Cell);
         State.Drones.Remove(d);
     }
 
-    /// <summary>What drone <paramref name="d"/> carries, its cargo and a salvage drone's load, laid on <paramref name="cell"/>.</summary>
+    /// <summary>What drone <paramref name="d"/> carries, its cargo and a salvage drone's load, laid on <paramref name="cell"/>: its net emptied.</summary>
     private void LayCarried(Drone d, int cell)
     {
         if (d.Cargo is { } cargo) _itemsOps.LayDown(cargo, cell);
         foreach (var stack in d.Loaded) _itemsOps.LayDown(stack, cell);
-        (d.Cargo, d.Load) = (null, null);
+        (d.Cargo, d.Load, d.Net) = (null, null, null);
     }
 
     /// <summary>

@@ -699,7 +699,7 @@ public partial class ContentTests
     {
         var item = Content.Items.Get(Content.Logistics.SalvageDrone);
         Assert.Equal((1, Charge.Drone, ItemGroup.Other), (item.Stack, item.Capacity, item.Group));
-        Assert.Equal([("nozzle", 2), ("tube", 2), ("plate", 3), ("circuit", 2)], Crafts.Get(Content.Logistics.SalvageDrone).Cost);
+        Assert.Equal([("nozzle", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Crafts.Get(Content.Logistics.SalvageDrone).Cost);
         Assert.Contains(Stations.Get("assembler").Rows, row => row.Contains(Content.Logistics.Drone) && row.Contains(Content.Logistics.SalvageDrone));
         Assert.Null(Market.PriceOf(Content.Logistics.SalvageDrone));
         var block = Content.Research.Node(Content.Logistics.SalvageDrone)!;

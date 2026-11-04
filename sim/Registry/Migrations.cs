@@ -104,6 +104,25 @@ public static class Migrations
             }
             return root;
         },
+        // 48 → 49 (2026-11-04-salvage-trips): a salvage drone's net holds several catches, each kept for its look; the piece
+        // it caught moves from its target and its kind into the net, a stack it lifted in as its item.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var drone in slices["logistics"]?["drones"]?.AsArray() ?? [])
+                {
+                    var d = drone!.AsObject();
+                    if (d["caught"] is { } caught)
+                    {
+                        d["net"] = new JsonArray(new JsonObject { ["kind"] = caught.GetValue<string>(), ["piece"] = d["piece"]?.GetValue<int>() ?? 0 });
+                        d.Remove("caught");
+                        d.Remove("piece");
+                    }
+                    else if (d["load"] is JsonArray { Count: > 0 } load)
+                        d["net"] = new JsonArray(new JsonObject { ["kind"] = load[0]!["item"]!.GetValue<string>(), ["piece"] = 0 });
+                }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

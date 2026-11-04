@@ -80,7 +80,7 @@ public static class Research
                 Up("bag9"),
                 Up("tradeSlots6"),
                 Up("canister1"),
-                ("salvageDrone", 4)),
+                ("salvageDrone", 3)),
             new("order5", [("copper", 20), ("mica", 10), ("hide", 5)],
                 Up("bag10"),
                 Up("bag11"),

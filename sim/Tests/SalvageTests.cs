@@ -3,6 +3,7 @@ using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Logistics;
+using Stillwake.Sim.Rooms;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 using Move = Stillwake.Sim.Items.Move;
@@ -241,7 +242,8 @@ public class SalvageTests
         var piece = Drift(w, "cargoCrate", 32, 6);
         Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Loaded.Count > 0), 400));
         var d = Salvaging(w).Single();
-        Assert.Equal(("cargoCrate", piece.Id), (d.Caught, d.Piece));
+        Assert.Equal([new Netted("cargoCrate", piece.Id)], d.Caught);
+        Assert.Equal(0, d.Piece);
         var found = w.M.Debris.Found.Single(f => f.Kind == "cargoCrate");
         Assert.Equal(d.Loaded.Select(s => s.Item).Distinct(), found.Seen);
         Assert.Null(w.M.Debris.CaughtFrom(piece.Id));
@@ -453,25 +455,39 @@ public class SalvageTests
 
     // Air.
 
-    [Fact]
-    public void OneCanisterALaunchGivesTripAirTicks()
+    /// <summary>The air bay of <paramref name="w"/> keeps for its salvage drones.</summary>
+    internal static int Kept(Scenario w) => ((LogisticsState)w.M.Logistics.Slice).Air.SingleOrDefault()?.Air ?? 0;
+
+    /// <summary>Sets the air bay of <paramref name="w"/> keeps to <paramref name="air"/>.</summary>
+    private static void Keep(Scenario w, int air)
     {
+        var kept = ((LogisticsState)w.M.Logistics.Slice).Air;
+        kept.Clear();
+        if (air > 0) kept.Add(new BayAir(Bay(w), air));
+    }
+
+    [Fact]
+    public void ACanisterOpenedOnNoAirKeptGivesFiveMinutesOfFlight()
+    {
+        Assert.Equal(5 * 60 * World.TicksPerSecond, Tune.TripAir);
         var w = Out();
         Drift(w, "scrapChunk", 32, 6);
         Assert.True(RunUntil(w, () => Salvaging(w).Any(), 20));
         var d = Salvaging(w).Single();
-        Assert.Equal((Tune.TripAir, 2), (d.Air, Canisters(w)));
+        Assert.Equal((Tune.TripAir, 2, 0), (d.Air, Canisters(w), Kept(w)));
         w.Run();
         Assert.Equal(Tune.TripAir - 1, d.Air);
     }
 
     [Fact]
-    public void OnOneCanisterItMakesTripAfterTripThenTurnsHomeLowWithTheWayHomeAndSpareLeft()
+    public void OnItsAirItMakesTripAfterTripThenTurnsHomeLowWithTheWayHomeAndSpareLeft()
     {
         var w = Out(canisters: 1);
         for (int i = 0; i < 10; i++) Drift(w, "scrapChunk", 30 + (i % 4) * 2, 2 + i);
         Assert.True(RunUntil(w, () => Salvaging(w).Any(), 20));
         var d = Salvaging(w).Single();
+        // Fifteen seconds of it, short of every piece.
+        d.Air = 300;
         bool low = false;
         int air = 0;
         Assert.True(RunUntil(w, () =>
@@ -479,31 +495,148 @@ public class SalvageTests
             if (!low && LogisticsModule.Low(d)) (low, air) = (true, d.Air);
             return Home(w);
         }, 2000));
-        Assert.True(low);
+        Assert.True(low, $"air {d.Air} leg {d.Leg} caught {Held(w, Near(w), "scrapChunk") + Held(w, Far(w), "scrapChunk")} floor {w.M.Items.Floor.Count} docked {Docked(w)}");
         int caught = Held(w, Near(w), "scrapChunk") + Held(w, Far(w), "scrapChunk");
         Assert.InRange(caught, 3, 9);
         Assert.Equal(10 - caught, w.M.Debris.Pieces.Count);
-        // It turned with the way home and the spare to fly on: it docked, nothing on the floor.
+        // It turned with the way home and the spare to fly on: it docked, nothing on the floor, what it had left kept.
         Assert.True(air > 0);
         Assert.Equal((0, 1), (Canisters(w), Docked(w)));
         Assert.Empty(w.M.Items.Floor);
+        Assert.InRange(Kept(w), 1, air);
     }
 
     [Fact]
-    public void LeftoverAirIsLostOnDocking()
+    public void AirLeftIsKeptOnDockingAndTheNextLaunchTakesItWithoutACanister()
     {
         var w = Out();
         Drift(w, "scrapChunk", 32, 6);
         Assert.True(RunUntil(w, () => Salvaging(w).Any(), 20));
         var first = Salvaging(w).Single();
         Assert.True(RunUntil(w, () => Home(w), 600));
-        Assert.True(first.Air > 0);
         Assert.Equal(Salvager(w.M.Items.Crate(Bay(w))[0]!.Charge), w.M.Items.Crate(Bay(w))[0]);
+        Assert.True(first.Air is > 0 and < Tune.TripAir);
+        Assert.Equal((first.Air, 2), (Kept(w), Canisters(w)));
 
-        // The next launch takes another canister and a whole canister's air.
+        // The next launch opens no canister and takes all the air kept.
         Drift(w, "scrapChunk", 32, 6);
         Assert.True(RunUntil(w, () => Salvaging(w).Any(), 20));
-        Assert.Equal((Tune.TripAir, 1), (Salvaging(w).Single().Air, Canisters(w)));
+        Assert.Equal((first.Air, 2, 0), (Salvaging(w).Single().Air, Canisters(w), Kept(w)));
+    }
+
+    [Fact]
+    public void ACanisterIsOpenedOnlyWhenTheAirKeptCannotCoverTheTrip()
+    {
+        // Ten ticks kept, short of the trip: a canister opened, its air added to what was kept.
+        var w = Out();
+        Keep(w, 10);
+        Drift(w, "scrapChunk", 32, 6);
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(), 20));
+        Assert.Equal((Tune.TripAir + 10, 2, 0), (Salvaging(w).Single().Air, Canisters(w), Kept(w)));
+
+        // Enough kept: no canister, though there are some.
+        var v = Out();
+        Keep(v, 500);
+        Drift(v, "scrapChunk", 32, 6);
+        Assert.True(RunUntil(v, () => Salvaging(v).Any(), 20));
+        Assert.Equal((500, 3, 0), (Salvaging(v).Single().Air, Canisters(v), Kept(v)));
+
+        // Enough kept and no canister: it flies on the air kept.
+        var u = Out(canisters: 0);
+        Keep(u, 500);
+        Drift(u, "scrapChunk", 32, 6);
+        Assert.True(RunUntil(u, () => Salvaging(u).Any(), 20));
+        Assert.Equal((500, 0), (Salvaging(u).Single().Air, Kept(u)));
+
+        // Too little kept and no canister: no launch, nothing spent.
+        var s = Out(canisters: 0);
+        Keep(s, 10);
+        Drift(s, "scrapChunk", 32, 6);
+        for (int i = 0; i < 200; i++) Assert.Empty(s.Run().M.Logistics.Drones);
+        Assert.Equal((10, 1), (Kept(s), Docked(s)));
+    }
+
+    [Fact]
+    public void ABayTakenApartLosesTheAirItKept()
+    {
+        var w = Out();
+        Keep(w, 900);
+        w.Do(new ClearAt(w.M.Grid.MachineById(Bay(w))!.Cell, "machine")).Run();
+        Assert.Empty(w.M.Grid.MachinesOf(Tune.Bay));
+        Assert.Empty(((LogisticsState)w.M.Logistics.Slice).Air);
+    }
+
+    // The net.
+
+    [Fact]
+    public void TheNetHoldsFourCatchesThenGoesToTheCratesAndOnForTheRest()
+    {
+        var w = Out();
+        foreach (int i in Enumerable.Range(0, 6)) Drift(w, i % 2 == 0 ? "scrapChunk" : "hullPlate", 29 + i, 4 + i % 3);
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(), 20));
+        var d = Salvaging(w).Single();
+        var legs = new List<(Leg Leg, int Caught)>();
+        Assert.True(RunUntil(w, () =>
+        {
+            Assert.True(d.Caught.Count <= Tune.SalvageHolds);
+            if (legs.Count == 0 || legs[^1] != (d.Leg, d.Caught.Count)) legs.Add((d.Leg, d.Caught.Count));
+            return Home(w);
+        }, 3000));
+        // Four caught one after another, to the crate with all four, then the two left, and home.
+        Assert.Equal([(Leg.Source, 0), (Leg.Source, 1), (Leg.Source, 2), (Leg.Source, 3), (Leg.Target, 4), (Leg.Source, 0), (Leg.Source, 1), (Leg.Target, 2), (Leg.Home, 0)], legs);
+        Assert.Empty(w.M.Debris.Pieces);
+        int Both(string item) => Held(w, Near(w), item) + Held(w, Far(w), item);
+        Assert.Equal((3, 3), (Both("scrapChunk"), Both("hullPlate")));
+        Assert.Equal(2, Canisters(w));
+    }
+
+    [Fact]
+    public void ItsNetHoldsWhatItCaughtInCatchOrderAndALiftedStackAsOneByItsItem()
+    {
+        var w = Out();
+        var first = Drift(w, "cargoCrate", 29, 4);
+        var plate = Float(w, "plate", 6, 31, 4, still: true);
+        w.Run(Content.Floor.OwnPickupDelay);
+        var last = Drift(w, "scrapChunk", 33, 4);
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Leg == Leg.Target), 600));
+        var d = Salvaging(w).Single();
+        Assert.Equal([new Netted("cargoCrate", first.Id), new Netted("plate", 0), new Netted("scrapChunk", last.Id)], d.Caught);
+        Assert.Contains(new Stack("plate", 6), d.Loaded);
+        Assert.Equal(1, d.Loaded.Count(s => s.Item == "scrapChunk"));
+        Assert.True(RunUntil(w, () => Home(w), 600));
+        Assert.Empty(d.Caught);
+        Assert.Equal(6, Held(w, Near(w), "plate") + Held(w, Far(w), "plate"));
+        Assert.DoesNotContain(plate, w.M.Items.Floor);
+    }
+
+    [Fact]
+    public void ItDeliversEarlyWhenNoTargetIsLeftOrItsAirNoLongerCoversTheNext()
+    {
+        // Two pieces: both caught, then to the crate with two.
+        var w = Out();
+        Drift(w, "scrapChunk", 30, 4);
+        Drift(w, "scrapChunk", 32, 4);
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Leg == Leg.Target), 600));
+        Assert.Equal(2, Salvaging(w).Single().Caught.Count);
+
+        // Two more, its air at the first only enough to take it home by the crate: to the crate with one, then home low.
+        var v = Out();
+        Drift(v, "scrapChunk", 30, 4);
+        var beyond = Drift(v, "scrapChunk", 36, 12);
+        Assert.True(RunUntil(v, () => Salvaging(v).Any(), 20));
+        var d = Salvaging(v).Single();
+        Assert.True(RunUntil(v, () => d.Cell == Cell(29, 4), 300));
+        // From the piece's cell: on to the crate, across it and home, the spare, and a few cells more.
+        var near = v.M.Grid.MachineById(Near(v))!;
+        int Apart(int a, int b) => Math.Abs(a % Width - b % Width) + Math.Abs(a / Width - b / Width);
+        var spec = Content.Machines.Get("crate");
+        int cells = 1 + Apart(Cell(30, 4), near.Cell) + spec.Width + spec.Height - 2 + Apart(near.Cell, v.M.Grid.MachineById(Bay(v))!.Cell) + 4 + 6;
+        d.Air = (cells * 1000 + Tune.Speed - 1) / Tune.Speed;
+        Assert.True(RunUntil(v, () => d.Leg != Leg.Source, 10));
+        Assert.Equal((Leg.Target, 1), (d.Leg, d.Caught.Count));
+        Assert.True(RunUntil(v, () => Home(v), 600));
+        Assert.Contains(beyond, v.M.Debris.Pieces);
+        Assert.Equal(1, Held(v, Near(v), "scrapChunk") + Held(v, Far(v), "scrapChunk"));
     }
 
     // Delivery.
@@ -535,8 +668,7 @@ public class SalvageTests
     {
         var w = Out();
         Drift(w, "scrapChunk", 32, 6);
-        Drift(w, "scrapChunk", 34, 8);
-        Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Loaded.Count > 0), 400));
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Leg == Leg.Target), 400));
         foreach (int crate in new[] { Near(w), Far(w) })
             for (int i = 0; i < w.M.Items.Crate(crate).Count; i++) w.Put(i, new Stack("rock", Content.Items.Get("rock").Stack), crate: crate);
         Assert.True(RunUntil(w, () => Home(w), 600));
@@ -544,7 +676,8 @@ public class SalvageTests
         var near = w.M.Grid.MachineById(Near(w))!;
         Assert.Equal("scrapChunk", chunk.Item);
         Assert.InRange(chunk.Cell % Width, near.Cell % Width, near.Cell % Width + 3);
-        // The other piece waits: no crate has an empty slot.
+        // Another piece waits: no crate has an empty slot.
+        Drift(w, "scrapChunk", 34, 8);
         for (int i = 0; i < 200; i++) Assert.Empty(w.Run().M.Logistics.Drones);
         Assert.Single(w.M.Debris.Pieces);
         Assert.Equal(2, Canisters(w));
@@ -632,6 +765,41 @@ public class SalvageTests
 
     // Walls, drops, planets, saves.
 
+    [Fact]
+    public void APieceDriftingUnderTheHullOutOfReachIsDroppedForTheNextAndNeverTakenFromAfar()
+    {
+        // A keel closes the space under the hull off from the open space: walls, and floors at rows 12 and 13, space to rooms yet
+        // no way through for a drone. The piece a drone goes for drifts through the floor and on under the hull.
+        var w = Out();
+        foreach (int y in Enumerable.Range(8, 8))
+            w.Do(new Place(Cell(30, y), y is 12 or 13 ? new Placement("structure", "floor") : Placement.Wall()));
+        foreach (int x in new[] { 28, 29 }) w.Do(new Place(Cell(x, 8), Placement.Wall()));
+        w.Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(Cell(30, 12)));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(Cell(25, 12)));
+        var under = Drift(w, "scrapChunk", 31, 12);
+        var next = Drift(w, "scrapChunk", 36, 0);
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Cell % Width >= 28), 200));
+        var d = Salvaging(w).Single();
+        Assert.Equal(under.Id, d.Piece);
+        // Into the floor before the drone gets there, then under the hull: dropped at the next centre for the other piece.
+        under.Speed = 110;
+        Assert.True(RunUntil(w, () =>
+        {
+            Assert.Contains(under, w.M.Debris.Pieces);
+            return under.X < 29 * 1000 + 500 && d.Piece == next.Id && d.Leg == Leg.Source;
+        }, 60), $"still going for {d.Piece} on {d.Leg} at {d.Cell % Width},{d.Cell / Width}");
+        // Never taken from afar: only the other is caught, the one under the hull left drifting.
+        Assert.True(RunUntil(w, () =>
+        {
+            Assert.Contains(under, w.M.Debris.Pieces);
+            return Home(w);
+        }, 600));
+        Assert.Equal(1, Held(w, Near(w), "scrapChunk") + Held(w, Far(w), "scrapChunk"));
+        Assert.DoesNotContain(next, w.M.Debris.Pieces);
+    }
+
     /// <summary>A salvage drone out in space with the chunk it took, the door then walled up behind it.</summary>
     private static Scenario CutOff()
     {
@@ -709,7 +877,8 @@ public class SalvageTests
         Assert.Equal(w.World.Hash(), copy.Hash());
         var saved = m.Logistics.Drones.Single();
         var live = Salvaging(w).Single();
-        Assert.Equal((live.Air, live.Piece, live.Caught, live.Target), (saved.Air, saved.Piece, saved.Caught, saved.Target));
+        Assert.Equal((live.Air, live.Piece, live.Floor, live.Leg, live.Target), (saved.Air, saved.Piece, saved.Floor, saved.Leg, saved.Target));
+        Assert.Equal(live.Caught, saved.Caught);
         Assert.Equal(live.Loaded, saved.Loaded);
         for (int i = 0; i < 600; i++)
         {

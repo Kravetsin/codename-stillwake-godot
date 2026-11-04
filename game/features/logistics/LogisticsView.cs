@@ -24,7 +24,8 @@ namespace Stillwake.Game.Features.Logistics;
 /// Drones in the world without a word (0062): each flying drone its picture, lit with relief, following the sim on a
 /// spring, leaning, bobbing and swinging its cargo from its clamp (<see cref="Hover"/>), its eye and status lamp unlit
 /// over it; taking off from its pad and landing back on one. A salvage drone (salvage-drones) lifts on puffs of air
-/// (<see cref="Puffs"/>), bobbing only in the ship's air, and carries the piece it took in its net (<see cref="Grip"/>).
+/// (<see cref="Puffs"/>), bobbing only in the ship's air, and carries what it caught in its net (<see cref="Grip"/>,
+/// <see cref="NetPile"/>).
 /// A bay (<see cref="BayInk"/>): its docked drones on its arms, the lugs over their feet, each arm's lamps by its drone's
 /// charge, the fuel slot's canister, valve, vane and lamp, the beacon on its top while it has power. A bay's zone
 /// outlined, dashed sky, while its frame is open or a bay's card is in hand, where it would stand. Heard where they are:
@@ -91,7 +92,7 @@ public partial class LogisticsView : Node2D
         public Trail Trail { get; } = new();
         public Heard2D Loop { get; } = loop;
         public Puffs Puffs { get; } = new();
-        public Grip Grip { get; } = new(false);
+        public Grip Grip { get; } = new(0);
         public Whir Whir;
         public LoopEnvelope Thrust;
         public int Bay;
@@ -103,8 +104,9 @@ public partial class LogisticsView : Node2D
         public double Landed;
         public bool Low, Seen, Down;
         public (string Item, int Count)? Cargo;
-        /// <summary>What a salvage drone holds in its net: the piece's own picture, or the stack's icon; null for nothing.</summary>
-        public Texture2D? Held;
+        /// <summary>What a salvage drone holds in its net, in catch order: each piece's own picture, a stack's icon; read from <see cref="HeldFrom"/>.</summary>
+        public Texture2D[] Held = [];
+        public IReadOnlyList<Netted>? HeldFrom;
 
         public L.Motion Motion => Salvage ? SL.Drift : Look;
 
@@ -256,8 +258,8 @@ public partial class LogisticsView : Node2D
             (f.Seen, f.Low, f.Cargo) = (true, LogisticsModule.Low(d), cargo);
             if (f.Salvage)
             {
-                f.Held = HeldBy(d);
-                f.Grip.Step(delta, f.Held != null);
+                if (!ReferenceEquals(f.HeldFrom, d.Caught) || f.Held.Length != Math.Min(d.Caught.Count, Tune.SalvageHolds)) (f.Held, f.HeldFrom) = (HeldBy(d), d.Caught);
+                f.Grip.Step(delta, f.Held.Length);
             }
             // A salvage drone's "rotors" are the air holding it up: it bobs only in the ship's air.
             double spin = !f.Salvage || Aired(f.Hover.X, f.Hover.Y) ? 1 : 0;
@@ -297,12 +299,16 @@ public partial class LogisticsView : Node2D
         }
     }
 
-    /// <summary>What salvage drone <paramref name="d"/> holds: the piece it caught by its own picture, else the first stack it took; null for nothing.</summary>
-    private static Texture2D? HeldBy(Drone d)
+    /// <summary>What salvage drone <paramref name="d"/>'s net holds, in catch order, at most <c>SalvageHolds</c>: each piece by its own picture, a lifted stack by its item's icon.</summary>
+    private static Texture2D[] HeldBy(Drone d)
     {
-        if (d.Caught is { } caught)
-            return DebrisLooks.NameOf(caught, d.Piece) is { } name ? PixelArt.Picture(name) : ItemIcons.Icon(caught, Cell);
-        return d.Loaded.Count > 0 ? ItemIcons.Icon(d.Loaded[0].Item, Cell) : null;
+        var held = new Texture2D[Math.Min(d.Caught.Count, Tune.SalvageHolds)];
+        for (int i = 0; i < held.Length; i++)
+        {
+            var (kind, piece) = d.Caught[i];
+            held[i] = piece != 0 && DebrisLooks.NameOf(kind, piece) is { } name ? PixelArt.Picture(name) : ItemIcons.Icon(kind, Cell);
+        }
+        return held;
     }
 
     private static Vector2 At(Flier f) => new((float)f.Hover.X, (float)f.Hover.Y);
@@ -426,8 +432,8 @@ public partial class LogisticsView : Node2D
         }
         if (best < 0) return false;
         _filled.Remove((f.Bay, best, f.Salvage));
-        (f.Slot, f.Landed, f.Hold, f.Cargo, f.Low, f.Held) = (best, 0, 0, null, false, null);
-        f.Grip.Step(0, false);
+        (f.Slot, f.Landed, f.Hold, f.Cargo, f.Low, f.Held, f.HeldFrom) = (best, 0, 0, null, false, [], null);
+        f.Grip.Step(0, 0);
         return true;
     }
 
@@ -687,20 +693,28 @@ public partial class LogisticsView : Node2D
         _flying.DrawSetTransform(Vector2.Zero, 0, Vector2.One);
     }
 
-    /// <summary>A salvage drone in the air, as the pick page draws it: its net by its grip, the piece resting on the net's bottom, swung from its top.</summary>
+    /// <summary>
+    /// A salvage drone in the air, as the pick page draws it: its net by its grip, what it caught piled on the net's bottom
+    /// (<see cref="NetPile"/>), swung from the pile's top.
+    /// </summary>
     private void DrawSalvage(Flier f)
     {
         var body = BodyOf(f);
         var pose = f.Grip.Pose;
         _flying.DrawSetTransformMatrix(body);
         _flying.DrawTextureRect(PixelArt.Lit(pose == GripPose.Shut ? "salvage_fly_shut" : "salvage_fly_open"), SalvageFly, false);
-        if (f.Held is not { } held || pose == GripPose.Open) return;
-        var size = held.GetSize();
-        // Undoing the body's mirror, so the piece swings the world's way.
+        var held = f.Held;
+        if (held.Length == 0 || pose == GripPose.Open) return;
+        Span<(float W, float H)> sizes = stackalloc (float W, float H)[held.Length];
+        Span<(float X, float Y, float W, float H)> laid = stackalloc (float X, float Y, float W, float H)[held.Length];
+        for (int i = 0; i < held.Length; i++) sizes[i] = (held[i].GetWidth(), held[i].GetHeight());
+        float tall = NetPile.Lay(sizes, laid);
+        // Undoing the body's mirror, so the pile swings the world's way.
         float swing = Math.Clamp((float)f.Hover.Swing, -0.45f, 0.45f) * f.Hover.Face;
-        var pivot = new Vector2(SI.HoldX - SI.AnchorX, SI.HoldBottom - size.Y - SI.AnchorY);
+        var pivot = new Vector2(SI.HoldX - SI.AnchorX, SI.HoldBottom - tall - SI.AnchorY);
         _flying.DrawSetTransformMatrix(body * new Transform2D(swing, pivot));
-        _flying.DrawTextureRect(held, new Rect2(-size.X / 2, 0, size.X, size.Y), false);
+        for (int i = 0; i < held.Length; i++)
+            _flying.DrawTextureRect(held[i], new Rect2(laid[i].X, laid[i].Y + tall, laid[i].W, laid[i].H), false);
         _flying.DrawSetTransformMatrix(body);
         if (pose == GripPose.Shut) _flying.DrawTextureRect(PixelArt.Lit("salvage_front"), SalvageFly, false);
     }
