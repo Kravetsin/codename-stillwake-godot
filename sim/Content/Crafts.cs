@@ -59,8 +59,8 @@ public static class Crafts
         new("motor", [("rotor", 1), ("copper", 4), ("magnetite", 2)], Ticks: 180),
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
         new("drone", [("rotor", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
-        // A salvage drone (salvage-drones): nozzles and tubes for a canister's air where a drone has rotors.
-        new("salvageDrone", [("nozzle", 2), ("tube", 2), ("plate", 3), ("circuit", 2)], Ticks: 240),
+        // A salvage drone (salvage-drones, salvage-trips): the drone's craft with nozzles for a canister's air where it has rotors.
+        new("salvageDrone", [("nozzle", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),
         new("deckDrive", [("circuit", 3), ("rotor", 2), ("coil", 2)], Ticks: 300),
         // The engine's parts, the last made: a nozzle pressed of the ruins' heat-proof alloy lined with copper, and a fuel pump
         // of a motor at the Former; an igniter of a crystal's spark at the circuit assembler.

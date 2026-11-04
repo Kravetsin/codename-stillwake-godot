@@ -3,7 +3,7 @@
 - Status: accepted
 - Date: 2026-11-04
 - Supersedes: in [salvage-drones](2026-11-03-salvage-drones.md), one canister spent on every launch for 30 s, leftover air
-  lost on docking, one load a trip, and decided point 3
+  lost on docking, one load a trip, its craft and price, and decided point 3
 
 ## Context
 
@@ -27,6 +27,9 @@ flew one piece to the crates at a time, most of every trip spent going back and 
   left, or none it can afford, it delivers as before, then goes on. The drone saves what it caught, in order (`net`: the
   kind and the piece's id, or a stack's item); the client draws up to four pictures in its net in catch order, in rows of
   two, smaller the more, a lifted stack by its item's icon, and the net half shuts again at each catch.
+- **Its craft is the drone's with nozzles for rotors**: nozzle 2, plate 3, circuit 2, battery 1. It carries a charge, so it takes
+  a battery as the drone does; the tubes went, as the circuit assembler takes four kinds of input. The battery makes it
+  worth more, so its blueprint is three times its worth, not four, still within a fifth of the solar panel's.
 - Save format 49 turns a drone's saved `caught` and `piece` into its `net`.
 
 ## Decided

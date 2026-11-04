@@ -86,9 +86,9 @@ public partial class ContentTests
         Assert.Contains(holding, i => i.Id == Content.Logistics.Drone);
         Assert.Contains(Inventory.Equipment, kind => kind == Charge.Belt);
         // Paying never takes what holds charge, so no charge is lost to a recipe, a build or a cable; but the drone, whose
-        // battery becomes its own, and the accumulator, a battery wound round a shard (0099): made empty, as a crafted battery
+        // battery becomes its own (a salvage drone's too), and the accumulator, a battery wound round a shard (0099): made empty, as a crafted battery
         // is, the battery's charge is lost there.
-        string[] ofABattery = [Content.Logistics.Drone, "accumulator"];
+        string[] ofABattery = [Content.Logistics.Drone, Content.Logistics.SalvageDrone, "accumulator"];
         var costs = Crafts.All.Where(c => !ofABattery.Contains(c.Item)).Select(c => c.Cost)
             .Concat(AllBuilds().Select(b => b.Cost))
             .Append(Content.Power.CableCost);
