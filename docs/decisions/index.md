@@ -227,5 +227,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
 | [driver-icons](2026-11-04-driver-icons.md) | Tool icons from large pictures; no square over a whole thing | accepted |  |
+| [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
 | [hero-gait](2026-11-04-hero-gait.md) | The hero's gait | accepted |  |
+| [mode-glyph](2026-11-04-mode-glyph.md) | The power driver's mode by the arrow | accepted |  |
+| [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |

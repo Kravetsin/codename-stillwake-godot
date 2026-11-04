@@ -68,32 +68,35 @@ public static class Layers
     /// </summary>
     public const int Shimmer = Fire;
 
+    // The plan (building): blueprints and their marks and bars, over the world and under the heroes, who stand before them (driver-order).
+    public const int Plans = 11, PlanMarks = 12;
+
     // The crew: what E would work outlined, every tether, others' heroes, then this machine's.
-    public const int Aim = 11, Tethers = 12, OtherHeroes = 13, Hero = 14;
+    public const int Aim = 13, Tethers = 14, OtherHeroes = 15, Hero = 16;
 
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
-    public const int Drones = 15;
+    public const int Drones = 17;
 
     /// <summary>
     /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
     /// so a drill held close never hides what it bites.
     /// </summary>
-    public const int Dug = 15;
+    public const int Dug = 17;
 
     /// <summary>
     /// The tufts and chips of a planet's living edge laid before the heroes' feet (0082), thin enough that boots stand on the ground,
     /// not in it; with the cracks, which lie in the cell below.
     /// </summary>
-    public const int GroundFront = 15;
+    public const int GroundFront = 17;
 
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
-    public const int Glows = 16;
+    public const int Glows = 18;
 
     /// <summary>A venting room's pulse (atmosphere).</summary>
-    public const int Pulse = 17;
+    public const int Pulse = 19;
 
-    // The plan (building): blueprints, their marks and bars, the ghost of a drag, the hands at work.
-    public const int Plans = 19, PlanMarks = 20, PlanGhost = 21, PlanHands = 22;
+    // The plan (building): the ghost of a drag and the hands at work, over the heroes.
+    public const int PlanGhost = 21, PlanHands = 22;
 
     /// <summary>The power driver's square, over the pale ghosts of the plans it works, else lost under them (driver-square).</summary>
     public const int SquareAim = PlanMarks;

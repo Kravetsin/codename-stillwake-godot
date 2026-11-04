@@ -231,7 +231,7 @@ public static class Aiming
         bool inReach = Reaches(hero, cell, grid.Width);
 
         var plans = m.Building;
-        var here = plans.PlansAt(cell)
+        var here = BackFirst(plans.PlansAt(cell))
             .Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer)))
             .ToList();
         var work = here.FirstOrDefault(w => w.Problem == null) ?? here.FirstOrDefault();
@@ -321,18 +321,25 @@ public static class Aiming
 
     /// <summary>
     /// The square of side <paramref name="side"/> the hero of peer <paramref name="peer"/> works at <paramref name="point"/>
-    /// (power-driver), with its <see cref="WorkTargets"/>: only while it holds a plan, a mark or a broken machine; over nothing,
-    /// none, and the pointer aims at one cell as the screwdriver's does. None too while the pointer's own work,
-    /// <paramref name="under"/>, is a thing of its own (<see cref="IsWhole"/>): a station is aimed at whole, as by the screwdriver.
+    /// (power-driver), with its <see cref="WorkTargets"/> but whole things (<see cref="IsWhole"/>, driver-order): only while it holds
+    /// a plan or a mark of a cell; over nothing else, none, and the pointer aims at one cell as the screwdriver's does. None too
+    /// while the pointer's own work, <paramref name="under"/>, is whole: a station is aimed at whole, as by the screwdriver.
     /// </summary>
     public static ((int X, int Y, int[] Cells) Square, List<WorkAim> Targets)? WorkedSquare(Registry m, int peer, Hero hero,
         (double X, double Y) point, int side, WorkAim? under = null)
     {
         if (side < 2 || under is { } own && IsWhole(m, own)) return null;
         if (SquareAt(m.Grid.Width, m.Grid.Height, point, side) is not { } square) return null;
-        var targets = WorkTargets(m, peer, hero, square.Cells);
+        var targets = WorkTargets(m, peer, hero, square.Cells).Where(t => !IsWhole(m, t)).ToList();
         return targets.Count > 0 ? (square, targets) : null;
     }
+
+    /// <summary>
+    /// A cell's <paramref name="plans"/> in the order they are worked (driver-order): a back wall's blueprint first, the hull before
+    /// what stands in front of it, so a station planned before a meteor holed the wall never stands in the way of patching it; the
+    /// rest in the order made.
+    /// </summary>
+    public static IEnumerable<Plan> BackFirst(IEnumerable<Plan> plans) => plans.OrderBy(p => p.Place?.Layer != "back");
 
     /// <summary>
     /// Whether <paramref name="work"/> is on a thing larger than its cell, worked as one: a machine's blueprint, mark or repair,
@@ -349,7 +356,7 @@ public static class Aiming
     /// <summary>
     /// What a square's <paramref name="cells"/> give the left button to work, in their order: in each cell the hero of peer
     /// <paramref name="peer"/> reaches, each layer's oldest plan that can be worked (when none can, its oldest, to show why),
-    /// the front's before the back wall's, else a broken machine's repair (magnetic-flare), as <see cref="AimAt"/> chooses for
+    /// in <see cref="BackFirst"/>'s order, else a broken machine's repair (magnetic-flare), as <see cref="AimAt"/> chooses for
     /// one cell. A plan or machine under several cells is worked once, at the first. A cell with nothing, a crate or out of
     /// reach gives nothing and stops none of the others.
     /// </summary>
@@ -372,7 +379,7 @@ public static class Aiming
                     Add(new WorkAim(0, plans.RepairProblem(machine.Id), machine.Id));
                 continue;
             }
-            var layers = here.Select(p => p.Place?.Layer ?? p.Clear).Distinct().OrderBy(l => l == "back").ToList();
+            var layers = BackFirst(here).Select(p => p.Place?.Layer ?? p.Clear).Distinct().ToList();
             foreach (var layer in layers)
             {
                 var of = here.Where(p => (p.Place?.Layer ?? p.Clear) == layer).Select(p => new WorkAim(p.Id, plans.WorkProblem(p.Id, peer))).ToList();

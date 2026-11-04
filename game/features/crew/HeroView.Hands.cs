@@ -46,6 +46,10 @@ public partial class HeroView
         var targets = squared?.Targets;
         _ui.WorkedSquare = square?.Cells;
         var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim, driver?.Item);
+        // The power driver's mode by the arrow over the world: its square's dots, lit, one, or waiting for charge (mode-glyph).
+        bool marked = !passedOut && !seated && pointer != null && GetViewport().GuiGetHoveredControl() == null;
+        _glyph.Show(marked ? DriverMode.DotsOf(driver, _ui.DriverSquare.Get(), charged) : null,
+            pointer is { } tip ? GetCanvasTransform() * (new Vector2((float)tip.X, (float)tip.Y) * ShipCamera.Cell) : default);
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
         else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.

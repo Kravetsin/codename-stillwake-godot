@@ -69,15 +69,16 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
   hotbar. B slides it in and out (`TabletMotion`); put away it takes no input. Picking a card leaves it open; one
   taken by Q is scrolled into view; it opens on its last tab.
 - **Search** (0073, `/` or a click): every tab's known cards whose names hold the words. The field takes every key,
-  Enter or a click elsewhere ends typing, Esc clears first (`DropSearch`); a tab clicked or a card Q takes ends it; put away, it is forgotten.
+  Enter or a click elsewhere ends typing, Esc clears first (`DropSearch`); a tab or Q ends it; put away, it is forgotten.
 - **The hint** (`HintOf`): one line under the cards, cut by an ellipsis.
-- **Plans are ghosts** (0064, `PlanTiles`): their picture greyed, a little blue, unlit, back walls fainter, joined to what is planned and built beside them. Planned back walls draw just over the rooms' air
-  (`Layers.PlanBacks`), the rest over the ship. The ghost in hand is green where the sim takes it, red where not (0022).
+- **Plans are ghosts** (0064, `PlanTiles`): greyed, bluish, unlit, joined to what is planned and built beside them; back
+  walls fainter, just over the rooms' air (`PlanBacks`), the rest over the ship, under the heroes (driver-order). The
+  ghost in hand is green where the sim takes it, red where not (0022).
 - **Dashes** (0064): round each group of plans (walls, back walls, ladders, doors, hatches, floors; each machine
   alone) marching dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
   valves are not outlined, unless marked. Rebuilt only when plans, grid, zoom or screen change.
 - **A blueprint turns real as worked** (0063): from the bottom up (floors and conduits from the left), the cut at
-  `Progress / TicksFor`, a pixel at a time, by ticks; the real share lit, the
+  `Progress / TicksFor`, by ticks; the real share lit, the
   rest the ghost. No bars. No node, material or shader parameter per plan (`PlanCut`, `BuiltParts`).
 - **A mark** (0064) keeps its own picture in red dashes and turns into its red ghost from the top down as worked.
 - **A repair** (magnetic-flare): drawn as its machine's blueprint being built, by `RepairProgress`.

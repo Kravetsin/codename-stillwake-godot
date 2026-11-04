@@ -44,6 +44,7 @@ public partial class HeroView : Node2D
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
     private readonly FaceRim _faceRim = new();
+    private readonly ModeGlyph _glyph;
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
@@ -219,6 +220,7 @@ public partial class HeroView : Node2D
     public HeroView(Ui ui, WorldButtons mouse, HeroAutopilot? autopilot = null)
     {
         _ui = ui;
+        _glyph = new ModeGlyph(ui);
         _bodies = new BodyView(ui);
         // Plans placed: the planner in the hero's hand beams them in, cell by cell; the others see it beam at the first.
         _ui.Planned += cells =>
@@ -238,6 +240,7 @@ public partial class HeroView : Node2D
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_faceRim);
+        AddChild(_glyph);
         AddChild(_prompt);
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.

@@ -1,8 +1,7 @@
 # crew (client): the heroes
 
-This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here, and
-only E's presses, `Enter` reports, `PickColour`, `Thrust`, `Refill`, `SuitMode`, `Run`, `HitBy`, `Bolted` and the hands'
-commands reach the sim; others' heroes come through the host.
+This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here; only
+commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Others' heroes come through the host.
 
 ## Files
 
@@ -47,6 +46,8 @@ commands reach the sim; others' heroes come through the host.
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
 | `FaceRim.cs` | a tool's aim glow |
+| `ModeGlyph.cs` | the driver's mode mark |
+| `logic/DriverMode.cs` | its dots |
 | `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | the `Enter` report (0050) |
@@ -61,15 +62,15 @@ commands reach the sim; others' heroes come through the host.
 | `logic/Markers.cs` | markers' list and shape |
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies from floor stacks (0061) |
-| `BodyView.cs` | bodies, beacons, tips; gone, they crumble (0061) |
+| `BodyView.cs` | bodies, beacons, tips (0061) |
 | `logic/Rams.cs` | a creature's ram as met here (0103) |
 | `logic/Crew.En.cs` | its player text |
 | `logic/Crew.Ru.cs` | Russian |
 
 ## Guarantees
 
-- Lengths, speeds: thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`), drawn between; floats only in drawing.
+- Lengths and speeds are thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
+  (`Net.Clock`), drawn between.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089).
@@ -80,11 +81,11 @@ commands reach the sim; others' heroes come through the host.
 - **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
 - **Jump and walk feel** (0089): coyote time, jump buffer, a short hop on letting Space go, eased apex,
   `AirControl` aloft.
-- **The figure answers its motion** (0090, hero-gait), read from what is sent, so friends move alike.
+- **The figure answers its motion** (0090, hero-gait), as sent: friends move alike.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).
-- **Camera:** leads, eases height, snaps.
+- **Camera:** leads, eases, snaps.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
@@ -107,11 +108,12 @@ commands reach the sim; others' heroes come through the host.
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`); a builder twists a plan, or a motor (`Twist`, `Driven`).
+- **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`); the driver's
+  mode by the arrow (mode-glyph).
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
-- **One aim** (`Aiming.AimAt`): a plan, machine (its rise, 0099), tank, door or valve (E), a wreck under the
-  pointer, else the nearest small piece afloat. Outlined green or red; `UsePrompt` says why. Plan in hand: E idle.
+- **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
+  pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if it
   strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.
@@ -119,8 +121,8 @@ commands reach the sim; others' heroes come through the host.
 - **A gun:** a click sends `Fire` from the muzzle, each gun its own cooldown; one with `Charge` fires let go full; afloat
   a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
 - **The drill** (0054, 0055, one-arm-holds): left held sends `Run` till the sim runs it; it hits every `Pace` ticks.
-- **The power driver** (driver-at-work, driver-icons): runs at work only; charged, a 2×2 square over plans or marks,
-  a station whole (`WorkedSquare`), heard there (`BiteLoop`), its ratchet silent. Right click toggles.
+- **The power driver** (driver-at-work, driver-order): runs at work only; charged, a 2×2 square over plans or marks
+  of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump a foot short of a ledge is mantled.
 
