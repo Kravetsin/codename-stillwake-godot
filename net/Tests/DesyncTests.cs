@@ -690,7 +690,7 @@ public class DesyncTests(ITestOutputHelper output)
     {
         // The rule (docs/plans/board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
         // the first client's plates reach it and everyone's walk grants on the same tick, the joiner's too.
-        var layout = Layout.Parse(["##########", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
+        var layout = Layout.Parse(["##########", "#II......#", "#II......#", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
         static string Seeded(string save)
         {
             var root = JsonNode.Parse(save)!;

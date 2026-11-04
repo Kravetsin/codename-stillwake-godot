@@ -16,8 +16,8 @@ public class UnderstandingTests
     private static readonly Placement Bench = new("machine", "workbench");
 
     /// <summary>A bare room knowing what the wreck knows, with the map's own machines: <paramref name="row"/> its middle row.</summary>
-    private static Scenario Room(string row = "#........#") =>
-        new(Layout.Parse(["##########", row, "##########"], null) with { Known = Content.Research.StartKnown }, doubled: true);
+    private static Scenario Room(string row = "#........#", bool tall = false) =>
+        new(Layout.Parse(["##########", .. Enumerable.Repeat(row, tall ? 3 : 1), "##########"], null) with { Known = Content.Research.StartKnown }, doubled: true);
 
     private static IReadOnlyList<(string Item, int Count)> CostOf(Scenario w, string id) => w.M.Research.Recipes().Single(r => r.Id == id).Cost;
 
@@ -63,9 +63,10 @@ public class UnderstandingTests
     [Fact]
     public void ACraftWaitsForAMachineThatMakesIt()
     {
-        var w = Count(Room(), "wire").Run(5);
+        var w = Count(Room(tall: true), "wire").Run(5);
         Assert.False(w.M.Research.Knows("wire"));
-        w.Do(new Place(w.At(1, 1), Bench)).Run();
+        // Five cells tall, standing on the floor: its top a cell under the room's top block.
+        w.Do(new Place(w.At(1, 1) + w.M.Grid.Width, Bench)).Run();
         Assert.Empty(w.Refusals);
         Assert.True(w.M.Research.Knows("wire"));
     }
@@ -94,9 +95,9 @@ public class UnderstandingTests
     [Fact]
     public void AMachineGoneKeepsWhatItTaught()
     {
-        var w = Count(Room("#II......#"), "wire").Run();
+        var w = Count(Room("#II......#", tall: true), "wire").Run();
         Assert.True(w.M.Research.Knows("wire"));
-        w.Do(new ClearAt(w.At(1, 1), "machine")).Run(3);
+        w.Do(new ClearAt(w.At(1, 3), "machine")).Run(3);
         Assert.Empty(w.M.Grid.MachinesOf("workbench"));
         Assert.True(w.M.Research.Knows("wire"));
     }
@@ -117,8 +118,8 @@ public class UnderstandingTests
     [Fact]
     public void AWorldLoadedBeforeItsWalkGrantsTheSameAsOneThatRanOn()
     {
-        var live = Count(Room("#II......#"), "wire");
-        var loaded = Count(Room("#II......#"), "wire").Reload();
+        var live = Count(Room("#II......#", tall: true), "wire");
+        var loaded = Count(Room("#II......#", tall: true), "wire").Reload();
         live.Run();
         loaded.Run();
         Assert.True(loaded.M.Research.Knows("wire"));

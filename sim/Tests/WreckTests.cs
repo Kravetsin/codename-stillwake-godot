@@ -223,7 +223,7 @@ public class WreckTests
         Assert.True(w.M.Items.Totals(0).Single(t => t.Item == "iron").Count >= 2);
 
         // A workbench of salvage; wire and a plate, crafts the wreck grants, of what was smelted.
-        int bench = Build(w, "workbench", At(48, 19));
+        int bench = Build(w, "workbench", At(48, 16));
         CraftAtBench(w, bench, "wire");
         CraftAtBench(w, bench, "plate");
         Assert.Empty(w.Refusals);

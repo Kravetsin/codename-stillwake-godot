@@ -24,8 +24,8 @@ public class StationsTests
         "   PPP   PPP   PPP PPP   ",
         "                         ",
         "#########################",
-        "#.......OOO.........gg..#",
-        "#FF.TT..OOOMM.EE.YY.gg..#",
+        "#.......OOO.........ggII#",
+        "#FF.TT..OOOMM.EE.YY.ggII#",
         "#FF.TTV.OOOMM.EE.YY.ggII#",
         "#########################",
     ];

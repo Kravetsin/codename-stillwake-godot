@@ -123,6 +123,21 @@ public static class Migrations
                 }
             return root;
         },
+        // 49 → 50 (2026-11-04-footprint-is-the-picture): the workbench stands five cells tall, its whole picture, where it stood
+        // two with three drawn over the cells above; one built or planned keeps its floor, its top three rows up.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                int up = 3 * slices["grid"]!["width"]!.GetValue<int>();
+                foreach (var machine in slices["grid"]!["machines"]!.AsArray())
+                    if (machine!["kind"]!.GetValue<string>() == "workbench") machine["cell"] = machine["cell"]!.GetValue<int>() - up;
+                foreach (var plan in slices["building"]?["plans"]?.AsArray() ?? [])
+                    if (plan!["place"] is { } place && place["layer"]?.GetValue<string>() == "machine" && place["kind"]?.GetValue<string>() == "workbench")
+                        plan["cell"] = plan["cell"]!.GetValue<int>() - up;
+            }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

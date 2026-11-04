@@ -19,12 +19,12 @@ public class PowerDriverTests
     private const string Room = """
         ##########
         #........#
-        #.OOO....#
-        #.OOO....#
+        #.OOO..II#
+        #.OOO..II#
         #.OOOKKII#
         ##########
         """;
-    private const int Bench = 3;
+    private const int Bench = 2;
 
     private static string[] Reasons(Scenario w) => [.. w.Refusals.Select(r => r.Reason)];
 

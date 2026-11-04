@@ -82,7 +82,7 @@ public class CountsTests
     /// <summary>A room with a workbench and no power, knowing everything.</summary>
     private static (Scenario W, int Bench) Workshop()
     {
-        var w = new Scenario(Layout.Parse(["##########", "#II......#", "##########"]), doubled: true);
+        var w = new Scenario(Layout.Parse(["##########", "#II......#", "#II......#", "#II......#", "##########"]), doubled: true);
         return (w, w.M.Grid.MachinesOf("workbench").Single().Id);
     }
 

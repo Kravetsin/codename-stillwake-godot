@@ -182,7 +182,7 @@ public static class Machines
         // The debris net (docs/decisions/2026-11-03-debris-net.md): hung on the bow, its cells in space, it holds the small pieces drifting into it.
         new("net", 2, 6, [], [("wire", 6), ("tube", 4)], BuildTicks: 80, Has: MachineTrait.Catches, Menu: new(MenuTabs.Storage, 15), Char: 'n', Means: "debris net: draw its whole footprint, in space, a hull wall left of every row"),
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
-        new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),
+        new("workbench", 4, 5, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
         // Its input, its fuel, then three outputs.
         new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so

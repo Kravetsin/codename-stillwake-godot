@@ -17,13 +17,13 @@ public class CraftingTests
     private const string Room = """
         ##########
         #........#
-        #.OOO....#
-        #.OOO....#
+        #.OOO..II#
+        #.OOO..II#
         #.OOOKKII#
         ##########
         """;
     /// <summary>The crate's machine id and the workbench's, by their top-left cells in reading order.</summary>
-    private const int Crate = 2, Bench = 3;
+    private const int Crate = 3, Bench = 2;
     private static readonly Content.Station BenchStation = Content.Stations.Get("workbench");
     private static readonly int BenchSpeed = BenchStation.Speed, QueueMost = BenchStation.QueueMost;
     private static readonly int Wire = Crafts.Get("wire").Ticks * 1000 / BenchSpeed;
@@ -46,6 +46,19 @@ public class CraftingTests
     private static Scenario Craft(Scenario w, string recipe, int count = 1, int from = 0, int at = Bench) =>
         w.Do(new Craft(at, recipe, count) { From = from }).Run();
     private static Scenario Cancel(Scenario w, int entry, int from = 0, int at = Bench) => w.Do(new Cancel(at, entry) { From = from }).Run();
+
+    [Fact]
+    public void TheWorkbenchTakesItsWholePictureFiveCellsTallSoNothingIsBuiltInIt()
+    {
+        // Drawn three characters tall on the floor, its top row of cells open: its whole 32x40 picture, nothing over it.
+        var w = World();
+        int width = w.M.Grid.Width, top = w.At(7, 2) + width;
+        Assert.Equal(top, w.M.Grid.Machines.Single(m => m.Id == Bench).Cell);
+        Assert.Equal(Enumerable.Range(0, 5).SelectMany(y => Enumerable.Range(0, 4).Select(x => top + y * width + x)), w.M.Grid.Footprint("workbench", top)!.Order());
+        foreach (int row in new[] { 0, 1, 2 })
+            Assert.Equal("grid.machineInTheWay", w.M.Grid.PlacementProblem(top + row * width, new Grid.Placement("machine", "lamp")));
+        Assert.Null(w.M.Grid.PlacementProblem(top - 2 * width, new Grid.Placement("machine", "lamp")));
+    }
 
     [Fact]
     public void MakesAWireAtTheWorkbenchInFiveTimesItsTicksWithNoPowerPayingWhenQueued()
