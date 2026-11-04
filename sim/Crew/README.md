@@ -88,7 +88,7 @@ hero's own air elsewhere; passing out when it runs dry, made again at the pod.
 - Air holds between nothing and capacity, through swaps, thrust, canisters and cold (`SuitsTests`, `FieldTests`).
 - `EdgeCost` is 0 inside the field, never less farther out, never over `Field.EdgeCost` (`FieldTests`).
 - Heroes are in id order, one per peer.
-- While heroes are no more than colours, no two wear one, on any surfaces.
+- While heroes are no more than colours (six, `Content.Crew.Colours`), no two wear one, on any surfaces.
 - A seat's hero is on its surface (`World.SurfaceOf`) and no other (`SurfacesTests`).
 
 ## Deliberately not handled
