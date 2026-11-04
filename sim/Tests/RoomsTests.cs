@@ -48,6 +48,33 @@ public class RoomsTests
     }
 
     [Fact]
+    public void FloatsWhatIsInARoomWhereItsCellHasNoBackWallAndHoldsItThere()
+    {
+        // Walls all round, back walls on the right half only: gravity where a back wall is, none before the stars.
+        var w = new Scenario("""
+            ............
+            .##########.
+            .#    ....#.
+            .#    ....#.
+            .#    ....#.
+            .#    ....#.
+            .##########.
+            ............
+            """, cells: true);
+        Assert.NotEqual(RoomsModule.Space, w.M.Rooms.RoomAt(w.At(3, 3)));
+        Assert.True(w.M.Rooms.Afloat(w.At(3, 3)));
+        Assert.False(w.M.Rooms.Afloat(w.At(7, 3)));
+        // A stack dropped there floats where it is: inside the ship, it drifts nowhere.
+        int cell = w.At(3, 3);
+        w.Do(new Crew.Enter(cell)).GiveItems(0, ("plate", 3)).Do(new Items.Drop(new Items.Place(0), 3, cell, 0) { From = 0 }).Run();
+        var dropped = Assert.Single(w.M.Items.Floor);
+        w.Run(600);
+        var after = Assert.Single(w.M.Items.Floor);
+        Assert.Equal((dropped.X, dropped.Y), (after.X, after.Y));
+        Assert.True(w.M.Rooms.Afloat(after.Cell));
+    }
+
+    [Fact]
     public void FindsASealedRoomWithTheHullItLeaksThroughAndNoOpenings()
     {
         var w = new Scenario("""

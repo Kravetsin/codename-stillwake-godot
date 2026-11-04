@@ -32,7 +32,7 @@ public readonly record struct HeroInput(
 /// <summary>
 /// The cells the hero moves against; which of them are space, where the
 /// hero floats; and which are the hull, where a tether is not yet needed: any cell with a structure or a back
-/// wall, aired or not. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
+/// wall, aired or not, or in a room. <paramref name="gravity"/> is what a fall gains a step, the ship's unless its surface's
 /// kind scales it (0076): a planet's lower one, where nothing floats, lets the hero jump higher and farther.
 /// </summary>
 public sealed class Ship(
@@ -79,7 +79,8 @@ public sealed class Ship(
     {
         var kind = rules ?? Stillwake.Content.Surfaces.Ship;
         return new(grid.Width, grid.Height, structureAt ?? grid.StructureAt, rooms.Afloat,
-            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null,
+            cell => (structureAt ?? grid.StructureAt)(cell) != Structure.Empty || grid.BackAt(cell) != null
+                || rooms.RoomAt(cell) is int room && room != Stillwake.Sim.Rooms.RoomsModule.Space,
             kind.Fall(Spec.Gravity), kind.Floats ? Spec.FallGravity : Spec.PlanetFallGravity, Shared.FogEdges.Of(grid, kind));
     }
 }
