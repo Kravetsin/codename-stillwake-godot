@@ -19,14 +19,14 @@ public static class HeroMotion
     }
 
     /// <summary>
-    /// The run: the body leans <see cref="Lean"/> radians in and rises <see cref="Bounce"/> pixels in each stride's flight,
-    /// both feet off the floor; the free arms pump <see cref="Pump"/> radians either way; the head takes back
-    /// <see cref="HeadSteady"/> of the body's lean on the floor, so it looks ahead rather than at the floor. Running backward
-    /// it leans back <see cref="BackLean"/>.
+    /// The run: the body leans <see cref="Lean"/> radians in and rides <see cref="Bounce"/> pixels higher between steps than
+    /// mid-step, where the knee gives <see cref="Give"/> pixels more than the lower step needs; the free arms pump
+    /// <see cref="Pump"/> radians either way; the head takes back <see cref="HeadSteady"/> of the body's lean on the floor, so
+    /// it looks ahead rather than at the floor. Running backward it leans back <see cref="BackLean"/>.
     /// </summary>
     public static class Run
     {
-        public const double Lean = 0.3, Bounce = 1.5, Pump = 0.65, HeadSteady = 0.5, BackLean = 0.15;
+        public const double Lean = 0.3, Bounce = 1.5, Give = 0.3, Pump = 0.65, HeadSteady = 0.5, BackLean = 0.15;
     }
 
     /// <summary>

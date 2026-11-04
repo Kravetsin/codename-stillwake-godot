@@ -183,12 +183,41 @@ public class PoseTests
     {
         var deep = LimbsOf(Pose.Stand, Standing, At(0) with { Landing = 2.0 / 3 });
         Assert.True(deep.Lift < -Land.Sink * 0.9, $"{deep}");
-        // The hips come down by the sink, the boots on the floor, flat or rolled onto their toes.
+        // The hips come down by the sink, the boots on the floor.
         Close(-Land.Sink, deep.Lift, 2);
         Assert.True(Math.Abs(Soles(deep).Max(p => p.Y)) < 0.05);
         Assert.True(deep.FrontLeg.Lower < -0.3);
         var done = LimbsOf(Pose.Stand, Standing, At(0) with { Landing = 0 });
         Assert.True(done.Lift > -1);
+    }
+
+    [Theory]
+    [InlineData(HeroMotion.Landing.Least)]
+    [InlineData(1)]
+    [InlineData(HeroMotion.Landing.Most)]
+    public void LandsOnFlatBootsNeverOnItsToes(double depth)
+    {
+        // Folded deep, the boots rolled onto their toes, and it looked as if the hero landed on tiptoe: the feet go further
+        // ahead instead, so the shins stand within how far an ankle turns.
+        for (int i = 0; i <= 20; i++)
+        {
+            var l = LimbsOf(Pose.Stand, Standing, At(0) with { Landing = i / 20.0, Momentum = new Momentum(Depth: depth) });
+            var soles = Soles(l).ToList();
+            for (int foot = 0; foot < 2; foot++)
+                Assert.True(Math.Abs(soles[2 * foot].Y) < 0.3 && Math.Abs(soles[2 * foot + 1].Y) < 0.3,
+                    $"depth {depth}, landing {i / 20.0}: the {(foot == 0 ? "front" : "back")} boot's heel at {soles[2 * foot].Y}, toe at {soles[2 * foot + 1].Y}");
+        }
+    }
+
+    [Theory]
+    [InlineData(400)]
+    [InlineData(900)]
+    public void FallsWithTheBootsTurnedFlatForTheFloor(int vy)
+    {
+        // Falling, the boots hung along the shins, toes down, and met the floor toe first.
+        var l = LimbsOf(Pose.Air, Standing with { Vy = vy }, At(0));
+        foreach (var (leg, foot) in new[] { (l.FrontLeg, l.FrontFoot), (l.BackLeg, l.BackFoot) })
+            Assert.True(Math.Abs(l.Tilt - leg.Upper - leg.Lower - foot) < 0.2, $"a boot {l.Tilt - leg.Upper - leg.Lower - foot} toe down from flat at {vy}");
     }
 
     [Fact]

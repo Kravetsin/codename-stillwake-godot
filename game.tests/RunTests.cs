@@ -12,14 +12,33 @@ public class RunTests
     private static Moment At(double travelled) => new(travelled, 0);
 
     [Fact]
-    public void ARunLeansWellInAndLeavesTheFloorBetweenSteps()
+    public void ARunLeansWellInAndRidesHigherBetweenSteps()
     {
         Assert.True(LimbsOf(Pose.Run, Running, At(0)).Tilt >= 0.28);
-        // Mid-stance a foot is down; between the steps both are up and the body rises.
-        Assert.Equal(0, Bounce(Stride.Run * 0.5));
-        double flight = Bounce(Stride.Run * 0.26);
-        Assert.InRange(flight, HeroMotion.Run.Bounce * 0.8, HeroMotion.Run.Bounce);
-        Assert.True(LimbsOf(Pose.Run, Running, At(Stride.Run * 0.26)).Lift > LimbsOf(Pose.Run, Running, At(Stride.Run * 0.5)).Lift);
+        // Mid-step a foot is down; between the steps the body rides higher, the feet only just off the floor.
+        var mid = LimbsOf(Pose.Run, Running, At(Stride.Run * 0.51));
+        var between = LimbsOf(Pose.Run, Running, At(Stride.Run * 0.26));
+        Assert.True(Math.Abs(PoseTests.Soles(mid).Max(p => p.Y)) < 0.05, $"mid-step the lowest sole is at {PoseTests.Soles(mid).Max(p => p.Y)}");
+        Assert.True(PoseTests.Soles(between).Max(p => p.Y) < -0.1, $"between steps the lowest sole is at {PoseTests.Soles(between).Max(p => p.Y)}");
+        Assert.True(between.Lift - mid.Lift > HeroMotion.Run.Bounce * 0.8);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(HeroMotion.Lean.Forward)]
+    public void ARunRidesSmoothlyAlikeOnBothStepsNeverThroughTheFloor(double lean)
+    {
+        // A frame at full run is 440 thousandths of a cell a step at 60 steps a second: the body moved a pixel or two a frame
+        // when its height was read from the feet alone, and the step on the near leg sat lower than the far one's.
+        double frame = 0.44 / Stride.Run;
+        var moment = At(0) with { Momentum = new Momentum(Lean: lean) };
+        Limbs Ran(double cycle) => LimbsOf(Pose.Run, Running, moment with { Cycle = cycle, Gait = 1, Moving = 1 });
+        for (double cycle = 0; cycle < 1; cycle += frame / 4)
+        {
+            Assert.True(Math.Abs(Ran(cycle + frame).Lift - Ran(cycle).Lift) < 0.45, $"the body jumped {Ran(cycle + frame).Lift - Ran(cycle).Lift} px at {cycle}");
+            Assert.True(PoseTests.Soles(Ran(cycle)).Max(p => p.Y) < 0.05, $"a sole {PoseTests.Soles(Ran(cycle)).Max(p => p.Y)} under the floor at {cycle}");
+        }
+        Assert.True(Math.Abs(Ran(0.01).Lift - Ran(0.51).Lift) < 0.05, $"one step at {Ran(0.01).Lift}, the other at {Ran(0.51).Lift}");
     }
 
     [Theory]
