@@ -8,7 +8,7 @@
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
 | `Jobs.cs` | A job: `Count` of `Item` from `Source` to `Target`; wants, matching, cost. |
 | `Logistics.cs` | Drone logistics (0062): the module, its command and queries. |
-| `Salvage/Salvage.cs` | Salvage drones through vacuum on a canister's air: their own README. |
+| `Salvage/Salvage.cs` | Salvage drones through vacuum on their bay's air: their own README. |
 | `State.cs` | The saved slice and its records: `Leg`, `Drone`, `LogisticsState`. |
 
 Drones ([0062](../../docs/decisions/0062-drones-keep-machines-going.md)): with nothing set, a bay's drones keep the

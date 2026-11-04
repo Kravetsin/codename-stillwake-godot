@@ -107,16 +107,25 @@ public class SalvageInvariantTests
         });
 
     [Property(MaxTest = 40)]
-    public Property EveryCanisterSpentLaunchedOneSalvageDrone() =>
+    public Property EveryCanisterSpentFedALaunchAndAirIsNeverMade() =>
         Prop.ForAll(Runs().ToArbitrary(), run =>
         {
             var w = Start(run);
             var launched = new HashSet<int>();
+            int canisters = run.Canisters, air = 0;
             Play(w, run, () =>
             {
-                foreach (var d in SalvageTests.Salvaging(w)) launched.Add(d.Id);
-                Assert.Equal(run.Canisters - SalvageTests.Canisters(w), launched.Count);
-                Assert.All(SalvageTests.Salvaging(w), d => Assert.True(d.Air <= Tune.TripAir));
+                int spent = canisters - SalvageTests.Canisters(w), launches = 0;
+                foreach (var d in SalvageTests.Salvaging(w))
+                    if (launched.Add(d.Id)) launches++;
+                // A canister opened only as a launch's air, never more than one a launch; the air kept and flown only ever
+                // what canisters gave, less what flight burnt.
+                Assert.InRange(spent, 0, launches);
+                Assert.True(run.Canisters - SalvageTests.Canisters(w) <= launched.Count);
+                int now = ((LogisticsState)w.M.Logistics.Slice).Air.Sum(a => a.Air) + SalvageTests.Salvaging(w).Sum(d => d.Air);
+                Assert.True(now <= air + spent * Tune.TripAir, $"{now} air from {air} and {spent} canisters");
+                Assert.All(((LogisticsState)w.M.Logistics.Slice).Air, a => Assert.True(a.Air > 0));
+                (canisters, air) = (SalvageTests.Canisters(w), now);
             });
         });
 
@@ -130,6 +139,7 @@ public class SalvageInvariantTests
                 foreach (var d in SalvageTests.Salvaging(w))
                 {
                     Assert.True(d.Air >= 0, $"drone {d.Id} at {d.Air} air");
+                    Assert.True(d.Caught.Count <= Tune.SalvageHolds, $"drone {d.Id} with {d.Caught.Count} in its net");
                     // Standing at a cell's centre it is never in a wall; between two, a wall just built may close behind it.
                     if (d.X % 1000 == 500 && d.Y % 1000 == 500 && d.X / 1000 + d.Y / 1000 * Width == d.Cell)
                     {

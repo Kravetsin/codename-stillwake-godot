@@ -8,9 +8,10 @@ using Tune = Stillwake.Content.Logistics;
 namespace Stillwake.Sim.Logistics;
 
 /// <summary>
-/// Salvage drones (salvage-drones): on a canister's air from their bay's fuel slot they fly out through doorways into space,
-/// take the pieces a net would catch and the stacks floating there in the bay's zone, and bring them to crates, trip after
-/// trip until air or charge runs low. They serve no machine.
+/// Salvage drones (salvage-drones, salvage-trips): on the air their bay keeps, topped up from a canister in its fuel slot when
+/// short, they fly out through doorways into space, net up to <c>SalvageHolds</c> of the pieces a net would catch and the
+/// stacks floating there in the bay's zone, and bring them to crates, trip after trip until air or charge runs low; home,
+/// their air left goes back to the bay. They serve no machine.
 /// </summary>
 public sealed partial class LogisticsModule
 {
@@ -21,50 +22,94 @@ public sealed partial class LogisticsModule
 
     /// <summary>
     /// Bay <paramref name="bay"/>'s salvage launch, when it launched no ordinary drone: its first salvage drone charged to
-    /// <c>LaunchAt</c>, with a canister in its fuel slot, a served crate with an empty slot in its vacuum flood and a target
-    /// whose trip one canister's air and the drone's charge cover. Then the canister is spent and the drone flies; missing
-    /// any, nothing is spent.
+    /// <c>LaunchAt</c>, a served crate with an empty slot in its vacuum flood and a target whose trip the drone's charge and
+    /// the air the bay keeps cover, with a canister from its fuel slot opened when the air kept alone does not. Then the
+    /// drone flies with all the air kept; missing any, nothing is spent (salvage-trips).
     /// </summary>
     private void LookOut(Machine bay)
     {
         var slots = _items.Crate(bay.Id);
-        if (Machines.Get(bay.Kind).SlotTakes is not { } fuel || slots[fuel.Slot] == null) return;
+        if (Machines.Get(bay.Kind).SlotTakes is not { } fuel) return;
         int slot = -1;
         for (int i = 0; i < slots.Count && slot < 0; i++)
             if (slots[i] is { } s && s.Item == Tune.SalvageDrone && s.Charge >= Tune.LaunchAt) slot = i;
         if (slot < 0) return;
         int start = StartOf(bay, vacuum: true);
         if (start < 0 || !Flood(bay, vacuum: true)) return;
-        if (Pick(start, bay, slots[slot]!.Charge, Tune.TripAir, out _) is not { } target) return;
-        _itemsOps.TakeFrom(bay.Id, fuel.Slot, 1);
+        int charge = slots[slot]!.Charge, kept = KeptBy(bay.Id);
+        bool canister = slots[fuel.Slot] != null;
+        if (Pick(start, bay, charge, kept + (canister ? Tune.TripAir : 0), out _) is not { } target) return;
+        if (!AffordsTrip(charge, kept, start, target.Cell, bay))
+        {
+            _itemsOps.TakeFrom(bay.Id, fuel.Slot, 1);
+            kept += Tune.TripAir;
+        }
         var stack = _itemsOps.TakeFrom(bay.Id, slot, 1) ?? throw new InvalidOperationException("logistics.launch: no salvage drone docked");
+        Keep(bay.Id, 0);
         var (x, y) = Centre(start);
-        var d = new Drone { Id = State.NextId++, Bay = bay.Id, Stack = stack, X = x, Y = y, Cell = start, To = start, Air = Tune.TripAir };
+        var d = new Drone { Id = State.NextId++, Bay = bay.Id, Stack = stack, X = x, Y = y, Cell = start, To = start, Air = kept };
         Aim(d, target);
         State.Drones.Add(d);
     }
 
-    /// <summary>Sets drone <paramref name="d"/> on its way to <paramref name="target"/>: a piece, or a floor stack.</summary>
-    private static void Aim(Drone d, (int Piece, int Floor) target)
+    /// <summary>The air bay <paramref name="bay"/> keeps, ticks.</summary>
+    private int KeptBy(int bay)
+    {
+        int at = KeptAt(bay);
+        return at >= 0 ? State.Air[at].Air : 0;
+    }
+
+    /// <summary>Bay <paramref name="bay"/>'s air kept set to <paramref name="air"/>, its entry gone at nought.</summary>
+    private void Keep(int bay, int air)
+    {
+        int at = KeptAt(bay);
+        if (at >= 0 && air > 0) State.Air[at] = new BayAir(bay, air);
+        else if (at >= 0) State.Air.RemoveAt(at);
+        else if (air > 0) State.Air.Insert(~at, new BayAir(bay, air));
+    }
+
+    /// <summary>The index of bay <paramref name="bay"/>'s entry in <c>Air</c>, or the complement of where it would go.</summary>
+    private int KeptAt(int bay)
+    {
+        int lo = 0, hi = State.Air.Count - 1;
+        while (lo <= hi)
+        {
+            int mid = (lo + hi) / 2, id = State.Air[mid].Bay;
+            if (id == bay) return mid;
+            if (id < bay) lo = mid + 1;
+            else hi = mid - 1;
+        }
+        return ~lo;
+    }
+
+    /// <summary>The air kept by bays no longer there dropped: a bay taken apart loses it, its canisters dropping as items.</summary>
+    private void ForgetGoneBays()
+    {
+        for (int i = State.Air.Count - 1; i >= 0; i--)
+            if (_grid.MachineById(State.Air[i].Bay) is not { } m || !Machines.Is(m.Kind, MachineTrait.Zone)) State.Air.RemoveAt(i);
+    }
+
+    /// <summary>Sets drone <paramref name="d"/> on its way to <paramref name="target"/>: a piece, or a floor stack; its net and load stay.</summary>
+    private static void Aim(Drone d, (int Piece, int Floor, int Cell) target)
     {
         (d.Leg, d.Low, d.Target) = (Leg.Source, false, 0);
-        (d.Piece, d.Floor, d.Caught) = (target.Piece, target.Floor, null);
+        (d.Piece, d.Floor) = (target.Piece, target.Floor);
     }
 
     /// <summary>
     /// The target for a salvage drone of <paramref name="bay"/> at <paramref name="from"/>, within the last flood, a vacuum one:
     /// of the pieces a net catches and the stacks afloat, unclaimed, the nearest by Manhattan distance, then pieces before
-    /// stacks, then the lowest id, whose trip <paramref name="charge"/> and <paramref name="air"/> cover (<see cref="AffordsTrip"/>).
-    /// Null with no served crate with an empty slot in the flood, or none; <paramref name="short"/> when one was passed by
-    /// for want of air or charge.
+    /// stacks, then the lowest id, whose trip <paramref name="charge"/> and <paramref name="air"/> cover (<see cref="AffordsTrip"/>),
+    /// with its cell. Null with no served crate with an empty slot in the flood, or none; <paramref name="short"/> when one
+    /// was passed by for want of air or charge.
     /// </summary>
-    private (int Piece, int Floor)? Pick(int from, Machine bay, int charge, int air, out bool @short)
+    private (int Piece, int Floor, int Cell)? Pick(int from, Machine bay, int charge, int air, out bool @short)
     {
         @short = false;
         if (!AnyEmptyCrate()) return null;
         var zone = ZoneBox(bay);
         (int Distance, int Kind, int Id)? best = null;
-        (int Piece, int Floor) found = default;
+        (int Piece, int Floor, int Cell) found = default;
         bool shortOf = false;
         void Consider(int cell, int kind, int id)
         {
@@ -76,7 +121,7 @@ public sealed partial class LogisticsModule
                 return;
             }
             best = key;
-            found = kind == 0 ? (id, 0) : (0, id);
+            found = kind == 0 ? (id, 0, cell) : (0, id, cell);
         }
         foreach (var piece in _debris.Pieces)
             if (Catchable(piece, zone) is int cell && InLastFlood(cell) && !Claimed(piece.Id, 0)) Consider(cell, 0, piece.Id);
@@ -190,10 +235,10 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>
-    /// Salvage drone <paramref name="d"/> in its goal. At its target it catches the piece or lifts the stack, and carries what
-    /// it got to the nearest crate with room, or home with none; with nothing there it goes on. At a crate it puts in what fits,
-    /// stack by stack, the rest on to the next crate with room, or laid there with none, and goes on. Home, it docks, its air
-    /// lost. Whether it still flies.
+    /// Salvage drone <paramref name="d"/> in its goal. At its target it catches the piece or lifts the stack into its net, and
+    /// goes on (<see cref="NextOut"/>): to the next target while the net has room, else to crates. At a crate it puts in what
+    /// fits, stack by stack, the rest on to the next crate with room, or laid there with none, its net emptied, and goes on.
+    /// Home, it docks, the air it has left kept by its bay. Whether it still flies.
     /// </summary>
     private bool ArriveOut(Drone d, Machine bay)
     {
@@ -204,18 +249,10 @@ public sealed partial class LogisticsModule
                 {
                     string kind = _debris.PieceById(d.Piece)?.Item ?? "";
                     if (_debrisOps.Catch(d.Piece) is { } loot && loot.Count > 0)
-                    {
-                        d.Load = [.. loot.Select(l => new Stack(l.Item, l.Count))];
-                        d.Caught = kind;
-                    }
+                        Net(d, new Netted(kind, d.Piece), loot.Select(l => new Stack(l.Item, l.Count)));
                 }
-                else if (_itemsOps.Lift(d.Floor) is { } lifted)
-                {
-                    d.Load = [lifted];
-                    d.Floor = 0;
-                }
-                if (d.Load == null) NextOut(d, bay);
-                else if (!Deliver(d, bay, 0)) (d.Leg, d.Low) = (Leg.Home, false);
+                else if (_itemsOps.Lift(d.Floor) is { } lifted) Net(d, new Netted(lifted.Item, 0), [lifted]);
+                NextOut(d, bay);
                 return true;
             case Leg.Target:
                 int crate = d.Target;
@@ -234,6 +271,13 @@ public sealed partial class LogisticsModule
                 Dock(d, bay);
                 return false;
         }
+    }
+
+    /// <summary>A catch, <paramref name="netted"/>, in drone <paramref name="d"/>'s net, what it gave, <paramref name="loot"/>, added to its load.</summary>
+    private static void Net(Drone d, Netted netted, IEnumerable<Stack> loot)
+    {
+        (d.Net ??= []).Add(netted);
+        (d.Load ??= []).AddRange(loot);
     }
 
     /// <summary>
@@ -257,14 +301,18 @@ public sealed partial class LogisticsModule
     }
 
     /// <summary>
-    /// Salvage drone <paramref name="d"/> free in space, its load delivered or its target gone: the next target from where it is
-    /// whose trip its air and charge cover; else home, <c>Low</c> when one was passed by for want of them.
+    /// Salvage drone <paramref name="d"/> free in space, its target taken, gone or out of reach, or its load delivered: while its
+    /// net holds fewer than <c>SalvageHolds</c>, the next target from where it is whose trip its air and charge cover; else, or
+    /// with none, its load to crates (<see cref="Deliver"/>); else home, with the load to lay at its bay, or empty and <c>Low</c>
+    /// when a target was passed by for want of air or charge.
     /// </summary>
     private void NextOut(Drone d, Machine bay)
     {
-        (d.Leg, d.Low, d.Piece, d.Floor, d.Caught, d.Target) = (Leg.Home, false, 0, 0, null, 0);
+        (d.Leg, d.Low, d.Piece, d.Floor, d.Target) = (Leg.Home, false, 0, 0, 0);
         if (!Flood(d.Cell, ZoneBox(bay), vacuum: true)) return;
-        if (Pick(d.Cell, bay, d.Stack.Charge, d.Air, out bool @short) is { } target) Aim(d, target);
+        bool @short = false;
+        if (d.Caught.Count < Tune.SalvageHolds && Pick(d.Cell, bay, d.Stack.Charge, d.Air, out @short) is { } target) Aim(d, target);
+        else if (d.Load != null) Deliver(d, bay, 0);
         else d.Low = @short;
     }
 }

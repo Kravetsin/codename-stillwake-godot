@@ -128,6 +128,26 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void PutsWhatASalvageDroneCaughtInItsNet()
+    {
+        // One carrying a piece's loot, one a stack it lifted, one still on its way out.
+        var old = JsonNode.Parse(
+            """
+            {"slices":{"logistics":{"drones":[
+              {"id":1,"leg":1,"piece":7,"caught":"cargoCrate","load":[{"item":"plate","count":2}]},
+              {"id":2,"leg":1,"load":[{"item":"wire","count":5}]},
+              {"id":3,"leg":0,"piece":9}]}},"surfaces":[]}
+            """)!.AsObject();
+        var drones = Migrations.Steps[48 - Migrations.Oldest](old)["slices"]!["logistics"]!["drones"]!.AsArray();
+        Assert.Equal("""[{"kind":"cargoCrate","piece":7}]""", drones[0]!["net"]!.ToJsonString());
+        Assert.False(drones[0]!.AsObject().ContainsKey("caught"));
+        Assert.False(drones[0]!.AsObject().ContainsKey("piece"));
+        Assert.Equal("""[{"kind":"wire","piece":0}]""", drones[1]!["net"]!.ToJsonString());
+        Assert.Equal(9, drones[2]!["piece"]!.GetValue<int>());
+        Assert.False(drones[2]!.AsObject().ContainsKey("net"));
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();
