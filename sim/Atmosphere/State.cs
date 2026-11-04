@@ -9,10 +9,6 @@ internal sealed class TankAir
     public int Oxygen { get; set; }
 }
 
-/// <summary>
-/// A vaporizer's work toward its next unit: a unit is <c>Air.LeakEvery × 1000</c>, and a vaporizer adds
-/// <c>Air.GeneratorRate</c> × its power's satisfaction a tick while it has room and liquid behind it.
-/// </summary>
 /// <summary>What a room owes of its leak, short of a unit: <see cref="Part"/> units × <c>Air.LeakEvery</c>, below <c>Air.LeakEvery</c>.</summary>
 internal sealed class LeakOwed
 {
@@ -20,6 +16,10 @@ internal sealed class LeakOwed
     public int Part { get; set; }
 }
 
+/// <summary>
+/// A vaporizer's work toward its next unit: a unit is <c>Air.LeakEvery × 1000</c>, and a vaporizer adds
+/// <c>Air.GeneratorRate</c> × its power's satisfaction a tick while it has room and liquid behind it.
+/// </summary>
 internal sealed class GeneratorWork
 {
     public int Generator { get; set; }
