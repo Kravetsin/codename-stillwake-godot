@@ -901,7 +901,7 @@ public partial class Figure : Node2D
             SettleAngle(from.FrontFoot, to.FrontFoot, elapsedMs, within),
             SettleAngle(from.BackFoot, to.BackFoot, elapsedMs, within));
         // On the floor no boot goes through it as the limbs settle (2026-11-04-hero-gait).
-        if (walking) shown = Poses.Unsunk(shown);
+        if (walking) shown = Poses.Kept(shown);
         _shown = shown;
         // The body placed first: what the hands reach for is found in its own frame, turned and lifted.
         _body.Rotation = (float)shown.Tilt;
