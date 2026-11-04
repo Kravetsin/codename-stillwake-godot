@@ -262,6 +262,9 @@ public sealed class Ui
     /// <summary>How large every item slot is drawn: set from the settings file at the start and by the menu's Settings.</summary>
     public Store<SlotScale> SlotScale { get; } = new(Shared.SlotScale.Normal);
 
+    /// <summary>Which key does each action (2026-11-04-key-binds): set from the settings file at the start and by the Controls page.</summary>
+    public Store<Binds> Binds { get; } = new(Shared.Binds.Default);
+
     /// <summary>A slot's side in pixels now (<see cref="Slots.SizeOf"/>).</summary>
     public int Slot => Slots.SizeOf(SlotScale.Get());
 

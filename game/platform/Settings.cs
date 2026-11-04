@@ -90,6 +90,25 @@ public static class Settings
         _ => DisplayServer.WindowMode.Windowed,
     });
 
+    /// <summary>The keys kept (2026-11-04-key-binds): the defaults, with what the player changed put on them.</summary>
+    public static Binds Binds()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        if (!kept.HasSection("binds")) return Shared.Binds.Default;
+        return Shared.Binds.Read(kept.GetSectionKeys("binds").Select(id => (id, kept.GetValue("binds", id, "").AsString())).ToList());
+    }
+
+    /// <summary>Keeps <paramref name="binds"/> for the next run: only the keys that differ from the defaults.</summary>
+    public static void Keep(Binds binds)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        if (kept.HasSection("binds")) kept.EraseSection("binds");
+        foreach (var (id, key) in binds.Changed()) kept.SetValue("binds", id, key);
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the keys in {File}: they hold for this run alone");
+    }
+
     private static readonly string[] LookKeys = ["skin", "hair", "hairColour", "face", "beard", "outfit"];
 
     /// <summary>The look this player chose, kept from an earlier run; null before it ever chose one.</summary>

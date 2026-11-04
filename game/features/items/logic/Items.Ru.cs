@@ -175,7 +175,7 @@ public static partial class Ru
         ["item.railgun.kind"] = "Инструмент · Рельсотрон",
         ["item.railgun.key"] = "Удерж. ЛКМ",
         ["item.jetpack.kind"] = "Снаряжение · Спина",
-        ["item.jetpack.key"] = "Shift",
+        ["item.jetpack.key"] = "{key:sprint}",
         ["item.helmetLamp.kind"] = "Снаряжение · Крепление",
         ["item.helmet.kind"] = "Снаряжение · Голова",
         ["item.heavyHelmet.kind"] = "Снаряжение · Голова",

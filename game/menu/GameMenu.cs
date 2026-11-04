@@ -9,7 +9,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The game menu on Esc (0031): resume, the Handbook (J, 0066), save, settings (the suit's colour, the slots' size, heat shimmer), save and exit to the title,
+/// The game menu on Esc (0031): resume, the Handbook (J, 0066), save, settings (the suit's colour, the slots' size, heat shimmer), controls (the keys), save and exit to the title,
 /// save and quit — a guest leaves and quits without saving — over a darkened screen; while hosting, the code friends join by
 /// with Copy (<see cref="KeyBox"/>) over them; the world, when it
 /// was saved at its foot. Only in a world: on the title, Esc does nothing. Esc is decided here for the whole game (<see cref="Escape"/>): it puts away what is open or
@@ -25,7 +25,7 @@ public partial class GameMenu : CanvasLayer
     private readonly Func<string> _save, _foot;
     private readonly Func<TogetherState> _together;
     private readonly KeyBox _key;
-    private readonly VBoxContainer _main, _settings;
+    private readonly VBoxContainer _main, _settings, _controls;
     private readonly Func<string?> _updateTo, _updating;
     private readonly Button _update, _saveButton, _exitButton, _quitButton;
     private readonly Label _updateLine;
@@ -95,6 +95,7 @@ public partial class GameMenu : CanvasLayer
         }));
         _main.AddChild(_saveButton = Choice("menu.save", () => Say(Run(_save))));
         _main.AddChild(Choice("menu.settings", () => Show(MenuPage.Settings)));
+        _main.AddChild(Choice("menu.controls", () => Show(MenuPage.Controls)));
         _main.AddChild(_exitButton = Choice("menu.saveExit", exitToTitle));
         _main.AddChild(_quitButton = Choice("menu.saveQuit", quit));
         column.AddChild(_main);
@@ -107,11 +108,17 @@ public partial class GameMenu : CanvasLayer
         _settings.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
         column.AddChild(_settings);
 
+        _controls = Style.Gap(new VBoxContainer(), 8);
+        _controls.AddChild(new BindRows(ui));
+        _controls.AddChild(Choice("menu.back", () => Show(MenuPage.Main)));
+        column.AddChild(_controls);
+
         column.AddChild(_status = Line("", Style.Slate300, 12));
         column.AddChild(_footLine = Line("", Style.Slate300, 11));
         column.AddChild(Line(T("menu.running"), Style.Slate400, 11));
         column.AddChild(Line(version, Style.Slate600, 10));
         _settings.Visible = false;
+        _controls.Visible = false;
         Say("");
     }
 
@@ -174,6 +181,7 @@ public partial class GameMenu : CanvasLayer
         Visible = page != MenuPage.Closed;
         _main.Visible = page == MenuPage.Main;
         _settings.Visible = page == MenuPage.Settings;
+        _controls.Visible = page == MenuPage.Controls;
         // A guest keeps nothing: it leaves and quits, saving nothing.
         bool owns = _owns();
         _saveButton.Visible = owns;

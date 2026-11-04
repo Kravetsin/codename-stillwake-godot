@@ -180,7 +180,7 @@ public partial class ComputerPanel : CanvasLayer
     public override void _Input(InputEvent e)
     {
         // E puts it away and is spent, so the crew's E does not open it again at once.
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.E } || !Shown) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Use) || !Shown) return;
         Close();
         GetViewport().SetInputAsHandled();
     }

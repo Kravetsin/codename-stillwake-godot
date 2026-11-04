@@ -22,12 +22,13 @@ public partial class PlanKey : WristKey
         Slot = new("101318"), Lip = new("5d6678");
 
     private readonly KeyFace _face;
-    private readonly string? _letter;
+    private readonly Func<string>? _letter;
+    private string? _drawn;
     private readonly Action _pressed;
     private bool _on;
 
-    /// <param name="letter">The keyboard's key that does the same, engraved in its corner; none for none.</param>
-    public PlanKey(KeyFace face, Vector2 size, string? letter, Action pressed) : base(size)
+    /// <param name="letter">The keyboard's key that does the same, engraved in its corner, read anew as keys are rebound; none for none.</param>
+    public PlanKey(KeyFace face, Vector2 size, Func<string>? letter, Action pressed) : base(size)
     {
         _face = face;
         _letter = letter;
@@ -47,6 +48,13 @@ public partial class PlanKey : WristKey
     }
 
     protected override void Pressed() => _pressed();
+
+    /// <summary>A key rebound: the letter engraved anew.</summary>
+    public override void _Process(double delta)
+    {
+        base._Process(delta);
+        if (_letter != null && _letter() != _drawn) QueueRedraw();
+    }
 
     /// <summary>The slot in the metal, lit on its lower lip, and the face sunk in it.</summary>
     public override void _Draw()
@@ -74,8 +82,8 @@ public partial class PlanKey : WristKey
             _ => Ink,
         };
         int down = State == KeyState.Down ? U : 0;
-        if (_letter != null)
-            DrawString(Render.Style.Mono, face.Position + new Vector2(2 * U, 2 * U + 9 + down), _letter, fontSize: 10,
+        if ((_drawn = _letter?.Invoke()) != null)
+            DrawString(Render.Style.Mono, face.Position + new Vector2(2 * U, 2 * U + 9 + down), _drawn, fontSize: 10,
                 modulate: _on ? Held : Ink with { A = 0.7f });
         var at = new Vector2(Mathf.Round(face.Position.X + (face.Size.X - Side * U) / 2), Mathf.Round(face.Position.Y + (face.Size.Y - Side * U) / 2) + down);
         DrawSetTransform(at, 0, new Vector2(U, U));
