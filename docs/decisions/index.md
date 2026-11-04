@@ -144,7 +144,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-cape-floats](2026-10-27-the-cape-floats.md) | The cape floats | accepted | the-cape-flows (in part) |
 | [the-cape-is-worn](2026-10-27-the-cape-is-worn.md) | The cape is worn | accepted |  |
 | [the-descent-pictures](2026-10-27-the-descent-pictures.md) | The drop pod's flight is drawn by the client from the flight's ticks | accepted |  |
-| [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted |  |
+| [the-railgun](2026-10-27-the-railgun.md) | The railgun | accepted | shots-pierce, hold-to-fire (in part) |
 | [tool-icons](2026-10-27-tool-icons.md) | Tool icons from the held picture | accepted |  |
 | [hull-meteors](2026-10-28-hull-meteors.md) | Meteors from the start | accepted |  |
 | [looks-are-printed](2026-10-28-looks-are-printed.md) | Looks are chosen and printed | accepted |  |
@@ -229,6 +229,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [driver-icons](2026-11-04-driver-icons.md) | Tool icons from large pictures; no square over a whole thing | accepted |  |
 | [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
 | [hero-gait](2026-11-04-hero-gait.md) | The hero's gait | accepted |  |
+| [hold-to-fire](2026-11-04-hold-to-fire.md) | Hold to fire | accepted |  |
 | [macos-build](2026-11-04-macos-build.md) | A macOS build | accepted |  |
 | [mode-glyph](2026-11-04-mode-glyph.md) | The power driver's mode by the arrow | accepted |  |
 | [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |
