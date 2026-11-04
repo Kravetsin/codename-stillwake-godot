@@ -184,14 +184,28 @@ public sealed partial class BuildingModule
     }
 
     /// <summary>
-    /// Whether a hero's body is in <paramref name="cell"/>: the cell its client last reported (<c>Hero.Cell</c>, the body's middle),
-    /// or the one above or under it, a body being under three cells tall. Its other column, where it straddles two, is not asked.
+    /// Thousandths of a cell from a standing body's middle up to the top of its cell: its feet on a cell's edge, the middle half
+    /// the height above them (<c>Hero.Middle</c> in the client).
+    /// </summary>
+    private const int MiddleInCell = (1000 - Hero.Height / 2 % 1000) % 1000;
+
+    /// <summary>The rows a standing body reaches above and below its middle's, and the columns either side, under two cells wide.</summary>
+    private const int RowsUp = (Hero.Height / 2 - MiddleInCell + 999) / 1000, RowsDown = (MiddleInCell + Hero.Height / 2 - 1) / 1000,
+        ColumnsBeside = (Hero.Width / 2 + 999) / 1000;
+
+    /// <summary>
+    /// Whether a hero's body is in <paramref name="cell"/>: within the box a standing body fills round the cell its client last
+    /// reported (<c>Hero.Cell</c>, the body's middle), whichever side of it the middle is on. A body off its feet may reach a
+    /// row further down, not asked: a wall would land under its feet.
     /// </summary>
     private bool HeroIn(int cell)
     {
-        int w = _grid.Width;
+        int w = _grid.Width, x = cell % w, y = cell / w;
         foreach (var hero in _crew.Heroes)
-            if (cell == hero.Cell || cell == hero.Cell - w || cell == hero.Cell + w) return true;
+        {
+            int across = x - hero.Cell % w, down = y - hero.Cell / w;
+            if (Math.Abs(across) <= ColumnsBeside && down >= -RowsUp && down <= RowsDown) return true;
+        }
         return false;
     }
 

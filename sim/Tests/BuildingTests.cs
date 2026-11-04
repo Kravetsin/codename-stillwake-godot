@@ -170,6 +170,30 @@ public class BuildingTests
     }
 
     [Fact]
+    public void RefusesAWallAnywhereInAStandingHerosBodyAndNoFurther()
+    {
+        // Five blocks tall inside: a hero standing on the floor, row 12, has its feet in row 11, its middle 2⅝ cells up in
+        // row 9 (the cell it reports), its head's top in row 6; under two cells wide, it spans the columns either side.
+        const string tall = """
+            #########
+            #.......#
+            #.......#
+            #.......#
+            #.......#
+            #.......#
+            #########
+            """;
+        int middle = 9 * 18 + 8;
+        var w = new Scenario(tall).Do(new Crew.Enter(middle)).Do(new SetInstant(true)).Run();
+        string?[] Down(int column) => Enumerable.Range(5, 7).Select(row => w.M.Building.Problem(row * 18 + column, Wall)).ToArray();
+        string?[] body = [null, .. Enumerable.Repeat("building.heroInside", 6)];
+        Assert.Equal(body, Down(8));
+        Assert.Equal(body, Down(7));
+        Assert.Equal(body, Down(9));
+        Assert.All(Down(6).Concat(Down(10)), Assert.Null);
+    }
+
+    [Fact]
     public void RefusesAnInstantWallOnAHeroAsItsLastTickOfWorkWouldBe()
     {
         int hero = At(3, 1) + 18;
