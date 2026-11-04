@@ -34,7 +34,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 
 ## Air, power, pipes
 
-- баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (the hero's air) → Atmosphere, Crew
+- баллон / canister **≠** (oxygen canister) → item `canister`, `LoadCanister` (into a tank), `Refill` (the hero's air), a salvage drone's air (`TripAir`) → Atmosphere, Crew, Logistics
 - провод / cable **≠** → `Cable`, `tool.cable` (laid by the plan, wiring); item `wire` is the crafted part → Power
 - проводка / wiring (plan mode, X) → `PlanMode.Wiring`, f/power `PowerHands` → Power
 - труба / pipe → spans: `LayPipe`, `CutPipe`, `PipeNetworks`, `tool.pipe` → Pipes
@@ -77,7 +77,8 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade
 - чертёж / blueprint → `Blueprint`, `Blueprints` → Research
 - ящик / crate → machine `crate`; item `cargoCrate` is salvage → Items
-- дрон / drone → item `drone`, `Drone`, `LogisticsModule`, machine `droneBay` → Logistics
+- дрон / drone → item `drone`, `Drone`, `LogisticsModule`, machine `droneBay` (its fuel slot of canisters: `SlotTakes`) → Logistics, Items
+- дрон-сборщик / salvage drone → item `salvageDrone`, `Drone.Air`, `Salvage.cs` → Logistics
 - небесный осколок / sky shard **≠** → item `arcShard` → Items, Ruins
 - стойка электроники / electronics rack **≠** → item `cableRack` → Debris
 - кислородные баки / oxygen tanks (wreckage) **≠** → item `tankCluster` → Debris

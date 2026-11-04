@@ -23,7 +23,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 - Items — sim/Items · f/items: `Items.cs` ItemsModule; `Stacks.cs`; `Floor.cs`; `Modules.cs` (machine modules, `Fit`); `ToolStats.cs`; `InventoryPanel.cs`, `Hotbar.cs`, `Click.cs`, `Equipment.cs`; c/`Items.cs`
 - Crafting — sim/Crafting · f/crafting: `Crafting.cs` CraftingModule (stations); `StationView.cs`, `FabricatorPanel.cs`, `BenchView.cs`; c/`Crafts.cs`, `Stations.cs`, `Machines.cs`
 - Furnace — sim/Furnace · f/furnace: `Furnace.cs` FurnaceModule; `FurnaceView.cs`, `Flames.cs`; c/`Furnace.cs`
-- Drones — sim/Logistics · f/logistics: `Logistics.cs` LogisticsModule; `Jobs.cs`; `Flight.cs`; `LogisticsView.cs`, `Served.cs`; c/`Logistics.cs`
+- Drones — sim/Logistics · f/logistics: `Logistics.cs` LogisticsModule; `Jobs.cs`; `Flight.cs`; `Salvage/Salvage.cs` (salvage drones); `LogisticsView.cs`, `Served.cs`; c/`Logistics.cs`
 
 **Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `ResearchTablet.cs`, `MarketPage.cs`, `StripParts.cs`, `logic/Cipher.cs`, `logic/MarketGoods.cs`, `logic/MarketReveal.cs`, `logic/TechLinks.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
 
