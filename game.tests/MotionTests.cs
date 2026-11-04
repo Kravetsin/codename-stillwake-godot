@@ -96,9 +96,13 @@ public class MotionTests
                 var still = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: Momentum.AtRest));
                 var moved = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: f.Now));
                 Assert.Equal((still.FrontArm, still.BackArm), (moved.FrontArm, moved.BackArm));
-                double knee = new[] { still.FrontLeg.Upper - moved.FrontLeg.Upper, still.FrontLeg.Lower - moved.FrontLeg.Lower, still.BackLeg.Upper - moved.BackLeg.Upper, still.BackLeg.Lower - moved.BackLeg.Lower }.Max(Math.Abs);
-                // Only the knee on the floor gives, so its boot stays on it as the body leans.
-                Assert.True(knee < 0.15, $"legs moved {knee}");
+                // The leg off the floor swings on as it did; the one on it gives, its boot turning and knee bending, and stays on it.
+                var soles = PoseTests.Soles(moved).ToList();
+                foreach (var (was, now, at) in new[] { (still.FrontLeg, moved.FrontLeg, 0), (still.BackLeg, moved.BackLeg, 2) })
+                    if (Math.Max(soles[at].Y, soles[at + 1].Y) < -0.3)
+                        Assert.True(Math.Max(Math.Abs(was.Upper - now.Upper), Math.Abs(was.Lower - now.Lower)) < 0.05, $"a swinging leg moved from {was} to {now}");
+                double lowest = PoseTests.Soles(still).Max(p => p.Y);
+                Assert.True(Math.Abs(soles.Max(p => p.Y) - lowest) < 0.1, $"leaning, the lowest sole at {soles.Max(p => p.Y)}, upright at {lowest}");
             }
     }
 

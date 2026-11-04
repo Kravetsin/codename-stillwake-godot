@@ -281,6 +281,13 @@ public static class Poses
         Lift = Math.Max(limbs.Lift, Math.Max(SoleOf(limbs.FrontLeg, limbs.FrontFoot, Rig.HipApart, limbs.Tilt), SoleOf(limbs.BackLeg, limbs.BackFoot, -Rig.HipApart, limbs.Tilt))),
     };
 
+    /// <summary>
+    /// The figure's settling limbs on the floor (2026-11-04-hero-gait), the body at its own height: a boot that would go through
+    /// the floor turns flatter, then its knee bends. Lifted out of it instead, the body jumped half a pixel a frame as the
+    /// feet of a run came down quickly.
+    /// </summary>
+    public static Limbs Kept(Limbs limbs) => Riding(limbs, limbs.Lift);
+
     /// <summary>Each boot turned to lie flat as far as its sole, lying flat, is near a floor <paramref name="floor"/> under the feet' line (<see cref="SoleOf"/>).</summary>
     private static Limbs FeetOver(Limbs limbs, double floor)
     {
@@ -428,20 +435,29 @@ public static class Poses
     /// </summary>
     private static Limbs Sprinting(double cycle)
     {
-        double p = cycle * 2 * Math.PI, s = Math.Sin(p), c = Math.Cos(p);
+        double p = cycle * 2 * Math.PI, s = Math.Sin(p), pitch = PitchOf(cycle);
+        // The legs turn back by the body's pitch, so only the body pitches and the foot on the floor stays put.
+        static Bend Turned(Bend leg, double by) => leg with { Upper = leg.Upper + by };
         return new Limbs(
-            FrontArm: B(-Feel.Run.Pump * s, 1.5 + 0.2 * c),
-            BackArm: B(Feel.Run.Pump * s, 1.5 - 0.2 * c),
-            FrontLeg: Running(cycle + RunLead),
-            BackLeg: Running(cycle + RunLead + 0.5),
-            Tilt: Feel.Run.Lean, Lift: 0, Lying: false);
+            FrontArm: B(-Feel.Run.Pump * s, 1.45 - Feel.Run.Elbow * s),
+            BackArm: B(Feel.Run.Pump * s, 1.45 + Feel.Run.Elbow * s),
+            FrontLeg: Turned(Running(cycle + RunLead), pitch),
+            BackLeg: Turned(Running(cycle + RunLead + 0.5), pitch),
+            Tilt: Feel.Run.Lean + pitch, Lift: 0, Lying: false);
     }
+
+    /// <summary>
+    /// How far the running body pitches past its lean <paramref name="cycle"/> strides in: furthest in as a foot pushes off,
+    /// back up in the flight between steps. Leaning alike all along, the body rode its legs like a plank.
+    /// </summary>
+    private static double PitchOf(double cycle) =>
+        Feel.Run.Pitch * Math.Cos(2 * Math.PI * ((cycle - MidStance) * 2 - 2 * (0.75 * Stance - Touch / (Stride.Run * Rig.Cell))));
 
     /// <summary>
     /// How far a running leg's cycle is ahead of the arms': so the near arm is furthest forward as the near leg pushes off behind,
     /// as the walk has it, rather than with it.
     /// </summary>
-    private const double RunLead = 0.7;
+    private const double RunLead = 0.6;
 
     /// <summary>
     /// In the air (0090): from rising into falling as the speed up or down says, the knees tucked near the top, the legs
@@ -619,7 +635,7 @@ public static class Poses
     }
 
     /// <summary>The share of a running stride a foot is on the floor, pushing the body on.</summary>
-    private const double Stance = 0.42;
+    private const double Stance = 0.2;
 
     /// <summary>Whether <paramref name="hero"/> moves away from the way it faces: running backward, facing what it aims at.</summary>
     public static bool Backward(Hero hero) => hero.Vx * hero.Facing < 0;
@@ -644,7 +660,7 @@ public static class Poses
     /// The cycle a running leg on the floor stands upright under its hip at, the body leaning as a run does, the other half a
     /// cycle on: where its sole reaches lowest, so the body rides lowest there and the knee need hardly give.
     /// </summary>
-    private const double MidStance = (0.4 - 0.06 - Feel.Run.Lean) * Stance / 0.95 - RunLead + 1;
+    private const double MidStance = Touch / (Stride.Run * Rig.Cell) - RunLead + 1;
 
     /// <summary>
     /// How high the running body rides <paramref name="cycle"/> strides in (2026-11-04-hero-gait), from 0 to 1 and smoothly: lowest
@@ -677,6 +693,23 @@ public static class Poses
         {
             double under = SoleOf(leg, foot, hipX, limbs.Tilt) - lift;
             if (under <= 0) return (leg, foot);
+            // A toe or heel under the floor turns the boot flatter first: a leg nearly straight folds its knee half a radian to
+            // lift its ankle half a pixel, and pushing off it buckled for a frame.
+            double flat = Flat(leg, limbs.Tilt);
+            if (SoleOf(leg, flat, hipX, limbs.Tilt) - lift <= 0)
+            {
+                double kept = foot, level = flat;
+                for (int i = 0; i < 12; i++)
+                {
+                    double mid = (kept + level) / 2;
+                    if (SoleOf(leg, mid, hipX, limbs.Tilt) - lift > 0) kept = mid;
+                    else level = mid;
+                }
+                return (leg, level);
+            }
+            foot = flat;
+            under = SoleOf(leg, foot, hipX, limbs.Tilt) - lift;
+            if (under <= 0) return (leg, foot);
             // Straight up from the floor, in the turned body's own lines, the boot turned as before.
             var ankle = Rig.EndOf(leg, Rig.ToAnkle);
             var bent = Rig.Reach(new Vec(ankle.X - under * Math.Sin(limbs.Tilt), ankle.Y - under * Math.Cos(limbs.Tilt)), Rig.ToAnkle, -1);
@@ -685,17 +718,46 @@ public static class Poses
     }
 
     /// <summary>
-    /// A running leg at <paramref name="cycle"/> through its stride: on the floor from under the hips to behind them, nearly
-    /// straight; then off it, the heel kicked up and the knee brought through high.
+    /// A running leg at <paramref name="cycle"/> through its stride: on the floor from just ahead of the hips to well behind them,
+    /// nearly straight, its foot staying put; then off it, the heel kicked up and the knee brought through high.
     /// </summary>
     private static Bend Running(double cycle)
     {
         double p = cycle - Math.Floor(cycle);
-        if (p < Stance) return B(0.4 - 0.95 * p / Stance, -0.12);
+        if (p < Stance) return B(Planted(p), -0.12);
         double u = (p - Stance) / (1 - Stance);
-        // Back from behind to high ahead, then down to meet the floor under the hips again.
-        double thigh = u < 0.7 ? -0.6 + 1.85 * Math.Sin(u / 0.7 * Math.PI / 2) : 1.25 - 0.85 * (u - 0.7) / 0.3;
-        return B(thigh, -(0.12 + 2.1 * Math.Sin(u * Math.PI)));
+        // From behind, still going back a little as the foot leaves, up high ahead, then swept back down to meet the floor as
+        // it goes by, so the foot comes down without a jolt.
+        double thigh = u < Drive
+            ? Hermite(u / Drive, Planted(Stance), Sweep(Stance) * (1 - Stance) * Drive / 2, 1.25, 0)
+            : Hermite((u - Drive) / (1 - Drive), 1.25, 0, Planted(0), Sweep(0) * (1 - Stance) * (1 - Drive));
+        return B(thigh, -(0.12 + 2.1 * Math.Sin(Math.PI * Math.Pow(u, 0.6))));
+    }
+
+    /// <summary>The share of a running leg's swing it takes to bring the knee up highest.</summary>
+    private const double Drive = 0.6;
+
+    private static double Sweep(double p) => (Planted(p + 1e-4) - Planted(p - 1e-4)) / 2e-4;
+
+    private static double Hermite(double t, double from, double fromSlope, double to, double toSlope)
+    {
+        double t2 = t * t, t3 = t2 * t;
+        return (2 * t3 - 3 * t2 + 1) * from + (t3 - 2 * t2 + t) * fromSlope + (-2 * t3 + 3 * t2) * to + (t3 - t2) * toSlope;
+    }
+
+    /// <summary>How far ahead of the hips a running foot comes down, in pixels, the body leaning as a run does.</summary>
+    private const double Touch = 5;
+
+    /// <summary>
+    /// A running thigh <paramref name="p"/> strides after its foot came down: the foot stays where it came down, the leg
+    /// sweeping back as fast as the body goes on; it slid along the floor at half the body's speed, the hero skating.
+    /// </summary>
+    private static double Planted(double p)
+    {
+        var straight = Rig.EndOf(B(0, -0.12), Rig.ToAnkle);
+        double reach = Math.Sqrt(straight.X * straight.X + straight.Y * straight.Y);
+        double along = Math.Clamp((Touch - Stride.Run * Rig.Cell * p) / reach, -1, 1);
+        return Math.Asin(along) + Feel.Run.Lean - Math.Atan2(straight.X, straight.Y);
     }
 
     /// <summary>

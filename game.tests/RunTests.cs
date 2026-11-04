@@ -14,7 +14,7 @@ public class RunTests
     [Fact]
     public void ARunLeansWellInAndRidesHigherBetweenSteps()
     {
-        Assert.True(LimbsOf(Pose.Run, Running, At(0)).Tilt >= 0.28);
+        Assert.True(LimbsOf(Pose.Run, Running, At(0)).Tilt >= HeroMotion.Run.Lean - HeroMotion.Run.Pitch);
         // Mid-step a foot is down; between the steps the body rides higher, both feet off the floor.
         var seen = Enumerable.Range(0, 100).Select(k => LimbsOf(Pose.Run, Running, At(Stride.Run * k / 100))).ToList();
         var mid = seen.MinBy(l => l.Lift);
@@ -45,6 +45,39 @@ public class RunTests
                 if (Math.Max(soles[at].Y, soles[at + 1].Y) > -0.05)
                     Assert.True(leg.Lower > -0.55, $"the knee on the floor folded {leg.Lower} at {k / 100.0}");
         }
+    }
+
+    [Fact]
+    public void ARunningFootStaysWhereItCameDownTillItPushesOff()
+    {
+        // The leg swept back at half the body's speed: a foot on the floor slid twenty pixels on, the hero skating.
+        int n = 400;
+        foreach (int leg in new[] { 0, 2 })
+        {
+            double? down = null;
+            for (int k = 0; k <= 2 * n; k++)
+            {
+                double travelled = Stride.Run * k / n;
+                var soles = PoseTests.Soles(LimbsOf(Pose.Run, Running, At(travelled))).ToList();
+                double x = travelled * Rig.Cell + (soles[leg].X + soles[leg + 1].X) / 2;
+                if (Math.Max(soles[leg].Y, soles[leg + 1].Y) < -0.3) down = null;
+                else if (down is double at) Assert.True(Math.Abs(x - at) < 4, $"a foot on the floor slid {x - at} px at {k / (double)n}");
+                else down = x;
+            }
+        }
+    }
+
+    [Fact]
+    public void ARunPitchesFurthestInAsAFootPushesOffAndRisesInTheFlight()
+    {
+        // Leaning alike all along, the body rode its legs like a plank.
+        var seen = Enumerable.Range(0, 200).Select(k => LimbsOf(Pose.Run, Running, At(Stride.Run * k / 200))).ToList();
+        var most = seen.MaxBy(l => l.Tilt);
+        var least = seen.MinBy(l => l.Tilt);
+        Assert.InRange(most.Tilt - least.Tilt, HeroMotion.Run.Pitch * 1.9, HeroMotion.Run.Pitch * 2.01);
+        // Pitched furthest in, a foot is on the floor; least, both are off it.
+        Assert.True(PoseTests.Soles(most).Max(p => p.Y) > -0.3, $"pitched in with the lowest sole at {PoseTests.Soles(most).Max(p => p.Y)}");
+        Assert.True(PoseTests.Soles(least).Max(p => p.Y) < -0.3, $"pitched up with a sole at {PoseTests.Soles(least).Max(p => p.Y)}");
     }
 
     [Theory]

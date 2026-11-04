@@ -7,7 +7,7 @@ using static Stillwake.Game.Features.Crew.Poses;
 namespace Stillwake.Game.Tests;
 
 /// <summary>
-/// The limbs as the figure draws them, settling after the pose's each frame and kept out of the floor (<see cref="Poses.Unsunk"/>,
+/// The limbs as the figure draws them, settling after the pose's each frame and kept out of the floor (<see cref="Poses.Kept"/>,
 /// 2026-11-04-hero-gait). The figure's own settle, a share of the way each frame, as <c>Figure.Settle</c> over its 30 ms.
 /// </summary>
 public class SettledTests
@@ -15,7 +15,7 @@ public class SettledTests
     private static double Toward(double from, double to, double ms) => from + (to - from) * Math.Min(1, ms / 30);
     private static Bend Toward(Bend from, Bend to, double ms) => new(Toward(from.Upper, to.Upper, ms), Toward(from.Lower, to.Lower, ms));
 
-    private static Limbs Settled(Limbs from, Limbs to, double ms) => Unsunk(new Limbs(Toward(from.FrontArm, to.FrontArm, ms),
+    private static Limbs Settled(Limbs from, Limbs to, double ms) => Kept(new Limbs(Toward(from.FrontArm, to.FrontArm, ms),
         Toward(from.BackArm, to.BackArm, ms), Toward(from.FrontLeg, to.FrontLeg, ms), Toward(from.BackLeg, to.BackLeg, ms),
         Toward(from.Tilt, to.Tilt, ms), Toward(from.Lift, to.Lift, ms), false, Toward(from.FrontFoot, to.FrontFoot, ms),
         Toward(from.BackFoot, to.BackFoot, ms)));
