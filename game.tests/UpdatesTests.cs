@@ -34,21 +34,38 @@ public class UpdatesTests
         const string answer = """
             {"tag_name":"v0.4","assets":[
               {"name":"notes.txt","browser_download_url":"https://x/notes.txt"},
-              {"name":"Stillwake-windows.zip","browser_download_url":"https://x/Stillwake-windows.zip"}]}
+              {"name":"Stillwake-windows.zip","browser_download_url":"https://x/Stillwake-windows.zip"},
+              {"name":"Stillwake-macos.zip","browser_download_url":"https://x/Stillwake-macos.zip"}]}
             """;
-        Assert.Equal(new Updates.Release("v0.4", "https://x/Stillwake-windows.zip"), Updates.Read(answer));
-        Assert.Null(Updates.Read("""{"tag_name":"v0.4","assets":[]}"""));
-        Assert.Null(Updates.Read("""{"message":"Not Found"}"""));
-        Assert.Null(Updates.Read("not json"));
+        Assert.Equal(new Updates.Release("v0.4", "https://x/Stillwake-windows.zip"), Updates.Read(answer, "windows"));
+        Assert.Equal(new Updates.Release("v0.4", "https://x/Stillwake-macos.zip"), Updates.Read(answer, "macos"));
+        Assert.Null(Updates.Read("""{"tag_name":"v0.3","assets":[{"browser_download_url":"https://x/Stillwake-windows.zip"}]}""", "macos"));
+        Assert.Null(Updates.Read("""{"tag_name":"v0.4","assets":[]}""", "windows"));
+        Assert.Null(Updates.Read("""{"message":"Not Found"}""", "windows"));
+        Assert.Null(Updates.Read("not json", "windows"));
     }
 
     [Fact]
-    public void WritesAScriptThatWaitsForTheGameThenCopiesTheBuildOverAndStartsIt()
+    public void WritesAWindowsScriptThatWaitsForTheGameThenCopiesTheBuildOverAndStartsIt()
     {
-        string script = Updates.Script(4242, @"C:\u\files", @"C:\games\Stillwake", @"C:\games\Stillwake\Stillwake.exe");
+        string script = Updates.WindowsScript(4242, @"C:\u\files", @"C:\games\Stillwake", @"C:\games\Stillwake\Stillwake.exe");
         Assert.Contains("PID eq 4242", script);
         Assert.Contains(@"robocopy ""C:\u\files"" ""C:\games\Stillwake"" /E", script);
         Assert.Contains(@"start """" ""C:\games\Stillwake\Stillwake.exe""", script);
         Assert.True(script.IndexOf("goto wait") < script.IndexOf("robocopy"));
+    }
+
+    [Fact]
+    public void WritesAMacScriptThatWaitsForTheGameThenUnpacksSwapsTheAppAndOpensIt()
+    {
+        const string support = "/Users/a/Library/Application Support/Godot/app_userdata/Stillwake/update";
+        string script = Updates.MacScript(4242, support + "/Stillwake.zip", support + "/files", "/Applications/Bob's Stillwake.app");
+        Assert.StartsWith("#!/bin/sh\n", script);
+        Assert.Contains("while kill -0 4242", script);
+        Assert.Contains($"ditto -x -k '{support}/Stillwake.zip' '{support}/files' || exit 1", script);
+        Assert.Contains($"ditto '{support}/files/Stillwake.app' '/Applications/Bob'\\''s Stillwake.app.new' || exit 1", script);
+        Assert.Contains("open '/Applications/Bob'\\''s Stillwake.app'", script);
+        Assert.DoesNotContain("\r", script);
+        Assert.True(script.IndexOf("kill -0") < script.IndexOf("ditto") && script.IndexOf("ditto") < script.IndexOf("rm -rf '/Applications"));
     }
 }

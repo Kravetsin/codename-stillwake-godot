@@ -21,7 +21,7 @@ public static class Updates
         public override string ToString() => Release is { } r ? $"v{r}" : $"dev {Commit}";
     }
 
-    /// <summary>A release on GitHub: its tag and where its Windows zip downloads from.</summary>
+    /// <summary>A release on GitHub: its tag and where this platform's zip downloads from.</summary>
     public readonly record struct Release(string Tag, string Zip);
 
     /// <summary>
@@ -36,8 +36,11 @@ public static class Updates
         return new Version(number is "0.0.0" or "" ? null : number, commit);
     }
 
-    /// <summary>The latest release as GitHub's API answers it, and its zip; none without a tag or a zip.</summary>
-    public static Release? Read(string json)
+    /// <summary>
+    /// The latest release as GitHub's API answers it, and its zip for <paramref name="platform"/>
+    /// (<c>Stillwake-windows.zip</c>, <c>Stillwake-macos.zip</c>); none without a tag or that zip.
+    /// </summary>
+    public static Release? Read(string json, string platform)
     {
         JsonNode? root;
         try
@@ -51,7 +54,7 @@ public static class Updates
         if (root?["tag_name"]?.GetValue<string>() is not { } tag) return null;
         var zip = (root["assets"] as JsonArray)?
             .Select(a => a?["browser_download_url"]?.GetValue<string>())
-            .FirstOrDefault(u => u != null && u.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(u => u != null && u.EndsWith($"-{platform}.zip", StringComparison.OrdinalIgnoreCase));
         return zip == null ? null : new Release(tag, zip);
     }
 
@@ -77,7 +80,7 @@ public static class Updates
     /// build from <paramref name="from"/> over the folder <paramref name="to"/>, and starts
     /// <paramref name="exe"/> again. Saves are elsewhere, in the user's folder: nothing of them is touched.
     /// </summary>
-    public static string Script(int pid, string from, string to, string exe) => string.Join("\r\n",
+    public static string WindowsScript(int pid, string from, string to, string exe) => string.Join("\r\n",
         "@echo off",
         "rem Stillwake's updater: puts the new build over the old once the game has closed.",
         ":wait",
@@ -85,4 +88,25 @@ public static class Updates
         $"robocopy \"{from}\" \"{to}\" /E /NFL /NDL /NJH /NJS /NP >nul",
         $"start \"\" \"{exe}\"",
         "");
+
+    /// <summary>
+    /// A macOS script that waits for process <paramref name="pid"/>, the game, to close, unpacks the release
+    /// <paramref name="zip"/> into <paramref name="files"/>, puts its <c>Stillwake.app</c> in place of the bundle
+    /// <paramref name="app"/> and opens it. <c>ditto</c> unpacks, not Godot: it keeps the files' execute bits.
+    /// </summary>
+    public static string MacScript(int pid, string zip, string files, string app)
+    {
+        static string Q(string path) => "'" + path.Replace("'", "'\\''") + "'";
+        string fresh = Q(app + ".new");
+        return string.Join("\n",
+            "#!/bin/sh",
+            "# Stillwake's updater: puts the new app over the old once the game has closed.",
+            $"while kill -0 {pid} 2>/dev/null; do sleep 1; done",
+            $"rm -rf {Q(files)} {fresh}",
+            $"ditto -x -k {Q(zip)} {Q(files)} || exit 1",
+            $"ditto {Q(files + "/Stillwake.app")} {fresh} || exit 1",
+            $"rm -rf {Q(app)} && mv {fresh} {Q(app)}",
+            $"open {Q(app)}",
+            "");
+    }
 }
