@@ -178,7 +178,7 @@ public static partial class En
         ["item.railgun.kind"] = "Tool · Railgun",
         ["item.railgun.key"] = "Hold LMB",
         ["item.jetpack.kind"] = "Equipment · Back",
-        ["item.jetpack.key"] = "Shift",
+        ["item.jetpack.key"] = "{key:sprint}",
         ["item.helmetLamp.kind"] = "Equipment · Mount",
         ["item.helmet.kind"] = "Equipment · Head",
         ["item.heavyHelmet.kind"] = "Equipment · Head",

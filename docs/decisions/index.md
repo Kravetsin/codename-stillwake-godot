@@ -230,6 +230,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
 | [hero-gait](2026-11-04-hero-gait.md) | The hero's gait | accepted |  |
 | [hold-to-fire](2026-11-04-hold-to-fire.md) | Hold to fire | accepted |  |
+| [key-binds](2026-11-04-key-binds.md) | Key binds | accepted |  |
 | [macos-build](2026-11-04-macos-build.md) | A macOS build | accepted |  |
 | [mode-glyph](2026-11-04-mode-glyph.md) | The power driver's mode by the arrow | accepted |  |
 | [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |

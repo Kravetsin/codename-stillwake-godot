@@ -21,13 +21,14 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   first takes it in as a world, "Saved before worlds", last played when it was saved
   (`WorldIndex.Adopt`), and renames the slot `world.adopted.json`, so it is taken once and kept.
   A save of a format this build cannot bring up to date shows as such in the list.
-- **Testbed**, in a debug build only (`play.cmd`; an export has no button): under the others, it plays
-  `dev/Testbed`, as `-- --testbed` does — a ready ship, every machine once, aired and lit, a crate of every
-  item, creative mode on. A
-  dev world: no world id, so never saved nor listed in Worlds; the menu's exit goes back to the title.
+- **Testbed**, in a debug build only (`play.cmd`): plays `dev/Testbed` as `-- --testbed` does, a dev world never saved
+  nor listed, its exit going to the title.
+- **Controls** (`BindRows`, 2026-11-04-key-binds), on the title and in the Esc menu: a row an action, its key on a button; a
+  click waits for a key, Esc cancels, a key taken is swapped, a fixed one refused; Reset all. The keys are
+  `shared/logic/Binds` and `shared/BindKeys`, kept by `platform/Settings`; a dev run plays the defaults.
 
 - **Esc, in one place** (`Shared.Escape`, read by `GameMenu._Input` before any other node): the menu
-  shown takes it first, Settings going back to the menu's first page and that page closing it; else
+  shown takes it first, Settings or Controls going back to the menu's first page and that page closing it; else
   Esc closes the inventory and its crate and the Handbook and puts the plan away (0022), all at once; only with
   nothing open or in hand does it open the menu.
 - **Resume** closes it. **Handbook (J)** closes it and opens the Handbook (0066), its line naming
@@ -47,10 +48,6 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
   B, E, the overlays, zoom, the dev panel's backquote), its dark backdrop every click and the wheel,
   and `Ui.MenuOpen` stills the rest: the hero walks on no key held as it opened, and the hands and
   the hero's aim see no pointer, so no ghost, outline, prompt or tip shows behind it.
-- **Logs** are Godot's own (`platform/Logs`): `user://logs/godot.log` a run, the last five kept, a release's too,
-  its first line naming the build and the system. A C# exception escaping a callback, a signal or an `async`
-  continuation goes there with its stack, the game playing on. Every print is flushed
-  (`application/run/flush_stdout_on_print`): a run that dies keeps what it printed.
 
 ## Files
 
@@ -61,6 +58,7 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `TitleItem.cs` | a title choice: words that light and slide, a line under them | yes |
 | `TitleBackdrop.cs` | the title scene: the stars, the plate, its hero and lamp, what drifts by | yes |
 | `SettingsRows.cs` | the settings kept on this machine, the title's and the game menu's: language, slots, shimmer, logs | yes |
+| `BindRows.cs` | the Controls page, the title's and the game menu's: a key an action, waiting, swapped, refused, reset | yes |
 | `WorldsPanel.cs` | New world, the worlds' cards with their pictures, Play, Delete | yes |
 | `TogetherPage.cs` | host a world picked or join on the relay, the password kept | yes |
 | `KeyCard.cs` | the code over a world as it opens to friends | yes |
@@ -74,12 +72,14 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 | `logic/WorldPick.cs` | the Worlds panel's pick: any world, so one that cannot be played can be deleted; Play only a playable one | no |
 | `logic/Menu.En.cs` | Its player text | no |
 | `logic/Menu.Ru.cs` | Russian | no |
+| `logic/Controls.En.cs` | the Controls page's text, the actions' names and the keys' | no |
+| `logic/Controls.Ru.cs` | Russian | no |
 
-`game/shared/logic/Escape.cs` (a press of Esc) is tested by `EscapeTests`; the pick by `WorldPickTests`; the scene by `TitleSceneTests`.
+`game/shared/logic/Escape.cs` (a press of Esc) is tested by `EscapeTests`; the pick by `WorldPickTests`; the keys by `BindsTests`; the scene by `TitleSceneTests`.
 
 ## Deliberately not handled
 
-- Keys rebound, sound or video settings: there are none to set yet.
+- Sound settings: none to set yet. Mouse buttons, chords and gamepads are not bound.
 - Saving while joined to someone else's world: the world is the host's.
 - Hosting mid-play, or stopping: Host is on the title; leaving ends it.
 - The testbed played together, saved, refilled or given items by a command: it is for looking, and
@@ -89,6 +89,3 @@ neither: its save and load were the dev panel's buttons and its suit colours a r
 - The title scene is the same every time, not the player's own ship: loading a save only to look at it costs a load.
 - Esc switching an overlay off: an overlay only shows (0022), and Esc with one on opens the menu.
 - A button held on the world as Esc opens the menu stays held behind it, with no pointer to work.
-- An exception on a thread of our own goes unlogged in a release (Godot logs it in debug builds
-  only): the game starts no threads or tasks. A stack overflow's stack reaches only the console.
-- Two copies of the game on one machine write the same `godot.log` over each other.

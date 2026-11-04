@@ -95,7 +95,7 @@ public static partial class Ru
         ["menu.passRefused"] = "Сервер не принял пароль или лежит",
         ["menu.connect"] = "Подключиться",
         ["menu.cancel"] = "Отмена",
-        ["menu.handbook"] = "Справочник (J)",
-        ["menu.tree"] = "Планшет (T)",
+        ["menu.handbook"] = "Справочник ({key:handbook})",
+        ["menu.tree"] = "Планшет ({key:tablet})",
     };
 }

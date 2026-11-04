@@ -11,6 +11,6 @@ public static partial class En
         ["computer.program.radar"] = "Radar",
         ["computer.radar.ship"] = "My ship",
         ["computer.radar.planet"] = "Planet",
-        ["use.open.computer"] = "[E] Ship computer",
+        ["use.open.computer"] = "[{key:use}] Ship computer",
     };
 }

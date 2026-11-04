@@ -18,7 +18,7 @@ public static partial class En
     /// <summary>The language <see cref="T"/> speaks: set at the start and by the settings, English until then.</summary>
     public static Language Speaking { get; set; } = Language.English;
 
-    /// <summary>The text for <paramref name="key"/> in <see cref="Speaking"/>, with each <c>{name}</c> in it filled.</summary>
+    /// <summary>The text for <paramref name="key"/> in <see cref="Speaking"/>, with each <c>{name}</c> in it filled, and each <c>{key:id}</c> with the key bound now.</summary>
     public static string T(string key, params (string Name, object Value)[] values) => In(Speaking, key, values);
 
     /// <summary>
@@ -29,6 +29,7 @@ public static partial class En
     {
         var text = language == Language.Russian && Ru.Table.TryGetValue(key, out var russian) ? russian
             : Table.TryGetValue(key, out var found) ? found : key;
+        text = global::Stillwake.Game.Shared.Binds.Fill(text);
         return values.Length == 0 ? text : NumberForms.Fill(text, values);
     }
 }

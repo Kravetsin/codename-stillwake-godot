@@ -321,7 +321,7 @@ public partial class Main
         var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld, ShotOf, Busy);
         WorldsPanel HostWorlds(Action<string> host, Action<string> create) =>
             new(_index.List, host, id => _index.Delete(id), create, ShotOf, Busy, heading: "menu.hostPick", playKey: "menu.hostPlay");
-        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, HostWorlds, new SettingsRows(_hands.Ui), Quit,
+        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, HostWorlds, new SettingsRows(_hands.Ui), new BindRows(_hands.Ui), Quit,
             Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status,
             testbed: OS.IsDebugBuild() ? PlayTestbed : null));
         if (_dev.Given("--title") is { Length: > 0 } page) _title.Open(page);

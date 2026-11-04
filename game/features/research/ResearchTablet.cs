@@ -232,15 +232,15 @@ public partial class ResearchTablet : CanvasLayer
     public override void _Input(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !Shown) return;
-        if (key.PhysicalKeycode is Key.Tab or Key.E or Key.B) Close();
+        if (key.Is(Bind.Inventory) || key.Is(Bind.Use) || key.Is(Bind.Build)) Close();
     }
 
     /// <summary>T does what the tablet's key does, M what the market's does, in a world with the menu shut.</summary>
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.T or Key.M } key) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !(key.Is(Bind.Tablet) || key.Is(Bind.Market))) return;
         if (!_inWorld() || _ui.MenuOpen.Get()) return;
-        if (key.PhysicalKeycode == Key.M) ToggleMarket();
+        if (key.Is(Bind.Market)) ToggleMarket();
         else Toggle();
         GetViewport().SetInputAsHandled();
     }

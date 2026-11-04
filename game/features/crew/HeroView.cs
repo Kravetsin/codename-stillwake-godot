@@ -624,17 +624,18 @@ public partial class HeroView : Node2D
     public override void _UnhandledInput(InputEvent e)
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } key) return;
-        if (key.PhysicalKeycode == Key.Space) _jump = true;
-        if (key.PhysicalKeycode == Key.E) _use = true;
-        // R breathes a canister as a right click on one does; V switches the suit's mode (2026-11-03-the-regen-suit).
-        if (key.PhysicalKeycode == Key.R) _breathe = true;
-        if (key.PhysicalKeycode == Key.V) _switchSuit = true;
+        if (key.Is(Bind.Jump)) _jump = true;
+        if (key.Is(Bind.Use)) _use = true;
+        // Breathe (R) takes a canister as a right click on one does; Suit (V) switches the suit's mode (2026-11-03-the-regen-suit).
+        if (key.Is(Bind.Breathe)) _breathe = true;
+        if (key.Is(Bind.Suit)) _switchSuit = true;
     }
 
     /// <summary>The input for the next controller step, by the keys' places on the keyboard; a jump counts for one step only.</summary>
     private HeroInput Take()
     {
-        static bool Held(Key a, Key b) => Input.IsPhysicalKeyPressed(a) || Input.IsPhysicalKeyPressed(b);
+        // The arrows walk always, beside the keys bound (2026-11-04-key-binds).
+        static bool Held(Bind bind, Key arrow) => BindKeys.Held(bind) || Input.IsPhysicalKeyPressed(arrow);
         static int Axis(bool minus, bool plus) => (plus ? 1 : 0) - (minus ? 1 : 0);
         // Keys held as the game menu opened are not walked on behind it, nor letters typed in a field (the build menu's search).
         if (_ui.MenuOpen.Get() || GetViewport().GuiGetFocusOwner() is LineEdit)
@@ -643,11 +644,11 @@ public partial class HeroView : Node2D
             return new HeroInput(0, 0, false);
         }
         var input = new HeroInput(
-            Axis(Held(Key.A, Key.Left), Held(Key.D, Key.Right)),
-            Axis(Held(Key.W, Key.Up), Held(Key.S, Key.Down)),
+            Axis(Held(Bind.WalkLeft, Key.Left), Held(Bind.WalkRight, Key.Right)),
+            Axis(Held(Bind.Up, Key.Up), Held(Bind.Down, Key.Down)),
             _jump,
-            Sprint: Input.IsPhysicalKeyPressed(Key.Shift),
-            JumpHeld: Input.IsPhysicalKeyPressed(Key.Space));
+            Sprint: BindKeys.Held(Bind.Sprint),
+            JumpHeld: BindKeys.Held(Bind.Jump));
         _jump = false;
         return input;
     }

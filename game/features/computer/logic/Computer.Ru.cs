@@ -11,6 +11,6 @@ public static partial class Ru
         ["computer.program.radar"] = "Радар",
         ["computer.radar.ship"] = "Мой корабль",
         ["computer.radar.planet"] = "Планета",
-        ["use.open.computer"] = "[E] Бортовой компьютер",
+        ["use.open.computer"] = "[{key:use}] Бортовой компьютер",
     };
 }

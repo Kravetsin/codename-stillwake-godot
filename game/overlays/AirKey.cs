@@ -25,7 +25,7 @@ public partial class AirKey : Node
 
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.O }) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Air)) return;
         Switch();
         GetViewport().SetInputAsHandled();
     }

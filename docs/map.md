@@ -48,7 +48,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Ship computer** — f/computer: `ComputerPanel.cs`, `RadarScreen.cs`, `ComputerScreens.cs`, `Readout.cs` (programs brought by modules on its network); c/`Programs.cs`
 
-**UI and tablet** — game/shared: `Tablet.cs`, `TabletEdge.cs`, `EdgeKey.cs`, `logic/TabletPeek.cs`, `TabletLayout.cs`, `CreditLine.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`; game/overlays; r/`Style.cs`
+**UI and tablet** — game/shared: `Tablet.cs`, `TabletEdge.cs`, `EdgeKey.cs`, `logic/TabletPeek.cs`, `TabletLayout.cs`, `CreditLine.cs`, `Ui.cs`, `Slots.cs`, `ItemCard.cs`, `Brush.cs`; f/handbook: `HandbookPanel.cs`; game/menu: `TitleScreen.cs`, `GameMenu.cs`, `BindRows.cs` (the keys); game/shared `logic/Binds.cs`, `BindKeys.cs`; game/platform: `Settings.cs`; game/overlays; r/`Style.cs`
 
 **Net and co-op** — net/Net: `Host.cs`, `Client.cs`, `Session.cs`, `Playout.cs`; net/Tests `Desync.cs`; game/net: `EnetLink.cs`, `RelayLink.cs`; game/`Main.Sessions.cs` (hosting, joining, worlds on disk, the title); sim/Core: `Sim.cs` World, `Module.cs` Command, `Rng.cs`; sim/Registry: `Registry.cs`, `Migrations.cs`; game/platform: `Saves.cs`
 
