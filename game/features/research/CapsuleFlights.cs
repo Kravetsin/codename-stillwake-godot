@@ -17,14 +17,18 @@ namespace Stillwake.Game.Features.Research;
 public partial class CapsuleFlights : Node2D
 {
     private const int Cell = ShipCamera.Cell;
-    private static readonly Texture2D Capsule = AsciiArt.Capsule();
-    private static readonly Color Flame = new("ffb066");
+    /// <summary>Its frames of flame a second, and the top middle of the flame's picture, from the capsule's middle (the subject's bell).</summary>
+    private const double FlameFps = 15;
+    private static readonly Vector2 Nozzle = new(0, 10.9f);
+    private const float KickedFlame = 1.4f;
+    private static readonly Texture2D Capsule = PixelArt.Picture("capsule");
+    private static readonly Texture2D[] Flames = [PixelArt.Picture("capsule_flame_0"), PixelArt.Picture("capsule_flame_1"), PixelArt.Picture("capsule_flame_2")];
 
     private readonly IGridQueries _grid;
     private readonly TradeModule _trade;
     private readonly Func<double> _progress;
     private readonly Dictionary<int, bool> _away = new();
-    private readonly List<(Vector2 At, CapsulePath.Pose Pose)> _seen = [];
+    private readonly List<(Vector2 At, CapsulePath.Pose Pose, bool Kicks)> _seen = [];
     private readonly Heard2D _off = Cues.Player2D(S.CapsuleOff, S.World, voices: 2), _home = Cues.Player2D(S.ChargeFull, S.World, voices: 2);
     private double _clock;
 
@@ -50,7 +54,8 @@ public partial class CapsuleFlights : Node2D
             var middle = new Vector2(m.Cell % _grid.Width + spec.Width / 2f, m.Cell / _grid.Width + spec.Height / 2f);
             var flight = _trade.FlightOf(m.Id);
             Hear(m.Id, flight != null, GlobalTransform * (middle * Cell));
-            if (flight != null && CapsulePath.At(flight.Left - _progress(), Market.CapsuleFlight) is { } pose) _seen.Add((middle, pose));
+            double left = flight == null ? 0 : flight.Left - _progress();
+            if (flight != null && CapsulePath.At(left, Market.CapsuleFlight) is { } pose) _seen.Add((middle, pose, CapsulePath.Kicks(left, Market.CapsuleFlight)));
         }
         QueueRedraw();
     }
@@ -64,16 +69,17 @@ public partial class CapsuleFlights : Node2D
 
     public override void _Draw()
     {
-        foreach (var (middle, pose) in _seen)
+        var flame = Flames[(int)(_clock * FlameFps) % Flames.Length];
+        foreach (var (middle, pose, kicks) in _seen)
         {
             var at = new Vector2((float)(middle.X + pose.X), (float)(middle.Y + pose.Y)) * Cell;
             float scale = (float)pose.Scale;
-            // Tilted the way it flies; its flame flickering under it.
+            var shown = Colors.White with { A = (float)pose.Alpha };
+            // Tilted the way it flies; its flame hung under it, longer as it lifts off and touches down.
             DrawSetTransform(at, Mathf.Atan2(-(float)CapsulePath.Astern, (float)CapsulePath.Rise), new Vector2(scale, scale));
-            var size = Capsule.GetSize();
-            float flicker = 2.2f + 0.8f * Mathf.Sin((float)_clock * 40);
-            DrawCircle(new Vector2(0, size.Y / 2 + flicker), flicker, Flame with { A = (float)pose.Alpha });
-            DrawTexture(Capsule, -size / 2, Colors.White with { A = (float)pose.Alpha });
+            var size = flame.GetSize();
+            DrawTextureRect(flame, new Rect2(Nozzle.X - size.X / 2, Nozzle.Y, size.X, size.Y * (kicks ? KickedFlame : 1)), false, shown);
+            DrawTexture(Capsule, -Capsule.GetSize() / 2, shown);
         }
         DrawSetTransform(Vector2.Zero);
     }

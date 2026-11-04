@@ -28,6 +28,17 @@ public class CapsulePathTests
     }
 
     [Fact]
+    public void KicksItsFlameLongerAsItLiftsOffAndAsItTouchesDownOnly()
+    {
+        Assert.True(CapsulePath.Kicks(Flight, Flight));
+        Assert.True(CapsulePath.Kicks(Flight - CapsulePath.Kick + 1, Flight));
+        Assert.False(CapsulePath.Kicks(Flight - CapsulePath.Kick, Flight));
+        Assert.False(CapsulePath.Kicks(Flight / 2, Flight));
+        Assert.True(CapsulePath.Kicks(CapsulePath.Kick - 1, Flight));
+        Assert.False(CapsulePath.Kicks(CapsulePath.Kick, Flight));
+    }
+
+    [Fact]
     public void ComesBackTheSameWayReversed()
     {
         Assert.Equal(CapsulePath.At(Flight - 50, Flight), CapsulePath.At(50, Flight));
