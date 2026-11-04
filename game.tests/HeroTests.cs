@@ -1005,6 +1005,18 @@ public class HeroTests
         select new HeroInput(x, y, jump, JumpHeld: held);
 
     [Fact]
+    public void TiesATetherOnAHeroAnOuterDoorPushesOutIntoSpace()
+    {
+        // A room whose outer door, three blocks tall in column 5, opens on open space: no back wall past the hull.
+        var shut = ShipFrom(new[] { "######", "#....D", "#....D", "#....D", "######" }.Select(r => r.PadRight(30)).ToArray());
+        // Standing mostly past the doorway's middle as it shuts: pushed out, not in.
+        var pushed = Until(shut, new Hero(11300, 4 * Block, 0, 0, false, 1), Still, h => shut.Space(h.BodyCell(shut.Width)));
+        var out_ = Settle(shut, pushed, Right);
+        Assert.NotNull(out_.Anchor);
+        Assert.True(ReachOf(out_) <= Spec.Tether, $"{ReachOf(out_)} from where it was tied");
+    }
+
+    [Fact]
     public void InSpaceKeepsTheBodyWithinTheTetherSlidingAlongItsLimitNeverThroughAWall()
     {
         var opened = Opened();

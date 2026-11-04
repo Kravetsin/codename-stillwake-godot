@@ -146,8 +146,8 @@ public readonly record struct Hero(
     /// </summary>
     public Hero Step(HeroInput input, Ship ship)
     {
-        if (ShutOut(ship, this) is Hero pushed) return pushed;
-        var after = Move(this, input, ship);
+        // Pushed out of a door shut on it, the body may leave the hull: tied as a step out would tie it.
+        var after = ShutOut(ship, this) ?? Move(this, input, ship);
         // A jetpack worn ties no tether: the hero flies free.
         return input.Jetpack ? after with { Anchor = null } : Tethered(this, after, ship);
     }
