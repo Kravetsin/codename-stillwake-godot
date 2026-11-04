@@ -186,6 +186,38 @@ public static class Sound
     public const double PowerDriverBiteS = 0.8, PowerDriverHoldS = 0.1, PowerDriverQuietS = 0.4, PowerDriverFadeS = 0.12;
 
     /// <summary>
+    /// The grinder (salvage-tools), the user's picks, heard at its wheel on the Suit bus as the drill's whir: a loop of one running
+    /// free, spun up, down and loaded as the drill's motor (<see cref="DrillMotor"/>); its wheel biting into metal as it comes on
+    /// what it grinds, again every <see cref="GrinderBiteEveryS"/> while it stays on. Levelled as the power driver's, at <see cref="ToolIdleDb"/>.
+    /// </summary>
+    public static readonly Cue GrinderRun = new(["res://audio/crew/grinder-run-1.ogg"], ToolIdleDb, Loops: true, Heard: ToolReach);
+    public static readonly Cue GrinderBite = new(Shots("crew/grinder-bite", 1), ToolIdleDb, Pitch: 0.05f, Heard: ToolReach);
+    public const double GrinderBiteEveryS = 0.6;
+
+    /// <summary>
+    /// The plasma cutter's jet (salvage-tools), the user's picks, at its nozzle on the Suit bus: struck as it starts to run, its hiss
+    /// looped while it runs, cut off as it stops; no motor, the jet is full at once. Levelled as the power driver's, at <see cref="ToolIdleDb"/>.
+    /// </summary>
+    public static readonly Cue CutterStrike = new(Shots("crew/cutter-strike", 1), ToolIdleDb, Pitch: 0.04f, Heard: ToolReach);
+    public static readonly Cue CutterRun = new(["res://audio/crew/cutter-run-1.ogg"], ToolIdleDb, Loops: true, Heard: ToolReach);
+    public static readonly Cue CutterOff = new(Shots("crew/cutter-off", 1), ToolIdleDb, Pitch: 0.04f, Heard: ToolReach);
+
+    /// <summary>Whether a wreck hit by the electric <paramref name="tool"/> is heard as the chop: the drill's; the grinder's bite and the cutter's jet are their own.</summary>
+    public static bool ChopsWrecks(string? tool) => tool != Content.Weapons.Grinder.Item && tool != Content.Weapons.PlasmaCutter.Item;
+
+    /// <summary>
+    /// The sledgehammer's and the spear's whooshes (salvage-tools), the user's picks «slow stick» and «bamboo», levelled as the axe's
+    /// swing at <see cref="ToolIdleDb"/>, their loudest 10 ms <see cref="HammerSwingPeakS"/> and <see cref="SpearThrustPeakS"/> in.
+    /// </summary>
+    public static readonly Cue HammerSwing = new(Shots("crew/hammer-swing", 1), ToolIdleDb, Pitch: 0.06f);
+    public static readonly Cue SpearThrust = new(Shots("crew/spear-thrust", 1), ToolIdleDb, Pitch: 0.08f);
+    public const double HammerSwingPeakS = 0.22, SpearThrustPeakS = 0.104;
+
+    /// <summary>The whoosh of a stroke of <paramref name="tool"/>: the sledgehammer's and the spear's their own, any other the axe's.</summary>
+    public static Cue SwingOf(string? tool) =>
+        tool == Content.Weapons.Sledgehammer.Item ? HammerSwing : tool == Content.Weapons.Spear.Item ? SpearThrust : Swing;
+
+    /// <summary>
     /// The Former's press (0059), where it stands, on the World bus: a 10-ton punch press's stroke, once each time its head comes
     /// down in its pictures (every 0.44 s at its 4 × 110 ms), each its pitch scale within ±<see cref="FormerStrokePitch"/> and its
     /// volume within ±<see cref="FormerStrokeVolumeDb"/>. Soft, 3 dB over its motor, so it tells the press works without pounding.
@@ -298,6 +330,18 @@ public static class Sound
 
     /// <summary>A wreck breaking apart under this player's last hit, in place of its chop: on the Suit bus as the chop is, and heard farther.</summary>
     public static readonly Cue Break = new(Shots("debris/break", 3), -2, Heard: BreakReach);
+
+    /// <summary>
+    /// A wreck hit by this player's spear or sledgehammer (salvage-tools), the user's picks, in place of the chop: the spear's point a
+    /// knife on a beam, levelled as the chop; the sledgehammer's blow a big metal hit, levelled as the break and played with it too as
+    /// it breaks one.
+    /// </summary>
+    public static readonly Cue SpearHit = new(Shots("debris/spear-hit", 1), -2, Pitch: 0.1f, Heard: ToolReach);
+    public static readonly Cue HammerBlow = new(Shots("debris/hammer-blow", 1), -2, Pitch: 0.06f, Heard: BreakReach);
+
+    /// <summary>A wreck hit by this player's <paramref name="tool"/>: the spear's point, the sledgehammer's blow, any other the chop.</summary>
+    public static Cue WreckHitOf(string? tool) =>
+        tool == Content.Weapons.Sledgehammer.Item ? HammerBlow : tool == Content.Weapons.Spear.Item ? SpearHit : Chop;
 
     /// <summary>
     /// A planet's ground and what grows on it, hit and broken (0093): each file levelled as the audition played it under the axe's

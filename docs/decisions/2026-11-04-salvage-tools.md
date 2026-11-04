@@ -42,3 +42,8 @@ once. A demolition charge waits for a material to make it of (sulfur, perhaps); 
 - **Looks, as picked**: the grinder a long ochre motor tube with a cast head and a half-guarded wheel; the cutter its jet run through
   three copper coils on a rail, lit violet; the spear a hull plate's leaf in a flattened tube bound in copper; the sledgehammer five
   bolted plates on a plank.
+- **Sounds, as picked** (`Sound`): the grinder a running motor looped on the drill's spin, its wheel biting metal as it comes on
+  something and every 0.6 s while it stays; the cutter one recording's jet, struck as it starts, looped, cut off as it stops; the
+  spear a bamboo whoosh and a knife on a beam; the sledgehammer a slow low whoosh and a big metal hit, heard with the break too as
+  it breaks a wreck. The grinder's and the cutter's hits on a wreck play no chop, their own sound is it; the cutter at a wall,
+  dealing nothing, sends and plays nothing.

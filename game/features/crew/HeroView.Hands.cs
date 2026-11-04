@@ -100,7 +100,7 @@ public partial class HeroView
             _swingFace = Poses.FaceOf(pointer, _current) ?? _current.Facing;
             _current = _current with { Facing = _swingFace };
         }
-        if (swung.Whooshes) _swingSound.Play();
+        if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
         if (swung.Hits)
         {
             // The fan toward the swing's point (the fan of rays): what stands on a planet's grid, heard once; in space the wrecks.
@@ -128,7 +128,7 @@ public partial class HeroView
         // they hit, where they hit it (0093, 0094); the bit throws nothing of its own.
         bool works = runs && (!Aiming.FanOf(m, _current, Aiming.PointOf(pointer!.Value), running!).IsEmpty
             || Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0);
-        HearDrill(runs, works, elapsedMs);
+        HearDrill(drill, runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
         // Aimed aboard too, though it fires only out in space.
@@ -194,7 +194,7 @@ public partial class HeroView
         var at = Aiming.PointOf(pointer!.Value);
         var fan = Aiming.FanOf(m, _current, at, drill!);
         Hew(client, m, fan, at);
-        if (fan.Pieces.Count > 0) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
+        if (fan.Pieces.Count > 0 && S.ChopsWrecks(drill)) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
         // A creature under the bit is struck at the same pace; how it sounds and flinches is the creatures' (0102).
         foreach (var strike in Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, at), drill!)) client.Send(strike);
     }
@@ -207,7 +207,8 @@ public partial class HeroView
     {
         bool sent = false;
         var (ground, wrecks) = (fan.Ground, fan.Wrecks);
-        if (!fan.Hewn.IsEmpty && m.Building.HewProblem(client.Id, ground.Tool, ground.X, ground.Y, ground.Heading) == null)
+        // A tool of no block damage, the cutter, does nothing to a wall or a plant: neither sent nor heard.
+        if (!fan.Hewn.IsEmpty && m.Items.BlockDamage(client.Id, ground.Tool) != 0 && m.Building.HewProblem(client.Id, ground.Tool, ground.X, ground.Y, ground.Heading) == null)
         {
             Struck(_groundHits, m, Aiming.LeadOf(fan, at, m.Grid.Width), ground.Tool, _current, client.Id);
             client.Send(ground);
@@ -224,21 +225,40 @@ public partial class HeroView
     /// <summary>
     /// The drill's motor heard at its bit as last drawn whenever it <paramref name="runs"/>, spun up and down with its picture
     /// and loaded while it <paramref name="works"/> on a piece (0059), held on <c>Sound.DrillTouchHoldS</c> past the bit leaving
-    /// it. Its hits sound as what they hit, a wreck's chop or the ground's (0093), each one as it is sent.
+    /// it. Its hits sound as what they hit, a wreck's chop or the ground's (0093), each one as it is sent. The grinder's motor is a
+    /// loop on the same spin, its wheel biting as it comes on what it grinds; the cutter's jet struck, looped and cut off with its run.
     /// </summary>
-    private void HearDrill(bool runs, bool works, double elapsedMs)
+    private void HearDrill(string? tool, bool runs, bool works, double elapsedMs)
     {
         double elapsedS = elapsedMs / 1000;
         bool onPiece = runs && _onPiece.Step(works, elapsedS, S.DrillTouchHoldS);
         var at = _figure.Muzzle ?? _figure.GlobalPosition;
         _drillMotor.Step(runs, onPiece, elapsedS, S.DrillMotor);
         double speed = _drillMotor.Speed(S.DrillMotor);
-        int grains = _grains.Due(elapsedMs, _drillMotor.Spin > 0, S.DrillWhirGrainsPerSecond * speed);
+        float gain = _drillMotor.GainDb(S.DrillMotor);
+        bool grinder = tool == Content.Weapons.Grinder.Item, cutter = tool == Content.Weapons.PlasmaCutter.Item;
+        int grains = _grains.Due(elapsedMs, _drillMotor.Spin > 0 && !grinder && !cutter, S.DrillWhirGrainsPerSecond * speed);
         for (int i = 0; i < grains; i++)
         {
             var (spread, _) = StrikeTrain.Vary(_strikeSpread, S.DrillWhirPitch, 0);
-            _whir.PlayAt(at, (float)speed * spread, _drillMotor.GainDb(S.DrillMotor));
+            _whir.PlayAt(at, (float)speed * spread, gain);
         }
+        var cue = _runSounds.Step(runs && (grinder || cutter), onPiece, elapsedS, S.GrinderBiteEveryS);
+        if (cue.Starts && cutter)
+        {
+            _cutterStrike.PlayAt(at);
+            _cutterRun.PlayAt(at);
+        }
+        if (cue.Stops && _cutterRun.Playing)
+        {
+            _cutterRun.Stop();
+            _cutterOff.PlayAt(at);
+        }
+        if (cue.Bites && grinder) _grinderBite.PlayAt(at);
+        bool spins = grinder && _drillMotor.Spin > 0;
+        if (spins && !_grinderRun.Playing) _grinderRun.PlayAt(at, (float)speed, gain);
+        else if (!spins && _grinderRun.Playing) _grinderRun.Stop();
+        (_grinderRun.GlobalPosition, _grinderRun.PitchScale, _grinderRun.OffsetDb, _cutterRun.GlobalPosition) = (at, (float)speed, gain, at);
     }
 
     /// <summary>

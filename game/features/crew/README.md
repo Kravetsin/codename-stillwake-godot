@@ -11,21 +11,22 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 | `logic/Rig.cs` | joints and limbs; the fist (0040) |
 | `logic/Pose.cs` | poses, the head, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing (0090) |
-| `logic/LookTint.cs` | skin, hair on hi-res parts |
+| `logic/LookTint.cs` | skin, hair tints |
 | `logic/Aim.cs` | reach, aim, what hands send, a fan |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
 | `SwingSmear.cs` | a swing's light (0075) |
 | `logic/SwingArm.cs` | the front arm swung, aimed |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
-| `logic/HarpoonLine.cs` | the harpoon's line |
+| `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does, or why not |
 | `logic/Seating.cs` | a hero in a drop pod |
 | `logic/FogMove.cs` | across a planet's fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
-| `UsePrompt.cs` | the prompt at the bottom |
-| `logic/Tether.cs` | the tether drawn, reeled |
+| `UsePrompt.cs` | that prompt shown |
+| `logic/Tether.cs` | tether drawn, reeled |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
+| `logic/RunSounds.cs` | grinder, cutter heard |
 | `logic/Motor.cs` | `Run` till the sim agrees (0055) |
 | `logic/Remote.cs` | heroes sent and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
@@ -42,7 +43,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 | `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
 | `logic/GunHand.cs` | a gun's cooldown and shots |
 | `HeroView.Others.cs` | others' heroes and what they trail |
-| `logic/CameraFollow.cs` | where the camera looks |
+| `logic/CameraFollow.cs` | the camera's aim |
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
@@ -51,14 +52,14 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 | `logic/DriverMode.cs` | its dots |
 | `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
-| `logic/Report.cs` | the `Enter` report (0050) |
+| `logic/Report.cs` | `Enter` reports (0050) |
 | `Frost.cs` | frost past the field (0050) |
 | `logic/Danger.cs` | what the suit gauge reads |
 | `logic/AirCues.cs` | air coming back (0081) |
 | `logic/CanistersSeen.cs` | friends' canisters |
 | `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
-| `SuitColours.cs` | the menu's suit colours |
+| `SuitColours.cs` | menu's suit colours |
 | `LookEditor.cs` | the look editor (looks-are-printed) |
 | `logic/Markers.cs` | markers' list and shape |
 | `MarkerLayer.cs` | edge arrows |
