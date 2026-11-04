@@ -95,7 +95,7 @@ public static partial class En
         ["menu.passRefused"] = "The server did not take that password, or it is down",
         ["menu.connect"] = "Connect",
         ["menu.cancel"] = "Cancel",
-        ["menu.handbook"] = "Handbook (J)",
-        ["menu.tree"] = "Tablet (T)",
+        ["menu.handbook"] = "Handbook ({key:handbook})",
+        ["menu.tree"] = "Tablet ({key:tablet})",
     };
 }

@@ -1,4 +1,5 @@
 using Godot;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Render;
 
@@ -97,12 +98,9 @@ public partial class ShipCamera : Camera2D
     {
         if (e is InputEventKey { Pressed: true } key)
         {
-            int direction = key.Keycode switch
-            {
-                Key.Minus or Key.KpSubtract => -1,
-                Key.Equal or Key.KpAdd => 1,
-                _ => 0,
-            };
+            // The keypad's + and − zoom always, beside the keys bound (2026-11-04-key-binds).
+            int direction = key.Is(Bind.ZoomOut) || key.PhysicalKeycode == Key.KpSubtract ? -1
+                : key.Is(Bind.ZoomIn) || key.PhysicalKeycode == Key.KpAdd ? 1 : 0;
             if (direction != 0) Step(direction);
         }
         // Ctrl and the wheel zoom in play too; the hotbar leaves the wheel to it while Ctrl is held.

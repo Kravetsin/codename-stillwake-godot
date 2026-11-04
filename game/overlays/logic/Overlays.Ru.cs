@@ -4,6 +4,6 @@ public static partial class Ru
 {
     private static readonly Strings Overlays = new()
     {
-        ["overlay.key"] = "Воздух (O)",
+        ["overlay.key"] = "Воздух ({key:air})",
     };
 }

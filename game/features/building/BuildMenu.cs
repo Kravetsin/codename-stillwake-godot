@@ -116,8 +116,8 @@ public partial class BuildMenu : CanvasLayer
         }
         foreach (var mode in Tools.Modes)
         {
-            var (face, letter) = mode switch { PlanMode.Wiring => (KeyFace.Wiring, "X"), PlanMode.Piping => (KeyFace.Piping, "C"), _ => (KeyFace.Build, "Z") };
-            var key = new PlanKey(face, Vector2.Zero, letter, () => _hand.SetMode(mode));
+            var (face, bind) = mode switch { PlanMode.Wiring => (KeyFace.Wiring, Bind.ModeWiring), PlanMode.Piping => (KeyFace.Piping, Bind.ModePiping), _ => (KeyFace.Build, Bind.ModeBuild) };
+            var key = new PlanKey(face, Vector2.Zero, () => Binds.NameOf(bind), () => _hand.SetMode(mode));
             _modes.AddChild(key);
             _modeKeys.Add(key);
         }
@@ -347,25 +347,16 @@ public partial class BuildMenu : CanvasLayer
     {
         // Esc puts the plan away through Shared.Escape, before it opens the game menu.
         if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
-        switch (key.PhysicalKeycode)
-        {
-            case Key.B:
-                _hand.Toggle();
-                break;
-            // With a hand free Q drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
-            case Key.Q when _hand.PlanOut.Get() && _hand.Builds:
-                _hand.PickWanted = true;
-                break;
-            // / types in the search; while it is typed in, the field takes every key before it gets here, B, Q and Z, X, C too.
-            case Key.Slash when _hand.PlanOut.Get() && _hand.Builds:
-                _search.GrabFocus();
-                break;
-            case Key.Z or Key.X or Key.C when _hand.PlanOut.Get():
-                _hand.SetMode(key.PhysicalKeycode == Key.Z ? PlanMode.Build : key.PhysicalKeycode == Key.X ? PlanMode.Wiring : PlanMode.Piping);
-                break;
-            default:
-                return;
-        }
+        bool planning = _hand.PlanOut.Get();
+        if (key.Is(Bind.Build)) _hand.Toggle();
+        // With a hand free Drop (Q) drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
+        else if (key.Is(Bind.Drop) && planning && _hand.Builds) _hand.PickWanted = true;
+        // Search (/) types in the search; while it is typed in, the field takes every key before it gets here, these too.
+        else if (key.Is(Bind.Search) && planning && _hand.Builds) _search.GrabFocus();
+        else if (key.Is(Bind.ModeBuild) && planning) _hand.SetMode(PlanMode.Build);
+        else if (key.Is(Bind.ModeWiring) && planning) _hand.SetMode(PlanMode.Wiring);
+        else if (key.Is(Bind.ModePiping) && planning) _hand.SetMode(PlanMode.Piping);
+        else return;
         GetViewport().SetInputAsHandled();
     }
 

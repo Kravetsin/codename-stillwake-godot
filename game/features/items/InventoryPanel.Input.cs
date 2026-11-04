@@ -20,35 +20,35 @@ public partial class InventoryPanel
     {
         if (e is InputEventKey { Pressed: true, Echo: false } key)
         {
-            switch (key.PhysicalKeycode)
+            if (key.Is(Bind.Inventory))
             {
-                case Key.Tab:
-                    if (Shown) Close();
-                    else
-                    {
-                        // One hand (0022): the inventory, a stack carried from it, takes it.
-                        _ui.Hand.Set(Holding.Free);
-                        (_open, _picked) = (true, null);
-                    }
-                    break;
-                case >= Key.Key1 and <= Key.Key9:
+                if (Shown) Close();
+                else
+                {
+                    // One hand (0022): the inventory, a stack carried from it, takes it.
                     _ui.Hand.Set(Holding.Free);
-                    int digit = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
-                    if (digit != _chosen) _ui.Click();
-                    _chosen = digit;
-                    break;
-                case Key.Q:
-                    // A card in hand, not the chosen slot: Q drops nothing it does not show.
-                    if (!HandFree) return;
-                    if (_reading?.Inventory[_chosen] is { } stack)
-                    {
-                        _ui.Click();
-                        DropFrom(new Place(_chosen), stack.Count);
-                    }
-                    break;
-                default:
-                    return;
+                    (_open, _picked) = (true, null);
+                }
             }
+            // The hotbar's digits are fixed: no action is bound to them (2026-11-04-key-binds).
+            else if (key.PhysicalKeycode is >= Key.Key1 and <= Key.Key9)
+            {
+                _ui.Hand.Set(Holding.Free);
+                int digit = Hotbar.SlotOfDigit((int)(key.PhysicalKeycode - Key.Key0))!.Value;
+                if (digit != _chosen) _ui.Click();
+                _chosen = digit;
+            }
+            else if (key.Is(Bind.Drop))
+            {
+                // A card in hand, not the chosen slot: Drop drops nothing it does not show.
+                if (!HandFree) return;
+                if (_reading?.Inventory[_chosen] is { } stack)
+                {
+                    _ui.Click();
+                    DropFrom(new Place(_chosen), stack.Count);
+                }
+            }
+            else return;
             GetViewport().SetInputAsHandled();
             Refresh();
         }

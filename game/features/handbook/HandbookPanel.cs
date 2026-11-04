@@ -209,13 +209,13 @@ public partial class HandbookPanel : CanvasLayer
     {
         if (e is not InputEventKey { Pressed: true, Echo: false } key || !_open) return;
         // Not taken: Tab opens the inventory, E works what is in reach.
-        if (key.PhysicalKeycode is Key.Tab or Key.E) Close();
+        if (key.Is(Bind.Inventory) || key.Is(Bind.Use)) Close();
     }
 
     /// <summary>J takes it out and puts it away, in a world with the menu shut.</summary>
     public override void _UnhandledInput(InputEvent e)
     {
-        if (e is not InputEventKey { Pressed: true, Echo: false, PhysicalKeycode: Key.J } || !Toggle()) return;
+        if (e is not InputEventKey { Pressed: true, Echo: false } key || !key.Is(Bind.Handbook) || !Toggle()) return;
         GetViewport().SetInputAsHandled();
     }
 

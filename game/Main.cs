@@ -185,6 +185,11 @@ public partial class Main : Node2D, ITogether
         if (slots == null) _hands.Ui.SlotScale.Subscribe(() => Settings.Keep(_hands.Ui.SlotScale.Get()));
         _hands.Ui.Language.Set(Speaking);
         _hands.Ui.Language.Subscribe(() => Speak(_hands.Ui.Language.Get(), keep: language == null));
+        // The keys as kept, named as this keyboard prints them; a dev run plays the defaults its scripts press, keeping nothing.
+        Binds.Shown = BindKeys.Shown;
+        Binds.Current = _dev.None ? Settings.Binds() : Binds.Default;
+        _hands.Ui.Binds.Set(Binds.Current);
+        _hands.Ui.Binds.Subscribe(() => Rebind(_hands.Ui.Binds.Get(), keep: _dev.None));
         if (_dev.Value("--lang-flip") is { } flipAt)
             GetTree().CreateTimer(double.Parse(flipAt, System.Globalization.CultureInfo.InvariantCulture)).Timeout += () => _hands.Ui.Language.Set(Speaking == Language.Russian ? Language.English : Language.Russian);
         Shimmer.Enabled = Settings.Shimmer();
@@ -363,20 +368,34 @@ public partial class Main : Node2D, ITogether
     /// </summary>
     private void Speak(Language now, bool keep)
     {
-        var was = Speaking;
+        var told = Languages.Told(Speaking);
         Speaking = now;
+        BindKeys.Relearn();
         if (keep) Settings.Keep(now);
-        Retell(GetTree().Root, was, now);
+        Retell(GetTree().Root, told, now);
         _title?.Worlds.Refresh();
     }
 
-    private static void Retell(Node node, Language from, Language to)
+    /// <summary>
+    /// Plays by <paramref name="binds"/> from here on (2026-11-04-key-binds), what is on screen naming a key included, told again
+    /// as a change of language tells it.
+    /// </summary>
+    private void Rebind(Binds binds, bool keep)
+    {
+        var told = Languages.Told(Speaking);
+        Binds.Current = binds;
+        BindKeys.Relearn();
+        if (keep) Settings.Keep(binds);
+        Retell(GetTree().Root, told, Speaking);
+    }
+
+    private static void Retell(Node node, IReadOnlyDictionary<string, string> told, Language to)
     {
         if (node is DevPanel) return;
-        if (node is Label label) label.Text = Languages.Retold(label.Text, from, to);
-        else if (node is Button button) button.Text = Languages.Retold(button.Text, from, to);
-        else if (node is LineEdit line) line.PlaceholderText = Languages.Retold(line.PlaceholderText, from, to);
-        foreach (var child in node.GetChildren()) Retell(child, from, to);
+        if (node is Label label) label.Text = Languages.Retold(label.Text, told, to);
+        else if (node is Button button) button.Text = Languages.Retold(button.Text, told, to);
+        else if (node is LineEdit line) line.PlaceholderText = Languages.Retold(line.PlaceholderText, told, to);
+        foreach (var child in node.GetChildren()) Retell(child, told, to);
     }
 
     /// <summary>Whether this player's placed hero floats out in space: the world silent, its own touch dulled, the bed of space playing (0033, 0041).</summary>
