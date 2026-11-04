@@ -46,6 +46,10 @@ namespace Stillwake.Content;
 /// paid by hand, and drones never touch it.
 /// </param>
 /// <param name="Takes">The one item its slots hold, put in by hand or by drones: the engine's biofuel. Any when not given.</param>
+/// <param name="SlotTakes">
+/// One slot that holds only one item, which goes into no other slot: a drone bay's fuel slot of canisters (salvage-drones).
+/// Its <paramref name="Charges"/> check passes it by. None for most.
+/// </param>
 /// <param name="Exhaust">
 /// Cells its nozzle reaches out of its left side, the stern's (2026-10-25-the-engine-through-the-hull): in every row of it, a
 /// wall or more from its side, then space, the nozzle's tip in space. Its picture is as much wider, the nozzle drawn over the
@@ -80,6 +84,7 @@ public sealed record MachineSpec(
     StoreSpec? Store = null,
     bool Tunes = false,
     string? Takes = null,
+    (int Slot, string Item)? SlotTakes = null,
     int? Exhaust = null,
     MachineTrait Has = MachineTrait.None,
     int? Strength = null,
@@ -201,8 +206,9 @@ public static class Machines
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
         new("growCapsule", 4, 6, [], [("frame", 2), ("glass", 6), ("soil", 8), ("circuit", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
-        // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does.
-        new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 4, Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
+        // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does;
+        // its fifth, the fuel slot, holds the canisters a salvage drone flies out on (salvage-drones).
+        new("droneBay", 4, 4, [], [("frame", 4), ("plate", 8), ("rotor", 4), ("circuit", 4), ("wire", 10)], BuildTicks: 200, Draws: 4, Plug: (29, 20), Slots: 5, SlotTakes: (4, "canister"), Charges: true, Has: MachineTrait.Zone, Menu: new(MenuTabs.Storage, 20), Char: 'R', Means: "drone bay: draw its whole footprint"),
         // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
         new("lifepod", 6, 6, [new(5, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The last crew's piles in the hold (the-scoop): never built, an axe breaks one and its cost is what it holds, a first reward for

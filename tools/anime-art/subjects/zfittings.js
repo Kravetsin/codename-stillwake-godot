@@ -113,9 +113,6 @@ const droneDock = (a) => {
 };
 const eye = (x, y) => (a) => { a.flat(rr(x - .5, y - .5, 3, 3, .5), '#2ca4d8'); a.flat(rr(x, y, 1.6, 1.6, .3), '#a8ecff'); };
 const lampOf = (c) => (a) => { a.flat(rr(6.6, 2.7, 2.8, 1.2, .3), c); };
-const chargeBar = (n, low) => (a) => {
-  for (let i = 0; i < 4; i++) { const x = i * 2.8; a.flat(band(x, 0, x + 2.2, 1), low ? (i === 0 ? '#ff5040' : '#3a1818') : i < n ? '#7cf06a' : '#1a3a20'); }
-};
 
 // The tools in the hand.
 const WOODH = { base: '#8a6242', shade: '#5c3e30', lite: '#ad8258', spec: '#cca678', ink: '#1c1210' };
@@ -186,9 +183,6 @@ Subjects.zfittings = function () {
   out('drone_dock_eye', bake({ w: 14, h: 12, draw: eye(10.2, 5.2) }));
   out('drone_lamp_work', bake({ w: 18, h: 12, draw: lampOf('#a8ecff') }));
   out('drone_lamp_low', bake({ w: 18, h: 12, draw: lampOf('#ff5040') }));
-  out('droneBay_pad', bake({ w: 8, h: 1, draw: (a) => { a.flat(band(0, 0, 8, 1), '#7cf06a'); a.flat(band(1, .2, 7, .6), '#e0ffd0'); } }));
-  for (let n = 0; n < 5; n++) out(`droneBay_charge_${n}`, bake({ w: 11, h: 1, draw: chargeBar(n, false) }));
-  out('droneBay_charge_low', bake({ w: 11, h: 1, draw: chargeBar(0, true) }));
   out('hero_axe', bake({ w: 28, h: 14, draw: axe }));
   out('hero_drill', bake({ w: 33, h: 15, draw: drill(null) }));
   for (let f = 1; f <= 3; f++) out(`hero_drill_spin${f}`, bake({ w: 33, h: 15, draw: drill(f) }));

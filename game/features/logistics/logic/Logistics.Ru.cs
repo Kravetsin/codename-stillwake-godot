@@ -14,5 +14,6 @@ public static partial class Ru
         ["logistics.drone"] = "положи сюда дрона, чтобы летал",
         ["logistics.kept"] = "Дроны держат полным: {item}",
         ["logistics.noneInReach"] = "поблизости нет",
+        ["logistics.fuel"] = "сюда баллоны: дрон-сборщик берёт один на вылет",
     };
 }

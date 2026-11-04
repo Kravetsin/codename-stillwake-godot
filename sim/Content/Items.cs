@@ -183,6 +183,8 @@ public static class Items
         new("igniter", 20),
         // Made at the circuit assembler: docked in a drone bay it charges and flies items about (0062); a stack of one, a battery of its own.
         new("drone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
+        // Its kin for space (salvage-drones): a battery as a drone's, and a canister's air from its bay to fly out on.
+        new("salvageDrone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
         // average, so the farm slowly eats seeds and supply pods refill it. Biomass smelts into biofuel.
         new("seed", 100, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),

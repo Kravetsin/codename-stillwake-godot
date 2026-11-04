@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Debris.cs` | The module, its queries and operations: `Grab`, `HewWrecks`, `Reel`, `Hit`, `Found`. |
+| `Debris.cs` | The module, its queries and operations: `Grab`, `Catch`, `HewWrecks`, `Reel`, `Hit`, `Found`. |
 | `Drift.cs` | The system: pieces drift, are caught or gone, and each zone of `Debris.Zones` spawns on its beat. |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
 | `Nets.cs` | The debris nets: the catch, `Collect`, a net gone dropping what it held. |
@@ -16,11 +16,11 @@ Handbook's record of kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (the sender's
   hero, every hero's reported cell), `Rooms` (what is space), `Items` (`CanDrain`, `Running`, `Damage`, `WeaponProblem`,
   `FullFor`; `GiveOrDrop`, `GiveWhatFits`, `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it
-  (`IDebrisQueries`, `Breaks`) and changes it (`Unreel`, `Hit`).
+  (`Breaks`) and changes it (`Unreel`, `Hit`).
 - **State** (`DebrisState`, saved): `Pieces` in id order, each `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage,
   Reel, SeenAt }`, in thousandths of a cell (`Unit`); `NextId`, never reused; `Clock`; `Beats`, each zone's next due
   clock; `AtStart`; `Found` (0066), `FoundKind { Kind, Items, Looks }` in the order first found; `Held`, every net's
-  entries `{ Net, Id, Kind, Cell, Items }` in catch order, not written while empty. **Not saved, never hashed:** the last
+  entries `{ Net, Id, Kind, Cell, Items }` in catch order, not written while empty. **Unsaved, unhashed:** the last
   `CaughtKept` (64) grabs and collected entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the
   grid version the nets were last looked at.
 
@@ -33,11 +33,11 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 
 ## Rules
 
-- Each simulation tick: a net gone drops what it held; each piece drifts left, or toward its reel's point; one past its
+- Each tick: a net gone drops what it held; each piece drifts left, or toward its reel's point; one past its
   `End` is gone once no view holds it, past the grid's left edge at once; then the catch, in id order; then each zone,
   in content order, on its beat (0052).
 - **No zone on a surface without debris** (`Surfaces.Kind.Debris`, 0076): nothing spawns or is drawn from the Rng.
-- **A hero's view** (`Debris.View`) is more than the farthest zoom shows. No zone spawns or removes a piece in any
+- **A hero's view** (`Debris.View`) exceeds the farthest zoom. No zone spawns or removes a piece in any
   hero's view but at the grid's edge (0052).
 - **A beat** is due `Every` plus `Below(Jitter + 1)` on; no jitter draws nothing. A zone with no beat gets one (0052).
 - **Stream and band beats** spawn while fewer than `Max` of the zone are out and there is a hull (cells with a
@@ -49,9 +49,9 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
   its draws taken. `End` 0, `SeenAt` the clock.
 - **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while within some `Hard` box and
   seen less than `Linger` ago.
-- **First tick:** a world puts out `Layout.DebrisAtStart` of the stream (at most `Max`), placed evenly along its way.
+- **First tick:** `Layout.DebrisAtStart` of the stream goes out (at most `Max`), placed evenly along its way.
 - Nothing collides (0006) but a net.
-- **`Grab(Piece)`** (0034): the sender gets the salvage item, or a container's `Loot` drawn by `LootOf` as it applies;
+- **`Grab(Piece)`** (0034): the sender gets the salvage item, or a container's `Loot` drawn by `LootOf`;
   what does not fit floats at the hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (the hero's reported
   cell or the piece's middle not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; every weapon breaks every kind; a cable
@@ -59,14 +59,15 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
   a cell it crosses, stopping there or at a wall; one whose middle is not in space is passed. Each struck takes `Damage`
   once (0098) through `Hit` (`Piece.Struck` kept); at its hit points its `Loot` falls under its middle, anyone's.
   Refused `debris.notOutside`, `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055).
-- **Found** (0066): a `Grab`, a `HewWrecks` that breaks and a net's catch record the kind, the items `LootOf` drew (the
-  same roll, overflow too) and the look worn (`Content.Looks.Of`), each appended the first time.
+- **Found** (0066): every catch (grab, break, net, salvage drone) records the kind, the
+  items `LootOf` drew (the same roll, overflow too) and the look worn (`Content.Looks.Of`), each the first time.
 - **The harpoon** (0044): `Reel(Piece, ToX, ToY)` clamps the point to the grid and sets `Reel { By, ToX, ToY, Left }`,
   `Left` the longer axis's ticks at `ReelSpeed`, rounded up, at least one. Each tick `X += (ToX − X) / Left` (and `Y`),
   truncating; at `Left` 0 it drifts on. The last `Reel` wins. Refused as `Grab`. Caught or broken, its reel goes too.
 - **The catch:** a moved piece is caught when its kind is in `Debris.NetCatches`, it is not reeled and its middle's cell
   holds a `Catches` machine with fewer than `NetHolds` (10) entries: it leaves `Pieces` for an entry, a container's
-  loot rolled then (a full net draws nothing), `Found` recorded; no `CaughtFrom`.
+  loot rolled then (a full net draws nothing), `Found` recorded; no `CaughtFrom`. A salvage drone's `Catch(piece)`
+  takes one so, returning its loot; null if gone.
 - **`Collect(Machine)`**: entries of that net in catch order, each giving what fits (`GiveWhatFits`, counted obtained),
   on past one that does not, each give reported as a grab's (`CaughtFrom`); an emptied one goes. Refused `debris.noNet`
   (no `Catches` machine), `debris.netEmpty`, `debris.bagFull` (nothing fits). No reach: the client's, through the wall too.

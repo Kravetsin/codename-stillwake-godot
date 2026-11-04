@@ -1,8 +1,10 @@
 using Stillwake.Content;
 using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crafting;
+using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
+using Stillwake.Sim.Rooms;
 
 namespace Stillwake.Sim.Logistics;
 
@@ -22,16 +24,24 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
     private readonly ICraftingQueries _crafting;
+    private readonly IDebrisQueries _debris;
+    private readonly IDebrisOps _debrisOps;
+    private readonly IRoomsQueries _rooms;
 
     public override string Id => "logistics";
 
-    public LogisticsModule(IGridQueries grid, IAtmosphereQueries air, IItemsQueries items, IItemsOps itemsOps, ICraftingQueries crafting)
+    public LogisticsModule(
+        IGridQueries grid, IAtmosphereQueries air, IItemsQueries items, IItemsOps itemsOps, ICraftingQueries crafting,
+        IDebrisQueries debris, IDebrisOps debrisOps, IRoomsQueries rooms)
     {
         _grid = grid;
         _air = air;
         _items = items;
         _itemsOps = itemsOps;
         _crafting = crafting;
+        _debris = debris;
+        _debrisOps = debrisOps;
+        _rooms = rooms;
         Handles<SetServed>(ServedProblem, ApplyServed);
         // After the air's simulation, so a drone reads the air of this tick; drones fly before bays look.
         System(Phase.Simulation, () =>
@@ -60,7 +70,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
     {
         if (_grid.MachineById(machine) is not { } target) return false;
         foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
-            if (Flood(bay) && InFlood(target)) return true;
+            if (Flood(bay, vacuum: false) && InFlood(target)) return true;
         return false;
     }
 
@@ -73,7 +83,7 @@ public sealed partial class LogisticsModule : Module<LogisticsState>
         if (_grid.MachineById(machine) is not { } target) return false;
         foreach (var bay in _grid.MachinesWith(MachineTrait.Zone))
         {
-            if (!Flood(bay) || !InFlood(target)) continue;
+            if (!Flood(bay, vacuum: false) || !InFlood(target)) continue;
             foreach (var m in _grid.Machines)
             {
                 if (m.Id == machine || FirstOffered(m) is not int start || !Served(m.Id) || !InFlood(m)) continue;

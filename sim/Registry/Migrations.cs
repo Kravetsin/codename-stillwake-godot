@@ -92,6 +92,18 @@ public static class Migrations
             }
             return root;
         },
+        // 47 → 48 (salvage-drones): a drone bay has a fifth slot, its fuel slot of canisters; its drones stay in the first four.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var bays = slices["grid"]!["machines"]!.AsArray().Where(m => m!["kind"]!.GetValue<string>() == "droneBay").Select(m => m!["id"]!.GetValue<int>()).ToHashSet();
+                foreach (var held in slices["items"]!["crates"]!.AsArray())
+                    if (bays.Contains(held!["id"]!.GetValue<int>()))
+                        while (held["slots"]!.AsArray().Count < 5) held["slots"]!.AsArray().Add(null);
+            }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

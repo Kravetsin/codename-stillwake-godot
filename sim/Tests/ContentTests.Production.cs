@@ -170,7 +170,7 @@ public partial class ContentTests
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
         string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "fuelPump", "heavyHelmet", "regenSuit"];
-        string[] electronics = ["circuit", "solarCell", "battery", "drone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
+        string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "canister", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
@@ -430,7 +430,7 @@ public partial class ContentTests
     }
 
     /// <summary>What no one buys: wreckage whole, tools, what is worn, what stores or flies by itself, the arc's, the photosensitive panel nothing makes.</summary>
-    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "powerDriver", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
+    private static readonly string[] Unpriced = ["arcShard", "arcModule", "supplyPod", "cargoCrate", "hullSection", "cargoContainer", "machineBlock", "cableRack", "tankCluster", "shieldSlab", "soilClod", "asteroid", "asteroidSmall", "asteroidLarge", "asteroidRich", "engineBlock", "cargoHold", "podCluster", "photoPanel", "drone", "salvageDrone", "screwdriver", "fireAxe", "harpoon", "nailer", "railgun", "drill", "powerDriver", "jetpack", "helmetLamp", "battery", "accumulator", "helmet", "suit", "heavyHelmet", "regenSuit", "cape"];
 
     /// <summary>Everything is priced or named here as what no one buys; raw salvage is, so the first credits need nothing made.</summary>
     [Fact]
@@ -562,7 +562,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "canister", "cape", "engine", "fuelPump", "igniter", "motor", "nozzle", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -688,5 +688,24 @@ public partial class ContentTests
         Assert.DoesNotContain("photoPanel", given);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         Assert.Equal(["solarPanel"], recipes.Where(r => r.Cost.Any(c => c.Item == "photoPanel")).Select(r => r.Id));
+    }
+
+    /// <summary>
+    /// The salvage drone (salvage-drones): a battery as a drone's, made at the assembler beside it, never sold, opened by a block
+    /// on the market's fourth row priced within a fifth of the solar panel's.
+    /// </summary>
+    [Fact]
+    public void TheSalvageDroneIsAnAssemblerCraftOnTheMarketsFourthRowWithinAFifthOfTheSolarPanelsPrice()
+    {
+        var item = Content.Items.Get(Content.Logistics.SalvageDrone);
+        Assert.Equal((1, Charge.Drone, ItemGroup.Other), (item.Stack, item.Capacity, item.Group));
+        Assert.Equal([("nozzle", 2), ("tube", 2), ("plate", 3), ("circuit", 2)], Crafts.Get(Content.Logistics.SalvageDrone).Cost);
+        Assert.Contains(Stations.Get("assembler").Rows, row => row.Contains(Content.Logistics.Drone) && row.Contains(Content.Logistics.SalvageDrone));
+        Assert.Null(Market.PriceOf(Content.Logistics.SalvageDrone));
+        var block = Content.Research.Node(Content.Logistics.SalvageDrone)!;
+        Assert.Equal("blackMarket", block.Tab);
+        Assert.Equal(["order4"], block.Needs);
+        int price = Stillwake.Sim.Research.Prices.Of(block), solar = Stillwake.Sim.Research.Prices.Of(Content.Research.Node("solarPanel")!);
+        Assert.InRange(price * 5, solar * 4, solar * 6);
     }
 }

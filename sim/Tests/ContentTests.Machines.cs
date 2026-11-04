@@ -108,6 +108,17 @@ public partial class ContentTests
         Assert.True(Charge.Drone >= (3 * across + 2) * ticks * Content.Logistics.Draw * Charge.Scale);
     }
 
+    /// <summary>The bay's slots (salvage-drones): four for drones, the last a fuel slot of canisters, which hold no charge and go nowhere else.</summary>
+    [Fact]
+    public void TheBayHasFourDroneSlotsAndAFuelSlotTakingOnlyCanisters()
+    {
+        var bay = Machines.Get(Content.Logistics.Bay);
+        Assert.Equal(5, bay.Slots);
+        Assert.Equal((4, Content.Crew.Canister), bay.SlotTakes);
+        Assert.Null(Content.Items.Get(Content.Crew.Canister).Capacity);
+        Assert.All(Machines.All.Where(m => m.Kind != Content.Logistics.Bay), m => Assert.Null(m.SlotTakes));
+    }
+
     // Air
 
     [Fact]

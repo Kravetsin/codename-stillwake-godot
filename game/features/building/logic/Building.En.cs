@@ -143,7 +143,7 @@ public static partial class En
         ["tool.smelter.about"] = "Smelts twice as fast as the furnace, on power, and hot enough for silicon: it makes glass. Draws nothing while idle.",
         ["tool.assembler.about"] = "Assembles circuits and solar cells of silicon, glass and wire, on power, eight crafts in its queue. Draws nothing while idle.",
         ["tool.growCapsule.about"] = "Grows a seed into biomass under its lamp in eight minutes, on power, giving back none, one or two seeds. Draws nothing while idle.",
-        ["tool.droneBay.about"] = "Charges the drones docked in it and sends them to keep machines within sixteen cells going: they refill what an input holds from crates and carry what machines make to crates. Drones fly through air and closed doors.",
+        ["tool.droneBay.about"] = "Charges the drones docked in it and sends them to keep machines within sixteen cells going: they refill what an input holds from crates and carry what machines make to crates. Drones fly through air and closed doors. Its fifth slot takes canisters: a salvage drone docked here flies out on one into space for drifting debris and floating stacks.",
         ["building.unknown"] = "You do not know how to build this yet",
     };
 }

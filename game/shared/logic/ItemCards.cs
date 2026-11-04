@@ -39,6 +39,7 @@ public static class ItemCards
         if (!IsTool(item))
         {
             var card = new ItemCard(item, name, kind, null, [], key, price);
+            if (Table.ContainsKey($"item.{item}.about")) card = card with { About = T($"item.{item}.about") };
             if (Spec.Modules.TryGet(item, out var module)) card = card with { Tech = TechOf(module) };
             return Spec.Items.Get(item).Equip == null ? card : Worn(card);
         }

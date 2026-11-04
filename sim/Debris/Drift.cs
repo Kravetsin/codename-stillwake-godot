@@ -147,7 +147,7 @@ public sealed partial class DebrisModule
             else piece.X -= piece.Speed;
             if (piece.X < 0 || piece.X < piece.End && !InView(piece.X / Unit, piece.Y / Unit)) continue;
             if (ZoneOf(piece.Zone).Anchor is AroundHeroes around && !Kept(piece, around)) continue;
-            if (nets && Catch(piece)) continue;
+            if (nets && CatchInNet(piece)) continue;
             pieces[kept++] = piece;
         }
         pieces.RemoveRange(kept, pieces.Count - kept);

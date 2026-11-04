@@ -1,9 +1,9 @@
 namespace Stillwake.Game;
 
 /// <summary>
-/// How drones and their bays look and move (0062), the user's picks: drone A, the steel quad (<c>art/drone_*.png</c>),
-/// bay C, the perch (<c>machine_droneBay.png</c>, <c>droneBay_*.png</c>), and the motion "lively". Points are in pixels
-/// of their pictures, from the top-left; a cosmetic of the client, never read by the sim.
+/// How drones look and move (0062), the user's picks: drone A, the steel quad (<c>art/drone_*.png</c>), and the motion
+/// "lively"; the bay's points are <c>BayInk</c>'s (salvage-drones). Points are in pixels of their pictures, from the
+/// top-left; a cosmetic of the client, never read by the sim.
 /// </summary>
 public static class DroneLook
 {
@@ -32,20 +32,8 @@ public static class DroneLook
     /// <summary>Its status lamp's middle, in the flying picture (<c>drone_lamp_work</c>, <c>drone_lamp_low</c>).</summary>
     public const double LampX = 8, LampY = 3.5;
 
-    /// <summary>A docked drone's picture (<c>drone_dock</c>), set by its top-left on a pad, and its body's middle in it.</summary>
+    /// <summary>A docked drone's picture (<c>drone_dock</c>), set by its top-left on a pad (<c>BayInk.Pads</c>), and its body's middle in it.</summary>
     public const int DockWidth = 14, DockHeight = 12, DockCentreX = 7, DockCentreY = 6;
-
-    /// <summary>The bay's four pads, slot by slot (top left, top right, bottom left, bottom right): where a docked drone's picture is set.</summary>
-    public static readonly (int X, int Y)[] Pads = [(2, 5), (16, 5), (2, 18), (16, 18)];
-
-    /// <summary>The glowing strip under each pad (<c>droneBay_pad</c>, 8 by 1), lit while its drone charges or is full.</summary>
-    public static readonly (int X, int Y)[] PadGlows = [(5, 16), (19, 16), (5, 29), (19, 29)];
-
-    /// <summary>Each pad's four charge lamps (<c>droneBay_charge_0..4</c>, <c>droneBay_charge_low</c>, 11 by 1).</summary>
-    public static readonly (int X, int Y)[] ChargeLamps = [(4, 18), (18, 18), (4, 30), (18, 30)];
-
-    /// <summary>The beacon on the perch's top, 2 by 1, lit while the bay has power.</summary>
-    public const int BeaconX = 15, BeaconY = 1;
 
     /// <summary>
     /// A launch: the drone holds over its pad, a pixel up, for <see cref="LaunchHoldS"/> as its rotors spin up. A landing:
@@ -55,7 +43,7 @@ public static class DroneLook
     public const double LaunchHoldS = 0.22, LandAbove = 4, LandOverS = 0.55, LandDownS = 0.45;
 
     // Lights, in the colours of what gives them: a working drone's sky lamp, a low one's amber blinking, a pad's green
-    // pulsing while it charges (as a charging station's), amber under a quarter, the beacon's sky.
+    // pulsing while it charges (as a charging station's), the beacon's sky.
     public const string Sky = "7dd3fc";
     public const float WorkLight = 0.22f, LowLight = 0.4f, PadLight = 0.22f, BeaconLight = 0.12f;
     public const double LowBlinkHz = 1.5, PadPulseHz = 0.8;

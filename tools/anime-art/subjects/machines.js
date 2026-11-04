@@ -256,19 +256,6 @@ const terminal = (auto) => (a) => {
   box(a, 1, 26.6, 30, 5.4, BRASS, { spec: true });
   a.flat(band(1.6, 31.4, 30.4, 32), '#4c3a2c');
 };
-const droneBay = (a) => {
-  // A mast with a deck a side at each pair of pads; docks are drawn over it.
-  cyl(a, 14.2, 1.4, 3.6, 26, COPPER, { r: .4 });
-  for (let i = 0; i < 7; i++) a.flat(band(15, 4 + i * 3.2, 17, 4.8 + i * 3.2), '#4c2830');
-  a.shape(rr(13, .2, 6, 2, .3), GUN, { lite: band(13.2, .3, 18.8, .7) });
-  for (const y of [16.4, 29]) {
-    box(a, y > 20 ? 2 : .6, y - .6, y > 20 ? 28 : 30.8, 2, GUN, { l: .4, b: .6 });
-    for (const x of [2, 5.6, 9.2, 22, 25.6, 29]) if (y < 20) a.flat(ell(x, y + .4, .3), '#c4ccd8');
-  }
-  a.tube('M6 19L14 25', .8, GUN);
-  a.tube('M26 19L18 25', .8, GUN);
-  feet(a, 30.4, 1.4, [3, 4], [25, 4]);
-};
 const lifepod = (a) => {
   for (const x of [0.6, 4.4]) cyl(a, x, 24, 3.8, 24, TEAL, { r: .5 });
   // The console at its right.
@@ -598,7 +585,7 @@ const cisternFill = (n) => (a) => {
 Subjects.machines = function () {
   const whole = { furnace: [32, 32, furnace], former: [32, 32, former], crusher: [32, 32, crusher], assembler: [32, 32, assembler], workbench: [32, 40, workbench], arcBench: [32, 32, arcBench],
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, burnerGenerator],
-    autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], droneBay: [32, 32, droneBay], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
+    autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
     computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));

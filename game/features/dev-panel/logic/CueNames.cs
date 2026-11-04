@@ -1,10 +1,12 @@
+using System.Linq;
 using S = Stillwake.Game.Sound;
 
 namespace Stillwake.Game.Features.Dev;
 
 /// <summary>
 /// What the sound board calls a cue, which has no name of its own: its first file under <c>res://audio/</c>,
-/// and its tune when it plays another cue's files lower or higher, as the landing plays the steps'.
+/// and its tune when it plays another cue's files lower or higher, as the landing plays the steps'; its volume when it plays them
+/// at their tune but quieter, as the salvage drone plays the jetpack's.
 /// </summary>
 public static class CueNames
 {
@@ -18,6 +20,8 @@ public static class CueNames
         int dot = file.LastIndexOf('.');
         if (dot > file.LastIndexOf('/')) file = file[..dot];
         string name = file.EndsWith("-1", System.StringComparison.Ordinal) ? file[..^2] : file;
-        return cue.Tune == 1 ? name : $"{name} ×{cue.Tune.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        if (cue.Tune != 1) return $"{name} ×{cue.Tune.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
+        bool quieter = S.All.Any(o => o.Files[0] == cue.Files[0] && o.Tune == cue.Tune && o.VolumeDb > cue.VolumeDb);
+        return quieter ? $"{name} {cue.VolumeDb.ToString(System.Globalization.CultureInfo.InvariantCulture)} dB" : name;
     }
 }

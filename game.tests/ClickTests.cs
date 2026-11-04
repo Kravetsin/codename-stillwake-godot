@@ -249,6 +249,19 @@ public class ClickTests
     }
 
     [Fact]
+    public void ACanisterShiftClickedIntoAnOpenBayGoesToItsFuelSlot()
+    {
+        var canister = new Stack(Spec.Crew.Canister, 3);
+        var inventory = Holding((Inv(5), canister), (Inv(6), new Stack(Spec.Logistics.SalvageDrone, 1)));
+        var reading = new Reading(inventory, new Stack?[Spec.Machines.Get(Spec.Logistics.Bay).Slots!.Value], false, Spec.Logistics.Bay);
+        int fuel = Spec.Machines.Get(Spec.Logistics.Bay).SlotTakes!.Value.Slot;
+        Assert.Equal(MoveOf(Inv(5), new Target(fuel, 7), 3), Clicks.On(null, SlotClick.Of(reading, Inv(5), false, true, 7)).Command);
+        // A salvage drone goes where the sim docks it, never the fuel slot; a canister in a crate goes to the other side as anywhere.
+        Assert.Equal(MoveOf(Inv(6), new Target(Crate: 7), 1), Clicks.On(null, SlotClick.Of(reading, Inv(6), false, true, 7)).Command);
+        Assert.Equal(MoveOf(Box(fuel), new Target(), 3), Clicks.On(null, Click(Box(fuel), canister, shift: true) with { SlotTakes = (fuel, Spec.Crew.Canister) }).Command);
+    }
+
+    [Fact]
     public void SendABatteryWithShiftIntoAnOpenChargingStationWornOrNot()
     {
         var battery = new Stack("battery", 1);

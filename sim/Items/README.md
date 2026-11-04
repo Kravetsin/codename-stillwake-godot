@@ -4,7 +4,7 @@
 
 | File | Purpose |
 | --- | --- |
-| `Deliveries.cs` | Part of `ItemsModule`: how much of an item a machine holds where a delivery of it goes (`Receiving`). |
+| `Deliveries.cs` | Part of `ItemsModule`: how much of an item a machine holds where deliveries of it go (`Receiving`). |
 | `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged. |
 | `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
 | `Items.cs` | The module: inventories, machines' slots, the floor, creative mode. |
@@ -25,18 +25,18 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
 ## Rules
 
 - **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047); `SlotOpen`
-  says which are open (upgrades). A machine's `Slots` are in `Machines`. A `Stack` is `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
+  says which are open (upgrades). A `Stack` is `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
 - **Per-item values** (0053, 0098): `Charge` (0 to `Capacity`, thousandths of a power-tick) and `Module` (a module on a
-  tool among its `Hosts`) live on a stack of one and go wherever the stack goes, the floor included. Stacks merge only
+  tool among its `Hosts`) live on a stack of one and go with it, the floor included. Stacks merge only
   when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none, and no
   cost names an item with a capacity or a drill (`ContentTests`). Saved only when set.
 - **A tool works with its stack** (0098): `ToolStack(peer, item)` is the first carried, a fitted one first.
   `ToolStats.Of(stack)`, shared with the client, folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
-- **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (`Stacks.Misfit`, 0047). Worn items
-  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there, a suit for Crew (2026-10-27-suits-are-worn).
+- **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
+  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there (2026-10-27-suits-are-worn).
 - **Obtained** (board.md): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `DropAt` for `Nobody` count, `GiveWhatFits` what it gave
-  (what fits, the rest returned: a debris net's collect); the rest moves or refunds.
+  (the rest returned); the rest moves or refunds.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full.
@@ -44,11 +44,12 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
   of a stack onto one not alike is refused. With no `Dst` slot, that side as a whole. A machine with `Inputs` takes items
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charging station holds
   only items with a `Capacity` (`items.notBattery`, 0053); an arc bench's vise only a tool a module fits
-  (`items.notTool`, 0099); one that `Takes` an item only it (`items.notTaken`).
+  (`items.notTool`, 0099); one that `Takes` an item only it (`items.notTaken`). A `SlotTakes` slot (a bay's fuel) and
+  its item go only together, checked first (`items.notTaken`); deliveries too.
 - **Sort** (0008): the bag past the hotbar, or every slot of a `crate` (`items.notCrate` for other machines). Alike
   stacks merge, then lay by `ItemGroup`, id, module, charge (fullest first), count; hotbar and equipment stay.
 - **Charge** (0053): `Power` fills it through `Charge`, never past full; `Drain(peer, amount)` takes it whole from the
-  first belt battery holding that much, so the belt drains left to right. Creative takes nothing, answers true.
+  first belt battery holding that much. Creative takes nothing, answers true.
 - **Running an electric tool** (0055): `Run(Item, On)`; a hero runs one thing. Each tick, each
   run in peer order draws its stack's boosted `Draw` through `Drain`; one its belt cannot pay or its peer no longer
   carries stops. `Crew` stops a run as its hero passes out or leaves (`StopRunning`).
@@ -68,7 +69,8 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
   `Spray` (2026-10-29-kill-feel): a kill's loot, a unit a piece up to `SprayMost`, thrown away from the striker.
 - **Machines and ladders hold no stack**: one falls through; one laid there stays.
 - **Whole cells** (0106): a stack is a point, landing on a cell's top, stopped by a built cell, never climbing.
-- **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks.
+- **Picking up** gives as much as fits; the dropper waits `OwnPickupDelay` ticks. A salvage drone's `Lift(floorId)`
+  takes one whole.
 - **Bodies** (0061): `LeaveBody(peer, cell)` drops every non-`Gear` stack of the peer's own slots, still, by
   `FloorStack.Nobody`, tagged `Body(Peer, Died)`. Gear and worn items stay; creative mode leaves none. Each is gone
   `BodyLasts` after death; stacks merge only within one body or outside any.

@@ -97,6 +97,8 @@ public interface IItemsOps
     Stack? TakeFrom(int id, int slot, int count);
     int PutIn(int id, Stack stack);
     void LayDown(Stack stack, int cell);
+    /// <summary>Floor stack <paramref name="floorId"/> taken whole, all it holds of its own with it, as a salvage drone takes it (salvage-drones); null for one gone.</summary>
+    Stack? Lift(int floorId);
 }
 
 /// <summary>
@@ -719,6 +721,15 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         if (c.Count < 1) throw new InvalidOperationException("items.spawn: a count below 1");
         return new Stack(c.Item, c.Count, Charge: Content.Items.Get(c.Item).Capacity ?? 0);
+    }
+
+    public Stack? Lift(int floorId)
+    {
+        int at = State.Floor.FindIndex(s => s.Id == floorId);
+        if (at < 0) return null;
+        var stack = State.Floor[at];
+        State.Floor.RemoveAt(at);
+        return stack.AsStack();
     }
 
     private void ApplyPickUp(PickUp c)

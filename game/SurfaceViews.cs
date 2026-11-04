@@ -84,7 +84,7 @@ public static class SurfaceViews
     private static Node Drones(SurfaceContext c)
     {
         var (m, ui, plan, mouse) = (c.M, c.Hands.Ui, c.Hands.Plan, c.Hands.Mouse);
-        return new Features.Logistics.LogisticsView(m.Grid, m.Items, m.Power, m.Logistics, c.Progress,
+        return new Features.Logistics.LogisticsView(m.Grid, m.Items, m.Power, m.Atmosphere, m.Logistics, c.Progress,
             () => ui.InventoryFoot.Get() != null && ui.OpenCrate.Get() is int open && m.Grid.MachineById(open) is { } bay && Stillwake.Content.Machines.Is(bay.Kind, Stillwake.Content.MachineTrait.Zone) ? open : null,
             () => ui.Hand.Get() == Holding.Card && plan.Selected.Get() is PlaceTool { Placement.Kind: var kind } && Stillwake.Content.Machines.Is(kind, Stillwake.Content.MachineTrait.Zone) && mouse.Pointer() is { } at ? (at.X, at.Y, kind) : null);
     }

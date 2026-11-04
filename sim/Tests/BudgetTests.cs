@@ -468,6 +468,54 @@ public class BudgetTests(ITestOutputHelper output)
         Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
     }
 
+    /// <summary>
+    /// Salvage drones (salvage-drones): four bays of a drone and two salvage drones each in an aired hall, a door in its right
+    /// wall to space, the stream as it comes and forty stacks floating out there: every look floods the bay's zone through
+    /// vacuum too, and every salvage drone searches its way from each cell it enters, out and back.
+    /// </summary>
+    [Fact]
+    public void KeepsFourBaysOfTwelveDronesSalvagingAmongFloatingStacksUnderBudget()
+    {
+        string[] rows =
+        [
+            "######################                        ",
+            "#..TTV.......TTV.....#                        ",
+            "#..TTV.......TTV.....#                        ",
+            "#....................#                        ",
+            "#KK.KK.KK............D                        ",
+            "#........RR.RR.RR.RR.D                        ",
+            "#KK.KK.KKRR.RR.RR.RR.D                        ",
+            "######################                        ",
+        ];
+        string[] under = ["", "   o         o", "   ---       ---"];
+        var w = LogisticsTests.Aired(rows, under, drones: 1);
+        int width = w.M.Grid.Width;
+        var bays = w.M.Grid.MachinesOf(Content.Logistics.Bay);
+        Assert.Equal(4, bays.Count);
+        foreach (var bay in bays)
+        {
+            w.Put(1, SalvageTests.Salvager(), crate: bay.Id).Put(2, SalvageTests.Salvager(), crate: bay.Id);
+            w.Put(SalvageTests.FuelSlot, new Items.Stack(Content.Crew.Canister, Content.Items.Get(Content.Crew.Canister).Stack), crate: bay.Id);
+        }
+        // Forty stacks out in space, thrown forward as fast as the ship leaves them, so they wait there.
+        for (int k = 0; k < 40; k++)
+        {
+            w.M.Items.LayDown(new Items.Stack("plate", 5), (k % 8 * 2) * width + 46 + k / 8 * 6);
+            w.M.Items.Floor[^1].Vx = Content.Floor.SpaceDrift;
+        }
+        w.Run(100);
+        int flying = 0;
+        var ticks = Time(w.World, 600, i =>
+        {
+            flying += w.M.Logistics.Drones.Count(d => d.Stack.Item == Content.Logistics.SalvageDrone);
+            return [];
+        });
+        output.WriteLine($"{w.M.Items.Floor.Count} stacks left, {flying / 600.0:F1} salvage drones flying on average");
+        output.WriteLine($"tick: {ticks.Mean:F3} ms mean, {ticks.Max:F3} ms max");
+        Assert.True(flying > 600 * 4, "the salvage drones stand docked");
+        Assert.True(ticks.Mean < Within(4), "a tick is far over its budget");
+    }
+
     /// <summary>The axe hit from inside <paramref name="cell"/>, aimed up: it strikes that cell's wall alone.</summary>
     private static Building.Hew HewAt(int cell, int width) =>
         new(Content.Weapons.Axe.Item, cell % width * 1000 + 500, cell / width * 1000 + 500, HewTesting.Up);

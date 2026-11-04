@@ -126,6 +126,9 @@ public sealed record ItemCard(
     /// </summary>
     public IReadOnlyList<string> Fitted { get; init; } = [];
 
+    /// <summary>A line on what a plain item does, under its kind, where its table has one (<c>item.&lt;id&gt;.about</c>): the salvage drone's; null for most.</summary>
+    public string? About { get; init; }
+
     /// <summary>Its picture: its item's, or the empty battery's for one holding no charge.</summary>
     public string Picture { get; init; } = Item;
 
@@ -135,7 +138,7 @@ public sealed record ItemCard(
         && Effects.SequenceEqual(other.Effects) && Use == other.Use && Worn == other.Worn && Headline == other.Headline && Detail == other.Detail
         && Price == other.Price && Equals(Station, other.Station) && Charge == other.Charge && Picture == other.Picture && Draw == other.Draw
         && Here == other.Here && Equals(Output, other.Output) && Tech == other.Tech && Fitted.SequenceEqual(other.Fitted)
-        && DrawBoost == other.DrawBoost;
+        && DrawBoost == other.DrawBoost && About == other.About;
 
     public override int GetHashCode()
     {

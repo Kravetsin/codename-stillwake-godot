@@ -42,6 +42,21 @@ public class ItemsFloorTests
 
     private static int Ticks(Scenario w) => ((ItemsState)w.M.Items.Slice).Ticks;
 
+    /// <summary>A salvage drone's take (salvage-drones): the whole stack, its charge with it, the others left; one gone is null.</summary>
+    [Fact]
+    public void LiftTakesAFloorStackWholeAndAGoneOneIsNull()
+    {
+        var w = Room();
+        w.M.Items.LayDown(new Stack("battery", 1, 7), At(2, 3));
+        w.M.Items.LayDown(new Stack("scrap", 30), At(5, 3));
+        int battery = Floor(w)[0].Id, scrap = Floor(w)[1].Id;
+        Assert.Equal(new Stack("battery", 1, 7), w.M.Items.Lift(battery));
+        Assert.Equal([scrap], Floor(w).Select(s => s.Id));
+        Assert.Null(w.M.Items.Lift(battery));
+        Assert.Equal(new Stack("scrap", 30), w.M.Items.Lift(scrap));
+        Assert.Empty(Floor(w));
+    }
+
     [Fact]
     public void TakesAStackAwayTheLimitAfterItWasDropped()
     {

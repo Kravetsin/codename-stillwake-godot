@@ -195,6 +195,17 @@ public class ItemCardTests
     }
 
     [Fact]
+    public void TheSalvageDronesCardSaysNoCrateNoFlight()
+    {
+        var card = ItemCards.Of(Spec.Logistics.SalvageDrone);
+        Assert.False(card.Tool);
+        Assert.EndsWith("No crate with room in reach: it does not fly.", card.About);
+        // A plain item without a line of its own shows none.
+        Assert.Null(ItemCards.Of("scrap").About);
+        Assert.Null(ItemCards.Of(Spec.Logistics.Drone).About);
+    }
+
+    [Fact]
     public void HaveAKindForEveryItemThereIs()
     {
         Assert.All(Spec.Items.All, item => Assert.True(Table.ContainsKey($"item.{item.Id}.kind"), item.Id));

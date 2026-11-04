@@ -70,6 +70,12 @@ public interface IDebrisOps
 
     /// <summary>Wreck <paramref name="id"/> struck by peer <paramref name="peer"/> for <paramref name="damage"/>: true when it broke.</summary>
     bool Hit(int peer, int id, int damage);
+
+    /// <summary>
+    /// Piece <paramref name="id"/> taken by a salvage drone (salvage-drones): gone, what it gives rolled as a net's catch is and
+    /// recorded as found, with no popup; null for one gone.
+    /// </summary>
+    IReadOnlyList<(string Item, int Count)>? Catch(int id);
 }
 
 public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, IDebrisOps
@@ -148,6 +154,17 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
         return true;
+    }
+
+    public IReadOnlyList<(string Item, int Count)>? Catch(int id)
+    {
+        int at = IndexOf(id);
+        if (at < 0) return null;
+        var piece = State.Pieces[at];
+        State.Pieces.RemoveAt(at);
+        var loot = LootOf(piece.Item, Random);
+        Record(piece, loot);
+        return loot;
     }
 
     /// <inheritdoc/>
