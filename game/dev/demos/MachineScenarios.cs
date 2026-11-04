@@ -188,3 +188,25 @@ public sealed class ToolCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());
 }
+
+[Dev("--salvage", "a bay's salvage drone flying out of an aired room for the pieces drifting in its zone, canisters in its fuel slot (SalvageDemo)")]
+public sealed class SalvageScenario : DevScenario
+{
+    public override Layout? Map => Features.Logistics.SalvageDemo.Map;
+
+    public override World? Create(IReadOnlyList<Module> modules) => Features.Logistics.SalvageDemo.Create(modules);
+
+    private string _was = "";
+
+    /// <summary>Logs the salvage drones out, the canisters left and the pieces out whenever they change.</summary>
+    public override void Frame(Stillwake.Net.Client client, Registry m, Action<string> log)
+    {
+        var bay = m.Grid.MachinesOf(Stillwake.Content.Logistics.Bay).FirstOrDefault();
+        if (bay == null) return;
+        int fuel = m.Items.Crate(bay.Id)[Stillwake.Content.Machines.Get(bay.Kind).SlotTakes!.Value.Slot]?.Count ?? 0;
+        string now = $"{m.Logistics.Drones.Count} out, {fuel} canisters, {m.Debris.Pieces.Count} pieces";
+        if (now == _was) return;
+        log($"salvage: tick {client.World.Tick}, {now}");
+        _was = now;
+    }
+}
