@@ -1,6 +1,6 @@
 # What stands in for the pointer
 
-- Status: accepted; built
+- Status: superseded by [mode-glyph](2026-11-04-mode-glyph.md)
 - Date: 2026-11-04
 
 The power driver's mode, square or one cell, did not show until the pointer was on a plan. Of five marks on a pick page

@@ -73,7 +73,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **The hint** (`HintOf`): one line under the cards, cut by an ellipsis.
 - **Plans are ghosts** (0064, `PlanTiles`): greyed, bluish, unlit, joined to what is planned and built beside them; back
   walls fainter, just over the rooms' air (`PlanBacks`), the rest over the ship, under the heroes (driver-order). The
-  ghost in hand, green where the sim takes it, red where not (0022), is the pointer over the world (pointer-looks).
+  ghost in hand is green where the sim takes it, red where not (0022).
 - **Dashes** (0064): round each group of plans (walls, back walls, ladders, doors, hatches, floors; each machine
   alone) marching dashes run along the silhouette, shared sides cancelled; a planned machine has a "+". Pipes and
   valves are not outlined, unless marked. Rebuilt only when plans, grid, zoom or screen change.

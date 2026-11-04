@@ -46,7 +46,8 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
 | `FaceRim.cs` | a tool's aim glow |
-| `PointerFrame.cs` | a builder's frame, the pointer |
+| `ModeGlyph.cs` | the driver's mode mark |
+| `logic/DriverMode.cs` | its dots |
 | `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | the `Enter` report (0050) |
@@ -80,7 +81,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 - **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
 - **Jump and walk feel** (0089): coyote time, jump buffer, a short hop on letting Space go, eased apex,
   `AirControl` aloft.
-- **The figure answers its motion** (0090), read from what is sent, so friends move alike.
+- **The figure answers its motion** (0090), from what is sent: friends move alike.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).
@@ -107,8 +108,8 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 
 ## The hands
 
-- **What the hand holds shows** (`HeldLook`); a builder twists a plan, or a motor (`Twist`, `Driven`);
-  its frame is the pointer over the world (pointer-looks).
+- **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`); the driver's
+  mode by the arrow (mode-glyph).
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
