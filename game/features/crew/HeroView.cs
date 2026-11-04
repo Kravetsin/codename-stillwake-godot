@@ -44,6 +44,7 @@ public partial class HeroView : Node2D
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
     private readonly FaceRim _faceRim = new();
+    private readonly PointerFrame _frame = new();
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
     private readonly UsePrompt _prompt = new();
@@ -238,6 +239,7 @@ public partial class HeroView : Node2D
         AddChild(_figure);
         AddChild(_outline);
         AddChild(_faceRim);
+        AddChild(_frame);
         AddChild(_prompt);
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
@@ -617,6 +619,9 @@ public partial class HeroView : Node2D
 
     /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu, the computer's window or the tree.</summary>
     private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.TreeOpen.Get() ? null : _mouse.Pointer());
+
+    // Gone with the world, its frame stands in for the arrow no more.
+    public override void _ExitTree() => _ui.Arrow.StandIn(nameof(PointerFrame), false);
 
     public override void _UnhandledInput(InputEvent e)
     {

@@ -130,6 +130,30 @@ public class PowerDriverAimTests
     }
 
     [Fact]
+    public void AHoledBackWallBehindAStationPlannedBeforeIsPatchedFirstAndTheSquareNeverTakesTheStation()
+    {
+        // A tank planned, then a meteor's hole behind it: its back wall gone and planned again, younger than the tank.
+        var w = Hall().Step(new SetCreative(true));
+        w.Step(new PlacePlan(C(5, 3), new Placement("machine", "tank")));
+        int tank = w.M.Building.PlansAt(C(6, 4)).Single().Id;
+        w.Step(new Deconstruct(C(6, 4), "back"));
+        int hole = w.M.Building.PlansAt(C(6, 4)).Single(p => p.Clear == "back").Id;
+        while (w.M.Building.Plans.Any(p => p.Id == hole)) w.Step(new Work(hole));
+        w.Step(new PlacePlan(C(6, 4), Placement.BackWall()));
+        int back = w.M.Building.PlansAt(C(6, 4)).Single(p => p.Place?.Layer == "back").Id;
+        var hero = CellHero(2, 8);
+        // One cell, the screwdriver's: the hull first, though the tank is older and can be worked.
+        var aim = Aiming.AimAt(w.M, 0, hero, (6.5, 4.5))!;
+        Assert.Equal(new WorkAim(back, null), aim.Work);
+        // The square round it works the back wall and leaves the tank: a station is aimed at whole, never in a square.
+        var square = Aiming.WorkedSquare(w.M, 0, hero, (6, 4), 2, aim.Work)!.Value;
+        Assert.Equal([back], square.Targets.Select(t => t.Plan));
+        // Beside the tank, over nothing but it, there is no square at all; on it, its own aim, whole.
+        Assert.Null(Aiming.WorkedSquare(w.M, 0, hero, (5, 4), 2, null));
+        Assert.Equal(new WorkAim(tank, null), Aiming.AimAt(w.M, 0, hero, (5.5, 3.5))!.Work);
+    }
+
+    [Fact]
     public void AMachineUnderSeveralCellsOfTheSquareIsWorkedOnce()
     {
         var w = Hall().Step(new SetCreative(true));
