@@ -304,10 +304,11 @@ public partial class Main : Node2D, ITogether
             handbook.Close();
         });
         // The tablet's top edge along the foot: every tablet rises from it, and its keys ride on the one that is up.
-        var edge = _edge = new TabletEdge(_hands.Ui, () => _session != null && _hero != null);
+        var edge = _edge = new TabletEdge(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m.Research.Credits : null);
         edge.Put(_hands.Air.Cap, "overlay.key");
         edge.Put(_hands.Menu.Cap, "build.key");
         edge.Put(tech.Cap, "research.key");
+        edge.Put(tech.MarketCap, "research.marketKey");
         edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, () => _session is Session s && _m.Crew.SuitOn(s.Client.Id),
             () => _session is Session s ? _m.Crew.SuitModeProblem(s.Client.Id) : "crew.noHero"), "suit.key");
         edge.Put(handbook.Cap, "handbook.key");

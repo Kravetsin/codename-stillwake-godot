@@ -40,10 +40,10 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     /// <summary>Whether the tablet is out.</summary>
     public bool Open => _open;
 
-    /// <summary>Whether the tablet's key is lit: something is new and the tablet is away.</summary>
-    public bool Lit => !_open && (MarketNew || (_seen != null && _notes.Any(n => !_seen.Contains(n))));
+    /// <summary>Whether the tablet's key is lit: a note is unread and the tablet is away. An order met lights the market's key instead.</summary>
+    public bool Lit => !_open && _seen != null && _notes.Any(n => !_seen.Contains(n));
 
-    /// <summary>Whether an order has been met since the market was last chosen: the market's tab says so.</summary>
+    /// <summary>Whether an order has been met since the market was last shown: the market's key says so.</summary>
     public bool MarketNew => _orders > _ordersSeen;
 
     /// <summary>A read of the notes on the board.</summary>

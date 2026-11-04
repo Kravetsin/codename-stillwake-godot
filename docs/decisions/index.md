@@ -214,11 +214,14 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [driver-at-work](2026-11-03-driver-at-work.md) | The power driver runs only at its work | accepted |  |
 | [driver-square](2026-11-03-driver-square.md) | The power driver's square in teal, over the plans | accepted |  |
 | [edge-lenses](2026-11-03-edge-lenses.md) | The tablet edge's keys are frosted lenses, and the journal has one | accepted |  |
+| [hero-lights](2026-11-03-hero-lights.md) | The hero's own lights light what is round them | accepted |  |
 | [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
 | [loss-shows-white](2026-11-03-loss-shows-white.md) | Every loss shows white | accepted |  |
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
+| [market-key](2026-11-03-market-key.md) | The black market has its own key on the tablet's edge, the tablet no tabs, the credits always in sight | accepted |  |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
 | [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
+| [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |

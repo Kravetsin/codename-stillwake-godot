@@ -52,7 +52,7 @@ the reaches of fire, particles, screens.
   0075), plus a glow at the mouth. The furnace view runs first, so light follows the flames shown.
 - **Spots,** in order: `Flares` flashes (0075) at their own strength, keep, reach; arcs but fine ones, at
   their middle in cyan by `Fx.BoltLight`, less when short; luminous particles (`Luminous.Light`) at
-  `Light.Particle` × `Fx.ParticleLight`, at most `Fx.MostLights`; each `Glow` by `Light.ScreenKeep`.
+  `Light.Particle` × `Fx.ParticleLight`, at most `Fx.MostLights`; each `Glow` by its own `Reach` and `Keep`.
 - **Starlight** (0070, `StarField`, plain C#, tested): stars shine in every open cell with no back wall and
   past the grid, as bright as its sky is open: of the cells within `StarSky`, a lone hole gives `StarHole`,
   `StarFullSky` or more the whole. Row and column sweeps spread it by `StarKeep` a cell (`StarMachine`

@@ -33,7 +33,7 @@ public partial class LightView : Node2D
     private static readonly Color FireGlowColour = new(0xff8a3cff);
     private const float FireGlowCells = 6, FireGlowAlpha = 0.55f;
     /// <summary>How far a glowing particle and a planner's screen light, in cells: what they pass, not their room.</summary>
-    private const int ParticleReach = 4, ScreenReach = 6;
+    private const int ParticleReach = 4;
     /// <summary>
     /// How far a furnace's fire reaches, in cells: falling off by <see cref="L.FireKeep"/> a cell, it gives
     /// under a seventh of its light twelve cells off, where a lamp still gives a third of its own.
@@ -299,7 +299,7 @@ public partial class LightView : Node2D
         {
             if (!g.IsVisibleInTree()) continue;
             var at = g.GlobalPosition;
-            _spots.Add(new LightSource(at.X, at.Y, (g.Colour.R, g.Colour.G, g.Colour.B), 1, ScreenReach, L.ScreenKeep, 1));
+            _spots.Add(new LightSource(at.X, at.Y, (g.Colour.R, g.Colour.G, g.Colour.B), 1, g.Reach, g.Keep, 1));
         }
         // The view in pixels of the world, as the camera last laid it.
         var view = GetViewport().GetCanvasTransform().AffineInverse() * GetViewport().GetVisibleRect();

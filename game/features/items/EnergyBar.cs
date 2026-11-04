@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Items;
 /// The energy tab at the gauge row's right end (0053, 0081): what the batteries on the belt hold, always shown, the bolt
 /// and the charge in power units ("4 300"), never seconds; amber and pulsing while they run low, dim with none worn. Read
 /// four times a second, never every frame; the number moves smoothly between reads (<see cref="GaugeMotion"/>): after a
-/// hit it holds, flashes white, then counts down with the lost part.
+/// hit it holds, flashes white, then counts down with the lost part. Every change read flares it white a moment (<see cref="CountFlare"/>).
 /// </summary>
 public partial class EnergyBar : CanvasLayer
 {
@@ -52,6 +52,7 @@ public partial class EnergyBar : CanvasLayer
         _tab.Visible = Shown != null;
         if (Shown is not { } belt) return;
         _tab.Motion.Read(belt.Share);
+        _tab.Flare.Read(Charges.UnitsOf(belt.Share, belt.Most));
         _tab.Most = belt.Most;
         _tab.Low = belt.Low;
         _tab.Bright = belt.Worn ? 1 : Look.NoBattery;
@@ -77,6 +78,8 @@ public partial class EnergyBar : CanvasLayer
         }
 
         public GaugeMotion Motion { get; } = new();
+        /// <summary>The flare as the charge read changes (credit-counter); the number itself counts with <see cref="Motion"/>.</summary>
+        public CountFlare Flare { get; } = new();
         public int Most { get; set; }
         public bool Low { get; set; }
         public float Bright { get; set; } = 1;
@@ -92,6 +95,7 @@ public partial class EnergyBar : CanvasLayer
         {
             _clock += delta;
             Motion.Step(delta);
+            Flare.Step(delta);
             QueueRedraw();
         }
 
@@ -115,7 +119,7 @@ public partial class EnergyBar : CanvasLayer
                 x -= width;
                 var at = new Vector2(x, Look.EnergyBaseline);
                 if (flash > 0) DrawStringOutline(font, at, groups[i], HorizontalAlignment.Left, -1, FontSize, 3, Colors.White with { A = 0.45f * flash });
-                DrawString(font, at, groups[i], HorizontalAlignment.Left, -1, FontSize, colour);
+                FlareText.Draw(this, font, FontSize, groups[i], at, colour, Colors.White, (float)Flare.Heat, halo: true);
                 x -= ThinWidth;
             }
         }
