@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Stillwake.Game.Features.Debris;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
@@ -40,5 +41,46 @@ public class DebrisTests
         link.Receive(new TickMessage(client.World.Tick, sent.Select(c => new Stamped(1, client.World.Encode(c))).ToList()));
         client.Update();
         Assert.Empty(Predicted.Grabbing(client.InFlight));
+    }
+
+    // This peer's own hits (0042), felt as they are sent (0014).
+
+    [Fact]
+    public void AnOwnHitIsSentOnItsPiecesAtTheReadItIsFirstSeenAndRanOnThemAtTheReadItIsGone()
+    {
+        var hits = new OwnHits();
+        var hew = new HewWrecks("axe", 0, 0, 1);
+        int asked = 0;
+        IReadOnlyList<int> Struck(HewWrecks _)
+        {
+            asked++;
+            return [5, 7];
+        }
+        hits.Read([hew], Struck);
+        Assert.Equal("axe", hits.SentOn(5));
+        Assert.Equal("axe", hits.SentOn(7));
+        Assert.False(hits.Ran(5));
+        // Still flying: felt once only, and its pieces kept from when it was first seen.
+        hits.Read([hew], Struck);
+        Assert.Null(hits.SentOn(5));
+        Assert.Equal(1, asked);
+        hits.Read([], Struck);
+        Assert.Null(hits.SentOn(5));
+        Assert.Equal("axe", hits.ToolOn(5));
+        Assert.True(hits.Ran(7));
+    }
+
+    // Where a piece is drawn past its last tick (Session.Drift).
+
+    [Fact]
+    public void APieceDriftsOnPastItsNextTickButAReeledOneStopsAtItsReelsPoint()
+    {
+        var drifting = JsonSerializer.Deserialize<Piece>("""{"X":10000,"Y":500,"Speed":100}""")!;
+        Assert.Equal((9650.0, 500.0), PieceDrawn.At(drifting, 3.5));
+        // Two ticks left to its point: halfway at one, there at two, and there still at five.
+        var reeled = JsonSerializer.Deserialize<Piece>("""{"X":10000,"Y":500,"Reel":{"ToX":8000,"ToY":1500,"Left":2}}""")!;
+        Assert.Equal((9000.0, 1000.0), PieceDrawn.At(reeled, 1));
+        Assert.Equal((8000.0, 1500.0), PieceDrawn.At(reeled, 2));
+        Assert.Equal((8000.0, 1500.0), PieceDrawn.At(reeled, 5));
     }
 }

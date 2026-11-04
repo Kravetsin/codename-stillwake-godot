@@ -5,7 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `logic/Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
-| `logic/OwnHits.cs` | Which pieces this peer's own hits ran on since the last frame, and with which weapon. |
+| `logic/OwnHits.cs` | Which pieces this peer's own hits were just sent at and ran on, and with which weapon. |
 | `DebrisView.cs` | The layer: pieces and the outline of the one aimed at. |
 | `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
 | `DebrisDemo.cs` | The world and the script of `--debris`. |
@@ -27,7 +27,7 @@ Catching is the hero's hands, aimed as everything E works is (`features/crew`, `
 breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
 
 - **Reads:** `DebrisModule.Pieces` and `Found`, `Held`; `Client.InFlight` (own grabs, `Shared.Predicted.Grabbing`, and hits,
-  `OwnHits`); `Ui.AimedPiece`; `Ui.Heroes`; `Ui.Bits`; `Session.Progress`.
+  `OwnHits`); `Ui.AimedPiece`; `Ui.Heroes`; `Ui.Bits`; `Session.Drift`.
 
 ## Rules
 
@@ -39,7 +39,8 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   its kind's pictures (`Content/DebrisLooks`, `art/debris`), the one its id picks (`Content.Looks.Of(kind, id)`), so
   every peer sees it alike (0066); a wreck's is drawn of what it breaks into and is the box it is aimed at and struck
   by (`DebrisLooks.Wrecks`). A kind with none is its item's icon at 0.8 of a cell. Lit by the stars and lamps; drawn
-  between ticks at `X − Speed × Progress`, or reeled by a harpoon its share of the way (`Shared.PieceDrawn`, 0044).
+  at `X − Speed × Drift`, on past a late tick (guest-draws-through), or reeled its share of the way to its point
+  (`Shared.PieceDrawn`, 0044).
 - **Motion** (no ADR): a small piece tumbles a turn every 4 s, each its own way; a wreck only rocks (`Rock`, `RockMs`),
   so its picture stays where the aim tests it. Full strength from the first frame: it spawns out of sight (0052).
 - **Damage** (0034): one crack filter for every wreck in the lit shader (`render/Cracks.cs` in `render/Lit.cs`), set
@@ -49,15 +50,14 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   throws `HitLooks.Of[Impact.Wreck]` by `HitBurst` where it was struck, the picture flaring warm (0075, 0094). The
   axe's lands on the side facing the nearest hero; one under a running drill's bit (within 4 px of the box) lands at
   the bit and throws that drill's share (0094).
-- **Own hits** (`OwnHits`: a `Hit` of this peer's in flight one frame and gone the next, read after this frame's hits
-  are sent): the view nudges (`ShipCamera.Nudge`) and `Sound.Chop` plays, but not for the drill, whose strikes the crew
-  plays; on the Suit bus, dulled while floating (0042).
+- **Own hits** (`OwnHits`, read after this frame's hits are sent) are felt the frame they are first in flight (0014):
+  the jolt, throw and flare, the view nudged (`ShipCamera.Nudge`) and `Sound.Chop`, on the Suit bus, dulled while
+  floating (0042); their tick brings only the cracks. A drill's, whose strikes the crew plays, is felt on its tick.
 - **Broken** (`Fading.Broken`): a wreck gone before the end of its path, not caught by hand (`CaughtFrom`), counting ticks since last
   seen, so one drifting off its end only fades, as does one broken past its end while a hero's view keeps it there
   (0052), its loot falling all the same. It flies apart in six tumbling wedges with glowing torn edges and
   embers (`BreakView`), with sparks, dust, a cloud, glint, ring and flash, more for a derelict (0075); `Sound.Break`
-  if its own hit broke it, louder and farther, on the Suit bus. It replaces the last chop: the last hit removes the
-  wreck on its tick, so its damage never rises in view. Every peer sees it; only the striker hears it.
+  if its own hit broke it, louder and farther, on the Suit bus. It follows the last hit's chop, heard as it was sent. Every peer sees it; only the striker hears it.
 - **Aimed** (0039, 0054): the piece in `Ui.AimedPiece` (in space, within reach; the first wreck the axe's blade or the
   drill's bit touches) is outlined along its picture a screen pixel wide (`render/Outline.cs`), green, or red while the
   sim would refuse the grab. The crew's prompt says "[E] Catch", on a wreck "Too big" or with the axe "[Hold LMB] Chop".

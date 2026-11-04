@@ -187,7 +187,7 @@ public partial class HeroView : Node2D
     /// <summary>What the harpoon reads of the world, set at the start of every frame.</summary>
     private Registry? _m;
     private Client? _client;
-    private double _progress;
+    private double _progress, _drift;
     /// <summary>Whether this peer hosts its world: its shots drawn as the sim flies them, none flown here (<see cref="ShotDraws"/>).</summary>
     private bool _hosts;
     /// <summary>The ship as this frame's steps met it, doors as this peer shows them: what the rod grips.</summary>
@@ -259,7 +259,7 @@ public partial class HeroView : Node2D
         _tethers.Paint = PaintTethers;
         _lines.Paint = PaintLines;
         _harpoonWorld = new HarpoonWorld(
-            Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _progress),
+            Touches: (from, to) => Aiming.RodMeets(_m!, _ship!, _client!.Id, from, to, _drift),
             PieceAt: PieceDrawnAt,
             Reelable: id => _m!.Debris.ReelProblem(_client!.Id, id) == null,
             Reeled: id => ReelInFlight(id) || PieceOf(id)?.Reel?.By == _client!.Id,
@@ -283,7 +283,7 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>Where piece <paramref name="id"/> is drawn this frame, between ticks; none once it is gone.</summary>
-    private (double X, double Y)? PieceDrawnAt(int id) => PieceOf(id) is { } piece ? PieceDrawn.At(piece, _progress) : null;
+    private (double X, double Y)? PieceDrawnAt(int id) => PieceOf(id) is { } piece ? PieceDrawn.At(piece, _drift) : null;
 
     /// <summary>Piece <paramref name="id"/> as the sim has it this frame; none once it is gone.</summary>
     private Piece? PieceOf(int id)
@@ -359,12 +359,13 @@ public partial class HeroView : Node2D
     /// breathing (<see cref="Report"/>). The hero wakes at the crew's spawn, and again there on coming
     /// round, and takes no orders while passed out. <paramref name="heard"/> are the other heroes the
     /// client took since the last frame, each drawn where it stood a little while ago; <paramref name="progress"/> is
-    /// how far the world is between its last tick and the next, where the debris a harpoon's rod sticks in is drawn;
+    /// how far the world is between its last tick and the next; <paramref name="drift"/>, how far debris has drifted past
+    /// the last tick (<c>Session.Drift</c>), where the debris a harpoon's rod sticks in is drawn;
     /// <paramref name="hosts"/>, whether this peer hosts, so draws its shots as the sim flies them.
     /// </summary>
-    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, bool hosts, double elapsedMs)
+    public void Frame(Client client, Registry m, Camera2D camera, IReadOnlyList<PeerHeroMessage> heard, double progress, double drift, bool hosts, double elapsedMs)
     {
-        (_m, _client, _progress, _hosts) = (m, client, progress, hosts);
+        (_m, _client, _progress, _drift, _hosts) = (m, client, progress, drift, hosts);
         var grid = m.Grid;
         _width = grid.Width;
         // Doors as this peer shows them: its own toggles still in flight already open or shut.

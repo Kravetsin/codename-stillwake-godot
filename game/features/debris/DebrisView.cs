@@ -120,7 +120,7 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
-                Burst(gone.Picture, _own.Ran(id), _own.ToolOn(id));
+                Burst(gone.Picture, _own.Ran(id));
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
@@ -140,6 +140,7 @@ public partial class DebrisView(Ui ui) : Node2D
             (one.X, one.Speed, one.End, one.Tick) = (piece.X, piece.Speed, piece.End, client.World.Tick);
             var (x, y) = PieceDrawn.At(piece, progress);
             var at = new Vector2((float)(x / Unit * Cell), (float)(y / Unit * Cell));
+            if (_own.SentOn(piece.Id) is { } sent && !HeldLook.IsDrill(sent)) Felt(one, at, sent, null, own: true);
             if (piece.Damage > one.Damage) Struck(one, piece, at);
             one.JoltMs = Math.Max(0, one.JoltMs - elapsedMs);
             double jolt = one.JoltMs / JoltMs;
@@ -189,15 +190,27 @@ public partial class DebrisView(Ui ui) : Node2D
     }
 
     /// <summary>
-    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, it jolts away from the
-    /// nearest hero, and a wreck's hit (0075, 0094) flies back toward it from where it was struck: under a running drill's bit
-    /// on it, that drill's share of the axe's hit; else the axe's whole, on the side facing the hero, the view nudged a pixel
-    /// and the chop heard if the hit was this player's own (0042). An own drill's chops are heard as each is sent (HeroView).
+    /// A hit landed on <paramref name="piece"/>, drawn at <paramref name="at"/>: its cracks deepen, and unless it was this
+    /// player's own hit with a weapon swung, felt as it was sent (0014), it is felt now (<see cref="Felt"/>): under a running
+    /// drill's bit on it, that drill's share of the axe's hit; else the axe's whole.
     /// </summary>
     private void Struck(Shown one, Piece piece, Vector2 at)
     {
         one.Damage = piece.Damage;
         ShowCracks(one.Picture, piece);
+        if (_own.ToolOn(piece.Id) is { } own && !HeldLook.IsDrill(own)) return;
+        var bit = BitOn(at, one.Picture.Texture.GetSize() * one.Picture.Scale);
+        Felt(one, at, _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item, bit?.At, own: false);
+    }
+
+    /// <summary>
+    /// A hit by <paramref name="tool"/> felt on a piece drawn at <paramref name="at"/>: it jolts away from the nearest hero and
+    /// flares, and a wreck's hit (0075, 0094) flies back toward it from <paramref name="bit"/>, a drill's, else the side facing
+    /// the hero; this player's <paramref name="own"/> hit, sent this frame, is heard and nudges the view a pixel (0042). An own
+    /// drill's chops are heard as each is sent (HeroView).
+    /// </summary>
+    private void Felt(Shown one, Vector2 at, string tool, Vector2? bit, bool own)
+    {
         var from = NearestHero(at);
         var away = (at - from).Normalized();
         if (away == Vector2.Zero) away = Vector2.Right;
@@ -205,18 +218,13 @@ public partial class DebrisView(Ui ui) : Node2D
         one.JoltMs = JoltMs;
         var size = one.Picture.Texture.GetSize() * one.Picture.Scale;
         var side = at - away * Math.Min(size.X, size.Y) * 0.4f;
-        var bit = BitOn(at, size);
-        string tool = _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item;
-        bool drill = HeldLook.IsDrill(tool);
-        var point = drill && bit is { } on ? on.At : side;
+        var point = HeldLook.IsDrill(tool) && bit is { } on ? on : side;
         double share = Features.Effects.Impacts.ShareOf(tool);
         Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[Impact.Wreck], point.X, point.Y, -away.X, -away.Y, share);
         one.Flash = Math.Max(one.Flash, share);
-        if (_own.Ran(piece.Id) && !drill)
-        {
-            HitBy(tool).PlayAt(side);
-            Nudged?.Invoke(away);
-        }
+        if (!own) return;
+        HitBy(tool).PlayAt(side);
+        Nudged?.Invoke(away);
     }
 
     /// <summary>
@@ -260,11 +268,10 @@ public partial class DebrisView(Ui ui) : Node2D
     /// A wreck broken at <paramref name="at"/> (0075): its picture cut into pieces flying apart with glowing torn edges
     /// (<see cref="BreakView"/>), a big glint, sparks curling every way, fine dust, a slow cloud, a fast faint shock
     /// ring and a flash of light dying away; the break heard if this player's own hit broke it (<paramref name="own"/>,
-    /// 0042). The last hit removes the wreck on its tick, so its chop never plays: the break, with an impact of its
-    /// own, is the hit, the sledgehammer's blow with it if that was <paramref name="tool"/> (salvage-tools). A bigger picture, a
-    /// derelict's, bursts with more, twice as much for the biggest.
+    /// 0042), after the last hit's own sound, heard as it was sent (0014). A bigger picture, a derelict's, bursts with more,
+    /// twice as much for the biggest.
     /// </summary>
-    private void Burst(Sprite2D picture, bool own, string? tool)
+    private void Burst(Sprite2D picture, bool own)
     {
         var at = picture.Position;
         var size = picture.Texture.GetSize() * picture.Scale;
@@ -293,7 +300,6 @@ public partial class DebrisView(Ui ui) : Node2D
         Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
         Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
         if (own) _break.PlayAt(at);
-        if (own && S.WreckHitOf(tool) == S.HammerBlow) _hammerBlow.PlayAt(at);
     }
 
     /// <summary>Sparks and dust a breaking wreck throws, the puffs of its cloud: a derelict's up to twice as many.</summary>

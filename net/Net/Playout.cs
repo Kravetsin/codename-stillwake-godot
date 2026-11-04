@@ -26,6 +26,8 @@ public sealed class Playout
     private const double RestartMs = 500;
     /// <summary>At most this many ticks a frame, draining a backlog; as the host's clock catches up.</summary>
     private const int MaxPerFrame = 5;
+    /// <summary>How many ticks past the next <see cref="Ahead"/> may reach: the most the reserve can be, 300 ms.</summary>
+    public const int AheadTicks = 6;
 
     // This machine's clock less the host's tick times, as the quickest arrival says.
     private double? _offset;
@@ -67,10 +69,16 @@ public sealed class Playout
     }
 
     /// <summary>How far time is from tick <paramref name="tick"/> towards the next, 0 to 1, for drawing between ticks.</summary>
-    public double Progress(int tick, double now)
+    public double Progress(int tick, double now) => Math.Min(1, Ahead(tick, now));
+
+    /// <summary>
+    /// How far time is past tick <paramref name="tick"/>, in ticks, up to <see cref="AheadTicks"/> beyond the next: for drawing
+    /// what moves evenly on through a tick that came late, so the ticks that catch up land where it is drawn.
+    /// </summary>
+    public double Ahead(int tick, double now)
     {
         if (_offset is not double offset) return 0;
         double into = (now - (offset + Reserve + (tick - 1) * TickMs)) / TickMs;
-        return Math.Clamp(into, 0, 1);
+        return Math.Clamp(into, 0, 1 + AheadTicks);
     }
 }
