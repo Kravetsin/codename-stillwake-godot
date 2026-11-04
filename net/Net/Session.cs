@@ -29,6 +29,12 @@ public sealed class Session(Host? host, Client client)
     /// <summary>Fraction of the way to the next tick, for drawing between ticks.</summary>
     public double Progress => host != null ? _clock.Progress : _playout.Progress(client.World.Tick, _now);
 
+    /// <summary>
+    /// Like <see cref="Progress"/>, but on a joined peer running on past 1 while the next tick is late, up to
+    /// <see cref="Playout.AheadTicks"/> more: drifting debris is drawn moving on instead of stopping.
+    /// </summary>
+    public double Drift => host != null ? _clock.Progress : _playout.Ahead(client.World.Tick, _now);
+
     /// <summary>How long a joined peer holds released ticks before it runs them, in ms; none on a host.</summary>
     public double? Reserve => host != null ? null : _playout.Reserve;
 

@@ -56,7 +56,7 @@ from `packages/sim/src/modules/rooms`; its rules hold here unchanged.
 ## API
 
 - **Queries** (`IRoomsQueries`, what a module depending on rooms receives): `RoomAt(cell)` — a room's id, `Space`, or null for a solid cell or off the grid;
-  `Afloat(cell)` — whether something there floats: in `Space` on a kind of surface that floats (the ship's), never on a
+  `Afloat(cell)` — whether something there floats: in `Space`, or in a room before no back wall ([no-back-wall-floats](../../docs/decisions/2026-11-04-no-back-wall-floats.md)), on a kind of surface that floats (the ship's), never on a
   planet, whose gravity holds everywhere (0076; `Items`' stacks and the client's hero read it);
   `RoomById(id)`; `All`, in id order, a new list whenever the rooms or their openings are found again;
   `RoomOfCells` — every cell at once, live and read-only: a room's id, `Space` or `Solid`, for a

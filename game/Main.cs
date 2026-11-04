@@ -550,7 +550,7 @@ public partial class Main : Node2D, ITogether
         if (client.World.Tick != before) SyncLight();
         if (client.World.Tick != before) ShakeFalling(client);
         _frameLog?.Mark("light");
-        _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Host != null, delta * 1000);
+        _hero?.Frame(client, _m, _camera, heard, session.Progress, session.Drift, session.Host != null, delta * 1000);
         _frameLog?.Mark("hero");
         // After the hero, so a door it toggles shows on the frame E is pressed (0014).
         SyncGrid(client);
@@ -560,11 +560,11 @@ public partial class Main : Node2D, ITogether
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
-        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, delta * 1000);
+        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
         if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");
-        _debris.Frame(client, _m.Debris, _camera.View(), session.Progress, delta * 1000);
+        _debris.Frame(client, _m.Debris, _camera.View(), session.Drift, delta * 1000);
         _frameLog?.Mark("debris");
         // After the hero, so a strike it sent this frame flinches its creature at once (0102).
         _creatures.Frame(client, _m.Creatures, _m.Debris, _m.Building, _m.Grid, _m.Rooms, _m.Rules, _camera.View(), session.Progress, delta * 1000, _seed);

@@ -56,12 +56,13 @@ public partial class ItemsView : Node2D
     /// <summary>
     /// Shows the client's world through the current registry's queries, a resync bringing new ones;
     /// <paramref name="hero"/> is none until the hero is placed. <paramref name="progress"/> is how far
-    /// the world is between its last tick and the next. <paramref name="netHolds"/> is what a net holds, each piece where it is
+    /// the world is between its last tick and the next; <paramref name="drift"/>, how far debris has drifted past it
+    /// (<c>Session.Drift</c>). <paramref name="netHolds"/> is what a net holds, each piece where it is
     /// drawn, for a collect's loot to fly from (<see cref="OwnCatches"/>).
     /// </summary>
     public void Frame(
         Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, IResearchQueries research, DebrisModule debris,
-        Func<int, IReadOnlyList<(int Piece, (double X, double Y) At)>> netHolds, HeroSpot? hero, double progress, double elapsedMs)
+        Func<int, IReadOnlyList<(int Piece, (double X, double Y) At)>> netHolds, HeroSpot? hero, double progress, double drift, double elapsedMs)
     {
         (Hero, Grid) = (hero, grid);
         var taking = Reach.PickingUp(client.InFlight);
@@ -70,7 +71,7 @@ public partial class ItemsView : Node2D
         _wasOut = hero?.Out ?? false;
         // What the hero walks over, it picks up, saying so over its head at once; passed out, nothing.
         // What its own catches just put into the inventory, over its head too: a grab's or a net's collect's loot, drawn as it runs.
-        var caught = _catches.Read(client.InFlight, piece => debris.CaughtFrom(piece, client.Id), piece => DrawnAt(debris, piece, progress), netHolds);
+        var caught = _catches.Read(client.InFlight, piece => debris.CaughtFrom(piece, client.Id), piece => DrawnAt(debris, piece, drift), netHolds);
         if (hero is { } spot)
         {
             // A catch's loot flies home from where the piece was, one icon after another (0075).

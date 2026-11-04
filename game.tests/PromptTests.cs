@@ -34,7 +34,19 @@ public class PromptTests
         Assert.Equal(new Prompt("use.loadCanister", "items.notEnough"), Prompts.Of(M, Press(3, new LoadCanister(1), "items.notEnough")));
         Assert.Equal("use.catch", Prompts.Of(M, Press(3, new Grab(1)))?.Action);
         Assert.Equal(new Prompt("use.collect", "debris.netEmpty"), Prompts.Of(M, Press(3, new Collect(1), "debris.netEmpty")));
-        Assert.Equal("use.openCrate", Prompts.Of(M, new Aim(3, true, Crate: 4))?.Action);
+        Assert.Equal("use.open.crate", Prompts.Of(M, new Aim(3, true, Crate: 4))?.Action);
+    }
+
+    [Fact]
+    public void NamesEveryMachineThatOpensOnEByItsOwnWordsNeverACrates()
+    {
+        var opening = Stillwake.Content.Machines.All.Select(s => s.Kind).Where(Aiming.Opens).ToArray();
+        Assert.Contains("workbench", opening);
+        Assert.All(opening, kind =>
+        {
+            Assert.True(Table.ContainsKey($"use.open.{kind}"), $"use.open.{kind} has no English");
+            Assert.True(I18n.Ru.Table.ContainsKey($"use.open.{kind}"), $"use.open.{kind} has no Russian");
+        });
     }
 
     [Fact]
@@ -72,7 +84,7 @@ public class PromptTests
     [Fact]
     public void HasWordsForEveryActionAndTellsTwoPromptsApart()
     {
-        string[] actions = ["use.build", "use.takeApart", "use.openCrate", "use.loadCanister", "use.catch", "use.collect", "use.openDoor", "use.closeDoor", "use.openValve", "use.closeValve"];
+        string[] actions = ["use.build", "use.takeApart", "use.open.crate", "use.loadCanister", "use.catch", "use.collect", "use.openDoor", "use.closeDoor", "use.openValve", "use.closeValve"];
         Assert.All(actions, action => Assert.True(Table.ContainsKey(action), action));
         var a = new Prompt("use.catch", null);
         Assert.Equal(a, a with { });

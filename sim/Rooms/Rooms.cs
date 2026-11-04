@@ -27,8 +27,9 @@ public interface IRoomsQueries
     /// <summary>The room <paramref name="cell"/> is in, <see cref="RoomsModule.Space"/>, or null for a solid cell or one off the grid.</summary>
     int? RoomAt(int cell);
     /// <summary>
-    /// Whether something in <paramref name="cell"/> floats: in space on a surface whose kind lets things float there,
-    /// the ship's; never on a planet, where gravity holds everywhere (0076).
+    /// Whether something in <paramref name="cell"/> floats: in space, or in a room before no back wall (the back wall holds
+    /// the ship's gravity, no-back-wall-floats), on a surface whose kind lets things float there, the ship's; never on a
+    /// planet, where gravity holds everywhere (0076).
     /// </summary>
     bool Afloat(int cell);
     Room? RoomById(int id);
@@ -103,7 +104,7 @@ public sealed class RoomsModule : Module<RoomsState>, IRoomsQueries
         return State.RoomOf[cell];
     }
 
-    public bool Afloat(int cell) => Rules.Floats && RoomAt(cell) == Space;
+    public bool Afloat(int cell) => Rules.Floats && RoomAt(cell) is int room && (room == Space || _grid.BackAt(cell) == null);
 
 
     public Room? RoomById(int id)
