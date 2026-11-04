@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Stillwake.Game.Features.Research;
 using Xunit;
@@ -90,5 +91,35 @@ public class BoardInkTests
     {
         Assert.Equal(1, TechCamera.Fitting(600, 400, 100, 100));
         Assert.Equal(0.5, TechCamera.Fitting(600, 400, 1200, 100));
+    }
+
+    [Fact]
+    public void AStrokeIsOneMeshOfABandAPieceLeavingOutWhereTheStylusLifts()
+    {
+        InkPoint[] stroke = [new(0, 0, 1, false), new(10, 0, 1, true), new(20, 0, 1, false), new(30, 0, 1, false)];
+        var mesh = BoardInk.Mesh(stroke, 4, 0.9f, 1);
+        Assert.Equal(2 * 18, mesh.Indices.Length);
+        Assert.Equal(2 * 8, mesh.Points.Length);
+        Assert.DoesNotContain(mesh.Points, p => p.X > 10 && p.X < 20);
+        Assert.All(mesh.Indices, i => Assert.InRange(i, 0, mesh.Points.Length - 1));
+        Assert.Equal((30f, 0f), mesh.Tip);
+    }
+
+    [Fact]
+    public void AStrokesEdgeFadesAcrossItsWidth()
+    {
+        // Away from its thinner ends: the fourth of seven pieces, its first four corners across.
+        var mesh = BoardInk.Mesh([.. Enumerable.Range(0, 8).Select(i => new InkPoint(i * 10, 0, 1, false))], 6, 0.9f, 1);
+        Assert.Equal([-3.5f, -2.5f, 2.5f, 3.5f], mesh.Points.Skip(3 * 8).Take(4).Select(p => MathF.Round(p.Y, 3)));
+        Assert.Equal([0f, 1, 1, 0], mesh.Alpha.Skip(3 * 8).Take(4));
+    }
+
+    [Fact]
+    public void AHalfDrawnStrokeEndsAtItsTip()
+    {
+        var stroke = BoardInk.Stroke(0, 0, 100, 0, 1);
+        var mesh = BoardInk.Mesh(stroke, 2, 0.9f, 1, drawn: 0.5f);
+        Assert.Equal(50, mesh.Tip.X, 1);
+        Assert.DoesNotContain(mesh.Points, p => p.X > 51);
     }
 }

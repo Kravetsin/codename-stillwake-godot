@@ -30,14 +30,15 @@ public partial class HeroView
     private Content.Gun? GunInHand(bool handFree) => handFree ? Content.Shots.GunOf(_ui.Wielded.Get()) : null;
 
     /// <summary>
-    /// The gun in hand, <paramref name="wields"/>, aimed as the figure was last drawn: a fresh <paramref name="clicked"/> fires from its
-    /// muzzle along its barrel when the hero is ready (<see cref="GunHand"/>), sent as the sim's <c>Fire</c> and flown here at once;
-    /// with no ammo it clicks dry; with the muzzle off the grid it does nothing. Every tick of the world flies this player's shots a
-    /// step by the sim's own (<c>CreaturesModule.StepOf</c>), each hit it would take shown as what it met (<see cref="ShotEnds"/>).
-    /// A host flies none (<see cref="ShotDraws"/>): its shots are drawn as the sim flies them, the fire heard here at the click. A gun
-    /// held to charge (2026-10-27-the-railgun) charges while <paramref name="held"/>, heard rising, pinged full, its coils lit as it
-    /// fills (<see cref="Figure.Charge"/>); a belt that cannot pay its charge clicks dry, as no ammo does. Out in space a shot kicks the
-    /// hero back along the barrel by its gun's <c>Recoil</c> (<see cref="Hero.Kicked"/>).
+    /// The gun in hand, <paramref name="wields"/>, aimed as the figure was last drawn: <paramref name="clicked"/> or
+    /// <paramref name="held"/>, it fires from its muzzle along its barrel whenever the hero is ready (<see cref="GunHand"/>), sent as
+    /// the sim's <c>Fire</c> and flown here at once; with no ammo it clicks dry, sending nothing; with the muzzle off the grid it
+    /// does nothing. Every tick of the world flies this player's shots a step by the sim's own (<c>CreaturesModule.StepOf</c>), each
+    /// hit it would take shown as what it met (<see cref="ShotEnds"/>). A host flies none (<see cref="ShotDraws"/>): its shots are
+    /// drawn as the sim flies them, the fire heard here as it fires. A gun held to charge (2026-10-27-the-railgun) charges while held
+    /// with its cooldown out, heard rising, pinged full, its coils lit as it fills (<see cref="Figure.Charge"/>); a belt that cannot
+    /// pay its charge clicks dry, as no ammo does. Out in space a shot kicks the hero back along the barrel by its gun's
+    /// <c>Recoil</c> (<see cref="Hero.Kicked"/>).
     /// </summary>
     private void Shoot(Client client, Registry m, Content.Gun? gun, bool wields, bool clicked, bool held, bool hosts, double elapsedMs)
     {
