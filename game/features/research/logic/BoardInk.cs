@@ -6,6 +6,9 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>A point of a stylus stroke: where it is, how thick there, and whether the stylus lifts after it.</summary>
 public readonly record struct InkPoint(float X, float Y, float Thick, bool Lift);
 
+/// <summary>A stroke as triangles (<see cref="BoardInk.Mesh"/>): their corners, how much ink each has, three indices a triangle, and where the stroke's tip is.</summary>
+public readonly record struct InkMesh((float X, float Y)[] Points, float[] Alpha, int[] Indices, (float X, float Y) Tip);
+
 /// <summary>How a shape is sketched at a step of its pencil.</summary>
 /// <param name="Edge">How strong its outline is.</param>
 /// <param name="Side">How much of each side of its box is drawn, from the corners.</param>
@@ -101,6 +104,44 @@ public static class BoardInk
         uint hash = Hash(key);
         float length = MathF.Sqrt((ex - sx) * (ex - sx) + (ey - sy) * (ey - sy));
         return Stroke(sx, sy, ex, ey, hash % 997 / 30f, (hash % 2 == 1 ? 1 : -1) * MathF.Min(14, length * 0.05f), 10);
+    }
+
+    /// <summary>
+    /// A stroke as one list of triangles, <paramref name="drawn"/> of the way along: each piece a band as thick as the stylus pressed (never under
+    /// <paramref name="least"/>, thinner at the ends), its edges fading to nothing over <paramref name="feather"/>, which smooths them; lifted pieces left out.
+    /// One list draws in one call, where a line a piece cost the renderer a command each, every frame.
+    /// </summary>
+    public static InkMesh Mesh(InkPoint[] stroke, float width, float least, float feather, float drawn = 1)
+    {
+        int last = stroke.Length - 1;
+        float upto = drawn * last;
+        var points = new List<(float X, float Y)>();
+        var alpha = new List<float>();
+        var indices = new List<int>();
+        var tip = (stroke[0].X, stroke[0].Y);
+        for (int i = 0; i < last && i < upto; i++)
+        {
+            InkPoint a = stroke[i], b = stroke[i + 1];
+            float part = MathF.Min(1, upto - i);
+            (float X, float Y) to = (a.X + (b.X - a.X) * part, a.Y + (b.Y - a.Y) * part);
+            tip = to;
+            float dx = to.X - a.X, dy = to.Y - a.Y, length = MathF.Sqrt(dx * dx + dy * dy);
+            if (a.Lift || length < 1e-4f) continue;
+            float ends = MathF.Min(1, MathF.Min((i + 0.4f) / 2.4f, (last - i + 0.4f) / 2.4f));
+            float half = MathF.Max(least, width * a.Thick * ends) / 2, nx = -dy / length, ny = dx / length;
+            // The fade straddles the edge, so the band looks as thick as it is; one thinner than the fade is fainter instead.
+            float body = MathF.Max(0, half - feather / 2), edge = half + feather / 2, ink = MathF.Min(1, 2 * half / feather);
+            int at = points.Count;
+            foreach (var (x, y) in (ReadOnlySpan<(float, float)>)[(a.X, a.Y), to])
+                foreach (float across in (ReadOnlySpan<float>)[-edge, -body, body, edge])
+                {
+                    points.Add((x + nx * across, y + ny * across));
+                    alpha.Add(MathF.Abs(across) == edge ? 0 : ink);
+                }
+            // Across the band, its edge, its body and its other edge: two triangles each, from this point to the next.
+            for (int k = 0; k < 3; k++) indices.AddRange([at + k, at + k + 1, at + 4 + k, at + k + 1, at + 5 + k, at + 4 + k]);
+        }
+        return new InkMesh([.. points], [.. alpha], [.. indices], tip);
     }
 
     /// <summary>A hand-drawn loop round a point, its ends overlapping: what marks a thing just landed.</summary>
