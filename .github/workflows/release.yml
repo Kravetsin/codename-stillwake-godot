@@ -1,6 +1,6 @@
 name: Release
 
-# A tag vX.Y builds the Windows game with that version and publishes it as a GitHub release, which
+# A tag vX.Y builds the Windows and macOS game with that version and publishes it as a GitHub release, which
 # every release of the game checks for at its start (docs/releasing.md).
 on:
   push:
@@ -43,7 +43,15 @@ jobs:
           test -f build/windows/Stillwake.exe
           cp deploy/launchers/host.cmd deploy/launchers/join.cmd build/windows/
           (cd build/windows && zip -qr ../Stillwake-windows.zip .)
+          # macOS: one universal app, ad-hoc signed (docs/decisions/2026-11-04-macos-build.md); Godot
+          # zips it, the zip is opened again to put the launchers beside the app, modes kept.
+          mkdir -p build/macos
+          "$GODOT_BIN" --headless --path game --export-release "macOS" ../build/macos/Stillwake.zip
+          (cd build/macos && unzip -q Stillwake.zip && rm Stillwake.zip && test -x Stillwake.app/Contents/MacOS/Stillwake)
+          cp -p deploy/launchers/host.command deploy/launchers/join.command build/macos/
+          (cd build/macos && zip -qry ../Stillwake-macos.zip .)
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" build/Stillwake-windows.zip --title "Stillwake $GITHUB_REF_NAME" --generate-notes
+        # The Windows zip first: Windows builds older than the macOS one take the first zip they see.
+        run: gh release create "$GITHUB_REF_NAME" build/Stillwake-windows.zip build/Stillwake-macos.zip --title "Stillwake $GITHUB_REF_NAME" --generate-notes

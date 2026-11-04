@@ -18,13 +18,18 @@ Semantic, `MAJOR.MINOR.PATCH`, so a player can tell where the game stands:
    `main`'s CI is not green (when the GitHub CLI can tell), asks to confirm, then tags `main` and
    pushes the tag. Two releasing at once cannot clash: the second tag push is refused, and running it
    again takes the next number. Say in the chat who releases, all the same.
-2. CI (`.github/workflows/release.yml`) exports the Windows game with that version stamped into it
+2. CI (`.github/workflows/release.yml`) exports the Windows and macOS game with that version stamped into it
    (`STILLWAKE_VERSION`, read by `game/Stillwake.Game.csproj`) and publishes
-   `Stillwake-windows.zip` as the GitHub release of the tag, with `host.cmd` and `join.cmd` beside the game.
+   `Stillwake-windows.zip` (with `host.cmd` and `join.cmd` beside the game) and `Stillwake-macos.zip` (a universal
+   `Stillwake.app` with `host.command` and `join.command`) as the GitHub release of the tag.
 3. Every release asks GitHub for the latest at its start (`game/platform/Updater.cs`). Offered a newer
-   one, the Esc menu shows **Update to vX.Y.Z**: the zip is fetched, unpacked into the user folder, and a
-   script waits for the game to close, copies the new build over it and starts it again. Saves live in
+   one, the Esc menu shows **Update to vX.Y.Z**: its platform's zip is fetched into the user folder, and a
+   script waits for the game to close, puts the new build over it and starts it again. Saves live in
    the user folder and are left alone.
+
+On a Mac the app is ad-hoc signed, not notarized ([macos-build](decisions/2026-11-04-macos-build.md)): the first
+launch after downloading needs right-click → Open, once. A macOS build at a desk, without the launchers:
+`godot --headless --path game --export-release "macOS" ../build/macos/Stillwake.zip`.
 
 The version shows in the screen's bottom-right corner and at the foot of the Esc menu: `v0.0.2` for a
 release, `dev <commit>` for a build made at a desk (`play.cmd`, `export.cmd`), which never offers an
