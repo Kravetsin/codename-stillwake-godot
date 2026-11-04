@@ -53,12 +53,13 @@ public partial class HeroView
             var (helmet, body) = Suits.WornBy(m.Items, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
-            var (axe, chop) = _heardChops.GetValueOrDefault(id);
-            if (!axe) shown.Swing.Stop();
+            var (strikes, chop) = _heardChops.GetValueOrDefault(id);
+            var stroke = Strokes.Of(strikes);
+            if (stroke == null) shown.Swing.Stop();
             // Its blade heard and seen where it strikes the ground as it is played here, the fan its own peer sends then (0093, 0094),
             // in the front layer: which button its peer swings with is not sent.
-            if (shown.Swing.Follow(elapsedMs, axe ? chop : null).Hits)
-                StruckBy(m, id, hero, shown.Swing.At, Content.Weapons.Axe.Item);
+            if (shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, stroke).Hits)
+                StruckBy(m, id, hero, shown.Swing.At, strikes!);
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the fan its peer sends there.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };

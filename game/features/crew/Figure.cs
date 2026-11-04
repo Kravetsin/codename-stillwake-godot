@@ -186,8 +186,6 @@ public partial class Figure : Node2D
     private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;
     /// <summary>The builder at work (<see cref="HeldLook.Twist"/>, <see cref="HeldLook.Driven"/>): a frame of its strip, by its grip.</summary>
     private readonly Sprite2D _tool;
-    /// <summary>How far past the line to a swing's point the arm swings for the axe's blade to meet it (0040).</summary>
-    private static readonly double AxeLead = AxeSwing.Lead(HeldLook.FireAxe);
     /// <summary>What the front fist holds, the fire axe, the harpoon, the drill or the screwdriver, in the picture of its look (<see cref="HeldLook"/>).</summary>
     private readonly Sprite2D _held;
     /// <summary>A gun's charged picture, its lit pixels alone, over the held one as bright as its charge (<see cref="Charge"/>), lit as it is.</summary>
@@ -875,7 +873,9 @@ public partial class Figure : Node2D
         bool holding = holdsPlan && Poses.HoldsIn(pose) && !working;
         var item = HeldLook.Of(Wields);
         bool inHand = item != null && Poses.HoldsIn(pose) && !working && !holding;
-        bool chopping = _chop != null && item == HeldLook.FireAxe && inHand;
+        // Struck with by hand: the axe, the sledgehammer swung, the spear thrust (Strokes).
+        var stroke = Strokes.Of(Wields);
+        bool chopping = _chop != null && stroke != null && item != null && inHand;
         bool aiming = Aim != null && item?.Aimed == true && inHand, drill = HeldLook.IsDrill(Wields);
         // The hands at work, whatever the pose (0030): afloat the paddling stops, the hero drifts calmly
         // upright, and the front arm reaches where the work is, in the body's own frame.
@@ -954,6 +954,7 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
+        double elbow = item?.Elbow ?? 0;
         if (chopping && _chop is { At: var wreck, Phase: var phase })
         {
             // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
@@ -961,8 +962,15 @@ public partial class Figure : Node2D
             var (dx, dy) = FromShoulder(wreck);
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase) : phase;
-            swung = (Math.Atan2(dy, dx) + AxeLead + AxeSwing.Lift(drawn), drawn);
+            double drawn = _bit ? AxeSwing.Shown(phase, stroke) : phase;
+            if (stroke!.Kind == StrokeKind.Thrust)
+            {
+                // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
+                elbow = Strokes.ElbowAt(drawn);
+                swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
+            }
+            // How far past the line to its point the arm swings for the blade, not the hand, to meet it (0040).
+            else swung = (Math.Atan2(dy, dx) + AxeSwing.Lead(item!) + AxeSwing.Lift(drawn), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -970,7 +978,7 @@ public partial class Figure : Node2D
             var (dx, dy) = FromShoulder(target);
             swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
-        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, item?.Elbow ?? 0);
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, elbow);
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
         // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
         bool carried = inHand && swung == null && !working && !aiming;
@@ -1036,7 +1044,7 @@ public partial class Figure : Node2D
             // Through the picture and its spin frames in turn; still, it stops on the picture.
             int frames = 1 + (item.Spin?.Count ?? 0);
             _spinFrame = _spin > 0 ? (_spinFrame + _spin * HeldLook.SpinFps * elapsedMs / 1000) % frames : 0;
-            int frame = (int)_spinFrame;
+            int frame = item.Spin is [_] ? (_spin > 0 ? 1 : 0) : (int)_spinFrame;
             var parts = PartsOf(item);
             _held.Texture = item.Loaded != null && Loaded ? HeldArt.Of(item.Loaded, []) : HeldArt.Of(frame > 0 ? item.Spin![frame - 1] : item.Picture, parts.Layers);
             bool lit = Spinning && item.Lamp != null;
@@ -1073,7 +1081,7 @@ public partial class Figure : Node2D
             }
         }
         // The axe's downstroke leaves its swipe of light, from the blade as drawn.
-        bool striking = chopping && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
+        bool striking = chopping && stroke!.Kind == StrokeKind.Swing && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
         if (striking && item != null)
         {
             var (back, edge) = (Rig.HeldAt(frontArm, item, item.EdgeFrom), Rig.HeldAt(frontArm, item, item.EdgeTo));

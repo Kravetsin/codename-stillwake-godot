@@ -29,14 +29,16 @@ public partial class HeroView
     {
         // Flying in a drop pod, the hands do nothing, as passed out: E is no one's until it lands.
         passedOut |= m.Landing.FlightOf(client.Id) != null;
-        bool axe = handFree && _ui.Wielded.Get() == Content.Weapons.Axe.Item;
+        // A tool struck with by hand, the axe, the sledgehammer or the spear: its strokes (Strokes).
+        string? struck = handFree && Strokes.Of(_ui.Wielded.Get()) != null ? _ui.Wielded.Get() : null;
+        var stroke = Strokes.Of(struck);
         bool gun = handFree && _ui.Wielded.Get() == Content.Harpoon.Item;
         var shooter = GunInHand(handFree);
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
-        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), axe, gun, drill, shown, ShipTiles.RiseOf) : null;
+        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), false, gun, drill ?? struck, shown, ShipTiles.RiseOf) : null;
         // The power driver charged in its mode works the square round the pointer while it holds plans or marks, every layer of
         // each cell, shown before the press; over nothing the pointer aims at one cell (power-driver).
         bool charged = driver != null && Content.Items.Get(driver.Item).Draw is int pays && m.Items.CanDrain(client.Id, pays);
@@ -89,10 +91,10 @@ public partial class HeroView
         // put away, it stops unstruck. A wreck's chop is heard where it takes the hit (DebrisView).
         bool grabbed = grab && uses.Commands.Any(c => c is Sim.Debris.Grab);
         _grabHeld = (_grabHeld || grabbed) && _mouse.Buttons.HoldsLeft;
-        bool swings = acts && axe && !working && Poses.HoldsIn(pose);
+        bool swings = acts && stroke != null && !working && Poses.HoldsIn(pose);
         if (!swings) _swing.Stop();
         bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
-        var swung = _swing.Advance(elapsedMs, wanted, pointer is { } aimed ? Aiming.PointOf(aimed) : default);
+        var swung = _swing.Advance(elapsedMs, wanted, pointer is { } aimed ? Aiming.PointOf(aimed) : default, stroke);
         if (swung.Begun)
         {
             _swingFace = Poses.FaceOf(pointer, _current) ?? _current.Facing;
@@ -102,9 +104,9 @@ public partial class HeroView
         if (swung.Hits)
         {
             // The fan toward the swing's point (the fan of rays): what stands on a planet's grid, heard once; in space the wrecks.
-            bool bites = Hew(client, m, Aiming.FanOf(m, _current, _swing.At, Content.Weapons.Axe.Item), _swing.At);
-            // Every creature the blade meets, wherever the hero stands (0102): its flinch is the creatures' to show.
-            var strikes = Aiming.StrikesOf(m, client.Id, Aiming.StruckCreatures(m, _current, _swing.At), Content.Weapons.Axe.Item);
+            bool bites = Hew(client, m, Aiming.FanOf(m, _current, _swing.At, struck!), _swing.At);
+            // Every creature the blade meets, or the spear's point at full stretch, wherever the hero stands (0102): its flinch is the creatures' to show.
+            var strikes = Aiming.StrikesOf(m, client.Id, Aiming.StrokeCreatures(m, _current, _swing.At, struck!), struck!);
             foreach (var strike in strikes) client.Send(strike);
             // A blade that bites is drawn stopped on contact a moment (0075).
             if (bites || strikes.Count > 0) _figure.Bit();
@@ -161,7 +163,7 @@ public partial class HeroView
         }
         // Pulled, the gun points along the line at the hook; hanging, at the pointer again, as a wall it hangs flush on would swallow it.
         _figure.Aim = _harpoon.Rod == Rod.Pulling && wieldsGun ? Pixels(_harpoon.Tip)
-            : (_aimsGun || _aimsDrill) && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
+            : (_aimsGun || _aimsDrill || stroke?.Kind == StrokeKind.Thrust) && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))

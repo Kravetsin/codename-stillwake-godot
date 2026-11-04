@@ -604,14 +604,14 @@ public class AimTests
         // Past the axe's range, within the drill's.
         Assert.Empty(Struck(w, hero, Aiming.PointOf(at)));
         Assert.Equal([1], Struck(w, hero, Aiming.PointOf(at), drill));
-        var aim = Aiming.AimAt(w.M, 0, hero, at, drill: drill);
+        var aim = Aiming.AimAt(w.M, 0, hero, at, tool: drill);
         var fan = Aiming.FanOf(w.M, hero, Aiming.PointOf(at), drill);
         Assert.Equal(new Use(fan.Wrecks, "items.flat"), aim?.Press);
         Assert.Equal(1, aim?.Piece);
         Assert.Equal(new Prompt("use.chop", "items.flat"), Prompts.Of(w.M, aim));
         // In creative mode it needs no battery.
         w.Step(new SetCreative(true));
-        Assert.Equal(new Use(fan.Wrecks, null), Aiming.AimAt(w.M, 0, hero, at, drill: drill)?.Press);
+        Assert.Equal(new Use(fan.Wrecks, null), Aiming.AimAt(w.M, 0, hero, at, tool: drill)?.Press);
     }
 
     [Fact]

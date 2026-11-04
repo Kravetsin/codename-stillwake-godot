@@ -4,8 +4,8 @@
 
 | File | Purpose |
 | --- | --- |
-| `Building.cs` | Plans, and the work that turns them into the ship. |
-| `Costs.cs` | Costs and ticks to build or repair; what a blueprint lacks. |
+| `Building.cs` | Plans and the work turning them into the ship. |
+| `Costs.cs` | Costs, ticks to build or repair; what a blueprint lacks. |
 | `Digging.cs` | A weapon's fan of rays on a planet's ground (`Hew`). |
 | `Flora.cs` | Plants, stones, cave growths and ruins' pieces (0079, 0080, 0091). |
 | `Fuzz.cs` | The commands the desync suite draws. |
@@ -37,7 +37,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   checked again when worked. A machine's mark is kept at its top-left, a piece's at its first cell (`PieceOf`, 0104);
   taking it apart takes the whole piece. Its cables stay on a peg (`Unplug`); a machine built is `Plug`ged in (0110).
 - **`Work`** is one tick of one hero's work, sent `Screwdriver.Work` times a tick while a builder is held on a
-  plan (0107, power-driver); the sim checks no tool. Two work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
+  plan (0107, power-driver); no tool checked. Two work twice as fast. A blueprint takes its `BuildTicks`; a mark takes those
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
@@ -45,16 +45,16 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   carry, else is refused `items.notEnough`. Within a paid part anyone works, carrying nothing; creative mode takes nothing.
 - **Repair** (free-repair): a tick of work as `Work` is, taking nothing; the last `Mend`s. A broken machine taken apart
   refunds its whole cost.
-- **Instant** (`SetInstant`, dev): a blueprint is built as placed, free; new surfaces keep it.
+- **Instant** (`SetInstant`, dev): a blueprint built as placed, free; new surfaces keep it.
 - **Cancelling** a blueprint drops exactly what was put in (`DropAt`); a mark drops nothing (0063). Anyone may cancel
   or work any plan; a mark whose thing a meteor broke is dropped in derivation, refunding nothing.
 - **A wall does not finish on a hero** (0077): the `Work` that would complete a wall (instant: placing) is refused `building.heroInside`
   while a hero's reported cell, or one above or under, is the plan's. Building runs before crew.
-  So does a last tick the grid or `SeatProblem` refuses (a pod or a pipe since).
+  So does a last tick the grid or `SeatProblem` refuses (a pod or pipe since).
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
   piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them (`Struck`).
-  Each takes `BlockDamage` (0098) once: at its strength a wall goes for its `Cost` and held growths, a piece whole.
+  Each takes `BlockDamage` (0098) once (0: none, no shock): at its strength a wall goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
   true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls.
 - **Cracks heal** (0077): one not hit for `Builds.CrackHeals` ticks of Building's `Clock` is dropped; one whose wall or

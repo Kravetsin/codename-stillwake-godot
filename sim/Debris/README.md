@@ -5,12 +5,12 @@
 | File | Purpose |
 | --- | --- |
 | `Debris.cs` | The module, its queries and operations: `Grab`, `Catch`, `HewWrecks`, `Reel`, `Hit`, `Found`. |
-| `Drift.cs` | The system: pieces drift, are caught or gone, and each zone of `Debris.Zones` spawns on its beat. |
-| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Drift.cs` | The system: pieces drift, are caught or gone; each zone spawns on its beat. |
+| `Fuzz.cs` | The commands the desync suite draws. |
 | `Nets.cs` | The debris nets: the catch, `Collect`, a net gone dropping what it held. |
 | `State.cs` | The saved slice and its records: `Piece`, `Reeling`, `Beat`, `FoundKind`, `NetEntry`, `DebrisState`. |
 
-Pieces drifting by in zones; catching them by hand or in a net, reeling them in, breaking wrecks with any weapon; the
+Pieces drifting by in zones; catching them by hand or in a net, reeling them in, breaking wrecks; the
 Handbook's record of kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056, 0060, 0066).
 
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (the sender's
@@ -18,7 +18,7 @@ Handbook's record of kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056
   `FullFor`; `GiveOrDrop`, `GiveWhatFits`, `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it
   (`Breaks`) and changes it (`Unreel`, `Hit`).
 - **State** (`DebrisState`, saved): `Pieces` in id order, each `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage,
-  Reel, SeenAt }`, in thousandths of a cell (`Unit`); `NextId`, never reused; `Clock`; `Beats`, each zone's next due
+  Cut, Reel, SeenAt }`, in thousandths of a cell (`Unit`); `NextId`, never reused; `Clock`; `Beats`, each zone's next due
   clock; `AtStart`; `Found` (0066), `FoundKind { Kind, Items, Looks }` in the order first found; `Held`, every net's
   entries `{ Net, Id, Kind, Cell, Items }` in catch order, not written while empty. **Unsaved, unhashed:** the last
   `CaughtKept` (64) grabs and collected entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the
@@ -49,15 +49,15 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
   its draws taken. `End` 0, `SeenAt` the clock.
 - **Despawn**, far pieces only (0052): seen in some hero's `Keep` box, it stays; else while within some `Hard` box and
   seen less than `Linger` ago.
-- **First tick:** `Layout.DebrisAtStart` of the stream goes out (at most `Max`), placed evenly along its way.
+- **First tick:** `Layout.DebrisAtStart` of the stream goes out (at most `Max`), spread along its way.
 - Nothing collides (0006) but a net.
 - **`Grab(Piece)`** (0034): the sender gets the salvage item, or a container's `Loot` drawn by `LootOf`;
-  what does not fit floats at the hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (the hero's reported
-  cell or the piece's middle not in space), `debris.tooBig` (a wreck).
+  what does not fit floats at the hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (hero or piece not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; every weapon breaks every kind; a cable
   rack gives one circuit. `HewWrecks(Tool, X, Y, Heading)`: each ray of the fan strikes the first wreck whose box covers
   a cell it crosses, stopping there or at a wall; one whose middle is not in space is passed. Each struck takes `Damage`
   once (0098) through `Hit` (`Piece.Struck` kept); at its hit points its `Loot` falls under its middle, anyone's.
+  Salvaging hits add to `Cut`; broken with some, it draws `Below(hp) < Cut`: won, each line half again.
   Refused `debris.notOutside`, `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055).
 - **Found** (0066): every catch (grab, break, net, salvage drone) records the kind, the
   items `LootOf` drew (the same roll, overflow too) and the look worn (`Content.Looks.Of`), each the first time.
@@ -81,7 +81,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 - Every piece is on the grid, at or right of its `End` unless seen, left of its `Start` unless reeled
   (`AsteroidTests`). None spawns or goes in a hero's view but at the grid's edges (`DebrisZonesTests`).
 - A far piece spawns on the ring of a hero out of every stream's box; `SeenAt` is never past the clock, 0 on the stream's.
-- A reel's point is on the grid and its `Left` above zero. A wreck's `Damage` is below its hit points.
+- A reel's point is on the grid and its `Left` above zero. A wreck's `Cut` ≤ `Damage` < its hit points.
 - `Found` only grows; each kind once and spawnable, each item once among its loot, each look once (`DebrisFoundTests`).
 - After the drop every entry's net stands, none holds more than `NetHolds`; `Collect` and the drop make and lose
   nothing (`NetTests`). Positions are never negative.

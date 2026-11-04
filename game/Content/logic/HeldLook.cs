@@ -12,7 +12,7 @@ namespace Stillwake.Game;
 /// <see cref="Loaded"/> picture, the same size up and left, shows the rod in the barrel while it is ready.
 /// An <see cref="Aimed"/> item is pointed, not swung: the arm turns at the shoulder so its edge's line runs through
 /// the pointer, the elbow bent by <see cref="Elbow"/> radians (2026-10-27-one-arm-holds). One that spins cycles its picture through <see cref="Spin"/>, each the same size, while it runs,
-/// and stops on its picture; its <see cref="Lamp"/>, a pixel's middle, lights while it runs. On an arc bench (0099) its picture lies as held, the point
+/// and stops on its picture; one with a single frame shows it steady while it runs, a light, not a turn; its <see cref="Lamp"/>, a pixel's middle, lights while it runs. On an arc bench (0099) its picture lies as held, the point
 /// <see cref="Clamp"/> between the vise's jaws (<see cref="BenchLook.Clamp"/>): where a tool is clamped is its own, so any
 /// tool sits on the bench with nothing drawn for it. A gun held to charge lays its <see cref="Charged"/> picture, the same size, over
 /// it as it fills (2026-10-27-the-railgun), and the arc crackles over its own <see cref="Arcs"/> as a drill's coil does, more
@@ -111,11 +111,11 @@ public sealed record HeldLook(
 
     /// <summary>
     /// The spear, <c>art/hero_spear.png</c> (salvage-tools), the user's pick, «Труба и лист»: a hull plate's leaf driven into a flattened
-    /// tube, bound in copper, its grip in tape; held along the forearm, thrust; the edge the leaf's point. Its coil (0098) on the sleeve
+    /// tube, bound in copper, its grip in tape; held along the forearm, aimed at rest with the elbow bent (the jab's rest), thrust; the edge the leaf's point. Its coil (0098) on the sleeve
     /// riveted round the shaft. Clamped by the bare shaft before the sleeve.
     /// </summary>
     public static readonly HeldLook Spear = new(
-        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5));
+        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Aimed: true, Elbow: 1.2, Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5));
 
     /// <summary>
     /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools), the user's pick, «Пакет плит»: five cut plates bolted into a
@@ -145,8 +145,8 @@ public sealed record HeldLook(
         : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun
         : item == Content.Screwdrivers.PowerDriver.Item ? PowerDriver : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
-    /// <summary>Whether <paramref name="item"/> is the drill, a module in it or not: aimed, run on the belt, drilling what its bit touches.</summary>
-    public static bool IsDrill(string? item) => item == Content.Weapons.Drill.Item;
+    /// <summary>Whether <paramref name="item"/> is run as the drill is, a module in it or not: a weapon drawing on the belt (the drill, grinder, cutter), aimed, hitting what its edge touches.</summary>
+    public static bool IsDrill(string? item) => Content.Weapons.Of(item) is { } weapon && Content.Items.Get(weapon.Item).Draw != null;
 
     /// <summary>Whether <paramref name="item"/>, running, has its motor turn it at its work (<see cref="Driven"/>): the power driver.</summary>
     public static bool Drives(string? item) => Of(item)?.Driven != null;

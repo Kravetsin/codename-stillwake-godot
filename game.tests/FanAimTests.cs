@@ -70,7 +70,7 @@ public class FanAimTests
         // A press never digs: the swing does.
         Assert.Empty(Aiming.UsesOf(aim, pressed: true, held: false, tick: 1, workedOnTick: -1).Commands);
         // A drill with no battery is refused flat before its run is asked.
-        Assert.Equal("items.flat", Aiming.AimAt(m, 0, hero, Centre(23, 6), drill: Drill)?.Press?.Problem);
+        Assert.Equal("items.flat", Aiming.AimAt(m, 0, hero, Centre(23, 6), tool: Drill)?.Press?.Problem);
         // Bare hands aim no fan.
         Assert.Null(Aiming.AimAt(m, 0, hero, Centre(23, 6))?.Fan);
     }

@@ -89,7 +89,7 @@ public partial class HeroView : Node2D
     /// <summary>Each other hero drawn, by peer id.</summary>
     private readonly Dictionary<int, Other> _shownOthers = new();
     /// <summary>Each other hero as last heard: whether it wields the axe, and the last chop it sent, its swings begun.</summary>
-    private readonly Dictionary<int, (bool Axe, Busy? Last)> _heardChops = new();
+    private readonly Dictionary<int, (string? Strikes, Busy? Last)> _heardChops = new();
     /// <summary>What this hero's hands wield and are busy with, as drawn and sent to the others.</summary>
     private string? _wields;
     private Busy? _busy;
@@ -484,7 +484,7 @@ public partial class HeroView : Node2D
                 _remote.Add(message.From, sent, _clockMs);
                 // Swings are swung as heard, not behind with the body, so the blade meets the wreck as the hit lands (0038).
                 var last = _heardChops.GetValueOrDefault(message.From).Last;
-                _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
+                _heardChops[message.From] = (Strokes.Of(sent.Seen.Wields) != null ? sent.Seen.Wields : null, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
         _bodies.Frame(m, client.Id, progress, elapsedMs, Pointer());
