@@ -205,7 +205,7 @@ public partial class ContentTests
         Assert.Equal(crafts, Crafts.All.Where(c => c.Cost.Any(e => e.Item == Content.Ruins.Shard)).Select(c => c.Item));
         Assert.All(crafts, c => Assert.Equal(["arcBench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c))).Select(s => s.Machine)));
         var spec = Machines.Get("arcBench");
-        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 4, Height: 2 });
+        Assert.True(spec is { Tunes: true, Draws: null, Makes: null, FuelSlot: null, Inputs: 1, Width: 4, Height: 4 });
         Assert.Contains(spec.Cost, e => e.Item == Content.Ruins.Shard);
         // Built of what exists before it: none of its cost is made at the bench itself.
         Assert.All(spec.Cost, e => Assert.DoesNotContain(e.Item, crafts));

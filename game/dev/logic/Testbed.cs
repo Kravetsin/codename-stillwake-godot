@@ -110,7 +110,7 @@ public static class Testbed
             "  ###############################################",
             "  #.KK...LUUUII..#..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
             "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$DZZ.D",
-            "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.yyAACBBDZZ.D",
+            "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
             "  #o#########################################__##",
             "  #XXXL#n",

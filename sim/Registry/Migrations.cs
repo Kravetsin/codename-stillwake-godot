@@ -123,18 +123,19 @@ public static class Migrations
                 }
             return root;
         },
-        // 49 → 50 (2026-11-04-footprint-is-the-picture): the workbench stands five cells tall, its whole picture, where it stood
-        // two with three drawn over the cells above; one built or planned keeps its floor, its top three rows up.
+        // 49 → 50 (2026-11-04-footprint-is-the-picture): the workbench stands five cells tall and the arc bench four, their whole
+        // pictures, where each stood two with the rest drawn over the cells above; one built or planned keeps its floor, its top up.
         root =>
         {
             foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
             {
-                int up = 3 * slices["grid"]!["width"]!.GetValue<int>();
+                int width = slices["grid"]!["width"]!.GetValue<int>();
+                int Up(string? kind) => kind switch { "workbench" => 3 * width, "arcBench" => 2 * width, _ => 0 };
                 foreach (var machine in slices["grid"]!["machines"]!.AsArray())
-                    if (machine!["kind"]!.GetValue<string>() == "workbench") machine["cell"] = machine["cell"]!.GetValue<int>() - up;
+                    machine!["cell"] = machine["cell"]!.GetValue<int>() - Up(machine["kind"]!.GetValue<string>());
                 foreach (var plan in slices["building"]?["plans"]?.AsArray() ?? [])
-                    if (plan!["place"] is { } place && place["layer"]?.GetValue<string>() == "machine" && place["kind"]?.GetValue<string>() == "workbench")
-                        plan["cell"] = plan["cell"]!.GetValue<int>() - up;
+                    if (plan!["place"] is { } place && place["layer"]?.GetValue<string>() == "machine")
+                        plan["cell"] = plan["cell"]!.GetValue<int>() - Up(place["kind"]?.GetValue<string>());
             }
             return root;
         },

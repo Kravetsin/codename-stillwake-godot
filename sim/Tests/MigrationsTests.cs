@@ -148,20 +148,20 @@ public class MigrationsTests
     }
 
     [Fact]
-    public void StandsAWorkbenchBuiltOrPlannedFiveCellsTallOnTheFloorItStoodOn()
+    public void StandsAWorkbenchAndAnArcBenchBuiltOrPlannedAsTallAsTheirPicturesOnTheFloorTheyStoodOn()
     {
-        // A format-49 bench two cells tall at row 6, a planned one at row 16, a crate left where it was; on a surface too.
+        // Format-49 benches two cells tall at row 6, planned ones at row 16, a crate left where it was; on a surface too.
         static JsonObject Slices() => JsonNode.Parse(
             """
-            {"grid":{"width":10,"machines":[{"id":1,"kind":"workbench","cell":62},{"id":2,"kind":"crate","cell":66}]},
-             "building":{"plans":[{"id":1,"cell":162,"place":{"layer":"machine","kind":"workbench"}},{"id":2,"cell":170,"place":{"layer":"machine","kind":"crate"}}]}}
+            {"grid":{"width":10,"machines":[{"id":1,"kind":"workbench","cell":62},{"id":2,"kind":"crate","cell":66},{"id":3,"kind":"arcBench","cell":64}]},
+             "building":{"plans":[{"id":1,"cell":162,"place":{"layer":"machine","kind":"workbench"}},{"id":2,"cell":170,"place":{"layer":"machine","kind":"crate"}},{"id":3,"cell":164,"place":{"layer":"machine","kind":"arcBench"}},{"id":4,"cell":166,"clear":"machine"}]}}
             """)!.AsObject();
         var old = new JsonObject { ["slices"] = Slices(), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }) };
         var upgraded = Migrations.Steps[49 - Migrations.Oldest](old);
         foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
         {
-            Assert.Equal([32, 66], slices["grid"]!["machines"]!.AsArray().Select(m => m!["cell"]!.GetValue<int>()));
-            Assert.Equal([132, 170], slices["building"]!["plans"]!.AsArray().Select(p => p!["cell"]!.GetValue<int>()));
+            Assert.Equal([32, 66, 44], slices["grid"]!["machines"]!.AsArray().Select(m => m!["cell"]!.GetValue<int>()));
+            Assert.Equal([132, 170, 144, 166], slices["building"]!["plans"]!.AsArray().Select(p => p!["cell"]!.GetValue<int>()));
         }
     }
 

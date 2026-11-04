@@ -228,7 +228,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
 | [driver-icons](2026-11-04-driver-icons.md) | Tool icons from large pictures; no square over a whole thing | accepted |  |
 | [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
-| [footprint-is-the-picture](2026-11-04-footprint-is-the-picture.md) | The workbench's footprint is its whole picture | accepted |  |
+| [footprint-is-the-picture](2026-11-04-footprint-is-the-picture.md) | A bench's footprint is its whole picture | accepted |  |
 | [hero-gait](2026-11-04-hero-gait.md) | The hero's gait | accepted |  |
 | [hold-to-fire](2026-11-04-hold-to-fire.md) | Hold to fire | accepted |  |
 | [key-binds](2026-11-04-key-binds.md) | Key binds | accepted |  |

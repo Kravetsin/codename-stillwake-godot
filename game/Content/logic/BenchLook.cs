@@ -5,7 +5,7 @@ namespace Stillwake.Game;
 /// <summary>
 /// How the arc bench looks (0099), the user's "vise" (drawn by <c>tools/anime-art</c>): a ship's bench, copper vise
 /// jaws on it with a chip of a sky shard set in the fixed jaw. Its picture is four cells across and four tall, its footprint
-/// the bottom two rows, the vise standing up out of it (<c>ShipTiles.RiseOf</c>). A tool on it is drawn as the hand
+/// all of it (2026-11-04-footprint-is-the-picture). A tool on it is drawn as the hand
 /// draws it, its modules on it (<see cref="HeldParts"/>), clamped where it says (<see cref="HeldLook.Clamp"/>), the jaws laid
 /// over it; so any tool sits on it with no picture drawn for it. In pixels of its picture from its top-left.
 /// </summary>
