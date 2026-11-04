@@ -88,6 +88,43 @@ public sealed record HeldLook(
         "res://art/hero_railgun.png", (12, 10.5), 0, (17, 6.5), (38, 6.5), Aimed: true, Elbow: 0.4, Clamp: (21.5, 6.5),
         Charged: "res://art/hero_railgun_charged.png", Arcs: [(17, 4, 24, 8), (24, 4, 31, 8), (31, 4, 38, 8)]);
 
+    /// <summary>
+    /// The angle grinder, <c>art/hero_grinder.png</c> (salvage-tools), the user's pick, «Заводская»: a long motor tube in worn ochre
+    /// enamel, a cast head, the wheel under a half guard; held as the drill is, by its pistol grip, aimed, the elbow a little bent; the
+    /// edge the wheel's radius ahead, from its hub to its rim. Running, the disc turns through three frames and the lamp on its end cap
+    /// lights. Its coil (0098) round the motor tube's vents, behind the switch. Clamped by the tube before its head.
+    /// </summary>
+    public static readonly HeldLook Grinder = new(
+        "res://art/hero_grinder.png", (5.2, 9.8), 0, (22.6, 7.2), (27.2, 7.2), Aimed: true,
+        Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1.5, 4.5),
+        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7));
+
+    /// <summary>
+    /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools), the user's pick, «Кольца»: a short dark body banded in brass,
+    /// a copper nozzle, the jet's cage of three copper coils on a rail; held as the drill is, aimed, the elbow a little bent; the edge the
+    /// jet's run through the coils, from the nozzle to the last. Running, the coils' inner faces, its lamp and charge lights are lit
+    /// (<c>hero_plasmaCutter_on.png</c>). No module fits it; its clamp the rail where it leaves the body.
+    /// </summary>
+    public static readonly HeldLook PlasmaCutter = new(
+        "res://art/hero_plasmaCutter.png", (4.6, 8), 0, (13.8, 4.4), (27.1, 4.4), Aimed: true,
+        Spin: ["res://art/hero_plasmaCutter_on.png"], Elbow: 0.4, Clamp: (14, 8.3));
+
+    /// <summary>
+    /// The spear, <c>art/hero_spear.png</c> (salvage-tools), the user's pick, «Труба и лист»: a hull plate's leaf driven into a flattened
+    /// tube, bound in copper, its grip in tape; held along the forearm, thrust; the edge the leaf's point. Its coil (0098) on the sleeve
+    /// riveted round the shaft. Clamped by the bare shaft before the sleeve.
+    /// </summary>
+    public static readonly HeldLook Spear = new(
+        "res://art/hero_spear.png", (10.5, 5), 0, (42, 5), (47.8, 5), Mounts: [new ToolMount("coil", 23, 4, (22, 3.5, 30, 6.5))], Clamp: (17.5, 5));
+
+    /// <summary>
+    /// The sledgehammer, <c>art/hero_sledgehammer.png</c> (salvage-tools), the user's pick, «Пакет плит»: five cut plates bolted into a
+    /// block on a plank, a tube ferrule where they meet; gripped on the taped plank, held square to the forearm as the axe is; the edge
+    /// the block's striking face along its bottom. Clamped by the plank.
+    /// </summary>
+    public static readonly HeldLook Sledgehammer = new(
+        "res://art/hero_sledgehammer.png", (6.6, 8), System.Math.PI / 2, (21.4, 15), (31.4, 15), Clamp: (14.5, 8));
+
     /// <summary>How long an item that spins takes to spin up to full speed and to wind down, in milliseconds: its picture and its motor's sound alike.</summary>
     public const double SpinUpMs = 120, SpinDownMs = 700;
 
@@ -103,6 +140,8 @@ public sealed record HeldLook(
     /// <summary>How <paramref name="item"/> looks in the hand, plain: its modules are laid over it (<see cref="HeldParts"/>, 0098); none for an item held as no picture.</summary>
     public static HeldLook? Of(string? item) =>
         item == Content.Weapons.Axe.Item ? FireAxe : item == Content.Harpoon.Item ? Harpoon : item == Content.Weapons.Drill.Item ? Drill
+        : item == Content.Weapons.Grinder.Item ? Grinder : item == Content.Weapons.PlasmaCutter.Item ? PlasmaCutter
+        : item == Content.Weapons.Spear.Item ? Spear : item == Content.Weapons.Sledgehammer.Item ? Sledgehammer
         : item == Content.Shots.Nailer.Item ? Nailer : item == Content.Shots.Railgun.Item ? Railgun
         : item == Content.Screwdrivers.PowerDriver.Item ? PowerDriver : Content.Screwdrivers.Of(item) != null ? Screwdriver : null;
 
