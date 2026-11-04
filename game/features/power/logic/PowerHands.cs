@@ -141,7 +141,7 @@ public sealed class PowerHands
             if (Math.Sqrt((at.X - middle.X) * (at.X - middle.X) + (at.Y - middle.Y) * (at.Y - middle.Y)) > Content.Power.MaxSpan)
             {
                 int start = from0;
-                var support = Wiring.SupportOnWay(middle, at, width,
+                var support = WayBack.Nearest(middle, at, width,
                     c => power.NodeAt(c) is int n && n != start && power.LayProblem(peer, start, c) == null);
                 if (support is int s && power.NodeAt(s) is int node)
                 {

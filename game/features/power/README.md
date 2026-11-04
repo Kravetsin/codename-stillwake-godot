@@ -9,7 +9,7 @@ Cables hanging between their nodes and their overlay, shown while the plan is wi
 
 | File            | Holds                                                                                  | Godot |
 | --------------- | -------------------------------------------------------------------------------------- | ----- |
-| `logic/Wiring.cs` | what a press takes hold of (`GripAt`), supports on the way (`SupportOnWay`), `LightOf` (`wiring.ts`) | no    |
+| `logic/Wiring.cs` | what a press takes hold of (`GripAt`), `LightOf`; supports on the way are `game/shared/logic/WayBack.cs` (`wiring.ts`) | no    |
 | `logic/CableRopes.cs` | every cable as ropes, a rope per piece, hanging aboard and floating outside; carried ends, landings and cables just laid (`ropes.ts`) | no    |
 | `logic/PowerHands.cs` | the hands while the plan is wiring (0108), its menu's one card the cable (0110; peg moving stays on Ctrl+drag): the left lays and leads on through supports, with Ctrl carries a peg or plug, a right press near a cable cuts (`mode.ts`) | no    |
 | `PowerView.cs`  | the cables, pegs, plugs, grommets and bolts; the overlay, its colours and the ghost    | yes   |

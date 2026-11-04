@@ -1,6 +1,7 @@
 using Stillwake.Content;
 using Stillwake.Game.Features.Power;
 using Stillwake.Game.Render;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Xunit;
 
@@ -317,9 +318,9 @@ public class WiringTests
     {
         // Along row 0 from column 0 to 9; columns 3 and 6 hold.
         bool Holds(int cell) => cell is 3 or 6;
-        Assert.Equal(6, Wiring.SupportOnWay((0.5, 0.5), (9.5, 0.5), 10, Holds));
-        Assert.Equal(3, Wiring.SupportOnWay((0.5, 0.5), (5.5, 0.5), 10, Holds));
-        Assert.Null(Wiring.SupportOnWay((0.5, 0.5), (2.5, 0.5), 10, Holds));
+        Assert.Equal(6, WayBack.Nearest((0.5, 0.5), (9.5, 0.5), 10, Holds));
+        Assert.Equal(3, WayBack.Nearest((0.5, 0.5), (5.5, 0.5), 10, Holds));
+        Assert.Null(WayBack.Nearest((0.5, 0.5), (2.5, 0.5), 10, Holds));
     }
 
     [Fact]

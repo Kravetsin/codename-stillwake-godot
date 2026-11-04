@@ -28,8 +28,6 @@ public static class Wiring
 {
     /// <summary>How near a press must be to a cable's end at a machine, in cells, to take that end.</summary>
     private const double EndReach = 1;
-    /// <summary>How finely the way back from the pointer is walked for a support, in cells.</summary>
-    private const double Step = 0.25;
 
     /// <summary>A node a cable fits, one too far for a cable to reach, or one refused for another reason.</summary>
     public static Light LightOf(string? problem) => problem switch
@@ -62,24 +60,5 @@ public static class Wiring
         if (node is not int n) return null;
         bool cabled = lines.Any(l => l.A == n || l.B == n);
         return cabled && !isMachine(n) ? new SupportGrip(n) : new LayGrip(n);
-    }
-
-    /// <summary>
-    /// Where a cable led from <paramref name="from"/> toward <paramref name="to"/>, past what one cable
-    /// reaches, is held: the cell nearest <paramref name="to"/> on the straight way back to
-    /// <paramref name="from"/> that <paramref name="holds"/>, a node a cable from there may be laid to.
-    /// Nothing when no cell on the way does.
-    /// </summary>
-    public static int? SupportOnWay((double X, double Y) from, (double X, double Y) to, int width, Func<int, bool> holds)
-    {
-        double length = Math.Sqrt((to.X - from.X) * (to.X - from.X) + (to.Y - from.Y) * (to.Y - from.Y));
-        int steps = (int)Math.Ceiling(length / Step);
-        for (int i = 0; i < steps; i++)
-        {
-            double t = 1 - (double)i / steps;
-            int cell = (int)Math.Floor(from.Y + (to.Y - from.Y) * t) * width + (int)Math.Floor(from.X + (to.X - from.X) * t);
-            if (holds(cell)) return cell;
-        }
-        return null;
     }
 }
