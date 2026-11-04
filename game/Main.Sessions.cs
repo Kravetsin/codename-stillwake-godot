@@ -81,6 +81,8 @@ public partial class Main
                 // Nobody can join a session the relay never opened: the world plays on alone.
                 bool opened = _together.Mode == TogetherMode.Hosting;
                 _together = TogetherState.Alone with { Problem = why, PasswordRefused = !opened };
+                // The title is gone by now: the password is forgotten here, so the next Host asks for it again.
+                if (!opened) TogetherPage.ForgetPassword();
                 _role = "alone";
                 _poll = () => { };
             };
@@ -213,34 +215,21 @@ public partial class Main
             .Select(w => w.Colour >= 0 && w.Colour < Suits.All.Length ? Suits.All[w.Colour] : Suits.All[0]).ToList();
     }
 
-    public void HostTogether(string password)
+    public void HostTogether(string password, string? world, string name)
     {
-        // From the title: the world picked in Worlds, else Continue's, else a new one.
-        if (_session == null)
-        {
-            if ((_title?.Worlds.Playable ?? _index.Continue()?.Id) is string id) Play(id);
-            else NewWorld("");
-            if (_session == null) return;
-        }
-        if (_role != "alone" || _together.Mode != TogetherMode.Alone) return;
+        // From the title only: the world picked in Play together's own Worlds panel, or a new one.
+        if (_session != null || _together.Mode != TogetherMode.Alone) return;
+        if (world != null) Play(world);
+        else NewWorld(name);
+        if (_session == null) return;
         Serve(Codes.New(Random.Shared).ToLowerInvariant(), (Relay()?.Url ?? RelayFrames.PlaytestUrl, password));
+        _keyCard?.Open();
     }
 
     public void JoinTogether(string code, string password)
     {
         if (_role != "alone" || _together.Mode != TogetherMode.Alone) return;
         Join(code.ToLowerInvariant(), null, (Relay()?.Url ?? RelayFrames.PlaytestUrl, password));
-    }
-
-    public void StopTogether()
-    {
-        if (_role != "host") return;
-        _stopLink?.Invoke();
-        _stopLink = null;
-        _poll = () => { };
-        _role = "alone";
-        _net = null;
-        _together = TogetherState.Alone;
     }
 
     /// <summary>A world from the host's save: a joiner's first, or a resync's.</summary>
@@ -309,7 +298,7 @@ public partial class Main
         if (_role != "guest") SaveNow();
     }
 
-    /// <summary>The menu's foot: the world, when it was saved, and the code while hosting.</summary>
+    /// <summary>The menu's foot: the world, when it was saved, and why hosting stopped; the code has its own box above.</summary>
     private string Foot()
     {
         var parts = new List<string>();
@@ -320,8 +309,7 @@ public partial class Main
             int minutes = (int)(DateTime.Now - at).TotalMinutes;
             parts.Add(minutes < 1 ? T("menu.savedNow") : T("menu.savedAgo", ("minutes", minutes)));
         }
-        if (_together.Mode == TogetherMode.Hosting) parts.Add(T("menu.hostingCode", ("code", _together.Code ?? "")));
-        else if (_together.Problem != null && _role != "guest") parts.Add(_together.Problem);
+        if (_together.Mode == TogetherMode.Alone && _together.Problem != null && _role != "guest") parts.Add(_together.Problem);
         return string.Join(" · ", parts);
     }
 
@@ -329,12 +317,16 @@ public partial class Main
     private void ShowTitle()
     {
         AdoptOldSave();
-        var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld, ShotOf,
-            busy: () => _together.Mode is TogetherMode.Joining or TogetherMode.Opening);
-        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, new SettingsRows(_hands.Ui), Quit,
+        bool Busy() => _together.Mode is TogetherMode.Joining or TogetherMode.Opening;
+        var worlds = new WorldsPanel(_index.List, Play, id => _index.Delete(id), NewWorld, ShotOf, Busy);
+        WorldsPanel HostWorlds(Action<string> host, Action<string> create) =>
+            new(_index.List, host, id => _index.Delete(id), create, ShotOf, Busy, heading: "menu.hostPick", playKey: "menu.hostPlay");
+        AddChild(_title = new TitleScreen(_index.Continue, Continue, worlds, this, HostWorlds, new SettingsRows(_hands.Ui), Quit,
             Updates.Of(Build).ToString(), () => _updater.Available?.Tag, _updater.Update, () => _updater.Status,
             testbed: OS.IsDebugBuild() ? PlayTestbed : null));
         if (_dev.Given("--title") is { Length: > 0 } page) _title.Open(page);
+        // A recording's: Host pressed, its worlds shown, or the password asked when none is kept.
+        if (Has("--host-pick")) _title.Together.Host();
         if (_next is { } said) _title.Say(said);
         _next = null;
     }

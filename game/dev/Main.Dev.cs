@@ -91,6 +91,18 @@ public partial class Main
             Add = node => AddChild(node),
         };
         foreach (var scenario in _scenarios) scenario.Attach(context);
+        // The code a host gives out, made up and no relay reached; =menu shows it in the Esc menu instead of the card.
+        if (_dev.Given("--key-card") is { } shown)
+        {
+            _together = new TogetherState(TogetherMode.Hosting, "KQ7M", [], null, false);
+            if (shown != "menu") _keyCard!.Open();
+            else
+                GetTree().CreateTimer(1).Timeout += () =>
+                {
+                    foreach (bool pressed in new[] { true, false })
+                        Input.ParseInputEvent(new InputEventKey { Keycode = Key.Escape, PhysicalKeycode = Key.Escape, Pressed = pressed });
+                };
+        }
         if (Has("--fx-bench")) AddChild(new Dev.FxBench());
         if (Has("--frames") || Has("--frames=vsync")) AddChild(_frameLog = new Dev.FrameLog(vsync: Has("--frames=vsync")));
         if (Has("--allocs")) _allocs = new Dev.AllocationSampler();

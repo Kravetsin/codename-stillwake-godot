@@ -24,6 +24,7 @@ public partial class WorldsPanel : VBoxContainer
     private readonly Action<string> _play, _delete, _create;
     private readonly Func<string, Texture2D?> _shot;
     private readonly Func<bool> _busy;
+    private readonly string _playKey;
     private readonly VBoxContainer _rows;
     private readonly Label _status;
     private IReadOnlyList<WorldEntry> _worlds = [];
@@ -32,21 +33,20 @@ public partial class WorldsPanel : VBoxContainer
     /// <summary>The world picked, if any, playable or not: what Delete takes.</summary>
     public string? Picked { get; private set; }
 
-    /// <summary>The world picked when it can be played: what Play takes and Play together hosts.</summary>
-    public string? Playable => WorldPick.Playable(_worlds, Picked);
-
     /// <param name="list">The worlds on disk, read afresh.</param>
     /// <param name="play">Plays a world.</param>
     /// <param name="delete">Deletes a world.</param>
     /// <param name="create">Makes a world of the name given and plays it.</param>
     /// <param name="shot">A world's ship as last saved, or none.</param>
     /// <param name="busy">Whether joining a friend is under way: nothing is played meanwhile.</param>
+    /// <param name="heading">The panel's heading, an i18n key.</param>
+    /// <param name="playKey">What a playable card's Play says, an i18n key: Host in Play together.</param>
     public WorldsPanel(Func<IReadOnlyList<WorldEntry>> list, Action<string> play, Action<string> delete, Action<string> create,
-        Func<string, Texture2D?> shot, Func<bool> busy)
+        Func<string, Texture2D?> shot, Func<bool> busy, string heading = "title.worlds", string playKey = "worlds.playNone")
     {
-        (_list, _play, _delete, _create, _shot, _busy) = (list, play, delete, create, shot, busy);
+        (_list, _play, _delete, _create, _shot, _busy, _playKey) = (list, play, delete, create, shot, busy, playKey);
         Style.Gap(this, 10);
-        AddChild(Line(T("title.worlds"), Style.Slate300, 16));
+        AddChild(Line(T(heading), Style.Slate300, 16));
         var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(440, 380), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         scroll.AddChild(_rows = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }, 6));
         AddChild(scroll);
@@ -203,7 +203,7 @@ public partial class WorldsPanel : VBoxContainer
         }
         if (playable)
         {
-            var play = Style.Button(T("worlds.playNone"), () =>
+            var play = Style.Button(T(_playKey), () =>
             {
                 if (!_busy()) _play(world.Id);
             }, size: 13, padX: 18, padY: 5);
