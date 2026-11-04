@@ -240,16 +240,11 @@ public static class Poses
         var landed = Footed(moment);
         if (floor && moment.Landing is not > 0 && GaitOf(pose, hero, moment) is var (cycle, gait, moving) && gait > 0)
         {
-            // The body rides as low as the lower of the two steps stands, less the knees' give, and rises between them.
+            // The body rides lowest, less the knees' give, as the leg come down stands upright, and rises between the steps.
             double low = Math.Min(Footed(moment with { Cycle = MidStance }).Lift, Footed(moment with { Cycle = MidStance + 0.5 }).Lift) - Feel.Run.Give;
             var ridden = Riding(landed, low + Feel.Run.Bounce * RideOf(cycle));
             // Into a run the knees bend in as it does, never at once; a boot the blend would put through the floor lifts the body.
-            if (gait * moving < 1)
-            {
-                var mixed = Mix(landed, ridden, gait * moving);
-                landed = mixed with { Lift = Math.Max(mixed.Lift, Math.Max(SoleOf(mixed.FrontLeg, mixed.FrontFoot, Rig.HipApart, mixed.Tilt), SoleOf(mixed.BackLeg, mixed.BackFoot, -Rig.HipApart, mixed.Tilt))) };
-            }
-            else landed = ridden;
+            landed = gait * moving < 1 ? Unsunk(Mix(landed, ridden, gait * moving)) : ridden;
         }
         if (moment.Plan is not double look || !HoldsIn(pose)) return landed;
         var front = PlanHand(look);
@@ -276,6 +271,15 @@ public static class Poses
             Lift = Math.Max(SoleOf(feet.FrontLeg, feet.FrontFoot, Rig.HipApart, feet.Tilt), SoleOf(feet.BackLeg, feet.BackFoot, -Rig.HipApart, feet.Tilt)),
         };
     }
+
+    /// <summary>
+    /// The limbs lifted as far as a boot would go through the floor, never lowered: the figure's settling limbs on the floor
+    /// (2026-11-04-hero-gait). Set on their lower sole instead, legs lagging a run jolted the body a pixel or two a frame.
+    /// </summary>
+    public static Limbs Unsunk(Limbs limbs) => limbs with
+    {
+        Lift = Math.Max(limbs.Lift, Math.Max(SoleOf(limbs.FrontLeg, limbs.FrontFoot, Rig.HipApart, limbs.Tilt), SoleOf(limbs.BackLeg, limbs.BackFoot, -Rig.HipApart, limbs.Tilt))),
+    };
 
     /// <summary>Each boot turned to lie flat as far as its sole, lying flat, is near a floor <paramref name="floor"/> under the feet' line (<see cref="SoleOf"/>).</summary>
     private static Limbs FeetOver(Limbs limbs, double floor)
@@ -643,10 +647,16 @@ public static class Poses
     private const double MidStance = (0.4 - 0.06 - Feel.Run.Lean) * Stance / 0.95 - RunLead + 1;
 
     /// <summary>
-    /// How high the running body rides <paramref name="cycle"/> strides in (2026-11-04-hero-gait), from 0 at the middle of each
-    /// step to 1 halfway between them, smoothly: a rise drawn from the feet alone jumped a pixel or two a frame.
+    /// How high the running body rides <paramref name="cycle"/> strides in (2026-11-04-hero-gait), from 0 to 1 and smoothly: lowest
+    /// as the leg come down stands upright, the knee taking the weight; up over <c>Run.Rise</c> of the step as it pushes off,
+    /// highest as it leaves the floor; down the rest. Rising and falling alike, it bobbed like a ball.
     /// </summary>
-    public static double RideOf(double cycle) => (1 - Math.Cos(4 * Math.PI * (cycle - MidStance))) / 2;
+    public static double RideOf(double cycle)
+    {
+        double h = (cycle - MidStance) * 2, step = h - Math.Floor(h);
+        double u = step < Feel.Run.Rise ? step / Feel.Run.Rise / 2 : 0.5 + (step - Feel.Run.Rise) / (1 - Feel.Run.Rise) / 2;
+        return (1 - Math.Cos(2 * Math.PI * u)) / 2;
+    }
 
     /// <summary>
     /// The body at <paramref name="lift"/>: a leg whose boot would go through the floor there bends at the knee until it stands

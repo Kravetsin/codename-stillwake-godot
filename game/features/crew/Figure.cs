@@ -900,13 +900,8 @@ public partial class Figure : Node2D
             to.Lying,
             SettleAngle(from.FrontFoot, to.FrontFoot, elapsedMs, within),
             SettleAngle(from.BackFoot, to.BackFoot, elapsedMs, within));
-        if (walking && walked)
-        {
-            // On the floor the limbs stand on it as they are drawn, settling or not: the boots flat, none sunk in
-            // (2026-11-04-hero-gait); a run's flight over that.
-            var grounded = Poses.Grounded(shown);
-            shown = grounded with { Lift = grounded.Lift + to.Lift - Poses.Grounded(to).Lift };
-        }
+        // On the floor no boot goes through it as the limbs settle (2026-11-04-hero-gait).
+        if (walking) shown = Poses.Unsunk(shown);
         _shown = shown;
         // The body placed first: what the hands reach for is found in its own frame, turned and lifted.
         _body.Rotation = (float)shown.Tilt;

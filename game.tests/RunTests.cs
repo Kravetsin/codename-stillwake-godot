@@ -25,6 +25,15 @@ public class RunTests
     }
 
     [Fact]
+    public void ARunSinksQuicklyOntoTheLegComingDownAndRisesSlowlyPushingOff()
+    {
+        // Rising and falling alike, the body bobbed like a ball; a run's weight comes down fast and is pushed up slowly.
+        var lifts = Enumerable.Range(0, 201).Select(k => LimbsOf(Pose.Run, Running, At(Stride.Run * k / 200)).Lift).ToList();
+        int rising = Enumerable.Range(0, 200).Count(k => lifts[k + 1] > lifts[k]);
+        Assert.InRange(rising / 200.0, HeroMotion.Run.Rise - 0.05, HeroMotion.Run.Rise + 0.05);
+    }
+
+    [Fact]
     public void ARunNeverCrouchesTheLegOnTheFloorNearlyStraight()
     {
         // Held to a smooth ride, the knee on the floor once folded over a radian, a run in a crouch.

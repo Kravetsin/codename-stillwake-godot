@@ -26,7 +26,7 @@ public static class HeroMotion
     /// </summary>
     public static class Run
     {
-        public const double Lean = 0.3, Bounce = 1, Give = 0.2, Pump = 0.65, HeadSteady = 0.5, BackLean = 0.15;
+        public const double Lean = 0.3, Bounce = 0.6, Rise = 0.6, Give = 0.2, Pump = 0.65, HeadSteady = 0.5, BackLean = 0.15;
     }
 
     /// <summary>
