@@ -77,8 +77,11 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// <summary>Derived: the pipes' version the vents were last found at; a vent counts only while piped.</summary>
     private int? _ventsPipes;
 
-    /// <summary>Derived: each room's leak by room id, found for the rooms' version <see cref="_leaksFor"/>; null for none yet.</summary>
-    private readonly Dictionary<int, int> _leaks = new();
+    /// <summary>
+    /// Derived: what each cell of a room leaks while it holds air, its back wall and the hull cells given to it, found for the
+    /// rooms' version <see cref="_leaksFor"/>; null for none yet.
+    /// </summary>
+    private int[] _cellLeak = [];
     private int? _leaksFor;
 
     public override string Id => "atmosphere";
@@ -259,6 +262,26 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         foreach (var (id, cells) in Order.Rooms(roomOf, _grid.Width, _rooms.All, vents, Seen())) State.Orders[id] = cells;
         State.OrderedRooms = roomOf.ToArray();
         State.OrderedVents = vents;
+        State.VentOrders = VentOrders(vents, new(), null);
+    }
+
+    /// <summary>
+    /// The fill order of each of <paramref name="vents"/> standing in a room: found again for those in the
+    /// <paramref name="changed"/> rooms (ascending ids; null for all) or not kept in <paramref name="kept"/>, else kept.
+    /// </summary>
+    private Dictionary<int, int[]> VentOrders(List<int> vents, Dictionary<int, int[]> kept, List<int>? changed)
+    {
+        var roomOf = _rooms.RoomOfCells;
+        var orders = new Dictionary<int, int[]>();
+        foreach (int cell in vents)
+        {
+            int room = roomOf[cell];
+            if (room < 0 || orders.ContainsKey(cell) || _rooms.RoomById(room) is not { } r) continue;
+            orders[cell] = changed != null && changed.BinarySearch(room) < 0 && kept.TryGetValue(cell, out var order)
+                ? order
+                : Order.Vent(roomOf, _grid.Width, room, r.Volume, cell, Seen());
+        }
+        return orders;
     }
 
     /// <summary>
@@ -281,6 +304,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             State.Orders[id] = cells;
             foreach (int cell in cells) State.OrderedRooms[cell] = roomOf[cell];
         }
+        State.VentOrders = VentOrders(vents, State.VentOrders, changed);
         var stranded = new List<int>();
         foreach (int cell in held)
         {

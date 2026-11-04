@@ -388,7 +388,7 @@ public class AtmosphereReadingTests
         w.GiveItems(0, ("canister", 1)).Run(2);
         int aired = w.M.Atmosphere.AiredCells.Count;
         var room = w.M.Atmosphere.RoomsAir().Single(a => a.Room == w.M.Rooms.RoomAt(cell));
-        int clock = w.Air().Clock;
+        int clock = w.Air().Clock, part = w.Owed(room.Room);
 
         var r = new Registry();
         var loaded = World.Load(w.World.Save(), [.. r.All, new Builder(r), new Breather(r.Atmosphere)]);
@@ -398,7 +398,7 @@ public class AtmosphereReadingTests
 
         // The breath takes 5 cells from the far edge; the vaporizer makes a unit and the fill beat airs a cell with it; the
         // leak, due more often over 8 px cells (0104), takes what falls due from the far edge.
-        Assert.Equal(aired - 5 + 1 - AirTesting.Leaked(room.Leak, clock, clock + 1), w.M.Atmosphere.AiredCells.Count);
+        Assert.Equal(aired - 5 + 1 - AirTesting.Leaked(room.Leak, clock, clock + 1, part), w.M.Atmosphere.AiredCells.Count);
         Assert.Equal(Air.Canister - 1, w.M.Atmosphere.OxygenIn(tank));
         Assert.Equal(r.Atmosphere.AiredCells.Count, w.M.Atmosphere.AiredCells.Count);
         Assert.Equal(loaded.Hash(), w.World.Hash());

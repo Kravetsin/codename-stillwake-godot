@@ -10,7 +10,7 @@ public class SnapClockTests
     [Fact]
     public void A_world_started_late_is_not_snapped_on_its_first_frame()
     {
-        // The testbed is aired before play (Testbed.AirTicks), so its first frame is some ten seconds in.
+        // The testbed is aired before play (Testbed.AirTicks), so its first frame is some thirty seconds in.
         var clock = new SnapClock(6);
         int first = Testbed.AirTicks + 2;
         Assert.False(clock.Due(first));

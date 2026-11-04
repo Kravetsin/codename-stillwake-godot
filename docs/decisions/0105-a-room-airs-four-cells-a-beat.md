@@ -1,6 +1,7 @@
 # 0105 — A room airs four cells a beat
 
-- Status: accepted; supersedes [0005](0005-terraria-scale.md)'s "a room fills one cell a tick" and its rejection of filling several cells a beat
+- Status: accepted; supersedes [0005](0005-terraria-scale.md)'s "a room fills one cell a tick" and its rejection of filling several cells a beat; its first vent
+  paying superseded by [air from vents](2026-11-04-air-from-vents.md): every working vent fills, from its own network
 - Date: 2026-10-22
 
 ## Context

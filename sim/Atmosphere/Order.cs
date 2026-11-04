@@ -43,6 +43,19 @@ internal static class Order
     }
 
     /// <summary>
+    /// The fill order of the vent at <paramref name="cell"/> (2026-11-04-air-from-vents): its room's <paramref name="volume"/>
+    /// cells breadth first from that vent alone, neighbours up, left, right, down. <paramref name="seen"/> as for <see cref="Rooms"/>.
+    /// </summary>
+    public static int[] Vent(ReadOnlySpan<int> roomOf, int width, int room, int volume, int cell, bool[] seen)
+    {
+        var order = new int[volume];
+        int tail = Spread(roomOf, width, room, [cell], order, seen);
+        for (int i = 0; i < tail; i++) seen[order[i]] = false;
+        if (tail != volume) throw new InvalidOperationException($"Room {room} is not connected.");
+        return order;
+    }
+
+    /// <summary>
     /// The cells of <paramref name="room"/> breadth first from <paramref name="from"/>, neighbours up,
     /// left, right, down, into <paramref name="order"/>, each marked in <paramref name="seen"/>; how many.
     /// </summary>

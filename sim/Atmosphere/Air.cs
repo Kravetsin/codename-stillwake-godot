@@ -31,8 +31,12 @@ public sealed partial class AtmosphereModule
         public readonly Dictionary<int, int> Power = new();
         /// <summary>The air sources that take no liquid in, the pod: they make air from nothing (2026-10-31-the-scoop). Only looked up.</summary>
         public readonly HashSet<int> Endless = [];
+        /// <summary>Each vent's cell with each network one of its ports stands on, in machine id order then port order, by room.</summary>
+        public readonly Dictionary<int, List<(int Cell, int Network)>> FillsIn = new();
         /// <summary>How many cells of each room are aired, by room id: rooms are named by cells.</summary>
         public int[] AiredIn = [];
+        /// <summary>What each room's aired cells leak every <c>Air.LeakEvery</c> ticks, by room id: kept with <see cref="AiredIn"/>.</summary>
+        public int[] LeakIn = [];
         /// <summary>Per cell, whether it holds air: kept in step with every change of the aired cells.</summary>
         public bool[] AiredAt = [];
         /// <summary>Each tank holding oxygen, by id: the very entries of the slice's tanks.</summary>
@@ -61,6 +65,10 @@ public sealed partial class AtmosphereModule
     /// <summary>The survey the generators' power and the tanks holding oxygen were last read into; null, to read them again.</summary>
     private Survey? _readFor;
 
+    /// <summary>The list the next tick's owed parts are written into, the last tick's once they are read; and the dues found.</summary>
+    private List<LeakOwed> _owedSpare = [];
+    private readonly List<(Room Room, int Due)> _dues = [];
+
     /// <summary>
     /// The survey, gathered again only when the pipes or the rooms are new; the generators' power and the
     /// tanks holding oxygen read again only after they may have changed: a canister loaded, tanks taken
@@ -68,6 +76,12 @@ public sealed partial class AtmosphereModule
     /// </summary>
     private Survey Gather()
     {
+        // The cells' leaks first: the survey counts each room's from them.
+        if (_leaksFor != _rooms.Version)
+        {
+            FindLeaks();
+            _survey = null;
+        }
         if (_survey == null || _survey.Pipes != _pipes.Version || _survey.Rooms != _rooms.Version) _survey = GatherAll();
         var s = _survey;
         // Tanks emptied since are still held, at none: they give nothing, as if they were gone.
@@ -132,15 +146,22 @@ public sealed partial class AtmosphereModule
             }
         }
         foreach (var (cell, network) in s.Vents)
-            if (_rooms.RoomAt(cell) is int place) AddTo(s.VentsIn, place, network);
+            if (_rooms.RoomAt(cell) is int place)
+            {
+                AddTo(s.VentsIn, place, network);
+                AddTo(s.FillsIn, place, (cell, network));
+            }
         var roomOf = _rooms.RoomOfCells;
         s.AiredIn = new int[roomOf.Length];
+        s.LeakIn = new int[roomOf.Length];
         s.AiredAt = new bool[roomOf.Length];
         foreach (int cell in State.Aired)
         {
             s.AiredAt[cell] = true;
             int room = roomOf[cell];
-            if (room >= 0) s.AiredIn[room] += 1;
+            if (room < 0) continue;
+            s.AiredIn[room] += 1;
+            s.LeakIn[room] += _cellLeak[cell];
         }
         return s;
     }
@@ -151,7 +172,14 @@ public sealed partial class AtmosphereModule
     /// </summary>
     private void KeepAround(List<int> changed, List<Room> rooms, List<(int Room, int[] Cells)> orders, List<int> stranded, int was)
     {
-        var s = _survey != null && _survey.Pipes == _pipes.Version && _survey.Rooms == was ? _survey : null;
+        // The cells' leaks first, for the rooms changed: the survey counts each room's from them.
+        if (_leaksFor == was)
+        {
+            for (int i = 0; i < rooms.Count; i++) LeaksOf(rooms[i], orders[i].Cells);
+            _leaksFor = _rooms.Version;
+        }
+        else _leaksFor = null;
+        var s = _leaksFor != null && _survey != null && _survey.Pipes == _pipes.Version && _survey.Rooms == was ? _survey : null;
         _survey = s;
         if (stranded.Count > 0)
         {
@@ -163,42 +191,56 @@ public sealed partial class AtmosphereModule
             foreach (int id in changed)
             {
                 s.AiredIn[id] = 0;
+                s.LeakIn[id] = 0;
                 s.VentsIn.Remove(id);
+                s.FillsIn.Remove(id);
             }
             foreach (var (id, cells) in orders)
                 foreach (int cell in cells)
-                    if (s.AiredAt[cell]) s.AiredIn[id] += 1;
+                    if (s.AiredAt[cell])
+                    {
+                        s.AiredIn[id] += 1;
+                        s.LeakIn[id] += _cellLeak[cell];
+                    }
             var roomOf = _rooms.RoomOfCells;
             // Space moves with a change beside it: the vents standing in it are gathered again too.
             s.VentsIn.Remove(RoomsModule.Space);
+            s.FillsIn.Remove(RoomsModule.Space);
             foreach (var (cell, network) in s.Vents)
                 if (roomOf[cell] == RoomsModule.Space || (roomOf[cell] >= 0 && changed.BinarySearch(roomOf[cell]) >= 0))
+                {
                     AddTo(s.VentsIn, roomOf[cell], network);
+                    AddTo(s.FillsIn, roomOf[cell], (cell, network));
+                }
             s.Rooms = _rooms.Version;
         }
-        if (_leaksFor == was)
-        {
-            foreach (int id in changed) _leaks.Remove(id);
-            for (int i = 0; i < rooms.Count; i++)
-            {
-                int leak = HullLeak(rooms[i]);
-                foreach (int cell in orders[i].Cells) if (_grid.BackAt(cell) is { } material) leak += material.Leak;
-                _leaks[rooms[i].Id] = leak;
-            }
-            _leaksFor = _rooms.Version;
-        }
-        else _leaksFor = null;
     }
 
-    private static void AddTo(Dictionary<int, List<int>> lists, int key, int value)
+    private static void AddTo<T>(Dictionary<int, List<T>> lists, int key, T value)
     {
         if (lists.TryGetValue(key, out var list)) list.Add(value);
         else lists[key] = [value];
     }
 
     // Spans and arrays, so the few loops over them for each room every tick allocate no enumerator.
-    private static ReadOnlySpan<int> ListAt(Dictionary<int, List<int>> lists, int key) =>
+    private static ReadOnlySpan<T> ListAt<T>(Dictionary<int, List<T>> lists, int key) =>
         lists.TryGetValue(key, out var list) ? CollectionsMarshal.AsSpan(list) : [];
+
+    /// <summary>A cell takes air: the survey's counts for <paramref name="room"/> move with it.</summary>
+    private void AirCell(Survey s, int cell, int room)
+    {
+        s.AiredAt[cell] = true;
+        s.AiredIn[room] += 1;
+        s.LeakIn[room] += _cellLeak[cell];
+    }
+
+    /// <summary>A cell loses its air: the survey's counts for <paramref name="room"/> move with it.</summary>
+    private void EmptyCell(Survey s, int cell, int room)
+    {
+        s.AiredAt[cell] = false;
+        s.AiredIn[room] -= 1;
+        s.LeakIn[room] -= _cellLeak[cell];
+    }
 
     private int[] OrderOf(int room) => State.Orders.TryGetValue(room, out var order) ? order : [];
 
@@ -300,8 +342,7 @@ public sealed partial class AtmosphereModule
         {
             int cell = order[i];
             if (!s.AiredAt[cell]) continue;
-            s.AiredAt[cell] = false;
-            s.AiredIn[room] -= 1;
+            EmptyCell(s, cell, room);
             edits.Removed.Add(cell);
             taken++;
         }
@@ -315,11 +356,7 @@ public sealed partial class AtmosphereModule
         // A cell aired and taken again on one tick stays aired (TypeScript's applyEdits): so in the survey.
         var roomOf = _rooms.RoomOfCells;
         foreach (int cell in edits.Added)
-        {
-            if (s.AiredAt[cell]) continue;
-            s.AiredAt[cell] = true;
-            s.AiredIn[roomOf[cell]] += 1;
-        }
+            if (!s.AiredAt[cell]) AirCell(s, cell, roomOf[cell]);
     }
 
     /// <summary>Emptied tanks leave the list: only tanks holding oxygen are kept.</summary>
@@ -366,7 +403,8 @@ public sealed partial class AtmosphereModule
             // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out.
             int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]);
             var now = Status(s, room);
-            int leak = LeakOf(room);
+            // What its aired cells leak now (2026-11-04-air-from-vents).
+            int leak = s.LeakIn[room.Id];
             // Venting, each vent drains its network, so a network under two vents drains twice.
             long draw = now == RoomStatus.Aired ? leak
                 : now == RoomStatus.Venting ? (long)Content.Air.VentDrain * networks.Length * Content.Air.LeakEvery
@@ -386,51 +424,92 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// The cells of air a room loses every <c>Air.LeakEvery</c> ticks through what its air touches (0020),
-    /// kept per room while the rooms' version stays: a material changes only by being rebuilt.
+    /// What every cell of a room leaks while it holds air (2026-11-04-air-from-vents): kept while the rooms' version stays, as
+    /// a material changes only by being rebuilt.
     /// </summary>
-    private int LeakOf(Room room)
-    {
-        if (_leaksFor != _rooms.Version) FindLeaks();
-        return _leaks.GetValueOrDefault(room.Id);
-    }
-
-    /// <summary>Every room's leak, in one pass over the cells.</summary>
     private void FindLeaks()
     {
         var roomOf = _rooms.RoomOfCells;
-        var behind = new int[roomOf.Length];
-        for (int cell = 0; cell < roomOf.Length; cell++)
-        {
-            int id = roomOf[cell];
-            if (id < 0) continue;
-            var material = _grid.BackAt(cell);
-            if (material != null) behind[id] += material.Leak;
-        }
-        _leaks.Clear();
-        foreach (var r in _rooms.All) _leaks[r.Id] = behind[r.Id] + HullLeak(r);
+        if (_cellLeak.Length != roomOf.Length) _cellLeak = new int[roomOf.Length];
+        // From the rooms as they are, not the orders, which a query may read before they follow a change.
+        for (int cell = 0; cell < roomOf.Length; cell++) _cellLeak[cell] = roomOf[cell] >= 0 ? _grid.BackAt(cell)?.Leak ?? 0 : 0;
+        foreach (var r in _rooms.All) HullLeaks(r);
         _leaksFor = _rooms.Version;
     }
 
-    /// <summary>What a room's hull leaks: each wall by its material, anything else by its own <c>Leak</c> (a doorway's <c>Air.DoorLeak</c>).</summary>
-    private int HullLeak(Room room)
+    /// <summary>
+    /// The leak of each of <paramref name="room"/>'s <paramref name="cells"/> while it holds air, through what that air touches
+    /// (0020): the back wall behind it by its material, and each hull cell given to it (<see cref="HullLeaks"/>).
+    /// </summary>
+    private void LeaksOf(Room room, int[] cells)
     {
-        int leak = 0;
-        foreach (int cell in room.Hull)
-        {
-            var spec = Structures.Of(_grid.StructureAt(cell));
-            leak += spec.Has(Trait.Terrain) ? _grid.WallAt(cell)!.Leak : spec.Leak;
-        }
-        return leak;
+        foreach (int cell in cells) _cellLeak[cell] = _grid.BackAt(cell)?.Leak ?? 0;
+        HullLeaks(room);
     }
 
-    /// <summary>A tick's share of <paramref name="perPeriod"/>, spread over each <c>Air.LeakEvery</c> ticks so a period's total is exact.</summary>
-    internal static int DueAt(int perPeriod, int clock)
+    /// <summary>
+    /// Each of <paramref name="room"/>'s hull cells' leak, a wall by its material, anything else by its own <c>Leak</c> (a
+    /// doorway's <c>Air.DoorLeak</c>), added to the cell of the room it is given to: its first neighbour there, up, left, right,
+    /// down, then the corners the same way. A room counts each of its hull cells once.
+    /// </summary>
+    private void HullLeaks(Room room)
     {
-        int beat = clock % Content.Air.LeakEvery;
-        // Neither is negative, so division rounds down.
-        long DueBy(long ticks) => perPeriod * ticks / Content.Air.LeakEvery;
-        return (int)(DueBy(beat + 1) - DueBy(beat));
+        var roomOf = _rooms.RoomOfCells;
+        int width = _grid.Width;
+        foreach (int hull in room.Hull)
+        {
+            var spec = Structures.Of(_grid.StructureAt(hull));
+            int leak = spec.Has(Trait.Terrain) ? _grid.WallAt(hull)!.Leak : spec.Leak;
+            if (NeighbourIn(roomOf, width, hull, room.Id) is int to) _cellLeak[to] += leak;
+        }
+    }
+
+    /// <summary>The first cell beside <paramref name="cell"/> in <paramref name="room"/>: up, left, right, down, then up-left, up-right, down-left, down-right.</summary>
+    private static int? NeighbourIn(ReadOnlySpan<int> roomOf, int width, int cell, int room)
+    {
+        int x = cell % width, y = cell / width, height = roomOf.Length / width;
+        ReadOnlySpan<(int Dx, int Dy)> near = [(0, -1), (-1, 0), (1, 0), (0, 1), (-1, -1), (1, -1), (-1, 1), (1, 1)];
+        foreach (var (dx, dy) in near)
+        {
+            int nx = x + dx, ny = y + dy;
+            if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
+            if (roomOf[ny * width + nx] == room) return ny * width + nx;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// What each sealed room holding air owes this tick of its leak, <c>Air.LeakEvery</c> ticks' worth spread over them: its
+    /// part owed so far, kept in <c>Owed</c>, grows by the leak of its aired cells now, and whole units fall due (rounded down,
+    /// the rest kept). Exact however the leak moves; a room with no air owes nothing. In the rooms' order, before any is paid.
+    /// The rooms and the parts both run in id order, so one walk pairs them; the parts are kept, not made anew each tick.
+    /// </summary>
+    private List<(Room Room, int Due)> Dues(Survey s, IReadOnlyList<Room> rooms)
+    {
+        var was = State.Owed;
+        var owed = _owedSpare;
+        owed.Clear();
+        _dues.Clear();
+        int next = 0;
+        foreach (var room in rooms)
+        {
+            while (next < was.Count && was[next].Room < room.Id) next++;
+            var kept = next < was.Count && was[next].Room == room.Id ? was[next++] : null;
+            if (room.Openings.Count > 0 || s.AiredIn[room.Id] == 0) continue;
+            long part = (kept?.Part ?? 0) + (long)s.LeakIn[room.Id];
+            int due = (int)(part / Content.Air.LeakEvery);
+            int rest = (int)(part - (long)due * Content.Air.LeakEvery);
+            if (rest > 0)
+            {
+                kept ??= new LeakOwed { Room = room.Id };
+                kept.Part = rest;
+                owed.Add(kept);
+            }
+            if (due > 0) _dues.Add((room, due));
+        }
+        _owedSpare = was;
+        State.Owed = owed;
+        return _dues;
     }
 
     /// <summary>How much of its rate generator <paramref name="generator"/> makes, in thousandths: as much as its power, or all of it if it draws none.</summary>
@@ -582,33 +661,30 @@ public sealed partial class AtmosphereModule
         }
         foreach (int network in ListAt(s.VentsIn, RoomsModule.Space)) Draw(s, network, Content.Air.VentDrain);
 
+        // Every room holding air pays what its aired cells leak, before the vents put any back.
+        foreach (var (room, due) in Dues(s, rooms)) Use(s, room.Id, due, edits);
+
         if (State.Clock % Content.Air.TicksPerCell == 0)
         {
             foreach (var room in rooms)
             {
-                if (!s.VentsIn.TryGetValue(room.Id, out var vents) || Status(s, room) != RoomStatus.Filling) continue;
-                // Up to CellsPerFill of its first empty cells, in order, each paid as the one before it.
-                int filled = 0;
-                foreach (int next in OrderOf(room.Id))
+                if (Status(s, room) != RoomStatus.Filling) continue;
+                // Each vent, in machine id order, up to CellsPerFill of the first empty cells of its own order, paid by its network.
+                foreach (var (vent, network) in ListAt(s.FillsIn, room.Id))
                 {
-                    if (filled == Content.Air.CellsPerFill) break;
-                    if (s.AiredAt[next]) continue;
-                    int? network = null;
-                    foreach (int n in vents) if (GasOn(s, n) > 0) { network = n; break; }
-                    if (network == null) break;
-                    Draw(s, network.Value, 1);
-                    edits.Added.Add(next);
-                    s.AiredAt[next] = true;
-                    s.AiredIn[room.Id] += 1;
-                    filled++;
+                    if (GasOn(s, network) == 0 || !State.VentOrders.TryGetValue(vent, out var order)) continue;
+                    int filled = 0;
+                    foreach (int next in order)
+                    {
+                        // The network is asked only at an empty cell: the walk past the aired ones is the hot part.
+                        if (s.AiredAt[next]) continue;
+                        if (Draw(s, network, 1) == 0) break;
+                        edits.Added.Add(next);
+                        AirCell(s, next, room.Id);
+                        if (++filled == Content.Air.CellsPerFill) break;
+                    }
                 }
             }
-        }
-
-        foreach (var room in rooms)
-        {
-            if (room.Openings.Count > 0 || s.AiredIn[room.Id] == 0) continue;
-            Use(s, room.Id, DueAt(LeakOf(room), State.Clock), edits);
         }
 
         ApplyEdits(s, edits);
