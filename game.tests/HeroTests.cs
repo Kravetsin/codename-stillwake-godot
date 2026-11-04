@@ -961,6 +961,29 @@ public class HeroTests
     }
 
     [Fact]
+    public void FloatsUntiedInARoomWithNoBackWallsAndFallsWhereTheyBegin()
+    {
+        // Walled all round; the left of the room has no back walls, the right has.
+        var ship = ShipFrom("""
+            ##########
+            #   .....#
+            #   .....#
+            #   .....#
+            ##########
+            """);
+        var afloat = new Hero(3 * Block, 4 * Block - 400, 0, 0, false, 1);
+        Assert.True(ship.Space(afloat.BodyCell(ship.Width)));
+        var still = Settle(ship, afloat, Still);
+        Assert.Equal((afloat.X, afloat.Y), (still.X, still.Y));
+        var swum = Settle(ship, afloat, Left);
+        Assert.Equal(Block + Half, swum.X);
+        Assert.Null(swum.Anchor);
+        // Under back walls, the ship's gravity: it falls to the floor.
+        var held = Settle(ship, new Hero(7 * Block, 4 * Block - 400, 0, 0, false, 1), Still);
+        Assert.Equal(4 * Block, held.Y);
+    }
+
+    [Fact]
     public void TiesATetherLeavingAShipOpenToSpaceAllThroughNeverLettingTheHeroDriftOff()
     {
         // Every door broken out: the whole wreck is space, yet still the hull.
@@ -1003,6 +1026,18 @@ public class HeroTests
         from jump in Gen.Elements(false, true)
         from held in Gen.Elements(false, true)
         select new HeroInput(x, y, jump, JumpHeld: held);
+
+    [Fact]
+    public void TiesATetherOnAHeroAnOuterDoorPushesOutIntoSpace()
+    {
+        // A room whose outer door, three blocks tall in column 5, opens on open space: no back wall past the hull.
+        var shut = ShipFrom(new[] { "######", "#....D", "#....D", "#....D", "######" }.Select(r => r.PadRight(30)).ToArray());
+        // Standing mostly past the doorway's middle as it shuts: pushed out, not in.
+        var pushed = Until(shut, new Hero(11300, 4 * Block, 0, 0, false, 1), Still, h => shut.Space(h.BodyCell(shut.Width)));
+        var out_ = Settle(shut, pushed, Right);
+        Assert.NotNull(out_.Anchor);
+        Assert.True(ReachOf(out_) <= Spec.Tether, $"{ReachOf(out_)} from where it was tied");
+    }
 
     [Fact]
     public void InSpaceKeepsTheBodyWithinTheTetherSlidingAlongItsLimitNeverThroughAWall()

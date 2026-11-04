@@ -121,8 +121,9 @@ internal static class FloorRules
         }
         else if (rooms.Afloat(s.Cell))
         {
-            // Before a back wall it is inside the ship, a room opened to space, moving with it: it drifts only out past the hull.
-            s.X += s.Vx - (grid.BackLayer[s.Cell] == Back.Wall ? 0 : Tune.SpaceDrift);
+            // Before a back wall, or in a room, it is inside the ship, moving with it: it drifts only out past the hull.
+            bool outside = grid.BackLayer[s.Cell] != Back.Wall && rooms.RoomAt(s.Cell) == Rooms.RoomsModule.Space;
+            s.X += s.Vx - (outside ? Tune.SpaceDrift : 0);
             s.Y += s.Vy;
         }
         else

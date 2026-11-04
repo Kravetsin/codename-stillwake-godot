@@ -12,7 +12,7 @@ namespace Stillwake.Game.Shared;
 public sealed class Store<T>(T initial)
 {
     private T _value = initial;
-    private readonly List<Action> _listeners = [];
+    private readonly List<Listener> _listeners = [];
 
     public T Get() => _value;
 
@@ -20,15 +20,33 @@ public sealed class Store<T>(T initial)
     {
         if (EqualityComparer<T>.Default.Equals(_value, value)) return;
         _value = value;
-        // A listener may set the store again: each hears every change, in order.
-        foreach (var listener in _listeners.ToArray()) listener();
+        // A listener may set the store again: each hears every change, in order; one let go meanwhile hears no more.
+        foreach (var listener in _listeners.ToArray())
+            if (!listener.Gone) listener.Heard();
     }
 
-    /// <summary>Calls <paramref name="listener"/> after every change from now on.</summary>
-    public void Subscribe(Action listener) => _listeners.Add(listener);
+    /// <summary>
+    /// Calls <paramref name="heard"/> after every change from now on, until the handle it returns is disposed:
+    /// a listener that dies before the store (a panel of the menu) lets go, or the store keeps calling it.
+    /// </summary>
+    public IDisposable Subscribe(Action heard)
+    {
+        var listener = new Listener(heard, _listeners);
+        _listeners.Add(listener);
+        return listener;
+    }
 
-    /// <summary>Stops calling <paramref name="listener"/>: a node that outlives no tree of its own, the title's settings.</summary>
-    public void Unsubscribe(Action listener) => _listeners.Remove(listener);
+    private sealed class Listener(Action heard, List<Listener> all) : IDisposable
+    {
+        public readonly Action Heard = heard;
+        public bool Gone { get; private set; }
+
+        public void Dispose()
+        {
+            Gone = true;
+            all.Remove(this);
+        }
+    }
 }
 
 /// <summary>Stores of lists, told only when what they hold changes: a tip set every frame redraws nothing.</summary>

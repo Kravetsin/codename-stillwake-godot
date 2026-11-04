@@ -14,7 +14,7 @@
 | `Spray.cs` | A kill's loot dealt into pieces (2026-10-29-kill-feel). |
 | `ToolStats.cs` | What a tool works with (0098): damage, pace, draw. |
 
-Every stack of items: inventories by peer, machines' by id, the floor's, and creative mode, taking nothing (0008).
+Every stack of items: inventories by peer, machines' by id, the floor's; creative mode takes nothing (0008).
 
 - **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
@@ -61,9 +61,9 @@ Every stack of items: inventories by peer, machines' by id, the floor's, and cre
   what has a capacity, a `Takes` only its item. Outputs are the slots past the inputs (0057).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
-- **The floor** (numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, in id order: a stack
+- **The floor** (numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, by id: a stack
   inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell before
-  space, ties by index, else rises a cell. Afloat it flies on, drifting only with no back wall;
+  space, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall;
   elsewhere it falls by gravity times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts`
   after a drop. Alike stacks resting in a cell merge, the later time kept.
   `Spray` (2026-10-29-kill-feel): a kill's loot, a unit a piece up to `SprayMost`, thrown away from the striker.
