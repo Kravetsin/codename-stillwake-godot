@@ -372,7 +372,7 @@ public class BudgetTests(ITestOutputHelper output)
     [Fact]
     public void TheRulesWalkTakesAFractionOfATick()
     {
-        var w = new Scenario(Layout.Parse(["##########", "#II......#", "##########"], null) with { Known = [] }, doubled: true).Run();
+        var w = new Scenario(Layout.Parse(["##########", "#II......#", "#II......#", "#II......#", "##########"], null) with { Known = [] }, doubled: true).Run();
         const int Passes = 2000;
         var clock = Stopwatch.StartNew();
         for (int i = 0; i < Passes; i++)

@@ -182,7 +182,7 @@ public static class Machines
         // The debris net (docs/decisions/2026-11-03-debris-net.md): hung on the bow, its cells in space, it holds the small pieces drifting into it.
         new("net", 2, 6, [], [("wire", 6), ("tube", 4)], BuildTicks: 80, Has: MachineTrait.Catches, Menu: new(MenuTabs.Storage, 15), Char: 'n', Means: "debris net: draw its whole footprint, in space, a hull wall left of every row"),
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
-        new("workbench", 4, 2, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint"),
+        new("workbench", 4, 5, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
         // Its input, its fuel, then three outputs.
         new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
@@ -221,7 +221,7 @@ public static class Machines
         new("emergencyLamp", 2, 2, [], [("scrapChunk", 1)], BuildTicks: 40, Has: MachineTrait.Glow, Char: 'i', Means: "emergency lamp: draw its whole footprint"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
-        new("arcBench", 4, 2, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
+        new("arcBench", 4, 4, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
         // The ship's computer and the radar antenna on its roof (the radar its program): of what space gives, the last built before a planet.
         new("computer", 6, 4, [], [("frame", 4), ("plate", 12), ("processor", 3), ("display", 2), ("coil", 6), ("wire", 20)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
         new("radarAntenna", 4, 4, [], [("frame", 3), ("plate", 8), ("tube", 4), ("rotor", 2), ("gear", 6), ("transceiver", 2), ("solarCell", 2)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),

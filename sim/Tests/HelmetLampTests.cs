@@ -11,8 +11,8 @@ public class HelmetLampTests
     private const string Room = """
         ##########
         #........#
-        #.OOO....#
-        #.OOO....#
+        #.OOOII..#
+        #.OOOII..#
         #.OOOII..#
         ##########
         """;

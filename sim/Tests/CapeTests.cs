@@ -161,7 +161,7 @@ public class CapeTests
 
     /// <summary>A lifepod and a Former on a panel of its own.</summary>
     private static Scenario Workshop() => new(Layout.Parse(
-        ["         ", "         ", "#########", "#OOO....#", "#OOO....#", "#OOO.II.#", "#########"]), doubled: true);
+        ["         ", "         ", "#########", "#OOO.II.#", "#OOO.II.#", "#OOO.II.#", "#########"]), doubled: true);
 
     private static int Carried(Scenario w, string item) => w.M.Items.Totals(0).Where(t => t.Item == item).Sum(t => t.Count);
 

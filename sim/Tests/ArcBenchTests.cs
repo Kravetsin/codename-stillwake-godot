@@ -28,7 +28,7 @@ public class ArcBenchTests
         "PPP       ",
         "          ",
         "##########",
-        "#...C....#",
+        "#WW.C....#",
         "#WW.C.KK.#",
         "##########",
     ];

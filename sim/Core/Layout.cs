@@ -137,7 +137,7 @@ public sealed record Layout(
 
     /// <summary>
     /// This map at the cell's scale (0104): each character drawn a 16 px cell, as maps are, turned into the 2×2 cells of 8 px
-    /// that cover it. Walls, back walls, machines, ladders and doors fill all four, so a doorway is two cells thick, as its
+    /// that cover it. Walls, back walls, machines (but the top row of one of even width and odd height, drawn a character taller), ladders and doors fill all four, so a doorway is two cells thick, as its
     /// 16 px door was one, and a ladder two wide; a floor and the hero's waking place fill the row a body stands on, the floor its top, <c>S</c> its bottom-left, the rest open;
     /// a conduit its top-left, and the cell right of it or under it where the character there is a conduit too, on either map,
     /// so pipes stay one cell wide and meet the ports, which double with the footprints. The under-map's oxygen marks its
@@ -152,6 +152,15 @@ public sealed record Layout(
         char Main(int x, int y) => x < Width && y < Height ? Rows[y][x] : ' ';
         char Below(int x, int y) => Under != null && x < Width && y < Height ? Under[y][x] : ' ';
         bool Conduit(int x, int y) => IsConduit(Main(x, y)) || Below(x, y) == '-';
+        // A machine of even width and odd height is drawn a character taller: the top row of its top character stays open.
+        bool OddTop(int x, int y)
+        {
+            char c = Rows[y][x];
+            if (Legend.MachineOf(c) is not { } kind || Content.Machines.Get(kind) is not { Width: var mw, Height: var mh } || mw % 2 == 1 || mh % 2 == 0) return false;
+            int above = 0;
+            while (y - above > 0 && Rows[y - above - 1][x] == c) above++;
+            return above % ((mh + 1) / 2) == 0;
+        }
         var rows = new char[h][];
         var under = Under == null ? null : new char[h][];
         for (int y = 0; y < h; y++)
@@ -173,6 +182,7 @@ public sealed record Layout(
                     bl = Conduit(x, y + 1) ? '-' : '.';
                     br = '.';
                 }
+                else if (OddTop(x, y)) (tl, tr) = ('.', '.');
                 (rows[2 * y][2 * x], rows[2 * y][2 * x + 1], rows[2 * y + 1][2 * x], rows[2 * y + 1][2 * x + 1]) = (tl, tr, bl, br);
                 if (under == null) continue;
                 char u = Under![y][x];

@@ -276,12 +276,12 @@ public class AimTests
             ##########
             #........#
             #........#
-            #...II...#
+            #...KK...#
             ##########
             """);
-        var bench = world.M.Grid.Machines.First(c => c.Kind == "workbench");
+        var bench = world.M.Grid.Machines.First(c => c.Kind == "crate");
         int width = world.M.Grid.Width, x = bench.Cell % width, top = bench.Cell / width;
-        static int Rise(string kind) => kind == "workbench" ? 3 : 0;
+        static int Rise(string kind) => kind == "crate" ? 3 : 0;
         var hero = HeroOn(4, 2);
         // Three rows over its top: the picture's top; the cell aimed at is the footprint's under the pointer.
         var risen = Aiming.AimAt(world.M, 0, hero, (x + 2.5, top - 2.5), riseOf: Rise);
@@ -301,9 +301,9 @@ public class AimTests
             ##########
             """);
         int width = world.M.Grid.Width, bench = 6 * width + 8;
-        world.Step(new PlacePlan(bench, new Placement("machine", "workbench")));
+        world.Step(new PlacePlan(bench, new Placement("machine", "crate")));
         int plan = world.M.Building.Plans.Single().Id;
-        static int Rise(string kind) => kind == "workbench" ? 3 : 0;
+        static int Rise(string kind) => kind == "crate" ? 3 : 0;
         var hero = HeroOn(4, 2);
         // The screwdriver works the plan from its picture's top row, three over the footprint's, as from the footprint.
         Assert.Equal(plan, Aiming.AimAt(world.M, 0, hero, (10.5, 3.5), riseOf: Rise)?.Work?.Plan);

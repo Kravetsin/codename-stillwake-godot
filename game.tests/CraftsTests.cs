@@ -13,8 +13,8 @@ public class CraftsTests
 {
     private const string Room = """
         #######
-        #OOO..#
-        #OOO..#
+        #OOOII#
+        #OOOII#
         #OOOII#
         #######
         """;
