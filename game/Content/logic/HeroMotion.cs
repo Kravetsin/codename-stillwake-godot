@@ -26,7 +26,27 @@ public static class HeroMotion
     /// </summary>
     public static class Run
     {
-        public const double Lean = 0.3, Bounce = 1.5, Pump = 1.0, HeadSteady = 0.5, BackLean = 0.15;
+        public const double Lean = 0.3, Bounce = 1.5, Pump = 0.65, HeadSteady = 0.5, BackLean = 0.15;
+    }
+
+    /// <summary>
+    /// The figure eases its gait (2026-11-04-hero-gait), though the hero's speed changes in a few steps: a walk turns into a run, and
+    /// back, over about <see cref="RunMs"/>; from standing the stride grows in over <see cref="StartMs"/>, and stopping it settles
+    /// over <see cref="StopMs"/>. Drawn only: the controls answer as fast as ever.
+    /// </summary>
+    public static class Gait
+    {
+        public const double RunMs = 280, StartMs = 150, StopMs = 200;
+    }
+
+    /// <summary>
+    /// A boot on the floor (2026-11-04-hero-gait) turns at its ankle to stand flat, at most <see cref="Up"/> radians toe up from its
+    /// shin's line and <see cref="Down"/> toe down; past that it rolls onto its toe or heel. Rising off the floor, it keeps to the shin
+    /// again over <see cref="Lifting"/> pixels.
+    /// </summary>
+    public static class Feet
+    {
+        public const double Up = 0.9, Down = 0.9, Lifting = 3;
     }
 
     /// <summary>

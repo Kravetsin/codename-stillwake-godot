@@ -16,10 +16,53 @@ public class RunTests
     {
         Assert.True(LimbsOf(Pose.Run, Running, At(0)).Tilt >= 0.28);
         // Mid-stance a foot is down; between the steps both are up and the body rises.
-        Assert.Equal(0, Bounce(Stride.Run * 0.2));
-        double flight = Bounce(Stride.Run * 0.46);
+        Assert.Equal(0, Bounce(Stride.Run * 0.5));
+        double flight = Bounce(Stride.Run * 0.26);
         Assert.InRange(flight, HeroMotion.Run.Bounce * 0.8, HeroMotion.Run.Bounce);
-        Assert.True(LimbsOf(Pose.Run, Running, At(Stride.Run * 0.46)).Lift > LimbsOf(Pose.Run, Running, At(Stride.Run * 0.2)).Lift);
+        Assert.True(LimbsOf(Pose.Run, Running, At(Stride.Run * 0.26)).Lift > LimbsOf(Pose.Run, Running, At(Stride.Run * 0.5)).Lift);
+    }
+
+    [Theory]
+    [InlineData(Pose.Walk, 240)]
+    [InlineData(Pose.Run, 440)]
+    public void EachArmSwingsAgainstTheLegOnItsOwnSide(Pose pose, int vx)
+    {
+        // The near arm forward while the near leg is back, as people walk and run: the two move against each other.
+        double stride = pose == Pose.Run ? Stride.Run : Stride.Walk;
+        var seen = Enumerable.Range(0, 40).Select(k => LimbsOf(pose, Running with { Vx = vx }, At(stride * k / 40))).ToList();
+        double Against(Func<Limbs, double> arm, Func<Limbs, double> leg)
+        {
+            double ma = seen.Average(arm), ml = seen.Average(leg);
+            double cov = seen.Sum(l => (arm(l) - ma) * (leg(l) - ml));
+            return cov / Math.Sqrt(seen.Sum(l => Math.Pow(arm(l) - ma, 2)) * seen.Sum(l => Math.Pow(leg(l) - ml, 2)));
+        }
+        Assert.True(Against(l => l.FrontArm.Upper, l => l.FrontLeg.Upper) < -0.6, $"near arm with near leg: {Against(l => l.FrontArm.Upper, l => l.FrontLeg.Upper)}");
+        Assert.True(Against(l => l.BackArm.Upper, l => l.BackLeg.Upper) < -0.6, $"far arm with far leg: {Against(l => l.BackArm.Upper, l => l.BackLeg.Upper)}");
+    }
+
+    [Fact]
+    public void AWalkTurnsIntoARunAndAStandIntoAStrideWithoutAJump()
+    {
+        // The figure eases its gait (2026-11-04-hero-gait): at its ends it is the pose itself, between them no limb jumps, nor the
+        // body by a pixel.
+        static double Apart(Limbs a, Limbs b) => new[]
+        {
+            a.FrontArm.Upper - b.FrontArm.Upper, a.BackArm.Upper - b.BackArm.Upper, a.FrontLeg.Upper - b.FrontLeg.Upper,
+            a.BackLeg.Upper - b.BackLeg.Upper, a.FrontLeg.Lower - b.FrontLeg.Lower, a.Tilt - b.Tilt, (a.Lift - b.Lift) / 4,
+        }.Max(Math.Abs);
+        foreach (double cycle in new[] { 0.1, 0.4, 0.75 })
+        {
+            Limbs Eased(Pose pose, double gait, double moving) =>
+                LimbsOf(pose, Running, At(0) with { Cycle = cycle, Gait = gait, Moving = moving });
+            Assert.True(Apart(Eased(Pose.Run, 0, 1), LimbsOf(Pose.Walk, Running with { Vx = 240 }, At(cycle * Stride.Walk))) < 1e-9);
+            Assert.True(Apart(Eased(Pose.Run, 1, 1), LimbsOf(Pose.Run, Running, At(cycle * Stride.Run))) < 1e-9);
+            Assert.True(Apart(Eased(Pose.Stand, 1, 0), LimbsOf(Pose.Stand, Running with { Vx = 0 }, At(0))) < 1e-9);
+            for (int k = 0; k < 20; k++)
+            {
+                Assert.True(Apart(Eased(Pose.Run, k / 20.0, 1), Eased(Pose.Run, (k + 1) / 20.0, 1)) < 0.12, $"walk into run at {cycle}, {k}: {Eased(Pose.Run, k / 20.0, 1)} then {Eased(Pose.Run, (k + 1) / 20.0, 1)}");
+                Assert.True(Apart(Eased(Pose.Walk, 0, k / 20.0), Eased(Pose.Walk, 0, (k + 1) / 20.0)) < 0.12, $"stand into walk at {cycle}, {k}");
+            }
+        }
     }
 
     [Fact]
@@ -31,7 +74,7 @@ public class RunTests
         {
             var l = LimbsOf(Pose.Run, back, At(-at));
             Assert.True(l.Tilt < 0, $"leaning {l.Tilt} at {at}");
-            Assert.True(l.Lift <= 0, $"off the floor at {at}");
+            Assert.True(Math.Abs(PoseTests.Soles(l).Max(p => p.Y)) < 0.05, $"off the floor at {at}");
         }
     }
 

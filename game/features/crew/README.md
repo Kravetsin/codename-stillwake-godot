@@ -68,7 +68,7 @@ commands reach the sim; others' heroes come through the host.
 
 ## Guarantees
 
-- Lengths and speeds are thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
+- Lengths, speeds: thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
   (`Net.Clock`), drawn between; floats only in drawing.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
@@ -80,7 +80,7 @@ commands reach the sim; others' heroes come through the host.
 - **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
 - **Jump and walk feel** (0089): coyote time, jump buffer, a short hop on letting Space go, eased apex,
   `AirControl` aloft.
-- **The figure answers its motion** (0090), read from what is sent, so friends move alike.
+- **The figure answers its motion** (0090, hero-gait), read from what is sent, so friends move alike.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).

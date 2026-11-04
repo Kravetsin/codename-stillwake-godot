@@ -1,6 +1,7 @@
 # 0036 — Upright in space
 
-- Status: accepted; its last consequence, others showing no axe, superseded by [0037](0037-others-see-the-hands.md)
+- Status: accepted; its last consequence, others showing no axe, superseded by [0037](0037-others-see-the-hands.md); the
+  hands paddling by [hero-gait](2026-11-04-hero-gait.md)
 - Date: 2026-10-16
 
 ## Context
