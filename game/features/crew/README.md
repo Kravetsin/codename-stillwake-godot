@@ -75,15 +75,15 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
   (`Net.Clock`), drawn between.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
-  nearest fit, carrying no speed (0089).
+  nearest fit, carrying no speed (0089); out of the hull, tethered.
 - Doors are walked as this peer shows them (0014). A press asks for the other state
   (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
-- **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
-- **Jump and walk feel** (0089): coyote time, jump buffer, a short hop on letting Space go, eased apex,
+- **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
+- **Jump and walk feel** (0089): coyote time, jump buffer, a short hop letting Space go, eased apex,
   `AirControl` aloft.
-- **The figure answers its motion** (0090, hero-gait), as sent: friends move alike.
+- **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).
