@@ -13,7 +13,7 @@ using WreckageSpec = Stillwake.Content.Wreckage;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The salvage tools on wrecks (docs/plans/salvage-tools.md): the plasma cutter's bonus, half again a wreck's loot with the chance of
+/// The salvage tools on wrecks (salvage-tools): the plasma cutter's bonus, half again a wreck's loot with the chance of
 /// its share of the hit points, and the arc module in the spear and the grinder.
 /// </summary>
 public class CutterTests

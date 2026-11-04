@@ -110,7 +110,7 @@ public class RuinsTests
     }
 
     /// <summary>
-    /// The plasma cutter cuts wrecks only (docs/plans/salvage-tools.md): run on a charged belt, its hits on the cradle, the bush
+    /// The plasma cutter cuts wrecks only (salvage-tools): run on a charged belt, its hits on the cradle, the bush
     /// and the alloy round them are taken, and touch none of them: no crack, no felling, no shock.
     /// </summary>
     [Fact]

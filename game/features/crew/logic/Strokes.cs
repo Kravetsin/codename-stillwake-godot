@@ -6,7 +6,7 @@ namespace Stillwake.Game.Features.Crew;
 public enum StrokeKind { Swing, Thrust }
 
 /// <summary>
-/// One melee tool's strokes (docs/plans/salvage-tools.md), in real time: each plays through <paramref name="Ms"/>, striking at
+/// One melee tool's strokes (salvage-tools), in real time: each plays through <paramref name="Ms"/>, striking at
 /// <paramref name="HitShare"/> of it, and the next may begin <paramref name="PaceMs"/> after it began, its weapon's pace, so a
 /// stroke shorter than the pace rests between.
 /// </summary>

@@ -55,7 +55,7 @@ public static class Testbed
     public static IEnumerable<string> InSupply => [HelmetLamp.Item, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
 
     /// <summary>
-    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (docs/plans/salvage-tools.md), and an arc
+    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), and an arc
     /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make.
     /// </summary>
     public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];

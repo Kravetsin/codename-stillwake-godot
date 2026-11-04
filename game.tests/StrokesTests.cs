@@ -4,7 +4,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The salvage tools struck by hand (docs/plans/salvage-tools.md): the sledgehammer's slow blow, the spear's jab, on the axe's clock.</summary>
+/// <summary>The salvage tools struck by hand (salvage-tools): the sledgehammer's slow blow, the spear's jab, on the axe's clock.</summary>
 public class StrokesTests
 {
     private const double Frame = 1000.0 / 60;

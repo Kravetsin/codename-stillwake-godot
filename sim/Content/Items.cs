@@ -211,7 +211,7 @@ public static class Items
         new("drill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
         // Electric: a builder working a 2×2 square while the belt pays its draw, one cell flat (power-driver).
         new("powerDriver", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
-        // The salvage tools (docs/plans/salvage-tools.md): two electric, run as the drill is; two swung or thrust.
+        // The salvage tools (salvage-tools): two electric, run as the drill is; two swung or thrust.
         new("grinder", 1, Draw: 4, Gear: true, Group: ItemGroup.Tool),
         new("plasmaCutter", 1, Draw: 2, Gear: true, Group: ItemGroup.Tool),
         new("spear", 1, Gear: true, Group: ItemGroup.Tool),
