@@ -38,7 +38,7 @@ public static class Stations
         new("lifepod", Speed: 200, QueueMost: 4, Rows: [["helmet", "suit", "screwdriver"]]),
         // The workbench, of raw salvage: the basic parts by hand, and everything assembled rather than stamped: the tools, the
         // jetpack, the drill, the power driver, the cape, the fuel pump and the heavy helmet. At the pod's speed and with no power.
-        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp", "jetpack", "drill", "powerDriver"], ["cape", "fuelPump", "heavyHelmet", "regenSuit"]]),
+        new("workbench", Speed: 200, QueueMost: 4, Rows: [["wire", "plate", "gear", "tube"], ["coil", "rotor"], ["fireAxe", "harpoon", "nailer", "nail"], ["helmetLamp", "jetpack", "drill", "powerDriver"], ["cape", "fuelPump", "heavyHelmet", "regenSuit"], ["grinder", "spear", "sledgehammer", "plasmaCutter"]]),
         new("furnace", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1),
         // Crushes rock and asteroid ore on power (economy rework): gravel, iron ore and quartz, the only way to silicon and glass.
         new("crusher", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "crush"),

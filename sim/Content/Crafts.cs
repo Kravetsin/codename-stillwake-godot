@@ -45,6 +45,12 @@ public static class Crafts
         new("drill", [("frame", 1), ("rotor", 2), ("coil", 2), ("gear", 4), ("tube", 2), ("circuit", 2)], Ticks: 240),
         // Bought on the black market (power-driver): a motor of a rotor and a coil, geared down, a circuit to drive it.
         new("powerDriver", [("plate", 2), ("gear", 2), ("rotor", 1), ("coil", 1), ("wire", 2), ("circuit", 1)], Ticks: 120),
+        // The salvage tools (docs/plans/salvage-tools.md), all at the workbench: the grinder round a planet's motor, so after a landing;
+        // the spear and the sledgehammer of the first parts; the cutter's blueprint only the black market sells.
+        new("grinder", [("motor", 1), ("plate", 2), ("gear", 2), ("coil", 1), ("circuit", 2)], Ticks: 240),
+        new("spear", [("tube", 2), ("plate", 2), ("wire", 2)], Ticks: 120),
+        new("sledgehammer", [("plate", 4), ("tube", 1), ("planks", 1)], Ticks: 120),
+        new("plasmaCutter", [("canister", 1), ("coil", 2), ("circuit", 2), ("tube", 2), ("plate", 1)], Ticks: 240),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 3)], Ticks: 120),
         new("solarCell", [("silicon", 1), ("glass", 2), ("wire", 2)], Ticks: 150),

@@ -280,8 +280,8 @@ public class ItemCardTests
     public void CardAModuleWithItsTechAndWhatItDoesNeverWhereItGoes()
     {
         var card = ItemCards.Of(Spec.Modules.Arc.Item);
-        // A line for each group of hosts, from its trades (0100): the stations', the drill's, the charger's, whose draw is its charging.
-        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power\n×2 damage · ×2 power\n×5 charging · ×5 power"), card.Tech);
+        // A line for each group of hosts, from its trades (0100): the stations', the drill's and grinder's, the spear's, the charger's, whose draw is its charging.
+        Assert.Equal(new CardTech("arc", "×2 speed · ×2 power\n×2 damage · ×2 power\n×2 damage\n×5 charging · ×5 power"), card.Tech);
         Assert.Empty(card.Effects);
         Assert.All(Spec.Modules.Arc.Hosts, host => Assert.DoesNotContain(T($"tool.{host}"), card.Tech!.About));
         Assert.NotEqual(card, card with { Tech = null });

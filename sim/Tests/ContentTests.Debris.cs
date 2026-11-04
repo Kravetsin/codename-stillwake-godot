@@ -90,8 +90,10 @@ public partial class ContentTests
             // Never carried: broken where it drifts, a stack of one only to be named.
             Assert.Equal(1, spec!.Stack);
             Assert.NotEmpty(Loot.Of(item) ?? []);
-            Assert.All(Weapons.All, weapon => Assert.True(hp > weapon.Damage, item));
+            // Every weapon but the sledgehammer takes more than a hit; its blow bursts the light ones (salvage tools).
+            Assert.All(Weapons.All.Where(w => w != Weapons.Sledgehammer), weapon => Assert.True(hp > weapon.Damage, item));
         }
+        Assert.Equal(["cargoContainer", "cableRack", "tankCluster", "soilClod"], Wreckage.All.Where(w => w.Hp <= Weapons.Sledgehammer.Damage).Select(w => w.Item));
     }
 
     [Fact]

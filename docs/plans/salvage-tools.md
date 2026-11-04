@@ -35,11 +35,13 @@ of a cell; Draw power a tick while it runs (0055).
 | `grinder` | 3 | 1 | 4 | 8 / 3 | 2500 | 4 | 15, 30 with the arc (draw 8) | 5 |
 | `spear` | 3 | 2 | 12 | 8 / 3 | 6000 | – | 5, 10 with the arc | 3.3 |
 | `plasmaCutter` | 1 | 0 | 4 | 8 / 3 | 3000 | 2 | 5 | 0 |
-| `sledgehammer` | 12 | 24 | 60 | 32 / 5 | 4000 | – | 4 | 8 |
+| `sledgehammer` | 12 | 6 | 60 | 32 / 5 | 4000 | – | 4 | 2 |
 
 Recipes, all of existing parts, their craft ticks on the drill's scale (240): grinder a motor, 2 plates, 2 gears, a coil, 2 circuits;
 spear 2 tubes, 2 plates, 2 wire; sledgehammer 4 plates, a tube, a plank; cutter a canister, 2 coils, 2 circuits, 2 tubes, a plate.
 The sledgehammer's 0.8 s to its blow is its held look's wind-up (client), not content: content has its pace.
+Its 6 on blocks stays under the weakest natural ground (stone, 12) and plant (a bush, 8), so a wall and a growth still crack
+before they break, as the content tests ask of every tool; the soil one-hit rule holds for the axe and the drill alone.
 
 ## Decisions
 
@@ -83,8 +85,11 @@ hit a thrust, none if it is cut short. Others see it by `Handwork.Thrust`, added
    share (seed pinned); one cut then finished by a shot rolls too; a half-cut wreck saved, loaded and broken rolls alike; the arc spear
    deals 6 and is never refused `items.flat`; the arc grinder deals 6 at draw 8. Invariant: for a live piece `Cut ≤ Damage < hp`; with
    no cutter hit the draws and the loot equal today's. Prove it bites by dropping the cap once.
-4. **Art, picked.** The user's picks (pages 2026-11-04: grinder, plasma cutter, spear, spear thrust, sledgehammer) drawn by
-   `tools/anime-art` (`zfittings` beside the axe and drill), icons, held looks; each look whole, no stand-in.
+4. **Art, picked** (2026-11-04): the grinder `factory` (a long ochre motor tube, a cast head, the wheel under a half guard), the
+   cutter `rings` (the jet run through three copper coils on a rail, lit violet), the spear `tubeLeaf` (a hull plate's leaf in a
+   flattened tube, bound in copper), its thrust `jab` (0.45 s, the elbow cocked and straightened, the hit at 215 ms), the
+   sledgehammer `plateStack` (five bolted plates on a plank). Their drawings are the pick pages' (`tools.js`, `spears.js`,
+   `thrusts.js`, `hammers.js`), ported into `tools/anime-art` (`zfittings` beside the axe and drill), icons, held looks; each whole.
 5. **Client motions.** The electric run for the grinder and the cutter, the paced swing for the sledgehammer, the thrust for the spear;
    frames read from a recording of each against a wreck.
 6. **Sound.** A pick page of CC0 candidates per tool, then cut, levelled and credited (`game/audio/CREDITS.md`).

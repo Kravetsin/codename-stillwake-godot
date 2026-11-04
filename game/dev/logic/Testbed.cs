@@ -48,12 +48,17 @@ public static class Testbed
     public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), and an
-    /// arc module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make, and an empty accumulator
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item), "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+
+    /// <summary>
+    /// What the tools crate on the lifepod holds, the others being full: the salvage tools (docs/plans/salvage-tools.md), and an arc
+    /// module for each machine and tool it fits (0086, 0098, 0100), which takes a spire's relic to make.
+    /// </summary>
+    public static IEnumerable<string> InTools => [Weapons.Grinder.Item, Weapons.Spear.Item, Weapons.Sledgehammer.Item, Weapons.PlasmaCutter.Item, .. Modules.Arc.Hosts.Select(_ => Modules.Arc.Item)];
 
     /// <summary>What the bay holds beside its drones, the crates being full: a salvage drone, charged, its fuel slot empty, so it never flies here (salvage-drones).</summary>
     public static readonly IReadOnlyList<string> InBay = [Logistics.SalvageDrone];
@@ -74,7 +79,7 @@ public static class Testbed
     public static JsonObject FittedDrill(string module) => new() { ["item"] = Weapons.Drill.Item, ["count"] = 1, ["module"] = module };
 
     /// <summary>
-    /// Room one holds the lifepod, the crates, the drone bay, the workbench on a vent and a crate, the air's chain (liquid-oxygen): a tank
+    /// Room one holds the lifepod with the tools crate on it, the crates, the drone bay, the workbench on a vent and a crate, the air's chain (liquid-oxygen): a tank
     /// piped along the floor to an oxygen vaporizer, the vaporizer's air to the vent; and a capacitor bank on the supply crate by the pod; room two
     /// a tank by its door, the arc bench, the
     /// furnace, the Former with the crusher on it, the electric smelter, the circuit assembler, the grow capsule and the farm's crate, the trade station on the drone bay, the charging station
@@ -103,7 +108,7 @@ public static class Testbed
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.......LUUU...#..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
+            "  #.KK....LUUU...#..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
             "  #.OOOQQ..UUU.RRD..TT..kk.cc.ccggGG.yy...$$DZZ.D",
             "  #.OOOQQTTGGIIRRD...FF.MM.EE.YYggGG.yyAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
@@ -148,8 +153,8 @@ public static class Testbed
     /// <summary>The cisterns' top-left cells on the doubled map: the first's output is piped to the second's input as the world is made.</summary>
     public static readonly (int X, int Y) CisternFrom = (54, 8), CisternTo = (60, 8);
 
-    /// <summary>The crates by their top-left cells on the map, its drawing doubled (0104): the full one; the supply crate by the pod; the farm's, switched off.</summary>
-    public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14);
+    /// <summary>The crates by their top-left cells on the map, its drawing doubled (0104): the full one; the supply crate by the pod; the farm's and the tools crate on the pod, switched off.</summary>
+    public static readonly (int X, int Y) Full = (28, 14), Supply = (14, 14), FarmAt = (72, 14), Tools = (8, 8);
 
     /// <summary>What the supply crate holds at the start: what keeps the furnace, the Former and the grow capsule going (0062).</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> Supplies = [.. Enumerable.Repeat(("scrapChunk", 50), 4), ("planks", 50), ("iron", 500), ("seed", 10), (Shots.Nail.Id, 100)];
@@ -204,8 +209,9 @@ public static class Testbed
         items["creative"] = true;
         var held = new List<JsonObject>
         {
-            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
+            new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InTools.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },
             new() { ["id"] = At(FarmAt), ["slots"] = Slots("crate", [.. FarmCrate.Select(i => Stack(i, Items.Get(i).Stack))]) },
+            new() { ["id"] = At(Tools), ["slots"] = Slots("crate", [.. InTools.Select(f => Stack(f, 1))]) },
             new() { ["id"] = At(Supply), ["slots"] = Slots("crate", [.. Supplies.Select(s => Stack(s.Item, s.Count)), .. InSupply.Select(f => Stack(f, 1)), FittedDrill(Modules.Arc.Item)]) },
             new() { ["id"] = Id("growCapsule"), ["slots"] = Slots("growCapsule", [Stack("seed", Planted)]) },
             new()
@@ -246,7 +252,7 @@ public static class Testbed
         // twelve cells.
         int Cell(int x, int y) => y * Map.Width + x;
         world.Step([
-            new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
+            new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Logistics.SetServed(At(Tools), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
             new Sim.Pipes.LayPipe(Port(CisternTo, 1), Cell(67, 11)), new Sim.Pipes.LayPipe(Cell(67, 11), Cell(74, 13)),
             new Sim.Pipes.LayPipe(Cell(77, 13), Cell(65, 13)), new Sim.Pipes.LayPipe(Cell(65, 13), Cell(55, 13)), new Sim.Pipes.LayPipe(Cell(55, 13), Cell(46, 12)),
             new Sim.Pipes.LayPipe(Cell(46, 12), Cell(38, 12)), new Sim.Pipes.LayPipe(Cell(38, 12), Cell(38, 10)), new Sim.Pipes.LayPipe(Cell(38, 10), Cell(40, 10)),
