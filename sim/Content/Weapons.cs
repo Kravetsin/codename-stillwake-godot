@@ -32,7 +32,37 @@ public static class Weapons
     /// </summary>
     public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 8, Rays: 3, Range: 6500, Effects: []);
 
-    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill];
+    /// <summary>
+    /// The angle grinder (salvage tools): 3 a hit every 4 ticks, 15 a second on wrecks, half again the drill's, but 1 on blocks, 5 a
+    /// second, and only 2.5 cells out: a wreck tool, not a digger; on the belt's batteries; with the arc fitted, twice either.
+    /// </summary>
+    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 8, Rays: 3, Range: 2500, Effects: []);
+
+    /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
+    public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
+
+    /// <summary>The chip that marks a weapon whose cuts give more loot (salvage tools): its card's, and Debris's test of it.</summary>
+    public static readonly HitEffect Salvage = new("salvage", "b49aff", "221a3a");
+
+    /// <summary>
+    /// The plasma cutter (salvage tools): 1 a hit every 4 ticks, 5 a second, nothing on blocks; a wreck it took its hit points
+    /// off drops half again its loot by that share (Debris); 3 cells out, on the belt's batteries.
+    /// </summary>
+    public static readonly Weapon PlasmaCutter = new("plasmaCutter", Damage: 1, BlockDamage: 0, Pace: 4, Arc: 8, Rays: 3, Range: 3000, Effects: [Salvage]);
+
+    /// <summary>
+    /// The sledgehammer (salvage tools): 12 a blow every 3 s, 4 a second as the axe, but each blow bursts every wreck of 12 hit
+    /// points or fewer at once; 6 on blocks, under the weakest ground and plant, so a wall still cracks first; a third of a turn wide, 4 cells out.
+    /// </summary>
+    public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 60, Arc: 32, Rays: 5, Range: 4000, Effects: []);
+
+    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer];
+
+    /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
+    /// <summary>What a cut wreck's loot comes to when its bonus is won, in thousandths of each line, rounded down: half again.</summary>
+    public const int CutBonus = 1500;
+
+    public static bool Salvages(Weapon weapon) => weapon.Effects.Contains(Salvage);
 
     /// <summary>The weapon that is <paramref name="item"/>, or null for an item that deals no damage.</summary>
     public static Weapon? Of(string? item)

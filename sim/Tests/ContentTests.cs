@@ -67,8 +67,9 @@ public partial class ContentTests
         int Tenths(Weapon w) => Materials.Get("alloy").Strength * 10 / (w.BlockDamage * World.TicksPerSecond / w.Pace);
         var fitted = Weapons.Drill with { BlockDamage = Sim.Items.Boost.Gain(Weapons.Drill.BlockDamage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) };
         Assert.Equal((75, 15, 7), (Tenths(Weapons.Axe), Tenths(Weapons.Drill), Tenths(fitted)));
-        // Either tool takes soil in one hit (the fan of rays); stone and harder crack first, the drill fitted or not.
-        Assert.All(Weapons.All, w => Assert.Equal(Materials.Get("soil").Strength, w.BlockDamage));
+        // Both diggers take soil in one hit (the fan of rays); the salvage tools are made for wrecks, the hammer only past it.
+        // Stone and harder crack first, the drill fitted or not.
+        Assert.All(new[] { Weapons.Axe, Weapons.Drill }, w => Assert.Equal(Materials.Get("soil").Strength, w.BlockDamage));
         Assert.True(fitted.BlockDamage < Materials.All.Where(m => m.Breaks && m.Id != "soil").Min(m => m.Strength));
     }
 

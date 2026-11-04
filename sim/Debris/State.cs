@@ -27,6 +27,11 @@ public sealed class Piece
     [JsonInclude] public int End { get; internal set; }
     /// <summary>The hit points axes have taken off it: below its kind's <c>Wreckage</c> hit points, and none for a piece caught by hand.</summary>
     [JsonInclude] public int Damage { get; internal set; }
+    /// <summary>
+    /// Of <see cref="Damage"/>, what a salvaging tool's hits took (the plasma cutter): its share of the hit points is the chance
+    /// its loot comes half again when it breaks. None for most, and unwritten.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] public int Cut { get; internal set; }
     /// <summary>A harpoon's line pulling it to a point instead of its drift, or null (0044).</summary>
     [JsonInclude] public Reeling? Reel { get; internal set; }
     /// <summary>The last blow a weapon landed on it (a wreck), or null: what a creature guarding it answers (the sentry).</summary>

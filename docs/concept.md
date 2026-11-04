@@ -122,6 +122,10 @@ A living document: what is decided about the game and what is still open. Techni
   two scrap every 3 s, arcing under a planet's gravity, straight in space, breaking wrecks and blocks as it hits; a hit is
   the gun's damage and its projectile's added, so guns to come fire the same nails their own way
   ([shots-are-the-sims](decisions/2026-10-26-shots-are-the-sims.md)).
+- **Salvage tools,** made at the workbench past the axe and the drill: the angle grinder, three times the drill on wrecks and
+  near useless on walls; the spear, a little past the axe; the sledgehammer, a blow every 3 s that breaks a light wreck
+  outright; and the plasma cutter, its blueprint from the black market, cutting wrecks only and drawing half again their loot
+  by its share of the cutting ([salvage-tools](decisions/2026-11-04-salvage-tools.md)).
 - **Time runs only while the game runs.** Nothing happens offline and there is no offline progress,
   unlike the Factory in Tossit.
 - **Characters** are assembled from parts with simple keyframed movement; the parts exist mainly for

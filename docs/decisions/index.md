@@ -234,4 +234,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [macos-build](2026-11-04-macos-build.md) | A macOS build | accepted |  |
 | [mode-glyph](2026-11-04-mode-glyph.md) | The power driver's mode by the arrow | accepted |  |
 | [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |
+| [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |

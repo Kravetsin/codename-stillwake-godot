@@ -210,8 +210,8 @@ public static class Aiming
     /// a wreck whose picture is under the pointer, else the piece of debris nearest it within
     /// <c>Debris.AimRadius</c>, only while the hero is out in space, where it can catch one, and none in
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
-    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/> or a <paramref name="drill"/>, the plain or the arc
-    /// drill by its item, a small piece is still grabbed, else the tool's fan toward the pointer is aimed (<see cref="FanOf"/>): at
+    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/> or a <paramref name="tool"/> by its item, a drill, the
+    /// grinder, the cutter, the spear or the sledgehammer, a small piece is still grabbed, else the tool's fan toward the pointer is aimed (<see cref="FanOf"/>): at
     /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing. With a <paramref name="gun"/>, the
     /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
@@ -221,7 +221,7 @@ public static class Aiming
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? drill = null, ShownGrid? shown = null,
+        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? tool = null, ShownGrid? shown = null,
         Func<string, int>? riseOf = null)
     {
         var grid = m.Grid;
@@ -247,7 +247,7 @@ public static class Aiming
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         // Over a machine's or a plan's risen picture, as if at its footprint's top row under the pointer.
         if (riseOf != null && Risen.Under(grid, m.Building, cell, riseOf) is int top
-            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, axe, gun, drill, shown) is ({ Work: not null } or { Crate: not null } or { Press: not null }) and var under)
+            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, axe, gun, tool, shown) is ({ Work: not null } or { Crate: not null } or { Press: not null }) and var under)
             return under;
         var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
@@ -256,17 +256,16 @@ public static class Aiming
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
         }
-        if (axe || drill != null)
+        if ((axe ? Spec.Weapons.Axe.Item : tool) is string hews)
         {
             // The tool's fan toward the pointer (the fan of rays): what stands on a planet's grid that it strikes first; in space
             // the wrecks it meets.
-            string tool = axe ? Spec.Weapons.Axe.Item : drill!;
-            var fan = FanOf(m, hero, PointOf(point), tool);
+            var fan = FanOf(m, hero, PointOf(point), hews);
             if (!fan.Hewn.IsEmpty)
-                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, tool, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading)), Fan: fan);
+                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, hews, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading)), Fan: fan);
             if (fan.Pieces.FirstOrDefault() is { } wreck)
                 return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true,
-                    new Use(fan.Wrecks, m.Debris.HewProblem(peer, tool, fan.Wrecks.X, fan.Wrecks.Y, fan.Wrecks.Heading)), Piece: wreck.Id, Fan: fan);
+                    new Use(fan.Wrecks, m.Debris.HewProblem(peer, hews, fan.Wrecks.X, fan.Wrecks.Y, fan.Wrecks.Heading)), Piece: wreck.Id, Fan: fan);
             return new Aim(cell, inReach, Fan: fan);
         }
         if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
@@ -472,6 +471,16 @@ public static class Aiming
             if (Crosses(bit, left, top, right, bottom)) touched.Add(c);
         }
         return touched;
+    }
+
+    /// <summary>
+    /// The creatures a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> meets as it strikes: a
+    /// swing's downstroke (<see cref="StruckCreatures"/>), or a thrust's point at full stretch, the elbow straight (<see cref="TouchedCreatures"/>).
+    /// </summary>
+    public static List<Creature> StrokeCreatures(Registry m, Hero hero, Point at, string tool)
+    {
+        var look = HeldLook.Of(tool) ?? HeldLook.FireAxe;
+        return Strokes.Of(tool)?.Kind == StrokeKind.Thrust ? TouchedCreatures(m, hero, at, look with { Elbow = 0 }) : StruckCreatures(m, hero, at, look);
     }
 
     /// <summary>A strike with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> make.</summary>

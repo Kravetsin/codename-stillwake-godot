@@ -108,6 +108,8 @@ public sealed partial class BuildingModule
     {
         var hewn = Struck(c.Tool, c.X, c.Y, c.Heading);
         int hit = _items.BlockDamage(c.From, c.Tool);
+        // A tool that cuts wrecks only (the plasma cutter) touches no block: no crack, no felling, no cradle's shock.
+        if (hit <= 0) return;
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
         if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(c.From, ShockOf(c.Tool));
         foreach (int cell in hewn.Cells)

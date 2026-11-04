@@ -29,11 +29,11 @@ public static class BenchLook
     public const int TableTop = 17;
 
     /// <summary>
-    /// How far a clamped tool may stick out: past either side of the picture (a long tool's bit or stock, as the drill's
+    /// How far a clamped tool may stick out: past either side of the picture (a long tool's bit or stock, the spear's leaf two cells, as the drill's
     /// bit does by a pixel), and down over the table's front edge (the drill's loop of frame hangs two rows over it). Never
     /// above the picture.
     /// </summary>
-    public const int Overhang = 4, Hang = 2;
+    public const int Overhang = 16, Hang = 2;
 
     /// <summary>Where a tool of <paramref name="look"/> has its picture's top-left on the bench: its clamp on the jaws', whole pixels.</summary>
     public static (int X, int Y) ToolAt(HeldLook look)

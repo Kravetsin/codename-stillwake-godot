@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 const { ell, rr, poly, bake, canvas } = Anime;
-const { STEEL, GUN, DARK, PIPE, band, rivets } = window.AnimeKit;
+const { STEEL, GUN, DARK, COPPER, PIPE, band, rivets } = window.AnimeKit;
 
 /** The pipe's run, a sheet repeated along a span: riveted seam, a rust patch at a rivet, a collar every sheet. It is 4 px thick, rows 2 to 6 of 8. */
 const pipeRun = (a) => {
@@ -160,6 +160,189 @@ const drill = (spin) => (a) => {
   for (let i = 0; i < 3; i++) { const x = 26 + i * 2 + (spin === null ? 0 : (spin % 3) * .66); a.flat(poly(x, 3.9, x + .7, 4.1, x - .2, 7.2, x - .9, 7), '#868fa2', { clip: poly(24.8, y0, 32.8, 5.6, 24.8, y1) }); }
 };
 
+// The salvage tools, each the user's pick drawn whole (salvage-tools): the grinder «Заводская», the plasma cutter «Кольца», the spear
+// «Труба и лист», the sledgehammer «Пакет плит». Their pick pages' own materials and helpers, where they differ from the ones above.
+const DEG = Math.PI / 180, f2 = (n) => +n.toFixed(3);
+const RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e' };
+const RED_PAINT = { base: '#a63c2e', shade: '#742a28', deep: '#541e20', lite: '#c8604a', spec: '#e8a890' };
+const BRASS_BAND = { base: '#b08c48', shade: '#7c5e30', deep: '#574126', lite: '#d4b470', spec: '#f0dca4' };
+const STUD = { base: '#b4bcc8', shade: '#6c7486', deep: '#474c68', lite: '#d8dee6', spec: '#f0f2f4' };
+const SLOT = '#14172c', CHIP = '#8e96a2';
+// Full saturation only for what works: the running lamp the game's own green, the charge lights' steady green, the arc's violet.
+const LAMP_ON = '#a0f0a0', LAMP_OFF = '#3d5a46', CHG = '#4f9a58', ON = '#9dff8a', VIOLET_ON = '#b49aff', VIOLET_OFF = '#2e2844';
+/** Points along a circle from a0 to a1, in degrees (+y down: 0 ahead, 90 down, 270 up). */
+const arcPts = (cx, cy, r, a0, a1, n) => {
+  const p = [];
+  for (let i = 0; i <= n; i++) { const t = (a0 + (a1 - a0) * i / n) * DEG; p.push(cx + Math.cos(t) * r, cy + Math.sin(t) * r); }
+  return p;
+};
+const steps = (a0, a1) => Math.max(4, Math.ceil(Math.abs(a1 - a0) / 9));
+/** A band of a ring between radii r0 and r1, from a0 to a1 degrees. */
+const arcBand = (cx, cy, r0, r1, a0, a1) => { const n = steps(a0, a1); return poly(arcPts(cx, cy, r1, a0, a1, n).concat(arcPts(cx, cy, r0, a1, a0, n))); };
+/** An open arc, for a pen line. */
+const arcPath = (cx, cy, r, a0, a1) => {
+  const p = arcPts(cx, cy, r, a0, a1, steps(a0, a1));
+  let s = `M${f2(p[0])} ${f2(p[1])}`;
+  for (let i = 2; i < p.length; i += 2) s += `L${f2(p[i])} ${f2(p[i + 1])}`;
+  return s;
+};
+/** A band between two ellipses round one middle, from a0 to a1 degrees: a ring seen near edge-on. */
+const ellBand = (cx, cy, rx0, ry0, rx1, ry1, a0, a1) => {
+  const n = steps(a0, a1) * 2, p = [];
+  for (let i = 0; i <= n; i++) { const t = (a0 + (a1 - a0) * i / n) * DEG; p.push(cx + Math.cos(t) * rx1, cy + Math.sin(t) * ry1); }
+  for (let i = n; i >= 0; i--) { const t = (a0 + (a1 - a0) * i / n) * DEG; p.push(cx + Math.cos(t) * rx0, cy + Math.sin(t) * ry0); }
+  return poly(p);
+};
+const stud = (a, x, y, r = .42) => a.shape(ell(x, y, r), STUD, { outer: false, edge: false, shade: band(x - r, y + .05, x + r, y + r), lines: [`M${f2(x - r * .7)} ${f2(y + r * .3)}L${f2(x + r * .7)} ${f2(y - r * .3)}`] });
+/** Rust round a seam or stud: a torn patch, its darker heart. */
+const rustAt = (a, x, y, s) => {
+  a.flat(poly(x - s, y - .2 * s, x - .3 * s, y - .7 * s, x + .5 * s, y - .5 * s, x + s, y + .1 * s, x + .4 * s, y + .45 * s, x - .5 * s, y + .4 * s), '#6e4630');
+  a.flat(poly(x - .4 * s, y - .1 * s, x + .1 * s, y - .3 * s, x + .4 * s, y + .05 * s, x, y + .3 * s), '#3f2a24');
+};
+/** Rust where water sat: a torn patch with a darker heart, kept inside its part. */
+const rust = (a, x, y, s, clip) => {
+  a.flat(poly(x, y, x + 1.3 * s, y - .25 * s, x + 1.9 * s, y + .4 * s, x + 1.3 * s, y + 1.1 * s, x + .6 * s, y + .8 * s, x - .1 * s, y + .9 * s), '#6e5646', { clip });
+  a.flat(poly(x + .5 * s, y + .15 * s, x + 1.3 * s, y + .1 * s, x + 1.3 * s, y + .7 * s, x + .6 * s, y + .6 * s), '#4f3d36', { clip });
+};
+/** Wire wound round a part: turns across it, copper. */
+const wire = (a, x0, x1, y0, y1, step = .55) => {
+  a.flat(band(x0, y0, x1, y1), COPPER.shade);
+  for (let x = x0; x < x1 - .1; x += step) a.flat(poly(x, y0, x + step * .55, y0, x + step * .8, y1, x + step * .25, y1), COPPER.lite);
+};
+/** Several pictures of one size laid in order, each finished alone, as the pick page lays a tool's front over it. */
+const layered = (w, h, draws, px = 4) => {
+  const c = canvas(w * px, h * px), x = c.getContext('2d');
+  for (const draw of draws) x.drawImage(bake({ w, h, px, draw }), 0, 0);
+  return c;
+};
+
+// The grinder «Заводская»: a long motor tube in worn ochre enamel, vents at its back, a paddle under it; a cast head, the wheel under a
+// half guard. A state: f null standing, 1..3 the disc's turn while it spins; on, its lamp and charge lights lit.
+const DISC = { base: '#57524e', shade: '#37332f', deep: '#24211f', lite: '#79726b', spec: '#a8a098' };
+const OCHRE = { base: '#9a7c44', shade: '#6a5432', deep: '#4a3b28', lite: '#bc9e62', spec: '#e0cc98' };
+/** A cut-off wheel seen face on: grit, its paper label, the print and the nut turning with it; spinning, the marks smear round. */
+const wheel = (a, cx, cy, r, f, o = {}) => {
+  const th = f === null ? 0 : f * 40, spin = f !== null;
+  a.shape(ell(cx, cy, r), DISC, { shade: .7, lines: [arcPath(cx, cy, r * .84, 35, 145)] });
+  for (let k = 0; k < 3; k++) {
+    const t = th + 60 + k * 120;
+    if (spin) { a.flat(arcBand(cx, cy, r * .72, r * .78, t - 30, t + 50), DISC.lite); a.flat(arcBand(cx, cy, r * .86, r * .9, t + 10, t + 80), DISC.lite); }
+    else a.line(`M${f2(cx + Math.cos(t * DEG) * r * .68)} ${f2(cy + Math.sin(t * DEG) * r * .68)}L${f2(cx + Math.cos(t * DEG) * r * .93)} ${f2(cy + Math.sin(t * DEG) * r * .93)}`, { w: .9 });
+  }
+  a.flat(ell(cx, cy, r * .56), o.label || '#7a6c4e');
+  a.flat(arcBand(cx, cy, r * .46, r * .56, 15, 165), o.labelShade || '#5a4e3a');
+  for (let k = 0; k < 3; k++) { const t = th + k * 120; a.flat(arcBand(cx, cy, r * .33, r * .49, t, t + (spin ? 80 : 46)), o.print || '#3a2e22'); }
+  a.shape(ell(cx, cy, r * .27), STEEL, { outer: false, shade: .25 });
+  const hex = [];
+  for (let k = 0; k < 6; k++) { const t = (th + 30 + k * 60) * DEG; hex.push(cx + Math.cos(t) * r * .17, cy + Math.sin(t) * r * .17); }
+  a.shape(poly(hex), GUN, { outer: false, shade: .12 });
+  for (const t of [th + 90, th + 270]) a.flat(ell(cx + Math.cos(t * DEG) * r * .22, cy + Math.sin(t * DEG) * r * .22, .18), '#14172c');
+};
+/** A guard's lip round the wheel from a0 to a1 degrees, over its rim: lit along the top, rolled at the edge. */
+const guard = (a, cx, cy, r, a0, a1, m, o = {}) => {
+  const r0 = r - (o.inset ?? .5), r1 = r + (o.out ?? 1);
+  a.shape(arcBand(cx, cy, r0, r1, a0, a1), m, { shade: .3, lite: arcBand(cx, cy, r1 - .5, r1, Math.max(a0, 200), Math.min(a1, 340)), lines: [arcPath(cx, cy, r1 - .32, a0 + 3, a1 - 3), ...(o.lines || [])] });
+};
+const battery = (a, x, y, w, h, on) => {
+  a.shape(rr(x, y, w, h, .5), GUN, { lite: band(x + .2, y + .1, x + w - .2, y + .6), shade: band(x, y + h - .7, x + w, y + h), lines: [`M${x + w - 1.4} ${y + .1}L${x + w - 1.4} ${y + h - .1}`] });
+  for (let i = 0; i < 3; i++) a.glow(rr(x + .8 + i * 1.3, y + h * .45, .9, .55, .15), on ? ON : CHG);
+};
+const grinder = (s) => (a) => {
+  const cx = 22.6, cy = 7.2, R = 4.6;
+  battery(a, 1.4, 11.9, 7, 2.6, s.on);
+  a.shape('M3.4 7.2L8 7.2L7.4 9.6C7.2 10.6 7.2 11.4 7.4 12.2L3 12.2C2.8 11 2.8 9.6 3.4 7.2Z', RUBBER, { shade: band(6.4, 7, 8.2, 12.4), lines: ['M3.3 8.6L7.7 8.6', 'M3.1 9.6L7.4 9.6', 'M3 10.6L7.3 10.6', 'M3 11.5L7.4 11.5'] });
+  a.shape('M7.8 7.4L12.6 7.6L12.2 8.8L8.4 8.6Z', DARK, { lite: band(8, 7.5, 12.4, 7.95) });
+  a.shape('M7.4 7.3L8.4 7.4L8.3 8.3L7.5 8Z', RED_PAINT, { outer: false });
+  a.shape(rr(1.2, 2.4, 15.4, 5.4, 2.2), OCHRE, { lite: band(1.6, 2.5, 16.2, 3.4), spec: band(7.2, 2.75, 12.6, 3.05), shade: band(1.2, 6.6, 16.6, 7.8), lines: ['M6.6 2.5L6.6 7.7', 'M13.6 2.5L13.6 7.7'] });
+  for (const x of [2.7, 3.7, 4.7, 5.7]) a.flat(poly(x, 3.7, x + .5, 3.7, x + .3, 6.4, x - .2, 6.4), SLOT);
+  a.shape(rr(8.2, 4, 4.2, 1.8, .3), DARK, { outer: false, lite: band(8.3, 4.05, 12.3, 4.4) });
+  a.line('M8.8 4.95L11.6 4.95', { w: .8, c: '#8a8070' });
+  a.flat(poly(14.6, 2.5, 15.9, 2.7, 15.8, 3.6, 15, 3.3), CHIP);
+  a.flat(poly(9.4, 7.3, 10.8, 7.2, 10.6, 7.75, 9.6, 7.75), CHIP);
+  rustAt(a, 13.4, 6.9, .7);
+  a.shape(rr(.3, 3, 1.6, 4.2, .7), DARK, { lite: band(.4, 3.1, 1.8, 3.6) });
+  a.glow(ell(1.1, 4.3, .42), s.on ? LAMP_ON : LAMP_OFF, s.on ? { core: ell(1.05, 4.2, .16) } : {});
+  a.shape('M16.2 2.3L21.2 1.6C22.6 1.5 23.6 2.4 23.6 3.8L23.6 8.2L16.2 8.2Z', GUN, { lite: band(16.4, 1.7, 23.4, 2.6), shade: band(16.2, 7.2, 23.8, 8.4), lines: ['M17.6 2.2L17.6 8.1', 'M18.8 2.1L18.8 4'] });
+  stud(a, 21.6, 2.6);
+  wheel(a, cx, cy, R, s.f, { label: '#4e6478', labelShade: '#3a4a5a', print: '#d8d2c2' });
+  guard(a, cx, cy, R, 150, 350, STEEL);
+  stud(a, cx + Math.cos(205 * DEG) * (R + .3), cy + Math.sin(205 * DEG) * (R + .3), .36);
+  rustAt(a, cx + Math.cos(165 * DEG) * (R + .3), cy + Math.sin(165 * DEG) * (R + .3), .45);
+};
+
+// The plasma cutter «Кольца»: a short dark body banded in brass, a copper nozzle, and the jet's cage: three coils on a rail, their inner
+// faces lit violet while it burns. Each ring's far half is drawn with the body, its near half (front) over it, as the jet will run between.
+const pommel = (a, x, y, w, h, on) => {
+  a.shape(rr(x, y, w, h, .9), DARK, { lite: band(x + .3, y + .1, x + w - .3, y + .6), shade: band(x, y + h - .7, x + w, y + h), lines: [`M${x + w - 1.4} ${y + .1}L${x + w - 1.4} ${y + h - .1}`] });
+  for (let i = 0; i < 3; i++) a.glow(rr(x + .9 + i * 1.3, y + h * .4, .9, .5, .15), on ? ON : CHG);
+};
+const RINGS = [17.6, 21.8, 26];
+const ringBand = (x, a0, a1) => ellBand(x, 4.4, .45, 2.3, 1.1, 3, a0, a1);
+const ringGlow = (x, a0, a1) => ellBand(x, 4.4, .45, 2.3, .72, 2.55, a0, a1);
+const cutter = (s) => (a) => {
+  pommel(a, 1.4, 9.6, 6, 2.2, s.on);
+  a.shape('M2.8 6.2L6.8 6.2L6.4 7.8C6.2 8.6 6.2 9.2 6.4 9.8L2.4 9.8C2.3 8.8 2.4 7.6 2.8 6.2Z', RUBBER, { shade: band(5.4, 6.2, 7, 9.8), lines: ['M2.7 7.2L6.5 7.2', 'M2.5 8.1L6.3 8.1', 'M2.4 9L6.3 9'] });
+  a.shape('M7 6.4L8.4 6.4L8.6 7.2L7.6 8.2L7.1 7.8Z', DARK, { shade: .3 });
+  a.shape(rr(10, 6.2, 1.6, 2.7, .3), GUN, { lite: band(10.1, 6.3, 10.6, 8.8) });
+  a.shape(rr(10.8, 7.7, 18.6, 1.2, .4), GUN, { lite: band(11, 7.75, 29.2, 8.1), shade: band(10.8, 8.5, 29.4, 8.9) });
+  a.shape(rr(.4, 2.2, 11.4, 4.4, 1.6), DARK, { lite: band(.8, 2.3, 11.4, 3.1), spec: band(3, 2.5, 7, 2.75), shade: band(.4, 5.6, 11.8, 6.6), lines: ['M3.4 2.3L3.4 6.5'] });
+  a.shape(rr(8.2, 2, 1.5, 4.8, .3), BRASS_BAND, { lite: band(8.3, 2.05, 9.6, 2.6), shade: band(8.2, 6, 9.7, 6.8) });
+  a.glow(ell(1.7, 4, .45), s.on ? VIOLET_ON : VIOLET_OFF, s.on ? { core: ell(1.65, 3.9, .17) } : {});
+  a.shape(poly(11.6, 3.3, 13.8, 3.8, 13.8, 5, 11.6, 5.5), COPPER, { lite: poly(11.6, 3.3, 13.8, 3.8, 13.8, 4.1, 11.6, 3.8), shade: poly(11.6, 5, 13.8, 4.7, 13.8, 5, 11.6, 5.5) });
+  for (const x of RINGS) {
+    a.shape(rr(x - .45, 6.9, .9, 1, .2), GUN, { shade: band(x - .45, 7.5, x + .45, 7.9) });
+    a.shape(ringBand(x, -90, 90), COPPER, { shade: ringBand(x, 20, 90) });
+    a.flat(ringGlow(x, -80, 80), s.on ? VIOLET_ON : COPPER.shade);
+  }
+};
+const cutterFront = (s) => (a) => {
+  for (const x of RINGS) {
+    a.shape(ringBand(x, 90, 270), COPPER, { lite: ringBand(x, 200, 270), shade: ringBand(x, 90, 140), lines: [120, 150, 180, 210, 240].map((t) => { const c = Math.cos(t * DEG), sn = Math.sin(t * DEG); return `M${f2(x + c * .5)} ${f2(4.4 + sn * 2.35)}L${f2(x + c * 1.05)} ${f2(4.4 + sn * 2.95)}`; }) });
+    if (s.on) a.flat(ringGlow(x, 100, 260), VIOLET_ON);
+  }
+};
+
+// The spear «Труба и лист»: a hull plate's leaf driven into a flattened tube, bound in copper; its grip in tape, a sleeve for the coil.
+const spear = (a) => {
+  a.tube('M1.6 5L33.4 5', 2.2, PIPE);
+  a.shape(rr(0, 3.5, 2.2, 3, .5), GUN, { lite: band(.2, 3.6, 2, 4.2), shade: band(.2, 5.8, 2, 6.5) });
+  a.flat(band(4.6, 3.85, 13.4, 6.15), '#2a2b36');
+  for (let x = 4.8; x < 12.9; x += 1.15) { a.flat(poly(x, 3.85, x + .7, 3.85, x + 1, 6.15, x + .3, 6.15), '#3e4152'); a.line(`M${x + .72} 3.9L${x + 1.02} 6.1`, { w: .8 }); }
+  a.line('M12.9 6.1C13.3 6.9 13.4 7.6 13 8.3', { w: 1.2 });
+  rust(a, 17, 4.3, .8, band(14, 3.9, 22, 6.1));
+  a.shape(rr(22, 3.5, 8, 3, .4), GUN, { lite: band(22.2, 3.6, 29.8, 4.2), shade: band(22.2, 5.8, 29.8, 6.5), lines: ['M22.9 3.6L22.9 6.4', 'M29.1 3.6L29.1 6.4'] });
+  rivets(a, [23.6, 5], [28.4, 5]);
+  a.shape(poly(33, 3.7, 36.3, 3.2, 36.3, 6.8, 33, 6.3), PIPE, { lite: band(33, 3.2, 36.3, 4), shade: band(33, 6, 36.3, 6.8) });
+  for (const x of [33.5, 34.3, 35.1]) a.flat(poly(x, 3.3, x + .45, 3.3, x + .75, 6.7, x + .3, 6.7), COPPER.lite);
+  a.shape('M36 3.5C38 2.3 40.6 2.4 42.4 3.4L47.8 5L42.4 6.6C40.6 7.6 38 7.7 36 6.5Z', BLADE, {
+    lite: 'M36.4 3.6C38.4 2.6 40.6 2.7 42.2 3.6L47 4.9L36.4 4.9Z', shade: 'M36.4 5.1L47 5.1L42.2 6.4C40.6 7.3 38.4 7.4 36.4 6.4Z', lines: ['M36.8 5L46.6 5'] });
+  rust(a, 36.2, 4.2, .7, 'M36 3.5C38 2.3 40.6 2.4 42.4 3.4L47.8 5L42.4 6.6C40.6 7.6 38 7.7 36 6.5Z');
+  screw(a, 37.4, 5.9, .4);
+  a.line('M40.6 3.2L41.6 3.6', { w: .9 });
+};
+
+// The sledgehammer «Пакет плит»: five cut plates bolted into a block on a plank, a tube ferrule where they meet; the striking face along the bottom.
+const FACE = '#c0c6cf';
+const sledgehammer = (a) => {
+  a.shape(rr(0, 6.7, 22.4, 2.6, .5), WOODH, { lite: band(.4, 6.8, 22, 7.4), shade: band(.4, 8.6, 22, 9.3), lines: ['M12.4 7.8L17 7.7', 'M14.6 8.5L19.6 8.4'] });
+  wire(a, .5, 2, 6.6, 9.4, .45);
+  a.flat(band(3, 6.6, 10.2, 9.4), '#23263a');
+  for (let x = 3.2; x < 9.9; x += 1.2) { a.flat(poly(x, 6.6, x + .75, 6.6, x + 1.05, 9.4, x + .3, 9.4), '#3d4258'); a.line(`M${x + .78} 6.6L${x + 1.08} 9.4`, { w: .8 }); }
+  const tops = [1.3, 1, 1.5, 1.1, 1.4], bots = [14.7, 15.1, 14.8, 15.2, 14.9];
+  for (let i = 0; i < 5; i++) {
+    const x = 21.4 + i * 2, m = i % 2 ? GUN : STEEL, d = rr(x, tops[i], 2, bots[i] - tops[i], .3);
+    a.shape(d, m, { lite: band(x, tops[i], x + 2, tops[i] + .8), shade: band(x + 1.35, tops[i], x + 2, bots[i]), deep: band(x, bots[i] - .6, x + 2, bots[i]) });
+    a.flat(band(x, bots[i] - .5, x + 2, bots[i]), FACE, { clip: d });
+  }
+  rust(a, 23.2, 9.6, .8, band(21.4, 1, 31.4, 15.2)); rust(a, 27.4, 3.4, .6, band(21.4, 1, 31.4, 15.2));
+  for (const y of [3.2, 12.8]) {
+    a.shape(rr(31.2, y - .9, .8, 1.8, .2), DARK, { lite: band(31.2, y - .9, 32, y - .4) });
+    a.shape(rr(20.6, y - .9, .9, 1.8, .2), DARK, { lite: band(20.6, y - .9, 21.5, y - .4) });
+  }
+  a.shape(rr(18, 6.1, 3.6, 3.8, .5), PIPE, { lite: band(18.2, 6.2, 21.4, 6.9), shade: band(18.2, 9.1, 21.4, 9.9) });
+  screw(a, 19.8, 8, .45);
+};
+
 Subjects.zfittings = function () {
   out('pipe_run', bake({ w: 24, h: 8, tile: true, draw: pipeRun }));
   for (let n = 0; n < 16; n++) out(`pipe_${n}`, pipe(n));
@@ -189,5 +372,18 @@ Subjects.zfittings = function () {
   for (const [name, pic] of [['hero_axe', { w: 28, h: 14, draw: axe }], ['hero_drill', { w: 33, h: 15, draw: drill(null) }]])
     out(`icons/${name}`, bake({ ...pic, px: Math.ceil(Anime.ICON_LONG / pic.w) }));
   for (let f = 1; f <= 3; f++) out(`hero_drill_spin${f}`, bake({ w: 33, h: 15, draw: drill(f) }));
+  // The salvage tools: each still, then its running states (the grinder's three turns of the disc, the cutter lit), and its icon.
+  const salvage = [
+    ['hero_grinder', 29, 15, [grinder({ f: null, on: false })]],
+    ['hero_plasmaCutter', 32, 12, [cutter({ on: false }), cutterFront({ on: false })]],
+    ['hero_spear', 48, 10, [spear]],
+    ['hero_sledgehammer', 32, 16, [sledgehammer]],
+  ];
+  for (const [name, w, h, draws] of salvage) {
+    out(name, layered(w, h, draws));
+    out(`icons/${name}`, layered(w, h, draws, Math.ceil(Anime.ICON_LONG / w)));
+  }
+  for (let f = 1; f <= 3; f++) out(`hero_grinder_spin${f}`, bake({ w: 29, h: 15, draw: grinder({ f, on: true }) }));
+  out('hero_plasmaCutter_on', layered(32, 12, [cutter({ on: true }), cutterFront({ on: true })]));
 };
 })();

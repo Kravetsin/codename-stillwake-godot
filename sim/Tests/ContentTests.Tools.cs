@@ -137,11 +137,12 @@ public partial class ContentTests
                 Assert.NotEmpty(on.Effects);
                 foreach (var host in on.Hosts)
                 {
-                    // Its hosts draw power: electric machines, by kind, or electric weapons, by item (0098).
+                    // Its hosts: electric machines, by kind, or weapons, by item (0098); a weapon with no draw takes no draw trade (salvage tools).
                     bool weapon = Weapons.Of(host) != null;
                     if (weapon)
                     {
-                        Assert.True(Content.Items.Get(host) is { Draw: not null, Stack: 1 }, $"{module.Item} fits {host}");
+                        var tool = Content.Items.Get(host);
+                        Assert.True(tool.Stack == 1 && (tool.Draw != null || on.Effects.Cast<Content.Trade>().All(t => t.Stat == Stat.Damage)), $"{module.Item} fits {host}");
                         Assert.False(Machines.TryGet(host, out _), host);
                     }
                     else
@@ -176,9 +177,11 @@ public partial class ContentTests
     {
         (int, int, int, int) Adds(string host) =>
             (Modules.Arc.Adds(host, Stat.Speed), Modules.Arc.Adds(host, Stat.Draw), Modules.Arc.Adds(host, Stat.Damage), Modules.Arc.Adds(host, Stat.Heat));
-        Assert.Equal(["smelter", "former", "assembler", "drill", "charger"], Modules.Arc.Hosts);
+        Assert.Equal(["smelter", "former", "assembler", "drill", "grinder", "spear", "charger"], Modules.Arc.Hosts);
         foreach (var station in new[] { "smelter", "former", "assembler" }) Assert.Equal((1000, 1000, 0, 0), Adds(station));
         Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Drill.Item));
+        Assert.Equal((0, 1000, 1000, 0), Adds(Weapons.Grinder.Item));
+        Assert.Equal((0, 0, 1000, 0), Adds(Weapons.Spear.Item));
         Assert.Equal((0, 4000, 0, 0), Adds("charger"));
         Assert.Equal((0, 0, 0, 0), Adds(Content.Logistics.Bay));
         int draws = Machines.Get("charger").Draws!.Value, fitted = Sim.Items.Boost.Cost(draws, Modules.Arc.Adds("charger", Stat.Draw));

@@ -58,7 +58,8 @@ public partial class DebrisView(Ui ui) : Node2D
     private readonly Stack<Shown> _small = new(), _wrecks = new();
     /// <summary>The piece aimed at, outlined over the rest.</summary>
     private readonly Outline _aimed = new(1);
-    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2);
+    private readonly Heard2D _chop = Cues.Player2D(S.Chop, S.Suit, voices: 4), _break = Cues.Player2D(S.Break, S.Suit, voices: 2),
+        _spearHit = Cues.Player2D(S.SpearHit, S.Suit, voices: 2), _hammerBlow = Cues.Player2D(S.HammerBlow, S.Suit, voices: 2);
     private readonly OwnHits _own = new();
     private double _clockMs;
     /// <summary>Every piece out but those this peer is grabbing, and of them the ones drawn this frame.</summary>
@@ -83,6 +84,8 @@ public partial class DebrisView(Ui ui) : Node2D
         AddChild(_aimed);
         AddChild(_chop);
         AddChild(_break);
+        AddChild(_spearHit);
+        AddChild(_hammerBlow);
     }
 
     /// <summary>
@@ -117,7 +120,7 @@ public partial class DebrisView(Ui ui) : Node2D
             var gone = _shown[id];
             // Gone from the world, not only from the view: broken, or faded out at its end.
             if (!_out.Contains(id) && Fading.Broken(gone.Wreck, debris.CaughtFrom(id) != null, gone.X, gone.Speed, gone.End, client.World.Tick - gone.Tick))
-                Burst(gone.Picture, _own.Ran(id));
+                Burst(gone.Picture, _own.Ran(id), _own.ToolOn(id));
             gone.Picture.Visible = false;
             (gone.Wreck ? _wrecks : _small).Push(gone);
             _shown.Remove(id);
@@ -211,7 +214,7 @@ public partial class DebrisView(Ui ui) : Node2D
         one.Flash = Math.Max(one.Flash, share);
         if (_own.Ran(piece.Id) && !drill)
         {
-            _chop.PlayAt(side);
+            HitBy(tool).PlayAt(side);
             Nudged?.Invoke(away);
         }
     }
@@ -250,14 +253,18 @@ public partial class DebrisView(Ui ui) : Node2D
     /// <summary>This player's own axe bit a wreck, knocking it <c>away</c>: the view nudges (<see cref="ShipCamera.Nudge"/>).</summary>
     public event Action<Vector2>? Nudged;
 
+    /// <summary>The player of a wreck's hit by this player's <paramref name="tool"/>: the chop, the spear's point or the sledgehammer's blow (salvage-tools).</summary>
+    private Heard2D HitBy(string tool) => S.WreckHitOf(tool) is var hit && hit == S.HammerBlow ? _hammerBlow : hit == S.SpearHit ? _spearHit : _chop;
+
     /// <summary>
     /// A wreck broken at <paramref name="at"/> (0075): its picture cut into pieces flying apart with glowing torn edges
     /// (<see cref="BreakView"/>), a big glint, sparks curling every way, fine dust, a slow cloud, a fast faint shock
     /// ring and a flash of light dying away; the break heard if this player's own hit broke it (<paramref name="own"/>,
     /// 0042). The last hit removes the wreck on its tick, so its chop never plays: the break, with an impact of its
-    /// own, is the hit. A bigger picture, a derelict's, bursts with more, twice as much for the biggest.
+    /// own, is the hit, the sledgehammer's blow with it if that was <paramref name="tool"/> (salvage-tools). A bigger picture, a
+    /// derelict's, bursts with more, twice as much for the biggest.
     /// </summary>
-    private void Burst(Sprite2D picture, bool own)
+    private void Burst(Sprite2D picture, bool own, string? tool)
     {
         var at = picture.Position;
         var size = picture.Texture.GetSize() * picture.Scale;
@@ -286,6 +293,7 @@ public partial class DebrisView(Ui ui) : Node2D
         Stages.Of(Layers.Effects).Flares.Shock(at.X, at.Y, 4, 4 + 40 * big * Fx.Length, 14 * FrameMs, ShockColour, 0.4 * Fx.Glow, 0.32);
         Stages.Of(Layers.Effects).Flares.Flash(at.X, at.Y, (255, 226, 180), BreakFlash * Fx.Glow, 4, 0.45f, 0.9);
         if (own) _break.PlayAt(at);
+        if (own && S.WreckHitOf(tool) == S.HammerBlow) _hammerBlow.PlayAt(at);
     }
 
     /// <summary>Sparks and dust a breaking wreck throws, the puffs of its cloud: a derelict's up to twice as many.</summary>

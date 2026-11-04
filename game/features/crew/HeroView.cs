@@ -89,7 +89,7 @@ public partial class HeroView : Node2D
     /// <summary>Each other hero drawn, by peer id.</summary>
     private readonly Dictionary<int, Other> _shownOthers = new();
     /// <summary>Each other hero as last heard: whether it wields the axe, and the last chop it sent, its swings begun.</summary>
-    private readonly Dictionary<int, (bool Axe, Busy? Last)> _heardChops = new();
+    private readonly Dictionary<int, (string? Strikes, Busy? Last)> _heardChops = new();
     /// <summary>What this hero's hands wield and are busy with, as drawn and sent to the others.</summary>
     private string? _wields;
     private Busy? _busy;
@@ -151,6 +151,10 @@ public partial class HeroView : Node2D
     private StrikeTrain _grains;
     private MotorSound _drillMotor;
     private TouchHold _onPiece;
+    /// <summary>The grinder's motor and bite, the plasma cutter's jet, heard at the tool through the suit as the drill's whir (salvage-tools).</summary>
+    private readonly Heard2D _grinderRun = Cues.Player2D(S.GrinderRun, S.Suit), _grinderBite = Cues.Player2D(S.GrinderBite, S.Suit, voices: 2),
+        _cutterStrike = Cues.Player2D(S.CutterStrike, S.Suit), _cutterRun = Cues.Player2D(S.CutterRun, S.Suit), _cutterOff = Cues.Player2D(S.CutterOff, S.Suit);
+    private RunSounds _runSounds;
     /// <summary>This hero's power driver, heard where it works while it runs (power-driver).</summary>
     private readonly DriverHeard _driverHeard = new();
     /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, muffled out in space as all there is, its envelope eased in and out (0047, 0059).</summary>
@@ -164,7 +168,8 @@ public partial class HeroView : Node2D
     private readonly AudioStreamPlayer _shot = Cues.Player(S.Shot, S.Suit), _drum = Cues.Player(S.Drum, S.Suit),
         _ready = Cues.Player(S.Ready, S.Suit);
     /// <summary>This hero's axe swung, every swing, through the suit as its chop is (0068); others' swings are silent, as their chops.</summary>
-    private readonly AudioStreamPlayer _swingSound = Cues.Player(S.Swing, S.Suit, voices: 2);
+    private readonly AudioStreamPlayer _swingSound = Cues.Player(S.Swing, S.Suit, voices: 2), _hammerSwing = Cues.Player(S.HammerSwing, S.Suit),
+        _spearThrust = Cues.Player(S.SpearThrust, S.Suit, voices: 2);
     /// <summary>The rod biting into metal, where it struck; a crate or a pod thumps as a glove does.</summary>
     private readonly Heard2D _bite = Cues.Player2D(S.Chop, S.Suit, voices: 2);
     // Others' guns are heard on World, where they are, as their steps are: through the air, gone while this hero floats (0065).
@@ -246,9 +251,9 @@ public partial class HeroView : Node2D
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
         AddChild(_lines);
         _rod = NewRod();
-        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
+        foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady,
-                     _ownShotEnds })
+                     _ownShotEnds, _grinderRun, _grinderBite, _cutterStrike, _cutterRun, _cutterOff })
             AddChild(player);
         foreach (var player in _driverHeard.Players) AddChild(player);
         _tethers.Paint = PaintTethers;
@@ -484,7 +489,7 @@ public partial class HeroView : Node2D
                 _remote.Add(message.From, sent, _clockMs);
                 // Swings are swung as heard, not behind with the body, so the blade meets the wreck as the hit lands (0038).
                 var last = _heardChops.GetValueOrDefault(message.From).Last;
-                _heardChops[message.From] = (sent.Seen.Wields == Content.Weapons.Axe.Item, Busy.Chopping(last, sent.Seen.Busy));
+                _heardChops[message.From] = (Strokes.Of(sent.Seen.Wields) != null ? sent.Seen.Wields : null, Busy.Chopping(last, sent.Seen.Busy));
             }
         ShowOthers(ship, m, elapsedMs);
         _bodies.Frame(m, client.Id, progress, elapsedMs, Pointer());

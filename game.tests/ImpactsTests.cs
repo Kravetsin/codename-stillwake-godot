@@ -120,7 +120,9 @@ public class ImpactsTests
         Assert.Equal(0.2, Impacts.ShareOf(Drill), 9);
         Assert.Equal(1, Impacts.ShareOf(null));
         double axePerSecond = (double)World.TicksPerSecond / Spec.Weapons.Axe.Pace;
-        foreach (var weapon in Spec.Weapons.All)
+        // A tool slower than the axe throws a whole hit a blow: the spear and the sledgehammer.
+        Assert.Equal(1, Impacts.ShareOf(Spec.Weapons.Sledgehammer.Item));
+        foreach (var weapon in Spec.Weapons.All.Where(w => w.Pace <= Spec.Weapons.Axe.Pace))
             Assert.Equal(axePerSecond, Impacts.ShareOf(weapon.Item) * World.TicksPerSecond / weapon.Pace, 9);
     }
 

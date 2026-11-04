@@ -109,6 +109,29 @@ public class RuinsTests
         Assert.True(Content.Items.Get(Ruins.Shard).Gear);
     }
 
+    /// <summary>
+    /// The plasma cutter cuts wrecks only (salvage-tools): run on a charged belt, its hits on the cradle, the bush
+    /// and the alloy round them are taken, and touch none of them: no crack, no felling, no shock.
+    /// </summary>
+    [Fact]
+    public void ThePlasmaCutterLeavesAWallAPlantAndTheCradleAloneAndShocksNobody()
+    {
+        string cutter = Weapons.PlasmaCutter.Item;
+        var w = WithHeroes().GiveItems(0, (cutter, 1));
+        w.Put(Inventory.Slots + 2, new Stack("battery", 1, Charge.Battery));
+        w.Do(new Run(cutter, true)).Run();
+        var kinds = Kinds(w);
+        // The cradle's top right, the bush, the chamber's left wall.
+        foreach (int cell in new[] { w.At(5, 1), w.At(6, 3), w.At(0, 2) })
+            for (int i = 0; i < 20; i++) w.Do(HewTesting.Dig(w, cell, cutter)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Empty(w.M.Building.Cracks);
+        Assert.Equal(kinds, Kinds(w));
+        Assert.Equal("alloy", w.M.Grid.WallAt(w.At(0, 2))?.Id);
+        // The two breathe alike: no shock in the striker's suit.
+        Assert.Equal(0, Suit(w, 1) - Suit(w, 0));
+    }
+
     [Fact]
     public void AFasterToolPaysItsShareOfTheAxesShockSoASecondOfHittingCostsAlike()
     {

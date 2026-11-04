@@ -31,16 +31,17 @@ public partial class AsteroidDemo : CanvasLayer
 
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
-    /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
+    /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
     /// </summary>
-    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null)
+    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null)
     {
         var root = JsonNode.Parse(world.Save())!;
         int belt = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Charge.Belt);
         int back = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf("back");
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
-            slots.Add(i == 0 ? module != null ? Game.Dev.Testbed.FittedDrill(module) : new JsonObject { ["item"] = Spec.Weapons.Drill.Item, ["count"] = 1 }
+            slots.Add(i == 0 ? held != null ? new JsonObject { ["item"] = held, ["count"] = 1 }
+                : module != null ? Game.Dev.Testbed.FittedDrill(module) : new JsonObject { ["item"] = Spec.Weapons.Drill.Item, ["count"] = 1 }
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i == 9 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }

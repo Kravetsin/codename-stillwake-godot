@@ -26,6 +26,13 @@ death is two sources mixed as the audition mixed them. Its burner is the jetpack
 
 The warden's sounds are the guard audition's picks, cut and levelled as the sentry's: each the length given here from its attack, its last 45% faded out. Its landing is a hero's on alloy and its hit a tool's on alloy, so they are not here.
 
+The salvage tools' sounds (salvage-tools) are their audition's picks, cut and levelled as heard there: each mono 48 kHz, high-passed
+(40 Hz, the spear's whoosh 100 Hz and its hit 80 Hz); a one-shot from 5 ms before its onset (or the point given here) to the length
+given, its last share faded out; a loop that length from its start, closed on itself by a 100 ms crossfade where the head and its
+tail match best, encoded as OGG; each levelled to the max momentary loudness of what it stands beside, peaks at −3 dBFS at most:
+the loops as the power driver's (−23.5 LUFS), the grinder's bite and the cutter's strike −24.5, its cut-off −26, the whooshes as
+the axe's swing (−23.4), the spear's hit as the chop (−24.9), the sledgehammer's blow as the break (−21).
+
 | File | Source | Author | Licence |
 | ---- | ------ | ------ | ------- |
 | `atmosphere/hiss-1.ogg` | generated for Stillwake | Stillwake team | CC0 |
@@ -86,6 +93,13 @@ The warden's sounds are the guard audition's picks, cut and levelled as the sent
 | `crew/axe-swing-2.wav` | Freesound, "Swinging staff whoosh (strong) 06.wav", https://freesound.org/people/Nightflame/sounds/422511/ | Nightflame | CC0 |
 | `crew/axe-swing-3.wav` | Freesound, "Swinging staff whoosh (strong) 01.wav", https://freesound.org/people/Nightflame/sounds/422506/ | Nightflame | CC0 |
 | `crew/axe-swing-4.wav` | Freesound, "Swinging staff whoosh (strong) 03.wav", https://freesound.org/people/Nightflame/sounds/422508/ | Nightflame | CC0 |
+| `crew/cutter-off-1.wav` | Freesound, "Plasma cutter Ntg3.wav" (0.9 s from 36.25 s), https://freesound.org/people/jokallset/sounds/395890/ | jokallset | CC0 |
+| `crew/cutter-run-1.ogg` | Freesound, "Plasma cutter Ntg3.wav" (2.48 s from 67.00 s, looped), https://freesound.org/people/jokallset/sounds/395890/ | jokallset | CC0 |
+| `crew/cutter-strike-1.wav` | Freesound, "Plasma cutter Ntg3.wav" (0.7 s from 33.42 s), https://freesound.org/people/jokallset/sounds/395890/ | jokallset | CC0 |
+| `crew/grinder-bite-1.wav` | Freesound, "Angle grinder on/off grinding" (1 s from 14.75 s), https://freesound.org/people/Kinoton/sounds/347446/ | Kinoton | CC0 |
+| `crew/grinder-run-1.ogg` | Freesound, "Angle grinder on/off grinding" (2.01 s from 21.40 s, looped), https://freesound.org/people/Kinoton/sounds/347446/ | Kinoton | CC0 |
+| `crew/hammer-swing-1.wav` | Freesound, "Whoosh - Long Bamboo stick - Slow low - OS ST 2" (0.72 s from 0.15 s), https://freesound.org/people/Sadiquecat/sounds/855719/ | Sadiquecat | CC0 |
+| `crew/spear-thrust-1.wav` | Freesound, "Whoosh - Long Bamboo stick - OS ST 13" (0.55 s from 0.06 s), https://freesound.org/people/Sadiquecat/sounds/855844/ | Sadiquecat | CC0 |
 | `crew/harpoon-ready-1.wav` | Freesound, ".22 Bolt Action Long Rifle Rechambering" (0.95 s from its start), https://freesound.org/people/AlexCoover/sounds/706404/ | AlexCoover | CC0 |
 | `crew/harpoon-reel-1.ogg` | Freesound, "reeling.wav" (2.45 s, looped), https://freesound.org/people/BranndyBottle/sounds/464701/ | BranndyBottle | CC0 |
 | `crew/harpoon-shot-1.wav` | Freesound, "Dart/Arrow Trap." (0.85 s from its attack), https://freesound.org/people/jacobo1304/sounds/866990/ | jacobo1304 | CC0 |
@@ -143,6 +157,8 @@ The warden's sounds are the guard audition's picks, cut and levelled as the sent
 | `debris/drill-whir-1.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.3 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
 | `debris/drill-whir-2.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.62 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
 | `debris/drill-whir-3.wav` | Freesound, "DeWalt 18V drill, no-load spins" (150 ms at 6.95 s), https://freesound.org/people/megashroom/sounds/390162/ | megashroom | CC0 |
+| `debris/hammer-blow-1.wav` | Freesound, "Big stereo metal hit" (2 s), https://freesound.org/people/LPA134/sounds/329515/ | LPA134 | CC0 |
+| `debris/spear-hit-1.wav` | Freesound, "knife and metal beam vibrations clicks dings and sfx-133.wav" (0.37 s), https://freesound.org/people/CVLTIV8R/sounds/801736/ | CVLTIV8R | CC0 |
 | `flora/bush-1.wav` | Freesound, "bushhit.wav" (0.6 s from 0.003 s), https://freesound.org/people/j1987/sounds/106113/ | j1987 | CC0 |
 | `flora/cave-drip-1.wav` | Freesound, "Water Drop 01" (0.187 s from 0.003 s), https://freesound.org/people/LilMati/sounds/348022/ | LilMati | CC0 |
 | `flora/cave-drip-2.wav` | Freesound, "Water Drop 02" (0.119 s), https://freesound.org/people/LilMati/sounds/349873/ | LilMati | CC0 |

@@ -35,16 +35,17 @@ public struct AxeSwing
     public const double StopMs = 3 * 1000.0 / 60;
 
     /// <summary>
-    /// The share of a swing that bit something to draw at <paramref name="phase"/> (0075): its own up to the strike,
-    /// held there for <see cref="StopMs"/>, then the rest of it hurried to end with the swing, so the arm stops on
-    /// contact while the swing's clock, and every hit it times, runs on untouched.
+    /// The share of a stroke that bit something to draw at <paramref name="phase"/> (0075): its own up to the strike,
+    /// held there for <see cref="StopMs"/>, then the rest of it hurried to end with the stroke, so the arm stops on
+    /// contact while the stroke's clock, and every hit it times, runs on untouched. Of <paramref name="stroke"/>, the axe's by default.
     /// </summary>
-    public static double Shown(double phase)
+    public static double Shown(double phase, Stroke? stroke = null)
     {
-        double stop = StopMs / Ms;
-        if (phase <= HitAt) return phase;
-        if (phase <= HitAt + stop) return HitAt;
-        return HitAt + (phase - HitAt - stop) * (1 - HitAt) / (1 - HitAt - stop);
+        var of = stroke ?? Strokes.Axe;
+        double hit = of.HitShare, stop = StopMs / of.Ms;
+        if (phase <= hit) return phase;
+        if (phase <= hit + stop) return hit;
+        return hit + (phase - hit - stop) * (1 - hit) / (1 - hit - stop);
     }
 
     /// <summary>
@@ -58,14 +59,19 @@ public struct AxeSwing
 
     private double? _ms;
     private bool _struck, _whooshed;
+    /// <summary>The stroke playing: the axe's, or the tool's it began with (<see cref="Strokes"/>).</summary>
+    private Stroke? _stroke;
+
+    /// <summary>The stroke playing or last played: the axe's before any.</summary>
+    public readonly Stroke Stroke => _stroke ?? Strokes.Axe;
     /// <summary>Following another's hero, the last of its swings shown.</summary>
     private int? _followed;
 
     /// <summary>How many swings have begun: a new one is news to the others (<see cref="Busy.Swings"/>).</summary>
     public int Count { get; private set; }
 
-    /// <summary>How far through its swing the axe is, from 0 to 1; none between swings.</summary>
-    public readonly double? Phase => _ms / Ms;
+    /// <summary>How far through its stroke the tool is, from 0 to 1; none between strokes, nor while one rests out its pace.</summary>
+    public readonly double? Phase => _ms is double ms && ms < Stroke.Ms ? ms / Stroke.Ms : null;
 
     /// <summary>
     /// Where the swing playing is aimed, in thousandths of a cell: the pointer as it began, or the point
@@ -78,25 +84,26 @@ public struct AxeSwing
     /// <paramref name="wanted"/> and none is playing: the left button held or clicked, or, for another's
     /// hero, a swing sent and not yet shown. A swing just begun is drawn from its start.
     /// </summary>
-    public SwingStep Advance(double elapsedMs, bool wanted, Point at = default)
+    public SwingStep Advance(double elapsedMs, bool wanted, Point at = default, Stroke? stroke = null)
     {
         bool begun = false, hits = false, whooshes = false;
         double ms;
         if (_ms is double playing) ms = playing + Math.Min(elapsedMs, MostPerFrameMs);
-        else if (wanted) (ms, begun) = (0, Begin(at));
+        else if (wanted) (ms, begun) = (0, Begin(at, stroke));
         else return default;
-        if (!_whooshed && ms >= WhooshMs) whooshes = _whooshed = true;
-        if (!_struck && ms >= HitAt * Ms) hits = _struck = true;
-        if (ms >= Ms)
+        var now = Stroke;
+        if (!_whooshed && ms >= now.WhooshMs) whooshes = _whooshed = true;
+        if (!_struck && ms >= now.HitShare * now.Ms) hits = _struck = true;
+        if (ms >= now.PaceMs)
         {
             if (!wanted)
             {
                 _ms = null;
                 return new(begun, hits, whooshes);
             }
-            // Held, the next begins where this one ended, so the rhythm keeps the axe's pace exactly.
-            ms -= Ms;
-            begun = Begin(at);
+            // Held, the next begins where this one's pace ended, so the rhythm keeps the tool's pace exactly.
+            ms -= now.PaceMs;
+            begun = Begin(at, stroke);
         }
         _ms = ms;
         return new(begun, hits, whooshes);
@@ -108,9 +115,9 @@ public struct AxeSwing
     /// number not shown yet is swung once, at the point sent with it, after the swing playing, if any,
     /// ends; numbers passed meanwhile are swung as one.
     /// </summary>
-    public SwingStep Follow(double elapsedMs, Busy? sent)
+    public SwingStep Follow(double elapsedMs, Busy? sent, Stroke? stroke = null)
     {
-        var step = Advance(elapsedMs, sent is { Swings: var now } && now != _followed, sent?.At ?? default);
+        var step = Advance(elapsedMs, sent is { Swings: var now } && now != _followed, sent?.At ?? default, stroke);
         if (step.Begun) _followed = sent!.Value.Swings;
         return step;
     }
@@ -118,8 +125,9 @@ public struct AxeSwing
     /// <summary>Ends a swing at once, unstruck: the axe put away, the hand taken, the hero out.</summary>
     public void Stop() => _ms = null;
 
-    private bool Begin(Point at)
+    private bool Begin(Point at, Stroke? stroke)
     {
+        _stroke = stroke ?? Strokes.Axe;
         Count++;
         At = at;
         _struck = _whooshed = false;
