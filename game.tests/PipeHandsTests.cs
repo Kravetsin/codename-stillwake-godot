@@ -91,12 +91,61 @@ public class PipeHandsTests
     public void LaysNothingTheSimWouldRefuseAndSaysWhy()
     {
         var w = World();
+        w.Step(new LayPipe(At(0, 0), At(5, 0)));
         var hands = new PipeHands();
         Do(w, [new ButtonEvent(true, Middle(0, 0))], hands: hands);
-        Assert.Empty(Do(w, [new ButtonEvent(false, Middle(15, 3))], hands: hands));
-        Do(w, [new ButtonEvent(true, Middle(0, 0)), new ButtonEvent(false, Middle(15, 3)), new ButtonEvent(true, Middle(0, 0))], hands: hands);
-        hands.Update([], false, [], Middle(15, 3), w.M.Grid, w.M.Pipes, 0, _ => { });
-        Assert.Equal("pipes.tooLong", hands.Laying?.Why);
+        hands.Update([], false, [], Middle(5, 0), w.M.Grid, w.M.Pipes, 0, _ => { });
+        Assert.Equal("pipes.twice", hands.Laying?.Why);
+        Assert.Empty(Do(w, [new ButtonEvent(false, Middle(5, 0))], hands: hands));
+    }
+
+    // Forty cells wide: a vent (2×2) at (0, 0), its port its top-left.
+    private const int Wide = 40;
+    private static TestWorld Long() => new(Layout.Parse(["VV" + new string('.', Wide - 2), "VV" + new string('.', Wide - 2), new string('.', Wide)]));
+
+    [Fact]
+    public void ADragLedPastASpansReachIsJointedOnTheWayAndGoesOnFromThere()
+    {
+        var w = Long();
+        w.Step(new SetCreative(true));
+        var hands = new PipeHands();
+        var sent = new List<Command>();
+        hands.Update([new ButtonEvent(true, (0.5, 0.5))], false, [], (0.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        // Thirty cells away in one frame: jointed twelve on, the farthest a span reaches; again the next frame.
+        hands.Update([], false, [], (30.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Equal([new LayPipe(0, 12)], sent);
+        // Not laid yet: the next joint waits for it.
+        hands.Update([], false, [], (30.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Single(sent);
+        w.Step(sent[0]);
+        hands.Update([], false, [], (30.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Equal([new LayPipe(0, 12), new LayPipe(12, 24)], sent);
+        w.Step(sent[^1]);
+        Assert.Equal((24, 30, (string?)null), hands.Laying);
+        hands.Update([new ButtonEvent(false, (30.5, 0.5))], false, [], (30.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Equal(new LayPipe(24, 30), sent[^1]);
+    }
+
+    [Fact]
+    public void ASpanShortOfTubesIsCutToWhatTheTubesInHandLayAndNoneLaysNothing()
+    {
+        // One tube: a span of up to four cells.
+        var w = Long().Give(0, ("tube", 1));
+        var hands = new PipeHands();
+        var sent = new List<Command>();
+        hands.Update([new ButtonEvent(true, (0.5, 0.5))], false, [], (0.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        hands.Update([], false, [], (10.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Equal((0, 4, (string?)null), hands.Laying);
+        hands.Update([new ButtonEvent(false, (10.5, 0.5))], false, [], (10.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Equal([new LayPipe(0, 4)], sent);
+
+        // No tube left: not a cell takes it, and the sim's reason stands.
+        w.Step(sent[0]);
+        hands.Update([new ButtonEvent(true, (4.5, 0.5))], false, [], (4.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        hands.Update([], false, [], (8.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Equal((4, 8, "items.notEnough"), hands.Laying);
+        hands.Update([new ButtonEvent(false, (8.5, 0.5))], false, [], (8.5, 0.5), w.M.Grid, w.M.Pipes, 0, sent.Add);
+        Assert.Single(sent);
     }
 
     /// <summary>
