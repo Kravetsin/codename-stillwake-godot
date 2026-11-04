@@ -13,13 +13,13 @@ using Spec = Stillwake.Content;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// A script for the power driver (<c>-- --driver-demo=MODE</c>, power-driver) in a lit room: a 4Г—4 run of iron wall plans
+/// A script for the power driver (<c>-- --driver-demo=MODE</c>, power-driver) in a lit room: a 4×4 run of iron wall plans
 /// beside the hero, the driver first in the hotbar, plates to pay, and the left button held on the run from tick 68.
-/// <c>square</c> with a battery on the belt: the 2Г—2 square outlined and four walls going up at once; <c>cell</c> the same,
+/// <c>square</c> with a battery on the belt: the 2×2 square outlined and four walls going up at once; <c>cell</c> the same,
 /// switched to one cell by a right click first; <c>flat</c> with no battery: one cell, as the screwdriver; <c>short</c> the square
 /// with two plates for its four walls: two wait, and its tip says what all four still need; <c>hover</c> the pointer on the run,
 /// never pressed: the square shows before the press; <c>nothing</c> the left button held on the bare floor beside the run: no
-/// square, and the belt's charge, logged, stays as it was.
+/// square, and the belt's charge, logged, stays as it was; <c>station</c> a tank's blueprint under the pointer: aimed at whole, no square.
 /// </summary>
 public sealed class DriverDemo(Hands hands, string mode)
 {
@@ -72,8 +72,14 @@ public sealed class DriverDemo(Hands hands, string mode)
         _done = tick;
         switch (tick)
         {
+            case 10 when mode == "station":
+                log("a tank planned under the pointer");
+                client.Send(new PlacePlan((y0 + Side - 2) * w + x0, new Placement("machine", "tank")));
+                _pointer = (x0 + 1.1, y0 + Side - 0.9);
+                hands.Mouse.Buttons.OnPointer(false, 0, _pointer.Value);
+                break;
             case 10:
-                log($"a {Side}Г—{Side} run of iron walls planned");
+                log($"a {Side}×{Side} run of iron walls planned");
                 for (int y = y0; y < y0 + Side; y++)
                     for (int x = x0; x < x0 + Side; x++) client.Send(new PlacePlan(y * w + x, Placement.Wall("iron")));
                 // On the corner inside the run's bottom-left quarter: the square is that quarter.
@@ -87,7 +93,7 @@ public sealed class DriverDemo(Hands hands, string mode)
             case 60:
                 hands.Mouse.Buttons.OnPointer(false, 0, _pointer!.Value);
                 break;
-            case 68 when mode == "hover":
+            case 68 when mode is "hover" or "station":
                 break;
             case 68:
                 log($"the left button held {(mode == "nothing" ? "on the bare floor" : "on the run")}, the belt at {m.Items.BeltCharge(0).Charge}");

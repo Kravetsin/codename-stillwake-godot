@@ -77,9 +77,12 @@ public static class ItemIcons
     private static Texture2D Bake(string item, int side)
     {
         if (Baked.TryGetValue((item, side), out var icon)) return icon;
-        var held = HeldImage(HeldLook.Of(item)!.Picture);
+        var held = IconImage(HeldLook.Of(item)!.Picture);
         var rgba = ToolIcon.Bake(held.GetData(), held.GetWidth(), held.GetHeight(), side);
-        return Baked[(item, side)] = ImageTexture.CreateFromImage(Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba));
+        var image = Image.CreateFromData(side, side, false, Image.Format.Rgba8, rgba);
+        // Mipmapped, so a zoomed-out board fits it down smoothly too.
+        image.GenerateMipmaps();
+        return Baked[(item, side)] = ImageTexture.CreateFromImage(image);
     }
 
     // A tool's held picture: an icon bakes from it, by its drawn box.
@@ -87,6 +90,14 @@ public static class ItemIcons
     {
         if (!Held.TryGetValue(picture, out var held)) Held[picture] = held = Fine(HeldName(picture));
         return held;
+    }
+
+    // What a tool's icon bakes from: its icon picture, the held one drawn at many pixels a world pixel (icons/), else the held one.
+    private static Image IconImage(string picture)
+    {
+        string icon = $"icons/{HeldName(picture)}";
+        if (!Held.TryGetValue(icon, out var image)) Held[icon] = image = HiRes.Load(icon) ?? HeldImage(picture);
+        return image;
     }
 
     private static Texture2D HeldTexture(string picture)

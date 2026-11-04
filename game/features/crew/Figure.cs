@@ -163,9 +163,9 @@ public partial class Figure : Node2D
     /// <summary>
     /// Working a plan, the screwdriver in the front hand (0030), the arm reaching out a share
     /// <see cref="WorkReach"/> of its length, the tool held at one angle as a hand holds it. Each
-    /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it вЂ” the handle's ribs rolling
+    /// <see cref="TwistMs"/> the wrist turns for <see cref="TurnShare"/> of it — the handle's ribs rolling
     /// on three steps, the knuckles coming over so the hand, seen from the side, rises
-    /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on вЂ” then lets go and turns back
+    /// <see cref="TwistLift"/> pixels and presses <see cref="TwistPush"/> on — then lets go and turns back
     /// to grip again, the hand sinking.
     /// </summary>
     private const double TwistMs = 900, TurnShare = 0.6, TwistLift = 1.5, TwistPush = 0.6, WorkReach = 0.85;

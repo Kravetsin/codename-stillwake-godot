@@ -113,6 +113,23 @@ public class PowerDriverAimTests
     }
 
     [Fact]
+    public void OverAStationItAimsAtTheWholeOfItAsTheScrewdriverDoesNoSquare()
+    {
+        var w = Hall().Step(new SetCreative(true));
+        w.Step(new PlacePlan(C(5, 3), new Placement("machine", "tank")), new PlacePlan(C(9, 4), Scrap));
+        var hero = CellHero(2, 8);
+        var tank = new WorkAim(w.M.Building.PlansAt(C(5, 3))[0].Id, null);
+        Assert.True(Aiming.IsWhole(w.M, tank));
+        Assert.Null(Aiming.WorkedSquare(w.M, 0, hero, (6, 4), 2, tank));
+        // A wall's blueprint is a cell of its own: the square shows round it.
+        var wall = new WorkAim(w.M.Building.PlansAt(C(9, 4))[0].Id, null);
+        Assert.False(Aiming.IsWhole(w.M, wall));
+        Assert.NotNull(Aiming.WorkedSquare(w.M, 0, CellHero(8, 8), (9.5, 4.5), 2, wall));
+        // A broken machine's repair is the machine's whole too.
+        Assert.True(Aiming.IsWhole(w.M, new WorkAim(0, null, 7)));
+    }
+
+    [Fact]
     public void AMachineUnderSeveralCellsOfTheSquareIsWorkedOnce()
     {
         var w = Hall().Step(new SetCreative(true));

@@ -111,16 +111,26 @@ public sealed class StripParts(TipSpots tips)
         return label;
     }
 
-    /// <summary>What to show of <paramref name="id"/>: a blueprint as the build menu pictures it, a craft or a material as its item.</summary>
-    public TextureRect Picture(string id, int size) => new()
+    /// <summary>
+    /// What to show of <paramref name="id"/>: a blueprint as the build menu pictures it, a craft or a material as its item; a tool's
+    /// icon baked <see cref="ToolOver"/> times larger and drawn smoothly, so the board's zoom and a large screen keep it sharp.
+    /// </summary>
+    public TextureRect Picture(string id, int size)
     {
-        Texture = Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size),
-        ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
-        StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
-        TextureFilter = CanvasItem.TextureFilterEnum.Nearest,
-        CustomMinimumSize = new Vector2(size, size),
-        MouseFilter = Control.MouseFilterEnum.Ignore,
-    };
+        bool tool = Content.Upgrades.Of(id) == null && !_placements.ContainsKey(id) && HeldLook.Of(id) != null;
+        return new()
+        {
+            Texture = Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, tool ? size * ToolOver : size),
+            ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
+            StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
+            TextureFilter = tool ? CanvasItem.TextureFilterEnum.LinearWithMipmaps : CanvasItem.TextureFilterEnum.Nearest,
+            CustomMinimumSize = new Vector2(size, size),
+            MouseFilter = Control.MouseFilterEnum.Ignore,
+        };
+    }
+
+    /// <summary>How much larger than it is laid out a tool's icon is baked: the board's most zoom, 1.5, on a screen twice the reference.</summary>
+    private const int ToolOver = 3;
 
     /// <summary>Draws <paramref name="picture"/> as a shape, <paramref name="pencil"/> of the way to being understood.</summary>
     public static void Pale(TextureRect picture, double pencil)

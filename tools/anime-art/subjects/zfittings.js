@@ -185,6 +185,9 @@ Subjects.zfittings = function () {
   out('drone_lamp_low', bake({ w: 18, h: 12, draw: lampOf('#ff5040') }));
   out('hero_axe', bake({ w: 28, h: 14, draw: axe }));
   out('hero_drill', bake({ w: 33, h: 15, draw: drill(null) }));
+  // Their icons (icons/<picture>), as hero.js draws the hand tools': the same drawing at many pixels a world pixel.
+  for (const [name, pic] of [['hero_axe', { w: 28, h: 14, draw: axe }], ['hero_drill', { w: 33, h: 15, draw: drill(null) }]])
+    out(`icons/${name}`, bake({ ...pic, px: Math.ceil(Anime.ICON_LONG / pic.w) }));
   for (let f = 1; f <= 3; f++) out(`hero_drill_spin${f}`, bake({ w: 33, h: 15, draw: drill(f) }));
 };
 })();

@@ -41,7 +41,7 @@ public partial class HeroView
         // each cell, shown before the press; over nothing the pointer aims at one cell (power-driver).
         bool charged = driver != null && Content.Items.Get(driver.Item).Draw is int pays && m.Items.CanDrain(client.Id, pays);
         int side = Aiming.SideOf(driver, _ui.DriverSquare.Get(), charged);
-        var squared = aim != null && !passedOut ? Aiming.WorkedSquare(m, client.Id, _current, pointer!.Value, side) : null;
+        var squared = aim != null && !passedOut ? Aiming.WorkedSquare(m, client.Id, _current, pointer!.Value, side, aim.Work) : null;
         var square = squared?.Square;
         var targets = squared?.Targets;
         _ui.WorkedSquare = square?.Cells;

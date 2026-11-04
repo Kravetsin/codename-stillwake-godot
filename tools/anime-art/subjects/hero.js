@@ -832,12 +832,17 @@ Subjects.hero = function () {
   out('hero_cape_collar', plain(15, 6, capeCollar));
   // The tools. A state differs from its plain picture only by what changes: baked alike and, where the sizes differ, cropped.
   const crop = (c, w, h) => { const o = canvas(w * Px, h * Px); o.getContext('2d').drawImage(c, 0, 0); return o; };
+  // A held tool's icon (icons/<its picture>): the same drawing at many pixels a world pixel, so an icon fitted from it stays sharp.
+  const icon = (name, pic) => out(`icons/${name}`, bake({ light: LIGHT, ...pic, px: Math.ceil(Anime.ICON_LONG / pic.w) }));
   out('hero_harpoon', crop(plain(30, 11, harpoon(false)), 26, 11));
+  icon('hero_harpoon', { w: 26, h: 11, draw: harpoon(false) });
   out('hero_harpoon_loaded', plain(30, 11, harpoon(true)));
   out('hero_harpoon_rod', plain(24, 5, rod));
   out('hero_nailer', plain(26, 11, nailer(false)));
+  icon('hero_nailer', { w: 26, h: 11, draw: nailer(false) });
   out('hero_nailer_loaded', plain(26, 11, nailer(true)));
   out('hero_railgun', plain(40, 14, railgun));
+  icon('hero_railgun', { w: 40, h: 14, draw: railgun });
   out('hero_railgun_charged', plain(40, 14, railgunCharged));
   // Hand tools drawn to the fist (about 4 px across): their paths shrunk by Hand, the pen's weights kept the hero's.
   const L = Anime.LINE, W = { outer: L.outer / Hand, edge: L.edge / Hand, panel: L.panel / Hand };
@@ -847,6 +852,7 @@ Subjects.hero = function () {
   turns.forEach((t, i) => twist.getContext('2d').drawImage(t, i * 10 * Px, 0));
   out('hero_screwdriver', twist);
   out('hero_screwdriver_held', turns[0]);
+  icon('hero_screwdriver_held', { w: 10, h: 3, draw: driver(0), units: 1 / Hand, W });
   // The power driver to the same fist: charged in the hand; at work its chuck turned by the motor, or flat, by the wrist, as the screwdriver's.
   const strip = (mode) => {
     const c = canvas(30 * Px, 8 * Px);
@@ -854,6 +860,7 @@ Subjects.hero = function () {
     return c;
   };
   out('hero_powerDriver_held', small(10, 8, powerDriver({ f: 0, mode: 'idle' })));
+  icon('hero_powerDriver_held', { w: 10, h: 8, draw: powerDriver({ f: 0, mode: 'idle' }), units: 1 / Hand, W });
   out('hero_powerDriver', strip('run'));
   out('hero_powerDriver_flat', strip('flat'));
   // The helmet whole, for its card: shrunk a little into the pixel picture's box, which its round shell overhangs.
