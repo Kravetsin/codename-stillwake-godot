@@ -448,11 +448,10 @@ public partial class InventoryPanel : CanvasLayer
             foreach (var socket in _sockets) socket.Awaiting(_flights.Awaits(new SocketSpot(socket.Machine, socket.Module)));
             _flown = _flights.Busy;
         }
-        // A stack carried is the pointer: its icon centred on it, the arrow hidden while it is.
+        // A stack carried is the pointer: its icon centred on it, standing in for the arrow (pointer-looks).
         _held.Position = _mouse - _held.Size / 2;
         bool carrying = _held.Visible && !_ui.MenuOpen.Get();
-        var mode = carrying ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
-        if (Input.MouseMode != mode) Input.MouseMode = mode;
+        _ui.Arrow.StandIn("items", carrying);
         _ui.OnPointer.Set(carrying ? _held.Size.X : 0);
         Power(delta);
         // The equipment keeps its margin from the right edge, whatever the window's width and its own.

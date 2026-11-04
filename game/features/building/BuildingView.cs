@@ -165,6 +165,8 @@ public partial class BuildingView : Node2D
         ShowTray(onGrid ? CellAt(Over(pointer!.Value)) : null, grid, building);
         var hovered = _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
         Ghost(tool, (_drag?.Act ?? hovered) is { } shown && TakesMachines(shown) && pointer is { } ptr ? Over(ptr) : pointer, onGrid, grid, building, hovered);
+        // A card's ghost over the world is the pointer, standing in for the arrow (pointer-looks); a removal keeps the arrow.
+        _ui.Arrow.StandIn(nameof(BuildingView), (_drag?.Act ?? hovered) is PlaceTool && onGrid && GetViewport().GuiGetHoveredControl() == null);
         bool shafts = _hand.PlanOut.Get() && _hand.Builds;
         _shafts.Show(shafts ? grid : null, shafts ? PlatformsOf(grid, building) : [], shafts ? _ghostPlatform : []);
     }

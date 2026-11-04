@@ -46,6 +46,11 @@ public partial class HeroView
         var targets = squared?.Targets;
         _ui.WorkedSquare = square?.Cells;
         var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim, driver?.Item);
+        // A builder over the world is the pointer: its frame of what the next press works stands in for the arrow (pointer-looks).
+        bool framed = driver != null && !passedOut && !seated && pointer != null && GetViewport().GuiGetHoveredControl() == null;
+        _frame.Show(framed ? Aiming.FrameAt(m.Grid.Width, m.Grid.Height, pointer!.Value, driver!, _ui.DriverSquare.Get(), charged,
+            aim?.Work is { } own && Aiming.IsWhole(m, own)) : null, aim?.InReach ?? false);
+        _ui.Arrow.StandIn(nameof(PointerFrame), _frame.Visible);
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
         else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.

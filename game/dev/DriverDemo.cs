@@ -19,7 +19,7 @@ namespace Stillwake.Game.Dev;
 /// switched to one cell by a right click first; <c>flat</c> with no battery: one cell, as the screwdriver; <c>short</c> the square
 /// with two plates for its four walls: two wait, and its tip says what all four still need; <c>hover</c> the pointer on the run,
 /// never pressed: the square shows before the press; <c>nothing</c> the left button held on the bare floor beside the run: no
-/// square, and the belt's charge, logged, stays as it was; <c>station</c> a tank's blueprint under the pointer: aimed at whole, no square.
+/// square, and the belt's charge, logged, stays as it was; <c>station</c> a tank's blueprint under the pointer: aimed at whole, no square; another behind the hero, who stands before it.
 /// </summary>
 public sealed class DriverDemo(Hands hands, string mode)
 {
@@ -73,8 +73,9 @@ public sealed class DriverDemo(Hands hands, string mode)
         switch (tick)
         {
             case 10 when mode == "station":
-                log("a tank planned under the pointer");
+                log("a tank planned under the pointer, another behind the hero");
                 client.Send(new PlacePlan((y0 + Side - 2) * w + x0, new Placement("machine", "tank")));
+                client.Send(new PlacePlan((y0 + Side - 2) * w + x0 - 7, new Placement("machine", "tank")));
                 _pointer = (x0 + 1.1, y0 + Side - 0.9);
                 hands.Mouse.Buttons.OnPointer(false, 0, _pointer.Value);
                 break;
