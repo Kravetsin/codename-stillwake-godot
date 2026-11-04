@@ -222,6 +222,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
+| [salvage-drones](2026-11-03-salvage-drones.md) | Salvage drones | accepted |  |
 | [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
