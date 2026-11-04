@@ -59,6 +59,9 @@ public static class Weapons
     public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer];
 
     /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
+    /// <summary>What a cut wreck's loot comes to when its bonus is won, in thousandths of each line, rounded down: half again.</summary>
+    public const int CutBonus = 1500;
+
     public static bool Salvages(Weapon weapon) => weapon.Effects.Contains(Salvage);
 
     /// <summary>The weapon that is <paramref name="item"/>, or null for an item that deals no damage.</summary>

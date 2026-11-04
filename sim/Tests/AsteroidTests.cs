@@ -145,7 +145,8 @@ public class AsteroidTests
     [MemberData(nameof(EveryWeaponOnEveryKind))]
     public void BreaksAWreckOrAnAsteroidWithAnyWeaponItsDamageAHitTillItsHitPointsAreGone(string tool, string kind)
     {
-        var w = Facing(kind, Full, Full);
+        // The drill is carried already; any other weapon too, an electric one held to run.
+        var w = Facing(kind, Full, Full).GiveItems(0, (tool, 1));
         var weapon = Weapons.Of(tool)!;
         int hp = WreckageSpec.HpOf(kind)!.Value, hits = (hp + weapon.Damage - 1) / weapon.Damage;
         Hits(w, 1, tool).Run();

@@ -139,21 +139,40 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     /// debris clock (<see cref="Piece.Struck"/>), and at its hit points broken into its loot, floating where it was, anyone's. What
     /// a <see cref="HewWrecks"/> does to each wreck it strikes, and a shot to the ones it meets. A piece gone is let be. True when it broke.
     /// </summary>
-    public bool Hit(int peer, int id, int damage)
+    public bool Hit(int peer, int id, int damage) => Hit(peer, id, damage, cuts: false);
+
+    /// <summary>
+    /// <see cref="Hit(int, int, int)"/>, <paramref name="cuts"/> when a salvaging tool lands it (<c>Weapons.Salvages</c>): its damage
+    /// counted in <see cref="Piece.Cut"/> too. Whatever breaks a piece with some cut rolls for the bonus, a shot's hit too.
+    /// </summary>
+    private bool Hit(int peer, int id, int damage, bool cuts)
     {
         int at = IndexOf(id);
         if (at < 0) return false;
         var piece = State.Pieces[at];
         bool breaks = Breaks(id, damage);
         piece.Damage += damage;
+        if (cuts) piece.Cut += damage;
         piece.Struck = new Blow { By = peer, At = State.Clock };
         if (!breaks) return false;
         State.Pieces.RemoveAt(at);
-        var loot = LootOf(piece.Item, Random);
+        var loot = CutLoot(piece, LootOf(piece.Item, Random));
         Record(piece, loot);
         // Dropped by nobody, so whoever broke it may sweep it up at once, as anyone may.
         _items.DropAt(FloorStack.Nobody, loot, CellOf(piece.X, piece.Y, _grid.Width));
         return true;
+    }
+
+    /// <summary>
+    /// <paramref name="loot"/>, the draw of broken <paramref name="piece"/>, half again, rounded down a line, with a chance of its
+    /// <see cref="Piece.Cut"/> in its hit points: drawn only for a piece some cut, so a world no cutter touched draws as before.
+    /// </summary>
+    private IReadOnlyList<(string Item, int Count)> CutLoot(Piece piece, IReadOnlyList<(string Item, int Count)> loot)
+    {
+        if (piece.Cut <= 0) return loot;
+        int hp = Content.Wreckage.HpOf(piece.Item)!.Value;
+        if (Random.Below((ulong)hp) >= (ulong)piece.Cut) return loot;
+        return [.. loot.Select(l => (l.Item, l.Count * Content.Weapons.CutBonus / 1000))];
     }
 
     public IReadOnlyList<(string Item, int Count)>? Catch(int id)
@@ -318,7 +337,8 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     private void Apply(HewWrecks c)
     {
         int hit = _held.Damage(c.From, c.Tool);
-        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading)) Hit(c.From, piece.Id, hit);
+        bool cuts = Content.Weapons.Of(c.Tool) is { } weapon && Content.Weapons.Salvages(weapon);
+        foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading)) Hit(c.From, piece.Id, hit, cuts);
     }
 
     /// <summary>
