@@ -1,6 +1,7 @@
 # Salvage drones
 
-- Status: accepted
+- Status: accepted; a canister a launch for 30 s, leftover air lost, one load a trip and point 3 superseded by
+  [salvage-trips](2026-11-04-salvage-trips.md)
 - Date: 2026-11-03
 - Extends [0062](0062-drones-keep-machines-going.md): a second kind of drone, docked in the same bay
 
@@ -20,11 +21,13 @@ hero out on a jetpack.
 - **Its rules** (the source of truth: `sim/Logistics/Salvage/README.md`):
   - It launches at a bay's look when no ordinary drone did, charged to half, with a canister in the slot, a served crate
     with an empty slot in reach and a target whose trip one canister (`TripAir`, 30 s) and its charge cover; then one
-    canister is spent. Missing any, nothing is spent. A bay without power still launches a charged one.
+    canister is spent (superseded: air kept per bay, a canister opened only when short, 5 min, salvage-trips). Missing
+    any, nothing is spent. A bay without power still launches a charged one.
   - It flies through doorways shut or open (they stay shut), into vacuum. Targets are the pieces a net would catch and
     stacks floating in space in the bay's zone, nearest first, pieces before stacks; no two drones go for one.
   - It catches a piece (its loot rolled, recorded found) or lifts a stack, brings each load to the nearest crate with
-    room, then goes for the next target, until air or charge runs low and it turns home; leftover air is lost.
+    room, then goes for the next target, until air or charge runs low and it turns home; leftover air is lost
+    (superseded: up to four catches a load, leftover air kept by the bay, salvage-trips).
   - With no way home left it drops, it and its load floating stacks. On a planet it never launches.
 - **Its look:** the bay «Хребет с кронштейнами» (`wall`: a spine bolted to the wall, four cantilever arms, the fuel slot's
   canister in a tilted breech, a valve, a vane, a lamp, a beacon) and the drone «Сетчатая рама» (`netter`: a frame with a
@@ -40,7 +43,7 @@ hero out on a jetpack.
 1. The salvage drone has a battery like any drone; its pad lamps show its charge (user).
 2. The fuel slot's dial shows nothing: its needle is fixed, too small to read (user). Its art has three states: no
    canister, a canister in, a canister feeding.
-3. A target one full canister cannot cover is skipped (user).
+3. A target one full canister cannot cover is skipped (user). Superseded: the air kept and one canister (salvage-trips).
 4. A hero's body floating in space is left.
 5. A bay without power launches a salvage drone only if it is charged, as ordinary drones (user).
 6. One launch per bay per look, the ordinary one first.
@@ -50,7 +53,8 @@ hero out on a jetpack.
 ## Deliberately not handled
 
 - Logistics drones do not top up the fuel slot: canisters come by hand, for now.
-- Leftover air is not kept on docking: a field that outlives the flight costs more than it gives.
+- Leftover air is not kept on docking: a field that outlives the flight costs more than it gives. Superseded: kept per
+  bay (salvage-trips).
 - Wreckage, asteroids and clods are not taken, and nets are not emptied: other tools' work.
 - Target and crate order is Manhattan, as ordinary drones', not path length.
 - A dropped drone is not recalled: it drifts away like any floating stack.
