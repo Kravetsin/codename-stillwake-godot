@@ -10,8 +10,13 @@ public static class CapsulePath
     public const int Seen = 160;
     /// <summary>How far it goes while seen, in cells: up and astern.</summary>
     public const double Rise = 48, Astern = 28;
-    /// <summary>How big it is drawn at its station and how small it is when it goes.</summary>
-    public const double Near = 3, Far = 0.4;
+    /// <summary>How big it is drawn at its station, its picture's own size, and how small it is when it goes.</summary>
+    public const double Near = 1, Far = 0.13;
+    /// <summary>Ticks its flame burns the longer as it lifts off and as it touches down (trade-capsule-ink).</summary>
+    public const int Kick = 10;
+
+    /// <summary>Whether its flame kicks with <paramref name="left"/> ticks of its <paramref name="flight"/> left: just off its station, or just back.</summary>
+    public static bool Kicks(double left, int flight) => flight - left < Kick || left < Kick;
     /// <summary>The share of the way past which it fades out.</summary>
     public const double FadeFrom = 0.8;
 

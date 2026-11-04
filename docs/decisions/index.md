@@ -238,3 +238,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |
 | [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
+| [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |

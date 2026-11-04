@@ -55,9 +55,9 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`: the picked bay and salvage drone; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
 | `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb over the hero, straight ink, no finish |
 | `keylens`, `edgekeys` | `key_lens_*`, `key_<key>_<state>`: the tablet's lenses, no finish |
-| `signs`, `credit`, `gauge` | `sign_*`: a screen's bolt, red bolt, plug, wrench; `credit`: the upright chip (credit-counter); `gauge_lamp[Wide]_<shape>_<tone>`: the air lamps |
+| `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench; `credit`: the chip (credit-counter); `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |
-| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames are repeating runs, so a 9-slice stretch has no seam |
+| `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat, so a 9-slice has no seam |
 
 ## Run
 
@@ -66,7 +66,7 @@ node tools/anime-art/export.js              # every subject
 node tools/anime-art/export.js room caves   # some
 ```
 
-Needs Node 22 or later and Edge or Chrome (`ANIME_BROWSER` for another path). Then `tools/snap.ps1` imports the pictures.
+Needs Node 22+ and Edge or Chrome (`ANIME_BROWSER` for another). Then `tools/snap.ps1` imports the pictures.
 
 ## Add a subject
 
