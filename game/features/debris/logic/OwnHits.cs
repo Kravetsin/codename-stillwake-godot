@@ -6,10 +6,10 @@ using Stillwake.Sim.Debris;
 namespace Stillwake.Game.Features.Debris;
 
 /// <summary>
-/// The pieces this peer's own hits have just run on (0042): out in space a hit is heard by its striker
-/// alone, through the suit. A hit seen in flight at one read and gone from it at the next has run, landed
-/// or refused, on the wrecks its fan struck when first seen (the fan of rays). Read every frame after the session's ticks
-/// and the hero's hits sent, so every own hit is seen in flight before its tick can run.
+/// The pieces this peer's own hits have just been sent at and have just run on (0042): out in space a hit is heard by its
+/// striker alone, through the suit, and felt as it is sent (0014). A hit seen in flight at one read and gone from it at the
+/// next has run, landed or refused, on the wrecks its fan struck when first seen (the fan of rays). Read every frame after
+/// the session's ticks and the hero's hits sent, so every own hit is seen in flight before its tick can run.
 /// </summary>
 public sealed class OwnHits
 {
@@ -17,6 +17,8 @@ public sealed class OwnHits
     private Dictionary<Command, IReadOnlyList<int>> _flying = new(ReferenceEqualityComparer.Instance), _still = new(ReferenceEqualityComparer.Instance);
     /// <summary>Each piece an own hit ran on, and the weapon of the last that did.</summary>
     private readonly Dictionary<int, string> _ran = [];
+    /// <summary>Each piece an own hit first seen at this read strikes, and the weapon of the last that does.</summary>
+    private readonly Dictionary<int, string> _sent = [];
 
     /// <summary>
     /// Takes this peer's commands in flight now (<c>Client.InFlight</c>), each wreck hit new among them striking the pieces
@@ -25,9 +27,18 @@ public sealed class OwnHits
     public void Read(IReadOnlyList<Command> inFlight, Func<HewWrecks, IReadOnlyList<int>> struck)
     {
         _ran.Clear();
+        _sent.Clear();
         _still.Clear();
         for (int i = 0; i < inFlight.Count; i++)
-            if (inFlight[i] is HewWrecks hew) _still[hew] = _flying.TryGetValue(hew, out var pieces) ? pieces : struck(hew);
+        {
+            if (inFlight[i] is not HewWrecks hew) continue;
+            if (_flying.TryGetValue(hew, out var pieces)) _still[hew] = pieces;
+            else
+            {
+                _still[hew] = pieces = struck(hew);
+                foreach (int piece in pieces) _sent[piece] = hew.Tool;
+            }
+        }
         foreach (var (hit, pieces) in _flying)
             if (!_still.ContainsKey(hit))
                 foreach (int piece in pieces) _ran[piece] = ((HewWrecks)hit).Tool;
@@ -39,4 +50,7 @@ public sealed class OwnHits
 
     /// <summary>The weapon of this peer's hit that ran on <paramref name="piece"/> since the read before the last; none for none.</summary>
     public string? ToolOn(int piece) => _ran.GetValueOrDefault(piece);
+
+    /// <summary>The weapon of this peer's hit first seen in flight at the last read striking <paramref name="piece"/>; none for none.</summary>
+    public string? SentOn(int piece) => _sent.GetValueOrDefault(piece);
 }
