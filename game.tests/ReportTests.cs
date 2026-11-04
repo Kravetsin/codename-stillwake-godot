@@ -113,6 +113,7 @@ public class ReportTests
         var s = TwoRooms();
         Tell(s, HeroIn(6, 4));
         s.World.Step([new SetDoor(Door, true)]);
+        for (int i = 0; i < Stillwake.Content.Doors.SwingTicks; i++) s.World.Step([]);
         // The open doorway makes one room: walking into the left part is no change of room.
         Tell(s, HeroIn(2, 4));
         s.World.Step([new SetDoor(Door, false)]);

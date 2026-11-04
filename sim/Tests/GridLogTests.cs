@@ -5,6 +5,7 @@ using Stillwake.Sim.Grid;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
+using Doors = Stillwake.Content.Doors;
 using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
@@ -119,7 +120,7 @@ public class GridLogTests
     {
         var w = new Scenario(Layout.Parse(["#D#  ", "#..V "]), doubled: true);
         int before = w.M.Grid.Version;
-        w.Do(new SetDoor(w.At(1, 0), true)).Run().Do(new SetDoor(w.At(1, 0), false)).Do(new Place(w.At(3, 0), Placement.Wall("iron"))).Run();
+        w.Do(new SetDoor(w.At(1, 0), true)).Run(Doors.SwingTicks).Do(new SetDoor(w.At(1, 0), false)).Do(new Place(w.At(3, 0), Placement.Wall("iron"))).Run();
         Assert.Equal([new CellChange(w.At(3, 0), GridLayers.Structure | GridLayers.Material)], w.M.Grid.ChangedSince(before));
         int built = w.M.Grid.Version;
         var vent = w.M.Grid.Footprint("vent", w.At(3, 1))!;
@@ -133,7 +134,7 @@ public class GridLogTests
     public void KnowsNoVersionFromBeforeALoad()
     {
         var w = new Scenario("#D#\n#.#", cells: true);
-        w.Do(new SetDoor(1, true)).Run().Do(new SetDoor(1, false)).Run();
+        w.Do(new SetDoor(1, true)).Run(Doors.SwingTicks).Do(new SetDoor(1, false)).Run();
         int version = w.M.Grid.Version;
         Assert.Equal(2, version);
         w.Reload();

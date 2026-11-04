@@ -134,11 +134,13 @@ public class ModulesTests
             if (edits.Below(2) == 0) commands.Add(ShipEdit(live.Grid, edits, 6, 6, 64, 48));
             // Out in the space above the ship, so what is built grows and shrinks.
             if (edits.Below(3) == 0) commands.AddRange(SpaceEdit(live.Grid, edits, 38, 0, 2, 6));
-            // Now and then a door worked more times in a tick than the grid's log holds: every reader falls behind it.
-            int door = live.Grid.StructureLayer.IndexOfAny(Structure.DoorClosed, Structure.DoorOpen);
-            if (i % 100 == 60 && door >= 0)
+            // Now and then a wall in space built and cleared more times in a tick than the grid's log holds: every reader falls
+            // behind it. A door would take one toggle a swing (2026-11-04-door-swing).
+            int blank = 36;
+            if (i % 100 == 60 && live.Grid.StructureAt(blank) == Structure.Empty && live.Grid.BackLayer[blank] == Back.None)
             {
-                commands.AddRange(Enumerable.Range(0, ChangeLog.DefaultCapacity + 2).Select(k => new SetDoor(door, k % 2 == 0)));
+                commands.AddRange(Enumerable.Range(0, ChangeLog.DefaultCapacity + 2)
+                    .Select(k => k % 2 == 0 ? (Command)new Place(blank, Placement.Wall()) : new ClearAt(blank, "structure")));
                 // With a vent or a tank taken apart, which only the log would tell the air of.
                 var gone = live.Grid.MachinesOf(i % 200 == 60 ? "vent" : "tank");
                 if (gone.Count > 0) commands.Add(new ClearAt(gone[(int)rng.Below((uint)gone.Count)].Cell, "machine"));

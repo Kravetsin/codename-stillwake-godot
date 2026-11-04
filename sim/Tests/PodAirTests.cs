@@ -3,6 +3,7 @@ using Stillwake.Sim.Items;
 using Stillwake.Sim.Pipes;
 using Xunit;
 using Air = Stillwake.Content.Air;
+using Doors = Stillwake.Content.Doors;
 using FurnaceContent = Stillwake.Content.Furnace;
 using Machines = Stillwake.Content.Machines;
 using Slot = Stillwake.Sim.Items.Place;
@@ -83,7 +84,7 @@ public class PodAirTests
     public void VentsThroughAnOpenDoorAndRefillsOnceItIsShut()
     {
         var w = Filled(Room());
-        w.Do(new SetDoor(Door, true)).Run(20);
+        w.Do(new SetDoor(Door, true)).Run(Doors.SwingTicks);
         Assert.Equal(0, Aired(w));
         w.Do(new SetDoor(Door, false)).Run();
         Filled(w);
