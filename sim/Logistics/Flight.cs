@@ -91,8 +91,9 @@ public sealed partial class LogisticsModule
     /// <summary>
     /// A tick of one drone: it pays the tick's draw from its charge, and a salvage drone a tick of its air, then flies.
     /// Ahead blocked, it turns back to the centre it left. At a centre it acts: in a cell it may not be in, its bay gone,
-    /// or with no way home it drops where it is; in its goal it arrives; on a job whose goal it can no longer reach, or
-    /// with no more charge, or air, than the way home and <see cref="Spare"/> cells, it turns home, its cargo with it;
+    /// or with no way home it drops where it is; in its goal it arrives; a salvage drone whose target it can no longer reach
+    /// drops it for the next (<see cref="NextOut"/>); on a job whose goal it can no longer reach, or with no more charge, or
+    /// air, than the way home and <see cref="Spare"/> cells, it turns home, its cargo with it;
     /// else it takes the first step of a path found from here. Between centres it moves on.
     /// </summary>
     private void Fly(Drone d)
@@ -148,6 +149,12 @@ public sealed partial class LogisticsModule
                 {
                     Drop(d);
                     return;
+                }
+                if (salvage && step < 0 && d.Leg == Leg.Source)
+                {
+                    // Its target out of reach from here, under the hull, say: dropped for the next, never followed.
+                    NextOut(d, bay);
+                    continue;
                 }
                 if (d.Leg != Leg.Home && (step < 0 || d.Stack.Charge < Cost(bay, home + Spare) || (salvage && d.Air < TicksOver(bay, home + Spare))))
                 {

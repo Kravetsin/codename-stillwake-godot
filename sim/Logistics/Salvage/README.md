@@ -34,9 +34,10 @@ machine. Ordinary drones do not change and never leave the air. Drones in genera
   first, then pieces before stacks, then the lowest id. On a planet there are none: no launch, nothing spent.
 - **Each tick** it pays charge as any drone and one `Air`; short of either it drops. It turns home `Low` when charge or
   air no longer covers the way home plus `Spare`.
-- **At the target** it catches the piece (`Catch`: the loot rolled, recorded found) or lifts the stack whole (`Lift`). A
-  target gone, reeled, out of space or of the zone, or taken first the same tick (hero, net), sends it to the next;
-  the canister is not refunded.
+- **At the target**, and only there, in the cell of its middle, it catches the piece (`Catch`: the loot rolled, recorded
+  found) or lifts the stack whole (`Lift`). A target gone, reeled, out of space or of the zone, out of its reach (no path
+  from the drone in its flood: drifted under the hull, say), or taken first the same tick (hero, net), is dropped at the
+  next cell centre for the next target, or home; the canister is not refunded.
 - **Delivery:** to the nearest served crate in its flood with room for any stack of the load. It puts in what fits, in
   load order, the rest to the next crate with room; with none, the rest lies at its cell beside the last crate tried. A
   crate gone or switched off on the way: the next one, else the load lies where the drone is.

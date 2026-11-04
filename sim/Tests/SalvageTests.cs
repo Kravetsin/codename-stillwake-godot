@@ -3,6 +3,7 @@ using Stillwake.Sim.Debris;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Logistics;
+using Stillwake.Sim.Rooms;
 using Xunit;
 using DebrisSpec = Stillwake.Content.Debris;
 using Move = Stillwake.Sim.Items.Move;
@@ -631,6 +632,41 @@ public class SalvageTests
     }
 
     // Walls, drops, planets, saves.
+
+    [Fact]
+    public void APieceDriftingUnderTheHullOutOfReachIsDroppedForTheNextAndNeverTakenFromAfar()
+    {
+        // A keel closes the space under the hull off from the open space: walls, and floors at rows 12 and 13, space to rooms yet
+        // no way through for a drone. The piece a drone goes for drifts through the floor and on under the hull.
+        var w = Out();
+        foreach (int y in Enumerable.Range(8, 8))
+            w.Do(new Place(Cell(30, y), y is 12 or 13 ? new Placement("structure", "floor") : Placement.Wall()));
+        foreach (int x in new[] { 28, 29 }) w.Do(new Place(Cell(x, 8), Placement.Wall()));
+        w.Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(Cell(30, 12)));
+        Assert.Equal(RoomsModule.Space, w.M.Rooms.RoomAt(Cell(25, 12)));
+        var under = Drift(w, "scrapChunk", 31, 12);
+        var next = Drift(w, "scrapChunk", 36, 0);
+        Assert.True(RunUntil(w, () => Salvaging(w).Any(d => d.Cell % Width >= 28), 200));
+        var d = Salvaging(w).Single();
+        Assert.Equal(under.Id, d.Piece);
+        // Into the floor before the drone gets there, then under the hull: dropped at the next centre for the other piece.
+        under.Speed = 110;
+        Assert.True(RunUntil(w, () =>
+        {
+            Assert.Contains(under, w.M.Debris.Pieces);
+            return under.X < 29 * 1000 + 500 && d.Piece == next.Id && d.Leg == Leg.Source;
+        }, 60), $"still going for {d.Piece} on {d.Leg} at {d.Cell % Width},{d.Cell / Width}");
+        // Never taken from afar: only the other is caught, the one under the hull left drifting.
+        Assert.True(RunUntil(w, () =>
+        {
+            Assert.Contains(under, w.M.Debris.Pieces);
+            return Home(w);
+        }, 600));
+        Assert.Equal(1, Held(w, Near(w), "scrapChunk") + Held(w, Far(w), "scrapChunk"));
+        Assert.DoesNotContain(next, w.M.Debris.Pieces);
+    }
 
     /// <summary>A salvage drone out in space with the chunk it took, the door then walled up behind it.</summary>
     private static Scenario CutOff()
