@@ -961,6 +961,29 @@ public class HeroTests
     }
 
     [Fact]
+    public void FloatsUntiedInARoomWithNoBackWallsAndFallsWhereTheyBegin()
+    {
+        // Walled all round; the left of the room has no back walls, the right has.
+        var ship = ShipFrom("""
+            ##########
+            #   .....#
+            #   .....#
+            #   .....#
+            ##########
+            """);
+        var afloat = new Hero(3 * Block, 4 * Block - 400, 0, 0, false, 1);
+        Assert.True(ship.Space(afloat.BodyCell(ship.Width)));
+        var still = Settle(ship, afloat, Still);
+        Assert.Equal((afloat.X, afloat.Y), (still.X, still.Y));
+        var swum = Settle(ship, afloat, Left);
+        Assert.Equal(Block + Half, swum.X);
+        Assert.Null(swum.Anchor);
+        // Under back walls, the ship's gravity: it falls to the floor.
+        var held = Settle(ship, new Hero(7 * Block, 4 * Block - 400, 0, 0, false, 1), Still);
+        Assert.Equal(4 * Block, held.Y);
+    }
+
+    [Fact]
     public void TiesATetherLeavingAShipOpenToSpaceAllThroughNeverLettingTheHeroDriftOff()
     {
         // Every door broken out: the whole wreck is space, yet still the hull.
