@@ -97,8 +97,5 @@ public partial class Hands : Node2D
         _air.Frame(client, m, pointer, elapsedMs);
         Menu.Frame(m);
         _tip.Frame(pointer);
-        // The arrow is hidden while anything stands in for it, whoever said so this frame (pointer-looks).
-        var mode = Ui.Arrow.Hidden(Ui.MenuOpen.Get()) ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
-        if (Input.MouseMode != mode) Input.MouseMode = mode;
     }
 }

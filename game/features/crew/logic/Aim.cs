@@ -283,21 +283,6 @@ public static class Aiming
         driver is { Area: > 1 } d && square && charged ? d.Area : 1;
 
     /// <summary>
-    /// What the pointer is drawn as over the world with <paramref name="driver"/> in hand (pointer-looks): the cells the next press
-    /// works at <paramref name="point"/>, the square of <see cref="SideOf"/> but one cell on a <paramref name="whole"/> thing; switched
-    /// to the square with no charge, the cell and the square dotted round it, so the mode stays in sight. None off the grid.
-    /// </summary>
-    public static ((int X, int Y, int Side) Solid, (int X, int Y, int Side)? Dotted)? FrameAt(
-        int width, int height, (double X, double Y) point, Spec.Screwdriver driver, bool square, bool charged, bool whole)
-    {
-        int side = whole ? 1 : SideOf(driver, square, charged);
-        if (SquareAt(width, height, point, side) is not { } solid) return null;
-        (int, int, int)? dotted = driver.Area > 1 && square && !charged && SquareAt(width, height, point, driver.Area) is { } d
-            ? (d.X, d.Y, driver.Area) : null;
-        return ((solid.X, solid.Y, side), dotted);
-    }
-
-    /// <summary>
     /// How fast <paramref name="driver"/> works (power-driver): at most its <c>Work</c> ticks on one plan a tick, and its
     /// <c>Area</c> squared over all, while it runs or needs no charge; an electric one flat works as the basic screwdriver.
     /// </summary>
