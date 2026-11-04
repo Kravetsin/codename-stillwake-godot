@@ -34,10 +34,25 @@ public static class Rig
     /// <summary>Hips apart, so two legs read as two even standing still.</summary>
     public const double HipApart = W * 0.14;
 
+    /// <summary>
+    /// How far a hip <paramref name="hipX"/> ahead sits higher in the body turned <paramref name="tilt"/>, so the hips stay level as
+    /// it leans: turned about its middle, the front hip came lower, and a run's step on the near leg sat a pixel under the far one's.
+    /// </summary>
+    public static double HipRise(double hipX, double tilt) => hipX * Math.Sin(2 * tilt) / 2;
+
     public static readonly Segments Arm = new(H * 0.145, H * 0.145, W * 0.27);
 
     /// <summary>A leg's reach is the hip's height.</summary>
     public static readonly Segments Leg = new(Hip * 0.5, Hip * 0.5, W * 0.34);
+
+    /// <summary>
+    /// The boot under the shin, as every shin picture draws it: the ankle it turns at <see cref="Sole"/> pixels over its sole, which
+    /// runs <see cref="Heel"/> back of the ankle and <see cref="Toe"/> ahead of it. A leg reaches its sole's middle (<see cref="Leg"/>).
+    /// </summary>
+    public const double Sole = 4, Heel = 3.25, Toe = 5.75;
+
+    /// <summary>A leg from the hip to the ankle: the shin without the boot under it.</summary>
+    public static readonly Segments ToAnkle = new(Leg.Upper, Leg.Lower - Sole, Leg.Width);
 
     /// <summary>Where a limb bent as <paramref name="bend"/> ends, from its joint.</summary>
     public static Vec EndOf(Bend bend, Segments size)

@@ -81,7 +81,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 - **Steps** (0106): a walk steps a cell up or down where the box fits; two up stop it. Drawn eased.
 - **Jump and walk feel** (0089): coyote time, jump buffer, a short hop on letting Space go, eased apex,
   `AirControl` aloft.
-- **The figure answers its motion** (0090), from what is sent: friends move alike.
+- **The figure answers its motion** (0090, hero-gait), as sent: friends move alike.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).

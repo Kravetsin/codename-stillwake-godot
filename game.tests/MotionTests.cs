@@ -95,7 +95,10 @@ public class MotionTests
             {
                 var still = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: Momentum.AtRest));
                 var moved = LimbsOf(Pose.Run, hero, new Moment(0, 0, Momentum: f.Now));
-                Assert.Equal(still with { Tilt = moved.Tilt }, moved);
+                Assert.Equal((still.FrontArm, still.BackArm), (moved.FrontArm, moved.BackArm));
+                double knee = new[] { still.FrontLeg.Upper - moved.FrontLeg.Upper, still.FrontLeg.Lower - moved.FrontLeg.Lower, still.BackLeg.Upper - moved.BackLeg.Upper, still.BackLeg.Lower - moved.BackLeg.Lower }.Max(Math.Abs);
+                // Only the knee on the floor gives, so its boot stays on it as the body leans.
+                Assert.True(knee < 0.15, $"legs moved {knee}");
             }
     }
 
@@ -177,7 +180,7 @@ public class MotionTests
         Assert.True(Lift(1.8) < Lift(1) - 2);
         Assert.True(Lift(1) < Lift(0.35) - 1);
         var deep = LimbsOf(Pose.Stand, hero, new Moment(0, 0, 2.0 / 3, Momentum: new Momentum(Depth: 1.8)));
-        PoseTests.Close(Rig.Hip, Math.Max(Rig.EndOf(deep.FrontLeg, Rig.Leg).Y, Rig.EndOf(deep.BackLeg, Rig.Leg).Y) - deep.Lift, 5);
+        Assert.True(Math.Abs(PoseTests.Soles(deep).Max(p => p.Y)) < 0.05);
     }
 
     [Fact]

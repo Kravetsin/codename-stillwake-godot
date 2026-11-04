@@ -113,17 +113,53 @@ public class PoseTests
         Close(0, Leg(Stride.Walk / 2, 0).Upper);
     }
 
-    [Fact]
-    public void KeepsAFootOnTheFloorStandingAndWalkingNeverFloatingNorSunkIn()
+    /// <summary>The heel's and the toe's corner of each boot's sole, in pixels from the feet as drawn: turned with the body about its middle, raised by its lift; +y down.</summary>
+    internal static IEnumerable<Vec> Soles(Limbs l)
     {
-        for (int i = 0; i < 24; i++)
-            foreach (var pose in new[] { Pose.Stand, Pose.Walk })
+        foreach (var (leg, foot, hipX) in new[] { (l.FrontLeg, l.FrontFoot, Rig.HipApart), (l.BackLeg, l.BackFoot, -Rig.HipApart) })
+        {
+            var ankle = Rig.EndOf(leg, Rig.ToAnkle);
+            double turn = leg.Upper + leg.Lower + foot;
+            foreach (double along in new[] { -Rig.Heel, Rig.Toe })
             {
-                var l = LimbsOf(pose, pose == Pose.Walk ? Walking : Standing, At(i * 0.4, i * 170));
-                double lowest = Math.Max(Rig.EndOf(l.FrontLeg, Rig.Leg).Y, Rig.EndOf(l.BackLeg, Rig.Leg).Y);
-                Close(Rig.Hip, lowest - l.Lift, 5);
-                Assert.True(l.Lift <= 0);
+                double x = hipX + ankle.X + along * Math.Cos(turn) + Rig.Sole * Math.Sin(turn);
+                double y = -Rig.Hip - Rig.HipRise(hipX, l.Tilt) + ankle.Y - along * Math.Sin(turn) + Rig.Sole * Math.Cos(turn) + Rig.H / 2;
+                double c = Math.Cos(l.Tilt), s = Math.Sin(l.Tilt);
+                yield return new Vec(x * c - y * s, x * s + y * c - Rig.H / 2 - l.Lift);
             }
+        }
+    }
+
+    [Fact]
+    public void StandsOnItsSolesNeverSunkInNorFloatingLeaningOrNot()
+    {
+        var moments = new List<(Pose Pose, Hero Hero, Moment Moment)>();
+        for (int i = 0; i < 40; i++)
+        {
+            moments.Add((Pose.Stand, Standing, At(0, i * 170)));
+            moments.Add((Pose.Walk, Walking, At(i * Stride.Walk / 40)));
+            moments.Add((Pose.Walk, Walking, At(i * Stride.Walk / 40) with { Momentum = new Momentum(Lean: HeroMotion.Lean.Forward) }));
+            moments.Add((Pose.Stand, Standing, At(0) with { Landing = i / 40.0, Momentum = new Momentum(Depth: 1.8) }));
+            moments.Add((Pose.Stand, Standing, At(0) with { Momentum = new Momentum(Lean: -HeroMotion.Lean.Back * i / 40) }));
+        }
+        foreach (var (pose, hero, moment) in moments)
+        {
+            double lowest = Soles(LimbsOf(pose, hero, moment)).Max(p => p.Y);
+            Assert.True(Math.Abs(lowest) < 0.05, $"{pose} at {moment.Travelled}, {moment.TimeMs} ms, landing {moment.Landing}: lowest sole at {lowest}");
+        }
+        // A run leaves the floor between steps, but never goes through it, leaning well in.
+        for (int i = 0; i < 40; i++)
+        {
+            var run = LimbsOf(Pose.Run, Walking with { Vx = 440 }, At(i * Stride.Run / 40) with { Momentum = new Momentum(Lean: HeroMotion.Lean.Forward) });
+            Assert.True(Soles(run).Max(p => p.Y) < 0.05, $"a run's sole {Soles(run).Max(p => p.Y)} under the floor at {i}");
+        }
+        // Standing, both boots flat on it.
+        Assert.All(Soles(LimbsOf(Pose.Stand, Standing, At(0))), p => Assert.True(Math.Abs(p.Y) < 0.1, $"{p}"));
+    }
+
+    [Fact]
+    public void AWalkSinksWithBothFeetApartAndRisesPassingOverTheStraightLeg()
+    {
         // Lowest with both feet apart, highest passing over the straight leg.
         double apart = LimbsOf(Pose.Walk, Walking, At(Stride.Walk / 4)).Lift;
         double passing = LimbsOf(Pose.Walk, Walking, At(0)).Lift;
@@ -146,12 +182,42 @@ public class PoseTests
     public void SinksIntoALandingWithTheFeetKeptOnTheFloorThenSpringsBack()
     {
         var deep = LimbsOf(Pose.Stand, Standing, At(0) with { Landing = 2.0 / 3 });
-        Assert.True(deep.Lift < -Land.Sink * 0.9);
-        // The hips come down by the sink; the feet reach just as far.
-        Close(Rig.Hip - Land.Sink * 0.99, Rig.EndOf(deep.FrontLeg, Rig.Leg).Y, 0);
+        Assert.True(deep.Lift < -Land.Sink * 0.9, $"{deep}");
+        // The hips come down by the sink, the boots on the floor.
+        Close(-Land.Sink, deep.Lift, 2);
+        Assert.True(Math.Abs(Soles(deep).Max(p => p.Y)) < 0.05);
         Assert.True(deep.FrontLeg.Lower < -0.3);
         var done = LimbsOf(Pose.Stand, Standing, At(0) with { Landing = 0 });
         Assert.True(done.Lift > -1);
+    }
+
+    [Theory]
+    [InlineData(HeroMotion.Landing.Least)]
+    [InlineData(1)]
+    [InlineData(HeroMotion.Landing.Most)]
+    public void LandsOnFlatBootsNeverOnItsToes(double depth)
+    {
+        // Folded deep, the boots rolled onto their toes, and it looked as if the hero landed on tiptoe: the feet go further
+        // ahead instead, so the shins stand within how far an ankle turns.
+        for (int i = 0; i <= 20; i++)
+        {
+            var l = LimbsOf(Pose.Stand, Standing, At(0) with { Landing = i / 20.0, Momentum = new Momentum(Depth: depth) });
+            var soles = Soles(l).ToList();
+            for (int foot = 0; foot < 2; foot++)
+                Assert.True(Math.Abs(soles[2 * foot].Y) < 0.3 && Math.Abs(soles[2 * foot + 1].Y) < 0.3,
+                    $"depth {depth}, landing {i / 20.0}: the {(foot == 0 ? "front" : "back")} boot's heel at {soles[2 * foot].Y}, toe at {soles[2 * foot + 1].Y}");
+        }
+    }
+
+    [Theory]
+    [InlineData(400)]
+    [InlineData(900)]
+    public void FallsWithTheBootsTurnedFlatForTheFloor(int vy)
+    {
+        // Falling, the boots hung along the shins, toes down, and met the floor toe first.
+        var l = LimbsOf(Pose.Air, Standing with { Vy = vy }, At(0));
+        foreach (var (leg, foot) in new[] { (l.FrontLeg, l.FrontFoot), (l.BackLeg, l.BackFoot) })
+            Assert.True(Math.Abs(l.Tilt - leg.Upper - leg.Lower - foot) < 0.2, $"a boot {l.Tilt - leg.Upper - leg.Lower - foot} toe down from flat at {vy}");
     }
 
     [Fact]
@@ -247,27 +313,29 @@ public class PoseTests
     }
 
     [Fact]
-    public void PaddlesWithTheFreeHandsAndKeepsTheAxeHandCalm()
+    public void SwimsWithTheHandsHeldCalmNeverPaddling()
     {
-        var swimming = Standing with { Vx = 160 };
-        double Range(Func<Limbs, double> of, bool wields)
-        {
-            var seen = Enumerable.Range(0, 12).Select(k => of(LimbsOf(Pose.Float, swimming, At(0, k * Adrift.PaddleMs / 12) with { Wields = wields }))).ToList();
-            return seen.Max() - seen.Min();
-        }
-        Assert.True(Range(l => l.BackArm.Upper, true) > 0.6);
-        Assert.True(Range(l => l.FrontArm.Upper, false) > 0.6);
-        Assert.True(Range(l => l.FrontArm.Upper, true) < 0.3);
+        // The suit moves the hero (2026-11-04-hero-gait): swimming, fast or not, axe in hand or not, the hands only drift.
+        foreach (var (vx, fast) in new[] { (160, 0.0), (600, 1.0) })
+            foreach (bool wields in new[] { false, true })
+            {
+                var seen = Enumerable.Range(0, 24).Select(k => LimbsOf(Pose.Float, Standing with { Vx = vx }, At(0, k * Adrift.PaddleMs / 12) with { Wields = wields, Swim = 1, Fast = fast })).ToList();
+                foreach (var (arm, name) in new (Func<Limbs, Bend>, string)[] { (l => l.FrontArm, "near"), (l => l.BackArm, "far") })
+                {
+                    Assert.True(seen.Max(l => arm(l).Upper) - seen.Min(l => arm(l).Upper) < 0.3, $"the {name} arm swings at {vx}, axe {wields}");
+                    Assert.True(seen.Max(l => arm(l).Lower) - seen.Min(l => arm(l).Lower) < 0.3, $"the {name} elbow works at {vx}, axe {wields}");
+                }
+            }
     }
 
     [Fact]
     public void BlendsDriftingIntoSwimmingAndSwimmingIntoSwimmingFastWithoutAJump()
     {
-        double Arm(double swim, double fast) => LimbsOf(Pose.Float, Standing, At(0, 200) with { Swim = swim, Fast = fast }).BackArm.Upper;
-        double still = Arm(0, 0), swimming = Arm(1, 0), fast = Arm(1, 1);
-        Assert.InRange(Arm(0.5, 0), Math.Min(still, swimming), Math.Max(still, swimming));
-        Assert.NotEqual(still, Arm(0.5, 0));
-        Assert.InRange(Arm(1, 0.5), Math.Min(swimming, fast), Math.Max(swimming, fast));
+        double Leg(double swim, double fast) => LimbsOf(Pose.Float, Standing, At(0, 200) with { Swim = swim, Fast = fast }).FrontLeg.Upper;
+        double still = Leg(0, 0), swimming = Leg(1, 0), fast = Leg(1, 1);
+        Assert.InRange(Leg(0.5, 0), Math.Min(still, swimming), Math.Max(still, swimming));
+        Assert.NotEqual(still, Leg(0.5, 0));
+        Assert.InRange(Leg(1, 0.5), Math.Min(swimming, fast), Math.Max(swimming, fast));
     }
 
     [Fact]
@@ -284,8 +352,9 @@ public class PoseTests
     [Fact]
     public void KeepsAFootUnderTheBodyRunningSoItNeverSinksFar()
     {
+        // Measured on the boots' soles, the body turned as it leans: lowest pushing off, the stance leg far behind.
         for (double at = 0; at < Stride.Run; at += 0.1)
-            Assert.True(LimbsOf(Pose.Run, Standing with { Vx = 440 }, At(at)).Lift > -Rig.Hip * 0.18);
+            Assert.True(LimbsOf(Pose.Run, Standing with { Vx = 440 }, At(at)).Lift > -Rig.Hip * 0.2, $"{at}: {LimbsOf(Pose.Run, Standing with { Vx = 440 }, At(at))}");
     }
 
     [Fact]

@@ -41,7 +41,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0033](0033-first-sound.md) | First sound | accepted | 0042 (in part) |
 | [0034](0034-wreckage-and-the-axe.md) | Wreckage and the axe | accepted | 0037, 0038, 0039, 0041, 0042, 0046, 0054 (in part) |
 | [0035](0035-music-on-the-title.md) | Music on the title | accepted | 0042 (in part) |
-| [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037 (in part) |
+| [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037, hero-gait (in part) |
 | [0037](0037-others-see-the-hands.md) | Others see the hands | accepted | 0038 (in part) |
 | [0038](0038-one-swing-one-hit.md) | One swing, one hit | accepted | 0039 (in part) |
 | [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays (in part) |
@@ -228,6 +228,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
 | [driver-icons](2026-11-04-driver-icons.md) | Tool icons from large pictures; no square over a whole thing | accepted |  |
 | [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
+| [hero-gait](2026-11-04-hero-gait.md) | The hero's gait | accepted |  |
 | [macos-build](2026-11-04-macos-build.md) | A macOS build | accepted |  |
 | [mode-glyph](2026-11-04-mode-glyph.md) | The power driver's mode by the arrow | accepted |  |
 | [pointer-looks](2026-11-04-pointer-looks.md) | What stands in for the pointer | superseded | mode-glyph |

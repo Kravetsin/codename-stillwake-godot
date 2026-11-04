@@ -54,17 +54,25 @@ public partial class Figure : Node2D
         ["sheet"] = new(0, 5),
     };
 
-    private sealed record Limb(Node2D Upper, Node2D Lower)
+    private sealed record Limb(Node2D Upper, Node2D Lower, Node2D? Ankle = null)
     {
-        /// <summary>Rotations run clockwise and the figure faces +x, so forward is negative.</summary>
-        public void Bend(Bend b)
+        /// <summary>Rotations run clockwise and the figure faces +x, so forward, and a boot's toe up (<paramref name="foot"/>), is negative.</summary>
+        public void Bend(Bend b, double foot = 0)
         {
             Upper.Rotation = (float)-b.Upper;
             Lower.Rotation = (float)-b.Lower;
+            if (Ankle != null) Ankle.Rotation = (float)-foot;
         }
     }
 
+    /// <summary>
+    /// How far the boot's picture reaches up under the shin's, in pixels (2026-11-04-hero-gait): the shin's picture is cut at the
+    /// ankle and the boot turns on its own, so no gap opens beside the cut as it turns.
+    /// </summary>
+    private const float BootOverlap = 1f;
+
     private readonly Limb _frontArm, _backArm, _frontLeg, _backLeg;
+    private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp, _lens;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
@@ -119,6 +127,8 @@ public partial class Figure : Node2D
     private readonly List<(Sprite2D Sprite, string Part, bool Far)> _parts = [];
     /// <summary>Each part's offset for a pixel picture; a hi-res one has <see cref="HiRes.FigureMargin"/> more round it.</summary>
     private readonly Dictionary<Sprite2D, Vector2> _joints = new();
+    /// <summary>The boots: the shin's picture below the ankle, turning there (2026-11-04-hero-gait).</summary>
+    private readonly HashSet<Sprite2D> _soles = [];
     private int? _colour;
 
     /// <summary>The player's mark, a tracker strapped to the near shin (2026-11-02-hero-clothes): the strap lit as the hero is, its light unlit, so it reads in a dark room, tinted by the player's colour.</summary>
@@ -132,6 +142,11 @@ public partial class Figure : Node2D
     private double _travelled;
     // Where the stride began: a hero setting off starts its step from standing, not mid-stride.
     private double _strideFrom;
+    /// <summary>
+    /// The gait on the floor, eased (<see cref="HeroMotion.Gait"/>): the strides the legs have gone through, from backpedalling
+    /// (-1) through walking (0) into running (1), and from standing (0) into striding (1).
+    /// </summary>
+    private double _cycle, _gait, _moving;
     private Pose? _wasPose;
     private double _timeMs, _head;
     /// <summary>The lean, the landing and the air's timers, read from the motion (0090).</summary>
@@ -221,8 +236,10 @@ public partial class Figure : Node2D
         _own = own;
         AddChild(_boots = new Voices(S.World, voices: 1, placed: !own));
         _backLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: true, out var backLeg);
+        _backHip = backLeg;
         _backArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: true, out var backArm);
         _frontLeg = MakeLimb(Rig.Leg, "thigh", "shin", far: false, out var frontLeg);
+        _frontHip = frontLeg;
         _frontArm = MakeLimb(Rig.Arm, "upperArm", "forearm", far: false, out var frontArm);
         _frontArmNode = frontArm;
         backLeg.Position = new Vector2((float)-Rig.HipApart, (float)-Rig.Hip);
@@ -591,6 +608,12 @@ public partial class Figure : Node2D
         foreach (var (sprite, _, _) in _parts)
         {
             if (!sprite.IsVisibleInTree() || sprite.Texture is not { } texture || SuitArt.PixelsOf(texture) is not var (w, h, data)) continue;
+            if (sprite.RegionEnabled)
+            {
+                // A shin or a boot: only its rows of the picture, the first of them at its offset.
+                int from = Math.Clamp((int)Math.Round(sprite.RegionRect.Position.Y), 0, h), to = Math.Clamp((int)Math.Round(sprite.RegionRect.End.Y), from, h);
+                (data, h) = (data[(from * w * 4)..(to * w * 4)], to - from);
+            }
             PixelBursts.Paint(into, sprite.GlobalTransform * new Transform2D(0, sprite.Offset), w, h, data);
         }
     }
@@ -610,6 +633,7 @@ public partial class Figure : Node2D
         {
             sprite.Texture = SuitArt.Of(PictureOf(part), colour, skin, hair, isFar);
             sprite.Offset = _joints[sprite] - (sprite.Texture is CanvasTexture ? new Vector2(HiRes.FigureMargin, HiRes.FigureMargin) : Vector2.Zero);
+            if (part == "shin") CutAtTheAnkle(sprite, _soles.Contains(sprite));
         }
         (_headLit.Offset, _faceLit.Offset) = (_headPart.Offset, _facePart.Offset);
         _trackerLight.Modulate = new Color((uint)(colour << 8 | 0xff));
@@ -628,6 +652,25 @@ public partial class Figure : Node2D
         HeadLamp = _lampWorn;
     }
 
+    /// <summary>
+    /// A shin's picture cut at the ankle (2026-11-04-hero-gait): the shin above it, or the <paramref name="boot"/> below it, from
+    /// <see cref="BootOverlap"/> over it, placed from the ankle it turns at.
+    /// </summary>
+    private static void CutAtTheAnkle(Sprite2D sprite, bool boot)
+    {
+        var size = sprite.Texture.GetSize();
+        float ankle = -sprite.Offset.Y + (float)Rig.ToAnkle.Lower;
+        (sprite.RegionEnabled, sprite.RegionFilterClipEnabled) = (true, true);
+        if (!boot)
+        {
+            sprite.RegionRect = new Rect2(0, 0, size.X, ankle);
+            return;
+        }
+        float top = ankle - BootOverlap;
+        sprite.RegionRect = new Rect2(0, top, size.X, size.Y - top);
+        sprite.Offset = new Vector2(sprite.Offset.X, -BootOverlap);
+    }
+
     /// <summary>The picture a part is drawn with: bare, the look's clothes in place of the suit; the look's face, hair and beard.</summary>
     private string PictureOf(string part) => part switch
     {
@@ -643,14 +686,17 @@ public partial class Figure : Node2D
         _ => part,
     };
 
-    /// <summary>A part of the pixel-art hero, its joint (its own or <paramref name="joint"/>'s) at the origin, lit where it stands.</summary>
-    private Sprite2D Part(string name, bool far = false, string? joint = null)
+    /// <summary>
+    /// A part of the pixel-art hero, its joint (its own or <paramref name="joint"/>'s) at the origin, lit where it stands; with the
+    /// suit's band of light on it unless not <paramref name="banded"/>.
+    /// </summary>
+    private Sprite2D Part(string name, bool far = false, string? joint = null, bool banded = true)
     {
         var sprite = new Sprite2D { Centered = false, Offset = -Joints[joint ?? name] };
         Lit.Set(sprite);
         _parts.Add((sprite, name, far));
         _joints[sprite] = sprite.Offset;
-        if (SuitGlow.UpOf(name) != null)
+        if (banded && SuitGlow.UpOf(name) != null)
         {
             var light = new Sprite2D { Centered = false, Material = Unshaded, Visible = false };
             sprite.AddChild(light);
@@ -710,6 +756,16 @@ public partial class Figure : Node2D
     {
         view = new Node2D();
         var bend = new Node2D { Position = new Vector2(0, (float)size.Upper) };
+        Node2D? ankle = null;
+        if (lower == "shin")
+        {
+            // The boot under the shin, turning at the ankle on its own (2026-11-04-hero-gait).
+            ankle = new Node2D { Position = new Vector2(0, (float)Rig.ToAnkle.Lower) };
+            var boot = Part(lower, far, banded: false);
+            _soles.Add(boot);
+            ankle.AddChild(boot);
+            bend.AddChild(ankle);
+        }
         bend.AddChild(Part(lower, far));
         if (lower == "shin" && !far)
         {
@@ -722,8 +778,32 @@ public partial class Figure : Node2D
         }
         view.AddChild(bend);
         view.AddChild(Part(upper, far));
-        return new Limb(view, bend);
+        return new Limb(view, bend, ankle);
     }
+
+    /// <summary>
+    /// The gait eased toward what <paramref name="hero"/>'s speed says (2026-11-04-hero-gait), the legs' cycle on by
+    /// <paramref name="moved"/> cells at its stride. Standing, it keeps the gait it stopped in as the stride settles; setting off
+    /// from still, the stride starts afresh. Off the floor it is what the speed says, so a landing runs on at once.
+    /// </summary>
+    private void EaseGait(Hero hero, Pose pose, double moved, double elapsedMs)
+    {
+        if (pose is not (Pose.Stand or Pose.Walk or Pose.Run))
+        {
+            int speed = Math.Abs(hero.Vx);
+            (_cycle, _gait, _moving) = (0, speed > Stillwake.Content.Hero.Walk ? (Poses.Backward(hero) ? -1 : 1) : 0, speed > 0 ? 1 : 0);
+            return;
+        }
+        double gait = pose switch { Pose.Run => Poses.Backward(hero) ? -1 : 1, Pose.Walk => 0, _ => _gait };
+        double moving = pose == Pose.Stand ? 0 : 1;
+        if (_moving <= 0 && moving > 0) (_cycle, _step) = (0, null);
+        _cycle += moved / Poses.StrideOf(_gait);
+        _gait = Toward(_gait, gait, elapsedMs / HeroMotion.Gait.RunMs);
+        _moving = Toward(_moving, moving, elapsedMs / (moving > _moving ? HeroMotion.Gait.StartMs : HeroMotion.Gait.StopMs));
+    }
+
+    /// <summary><paramref name="from"/> moved toward <paramref name="to"/> by at most <paramref name="by"/>.</summary>
+    private static double Toward(double from, double to, double by) => from + Math.Clamp(to - from, -by, by);
 
     /// <summary><paramref name="from"/> moved toward <paramref name="to"/> over <paramref name="elapsedMs"/>, settling in about <paramref name="within"/> ms.</summary>
     private static double Settle(double from, double to, double elapsedMs, double within = SettleMs) =>
@@ -756,9 +836,10 @@ public partial class Figure : Node2D
         ShowSuit();
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
         // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.
-        if (_last is var (lx, ly))
-            _travelled += (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit;
+        double moved = _last is var (lx, ly) ? (pose == Pose.Climb ? Math.Abs(hero.Y - ly) : (double)(hero.X - lx) * hero.Facing) / Hero.Unit : 0;
+        _travelled += moved;
         _last = (hero.X, hero.Y);
+        EaseGait(hero, pose, moved, elapsedMs);
         // A new pose starts its stride afresh, its first foot down a quarter stride in; from walking to running or back
         // the legs go on, or a speed flickering about the line between them would freeze them.
         bool striding = pose is Pose.Walk or Pose.Run, strode = _wasPose is Pose.Walk or Pose.Run;
@@ -780,8 +861,7 @@ public partial class Figure : Node2D
         }
         // A foot comes down at the end of each half stride, a quarter stride in: heard walking and running,
         // kicking up dust only running.
-        double? stride = pose switch { Pose.Run => Poses.Stride.Run, Pose.Walk => Poses.Stride.Walk, _ => null };
-        int? stepping = stride is double st ? (int)Math.Floor((_travelled - _strideFrom - st / 4) / (st / 2)) : null;
+        int? stepping = pose is Pose.Walk or Pose.Run ? (int)Math.Floor((_cycle - 0.25) / 0.5) : null;
         if (stepping != null && _step != null && stepping != _step)
         {
             Boots(GroundSounds.StepOf(Footing));
@@ -804,7 +884,8 @@ public partial class Figure : Node2D
         _swim = afloat ? Settle(_swim, Poses.Swimming(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         _fast = afloat ? Settle(_fast, Poses.SwimmingFast(hero) && !acting ? 1 : 0, elapsedMs, SwimBlendMs) : 0;
         var to = Poses.LimbsOf(pose, hero, new Moment(_travelled - _strideFrom, _timeMs, _motion.Landing, holding ? _head : null,
-            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null));
+            _outMs, _slump, _outTilt, _swim, _fast, item != null, _motion.Now, pose is Pose.Climb or Pose.Air ? Ledge : null,
+            walking ? _cycle : null, walking ? _gait : null, walking ? _moving : null));
         _flinchMs += elapsedMs;
         to = Poses.Flinched(to, Poses.FlinchOf(_flinchMs), _flinchFrom * hero.Facing, pose);
         var from = _shown ?? to;
@@ -816,7 +897,11 @@ public partial class Figure : Node2D
             SettleBend(from.BackLeg, to.BackLeg, elapsedMs, within),
             SettleAngle(from.Tilt, to.Tilt, elapsedMs, afloat ? LeanMs : pose is Pose.Lie or Pose.Tumble ? SettleMs : HeroMotion.Lean.SettleMs),
             Settle(from.Lift, to.Lift, elapsedMs),
-            to.Lying);
+            to.Lying,
+            SettleAngle(from.FrontFoot, to.FrontFoot, elapsedMs, within),
+            SettleAngle(from.BackFoot, to.BackFoot, elapsedMs, within));
+        // On the floor no boot goes through it as the limbs settle (2026-11-04-hero-gait).
+        if (walking) shown = Poses.Unsunk(shown);
         _shown = shown;
         // The body placed first: what the hands reach for is found in its own frame, turned and lifted.
         _body.Rotation = (float)shown.Tilt;
@@ -894,7 +979,7 @@ public partial class Figure : Node2D
         _sinceCarryMs = _carry > 0 ? 0 : _sinceCarryMs + elapsedMs;
         if (carried && item != null)
         {
-            double bob = HeroMotion.Carry.Bob * Math.Sin((_travelled - _strideFrom) / Poses.Stride.Run * 4 * Math.PI);
+            double bob = HeroMotion.Carry.Bob * Math.Sin(_cycle * 4 * Math.PI);
             frontArm = Mix(frontArm, Rig.Carried(bob), carry);
         }
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
@@ -903,8 +988,10 @@ public partial class Figure : Node2D
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
-        _frontLeg.Bend(shown.FrontLeg);
-        _backLeg.Bend(shown.BackLeg);
+        _frontHip.Position = new Vector2((float)Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(Rig.HipApart, shown.Tilt)));
+        _backHip.Position = new Vector2((float)-Rig.HipApart, (float)(-Rig.Hip - Rig.HipRise(-Rig.HipApart, shown.Tilt)));
+        _frontLeg.Bend(shown.FrontLeg, shown.FrontFoot);
+        _backLeg.Bend(shown.BackLeg, shown.BackFoot);
         if (cues.Sparks > 0)
         {
             Vector2 Glove(Bend arm) => _frame.ToGlobal(Pixel(Rig.FistOf(arm)));
