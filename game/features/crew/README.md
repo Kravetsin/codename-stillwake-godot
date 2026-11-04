@@ -118,8 +118,8 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
   strikes something; heard at the cell nearest the pointer.
 - **The axe** (0034, 0038): left held swings; it hits as the drawn edge crosses the line; played through.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
-- **A gun:** a click sends `Fire` from the muzzle, each gun its own cooldown; one with `Charge` fires let go full; afloat
-  a shot kicks the hero back (`Recoil`, space-recoil); a guest flies its shot (`StepOf`).
+- **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
+  full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **The drill** (0054, 0055, one-arm-holds): left held sends `Run` till the sim runs it; it hits every `Pace` ticks.
 - **The power driver** (driver-at-work, driver-order): runs at work only; charged, a 2×2 square over plans or marks
   of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.

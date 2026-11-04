@@ -28,6 +28,73 @@ public class GunHandTests
     }
 
     [Fact]
+    public void HeldItFiresTheMomentItIsReadyEveryPaceTillLetGo()
+    {
+        var hand = new GunHand();
+        double pace = GunHand.PaceMs(Nailer), frame = 30, now = 0;
+        var fired = new List<double>();
+        if (hand.Step(frame, pressed: true, Nailer, (500, 500), 0, Spec.Shots.Nail, held: true).Fire != null) fired.Add(now);
+        while (now < 5 * pace)
+        {
+            now += frame;
+            var step = hand.Step(frame, pressed: false, Nailer, (500, 500), 0, Spec.Shots.Nail, held: true);
+            if (step.Fire != null) fired.Add(now);
+            // Fired at once, it says nothing of coming ready: the shot says it.
+            Assert.False(step.Ready);
+        }
+        // A shot each pace, never a frame late more than one: the frame it came ready in counts.
+        Assert.Equal(6, fired.Count);
+        for (int k = 0; k < fired.Count; k++) Assert.InRange(fired[k], k * pace, k * pace + frame);
+        // Let go, it fires no more; ready, it says so.
+        Assert.Null(hand.Step(frame, pressed: false, Nailer, (500, 500), 0, Spec.Shots.Nail).Fire);
+        Assert.True(hand.Step(pace, pressed: false, Nailer, (500, 500), 0, Spec.Shots.Nail).Ready);
+    }
+
+    [Fact]
+    public void AClickInTheCooldownIsNotKeptForWhenItIsReady()
+    {
+        var hand = new GunHand();
+        Assert.NotNull(hand.Step(16, pressed: true, Nailer, (500, 500), 0, Spec.Shots.Nail).Fire);
+        Assert.Null(hand.Step(16, pressed: true, Nailer, (500, 500), 0, Spec.Shots.Nail).Fire);
+        var ready = hand.Step(GunHand.PaceMs(Nailer), pressed: false, Nailer, (500, 500), 0, Spec.Shots.Nail);
+        Assert.Equal((null, true), (ready.Fire, ready.Ready));
+    }
+
+    [Fact]
+    public void HeldOnAnEmptyBeltItClicksDryOnceNotEveryFrame()
+    {
+        var hand = new GunHand();
+        Assert.True(hand.Step(16, pressed: true, Nailer, (500, 500), 0, ammo: null, held: true).Dry);
+        for (int i = 0; i < 10; i++)
+        {
+            var step = hand.Step(16, pressed: false, Nailer, (500, 500), 0, ammo: null, held: true);
+            Assert.Equal((null, false), (step.Fire, step.Dry));
+        }
+        // Emptied by its last shot while held: one dry click as it comes ready, then silence.
+        Assert.NotNull(hand.Step(16, pressed: true, Nailer, (500, 500), 0, Spec.Shots.Nail, held: true).Fire);
+        Assert.True(hand.Step(GunHand.PaceMs(Nailer), pressed: false, Nailer, (500, 500), 0, ammo: null, held: true).Dry);
+        Assert.False(hand.Step(16, pressed: false, Nailer, (500, 500), 0, ammo: null, held: true).Dry);
+        // Ammo back in hand while still held: it fires.
+        Assert.NotNull(hand.Step(16, pressed: false, Nailer, (500, 500), 0, Spec.Shots.Nail, held: true).Fire);
+    }
+
+    [Fact]
+    public void ARailgunHeldThroughItsCooldownStartsChargingByItselfOnceReady()
+    {
+        var hand = new GunHand();
+        double full = GunHand.ChargeMs(Rail), pace = GunHand.PaceMs(Rail);
+        Fire(hand, full);
+        // Held again at once: nothing charges while it cools.
+        Assert.Equal(0.0, hand.Step(16, pressed: true, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charge);
+        Assert.Equal(0.0, hand.Step(pace / 2 - 16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charge);
+        // The cooldown out with the button still down: the charge begins by itself, fills, and fires let go.
+        Assert.Equal(0.0, hand.Step(pace / 2 - 16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charge);
+        Assert.InRange(hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charge, 0.001, 0.1);
+        Assert.True(hand.Step(full, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: true).Charged);
+        Assert.Equal(Rail.Item, hand.Step(16, pressed: false, Rail, (500, 500), 0, Spec.Shots.Nail, held: false).Fire!.Tool);
+    }
+
+    [Fact]
     public void EachGunWaitsForItsOwnCooldownNotTheOneFiredBefore()
     {
         var hand = new GunHand();
