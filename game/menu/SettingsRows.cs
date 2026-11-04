@@ -24,10 +24,10 @@ public partial class SettingsRows : VBoxContainer
         Style.Gap(this, 8);
         AddChild(Line(T("menu.language")));
         AddChild(Pair([("menu.langEn", () => _ui.Language.Set(Language.English)), ("menu.langRu", () => _ui.Language.Set(Language.Russian))]));
-        _ui.Language.Subscribe(Paint);
+        this.Watch(_ui.Language, Paint);
         AddChild(Line(T("menu.slots")));
         AddChild(Pair([("menu.slotsNormal", () => _ui.SlotScale.Set(SlotScale.Normal)), ("menu.slotsLarge", () => _ui.SlotScale.Set(SlotScale.Large))]));
-        _ui.SlotScale.Subscribe(Paint);
+        this.Watch(_ui.SlotScale, Paint);
         AddChild(Line(T("menu.shimmer")));
         AddChild(Pair([("menu.on", () => Shimmer(true)), ("menu.off", () => Shimmer(false))]));
         AddChild(Line(T("menu.screen")));
