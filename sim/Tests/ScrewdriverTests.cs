@@ -30,7 +30,8 @@ public class ScrewdriverTests
         w.Do(new Leave()).Run().Do(new Enter(cell)).Run();
         Assert.Equal(1, Count(w, Screwdrivers.Basic.Item));
 
-        w.GiveItems(0, ("scrapChunk", 5)).Do(new PlacePlan(cell + 1, Placement.Wall("scrap"))).Run();
+        // Beside the hero, clear of its body (building.heroInside).
+        w.GiveItems(0, ("scrapChunk", 5)).Do(new PlacePlan(cell + 2, Placement.Wall("scrap"))).Run();
         int plan = w.M.Building.Plans.Single().Id;
         int ticks = w.M.Building.TicksFor(plan)!.Value;
         // The screwdriver's pace: its Work ticks of the plan's work a tick held, as the client sends them.
@@ -42,6 +43,6 @@ public class ScrewdriverTests
         w.Run();
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plans);
-        Assert.Equal("scrap", w.M.Grid.WallAt(cell + 1)?.Id);
+        Assert.Equal("scrap", w.M.Grid.WallAt(cell + 2)?.Id);
     }
 }
