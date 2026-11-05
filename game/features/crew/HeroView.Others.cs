@@ -56,7 +56,7 @@ public partial class HeroView
             var (strikes, chop) = _heardChops.GetValueOrDefault(id);
             var stroke = Strokes.Of(strikes);
             if (stroke == null) shown.Swing.Stop();
-            // Its blade heard and seen where it bites the ground as it is played here, as its own peer sweeps it (0093, melee-edge),
+            // Its blade heard and seen where it bites the ground as it is played here, as its own peer strikes it (0093, tool-reach),
             // in the front layer: which button its peer swings with is not sent.
             if (shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, stroke).Hits)
                 StruckBy(m, id, hero, shown.Swing.At, strikes!);
@@ -241,7 +241,7 @@ public partial class HeroView
     /// <summary>Whether a rod biting into <paramref name="piece"/> thumps as a glove does, a crate or a pod, rather than ringing as metal.</summary>
     /// <summary>
     /// Peer <paramref name="id"/>'s stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, heard
-    /// and seen at the ground its blade bites first, as that peer's own stroke is (melee-edge), the ship's hull too.
+    /// and seen at the ground its rays meet first, as that peer's own stroke is (tool-reach), the ship's hull too.
     /// </summary>
     private void StruckBy(Registry m, int id, Hero hero, Point at, string tool)
     {

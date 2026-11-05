@@ -376,38 +376,6 @@ public static class Aiming
     /// <summary>How far the shoulder is above the feet, in thousandths of a cell, the body upright.</summary>
     private const int ShoulderUp = (int)(Rig.Shoulder / Rig.Cell * Hero.Unit);
 
-    /// <summary>The downstroke sampled every this many radians (2°): the edge moves under a tenth of a cell between two.</summary>
-    private const double SampleStep = Math.PI / 90;
-
-    /// <summary>
-    /// The edges a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> sweeps as it strikes
-    /// (melee-edge), in thousandths of a cell, in the order it sweeps them, each <c>Bite</c> pixels either side as a running tool's:
-    /// a swing's at every sample of the downstroke's last stretch, a thrust's point at full stretch, the elbow straight; from the
-    /// shoulder of the body upright, turned the way the hero faces, the look held as the figure draws it.
-    /// </summary>
-    public static List<Edge> StrokeEdges(Hero hero, Point at, string tool)
-    {
-        var look = HeldLook.Of(tool) ?? HeldLook.FireAxe;
-        double half = look.Bite * Hero.Unit / Rig.Cell;
-        if (Strokes.Of(tool)?.Kind == StrokeKind.Thrust) return [EdgeOf(BitOf(hero, at, look with { Elbow = 0 }), half)];
-        double sx = hero.X, sy = hero.Y - ShoulderUp;
-        double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing), from = line + AxeSwing.Lead(look);
-        int steps = (int)Math.Ceiling(AxeSwing.Through / SampleStep);
-        var edges = new List<Edge>(steps + 1);
-        for (int i = 0; i <= steps; i++) edges.Add(EdgeOf(Placed(hero, AxeSwing.EdgeAt(look, from + AxeSwing.Through * i / steps)), half));
-        return edges;
-    }
-
-    private static Edge EdgeOf((double Ax, double Ay, double Bx, double By) e, double half) => new((e.Ax, e.Ay), (e.Bx, e.By), half, false);
-
-    /// <summary>A segment drawn in pixels from the shoulder, <paramref name="hero"/> facing right, placed in the world in thousandths of a cell.</summary>
-    private static (double Ax, double Ay, double Bx, double By) Placed(Hero hero, (Vec From, Vec To) drawn)
-    {
-        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        var (a, b) = drawn;
-        return (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
-    }
-
     /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
     private const int CreatureMargin = 400;
 
@@ -424,7 +392,7 @@ public static class Aiming
         touched.Where(c => m.Creatures.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
 
     /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, clipped to it; none when it misses.</summary>
-    private static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
+    internal static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
     {
         double enter = 0, leave = 1, dx = e.Bx - e.Ax, dy = e.By - e.Ay;
         bool Clip(double toward, double room)
@@ -436,14 +404,6 @@ public static class Aiming
             return enter <= leave;
         }
         return Clip(-dx, e.Ax - left) && Clip(dx, right - e.Ax) && Clip(-dy, e.Ay - top) && Clip(dy, bottom - e.Ay) ? enter : null;
-    }
-
-    /// <summary>The bit of <paramref name="look"/> held by <paramref name="hero"/> aimed at <paramref name="at"/>, the arm turned at the shoulder, as the figure draws it.</summary>
-    private static (double Ax, double Ay, double Bx, double By) BitOf(Hero hero, Point at, HeldLook look)
-    {
-        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
-        double angle = HarpoonShot.ArmFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        return Placed(hero, AxeSwing.EdgeAt(look, angle));
     }
 
     /// <summary>

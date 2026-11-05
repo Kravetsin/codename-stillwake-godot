@@ -25,14 +25,21 @@ public static class WorkLooks
         return each * perSecond / ThrowsPerSecond;
     }
 
-    /// <summary>The flicks reach back this many downstrokes' time and fade over this many after it ends; the edge is sampled this many times along.</summary>
-    public const double FlickLength = 2.2, FlickFade = 3;
-    public const int FlickSamples = 18;
+    /// <summary>The air a tool works (tool-reach): pale cyan as the air round a hero (<c>AirSwirl</c>); a stroke's dust, paler grey.</summary>
+    public static readonly Ink.Tone AirInk = Ink.Tone.Of(200, 240, 255, 1), DustInk = Ink.Tone.Of(222, 228, 234, 1);
 
-    public static readonly Ink.Tone FlickInk = Ink.Tone.Of(176, 188, 206, 0.8f);
+    /// <summary>A thrust's dust thrown out over this many ms; a stroke's seen this long after it, the sledgehammer's longer.</summary>
+    public const double ThrustSweepMs = 65;
 
-    /// <summary>Each flick: how far out along the edge (1 its tip), the share of the trail it runs, its width.</summary>
-    public static readonly (double Along, double Share, double Width)[] Flicks = [(1.1, 1, 0.62), (0.8, 0.72, 0.45), (0.5, 0.45, 0.32)];
+    /// <summary>How long a stroke's dust is seen after its blade crosses: the sledgehammer's blow lingers.</summary>
+    public static double CutFadeOf(string? tool) => tool == Content.Weapons.Sledgehammer.Item ? 320 : 220;
+
+    /// <summary>
+    /// A running tool's zone: eased in over <see cref="ZoneIn"/> ms and out over <see cref="ZoneOut"/>; its dry-brush strokes step
+    /// round every <see cref="BrushStepMs"/>, the drill's cone a turn in <see cref="DrillTurnMs"/>, the grinder's disc in
+    /// <see cref="DiscTurnMs"/>; the cone <see cref="ConeBase"/> pixels either side at the bit, the disc <see cref="DiscRadius"/> round its hub.
+    /// </summary>
+    public const double ZoneIn = 120, ZoneOut = 220, BrushStepMs = 45, DrillTurnMs = 520, DiscTurnMs = 900, ConeBase = 12, DiscRadius = 24;
 
     /// <summary>
     /// Sparks a second off a wreck, each living <see cref="SparkLife"/> ms and flying <see cref="SparkSpeed"/> pixels a second at

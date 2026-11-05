@@ -22,7 +22,7 @@ seeded randomness is ported bit for bit, so a look laid out by a seed is the one
 - **A dug block's cracks, "fault"** (`BlockFault`): one ragged split across the whole cell, a hairline, then thicker with a
   branch, then a second branch and the split opened into a dark gap with a lit lower lip; in stone's or scrap's ink, each cell
   laid out by its own seed and kept within it.
-- **A swing's trail, "flicks"** (`SwingTrail`): three pale ink speed lines after the blade, the outer longest, fading after the
+- **A swing's trail, "flicks"** (`SwingTrail`, since replaced by the reach's dust, [tool-reach](2026-11-05-tool-reach.md)): three pale ink speed lines after the blade, the outer longest, fading after the
   downstroke. Built from where the edge really was over the last 2.2 downstrokes' time, frame by frame, turned round the
   shoulder between frames, never from an angle: it stays on the blade aimed any way, straight up too.
 - **A running tool on a wreck, "sparks"** (`ToolSparks`): thin streaks thrown 150 a second, white-hot cooling to orange and red,

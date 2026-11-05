@@ -511,18 +511,15 @@ public class AimTests
     private static readonly Func<Piece, double, double, bool> Opaque = (p, x, y) =>
         Math.Abs(x - p.X) <= Aiming.PictureOf(p.Item).HalfW && Math.Abs(y - p.Y) <= Aiming.PictureOf(p.Item).HalfH;
 
-    /// <summary>What a stroke of <paramref name="tool"/>, the axe unless said, by <paramref name="hero"/> toward <paramref name="at"/> sweeps through out in space.</summary>
+    /// <summary>What a stroke of <paramref name="tool"/>, the axe unless said, by <paramref name="hero"/> toward <paramref name="at"/> touches out in space: its fan of rays (tool-reach).</summary>
     private static EdgeHit Swept(TestWorld w, Hero hero, Point at, string? tool = null) =>
-        ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero, at, tool ?? Spec.Weapons.Axe.Item), outside: true, 0, Opaque);
+        ToolRays.Fan(w.M, hero, tool ?? Spec.Weapons.Axe.Item, ToolRays.HeadingOf(hero, (at.X, at.Y)), outside: true, 0, Opaque);
 
     /// <summary>Half a wreck's own size across, in thousandths of a cell, from content.</summary>
     private static int HalfW(string kind) => Spec.Wreckage.SizeOf(kind)!.Value.W * Unit / 2;
 
     private static List<int> Struck(TestWorld w, Hero hero, Point at, string? tool = null) => [.. Swept(w, hero, at, tool).Wrecks.Select(p => p.Id)];
 
-    /// <summary>The farthest point from <paramref name="hero"/> a stroke of <paramref name="tool"/> toward <paramref name="at"/> sweeps its blade's edge through.</summary>
-    private static (double X, double Y) TipOf(Hero hero, Point at, string tool) =>
-        Aiming.StrokeEdges(hero, at, tool).SelectMany(e => new[] { e.From, e.To }).MaxBy(p => Math.Abs(p.X - hero.X));
 
     [Fact]
     public void AStrokeBeginsAtTheShoulderAndHeadingsTurnFromIt()
@@ -535,9 +532,6 @@ public class AimTests
         Assert.Equal(128, Aiming.HeadingOf(hand, hand with { X = hand.X - 5_000 }));
         Assert.Equal(192, Aiming.HeadingOf(hand, hand with { Y = hand.Y - 5_000 }));
         Assert.Equal(32, Aiming.HeadingOf(hand, new Point(hand.X + 3_000, hand.Y + 3_000)));
-        // A swing's blade sweeps down across the line to its point, each sample its edge as drawn; a thrust is its point alone.
-        Assert.True(Aiming.StrokeEdges(hero, hand with { X = hand.X + 5_000 }, Spec.Weapons.Axe.Item).Count > 5);
-        Assert.Single(Aiming.StrokeEdges(hero, hand with { X = hand.X + 5_000 }, Spec.Weapons.Spear.Item));
     }
 
     /// <summary>Every kind of wreckage, under every stroke.</summary>
@@ -552,17 +546,17 @@ public class AimTests
 
     [Theory]
     [MemberData(nameof(WreckKindsAndStrokes))]
-    public void AStrokeHitsAWreckItsBladeReachesAndNotOneBeyond(string kind, string tool)
+    public void AStrokeHitsAWreckWithinItsRangeFromTheShoulderAndNotOneBeyond(string kind, string tool)
     {
         var hero = HeroOn(6, 7);
         var hand = Aiming.HandOf(hero);
         var ahead = hand with { X = hand.X + 10_000 };
-        var tip = TipOf(hero, ahead, tool);
+        int reach = hand.X + Spec.Weapons.Of(tool)!.Range;
         int half = Aiming.PictureOf(kind).HalfW;
-        // Its picture's near side a cell short of the blade's farthest reach, and a cell past it.
-        var (near, _) = Field((kind, (int)tip.X - 1_000 + half, (int)tip.Y));
+        // Its picture's near side a cell short of the fan's range, and a cell past it.
+        var (near, _) = Field((kind, reach - 1_000 + half, hand.Y));
         Assert.Equal([1], Struck(near, hero, ahead, tool));
-        var (beyond, _) = Field((kind, (int)tip.X + 1_000 + half, (int)tip.Y));
+        var (beyond, _) = Field((kind, reach + 1_000 + half, hand.Y));
         Assert.Empty(Struck(beyond, hero, ahead, tool));
         // Bare-handed, the pointer on its picture's far top corner aims at it, and just off it does not.
         var (pw, ph) = DebrisLooks.Wrecks[kind];
@@ -584,17 +578,16 @@ public class AimTests
     }
 
     [Fact]
-    public void HitsEveryWreckTheBladeTouchesEachWhereItFirstMeetsItNeverASmallPiece()
+    public void HitsEveryWreckItsRaysMeetEachWhereItFirstMeetsItNeverASmallPiece()
     {
         var hero = HeroOn(6, 7);
         var hand = Aiming.HandOf(hero);
         var ahead = hand with { X = hand.X + 6_000 };
-        var tip = TipOf(hero, ahead, Spec.Weapons.Axe.Item);
-        // Two racks over the blade's reach, one a little above the other, and a scrap chunk on the way.
+        // Two racks within the axe's quarter turn, one above the aim and one below, and a scrap chunk on the way.
         var (w, _) = Field(
-            ("cableRack", (int)tip.X, (int)tip.Y - 300),
+            ("cableRack", hand.X + 3_000, hand.Y - 1_800),
             ("scrapChunk", hand.X + 1_400, hand.Y),
-            ("cableRack", (int)tip.X, (int)tip.Y + 300));
+            ("cableRack", hand.X + 3_000, hand.Y + 1_800));
         var hit = Swept(w, hero, ahead);
         Assert.Equal([1, 3], hit.Wrecks.Select(p => p.Id).Order());
         Assert.Equal([1, 3], hit.Touches.Select(t => t.Wreck!.Id).Order());

@@ -12,11 +12,11 @@ the sim.
 | `logic/Pose.cs` | poses, the head, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing (0090) |
 | `logic/LookTint.cs` | skin, hair tints |
-| `logic/Aim.cs` | reach, aim, what hands send, a stroke |
+| `logic/Aim.cs` | reach, aim, what hands send |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
-| `SwingSmear.cs` | a swing's trail |
-| `logic/SwingTrail.cs` | its flicks |
+| `ReachAir.cs` | a tool's reach shown |
+| `logic/AirCuts.cs` | its dust and brush |
 | `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | the front arm swung |
 | `logic/ArmUp.cs` | when an aim is up |
@@ -30,7 +30,8 @@ the sim.
 | `logic/Tether.cs` | tether drawn, reeled |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/RunSounds.cs` | tools heard running |
-| `logic/ToolEdge.cs` | what a tool edge hits |
+| `logic/ToolEdge.cs` | the cutter's beam |
+| `logic/ToolRays.cs` | what a tool hits |
 | `WreckPixels.cs` | wrecks' opaque pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks off a wreck |
@@ -42,12 +43,12 @@ the sim.
 | `logic/Suits.cs` | suit colours, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
 | `SuitKeys.cs` | V on the tablet's edge |
-| `Figure.cs` | the rig, lit, dressed; dust (0075, 0090) |
+| `Figure.cs` | the rig, lit, dressed (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, lined |
 | `HeroView.cs` | keys, steps, rams, camera |
-| `HeroView.Hands.cs` | its hands: E, plans, tools, aim |
+| `HeroView.Hands.cs` | its hands |
 | `HeroView.Guns.cs` | its gun, a guest's shots |
 | `logic/GunHand.cs` | a gun's cooldown and shots |
 | `HeroView.Others.cs` | others' heroes |
@@ -122,18 +123,18 @@ the sim.
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
-  pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, only
-  small pieces (melee-edge).
-- **Struck tools** (0038, salvage-tools, melee-edge): axe, hammer, spear, paced; a swing hits what its swept blade
-  touches, a jab at full reach (`ToolEdges.Swept`); the ground it bites rings and sparks, hull too.
+  pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
+- **Hits are rays from the shoulder** (tool-reach): the weapon's fan (`ToolRays`), each stopped by a wall or wreck pixel;
+  the ground met rings and sparks. Its reach shows in use (`AirCuts`).
+- **Struck tools** (0038, salvage-tools): axe, hammer, spear, paced; a swing hits as its blade crosses the aim.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
-- **Drill, grinder, cutter** (0054, 0055, tool-edge): left held runs it (`Run`); each `Pace` ticks it hits all its drawn
-  edge touches (`ToolEdges`), seen where it first touches, sparking off each wreck (`ToolWork`).
-- **The power driver** (driver-at-work, driver-order): at work only; charged, a 2×2 square over plans or marks
-  of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
-- **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
+- **Drill, grinder, cutter** (0054, 0055): left held runs it (`Run`), hitting each `Pace` ticks, the cutter by its beam
+  (`ToolEdges`), sparking where it touches (`ToolWork`).
+- **The power driver** (driver-at-work, driver-order): charged, at work a 2×2 square over plans or marks
+  (`WorkedSquare`), heard (`BiteLoop`). Right click toggles.
+- **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
   (0112). A jump a foot short is mantled.
 
 ## Deliberately not handled
