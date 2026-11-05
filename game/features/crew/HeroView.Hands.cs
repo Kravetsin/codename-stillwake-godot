@@ -337,12 +337,12 @@ public partial class HeroView
         // Thrust into what it works, the tool works at its own muzzle, never behind it.
         var hand = Pixels(Aiming.HandOf(hero));
         if (hand.DistanceTo(at) < hand.DistanceTo(from)) at = from;
-        if (!contact.Touches) return new(id, tool, from, at, null, null);
-        if (contact.Cell is not int cell) return new(id, tool, from, at, HitLooks.Of[Impact.Wreck], null);
-        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, from, at, null, null);
+        if (!contact.Touches) return new(id, tool, from, at, figure.Barrel, null, null);
+        if (contact.Cell is not int cell) return new(id, tool, from, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
+        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, from, at, figure.Barrel, null, null);
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-        return new(id, tool, from, at, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
+        return new(id, tool, from, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
     }
 
     /// <summary>

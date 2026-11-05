@@ -10,7 +10,7 @@ using Material = Stillwake.Content.Material;
 namespace Stillwake.Game.Features.Building;
 
 /// <summary>
-/// Digging seen (0077): each cracked wall drawn with cracks in three stages as its crack grows toward its strength
+/// Digging seen (0077): each cracked wall drawn with a fault in ink (<see cref="BlockFault"/>) in three stages as its crack grows toward its strength
 /// (<see cref="BuildingModule.Cracks"/>); a wall broken out bursts into dust and chips. Whoever dug: a friend's digs show as
 /// one's own. A hit's own look is thrown where it strikes, by the crew as it is struck (<c>HitBurst</c>, 0094). It reads the
 /// cracks each frame, a short list, and redraws only when they change.
@@ -34,8 +34,10 @@ public partial class DigView : Node2D
 
     /// <summary>The stages of cracks, three (0079).</summary>
     private const int Stages = 3;
-    private static readonly Dictionary<int, Texture2D> Pictures = new();
     private static readonly Dictionary<string, (Luminous Chip, Luminous Dust, Luminous Cloud)> Looks = new();
+    private readonly Ink _ink = new();
+    private readonly InkCanvas _canvas = new();
+    private float _pixel;
 
     /// <summary>A wall broken out heard where it stood, by its material, whoever broke it (0093).</summary>
     private readonly Voices _breaks = new(Game.Sound.World, voices: 3);
@@ -49,12 +51,11 @@ public partial class DigView : Node2D
         AddChild(_breaks);
     }
 
-    private static Texture2D Texture(int stage) =>
-        Pictures.TryGetValue(stage, out var made) ? made : Pictures[stage] = ImageTexture.CreateFromImage(GroundArt.Crack(stage));
-
     public override void _Process(double delta)
     {
-        bool changed = false;
+        // Redrawn as the view zooms too: the faults' edges fade over a pixel of the screen.
+        float pixel = InkCanvas.PixelOf(this);
+        bool changed = _drawn.Count > 0 && Mathf.Abs(pixel - _pixel) > 0.1f * _pixel;
         var cracks = _building.Cracks;
         foreach (var crack in cracks)
         {
@@ -87,12 +88,17 @@ public partial class DigView : Node2D
     public override void _Draw()
     {
         int w = _grid.Width;
-        foreach (var ((cell, _), (damage, material)) in _drawn)
+        _pixel = InkCanvas.PixelOf(this);
+        _ink.Clear();
+        _ink.Feather = _pixel;
+        foreach (var ((cell, back), (damage, material)) in _drawn)
         {
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
+            var tones = material.Natural ? DamageLooks.Stone : DamageLooks.Scrap;
             foreach (int at in _grid.MachineAt(cell) is { } pile ? _grid.Footprint(pile.Kind, pile.Cell) ?? [cell] : [cell])
-                DrawTexture(Texture(stage), new Vector2(at % w, at / w) * Cell);
+                BlockFault.Draw(_ink, stage, BlockFault.SeedOf(at, back), tones, at % w * Cell, at / w * Cell);
         }
+        _canvas.Draw(this, _ink);
     }
 
     /// <summary><paramref name="cell"/> broken out: a cloud of its dust where it stood, and chips falling.</summary>
