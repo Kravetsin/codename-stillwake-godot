@@ -26,6 +26,11 @@ public static class AirLook
             uniform vec4 reach = vec4(0.0);
 
             const vec3 WASH = vec3(0.60, 0.70, 0.74), RUST = vec3(0.74, 0.35, 0.26);
+            // The wash's pigment settles this many pixels a second, one way.
+            const vec2 DRIFT = vec2(9.0, 4.5);
+            // The edge's wiggles creep slower, small and large ones each their own way, so its shape changes rather than
+            // slides; where the air is stays put.
+            const vec2 EDGE_DRIFT = vec2(-3.5, 2.5), EDGE_SWELL = vec2(1.75, -1.5);
 
             // Without sin: it keeps its grain far from the world's origin.
             float hash(vec2 p) {
@@ -80,12 +85,15 @@ public static class AirLook
                     float a = near.b * 6.2831853;
                     flow += vec2(cos(a), sin(a)) * near.g * near.a * w;
                 }
-                // The edge wanders as wet paint does, in two sizes; the pod's reach is air with an edge of its own.
-                float wander = (noise(px * 0.23) - 0.5) * 0.34 + (noise(px * 0.05 + 3.1) - 0.5) * 0.3;
+                // The edge wanders as wet paint does, in two sizes, slowly; the pod's reach is air with an edge of its own.
+                // TIME, not t: wrapped at 600 s the shapes would jump every ten minutes; Godot rolls TIME over hourly.
+                float wander = (noise((px - EDGE_DRIFT * TIME) * 0.23) - 0.5) * 0.34
+                    + (noise((px - EDGE_SWELL * TIME) * 0.05 + 3.1) - 0.5) * 0.3;
                 float edge = max(v.x, 0.5 - pod_distance(px, 10.0) / 8.0) + wander;
                 float in_air = step(0.5, edge);
-                float blot = step(0.58, noise(px * 0.045 + 7.3));
-                float grain = 0.7 + 0.6 * noise(px * 0.85);
+                vec2 pigment = px - DRIFT * TIME;
+                float blot = step(0.58, noise(pigment * 0.045 + 7.3));
+                float grain = 0.7 + 0.6 * noise(pigment * 0.85);
                 float tide = in_air * (1.0 - smoothstep(0.08, 0.15, edge - 0.5));
                 float alpha = max(in_air * (0.10 + 0.055 * blot) * grain, tide * (0.24 + 0.12 * noise(px * 0.5)));
                 vec3 colour = mix(WASH, RUST, v.y);
