@@ -246,7 +246,7 @@ public partial class FabricatorPanel : CanvasLayer
         _sinceRead = 0;
         if (Open is not var (pod, station) || _client == null || _crafting == null || _research == null || _items == null) return;
         int peer = _client.Id;
-        _carried = _items.Totals(peer);
+        _carried = _items.StockTotals(peer);
         _creative = _items.Creative;
         var queue = _crafting.Queue(pod);
         int progress = _crafting.Progress(pod);

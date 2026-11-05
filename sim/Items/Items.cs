@@ -50,6 +50,10 @@ public interface IItemsQueries
     IReadOnlyList<(string Item, int Count)> Totals(int peer);
     string? ShortOf(int peer, IReadOnlyList<(string Item, int Count)> cost);
     string? FullFor(int peer, IReadOnlyList<(string Item, int Count)> cost);
+    /// <summary>What a peer and every crate on its surface hold (craft-from-crates): what a paid craft may take.</summary>
+    IReadOnlyList<(string Item, int Count)> StockTotals(int peer);
+    string? ShortOfStock(int peer, IReadOnlyList<(string Item, int Count)> cost);
+    string? FullForStock(int peer, IReadOnlyList<(string Item, int Count)> cost);
     string? OutputFull(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<(string Item, int Count)> InputsLack(int id, IReadOnlyList<(string Item, int Count)> cost);
     IReadOnlyList<FloorStack> Floor { get; }
@@ -81,6 +85,8 @@ public interface IItemsOps
 {
     IReadOnlyList<(string Item, int Count)> Take(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Give(int peer, IReadOnlyList<(string Item, int Count)> cost);
+    IReadOnlyList<(string Item, int Count)> TakeStock(int peer, IReadOnlyList<(string Item, int Count)> cost);
+    void GiveStock(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void Smelt(int id, IReadOnlyList<(string Item, int Count)> besides);
     void Consume(int id, int slot);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);

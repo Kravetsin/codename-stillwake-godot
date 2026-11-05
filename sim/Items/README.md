@@ -4,17 +4,18 @@
 
 | File | Purpose |
 | --- | --- |
-| `Deliveries.cs` | Part of `ItemsModule`: how much of an item a machine holds where deliveries of it go (`Receiving`). |
+| `Deliveries.cs` | Where deliveries go in a machine (`Receiving`). |
 | `Floor.cs` | Stacks on the floor: laid down, moved a tick, merged. |
-| `Fuzz.cs` | The module's `Fuzz` override: the commands the desync suite draws. |
+| `Fuzz.cs` | `Fuzz`: the commands the desync suite draws. |
 | `Items.cs` | The module: inventories, machines' slots, the floor, creative mode. |
 | `Modules.cs` | Fits a module into a machine (0086). |
 | `Stacks.cs` | The rules on slots: giving, taking and moving. |
 | `State.cs` | The saved slice and its records: `Stack`, `Place`, `Target`, `Body`, `FloorStack`, … |
 | `Spray.cs` | A kill's loot dealt into pieces (2026-10-29-kill-feel). |
+| `Stock.cs` | A peer's stock: its own slots, then every crate (craft-from-crates). |
 | `ToolStats.cs` | What a tool works with (0098): damage, pace, draw. |
 
-Every stack of items: inventories by peer, machines' by id, the floor's; creative mode takes nothing (0008).
+Every stack of items; creative mode takes nothing (0008).
 
 - **Depends on:** `Grid` (which machines hold items, what holds a stack up), `Rooms` (space, open room cells), `Knowledge` (`Obtain`).
 - **State** (all saved, as sorted lists; nothing derived): `Inventories`, those changed at least once, by peer;
@@ -26,7 +27,7 @@ Every stack of items: inventories by peer, machines' by id, the floor's; creativ
 
 - **Slots:** an inventory is `Inventory.Slots`, then one equipment slot per `Inventory.Equipment` kind (0047); `SlotOpen`
   says which are open (upgrades). A `Stack` is `Item`, `Count`, `Charge`, `Module`. The first row is the hotbar.
-- **Per-item values** (0053, 0098): `Charge` (0 to `Capacity`, thousandths of a power-tick) and `Module` (a module on a
+- **Per-item values** (0053, 0098): `Charge` (thousandths of a power-tick) and `Module` (a module on a
   tool among its `Hosts`) live on a stack of one and go with it, the floor included. Stacks merge only
   when `Alike` (item, charge, module); a whole stack onto one not alike swaps. Stacks made from a cost hold none, and no
   cost names an item with a capacity or a drill (`ContentTests`). Saved only when set.
@@ -34,12 +35,12 @@ Every stack of items: inventories by peer, machines' by id, the floor's; creativ
   `ToolStats.Of(stack)`, shared with the client, folds the modules' trades (`Boost.Plus`, 0100): damage a gain rounded
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
-  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there (2026-10-27-suits-are-worn).
+  are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn (2026-10-27-suits-are-worn).
 - **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `Caught`, `DropAt` for `Nobody` count, `GiveWhatFits`
   what it gave; the rest moves or refunds.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
-  fits, batteries full.
+  fits, batteries full. `TakeStock`/`GiveStock`: the same over own slots, then each crate (craft-from-crates).
 - **Move** (0008) takes the least of `Count`, what `Src` holds and what fits, onto an empty slot or a stack alike; part
   of a stack onto one not alike is refused. With no `Dst` slot, that side as a whole. A machine with `Inputs` takes items
   only into its first `Inputs` slots (`items.takeOnly`, 0057); one with none takes nothing. A charging station holds
@@ -61,7 +62,7 @@ Every stack of items: inventories by peer, machines' by id, the floor's; creativ
   what has a capacity, a `Takes` only its item. Outputs are the slots past the inputs (0057).
 - **Surfaces** (0076): `Depart`/`Arrive` (`ICarries`) carry a peer's inventory, charge and run to the next surface;
   floor stacks, bodies and machines stay. Creative mode is a surface's, copied by `Inherit`.
-- **The floor** (numbers in `Floor`): a drop is thrown the way its hero faces. Each tick, by id: a stack
+- **The floor**: a drop is thrown the way its hero faces. Each tick, by id: a stack
   inside anything built is pushed out breadth-first through built cells to `PushReach`, a room's open cell before
   space, ties by index, else rises a cell. Afloat it flies on, drifting only outside with no back wall;
   elsewhere it falls by gravity times its surface's `Fall` and slides to rest. Gone past the grid's edge or `Lasts`

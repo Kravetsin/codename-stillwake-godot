@@ -13,8 +13,8 @@ on one model. A **queued** station (pod, workbench, Former, circuit assembler, a
 crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into yields by its process, "smelt" or
 "grow" (0060). Not part of `Items`: it asks `Research`, which depends on items.
 
-- **Depends on:** `Grid` (`Machines`, `MachineById`); `Items` (queries `Crate`, `CanSmelt`, `ShortOf`, `FullFor`,
-  `OutputFull`, `InputsLack`, `Boost`; ops `Take`, `Give`, `Output`, `Smelt`, `TakeInputs`); `Research` (`Knows`);
+- **Depends on:** `Grid` (`Machines`, `MachineById`); `Items` (queries `Crate`, `CanSmelt`, `ShortOfStock`, `FullForStock`,
+  `OutputFull`, `InputsLack`, `Boost`; ops `TakeStock`, `GiveStock`, `Output`, `Smelt`, `TakeInputs`); `Research` (`Knows`);
   `Power` (`Satisfaction`; `Rest`); the world's `Rng`, for seeds and byproducts. Runs after `Research`, before `Building`.
 - **Depended on by:** `Building` (`Queue`: a station with crafts queued is not taken apart); `Furnace` (`CanSmelt`,
   `TooCold`, `TooFew`, `WorkOf`, `Progress`; op `Heat`); `Logistics`' drones read `Queue` and `Progress` (0062).
@@ -40,18 +40,17 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 ### Queued stations
 
 - A craft is named by the item it makes; cost and `Ticks` per unit come from `Content.Crafts`; a unit takes
-  `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's
-  the suit and screwdriver, the workbench's assembled tools, the Former's stamped parts (stamped-and-assembled), the
-  assembler's electronics, the arc bench's sky-shard crafts (0099).
+  `Ticks × 1000` of work; crafts layer parts, components, products (0046). Rosters are content's: the pod's the suit and
+  screwdriver, the workbench's tools, the Former's parts, the assembler's electronics, the arc bench's shard crafts (0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod and the
   workbench have none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
 - **`Craft(Machine, Recipe, Count, FromInputs, Endless)`**: paid (the default) takes all `Count` units' cost from the
-  sender at once (nothing in creative mode); fed from the inputs takes nothing, `Endless` repeating it. Either appends an
-  entry by the sender with the queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (or not known),
-  `crafting.notHere` (not in this station's rows, or a fed station), `crafting.full` (`QueueMost` entries),
+  sender's stock, its own then every crate's (craft-from-crates), at once (none in creative); fed from the inputs
+  takes nothing, `Endless` repeating it. Either appends an entry by the sender with the queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (or not known),
+  `crafting.notHere` (not in its rows, or a fed station), `crafting.full` (`QueueMost` entries),
   `crafting.paid` (endless, paid), `items.notEnough` (paid), `crafting.noInputs`.
-- **`Cancel(Machine, Entry)`** by anyone gives the sender what was paid and not made, priced by content now: a paid
-  entry's units left, the one at work included; a fed one's unit begun (progress above 0), else nothing; what the
+- **`Cancel(Machine, Entry)`** by anyone gives the sender's stock what was paid and not made, priced by content now: a paid
+  entry's units left, the one at work included; a fed one's unit begun, else nothing; what the
   inputs hold stays. Refused `crafting.noStation`, `crafting.notHere`, `crafting.noEntry`, `items.full`. Cancelling
   the head, the next starts from nothing.
 - **`SetEndless(Machine, Entry, On)`** sets (not toggles) an entry fed from the inputs to repeat: a unit made leaves its
