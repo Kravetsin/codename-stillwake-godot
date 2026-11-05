@@ -17,13 +17,15 @@ namespace Stillwake.Game;
 /// tool sits on the bench with nothing drawn for it. A gun held to charge lays its <see cref="Charged"/> picture, the same size, over
 /// it as it fills (2026-10-27-the-railgun), and the arc crackles over its own <see cref="Arcs"/> as a drill's coil does, more
 /// as it fills. A builder works plans by a strip of three frames of its picture's size and grip: twisted by the wrist (<see cref="Twist"/>),
-/// or, while its motor runs, turned by it (<see cref="Driven"/>).
+/// or, while its motor runs, turned by it (<see cref="Driven"/>). A running tool hits what its edge touches, <see cref="Bite"/> pixels
+/// either side of it (tool-edge); a <see cref="Round"/> one's edge is a wheel's radius, and it works the half disc ahead of the hub.
 /// </summary>
 public sealed record HeldLook(
     string Picture, (double X, double Y) Grip, double Hold, (double X, double Y) EdgeFrom, (double X, double Y) EdgeTo, string? Loaded = null,
     bool Aimed = false, IReadOnlyList<string>? Spin = null, (double X, double Y)? Lamp = null, IReadOnlyList<ToolMount>? Mounts = null,
     double Elbow = 0, (double X, double Y)? Clamp = null, string? Charged = null,
-    IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null)
+    IReadOnlyList<(double X0, double Y0, double X1, double Y1)>? Arcs = null, string? Twist = null, string? Driven = null,
+    double Bite = 0.75, bool Round = false)
 {
     /// <summary>
     /// The fire axe, <c>art/hero_axe.png</c>: gripped on the dark wrap a third up its haft; held square to
@@ -97,7 +99,7 @@ public sealed record HeldLook(
     public static readonly HeldLook Grinder = new(
         "res://art/hero_grinder.png", (5.2, 9.8), 0, (22.6, 7.2), (27.2, 7.2), Aimed: true,
         Spin: ["res://art/hero_grinder_spin1.png", "res://art/hero_grinder_spin2.png", "res://art/hero_grinder_spin3.png"], Lamp: (1.5, 4.5),
-        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7));
+        Mounts: [new ToolMount("coil", 2, 4, (2, 3.5, 9, 6.5))], Elbow: 0.4, Clamp: (14.5, 7), Bite: 4.6, Round: true);
 
     /// <summary>
     /// The plasma cutter, <c>art/hero_plasmaCutter.png</c> (salvage-tools), the user's pick, «Кольца»: a short dark body banded in brass,

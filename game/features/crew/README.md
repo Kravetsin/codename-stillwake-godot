@@ -1,7 +1,7 @@
 # crew (client): the heroes
 
-This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here; only
-commands reach the sim. Others' heroes come through the host.
+This machine's hero and the others', client-authoritative (0002): the controller runs here; only commands reach
+the sim.
 
 ## Files
 
@@ -29,6 +29,8 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/Tether.cs` | tether drawn, reeled |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/RunSounds.cs` | tools heard running |
+| `logic/ToolEdge.cs` | what a tool edge hits |
+| `WreckPixels.cs` | wrecks' opaque pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks off a wreck |
 | `logic/CutterJet.cs` | the cutter's jet |
@@ -76,8 +78,7 @@ commands reach the sim. Others' heroes come through the host.
 
 ## Guarantees
 
-- Lengths and speeds are thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
-  (`Net.Clock`), drawn between.
+- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step each 1000/60 ms (`Net.Clock`), drawn between.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089); out of the hull, tethered.
@@ -86,7 +87,7 @@ commands reach the sim. Others' heroes come through the host.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
-- **Jump feel** (0089): coyote time, jump buffer, short hop, eased apex, `AirControl` aloft.
+- **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl` aloft.
 - **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
@@ -95,7 +96,7 @@ commands reach the sim. Others' heroes come through the host.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
-  key on the tablet's edge, dim while refused.
+  key on the tablet's edge, dim if refused.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
@@ -119,13 +120,13 @@ commands reach the sim. Others' heroes come through the host.
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle.
-- **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if it
-  strikes; heard at the cell nearest the pointer.
+- **A struck tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, if it strikes.
 - **Struck tools** (0038, salvage-tools): axe, hammer, spear at their paces; a swing hits as its edge crosses, a jab at full reach.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
-- **Drill, grinder, cutter** (0054, 0055, tool-contact): left held runs it (`Run`); hits every `Pace` ticks; seen at work where it touches (`ToolWork`, damage-looks).
+- **Drill, grinder, cutter** (0054, 0055, tool-edge): left held runs it (`Run`); each `Pace` ticks it hits all its drawn
+  edge touches (`ToolEdges`), seen where it first touches (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): at work only; charged, a 2×2 square over plans or marks
   of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
