@@ -46,6 +46,12 @@ public sealed record Fan(Hew Ground, Hewn Hewn, HewWrecks Wrecks, IReadOnlyList<
 }
 
 /// <summary>
+/// Where a running tool is seen to work (tool-contact), in thousandths of a cell: on what it touches, the wall's or plant's
+/// <paramref name="Cell"/> or a wreck (none), or at its whole reach touching nothing.
+/// </summary>
+public readonly record struct Contact((double X, double Y) At, bool Touches, int? Cell);
+
+/// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
 /// none is under way.
 /// </summary>
@@ -543,6 +549,50 @@ public static class Aiming
         bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
         return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading), wrecks,
             outside ? m.Debris.Struck(tool, hand.X, hand.Y, heading) : []);
+    }
+
+    /// <summary>
+    /// Where a running tool's <paramref name="fan"/> is seen to work (tool-contact), in thousandths of a cell: along its aim from the
+    /// hand, the nearest entry into what it strikes, a wreck's box as drawn <paramref name="progress"/> of the way to its next tick, a
+    /// struck wall's or plant's cell; where its middle ray misses them, the nearest point of the nearest. Its end of reach (<see
+    /// cref="ReachOf"/>) when it strikes nothing: drawn every frame, whether a hit lands then or not.
+    /// </summary>
+    public static Contact ContactOf(Registry m, Fan fan, double progress)
+    {
+        (double X, double Y) hand = (fan.Wrecks.X, fan.Wrecks.Y), end = ReachOf(fan.Wrecks);
+        double length = Math.Max(1, Math.Sqrt((end.X - hand.X) * (end.X - hand.X) + (end.Y - hand.Y) * (end.Y - hand.Y)));
+        (double T, (double X, double Y) At, int? Cell)? best = null;
+        void Box(double left, double top, double right, double bottom, int? cell)
+        {
+            (double T, (double X, double Y) At) seen;
+            if (Entered((hand.X, hand.Y, end.X, end.Y), left, top, right, bottom) is double t)
+                seen = (t, (hand.X + (end.X - hand.X) * t, hand.Y + (end.Y - hand.Y) * t));
+            else
+            {
+                // Struck by an edge ray only: its nearest point, by its distance along the way.
+                double x = Math.Clamp(hand.X, left, right), y = Math.Clamp(hand.Y, top, bottom);
+                seen = (Math.Sqrt((x - hand.X) * (x - hand.X) + (y - hand.Y) * (y - hand.Y)) / length, (x, y));
+            }
+            if (best is not var (nearest, _, _) || seen.T < nearest) best = (seen.T, seen.At, cell);
+        }
+        foreach (var p in fan.Pieces)
+        {
+            var (x, y) = PieceDrawn.At(p, progress);
+            var (halfW, halfH) = PictureOf(p.Item);
+            Box(x - halfW, y - halfH, x + halfW, y + halfH, null);
+        }
+        int width = m.Grid.Width;
+        foreach (int cell in fan.Hewn.Cells.Concat(fan.Hewn.Plants.Select(p => p.Cell)))
+            Box(cell % width * Hero.Unit, cell / width * Hero.Unit, (cell % width + 1) * Hero.Unit, (cell / width + 1) * Hero.Unit, cell);
+        return best is var (_, at, touched) ? new(at, true, touched) : new(end, false, null);
+    }
+
+    /// <summary>The end of <paramref name="hew"/>'s middle ray, its tool's whole reach from the hand, in thousandths of a cell.</summary>
+    public static (double X, double Y) ReachOf(HewWrecks hew)
+    {
+        var (dx, dy) = Rays.Direction(hew.Heading);
+        int range = Spec.Weapons.Of(hew.Tool)?.Range ?? 0;
+        return (hew.X + (double)dx * range / Rays.Cell, hew.Y + (double)dy * range / Rays.Cell);
     }
 
     /// <summary>

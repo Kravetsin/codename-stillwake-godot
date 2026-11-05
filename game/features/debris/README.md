@@ -48,11 +48,11 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   the share grows, before the light falls on them.
 - **A hit** (a rise in `Damage`) jolts the piece away from the nearest hero, turning it a little and settling, and
   throws `HitLooks.Of[Impact.Wreck]` by `HitBurst` where it was struck, the picture flaring warm (0075, 0094). The
-  axe's lands on the side facing the nearest hero; one under a running drill's bit (within 4 px of the box) lands at
-  the bit and throws that drill's share (0094).
+  axe's lands on the side facing the nearest hero. One under a running tool's bit (`Ui.Bits`, within 4 px of the box) only
+  cracks it: the crew shows the tool at work there all along (tool-contact).
 - **Own hits** (`OwnHits`, read after this frame's hits are sent) are felt the frame they are first in flight (0014):
   the jolt, throw and flare, the view nudged (`ShipCamera.Nudge`) and `Sound.Chop`, on the Suit bus, dulled while
-  floating (0042); their tick brings only the cracks. A drill's, whose strikes the crew plays, is felt on its tick.
+  floating (0042); their tick brings only the cracks.
 - **Broken** (`Fading.Broken`): a wreck gone before the end of its path, not caught by hand (`CaughtFrom`), counting ticks since last
   seen, so one drifting off its end only fades, as does one broken past its end while a hero's view keeps it there
   (0052), its loot falling all the same. It flies apart in six tumbling wedges with glowing torn edges and

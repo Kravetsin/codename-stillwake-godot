@@ -34,9 +34,9 @@ public static class Weapons
 
     /// <summary>
     /// The angle grinder (salvage tools): 3 a hit every 4 ticks, 15 a second on wrecks, half again the drill's, but 1 on blocks, 5 a
-    /// second, and only 2.5 cells out: a wreck tool, not a digger; on the belt's batteries; with the arc fitted, twice either.
+    /// second, 6 cells out, a little short of the drill: a wreck tool, not a digger; on the belt's batteries; with the arc fitted, twice either.
     /// </summary>
-    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 8, Rays: 3, Range: 2500, Effects: []);
+    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 8, Rays: 3, Range: 6000, Effects: []);
 
     /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
     public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
@@ -46,9 +46,9 @@ public static class Weapons
 
     /// <summary>
     /// The plasma cutter (salvage tools): 1 a hit every 4 ticks, 5 a second, nothing on blocks; a wreck it took its hit points
-    /// off drops half again its loot by that share (Debris); 3 cells out, on the belt's batteries.
+    /// off drops half again its loot by that share (Debris); its jet reaches 8 cells, the farthest of the hand tools; on the belt's batteries.
     /// </summary>
-    public static readonly Weapon PlasmaCutter = new("plasmaCutter", Damage: 1, BlockDamage: 0, Pace: 4, Arc: 8, Rays: 3, Range: 3000, Effects: [Salvage]);
+    public static readonly Weapon PlasmaCutter = new("plasmaCutter", Damage: 1, BlockDamage: 0, Pace: 4, Arc: 8, Rays: 3, Range: 8000, Effects: [Salvage]);
 
     /// <summary>
     /// The sledgehammer (salvage tools): 12 a blow every 3 s, 4 a second as the axe, but each blow bursts every wreck of 12 hit

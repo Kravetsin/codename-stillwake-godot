@@ -33,7 +33,7 @@ public partial class HeroView
             if (!others.Any(o => o.Id == id))
             {
                 shown.Figure.Visible = false;
-                (shown.Tether, shown.Busy) = (null, null);
+                (shown.Tether, shown.Busy, shown.Work) = (null, null, null);
                 shown.Swing.Stop();
                 ShowRod(id, shown, null, false, elapsedMs);
             }
@@ -63,6 +63,7 @@ public partial class HeroView
             // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the fan its peer sends there.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
+            shown.Work = drills ? WorkOf(m, id, hero, Aiming.FanOf(m, hero, seen.Busy!.Value.At, running!), running!, shown.Figure) : null;
             if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1))
                 StruckBy(m, id, hero, seen.Busy!.Value.At, running!);
             ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
