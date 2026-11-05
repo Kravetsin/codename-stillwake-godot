@@ -21,7 +21,7 @@ public partial class HeroView
     /// so a door opens with a card or a cable out; the left button held works plans with the screwdriver in
     /// hand (0107); the left button grabs only with a free hand, as it is the card's otherwise, and held
     /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
-    /// unless the click grabbed a piece; the right button does nothing with a tool (the fan of rays).
+    /// unless the click grabbed a piece, hitting what its blade sweeps through (melee-edge); the right button does nothing with a tool.
     /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
@@ -38,9 +38,11 @@ public partial class HeroView
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
-        // A running tool's edge, as the figure drew it last: what it touches is what it hits and what it aims at (tool-edge).
+        // A running tool's edge, as the figure drew it last: what it touches is what it hits (tool-edge).
         var edged = drill != null && pointer != null && !seated ? EdgeOf(m, _current, drill, _figure) : null;
-        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), false, gun, drill ?? struck, shown, ShipTiles.RiseOf, edged) : null;
+        // Whatever hits or shoots aims at nothing: it hits what it is drawn touching, no outline, glow or prompt (melee-edge).
+        bool armed = struck != null || gun || shooter != null || drill != null;
+        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), armed, shown, ShipTiles.RiseOf) : null;
         // The power driver charged in its mode works the square round the pointer while it holds plans or marks, every layer of
         // each cell, shown before the press; over nothing the pointer aims at one cell (power-driver).
         bool charged = driver != null && Content.Items.Get(driver.Item).Draw is int pays && m.Items.CanDrain(client.Id, pays);
@@ -55,11 +57,7 @@ public partial class HeroView
         _glyph.Show(marked ? DriverMode.DotsOf(driver, _ui.DriverSquare.Get(), charged) : null,
             pointer is { } tip ? GetCanvasTransform() * (new Vector2((float)tip.X, (float)tip.Y) * ShipCamera.Cell) : default);
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
-        else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null, Edge: null } ? aim : null, prompt?.Problem != null);
-        // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
-        _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan && pointer is { } on
-            ? AimGlow.FieldOf(m.Grid, fan.Ground.Tool, fan.Ground.X, fan.Ground.Y, AngleOf(fan.Ground, on)) : null,
-            prompt?.Problem != null ? AimRefused : AimReady);
+        else TraceAim(m, shown, prompt != null && aim is { Piece: null } ? aim : null, prompt?.Problem != null);
         _prompt.Show(prompt);
         _prompt.Place(_ui.MenuTop);
         _ui.AimedPiece.Set(prompt != null && aim?.Piece is int piece ? (piece, prompt.Problem != null) : null);
@@ -105,13 +103,17 @@ public partial class HeroView
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
         if (swung.Hits)
         {
-            // The fan toward the swing's point (the fan of rays): what stands on a planet's grid, heard once; in space the wrecks.
-            bool bites = Hew(client, m, Aiming.FanOf(m, _current, _swing.At, struck!), _swing.At);
-            // Every creature the blade meets, or the spear's point at full stretch, wherever the hero stands (0102): its flinch is the creatures' to show.
-            var strikes = Aiming.StrikesOf(m, client.Id, Aiming.StrokeCreatures(m, _current, _swing.At, struck!), struck!);
-            foreach (var strike in strikes) client.Send(strike);
+            // What the blade touches as it sweeps down, or the spear's point at full stretch (melee-edge): the cells, wrecks and
+            // creatures the sim would take its hits on; a creature's flinch and a wreck's chop are theirs to show (0102, DebrisView).
+            var hit = StrokeOf(m, _current, _swing.At, struck!);
+            var sent = ToolEdges.CommandsOf(m, client.Id, struck!, hit);
+            if (sent.Cells is { } cells) client.Send(cells);
+            if (sent.Pieces is { } pieces) client.Send(pieces);
+            foreach (var strike in sent.Strikes) client.Send(strike);
+            // The ground it bites first heard and seen there, the ship's hull too, which takes no harm: a clang and sparks.
+            if (hit.Ground?.Cell is int bitten) Struck(_groundHits, m, bitten, struck!, _current, client.Id);
             // A blade that bites is drawn stopped on contact a moment (0075).
-            if (bites || strikes.Count > 0) _figure.Bit();
+            if (hit.Contact != null || sent.Strikes.Count > 0) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
         // its power every tick it runs (0055), and what its edge touches is hit each Pace ticks (tool-edge). Flat, it winds down. The power
@@ -217,29 +219,6 @@ public partial class HeroView
     }
 
     /// <summary>
-    /// Sends <paramref name="fan"/>'s hits the sim would take (the fan of rays): the ground's, heard and seen once at the cell it
-    /// strikes nearest <paramref name="at"/>, and the wrecks'. Whether either went.
-    /// </summary>
-    private bool Hew(Client client, Registry m, Fan fan, Point at)
-    {
-        bool sent = false;
-        var (ground, wrecks) = (fan.Ground, fan.Wrecks);
-        // A tool of no block damage, the cutter, does nothing to a wall or a plant: neither sent nor heard.
-        if (!fan.Hewn.IsEmpty && m.Items.BlockDamage(client.Id, ground.Tool) != 0 && m.Building.HewProblem(client.Id, ground.Tool, ground.X, ground.Y, ground.Heading) == null)
-        {
-            Struck(_groundHits, m, Aiming.LeadOf(fan, at, m.Grid.Width), ground.Tool, _current, client.Id);
-            client.Send(ground);
-            sent = true;
-        }
-        if (fan.Pieces.Count > 0 && m.Debris.HewProblem(client.Id, wrecks.Tool, wrecks.X, wrecks.Y, wrecks.Heading) == null)
-        {
-            client.Send(wrecks);
-            sent = true;
-        }
-        return sent;
-    }
-
-    /// <summary>
     /// The drill's motor heard at its bit as last drawn whenever it <paramref name="runs"/>, spun up and down with its picture
     /// and loaded while it <paramref name="works"/> on a piece (0059), held on <c>Sound.DrillTouchHoldS</c> past the bit leaving
     /// it. Its hits sound as what they hit, a wreck's chop or the ground's (0093), each one as it is sent. The grinder's motor is a
@@ -327,7 +306,10 @@ public partial class HeroView
     {
         var bits = new List<(float X, float Y, string Tool)>();
         foreach (var work in Works())
+        {
             bits.Add((work.At.X, work.At.Y, work.Tool));
+            foreach (var (_, at) in work.Wrecks) bits.Add((at.X, at.Y, work.Tool));
+        }
         return bits;
     }
 
@@ -347,25 +329,38 @@ public partial class HeroView
     {
         if (!figure.Visible || !figure.Aimed || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
         var edge = ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end));
-        bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;
-        return ToolEdges.Hits(m, edge, outside, _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        return ToolEdges.Hits(m, edge, Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
     }
+
+    /// <summary>
+    /// What a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> touches as its blade sweeps
+    /// down (melee-edge), the wrecks as drawn this frame.
+    /// </summary>
+    private EdgeHit StrokeOf(Registry m, Hero hero, Point at, string tool) =>
+        ToolEdges.Swept(m, Aiming.StrokeEdges(hero, at, tool), Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+
+    /// <summary>Whether <paramref name="hero"/> is out in space, where its tools touch wrecks.</summary>
+    private static bool Outside(Registry m, Hero hero) => m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;
 
     /// <summary>
     /// Peer <paramref name="id"/>'s running <paramref name="tool"/> by <paramref name="hero"/>, what its edge touches this frame
     /// (<paramref name="hit"/>), as seen at work (tool-contact, tool-edge): from its edge's start as <paramref name="figure"/> was drawn
-    /// to where it first touches, else to its end, looking as what it touches looks hit, a wreck or the wall's material; none unseen.
+    /// to where it first touches, else to its end, looking as what it touches looks hit, a wreck or the wall's material, and
+    /// sparking at every wreck it touches; none unseen.
     /// </summary>
     private static ToolWork.Seen? WorkOf(Registry m, int id, Hero hero, EdgeHit? hit, string tool, Figure figure)
     {
         if (!HeldLook.IsDrill(tool) || hit == null || figure.EdgeStart is not { } start) return null;
-        if (hit.Contact is not { } contact) return new(id, tool, start, Pixels(hit.End), figure.Barrel, null, null);
+        var wrecks = new List<(int Piece, Vector2 At)>();
+        foreach (var touch in hit.Touches)
+            if (touch.Wreck is { } wreck) wrecks.Add((wreck.Id, Pixels(touch.At)));
+        if (hit.Contact is not { } contact) return new(id, tool, start, Pixels(hit.End), figure.Barrel, null, null, wrecks);
         var at = Pixels(contact.At);
-        if (contact.Wreck != null) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
-        if (contact.Cell is not int cell || Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null);
+        if (contact.Wreck != null) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null, wrecks);
+        if (contact.Cell is not int cell || Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null, wrecks);
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
+        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell, wrecks);
     }
 
     /// <summary>The wrecks' pictures, read once each, that a running tool's edge is tested against (tool-edge).</summary>
@@ -385,7 +380,7 @@ public partial class HeroView
         var at = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         var point = new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell));
         int damage = m.Items.BlockDamage(peer, tool);
-        if (GroundSounds.HitAt(m.Grid, m.Building, cell, damage) is { } hit)
+        if (GroundSounds.HitAt(m.Grid, m.Building, cell, damage, tool) is { } hit)
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(tool));
         if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return;
         double? floor = Impacts.FloorUnder(m.Grid, at) * Rig.Cell;
@@ -463,10 +458,6 @@ public partial class HeroView
 
     /// <summary>The middle of the square <paramref name="side"/> cells across from column <paramref name="x"/>, row <paramref name="y"/>, in thousandths of a cell.</summary>
     private static Point Middle(int x, int y, int side) => new(x * Hero.Unit + side * Hero.Unit / 2, y * Hero.Unit + side * Hero.Unit / 2);
-
-    /// <summary>The angle from <paramref name="hew"/>'s hand to <paramref name="pointer"/>, in cells, in radians: the pointer's own, not a step of the turn.</summary>
-    private static double AngleOf(Sim.Building.Hew hew, (double X, double Y) pointer) =>
-        System.Math.Atan2(pointer.Y * Hero.Unit - hew.Y, pointer.X * Hero.Unit - hew.X);
 
     /// <summary>A point in thousandths of a cell, in the world's pixels.</summary>
     private static Vector2 Pixels(Point at) => new Vector2(at.X, at.Y) * (float)(Rig.Cell / Hero.Unit);

@@ -98,12 +98,13 @@ public static class GroundSounds
 
     /// <summary>
     /// A hit of any tool at <paramref name="cell"/>, taking <paramref name="damage"/> (the sim's for its sender, a module's boost in
-    /// it): what is hit decides, the natural wall's there, else the growth's the hit takes. None for a growth any hit fells alone, its
+    /// it): what is hit decides, the natural wall's there, a built one, the ship's hull, ringing as a wreck's metal under
+    /// <paramref name="tool"/> (melee-edge), else the growth's the hit takes. None for a growth any hit fells alone, its
     /// fall saying it; nor for the hit that fells one whose fall sounds as its hits do, a bush's last, which would play it twice.
     /// </summary>
-    public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage)
+    public static S.Cue? HitAt(IGridQueries grid, BuildingModule building, int cell, int damage, string? tool = null)
     {
-        if (grid.WallAt(cell) is { Natural: true } wall) return HitOf(wall);
+        if (grid.WallAt(cell) is { } wall) return wall.Natural ? HitOf(wall) : S.WreckHitOf(tool);
         if (grid.MachineAt(cell) is { } machine && Spec.Machines.Get(machine.Kind).Strength != null) return S.Chop;
         if (building.PlantAt(cell) is not { } plant || !S.Growths.TryGetValue(plant.Kind, out var sounds) || sounds.Hit is not { } hit)
             return null;

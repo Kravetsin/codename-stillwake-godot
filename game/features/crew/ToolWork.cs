@@ -7,7 +7,7 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// Every running electric tool seen at work (tool-contact, damage-looks), this hero's and its friends': a steady stream where it
-/// touches, whether a hit lands this frame or not — hot sparks off a wreck (<see cref="ToolSparks"/>), what it touches looks hit
+/// touches, whether a hit lands this frame or not — hot sparks off every wreck it touches (<see cref="ToolSparks"/>), what it touches looks hit
 /// off anything else — and the plasma cutter's jet out to there (<see cref="CutterJet"/>). Its hits still crack what they hit and
 /// are heard as they land.
 /// </summary>
@@ -15,9 +15,10 @@ public partial class ToolWork : Node2D
 {
     /// <summary>
     /// One hero's tool this frame: from its nozzle, where its edge begins, in the world's pixels, to where it works, the way it points, how what it touches looks hit
-    /// (none while it touches nothing), and the floor its chips fall to.
+    /// (none while it touches nothing), the floor its chips fall to, and where it touches each wreck it touches, by id.
     /// </summary>
-    public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor);
+    public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor,
+        IReadOnlyList<(int Piece, Vector2 At)> Wrecks);
 
     private readonly Dictionary<int, StrikeTrain> _trains = new();
     private readonly List<Seen> _jets = new();
@@ -49,14 +50,10 @@ public partial class ToolWork : Node2D
         foreach (var s in seen)
         {
             if (s.Tool == Content.Weapons.PlasmaCutter.Item) _jets.Add(s);
-            if (s.Look is not { } look) continue;
             // Back out of the face toward the tool: the way it points, as its muzzle may be pressed right on it.
             var back = -s.Way;
-            if (look == wreck)
-            {
-                _sparks.Touch(s.Hero, s.Tool, (s.At.X, s.At.Y), (back.X, back.Y), elapsedMs);
-                continue;
-            }
+            foreach (var (piece, at) in s.Wrecks) _sparks.Touch((s.Hero, piece), s.Tool, (at.X, at.Y), (back.X, back.Y), elapsedMs);
+            if (s.Look is not { } look || look == wreck) continue;
             _working.Add(s.Hero);
             var train = _trains.GetValueOrDefault(s.Hero);
             int due = train.Due(elapsedMs, true, WorkLooks.ThrowsPerSecond);

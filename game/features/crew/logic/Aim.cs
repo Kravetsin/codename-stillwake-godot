@@ -28,22 +28,10 @@ public sealed record WorkAim(int Plan, string? Problem, int? Repair = null);
 /// <summary>
 /// The cell under the pointer and what the hands do there: the left button held works a plan; E toggles
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens <see cref="Crate"/>, a machine holding items or a computer.
-/// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
-/// (0034), which is outlined itself, not its cell. <see cref="Fan"/> is a tool's hit toward the pointer (the fan of rays): what
-/// it would strike, its faces glowing; <see cref="Edge"/> what a running tool's drawn edge touches (tool-edge), shown by the tool itself.
+/// <see cref="Piece"/> names the piece of debris a press grabs, a wreck outlined itself, not its cell. What a tool or a weapon
+/// hits is never aimed at: it hits what it is drawn touching (tool-edge, melee-edge).
 /// </summary>
-public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null, Fan? Fan = null, EdgeHit? Edge = null);
-
-/// <summary>
-/// A tool's hit toward the pointer (the fan of rays): its <see cref="Ground"/> command and what it would strike there
-/// (<see cref="Hewn"/>), and in space its <see cref="Wrecks"/> command and the wrecks it would strike (<see cref="Pieces"/>), as the
-/// sim's own queries say, so what is shown is what the hit takes.
-/// </summary>
-public sealed record Fan(Hew Ground, Hewn Hewn, HewWrecks Wrecks, IReadOnlyList<Piece> Pieces)
-{
-    /// <summary>Whether the fan would strike nothing at all.</summary>
-    public bool IsEmpty => Hewn.IsEmpty && Pieces.Count == 0;
-}
+public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null);
 
 /// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
@@ -210,10 +198,8 @@ public static class Aiming
     /// a wreck whose picture is under the pointer, else the piece of debris nearest it within
     /// <c>Debris.AimRadius</c>, only while the hero is out in space, where it can catch one, and none in
     /// <paramref name="passOver"/>: grabbed already, its grab still in flight. Bare-handed, a wreck is
-    /// grabbed, which the sim refuses: too big. With the <paramref name="axe"/> or a <paramref name="tool"/> by its item, a drill, the
-    /// grinder, the cutter, the spear or the sledgehammer, a small piece is still grabbed, else the tool's fan toward the pointer is aimed (<see cref="FanOf"/>): at
-    /// the ground it strikes nearest the pointer, else the first wreck it strikes, else at nothing. With a <paramref name="gun"/>, the
-    /// harpoon, a small piece is still grabbed and no wreck is aimed at: it is shot, not worked. A door or valve is
+    /// grabbed, which the sim refuses: too big. <paramref name="armed"/>, with a tool or a weapon in hand, a small piece is still
+    /// grabbed and nothing else is aimed at: what it hits is what it is drawn touching (tool-edge, melee-edge). A door or valve is
     /// opened or shut as <paramref name="shown"/> shows it (the world's without it): with this peer's own toggles in
     /// flight, the next press undoes them, and a press says what its sender saw should become of it. Where a machine's
     /// picture, built or planned, rises over the cells above its footprint by <paramref name="riseOf"/> (<see cref="Risen"/>), and
@@ -221,8 +207,7 @@ public static class Aiming
     /// </summary>
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
-        IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? tool = null, ShownGrid? shown = null,
-        Func<string, int>? riseOf = null, EdgeHit? edge = null)
+        IReadOnlySet<int>? passOver = null, bool armed = false, ShownGrid? shown = null, Func<string, int>? riseOf = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -247,7 +232,7 @@ public static class Aiming
         if (work != null || crate != null || press != null) return new Aim(cell, inReach, press, work, crate);
         // Over a machine's or a plan's risen picture, as if at its footprint's top row under the pointer.
         if (riseOf != null && Risen.Under(grid, m.Building, cell, riseOf) is int top
-            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, axe, gun, tool, shown) is ({ Work: not null } or { Crate: not null } or { Press: not null }) and var under)
+            && AimAt(m, peer, hero, (point.X, top / grid.Width + 0.5), passOver, armed, shown) is ({ Work: not null } or { Crate: not null } or { Press: not null }) and var under)
             return under;
         var piece = PieceNear(m, hero, point, passOver);
         // Aimed at where the piece is, which may be a cell beside the pointer's.
@@ -256,35 +241,7 @@ public static class Aiming
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
         }
-        // A running tool aims at what its drawn edge touches (tool-edge): the first cell it strikes, else the first wreck; hanging,
-        // unused, at nothing (aim-on-use).
-        if (!axe && tool != null && HeldLook.IsDrill(tool))
-        {
-            if (edge == null) return new Aim(cell, inReach);
-            var cells = edge.Cells.ToList();
-            if (m.Items.BlockDamage(peer, tool) != 0 && ToolEdges.LeadOf(m, edge) is int lead)
-                return new Aim(lead, true, new Use(new HewCells(tool, cells), m.Building.HewCellsProblem(peer, tool, cells)), Edge: edge);
-            if (edge.Wrecks.FirstOrDefault() is { } touched)
-            {
-                var ids = edge.Wrecks.Select(p => p.Id).ToList();
-                return new Aim(DebrisModule.CellOf(touched.X, touched.Y, grid.Width), true,
-                    new Use(new HewPieces(tool, ids), m.Debris.HewPiecesProblem(peer, tool, ids)), Piece: touched.Id, Edge: edge);
-            }
-            return new Aim(cell, inReach, Edge: edge);
-        }
-        if ((axe ? Spec.Weapons.Axe.Item : tool) is string hews)
-        {
-            // The tool's fan toward the pointer (the fan of rays): what stands on a planet's grid that it strikes first; in space
-            // the wrecks it meets.
-            var fan = FanOf(m, hero, PointOf(point), hews);
-            if (!fan.Hewn.IsEmpty)
-                return new Aim(LeadOf(fan, PointOf(point), grid.Width), true, new Use(fan.Ground, m.Building.HewProblem(peer, hews, fan.Ground.X, fan.Ground.Y, fan.Ground.Heading)), Fan: fan);
-            if (fan.Pieces.FirstOrDefault() is { } wreck)
-                return new Aim(DebrisModule.CellOf(wreck.X, wreck.Y, grid.Width), true,
-                    new Use(fan.Wrecks, m.Debris.HewProblem(peer, hews, fan.Wrecks.X, fan.Wrecks.Y, fan.Wrecks.Heading)), Piece: wreck.Id, Fan: fan);
-            return new Aim(cell, inReach, Fan: fan);
-        }
-        if (gun || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
+        if (armed || piece is null || HalfOf(piece.Item) is not var (halfW, halfH)) return new Aim(cell, inReach);
         var grab = new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id));
         return new Aim(DebrisModule.CellOf(piece.X, piece.Y, grid.Width), ReachesBox(hero, piece.X, piece.Y, halfW, halfH), grab, Piece: piece.Id);
     }
@@ -423,21 +380,32 @@ public static class Aiming
     private const double SampleStep = Math.PI / 90;
 
     /// <summary>
-    /// The edge of <paramref name="look"/>, held as the figure draws it, swung by <paramref name="hero"/> toward <paramref name="at"/>,
-    /// at every sample of the downstroke's last stretch, from the shoulder of the body upright, turned the way the hero faces.
+    /// The edges a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> sweeps as it strikes
+    /// (melee-edge), in thousandths of a cell, in the order it sweeps them, each <c>Bite</c> pixels either side as a running tool's:
+    /// a swing's at every sample of the downstroke's last stretch, a thrust's point at full stretch, the elbow straight; from the
+    /// shoulder of the body upright, turned the way the hero faces, the look held as the figure draws it.
     /// </summary>
-    private static (double Ax, double Ay, double Bx, double By)[] SwingEdges(Hero hero, Point at, HeldLook look)
+    public static List<Edge> StrokeEdges(Hero hero, Point at, string tool)
     {
-        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
+        var look = HeldLook.Of(tool) ?? HeldLook.FireAxe;
+        double half = look.Bite * Hero.Unit / Rig.Cell;
+        if (Strokes.Of(tool)?.Kind == StrokeKind.Thrust) return [EdgeOf(BitOf(hero, at, look with { Elbow = 0 }), half)];
+        double sx = hero.X, sy = hero.Y - ShoulderUp;
         double line = Math.Atan2(at.Y - sy, (at.X - sx) * hero.Facing), from = line + AxeSwing.Lead(look);
         int steps = (int)Math.Ceiling(AxeSwing.Through / SampleStep);
-        var edges = new (double Ax, double Ay, double Bx, double By)[steps + 1];
-        for (int i = 0; i <= steps; i++)
-        {
-            var (a, b) = AxeSwing.EdgeAt(look, from + AxeSwing.Through * i / steps);
-            edges[i] = (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
-        }
+        var edges = new List<Edge>(steps + 1);
+        for (int i = 0; i <= steps; i++) edges.Add(EdgeOf(Placed(hero, AxeSwing.EdgeAt(look, from + AxeSwing.Through * i / steps)), half));
         return edges;
+    }
+
+    private static Edge EdgeOf((double Ax, double Ay, double Bx, double By) e, double half) => new((e.Ax, e.Ay), (e.Bx, e.By), half, false);
+
+    /// <summary>A segment drawn in pixels from the shoulder, <paramref name="hero"/> facing right, placed in the world in thousandths of a cell.</summary>
+    private static (double Ax, double Ay, double Bx, double By) Placed(Hero hero, (Vec From, Vec To) drawn)
+    {
+        double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
+        var (a, b) = drawn;
+        return (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
     }
 
     /// <summary>How far past a creature's body its box is struck, in thousandths of a cell: its fur, and a tick's walk.</summary>
@@ -451,63 +419,11 @@ public static class Aiming
         return (c.X - half, c.Y - spec.Body.Height * Hero.Unit - CreatureMargin, c.X + half, c.Y + CreatureMargin);
     }
 
-    /// <summary>
-    /// The creatures a swing of <paramref name="look"/>, the fire axe unless a test says, by <paramref name="hero"/> toward
-    /// <paramref name="at"/> touches as it strikes, in id order (0102): its edge, sampled down the downstroke's last stretch, against
-    /// each creature's body and a margin, wherever the hero stands.
-    /// </summary>
-    public static List<Creature> StruckCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
-    {
-        var struck = new List<Creature>();
-        var all = m.Creatures.Creatures;
-        if (all.Count == 0) return struck;
-        var edges = SwingEdges(hero, at, look ?? HeldLook.FireAxe);
-        foreach (var c in all)
-        {
-            var (left, top, right, bottom) = BoxOf(c);
-            if (edges.Any(e => Crosses(e, left, top, right, bottom))) struck.Add(c);
-        }
-        return struck;
-    }
-
-    /// <summary>
-    /// The creatures the bit of <paramref name="look"/>, the drill unless a test says, touches held by <paramref name="hero"/>
-    /// aimed at <paramref name="at"/> (0102), in id order: its bit, turned at the chest toward the point, against each creature's body
-    /// and a margin, wherever the hero stands.
-    /// </summary>
-    public static List<Creature> TouchedCreatures(Registry m, Hero hero, Point at, HeldLook? look = null)
-    {
-        var touched = new List<Creature>();
-        var all = m.Creatures.Creatures;
-        if (all.Count == 0) return touched;
-        var bit = BitOf(hero, at, look ?? HeldLook.Drill);
-        foreach (var c in all)
-        {
-            var (left, top, right, bottom) = BoxOf(c);
-            if (Crosses(bit, left, top, right, bottom)) touched.Add(c);
-        }
-        return touched;
-    }
-
-    /// <summary>
-    /// The creatures a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> meets as it strikes: a
-    /// swing's downstroke (<see cref="StruckCreatures"/>), or a thrust's point at full stretch, the elbow straight (<see cref="TouchedCreatures"/>).
-    /// </summary>
-    public static List<Creature> StrokeCreatures(Registry m, Hero hero, Point at, string tool)
-    {
-        var look = HeldLook.Of(tool) ?? HeldLook.FireAxe;
-        return Strokes.Of(tool)?.Kind == StrokeKind.Thrust ? TouchedCreatures(m, hero, at, look with { Elbow = 0 }) : StruckCreatures(m, hero, at, look);
-    }
-
     /// <summary>A strike with <paramref name="tool"/> on each of <paramref name="touched"/> the sim would let peer <paramref name="peer"/> make.</summary>
     public static List<Strike> StrikesOf(Registry m, int peer, IEnumerable<Creature> touched, string tool) =>
         touched.Where(c => m.Creatures.StrikeProblem(peer, c.Id, tool) == null).Select(c => new Strike(c.Id, tool)).ToList();
 
-    /// <summary>Whether the segment <paramref name="e"/> meets the box from (<paramref name="left"/>, <paramref name="top"/>) to (<paramref name="right"/>, <paramref name="bottom"/>): clipped to it, something is left.</summary>
-    private static bool Crosses((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom) =>
-        Entered(e, left, top, right, bottom) != null;
-
-    /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, as <see cref="Crosses"/> clips it; none when it misses.</summary>
+    /// <summary>How far along the segment <paramref name="e"/>, from 0 to 1, it enters the box, clipped to it; none when it misses.</summary>
     private static double? Entered((double Ax, double Ay, double Bx, double By) e, double left, double top, double right, double bottom)
     {
         double enter = 0, leave = 1, dx = e.Bx - e.Ax, dy = e.By - e.Ay;
@@ -527,13 +443,12 @@ public static class Aiming
     {
         double sx = hero.X, sy = hero.Y - ShoulderUp, perPixel = Hero.Unit / Rig.Cell;
         double angle = HarpoonShot.ArmFor(look, (at.X - sx) * hero.Facing / perPixel, (at.Y - sy) / perPixel);
-        var (a, b) = AxeSwing.EdgeAt(look, angle);
-        return (sx + hero.Facing * a.X * perPixel, sy + a.Y * perPixel, sx + hero.Facing * b.X * perPixel, sy + b.Y * perPixel);
+        return Placed(hero, AxeSwing.EdgeAt(look, angle));
     }
 
     /// <summary>
-    /// Where a tool's fan is cast from: <paramref name="hero"/>'s shoulder, the body upright, in thousandths of a cell. The sim
-    /// takes it on the client's word, among friends (0002).
+    /// <paramref name="hero"/>'s shoulder, the body upright, in thousandths of a cell: where a stroke and a thrown tool's line begin.
+    /// The sim takes what is sent from it on the client's word, among friends (0002).
     /// </summary>
     public static Point HandOf(Hero hero) => new(hero.X, hero.Y - ShoulderUp);
 
@@ -543,37 +458,6 @@ public static class Aiming
         if (from == to) return 0;
         double turns = Math.Atan2(to.Y - from.Y, to.X - from.X) / (2 * Math.PI);
         return (int)Math.Round(turns * Spec.Headings.Turn) & (Spec.Headings.Turn - 1);
-    }
-
-    /// <summary>
-    /// The hit of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, in thousandths of a cell (the fan
-    /// of rays): from its hand (<see cref="HandOf"/>), with what the sim says it would strike; no wreck while the hero is
-    /// aboard.
-    /// </summary>
-    public static Fan FanOf(Registry m, Hero hero, Point at, string tool)
-    {
-        var hand = HandOf(hero);
-        int heading = HeadingOf(hand, at);
-        var ground = new Hew(tool, hand.X, hand.Y, heading);
-        var wrecks = new HewWrecks(tool, hand.X, hand.Y, heading);
-        bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
-        return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading), wrecks,
-            outside ? m.Debris.Struck(tool, hand.X, hand.Y, heading) : []);
-    }
-
-    /// <summary>
-    /// The cell of <paramref name="fan"/>'s ground heard and seen as its strike's own: of the walls and plants it strikes, the one
-    /// nearest <paramref name="at"/>, the pointer; a plant by its own cell.
-    /// </summary>
-    public static int LeadOf(Fan fan, Point at, int width)
-    {
-        long Off(int cell)
-        {
-            long dx = cell % width * Hero.Unit + Hero.Unit / 2 - at.X, dy = cell / width * Hero.Unit + Hero.Unit / 2 - at.Y;
-            return dx * dx + dy * dy;
-        }
-        var cells = fan.Hewn.Cells.Concat(fan.Hewn.Plants.Select(p => p.Cell));
-        return cells.OrderBy(Off).ThenBy(c => c).First();
     }
 
     /// <summary>
@@ -638,8 +522,7 @@ public static class Aiming
             // A drop pod boarded opens with it; one the sim would refuse neither seats nor opens.
             if (pressed && aim.Crate is int pod && aim.Press?.Command is Board) return aim.Press.Problem == null ? new([aim.Press.Command], pod, -1) : new([], null, -1);
             if (pressed && aim.Crate is int crate) return new([], crate, -1);
-            // A wreck is chopped by a swing of the axe (AxeSwing), never by a press; the ground dug so too (0077).
-            if (pressed && aim.Press is { Problem: null } press && press.Command is not (Hew or HewWrecks)) commands.Add(press.Command);
+            if (pressed && aim.Press is { Problem: null } press) commands.Add(press.Command);
         }
         var work = (targets ?? (aim is { InReach: true, Work: { } own } ? [own] : [])).Where(t => t.Problem == null).ToList();
         if (work.Count == 0 || !held) return new(commands, null, -1);

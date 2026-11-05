@@ -60,9 +60,9 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   (0052), its loot falling all the same. It flies apart in six tumbling wedges with glowing torn edges and
   embers (`BreakView`), with sparks, dust, a cloud, glint, ring and flash, more for a derelict (0075); `Sound.Break`
   if its own hit broke it, louder and farther, on the Suit bus. Every peer sees it; only the striker hears it, after the last hit's chop.
-- **Aimed** (0039, 0054): the piece in `Ui.AimedPiece` (in space, within reach; the first wreck the axe's blade or the
-  drill's bit touches) is outlined along its picture a screen pixel wide (`render/Outline.cs`), green, or red while the
-  sim would refuse the grab. The crew's prompt says "[E] Catch", on a wreck "Too big" or with the axe "[Hold LMB] Chop".
+- **Aimed** (0039, 0054): the piece in `Ui.AimedPiece` (in space, within reach; never with a tool or weapon
+  in hand, melee-edge) is outlined along its picture a screen pixel wide (`render/Outline.cs`), green, or red while the
+  sim would refuse the grab. The crew's prompt says "[E] Catch", on a wreck "Too big".
 - **Own grabs at once** (0014): a piece with a grab of this peer's in flight is gone from its view and skipped by the
   aim, so E cannot send it twice.
 - **Nets** (2026-11-03-debris-net): the grid draws the booms (`machine_net`); `NetView` the plates on the hull's face, then

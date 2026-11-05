@@ -447,21 +447,19 @@ public class AimTests
     }
 
     [Fact]
-    public void ChopsAWreckWithTheAxeAndBareHandedTriesToCatchItWhichIsTooBig()
+    public void ArmedAimsAtNoWreckAndBareHandedTriesToCatchItWhichIsTooBig()
     {
         var (w, wreck, hero) = Wrecked();
         var at = ((double)wreck.X / Unit, (double)wreck.Y / Unit);
         Assert.Equal(new Use(new Grab(wreck.Id), "debris.tooBig"), Aiming.AimAt(w.M, 0, hero, at)?.Press);
-        var axe = Aiming.AimAt(w.M, 0, hero, at, axe: true);
-        var fan = Aiming.FanOf(w.M, hero, Aiming.PointOf(at), Spec.Weapons.Axe.Item);
-        Assert.Equal([wreck], fan.Pieces);
-        Assert.Equal(new Use(fan.Wrecks, null), axe?.Press);
-        Assert.Equal(new Prompt("use.chop", null), Prompts.Of(w.M, axe));
-        // A press never chops: the left button held does, at the axe's pace.
-        Assert.Empty(Aiming.UsesOf(axe, pressed: true, held: true, 5, -1).Commands);
-        // The axe in hand, a small piece is still caught.
+        // A tool or a weapon in hand: no outline, no prompt, nothing a press sends; it hits what it is drawn touching (melee-edge).
+        var armed = Aiming.AimAt(w.M, 0, hero, at, armed: true);
+        Assert.Equal((null, null), (armed?.Piece, armed?.Press));
+        Assert.Null(Prompts.Of(w.M, armed));
+        Assert.Empty(Aiming.UsesOf(armed, pressed: true, held: true, 5, -1).Commands);
+        // Armed, a small piece is still caught.
         var chunk = w.M.Debris.Pieces.Single(p => p.Id == 99);
-        Assert.IsType<Grab>(Aiming.AimAt(w.M, 0, hero, ((double)chunk.X / Unit, (double)chunk.Y / Unit + 0.8), axe: true)?.Press?.Command);
+        Assert.IsType<Grab>(Aiming.AimAt(w.M, 0, hero, ((double)chunk.X / Unit, (double)chunk.Y / Unit + 0.8), armed: true)?.Press?.Command);
     }
 
     [Fact]
@@ -478,7 +476,7 @@ public class AimTests
         Assert.False(Aiming.AimAt(w.M, 0, far, at)!.InReach);
     }
 
-    // A tool's fan in space (the fan of rays): the first wreck each ray meets, as the sim's query says.
+    // A stroke in space (melee-edge): every wreck its blade sweeps through, where it is drawn.
 
     private const int FieldWidth = 24;
 
@@ -509,43 +507,63 @@ public class AimTests
         return (w, HeroOn(6, 7));
     }
 
-    /// <summary>The hand a hero's fan is cast from (<see cref="Aiming.HandOf"/>), as the figure's shoulder upright.</summary>
-    private static Point HandOf(Hero hero) => Aiming.HandOf(hero);
+    /// <summary>A picture opaque over its whole box, unturned, as one that will not load counts.</summary>
+    private static readonly Func<Piece, double, double, bool> Opaque = (p, x, y) =>
+        Math.Abs(x - p.X) <= Aiming.PictureOf(p.Item).HalfW && Math.Abs(y - p.Y) <= Aiming.PictureOf(p.Item).HalfH;
+
+    /// <summary>What a stroke of <paramref name="tool"/>, the axe unless said, by <paramref name="hero"/> toward <paramref name="at"/> sweeps through out in space.</summary>
+    private static EdgeHit Swept(TestWorld w, Hero hero, Point at, string? tool = null) =>
+        ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero, at, tool ?? Spec.Weapons.Axe.Item), outside: true, 0, Opaque);
 
     /// <summary>Half a wreck's own size across, in thousandths of a cell, from content.</summary>
     private static int HalfW(string kind) => Spec.Wreckage.SizeOf(kind)!.Value.W * Unit / 2;
 
-    private static List<int> Struck(TestWorld w, Hero hero, Point at, string? tool = null) =>
-        Aiming.FanOf(w.M, hero, at, tool ?? Spec.Weapons.Axe.Item).Pieces.Select(p => p.Id).ToList();
+    private static List<int> Struck(TestWorld w, Hero hero, Point at, string? tool = null) => [.. Swept(w, hero, at, tool).Wrecks.Select(p => p.Id)];
+
+    /// <summary>The farthest point from <paramref name="hero"/> a stroke of <paramref name="tool"/> toward <paramref name="at"/> sweeps its blade's edge through.</summary>
+    private static (double X, double Y) TipOf(Hero hero, Point at, string tool) =>
+        Aiming.StrokeEdges(hero, at, tool).SelectMany(e => new[] { e.From, e.To }).MaxBy(p => Math.Abs(p.X - hero.X));
 
     [Fact]
-    public void TheFanCastsFromTheShoulderAndAimsAtThePointer()
+    public void AStrokeBeginsAtTheShoulderAndHeadingsTurnFromIt()
     {
         var hero = HeroOn(6, 7);
-        Assert.Equal(new Point(hero.X, hero.Y - (int)(Rig.Shoulder / Rig.Cell * Unit)), HandOf(hero));
-        var hand = HandOf(hero);
+        Assert.Equal(new Point(hero.X, hero.Y - (int)(Rig.Shoulder / Rig.Cell * Unit)), Aiming.HandOf(hero));
+        var hand = Aiming.HandOf(hero);
         Assert.Equal(0, Aiming.HeadingOf(hand, hand with { X = hand.X + 5_000 }));
         Assert.Equal(64, Aiming.HeadingOf(hand, hand with { Y = hand.Y + 5_000 }));
         Assert.Equal(128, Aiming.HeadingOf(hand, hand with { X = hand.X - 5_000 }));
         Assert.Equal(192, Aiming.HeadingOf(hand, hand with { Y = hand.Y - 5_000 }));
         Assert.Equal(32, Aiming.HeadingOf(hand, new Point(hand.X + 3_000, hand.Y + 3_000)));
+        // A swing's blade sweeps down across the line to its point, each sample its edge as drawn; a thrust is its point alone.
+        Assert.True(Aiming.StrokeEdges(hero, hand with { X = hand.X + 5_000 }, Spec.Weapons.Axe.Item).Count > 5);
+        Assert.Single(Aiming.StrokeEdges(hero, hand with { X = hand.X + 5_000 }, Spec.Weapons.Spear.Item));
     }
 
-    /// <summary>Every kind of wreckage: each struck within the axe's range by its own size, and not past it.</summary>
-    public static TheoryData<string> WreckKinds() => [.. Spec.Wreckage.All.Select(k => k.Item)];
+    /// <summary>Every kind of wreckage, under every stroke.</summary>
+    public static TheoryData<string, string> WreckKindsAndStrokes()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var kind in Spec.Wreckage.All)
+            foreach (var tool in new[] { Spec.Weapons.Axe.Item, Spec.Weapons.Sledgehammer.Item, Spec.Weapons.Spear.Item })
+                data.Add(kind.Item, tool);
+        return data;
+    }
 
     [Theory]
-    [MemberData(nameof(WreckKinds))]
-    public void TheAxesFanStrikesEveryKindOfWreckWithinItsRangeAndNoFarther(string kind)
+    [MemberData(nameof(WreckKindsAndStrokes))]
+    public void AStrokeHitsAWreckItsBladeReachesAndNotOneBeyond(string kind, string tool)
     {
-        var hand = HandOf(HeroOn(6, 7));
-        int range = Spec.Weapons.Axe.Range, half = HalfW(kind);
-        var far = hand with { X = hand.X + 10_000 };
-        // Its near side a cell inside the range ahead, and a cell past it.
-        var (near, hero) = Field((kind, hand.X + range - 1_000 + half, hand.Y));
-        Assert.Equal([1], Struck(near, hero, far));
-        var (beyond, _) = Field((kind, hand.X + range + 1_000 + half, hand.Y));
-        Assert.Empty(Struck(beyond, hero, far));
+        var hero = HeroOn(6, 7);
+        var hand = Aiming.HandOf(hero);
+        var ahead = hand with { X = hand.X + 10_000 };
+        var tip = TipOf(hero, ahead, tool);
+        int half = Aiming.PictureOf(kind).HalfW;
+        // Its picture's near side a cell short of the blade's farthest reach, and a cell past it.
+        var (near, _) = Field((kind, (int)tip.X - 1_000 + half, (int)tip.Y));
+        Assert.Equal([1], Struck(near, hero, ahead, tool));
+        var (beyond, _) = Field((kind, (int)tip.X + 1_000 + half, (int)tip.Y));
+        Assert.Empty(Struck(beyond, hero, ahead, tool));
         // Bare-handed, the pointer on its picture's far top corner aims at it, and just off it does not.
         var (pw, ph) = DebrisLooks.Wrecks[kind];
         var (w, _) = Field((kind, 29_000, 15_000));
@@ -555,75 +573,48 @@ public class AimTests
     }
 
     [Fact]
-    public void MissesAWreckBehindTheHeroOrOutOfRangeThoughThePointerIsOnIt()
+    public void MissesAWreckBehindTheHeroTillItTurnsToSwingAtIt()
     {
-        var hand = HandOf(HeroOn(6, 7));
-        var (behind, hero) = Field(("hullSection", hand.X - 1_000 - HalfW("hullSection"), hand.Y));
+        var hero = HeroOn(6, 7);
+        var hand = Aiming.HandOf(hero);
+        var (behind, _) = Field(("hullSection", hand.X - 1_000 - Aiming.PictureOf("hullSection").HalfW, hand.Y));
         Assert.Empty(Struck(behind, hero, hand with { X = hand.X + 6_000 }));
-        Assert.Equal([1], Struck(behind, hero, hand with { X = hand.X - 6_000 }));
-        var on = new Point(hand.X + 8_000 + HalfW("hullSection"), hand.Y);
-        var (w, _) = Field(("hullSection", on.X, on.Y));
-        Assert.Empty(Struck(w, hero, on));
-        // Nothing aimed at, no prompt: the fan would cut air.
-        var aim = Aiming.AimAt(w.M, 0, hero, ((double)on.X / Unit, (double)on.Y / Unit), axe: true);
-        Assert.Null(aim?.Piece);
-        Assert.Null(Prompts.Of(w.M, aim));
-        Assert.True(aim?.Fan?.IsEmpty);
+        // A swing begun the other way turns the hero to it first.
+        Assert.Equal([1], Struck(behind, hero with { Facing = -1 }, hand with { X = hand.X - 6_000 }));
     }
 
     [Fact]
-    public void StrikesEachWreckItsRaysMeetOnceAWreckBehindAnotherNotAndNeverASmallPiece()
+    public void HitsEveryWreckTheBladeTouchesEachWhereItFirstMeetsItNeverASmallPiece()
     {
-        var hand = HandOf(HeroOn(6, 7));
-        // Two wrecks up and down the fan, a scrap chunk on the line to the pointer, and a rack behind the upper one.
-        var (w, hero) = Field(
-            ("cableRack", hand.X + 3_000, hand.Y - 2_000),
-            ("scrapChunk", hand.X + 1_400, hand.Y),
-            ("cableRack", hand.X + 3_000, hand.Y + 2_500),
-            ("cableRack", hand.X + 7_000, hand.Y - 2_000));
+        var hero = HeroOn(6, 7);
+        var hand = Aiming.HandOf(hero);
         var ahead = hand with { X = hand.X + 6_000 };
-        Assert.Equal([1, 3], Struck(w, hero, ahead));
-        // Aimed at, the first of them is outlined, with the axe's prompt.
-        var aim = Aiming.AimAt(w.M, 0, hero, ((double)ahead.X / Unit, (double)ahead.Y / Unit), axe: true);
-        Assert.Equal((1, true), (aim?.Piece, aim?.InReach));
-        Assert.Equal(new Prompt("use.chop", null), Prompts.Of(w.M, aim));
+        var tip = TipOf(hero, ahead, Spec.Weapons.Axe.Item);
+        // Two racks over the blade's reach, one a little above the other, and a scrap chunk on the way.
+        var (w, _) = Field(
+            ("cableRack", (int)tip.X, (int)tip.Y - 300),
+            ("scrapChunk", hand.X + 1_400, hand.Y),
+            ("cableRack", (int)tip.X, (int)tip.Y + 300));
+        var hit = Swept(w, hero, ahead);
+        Assert.Equal([1, 3], hit.Wrecks.Select(p => p.Id).Order());
+        Assert.Equal([1, 3], hit.Touches.Select(t => t.Wreck!.Id).Order());
+        // It touches no ground out here: nothing is heard but the wrecks' own chops.
+        Assert.Null(hit.Ground);
+        Assert.Equal([1, 3], ToolEdges.CommandsOf(w.M, 0, Spec.Weapons.Axe.Item, hit).Pieces?.Pieces.Order());
     }
 
     [Fact]
-    public void StrikesNoWreckAboard()
+    public void ADrillsEdgeIsRefusedOnAWreckWhileTheBeltIsFlat()
     {
-        // The hero in a room, a wreck just outside its wall: nothing is struck from inside the hull.
-        var w = new TestWorld(Layout.Parse(["#####".PadRight(FieldWidth), "#...#".PadRight(FieldWidth), "#...#".PadRight(FieldWidth), "#####".PadRight(FieldWidth), .. Enumerable.Repeat(new string(' ', FieldWidth), 6)]).Doubled());
-        for (int i = 0; i < Spec.Debris.Every; i++) w.Step();
-        var aboard = HeroOn(3, 2);
-        var hand = HandOf(aboard);
-        w.Edit(root =>
-        {
-            var piece = root["slices"]!["debris"]!["pieces"]![0]!;
-            (piece["item"], piece["x"], piece["y"], piece["speed"]) = ("hullSection", hand.X + 2_000 + HalfW("hullSection"), hand.Y, 0);
-        });
-        Assert.Empty(Struck(w, aboard, hand with { X = hand.X + 6_000 }));
-        Assert.Null(Aiming.AimAt(w.M, 0, aboard, (12.0, (double)hand.Y / Unit), axe: true)?.Piece);
-    }
-
-    [Fact]
-    public void ADrillAimsOnlyWhereItsEdgeTouchesAndSaysWhenTheBeltIsFlat()
-    {
-        var hand = HandOf(HeroOn(6, 7));
+        var hand = Aiming.HandOf(HeroOn(6, 7));
         string drill = Spec.Weapons.Drill.Item;
-        var (w, hero) = Field(("asteroid", hand.X + 5_300 + HalfW("asteroid"), hand.Y));
-        var at = ((double)hand.X / Unit + 10, (double)hand.Y / Unit);
-        // Hanging, unused, it has no edge and aims at nothing, the asteroid under the pointer or not (aim-on-use).
-        Assert.Equal((null, null), (Aiming.AimAt(w.M, 0, hero, at, tool: drill)?.Press, Aiming.AimAt(w.M, 0, hero, at, tool: drill)?.Piece));
-        // Up, its edge into the asteroid: it aims there, refused while the belt is flat.
+        var (w, _) = Field(("asteroid", hand.X + 5_300 + Aiming.PictureOf("asteroid").HalfW, hand.Y));
         var edge = ToolEdges.Hits(w.M, new Edge((hand.X + 5_000, hand.Y), (hand.X + 6_000, hand.Y), 0, false), outside: true, 0, (_, _, _) => true);
-        var aim = Aiming.AimAt(w.M, 0, hero, at, tool: drill, edge: edge);
-        Assert.Equal([1], Assert.IsType<Sim.Debris.HewPieces>(aim?.Press?.Command).Pieces);
-        Assert.Equal(("items.flat", 1), (aim?.Press?.Problem, aim?.Piece));
-        Assert.Equal(new Prompt("use.chop", "items.flat"), Prompts.Of(w.M, aim));
+        Assert.Equal([1], edge.Wrecks.Select(p => p.Id));
+        Assert.Null(ToolEdges.CommandsOf(w.M, 0, drill, edge).Pieces);
         // In creative mode it needs no battery.
         w.Step(new SetCreative(true));
-        Assert.Null(Aiming.AimAt(w.M, 0, hero, at, tool: drill, edge: edge)?.Press?.Problem);
+        Assert.Equal([1], ToolEdges.CommandsOf(w.M, 0, drill, edge).Pieces?.Pieces);
     }
 
     [Fact]
@@ -652,6 +643,7 @@ public class AimTests
         Assert.True(drill.Due(5, true, pace));
     }
 
+
     [Fact]
     public void ASwingAtAirBeginsStrikesOnceAndSendsNothing()
     {
@@ -659,17 +651,19 @@ public class AimTests
         var swing = new AxeSwing();
         var point = new Point(18_000, 18_000);
         int begun = 0, strikes = 0;
-        var fans = new List<Fan>();
+        var hits = new List<EdgeHit>();
         for (int frame = 0; frame < 60; frame++)
         {
             var step = swing.Advance(1000.0 / 60, frame == 0, point);
             begun += step.Begun ? 1 : 0;
             if (!step.Hits) continue;
             strikes++;
-            fans.Add(Aiming.FanOf(w.M, hero, swing.At, Spec.Weapons.Axe.Item));
+            hits.Add(Swept(w, hero, swing.At));
         }
         Assert.Equal((1, 1), (begun, strikes));
-        Assert.True(Assert.Single(fans).IsEmpty);
+        var hit = Assert.Single(hits);
+        Assert.Null(hit.Contact);
+        Assert.False(ToolEdges.CommandsOf(w.M, 0, Spec.Weapons.Axe.Item, hit).Any);
     }
 
     // What E sends.
@@ -781,16 +775,6 @@ public class AimTests
         const int Edge = 20_000 - Reels * 3 / 2 - SmallBox + 100;
         Assert.Equal(1, Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 20_000), 0.5)?.Piece);
         Assert.Null(Aiming.Hooks(w.M, 0, (Edge, 0), (Edge, 20_000), 0));
-    }
-
-    [Fact]
-    public void WithTheHarpoonAimsAtNoWreckButStillCatchesASmallPiece()
-    {
-        var (w, wreck, hero) = Wrecked();
-        var at = ((double)wreck.X / Unit, (double)wreck.Y / Unit);
-        Assert.Null(Aiming.AimAt(w.M, 0, hero, at, gun: true)?.Piece);
-        var chunk = w.M.Debris.Pieces.Single(p => p.Id == 99);
-        Assert.IsType<Grab>(Aiming.AimAt(w.M, 0, hero, ((double)chunk.X / Unit, (double)chunk.Y / Unit + 0.8), gun: true)?.Press?.Command);
     }
 
     // The grapple (0044): the rod grips walls, floors and closed doors.

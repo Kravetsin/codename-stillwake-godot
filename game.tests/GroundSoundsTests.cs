@@ -170,6 +170,20 @@ public class GroundSoundsTests
     }
 
     [Fact]
+    public void ABuiltWallTheShipsHullRingsAsAWrecksMetalUnderTheToolThatStrikesIt()
+    {
+        var m = new TestWorld(Layout.Parse("""
+            ....
+            ####
+            """)).M;
+        int wall = m.Grid.Width;
+        Assert.False(m.Grid.WallAt(wall)!.Natural);
+        Assert.Same(S.Chop, GroundSounds.HitAt(m.Grid, m.Building, wall, 0, Axe));
+        Assert.Same(S.HammerBlow, GroundSounds.HitAt(m.Grid, m.Building, wall, 0, Spec.Weapons.Sledgehammer.Item));
+        Assert.Same(S.SpearHit, GroundSounds.HitAt(m.Grid, m.Building, wall, 0, Spec.Weapons.Spear.Item));
+    }
+
+    [Fact]
     public void AHitSoundsAsTheWallOrTheGrowthItLandsOnButNotTwiceWhereTheFallSoundsAsTheHit()
     {
         var layout = Layout.Parse("""

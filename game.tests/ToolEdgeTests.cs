@@ -10,7 +10,7 @@ namespace Stillwake.Game.Tests;
 public class ToolEdgeTests
 {
     private const int Unit = Hero.Unit;
-    private static readonly string Drill = Spec.Weapons.Drill.Item, Cutter = Spec.Weapons.PlasmaCutter.Item;
+    private static readonly string Drill = Spec.Weapons.Drill.Item, Cutter = Spec.Weapons.PlasmaCutter.Item, Axe = Spec.Weapons.Axe.Item;
     private static readonly Func<Piece, double, double, bool> Clear = (_, _, _) => false;
 
     /// <summary>A picture opaque over its whole box, unturned, as one that will not load counts.</summary>
@@ -134,6 +134,47 @@ public class ToolEdgeTests
         Assert.Equal(4 * width + 31, ToolEdges.LeadOf(w.M, hit));
         // Short of the wall: no cell it strikes.
         Assert.Null(ToolEdges.LeadOf(w.M, ToolEdges.Hits(w.M, Flat(28_500, 30_500, 4_500), outside: false, 0, Opaque)));
+    }
+
+    /// <summary>The strip's hull aboard the ship, where tools break nothing: the same walls, of no natural material.</summary>
+    private static TestWorld Hull() => new(Layout.Parse("""
+        ################################
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        #..............................#
+        ################################
+        """));
+
+    [Fact]
+    public void AStrokeStopsAtTheGroundItsBladeBitesFirstAndAHullTakesNoHitButIsStillTouched()
+    {
+        // A hero on the strip's floor three cells short of its right wall, swinging at it at its shoulder's height.
+        var hero = new Hero(28 * Unit + Unit / 2, 9 * Unit, 0, 0, false, 1);
+        var hand = Aiming.HandOf(hero);
+        var at = hand with { X = 31_500 };
+        var w = Strip();
+        int width = w.M.Grid.Width;
+        var hit = ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero, at, Axe), outside: false, 0, Opaque);
+        Assert.Equal(31, hit.Ground!.Value.Cell!.Value % width);
+        Assert.Contains(hit.Ground!.Value.Cell!.Value, ToolEdges.CommandsOf(w.M, 0, Axe, hit).Cells!.Cells);
+        // The blade stops there: no sample past the first that bites is swept, so it cuts no deeper into the wall.
+        var edges = Aiming.StrokeEdges(hero, at, Axe);
+        int bites = Enumerable.Range(1, edges.Count).First(n => ToolEdges.Swept(w.M, edges.Take(n).ToList(), false, 0, Opaque).Ground != null);
+        Assert.True(bites < edges.Count);
+        Assert.Equal(ToolEdges.Swept(w.M, edges.Take(bites).ToList(), false, 0, Opaque).Cells, hit.Cells);
+        // Aboard, the hull takes no hit, but the blade still touches it, to ring and spark there (melee-edge).
+        var hull = Hull();
+        var rings = ToolEdges.Swept(hull.M, Aiming.StrokeEdges(hero, at, Axe), outside: false, 0, Opaque);
+        Assert.Equal(31, rings.Ground!.Value.Cell!.Value % width);
+        Assert.Null(ToolEdges.CommandsOf(hull.M, 0, Axe, rings).Cells);
+        // Swung at air short of the wall, nothing is touched.
+        var air = ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero with { X = 20 * Unit }, at with { X = 25_000 }, Axe), outside: false, 0, Opaque);
+        Assert.Null(air.Contact);
     }
 
     [Fact]
