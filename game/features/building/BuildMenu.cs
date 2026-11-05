@@ -543,9 +543,13 @@ public partial class BuildMenu : CanvasLayer
         var lines = CostLine.Lacking(Tools.CostOf(tool, m.Building.CostFor), [], _ui.Carried)
             .Select(c => new TipLine(En.T("research.taken", ("n", c.Count), ("what", En.T($"item.{c.Item}"))), c.Tone, c.Item))
             .Append(new TipLine(En.T($"tool.{tool.Id}.about"), Tone.Dim));
+        // A machine's power before it is built: what it draws while it works, or makes.
+        if (tool is PlaceTool { Placement: { Layer: "machine", Kind: var kind } }
+            && MachineSays.Power(Content.Machines.Get(kind), Content.Machines.Get(kind).Draws ?? 0) is { } power)
+            lines = lines.Append(power);
         // A wall's numbers: what it leaks, how it stands up to the meteors here.
         if (tool is PlaceTool { Placement: { Kind: "wall" or "backWall", Material: { } material } place })
-            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Hazards.Shower).Select(s => new TipLine(s)));
+            lines = lines.Concat(WallStats.Of(Content.Materials.Get(material), place.Kind == "backWall", m.Hazards.Shower));
         _tips.Show(new Tip(tool.Label, lines.ToList()));
     }
 }

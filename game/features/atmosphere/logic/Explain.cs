@@ -11,7 +11,7 @@ using World = Stillwake.Sim.World;
 
 namespace Stillwake.Game.Features.Atmosphere;
 
-/// <summary>What the air overlay says of a room (features/atmosphere/explain.ts, draining.ts).</summary>
+/// <summary>What the air overlay says of a room (features/atmosphere/explain.ts, draining.ts), in the bubble's terms (tip-signs).</summary>
 public static class Explain
 {
     /// <summary><paramref name="ticks"/> as a player reads a span: seconds under a minute, whole minutes past it.</summary>
@@ -21,68 +21,49 @@ public static class Explain
         return seconds < 60 ? En.T("time.seconds", ("n", seconds)) : En.T("time.minutes", ("n", seconds / 60));
     }
 
-    /// <summary>What <paramref name="breathers"/> heroes breathe every <c>Air.LeakEvery</c> ticks, a breath a unit: rates are counted so.</summary>
-    private static double Breathing(int breathers) => (double)breathers * Air.LeakEvery / Stillwake.Content.Crew.BreathEvery;
+    /// <summary>A rate of units every <c>Air.LeakEvery</c> ticks, as a player reads it: a minute's, to a tenth, rounded down.</summary>
+    public static string PerMinute(long perPeriod) =>
+        (Math.Floor(perPeriod * 60.0 * World.TicksPerSecond * 10 / Air.LeakEvery) / 10).ToString(CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// How long <paramref name="units"/> of oxygen last a room leaking <paramref name="leak"/> every
-    /// <c>Air.LeakEvery</c> ticks with <paramref name="breathers"/> heroes breathing in it, a breath a unit;
-    /// infinity when nothing draws. A forecast for the player, not a rule.
+    /// What the air overlay says of a room of <paramref name="volume"/> cells, its first line naming its state and its aired
+    /// cells: while it has a share of its vents' making, that share and what its air leaks, both a minute, the leak red when
+    /// it stops the bubble short; the liquid behind its vaporizers and how long it lasts (none for the pod's, which never
+    /// runs out); and why it falls short.
     /// </summary>
-    private static string Lasting(double units, double leak, int breathers)
+    public static List<TipLine> Of(RoomAir air, int volume)
     {
-        double perPeriod = leak + Breathing(breathers);
-        return perPeriod > 0 ? Span((int)Math.Floor(units * Air.LeakEvery / perPeriod)) : "∞";
-    }
-
-    /// <summary>A rate counted every <c>Air.LeakEvery</c> ticks, as a player reads it: a minute's, to a tenth.</summary>
-    private static string PerMinute(double perPeriod) =>
-        (Math.Floor(perPeriod * 60 * World.TicksPerSecond * 10 / Air.LeakEvery) / 10).ToString(CultureInfo.InvariantCulture);
-
-    /// <summary>
-    /// Whether a room's vaporizers keep up with its leak and its breathers, by how much a minute and how long the
-    /// <paramref name="liquid"/> behind them lasts at that draw, for ever when the pod feeds it (null); or, falling short, how
-    /// long its own air lasts the difference.
-    /// </summary>
-    private static string Generated(RoomAir air, int? liquid, int breathers)
-    {
-        double spare = air.Made - air.Leak - Breathing(breathers);
-        return spare >= 0
-            ? En.T("air.keepsUp", ("n", PerMinute(spare)), ("time", liquid is int held ? Lasting(held, air.Leak, breathers) : "∞"))
-            : En.T("air.fallsShort", ("time", Lasting(air.Aired, -spare, 0)));
-    }
-
-    /// <summary>
-    /// What the air overlay says of a room of <paramref name="volume"/> cells with <paramref name="breathers"/>
-    /// heroes awake in it, in two short lines and a third only for what it lacks: its state, then what
-    /// holds it up and how long, the hull's leak and the breathing counted in.
-    /// </summary>
-    public static List<string> Of(RoomAir air, int volume, int breathers = 0)
-    {
-        // Air is made by a powered vaporizer with liquid behind it, or by the pod, its air never running out (no liquid to
-        // count: null, 2026-10-31-the-scoop); else the room lives on its own air.
-        bool supplied = air.Made > 0 && air.Oxygen != 0;
-        string lasts = supplied
-            ? Generated(air, air.Oxygen, breathers)
-            : En.T("air.lastsNot", ("time", Lasting(air.Aired, air.Leak, breathers)));
-        string[] problem = air.Problem is { } why ? [En.T(why)] : [];
-        return air.Status switch
+        var lines = new List<TipLine> { new(Named(air, volume)) };
+        if (air.Budget > 0)
         {
-            RoomStatus.Aired => [En.T("air.aired", ("cells", volume)), lasts],
-            RoomStatus.Filling =>
-            [
-                En.T("air.filling", ("aired", air.Aired), ("cells", volume)),
-                supplied ? lasts : En.T("air.pipes", ("oxygen", air.Oxygen ?? 0)),
-            ],
-            // With no piped vent in it, nothing drains: there are no pipes to speak of.
-            RoomStatus.Venting => air.Lasts is int ticks
-                ? [En.T("air.venting"), En.T("air.drains", ("oxygen", air.Oxygen ?? 0), ("time", Span(ticks)))]
-                : [En.T("air.venting")],
-            _ => air.Aired > 0
-                ? [En.T("air.holding", ("aired", air.Aired), ("cells", volume)), lasts, .. problem]
-                : [En.T("air.vacuum", ("cells", volume)), .. problem],
-        };
+            lines.Add(new TipLine(En.T("air.made", ("n", PerMinute(air.Budget))), Sign: Sign.Oxygen));
+            lines.Add(new TipLine(En.T("air.leak", ("n", PerMinute(air.Leak))), air.Problem == "atmosphere.leaky" ? Tone.Bad : Tone.Plain, Sign: Sign.Leak));
+        }
+        // With no piped vent in a venting room, nothing drains: there is no liquid to speak of.
+        if (air.Oxygen is int liquid && (air.Status != RoomStatus.Venting || air.Lasts != null))
+            lines.Add(liquid == 0
+                ? new TipLine(liquid.ToString(CultureInfo.InvariantCulture), Tone.Bad, Canister)
+                : new TipLine(air.Lasts is int ticks ? En.T("air.liquid", ("held", liquid), ("time", Span(ticks))) : liquid.ToString(CultureInfo.InvariantCulture), Icon: Canister));
+        if (air.Problem is { } why) lines.Add(new TipLine(En.T(why), Tone.Bad));
+        return lines;
     }
+
+    /// <summary>The item whose icon stands for the liquid oxygen behind a room's vaporizers.</summary>
+    private const string Canister = "canister";
+
+    private static string Named(RoomAir air, int volume) => air.Status switch
+    {
+        RoomStatus.Aired => En.T("air.aired", ("cells", volume)),
+        RoomStatus.Filling => En.T("air.filling", ("aired", air.Aired), ("cells", volume)),
+        RoomStatus.Venting => En.T("air.venting"),
+        _ => air.Aired > 0 ? En.T("air.holding", ("aired", air.Aired), ("cells", volume)) : En.T("air.vacuum", ("cells", volume)),
+    };
+
+    /// <summary>
+    /// Whether the room tip speaks over a cell holding structure <paramref name="structure"/> and <paramref name="machine"/>:
+    /// only over a back wall or an empty cell of the room. A door, ladder, platform or machine is what the pointer is on.
+    /// </summary>
+    public static bool SpeaksOver(int structure, bool machine) => structure == Structure.Empty && !machine;
 
     /// <summary>
     /// The rooms losing oxygen into space: venting through a piped vent, a breach or a meteor's hole, stored air running out or

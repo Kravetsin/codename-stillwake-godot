@@ -214,7 +214,7 @@ public partial class PowerView : Node2D
         {
             if (_storeTold.Bank < 0) return;
             _storeTold = (-1, -1);
-            _ui.WorldTip.SetLines(null);
+            _ui.WorldTip.Set(null);
             return;
         }
         if (_storeTold != (id, tick)) _storeSaid = [StoreGauge.Reading(at.Energy, at.Capacity, at.Flow)];

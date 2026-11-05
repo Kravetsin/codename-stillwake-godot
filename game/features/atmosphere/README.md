@@ -23,7 +23,7 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 
 | File         | Holds                                                                                   | Godot |
 | ------------ | --------------------------------------------------------------------------------------- | ----- |
-| `logic/Explain.cs` | what the overlay says of a room, spans, and the rooms draining (`explain.ts`, `draining.ts`) | no    |
+| `logic/Explain.cs` | the room tip, only over a back wall or an empty cell (`SpeaksOver`): its state, its share of its vents' making (`Budget`) and leak a minute by their signs, the liquid by the canister, why it falls short; the rooms draining (tested) | no    |
 | `logic/Streams.cs` | `AirStream`: where air streams out of a venting room, which way, how thick (`streams.ts`) | no    |
 | `logic/Decompression.cs` | a room turned to space at once drawn venting as through a door: its air let go at `Air.VentLoss` a tick, farthest from the hole first | no    |
 | `logic/AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over the rooms' box (`RoomsBox`, found again when the rooms change) | no    |
@@ -33,7 +33,7 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | `AirView.cs` | venting rooms lit red on the beat and their air streaming out, the motes, fresh air from filling vents; with O the air overlay | yes   |
 | `VentLight.cs` | the breaches in light (0075): jets, condensation, shimmer, frost | yes |
 | `TankLooks.cs` | each tank's sight glass filled to its oxygen, and its light | yes   |
-| `logic/AirSays.cs` | by the pointer (`MachineTips`, out of every overlay): a tank `Liquid O₂ · 9000/36000`, a vaporizer or the pod `Makes 20 O₂ a second` (`MakesAt`, to a tenth; none unpiped, dry or unpowered) (tested) | no |
+| `logic/AirSays.cs` | by the pointer (`MachineTips`, out of every overlay): a tank `[canister] 9000/36000`, a vaporizer or the pod `[O₂] +1200/min` (`MakesAt`, to a tenth) (tested) | no |
 
 - The overlay draws each room's air in an ordered dither, a pixel of the world at a time, drifting like a
   gas and lit at its front; a cell eases in and out over about 220 ms (`AirField.EaseMs`) and cells blend
@@ -68,7 +68,7 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   (`shared/logic/TankFill.cs`), so any oxygen shows the lowest step and only none shows the glass dark with
   a red lamp lit. Each frame lights the room a little (a `Glow`): pale blue from the glass, brighter the
   fuller, red from the lamp when empty. Read every 250 ms. Not animated: a tank changes slowly.
-- The forecast under the pointer counts the heroes awake in the room as breathing its air (`crew`).
+- The room tip shows the sim's numbers only: heroes breathing in the room shorten its liquid's span unseen (tip-signs).
 - `explain.test.ts`, `draining.test.ts` and `streams.test.ts` are ported.
 - A room the sim turns to space at once, air and all (a launch platform opened, a floor torn open), vents as through a
   door (`Decompression`, no ADR): the sim drops its air in a tick, so the client keeps drawing it in the room it left,

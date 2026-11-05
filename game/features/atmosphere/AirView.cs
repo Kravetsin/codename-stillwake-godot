@@ -358,15 +358,16 @@ public partial class AirView : Node2D
         return middles;
     }
 
-    /// <summary>Beside the pointer, what the sim says of the air of the room under it.</summary>
+    /// <summary>Beside the pointer on a back wall or an empty cell of a room, what the sim says of that room's air.</summary>
     private void Tell(Registry m, (double X, double Y)? pointer)
     {
-        IReadOnlyList<string>? lines = null;
+        IReadOnlyList<TipLine>? lines = null;
         if (pointer is { } p && p.X >= 0 && p.Y >= 0 && p.X < m.Grid.Width && p.Y < m.Grid.Height
-            && m.Rooms.RoomAt((int)p.Y * m.Grid.Width + (int)p.X) is int room && room != RoomsModule.Space
+            && (int)p.Y * m.Grid.Width + (int)p.X is var cell
+            && Explain.SpeaksOver(m.Grid.StructureAt(cell), m.Grid.MachineAt(cell) != null)
+            && m.Rooms.RoomAt(cell) is int room && room != RoomsModule.Space
             && _byRoom.TryGetValue(room, out var air) && m.Rooms.RoomById(room) is { } r)
-            // Heroes awake in the room breathe its air: the forecast counts them.
-            lines = Explain.Of(air, r.Volume, m.Crew.Heroes.Count(h => h.Out == 0 && m.Rooms.RoomAt(h.Cell) == room));
+            lines = Explain.Of(air, r.Volume);
         _ui.WorldTip.SetLines(lines);
     }
 }
