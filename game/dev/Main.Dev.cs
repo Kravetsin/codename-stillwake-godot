@@ -187,7 +187,7 @@ public partial class Main
         if (Has("--doors") && client.World.Tick != before)
             foreach (var c in Dev.Autopilot.At(client.World.Tick, _m.Grid)) client.Send(c);
         // --toggle: the first doorway opened and shut on alternate ticks, so one is always in flight, as at a busy airlock.
-        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Dev.Autopilot.At(20, _m.Grid).FirstOrDefault()) is SetDoor toggle)
+        if (Has("--toggle") && client.World.Tick != before && (_toggled ??= Dev.Autopilot.At(Dev.Autopilot.OpenAt, _m.Grid).FirstOrDefault()) is SetDoor toggle)
             client.Send(toggle with { Open = client.World.Tick % 2 == 0 });
     }
 
