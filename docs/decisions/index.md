@@ -247,7 +247,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
-| [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted |  |
 | [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted |  |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
