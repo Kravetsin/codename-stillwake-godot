@@ -19,7 +19,6 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     private readonly HashSet<string> _marked = marked?.ToHashSet(StringComparer.Ordinal) ?? new(StringComparer.Ordinal);
     private readonly HashSet<string> _landed = new(StringComparer.Ordinal);
     private int? _ordersSeen = orders;
-    private int _orders;
     private bool _open;
 
     /// <summary>What was last seen, to keep.</summary>
@@ -43,11 +42,8 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     /// <summary>Whether the tablet is out.</summary>
     public bool Open => _open;
 
-    /// <summary>Whether the tablet's key is lit: a note is unread and the tablet is away. An order met lights the market's key instead.</summary>
+    /// <summary>Whether the tablet's key is lit: a note is unread and the tablet is away.</summary>
     public bool Lit => !_open && _seen != null && _notes.Any(n => !_seen.Contains(n));
-
-    /// <summary>Whether an order has been met since the market was last shown: the market's key says so.</summary>
-    public bool MarketNew => _orders > _ordersSeen;
 
     /// <summary>A read of the notes on the board.</summary>
     public void Read(IEnumerable<string> notes)
@@ -58,10 +54,9 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
         Unwritten = true;
     }
 
-    /// <summary>A read of how many of the market's orders are met.</summary>
+    /// <summary>A read of how many of the market's orders are met: with nothing kept, they are seen as things stand.</summary>
     public void ReadOrders(int met)
     {
-        _orders = met;
         if (_ordersSeen != null) return;
         _ordersSeen = met;
         Unwritten = true;
@@ -73,7 +68,6 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     /// </summary>
     public int SeeOrders(int met)
     {
-        _orders = met;
         int was = _ordersSeen ?? met;
         if (_ordersSeen != null && met <= was) return was;
         _ordersSeen = met;

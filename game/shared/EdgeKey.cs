@@ -15,7 +15,7 @@ public partial class EdgeKey : Control
     /// <summary>The screen's side, and how far below its foot the number's baseline lies.</summary>
     public const int Side = 28, NumberDown = 5;
     private const int Inset = 5, Icon = Side - 2 * Inset, GlowPad = 6;
-    private static readonly Color Green = Rgb(124, 240, 150), Amber = Rgb(255, 168, 60), Gold = Rgb(240, 208, 96), Flared = Rgb(255, 250, 235);
+    private static readonly Color Green = Rgb(124, 240, 150), Amber = Rgb(255, 168, 60), Flared = Rgb(255, 250, 235);
     private static readonly Font NumberFont = Style.Mono;
     private const int NumberSize = 15;
     private static Material? _light;
@@ -24,7 +24,6 @@ public partial class EdgeKey : Control
     private readonly Action _pressed;
     private readonly Func<bool> _on, _amber;
     private readonly Func<int?>? _number;
-    private readonly bool _gold;
     private readonly KeyGlow _amberGlow = new();
     private readonly CountFlare _count = new();
     private readonly Light _lit;
@@ -38,10 +37,9 @@ public partial class EdgeKey : Control
     /// <param name="on">Whether what it switches is on.</param>
     /// <param name="amber">Whether it tells of something waiting.</param>
     /// <param name="number">The number it carries, null for none.</param>
-    /// <param name="gold">Whether the number is the crew's credits, in gold.</param>
-    public EdgeKey(string name, Action pressed, Func<bool>? on = null, Func<bool>? amber = null, Func<int?>? number = null, bool gold = false)
+    public EdgeKey(string name, Action pressed, Func<bool>? on = null, Func<bool>? amber = null, Func<int?>? number = null)
     {
-        (_name, _pressed, _on, _amber, _number, _gold) = (name, pressed, on ?? (() => false), amber ?? (() => false), number, gold);
+        (_name, _pressed, _on, _amber, _number) = (name, pressed, on ?? (() => false), amber ?? (() => false), number);
         _seed = (float)(name.Length * 0.73 + name[0] * 0.011);
         Size = CustomMinimumSize = new Vector2(Side, Side);
         MouseFilter = MouseFilterEnum.Stop;
@@ -150,7 +148,7 @@ public partial class EdgeKey : Control
             if (key._on()) DrawTextureRect(PixelArt.Picture($"holo_{key._name}"), new Rect2(s.Position + new Vector2(Inset, Inset), new Vector2(Icon, Icon)), false, dark with { A = 0.95f * key.Shows });
             if (!key._counted) return;
             string text = key._count.Shown.ToString();
-            var face = key._gold ? Gold : col;
+            var face = col;
             float wide = NumberFont.GetStringSize(text, HorizontalAlignment.Left, -1, NumberSize).X + 6, mid = Side / 2f, baseline = s.End.Y + NumberDown;
             var plate = new Rect2(mid - wide / 2, baseline - 12, wide, 14);
             DrawRect(plate, new Color(3 / 255f, 10 / 255f, 5 / 255f, 0.85f * Mathf.Clamp(b * 1.5f, 0, 1)));

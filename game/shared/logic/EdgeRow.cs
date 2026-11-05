@@ -1,10 +1,12 @@
+using System;
 using System.Collections.Generic;
 
 namespace Stillwake.Game.Shared;
 
 /// <summary>
 /// The row of holograms over the tablet's edge (hologram-keys): only the keys that can be used now, in their fixed order, centred, a stride
-/// apart, so the row closes up with no empty slot; and when they are bright, the pointer near the screen's foot.
+/// apart, so the row closes up with no empty slot; as large as the interface's size setting has them; and when they are bright, the pointer near the
+/// screen's foot.
 /// </summary>
 public static class EdgeRow
 {
@@ -25,6 +27,15 @@ public static class EdgeRow
             if (shown[i]) lefts[i] = left + at++ * stride;
         return lefts;
     }
+
+    /// <summary>How many times their own size the holograms are drawn: as the slots are, against the normal slot (<see cref="Ui.Slot"/>).</summary>
+    public static float Grown(int slot) => slot / (float)Slots.SizeOf(SlotScale.Normal);
+
+    /// <summary>
+    /// Where the row's top lies for keys <paramref name="tall"/> high at their own size grown <paramref name="grown"/> times, their feet where
+    /// <paramref name="top"/> has them at their own size: a larger key stands taller, never off the screen's top.
+    /// </summary>
+    public static float Top(float top, float tall, float grown) => MathF.Max(TabletPeek.RowLeast, top + tall - tall * grown);
 
     /// <summary>Whether the keys are bright: the pointer at <paramref name="pointerY"/> no further above the row's top than the band, or over a tablet that is up.</summary>
     public static bool Bright(float pointerY, float rowTop, bool overTablet) => overTablet || pointerY >= rowTop - NearBand;

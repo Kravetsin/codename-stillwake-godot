@@ -14,7 +14,7 @@ public partial class ScreenBulb : CanvasLayer
     /// <summary>The bulb's picture on screen, its middle below the screen's top, the cord's foot and the cap plate's top; and the screen pixels to a picture pixel.</summary>
     private const float PictureW = 40, PictureH = 48, Middle = 42, CordFoot = 18, PlateTop = 15.5f, S = 4;
     /// <summary>Where the find hatches, and where the burst throws the glass from, below the screen's top.</summary>
-    private const float Hatch = 44, Burst = 48, SmokeFrom = 20;
+    private const float Hatch = 44, Burst = 48, SmokeFrom = 20, ClearOfRow = 16;
     private static readonly Color Ink = new("1b1e26"), Plate = new("2a2d35"), PlateLit = new("5c6270"), Glass = new("aeb8c8"), GlassBright = new("e4ebf5"),
         SmokeInk = new("8f96a3"), SparkHot = new("ffe6a8"), SparkWarm = new("f2b84b"), SparkCold = new("8a3c17"), Beam = new(124 / 255f, 240 / 255f, 150 / 255f);
     private static readonly (float X, float Y)[] Cord = [(0, -2), (0.4f, 4), (-0.2f, 9), (0.2f, 14), (0, CordFoot)];
@@ -22,6 +22,7 @@ public partial class ScreenBulb : CanvasLayer
     private readonly BulbSignal _signal;
     private readonly Func<bool> _inWorld;
     private readonly Func<Rect2?> _key;
+    private readonly Func<Rect2> _row;
     private readonly Func<int, Texture2D?> _find;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore, TextureFilter = CanvasItem.TextureFilterEnum.Linear };
     private Texture2D? _hatched;
@@ -29,10 +30,11 @@ public partial class ScreenBulb : CanvasLayer
     /// <param name="signal">When it plays, read by the research key.</param>
     /// <param name="inWorld">Whether a world is played.</param>
     /// <param name="key">Where the research key is on the screen; null while it does not show.</param>
+    /// <param name="row">Where the edge's row of keys lies on the screen: at the top, over a tablet that is up, the bulb hangs right of it.</param>
     /// <param name="find">The picture of the find that lit it, so many pixels across.</param>
-    public ScreenBulb(BulbSignal signal, Func<bool> inWorld, Func<Rect2?> key, Func<int, Texture2D?> find)
+    public ScreenBulb(BulbSignal signal, Func<bool> inWorld, Func<Rect2?> key, Func<Rect2> row, Func<int, Texture2D?> find)
     {
-        (_signal, _inWorld, _key, _find) = (signal, inWorld, key, find);
+        (_signal, _inWorld, _key, _row, _find) = (signal, inWorld, key, row, find);
         Layer = ScreenLayers.TabletEdge;
         _root.SetAnchorsPreset(Control.LayoutPreset.FullRect);
         AddChild(_root);
@@ -65,7 +67,8 @@ public partial class ScreenBulb : CanvasLayer
         foreach (var child in _root.GetChildren()) ((CanvasItem)child).QueueRedraw();
     }
 
-    private float Centre => _root.GetViewportRect().Size.X / 2;
+    /// <summary>Where it hangs across: the screen's middle, or right of the row of keys while that rides a tablet up into its band, short of the credits.</summary>
+    private float Centre => _row() is var row && row.Position.Y < Middle + PictureH ? row.End.X + PictureW / 2 + ClearOfRow : _root.GetViewportRect().Size.X / 2;
 
     /// <summary>The cord, the cap's plate and the bulb, then what the burst throws.</summary>
     private void DrawBulb(Part c)

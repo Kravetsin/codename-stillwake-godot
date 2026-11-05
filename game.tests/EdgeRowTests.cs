@@ -40,4 +40,19 @@ public class EdgeRowTests
 
     [Fact]
     public void OverATabletThatIsUpTheyAreBrightHoweverHigh() => Assert.True(EdgeRow.Bright(10, rowTop: 700, overTablet: true));
+
+    [Fact]
+    public void TheyGrowWithTheInterfacesSize()
+    {
+        Assert.Equal(1, EdgeRow.Grown(Slots.SizeOf(SlotScale.Normal)));
+        Assert.Equal(1.4f, EdgeRow.Grown(Slots.SizeOf(SlotScale.Large)), 3);
+    }
+
+    [Fact]
+    public void ALargerKeyStandsTallerOnTheSameFootButNeverOffTheScreensTop()
+    {
+        Assert.Equal(632, EdgeRow.Top(632, 28, 1));
+        Assert.Equal(632 + 28 - 28 * 1.4f, EdgeRow.Top(632, 28, 1.4f), 3);
+        Assert.Equal(TabletPeek.RowLeast, EdgeRow.Top(TabletPeek.RowLeast, 28, 1.4f));
+    }
 }

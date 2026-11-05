@@ -10,12 +10,13 @@ namespace Stillwake.Game.Features.Research;
 /// <summary>
 /// What the research and market keys on the tablet's edge tell (hologram-keys), read for themselves on a timer, for the tablet reads nothing while away: the
 /// research key shows from the first note, amber while one is unread, the finds waiting on it less those still flying down from the bulb; the market's
-/// shows from the first credit or good bought, the credits on it. It tells the bulb what is new, and which find lit it.
+/// shows from the first credit or good bought, amber while anything on it can be bought, and the credits are read for the readout beside it. It tells the
+/// bulb what is new, and which find lit it.
 /// </summary>
 public partial class TabletKey : Node
 {
     private const double RefreshS = 0.25;
-    /// <summary>The market's orders, read here for the market's key: a sale moves no version, so they are read on the timer.</summary>
+    /// <summary>The market's orders, read here for its decipher: a sale moves no version, so they are read on the timer.</summary>
     private static readonly Content.TechNode[] Orders = [.. Content.Research.Nodes.Where(n => n is { Gate: true, Tab: Content.Research.Market })];
     /// <summary>Everything the market has: one of them done, it has been used.</summary>
     private static readonly Content.TechNode[] Market = [.. Content.Research.Nodes.Where(n => n.Tab == Content.Research.Market)];
@@ -50,7 +51,10 @@ public partial class TabletKey : Node
     /// <summary>Whether the market's key shows: the crew has credits, or has bought from it.</summary>
     public bool MarketShows { get; private set; }
 
-    /// <summary>The crew's credits as last read, for the market's key.</summary>
+    /// <summary>Whether anything on the market can be bought now: the market's key glows amber.</summary>
+    public bool Affordable { get; private set; }
+
+    /// <summary>The crew's credits as last read, for the readout beside the keys.</summary>
     public int Credits { get; private set; }
 
     /// <summary>The find that lit the bulb, what hatches from it; null before any.</summary>
@@ -74,6 +78,7 @@ public partial class TabletKey : Node
         _keep.Seen.ReadOrders(Orders.Count(m.Research.Done));
         Credits = m.Research.Credits;
         MarketShows = Credits > 0 || Market.Any(m.Research.Done);
+        Affordable = Market.Any(n => m.Research.BuyProblem(n) == null);
         var unread = _keep.Seen.Unread;
         bool dark = _bulb.Time == null;
         _bulb.Read(_keep.Seen, unread.Count, _keep.Seen.Open);

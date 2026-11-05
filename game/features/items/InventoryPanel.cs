@@ -10,7 +10,6 @@ using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Furnace;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
-using Stillwake.Sim.Research;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Items;
@@ -84,8 +83,6 @@ public partial class InventoryPanel : CanvasLayer
     /// </summary>
     private sealed record ChargerLine(ColorRect Charged, Label Station, HBoxContainer Stored, Label StoredText, Label Rate);
     private readonly List<ChargerLine> _chargerLines = [];
-    /// <summary>A trade station's: the ship's credits.</summary>
-    private readonly CreditLine _credits = new(Tablet.FontSize);
     /// <summary>What the mark between a fed station's slots says by the pointer: what it is too cold for; null while it is not.</summary>
     private string? _tooCold;
     /// <summary>The slots, each saying what it holds in the one tooltip.</summary>
@@ -94,7 +91,6 @@ public partial class InventoryPanel : CanvasLayer
     private Client? _client;
     private IItemsQueries? _items;
     private IGridQueries? _grid;
-    private IResearchQueries? _research;
     private HeroSpot? _hero;
     private Reading? _reading;
     private double _sinceRead;
@@ -222,8 +218,6 @@ public partial class InventoryPanel : CanvasLayer
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
-        // What the ship has earned, on the display's metal: it is spent at the tablet, the workbench and the station alike.
-        grid.Mount(_credits, screen => new Vector2(screen.X + WristLook.SideKeyOut, screen.Y - WristLook.SideKeyDown));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -254,8 +248,6 @@ public partial class InventoryPanel : CanvasLayer
     /// <summary>Takes down everything <see cref="Build"/> and the machine's panel made, before they are built at another size.</summary>
     private void Clear()
     {
-        // The credit line lives on through a rebuild: taken off the bag's screen before that is freed with it.
-        _credits.GetParent()?.RemoveChild(_credits);
         foreach (var node in _root.GetChildren().Concat(_over.GetChildren()))
         {
             node.GetParent().RemoveChild(node);
@@ -276,10 +268,10 @@ public partial class InventoryPanel : CanvasLayer
     /// Reads the client's world on a timer, through the current registry's queries: a resync brings new
     /// ones. <paramref name="hero"/> is where a stack is thrown from; none until the hero is placed.
     /// </summary>
-    public void Frame(Client client, IItemsQueries items, IGridQueries grid, IResearchQueries research, HeroSpot? hero, double elapsedMs)
+    public void Frame(Client client, IItemsQueries items, IGridQueries grid, HeroSpot? hero, double elapsedMs)
     {
         bool fresh = _items != items || _client != client;
-        (_client, _items, _grid, _research, _hero) = (client, items, grid, research, hero);
+        (_client, _items, _grid, _hero) = (client, items, grid, hero);
         _sinceRead += elapsedMs;
         if (fresh || _sinceRead >= RefreshMs) Read();
     }
@@ -295,7 +287,7 @@ public partial class InventoryPanel : CanvasLayer
     private void Read()
     {
         _sinceRead = 0;
-        if (_client == null || _items == null || _grid == null || _research == null) return;
+        if (_client == null || _items == null || _grid == null) return;
         _reading = Reading.Of(_client.Id, _client.InFlight, _items, _grid, Crate);
         Refresh();
     }

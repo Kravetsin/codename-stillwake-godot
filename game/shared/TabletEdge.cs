@@ -10,12 +10,14 @@ namespace Stillwake.Game.Shared;
 /// The tablet's top edge along the window's foot and the keys over it, in place of words ([tablet-edge](../../../docs/decisions/2026-11-02-tablet-edge.md)): the same art as every
 /// tablet's, across the window, its screen dark. A tablet taken out rises from it (<see cref="TabletPeek.Pose"/>), so it shows while none is up. The keys are holograms
 /// floating over the top of whichever is up (hologram-keys): only those that can be used now, the row closing up round them (<see cref="EdgeRow"/>), dim unless the
-/// pointer nears the screen's foot. A key says its name and hotkey over it, under the pointer.
+/// pointer nears the screen's foot, as large as the interface's size has them; the crew's credits on the right (<see cref="CreditHolo"/>). A key says its name and hotkey over it, under the pointer.
 /// </summary>
 public partial class TabletEdge : CanvasLayer
 {
     /// <summary>How long the rest of the row takes to slide as a key comes or goes, and how long a key flickers in or out.</summary>
     private const double SlideS = 0.25, FlickerS = 0.35;
+    /// <summary>How far in from the art's right edge the credits end: short of the bezel's charge lamps, off the keys in the middle.</summary>
+    private const float ReadoutIn = 160;
 
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
@@ -29,6 +31,9 @@ public partial class TabletEdge : CanvasLayer
     private readonly List<Tablet> _tablets = [];
     private readonly TipSpots _tips;
     private readonly KeyGlow _near = new(comesOn: 0.12, goesOut: 0.5);
+    private CreditHolo? _readout;
+    private Func<bool> _readoutShown = () => false;
+    private float _readoutAppear;
     private Vector2 _window;
     private bool _laid;
 
@@ -59,11 +64,29 @@ public partial class TabletEdge : CanvasLayer
         _tips.Add(key, () => new Tip(T(says)) { Over = true });
     }
 
+    /// <summary>Sets the crew's credits on the right of the edge, saying <paramref name="says"/> under the pointer, shown while <paramref name="shown"/>.</summary>
+    public void Readout(CreditHolo holo, string says, Func<bool> shown)
+    {
+        (_readout, _readoutShown) = (holo, shown);
+        _root.AddChild(holo);
+        _tips.Add(holo, () => new Tip(T(says)) { Over = true });
+    }
+
     /// <summary>A tablet that rises from the edge: while it is up the keys ride on it.</summary>
     public void Follow(Tablet tablet) => _tablets.Add(tablet);
 
     /// <summary>Where it lies on the screen, the rim while it shows and the keys' row: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => _rim.Visible ? _rim.Covers.Merge(_row.GetGlobalRect()) : _row.GetGlobalRect();
+    public Rect2 Covers
+    {
+        get
+        {
+            var keys = _readout is { Visible: true } r ? _row.GetGlobalRect().Merge(r.GetGlobalRect()) : _row.GetGlobalRect();
+            return _rim.Visible ? _rim.Covers.Merge(keys) : keys;
+        }
+    }
+
+    /// <summary>Where the row of keys lies on the screen: the bulb keeps clear of it.</summary>
+    public Rect2 Row => _row.GetGlobalRect();
 
     public override void _Process(double delta)
     {
@@ -89,20 +112,22 @@ public partial class TabletEdge : CanvasLayer
             if (tablet.Shown && (up == null || tablet.Up > up.Up)) up = tablet;
         _rim.Visible = _metal.Visible = up == null;
         var art = (up ?? _rim).Covers;
-        var (middle, top) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
-        Lay(middle, top, delta);
+        var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
+        float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
+        Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
         var pointer = _root.GetViewport().GetMousePosition();
         _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer)));
         foreach (var slot in _slots) slot.Key.Near = (float)_near.Lit;
+        if (_readout != null) _readout.Near = (float)_near.Lit;
         _tips.Frame(_ui.MenuOpen.Get() ? null : pointer);
     }
 
-    /// <summary>Puts each key where the row has it, the rest sliding as one comes or goes, and the row's span under them.</summary>
-    private void Lay(float middle, float top, double delta)
+    /// <summary>Puts each key where the row has it, the rest sliding as one comes or goes, and the row's span under them; the credits ending at <paramref name="readoutRight"/>.</summary>
+    private void Lay(float middle, float top, float readoutRight, float grown, double delta)
     {
         var shown = new bool[_slots.Count];
         for (int i = 0; i < _slots.Count; i++) shown[i] = _slots[i].Shown();
-        var lefts = EdgeRow.Lefts(shown, middle, EdgeKey.Side, TabletPeek.KeyStride);
+        var lefts = EdgeRow.Lefts(shown, middle, EdgeKey.Side * grown, TabletPeek.KeyStride * grown);
         float left = float.MaxValue, right = float.MinValue;
         for (int i = 0; i < _slots.Count; i++)
         {
@@ -122,18 +147,30 @@ public partial class TabletEdge : CanvasLayer
             var key = slot.Key;
             key.Visible = slot.Appear > 0;
             key.MouseFilter = shown[i] ? Control.MouseFilterEnum.Stop : Control.MouseFilterEnum.Ignore;
-            // Flickering in or out, it drops out every third frame of thirty a second, as a tube catching.
-            key.Shows = slot.Appear >= 1 ? 1 : Mathf.FloorToInt(Time.GetTicksMsec() / 33.3f) % 3 == 0 ? slot.Appear * 0.2f : slot.Appear;
+            key.Shows = Flicker(slot.Appear);
+            key.Scale = Vector2.One * grown;
             key.Position = new Vector2(Mathf.Round(slot.X), top);
             if (!shown[i]) continue;
             left = Math.Min(left, slot.X);
-            right = Math.Max(right, slot.X + EdgeKey.Side);
+            right = Math.Max(right, slot.X + EdgeKey.Side * grown);
         }
         if (left == float.MaxValue) (left, right) = (middle, middle);
+        if (_readout is { } readout)
+        {
+            bool on = _readoutShown();
+            _readoutAppear = !_laid ? (on ? 1 : 0) : Mathf.MoveToward(_readoutAppear, on ? 1 : 0, (float)(delta / FlickerS));
+            readout.Visible = _readoutAppear > 0;
+            readout.MouseFilter = on ? Control.MouseFilterEnum.Stop : Control.MouseFilterEnum.Ignore;
+            readout.Shows = Flicker(_readoutAppear);
+            readout.Lay(readoutRight, top, grown);
+        }
         _row.Position = new Vector2(left, top);
-        _row.Size = new Vector2(right - left, EdgeKey.Side + EdgeKey.NumberDown + 2);
+        _row.Size = new Vector2(right - left, (EdgeKey.Side + EdgeKey.NumberDown + 2) * grown);
         _laid = true;
     }
+
+    // Flickering in or out, it drops out every third frame of thirty a second, as a tube catching.
+    private static float Flicker(float appear) => appear >= 1 ? 1 : Mathf.FloorToInt(Time.GetTicksMsec() / 33.3f) % 3 == 0 ? appear * 0.2f : appear;
 
     public override void _ExitTree() => _tips.Show(null);
 

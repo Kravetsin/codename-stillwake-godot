@@ -75,7 +75,7 @@ public partial class ResearchTablet : CanvasLayer
         PaintDetail();
         _page.Show(true);
         _key = new TabletKey(world, worldId, _keep, Bulb, Toggle, () => Shown && _page == _board);
-        MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _keep.Seen.MarketNew, () => _key.Credits, gold: true);
+        MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _key.Affordable);
         AddChild(_key);
     }
 
@@ -88,8 +88,11 @@ public partial class ResearchTablet : CanvasLayer
     /// <inheritdoc cref="TabletKey.Shows"/>
     public bool CapShows => _key.Shows;
 
-    /// <summary>The market's own key beside it, so the market is one press away (2026-11-03-market-key): on while the market is out, amber while an order met is unseen, the credits on it.</summary>
+    /// <summary>The market's own key beside it, so the market is one press away (2026-11-03-market-key): on while the market is out, amber while anything on it can be bought (hologram-keys).</summary>
     public EdgeKey MarketCap { get; }
+
+    /// <inheritdoc cref="TabletKey.Credits"/>
+    public int Credits => _key.Credits;
 
     /// <inheritdoc cref="TabletKey.MarketShows"/>
     public bool MarketCapShows => _key.MarketShows;

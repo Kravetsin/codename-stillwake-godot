@@ -321,9 +321,10 @@ public partial class Main : Node2D, ITogether
         Func<bool> suitOn = () => _session is Session s && _m.Crew.SuitOn(s.Client.Id);
         edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, suitOn), "suit.key", () => suitOn() || _session is Session s && _m.Crew.SuitModeProblem(s.Client.Id) == null);
         edge.Put(handbook.Cap, "handbook.key");
+        edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
         foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
         AddChild(edge);
-        AddChild(new ScreenBulb(tech.Bulb, inWorld, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null, tech.FindPicture));
+        AddChild(new ScreenBulb(tech.Bulb, inWorld, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null, () => edge.Row, tech.FindPicture));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
@@ -561,7 +562,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
-        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
+        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
         if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");

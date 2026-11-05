@@ -21,13 +21,17 @@ the keys become holograms, only those that can be used, and a big bulb at the to
   A hidden key's hotkey still does what it did.
 - **Holograms**, as picked (`crt`): small green phosphor screens with grain, a flicker and a rolling line, drawn additively through
   `shared/holo.gdshader` with a scanline every other row. A key that is on turns its glass bright with the motif dark on it. Amber: research
-  while a note is unread, market while an order met is unseen. Motifs are `holo_<key>` masks exported by `tools/anime-art/subjects/edgekeys.js`.
+  while a note is unread, market while anything on it can be bought now (the user's call: an order met no longer lights it). Motifs are `holo_<key>` masks exported by `tools/anime-art/subjects/edgekeys.js`.
 - **Dim, then bright:** at 40 % unless the pointer is within 64 px above the row's top or over a tablet that is up; it brightens in 0.12 s and
   dims in 0.5 s (`KeyGlow`, now in `shared/logic`, its times passed in). Hover and press as before, with the name and hotkey under the pointer.
-- **Numbers** on a plate under the key, counting and flaring (`CountFlare`): research the finds waiting less those still flying, hidden at 0;
-  market the credits, in gold. The saddle and the bezel's credit display go; the tablet's own charge shows again.
+- **A number** on a plate under the research key, counting and flaring (`CountFlare`): the finds waiting less those still flying, hidden at 0.
+- **The credits** are a gold hologram of their own on the right of the bezel's top, 160 px in from the art's edge, short of its charge lamps
+  (`CreditHolo`), shown with the market's key: the coin and the number at 20 px, readable at a glance. Keys and credits grow with the interface's size setting, as the slots do (×1.4 on large), their feet on the same line. On the market's key they ran into the next
+  key's number; by the keys in the middle they were in the way. Every change counts to the new number and swells the readout by a third and lights
+  it full for about 0.9 s (`CountFlare.Pop`), however small the change. The inventory no longer shows them. The saddle and the bezel's credit
+  display go; the tablet's own charge shows again.
 - **The bulb** (`hang`): the bulb picture, 40 by 48, hung cap up on a short cord at the top centre of the screen (`ScreenBulb`), seen by this
-  player only. `BulbSignal` keeps its timing and rules (one at a time, a find while it burns makes it burn on, opening the tablet puts it out,
+  player only; while a tablet is up and the keys ride its top, it hangs right of them, short of the credits. `BulbSignal` keeps its timing and rules (one at a time, a find while it burns makes it burn on, opening the tablet puts it out,
   nothing for what waited when a world was opened). It now counts the finds it carries.
 - **The flight** (`beam`): at the burst the find that lit it hatches, its own picture at 40 px. The research key throws a beam up to it in 0.14 s,
   and the find slides down it, shrinking to 18 px and fading into the hologram's green, landing 0.9 s after the burst (`FindFlight`). The key's

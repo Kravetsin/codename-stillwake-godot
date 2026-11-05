@@ -68,6 +68,7 @@ public static partial class Ru
         ["research.atLifepod"] = "В спасательной капсуле",
         ["research.key"] = "Планшет ({key:tablet})",
         ["research.marketKey"] = "Чёрный рынок ({key:market})",
+        ["research.creditsTip"] = "Кредиты: выручка за проданный лом, тратятся на чёрном рынке",
         ["research.gate.order1"] = "Первый заказ",
         ["research.gate.order2"] = "Второй заказ",
         ["research.gate.order3"] = "Третий заказ",
