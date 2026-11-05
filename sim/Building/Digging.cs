@@ -15,6 +15,14 @@ namespace Stillwake.Sim.Building;
 /// </summary>
 public sealed record Hew(string Tool, int X, int Y, int Heading) : Command;
 
+/// <summary>
+/// A hit of a running tool (tool-edge) on the cells its drawn edge touches, <c>Cells</c> as the client saw them: what stands in each
+/// on the grid, in the planet's known zone, as a <see cref="Hew"/>'s ray would strike it there (a pile, a wall that breaks, a built
+/// piece by its first cell, a plant in an open cell), each once, takes the weapon's block damage as a <see cref="Hew"/> gives it.
+/// Neither reach nor position is checked: the client's word, among friends (0002).
+/// </summary>
+public sealed record HewCells(string Tool, IReadOnlyList<int> Cells) : Command;
+
 /// <summary>What a <see cref="Hew"/> strikes: its walls' cells and its built pieces' first cells, ascending, and its plants, by their own cells.</summary>
 public sealed record Hewn(IReadOnlyList<int> Cells, IReadOnlyList<Plant> Plants)
 {
@@ -38,6 +46,21 @@ public sealed partial class BuildingModule
         var cells = new List<int>();
         var plants = new List<Plant>();
         Rays.Fan(_grid.Width, _grid.Height, x, y, heading, weapon, cell => Stops(cell, cells, plants));
+        cells.Sort();
+        for (int i = cells.Count - 1; i > 0; i--)
+            if (cells[i] == cells[i - 1]) cells.RemoveAt(i);
+        plants.Sort(ByCell);
+        return new Hewn(cells, plants);
+    }
+
+    /// <summary>What a <see cref="HewCells"/> strikes in <paramref name="listed"/>: each cell on the grid and in its known zone as a ray would strike it, deduped, ascending.</summary>
+    public Hewn Listed(IReadOnlyList<int> listed)
+    {
+        var cells = new List<int>();
+        var plants = new List<Plant>();
+        foreach (int cell in listed)
+            if (cell >= 0 && cell < _grid.Width * _grid.Height && _grid.Zone.Contains(cell % _grid.Width, cell / _grid.Width))
+                Stops(cell, cells, plants);
         cells.Sort();
         for (int i = cells.Count - 1; i > 0; i--)
             if (cells[i] == cells[i - 1]) cells.RemoveAt(i);
@@ -91,6 +114,10 @@ public sealed partial class BuildingModule
     public string? HewProblem(int peer, string tool, int x, int y, int heading) =>
         HewProblemOf(peer, Struck(tool, x, y, heading), tool, running: false);
 
+    /// <summary>Why peer <paramref name="peer"/>'s <see cref="HewCells"/> of <paramref name="tool"/> on <paramref name="cells"/> would be refused, as <see cref="HewProblem"/> asks it.</summary>
+    public string? HewCellsProblem(int peer, string tool, IReadOnlyList<int> cells) =>
+        HewProblemOf(peer, Listed(cells), tool, running: false);
+
     /// <summary>
     /// For a fan that strikes nothing, <c>building.notHere</c> where the surface's tools break nothing (the ship: the plan takes
     /// things apart), else <c>building.nothingToDig</c> (bedrock and lava only stop it); then what the weapon says
@@ -104,23 +131,26 @@ public sealed partial class BuildingModule
     /// strength goes, what it is made of given to the sender, a wall's held growths' yields too; a plant at its strength is
     /// felled. A relic's cradle among them discharges into the sender once (0096).
     /// </summary>
-    private void ApplyHew(Hew c)
+    private void ApplyHew(Hew c) => HitAll(Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, c.From);
+
+    private void ApplyHewCells(HewCells c) => HitAll(Listed(c.Cells), c.Tool, c.From);
+
+    private void HitAll(Hewn hewn, string tool, int from)
     {
-        var hewn = Struck(c.Tool, c.X, c.Y, c.Heading);
-        int hit = _items.BlockDamage(c.From, c.Tool);
+        int hit = _items.BlockDamage(from, tool);
         // A tool that cuts wrecks only (the plasma cutter) touches no block: no crack, no felling, no cradle's shock.
         if (hit <= 0) return;
         // A relic's cradle discharges into whoever strikes it (0096), the felling hit too, before it gives its shards.
-        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(c.From, ShockOf(c.Tool));
+        if (hewn.Plants.Any(p => p.Kind == Ruins.Cradle)) _crewOps.Shock(from, ShockOf(tool));
         foreach (int cell in hewn.Cells)
         {
-            if (PileAt(cell) is { } pile) HitPile(c.From, pile, hit);
-            else if (_grid.WallAt(cell) != null) HitWall(c.From, cell, hit);
-            else HitPiece(c.From, cell, hit);
+            if (PileAt(cell) is { } pile) HitPile(from, pile, hit);
+            else if (_grid.WallAt(cell) != null) HitWall(from, cell, hit);
+            else HitPiece(from, cell, hit);
         }
         // A plant its wall took with it is gone; one of no strength falls to any hit.
         foreach (var plant in hewn.Plants)
-            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, c.From);
+            if (_plantOwn.GetValueOrDefault(plant.Cell) == plant && Cracked(plant.Cell, Kinds[plant.Kind].Strength, hit)) Fell(plant, from);
     }
 
     /// <summary>
