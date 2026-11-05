@@ -273,7 +273,6 @@ public partial class Main : Node2D, ITogether
         var debrisPage = new HandbookPage(_hands.Ui, () => _session != null ? _ship.Debris : null);
         // The tablet: put away and putting away as the computer's window.
         var tech = _tablet = new ResearchTablet(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m : null, command => _session?.Client.Send(command), () => _session?.Client.World.Id ?? 0);
-        AddChild(new HeroBulb(tech.Bulb, () => _hero?.Shown is { } shown ? new HeadSpot(shown.Head, shown.Feet, _hero.Floats) : null));
         var handbook = new HandbookPanel(_hands.Ui, () => _session != null && _hero != null, [new HandbookSection(T("handbook.debris"), debrisPage, debrisPage.Tally)])
         {
             Opening = () =>
@@ -312,17 +311,20 @@ public partial class Main : Node2D, ITogether
             tech.Close();
             handbook.Close();
         });
-        // The tablet's top edge along the foot: every tablet rises from it, and its keys ride on the one that is up.
-        var edge = _edge = new TabletEdge(_hands.Ui, () => _session != null && _hero != null, () => _session != null ? _m.Research.Credits : null);
+        // The tablet's top edge along the foot: every tablet rises from it, and its keys float over the one that is up, only those that can be used now.
+        Func<bool> inWorld = () => _session != null && _hero != null;
+        var edge = _edge = new TabletEdge(_hands.Ui, inWorld);
         edge.Put(_hands.Air.Cap, "overlay.key");
         edge.Put(_hands.Menu.Cap, "build.key");
-        edge.Put(tech.Cap, "research.key");
-        edge.Put(tech.MarketCap, "research.marketKey");
-        edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, () => _session is Session s && _m.Crew.SuitOn(s.Client.Id),
-            () => _session is Session s ? _m.Crew.SuitModeProblem(s.Client.Id) : "crew.noHero"), "suit.key");
+        edge.Put(tech.Cap, "research.key", () => tech.CapShows);
+        edge.Put(tech.MarketCap, "research.marketKey", () => tech.MarketCapShows);
+        Func<bool> suitOn = () => _session is Session s && _m.Crew.SuitOn(s.Client.Id);
+        edge.Put(Features.Crew.SuitKeys.Mode(_hands.Ui, suitOn), "suit.key", () => suitOn() || _session is Session s && _m.Crew.SuitModeProblem(s.Client.Id) == null);
         edge.Put(handbook.Cap, "handbook.key");
+        edge.Readout(new CreditHolo(() => tech.Credits), "research.creditsTip", () => tech.MarketCapShows);
         foreach (var tablet in (Tablet[])[_hands.Menu.Tablet, handbook.Tablet, tech.Tablet]) edge.Follow(tablet);
         AddChild(edge);
+        AddChild(new ScreenBulb(tech.Bulb, inWorld, () => tech.Cap.IsVisibleInTree() ? tech.Cap.GetGlobalRect() : null, () => edge.Row, tech.FindPicture));
         var suits = new SuitColours(SuitsWorn, colour => _session?.Client.Send(new Sim.Crew.PickColour(colour)));
         var lookEditor = _lookEditor = new Features.Crew.LookEditor(() => Suits.Of(_m.Players, (_session as Session)?.Client.Id ?? 0), look =>
         {
@@ -560,7 +562,7 @@ public partial class Main : Node2D, ITogether
         if (_items != null) (_items.Panel.Charger, _items.Panel.ChargeRate) = (_m.Power.Charges, _m.Power.ChargeRate);
         if (_items != null) _items.Panel.Draw = _m.Power.Draw;
         if (_items != null) _items.Panel.Crafting = _m.Crafting;
-        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Research, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
+        if (_items != null) _items.Frame(client, _m.Grid, _m.Rooms, _m.Items, _m.Debris, NetHolds, SpotOf(_hero), session.Progress, session.Drift, delta * 1000);
         if (_fabricator != null) _fabricator.Draw = _m.Power.Draw;
         _fabricator?.Frame(client, _m.Crafting, _m.Research, _m.Items, _m.Grid, delta * 1000);
         _frameLog?.Mark("items");

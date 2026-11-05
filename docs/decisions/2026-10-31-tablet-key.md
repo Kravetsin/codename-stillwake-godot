@@ -1,6 +1,6 @@
 # The tablet's key and the mark of a new note
 
-- Status: accepted
+- Status: superseded by [hologram-keys](2026-11-05-hologram-keys.md)
 - Date: 2026-10-31
 
 ## Context

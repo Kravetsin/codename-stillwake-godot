@@ -1,6 +1,6 @@
 # The tablet's top edge along the foot, with the keys on it
 
-- Status: accepted
+- Status: accepted; where the keys sit superseded by [hologram-keys](2026-11-05-hologram-keys.md)
 - Date: 2026-11-02
 - Changes the place of [key-lens](2026-11-02-key-lens.md)'s key, and [tablet-key](2026-10-31-tablet-key.md)'s press, which now also puts the tablet away; replaces the air overlay's chip of 0030 and the words at the build menu's foot
 

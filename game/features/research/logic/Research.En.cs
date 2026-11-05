@@ -68,6 +68,7 @@ public static partial class En
         ["research.atLifepod"] = "At the lifepod",
         ["research.key"] = "Tablet ({key:tablet})",
         ["research.marketKey"] = "Black market ({key:market})",
+        ["research.creditsTip"] = "Credits: what salvage sold for, spent at the black market",
         ["research.gate.order1"] = "First order",
         ["research.gate.order2"] = "Second order",
         ["research.gate.order3"] = "Third order",

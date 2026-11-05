@@ -5,8 +5,8 @@ using Stillwake.Sim;
 namespace Stillwake.Game.Dev;
 
 /// <summary>
-/// <c>-- --bulb</c>: the bulb over the hero as a note starts waiting (2026-11-02-bulb-signal), a find a second in and with <c>=two</c> another 0.9 s after it.
-/// <c>=walk</c> paces the room, <c>=space</c> stands out past the hull. Each find is printed with its time.
+/// <c>-- --bulb</c>: the bulb at the screen's top as a note starts waiting (hologram-keys), a find a second in and with <c>=two</c> another 0.9 s after it,
+/// once the bulb has burst. Each find is printed with its time.
 /// </summary>
 public partial class BulbDemo(Func<Registry> m, bool two) : Node
 {

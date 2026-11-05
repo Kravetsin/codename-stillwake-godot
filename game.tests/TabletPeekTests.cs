@@ -47,28 +47,14 @@ public class TabletPeekTests
     }
 
     [Fact]
-    public void TheKeysSitOnTheBezelsTopInTheMiddleOfItsMetal()
+    public void TheKeysFloatOverTheBezelsTopInTheMiddleOfItsPlate()
     {
         // The art at the rim's place: 12 in, 682 down, 1256 across, what the page the look was picked on drew.
-        var (x, y) = TabletPeek.SaddleAt(12, 682, 1256);
-        Assert.Equal(526, x);
-        Assert.Equal(686, y);
-        Assert.True(y + TabletPeek.SaddleTall >= Tall, "the metal runs off the foot, with no edge showing under the keys");
+        var (middle, top) = TabletPeek.RowAt(12, 682, 1256);
+        Assert.Equal(632, middle);
+        Assert.Equal(665, top);
     }
 
     [Fact]
-    public void SixKeysFitTheMetalTheySitOn()
-    {
-        int last = TabletPeek.KeyIn + 5 * TabletPeek.KeyStride + 30;
-        Assert.Equal(TabletPeek.SaddleWide, last + TabletPeek.KeyIn);
-    }
-    [Fact]
-    public void TheCreditsCoverTheChargeOnTheBezelsTop()
-    {
-        // The art's signal bars and battery: 76 to 47 art pixels in from its right, 9 to 16 down, at two screen pixels each.
-        var (x, y) = TabletPeek.DisplayAt(1268, 682);
-        Assert.True(x <= 1268 - 2 * 76 && x + TabletPeek.DisplayWide >= 1268 - 2 * 47, "the charge shows beside the credits");
-        Assert.True(y <= 682 + 2 * 9 && y + TabletPeek.DisplayTall >= 682 + 2 * 16, "the charge shows over or under them");
-        Assert.True(y + TabletPeek.DisplayTall <= 682 + TabletLayout.ScreenTop * TabletLayout.ArtScale, "they run onto the screen");
-    }
+    public void OverATabletAtTheWindowsTopTheKeysStayOnScreen() => Assert.Equal(TabletPeek.RowLeast, TabletPeek.RowAt(12, 12, 1256).Top);
 }

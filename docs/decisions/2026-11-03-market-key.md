@@ -1,6 +1,6 @@
 # The black market has its own key on the tablet's edge, the tablet no tabs, the credits always in sight
 
-- Status: accepted
+- Status: accepted; the lens look, the saddle and the credit display superseded by [hologram-keys](2026-11-05-hologram-keys.md)
 - Date: 2026-11-03
 - Adds a sixth key to [edge-lenses](2026-11-03-edge-lenses.md)'s edge, beside the research key; drops the tablet's tabs from
   [tablet-tree](2026-10-30-tablet-tree.md); an order met lights the market's key, not [key-lens](2026-11-02-key-lens.md)'s; the credits leave the

@@ -254,12 +254,11 @@ public partial class InventoryPanel
     }
 
     /// <summary>
-    /// The ship's credits; whether the open furnace or generator burns and why it stands still; how
+    /// Whether the open furnace or generator burns and why it stands still; how
     /// far the furnace's work is; the frame's bolt lit while the machine works.
     /// </summary>
     private void ShowMachine(Reading reading)
     {
-        _credits.Set(_research?.Credits ?? 0);
         var spec = reading.Kind is string kind && MachineSpecs.TryGet(kind, out var s) ? s : null;
         if (spec?.Is(Content.MachineTrait.Sells) == true && Crate is int sells) ShowCapsule(sells);
         bool zone = spec?.Is(Content.MachineTrait.Zone) == true;
