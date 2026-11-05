@@ -168,7 +168,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (!Makes(station, c.Recipe)) return "crafting.notHere";
         if (Queue(c.Machine).Count >= station.QueueMost) return "crafting.full";
         if (c.Endless && !c.FromInputs) return "crafting.paid";
-        if (!c.FromInputs) return _items.ShortOf(c.From, Times(craft.Cost, c.Count));
+        if (!c.FromInputs) return _items.ShortOfStock(c.From, Times(craft.Cost, c.Count));
         // The pod is paid by hand by design (0057): with no inputs, an entry fed from them would wait for ever; the arc bench's
         // one input is its tool's (0099).
         var spec = Content.Machines.Get(station.Machine);
@@ -178,7 +178,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     private void ApplyCraft(Craft c)
     {
         var queue = QueueOf(c.Machine) ?? Added(c.Machine);
-        if (!c.FromInputs) _itemsOps.Take(c.From, Times(Content.Crafts.Get(c.Recipe).Cost, c.Count));
+        if (!c.FromInputs) _itemsOps.TakeStock(c.From, Times(Content.Crafts.Get(c.Recipe).Cost, c.Count));
         queue.Entries.Add(new Entry(queue.Next, c.Recipe, c.Count, c.From, c.FromInputs, c.FromInputs && c.Endless));
         queue.Next += 1;
     }
@@ -189,7 +189,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         if (station.Fed) return "crafting.notHere";
         var queue = QueueOf(c.Machine);
         int at = queue?.Entries.FindIndex(e => e.Id == c.Entry) ?? -1;
-        return at >= 0 ? _items.FullFor(c.From, Refund(queue!, at)) : "crafting.noEntry";
+        return at >= 0 ? _items.FullForStock(c.From, Refund(queue!, at)) : "crafting.noEntry";
     }
 
     private void ApplyCancel(Cancel c)
@@ -201,7 +201,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
         // The unit at work is given back with the rest: the next entry starts from nothing.
         if (at == 0) queue.Progress = 0;
         // To whoever cancels, not whoever paid: friends share a ship, and no record of who paid is kept.
-        _itemsOps.Give(c.From, refund);
+        _itemsOps.GiveStock(c.From, refund);
     }
 
     private string? EndlessProblem(SetEndless c)

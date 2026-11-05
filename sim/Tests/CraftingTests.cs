@@ -233,9 +233,11 @@ public class CraftingTests
         Cancel(w, 7);
         Assert.Equal(["crafting.noEntry", "crafting.noEntry"], Reasons(w));
 
-        // Peer 2's inventory full: the four scrap of the two wires would not fit.
+        // Peer 2's inventory and the crate full: the four scrap of the two wires would not fit (craft-from-crates).
         Craft(w, "wire", 2);
-        w.GiveItems(2, ("canister", Content.Inventory.Slots * Content.Items.Get("canister").Stack));
+        int canisters = Content.Items.Get("canister").Stack;
+        w.GiveItems(2, ("canister", Content.Inventory.Slots * canisters));
+        w.FillCrate(Crate, ("canister", Content.Machines.Get("crate").Slots!.Value * canisters));
         Cancel(w, 2, from: 2);
         Assert.Equal("items.full", Reasons(w)[^1]);
         Assert.Single(w.M.Crafting.Queue(Bench));
@@ -319,6 +321,7 @@ public class CraftingTests
             foreach (var s in w.M.Items.Inventory(peer)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var e in w.M.Crafting.Queue(Bench)) Raw(e.Recipe, e.Count, all);
         foreach (var s in w.M.Items.Crate(Bench)) if (s != null) Raw(s.Item, s.Count, all);
+        foreach (var s in w.M.Items.Crate(Crate)) if (s != null) Raw(s.Item, s.Count, all);
         foreach (var s in w.M.Items.Floor) Raw(s.Item, s.Count, all);
         return string.Join(",", all.Where(a => a.Value != 0).OrderBy(a => a.Key, StringComparer.Ordinal).Select(a => $"{a.Key}:{a.Value}"));
     }
@@ -343,6 +346,8 @@ public class CraftingTests
         {
             var w = World();
             for (int peer = 0; peer < 3; peer++) w.GiveItems(peer, ("scrap", 60), ("iron", 30), ("gear", 2), ("wire", 4));
+            // The crate's share of every peer's stock (craft-from-crates).
+            w.FillCrate(Crate, ("scrap", 40), ("iron", 20), ("plate", 4));
             string worth = Worth(w);
             int seen = 0;
             foreach (var s in all)
