@@ -148,6 +148,9 @@ public partial class AsteroidDemo : CanvasLayer
         (_stage, _stageAt) = (_stage + 1, _t);
     }
 
+    /// <summary>Whether the belt can no longer pay the drill: the sim would refuse its next hit.</summary>
+    private bool Flat() => _world() is var (client, m) && m.Items.WeaponProblem(client.Id, Content.Weapons.Drill.Item, running: false) == "items.flat";
+
     public override void _Process(double delta)
     {
         _t += delta;
@@ -160,7 +163,6 @@ public partial class AsteroidDemo : CanvasLayer
         if (_stage > 6) return;
         int rock = _stage < 3 ? 0 : 1;
         if (OnScreen(rock) is { } at) _pos = _pos.MoveToward(at, (float)(1200 * delta));
-        var aimed = _ui.AimedPiece.Get();
         switch (_stage)
         {
             case 0 when _t >= 0.8:
@@ -180,7 +182,7 @@ public partial class AsteroidDemo : CanvasLayer
                 Next("drilling the left rock");
                 break;
             // Flat: the sim would refuse the next hit, and the drill winds down; held a while longer to show it.
-            case 4 when aimed is (_, true) && _t >= _stageAt + 0.5:
+            case 4 when Flat() && _t >= _stageAt + 0.5:
                 Next("the belt flat");
                 break;
             case 5 when _t >= _stageAt + 2.0:

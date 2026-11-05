@@ -43,7 +43,6 @@ public partial class HeroView : Node2D
     private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
-    private readonly FaceRim _faceRim = new();
     private readonly ModeGlyph _glyph;
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
@@ -252,7 +251,6 @@ public partial class HeroView : Node2D
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
-        AddChild(_faceRim);
         AddChild(_glyph);
         AddChild(_prompt);
         AddChild(_act);

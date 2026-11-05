@@ -56,7 +56,7 @@ public partial class HeroView
             var (strikes, chop) = _heardChops.GetValueOrDefault(id);
             var stroke = Strokes.Of(strikes);
             if (stroke == null) shown.Swing.Stop();
-            // Its blade heard and seen where it strikes the ground as it is played here, the fan its own peer sends then (0093, 0094),
+            // Its blade heard and seen where it bites the ground as it is played here, as its own peer sweeps it (0093, melee-edge),
             // in the front layer: which button its peer swings with is not sent.
             if (shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, stroke).Hits)
                 StruckBy(m, id, hero, shown.Swing.At, strikes!);
@@ -240,13 +240,12 @@ public partial class HeroView
 
     /// <summary>Whether a rod biting into <paramref name="piece"/> thumps as a glove does, a crate or a pod, rather than ringing as metal.</summary>
     /// <summary>
-    /// Peer <paramref name="id"/>'s hit of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, heard and
-    /// seen at the ground its fan strikes nearest the point, as that peer's own hit is (the fan of rays).
+    /// Peer <paramref name="id"/>'s stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/>, heard
+    /// and seen at the ground its blade bites first, as that peer's own stroke is (melee-edge), the ship's hull too.
     /// </summary>
     private void StruckBy(Registry m, int id, Hero hero, Point at, string tool)
     {
-        var fan = Aiming.FanOf(m, hero, at, tool);
-        if (!fan.Hewn.IsEmpty) Struck(_othersGroundHits, m, Aiming.LeadOf(fan, at, m.Grid.Width), tool, hero, id);
+        if (StrokeOf(m, hero, at, tool).Ground?.Cell is int cell) Struck(_othersGroundHits, m, cell, tool, hero, id);
     }
 
     private static bool Thumps(Piece piece) => Content.Loot.Of(piece.Item) != null && Content.Wreckage.HpOf(piece.Item) == null;

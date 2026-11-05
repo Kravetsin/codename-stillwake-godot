@@ -25,9 +25,18 @@ public readonly record struct EdgeContact((double X, double Y) At, int? Cell, Pi
 /// <summary>
 /// What an <see cref="Edge"/> touches (tool-edge): the grid's <paramref name="Cells"/> under it and the <paramref name="Wrecks"/> whose
 /// pictures and the <paramref name="Creatures"/> whose bodies it overlaps, each once in the order it first meets them; where it first
-/// touches, none touching nothing; and where it ends, a beam where it stops.
+/// touches the ground, a wall or a plant, and each wreck (<paramref name="Touches"/>), in that order too; and where it ends, a beam
+/// where it stops.
 /// </summary>
-public sealed record EdgeHit(IReadOnlyList<int> Cells, IReadOnlyList<Piece> Wrecks, IReadOnlyList<Creature> Creatures, EdgeContact? Contact, (double X, double Y) End);
+public sealed record EdgeHit(IReadOnlyList<int> Cells, IReadOnlyList<Piece> Wrecks, IReadOnlyList<Creature> Creatures,
+    IReadOnlyList<EdgeContact> Touches, (double X, double Y) End)
+{
+    /// <summary>Where it first touches anything, none touching nothing.</summary>
+    public EdgeContact? Contact => Touches.Count > 0 ? Touches[0] : null;
+
+    /// <summary>Where it first touches the ground, a wall or a plant; none on none.</summary>
+    public EdgeContact? Ground => Touches.FirstOrDefault(t => t.Cell != null) is { Cell: not null } ground ? ground : null;
+}
 
 /// <summary>What a running tool's hit sends from what its edge touches (tool-edge): each only if the sim would take it, the strikes on creatures last.</summary>
 public sealed record EdgeCommands(HewCells? Cells, HewPieces? Pieces, IReadOnlyList<Strike> Strikes)
@@ -48,12 +57,18 @@ public static class ToolEdges
     /// the circle round the picture), each where it is drawn <paramref name="progress"/> of the way to its next tick; every creature whose body and margin it overlaps. A beam stops at
     /// the first wall, the first cell that stops a body, or the first wreck's pixel.
     /// </summary>
-    public static EdgeHit Hits(Registry m, Edge edge, bool outside, double progress, Func<Piece, double, double, bool> solid)
+    public static EdgeHit Hits(Registry m, Edge edge, bool outside, double progress, Func<Piece, double, double, bool> solid) =>
+        Swept(m, [edge], outside, progress, solid);
+
+    /// <summary>
+    /// What a stroke touches as its blade sweeps through <paramref name="edges"/>, its edge drawn at each moment in turn (melee-edge),
+    /// each as <see cref="Hits"/> touches it, till the first that touches the ground, where the blade stops: every cell under them,
+    /// every wreck and creature met on the way, each once, where it was first met.
+    /// </summary>
+    public static EdgeHit Swept(Registry m, IReadOnlyList<Edge> edges, bool outside, double progress, Func<Piece, double, double, bool> solid)
     {
         var grid = m.Grid;
         int width = grid.Width, height = grid.Height;
-        double dx = edge.To.X - edge.From.X, dy = edge.To.Y - edge.From.Y, length = Math.Sqrt(dx * dx + dy * dy);
-        var (ux, uy) = length > 0 ? (dx / length, dy / length) : (1.0, 0.0);
         // Each wreck within the circle round its picture, which it never leaves however it is turned; its pixels decide.
         var wrecks = new List<(Piece Piece, double X, double Y, double Reach2)>();
         if (outside)
@@ -68,46 +83,63 @@ public static class ToolEdges
         var cells = new List<int>();
         var struck = new List<Piece>();
         var touched = new List<Creature>();
-        EdgeContact? contact = null;
-        double reach = length;
-        int across = (int)Math.Ceiling(edge.HalfWidth / Step);
-        for (double s = 0; s <= reach; s += Step)
+        var touches = new List<EdgeContact>();
+        bool grounded = false;
+        (double X, double Y) end = default;
+        foreach (var edge in edges)
         {
-            bool stops = false;
-            for (int k = -across; k <= across; k++)
+            double dx = edge.To.X - edge.From.X, dy = edge.To.Y - edge.From.Y, length = Math.Sqrt(dx * dx + dy * dy);
+            var (ux, uy) = length > 0 ? (dx / length, dy / length) : (1.0, 0.0);
+            double reach = length;
+            int across = (int)Math.Ceiling(edge.HalfWidth / Step);
+            bool lands = false;
+            for (double s = 0; s <= reach; s += Step)
             {
-                double o = across == 0 ? 0 : edge.HalfWidth * k / across;
-                if (edge.Round && s * s + o * o > edge.HalfWidth * edge.HalfWidth + 1) continue;
-                double px = edge.From.X + ux * s - uy * o, py = edge.From.Y + uy * s + ux * o;
-                int cx = (int)Math.Floor(px / Hero.Unit), cy = (int)Math.Floor(py / Hero.Unit);
-                if (cx >= 0 && cy >= 0 && cx < width && cy < height)
+                bool stops = false;
+                for (int k = -across; k <= across; k++)
                 {
-                    int cell = cy * width + cx;
-                    if (!cells.Contains(cell)) cells.Add(cell);
-                    bool solidCell = grid.WallAt(cell) != null || grid.Blocks(cell);
-                    if (contact == null && (solidCell || m.Building.PlantAt(cell) != null)) contact = new((px, py), cell, null);
-                    stops |= solidCell;
+                    double o = across == 0 ? 0 : edge.HalfWidth * k / across;
+                    if (edge.Round && s * s + o * o > edge.HalfWidth * edge.HalfWidth + 1) continue;
+                    double px = edge.From.X + ux * s - uy * o, py = edge.From.Y + uy * s + ux * o;
+                    int cx = (int)Math.Floor(px / Hero.Unit), cy = (int)Math.Floor(py / Hero.Unit);
+                    if (cx >= 0 && cy >= 0 && cx < width && cy < height)
+                    {
+                        int cell = cy * width + cx;
+                        if (!cells.Contains(cell)) cells.Add(cell);
+                        bool solidCell = grid.WallAt(cell) != null || grid.Blocks(cell);
+                        if (!grounded && (solidCell || m.Building.PlantAt(cell) != null))
+                        {
+                            touches.Add(new((px, py), cell, null));
+                            grounded = lands = true;
+                        }
+                        stops |= solidCell;
+                    }
+                    foreach (var w in wrecks)
+                    {
+                        if ((px - w.X) * (px - w.X) + (py - w.Y) * (py - w.Y) > w.Reach2 || !solid(w.Piece, px, py)) continue;
+                        if (!struck.Contains(w.Piece))
+                        {
+                            struck.Add(w.Piece);
+                            touches.Add(new((px, py), null, w.Piece));
+                        }
+                        stops = true;
+                    }
+                    foreach (var c in creatures)
+                    {
+                        var (left, top, right, bottom) = Aiming.BoxOf(c);
+                        if (px >= left && px <= right && py >= top && py <= bottom && !touched.Contains(c)) touched.Add(c);
+                    }
                 }
-                foreach (var w in wrecks)
+                if (edge.Beam && stops)
                 {
-                    if ((px - w.X) * (px - w.X) + (py - w.Y) * (py - w.Y) > w.Reach2 || !solid(w.Piece, px, py)) continue;
-                    if (!struck.Contains(w.Piece)) struck.Add(w.Piece);
-                    contact ??= new((px, py), null, w.Piece);
-                    stops = true;
-                }
-                foreach (var c in creatures)
-                {
-                    var (left, top, right, bottom) = Aiming.BoxOf(c);
-                    if (px >= left && px <= right && py >= top && py <= bottom && !touched.Contains(c)) touched.Add(c);
+                    reach = s;
+                    break;
                 }
             }
-            if (edge.Beam && stops)
-            {
-                reach = s;
-                break;
-            }
+            end = (edge.From.X + ux * reach, edge.From.Y + uy * reach);
+            if (lands) break;
         }
-        return new EdgeHit(cells, struck, touched, contact, (edge.From.X + ux * reach, edge.From.Y + uy * reach));
+        return new EdgeHit(cells, struck, touched, touches, end);
     }
 
     /// <summary>

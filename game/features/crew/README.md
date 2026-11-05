@@ -12,7 +12,7 @@ the sim.
 | `logic/Pose.cs` | poses, the head, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing (0090) |
 | `logic/LookTint.cs` | skin, hair tints |
-| `logic/Aim.cs` | reach, aim, what hands send, a fan |
+| `logic/Aim.cs` | reach, aim, what hands send, a stroke |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
 | `SwingSmear.cs` | a swing's trail |
@@ -55,10 +55,8 @@ the sim.
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
-| `FaceRim.cs` | a tool's aim glow |
 | `ModeGlyph.cs` | the driver's mode mark |
 | `logic/DriverMode.cs` | its dots |
-| `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | `Enter` reports (0050) |
 | `Frost.cs` | frost past the field (0050) |
@@ -120,14 +118,15 @@ the sim.
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
-  pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle.
-- **Struck tools** (0038, salvage-tools): axe, hammer, spear at their paces; a swing hits as its edge crosses, a jab at
-  full reach, by a fan of rays (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`.
+  pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, only
+  small pieces (melee-edge).
+- **Struck tools** (0038, salvage-tools, melee-edge): axe, hammer, spear, paced; a swing hits what its swept blade
+  touches, a jab at full reach (`ToolEdges.Swept`); the ground it bites rings and sparks, hull too.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
 - **Drill, grinder, cutter** (0054, 0055, tool-edge): left held runs it (`Run`); each `Pace` ticks it hits all its drawn
-  edge touches (`ToolEdges`), seen where it first touches (`ToolWork`).
+  edge touches (`ToolEdges`), seen where it first touches, sparking off each wreck (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): at work only; charged, a 2×2 square over plans or marks
   of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor

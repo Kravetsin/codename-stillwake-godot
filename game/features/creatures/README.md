@@ -30,8 +30,8 @@
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Creatures`)
 spawns, moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the
-axe's blade and the drill's bit are tested against each creature's body as against a wreck's box
-(`Aiming.StruckCreatures`, `Aiming.TouchedCreatures`, `Aiming.StrikesOf`), and send `Strike`.
+blade swept and a running tool's edge are tested against each creature's body and a margin
+(`ToolEdges.Swept`, `Aiming.StrikesOf`, melee-edge), and send `Strike`.
 
 - **Reads:** `CreaturesModule.Creatures`, `Hits`; `Client.InFlight` (this player's own strikes, the frame they are sent);
   `Ui.Heroes` (whom a creature watches and flinches from); `Ui.Bits` (a friend's running drill); `Session.Progress`.

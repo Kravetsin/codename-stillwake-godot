@@ -16,10 +16,10 @@ public sealed class ToolSparks
     private readonly record struct Spark(double X, double Y, double Dx, double Dy, double Speed, double Life, double Born);
 
     private readonly List<Spark> _sparks = [];
-    private readonly Dictionary<int, double> _owed = new();
+    private readonly Dictionary<(int Hero, int Piece), double> _owed = new();
     private readonly List<(double X, double Y)> _beads = [];
-    private readonly HashSet<int> _touching = [];
-    private readonly List<int> _left = [];
+    private readonly HashSet<(int Hero, int Piece)> _touching = [];
+    private readonly List<(int Hero, int Piece)> _left = [];
     private double _clock;
     private int _thrown;
 
@@ -35,15 +35,15 @@ public sealed class ToolSparks
     }
 
     /// <summary>
-    /// <paramref name="hero"/>'s <paramref name="tool"/> touches a wreck at <paramref name="at"/>, the face's way back toward the
+    /// A hero's <paramref name="tool"/> touches a wreck at <paramref name="at"/>, the two of them <paramref name="touch"/>, the face's way back toward the
     /// tool <paramref name="toward"/> (a unit vector), through this frame of <paramref name="elapsedMs"/>: its sparks thrown, the
     /// first at once when it starts touching.
     /// </summary>
-    public void Touch(int hero, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs)
+    public void Touch((int Hero, int Piece) touch, string tool, (double X, double Y) at, (double X, double Y) toward, double elapsedMs)
     {
-        _touching.Add(hero);
+        _touching.Add(touch);
         _beads.Add(at);
-        double owed = _owed.TryGetValue(hero, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;
+        double owed = _owed.TryGetValue(touch, out var o) ? o + WorkLooks.SparksPerSecond * Fx.Count * elapsedMs / 1000 : 1;
         var (bx, by, spread) = tool == Content.Weapons.Grinder.Item ? Wheel(toward) : (toward.X, toward.Y, Spread(tool));
         for (; owed >= 1; owed--)
         {
@@ -55,16 +55,16 @@ public sealed class ToolSparks
             double born = _clock - (owed - 1) / WorkLooks.SparksPerSecond * 1000;
             _sparks.Add(new Spark(at.X, at.Y, bx * cos - by * sin, bx * sin + by * cos, speed, life, born));
         }
-        _owed[hero] = owed;
+        _owed[touch] = owed;
     }
 
-    /// <summary>The frame's touches are all told: a tool no longer touching starts afresh when it touches again.</summary>
+    /// <summary>The frame's touches are all told: a tool no longer touching a wreck starts afresh on it when it touches again.</summary>
     public void End()
     {
         _left.Clear();
-        foreach (int hero in _owed.Keys)
-            if (!_touching.Contains(hero)) _left.Add(hero);
-        foreach (int hero in _left) _owed.Remove(hero);
+        foreach (var touch in _owed.Keys)
+            if (!_touching.Contains(touch)) _left.Add(touch);
+        foreach (var touch in _left) _owed.Remove(touch);
     }
 
     private static double Spread(string tool) => tool == Content.Weapons.PlasmaCutter.Item ? WorkLooks.CutterSpread : WorkLooks.DrillSpread;

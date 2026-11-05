@@ -13,8 +13,8 @@ namespace Stillwake.Game.Features.Crew;
 /// <summary>
 /// What E would work, outlined along the pictures it is drawn with: a machine's whole picture with its
 /// socket, a whole doorway (it opens as one), a valve's wheel, a plan's own pictures joined to the plans
-/// beside it as they are drawn. A mark outlines the machine it takes apart, else its cell. A tool's hit is not
-/// outlined: the faces it would strike glow (<see cref="FaceRim"/>).
+/// beside it as they are drawn. A mark outlines the machine it takes apart, else its cell. A tool's or a weapon's hit
+/// is never outlined: it hits what it is drawn touching (melee-edge).
 /// </summary>
 public static class AimOutline
 {
