@@ -326,7 +326,7 @@ public partial class HeroView
 
     /// <summary>
     /// Peer <paramref name="id"/>'s running <paramref name="tool"/> by <paramref name="hero"/>, its <paramref name="fan"/> this frame, as
-    /// seen at work (tool-contact): from its muzzle as <paramref name="figure"/> was drawn to where the fan works (<see
+    /// seen at work (tool-contact): from its nozzle as <paramref name="figure"/> was drawn to where the fan works (<see
     /// cref="Aiming.ContactOf"/>), looking as what it touches looks hit, a wreck or the wall's material; none unseen.
     /// </summary>
     private ToolWork.Seen? WorkOf(Registry m, int id, Hero hero, Fan fan, string tool, Figure figure)
@@ -338,12 +338,14 @@ public partial class HeroView
         var hand = Pixels(Aiming.HandOf(hero));
         if (contact.Wreck is { } wreck) at = OnPicture(wreck, hand, at);
         if (hand.DistanceTo(at) < hand.DistanceTo(from)) at = from;
-        if (!contact.Touches) return new(id, tool, from, at, figure.Barrel, null, null);
-        if (contact.Cell is not int cell) return new(id, tool, from, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
-        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, from, at, figure.Barrel, null, null);
+        // The jet leaves the nozzle and runs through the coils, not out of the last one.
+        var start = figure.EdgeStart ?? from;
+        if (!contact.Touches) return new(id, tool, start, at, figure.Barrel, null, null);
+        if (contact.Cell is not int cell) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
+        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null);
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
-        return new(id, tool, from, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
+        return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
     }
 
     /// <summary>A wreck's pictures, read once each, to find where a picture begins inside its box.</summary>

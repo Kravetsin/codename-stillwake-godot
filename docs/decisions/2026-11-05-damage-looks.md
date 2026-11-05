@@ -29,7 +29,8 @@ seeded randomness is ported bit for bit, so a look laid out by a seed is the one
   back out of the face along the tool's way; the grinder's a tight fan down off its wheel; a white bead at the point. On
   anything else the stream stays the hit look it touches (tool-contact).
 - **The cutter's jet, "beam"** (`CutterJet`): a flat violet sheath round a white heart, its width flickering, thinning to a point
-  at nothing; where it cuts, a small splash, white in a violet ring. Pressed right on a wreck, only the splash.
+  at nothing; where it cuts, a small splash, white in a violet ring. It leaves the copper nozzle and runs through the three coils,
+  as on the page, never out of the last one; pressed right on a wreck, it cuts at the last coil.
 - **On a wreck, where its picture begins.** The sim strikes a wreck by its box, wider than its picture; the client works the way from
   the hand on past the box's edge to the picture's first solid pixel (`Aiming.FirstSolid`), so sparks, the jet's end and a drill's
   blow land on the wreck, not in the empty corner of its box.

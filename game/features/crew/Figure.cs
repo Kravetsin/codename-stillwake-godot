@@ -498,6 +498,9 @@ public partial class Figure : Node2D
     /// <summary>The held harpoon's muzzle, or the drill's point, as drawn this frame, in pixels of the world; none while neither is shown.</summary>
     public Vector2? Muzzle { get; private set; }
 
+    /// <summary>Where the held aimed item's edge begins as drawn this frame: the harpoon's breech, the cutter's nozzle, its jet's start.</summary>
+    public Vector2? EdgeStart { get; private set; }
+
     /// <summary>The way the held harpoon's barrel points as drawn, a unit vector in the world.</summary>
     public Vector2 Barrel { get; private set; } = Vector2.Right;
 
@@ -1037,7 +1040,7 @@ public partial class Figure : Node2D
         // The item in the front fist, held by its grip at its angle to the forearm (0040): swung, aimed or
         // hanging, the hand closed round its haft or stock.
         _held.Visible = inHand;
-        Muzzle = null;
+        Muzzle = EdgeStart = null;
         if (inHand && item != null)
         {
             var fist = Rig.FistOf(frontArm);
@@ -1071,7 +1074,8 @@ public partial class Figure : Node2D
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
                 Muzzle = At(item.EdgeTo);
-                Barrel = (Muzzle.Value - At(item.EdgeFrom)).Normalized();
+                EdgeStart = At(item.EdgeFrom);
+                Barrel = (Muzzle.Value - EdgeStart.Value).Normalized();
                 if (_charged.Visible)
                 {
                     // Lit from the gap between the rails, as it is held this frame.
