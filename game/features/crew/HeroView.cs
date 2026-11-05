@@ -73,6 +73,8 @@ public partial class HeroView : Node2D
         public Tether? Tether;
         public Busy? Busy;
         public AxeSwing Swing;
+        /// <summary>Its running tool as seen at work this frame (tool-contact); none while none runs.</summary>
+        public ToolWork.Seen? Work;
         public readonly RemoteRod Rod = new();
         public HarpoonLine? Line;
         public readonly Sprite2D RodPicture = rod;
@@ -155,6 +157,9 @@ public partial class HeroView : Node2D
     private readonly Heard2D _grinderRun = Cues.Player2D(S.GrinderRun, S.Suit), _grinderBite = Cues.Player2D(S.GrinderBite, S.Suit, voices: 2),
         _cutterStrike = Cues.Player2D(S.CutterStrike, S.Suit), _cutterRun = Cues.Player2D(S.CutterRun, S.Suit), _cutterOff = Cues.Player2D(S.CutterOff, S.Suit);
     private RunSounds _runSounds;
+    /// <summary>This hero's running tool as seen at work (tool-contact), and every running tool's stream and jet drawn.</summary>
+    private ToolWork.Seen? _ownWork;
+    private readonly ToolWork _work = new();
     /// <summary>This hero's power driver, heard where it works while it runs (power-driver).</summary>
     private readonly DriverHeard _driverHeard = new();
     /// <summary>The jetpack's thrust, heard through the suit while this hero thrusts, muffled out in space as all there is, its envelope eased in and out (0047, 0059).</summary>
@@ -250,6 +255,7 @@ public partial class HeroView : Node2D
         AddChild(_act);
         // The lines and the rod over this machine's hero: they leave its gun's muzzle.
         AddChild(_lines);
+        AddChild(_work);
         _rod = NewRod();
         foreach (var player in new Node[] { _shot, _drum, _ready, _swingSound, _hammerSwing, _spearThrust, _bite, _breathes, _drillChop, _whir, _thrustLoop, _othersShot, _othersBite,
                      _othersThump, _othersBreathe, _air, _groundHits, _othersGroundHits, _burn, _othersBurn, _thud, _othersThud, _ownShots, _nailShot, _dryClick, _nailReady, _railShot, _railCharge, _railReady,
@@ -504,7 +510,7 @@ public partial class HeroView : Node2D
         var pointer = Pointer();
         var drawn = _current with { X = (int)Math.Round(x), Y = (int)Math.Round(y) };
         _ui.Heroes = [Chest(drawn), .. Others.Select(o => Chest(o.Hero))];
-        _ui.Bits = Bits(m, client.Id);
+        _ui.Bits = Bits();
         bool inSpace = Floats = ship.Space(drawn.BodyCell(ship.Width));
         // Gliding in a planet's fog it floats as in space (fog-edges), though nothing there is space.
         var pose = Poses.PoseOf(drawn, inSpace || drawn.Gliding, passedOut);
@@ -532,6 +538,7 @@ public partial class HeroView : Node2D
         _sender.Step(elapsedMs, new Seen(_current, ownLook, holdsPlan, _wields, _busy, _harpoon.Seen), _steps * Hero.StepMs);
         _tethers.QueueRedraw();
         _lines.QueueRedraw();
+        _work.Frame([.. Works()], elapsedMs);
     }
 
     /// <summary>

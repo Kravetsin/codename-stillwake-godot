@@ -241,3 +241,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
 | [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
+| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted |  |
