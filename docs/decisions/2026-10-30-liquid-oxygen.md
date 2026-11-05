@@ -5,7 +5,7 @@
 - Supersedes, in part, [0016](0016-breathe-where-the-air-is.md): the generator no longer makes air from power alone
 - Builds on [typed ports](2026-10-29-typed-ports.md): two oxygen fluids in the pipes
 - Partly superseded by [ports left to right](2026-11-02-ports-left-to-right.md): the tank gives on its right, `(3, 2)`
-- Partly superseded by [air from vents](2026-11-04-air-from-vents.md): a filling room pays its leak
+- Partly superseded by [air as a tank](2026-11-05-air-as-a-tank.md): the leak takes from the room, a filling one too
 
 ## Context
 

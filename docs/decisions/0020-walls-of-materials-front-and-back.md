@@ -1,6 +1,6 @@
 # 0020 — Walls of materials, front and back, and air through what it touches
 
-- Status: accepted; its leak through the whole room superseded by [air from vents](2026-11-04-air-from-vents.md): a room
+- Status: accepted; its leak through the whole room superseded by [air as a tank](2026-11-05-air-as-a-tank.md): a room
   leaks through its aired cells only
 - Date: 2026-10-13
 - Supersedes: [0010](0010-back-walls.md)

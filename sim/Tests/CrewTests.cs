@@ -153,7 +153,7 @@ public class CrewTests
     }
 
     [Fact]
-    public void BreathesRoomAirStandingInItRefillingTheSuitPaidByTheTank()
+    public void BreathesRoomAirStandingInItRefillingTheSuitTheVentRefillingTheRoomFromTheTank()
     {
         var (w, _, room) = SetUp(3);
         w.Do(EnterAt(Outside)).Run();
@@ -161,16 +161,16 @@ public class CrewTests
         AirUp(w, room);
         w.Do(EnterAt(At(4, 1))).Run();
         int suit = HeroOf(w)?.Air ?? 0;
-        int oxygen = HandPiped.Held(w);
+        int oxygen = HandPiped.Held(w), aired = Aired(w).Count;
         int clock = AirClock(w), part = w.Owed(room);
         Breaths(w, 2);
         Assert.Equal(suit + 2 * Content.Crew.Refill, HeroOf(w)?.Air);
-        // The chain pays for the breaths, from the vaporizer's store as it refills from the tank, and its leak on a leak
-        // beat; the room stays whole.
-        Assert.Equal(
-            oxygen - 2 * (1 + Content.Crew.Refill) - AirTesting.Leaked(Leak, clock, AirClock(w), part),
-            HandPiped.Held(w));
-        Assert.Equal(84, Aired(w).Count);
+        // The breaths and the leak take cells from the room's far edge (2026-11-05-air-as-a-tank); the vent puts them back
+        // from the chain. Nothing else comes or goes: a unit either way of the leak, which counts the cells aired now.
+        int leaked = AirTesting.Leaked(Leak, clock, AirClock(w), part);
+        Assert.InRange(oxygen + aired - 2 * (1 + Content.Crew.Refill) - (HandPiped.Held(w) + Aired(w).Count), leaked - 1, leaked);
+        Assert.True(oxygen > HandPiped.Held(w));
+        Assert.InRange(Aired(w).Count, 84 - (1 + Content.Crew.Refill), 84);
         // Full, it takes only its breath.
         Breaths(w, 10);
         Assert.Equal(Scenario.Full, HeroOf(w)?.Air);

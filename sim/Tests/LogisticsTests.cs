@@ -761,6 +761,23 @@ public class LogisticsTests
     }
 
     [Fact]
+    public void ADroneWhoseCellLosesItsAirFliesOnWhileItsRoomHoldsAny()
+    {
+        // The left room's far edge breathed away under the drone, as a door opened onto an empty room or a leak lays it
+        // out anew: the room still holds air, so it flies on and delivers (2026-11-05-air-as-a-tank).
+        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 6)).Put(0, new Stack("scrapChunk", 1), crate: Furnace);
+        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 400));
+        int cell = w.M.Logistics.Drones.Single().Cell;
+        Assert.True(Column(w, cell) < 10);
+        for (int i = 0; i < 400 && w.M.Atmosphere.AiredAt(cell); i++) w.M.Atmosphere.Breathe(cell, 1);
+        Assert.False(w.M.Atmosphere.AiredAt(cell));
+        Assert.True(w.M.Atmosphere.HoldsAir(cell));
+        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count == 0, 400));
+        Assert.Equal((1, 7), (Docked(w, Bay), w.M.Items.HeldFor(Furnace, "scrapChunk")));
+        Assert.Empty(w.M.Items.Floor);
+    }
+
+    [Fact]
     public void ARoomVentedMidFlightMakesTheDroneDropWithItsCargo()
     {
         var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 6)).Put(0, new Stack("scrapChunk", 1), crate: Furnace);

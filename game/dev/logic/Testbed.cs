@@ -135,11 +135,8 @@ public static class Testbed
             ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)),
         ]).Doubled();
 
-    /// <summary>
-    /// Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its
-    /// 416, each paying its room's leak as it goes (air-from-vents): room one's leaks near what it makes, so it takes some 550.
-    /// </summary>
-    public const int AirTicks = 600;
+    /// <summary>Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its 416.</summary>
+    public const int AirTicks = 300;
 
     /// <summary>The arc bench by room two's door (0099) and what it holds at the start: a plain drill in its vise.</summary>
     public static readonly (string Kind, string Tool) BenchHolds = ("arcBench", Weapons.Drill.Item);

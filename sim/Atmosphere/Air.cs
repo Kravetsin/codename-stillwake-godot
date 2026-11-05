@@ -333,12 +333,13 @@ public sealed partial class AtmosphereModule
         return RoomStatus.Vacuum;
     }
 
-    /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first.</summary>
+    /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first: from its far edge.</summary>
     private int TakeFar(Survey s, int room, int count, Edits edits)
     {
         var order = OrderOf(room);
         int taken = 0;
-        for (int i = order.Length - 1; i >= 0 && taken < count && s.AiredIn[room] > 0; i--)
+        // The air is the first cells of the order, so the last aired one stands at its count less one.
+        for (int i = Math.Min(order.Length, s.AiredIn[room]) - 1; i >= 0 && taken < count && s.AiredIn[room] > 0; i--)
         {
             int cell = order[i];
             if (!s.AiredAt[cell]) continue;
@@ -363,18 +364,6 @@ public sealed partial class AtmosphereModule
     private void DropEmptyTanks()
     {
         if (State.Tanks.Exists(t => t.Oxygen == 0)) State.Tanks = State.Tanks.FindAll(t => t.Oxygen > 0);
-    }
-
-    /// <summary>
-    /// Uses up to <paramref name="amount"/> of a room's air: paid by the networks of its vents in vent id
-    /// order, as if they put back at once what is used, and what they cannot pay taken as cells from the
-    /// far edge. Returns how much was had.
-    /// </summary>
-    private int Use(Survey s, int room, int amount, Edits edits)
-    {
-        int had = 0;
-        foreach (int network in ListAt(s.VentsIn, room)) had += Draw(s, network, amount - had);
-        return had + TakeFar(s, room, amount - had, edits);
     }
 
     /// <summary>Every room's air, in rooms order, from one survey.</summary>
@@ -403,7 +392,7 @@ public sealed partial class AtmosphereModule
             // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out.
             int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]);
             var now = Status(s, room);
-            // What its aired cells leak now (2026-11-04-air-from-vents).
+            // What its aired cells leak now (2026-11-05-air-as-a-tank).
             int leak = s.LeakIn[room.Id];
             // Venting, each vent drains its network, so a network under two vents drains twice.
             long draw = now == RoomStatus.Aired ? leak
@@ -424,7 +413,7 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// What every cell of a room leaks while it holds air (2026-11-04-air-from-vents): kept while the rooms' version stays, as
+    /// What every cell of a room leaks while it holds air (2026-11-05-air-as-a-tank): kept while the rooms' version stays, as
     /// a material changes only by being rebuilt.
     /// </summary>
     private void FindLeaks()
@@ -638,10 +627,10 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// One tick of air: vaporizers turn their share of liquid into air; a room open to space loses <c>Air.VentLoss</c>
-    /// cells from the far edge and every vent in it or in space drains its network; on a fill beat each
-    /// filling room airs the first <c>Air.CellsPerFill</c> empty cells of its order, each paid from the first of its vents that can
-    /// pay; then every other room holding air uses its leak, spread over each <c>Air.LeakEvery</c> ticks.
+    /// One tick of air (2026-11-05-air-as-a-tank): vaporizers turn their share of liquid into air; a room open to space
+    /// loses <c>Air.VentLoss</c> cells from the far edge and every vent in it or in space drains its network; every sealed
+    /// room holding air loses what its aired cells leak, from the far edge; then on a fill beat each live vent of a room
+    /// not full airs up to <c>Air.CellsPerFill</c> of its room's first empty cells, a unit each from its own network.
     /// </summary>
     private void StepAir()
     {
@@ -661,27 +650,26 @@ public sealed partial class AtmosphereModule
         }
         foreach (int network in ListAt(s.VentsIn, RoomsModule.Space)) Draw(s, network, Content.Air.VentDrain);
 
-        // Every room holding air pays what its aired cells leak, before the vents put any back.
-        foreach (var (room, due) in Dues(s, rooms)) Use(s, room.Id, due, edits);
+        // Every room holding air loses what its aired cells leak, before the vents put any back: the tanks feel it only so.
+        foreach (var (room, due) in Dues(s, rooms)) TakeFar(s, room.Id, due, edits);
 
         if (State.Clock % Content.Air.TicksPerCell == 0)
         {
             foreach (var room in rooms)
             {
-                if (Status(s, room) != RoomStatus.Filling) continue;
-                // Each vent, in machine id order, up to CellsPerFill of the first empty cells of its own order, paid by its network.
-                foreach (var (vent, network) in ListAt(s.FillsIn, room.Id))
+                if (room.Openings.Count > 0 || s.AiredIn[room.Id] == room.Volume) continue;
+                var order = OrderOf(room.Id);
+                // The air is the first cells of the order: the next empty one follows the last aired.
+                int next = s.AiredIn[room.Id];
+                // Each vent, in machine id order then port order, up to CellsPerFill units of its own network's gas.
+                foreach (var (_, network) in ListAt(s.FillsIn, room.Id))
                 {
-                    if (GasOn(s, network) == 0 || !State.VentOrders.TryGetValue(vent, out var order)) continue;
-                    int filled = 0;
-                    foreach (int next in order)
+                    for (int filled = 0; filled < Content.Air.CellsPerFill; filled++)
                     {
-                        // The network is asked only at an empty cell: the walk past the aired ones is the hot part.
-                        if (s.AiredAt[next]) continue;
-                        if (Draw(s, network, 1) == 0) break;
-                        edits.Added.Add(next);
-                        AirCell(s, next, room.Id);
-                        if (++filled == Content.Air.CellsPerFill) break;
+                        while (next < order.Length && s.AiredAt[order[next]]) next++;
+                        if (next == order.Length || Draw(s, network, 1) == 0) break;
+                        edits.Added.Add(order[next]);
+                        AirCell(s, order[next], room.Id);
                     }
                 }
             }
@@ -692,8 +680,8 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// Takes up to <paramref name="amount"/> of air for one in <paramref name="cell"/>, if that cell holds
-    /// air: paid by the networks of the room's vents, what they cannot pay taken from the far edge.
+    /// Takes up to <paramref name="amount"/> of air for one in <paramref name="cell"/>, if that cell holds air: from the
+    /// room's far edge, never from the tanks (2026-11-05-air-as-a-tank). Returns how much was had.
     /// </summary>
     private int BreatheAt(int cell, int amount)
     {
@@ -703,9 +691,60 @@ public sealed partial class AtmosphereModule
         var s = Gather();
         if (!s.AiredAt[cell]) return 0;
         var edits = new Edits();
-        int had = Use(s, room, amount, edits);
+        int had = TakeFar(s, room, amount, edits);
         ApplyEdits(s, edits);
-        DropEmptyTanks();
         return had;
     }
+
+    /// <summary>
+    /// Into <paramref name="into"/>, cleared first: the cells of the live vents, in machine id order. A vent is live while
+    /// one of its ports' networks is fed and holds oxygen: gas in a store on it, a vaporizer on it with liquid behind,
+    /// powered or not, or one that takes none in (the pod). Power does not count, so a night does not move the air.
+    /// </summary>
+    private static List<int> LiveVents(Survey s, List<int> into)
+    {
+        into.Clear();
+        foreach (var (cell, network) in s.Vents)
+            if ((into.Count == 0 || into[^1] != cell) && Holds(s, network)) into.Add(cell);
+        return into;
+    }
+
+    /// <summary>Whether network <paramref name="network"/> is fed and holds oxygen, as <see cref="LiveVents"/> reads it.</summary>
+    private static bool Holds(Survey s, int network)
+    {
+        foreach (int vaporizer in ListAt(s.StoresOn, network))
+            if ((s.Held.TryGetValue(vaporizer, out var gas) && gas.Oxygen > 0) || s.Endless.Contains(vaporizer) || LiquidBehind(s, vaporizer) > 0)
+                return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Each of <paramref name="orders"/>' rooms counts its aired cells and airs that many of the first cells of its order,
+    /// the rest emptied: its air laid out round its live vents (2026-11-05-air-as-a-tank). The survey moves with it if kept.
+    /// </summary>
+    private void LayOut(List<(int Room, int[] Cells)> orders)
+    {
+        var s = _survey;
+        var removed = new List<int>();
+        var added = new List<int>();
+        foreach (var (_, cells) in orders)
+        {
+            int count = 0;
+            foreach (int cell in cells) if (IsAired(s, cell)) count++;
+            for (int i = 0; i < cells.Length; i++)
+            {
+                bool aired = IsAired(s, cells[i]);
+                if (i < count && !aired) added.Add(cells[i]);
+                else if (i >= count && aired) removed.Add(cells[i]);
+            }
+        }
+        if (removed.Count == 0 && added.Count == 0) return;
+        EditAired(removed, added);
+        if (s == null) return;
+        var roomOf = _rooms.RoomOfCells;
+        foreach (int cell in removed) EmptyCell(s, cell, roomOf[cell]);
+        foreach (int cell in added) AirCell(s, cell, roomOf[cell]);
+    }
+
+    private bool IsAired(Survey? s, int cell) => s != null ? s.AiredAt[cell] : State.Aired.BinarySearch(cell) >= 0;
 }

@@ -51,7 +51,7 @@ unless marked.
   its machine's width and height minus two, plus `Spare` cells (0104); its charge must hold that.
 - **A bay** (`droneBay`) looks when `(Ticks + id) % LookEvery == 0`, bays in id order, after drones fly. Its first
   slot holding a drone charged to `LaunchAt` floods its zone — cells within `Reach` of its footprint — breadth first
-  through passable cells (aired, or a doorway's, door or hatch, shut too), finds the job from the bay and launches if it affords it.
+  through passable cells (of a room holding any air, or a doorway's, door or hatch, shut too), finds the job from the bay and launches if it affords it.
 - **Next:** a drone free in the air (delivered, its source found empty, source or target taken apart) floods from
   its cell and takes the job found if it affords it; with none it flies home; with one it cannot afford, home `Low`.
 - **Flight:** each tick a drone pays `Draw` or drops, then moves `Speed` thousandths of a cell, centre to centre.

@@ -61,17 +61,18 @@ public sealed class AtmosphereState
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>
     /// The part of a unit each sealed room holding air owes of its leak, counted in units × <c>Air.LeakEvery</c> and so under
-    /// <c>Air.LeakEvery</c>; by room id, ascending; none for a room owing nothing (2026-11-04-air-from-vents).
+    /// <c>Air.LeakEvery</c>; by room id, ascending; none for a room owing nothing (2026-11-05-air-as-a-tank).
     /// </summary>
     [JsonInclude] internal List<LeakOwed> Owed { get; set; } = [];
-    /// <summary>Derived: each room's cells in the order its air lies in, by room id; only looked up.</summary>
+    /// <summary>
+    /// The cells of the live vents the air is laid out from, in machine id order: fed, their network holding oxygen
+    /// (2026-11-05-air-as-a-tank). Null until the first tick lists them, as in a save from before it.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Live { get; set; }
+    /// <summary>Derived: each room's cells in the order its air lies in, from <see cref="Live"/>, by room id; only looked up.</summary>
     [JsonIgnore] internal Dictionary<int, int[]> Orders { get; set; } = new();
-    /// <summary>Derived: each fed vent's fill order, its room's cells from that vent alone, by the vent's cell; only looked up.</summary>
-    [JsonIgnore] internal Dictionary<int, int[]> VentOrders { get; set; } = new();
     /// <summary>Derived: the rooms per cell the orders were found from.</summary>
     [JsonIgnore] internal int[] OrderedRooms { get; set; } = [];
-    /// <summary>Derived: the vents' cells, in machine id order, the orders were found from.</summary>
-    [JsonIgnore] internal List<int> OrderedVents { get; set; } = [];
     /// <summary>Derived: the grid's and the rooms' versions the orders were found at.</summary>
     [JsonIgnore] internal int OrderedGrid { get; set; }
     [JsonIgnore] internal int OrderedVersion { get; set; }

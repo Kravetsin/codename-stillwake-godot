@@ -9,7 +9,7 @@ public static class AirTesting
     /// <summary>
     /// What a room leaking <paramref name="leak"/> every <c>Air.LeakEvery</c> ticks uses on the air ticks after clock
     /// <paramref name="from"/>, up to <paramref name="to"/>, owing <paramref name="part"/> before them (<see cref="Owed"/>): whole
-    /// units of what it owes, rounded down (2026-11-04-air-from-vents).
+    /// units of what it owes, rounded down (2026-11-05-air-as-a-tank).
     /// </summary>
     public static int Leaked(int leak, int from, int to, int part = 0) =>
         (int)((part + (long)leak * (to - from)) / Content.Air.LeakEvery);
@@ -115,7 +115,7 @@ public static class AirTesting
 
     /// <summary>
     /// Runs <paramref name="ticks"/> ticks, one at a time, and returns what the rooms holding air leaked over them: each tick,
-    /// each sealed room's leak as it stood before the tick (its aired cells', 2026-11-04-air-from-vents), its share of the period.
+    /// each sealed room's leak as it stood before the tick (its aired cells', 2026-11-05-air-as-a-tank), its share of the period.
     /// </summary>
     public static int RunLeaking(this Scenario w, int ticks)
     {

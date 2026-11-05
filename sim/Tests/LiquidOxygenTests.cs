@@ -63,7 +63,7 @@ public class LiquidOxygenTests
             long gas = Oxygen(w, vaporizer) + w.M.Atmosphere.AiredCells.Count;
             int leaked = w.RunLeaking(1);
             Assert.Equal(liquid - 1, Oxygen(w, tank));
-            // What the aired cells leaked is gone (2026-11-04-air-from-vents).
+            // What the aired cells leaked is gone (2026-11-05-air-as-a-tank).
             Assert.Equal(gas + 1 - leaked, Oxygen(w, vaporizer) + w.M.Atmosphere.AiredCells.Count);
             // Every unit goes out as it is made: the room fills, never in vacuum while the store refills.
             Assert.Equal(RoomStatus.Filling, Air(w).Status);
