@@ -15,9 +15,10 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/Aim.cs` | reach, aim, what hands send, a fan |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
-| `SwingSmear.cs` | a swing's light (0075) |
+| `SwingSmear.cs` | a swing's trail |
+| `logic/SwingTrail.cs` | its flicks |
 | `logic/SwingArc.cs` | its angle kept |
-| `logic/SwingArm.cs` | the front arm swung, aimed |
+| `logic/SwingArm.cs` | the front arm swung |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does, or why not |
@@ -27,8 +28,10 @@ commands reach the sim. Others' heroes come through the host.
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | tether drawn, reeled |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
-| `logic/RunSounds.cs` | grinder, cutter heard |
+| `logic/RunSounds.cs` | tools heard running |
 | `ToolWork.cs` | tools at work |
+| `logic/ToolSparks.cs` | sparks off a wreck |
+| `logic/CutterJet.cs` | the cutter's jet |
 | `logic/Motor.cs` | `Run` till the sim agrees (0055) |
 | `logic/Remote.cs` | heroes sent and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
@@ -42,9 +45,9 @@ commands reach the sim. Others' heroes come through the host.
 | `CapeView.cs` | it drawn, lined |
 | `HeroView.cs` | the layer: keys, steps, rams, the camera |
 | `HeroView.Hands.cs` | its hands: E, plans, tools, aim |
-| `HeroView.Guns.cs` | its gun fired, a guest's shots flown |
+| `HeroView.Guns.cs` | its gun, a guest's shots |
 | `logic/GunHand.cs` | a gun's cooldown and shots |
-| `HeroView.Others.cs` | others' heroes and what they trail |
+| `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
 | `JetPlume.cs` | a jetpack's plume (0075) |
 | `RodLight.cs` | the harpoon's light (0075) |
@@ -79,12 +82,11 @@ commands reach the sim. Others' heroes come through the host.
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089); out of the hull, tethered.
 - Doors are walked as this peer shows them (0014). A press asks for the other state
-  (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`, carrying `Landing.Problem`.
+  (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
-- **Jump and walk feel** (0089): coyote time, jump buffer, short hop, eased apex,
-  `AirControl` aloft.
+- **Jump feel** (0089): coyote time, jump buffer, short hop, eased apex, `AirControl` aloft.
 - **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
@@ -97,7 +99,7 @@ commands reach the sim. Others' heroes come through the host.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
-  body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
+  body's middle last was in the hull (0007, 0104); a closed link's host sends `Leave`.
 - **Dressed as worn**: helmet and body apart; bare, hair, clothes; a helmet lamp; the
   colour on the near shin; a switched body lit by `SuitOn` and charge (`SuitGlow`); both light round (hero-lights).
 
@@ -105,7 +107,7 @@ commands reach the sim. Others' heroes come through the host.
 
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
   by item id and `Busy` kind (0037).
-- Drawn 150 ms behind (0013), walking 100 ms past the last sample, hidden after 3 silent s; only those
+- Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
   on this surface (0076). A friend's struck tool strikes per number heard (0038); its rod plays out by `RemoteRod`
   (0065); its drill or power driver runs as the sim says (0055).
 
@@ -118,20 +120,20 @@ commands reach the sim. Others' heroes come through the host.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle.
 - **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if it
-  strikes something; heard at the cell nearest the pointer.
+  strikes; heard at the cell nearest the pointer.
 - **Struck tools** (0038, salvage-tools): axe, hammer, spear at their paces; a swing hits as its edge crosses, a jab at full reach.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
-- **Drill, grinder, cutter** (0054, 0055, tool-contact): left held runs it (`Run`); hits every `Pace` ticks; seen at work where it touches (`ToolWork`).
-- **The power driver** (driver-at-work, driver-order): runs at work only; charged, a 2×2 square over plans or marks
+- **Drill, grinder, cutter** (0054, 0055, tool-contact): left held runs it (`Run`); hits every `Pace` ticks; seen at work where it touches (`ToolWork`, damage-looks).
+- **The power driver** (driver-at-work, driver-order): at work only; charged, a 2×2 square over plans or marks
   of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
-  (0112). A jump a foot short of a ledge is mantled.
+  (0112). A jump a foot short is mantled.
 
 ## Deliberately not handled
 
-- Friends are marked only while heard; markers one way overlap; friends have no names.
+- Friends are marked only while heard, unnamed; markers one way overlap.
 - A body is drawn as its peer is dressed now; once it left, the first colour.
 - A body or a seated hero shows no suit lights.
 - Others' swings are not held on contact. A friend's gun hangs, its aim unsent.

@@ -1080,14 +1080,15 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // The axe's downstroke leaves its swipe of light, from the blade as drawn.
-        bool striking = chopping && stroke!.Kind == StrokeKind.Swing && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
-        if (striking && item != null)
+        // A swung tool's downstroke leaves its flicks, from the blade as drawn: followed through the whole swing, so they trail it after too.
+        bool swinging = chopping && stroke!.Kind == StrokeKind.Swing && item != null;
+        bool striking = swinging && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
+        if (swinging)
         {
-            var (back, edge) = (Rig.HeldAt(frontArm, item, item.EdgeFrom), Rig.HeldAt(frontArm, item, item.EdgeTo));
-            _smear.Follow(new Vector2((float)back.X, (float)back.Y), new Vector2((float)edge.X, (float)edge.Y), true, elapsedMs);
+            var (back, edge) = (Rig.HeldAt(frontArm, item!, item!.EdgeFrom), Rig.HeldAt(frontArm, item, item.EdgeTo));
+            _smear.Follow((back.X, back.Y), (edge.X, edge.Y), striking, AxeSwing.StrikeShare * stroke!.Ms, elapsedMs);
         }
-        else _smear.Follow(null, null, false, elapsedMs);
+        else _smear.Follow(null, null, false, 0, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.

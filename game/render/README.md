@@ -12,7 +12,6 @@
 | `BuiltParts.cs` | What of the plans being built is already real (0063). |
 | `logic/Buttons.cs` | The mouse buttons as the world reads them: presses and releases since the last take. |
 | `logic/CableShape.cs` | A cable as drawn: where it meets its nodes, how it hangs, where it goes through the hull. |
-| `Cracks.cs` | One damage filter for every piece of debris (0034), drawn by `Lit`'s shader. |
 | `logic/DoorShape.cs` | One door, every shape (0067): a doorway's pictures by the joins of its cells. |
 | `DriftLayer.cs` | A plane of the backdrop behind the ship, things scattered over its tiles by `Scatter`. |
 | `DrillLight.cs` | A drill's own light while it runs (0054, 0075, 0094). |
@@ -29,8 +28,10 @@
 | `logic/WreckDress.cs` | Which wreck plates show rust, stripes or a tear; a torn cell's pixels. |
 | `logic/ToolIcon.cs` | A tool's icon: its held picture turned up-right, fitted, drawn off the grid. |
 | `logic/IconShow.cs` | Where and how a glowing line icon is drawn (0086, 0097). |
+| `logic/Ink.cs` | The picked looks' pen, blob and band as triangles (damage-looks). |
+| `InkCanvas.cs` | An `Ink` drawn in one call, its arrays kept. |
 | `HiRes.cs` | The anime art's pictures, 4x their logical pixels, sized as logical, sampled smoothly. |
-| `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon at each side, and their white silhouettes. |
+| `ItemIcons.cs` | Each item's 16 px picture, a tool's baked icon a side, their white silhouettes. |
 | `logic/Layers.cs` | Where each thing in the world is drawn, back to front. |
 | `Lit.cs` | How light falls on everything the ship draws, one model. |
 | `logic/Luminous.cs` | How one kind of luminous particle looks and moves (0075). |
@@ -62,9 +63,8 @@
 | `Style.cs` | The panels' colours and boxes as Godot style boxes and label settings. |
 | `WorldButtons.cs` | The mouse over the world: feeds `Buttons`, a press only when no panel took it. |
 
-The backdrop behind the ship, drawn by the client only: nothing of it reaches the sim. Numbers live in
-`game/Content/logic/Backdrop.cs` and the files' constants. Everything else in `render/` is described where it is used (the
-features' READMEs) and in its own `///` summaries.
+The backdrop behind the ship, drawn by the client only: nothing of it reaches the sim. Numbers: `Content/logic/Backdrop.cs`
+and the files' constants; the rest of `render/` is described where it is used and in its `///` summaries.
 
 ## Rules
 
