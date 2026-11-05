@@ -60,10 +60,12 @@ public static class Explain
     };
 
     /// <summary>
-    /// Whether the room tip speaks over a cell holding structure <paramref name="structure"/> and <paramref name="machine"/>:
-    /// only over a back wall or an empty cell of the room. A door, ladder, platform or machine is what the pointer is on.
+    /// Whether the room tip speaks over a cell holding structure <paramref name="structure"/>, a <paramref name="machine"/>, a
+    /// <paramref name="back"/> wall and a <paramref name="planned"/> blueprint or mark: only over a bare back wall. A door, ladder,
+    /// machine or plan is what the pointer is on, and the overlay may stay on while the player builds.
     /// </summary>
-    public static bool SpeaksOver(int structure, bool machine) => structure == Structure.Empty && !machine;
+    public static bool SpeaksOver(int structure, bool machine, bool back, bool planned) =>
+        back && structure == Structure.Empty && !machine && !planned;
 
     /// <summary>
     /// The rooms losing oxygen into space: venting through a piped vent, a breach or a meteor's hole, stored air running out or

@@ -200,12 +200,16 @@ public class ExplainTests
     }
 
     [Fact]
-    public void SpeaksOnlyOverABackWallOrAnEmptyCellNeverOverAStructureOrAMachine()
+    public void SpeaksOnlyOverABareBackWallNeverOverAStructureAMachineAPlanOrNoBackWall()
     {
-        Assert.True(Explain.SpeaksOver(Stillwake.Content.Structure.Empty, machine: false));
-        Assert.False(Explain.SpeaksOver(Stillwake.Content.Structure.Empty, machine: true));
+        const int empty = Stillwake.Content.Structure.Empty;
+        Assert.True(Explain.SpeaksOver(empty, machine: false, back: true, planned: false));
+        Assert.False(Explain.SpeaksOver(empty, machine: true, back: true, planned: false));
+        // A blueprint or a mark under the pointer: its cost speaks there, the overlay left on while building.
+        Assert.False(Explain.SpeaksOver(empty, machine: false, back: true, planned: true));
+        Assert.False(Explain.SpeaksOver(empty, machine: false, back: false, planned: false));
         foreach (int structure in new[] { Stillwake.Content.Structure.Ladder, Stillwake.Content.Structure.DoorOpen, Stillwake.Content.Structure.DoorClosed, Stillwake.Content.Structure.Grate })
-            Assert.False(Explain.SpeaksOver(structure, machine: false));
+            Assert.False(Explain.SpeaksOver(structure, machine: false, back: true, planned: false));
     }
 
     [Fact]

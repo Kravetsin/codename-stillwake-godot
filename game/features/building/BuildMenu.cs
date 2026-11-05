@@ -349,7 +349,7 @@ public partial class BuildMenu : CanvasLayer
         if (e is not InputEventKey { Pressed: true } key || key.Echo) return;
         bool planning = _hand.PlanOut.Get();
         if (key.Is(Bind.Build)) _hand.Toggle();
-        // With a hand free Drop (Q) drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
+        // With a hand free Drop (G) drops the hotbar's item, taken before it gets here; with the menu open, building, it picks.
         else if (key.Is(Bind.Drop) && planning && _hand.Builds) _hand.PickWanted = true;
         // Search (/) types in the search; while it is typed in, the field takes every key before it gets here, these too.
         else if (key.Is(Bind.Search) && planning && _hand.Builds) _search.GrabFocus();
