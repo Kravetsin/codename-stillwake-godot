@@ -37,13 +37,17 @@ public enum RoomStatus { Vacuum, Filling, Aired, Venting }
 /// vaporizer feeds it. The stores' gas is not counted.
 /// </param>
 /// <param name="Made">What the vaporizers feeding those networks make every <c>Air.LeakEvery</c> ticks at their power, together.</param>
+/// <param name="Budget">
+/// This room's share of that making, the units every <c>Air.LeakEvery</c> ticks its bubble may leak (2026-11-05-air-bubbles):
+/// each network's split evenly over the live vents in sealed rooms on it, rounded down; none for a room open to space.
+/// </param>
 /// <param name="Lasts">
 /// Ticks that liquid lasts, leaving at the smaller of what this room alone draws (refilling its leak if aired, its
 /// vents' drain if venting) and what its vaporizers make. Null when nothing feeds it, nothing is drawn or made.
 /// </param>
 /// <param name="Problem">Why a room in vacuum gets no air, as an i18n key.</param>
 public sealed record RoomAir(
-    int Room, RoomStatus Status, int Aired, int Leak, int? Oxygen, int Made, int? Lasts, string? Problem);
+    int Room, RoomStatus Status, int Aired, int Leak, int? Oxygen, int Made, int Budget, int? Lasts, string? Problem);
 
 /// <summary>
 /// The atmosphere's slice. Public so modules can be typed by it, its members internal: others go

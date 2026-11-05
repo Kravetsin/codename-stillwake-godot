@@ -3,12 +3,13 @@ using Godot;
 namespace Stillwake.Game.Features.Atmosphere;
 
 /// <summary>
-/// How the air is drawn over the rooms, behind what stands in them, a pixel of the world at a time, with
-/// the overlay on only: every room's air in an ordered dither that drifts like a gas, its front lit,
-/// blended between cells, red and running to the opening while the room vents, a sparse grid of grey dots
-/// where a room holds none; and round the lifepod an aura of its air, a ragged blob about its reach whose
-/// edge wavers and thins out, never a box. Reads <see cref="AirField.Write"/>'s texture, a texel a cell of its region,
-/// on a sprite scaled a cell a texel and placed over the region, at `origin`.
+/// How the air is drawn over the rooms, behind what stands in them, with the overlay on only (air-wash): a faint cool
+/// watercolour wash wherever there is air, granulated and pooled in two tones, with a dried tide line along its edge, so a
+/// filling room's front is a line crawling from its vents; nothing where a room holds none. A venting room's wash turns rust,
+/// rust streaks running through what air it has left toward its opening. The lifepod's reach is air with an edge of its own.
+/// Quiet enough to leave on.
+/// Reads <see cref="AirField.Write"/>'s texture, a texel a cell of its region, on a sprite scaled a cell a texel and
+/// placed over the region, at `origin`.
 /// </summary>
 public static class AirLook
 {
@@ -24,70 +25,80 @@ public static class AirLook
             // The lifepod's reach in pixels: left, top, right, bottom; none while right is not past left.
             uniform vec4 reach = vec4(0.0);
 
-            const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
-            const vec3 AIRED = vec3(0.247, 0.780, 0.627), FRONT = vec3(0.588, 0.941, 0.824), VENTING = vec3(0.878, 0.353, 0.314);
-            const vec3 EMPTY = vec3(0.416, 0.455, 0.533), POD = vec3(0.435, 0.827, 1.0), POD_WISP = vec3(0.745, 0.925, 1.0);
+            const vec3 WASH = vec3(0.60, 0.70, 0.74), RUST = vec3(0.74, 0.35, 0.26);
 
-            float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+            // Without sin: it keeps its grain far from the world's origin.
+            float hash(vec2 p) {
+                vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+                p3 += dot(p3, p3.yzx + 33.33);
+                return fract((p3.x + p3.y) * p3.z);
+            }
 
             float noise(vec2 p) {
                 vec2 i = floor(p), f = fract(p), u = f * f * (3.0 - 2.0 * f);
-                float a = hash(i), b = hash(i + vec2(1.0, 0.0)), c = hash(i + vec2(0.0, 1.0)), d = hash(i + vec2(1.0, 1.0));
-                return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+                return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
+            }
+
+            // TEXTURE is the fragment's only, so it is passed in.
+            vec4 cell_at(sampler2D cells, vec2 c, ivec2 size) {
+                return texelFetch(cells, clamp(ivec2(c), ivec2(0), size - 1), 0);
+            }
+
+            // How far px lies outside the pod's reach, a box with corners rounded by rad; negative inside, far off with no pod.
+            float pod_distance(vec2 px, float rad) {
+                if (reach.z <= reach.x) return 10000.0;
+                vec2 mid = (reach.xy + reach.zw) * 0.5, half_size = (reach.zw - reach.xy) * 0.5;
+                vec2 q = abs(px - mid) - half_size + rad;
+                return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
+            }
+
+            // Rust streaks running along heading a, in a frame that turns only by sixteenths of a turn: a frame turning
+            // with every pixel's heading fans them out where the headings toward an opening converge.
+            float streaks(vec2 px, float a, float t) {
+                float b = round(a / 0.39269908) * 0.39269908;
+                vec2 d = vec2(cos(b), sin(b)), n = vec2(-d.y, d.x);
+                return smoothstep(0.70, 0.76, noise(vec2(dot(px, d) * 0.05 - t * 1.4, dot(px, n) * 0.45)));
             }
 
             void fragment() {
                 if (!overlay) discard;
                 ivec2 size = textureSize(TEXTURE, 0);
-                vec2 local = floor(UV * vec2(size) * cell), px = local + origin;
-                vec4 own = texelFetch(TEXTURE, ivec2(local / cell), 0);
+                vec2 local = UV * vec2(size) * cell, px = local + origin;
+                vec4 own = cell_at(TEXTURE, floor(local / cell), size);
                 if (own.a < 0.5) discard;
-                ivec2 ip = ivec2(px);
-                float threshold = (BAYER[(ip.y % 4) * 4 + ip.x % 4] + 0.5) / 16.0;
                 // Wrapped so the noise keeps its precision.
                 float t = mod(TIME, 600.0);
-                // The pod's aura: 1 at a rounded box about its reach, wavering in big lobes and torn at
-                // its edge; thick inside, thinning out over the last part.
-                float aura = 0.0;
-                float wisp = 0.0;
-                if (reach.z > reach.x) {
-                    vec2 mid = (reach.xy + reach.zw) * 0.5, half_size = (reach.zw - reach.xy) * 0.5;
-                    vec2 p = (px + 0.5 - mid) / half_size;
-                    float r = pow(pow(abs(p.x), 3.0) + pow(abs(p.y), 3.0), 1.0 / 3.0);
-                    vec2 dir = p / max(length(p), 0.001);
-                    float lobes = (noise(dir * 1.8 + vec2(t * 0.25, -t * 0.18)) - 0.5) * 0.45;
-                    float torn = (noise(px * 0.16 + vec2(t * 0.9, -t * 0.6)) - 0.5) * 0.3;
-                    aura = clamp((1.0 - (r + lobes + torn)) / 0.45, 0.0, 1.0);
-                    wisp = noise(px * 0.09 + vec2(t * 0.3, -t * 0.5));
-                }
-                // Blended between the four cells round this pixel, a cell out of every room counting as this one.
-                vec2 g = (local + 0.5) / cell - 0.5, corner = floor(g), f = g - corner;
-                vec2 v = vec2(0.0);
+                // Blended between the four cells round this pixel, a cell out of every room counting as this one; the
+                // flow weighted by how red each is.
+                vec2 g = local / cell - 0.5, corner = floor(g), f = g - corner;
+                vec2 v = vec2(0.0), flow = vec2(0.0);
                 for (int i = 0; i < 4; i++) {
                     vec2 o = vec2(float(i % 2), float(i / 2));
-                    vec4 near = texelFetch(TEXTURE, clamp(ivec2(corner + o), ivec2(0), size - 1), 0);
+                    vec4 near = cell_at(TEXTURE, corner + o, size);
                     float w = mix(1.0 - f.x, f.x, o.x) * mix(1.0 - f.y, f.y, o.y);
                     v += (near.a > 0.5 ? near.rg : own.rg) * w;
+                    float a = near.b * 6.2831853;
+                    flow += vec2(cos(a), sin(a)) * near.g * near.a * w;
                 }
-                vec2 q = px * 0.07;
-                if (own.g > 0.5) {
-                    float a = own.b * 6.2831853;
-                    q -= vec2(cos(a), sin(a)) * t * 4.0;
-                } else {
-                    q += vec2(0.25, 0.4) * t;
+                // The edge wanders as wet paint does, in two sizes; the pod's reach is air with an edge of its own.
+                float wander = (noise(px * 0.23) - 0.5) * 0.34 + (noise(px * 0.05 + 3.1) - 0.5) * 0.3;
+                float edge = max(v.x, 0.5 - pod_distance(px, 10.0) / 8.0) + wander;
+                float in_air = step(0.5, edge);
+                float blot = step(0.58, noise(px * 0.045 + 7.3));
+                float grain = 0.7 + 0.6 * noise(px * 0.85);
+                float tide = in_air * (1.0 - smoothstep(0.08, 0.15, edge - 0.5));
+                float alpha = max(in_air * (0.10 + 0.055 * blot) * grain, tide * (0.24 + 0.12 * noise(px * 0.5)));
+                vec3 colour = mix(WASH, RUST, v.y);
+                // Venting: streaks run toward the opening in what air is left. A room stays venting while open to space,
+                // so its airless cells show nothing, as any vacuum: a holed wreck room is no alarm all game.
+                if (v.y > 0.01 && v.x > 0.01) {
+                    float heading = length(flow) > 0.001 ? atan(flow.y, flow.x) : 3.14159265;
+                    float s = v.y * min(v.x * 3.0, 1.0) * streaks(px, heading, t);
+                    alpha = max(alpha, s * 0.24 * grain);
+                    colour = mix(colour, RUST, s);
                 }
-                float dens = v.x * (0.32 + 0.38 * noise(q));
-                float pod = aura * (0.22 + 0.4 * wisp);
-                if (pod > threshold && pod >= dens) {
-                    COLOR = vec4(wisp > 0.7 ? POD_WISP : POD, 0.35 + 0.25 * aura);
-                } else if (dens > threshold) {
-                    bool front = v.x > 0.12 && v.x < 0.8;
-                    COLOR = vec4(mix(front ? FRONT : AIRED, VENTING, v.y), front ? 0.59 : 0.41);
-                } else if (aura < 0.2 && ip.x % 4 == 1 && ip.y % 4 == 1 && v.x < 0.6) {
-                    COLOR = vec4(EMPTY, 0.47 * (1.0 - v.x / 0.6));
-                } else {
-                    discard;
-                }
+                if (alpha < 0.003) discard;
+                COLOR = vec4(colour, alpha);
             }
             """,
     };

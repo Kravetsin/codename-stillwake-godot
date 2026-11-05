@@ -70,7 +70,7 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **Queries** (`IAtmosphereQueries`): `OxygenIn(tank)`; `MakesAt(source)` — a vaporizer's or the pod's rate while its store has
   room, thousandths of a unit a tick; `CanisterProblem(tank, peer)`; `Fed(vent)`; `Supplied(vent)`;
   `StatusOf(room)`; `AiredAt(cell)`; `HoldsAir(cell)` — its room holds any (where drones fly); `AiredCells` — sorted,
-  live; `RoomsAir()` — each room's `RoomAir` for the overlay (`State.cs`), with why a room falls short
+  live; `RoomsAir()` — each room's `RoomAir` for the overlay (`State.cs`), its `Budget` its share of the making, with why a room falls short
   (`atmosphere.noVent`, `.notPiped`, `.dry`, `.unpowered`; `.leaky` when a bubble stops short of its room); on a timer.
 - **Operations** (`IAtmosphereOps`): `Breathe(cell, amount)` — `amount` for a hero's head or a fire in `cell` if it
   holds air, drawn from its room's networks, else none (crew, furnace). `Fill(tank, amount)` — liquid, up to capacity.

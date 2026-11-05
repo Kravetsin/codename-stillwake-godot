@@ -4,12 +4,13 @@ using System.Globalization;
 using System.Linq;
 using Stillwake.Content;
 using Stillwake.Game.I18n;
+using Stillwake.Game.Shared;
 
 namespace Stillwake.Game.Features.Building;
 
 /// <summary>
-/// A wall's numbers on its build card (2026-10-29-meteor-wave): the oxygen it lets out a minute through each cell, and its strength
-/// against meteors with, for a wall where meteors fall, the share of them that break it.
+/// A wall's numbers on its build card (2026-10-29-meteor-wave): the oxygen it lets out a minute through each cell, by the leak
+/// sign (tip-signs), and its strength against meteors with, for a wall where meteors fall, the share of them that break it.
 /// </summary>
 public static class WallStats
 {
@@ -18,13 +19,13 @@ public static class WallStats
     /// <paramref name="shower"/>; none for a place without meteors but the leak. A back wall is never struck, only blasted, so it
     /// shows its strength alone.
     /// </summary>
-    public static IReadOnlyList<string> Of(Material material, bool back, Meteors.Shower? shower)
+    public static IReadOnlyList<TipLine> Of(Material material, bool back, Meteors.Shower? shower)
     {
-        var lines = new List<string> { En.T("wall.leak", ("rate", LeakAMinute(material))) };
+        var lines = new List<TipLine> { new(En.T("wall.leak", ("rate", LeakAMinute(material))), Sign: Sign.Leak) };
         if (shower == null) return lines;
-        if (material.Armour == Material.Unbreakable) lines.Add(En.T("wall.meteorsNever"));
-        else if (back) lines.Add(En.T("wall.resists", ("strength", material.Armour)));
-        else lines.Add(En.T("wall.meteors", ("strength", material.Armour), ("share", BreakingShare(material.Armour, shower))));
+        if (material.Armour == Material.Unbreakable) lines.Add(new TipLine(En.T("wall.meteorsNever")));
+        else if (back) lines.Add(new TipLine(En.T("wall.resists", ("strength", material.Armour))));
+        else lines.Add(new TipLine(En.T("wall.meteors", ("strength", material.Armour), ("share", BreakingShare(material.Armour, shower)))));
         return lines;
     }
 

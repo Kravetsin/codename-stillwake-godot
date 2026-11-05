@@ -17,7 +17,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `Shafts.cs` | Platform shafts kept clear: red hatch while building, a ghost's green or red. |
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip. |
-| `logic/WallStats.cs` | A wall's card numbers: leak, meteor resistance, share of meteors breaking it. |
+| `logic/WallStats.cs` | A wall's card numbers: leak by its sign, meteor resistance and breaking share. |
 | `DigView.cs` | Digging seen (0077): a fault in three stages, a break's chips, dust, cloud. |
 | `logic/BlockFault.cs` | A dug block's fault in ink (damage-looks). |
 | `PlanKey.cs` | A key in a wing: a layer's, a mode's (0110). |

@@ -87,7 +87,7 @@ public static partial class Ru
         ["tool.backWallGlass.about"] = "Панели матового стекла за комнатой: запечатывают её целиком.",
         ["tool.backWallMica.about"] = "Прессованная слюда за комнатой: запечатывает её целиком.",
         ["tool.backWallHide.about"] = "Шкура с жиром за комнатой: запечатывает её целиком.",
-        ["wall.leak"] = "Утечка {rate} O₂ в минуту через клетку",
+        ["wall.leak"] = "−{rate}/мин с клетки",
         ["wall.meteors"] = "Стойкость к метеорам {strength}: {share}% здешних метеоров пробьют",
         ["wall.resists"] = "Стойкость к метеорам {strength}",
         ["wall.meteorsNever"] = "Метеоры не пробьют",

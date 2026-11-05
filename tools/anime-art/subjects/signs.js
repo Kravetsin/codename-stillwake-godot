@@ -1,11 +1,12 @@
 // The power signs over machines and before power numbers, as picked (the ink-signs ADR): glyphs a screen lights in hard steps,
-// drawn straight on the canvas at 4 times their logical pixels, no finish (as bulb.js). The bolt short of power, none, unplugged, broken.
+// drawn straight on the canvas at 4 times their logical pixels, no finish (as bulb.js). The bolt short of power, none, unplugged, broken;
+// the tips' oxygen made and air leaked (tip-signs), sky, or red where their line is short.
 (function () {
 'use strict';
 const { canvas } = Anime;
 
 /** The logical sizes the game lays them out by: the pixel signs' own. */
-const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13] };
+const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [9, 9], sign_oxygenShort: [9, 9], sign_leak: [9, 9], sign_leakShort: [9, 9] };
 /** The bolt in the 7 by 9 picture: a heavy zigzag, top right to a point at the bottom left. */
 const BOLT = [3.6, .5, 6.5, .5, 4.7, 3.5, 6.4, 3.5, 1.0, 8.6, 2.5, 5.3, .6, 5.3];
 /** BOLT scaled by k round its middle, moved to (cx, cy). */
@@ -87,10 +88,28 @@ const broken = () => {
   ]);
 };
 
+/** The tips' lit tones (tip-signs): the air's sky, and red where the line is short. */
+const SKY = { body: '#38bdf8', core: '#d4f3ff', rim: '#04121c', halo: '#165a7a' };
+const RED = { body: '#ec3f36', core: '#ffd0c4', rim: '#1c0606', halo: '#7c1a18' };
+/** O₂ in screen letters, the user's pick (o2.glyph): an O ring and a small 2 beside its foot. */
+const oxygen = (name, tone) => glyph(name, [{
+  sd: union(ring(sdCircle(3.5, 4.1, 2.3), .55), sdCapsule(6.4, 5.7, 7.1, 5.3, .36), sdCapsule(7.1, 5.3, 7.7, 5.8, .36), sdCapsule(7.7, 5.8, 6.4, 7.9, .36), sdCapsule(6.4, 7.9, 8.0, 7.9, .36)),
+  ...tone, haloA: .42, coreAt: 1.6,
+}]);
+/** A wall broken through, in the unplugged sign's grey, and an arrow out of the gap (leak.glyph). */
+const leak = (name, tone) => glyph(name, [
+  { sd: union(sdCapsule(1.6, .9, 1.6, 3.2, .5), sdCapsule(1.6, 5.8, 1.6, 8.1, .5)), body: '#8ea6bc', core: '#dbe8f4', rim: '#0a1016', halo: '#3e5a74', haloA: .4, coreAt: 1.8 },
+  { sd: union(sdCapsule(2.4, 4.5, 6.4, 4.5, .45), sdPoly([5.6, 2.6, 8.4, 4.5, 5.6, 6.4])), ...tone, haloA: .42, coreAt: 1.6 },
+]);
+
 Subjects.signs = function () {
   out('sign_bolt', bolt('sign_bolt', '#f5a623', '#fff0c0', '#1c1004', '#8a5410'));
   out('sign_boltNone', bolt('sign_boltNone', '#ec3f36', '#ffd0c4', '#1c0606', '#7c1a18'));
   out('sign_unplugged', unplugged());
   out('sign_broken', broken());
+  out('sign_oxygen', oxygen('sign_oxygen', SKY));
+  out('sign_oxygenShort', oxygen('sign_oxygenShort', RED));
+  out('sign_leak', leak('sign_leak', SKY));
+  out('sign_leakShort', leak('sign_leakShort', RED));
 };
 })();

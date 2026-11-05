@@ -30,9 +30,9 @@ public sealed record WorkAim(int Plan, string? Problem, int? Repair = null);
 /// a door or valve, puts a canister into a tank, grabs a piece of debris or opens <see cref="Crate"/>, a machine holding items or a computer.
 /// <see cref="Piece"/> names the piece of debris a press grabs, or the wreck a swing of the axe would hit
 /// (0034), which is outlined itself, not its cell. <see cref="Fan"/> is a tool's hit toward the pointer (the fan of rays): what
-/// it would strike, its faces glowing.
+/// it would strike, its faces glowing; <see cref="Edge"/> what a running tool's drawn edge touches (tool-edge), shown by the tool itself.
 /// </summary>
-public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null, Fan? Fan = null);
+public sealed record Aim(int Cell, bool InReach, Use? Press = null, WorkAim? Work = null, int? Crate = null, int? Piece = null, Fan? Fan = null, EdgeHit? Edge = null);
 
 /// <summary>
 /// A tool's hit toward the pointer (the fan of rays): its <see cref="Ground"/> command and what it would strike there
@@ -44,12 +44,6 @@ public sealed record Fan(Hew Ground, Hewn Hewn, HewWrecks Wrecks, IReadOnlyList<
     /// <summary>Whether the fan would strike nothing at all.</summary>
     public bool IsEmpty => Hewn.IsEmpty && Pieces.Count == 0;
 }
-
-/// <summary>
-/// Where a running tool is seen to work (tool-contact), in thousandths of a cell: on what it touches, the wall's or plant's
-/// <paramref name="Cell"/>, or a <paramref name="Wreck"/> where its box is entered, or at its whole reach touching nothing.
-/// </summary>
-public readonly record struct Contact((double X, double Y) At, bool Touches, int? Cell, Piece? Wreck = null);
 
 /// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
@@ -228,7 +222,7 @@ public static class Aiming
     public static Aim? AimAt(
         Registry m, int peer, Hero hero, (double X, double Y) point,
         IReadOnlySet<int>? passOver = null, bool axe = false, bool gun = false, string? tool = null, ShownGrid? shown = null,
-        Func<string, int>? riseOf = null)
+        Func<string, int>? riseOf = null, EdgeHit? edge = null)
     {
         var grid = m.Grid;
         int x = (int)Math.Floor(point.X), y = (int)Math.Floor(point.Y);
@@ -261,6 +255,20 @@ public static class Aiming
         {
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
+        }
+        // A running tool aims at what its drawn edge touches (tool-edge): the first cell it strikes, else the first wreck.
+        if (!axe && tool != null && edge != null && HeldLook.IsDrill(tool))
+        {
+            var cells = edge.Cells.ToList();
+            if (m.Items.BlockDamage(peer, tool) != 0 && ToolEdges.LeadOf(m, edge) is int lead)
+                return new Aim(lead, true, new Use(new HewCells(tool, cells), m.Building.HewCellsProblem(peer, tool, cells)), Edge: edge);
+            if (edge.Wrecks.FirstOrDefault() is { } touched)
+            {
+                var ids = edge.Wrecks.Select(p => p.Id).ToList();
+                return new Aim(DebrisModule.CellOf(touched.X, touched.Y, grid.Width), true,
+                    new Use(new HewPieces(tool, ids), m.Debris.HewPiecesProblem(peer, tool, ids)), Piece: touched.Id, Edge: edge);
+            }
+            return new Aim(cell, inReach, Edge: edge);
         }
         if ((axe ? Spec.Weapons.Axe.Item : tool) is string hews)
         {
@@ -434,7 +442,7 @@ public static class Aiming
     private const int CreatureMargin = 400;
 
     /// <summary>The box creature <paramref name="c"/> is struck in, in thousandths of a cell: its body and a margin.</summary>
-    private static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
+    internal static (int Left, int Top, int Right, int Bottom) BoxOf(Creature c)
     {
         var spec = Spec.Creatures.Get(c.Species);
         int half = spec.Body.Width * Hero.Unit / 2 + CreatureMargin;
@@ -549,61 +557,6 @@ public static class Aiming
         bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == RoomsModule.Space;
         return new Fan(ground, m.Building.Struck(tool, hand.X, hand.Y, heading), wrecks,
             outside ? m.Debris.Struck(tool, hand.X, hand.Y, heading) : []);
-    }
-
-    /// <summary>
-    /// Where a running tool's <paramref name="fan"/> is seen to work (tool-contact), in thousandths of a cell: along its aim from the
-    /// hand, the nearest entry into what it strikes, a wreck's box as drawn <paramref name="progress"/> of the way to its next tick, a
-    /// struck wall's or plant's cell; where its middle ray misses them, the nearest point of the nearest. Its end of reach (<see
-    /// cref="ReachOf"/>) when it strikes nothing: drawn every frame, whether a hit lands then or not.
-    /// </summary>
-    public static Contact ContactOf(Registry m, Fan fan, double progress)
-    {
-        (double X, double Y) hand = (fan.Wrecks.X, fan.Wrecks.Y), end = ReachOf(fan.Wrecks);
-        double length = Math.Max(1, Math.Sqrt((end.X - hand.X) * (end.X - hand.X) + (end.Y - hand.Y) * (end.Y - hand.Y)));
-        (double T, (double X, double Y) At, int? Cell, Piece? Wreck)? best = null;
-        void Box(double left, double top, double right, double bottom, int? cell, Piece? wreck = null)
-        {
-            (double T, (double X, double Y) At) seen;
-            if (Entered((hand.X, hand.Y, end.X, end.Y), left, top, right, bottom) is double t)
-                seen = (t, (hand.X + (end.X - hand.X) * t, hand.Y + (end.Y - hand.Y) * t));
-            else
-            {
-                // Struck by an edge ray only: its nearest point, by its distance along the way.
-                double x = Math.Clamp(hand.X, left, right), y = Math.Clamp(hand.Y, top, bottom);
-                seen = (Math.Sqrt((x - hand.X) * (x - hand.X) + (y - hand.Y) * (y - hand.Y)) / length, (x, y));
-            }
-            if (best is not var (nearest, _, _, _) || seen.T < nearest) best = (seen.T, seen.At, cell, wreck);
-        }
-        foreach (var p in fan.Pieces)
-        {
-            var (x, y) = PieceDrawn.At(p, progress);
-            var (halfW, halfH) = PictureOf(p.Item);
-            Box(x - halfW, y - halfH, x + halfW, y + halfH, null, p);
-        }
-        int width = m.Grid.Width;
-        foreach (int cell in fan.Hewn.Cells.Concat(fan.Hewn.Plants.Select(p => p.Cell)))
-            Box(cell % width * Hero.Unit, cell / width * Hero.Unit, (cell % width + 1) * Hero.Unit, (cell / width + 1) * Hero.Unit, cell);
-        return best is var (_, at, touched, wreck) ? new(at, true, touched, wreck) : new(end, false, null);
-    }
-
-    /// <summary>
-    /// How far from <paramref name="from"/> along <paramref name="way"/> (a unit vector) the first <paramref name="solid"/> point lies, in
-    /// steps of <paramref name="step"/>, no farther than <paramref name="most"/>: where a wreck's picture begins inside its box. None if none.
-    /// </summary>
-    public static double? FirstSolid(Func<double, double, bool> solid, (double X, double Y) from, (double X, double Y) way, double most, double step = 0.5)
-    {
-        for (double d = 0; d <= most; d += step)
-            if (solid(from.X + way.X * d, from.Y + way.Y * d)) return d;
-        return null;
-    }
-
-    /// <summary>The end of <paramref name="hew"/>'s middle ray, its tool's whole reach from the hand, in thousandths of a cell.</summary>
-    public static (double X, double Y) ReachOf(HewWrecks hew)
-    {
-        var (dx, dy) = Rays.Direction(hew.Heading);
-        int range = Spec.Weapons.Of(hew.Tool)?.Range ?? 0;
-        return (hew.X + (double)dx * range / Rays.Cell, hew.Y + (double)dy * range / Rays.Cell);
     }
 
     /// <summary>

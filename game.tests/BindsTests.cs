@@ -43,8 +43,8 @@ public class BindsTests
     {
         var binds = Binds.Default.Rebind(Bind.Use, "Q", out var swapped, out _);
         Assert.Equal("Q", binds!.KeyOf(Bind.Use));
-        Assert.Equal(Bind.Drop, swapped);
-        Assert.Equal("E", binds.KeyOf(Bind.Drop));
+        Assert.Equal(Bind.Air, swapped);
+        Assert.Equal("E", binds.KeyOf(Bind.Air));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public class BindsTests
     {
         var binds = Rebound(Rebound(Binds.Default, Bind.Use, "F"), Bind.Jump, "Q");
         var kept = binds.Changed();
-        Assert.Equal([("jump", "Q"), ("use", "F"), ("drop", "Space")], kept.OrderBy(k => k.Key == "Space").ThenBy(k => k.Id).ToList());
+        Assert.Equal([("jump", "Q"), ("use", "F"), ("air", "Space")], kept.OrderBy(k => k.Key == "Space").ThenBy(k => k.Id).ToList());
         var read = Binds.Read(kept);
         Assert.All(Enum.GetValues<Bind>(), b => Assert.Equal(binds.KeyOf(b), read.KeyOf(b)));
     }
