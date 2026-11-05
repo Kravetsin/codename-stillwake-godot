@@ -27,10 +27,10 @@ public static class AirLook
 
             const vec3 WASH = vec3(0.60, 0.70, 0.74), RUST = vec3(0.74, 0.35, 0.26);
             // The wash's pigment settles this many pixels a second, one way.
-            const vec2 DRIFT = vec2(1.8, 0.9);
+            const vec2 DRIFT = vec2(9.0, 4.5);
             // The edge's wiggles creep slower, small and large ones each their own way, so its shape changes rather than
             // slides; where the air is stays put.
-            const vec2 EDGE_DRIFT = vec2(-0.7, 0.5), EDGE_SWELL = vec2(0.35, -0.3);
+            const vec2 EDGE_DRIFT = vec2(-3.5, 2.5), EDGE_SWELL = vec2(1.75, -1.5);
 
             // Without sin: it keeps its grain far from the world's origin.
             float hash(vec2 p) {
