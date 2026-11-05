@@ -200,10 +200,7 @@ public static class Tools
     /// <summary>The tab a card is on.</summary>
     public static string TabOf(Tool tool) => Tabs.FirstOrDefault(t => t.Tools.Contains(tool))?.Id ?? "";
 
-    /// <summary>What the buttons do, an i18n key: a wiring or piping card its own, the plan's the same on every tab.</summary>
-    public static string HintOf(Tool? held = null) => held is HandCard h ? $"hint.{h.Id}" : "hint.build";
-
-    /// <summary>The layers Q picks in, in the order they are taken: what the ship is built of.</summary>
+    /// <summary>The layers the pipette (Drop) picks in, in the order they are taken: what the ship is built of.</summary>
     public static readonly IReadOnlyList<string> Layers = ["machine", "structure", "back"];
 
     /// <summary>The layers the right button marks in the front's focus: <see cref="Layers"/> but the back walls (0110).</summary>

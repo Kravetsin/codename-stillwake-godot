@@ -54,8 +54,14 @@ public sealed class PlanHand
     /// <summary>The card in hand when building was left for wiring or piping: back in hand on coming back.</summary>
     private Tool? _building;
 
-    /// <summary>Q pressed with the menu open: the building takes the card under the pointer at its next frame.</summary>
+    /// <summary>Drop (G) pressed with the menu open: the building takes the card under the pointer at its next frame.</summary>
     public bool PickWanted { get; set; }
+
+    /// <summary>What the pointer is over with the plan out, building, as the world's view last found it: for the hint beside it.</summary>
+    public Over PointerOver { get; set; }
+
+    /// <summary>Where the pointer is in the world, in cells, as the world's view last read it; none off the window.</summary>
+    public (double X, double Y)? PointerAt { get; set; }
 
     public PlanHand(Ui ui)
     {

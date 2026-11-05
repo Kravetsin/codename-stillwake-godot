@@ -88,6 +88,12 @@ public sealed class CardScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new CardDemo(c.Hands, Args.Value("--card")!, pick: Args.Has("--pick")));
 }
 
+[Dev("--hints", "with --testbed, the plan's hints in turn: nothing in hand, wiring, piping, the valve, a plan under the pointer, a machine (HintsDemo)")]
+public sealed class HintsScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new HintsDemo(c.Hands, c.M, command => c.World()?.Client.Send(command)));
+}
+
 [Dev("--tip", "with --testbed, the pointer held where a tip speaks: air (the overlay on, an aired room) or a machine kind (TipDemo)", Shape = DevShape.Equals)]
 public sealed class TipScenario : DevScenario
 {

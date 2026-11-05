@@ -18,20 +18,26 @@ public partial class PlanKey : WristKey
     private const int U = TabletLayout.ArtScale;
     /// <summary>The glyph's side in its own pixels, each drawn <see cref="U"/> screen pixels.</summary>
     private const float Side = 14;
+    /// <summary>A corner sign's share of its picture's own size, so it stands as small as an engraved letter.</summary>
+    private const float SignShrink = 0.7f;
     private static readonly Color Ink = new("8b98ad"), Hover = new("bae6fd"), Sky = new("38bdf8"), Held = new("7dd3fc"),
         Slot = new("101318"), Lip = new("5d6678");
 
     private readonly KeyFace _face;
     private readonly Func<string>? _letter;
+    /// <summary>A sign engraved in its corner instead of a letter: the middle button for a layer's key (build-hints).</summary>
+    private readonly Texture2D? _sign;
     private string? _drawn;
     private readonly Action _pressed;
     private bool _on;
 
     /// <param name="letter">The keyboard's key that does the same, engraved in its corner, read anew as keys are rebound; none for none.</param>
-    public PlanKey(KeyFace face, Vector2 size, Func<string>? letter, Action pressed) : base(size)
+    /// <param name="sign">A sign in its corner when no key does the same, as the middle button turns the layer.</param>
+    public PlanKey(KeyFace face, Vector2 size, Func<string>? letter, Action pressed, Texture2D? sign = null) : base(size)
     {
         _face = face;
         _letter = letter;
+        _sign = sign;
         _pressed = pressed;
     }
 
@@ -85,6 +91,8 @@ public partial class PlanKey : WristKey
         if ((_drawn = _letter?.Invoke()) != null)
             DrawString(Render.Style.Mono, face.Position + new Vector2(2 * U, 2 * U + 9 + down), _drawn, fontSize: 10,
                 modulate: _on ? Held : Ink with { A = 0.7f });
+        else if (_sign != null)
+            DrawTextureRect(_sign, new Rect2(face.Position + new Vector2(U, U + down), _sign.GetSize() * SignShrink), false);
         var at = new Vector2(Mathf.Round(face.Position.X + (face.Size.X - Side * U) / 2), Mathf.Round(face.Position.Y + (face.Size.Y - Side * U) / 2) + down);
         DrawSetTransform(at, 0, new Vector2(U, U));
         switch (_face)

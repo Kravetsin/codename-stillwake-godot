@@ -16,6 +16,15 @@ public readonly record struct Spot(int X, int Y);
 /// <summary>One cell of a drag: why the tool cannot work there, if it cannot, and what it sends if it can.</summary>
 public sealed record Verdict(int Cell, string? Problem, IReadOnlyList<Command> Commands);
 
+/// <summary>How a card's drag lays it (<see cref="Drag.ShapeOf"/>).</summary>
+public enum DragShape
+{
+    Once,
+    Pieces,
+    Area,
+    Line,
+}
+
 /// <summary>
 /// A drag of the left or right button over the grid (features/building/drag.ts): the line of cells it
 /// covers and what the card, or removal, would do in each, as the sim judges it now.
@@ -54,6 +63,15 @@ public static class Drag
         return new(x, y);
     }
 
+    /// <summary>How a drag lays <paramref name="act"/>: a machine once, pieces end to end, walls and back walls a rectangle, the rest a line.</summary>
+    public static DragShape ShapeOf(Act act) => act switch
+    {
+        PlaceTool { Placement.Layer: "machine" } => DragShape.Once,
+        PlaceTool { Placement.Layer: "structure" } piece when Spec.Builds.PieceOf(piece.Placement.Kind) != null => DragShape.Pieces,
+        PlaceTool { Placement: var area } when area.Layer == "back" || Spec.Structures.ByBuild(area.Kind)?.Drag == Spec.DragMode.Area => DragShape.Area,
+        _ => DragShape.Line,
+    };
+
     /// <summary>
     /// The cells a drag from <paramref name="from"/> to <paramref name="to"/>, the top-left cells of its <paramref name="stamp"/>
     /// (one cell unless said), covers: the stamp laid at each cell of a straight line along the longer axis, horizontal on
@@ -63,10 +81,11 @@ public static class Drag
     public static List<int> LineOf(int width, Act act, Spot from, Spot to, (int W, int H)? stamp = null)
     {
         var (w, h) = stamp ?? (1, 1);
-        if (act is PlaceTool { Placement.Layer: "machine" }) return [from.Y * width + from.X];
+        var shape = ShapeOf(act);
+        if (shape == DragShape.Once) return [from.Y * width + from.X];
         // Ladder pieces, door segments or hatches laid end to end along the drag, a piece's length a step (0104, 0111):
         // a piece runs along its own longer axis, a square one along the drag's longer axis. Their top-left cells only.
-        if (act is PlaceTool { Placement.Layer: "structure" } piece && Spec.Builds.PieceOf(piece.Placement.Kind) != null)
+        if (shape == DragShape.Pieces)
         {
             bool along = w > h || (w == h && Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y));
             int far = along ? to.X - from.X : to.Y - from.Y, size = along ? w : h;
@@ -78,7 +97,7 @@ public static class Drag
             }
             return pieces;
         }
-        if (act is PlaceTool { Placement: var area } && (area.Layer == "back" || Spec.Structures.ByBuild(area.Kind)?.Drag == Spec.DragMode.Area))
+        if (shape == DragShape.Area)
         {
             // From the begun stamp's side away from the end to the end stamp's far side, so both stamps are inside.
             bool right = to.X >= from.X, down = to.Y >= from.Y;
