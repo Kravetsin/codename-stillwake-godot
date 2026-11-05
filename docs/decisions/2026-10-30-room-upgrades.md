@@ -1,6 +1,6 @@
 # Room is bought on the tree
 
-- Status: accepted
+- Status: accepted; where the upgrades stand amended by [the-board](2026-11-05-the-board.md): in the black market's rings, two bags a ring, the belt's second and third slots in rings 2 and 5
 - Date: 2026-10-30
 
 ## Context

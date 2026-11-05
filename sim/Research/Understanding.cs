@@ -2,7 +2,7 @@ using Stillwake.Content;
 
 namespace Stillwake.Sim.Research;
 
-/// <summary>What it takes to understand a part (docs/plans/board.md): how much of it the crew must have obtained.</summary>
+/// <summary>What it takes to understand a part (docs/decisions/2026-11-05-the-board.md): how much of it the crew must have obtained.</summary>
 public static class Understanding
 {
     /// <summary>How many of <paramref name="item"/> are enough: <c>EnoughWorth</c> credits of its worth, rounded up, at most <c>EnoughMost</c>; one of what has no worth.</summary>

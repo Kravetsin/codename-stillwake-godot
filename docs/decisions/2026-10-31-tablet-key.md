@@ -5,7 +5,7 @@
 
 ## Context
 
-The empty board ([board](../plans/board.md)) writes notes while the tablet is away, so the HUD needs a key that says something new has
+The empty board ([the-board](2026-11-05-the-board.md)) writes notes while the tablet is away, so the HUD needs a key that says something new has
 been written, and the board has to show which notes those are. Both are looks, so the user picked them, each from four candidates:
 [the key](https://claude.ai/artifact/TMyDwPENqzkJg6AAiBAgzL) and [the mark](https://claude.ai/artifact/ReujzZTQyoPgnJyAV8ZSik).
 

@@ -1,6 +1,6 @@
 # research (client): the tablet and the trade station's screen
 
-The board of what the crew has found and the black market ([board](../../../docs/plans/board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [market-grid](../../../docs/decisions/2026-11-03-market-grid.md)). T takes the tablet out
+The board of what the crew has found and the black market ([the-board](../../../docs/decisions/2026-11-05-the-board.md), [tablet-tree](../../../docs/decisions/2026-10-30-tablet-tree.md), [market-grid](../../../docs/decisions/2026-11-03-market-grid.md)). T takes the tablet out
 anywhere. A trade station is worked as a crate is, through the items feature's panel.
 
 ## Files

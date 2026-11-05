@@ -36,14 +36,18 @@ A living document: what is decided about the game and what is still open. Techni
 - **The world** is 2048×1024 cells of space with the wreck in its middle; the ship is built only
   within the middle 1024×512, the build zone, and the space round it is there to fly out into
   ([0048](decisions/0048-a-big-world-a-build-zone-inside-it.md)).
-- **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The tree's rings
-  sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
-- **Salvage is sold and blueprints bought:** a trade station sends what is put in it off by capsule, thirty seconds till its credits
-  come back, however much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. The tablet holds a tree
-  drawn as rings round a hub: the hub takes resources for good and each fill opens the next ring all round, where blueprints and
-  crafts are bought with credits one by one, the first for a few chunks' worth, the engine last and dearest. A node picked
-  shows what it takes, where it is made and what it goes into. What things are worth is worked out from their recipes
-  ([tech-rings](decisions/2026-10-30-tech-rings.md)). The wreck knows both stations, scrap walls and the fire axe.
+- **Room is bought:** a hero starts with the hotbar and two rows, one belt slot, and two slots in a trade station. The black
+  market's rings sell more for credits, a slot at a time, for the whole crew ([upgrades](decisions/2026-10-30-room-upgrades.md)).
+- **Things are learned by having them:** a blueprint or craft is understood once enough of each of its parts has been caught, made,
+  taken apart, dug, felled or looted, few of a rare part and up to ten of a common one, and a craft once a machine making it stands
+  too; known stays known. The wreck knows nothing from its start: the first walls at ten chunks. The tablet holds a board that writes
+  itself: a note for each thing found, threads to pale shapes of what is closest to done, each saying what it lacks; a note picked
+  shows what it takes, where it is made and what it goes into ([the-board](decisions/2026-11-05-the-board.md)).
+- **Salvage is sold:** a trade station sends what is put in it off by capsule, thirty seconds till its credits come back, however
+  much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. What things are worth
+  is worked out from their recipes ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). Credits buy only on the black market,
+  the tablet's other page: room, and what cannot be made. Its later rings open by orders, filled only by what is sold
+  ([market-grid](decisions/2026-11-03-market-grid.md)).
   Every electric thing
   is built of circuits, and only those: the press, the crusher and the jetpack need none. Found circuits are rare, a rack
   drifting by now and then and two or three off each sentry on the derelicts; the rest are made at the circuit
@@ -51,8 +55,8 @@ A living document: what is decided about the game and what is still open. Techni
   time in two, quartz, which the electric smelter melts into silicon; four gravel melt there into a glass; a planet's
   rock crushes into gravel, a quartz only one time in twelve ([the-crusher](decisions/2026-10-28-the-crusher.md)). The
   solar panel is built of solar cells, silicon and glass assembled with wire, and of a photosensitive panel nothing makes:
-  only a panel taken apart gives one back, and its blueprint is sold on the black market, a tab of the tech tree, for many credits
-  ([black-market](decisions/2026-10-31-black-market.md), [trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
+  the hold's cargo pile holds a world's only one, and its blueprint is sold on the black market, once circuits are sold, for many credits
+  ([black-market](decisions/2026-10-31-black-market.md), [hold-piles](decisions/2026-10-31-hold-piles.md), [trade-and-tech](decisions/2026-10-30-trade-and-tech.md),
   [0041](decisions/0041-wreckage-of-many-kinds-and-circuits.md),
   [photo-panel](decisions/2026-10-29-photo-panel.md)).
 - **The lifepod,** as Subnautica's Lifepod 5, is the floor that is always there: built into the ship,

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>How far a silhouette has come towards being understood, from 0 to 1 (docs/plans/board.md).</summary>
+/// <summary>How far a silhouette has come towards being understood, from 0 to 1 (docs/decisions/2026-11-05-the-board.md).</summary>
 public static class BoardPencil
 {
     /// <summary>The mean of <c>min(count, enough) / enough</c> over the parts, a standing station as one more part; 1 for nothing to have.</summary>

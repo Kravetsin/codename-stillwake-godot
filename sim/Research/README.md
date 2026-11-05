@@ -9,7 +9,7 @@
 | `Research.cs` | Knowing blueprints and crafts: what the world knows, what the rule grants it, and the market's rings it buys more from. |
 | `Understanding.cs` | How many of a part the crew must have obtained to understand it. |
 
-Knowing blueprints and crafts ([board](../../docs/plans/board.md), [tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md)). The market's rings are data,
+Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-board.md), [tablet-tree](../../docs/decisions/2026-10-30-tablet-tree.md)). The market's rings are data,
 `Content/Research.cs`. A blueprint not known cannot be planned (`building.unknown`), a craft not known not queued
 (`crafting.unknown`).
 
@@ -25,7 +25,7 @@ Knowing blueprints and crafts ([board](../../docs/plans/board.md), [tablet-tree]
   order met early would open a ring past a shut one.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`, empty); a map with none knows
   everything. In creative mode everything is known and every node done.
-- **The rule** ([board](../../docs/plans/board.md)): a blueprint or craft is understood, and granted, once every part's count
+- **The rule** ([the-board](../../docs/decisions/2026-11-05-the-board.md)): a blueprint or craft is understood, and granted, once every part's count
   (`Knowledge.Obtained`) is at `Understanding.Enough` and, for a craft, a machine that makes it stands on some surface. `Walk`, in
   the derivation phase, checks when a count or that surface's grid has moved, and on a load's first tick. What only the market
   opens (`Content.Research.Market`) and upgrades stay outside it. Known stays known, its machine gone or not.
