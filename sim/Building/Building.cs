@@ -116,6 +116,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         Handles<SetInstant>(_ => null, c => State.Instant = c.On);
         Handles<Repair>(c => RepairProblem(c.Machine), ApplyRepair);
         Handles<Hew>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), ApplyHew);
+        Handles<HewCells>(c => HewProblemOf(c.From, Listed(c.Cells), c.Tool, running: true), ApplyHewCells);
         // A mark whose thing a meteor broke has nothing left to take apart, nor a crack its wall. In derivation, after
         // every command and construction system, so a hit made before is seen on its tick.
         System(Phase.Derivation, () =>

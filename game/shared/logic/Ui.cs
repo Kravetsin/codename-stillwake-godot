@@ -320,6 +320,12 @@ public sealed class Ui
     public Store<(int Id, bool Refused)?> AimedPiece { get; } = new(null);
 
     /// <summary>
+    /// The turn of every piece of debris as last drawn, in radians, by id. Set by <c>debris</c> every frame; <c>crew</c> turns a
+    /// wreck's picture so where a running tool's edge tests its pixels (tool-edge).
+    /// </summary>
+    public IReadOnlyDictionary<int, double> DebrisTurns { get; set; } = new Dictionary<int, double>();
+
+    /// <summary>
     /// Whether the game menu is open: set by the menu. The world runs on behind it, but the hero takes
     /// no keys and the hands no pointer, so nothing in the world answers a player who is not there.
     /// </summary>

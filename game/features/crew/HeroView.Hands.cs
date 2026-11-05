@@ -38,7 +38,9 @@ public partial class HeroView
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
-        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), false, gun, drill ?? struck, shown, ShipTiles.RiseOf) : null;
+        // A running tool's edge, as the figure drew it last: what it touches is what it hits and what it aims at (tool-edge).
+        var edged = drill != null && pointer != null && !seated ? EdgeOf(m, _current, drill, _figure) : null;
+        var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), false, gun, drill ?? struck, shown, ShipTiles.RiseOf, edged) : null;
         // The power driver charged in its mode works the square round the pointer while it holds plans or marks, every layer of
         // each cell, shown before the press; over nothing the pointer aims at one cell (power-driver).
         bool charged = driver != null && Content.Items.Get(driver.Item).Draw is int pays && m.Items.CanDrain(client.Id, pays);
@@ -53,7 +55,7 @@ public partial class HeroView
         _glyph.Show(marked ? DriverMode.DotsOf(driver, _ui.DriverSquare.Get(), charged) : null,
             pointer is { } tip ? GetCanvasTransform() * (new Vector2((float)tip.X, (float)tip.Y) * ShipCamera.Cell) : default);
         if (square is { } sq) TraceSquare(m, (sq.X, sq.Y, side), targets!);
-        else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null } ? aim : null, prompt?.Problem != null);
+        else TraceAim(m, shown, prompt != null && aim is { Piece: null, Fan: null, Edge: null } ? aim : null, prompt?.Problem != null);
         // A tool's hit is shown as light round where its rays touch what they strike (the fan of rays), not outlined.
         _faceRim.Show(prompt != null && aim?.Fan is { Hewn.IsEmpty: false } fan && pointer is { } on
             ? AimGlow.FieldOf(m.Grid, fan.Ground.Tool, fan.Ground.X, fan.Ground.Y, AngleOf(fan.Ground, on)) : null,
@@ -112,7 +114,7 @@ public partial class HeroView
             if (bites || strikes.Count > 0) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
-        // its power every tick it runs (0055), and its fan hits what it meets each Pace ticks. Flat, it winds down. The power
+        // its power every tick it runs (0055), and what its edge touches is hit each Pace ticks (tool-edge). Flat, it winds down. The power
         // driver runs only while it works a plan, so a press at nothing draws no charge (power-driver); it is no drill.
         bool wieldsDrill = acts && drill != null && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
@@ -120,16 +122,14 @@ public partial class HeroView
         // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
         bool runs = running != null && running == drill;
-        Drill(client, m, runs ? pointer : null, drill);
+        Drill(client, m, runs ? edged : null, drill);
         // The power driver running: its chuck turns at its work, and its motor is heard there; flat, the wrist twists it (power-driver).
         bool drives = HeldLook.Drives(running);
         _figure.Spinning = runs || drives;
-        // Loaded while its fan strikes something, a wreck or the ground, or its bit a creature. Its hits sound as what they hit
+        // Loaded while its edge touches something it hits, a wreck, the ground or a creature. Its hits sound as what they hit
         // and crack it (0093); it is seen at work where it touches, every frame, whether a hit lands then or not (tool-contact).
-        var drilled = runs ? Aiming.FanOf(m, _current, Aiming.PointOf(pointer!.Value), running!) : null;
-        bool works = runs && (!drilled!.IsEmpty
-            || Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0);
-        _ownWork = runs ? WorkOf(m, client.Id, _current, drilled!, running!, _figure) : null;
+        bool works = runs && edged != null && ToolEdges.CommandsOf(m, client.Id, running!, edged).Any;
+        _ownWork = runs ? WorkOf(m, client.Id, _current, edged, running!, _figure) : null;
         HearDrill(drill, runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
@@ -187,18 +187,25 @@ public partial class HeroView
     }
 
     /// <summary>
-    /// The drill running at <paramref name="pointer"/>, in cells, or not at all with none: when its pace says (<see cref="DrillPace"/>),
-    /// its fan's hit (<see cref="Hew"/>), a wreck's heard as it sounds hit, the chop, once a hit (0093).
+    /// The drill running, touching <paramref name="hit"/> with its edge, or not at all with none: when its pace says, what the edge
+    /// touches is hit (tool-edge), the ground heard and seen once at the first cell it strikes, a wreck heard as it sounds hit, the
+    /// chop, once a hit (0093); a creature struck at the same pace, how it sounds and flinches the creatures' (0102).
     /// </summary>
-    private void Drill(Client client, Registry m, (double X, double Y)? pointer, string? drill)
+    private void Drill(Client client, Registry m, EdgeHit? hit, string? drill)
     {
-        if (!_drillPace.Due(client.World.Tick, pointer != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
-        var at = Aiming.PointOf(pointer!.Value);
-        var fan = Aiming.FanOf(m, _current, at, drill!);
-        Hew(client, m, fan, at);
-        if (fan.Pieces.Count > 0 && S.ChopsWrecks(drill)) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
-        // A creature under the bit is struck at the same pace; how it sounds and flinches is the creatures' (0102).
-        foreach (var strike in Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, at), drill!)) client.Send(strike);
+        if (!_drillPace.Due(client.World.Tick, hit != null && drill != null, Content.Weapons.Of(drill)?.Pace ?? 1)) return;
+        var sent = ToolEdges.CommandsOf(m, client.Id, drill!, hit!);
+        if (sent.Cells is { } cells)
+        {
+            if (ToolEdges.LeadOf(m, hit!) is int lead) Struck(_groundHits, m, lead, drill!, _current, client.Id);
+            client.Send(cells);
+        }
+        if (sent.Pieces is { } pieces)
+        {
+            client.Send(pieces);
+            if (S.ChopsWrecks(drill)) _drillChop.PlayAt(_figure.Muzzle ?? _figure.GlobalPosition, 1, GroundSounds.HitDbOf(drill!));
+        }
+        foreach (var strike in sent.Strikes) client.Send(strike);
     }
 
     /// <summary>
@@ -325,53 +332,36 @@ public partial class HeroView
     }
 
     /// <summary>
-    /// Peer <paramref name="id"/>'s running <paramref name="tool"/> by <paramref name="hero"/>, its <paramref name="fan"/> this frame, as
-    /// seen at work (tool-contact): from its nozzle as <paramref name="figure"/> was drawn to where the fan works (<see
-    /// cref="Aiming.ContactOf"/>), looking as what it touches looks hit, a wreck or the wall's material; none unseen.
+    /// What <paramref name="tool"/> held by <paramref name="hero"/> touches with its edge as
+    /// <paramref name="figure"/> drew it last (tool-edge); none while it draws no edge.
     /// </summary>
-    private ToolWork.Seen? WorkOf(Registry m, int id, Hero hero, Fan fan, string tool, Figure figure)
+    private EdgeHit? EdgeOf(Registry m, Hero hero, string tool, Figure figure)
     {
-        if (!HeldLook.IsDrill(tool) || !figure.Visible || figure.Muzzle is not { } from) return null;
-        var contact = Aiming.ContactOf(m, fan, _progress);
-        var at = new Vector2((float)(contact.At.X / Hero.Unit * Rig.Cell), (float)(contact.At.Y / Hero.Unit * Rig.Cell));
-        // Thrust into what it works, the tool works at its own muzzle, never behind it.
-        var hand = Pixels(Aiming.HandOf(hero));
-        if (contact.Wreck is { } wreck) at = OnPicture(wreck, hand, at);
-        if (hand.DistanceTo(at) < hand.DistanceTo(from)) at = from;
-        // The jet leaves the nozzle and runs through the coils, not out of the last one.
-        var start = figure.EdgeStart ?? from;
-        if (!contact.Touches) return new(id, tool, start, at, figure.Barrel, null, null);
-        if (contact.Cell is not int cell) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
-        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null);
+        if (!figure.Visible || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
+        var edge = ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end));
+        bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;
+        return ToolEdges.Hits(m, edge, outside, _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+    }
+
+    /// <summary>
+    /// Peer <paramref name="id"/>'s running <paramref name="tool"/> by <paramref name="hero"/>, what its edge touches this frame
+    /// (<paramref name="hit"/>), as seen at work (tool-contact, tool-edge): from its edge's start as <paramref name="figure"/> was drawn
+    /// to where it first touches, else to its end, looking as what it touches looks hit, a wreck or the wall's material; none unseen.
+    /// </summary>
+    private static ToolWork.Seen? WorkOf(Registry m, int id, Hero hero, EdgeHit? hit, string tool, Figure figure)
+    {
+        if (!HeldLook.IsDrill(tool) || hit == null || figure.EdgeStart is not { } start) return null;
+        if (hit.Contact is not { } contact) return new(id, tool, start, Pixels(hit.End), figure.Barrel, null, null);
+        var at = Pixels(contact.At);
+        if (contact.Wreck != null) return new(id, tool, start, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
+        if (contact.Cell is not int cell || Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, start, at, figure.Barrel, null, null);
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         return new(id, tool, start, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
     }
 
-    /// <summary>A wreck's pictures, read once each, to find where a picture begins inside its box.</summary>
-    private readonly Dictionary<string, Image?> _wreckPictures = new();
-
-    /// <summary>
-    /// Where the way from <paramref name="hand"/> through <paramref name="entry"/>, into <paramref name="wreck"/>'s box, first meets its
-    /// picture's own pixels: the box is the sim's, wider than the picture, and a tool seen working its edge works the empty space.
-    /// The entry itself if the way misses the picture; the picture's slight rocking left out.
-    /// </summary>
-    private Vector2 OnPicture(Piece wreck, Vector2 hand, Vector2 entry)
-    {
-        if (DebrisLooks.NameOf(wreck.Item, wreck.Id) is not { } name) return entry;
-        if (!_wreckPictures.TryGetValue(name, out var image)) _wreckPictures[name] = image = HiRes.Load(name);
-        var way = (entry - hand).Normalized();
-        if (image == null || way == Vector2.Zero) return entry;
-        var (x, y) = PieceDrawn.At(wreck, _progress);
-        var corner = new Vector2((float)(x / Hero.Unit * Rig.Cell), (float)(y / Hero.Unit * Rig.Cell)) - (Vector2)image.GetSize() / HiRes.Scale / 2;
-        bool Solid(double px, double py)
-        {
-            int ix = (int)((px - corner.X) * HiRes.Scale), iy = (int)((py - corner.Y) * HiRes.Scale);
-            return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > 0.5f;
-        }
-        float most = ((Vector2)image.GetSize() / HiRes.Scale).Length();
-        return Aiming.FirstSolid(Solid, (entry.X, entry.Y), (way.X, way.Y), most) is double d ? entry + way * (float)d : entry;
-    }
+    /// <summary>The wrecks' pictures, read once each, that a running tool's edge is tested against (tool-edge).</summary>
+    private readonly WreckPixels _wreckPixels = new();
 
     /// <summary>
     /// A hit of <paramref name="tool"/> on <paramref name="cell"/> by <paramref name="hero"/>
