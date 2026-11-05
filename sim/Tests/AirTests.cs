@@ -560,7 +560,7 @@ public class AirTests
         int held = Oxygen(w, s.Tanks[0]);
         Assert.True(Leak < Air.GeneratorRate);
         Assert.Equal(
-            new RoomAir(s.Room, RoomStatus.Aired, Volume, Leak, held, Air.GeneratorRate, (int)((long)held * Air.LeakEvery / Leak), null),
+            new RoomAir(s.Room, RoomStatus.Aired, Volume, Leak, held, Air.GeneratorRate, Air.GeneratorRate, (int)((long)held * Air.LeakEvery / Leak), null),
             Of(w, s.Room));
     }
 
@@ -615,8 +615,9 @@ public class AirTests
         var air = Of(w, s.Room)!;
         // The vent drains more than the vaporizer makes: the liquid leaves at the vaporizer's unit a tick.
         Assert.True(Air.VentDrain * Air.LeakEvery > Air.GeneratorRate);
-        Assert.Equal((RoomStatus.Venting, 0, (int?)held, (int?)(held * Air.LeakEvery / Air.GeneratorRate)),
-            (air.Status, air.Aired, air.Oxygen, air.Lasts));
+        // Open to space, it has no share of the making: its bubble may leak nothing.
+        Assert.Equal((RoomStatus.Venting, 0, (int?)held, (int?)(held * Air.LeakEvery / Air.GeneratorRate), 0),
+            (air.Status, air.Aired, air.Oxygen, air.Lasts, air.Budget));
     }
 
     [Fact]
@@ -907,6 +908,7 @@ public class AirTests
         Assert.Empty(w.Air().Aired);
         Assert.True(Oxygen(w, s.Tanks[0]) > 0);
         Assert.Equal([At(1, 1)], w.Air().Live);
+        Assert.Equal(0, Of(w, s.Room)!.Budget);
     }
 
     /// <summary>
@@ -941,6 +943,10 @@ public class AirTests
         w.Run(400);
         Assert.InRange(AiredIn(w, left).Count, alone * 4 / 10, alone * 6 / 10);
         Assert.NotEmpty(AiredIn(w, right));
+        // Each room is told its half of what the vaporizer makes, not all of it.
+        var (leftAir, rightAir) = (Of(w, left)!, Of(w, right)!);
+        Assert.True(leftAir.Made > 0);
+        Assert.Equal((leftAir.Made / 2, leftAir.Made / 2), (leftAir.Budget, rightAir.Budget));
         Assert.True(FreshOrders(w));
     }
 

@@ -1,38 +1,41 @@
 using Stillwake.Content;
 using Stillwake.Game.Features.Building;
+using Stillwake.Game.Shared;
 using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>A wall's numbers on its build card (2026-10-29-meteor-wave): its leak a minute, and how it stands up to the meteors here.</summary>
+/// <summary>
+/// A wall's numbers on its build card (2026-10-29-meteor-wave): its leak a minute by the leak sign (tip-signs), and how it stands
+/// up to the meteors here.
+/// </summary>
 public class WallStatsTests
 {
     private static readonly Meteors.Shower Start = Meteors.StartingSpace;
 
+    private static TipLine Leak(string rate) => new($"−{rate}/min a cell", Sign: Sign.Leak);
+    private static TipLine Line(string text) => new(text);
+
     [Fact]
     public void GiveScrapsAndIronsLeakAndTheShareOfTheStartingSpacesMeteorsThatBreakThem()
     {
-        Assert.Equal(["Leaks 3 O₂ a minute through each cell", "Meteor resistance 2: 100% of meteors here break it"],
-            WallStats.Of(Materials.Get("scrap"), back: false, Start));
-        Assert.Equal(["Leaks 2.4 O₂ a minute through each cell", "Meteor resistance 5: 20% of meteors here break it"],
-            WallStats.Of(Materials.Get("iron"), back: false, Start));
+        Assert.Equal([Leak("3"), Line("Meteor resistance 2: 100% of meteors here break it")], WallStats.Of(Materials.Get("scrap"), back: false, Start));
+        Assert.Equal([Leak("2.4"), Line("Meteor resistance 5: 20% of meteors here break it")], WallStats.Of(Materials.Get("iron"), back: false, Start));
     }
 
     [Fact]
     public void GiveABackWallItsStrengthAloneAndAPlaceWithoutMeteorsItsLeakAlone()
     {
-        Assert.Equal(["Leaks 3 O₂ a minute through each cell", "Meteor resistance 2"], WallStats.Of(Materials.Get("scrap"), back: true, Start));
-        Assert.Equal(["Leaks 12 O₂ a minute through each cell"], WallStats.Of(Materials.Get("soil"), back: false, shower: null));
+        Assert.Equal([Leak("3"), Line("Meteor resistance 2")], WallStats.Of(Materials.Get("scrap"), back: true, Start));
+        Assert.Equal([Leak("12")], WallStats.Of(Materials.Get("soil"), back: false, shower: null));
     }
 
     [Fact]
     public void GiveStoneArmourThatLeaksAndTheSealsNoArmourAndNoLeak()
     {
-        Assert.Equal(["Leaks 9 O₂ a minute through each cell", "Meteor resistance 4: 40% of meteors here break it"],
-            WallStats.Of(Materials.Get("stone"), back: false, Start));
+        Assert.Equal([Leak("9"), Line("Meteor resistance 4: 40% of meteors here break it")], WallStats.Of(Materials.Get("stone"), back: false, Start));
         foreach (var seal in new[] { "glass", "mica", "hide" })
-            Assert.Equal(["Leaks 0.6 O₂ a minute through each cell", "Meteor resistance 1: 100% of meteors here break it"],
-                WallStats.Of(Materials.Get(seal), back: false, Start));
+            Assert.Equal([Leak("0.6"), Line("Meteor resistance 1: 100% of meteors here break it")], WallStats.Of(Materials.Get(seal), back: false, Start));
     }
 
     [Fact]

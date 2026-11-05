@@ -4,13 +4,13 @@
 
 | File | Purpose |
 | --- | --- |
-| `Debris.cs` | The module, its queries and operations: `Grab`, `Catch`, `HewWrecks`, `Reel`, `Hit`, `Found`. |
+| `Debris.cs` | The module, its queries and operations: `Grab`, `Catch`, `HewWrecks`, `HewPieces`, `Reel`, `Hit`, `Found`. |
 | `Drift.cs` | The system: pieces drift, are caught or gone; each zone spawns on its beat. |
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Nets.cs` | The debris nets: the catch, `Collect`, a net gone dropping what it held. |
 | `State.cs` | The saved slice and its records: `Piece`, `Reeling`, `Beat`, `FoundKind`, `NetEntry`, `DebrisState`. |
 
-Pieces drifting by in zones; catching them by hand or in a net, reeling them in, breaking wrecks; the
+Pieces drifting by in zones; caught by hand or net, reeled in, wrecks broken; the
 Handbook's record of kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056, 0060, 0066).
 
 - **Depends on:** `Grid` (size, `Version`, the log, the hull's bounds, machines and their traits), `Crew` (the sender's
@@ -18,7 +18,7 @@ Handbook's record of kinds found (0006, 0009, 0034, 0041, 0044, 0052, 0054, 0056
   `FullFor`; `GiveOrDrop`, `GiveWhatFits`, `DropAt`). Runs after `Hazards` and before `Furnace`. Creatures reads it
   (`Breaks`) and changes it (`Unreel`, `Hit`).
 - **State** (`DebrisState`, saved): `Pieces` in id order, each `{ Id, Zone, Item, X, Y, Speed, Start, End, Damage,
-  Cut, Reel, SeenAt }`, in thousandths of a cell (`Unit`); `NextId`, never reused; `Clock`; `Beats`, each zone's next due
+  Cut, Reel, Struck, SeenAt }`, in thousandths of a cell; `NextId`, never reused; `Clock`; `Beats`, each zone's next due
   clock; `AtStart`; `Found` (0066), `FoundKind { Kind, Items, Looks }` in the order first found; `Held`, every net's
   entries `{ Net, Id, Kind, Cell, Items }` in catch order, not written while empty. **Unsaved, unhashed:** the last
   `CaughtKept` (64) grabs and collected entries, by catcher (`CaughtFrom`). **Derived:** the hull's bounds (0051); the
@@ -54,9 +54,10 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 - **`Grab(Piece)`** (0034): the sender gets the salvage item, or a container's `Loot` drawn by `LootOf`;
   what does not fit floats at the hero (`GiveOrDrop`). Refused `debris.gone`, `debris.notOutside` (hero or piece not in space), `debris.tooBig` (a wreck).
 - **Wreckage** (0034, 0041, 0054, 0056): a kind with hit points in `Wreckage`; every weapon breaks every kind; a cable
-  rack gives one circuit. `HewWrecks(Tool, X, Y, Heading)`: each ray of the fan strikes the first wreck whose box covers
-  a cell it crosses, stopping there or at a wall; one whose middle is not in space is passed. Each struck takes `Damage`
-  once (0098) through `Hit` (`Piece.Struck` kept); at its hit points its `Loot` falls under its middle, anyone's.
+  rack gives one circuit. `HewWrecks(Tool, X, Y, Heading)`: each fan ray strikes the first wreck whose box covers a cell
+  it crosses, stopping there or at a wall; `HewPieces(Tool, Pieces)` (tool-edge) each listed, reach unchecked.
+  One whose middle is not in space is passed. Each struck takes `Damage` once (0098) through `Hit`; at its hit points
+  its `Loot` falls under its middle, anyone's.
   Salvaging hits add to `Cut`; broken with some, it draws `Below(hp) < Cut`: won, each line half again.
   Refused `debris.notOutside`, `debris.nothingToHit`, `items.flat`, then `items.notRunning` (0055).
 - **Found** (0066): every catch (grab, break, net, salvage drone) records the kind, the
@@ -70,7 +71,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
   takes one so, returning its loot; null if gone.
 - **`Collect(Machine)`**: entries of that net in catch order, each giving what fits (`GiveWhatFits`, counted obtained),
   on past one that does not, each give reported as a grab's (`CaughtFrom`); an emptied one goes. Refused `debris.noNet`
-  (no `Catches` machine), `debris.netEmpty`, `debris.bagFull` (nothing fits). No reach: the client's, through the wall too.
+  (no `Catches` machine), `debris.netEmpty`, `debris.bagFull` (nothing fits).
 - **A net gone** (a meteor, a screwdriver): when the grid's `Version` moved, every entry whose net is no `Catches`
   machine drops its items at its `Cell` (`DropAt(Nobody)`), in catch order (its cost: `hazards`, or the worker's
   refund). Ids are never reused: a net built again is empty.
@@ -88,7 +89,7 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 
 ## Deliberately not handled
 
-- Reach, the weapon in hand, its pace, the harpoon's shot and cooldown: the client's, among friends (0044).
+- Reach, what an edge touches, the weapon in hand, its pace, the harpoon's shot and cooldown: the client's, among friends (0044).
 - A stale reported cell, a window over 1920×1080 or a narrow grid may show a spawn; a stream pushed right by a hero is
   thinned by the cap; heroes share one far field's density (0052). A half-broken far wreck can despawn.
 - Two grabs of one piece on a tick: host order; the second is `debris.gone`.

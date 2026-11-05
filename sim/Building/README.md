@@ -6,7 +6,7 @@
 | --- | --- |
 | `Building.cs` | Plans and the work turning them into the ship. |
 | `Costs.cs` | Costs, ticks to build or repair; what a blueprint lacks. |
-| `Digging.cs` | A weapon's fan of rays on a planet's ground (`Hew`). |
+| `Digging.cs` | A weapon's hits on a planet's ground (`Hew`, `HewCells`). |
 | `Flora.cs` | Plants, stones, cave growths and ruins' pieces (0079, 0080, 0091). |
 | `Fuzz.cs` | The commands the desync suite draws. |
 | `Repairs.cs` | Repairing a machine a magnetic flare broke (`Repair`). |
@@ -16,9 +16,8 @@
 Plans and the work that turns them into the ship: a blueprint puts something in a cell, a mark takes something apart.
 Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096) and repairs (magnetic-flare).
 
-- **Depends on:** `Grid` (queries, ops); `Items` (queries, ops; `WeaponProblem`, `Damage`); `Crew` (`Heroes`, so a wall
-  does not finish on a hero; `Shock`, 0091, 0096); `Power` (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024);
-  `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
+- **Depends on:** `Grid` (queries, ops); `Items` (queries, ops); `Crew` (`Heroes`; `Shock`, 0091, 0096); `Power`
+  (`Unplug`, `Plug`, 0110; `IsBroken`, `Mend`); `Research` (`Knows`, 0024); `Crafting` (`Queue`, 0057); `Pipes` (`SeatProblem`). Creatures reads it (`ShotTakes`, `ShotKey`) and changes it (`Hit`).
 - **State** (`BuildingState`, all saved): `Plans` in the order made, each with `Progress` in ticks and, for a blueprint,
   `Delivered` stacks in the order first given; `NextPlanId`; `Cracks`, sorted by cell (`Crack(Cell, Damage, At, Back)`);
   `Felled`, cells of growths felled since the ground grew, ascending; `Clock`; `Instant`; `Repairs` paid, by machine. Derived (`Flora.cs`): the growths grown
@@ -54,6 +53,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **`Hew(Tool, X, Y, Heading)`** (fan-of-rays), only where `ToolsBreak` (else `building.notHere`): the weapon's fan
   (`Rays`) from the hand; a ray stops at a wall or what stops a body, striking it if it breaks (not bedrock or lava; a
   piece by its first cell, at its `Build.Strength`), and passes ladders, open doors and plants, striking them (`Struck`).
+  `HewCells(Tool, Cells)` (tool-edge) strikes each listed cell as a ray does, once.
   Each takes `BlockDamage` (0098) once (0: none, no shock): at its strength a wall goes for its `Cost` and held growths, a piece whole.
   `building.nothingToDig`, then `items.flat` / `items.notRunning`. `Hit`, a shot's, strikes one cell `ShotTakes` allows,
   true if it broke, its yield the shooter's here, else anyone's. No tool hits back walls.
@@ -62,7 +62,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - **Growths** (0079, 0080) grow from the seed with `Terrain`, each held by an `Anchor` (floor, ceiling, rock, back).
   A hit on any open cell of one cracks it by its own cell; at its kind's `Strength` it is felled for its `Yields`; one in
   the rock goes with its stone. Hold gone or own cell built over: felled in derivation, round the grid log's cells (0051). Nothing grows back; only `Felled` is saved.
-- **Felled by nobody** (0085): built over or lost to a meteor, a growth drops its `Yields` at its cell for anyone.
+- **Felled by nobody** (0085): built over or lost to a meteor, a growth drops its `Yields` at its cell, anyone's.
 - **Ruins** (0085, 0091): caches, lenses and the homes' pieces are growths set by `Terrain`. `Behind` pieces have a
   layer of their own, the front hit first; `Fixed` ones no hit takes; a piece standing on another falls with it.
 - **The resonator** (0091): every breath, before crew breathes, a hero within `Ruins.ZapReach` pays `Ruins.Zap` (`Shock`).
@@ -74,9 +74,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 
 `PlacePlan(Cell, Placement)`, `Deconstruct(Cell, Layer)` (`building.nothingThere` besides), `CancelPlan(Id)`
 (`building.noPlan`), `Work(Plan)` (`building.noPlan`, `items.notEnough`, `building.notEmpty`, `building.heroInside`, `pipes.*`),
-`Hew(Tool, X, Y, Heading)`, `SetInstant(On)`, `Repair(Machine)` (`building.notBroken`). Previews ask
-`Problem`, `WorkProblem`, `HewProblem`, `Struck`, `RepairProblem`.
-Fuzz aims `Work` and hits so plans complete.
+`Hew(Tool, X, Y, Heading)`, `HewCells(Tool, Cells)`, `SetInstant(On)`, `Repair(Machine)` (`building.notBroken`). Previews ask
+`Problem`, `WorkProblem`, `HewProblem`, `HewCellsProblem`, `Struck`, `RepairProblem`.
 
 ## Invariants
 

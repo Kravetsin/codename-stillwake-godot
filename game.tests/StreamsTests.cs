@@ -8,7 +8,7 @@ namespace Stillwake.Game.Tests;
 public class StreamsTests
 {
     private static RoomAir Room(RoomStatus status = RoomStatus.Venting, int aired = 10, int? oxygen = null, int made = 0, int? lasts = null) =>
-        new(0, status, aired, 0, oxygen, made, lasts, null);
+        new(0, status, aired, 0, oxygen, made, 0, lasts, null);
 
     // A five-wide strip; cells 0..4 on row 0 are space, the room's openings are on row 1.
     private const int W = 5, H = 3;

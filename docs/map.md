@@ -28,7 +28,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 **Research and trade** — sim/Research · f/research: `Research.cs` ResearchModule (the tech tree's rules); `Blueprints.cs`; `Prices.cs`; `ResearchTablet.cs`, `TabletKey.cs`, `ScreenBulb.cs` (the bulb, the find's flight), `MarketPage.cs`, `StripParts.cs`, `logic/Cipher.cs`, `logic/MarketGoods.cs`, `logic/MarketReveal.cs`, `logic/TechLinks.cs`, `StationScreens.cs`; c/`Research.cs` (the tree). sim/Trade: `Trade.cs` TradeModule (selling); c/`Market.cs` (worth, worked out from recipes). sim/Knowledge: `Knowledge.cs` (what the crew knows, credits, deposits)
 
 **Crew and hero movement**
-- Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
+- Crew — sim/Crew · f/crew: `Crew.cs` CrewModule (where heroes are, breathing); `Hero.cs` (movement, ladders, steps), `Motion.cs`, `Pose.cs`, `Rig.cs`, `Aim.cs`, `ToolEdge.cs` (what a running tool hits), `AxeSwing.cs`, `HarpoonShot.cs`; c/`Hero.cs`, `Weapons.cs`
 - Players — sim/Players: `Players.cs` PlayersModule (what is the player's, not a surface's)
 
 **Creatures** — sim/Creatures · f/creatures: `Creatures.cs` CreaturesModule; `Live.cs`, `Rules.cs`, `Drives.cs`, `Lunge.cs`, `Walker.cs`, `Clinger.cs`, `Guard.cs`, `Ward.cs`, `Pounce.cs`, `Spawn.cs`, `Shots.cs` (shots: `Fire`, the flight); sim/Core `ShotFlight.cs`; `CreaturesView.cs`, `ShotsView.cs`, `TickBodies.cs`, `CreatureBody.cs`, `CreaturePose.cs`; f/crew `HeroView.Guns.cs`, `GunHand.cs`; game/shared `ShotStreaks.cs`, `ShotEnds.cs`, `ShotDraws.cs`, `PixelBursts.cs`; c/`Creatures.cs`, `Shots.cs`; gc/`CreatureLooks.cs`
