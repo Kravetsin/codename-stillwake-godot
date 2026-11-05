@@ -20,6 +20,7 @@ public static partial class Ru
         ["atmosphere.notPiped"] = "Вентиляция не подключена к испарителю",
         ["atmosphere.unpowered"] = "У испарителя нет энергии",
         ["atmosphere.dry"] = "Бак за испарителем пуст: вставь баллон",
+        ["atmosphere.leaky"] = "Стены травят больше, чем дают испарители: построй стены получше или ещё испаритель",
         ["air.tank"] = "Жидкий O₂ · {held}/{of}",
         ["air.makes"] = "Делает {n} O₂ в секунду",
     };

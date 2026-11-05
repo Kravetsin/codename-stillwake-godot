@@ -139,19 +139,18 @@ A living document: what is decided about the game and what is still open. Techni
   dark but for helmet lamps, a venting room flashes red, starlight comes in through windows.
 - **Oxygen works like a power grid.** It comes as liquid: canisters are poured into tanks, and a powered
   vaporizer turns the liquid of the tanks piped to its input into air for the vents piped to its output
-  ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); only the lifepod makes its room's air from nothing. A vent fed so
-  fills its room cell by cell, a unit of oxygen a cell, outward from the vent. A
-  room is a space closed by walls and closed doors around it and back walls behind it, recomputed
-  only when something is built, broken or a door moves; a cell holds air or not, and a room's air
-  gathers around its vents and stays where it is ([0011](decisions/0011-air-lies-around-the-vents.md)).
-  A hero breathes room air standing where it is, and the suit refills there; the vaporizers behind
-  the room's vents pay for each breath, and without them the breath takes a cell from the patch's
-  far edge. A breach or a door left open to space makes a room vent: its air goes and its network
-  drains fast until a valve cuts the room off or the hole is patched. A door opened onto an empty
-  room joins the two, and the vents fill the rest through the doorway. A room leaks a little all the
-  time through what its air touches, the back wall behind each of its cells and every outer hull cell,
-  each as its material decides ([0020](decisions/0020-walls-of-materials-front-and-back.md)), paid like a breath: from the vaporizers,
-  or from the room's own air without them. Growth is held back by the fill, the leak and breathing. Without air a hero breathes from the suit tank.
+  ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); only the lifepod makes its air from nothing. A room is a space
+  closed by walls and closed doors around it and back walls behind it, recomputed only when something is built, broken
+  or a door moves. **Air is a bubble round each source** ([air bubbles](decisions/2026-11-05-air-bubbles.md)): a working
+  vent holds as many cells round itself as its vaporizers' making pays the leak of, more behind good walls, fewer behind
+  leaky ones, the far edge going first ([0011](decisions/0011-air-lies-around-the-vents.md)). Each cell leaks through what
+  it touches, its back wall and the hull beside it, each as its material decides
+  ([0020](decisions/0020-walls-of-materials-front-and-back.md)). Open doors pass air, closed ones stop it: opened onto an empty
+  room, a bubble grows on through the door; a room shut off with no vent of its own loses its air. Air never jumps: a
+  few cells a beat, it flows toward the vents, the farthest going first. A hero breathes room air standing in it, and the
+  suit refills there; a breath costs the vaporizers' stores, never a cell. Drones fly in any room holding air.
+  A breach, or a way to space through open doors, makes a room vent: its air goes and its network drains fast until a
+  valve cuts it off or the hole is patched. Without air a hero breathes from the suit tank.
 - **Power runs on cables** laid point to point between machines and anchors, hanging inside the
   ship and taut out in space; a network short of power slows everything on it alike. Solar panels
   work only under the stars, out in space with no back wall behind them ([0043](decisions/0043-a-solar-panel-needs-the-stars.md)); the oxygen vaporizer is the first thing that needs power

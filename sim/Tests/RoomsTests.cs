@@ -301,7 +301,7 @@ public class RoomsTests
 
     /// <summary>
     /// A back wall taken from behind a room's hole on the tick another room is breached: the room keeps its
-    /// cells, hull and openings, but is named, as what its air leaks through changed.
+    /// cells, hull and openings, but is named, as what its air would leak through changed; the leaks found around it are a reload's.
     /// </summary>
     [Fact]
     public void NamesARoomWhoseBackWallChangedOnTheTickOfABreach()
@@ -313,14 +313,12 @@ public class RoomsTests
             "  #######           ",
             "                    ",
         ]));
-        var leaks = w.M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)).ToList();
         var hole = w.M.Rooms.RoomById(w.At(3, 1))!;
         int version = w.M.Rooms.Version;
         w.Do(new ClearAt(w.At(3, 1), "back")).Do(new ClearAt(w.At(6, 1), "structure")).Run();
         Assert.Equal(new[] { w.At(3, 1), w.At(6, 1), w.At(6, 2) }, w.M.Rooms.ChangedSince(version));
         Assert.Equal(Of(hole), Of(w.M.Rooms.RoomById(w.At(3, 1))!));
         var now = w.M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)).ToList();
-        Assert.NotEqual(leaks[0], now[0]);
         Assert.Equal(now, w.Reload().M.Atmosphere.RoomsAir().Select(r => (r.Room, r.Leak)));
     }
 

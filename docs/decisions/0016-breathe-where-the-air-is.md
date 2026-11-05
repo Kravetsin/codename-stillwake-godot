@@ -1,6 +1,7 @@
 # 0016 — A hero breathes where the air is, and a generator makes it
 
-- Status: accepted; supersedes the breathing rule of [0011](0011-air-lies-around-the-vents.md)
+- Status: accepted; supersedes the breathing rule of [0011](0011-air-lies-around-the-vents.md); who pays a breath
+  superseded by [air bubbles](2026-11-05-air-bubbles.md): paid by the zone's networks, never a cell
 - Date: 2026-10-12
 
 ## Context

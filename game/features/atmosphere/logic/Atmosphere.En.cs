@@ -20,6 +20,7 @@ public static partial class En
         ["atmosphere.notPiped"] = "Vent not piped to a vaporizer",
         ["atmosphere.unpowered"] = "Vaporizer has no power",
         ["atmosphere.dry"] = "The tank behind the vaporizer is empty: load a canister",
+        ["atmosphere.leaky"] = "The walls leak more than the vaporizers make: build better walls or another vaporizer",
         ["air.tank"] = "Liquid O₂ · {held}/{of}",
         ["air.makes"] = "Makes {n} O₂ a second",
     };

@@ -310,9 +310,11 @@ public class WreckTests
         for (int i = 0; i < 600 && AiredIn(w, closet) < closet.Length; i++) w.Run();
         Assert.Equal(closet.Length, AiredIn(w, closet));
         Assert.Equal(A.Length, AiredIn(w, A));
-        // Out: the inner closed behind, the outer opened; the closet vents, A keeps its air.
-        w.Do(new SetDoor(Inner, false)).Run();
+        // Out, once the inner has swung open (Doors.SwingTicks): closed behind, the outer opened; the closet vents, A keeps its air.
+        w.Run(Content.Doors.SwingTicks);
+        w.Do(new SetDoor(Inner, false)).Run(Content.Doors.SwingTicks);
         w.Do(new SetDoor(Outer, true)).Run(20);
+        Assert.Empty(w.Refusals);
         Assert.Equal(0, AiredIn(w, closet));
         Assert.Equal(A.Length, AiredIn(w, A));
         // With the outer doorway open and the inner closed, A stays whole.

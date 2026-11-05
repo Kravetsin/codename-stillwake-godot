@@ -278,14 +278,15 @@ public sealed partial class LogisticsModule
     // Cells.
 
     /// <summary>
-    /// Where a drone may be: a cell holding air, or a doorway's (door or hatch), open or closed; drones never open them. With
+    /// Where a drone may be: a cell of a room holding any air (2026-11-05-air-bubbles), or a doorway's (door or hatch),
+    /// open or closed; drones never open them. With
     /// <paramref name="vacuum"/>, a salvage drone's, any cell not built up, or a doorway's (salvage-drones). A parameter, never
     /// a field: the queries flood between ticks on one peer only.
     /// </summary>
     private bool Passable(int cell, bool vacuum)
     {
         int s = _grid.StructureAt(cell);
-        return Doorways.IsDoorway(s) || (vacuum ? !Structures.Solid(s) : _air.AiredAt(cell));
+        return Doorways.IsDoorway(s) || (vacuum ? !Structures.Solid(s) : _air.HoldsAir(cell));
     }
 
     private (int X, int Y) Centre(int cell) => (cell % _grid.Width * Unit + Unit / 2, cell / _grid.Width * Unit + Unit / 2);
