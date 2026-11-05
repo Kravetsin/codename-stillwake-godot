@@ -26,6 +26,8 @@ public partial class ScreenBulb : CanvasLayer
     private readonly Func<int, Texture2D?> _find;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore, TextureFilter = CanvasItem.TextureFilterEnum.Linear };
     private Texture2D? _hatched;
+    /// <summary>Whether anything of it was drawn last frame: what puts it out may be the research key, between two of its frames.</summary>
+    private bool _drawn;
 
     /// <param name="signal">When it plays, read by the research key.</param>
     /// <param name="inWorld">Whether a world is played.</param>
@@ -49,17 +51,18 @@ public partial class ScreenBulb : CanvasLayer
 
     public override void _Process(double delta)
     {
-        bool played = _signal.Time != null;
         _signal.Step(delta);
         _root.Visible = _inWorld();
         if (_signal.Time is not { } t)
         {
             _hatched = null;
-            if (played) Redraw();
+            if (_drawn) Redraw();
+            _drawn = false;
             return;
         }
         if (t >= _signal.BurstsAt) _hatched ??= _find((int)FindFlight.HatchSize);
         Redraw();
+        _drawn = true;
     }
 
     private void Redraw()
