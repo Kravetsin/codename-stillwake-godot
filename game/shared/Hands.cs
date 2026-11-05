@@ -97,7 +97,7 @@ public partial class Hands : Node2D
         if (piping) _pipes.Frame(client, m, laid, Plan.ToolCard.Get() == Tools.Valve, cuts, pointer, elapsedMs);
         else _pipes.Release();
         _air.Frame(client, m, pointer, elapsedMs);
-        Menu.Frame(m);
+        Menu.Frame(m, client.Id);
         _tip.Frame(pointer);
     }
 }

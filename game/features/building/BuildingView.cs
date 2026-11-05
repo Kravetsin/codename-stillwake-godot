@@ -20,7 +20,7 @@ namespace Stillwake.Game.Features.Building;
 /// as it is, in red dashes, turning into its red ghost from the top as it is worked (0064); and the hand at work
 /// (features/building/index.ts, 0022, 0030): a card's ghost along a left drag, a removal's along a middle
 /// one in the open tab's layers, coloured by what the sim would say, with its reason by the pointer; a
-/// release sends the commands. Q picks a card. With no card out, no grid: space stays space. Work on a
+/// release sends the commands. Drop (G) picks a card. With no card out, no grid: space stays space. Work on a
 /// plan sparks and ticks with the screwdriver, heard from the plan.
 /// </summary>
 public partial class BuildingView : Node2D
@@ -115,7 +115,7 @@ public partial class BuildingView : Node2D
             var s = Drag.SpotAt(width, height, p);
             return s.Y * width + s.X;
         }
-        // Over a machine's risen picture (0099) the pointer means that machine: for its tip, Q, and a removal of machines.
+        // Over a machine's risen picture (0099) the pointer means that machine: for its tip, the pipette, and a removal of machines.
         (double X, double Y) Over((double X, double Y) p) => Risen.Over(grid, building, p, ShipTiles.RiseOf);
         static bool TakesMachines(Act act) => act is Remove { Layers: var layers } && layers.Contains("machine");
 
@@ -148,7 +148,7 @@ public partial class BuildingView : Node2D
         }
         foreach (var button in left) DragWith(button, back: false);
         foreach (var button in right) DragWith(button, back: true);
-        // Q picks the card of what is under the pointer, onto its own tab.
+        // Drop (G) picks the card of what is under the pointer, onto its own tab.
         if (_hand.PickWanted)
         {
             _hand.PickWanted = false;
@@ -162,7 +162,10 @@ public partial class BuildingView : Node2D
 
         tool = _hand.Selected.Get();
         bool onGrid = pointer is { } p0 && Drag.OnGrid(width, height, p0);
-        ShowTray(onGrid ? CellAt(Over(pointer!.Value)) : null, grid, building);
+        int? under = onGrid ? CellAt(Over(pointer!.Value)) : null;
+        ShowTray(under, grid, building);
+        _hand.PointerOver = OverOf(under, grid, building, m.Research);
+        _hand.PointerAt = pointer;
         var hovered = _hand.PlanOut.Get() ? Tools.ActOf(tool, holdsRight, _hand.Focus.Get()) : null;
         Ghost(tool, (_drag?.Act ?? hovered) is { } shown && TakesMachines(shown) && pointer is { } ptr ? Over(ptr) : pointer, onGrid, grid, building, hovered);
         bool shafts = _hand.PlanOut.Get() && _hand.Builds;
@@ -479,6 +482,18 @@ public partial class BuildingView : Node2D
             && Tools.MarkedOf(grid, mark) is { } built)
             tip = new MarkTip(built, refund).Tip;
         _ui.CostTip.Set(tip);
+    }
+
+    /// <summary>
+    /// What <paramref name="cell"/> holds for the hint by the pointer (build-hints), the plan out and building: a plan of the focused
+    /// layer, which the right cancels, else something the pipette takes the card of.
+    /// </summary>
+    private Over OverOf(int? cell, IGridQueries grid, BuildingModule building, Sim.Research.IResearchQueries research)
+    {
+        if (cell is not int c || !_hand.PlanOut.Get() || !_hand.Builds) return Over.Nothing;
+        var layers = Tools.RemovalIn(_hand.Focus.Get()).Layers;
+        if (building.PlansAt(c).Any(p => layers.Contains(p.Place?.Layer ?? p.Clear!))) return Over.Plan;
+        return Tools.CardAt(c, grid, building, research) != null ? Over.Built : Over.Nothing;
     }
 
     /// <summary>Every launch platform cell built or planned, scanned again only when the grid or the plans change.</summary>

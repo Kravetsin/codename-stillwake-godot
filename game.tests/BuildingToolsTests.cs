@@ -127,15 +127,10 @@ public class BuildingToolsTests
     }
 
     [Fact]
-    public void SaysWhatTheButtonsDoForEveryCardInWords()
+    public void SaysWhatEveryCardDoesInWords()
     {
         foreach (var card in Tools.All.Concat<Tool>(Tools.Modes.SelectMany(Tools.CardsOf)))
-        {
-            Assert.True(En.Table.ContainsKey(Tools.HintOf(card)), card.Id);
             Assert.True(En.Table.ContainsKey($"tool.{card.Id}.about"), card.Id);
-        }
-        Assert.Equal("hint.build", Tools.HintOf(null));
-        Assert.Equal("hint.valve", Tools.HintOf(Tools.Valve));
         // Wiring's and piping's one tab is named for its mode, as the menu names it.
         foreach (var mode in (PlanMode[])[PlanMode.Wiring, PlanMode.Piping])
             Assert.True(En.Table.ContainsKey($"build.tab.{mode.ToString().ToLowerInvariant()}"), mode.ToString());

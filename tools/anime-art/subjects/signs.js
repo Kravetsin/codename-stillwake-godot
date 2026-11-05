@@ -6,7 +6,9 @@
 const { canvas } = Anime;
 
 /** The logical sizes the game lays them out by: the pixel signs' own. */
-const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [9, 9], sign_oxygenShort: [9, 9], sign_leak: [9, 9], sign_leakShort: [9, 9] };
+const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [9, 9], sign_oxygenShort: [9, 9], sign_leak: [9, 9], sign_leakShort: [9, 9],
+  sign_mouseLeft: [13, 10], sign_mouseRight: [13, 10], sign_mouseMiddle: [13, 10], sign_mouseMiddleKey: [13, 10], sign_drag: [8, 7], sign_holdTrack: [9, 9], sign_cap: [16, 16] };
+for (let step = 1; step <= 12; step++) SIZES[`sign_hold_${step}`] = [9, 9];
 /** The bolt in the 7 by 9 picture: a heavy zigzag, top right to a point at the bottom left. */
 const BOLT = [3.6, .5, 6.5, .5, 4.7, 3.5, 6.4, 3.5, 1.0, 8.6, 2.5, 5.3, .6, 5.3];
 /** BOLT scaled by k round its middle, moved to (cx, cy). */
@@ -48,7 +50,7 @@ const rgb = (h) => [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), 
  */
 function glyph(name, layers) {
   const [w, h] = SIZES[name], W = w * 4, H = h * 4, c = canvas(W, H), x = c.getContext('2d'), im = x.createImageData(W, H), D = im.data, SS = 4;
-  const L = layers.map((l) => ({ ...l, body: rgb(l.body), core: rgb(l.core), rim: rgb(l.rim), halo: rgb(l.halo) }));
+  const L = layers.map((l) => ({ ...l, body: rgb(l.body), core: rgb(l.core ?? l.body), rim: l.rim ? rgb(l.rim) : null, halo: l.halo ? rgb(l.halo) : null }));
   for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) {
     let R = 0, G = 0, B = 0, A = 0;
     for (let sy = 0; sy < SS; sy++) for (let sx = 0; sx < SS; sx++) {
@@ -59,8 +61,8 @@ function glyph(name, layers) {
         let col = null, al = 1;
         if (d < -(l.coreAt ?? 2.2)) col = l.core;
         else if (d < 0) col = l.body;
-        else if (d < rimW) { col = l.rim; al = .94; }
-        else if (d < rimW + haloW && l.haloA) { col = l.halo; al = l.haloA; }
+        else if (l.rim && d < rimW) { col = l.rim; al = .94; }
+        else if (l.halo && l.haloA && d < (l.rim ? rimW : 0) + haloW) { col = l.halo; al = l.haloA; }
         if (!col) continue;
         const lit = col === l.body || col === l.core, k = lit && py % 4 === 3 ? .8 : 1;
         r = r * (1 - al) + col[0] * k * al; g = g * (1 - al) + col[1] * k * al; b = b * (1 - al) + col[2] * k * al; a = a * (1 - al) + al;
@@ -102,6 +104,46 @@ const leak = (name, tone) => glyph(name, [
   { sd: union(sdCapsule(2.4, 4.5, 6.4, 4.5, .45), sdPoly([5.6, 2.6, 8.4, 4.5, 5.6, 6.4])), ...tone, haloA: .42, coreAt: 1.6 },
 ]);
 
+// The build hints' signs, as picked (build-hints: the wing's column, the buttons alone): the wing screen's slate, lit where pressed.
+const WING = { lit: { body: '#9cb6c8', core: '#d2e4ef', rim: '#03080c', halo: '#2c4a5e' }, dim: { body: '#3d5366', core: '#486074' } };
+/** The layer keys' brighter label tone, for the middle button's sign in their corner. */
+const LABEL = { lit: { body: '#dfe7ef', core: '#ffffff', rim: '#05090e', halo: '#3e5a74' }, dim: { body: '#8a94a3', core: '#8a94a3' } };
+const inter = (...f) => (x, y) => { let d = -Infinity; for (const g of f) d = Math.max(d, g(x, y)); return d; };
+/** A ring's arc from angle a0 clockwise by span, thickness t. */
+const sdArc = (cx, cy, r, t, a0, span) => {
+  const e0x = cx + r * Math.cos(a0), e0y = cy + r * Math.sin(a0), e1x = cx + r * Math.cos(a0 + span), e1y = cy + r * Math.sin(a0 + span);
+  return (x, y) => {
+    let rel = Math.atan2(y - cy, x - cx) - a0;
+    rel = ((rel % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+    if (rel <= span) return Math.abs(Math.hypot(x - cx, y - cy) - r) - t;
+    return Math.min(Math.hypot(x - e0x, y - e0y), Math.hypot(x - e1x, y - e1y)) - t;
+  };
+};
+/** A part of a sign, lit when pressed. */
+const part = (sd, on, T, extra) => Object.assign({ sd, body: on ? T.lit.body : T.dim.body, core: on ? T.lit.core : T.dim.core, coreAt: on ? 1.6 : 99,
+  rim: T.lit.rim, rimW: 1.2, halo: on ? T.lit.halo : null, haloA: on ? .4 : 0 }, extra || {});
+/** A mouse's top alone, the two halves and the wheel, the pressed one lit: no body, so it sits in a line of text. */
+const mouse = (name, lit, T) => {
+  const top = inter(sdBox(6.5, 7.0, 5.0, 5.6, 3.8), sdBox(6.5, 4.6, 6, 3.7, 0));
+  const left = inter(top, sdBox(3.1, 5, 2.55, 5, 0)), right = inter(top, sdBox(9.9, 5, 2.55, 5, 0));
+  return glyph(name, [part(left, lit === 'L', T), part(right, lit === 'R', T), part(sdCapsule(6.5, 3.0, 6.5, 5.6, .62), lit === 'M', T, { rimW: 1.4 })]);
+};
+/** A drag's short arrow after its button; the game pulses it. */
+const drag = () => glyph('sign_drag', [{ sd: union(sdCapsule(1.0, 3.5, 4.8, 3.5, .5), sdPoly([4.2, 1.1, 7.2, 3.5, 4.2, 5.9])), ...WING.lit, coreAt: 1.6, rimW: 1.2, haloA: .38 }]);
+/** A hold's ring: the dim track, or the lit arc filled to step of HOLD_STEPS, which the game steps through. */
+const HOLD_STEPS = 12;
+const hold = (name, step) => glyph(name, step === 0
+  ? [{ sd: ring(sdCircle(4.5, 4.5, 2.9), .5), body: WING.dim.body, coreAt: 99, rim: WING.lit.rim, rimW: 1.2 }]
+  : [{ sd: sdArc(4.5, 4.5, 2.9, .62, -Math.PI / 2, 2 * Math.PI * step / HOLD_STEPS - .001), ...WING.lit, coreAt: 1.8, rimW: 1, haloA: .4 }]);
+/** A key cap's lit face with no letter, the game writing the key on it dark; nine-sliced 5 pixels in, so wide keys stretch its middle. */
+const cap = () => {
+  const w = 16, h = 16, cx = w / 2, cy = h / 2, hx = w / 2 - 1.5, hy = h / 2 - 1.4;
+  return glyph('sign_cap', [
+    { sd: sdBox(cx, cy, hx, hy, 2), ...WING.lit, coreAt: 3.2, rimW: 1.5, haloA: .32, haloW: 3 },
+    { sd: sdCapsule(cx - hx + 1.8, cy + hy - 1.5, cx + hx - 1.8, cy + hy - 1.5, .3), body: WING.dim.body, coreAt: 99 },
+  ]);
+};
+
 Subjects.signs = function () {
   out('sign_bolt', bolt('sign_bolt', '#f5a623', '#fff0c0', '#1c1004', '#8a5410'));
   out('sign_boltNone', bolt('sign_boltNone', '#ec3f36', '#ffd0c4', '#1c0606', '#7c1a18'));
@@ -111,5 +153,11 @@ Subjects.signs = function () {
   out('sign_oxygenShort', oxygen('sign_oxygenShort', RED));
   out('sign_leak', leak('sign_leak', SKY));
   out('sign_leakShort', leak('sign_leakShort', RED));
+  for (const [name, part] of [['Left', 'L'], ['Right', 'R'], ['Middle', 'M']]) out(`sign_mouse${name}`, mouse(`sign_mouse${name}`, part, WING));
+  out('sign_mouseMiddleKey', mouse('sign_mouseMiddleKey', 'M', LABEL));
+  out('sign_drag', drag());
+  out('sign_holdTrack', hold('sign_holdTrack', 0));
+  for (let step = 1; step <= HOLD_STEPS; step++) out(`sign_hold_${step}`, hold(`sign_hold_${step}`, step));
+  out('sign_cap', cap());
 };
 })();
