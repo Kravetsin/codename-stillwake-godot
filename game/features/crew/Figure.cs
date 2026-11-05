@@ -201,7 +201,10 @@ public partial class Figure : Node2D
     private double _carry, _sinceCarryMs = double.PositiveInfinity;
     private readonly Spring _armSpring = new(HeroMotion.Carry.SpringHz, HeroMotion.Carry.SpringDamping);
     /// <summary>The swipe of light the axe leaves on its downstroke (0075).</summary>
-    private readonly SwingSmear _smear = new();
+    private readonly ReachAir _air = new();
+
+    /// <summary>The phase the swing was at last frame: a cut of the air begins as the blade crosses the fan's near edge.</summary>
+    private double _cutPhase;
     /// <summary>Whether the swing playing bit something, and is drawn held at the strike (<see cref="AxeSwing.Shown"/>); the phase last drawn.</summary>
     private bool _bit;
     private double _lastPhase;
@@ -306,7 +309,7 @@ public partial class Figure : Node2D
         _body.AddChild(parts);
         // Both legs come out from under the body, which hides their joints; the near arm hangs in front,
         // its hand over the sheet it holds and closed round the axe's haft or the harpoon's stock.
-        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _smear }) parts.AddChild(n);
+        foreach (var n in new Node2D[] { backArm, backLeg, frontLeg, torso, _helmet, _plan, _tool, _held, frontArm, _air }) parts.AddChild(n);
         (_capeInside, _capeOutside) = (new CapeView(_cape, inside: true) { Visible = false }, new CapeView(_cape, inside: false) { Visible = false });
         Lit.Set(_capeInside);
         Lit.Set(_capeOutside);
@@ -315,7 +318,7 @@ public partial class Figure : Node2D
         // The inside lies in the cape's shadow: darker, so it reads as depth behind the hero.
         _capeInside.SelfModulate = new Color(0.72f, 0.72f, 0.78f);
         parts.AddChild(_capeOutside);
-        _smear.Position = new Vector2(0, (float)-Rig.Shoulder);
+        _air.Position = new Vector2(0, (float)-Rig.Shoulder);
         AddChild(_body);
         Wear(colour);
     }
@@ -1092,15 +1095,25 @@ public partial class Figure : Node2D
                 }
             }
         }
-        // A swung tool's downstroke leaves its flicks, from the blade as drawn: followed through the whole swing, so they trail it after too.
-        bool swinging = chopping && stroke!.Kind == StrokeKind.Swing && item != null;
-        bool striking = swinging && swung is { Phase: var p } && p > AxeSwing.WindShare && p <= AxeSwing.WindShare + AxeSwing.StrikeShare;
-        if (swinging)
+        // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
+        if (chopping && _chop is { At: var cutAt, Phase: var cutPhase } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
-            var (back, edge) = (Rig.HeldAt(frontArm, item!, item!.EdgeFrom), Rig.HeldAt(frontArm, item, item.EdgeTo));
-            _smear.Follow((back.X, back.Y), (edge.X, edge.Y), striking, AxeSwing.StrikeShare * stroke!.Ms, elapsedMs);
+            bool jab = stroke!.Kind == StrokeKind.Thrust;
+            double half = Math.PI * weapon.Arc / Stillwake.Content.Headings.Turn, span = AxeSwing.Raised + AxeSwing.Through;
+            double start = jab ? stroke.HitShare : AxeSwing.WindShare + AxeSwing.StrikeShare * (AxeSwing.Raised - half) / span;
+            if (_cutPhase < start && cutPhase >= start)
+            {
+                var (dx, dy) = FromShoulder(cutAt);
+                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
+                double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
+                double sweep = jab ? WorkLooks.ThrustSweepMs : AxeSwing.StrikeShare * 2 * half / span * stroke.Ms;
+                _air.Strike(jab, Math.Atan2(dy, dx), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
+                    WorkLooks.CutFadeOf(Wields));
+            }
+            _cutPhase = cutPhase;
         }
-        else _smear.Follow(null, null, false, 0, elapsedMs);
+        else _cutPhase = 0;
+        _air.Follow(Spinning && inHand && item != null ? ZoneOf(frontArm, item) : null, elapsedMs);
         _beamMs = Math.Max(0, _beamMs - elapsedMs);
         ShowBeams(holding);
         // A drill crackles as it spins; a gun held to charge, as it fills.
@@ -1109,6 +1122,24 @@ public partial class Figure : Node2D
         // Its stage made only once a drill runs or a gun charges in this hand: a body, a seated hero or the title's figures never need one.
         if (crackling != null && _drillLight == null && IsInsideTree()) _drillLight = new DrillLight(Held.Glims, Held.Flares, Held.Bolts);
         _drillLight?.Step(crackling, drill ? _spin : Charge, _heldAt ??= HeldAt, elapsedMs);
+    }
+
+    /// <summary>
+    /// The zone a running drill or grinder in <paramref name="arm"/> works, in the arms' frame (tool-reach): the drill's bit point
+    /// grown into a cone out to its range from the shoulder along the aim, the grinder's forward half of a disc round its hub; none for another tool.
+    /// </summary>
+    private AirCuts.Zone? ZoneOf(Bend arm, HeldLook item)
+    {
+        bool grinder = Wields == Stillwake.Content.Weapons.Grinder.Item;
+        if (!grinder && Wields != Stillwake.Content.Weapons.Drill.Item) return null;
+        var at = Rig.HeldAt(arm, item, grinder ? item.EdgeFrom : item.EdgeTo);
+        var (ax, ay) = Aim is { } target ? FromShoulder(target) : (at.X, at.Y);
+        double l = Math.Sqrt(ax * ax + ay * ay);
+        var (dx, dy) = l > 0 ? (ax / l, ay / l) : (1.0, 0.0);
+        if (grinder) return new(true, (at.X, at.Y), (dx, dy), WorkLooks.DiscRadius);
+        double range = Stillwake.Content.Weapons.Drill.Range * Rig.Cell / Hero.Unit, cx = dx * range - at.X, cy = dy * range - at.Y;
+        double length = Math.Sqrt(cx * cx + cy * cy);
+        return length < 1 ? null : new(false, (at.X, at.Y), (cx / length, cy / length), length);
     }
 
     /// <summary>A point from the front shoulder, in the arms' own frame, in the body's parts' frame.</summary>

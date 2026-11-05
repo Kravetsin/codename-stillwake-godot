@@ -30,8 +30,8 @@
 
 The creatures ([0102](../../../docs/decisions/0102-creatures-live-in-the-sim.md)). Drawn only: the sim (`sim/Creatures`)
 spawns, moves, knocks and kills them and drops what they give. Striking one is the hero's hands (`features/crew`): the
-blade swept and a running tool's edge are tested against each creature's body and a margin
-(`ToolEdges.Swept`, `Aiming.StrikesOf`, melee-edge), and send `Strike`.
+fan of rays from the shoulder and the cutter's beam are tested against each creature's body and a margin
+(`ToolRays`, `Aiming.StrikesOf`, tool-reach), and send `Strike`.
 
 - **Reads:** `CreaturesModule.Creatures`, `Hits`; `Client.InFlight` (this player's own strikes, the frame they are sent);
   `Ui.Heroes` (whom a creature watches and flinches from); `Ui.Bits` (a friend's running drill); `Session.Progress`.
@@ -82,7 +82,7 @@ drill on one loper; `--strip --creatures --creatures-course` puts a loper by the
 
 - **Creatures overlap** one another and the heroes, as the sim lets them: a struck herd bunches into one lump.
 - **A friend's strike shows a round trip late,** and its tool is guessed: a running drill's bit by it, else the axe.
-- **No outline** under the blade.
+- **No outline** under the rays.
 - **One design and one set of sounds per species;** no calls or cries. Individuals differ drawn only: a big one is struck,
   jumps and fits where a small one does.
 - **A tick saws at its claw,** not where the hook held: the hook point is the harpoon's.
