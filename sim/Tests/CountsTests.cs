@@ -172,6 +172,18 @@ public class CountsTests
     }
 
     [Fact]
+    public void WhatASalvageDroneCatchesCountsOnceThoughItOnlyLaterReachesACrate()
+    {
+        var w = SalvageTests.Out();
+        SalvageTests.Drift(w, "scrapChunk", 32, 6);
+        Assert.True(SalvageTests.RunUntil(w, () => w.M.Debris.Pieces.Count == 0, 600));
+        Assert.Equal(1, Got(w, "scrapChunk"));
+        Assert.True(SalvageTests.RunUntil(w, () => SalvageTests.Held(w, SalvageTests.Near(w), "scrapChunk") == 1, 600));
+        Assert.Equal(1, Got(w, "scrapChunk"));
+        Assert.Empty(w.Refusals);
+    }
+
+    [Fact]
     public void ACraftPaidFromTheQueueCountsWhatItMadeOnceItIsMade()
     {
         var (w, bench) = Workshop();

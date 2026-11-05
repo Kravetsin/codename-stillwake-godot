@@ -68,13 +68,13 @@ farther tiers bigger wrecks, derelicts, rich rock, 0056); **`asteroids`** (`Hull
 - **The catch:** a moved piece is caught when its kind is in `Debris.NetCatches`, it is not reeled and its middle's cell
   holds a `Catches` machine with fewer than `NetHolds` (10) entries: it leaves `Pieces` for an entry, a container's
   loot rolled then (a full net draws nothing), `Found` recorded; no `CaughtFrom`. A salvage drone's `Catch(piece)`
-  takes one so, returning its loot; null if gone.
+  takes one so, counted obtained: its loot, or null if gone.
 - **`Collect(Machine)`**: entries of that net in catch order, each giving what fits (`GiveWhatFits`, counted obtained),
   on past one that does not, each give reported as a grab's (`CaughtFrom`); an emptied one goes. Refused `debris.noNet`
   (no `Catches` machine), `debris.netEmpty`, `debris.bagFull` (nothing fits).
 - **A net gone** (a meteor, a screwdriver): when the grid's `Version` moved, every entry whose net is no `Catches`
-  machine drops its items at its `Cell` (`DropAt(Nobody)`), in catch order (its cost: `hazards`, or the worker's
-  refund). Ids are never reused: a net built again is empty.
+  machine drops its items at its `Cell` (`DropAt(Nobody)`), in catch order (its cost: `hazards`, or the
+  worker). Ids are never reused: a net built again is empty.
 
 ## Invariants
 
