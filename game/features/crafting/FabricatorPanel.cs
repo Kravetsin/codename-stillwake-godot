@@ -98,6 +98,8 @@ public partial class FabricatorPanel : CanvasLayer
     private IItemsQueries? _items;
     private IGridQueries? _grid;
     private IReadOnlyList<(string Item, int Count)> _carried = [];
+    /// <summary>What the open station's inputs hold, null at one without them: a recipe they cover lights up (<see cref="Look.Fed"/>).</summary>
+    private IReadOnlyList<(string Item, int Count)>? _fed;
     private bool _creative;
     private double _sinceRead = RefreshMs;
     /// <summary>What the slots were built from: rebuilt only when it changes.</summary>
@@ -251,6 +253,7 @@ public partial class FabricatorPanel : CanvasLayer
         // The outputs as this peer's own takes in flight leave them, so a stack goes on the click (0014).
         var moves = _client.InFlight.Where(c => c is Move or Drop).ToList();
         var outputs = _items.AfterMoves(peer, moves).Crates.Where(c => c.Crate == pod).Select(c => c.Slots).FirstOrDefault() ?? _items.Crate(pod);
+        _fed = Crafts.HasInputs(station) ? Crafts.InputsHeld(outputs, Inputs(station)) : null;
         var lacks = _crafting.Lacks(pod);
         string key = $"{pod}|" + string.Join(",", Content.Crafts.All.Select(c => (int)LookOf(c.Item)))
             + "|" + string.Join(";", queue.Select(e => $"{e.Id}:{e.Recipe}:{e.Count}:{e.By}:{e.FromInputs}:{e.Endless}"))
@@ -270,7 +273,8 @@ public partial class FabricatorPanel : CanvasLayer
         _panel.Light(works);
     }
 
-    private Look LookOf(string craft) => Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative);
+    private Look LookOf(string craft) =>
+        Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative, _fed is { } fed ? Crafts.Lines(craft, fed) : null);
 
     private void Send(Sim.Command command)
     {
@@ -343,7 +347,10 @@ public partial class FabricatorPanel : CanvasLayer
         _socketsHeading.Visible = _sockets.Visible = sockets != null;
     }
 
-    /// <summary>A recipe in its place: as it looks now, its cost in the tip; a click queues it or goes to what it is short of.</summary>
+    /// <summary>
+    /// A recipe in its place: as it looks now, its cost in the tip; a click queues it, paid or, when only the inputs cover it,
+    /// from them, or goes to what it is short of; a right click queues it from the inputs, repeating.
+    /// </summary>
     private Panel RecipeSlot(int pod, Content.Station station, string craft)
     {
         var look = LookOf(craft);
@@ -351,6 +358,7 @@ public partial class FabricatorPanel : CanvasLayer
         var icon = Icon(craft);
         icon.Material = look switch { Look.Short => Greyed, Look.Locked => Silhouette, _ => null };
         box.AddChild(icon);
+        if (look == Look.Fed) box.AddChild(InletMark());
         Add(look == Look.Locked ? new Cell(box, Dark, DarkHover, craft)
             // A tool's recipe amber, a worn item's green, as their slots are everywhere (0058).
             : Slots.TintOf(craft) is not SlotTint.Plain and var tint ? new Cell(box, SlotLooks.Of(tint, false, false), SlotLooks.Of(tint, true, false), craft)
@@ -363,15 +371,18 @@ public partial class FabricatorPanel : CanvasLayer
             box.AcceptEvent();
             if (press.ButtonIndex == MouseButton.Right)
             {
-                // From the inputs, whatever is carried: each unit takes its cost there as it begins.
+                // Repeating from the inputs, whatever is held: each unit takes its cost there as it begins.
                 if (Crafts.HasInputs(station) && LookOf(craft) != Look.Locked)
-                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed), FromInputs: true));
+                    Send(new Craft(pod, craft, 1, FromInputs: true, Endless: true));
                 return;
             }
             switch (LookOf(craft))
             {
                 case Look.Ready:
                     Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed)));
+                    break;
+                case Look.Fed:
+                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed), FromInputs: true));
                     break;
                 case Look.Short when Crafts.MissingCraft(Crafts.Lines(craft, _carried), _creative, station) is { } missing:
                     _pulse = (missing, 0);
@@ -381,11 +392,19 @@ public partial class FabricatorPanel : CanvasLayer
         return box;
     }
 
+    /// <summary>The small blue inlet in a slot's top right corner: made, or to be made, from the station's inputs.</summary>
+    private Panel InletMark()
+    {
+        var inlet = new Panel { Position = new Vector2(_slot - 9, 2), Size = new Vector2(7, 7), MouseFilter = Control.MouseFilterEnum.Ignore };
+        inlet.AddThemeStyleboxOverride("panel", Style.Box(Inlet, new Color("0b1220"), radius: 2));
+        return inlet;
+    }
+
     /// <summary>A recipe's tip: its item's card with the craft block (<see cref="Crafts.Block"/>); a closed one, what opens it.</summary>
     private Tip TipOf(string craft, Content.Station station)
     {
         if (_research?.Knows(craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
-        return CardTip(craft, Crafts.Block(craft, station, _carried, _creative));
+        return CardTip(craft, Crafts.Block(craft, station, _carried, _creative, _fed));
     }
 
     /// <summary>The card of <paramref name="item"/> with what this station adds.</summary>
@@ -419,12 +438,7 @@ public partial class FabricatorPanel : CanvasLayer
         var colour = _suitOf(entry.By);
         who.AddThemeStyleboxOverride("panel", Style.Box(colour, colour, radius: 1));
         box.AddChild(who);
-        if (entry.FromInputs)
-        {
-            var inlet = new Panel { Position = new Vector2(_slot - 9, 2), Size = new Vector2(7, 7), MouseFilter = Control.MouseFilterEnum.Ignore };
-            inlet.AddThemeStyleboxOverride("panel", Style.Box(Inlet, new Color("0b1220"), radius: 2));
-            box.AddChild(inlet);
-        }
+        if (entry.FromInputs) box.AddChild(InletMark());
         if (entry.Endless)
             box.AddChild(new Label { Text = "∞", LabelSettings = EndlessText, Position = new Vector2(2, _slot - 18), MouseFilter = Control.MouseFilterEnum.Ignore });
         if (lacks.Count > 0) box.Modulate = new Color(1, 1, 1, Waiting);

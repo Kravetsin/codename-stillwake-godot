@@ -39,8 +39,10 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
   mode all are known and ready. A click queues one, shift five, refused whole by the sim when unpaid; a click on a
   short one pulses amber, twice, the first lacking item this station makes (`Crafts.MissingCraft`). A tool's recipe
   is tinted amber, a worn item's green (`Shared.SlotLooks`). Slots are `Ui.Slot` wide, rebuilt on a size change.
-- **From the inputs** (0057): at a station with inputs (not the pod, nor the arc bench) a right-click on a known recipe
-  queues it from them (shift ×5). A shift-click from the inventory goes onto its own kind, else the first empty input.
+- **From the inputs** (0057): at a station with inputs (not the pod, nor the arc bench) a recipe not carried but in the
+  inputs is lit with the blue inlet (`Look.Fed`), its tip counting the inputs; a click queues it from them (shift ×5).
+  A right-click on a known recipe queues it from them repeating (`Craft … Endless`): playtesters filled the inputs and
+  saw only grey recipes. A shift-click from the inventory goes onto its own kind, else the first empty input.
   The header carries the drone badge (`FabricatorPanel.Served`, 0062).
 - **Queue · shared** (0028, 0057): `QueueMost` slots, each its item, units left and its orderer's suit colour; the one
   at work fills from the bottom, full while its unit waits for room. Fed from the inputs: a blue inlet; endless: a blue

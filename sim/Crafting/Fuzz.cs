@@ -27,7 +27,7 @@ public sealed partial class CraftingModule
         var queue = QueueOf(machine);
         int kind = Below(6);
         if (kind < 3)
-            return new Craft(machine, FuzzRecipes[Below(FuzzRecipes.Length)], 1 + Below(9), FromInputs: kind == 2) { From = from };
+            return new Craft(machine, FuzzRecipes[Below(FuzzRecipes.Length)], 1 + Below(9), FromInputs: kind == 2, Endless: kind == 2 && Below(3) == 0) { From = from };
         int id = queue is { Entries.Count: > 0 } && Below(3) != 0
             ? queue.Entries[Below(queue.Entries.Count)].Id
             : Below((queue?.Next ?? 1) + 2);

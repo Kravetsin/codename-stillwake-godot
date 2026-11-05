@@ -38,6 +38,7 @@ public static partial class Ru
         ["charger.rate"] = "+{n}/тик",
         ["card.craft"] = "Сборка",
         ["card.fromInputs"] = "собрать из входа",
+        ["card.repeatFromInputs"] = "повторять из входа",
         ["card.craftIt"] = "собрать",
         ["card.many"] = "×{n}",
         ["card.oneIn"] = "1 из {n}",

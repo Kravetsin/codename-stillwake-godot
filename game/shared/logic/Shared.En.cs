@@ -45,6 +45,7 @@ public static partial class En
         // A station's block on the card: a recipe's header, the keys a click there takes.
         ["card.craft"] = "Craft",
         ["card.fromInputs"] = "craft from the inputs",
+        ["card.repeatFromInputs"] = "repeat from the inputs",
         ["card.craftIt"] = "craft",
         ["card.many"] = "×{n}",
         ["card.oneIn"] = "1 in {n}",

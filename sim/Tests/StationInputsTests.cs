@@ -160,6 +160,28 @@ public class StationInputsTests
     }
 
     [Fact]
+    public void ACraftQueuedEndlessFromTheInputsRepeatsAsOneSetEndlessAfterIt()
+    {
+        var w = Feed(World(), 6);
+        int former = Former(w);
+        w.Do(new Craft(former, "plate", 1, FromInputs: true, Endless: true)).Run(3 * Plate / 1000 + 10);
+        Assert.Empty(w.Refusals);
+        Assert.Equal((3, 0), (Made(w, "plate"), InInputs(w, "iron")));
+        Assert.True(w.M.Crafting.Queue(former).Single() is { FromInputs: true, Endless: true, Count: 1 });
+    }
+
+    [Fact]
+    public void RefusesACraftQueuedEndlessAndPaidTakingNothing()
+    {
+        var w = Feed(World(), 6);
+        int former = Former(w), iron = Carried(w, "iron");
+        w.Do(new Craft(former, "plate", 1, Endless: true)).Run();
+        Assert.Equal(["crafting.paid"], Reasons(w));
+        Assert.Empty(w.M.Crafting.Queue(former));
+        Assert.Equal(iron, Carried(w, "iron"));
+    }
+
+    [Fact]
     public void ACancelTakesAnEndlessEntryOffGivingBackItsUnitBegun()
     {
         var w = Feed(World(), 6);
