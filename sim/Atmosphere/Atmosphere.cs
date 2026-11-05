@@ -34,8 +34,8 @@ public interface IAtmosphereQueries
     /// <summary>Whether <paramref name="cell"/> holds air.</summary>
     bool AiredAt(int cell);
     /// <summary>
-    /// Whether the air zone <paramref name="cell"/> lies in holds any air: where drones fly, so a bubble shrinking or laid
-    /// out anew never drops one (2026-11-05-air-bubbles). False outside every zone and in a doorway.
+    /// Whether the room <paramref name="cell"/> lies in holds any air: where drones fly, so a bubble shrinking or laid
+    /// out anew never drops one (2026-11-05-air-bubbles). False outside every room.
     /// </summary>
     bool HoldsAir(int cell);
     /// <summary>Every cell holding air, sorted: live and read-only, for drawing the whole ship's air at once.</summary>
@@ -72,8 +72,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     private readonly IGridQueries _grid;
     private readonly IItemsQueries _items;
     private readonly IRoomsQueries _rooms;
-    /// <summary>Derived: the air zones, rooms less their doorways (2026-11-05-air-bubbles): what the air is kept by.</summary>
-    private readonly Zones _zones;
     private readonly IPipesQueries _pipes;
     private readonly IPowerQueries _power;
     /// <summary>Whether a tank's machine still stands; made once, so construction allocates nothing a tick.</summary>
@@ -100,7 +98,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _grid = grid;
         _items = items;
         _rooms = rooms;
-        _zones = new Zones(rooms, grid);
         _pipes = pipes;
         _power = power;
         Handles<LoadCanister>(c => CanisterProblem(c.Tank, c.From), c =>
@@ -148,7 +145,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         // Only orders: the air is laid out again in a tick, never here, so a loaded world holds what was saved.
         Reorder(State.Live ?? []);
         State.OrderedGrid = _grid.Version;
-        State.OrderedVersion = _zones.Version;
+        State.OrderedVersion = _rooms.Version;
     }
 
     /// <summary>
@@ -158,7 +155,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// </summary>
     private void Follow()
     {
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         // A vent built or taken away reaches the survey's vents only when it is gathered again.
         if (_grid.Version != State.OrderedGrid && MachinesMoved(_grid.ChangedSince(State.OrderedGrid))) _survey = null;
         State.OrderedGrid = _grid.Version;
@@ -166,10 +163,10 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         {
             State.Live = LiveVents(Gather(), []);
             Reorder(State.Live);
-            State.OrderedVersion = _zones.Version;
-            var all = new List<(int Room, int[] Cells)>(_zones.All.Count);
-            foreach (var r in _zones.All) all.Add((r.Id, OrderOf(r.Id)));
-            // Air an older save holds off every zone, in a doorway say, goes.
+            State.OrderedVersion = _rooms.Version;
+            var all = new List<(int Room, int[] Cells)>(_rooms.All.Count);
+            foreach (var r in _rooms.All) all.Add((r.Id, OrderOf(r.Id)));
+            // Air an older save holds off every room goes.
             var stranded = new List<int>();
             foreach (int c in State.Aired) if (roomOf[c] < 0) stranded.Add(c);
             if (stranded.Count > 0)
@@ -180,10 +177,10 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             LayOut(all);
             return;
         }
-        if (_zones.Version != State.OrderedVersion)
+        if (_rooms.Version != State.OrderedVersion)
         {
             int was = State.OrderedVersion;
-            var found = _zones.ChangedSince(was);
+            var found = _rooms.ChangedSince(was);
             List<int> changed;
             if (found == null)
             {
@@ -193,7 +190,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
                 changed = Order.ChangedRooms(State.OrderedRooms, roomOf, live, live);
             }
             else changed = [.. found];
-            State.OrderedVersion = _zones.Version;
+            State.OrderedVersion = _rooms.Version;
             if (changed.Count > 0) ReorderAround(live, [.. changed.Distinct().Order()], was);
         }
         // Every tick: a chain runs dry or is refilled with no version moving.
@@ -201,7 +198,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         if (_liveNow.SequenceEqual(live)) return;
         var turned = Order.VentRoomsMoved(roomOf, live, _liveNow);
         State.Live = [.. _liveNow];
-        if (turned.Count > 0) ReorderAround(State.Live, [.. turned.Distinct().Order()], _zones.Version);
+        if (turned.Count > 0) ReorderAround(State.Live, [.. turned.Distinct().Order()], _rooms.Version);
     }
 
     /// <summary>
@@ -273,9 +270,9 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// <summary>Every room's order found again, as after a load.</summary>
     private void Reorder(List<int> vents)
     {
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         State.Orders = new Dictionary<int, int[]>();
-        foreach (var (id, cells) in Order.Rooms(roomOf, _grid.Width, _zones.All, vents, Seen())) State.Orders[id] = cells;
+        foreach (var (id, cells) in Order.Rooms(roomOf, _grid.Width, _rooms.All, vents, Seen())) State.Orders[id] = cells;
         State.OrderedRooms = roomOf.ToArray();
     }
 
@@ -286,12 +283,12 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     /// </summary>
     private void ReorderAround(List<int> vents, List<int> changed, int was)
     {
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         var held = new List<int>();
         foreach (int id in changed)
             if (State.Orders.Remove(id, out var cells)) held.AddRange(cells);
         var rooms = new List<Room>(changed.Count);
-        foreach (var r in _zones.All) if (changed.BinarySearch(r.Id) >= 0) rooms.Add(r);
+        foreach (var r in _rooms.All) if (changed.BinarySearch(r.Id) >= 0) rooms.Add(r);
         var theirs = new List<int>();
         foreach (int cell in vents) if (roomOf[cell] >= 0 && changed.BinarySearch(roomOf[cell]) >= 0) theirs.Add(cell);
         var orders = Order.Rooms(roomOf, _grid.Width, rooms, theirs, Seen());
@@ -337,11 +334,11 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     public RoomStatus StatusOf(int room)
     {
         var found = _rooms.RoomById(room);
-        return found == null ? RoomStatus.Vacuum : StatusOfRoom(Gather(), room);
+        return found == null ? RoomStatus.Vacuum : Status(Gather(), found);
     }
 
     public bool AiredAt(int cell) => State.Aired.BinarySearch(cell) >= 0;
-    public bool HoldsAir(int cell) => _zones.RoomOfCells[cell] is int room and >= 0 && Gather().AiredIn[room] > 0;
+    public bool HoldsAir(int cell) => _rooms.RoomOfCells[cell] is int room and >= 0 && Gather().AiredIn[room] > 0;
     public IReadOnlyList<int> AiredCells => State.Aired;
     public IReadOnlyList<RoomAir> RoomsAir() => AllRoomsAir();
 

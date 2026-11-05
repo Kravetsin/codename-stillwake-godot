@@ -92,10 +92,8 @@ public class AirTests
         var live = w.Air().Live ?? [];
         var fed = w.M.Grid.Machines.Where(m => Content.Machines.Is(m.Kind, Content.MachineTrait.Vents) && w.M.Atmosphere.Fed(m.Id)).Select(m => m.Cell).ToList();
         if (!live.All(fed.Contains) || !live.SequenceEqual(fed.Where(live.Contains))) return false;
-        // Zones found afresh, as after a load (2026-11-05-air-bubbles).
-        var zones = new Zones(w.M.Rooms, w.M.Grid);
-        var roomOf = zones.RoomOfCells.ToArray();
-        var fresh = Order.Rooms(roomOf, w.M.Grid.Width, zones.All, live, new bool[roomOf.Length]);
+        var roomOf = w.M.Rooms.RoomOfCells.ToArray();
+        var fresh = Order.Rooms(roomOf, w.M.Grid.Width, w.M.Rooms.All, live, new bool[roomOf.Length]);
         var kept = w.Air().Orders;
         if (fresh.Count != kept.Count) return false;
         foreach (var (room, order) in fresh)
@@ -840,18 +838,19 @@ public class AirTests
     }
 
     [Fact]
-    public void KeepsEveryCellOfItsAirAsAnInnerDoorOpensAndShutsAndAirsNothingPastIt()
+    public void SpreadsItsBubbleThroughAnOpenDoorAndLosesThePartPastItOnceShut()
     {
         var (w, left, door, right) = TwoRooms();
-        var aired = w.Air().Aired.ToList();
+        int alone = AiredIn(w, left).Count;
+        // Open, the rooms are one: the bubble its vaporizer pays for covers both, the doorway too.
         w.Do(new SetDoor(door, true)).Run(100);
-        Assert.Equal(aired, w.Air().Aired);
-        // The room joined reads aired: the part with no vent and no air is left out, shown empty cell by cell.
         Assert.Equal(RoomStatus.Aired, Status(w, left));
+        Assert.True(w.M.Atmosphere.AiredAt(door) && w.M.Atmosphere.AiredAt(right));
+        // Shut, the right room has no vent: its air goes from the far edge, the left keeps all of its own.
         w.Do(new SetDoor(door, false)).Run(100);
-        Assert.Equal(aired, w.Air().Aired);
+        Assert.False(w.M.Atmosphere.AiredAt(right) || w.M.Atmosphere.AiredAt(door));
+        Assert.Equal(alone, AiredIn(w, left).Count);
         Assert.Equal(RoomStatus.Aired, Status(w, left));
-        Assert.Equal(RoomStatus.Vacuum, Status(w, w.M.Rooms.RoomAt(right)!.Value));
     }
 
     [Fact]
@@ -899,10 +898,10 @@ public class AirTests
 
     /// <summary>
     /// Two rooms deep, a door between, a vent in each, the right one piped to the left's vaporizer once the left room's
-    /// bubble stands: the vaporizer's making split over two zones, the left holds about half as many cells.
+    /// bubble stands: the vaporizer's making split over two rooms, the left holds about half as many cells.
     /// </summary>
     [Fact]
-    public void SplitsOneVaporizersMakingEvenlyOverTheZonesItsVentsStandInAndPlaysOnAlikeLoaded()
+    public void SplitsOneVaporizersMakingEvenlyOverTheRoomsItsVentsStandInAndPlaysOnAlikeLoaded()
     {
         string map = string.Join("\n", new[] { "###############", "#V......#....V#", "#TT.....D.....#", "#TT.....#.....#" }
             .Concat(Enumerable.Repeat("#.......#.....#", 37)).Append("###############"));
@@ -933,11 +932,11 @@ public class AirTests
     }
 
     /// <summary>
-    /// Whatever doors open and shut, canisters come and pipes are cut, no doorway cell holds air, every zone's air is the
+    /// Whatever doors open and shut, canisters come and pipes are cut, only cells of rooms hold air, every room's air is the
     /// first cells of its order, and air grows only with a live vent (2026-11-05-air-bubbles).
     /// </summary>
     [Property(MaxTest = 30)]
-    public Property AirsNoDoorwayAndOnlyThePrefixOfEachZonesOrder()
+    public Property AirsOnlyCellsOfRoomsAndOnlyThePrefixOfEachRoomsOrder()
     {
         var step = Gen.OneOf(
             Gen.Elements(0, 1, 2).Select(op => (Op: op, Ticks: 0)),
@@ -960,8 +959,8 @@ public class AirTests
                     int before = w.Air().Aired.Count;
                     bool live = w.Air().Live?.Count > 0;
                     w.Run();
-                    int doorway = w.Air().Aired.FirstOrDefault(c => Doorways.IsDoorway(w.M.Grid.StructureAt(c)), -1);
-                    if (doorway >= 0) return false.Label($"doorway cell {doorway} aired");
+                    int stray = w.Air().Aired.FirstOrDefault(c => w.M.Rooms.RoomAt(c) is not >= 0, -1);
+                    if (stray >= 0) return false.Label($"cell {stray}, in no room, aired");
                     if (!live && w.Air().Live?.Count == 0 && w.Air().Aired.Count > before) return false.Label("air grew with no live vent");
                 }
                 if (!FreshOrders(w)) return false.Label("the orders kept are not those found afresh");

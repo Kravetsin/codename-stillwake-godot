@@ -145,9 +145,9 @@ A living document: what is decided about the game and what is still open. Techni
   vent holds as many cells round itself as its vaporizers' making pays the leak of, more behind good walls, fewer behind
   leaky ones, the far edge going first ([0011](decisions/0011-air-lies-around-the-vents.md)). Each cell leaks through what
   it touches, its back wall and the hull beside it, each as its material decides
-  ([0020](decisions/0020-walls-of-materials-front-and-back.md)). A bubble never passes a doorway, open or shut: every room
-  needs its own vent, and a door between rooms changes no one's air. A hero breathes room air standing in it, and the
-  suit refills there; a breath costs the vaporizers' stores, never a cell. Drones fly in any part of a room holding air.
+  ([0020](decisions/0020-walls-of-materials-front-and-back.md)). Open doors pass air, closed ones stop it: opened onto an empty
+  room, a bubble grows on through the door; a room shut off with no vent of its own loses its air. A hero breathes room air standing in it, and the
+  suit refills there; a breath costs the vaporizers' stores, never a cell. Drones fly in any room holding air.
   A breach, or a way to space through open doors, makes a room vent: its air goes and its network drains fast until a
   valve cuts it off or the hole is patched. Without air a hero breathes from the suit tank.
 - **Power runs on cables** laid point to point between machines and anchors, hanging inside the

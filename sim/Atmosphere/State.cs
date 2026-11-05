@@ -60,8 +60,8 @@ public sealed class AtmosphereState
     /// <summary>Ticks the air has run: fill beats are this modulo their rate.</summary>
     [JsonInclude] internal int Clock { get; set; }
     /// <summary>
-    /// The part of a unit each sealed air zone holding air owes of its leak, counted in units × <c>Air.LeakEvery</c> and so
-    /// under <c>Air.LeakEvery</c>; by zone key (its <c>Room</c>), ascending; none for a zone owing nothing (2026-11-05-air-bubbles).
+    /// The part of a unit each sealed room holding air owes of its leak, counted in units × <c>Air.LeakEvery</c> and so
+    /// under <c>Air.LeakEvery</c>; by room id, ascending; none for a room owing nothing (2026-11-05-air-bubbles).
     /// </summary>
     [JsonInclude] internal List<LeakOwed> Owed { get; set; } = [];
     /// <summary>

@@ -77,12 +77,12 @@ public sealed partial class AtmosphereModule
     private Survey Gather()
     {
         // The cells' leaks first: the survey counts each room's from them.
-        if (_leaksFor != _zones.Version)
+        if (_leaksFor != _rooms.Version)
         {
             FindLeaks();
             _survey = null;
         }
-        if (_survey == null || _survey.Pipes != _pipes.Version || _survey.Rooms != _zones.Version) _survey = GatherAll();
+        if (_survey == null || _survey.Pipes != _pipes.Version || _survey.Rooms != _rooms.Version) _survey = GatherAll();
         var s = _survey;
         // Tanks emptied since are still held, at none: they give nothing, as if they were gone.
         if (s == _readFor) return s;
@@ -102,7 +102,7 @@ public sealed partial class AtmosphereModule
 
     private Survey GatherAll()
     {
-        var s = new Survey { Pipes = _pipes.Version, Rooms = _zones.Version };
+        var s = new Survey { Pipes = _pipes.Version, Rooms = _rooms.Version };
         foreach (var m in _grid.MachinesWith(MachineTrait.Vents))
             foreach (int port in _grid.PortsOf(m))
                 if (_pipes.NetworkAt(port) is int network) s.Vents.Add((m.Cell, network));
@@ -146,12 +146,12 @@ public sealed partial class AtmosphereModule
             }
         }
         foreach (var (cell, network) in s.Vents)
-            if (_zones.RoomAt(cell) is int place)
+            if (_rooms.RoomAt(cell) is int place)
             {
                 AddTo(s.VentsIn, place, network);
                 AddTo(s.FillsIn, place, (cell, network));
             }
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         s.AiredIn = new int[roomOf.Length];
         s.LeakIn = new int[roomOf.Length];
         s.AiredAt = new bool[roomOf.Length];
@@ -176,7 +176,7 @@ public sealed partial class AtmosphereModule
         if (_leaksFor == was)
         {
             for (int i = 0; i < rooms.Count; i++) LeaksOf(rooms[i], orders[i].Cells);
-            _leaksFor = _zones.Version;
+            _leaksFor = _rooms.Version;
         }
         else _leaksFor = null;
         var s = _leaksFor != null && _survey != null && _survey.Pipes == _pipes.Version && _survey.Rooms == was ? _survey : null;
@@ -202,7 +202,7 @@ public sealed partial class AtmosphereModule
                         s.AiredIn[id] += 1;
                         s.LeakIn[id] += _cellLeak[cell];
                     }
-            var roomOf = _zones.RoomOfCells;
+            var roomOf = _rooms.RoomOfCells;
             // Space moves with a change beside it: the vents standing in it are gathered again too.
             s.VentsIn.Remove(RoomsModule.Space);
             s.FillsIn.Remove(RoomsModule.Space);
@@ -212,7 +212,7 @@ public sealed partial class AtmosphereModule
                     AddTo(s.VentsIn, roomOf[cell], network);
                     AddTo(s.FillsIn, roomOf[cell], (cell, network));
                 }
-            s.Rooms = _zones.Version;
+            s.Rooms = _rooms.Version;
         }
     }
 
@@ -323,44 +323,23 @@ public sealed partial class AtmosphereModule
         return amount - left;
     }
 
-    /// <summary>A zone's air: venting when open, aired when full, filling while a live vent with power holds it, else vacuum.</summary>
-    private static RoomStatus Status(Survey s, Room zone)
+    /// <summary>A room's air (2026-11-05-air-bubbles): venting when open, aired when full, filling while a live vent with making holds it, else vacuum.</summary>
+    private static RoomStatus Status(Survey s, Room room)
     {
-        if (zone.Openings.Count > 0) return RoomStatus.Venting;
-        if (s.AiredIn[zone.Id] == zone.Volume) return RoomStatus.Aired;
-        foreach (int n in ListAt(s.VentsIn, zone.Id))
+        if (room.Openings.Count > 0) return RoomStatus.Venting;
+        if (s.AiredIn[room.Id] == room.Volume) return RoomStatus.Aired;
+        foreach (int n in ListAt(s.VentsIn, room.Id))
             if (Holds(s, n) && s.MadeOn.GetValueOrDefault(n) > 0) return RoomStatus.Filling;
         return RoomStatus.Vacuum;
     }
 
-    /// <summary>
-    /// A room's air from its zones (2026-11-05-air-bubbles): venting if one is, aired if all are, filling if one is, else
-    /// vacuum. A sealed zone with no piped vent and no air is left out: a closet opened onto an aired room leaves it aired, its
-    /// empty cells shown by the overlay. A room with no zone counted is vacuum.
-    /// </summary>
-    private RoomStatus StatusOfRoom(Survey s, int room)
+    /// <summary>Whether room <paramref name="room"/> holds all its bubble short of its volume: its next cell's leak would pass its budget.</summary>
+    private bool AtItsLimit(Survey s, Room room)
     {
-        bool any = false, aired = true, filling = false;
-        foreach (var zone in _zones.All)
-        {
-            if (_zones.RoomOf(zone.Id) != room) continue;
-            var now = Status(s, zone);
-            if (now == RoomStatus.Vacuum && s.AiredIn[zone.Id] == 0 && ListAt(s.VentsIn, zone.Id).IsEmpty) continue;
-            any = true;
-            if (now == RoomStatus.Venting) return now;
-            aired &= now == RoomStatus.Aired;
-            filling |= now == RoomStatus.Filling;
-        }
-        return !any ? RoomStatus.Vacuum : aired ? RoomStatus.Aired : filling ? RoomStatus.Filling : RoomStatus.Vacuum;
-    }
-
-    /// <summary>Whether zone <paramref name="zone"/> holds all its bubble short of its volume: its next cell's leak would pass its budget.</summary>
-    private bool AtItsLimit(Survey s, Room zone)
-    {
-        var order = OrderOf(zone.Id);
-        int count = s.AiredIn[zone.Id];
-        long budget = _budget.GetValueOrDefault(zone.Id);
-        return budget > 0 && count < order.Length && (long)(s.LeakIn[zone.Id] + _cellLeak[order[count]]) * 1000 > budget;
+        var order = OrderOf(room.Id);
+        int count = s.AiredIn[room.Id];
+        long budget = _budget.GetValueOrDefault(room.Id);
+        return budget > 0 && count < order.Length && (long)(s.LeakIn[room.Id] + _cellLeak[order[count]]) * 1000 > budget;
     }
 
     /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first: from its far edge.</summary>
@@ -385,7 +364,7 @@ public sealed partial class AtmosphereModule
         if (edits.Removed.Count == 0 && edits.Added.Count == 0) return;
         EditAired(edits.Removed, edits.Added);
         // A cell aired and taken again on one tick stays aired (TypeScript's applyEdits): so in the survey.
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         foreach (int cell in edits.Added)
             if (!s.AiredAt[cell]) AirCell(s, cell, roomOf[cell]);
     }
@@ -400,28 +379,16 @@ public sealed partial class AtmosphereModule
     private List<RoomAir> AllRoomsAir()
     {
         var s = Gather();
-        Budgets(s, _zones.All);
-        var zoneOf = _zones.RoomOfCells;
-        // Zones holding a vent, piped or not: the survey keeps only the piped ones.
+        Budgets(s, _rooms.All);
+        var roomOf = _rooms.RoomOfCells;
+        // Rooms holding a vent, piped or not: the survey keeps only the piped ones.
         var standing = new HashSet<int>();
-        foreach (var m in _grid.MachinesWith(MachineTrait.Vents)) standing.Add(zoneOf[m.Cell]);
-        var zonesOf = new Dictionary<int, List<Room>>();
-        foreach (var zone in _zones.All) AddTo(zonesOf, _zones.RoomOf(zone.Id), zone);
+        foreach (var m in _grid.MachinesWith(MachineTrait.Vents)) standing.Add(roomOf[m.Cell]);
         var all = new List<RoomAir>(_rooms.All.Count);
         foreach (var room in _rooms.All)
         {
-            var zones = ListAt(zonesOf, room.Id);
-            var networks = new List<int>();
-            int aired = 0, leak = 0;
-            bool vented = false, limited = false;
-            foreach (var zone in zones)
-            {
-                networks.AddRange(ListAt(s.VentsIn, zone.Id));
-                aired += s.AiredIn[zone.Id];
-                leak += s.LeakIn[zone.Id];
-                vented |= standing.Contains(zone.Id);
-                limited |= AtItsLimit(s, zone);
-            }
+            var networks = ListAt(s.VentsIn, room.Id).ToArray();
+            int aired = s.AiredIn[room.Id], leak = s.LeakIn[room.Id];
             int made = 0;
             var vaporizers = new SortedSet<int>();
             foreach (int n in networks.Distinct())
@@ -434,18 +401,18 @@ public sealed partial class AtmosphereModule
             foreach (int v in vaporizers) foreach (int t in ListAt(s.Behind, v)) tanks.Add(t);
             // None when nothing feeds the room, or when a source that takes no liquid does: its air never runs out.
             int? oxygen = vaporizers.Count == 0 || vaporizers.Overlaps(s.Endless) ? null : HeldBy(s, [.. tanks]);
-            var now = StatusOfRoom(s, room.Id);
+            var now = Status(s, room);
             // Held air costs its leak (2026-11-05-air-bubbles); venting, each vent drains its network, two vents twice.
             long draw = now is RoomStatus.Aired or RoomStatus.Filling ? leak
-                : now == RoomStatus.Venting ? (long)Content.Air.VentDrain * networks.Count * Content.Air.LeakEvery
+                : now == RoomStatus.Venting ? (long)Content.Air.VentDrain * networks.Length * Content.Air.LeakEvery
                 : 0;
             // Liquid leaves at the smaller of what the room draws and what its vaporizers make, both a period.
             long rate = Math.Min(draw, made);
             int? lasts = oxygen is int liquid && rate > 0 ? (int)Math.Min(int.MaxValue, (long)liquid * Content.Air.LeakEvery / rate) : null;
             string? problem =
-                now == RoomStatus.Filling ? (limited ? "atmosphere.leaky" : null)
+                now == RoomStatus.Filling ? (AtItsLimit(s, room) ? "atmosphere.leaky" : null)
                 : now != RoomStatus.Vacuum ? null
-                : !vented ? "atmosphere.noVent"
+                : !standing.Contains(room.Id) ? "atmosphere.noVent"
                 : vaporizers.Count == 0 ? "atmosphere.notPiped"
                 : oxygen == 0 ? "atmosphere.dry"
                 : "atmosphere.unpowered";
@@ -460,12 +427,12 @@ public sealed partial class AtmosphereModule
     /// </summary>
     private void FindLeaks()
     {
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         if (_cellLeak.Length != roomOf.Length) _cellLeak = new int[roomOf.Length];
         // From the rooms as they are, not the orders, which a query may read before they follow a change.
         for (int cell = 0; cell < roomOf.Length; cell++) _cellLeak[cell] = roomOf[cell] >= 0 ? _grid.BackAt(cell)?.Leak ?? 0 : 0;
-        foreach (var r in _zones.All) HullLeaks(r);
-        _leaksFor = _zones.Version;
+        foreach (var r in _rooms.All) HullLeaks(r);
+        _leaksFor = _rooms.Version;
     }
 
     /// <summary>
@@ -485,7 +452,7 @@ public sealed partial class AtmosphereModule
     /// </summary>
     private void HullLeaks(Room room)
     {
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         int width = _grid.Width;
         foreach (int hull in room.Hull)
         {
@@ -668,15 +635,15 @@ public sealed partial class AtmosphereModule
         return null;
     }
 
-    /// <summary>Scratch, reused every tick: each sealed zone's budget, and the live vents sharing each network.</summary>
+    /// <summary>Scratch, reused every tick: each sealed room's budget, and the live vents sharing each network.</summary>
     private readonly Dictionary<int, long> _budget = new();
     private readonly Dictionary<int, int> _sharers = new();
 
     /// <summary>
-    /// One tick of air (2026-11-05-air-bubbles): tanks pour and vaporizers make into their stores; an open zone loses
+    /// One tick of air (2026-11-05-air-bubbles): tanks pour and vaporizers make into their stores; an open room loses
     /// <c>Air.VentLoss</c> cells from its far edge and every vent in it or in space drains its network; on a fill beat each
-    /// sealed zone's air grows by up to <c>Air.CellsPerFill</c> toward its bubble, or shrinks by as many from its far edge;
-    /// then each sealed zone holding air pays what its aired cells leak from its vents' networks, what they lack forgiven.
+    /// sealed room's air grows by up to <c>Air.CellsPerFill</c> toward its bubble, or shrinks by as many from its far edge;
+    /// then each sealed room holding air pays what its aired cells leak from its vents' networks, what they lack forgiven.
     /// </summary>
     private void StepAir()
     {
@@ -686,7 +653,7 @@ public sealed partial class AtmosphereModule
         _readFor = null;
         var s = Gather();
         var edits = new Edits();
-        var zones = _zones.All;
+        var zones = _rooms.All;
 
         foreach (var zone in zones)
         {
@@ -706,7 +673,7 @@ public sealed partial class AtmosphereModule
                 for (int step = 0; step < Content.Air.CellsPerFill; step++)
                 {
                     int count = s.AiredIn[zone.Id];
-                    // With no budget the zone's air goes, though its cells leak nothing: no vent holds it.
+                    // With no budget the room's air goes, though its cells leak nothing: no vent holds it.
                     if (count > 0 && (budget == 0 || (long)s.LeakIn[zone.Id] * 1000 > budget))
                     {
                         TakeFar(s, zone.Id, 1, edits);
@@ -729,9 +696,9 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// Into <see cref="_budget"/>: each sealed zone's budget, thousandths of a unit per <c>Air.LeakEvery</c> ticks, from its
+    /// Into <see cref="_budget"/>: each sealed room's budget, thousandths of a unit per <c>Air.LeakEvery</c> ticks, from its
     /// live vents: each network makes <c>Air.GeneratorRate</c> × the satisfaction of each vaporizer feeding it (the pod in
-    /// full), split evenly over the live vents in sealed zones on it, rounded down (2026-11-05-air-bubbles).
+    /// full), split evenly over the live vents in sealed rooms on it, rounded down (2026-11-05-air-bubbles).
     /// </summary>
     private void Budgets(Survey s, IReadOnlyList<Room> zones)
     {
@@ -754,7 +721,7 @@ public sealed partial class AtmosphereModule
         }
     }
 
-    /// <summary>Takes <paramref name="amount"/> units from zone <paramref name="zone"/>'s vents' networks, in vent then port order; what they lack is forgiven.</summary>
+    /// <summary>Takes <paramref name="amount"/> units from room <paramref name="zone"/>'s vents' networks, in vent then port order; what they lack is forgiven.</summary>
     private static void Pay(Survey s, int zone, int amount)
     {
         int left = amount;
@@ -766,12 +733,12 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// A breath or a fire's <paramref name="amount"/> in <paramref name="cell"/>, if that cell holds air: paid from its zone's
+    /// A breath or a fire's <paramref name="amount"/> in <paramref name="cell"/>, if that cell holds air: paid from its room's
     /// vents' networks, never a cell; what they lack forgiven (2026-11-05-air-bubbles). Returns all of it, or none off the air.
     /// </summary>
     private int BreatheAt(int cell, int amount)
     {
-        var zoneOf = _zones.RoomOfCells;
+        var zoneOf = _rooms.RoomOfCells;
         int zone = cell >= 0 && cell < zoneOf.Length ? zoneOf[cell] : -1;
         if (zone < 0) return 0;
         var s = Gather();
@@ -825,7 +792,7 @@ public sealed partial class AtmosphereModule
         if (removed.Count == 0 && added.Count == 0) return;
         EditAired(removed, added);
         if (s == null) return;
-        var roomOf = _zones.RoomOfCells;
+        var roomOf = _rooms.RoomOfCells;
         foreach (int cell in removed) EmptyCell(s, cell, roomOf[cell]);
         foreach (int cell in added) AirCell(s, cell, roomOf[cell]);
     }

@@ -642,7 +642,7 @@ public class LogisticsTests
 
     /// <summary>
     /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below;
-    /// a vent in each, on one run up through the deck, as a bubble passes no doorway (2026-11-05-air-bubbles).
+    /// a vent in each, on one run up through the deck: shut, the hatch parts them, and a room with no vent loses its air.
     /// Aired with the hatch open, then shut, the crate holding all but the three chunks the furnace holds.
     /// </summary>
     private static readonly string[] Decks =

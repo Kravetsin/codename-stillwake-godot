@@ -278,7 +278,7 @@ public sealed partial class LogisticsModule
     // Cells.
 
     /// <summary>
-    /// Where a drone may be: a cell of an air zone holding any (2026-11-05-air-bubbles), or a doorway's (door or hatch),
+    /// Where a drone may be: a cell of a room holding any air (2026-11-05-air-bubbles), or a doorway's (door or hatch),
     /// open or closed; drones never open them. With
     /// <paramref name="vacuum"/>, a salvage drone's, any cell not built up, or a doorway's (salvage-drones). A parameter, never
     /// a field: the queries flood between ticks on one peer only.
