@@ -43,7 +43,6 @@ public partial class HeroView : Node2D
     private readonly Figure _figure = new(Suits.All[0], own: true) { ZIndex = Layers.Hero };
     // Over the machines, as the TypeScript drew the crew's layer, so a crate's whole outline shows.
     private readonly Outline _outline = new(Layers.Aim);
-    private readonly FaceRim _faceRim = new();
     private readonly ModeGlyph _glyph;
     /// <summary>Every tether, behind the heroes and unlit: a line to find the way back by.</summary>
     private readonly Sketch _tethers = new(Layers.Tethers);
@@ -140,10 +139,13 @@ public partial class HeroView : Node2D
     private readonly RodLight _rodLight = new();
     private bool _aimsGun;
     /// <summary>
-    /// The drill (0054): whether the arm aims it at the pointer, so the hero keeps facing it, and the world tick
-    /// its last hits went on while it runs; none while it does not.
+    /// The drill (0054): whether it is wielded with a pointer to aim at, and the world tick its last hits went on while it
+    /// runs; none while it does not.
     /// </summary>
     private bool _aimsDrill;
+    /// <summary>Whether an aimed item's arm is up (aim-on-use), so the hero faces the pointer, swimming the other way too; a click waiting for it.</summary>
+    private bool _armUp, _clickWaits;
+    private ArmUp _arm;
     private DrillPace _drillPace;
     /// <summary>The drill on a wreck, heard at its bit through the suit as the wreck sounds hit, the chop, at the drill's pace (0093).</summary>
     private readonly Heard2D _drillChop = Cues.Player2D(S.Chop, S.Suit, voices: 4);
@@ -249,7 +251,6 @@ public partial class HeroView : Node2D
         AddChild(_others);
         AddChild(_figure);
         AddChild(_outline);
-        AddChild(_faceRim);
         AddChild(_glyph);
         AddChild(_prompt);
         AddChild(_act);
@@ -443,7 +444,7 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _aimsGun || _aimsDrill, Pull = pull, Jetpack = jetpack, Thrust = thrust };
+                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, Jetpack = jetpack, Thrust = thrust };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
             {

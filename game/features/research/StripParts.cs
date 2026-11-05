@@ -120,7 +120,7 @@ public sealed class StripParts(TipSpots tips)
         bool tool = Content.Upgrades.Of(id) == null && !_placements.ContainsKey(id) && HeldLook.Of(id) != null;
         return new()
         {
-            Texture = Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, tool ? size * ToolOver : size),
+            Texture = PictureOf(id, tool ? size * ToolOver : size),
             ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize,
             StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered,
             TextureFilter = tool ? CanvasItem.TextureFilterEnum.LinearWithMipmaps : CanvasItem.TextureFilterEnum.Nearest,
@@ -128,6 +128,10 @@ public sealed class StripParts(TipSpots tips)
             MouseFilter = Control.MouseFilterEnum.Ignore,
         };
     }
+
+    /// <summary>The picture of <paramref name="id"/> alone, <paramref name="size"/> pixels across where it is an item's: what hatches from the bulb.</summary>
+    public Texture2D PictureOf(string id, int size) =>
+        Content.Upgrades.Of(id) is { } upgrade ? PixelArt.Picture($"upgrade_{upgrade.Kind}") : _placements.GetValueOrDefault(id) is { } p ? BlueprintArt.Thumbnail(p) : ItemIcons.Icon(id, size);
 
     /// <summary>How much larger than it is laid out a tool's icon is baked: the board's most zoom, 1.5, on a screen twice the reference.</summary>
     private const int ToolOver = 3;

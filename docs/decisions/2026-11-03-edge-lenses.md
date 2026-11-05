@@ -1,6 +1,6 @@
 # The tablet edge's keys are frosted lenses, and the journal has one
 
-- Status: accepted
+- Status: accepted; the lens look superseded by [hologram-keys](2026-11-05-hologram-keys.md)
 - Date: 2026-11-03
 - Changes the glyphs of [tablet-edge](2026-11-02-tablet-edge.md)'s keys and [the-regen-suit](2026-11-03-the-regen-suit.md)'s; drops its canister key, R stays; adds a key for the Handbook (0066)
 

@@ -59,10 +59,10 @@ public partial class MachineFrame : WristScreen
         _bolt.Visible = _power.Visible = power != null;
     }
 
-    /// <summary>The bolt lit with its power while the machine works, dark at 0 while it does not.</summary>
+    /// <summary>The bolt and its power, lit while the machine works, dark while it does not: what it would draw is known before it runs (tip-signs).</summary>
     public void Light(bool on)
     {
-        _power.Text = (on ? _shown ?? 0 : 0).ToString();
+        _power.Text = (_shown ?? 0).ToString();
         _bolt.Modulate = _power.Modulate = on ? Colors.White : Unlit;
     }
 }

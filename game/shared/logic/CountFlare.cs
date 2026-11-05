@@ -52,16 +52,10 @@ public sealed class CountFlare
     public bool Up => _to >= _from;
 
     /// <summary>How hot the flare is now, 0 to 1: up over <see cref="RiseS"/>, down over the count and <see cref="GlowS"/>, weaker for a small change.</summary>
-    public double Heat
-    {
-        get
-        {
-            if (double.IsInfinity(_since)) return 0;
-            double peak = _since < RiseS ? _since / RiseS : Math.Clamp(1 - (_since - RiseS) / (_span + GlowS), 0, 1);
-            double strength = Math.Clamp(Math.Abs(_to - _from) / (Whole * Math.Max(1, Math.Max(Math.Abs(_from), Math.Abs(_to)))), Faint, 1);
-            return peak * strength;
-        }
-    }
+    public double Heat => Pop * Math.Clamp(Math.Abs(_to - _from) / (Whole * Math.Max(1, Math.Max(Math.Abs(_from), Math.Abs(_to)))), Faint, 1);
+
+    /// <summary>The flare's shape whatever the change's size, 0 to 1: what a readout that must be noticed on every change swells by.</summary>
+    public double Pop => double.IsInfinity(_since) ? 0 : _since < RiseS ? _since / RiseS : Math.Clamp(1 - (_since - RiseS) / (_span + GlowS), 0, 1);
 
     /// <summary>How hot digit <paramref name="column"/> is, 0 the units: all of them while counting, then only those that changed.</summary>
     public double HeatOf(int column) => Gone < 1 || DigitAt(_from, column) != DigitAt(_to, column) ? Heat : 0;

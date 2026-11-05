@@ -61,7 +61,7 @@ public partial class ItemsView : Node2D
     /// drawn, for a collect's loot to fly from (<see cref="OwnCatches"/>).
     /// </summary>
     public void Frame(
-        Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, IResearchQueries research, DebrisModule debris,
+        Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, DebrisModule debris,
         Func<int, IReadOnlyList<(int Piece, (double X, double Y) At)>> netHolds, HeroSpot? hero, double progress, double drift, double elapsedMs)
     {
         (Hero, Grid) = (hero, grid);
@@ -107,7 +107,7 @@ public partial class ItemsView : Node2D
             _flights.Update(new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell, elapsedMs);
         }
         _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), client.World.Tick, progress, elapsedMs);
-        Panel.Frame(client, items, grid, research, hero, elapsedMs);
+        Panel.Frame(client, items, grid, hero, elapsedMs);
     }
 
     /// <summary>Where piece <paramref name="id"/> is drawn now, in pixels of the world; none once it is gone.</summary>

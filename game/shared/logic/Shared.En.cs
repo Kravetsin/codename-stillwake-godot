@@ -25,6 +25,8 @@ public static partial class En
         ["card.minutes"] = "{n} min",
         // An electric tool's tile: what it draws while it works, by a bolt.
         ["card.draw"] = "DRAW",
+        // The name the pointer's tip gives a machine never built, which has no card in the build menu.
+        ["machine.lifepod"] = "Lifepod",
         // The helmet lamp's card: how far its light reaches, and its beam across.
         ["card.reach"] = "CELLS REACH",
         ["card.beam"] = "BEAM {n}°",

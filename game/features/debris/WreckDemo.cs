@@ -62,6 +62,8 @@ public partial class WreckDemo : CanvasLayer
     ];
     /// <summary>How fast they drift, slower than the sim's own, so the section stays in reach as it is chopped.</summary>
     private const int Speed = 24;
+    /// <summary>How far past a wreck's near side the axe's blade reaches from the hero's middle, in pixels: under its drawn reach, about three cells.</summary>
+    private const float Blade = 2.5f * ShipCamera.Cell;
 
     /// <summary>For <c>--harpoon</c>: a crate up and right, out of the hands' reach, and a hull section farther, below.</summary>
     private static readonly (int Id, string Item, double Right, int Below, int Damage)[] Shootable =
@@ -249,7 +251,7 @@ public partial class WreckDemo : CanvasLayer
             _chose = true;
             GD.Print($"[demo] axe chosen at {_t:0.00} s");
         }
-        if (_chose && !_holding && !_broken && _t >= 3.0 && _ui.AimedPiece.Get() is (Target, false))
+        if (_chose && !_holding && !_broken && _t >= 3.0 && target is { } on && _pos.DistanceTo(on) < 2)
         {
             Mouse(true);
             _holding = true;
@@ -454,20 +456,17 @@ public partial class WreckDemo : CanvasLayer
             return;
         }
         if (target is { } at) _pos = _pos.MoveToward(at, (float)(1500 * delta));
-        bool aimed = _chose && _ui.AimedPiece.Get() is (int id, false) && id == _target;
+        // Up to it while the blade cannot reach, backing off once the hero is inside it; swung while it reaches (melee-edge).
+        var piece = _view.Pieces.FirstOrDefault(p => p.Id == _target);
+        float? gap = piece != null && _ui.Heroes.Count > 0 ? piece.X / 1000f * ShipCamera.Cell - _ui.Heroes[0].X : null;
+        float half = piece != null ? DebrisLooks.Wrecks[piece.Item].W / 2f : 0;
+        bool aimed = _chose && gap is float g && g >= half * 0.5f && g <= half + Blade;
         if (aimed != _holding)
         {
             Mouse(aimed);
             _holding = aimed;
         }
-        // Up to it while the blade cannot reach, backing off once the hero is inside it.
-        var piece = _view.Pieces.FirstOrDefault(p => p.Id == _target);
-        if (piece != null && _ui.Heroes.Count > 0 && _chose)
-        {
-            float gap = piece.X / 1000f * ShipCamera.Cell - _ui.Heroes[0].X;
-            float half = DebrisLooks.Wrecks[piece.Item].W / 2f;
-            Swim(aimed ? null : gap > half + 2 * ShipCamera.Cell ? Key.D : gap < half * 0.5f ? Key.A : null);
-        }
+        if (_chose && gap is float off) Swim(aimed ? null : off > half + Blade ? Key.D : Key.A);
         Pointer();
     }
 }

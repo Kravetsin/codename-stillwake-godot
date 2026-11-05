@@ -110,7 +110,7 @@ public partial class HandbookPanel : CanvasLayer
         _open = true;
     }
 
-    /// <summary>The key on the tablet's edge that does what J does, lit while it is out (2026-11-03-edge-lenses).</summary>
+    /// <summary>The key on the tablet's edge that does what J does, bright while it is out (hologram-keys).</summary>
     public EdgeKey Cap { get; }
 
     /// <summary>The tablet itself, which rises from the edge.</summary>

@@ -1,7 +1,7 @@
 # crew (client): the heroes
 
-This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here; only
-commands reach the sim. Others' heroes come through the host.
+This machine's hero and the others', client-authoritative (0002): the controller runs here; only commands reach
+the sim.
 
 ## Files
 
@@ -12,23 +12,26 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/Pose.cs` | poses, the head, the air's blend (0090) |
 | `logic/Motion.cs` | lean and landing (0090) |
 | `logic/LookTint.cs` | skin, hair tints |
-| `logic/Aim.cs` | reach, aim, what hands send, a fan |
+| `logic/Aim.cs` | reach, aim, what hands send, a stroke |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
 | `SwingSmear.cs` | a swing's trail |
 | `logic/SwingTrail.cs` | its flicks |
 | `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | the front arm swung |
+| `logic/ArmUp.cs` | when an aim is up |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | its line |
-| `logic/Prompt.cs` | what E does, or why not |
+| `logic/Prompt.cs` | what E does |
 | `logic/Seating.cs` | seats in a drop pod |
-| `logic/FogMove.cs` | across a planet's fog (fog-edges) |
+| `logic/FogMove.cs` | across fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | tether drawn, reeled |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/RunSounds.cs` | tools heard running |
+| `logic/ToolEdge.cs` | what a tool edge hits |
+| `WreckPixels.cs` | wrecks' opaque pixels |
 | `ToolWork.cs` | tools at work |
 | `logic/ToolSparks.cs` | sparks off a wreck |
 | `logic/CutterJet.cs` | the cutter's jet |
@@ -43,19 +46,17 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, lined |
-| `HeroView.cs` | the layer: keys, steps, rams, camera |
-| `HeroView.Hands.cs` | its hands: E, plans, tools |
+| `HeroView.cs` | keys, steps, rams, camera |
+| `HeroView.Hands.cs` | its hands: E, plans, tools, aim |
 | `HeroView.Guns.cs` | its gun, a guest's shots |
 | `logic/GunHand.cs` | a gun's cooldown and shots |
 | `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
 | `JetPlume.cs` | a jetpack's plume |
-| `RodLight.cs` | the harpoon's light (0075) |
-| `AimOutline.cs` | what the aim outline traces |
-| `FaceRim.cs` | a tool's aim glow |
+| `RodLight.cs` | harpoon light (0075) |
+| `AimOutline.cs` | the aim's outline |
 | `ModeGlyph.cs` | the driver's mode mark |
 | `logic/DriverMode.cs` | its dots |
-| `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
 | `logic/Report.cs` | Enter reports (0050) |
 | `Frost.cs` | frost past the field (0050) |
@@ -72,7 +73,7 @@ commands reach the sim. Others' heroes come through the host.
 | `LookEditor.cs` | the look editor |
 | `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | edge arrows |
-| `logic/Bodies.cs` | bodies from floor stacks (0061) |
+| `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
 | `logic/Rams.cs` | a creature's ram (0103) |
 | `logic/Crew.En.cs` | its text |
@@ -80,32 +81,30 @@ commands reach the sim. Others' heroes come through the host.
 
 ## Guarantees
 
-- Lengths and speeds are thousandths of a cell (`Content.Hero`); the controller steps at 60 Hz
-  (`Net.Clock`), drawn between.
+- Lengths, speeds: thousandths of a cell (`Content.Hero`); a step each 1000/60 ms (`Net.Clock`), drawn between.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089); out of the hull, tethered.
-- Doors are walked as this peer shows them (0014). A press asks the other state
-  (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`.
+- Doors are walked as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
-- **Jump feel** (0089): coyote time, jump buffer, short hop, eased apex, `AirControl` aloft.
+- **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl` aloft.
 - **The figure answers its motion** (0090, hero-gait), as sent.
-- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked.
-- **Surfaces** (0076): `Ship.Of` takes its rules: on a planet nothing floats, gravity the kind's `Fall`;
-  in fog it glides, `FogMove` across a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends.
+- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
+- **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
+  across a seam (fog-edges).
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends heard.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
-  tablet key dims while refused.
-- **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
-  and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
+  key on the tablet's edge, dim if refused.
+- **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, picks nothing
+  up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); a closed link's host sends `Leave`.
-- **Dressed as worn**: helmet and body apart; bare, hair, clothes; a helmet lamp; the
-  colour on the near shin; a switched body lit by `SuitOn` and charge (`SuitGlow`); both light round (hero-lights).
+- **Dressed as worn**: helmet, body, hair, clothes, a lamp; the colour on the near shin; a switched body lit by
+  `SuitOn` and charge (`SuitGlow`), both light round (hero-lights).
 
 ## Others' heroes
 
@@ -119,17 +118,19 @@ commands reach the sim. Others' heroes come through the host.
 
 - **What the hand holds shows** (`HeldLook`); a builder twists a plan or a motor (`Twist`, `Driven`); the driver's
   mode by the arrow (mode-glyph).
+- **Aimed only in use** (aim-on-use): up while used and `LingerMs` after, facing the pointer; shots and hits wait for it.
 - **Left is the front, right the back** (0107, 0108): a screwdriver works plans or repairs on the left;
   the plan, wiring, lays cables; a tool on the right, nothing.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
-  pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle.
-- **A tool's hit is a fan of rays** (`Aiming.FanOf`): a `Hew`, in space a `HewWrecks`, sent if it
-  strikes; heard at the cell nearest the pointer.
-- **Struck tools** (0038, salvage-tools): axe, hammer, spear at their paces; a swing hits as its edge crosses, a jab at full reach.
+  pointer, else the nearest small piece afloat. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, only
+  small pieces (melee-edge).
+- **Struck tools** (0038, salvage-tools, melee-edge): axe, hammer, spear, paced; a swing hits what its swept blade
+  touches, a jab at full reach (`ToolEdges.Swept`); the ground it bites rings and sparks, hull too.
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
-- **Drill, grinder, cutter** (0054, 0055, tool-contact): left held runs it (`Run`); hits every `Pace` ticks; seen at work where it touches (`ToolWork`, damage-looks).
+- **Drill, grinder, cutter** (0054, 0055, tool-edge): left held runs it (`Run`); each `Pace` ticks it hits all its drawn
+  edge touches (`ToolEdges`), seen where it first touches, sparking off each wreck (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): at work only; charged, a 2×2 square over plans or marks
   of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor

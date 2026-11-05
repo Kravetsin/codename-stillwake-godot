@@ -66,7 +66,7 @@ public partial class PipesOverlay : Node2D
         {
             int length = PipesModule.LengthOf(m.Grid.Width, from, to);
             _ui.Reason.Set(null);
-            _ui.WorldTip.Set([$"{length} · {En.T($"item.{Stillwake.Content.Piping.Item}")} ×{PipesModule.CostOf(length)[0].Count}"]);
+            _ui.WorldTip.Set([new TipLine($"{length} · {En.T($"item.{Stillwake.Content.Piping.Item}")} ×{PipesModule.CostOf(length)[0].Count}")]);
         }
         else _ui.WorldTip.Set(null);
         _ghost.QueueRedraw();

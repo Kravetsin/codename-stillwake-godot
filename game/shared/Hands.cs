@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using Stillwake.Game.Features.Atmosphere;
 using Stillwake.Game.Features.Building;
@@ -48,11 +49,12 @@ public partial class Hands : Node2D
         _air = new AirView(Ui);
         Menu = new BuildMenu(Plan, Ui);
         _tip = new PointerTip(Ui);
-        // What the pointer on a machine tells: water's, the air's, then a debris net's count.
+        // What the pointer on a machine tells: water's, the air's, then a debris net's count; its power under any of them.
+        static IReadOnlyList<TipLine>? Plain(string[]? lines) => lines?.Select(line => new TipLine(line)).ToList();
         _machines = new MachineTips(Ui,
-            (m, x, spec) => Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id)),
+            (m, x, spec) => Plain(Features.Water.WaterShows.Says(spec, m.Water.WaterIn(x.Id), m.Water.Stalled(x.Id))),
             (m, x, spec) => Features.Atmosphere.AirSays.Says(spec, m.Atmosphere.OxygenIn(x.Id), m.Atmosphere.MakesAt(x.Id)),
-            (m, x, spec) => spec.Is(Stillwake.Content.MachineTrait.Catches) ? Features.Debris.NetShows.Says(spec, m.Debris.HeldIn(x.Id).Count) : null);
+            (m, x, spec) => spec.Is(Stillwake.Content.MachineTrait.Catches) ? Plain(Features.Debris.NetShows.Says(spec, m.Debris.HeldIn(x.Id).Count)) : null);
         Air = new AirKey(Ui);
         foreach (var node in (Node[])[Mouse, _air, _power, _pipesBuilt, _pipes, _building, Menu, Air, _tip]) AddChild(node);
     }

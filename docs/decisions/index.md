@@ -44,7 +44,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037, hero-gait (in part) |
 | [0037](0037-others-see-the-hands.md) | Others see the hands | accepted | 0038 (in part) |
 | [0038](0038-one-swing-one-hit.md) | One swing, one hit | accepted | 0039 (in part) |
-| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays (in part) |
+| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge (in part) |
 | [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
@@ -82,7 +82,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0074](0074-the-inventory-is-a-wrist-computer.md) | The inventory is a wrist computer | accepted |  |
 | [0075](0075-effects-are-light-not-shapes.md) | Effects are light, not shapes | accepted | arcs-are-hairlines, effects-on-their-layer (in part) |
 | [0076](0076-a-world-is-made-of-surfaces.md) | A world is made of surfaces | accepted |  |
-| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs (in part) |
+| [0077](0077-a-planets-ground-grows-from-its-seed-and-is-dug-by-hits.md) | A planet's ground grows from its seed and is dug by hits | accepted | fan-of-rays, veins-and-stairs, tool-edge (in part) |
 | [0078](0078-two-handed-items-are-held-as-a-rifle.md) | Two-handed items are held as a rifle | superseded | one-arm-holds |
 | [0079](0079-a-planets-surface-has-its-look-and-grows-plants.md) | A planet's surface has its look, and grows plants from its seed | accepted | 0082 (in part) |
 | [0080](0080-caves-glow-by-depth.md) | Caves glow by depth: what grows in them is the surface's flora, held by floor, ceiling or rock | accepted | veins-and-stairs (in part) |
@@ -123,7 +123,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [added-save-fields-need-no-bump](2026-10-24-added-save-fields-need-no-bump.md) | A save's unknown field is refused, so an added one needs no format bump | accepted |  |
 | [plan-modes](2026-10-24-plan-modes.md) | The plan has modes: building, wiring, piping | accepted |  |
 | [the-launch-platform](2026-10-24-the-launch-platform.md) | The launch platform is a deck of joined pieces that opens with power | accepted |  |
-| [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted |  |
+| [fan-of-rays](2026-10-25-fan-of-rays.md) | A tool's hit is a fan of rays | accepted | melee-edge (in part) |
 | [the-drop-pod](2026-10-25-the-drop-pod.md) | The drop pod is a bell a hero boards on a launch platform | accepted |  |
 | [the-engine-through-the-hull](2026-10-25-the-engine-through-the-hull.md) | The engine stands at the stern, its nozzle out through the hull | accepted |  |
 | [title-scene](2026-10-25-title-scene.md) | The title is a drawn scene of despair | accepted |  |
@@ -180,7 +180,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted |  |
 | [hold-piles](2026-10-31-hold-piles.md) | The hold's piles | accepted |  |
 | [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
-| [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | accepted |  |
+| [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | superseded | hologram-keys |
 | [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted |  |
 | [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour, ink-by-default |
 | [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
@@ -193,17 +193,17 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-pile](2026-11-02-board-pile.md) | New finds come to the board as a pile | accepted |  |
 | [board-room](2026-11-02-board-room.md) | The camera stops at a size, and the player has room for heaps | accepted |  |
 | [board-thoughts](2026-11-02-board-thoughts.md) | The board says what the hero is thinking | accepted |  |
-| [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | accepted |  |
+| [bulb-signal](2026-11-02-bulb-signal.md) | A bulb over the hero says something new waits on the board | superseded | hologram-keys |
 | [far-land-in-ink](2026-11-02-far-land-in-ink.md) | The far land in ink | accepted |  |
 | [hero-clothes](2026-11-02-hero-clothes.md) | One body, four sets of clothes | accepted |  |
 | [ink-batch](2026-11-02-ink-batch.md) | The rest of the art in one batch | accepted |  |
 | [ink-by-default](2026-11-02-ink-by-default.md) | The game is drawn in ink by default | accepted |  |
-| [key-lens](2026-11-02-key-lens.md) | The tablet's key is a frosted lens that lights | accepted |  |
+| [key-lens](2026-11-02-key-lens.md) | The tablet's key is a frosted lens that lights | accepted | hologram-keys (in part) |
 | [market-decrypt](2026-11-02-market-decrypt.md) | The black market looks hacked | superseded | market-grid |
 | [pipes-in-ink](2026-11-02-pipes-in-ink.md) | Pipes in ink | accepted |  |
 | [ports-left-to-right](2026-11-02-ports-left-to-right.md) | Ports read left to right | accepted |  |
 | [russian-language](2026-11-02-russian-language.md) | The game speaks Russian | accepted |  |
-| [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted |  |
+| [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted | hologram-keys (in part) |
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
 | [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
@@ -213,12 +213,12 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [debris-net](2026-11-03-debris-net.md) | The debris net | accepted |  |
 | [driver-at-work](2026-11-03-driver-at-work.md) | The power driver runs only at its work | accepted |  |
 | [driver-square](2026-11-03-driver-square.md) | The power driver's square in teal, over the plans | accepted |  |
-| [edge-lenses](2026-11-03-edge-lenses.md) | The tablet edge's keys are frosted lenses, and the journal has one | accepted |  |
+| [edge-lenses](2026-11-03-edge-lenses.md) | The tablet edge's keys are frosted lenses, and the journal has one | accepted | hologram-keys (in part) |
 | [hero-lights](2026-11-03-hero-lights.md) | The hero's own lights light what is round them | accepted |  |
 | [ink-signs](2026-11-03-ink-signs.md) | Ink signs: the bolt, the credit chip and the air lamps | accepted |  |
 | [loss-shows-white](2026-11-03-loss-shows-white.md) | Every loss shows white | accepted |  |
 | [market-grid](2026-11-03-market-grid.md) | The black market is a grid of goods | accepted |  |
-| [market-key](2026-11-03-market-key.md) | The black market has its own key on the tablet's edge, the tablet no tabs, the credits always in sight | accepted |  |
+| [market-key](2026-11-03-market-key.md) | The black market has its own key on the tablet's edge, the tablet no tabs, the credits always in sight | accepted | hologram-keys (in part) |
 | [pixel-art-removed](2026-11-03-pixel-art-removed.md) | The pixel art is removed | accepted |  |
 | [pixels-unsupported](2026-11-03-pixels-unsupported.md) | The pixel art is unsupported | accepted |  |
 | [power-driver](2026-11-03-power-driver.md) | The power driver works a square | accepted |  |
@@ -241,7 +241,13 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
 | [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
+| [aim-on-use](2026-11-05-aim-on-use.md) | An aimed item comes up only in use | accepted |  |
 | [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
+| [air-wash](2026-11-05-air-wash.md) | The air overlay is a wash to leave on | accepted |  |
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted |  |
+| [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
+| [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted |  |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
-| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks (in part) |
+| [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
+| [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
+| [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted |  |

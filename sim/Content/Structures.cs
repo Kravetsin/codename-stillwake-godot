@@ -178,6 +178,6 @@ public static class Structures
 /// <summary>How a door or hatch moves (2026-11-04-door-swing).</summary>
 public static class Doors
 {
-    /// <summary>Ticks a toggled doorway takes no other toggle, from anyone: the 1.2 s its sound plays.</summary>
-    public const int SwingTicks = 24;
+    /// <summary>Ticks a toggled doorway takes no other toggle, from anyone: 0.55 s, until the stop rings in its sound; the ring after is barely heard.</summary>
+    public const int SwingTicks = 11;
 }

@@ -141,32 +141,15 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
-    public void ANewlyMetOrderLightsTheMarketsKeyNotTheTablets()
-    {
-        var seen = new BoardSeen([]);
-        seen.ReadOrders(1);
-        Assert.False(seen.MarketNew);
-        seen.ReadOrders(1);
-        Assert.False(seen.MarketNew);
-        seen.ReadOrders(2);
-        Assert.True(seen.MarketNew);
-        Assert.False(seen.Lit);
-    }
-
-    [Fact]
-    public void AnOrderStaysNewUntilTheMarketIsChosenWhateverTheTabletDoes()
+    public void ANewlyMetOrderPlaysWhenTheMarketIsShownWhateverTheTabletDidAndLightsNoNote()
     {
         var seen = new BoardSeen([], 0);
         seen.ReadOrders(1);
         seen.Opened();
-        Assert.True(seen.MarketNew);
         seen.Closed();
-        Assert.True(seen.MarketNew);
-        seen.Opened();
+        Assert.False(seen.Lit);
         Assert.Equal(0, seen.SeeOrders(1));
-        Assert.False(seen.MarketNew);
-        seen.Closed();
-        Assert.False(seen.MarketNew);
+        Assert.Equal(1, seen.SeeOrders(1));
     }
 
     [Fact]
@@ -185,9 +168,8 @@ public sealed class BoardSeenTests : IDisposable
         var seen = new BoardSeen([], 1);
         seen.SeeOrders(2);
         seen.ReadOrders(1);
-        Assert.False(seen.MarketNew);
         seen.ReadOrders(2);
-        Assert.False(seen.MarketNew);
+        Assert.Equal(2, seen.SeeOrders(2));
     }
 
     [Fact]
@@ -195,7 +177,6 @@ public sealed class BoardSeenTests : IDisposable
     {
         var seen = new BoardSeen([]);
         Assert.Equal(4, seen.SeeOrders(4));
-        Assert.False(seen.MarketNew);
     }
 
     [Fact]
@@ -207,7 +188,7 @@ public sealed class BoardSeenTests : IDisposable
     }
 
     [Fact]
-    public void AnOrderMetIsStillNewAfterARelaunchAndAFileFromBeforeOrdersStartsAsThingsStand()
+    public void AnOrderMetStillPlaysAfterARelaunchAndAFileFromBeforeOrdersStartsAsThingsStand()
     {
         var keep = new BoardKeep(_folder);
         keep.Of(7);
@@ -218,11 +199,11 @@ public sealed class BoardSeenTests : IDisposable
         again.Of(7);
         again.Seen.Read([]);
         again.Seen.ReadOrders(2);
-        Assert.True(again.Seen.MarketNew);
+        Assert.Equal(1, again.Seen.SeeOrders(2));
         Assert.True(BoardFile.Write(BoardFile.PathOf(_folder, 8), new BoardKept(null, [])));
         again.Of(8);
         again.Seen.ReadOrders(2);
-        Assert.False(again.Seen.MarketNew);
+        Assert.Equal(2, again.Seen.SeeOrders(2));
     }
 
     [Fact]

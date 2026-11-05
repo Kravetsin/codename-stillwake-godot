@@ -139,11 +139,17 @@ public partial class AsteroidDemo : CanvasLayer
         });
     }
 
+    /// <summary>Whether the pointer has come to the <paramref name="nth"/> asteroid: a hanging drill outlines nothing to wait for (aim-on-use).</summary>
+    private bool Arrived(int nth) => OnScreen(nth) is { } at && _pos.DistanceTo(at) < 2;
+
     private void Next(string said)
     {
         GD.Print($"[demo] {said} at {_t:0.00} s");
         (_stage, _stageAt) = (_stage + 1, _t);
     }
+
+    /// <summary>Whether the belt can no longer pay the drill: the sim would refuse its next hit.</summary>
+    private bool Flat() => _world() is var (client, m) && m.Items.WeaponProblem(client.Id, Content.Weapons.Drill.Item, running: false) == "items.flat";
 
     public override void _Process(double delta)
     {
@@ -157,14 +163,13 @@ public partial class AsteroidDemo : CanvasLayer
         if (_stage > 6) return;
         int rock = _stage < 3 ? 0 : 1;
         if (OnScreen(rock) is { } at) _pos = _pos.MoveToward(at, (float)(1200 * delta));
-        var aimed = _ui.AimedPiece.Get();
         switch (_stage)
         {
             case 0 when _t >= 0.8:
                 Tap(Key.Key1);
                 Next("drill chosen");
                 break;
-            case 1 when _t >= _stageAt + 0.8 && aimed is (_, false):
+            case 1 when _t >= _stageAt + 0.8 && Arrived(0):
                 Hold(true);
                 Next("drilling the right rock");
                 break;
@@ -172,12 +177,12 @@ public partial class AsteroidDemo : CanvasLayer
                 Hold(false);
                 Next("the right rock broken");
                 break;
-            case 3 when _t >= _stageAt + 1.2 && aimed is (_, false):
+            case 3 when _t >= _stageAt + 1.2 && Arrived(1):
                 Hold(true);
                 Next("drilling the left rock");
                 break;
             // Flat: the sim would refuse the next hit, and the drill winds down; held a while longer to show it.
-            case 4 when aimed is (_, true) && _t >= _stageAt + 0.5:
+            case 4 when Flat() && _t >= _stageAt + 0.5:
                 Next("the belt flat");
                 break;
             case 5 when _t >= _stageAt + 2.0:

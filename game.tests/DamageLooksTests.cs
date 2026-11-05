@@ -100,7 +100,7 @@ public class DamageLooksTests
         for (int frame = 0; frame < 10; frame++)
         {
             sparks.Begin(1000.0 / 60);
-            sparks.Touch(1, Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
+            sparks.Touch((1, 1), Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
             sparks.End();
         }
         Assert.InRange(sparks.Count, 20, 30);
@@ -113,6 +113,24 @@ public class DamageLooksTests
             sparks.End();
         }
         Assert.Equal(0, sparks.Count);
+    }
+
+    [Fact]
+    public void A_tool_touching_two_wrecks_throws_a_whole_stream_off_each()
+    {
+        var one = new ToolSparks();
+        var two = new ToolSparks();
+        for (int frame = 0; frame < 10; frame++)
+        {
+            one.Begin(1000.0 / 60);
+            two.Begin(1000.0 / 60);
+            one.Touch((1, 1), Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
+            two.Touch((1, 1), Content.Weapons.Drill.Item, (100, 50), (-1, 0), 1000.0 / 60);
+            two.Touch((1, 2), Content.Weapons.Drill.Item, (140, 50), (-1, 0), 1000.0 / 60);
+            one.End();
+            two.End();
+        }
+        Assert.Equal(2 * one.Count, two.Count);
     }
 
     [Fact]

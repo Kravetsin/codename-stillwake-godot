@@ -88,6 +88,12 @@ public sealed class CardScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new CardDemo(c.Hands, Args.Value("--card")!, pick: Args.Has("--pick")));
 }
 
+[Dev("--tip", "with --testbed, the pointer held where a tip speaks: air (the overlay on, an aired room) or a machine kind (TipDemo)", Shape = DevShape.Equals)]
+public sealed class TipScenario : DevScenario
+{
+    public override void Attach(DevContext c) => c.Add(new TipDemo(c.Hands, c.M, Args.Value("--tip")!));
+}
+
 [Dev("--charger", "arc or plain: the testbed's charging station filling an empty accumulator, fitted or not (ChargerArcDemo)", Shape = DevShape.Equals)]
 public sealed class ChargerScenario : DevScenario
 {
@@ -167,18 +173,10 @@ public sealed class BoardScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M, Args.Given("--board")));
 }
 
-[Dev("--bulb", "the bulb over the hero as a note starts waiting; =two with a second find, =walk pacing the room, =space out past the hull (BulbDemo)", Shape = DevShape.Either)]
+[Dev("--bulb", "the bulb at the screen's top as a note starts waiting, the find flying into the research key; =two with a second find after the burst (BulbDemo)", Shape = DevShape.Either)]
 public sealed class BulbScenario : DevScenario
 {
-    private HeroAutopilot? _script;
-
     public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, "late");
-
-    public override HeroAutopilot? Script => Args.Given("--bulb") == "walk" ? _script ??= HeroAutopilot.Pace() : null;
-
-    public override Func<Registry, int>? Start => Args.Given("--bulb") == "space"
-        ? m => Enumerable.Range(0, m.Grid.Width).Select(x => m.Grid.Height / 2 * m.Grid.Width + x).First(m.Rooms.Afloat)
-        : null;
 
     public override void Attach(DevContext c) => c.Add(new BulbDemo(c.M, Args.Given("--bulb") == "two"));
 }

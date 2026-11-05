@@ -376,6 +376,11 @@ public partial class Figure : Node2D
     /// <summary>Where the harpoon or the drill held aims, in pixels of the world: the arm straight, the barrel's or the bit's line through it; none to let it hang.</summary>
     public Vector2? Aim { get; set; }
 
+    /// <summary>Whether the item held was drawn aimed at <see cref="Aim"/> last frame, its arm up and settled: its muzzle and edge are the aim's (aim-on-use).</summary>
+    public bool Aimed { get; private set; }
+
+    private bool _wasAiming;
+
     /// <summary>The suit's mode, its belt's charge and the breath's phase (<see cref="SuitGlow.Of"/>): what a switched body's lights show; all off by default.</summary>
     public (bool On, bool Charged, double Phase) Suit { get; set; }
 
@@ -981,7 +986,10 @@ public partial class Figure : Node2D
             var (dx, dy) = FromShoulder(target);
             swung = (HarpoonShot.ArmFor(item, dx, dy), 0);
         }
-        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, elbow);
+        // An aimed item comes up and goes down quicker than a swing winds up (aim-on-use).
+        frontArm = _swingArm.Next(frontArm, swung, elapsedMs, elbow, aiming || _wasAiming ? ArmUp.RaiseMs : null);
+        Aimed = aiming && _swingArm.Settled;
+        _wasAiming = aiming;
         // Running with an item in one hand it trails behind (HeroMotion.Carry), and the arm swings on a spring: it lags a
         // start and swings on past a stop. Aimed, swung or at work, it goes where it is put at once.
         bool carried = inHand && swung == null && !working && !aiming;

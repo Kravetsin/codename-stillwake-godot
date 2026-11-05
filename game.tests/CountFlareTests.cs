@@ -80,6 +80,20 @@ public class CountFlareTests
         Assert.Equal(shown, flare.Shown);
     }
 
+    [Fact]
+    public void ASmallChangePopsAsFullAsABigOneThoughItFlaresLess()
+    {
+        var small = Read(20000, 20001);
+        var big = Read(0, 20000);
+        small.Step(CountFlare.RiseS);
+        big.Step(CountFlare.RiseS);
+        Assert.Equal(1, small.Pop, 6);
+        Assert.Equal(big.Pop, small.Pop, 6);
+        Assert.True(small.Heat < big.Heat);
+        small.Step(CountFlare.CountS + CountFlare.GlowS);
+        Assert.Equal(0, small.Pop, 6);
+    }
+
     private static CountFlare Read(int first, int then)
     {
         var flare = new CountFlare();
