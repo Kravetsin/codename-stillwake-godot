@@ -137,12 +137,20 @@ public partial class HeroView
         // A gun of the sim's shots, aimed at the pointer anywhere; its shot fires from the muzzle as last drawn.
         bool wieldsShooter = acts && shooter != null && Poses.HoldsIn(pose);
         _aimsGun = (wieldsGun || wieldsShooter) && pointer != null;
-        Shoot(client, m, shooter, wieldsShooter, clicked && !grabbed, _mouse.Buttons.HoldsLeft && !_grabHeld, _hosts, elapsedMs);
+        // An aimed item comes up while used and a moment after, else it hangs (aim-on-use): held, clicked, running, its rod out or
+        // thrust. A click waits till the arm is up, so a shot leaves along the aim, never the hanging barrel.
+        bool held = _mouse.Buttons.HoldsLeft && !_grabHeld, thrusts = swings && stroke?.Kind == StrokeKind.Thrust;
+        bool fresh = clicked && !grabbed || _clickWaits;
+        bool used = (_aimsGun || _aimsDrill) && (held || fresh || runs || gun && _harpoon.Rod != Rod.Seated) || thrusts && (wanted || _swing.Phase != null);
+        _armUp = _arm.Step(used, elapsedMs) && (_aimsGun || _aimsDrill || thrusts);
+        bool ready = _figure.Aimed;
+        _clickWaits = fresh && !ready && _aimsGun;
+        Shoot(client, m, shooter, wieldsShooter, fresh && ready, held && ready, _hosts, elapsedMs);
         var middle = _current.Middle;
         var hold = new GunHold(wieldsGun, _figure.Muzzle is { } muzzle ? Thousandths(muzzle) : null, (_figure.Barrel.X, _figure.Barrel.Y),
             (middle.X, middle.Y), _letsGo);
         _letsGo = false;
-        var shot = _harpoon.Step(elapsedMs, clicked && !grabbed, hold, _harpoonWorld);
+        var shot = _harpoon.Step(elapsedMs, fresh && ready, hold, _harpoonWorld);
         if (shot.Fired)
         {
             _shot.Play();
@@ -165,7 +173,7 @@ public partial class HeroView
         }
         // Pulled, the gun points along the line at the hook; hanging, at the pointer again, as a wall it hangs flush on would swallow it.
         _figure.Aim = _harpoon.Rod == Rod.Pulling && wieldsGun ? Pixels(_harpoon.Tip)
-            : (_aimsGun || _aimsDrill || stroke?.Kind == StrokeKind.Thrust) && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
+            : _armUp && pointer is { } at ? new Vector2((float)(at.X * Rig.Cell), (float)(at.Y * Rig.Cell)) : null;
         _figure.Loaded = shooter != null ? _guns.Ready : _harpoon.Ready;
         _wields = passedOut ? null : _ui.Wielded.Get();
         _busy = working ? new Busy(Handwork.Work, square is { } box ? Middle(box.X, box.Y, side) : Middle(aim!.Cell))
@@ -337,7 +345,7 @@ public partial class HeroView
     /// </summary>
     private EdgeHit? EdgeOf(Registry m, Hero hero, string tool, Figure figure)
     {
-        if (!figure.Visible || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
+        if (!figure.Visible || !figure.Aimed || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
         var edge = ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end));
         bool outside = m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;
         return ToolEdges.Hits(m, edge, outside, _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));

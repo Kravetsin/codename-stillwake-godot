@@ -607,23 +607,23 @@ public class AimTests
     }
 
     [Fact]
-    public void TheDrillsBeamReachesFartherAndSaysWhenTheBeltIsFlat()
+    public void ADrillAimsOnlyWhereItsEdgeTouchesAndSaysWhenTheBeltIsFlat()
     {
         var hand = HandOf(HeroOn(6, 7));
         string drill = Spec.Weapons.Drill.Item;
         var (w, hero) = Field(("asteroid", hand.X + 5_300 + HalfW("asteroid"), hand.Y));
         var at = ((double)hand.X / Unit + 10, (double)hand.Y / Unit);
-        // Past the axe's range, within the drill's.
-        Assert.Empty(Struck(w, hero, Aiming.PointOf(at)));
-        Assert.Equal([1], Struck(w, hero, Aiming.PointOf(at), drill));
-        var aim = Aiming.AimAt(w.M, 0, hero, at, tool: drill);
-        var fan = Aiming.FanOf(w.M, hero, Aiming.PointOf(at), drill);
-        Assert.Equal(new Use(fan.Wrecks, "items.flat"), aim?.Press);
-        Assert.Equal(1, aim?.Piece);
+        // Hanging, unused, it has no edge and aims at nothing, the asteroid under the pointer or not (aim-on-use).
+        Assert.Equal((null, null), (Aiming.AimAt(w.M, 0, hero, at, tool: drill)?.Press, Aiming.AimAt(w.M, 0, hero, at, tool: drill)?.Piece));
+        // Up, its edge into the asteroid: it aims there, refused while the belt is flat.
+        var edge = ToolEdges.Hits(w.M, new Edge((hand.X + 5_000, hand.Y), (hand.X + 6_000, hand.Y), 0, false), outside: true, 0, (_, _, _) => true);
+        var aim = Aiming.AimAt(w.M, 0, hero, at, tool: drill, edge: edge);
+        Assert.Equal([1], Assert.IsType<Sim.Debris.HewPieces>(aim?.Press?.Command).Pieces);
+        Assert.Equal(("items.flat", 1), (aim?.Press?.Problem, aim?.Piece));
         Assert.Equal(new Prompt("use.chop", "items.flat"), Prompts.Of(w.M, aim));
         // In creative mode it needs no battery.
         w.Step(new SetCreative(true));
-        Assert.Equal(new Use(fan.Wrecks, null), Aiming.AimAt(w.M, 0, hero, at, tool: drill)?.Press);
+        Assert.Null(Aiming.AimAt(w.M, 0, hero, at, tool: drill, edge: edge)?.Press?.Problem);
     }
 
     [Fact]

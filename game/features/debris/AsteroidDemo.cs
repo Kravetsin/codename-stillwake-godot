@@ -139,6 +139,9 @@ public partial class AsteroidDemo : CanvasLayer
         });
     }
 
+    /// <summary>Whether the pointer has come to the <paramref name="nth"/> asteroid: a hanging drill outlines nothing to wait for (aim-on-use).</summary>
+    private bool Arrived(int nth) => OnScreen(nth) is { } at && _pos.DistanceTo(at) < 2;
+
     private void Next(string said)
     {
         GD.Print($"[demo] {said} at {_t:0.00} s");
@@ -164,7 +167,7 @@ public partial class AsteroidDemo : CanvasLayer
                 Tap(Key.Key1);
                 Next("drill chosen");
                 break;
-            case 1 when _t >= _stageAt + 0.8 && aimed is (_, false):
+            case 1 when _t >= _stageAt + 0.8 && Arrived(0):
                 Hold(true);
                 Next("drilling the right rock");
                 break;
@@ -172,7 +175,7 @@ public partial class AsteroidDemo : CanvasLayer
                 Hold(false);
                 Next("the right rock broken");
                 break;
-            case 3 when _t >= _stageAt + 1.2 && aimed is (_, false):
+            case 3 when _t >= _stageAt + 1.2 && Arrived(1):
                 Hold(true);
                 Next("drilling the left rock");
                 break;

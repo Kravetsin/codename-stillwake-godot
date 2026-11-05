@@ -256,9 +256,11 @@ public static class Aiming
             int at = DebrisModule.CellOf(piece.X, piece.Y, grid.Width);
             return new Aim(at, Reaches(hero, at, grid.Width), new Use(new Grab(piece.Id), m.Debris.GrabProblem(peer, piece.Id)), Piece: piece.Id);
         }
-        // A running tool aims at what its drawn edge touches (tool-edge): the first cell it strikes, else the first wreck.
-        if (!axe && tool != null && edge != null && HeldLook.IsDrill(tool))
+        // A running tool aims at what its drawn edge touches (tool-edge): the first cell it strikes, else the first wreck; hanging,
+        // unused, at nothing (aim-on-use).
+        if (!axe && tool != null && HeldLook.IsDrill(tool))
         {
+            if (edge == null) return new Aim(cell, inReach);
             var cells = edge.Cells.ToList();
             if (m.Items.BlockDamage(peer, tool) != 0 && ToolEdges.LeadOf(m, edge) is int lead)
                 return new Aim(lead, true, new Use(new HewCells(tool, cells), m.Building.HewCellsProblem(peer, tool, cells)), Edge: edge);
