@@ -11,10 +11,10 @@ namespace Stillwake.Game.Features.Grid;
 public sealed class DoorSlides
 {
     /// <summary>
-    /// How long a panel takes to slide all the way, whatever the doorway's length: until the stop rings in its sound
-    /// (<c>door-open-1</c>, <c>door-close-1</c>, both at 0.54 s), the rest of the sound its ring as the door settles.
+    /// How long a panel takes to slide all the way, whatever the doorway's length: the door's swing, when it takes a press again
+    /// (door-swing), which ends as the stop rings in its sound (<c>door-open-1</c>, <c>door-close-1</c>, both at 0.54 s).
     /// </summary>
-    public const double Seconds = 0.54;
+    public const double Seconds = (double)Stillwake.Content.Doors.SwingTicks / Stillwake.Sim.World.TicksPerSecond;
 
     /// <summary>The cells still sliding: how far open each is now, from 0 to 1, and which way it goes.</summary>
     private readonly Dictionary<int, (double Open, bool Opening)> _moving = new();
