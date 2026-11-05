@@ -183,7 +183,7 @@ public sealed partial class HazardsModule : Module<HazardsState>
         int next = cell + 1;
         if (next % _grid.Width == 0 || _grid.MachineAt(next) is not { } net || !Machines.Is(net.Kind, MachineTrait.Catches)) return;
         _ops.Clear(next, "machine");
-        _items.DropAt(FloorStack.Nobody, Machines.Get(net.Kind).Cost, net.Cell);
+        foreach (var (item, count) in Machines.Get(net.Kind).Cost) _items.LayDown(new Stack(item, count), net.Cell);
     }
 
     /// <summary>The blast a meteor of <paramref name="power"/> sets off: what it may spend reaching cells and breaking walls.</summary>

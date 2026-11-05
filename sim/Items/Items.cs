@@ -89,6 +89,7 @@ public interface IItemsOps
     IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
+    void Caught(IReadOnlyList<(string Item, int Count)> loot);
     void Charge(int id, int slot, int amount);
     bool Drain(int peer, int amount);
     void StopRunning(int peer);
@@ -519,6 +520,9 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     {
         foreach (var (item, count) in Stacks.Entries(cost)) _knowledgeOps.Obtain(item, count);
     }
+
+    /// <summary>Counts <paramref name="loot"/> obtained, born held outside any stack: a salvage drone's catch, carried until it reaches a crate.</summary>
+    public void Caught(IReadOnlyList<(string Item, int Count)> loot) => Obtained(loot);
 
     /// <summary>Lets <paramref name="cost"/> fall on cell <paramref name="cell"/> as if peer <paramref name="peer"/> dropped it there, still; <see cref="FloorStack.Nobody"/> for a stack anyone may take at once.</summary>
     public void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)

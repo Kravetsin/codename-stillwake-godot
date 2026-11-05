@@ -402,6 +402,16 @@ public class NetTests
     }
 
     [Fact]
+    public void BreakTheNetCountingWhatItHeldAsObtainedButNotTheCostItGivesBack()
+    {
+        var w = Struck();
+        HazardsTests.StrikeAt(w, 3 * 10 + 5, 4);
+        Assert.Empty(w.M.Grid.MachinesOf("net"));
+        Assert.All(Machines.Get("net").Cost, c => Assert.Equal(0, w.M.Knowledge.ObtainedOf(c.Item)));
+        Assert.Equal((1, 1), (w.M.Knowledge.ObtainedOf("scrapChunk"), w.M.Knowledge.ObtainedOf("hullPlate")));
+    }
+
+    [Fact]
     public void BreakTheNetDroppingItsWholeBuildCostAtItsCellForAnyoneOnceThoughTheBlastBreaksManyOfItsWalls()
     {
         var w = Struck();

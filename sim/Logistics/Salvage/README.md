@@ -39,7 +39,7 @@ Drones in general: [0062](../../../docs/decisions/0062-drones-keep-machines-goin
 - **Each tick** it pays charge as any drone and one `Air`; short of either it drops. It turns home `Low` when charge or
   air no longer covers the way home plus `Spare`.
 - **At the target**, and only there, in the cell of its middle, it catches the piece (`Catch`: the loot rolled, recorded
-  found) or lifts the stack whole (`Lift`), into its net: one catch each, whatever the loot. A target gone, reeled, out
+  found, counted obtained) or lifts the stack whole (`Lift`), into its net: one catch each, whatever the loot. A target gone, reeled, out
   of space or of the zone, out of its reach (no path from the drone in its flood: drifted under the hull, say), or taken
   first the same tick (hero, net), is dropped at the next cell centre for the next target, or home.
 - **Next**, after each catch or a target dropped: while its net holds fewer than `SalvageHolds`, the nearest affordable

@@ -35,8 +35,8 @@ Every stack of items: inventories by peer, machines' by id, the floor's; creativ
   down, draw a cost rounded up, pace the weapon's. `Damage(peer, tool)` is that stack's, the weapon's own if none.
 - **Equipment** holds only an item whose `Equip` is its kind: `items.notEquipment` (0047). Worn items
   are never taken nor counted (`Totals`). `WornIn(peer, kind)`: what is worn there (2026-10-27-suits-are-worn).
-- **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `DropAt` for `Nobody` count, `GiveWhatFits` what it gave
-  (the rest returned); the rest moves or refunds.
+- **Obtained** (the-board): `Output`, `Smelt`, `GiveOrDrop`, `Spray`, `Caught`, `DropAt` for `Nobody` count, `GiveWhatFits`
+  what it gave; the rest moves or refunds.
 - **Give and take** all of a cost or none (0008): giving fills stacks of the item in slot order, then empty
   own slots; taking empties own slots from the last, the hotbar last. `Spawn` (creative) gives what
   fits, batteries full.

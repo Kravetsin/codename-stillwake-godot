@@ -80,8 +80,8 @@ public interface IDebrisOps
     bool Hit(int peer, int id, int damage);
 
     /// <summary>
-    /// Piece <paramref name="id"/> taken by a salvage drone (salvage-drones): gone, what it gives rolled as a net's catch is and
-    /// recorded as found, with no popup; null for one gone.
+    /// Piece <paramref name="id"/> taken by a salvage drone (salvage-drones): gone, what it gives rolled as a net's catch is,
+    /// recorded as found and counted obtained, with no popup; null for one gone.
     /// </summary>
     IReadOnlyList<(string Item, int Count)>? Catch(int id);
 }
@@ -192,6 +192,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         State.Pieces.RemoveAt(at);
         var loot = LootOf(piece.Item, Random);
         Record(piece, loot);
+        _items.Caught(loot);
         return loot;
     }
 

@@ -15,7 +15,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 `Surfaces.Kind.Flares`, `Content/MagneticFlares.cs`).
 
 - **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them); `Power`
-  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares); `Items` (`DropAt`, a broken net's cost):
+  (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares); `Items` (`LayDown`, a broken net's cost):
   the one place that knows a meteor, not a screwdriver, took the net, and Items runs before it.
 - **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no hazards
   (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
@@ -43,7 +43,7 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   the player patches it with what they have. The hole is an opening of its room: `atmosphere` vents it and drains its
   vents' networks until a valve cuts them off or a wall is built again. A deconstruction mark on it is dropped by `building`.
   A `Catches` machine in the next cell of its row (x + 1 on the grid), a net hung on it, is cleared with it, its whole
-  `Machines` cost (6 wire, 4 tube) dropped at its cell for anyone (`DropAt(Nobody)`), once however many of its walls break;
+  `Machines` cost (6 wire, 4 tube) laid at its cell for anyone (`LayDown`, a refund, not counted obtained), once however many of its walls break;
   `debris` drops what it held on the same tick (it runs after). The net's cells still stop a blast.
 - `MeteorHit(cell)` (dev) breaks the one wall at `cell` whatever its armour.
 - **A flare**, each tick in construction after the shower: a `FlareIn` above 0 counts down, armed or not, and strikes on
