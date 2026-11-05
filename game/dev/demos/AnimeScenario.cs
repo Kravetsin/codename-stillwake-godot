@@ -101,12 +101,12 @@ public sealed class AnimeScenario : DevScenario
         if (_door == 0 && tick >= Testbed.AirTicks + 20)
         {
             _door = 1;
-            foreach (var c in Dev.Autopilot.At(20, m.Grid)) client.Send(c);
+            foreach (var c in Dev.Autopilot.At(Dev.Autopilot.OpenAt, m.Grid)) client.Send(c);
         }
         if (_door == 1 && tick >= Testbed.AirTicks + 60)
         {
             _door = 2;
-            foreach (var c in Dev.Autopilot.At(40, m.Grid)) client.Send(c);
+            foreach (var c in Dev.Autopilot.At(Dev.Autopilot.ShutAt, m.Grid)) client.Send(c);
         }
     }
 
