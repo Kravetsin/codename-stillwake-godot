@@ -356,13 +356,16 @@ public class CreaturesRamTests
     }
 
     [Fact]
-    public void ARamThatTakesTheLastUnitPassesTheHeroOutItsBodyLeftWhereItFell()
+    public void ARamThatTakesTheLastUnitStartsTheLastBreathThenTheHeroPassesOutItsBodyLeftWhereItFell()
     {
         var w = CreaturesTesting.Planet(Pen).HeroAt(3, 3).GiveItems(0, ("scrap", 4));
         var c = w.Let(Tapir, 6, 3).Charging(-1);
         w.M.Crew.HeroOf(0)!.Air = Tapir.Ram() - 1;
         w.Do(new HitBy(c.Id)).Run();
         var hero = w.M.Crew.HeroOf(0)!;
+        Assert.Equal((true, 0), (hero.Gasp > 0, hero.Out));
+        Assert.Empty(w.M.Items.Floor);
+        w.Run(Content.Crew.LastBreath);
         Assert.True(hero.Out > 0);
         Assert.Equal(0, hero.Air);
         var body = Assert.Single(w.M.Items.Floor);

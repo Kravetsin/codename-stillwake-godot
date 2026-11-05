@@ -235,10 +235,12 @@ public class SuitsTests
     }
 
     [Fact]
-    public void OffTheGridEvenAFullHeavyHelmetEndsInABreath()
+    public void OffTheGridEvenAFullHeavyHelmetEndsInABreathItsLastBreathAfter()
     {
         var w = Heavy(-5);
         Breaths(w, 1);
+        Assert.Equal((0, Content.Crew.LastBreath), (HeroOf(w).Air, HeroOf(w).Gasp));
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
     }
 
@@ -281,11 +283,12 @@ public class SuitsTests
         from thrusting in Gen.Elements(0, 1)
         select new Step("thrust", hero, Ticks: thrusting),
         from hero in Gen.Choose(0, 2) select new Step("refill", hero),
+        from hero in Gen.Choose(0, 2) from units in Gen.Choose(1, 60) select new Step("shock", hero, Ticks: units),
         Gen.Constant(new Step("upgrade")),
         Gen.Frequency((2, Gen.Choose(1, 20)), (1, Gen.Choose(1, 600))).Select(t => new Step("wait", Ticks: t)));
 
     [Property(MaxTest = 40)]
-    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityThroughSwapsRefillsUpgradesColdAndThrust()
+    public Property KeepsEveryHerosAirBetweenNothingAndItsCapacityAndItsLastBreathOnlyWithNoneThroughSwapsRefillsUpgradesColdThrustAndShocks()
     {
         var steps = from n in Gen.Choose(0, 25) from s in Steps.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
@@ -297,6 +300,7 @@ public class SuitsTests
                 if (s.Type == "enter") w.Do(EnterAt(s.Cell, s.Hero));
                 else if (s.Type == "thrust") w.Do(new Thrust(s.Ticks == 1) { From = s.Hero });
                 else if (s.Type == "refill") w.Do(new Refill { From = s.Hero });
+                else if (s.Type == "shock") w.M.Crew.Shock(s.Hero, s.Ticks);
                 else if (s.Type == "upgrade") w.M.Knowledge.Grant("canister1");
                 else if (s.Type == "swap")
                 {
@@ -310,6 +314,8 @@ public class SuitsTests
                 foreach (var hero in w.Crew().Heroes)
                     if (hero.Air < 0 || hero.Air > w.M.Crew.CapacityOf(hero.Id))
                         return false.Label($"hero {hero.Id} holds {hero.Air} of {w.M.Crew.CapacityOf(hero.Id)}");
+                    else if (hero.Gasp < 0 || hero.Gasp > Content.Crew.LastBreath || hero.Gasp > 0 && (hero.Air > 0 || hero.Out > 0))
+                        return false.Label($"hero {hero.Id} gasps {hero.Gasp} with {hero.Air} air, out {hero.Out}");
             }
             return true.ToProperty();
         });

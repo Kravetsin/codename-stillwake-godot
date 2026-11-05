@@ -142,6 +142,8 @@ public class CapeTests
 
         var w = InVacuum(caped: true, suited: true);
         w.M.Crew.Shock(0, Full);
+        // The first empties the suit, the second cuts its last breath.
+        w.M.Crew.Shock(0, Full);
         Assert.True(HeroOf(w).Out > 0);
         int spared = HeroOf(w).Spared;
         w.M.Crew.Blow(0, 3);

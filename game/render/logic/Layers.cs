@@ -127,8 +127,14 @@ public static class ScreenLayers
     /// <summary>A magnetic flare's white flash over the world, with the frost, under all that is read (<c>Features.Hazards.AuroraView</c>).</summary>
     public const int FlareFlash = Frost;
 
+    /// <summary>A low suit's fogged visor (<c>Features.Crew.VisorFogView</c>), over the world and the frost it blurs, under all that is read (2026-11-05-the-last-breath).</summary>
+    public const int VisorFog = 3;
+
     /// <summary>The top of the screen: the suit's gauge, the hotbar, the inventory and crafts, pick-ups over a head.</summary>
-    public const int Hud = 3;
+    public const int Hud = 4;
+
+    /// <summary>The last breath's tunnel (<c>Features.Crew.TunnelView</c>), over the HUD it blurs, under the bars (2026-11-05-the-last-breath).</summary>
+    public const int LastBreath = 5;
 
     /// <summary>The bottom of the screen: the build menu, the prompt for E, the overlays' bar.</summary>
     public const int Bars = 10;

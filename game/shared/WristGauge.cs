@@ -47,6 +47,9 @@ public partial class WristGauge : Control
     /// <summary>Whether it runs low: the red lamps, pulsing.</summary>
     public bool Low { get; set; }
 
+    /// <summary>How far its last lit lamp dims, 0 to 1: a low suit's breath (<see cref="Features.Crew.VisorFog"/>).</summary>
+    public float LastDim { get; set; }
+
     /// <summary>How bright its picture and cells are: dim with nothing to measure, a belt with no battery.</summary>
     public float Bright { get; set; } = 1;
 
@@ -142,6 +145,7 @@ public partial class WristGauge : Control
             {
                 float a = pulse * Bright;
                 if (Low && i == lastLit) a *= 0.3f + 0.7f * (0.5f + 0.5f * Mathf.Cos(t * Mathf.Pi * 3));
+                if (i == lastLit) a *= 1 - LastDim;
                 DrawLit(Lamp(shape, lit), cell, x0 - 2, end, a);
                 if (i == sweep || i == sweep - 1) DrawLamp(pale, cell, x0 - 2, end, i == sweep ? 0.55f : 0.22f);
                 if (i == surgeAt || i == surgeAt - 1 || i == surgeAt - 2)

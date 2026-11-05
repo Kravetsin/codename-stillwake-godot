@@ -22,7 +22,7 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | its line |
 | `logic/Prompt.cs` | what E does, or why not |
-| `logic/Seating.cs` | a hero in a drop pod |
+| `logic/Seating.cs` | seats in a drop pod |
 | `logic/FogMove.cs` | across a planet's fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
@@ -43,13 +43,13 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
 | `CapeView.cs` | it drawn, lined |
-| `HeroView.cs` | the layer: keys, steps, rams, the camera |
-| `HeroView.Hands.cs` | its hands: E, plans, tools, aim |
+| `HeroView.cs` | the layer: keys, steps, rams, camera |
+| `HeroView.Hands.cs` | its hands: E, plans, tools |
 | `HeroView.Guns.cs` | its gun, a guest's shots |
 | `logic/GunHand.cs` | a gun's cooldown and shots |
 | `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
-| `JetPlume.cs` | a jetpack's plume (0075) |
+| `JetPlume.cs` | a jetpack's plume |
 | `RodLight.cs` | the harpoon's light (0075) |
 | `AimOutline.cs` | what the aim outline traces |
 | `FaceRim.cs` | a tool's aim glow |
@@ -57,45 +57,49 @@ commands reach the sim. Others' heroes come through the host.
 | `logic/DriverMode.cs` | its dots |
 | `logic/AimGlow.cs` | its light, from rays |
 | `HeroAutopilot.cs` | scripted runs |
-| `logic/Report.cs` | `Enter` reports (0050) |
+| `logic/Report.cs` | Enter reports (0050) |
 | `Frost.cs` | frost past the field (0050) |
-| `logic/Danger.cs` | what the suit gauge reads |
-| `logic/AirCues.cs` | air coming back (0081) |
+| `logic/Danger.cs` | the gauge's read |
+| `logic/AirCues.cs` | air back (0081) |
 | `logic/CanistersSeen.cs` | friends' canisters |
-| `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
-| `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
+| `AirSwirl.cs` | vortex, breath, leak (0081, 0103) |
+| `SuitGauge.cs` | the suit gauge (0081) |
+| `logic/Tunnel.cs` | the last breath |
+| `TunnelView.cs` | it drawn |
+| `logic/VisorFog.cs` | a low suit's fog |
+| `VisorFogView.cs` | it drawn |
 | `SuitColours.cs` | menu's suit colours |
-| `LookEditor.cs` | the look editor (looks-are-printed) |
-| `logic/Markers.cs` | markers' list and shape |
+| `LookEditor.cs` | the look editor |
+| `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | edge arrows |
 | `logic/Bodies.cs` | bodies from floor stacks (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
-| `logic/Rams.cs` | a creature's ram as met here (0103) |
-| `logic/Crew.En.cs` | its player text |
+| `logic/Rams.cs` | a creature's ram (0103) |
+| `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
 
 ## Guarantees
 
-- Lengths and speeds are thousandths of a cell (`Content.Hero`); the controller steps every 1000/60 ms
+- Lengths and speeds are thousandths of a cell (`Content.Hero`); the controller steps at 60 Hz
   (`Net.Clock`), drawn between.
 - A step never ends inside a wall, closed door or hatch, or past the grid; afloat without a jetpack the body's middle
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089); out of the hull, tethered.
-- Doors are walked as this peer shows them (0014). A press asks for the other state
+- Doors are walked as this peer shows them (0014). A press asks the other state
   (`SetDoor`/`SetValve`, 0071); on a launch platform `SetPlatform`.
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
 - **Jump feel** (0089): coyote time, jump buffer, short hop, eased apex, `AirControl` aloft.
 - **The figure answers its motion** (0090, hero-gait), as sent.
-- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
-- **Surfaces** (0076): `Ship.Of` takes its rules: nothing floats on a planet, gravity is the kind's `Fall`;
+- **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked.
+- **Surfaces** (0076): `Ship.Of` takes its rules: on a planet nothing floats, gravity the kind's `Fall`;
   in fog it glides, `FogMove` across a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends heard.
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while unlike the sim's.
 - **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
-  key on the tablet's edge, dim while refused.
+  tablet key dims while refused.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, closes the inventory
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the

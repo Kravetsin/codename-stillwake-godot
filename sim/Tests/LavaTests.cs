@@ -66,12 +66,14 @@ public class LavaTests
     }
 
     [Fact]
-    public void BareTheLavaBurnsTheSameAndTheColdBesidesSoTheLungsGoOnTheSecondBreath()
+    public void BareTheLavaBurnsTheSameAndTheColdBesidesSoTheLungsAndTheLastBreathGoOnTheSecondBreath()
     {
         var w = BroughtIn(OnLava, bare: true);
         Assert.Equal(Content.Crew.Lungs - 1 - LavaSpec.Burn - Content.Crew.BareCold, HeroOf(w).Air);
         w.Run(Content.Crew.BreathEvery);
-        Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
+        // What the burn takes past the lungs cuts the last breath, more units than it has breaths (2026-11-05-the-last-breath).
+        Assert.True((LavaSpec.Burn - 1) * Content.Crew.LastBreathPerUnit > Content.Crew.LastBreath);
+        Assert.Equal((0, 0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out));
     }
 
     [Fact]
@@ -84,9 +86,10 @@ public class LavaTests
     }
 
     [Fact]
-    public void StandingOnLavaEmptiesAFullSuitOnTheThirdBreathAndTheHeroWakesAtTheSpawn()
+    public void StandingOnLavaEmptiesAFullSuitOnTheThirdBreathBurnsTheLastOnTheFourthAndTheHeroWakesAtTheSpawn()
     {
-        // A third of a suit a breath, the breath itself besides: 45, 29, 13, gone within three seconds of ticks.
+        // A third of a suit a breath, the breath itself besides: 45, 29, 13, gone within three seconds of ticks, and
+        // the last breath burnt at the next.
         Assert.Equal(3 * LavaSpec.Burn, Scenario.Full);
         var w = BroughtIn(OnLava);
         Assert.Equal(Scenario.Full - 1 - LavaSpec.Burn, HeroOf(w).Air);
@@ -95,6 +98,9 @@ public class LavaTests
         Assert.Equal(0, HeroOf(w).Out);
         w.Run(Content.Crew.BreathEvery);
         Assert.Equal(0, HeroOf(w).Air);
+        // 13 less the breath leaves 12 for a burn of 15: the 3 past it cut the last breath.
+        Assert.Equal((Content.Crew.LastBreath - 3 * Content.Crew.LastBreathPerUnit, 0), (HeroOf(w).Gasp, HeroOf(w).Out));
+        w.Run(Content.Crew.BreathEvery);
         Assert.Equal(Content.Crew.PassOut, HeroOf(w).Out);
         // Passing out is death as anywhere: it wakes at the spawn with a full suit.
         w.Run(Content.Crew.PassOut);
@@ -102,9 +108,10 @@ public class LavaTests
     }
 
     [Fact]
-    public void AFullSuitIsGoneWithinThreeSecondsOfTheHerosReportWheneverItLands()
+    public void AFullSuitAndItsLastBreathAreGoneWithinFourSecondsOfTheHerosReportWheneverItLands()
     {
-        // Reported on any tick of a breath's beat, it passes out after two whole breaths and at most one more beat.
+        // Reported on any tick of a breath's beat, it passes out after three whole breaths and at most one more beat: the fourth
+        // burns its last breath.
         for (int lag = 0; lag < Content.Crew.BreathEvery; lag++)
         {
             var w = World().Run(lag);
@@ -115,7 +122,7 @@ public class LavaTests
                 w.Run();
                 ticks++;
             }
-            Assert.InRange(ticks, 2 * Content.Crew.BreathEvery + 1, 3 * Content.Crew.BreathEvery);
+            Assert.InRange(ticks, 3 * Content.Crew.BreathEvery + 1, 4 * Content.Crew.BreathEvery);
         }
     }
 

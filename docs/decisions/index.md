@@ -243,4 +243,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
 | [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted |  |
+| [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks (in part) |

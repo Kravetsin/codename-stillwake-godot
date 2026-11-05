@@ -67,16 +67,6 @@ public static class WristLook
     /// </summary>
     public const double WaveS = 0.85, WaveBand = 2.5, WaveBright = 0.4, AgainGapS = 4;
 
-    /// <summary>
-    /// The danger letting go (air back after a low suit): the red edges give way in <see cref="LetGoInS"/> to a soft edge of
-    /// pale light, at most this opaque at the corners, that fades over <see cref="LetGoOutS"/>. Never the whole screen.
-    /// </summary>
-    public const double LetGoInS = 0.15, LetGoOutS = 0.7;
-
-    /// <summary>The letting-go edge's colour and its opacity at the corners at its brightest.</summary>
-    public const uint LetGo = 0xd6f6ff;
-    public const float LetGoAlpha = 0.3f;
-
     /// <summary>Oxygen's sky, a surge's wash (its lamps are pictures: the gauge subject); energy's green, amber while the belt runs low (the slot bar's own).</summary>
     public const uint Suit = 0x38bdf8, Energy = 0x7ee36b, EnergyLow = 0xf2b84b;
 

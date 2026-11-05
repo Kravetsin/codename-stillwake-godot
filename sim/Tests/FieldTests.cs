@@ -127,6 +127,9 @@ public class FieldTests
             Assert.Equal(FieldSpec.EdgeCost, Cost(cell));
         var w = World().Do(new Enter(At(0, MidY)) { From = 0 }).Run();
         ToBreath(w).Run();
+        // The cold cuts no last breath: ten seconds to turn back.
+        Assert.Equal((0, Content.Crew.LastBreath, 0), (HeroOf(w).Air, HeroOf(w).Gasp, HeroOf(w).Out));
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
         w.Run(Content.Crew.PassOut);
         Assert.Equal((w.M.Crew.Spawn, Scenario.Full, 0), (HeroOf(w).Cell, HeroOf(w).Air, HeroOf(w).Out));
@@ -172,6 +175,8 @@ public class FieldTests
         Assert.Equal(FieldSpec.OffGrid, Cost(Width * Height));
         var w = World().Do(new Enter(-5) { From = 0 }).Run();
         ToBreath(w).Run();
+        Assert.Equal((0, Content.Crew.LastBreath), (HeroOf(w).Air, HeroOf(w).Gasp));
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w).Air, HeroOf(w).Out));
     }
 

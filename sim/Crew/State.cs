@@ -17,6 +17,11 @@ public sealed class Hero
     /// Its air, from nothing to its capacity: the worn suit's <c>Tank</c>, or <c>Crew.Lungs</c> bare (2026-10-27-suits-are-worn).
     /// </summary>
     [JsonInclude] public int Air { get; internal set; }
+    /// <summary>
+    /// Ticks left of its last breath, its air run dry, before it passes out; 0 while it has air or breathes room air
+    /// (2026-11-05-the-last-breath).
+    /// </summary>
+    [JsonInclude] public int Gasp { get; internal set; }
     /// <summary>Ticks left passed out; 0 while conscious.</summary>
     [JsonInclude] public int Out { get; internal set; }
     /// <summary>Whether it runs, as its client last said: it breathes <c>Crew.Exerted</c> a breath.</summary>
