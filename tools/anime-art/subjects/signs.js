@@ -1,5 +1,5 @@
 // The power signs over machines and before power numbers, as picked (the ink-signs ADR): glyphs a screen lights in hard steps,
-// drawn straight on the canvas at 4 times their logical pixels, no finish (as keylens.js). The bolt short of power, none, unplugged, broken.
+// drawn straight on the canvas at 4 times their logical pixels, no finish (as bulb.js). The bolt short of power, none, unplugged, broken.
 (function () {
 'use strict';
 const { canvas } = Anime;

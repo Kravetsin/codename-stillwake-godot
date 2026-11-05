@@ -164,19 +164,11 @@ public class BulbSignalTests
     [Fact]
     public void ShardsFallToTheFloorAndGo()
     {
-        var late = BulbSignal.Shard(0, 0.4, afloat: false, floor: 5);
-        var never = Enumerable.Range(0, BulbSignal.Shards).Select(i => BulbSignal.Shard(i, 0.9, afloat: false, floor: 5));
+        var late = BulbSignal.Shard(0, 0.4, floor: 5);
+        var never = Enumerable.Range(0, BulbSignal.Shards).Select(i => BulbSignal.Shard(i, 0.9, floor: 5));
         Assert.NotNull(late);
         Assert.True(late!.Value.Y <= 5);
         Assert.All(never, Assert.Null);
-    }
-
-    [Fact]
-    public void AfloatShardsDoNotFall()
-    {
-        var flying = BulbSignal.Shard(1, 0.4, afloat: true, floor: 0)!.Value;
-        var falling = BulbSignal.Shard(1, 0.4, afloat: false, floor: 1000)!.Value;
-        Assert.True(falling.Y > flying.Y);
     }
 
     [Fact]

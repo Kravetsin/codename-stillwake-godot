@@ -7,33 +7,36 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Shared;
 
 /// <summary>
-/// The tablet's top edge along the window's foot and the keys on it, in place of words ([tablet-edge](../../../docs/decisions/2026-11-02-tablet-edge.md)): the same art as every
-/// tablet's, across the window, its screen dark. A tablet taken out rises from it (<see cref="TabletPeek.Pose"/>), so it shows while none is up; the keys, each a feature's own,
-/// ride on the top of whichever is, so they stay in reach. A key says its name and hotkey over it, under the pointer. The crew's credits ride with them,
-/// on the bezel's status display in place of its charge (market-key), so they are always in sight.
+/// The tablet's top edge along the window's foot and the keys over it, in place of words ([tablet-edge](../../../docs/decisions/2026-11-02-tablet-edge.md)): the same art as every
+/// tablet's, across the window, its screen dark. A tablet taken out rises from it (<see cref="TabletPeek.Pose"/>), so it shows while none is up. The keys are holograms
+/// floating over the top of whichever is up (hologram-keys): only those that can be used now, the row closing up round them (<see cref="EdgeRow"/>), dim unless the
+/// pointer nears the screen's foot. A key says its name and hotkey over it, under the pointer.
 /// </summary>
 public partial class TabletEdge : CanvasLayer
 {
+    /// <summary>How long the rest of the row takes to slide as a key comes or goes, and how long a key flickers in or out.</summary>
+    private const double SlideS = 0.25, FlickerS = 0.35;
+
     private readonly Ui _ui;
     private readonly Func<bool> _inWorld;
     private readonly Control _root = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
     private readonly Tablet _rim = new();
     /// <summary>Over the rim's metal: a click on it is no click on the world behind.</summary>
     private readonly Control _metal = new() { MouseFilter = Control.MouseFilterEnum.Stop };
-    private readonly Saddle _saddle = new();
-    private readonly CreditDisplay _display;
+    /// <summary>The span of the row: a click between its keys is no click on the world either.</summary>
+    private readonly Control _row = new() { MouseFilter = Control.MouseFilterEnum.Stop };
+    private readonly List<Slot> _slots = [];
     private readonly List<Tablet> _tablets = [];
     private readonly TipSpots _tips;
+    private readonly KeyGlow _near = new(comesOn: 0.12, goesOut: 0.5);
     private Vector2 _window;
-    private int _keys;
+    private bool _laid;
 
     /// <param name="ui">The one tooltip, and the menu, under which no key speaks.</param>
     /// <param name="inWorld">Whether a world is played: with none it is hidden.</param>
-    /// <param name="credits">The crew's credits; null with no world played.</param>
-    public TabletEdge(Ui ui, Func<bool> inWorld, Func<int?> credits)
+    public TabletEdge(Ui ui, Func<bool> inWorld)
     {
         (_ui, _inWorld) = (ui, inWorld);
-        _display = new CreditDisplay(credits);
         _tips = new TipSpots(ui.Tip);
         Layer = ScreenLayers.TabletEdge;
         // After the tablets have moved this frame, so the keys never trail the top they ride on.
@@ -42,28 +45,25 @@ public partial class TabletEdge : CanvasLayer
         AddChild(_root);
         _root.AddChild(_rim);
         _root.AddChild(_metal);
-        _root.AddChild(_saddle);
-        _root.AddChild(_display);
+        _root.AddChild(_row);
     }
 
     /// <summary>
-    /// Sets <paramref name="key"/> on the edge, next along, saying the i18n key <paramref name="says"/> under the pointer, and under
-    /// it, an edge key that can do nothing now, why.
+    /// Sets <paramref name="key"/> on the edge, next along, saying the i18n key <paramref name="says"/> under the pointer, shown while
+    /// <paramref name="shown"/> says it can be used, or always with none.
     /// </summary>
-    public void Put(Control key, string says)
+    public void Put(EdgeKey key, string says, Func<bool>? shown = null)
     {
-        key.Position = new Vector2(TabletPeek.KeyIn + _keys++ * TabletPeek.KeyStride, TabletPeek.KeyDown);
-        _saddle.AddChild(key);
-        _tips.Add(key, () => (key as EdgeKey)?.Why() is { } why
-            ? new Tip(T(says), new TipLine(T(why), Tone.Dim)) { Over = true }
-            : new Tip(T(says)) { Over = true });
+        _slots.Add(new Slot(key, shown ?? (() => true)));
+        _root.AddChild(key);
+        _tips.Add(key, () => new Tip(T(says)) { Over = true });
     }
 
     /// <summary>A tablet that rises from the edge: while it is up the keys ride on it.</summary>
     public void Follow(Tablet tablet) => _tablets.Add(tablet);
 
-    /// <summary>Where it lies on the screen, the rim while it shows and the keys' metal: what the crew's markers keep out of.</summary>
-    public Rect2 Covers => _rim.Visible ? _rim.Covers.Merge(_saddle.GetGlobalRect()) : _saddle.GetGlobalRect();
+    /// <summary>Where it lies on the screen, the rim while it shows and the keys' row: what the crew's markers keep out of.</summary>
+    public Rect2 Covers => _rim.Visible ? _rim.Covers.Merge(_row.GetGlobalRect()) : _row.GetGlobalRect();
 
     public override void _Process(double delta)
     {
@@ -72,6 +72,7 @@ public partial class TabletEdge : CanvasLayer
         if (!shown)
         {
             _tips.Show(null);
+            _laid = false;
             return;
         }
         var window = _root.GetViewportRect().Size;
@@ -88,85 +89,63 @@ public partial class TabletEdge : CanvasLayer
             if (tablet.Shown && (up == null || tablet.Up > up.Up)) up = tablet;
         _rim.Visible = _metal.Visible = up == null;
         var art = (up ?? _rim).Covers;
-        var (x, y) = TabletPeek.SaddleAt(art.Position.X, art.Position.Y, art.Size.X);
-        _saddle.Position = new Vector2(x, y);
-        var (dx, dy) = TabletPeek.DisplayAt(art.End.X, art.Position.Y);
-        _display.Position = new Vector2(dx, dy);
-        _tips.Frame(_ui.MenuOpen.Get() ? null : _root.GetViewport().GetMousePosition());
+        var (middle, top) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
+        Lay(middle, top, delta);
+        var pointer = _root.GetViewport().GetMousePosition();
+        _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer)));
+        foreach (var slot in _slots) slot.Key.Near = (float)_near.Lit;
+        _tips.Frame(_ui.MenuOpen.Get() ? null : pointer);
+    }
+
+    /// <summary>Puts each key where the row has it, the rest sliding as one comes or goes, and the row's span under them.</summary>
+    private void Lay(float middle, float top, double delta)
+    {
+        var shown = new bool[_slots.Count];
+        for (int i = 0; i < _slots.Count; i++) shown[i] = _slots[i].Shown();
+        var lefts = EdgeRow.Lefts(shown, middle, EdgeKey.Side, TabletPeek.KeyStride);
+        float left = float.MaxValue, right = float.MinValue;
+        for (int i = 0; i < _slots.Count; i++)
+        {
+            var slot = _slots[i];
+            // Opening a world shows the row as it stands, with no key flickering in.
+            if (!_laid) slot.Appear = shown[i] ? 1 : 0;
+            slot.Appear = Mathf.MoveToward(slot.Appear, shown[i] ? 1 : 0, (float)(delta / FlickerS));
+            if (lefts[i] is { } to)
+            {
+                if (!_laid || slot.To == null) (slot.From, slot.Along) = (to, 1);
+                else if (to != slot.To) (slot.From, slot.Along) = (slot.X, 0);
+                slot.To = to;
+            }
+            slot.Along = Math.Min(1, slot.Along + delta / SlideS);
+            float t = (float)slot.Along;
+            slot.X = Mathf.Lerp(slot.From, slot.To ?? slot.From, t * t * (3 - 2 * t));
+            var key = slot.Key;
+            key.Visible = slot.Appear > 0;
+            key.MouseFilter = shown[i] ? Control.MouseFilterEnum.Stop : Control.MouseFilterEnum.Ignore;
+            // Flickering in or out, it drops out every third frame of thirty a second, as a tube catching.
+            key.Shows = slot.Appear >= 1 ? 1 : Mathf.FloorToInt(Time.GetTicksMsec() / 33.3f) % 3 == 0 ? slot.Appear * 0.2f : slot.Appear;
+            key.Position = new Vector2(Mathf.Round(slot.X), top);
+            if (!shown[i]) continue;
+            left = Math.Min(left, slot.X);
+            right = Math.Max(right, slot.X + EdgeKey.Side);
+        }
+        if (left == float.MaxValue) (left, right) = (middle, middle);
+        _row.Position = new Vector2(left, top);
+        _row.Size = new Vector2(right - left, EdgeKey.Side + EdgeKey.NumberDown + 2);
+        _laid = true;
     }
 
     public override void _ExitTree() => _tips.Show(null);
 
-    /// <summary>The credits on a dark display over the art's charge: the coin and the number, read on a timer, counted to and flared (<see cref="CountFlare"/>).</summary>
-    private sealed partial class CreditDisplay : Control
+    /// <summary>A key on the row and where it is on its way.</summary>
+    private sealed class Slot(EdgeKey key, Func<bool> shown)
     {
-        private const double ReadEvery = 0.25;
-        private static readonly Color Glass = new("0b0f12"), Rim = new("1c232b"), Gold = new("f0c050");
-        private static readonly Texture2D Coin = Signs.Credit();
-        private readonly Func<int?> _credits;
-        private int? _shown;
-        private CountFlare _flare = new();
-        private double _since = ReadEvery;
-
-        public CreditDisplay(Func<int?> credits)
-        {
-            _credits = credits;
-            MouseFilter = MouseFilterEnum.Ignore;
-            Size = new Vector2(TabletPeek.DisplayWide, TabletPeek.DisplayTall);
-        }
-
-        public override void _Process(double delta)
-        {
-            _flare.Step(delta);
-            if (_flare.Heat > 0 || _flare.Shown != _shown) QueueRedraw();
-            _since += delta;
-            if (_since < ReadEvery) return;
-            _since = 0;
-            int? now = _credits();
-            // With no world the next one starts afresh, shown at once.
-            if (now is { } credits) _flare.Read(credits);
-            else _flare = new();
-            if (now == _shown) return;
-            _shown = now;
-            QueueRedraw();
-        }
-
-        public override void _Draw()
-        {
-            DrawRect(new Rect2(Vector2.Zero, Size), Rim);
-            DrawRect(new Rect2(Vector2.One, Size - 2 * Vector2.One), Glass);
-            if (_shown == null) return;
-            const int size = 11, coin = 12;
-            float right = Size.X - 3;
-            float wide = FlareText.DrawRight(this, Style.Clear, size, _flare.Shown.ToString(), right, Size.Y / 2 + size * 0.36f, Gold,
-                _flare.Up ? FlareText.Rise : FlareText.Fall, _flare.HeatOf, _flare.Up);
-            DrawTextureRect(Coin, new Rect2(right - wide - 2 - coin, (Size.Y - coin) / 2, coin, coin), false);
-        }
-    }
-
-    /// <summary>The metal the keys sit on, drawn as the build tablet's wings are, its corners cut and lit from above.</summary>
-    private sealed partial class Saddle : Control
-    {
-        private const int U = TabletLayout.ArtScale;
-        private static readonly Color Out = new("15181e"), Light = new("6a7385"), Side = new("5d6678"), Metal = new("4a5263"), Dark = new("3a404d"), Scratch = new("262b35");
-
-        public Saddle()
-        {
-            MouseFilter = MouseFilterEnum.Stop;
-            Size = CustomMinimumSize = new Vector2(TabletPeek.SaddleWide, TabletPeek.SaddleTall);
-        }
-
-        public override void _Draw()
-        {
-            float w = Size.X, h = Size.Y;
-            DrawRect(new Rect2(U, 0, w - 2 * U, h), Out);
-            DrawRect(new Rect2(0, U, w, h - 2 * U), Out);
-            DrawRect(new Rect2(U, U, w - 2 * U, h - 2 * U), Metal);
-            DrawRect(new Rect2(U, U, w - 2 * U, U), Light);
-            DrawRect(new Rect2(U, h - 2 * U, w - 2 * U, U), Dark);
-            DrawRect(new Rect2(w - 2 * U, 2 * U, U, h - 4 * U), Dark);
-            DrawRect(new Rect2(U, 2 * U, U, h - 4 * U), Side);
-            DrawRect(new Rect2(2 * U, 12, U, 8), Scratch);
-        }
+        public EdgeKey Key { get; } = key;
+        public Func<bool> Shown { get; } = shown;
+        public float Appear { get; set; }
+        public float X { get; set; }
+        public float From { get; set; }
+        public float? To { get; set; }
+        public double Along { get; set; } = 1;
     }
 }

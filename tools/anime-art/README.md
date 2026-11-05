@@ -53,8 +53,8 @@ finish is `wash.js`, one for every subject; these are the rules a drawing must f
 | `debris` | `debris/*`: rocks lit hard from one side, crates, plates, pods, scrap, derelicts; no lettering: they turn |
 | `net` | `machine_net` (booms), `net_mount` (plates left of it), `net_front_<n>` (holding n), `features/debris/logic/NetInk.cs` |
 | `bay`, `salvage` | `machine_droneBay`, `droneBay_*`, `salvage_*`, `items/salvageDrone`: the picked bay and salvage drone; `logistics/logic/BayInk.cs`, `SalvageInk.cs` |
-| `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb over the hero, straight ink, no finish |
-| `keylens`, `edgekeys` | `key_lens_*`, `key_<key>_<state>`: the tablet's lenses, no finish |
+| `bulb` | `bulb_drawing_*`, `bulb_glass`, `bulb_fire_*`, `bulb_stump`: the bulb at the screen's top, straight ink, no finish |
+| `edgekeys` | `holo_<key>`, `holo_<key>_glow`: the edge keys' white masks and glows |
 | `signs`, `credit`, `capsule`, `gauge` | `sign_*`: bolts, plug, wrench; `credit`: the chip (credit-counter); `capsule`, `capsule_flame_<n>`: the trade capsule; `gauge_lamp[Wide]_<shape>_<tone>`: air lamps |
 | `upgrades` | `upgrade_bag`, `upgrade_belt`, `upgrade_tradeSlots`, `upgrade_canister`: what the market sells that is no item |
 | `zleftovers` | the arc bench's and lamp's glows, `machine_emergencyLamp`, `module_arc_coil`, the pod's lit state and porthole, `wrist_*`, `tablet_*`: frames repeat, so a 9-slice has no seam |

@@ -74,19 +74,33 @@ public partial class ResearchTablet : CanvasLayer
         foreach (var part in (Control[])[_market.Body, _view, _detail]) _tablet.OnScreen(part);
         PaintDetail();
         _page.Show(true);
-        _key = new TabletKey(world, worldId, _keep, Bulb, Toggle);
-        MarketCap = new EdgeKey("market", ToggleMarket, () => _keep.Seen.MarketNew || Shown && _page == _market);
+        _key = new TabletKey(world, worldId, _keep, Bulb, Toggle, () => Shown && _page == _board);
+        MarketCap = new EdgeKey("market", ToggleMarket, () => Shown && _page == _market, () => _keep.Seen.MarketNew, () => _key.Credits, gold: true);
         AddChild(_key);
     }
 
     /// <summary>The tablet itself, which rises from the edge.</summary>
     public Tablet Tablet => _tablet;
 
-    /// <summary>The tablet's key, for the edge to set in place.</summary>
-    public WristKey Cap => _key.Cap;
+    /// <summary>The research key, for the edge to set in place.</summary>
+    public EdgeKey Cap => _key.Cap;
 
-    /// <summary>The market's own key beside it, so the market is one press away (2026-11-03-market-key): lit while the market is out, or an order met is unseen.</summary>
+    /// <inheritdoc cref="TabletKey.Shows"/>
+    public bool CapShows => _key.Shows;
+
+    /// <summary>The market's own key beside it, so the market is one press away (2026-11-03-market-key): on while the market is out, amber while an order met is unseen, the credits on it.</summary>
     public EdgeKey MarketCap { get; }
+
+    /// <inheritdoc cref="TabletKey.MarketShows"/>
+    public bool MarketCapShows => _key.MarketShows;
+
+    /// <summary>The picture of the find that lit the bulb, <paramref name="size"/> pixels across; null before any. The blueprints are learnt first: the tablet may never have been out.</summary>
+    public Texture2D? FindPicture(int size)
+    {
+        if (_key.Find is not { } id || _world() is not { } m) return null;
+        _parts.Learn(m.Research);
+        return _parts.PictureOf(id, size);
+    }
 
     /// <summary>T and the tablet's key: take it out on the board, go to the board from the market, or put it away from the board.</summary>
     private void Toggle()
@@ -140,7 +154,7 @@ public partial class ResearchTablet : CanvasLayer
     /// <summary>Where the key lies on the screen: what a recording points at.</summary>
     public Rect2 KeyCovers => _key.Cap.GetGlobalRect();
 
-    /// <summary>The bulb over the hero: what the tablet's key tells of what is new, for <see cref="HeroBulb"/> to draw.</summary>
+    /// <summary>The bulb at the top of the screen: what the research key tells of what is new, for <see cref="ScreenBulb"/> to draw.</summary>
     public BulbSignal Bulb { get; } = new();
 
     /// <summary>Where a thing's middle is on the page shown: what a recording points at.</summary>

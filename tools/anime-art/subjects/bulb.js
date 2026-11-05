@@ -1,4 +1,4 @@
-// The bulb over the hero's head (the bulb-signal ADR), as picked: straight ink on a canvas, the finish left off. Its origin is (20, 24) of 40 by 48.
+// The bulb, hung at the screen's top (the hologram-keys ADR), as picked: straight ink on a canvas, the finish left off. Its origin is (20, 24) of 40 by 48.
 (function () {
 'use strict';
 const { canvas } = Anime;

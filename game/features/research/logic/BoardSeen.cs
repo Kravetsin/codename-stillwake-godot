@@ -37,6 +37,9 @@ public sealed class BoardSeen(IEnumerable<string>? seen, int? orders = null, IEn
     /// <summary>Whether what was seen has changed since it was last kept.</summary>
     public bool Unwritten { get; set; }
 
+    /// <summary>Whether the board holds any note, read or not: the research key shows from the first.</summary>
+    public bool Any => _notes.Count > 0;
+
     /// <summary>Whether the tablet is out.</summary>
     public bool Open => _open;
 

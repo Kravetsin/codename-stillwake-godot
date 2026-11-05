@@ -1,6 +1,6 @@
 # A bulb over the hero says something new waits on the board
 
-- Status: accepted
+- Status: superseded by [hologram-keys](2026-11-05-hologram-keys.md)
 - Date: 2026-11-02
 - Adds to [tablet-key](2026-10-31-tablet-key.md): its lamp stays as the lasting reminder
 
