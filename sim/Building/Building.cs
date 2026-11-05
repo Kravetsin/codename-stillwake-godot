@@ -234,7 +234,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         {
             // Validation found something to pay with.
             string item = PaymentOf(plan, c.From)!;
-            _itemsOps.Take(c.From, [(item, 1)]);
+            _itemsOps.TakeStock(c.From, [(item, 1)]);
             var delivered = plan.Delivered.ToList();
             int had = delivered.FindIndex(s => s.Item == item);
             if (had < 0) delivered.Add(new Stack(item, 1));

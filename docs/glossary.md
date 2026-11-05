@@ -79,7 +79,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - капсула с товаром / trade capsule → `SendCapsule`, `Flight`, `Market.CapsuleFlight` → Trade; `CapsuleFlights` drawn in f/research
 - кредиты, цены / credits, prices → `Knowledge.Credits`; `Content.Market` → Trade
 - чертёж / blueprint → `Blueprint`, `Blueprints` → Research
-- ящик / crate → machine `crate`; item `cargoCrate` is salvage → Items; запас, крафт из ящиков / stock → `TakeStock`, `StockTotals` (craft-from-crates) → Items, Crafting
+- ящик / crate → machine `crate`; item `cargoCrate` is salvage → Items; запас, крафт из ящиков / stock → `TakeStock`, `StockTotals` (craft-from-crates, build-from-crates) → Items, Crafting, Building
 - дрон / drone → item `drone`, `Drone`, `LogisticsModule`, machine `droneBay` (its fuel slot of canisters: `SlotTakes`) → Logistics, Items
 - дрон-сборщик / salvage drone → item `salvageDrone`, `Drone.Air`, `Salvage.cs` → Logistics
 - небесный осколок / sky shard **≠** → item `arcShard` → Items, Ruins

@@ -173,11 +173,11 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// What peer <paramref name="peer"/> pays for the part of <paramref name="plan"/> that begins next: the first
-    /// item in the cost's order that the plan still lacks and the hero carries; null when it carries none.
+    /// item in the cost's order that the plan still lacks and its stock holds (build-from-crates); null with none.
     /// </summary>
     private string? PaymentOf(Plan plan, int peer)
     {
-        var carried = _items.Totals(peer);
+        var carried = _items.StockTotals(peer);
         foreach (var (item, _) in LackOf(plan))
             if (carried.Any(c => c.Item == item && c.Count > 0)) return item;
         return null;

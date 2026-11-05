@@ -40,8 +40,8 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   divided by `Builds.DeconstructSpeedup`, rounded up (no ADR), and refunds the whole cost to the sender, the rest
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
-  down. The tick that starts an unpaid part takes from the sender the first item in cost order still lacking that they
-  carry, else is refused `items.notEnough`. Within a paid part anyone works, carrying nothing; creative mode takes nothing.
+  down. The tick that starts an unpaid part takes from the sender's stock (own slots, then crates) the first item in cost
+  order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; creative mode takes nothing.
 - **Repair** (free-repair): a tick of work as `Work` is, taking nothing; the last `Mend`s. A broken machine taken apart
   refunds its whole cost.
 - **Instant** (`SetInstant`, dev): a blueprint built as placed, free; new surfaces keep it.

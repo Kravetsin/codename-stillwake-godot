@@ -244,6 +244,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [aim-on-use](2026-11-05-aim-on-use.md) | An aimed item comes up only in use | accepted |  |
 | [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
 | [air-wash](2026-11-05-air-wash.md) | The air overlay is a wash to leave on | accepted |  |
+| [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
 | [craft-from-crates](2026-11-05-craft-from-crates.md) | A paid craft takes from every crate on the ship | accepted |  |
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach (in part) |

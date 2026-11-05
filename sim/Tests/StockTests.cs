@@ -120,6 +120,30 @@ public class StockTests
         Assert.Single(w.M.Crafting.Queue(Bench));
     }
 
+    [Fact]
+    public void BuildsAWallPayingFromACrateBehindAWall()
+    {
+        var iron = Content.Materials.Get("iron");
+        int plates = iron.Cost.Where(c => c.Item == "plate").Sum(c => c.Count), cell = 2 * 2 * 60 + 2 * 8;
+        var w = World().FillCrate(Far, ("plate", 10));
+        w.Do(new Building.PlacePlan(cell, Grid.Placement.Wall("iron"))).Run();
+        int plan = w.M.Building.Plans.Single().Id;
+        for (int i = 0; i < iron.BuildTicks; i++) w.Do(new Building.Work(plan)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(iron, w.M.Grid.WallAt(cell));
+        Assert.Equal(10 - plates, Held(w, Far, "plate"));
+    }
+
+    [Fact]
+    public void RefusesWorkOnABlueprintWhenNeitherTheHeroNorAnyCrateHasAPart()
+    {
+        int cell = 2 * 2 * 60 + 2 * 8;
+        var w = World().FillCrate(Bench, ("plate", 10));
+        w.Do(new Building.PlacePlan(cell, Grid.Placement.Wall("iron"))).Run();
+        w.Do(new Building.Work(w.M.Building.Plans.Single().Id)).Run();
+        Assert.Equal(["items.notEnough"], w.Refusals.Select(r => r.Reason));
+    }
+
     /// <summary>
     /// Whatever the hero and the two crates hold, a paid craft takes exactly its cost or nothing, the hero's first, then the
     /// near crate's, then the far one's; a cancel gives exactly that back.

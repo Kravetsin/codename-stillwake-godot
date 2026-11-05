@@ -36,7 +36,7 @@ public partial class Hands : Node2D
     private readonly PointerTip _tip;
     private readonly MachineTips _machines;
     private string? _overlayWas;
-    /// <summary>What this player carries is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
+    /// <summary>What this player can pay with is read this often into <see cref="Ui.Carried"/>: a panel reads on a timer.</summary>
     private const double CarriedEveryMs = 250;
     private double _sinceCarried = CarriedEveryMs;
 
@@ -70,7 +70,7 @@ public partial class Hands : Node2D
         if ((_sinceCarried += elapsedMs) >= CarriedEveryMs)
         {
             _sinceCarried = 0;
-            Ui.Carried = m.Items.Totals(client.Id);
+            Ui.Carried = m.Items.StockTotals(client.Id);
         }
         var buttons = Mouse.Buttons;
         // An overlay says what the pointer is on only while it shows; switched, it says nothing.
