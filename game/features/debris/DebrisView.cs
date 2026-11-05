@@ -65,6 +65,7 @@ public partial class DebrisView(Ui ui) : Node2D
     private double _clockMs;
     /// <summary>Every piece out but those this peer is grabbing, and of them the ones drawn this frame.</summary>
     private readonly HashSet<int> _out = [], _drawn = [];
+    private readonly Dictionary<int, double> _turns = new();
     private readonly List<int> _gone = [];
     /// <summary>The blows seen landing on each wreck still out, kept while it drifts out of view and back (<see cref="WreckCracks"/>).</summary>
     private readonly Dictionary<int, List<Blow>> _blows = new();
@@ -134,6 +135,8 @@ public partial class DebrisView(Ui ui) : Node2D
         foreach (int id in _gone) _blows.Remove(id);
 
         var aimed = ui.AimedPiece.Get();
+        _turns.Clear();
+        ui.DebrisTurns = _turns;
         _aimed.Begin();
         for (int i = 0; i < all.Count; i++)
         {
@@ -163,6 +166,7 @@ public partial class DebrisView(Ui ui) : Node2D
                 ? Rock * Math.Sin(_clockMs / RockMs * 2 * Math.PI + piece.Id)
                 : _clockMs / 4000 * (piece.Id % 2 == 0 ? 1 : -1) + piece.Id;
             picture.Rotation = (float)(turn + JoltTurn * jolt * (piece.Id % 2 == 0 ? 1 : -1));
+            _turns[piece.Id] = picture.Rotation;
             if (aimed is { } a && a.Id == piece.Id)
                 _aimed.Add(picture.Texture, picture.Position, picture.Rotation, picture.Scale.X, (a.Refused ? AimRefused : AimReady) with { A = picture.Modulate.A });
         }

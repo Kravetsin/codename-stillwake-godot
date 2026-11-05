@@ -1,6 +1,6 @@
 # A running tool is seen at work all along
 
-- Status: accepted; the stream's and jet's placeholder look superseded by [damage-looks](2026-11-05-damage-looks.md)
+- Status: accepted; the stream's and jet's placeholder look superseded by [damage-looks](2026-11-05-damage-looks.md); where a tool touches, by [tool-edge](2026-11-05-tool-edge.md)
 - Date: 2026-11-05
 
 ## Context
