@@ -179,7 +179,7 @@ public sealed class BoardScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new BoardDemo(c.M, Args.Given("--board")));
 }
 
-[Dev("--bulb", "the bulb at the screen's top as a note starts waiting, the find flying into the research key; =two with a second find after the burst, =open with T mid-flight (BulbDemo)", Shape = DevShape.Either)]
+[Dev("--bulb", "the bulb at the screen's top as a note starts waiting, the find flying into the research key; =two with a second find after the burst, =open with T mid-flight, =early while it heats (BulbDemo)", Shape = DevShape.Either)]
 public sealed class BulbScenario : DevScenario
 {
     public override World Seed(World world, DevSeed seed) => BoardDemo.Seed(world, seed.Modules, "late");
