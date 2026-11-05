@@ -5,6 +5,7 @@ using System.Linq;
 using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Crafting;
+using Stillwake.Sim.Items;
 using static Stillwake.Game.I18n.En;
 
 namespace Stillwake.Game.Features.Crafting;
@@ -14,6 +15,8 @@ public enum Look
 {
     /// <summary>Known, and a unit is carried: a click queues it.</summary>
     Ready,
+    /// <summary>Known, not carried, but a unit lies in the station's inputs: lit, with the inlet; a click queues it from them.</summary>
+    Fed,
     /// <summary>Known, but short of an item: dimmed and grey; a click goes to what is missing.</summary>
     Short,
     /// <summary>Not known yet: a dark silhouette in its place.</summary>
@@ -63,9 +66,29 @@ public static class Crafts
     /// <summary>Whether a line is short: never in creative mode, where nothing is taken.</summary>
     public static bool Short(CostLine line, bool creative) => !creative && line.Have < line.Need;
 
-    /// <summary>How a recipe looks: <paramref name="known"/> is every one in creative mode, and nothing is short there.</summary>
-    public static Look LookOf(bool known, IReadOnlyList<CostLine> lines, bool creative) =>
-        !known ? Look.Locked : lines.Any(l => Short(l, creative)) ? Look.Short : Look.Ready;
+    /// <summary>
+    /// How a recipe looks: <paramref name="known"/> is every one in creative mode, and nothing is short there; <paramref name="fed"/>,
+    /// a unit against the station's inputs (<see cref="InputsHeld"/>), null at a station without them.
+    /// </summary>
+    public static Look LookOf(bool known, IReadOnlyList<CostLine> lines, bool creative, IReadOnlyList<CostLine>? fed = null) =>
+        !known ? Look.Locked
+        : !lines.Any(l => Short(l, creative)) ? Look.Ready
+        : fed != null && !fed.Any(l => Short(l, creative)) ? Look.Fed
+        : Look.Short;
+
+    /// <summary>What the first <paramref name="inputs"/> of a station's <paramref name="slots"/> hold, by item in slot order.</summary>
+    public static IReadOnlyList<(string Item, int Count)> InputsHeld(IReadOnlyList<Stack?> slots, int inputs)
+    {
+        var held = new List<(string Item, int Count)>();
+        for (int i = 0; i < Math.Min(inputs, slots.Count); i++)
+        {
+            if (slots[i] is not { } s) continue;
+            int at = held.FindIndex(h => h.Item == s.Item);
+            if (at < 0) held.Add((s.Item, s.Count));
+            else held[at] = (s.Item, held[at].Count + s.Count);
+        }
+        return held;
+    }
 
     /// <summary>Whether <paramref name="station"/> makes <paramref name="item"/>: it is in its rows.</summary>
     public static bool Makes(Content.Station station, string item) => station.Rows.Any(r => r.Contains(item));
@@ -105,23 +128,27 @@ public static class Crafts
 
     /// <summary>
     /// What a recipe adds to its item's card: "Craft" and a unit's seconds at <paramref name="station"/>; each item of its cost
-    /// against what is <paramref name="carried"/>, where a short raw one comes from; and what a click does,
-    /// queue it (shift, <see cref="Many"/>) or go to what is missing; at a station with inputs, the right button queues it
-    /// from them, whatever is carried.
+    /// against what is <paramref name="carried"/>, or what its <paramref name="inputs"/> hold when only they cover a unit,
+    /// where a short raw one comes from; and what a click does: queue it, paid or from the inputs (shift, <see cref="Many"/>),
+    /// or go to what is missing; at a station with inputs, the right button queues it from them repeating, whatever is held.
     /// </summary>
-    public static StationBlock Block(string craft, Content.Station station, IReadOnlyList<(string Item, int Count)> carried, bool creative)
+    public static StationBlock Block(string craft, Content.Station station, IReadOnlyList<(string Item, int Count)> carried, bool creative,
+        IReadOnlyList<(string Item, int Count)>? inputs = null)
     {
         var lines = Lines(craft, carried);
-        var rows = lines.Select(l =>
+        var fed = HasInputs(station) && inputs != null ? Lines(craft, inputs) : null;
+        var look = LookOf(true, lines, creative, fed);
+        var rows = (look == Look.Fed ? fed! : lines).Select(l =>
         {
             bool isShort = Short(l, creative);
             return new CraftRow(l.Item, T($"item.{l.Item}"), l.Have, l.Need, isShort, isShort ? From(l.Item, station) : null);
         }).ToList();
         var keys = new List<CardKey>();
-        if (!rows.Any(r => r.Short)) keys.Add(new(T("key.lmb"), T("card.craftIt")));
+        if (look == Look.Ready) keys.Add(new(T("key.lmb"), T("card.craftIt")));
+        else if (look == Look.Fed) keys.Add(new(T("key.lmb"), T("card.fromInputs")));
         else if (MissingCraft(lines, creative, station) != null) keys.Add(new(T("key.lmb"), T("card.goTo")));
-        if (HasInputs(station)) keys.Add(new(T("key.rmb"), T("card.fromInputs")));
-        if (!rows.Any(r => r.Short) || HasInputs(station)) keys.Add(new(T("key.shift"), T("card.many", ("n", Many))));
+        if (HasInputs(station)) keys.Add(new(T("key.rmb"), T("card.repeatFromInputs")));
+        if (look != Look.Short) keys.Add(new(T("key.shift"), T("card.many", ("n", Many))));
         return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }
 

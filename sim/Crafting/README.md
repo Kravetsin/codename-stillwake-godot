@@ -45,11 +45,11 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
   assembler's electronics, the arc bench's sky-shard crafts (0099).
 - **Inputs** (0057): as many slots as the most distinct items any of its crafts needs (`ContentTests`). The pod and the
   workbench have none and the arc bench's one is a vise (0099): a craft from inputs there is refused `crafting.noInputs`.
-- **`Craft(Machine, Recipe, Count, FromInputs)`**: paid (the default) takes all `Count` units' cost from the sender at
-  once (nothing in creative mode); fed from the inputs takes nothing. Either appends an entry by the sender with the
-  queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (no craft or not known), `crafting.notHere`
-  (not in this station's rows, or a fed station), `crafting.full` (`QueueMost` entries, whoever queued them),
-  `items.notEnough` (paid), `crafting.noInputs`.
+- **`Craft(Machine, Recipe, Count, FromInputs, Endless)`**: paid (the default) takes all `Count` units' cost from the
+  sender at once (nothing in creative mode); fed from the inputs takes nothing, `Endless` repeating it. Either appends an
+  entry by the sender with the queue's next id. Refused whole: `crafting.noStation`, `crafting.unknown` (or not known),
+  `crafting.notHere` (not in this station's rows, or a fed station), `crafting.full` (`QueueMost` entries),
+  `crafting.paid` (endless, paid), `items.notEnough` (paid), `crafting.noInputs`.
 - **`Cancel(Machine, Entry)`** by anyone gives the sender what was paid and not made, priced by content now: a paid
   entry's units left, the one at work included; a fed one's unit begun (progress above 0), else nothing; what the
   inputs hold stays. Refused `crafting.noStation`, `crafting.notHere`, `crafting.noEntry`, `items.full`. Cancelling
