@@ -165,7 +165,7 @@ public partial class SortieDemo : CanvasLayer
                 Input.ParseInputEvent(new InputEventKey { Keycode = Key.Key1, PhysicalKeycode = Key.Key1, Pressed = false });
                 Next("drill chosen");
                 break;
-            case 1 when _t >= _stageAt + 1.0 && _ui.AimedPiece.Get() is (_, false):
+            case 1 when _t >= _stageAt + 1.0 && Engine() is { } engine && _pos.DistanceTo(engine + new Vector2(-24, 0)) < 2:
                 Hold(true);
                 Next("drilling the engine block");
                 break;

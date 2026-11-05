@@ -140,10 +140,13 @@ public partial class HeroView : Node2D
     private readonly RodLight _rodLight = new();
     private bool _aimsGun;
     /// <summary>
-    /// The drill (0054): whether the arm aims it at the pointer, so the hero keeps facing it, and the world tick
-    /// its last hits went on while it runs; none while it does not.
+    /// The drill (0054): whether it is wielded with a pointer to aim at, and the world tick its last hits went on while it
+    /// runs; none while it does not.
     /// </summary>
     private bool _aimsDrill;
+    /// <summary>Whether an aimed item's arm is up (aim-on-use), so the hero faces the pointer, swimming the other way too; a click waiting for it.</summary>
+    private bool _armUp, _clickWaits;
+    private ArmUp _arm;
     private DrillPace _drillPace;
     /// <summary>The drill on a wreck, heard at its bit through the suit as the wreck sounds hit, the chop, at the drill's pace (0093).</summary>
     private readonly Heard2D _drillChop = Cues.Player2D(S.Chop, S.Suit, voices: 4);
@@ -443,7 +446,7 @@ public partial class HeroView : Node2D
             if (thrust != null) _thrust = thrust;
             var input = passedOut || seat != null
                 ? new HeroInput(0, 0, false, Jetpack: jetpack)
-                : taken with { Face = faces, Swings = swinging || _aimsGun || _aimsDrill, Pull = pull, Jetpack = jetpack, Thrust = thrust };
+                : taken with { Face = faces, Swings = swinging || _armUp, Pull = pull, Jetpack = jetpack, Thrust = thrust };
             // Rammed, the hero is thrown, not walked: no keys, no ladder, a held Up or Space taken by nothing (0103).
             if (_reel > 0)
             {

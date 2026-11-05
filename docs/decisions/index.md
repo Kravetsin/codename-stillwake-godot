@@ -241,6 +241,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
 | [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
+| [aim-on-use](2026-11-05-aim-on-use.md) | An aimed item comes up only in use | accepted |  |
 | [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
 | [air-wash](2026-11-05-air-wash.md) | The air overlay is a wash to leave on | accepted |  |
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted |  |

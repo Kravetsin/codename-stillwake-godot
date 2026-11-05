@@ -69,8 +69,8 @@ public class FanAimTests
         Assert.Equal(new Prompt("use.dig", null), Prompts.Of(m, aim));
         // A press never digs: the swing does.
         Assert.Empty(Aiming.UsesOf(aim, pressed: true, held: false, tick: 1, workedOnTick: -1).Commands);
-        // A drill with no battery is refused flat before its run is asked.
-        Assert.Equal("items.flat", Aiming.AimAt(m, 0, hero, Centre(23, 6), tool: Drill)?.Press?.Problem);
+        // A drill hanging unused has no edge and aims at nothing (aim-on-use).
+        Assert.Null(Aiming.AimAt(m, 0, hero, Centre(23, 6), tool: Drill)?.Press);
         // Bare hands aim no fan.
         Assert.Null(Aiming.AimAt(m, 0, hero, Centre(23, 6))?.Fan);
     }
