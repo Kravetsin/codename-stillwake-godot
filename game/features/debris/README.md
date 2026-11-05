@@ -7,12 +7,14 @@
 | `logic/Fading.cs` | `Broken`: whether a wreck gone from the world was broken or drifted off. |
 | `logic/OwnHits.cs` | Which pieces this peer's own hits were just sent at and ran on, and with which weapon. |
 | `DebrisView.cs` | The layer: pieces and the outline of the one aimed at. |
+| `WreckInk.cs` | A wreck's cracks over its picture. |
+| `logic/WreckCracks.cs` | Where blows landed, and the ink cracks out of them (damage-looks). |
 | `BreakView.cs` | A broken wreck's pieces flying apart, their torn edges glowing (0075). |
 | `DebrisDemo.cs` | The world and the script of `--debris`. |
 | `WreckDemo.cs` | The world and the script of `--wreck`, `--wrecks`, `--harpoon` and `--grapple`. |
 | `AsteroidDemo.cs` | The world and the script of `--asteroid`. |
 | `SortieDemo.cs` | The world and the script of `--sortie`. |
-| `FarDemo.cs` | The big world and far field of `--fly` (`--manual` to fly it yourself), `--far=N`, `--edge=N`. |
+| `FarDemo.cs` | The big world and far field of `--fly`, `--far=N`, `--edge=N`. |
 | `NetView.cs` | Each debris net: its plates on the hull, the pieces it holds, its net before them. |
 | `NetDemo.cs` | The world and the script of `--net` and `--net-press`. |
 | `logic/NetShows.cs` | A net's front by its load, each piece's place, its count by the pointer. |
@@ -43,9 +45,9 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   (`Shared.PieceDrawn`, 0044).
 - **Motion** (no ADR): a small piece tumbles a turn every 4 s, each its own way; a wreck only rocks (`Rock`, `RockMs`),
   so its picture stays where the aim tests it. Full strength from the first frame: it spawns out of sight (0052).
-- **Damage** (0034): one crack filter for every wreck in the lit shader (`render/Cracks.cs` in `render/Lit.cs`), set
-  per picture by instance uniforms (share of hit points lost, piece id): pixel-art cracks from a dent that widens as
-  the share grows, before the light falls on them.
+- **Damage** (damage-looks): ink cracks out of each blow seen (`WreckCracks`; `WreckInk` on the picture, lit as it, clipped
+  to it): a dent and six pen lines over lit ones, grown over the next 0.45 lost; a blow within 3 px of one deepens it,
+  8 at most; one first seen damaged is struck in its middle. Kept out of view; blows there go unseen.
 - **A hit** (a rise in `Damage`) jolts the piece away from the nearest hero, turning it a little and settling, and
   throws `HitLooks.Of[Impact.Wreck]` by `HitBurst` where it was struck, the picture flaring warm (0075, 0094). The
   axe's lands on the side facing the nearest hero. One under a running tool's bit (`Ui.Bits`, within 4 px of the box) only
@@ -57,7 +59,7 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   seen, so one drifting off its end only fades, as does one broken past its end while a hero's view keeps it there
   (0052), its loot falling all the same. It flies apart in six tumbling wedges with glowing torn edges and
   embers (`BreakView`), with sparks, dust, a cloud, glint, ring and flash, more for a derelict (0075); `Sound.Break`
-  if its own hit broke it, louder and farther, on the Suit bus. It follows the last hit's chop, heard as it was sent. Every peer sees it; only the striker hears it.
+  if its own hit broke it, louder and farther, on the Suit bus. Every peer sees it; only the striker hears it, after the last hit's chop.
 - **Aimed** (0039, 0054): the piece in `Ui.AimedPiece` (in space, within reach; the first wreck the axe's blade or the
   drill's bit touches) is outlined along its picture a screen pixel wide (`render/Outline.cs`), green, or red while the
   sim would refuse the grab. The crew's prompt says "[E] Catch", on a wreck "Too big" or with the axe "[Hold LMB] Chop".
@@ -79,17 +81,17 @@ breaking wreckage with a weapon is the hands too, sending `Hit` (0034, 0054).
   "Caught by hand"; loot slot by slot (`Loot.Of`): a seen item with its range, an unseen one a black silhouette, a pie
   for a roll's chance (`OneIn`). With nothing found, the entry says what to do.
 - Words only in the one tooltip (`Finds`); "???" for what is not found or seen.
-- Reads `DebrisModule.Found` every 250 ms while shown and builds again only when it changed.
+- Reads `DebrisModule.Found` every 250 ms while shown and rebuilds only on a change.
 
 ## Recordings
 
-`--debris` (a crate caught by E at the airlock; `--host` for a guest to see it), `--fly` and `--far=N`/`--edge=N`
+`--debris` (a crate caught at the airlock), `--fly` and `--far=N`/`--edge=N`
 (the far field, 0052), `--harpoon` and `--grapple --lit` (0044), `--asteroid` and `--sortie` (0054, 0056; `--manual`
-leaves the script off), `--wreck`/`--wrecks` (chopping till it breaks), `--net=N`/`--net-press=N`, `--handbook` (`dev/HandbookDemo`).
+leaves the script off), `--wreck`/`--wrecks`, `--net=N`/`--net-press=N`, `--handbook` (`dev/HandbookDemo`).
 
 ## Tests
 
-Tested in `game.tests/`: `DebrisTests`, `HearingTests`, `AimTests`, `NetShowsTests`, `HandbookTests` (every kind that spawns
+Tested in `game.tests/`: `DebrisTests`, `HearingTests`, `AimTests`, `NetShowsTests`, `DamageLooksTests`, `HandbookTests` (every kind that spawns
 in exactly one row).
 
 ## Deliberately not handled

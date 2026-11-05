@@ -18,14 +18,11 @@ namespace Stillwake.Game.Render;
 /// <see cref="Light.ParticleMost"/> by their brightest colour, so an ember by a fire still lights the
 /// wall behind it. A wall takes <see cref="Light.WallIn"/> of what reaches its face. A normal-mapped
 /// picture is shaded toward the way the lamps' light comes from — up the main lightmap's slope, tilted
-/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat. A
-/// picture of debris shows its damage first, as cracks (<see cref="Cracks"/>).
+/// 45 degrees up — within that cap; one without a normal map faces the screen and is shaded flat.
 /// </summary>
 public static class Lit
 {
-    // Only debris cracks: instance uniforms take slots of Godot's global buffer for every item drawn with them,
-    // which a big ship's thousands of sockets ran out of (each failure logged, a minute to load), so all else has none.
-    private static readonly Shader Plain = new() { Code = Head + Cracks.None + Body }, Cracking = new() { Code = Head + Cracks.Code + Body };
+    private static readonly Shader Plain = new() { Code = Head + Body };
 
     private const string Head = """
             shader_type canvas_item;
@@ -93,8 +90,6 @@ public static class Lit
             }
 
             void fragment() {
-                // Debris that axes have hit shows it, on its own pixels, before the light falls on it.
-                COLOR.rgb = cracked(COLOR.rgb, UV, TEXTURE_PIXEL_SIZE);
                 // Blended between the four cells round this point, those of its side only (lighting.ts).
                 vec2 at = (world - starlight_rect.xy) / starlight_rect.zw * vec2(starlight_cells);
                 vec2 corner = floor(at - 0.5);
@@ -140,7 +135,7 @@ public static class Lit
             }
             """;
 
-    private static readonly Dictionary<(float Share, bool Cracks), ShaderMaterial> Made = new();
+    private static readonly Dictionary<float, ShaderMaterial> Made = new();
     private static (Texture2DArray Tiles, Rect2 Rect, Vector2I Cells, int Tile)? _starlight;
     private static (Texture2D Main, Texture2D Spots)? _lightmaps;
     private static (Vector2 At, float Texel) _placed = (Vector2.Zero, 1);
@@ -169,10 +164,9 @@ public static class Lit
     /// <summary>
     /// Lights <paramref name="item"/> from now on, by the lamps and the stars. One that takes less than
     /// the whole <paramref name="share"/> — a wall's, an edge's, a door's <see cref="Light.WallIn"/> — is
-    /// drawn in wall cells and takes the stars' light from its own side. One that <paramref name="cracks"/>,
-    /// a piece of debris, shows its damage as <see cref="Cracks.Show"/> sets it.
+    /// drawn in wall cells and takes the stars' light from its own side.
     /// </summary>
-    public static void Set(CanvasItem item, float share = 1f, bool cracks = false) => item.Material = MaterialOf(share, cracks);
+    public static void Set(CanvasItem item, float share = 1f) => item.Material = MaterialOf(share);
 
     private static Vector3 _ambient = new(Light.Ambient.R, Light.Ambient.G, Light.Ambient.B);
 
@@ -186,10 +180,10 @@ public static class Lit
         foreach (var (_, material) in Made) material.SetShaderParameter("ambient", _ambient);
     }
 
-    private static ShaderMaterial MaterialOf(float share, bool cracks)
+    private static ShaderMaterial MaterialOf(float share)
     {
-        if (Made.TryGetValue((share, cracks), out var kept)) return kept;
-        kept = new ShaderMaterial { Shader = cracks ? Cracking : Plain };
+        if (Made.TryGetValue(share, out var kept)) return kept;
+        kept = new ShaderMaterial { Shader = Plain };
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", _ambient);
@@ -198,7 +192,7 @@ public static class Lit
         if (_lightmaps is var (main, spots)) ShowMaps(kept, main, spots);
         Place(kept);
         See(kept);
-        return Made[(share, cracks)] = kept;
+        return Made[share] = kept;
     }
 
     /// <summary>

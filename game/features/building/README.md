@@ -8,7 +8,7 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 
 | File | Purpose |
 | --- | --- |
-| `logic/Tools.cs` | Tabs and cards from menu slots (0114), focus, removal, overlay, search, hints, `CardAt` (pipette), joins (`LinksOf`). |
+| `logic/Tools.cs` | Tabs and cards from slots (0114), focus, removal, overlay, search, hints, `CardAt`, `LinksOf`. |
 | `logic/PlanHand.cs` | Card in hand and plan out, in step with `Ui.Hand`, `Ui.OverlayOn`; the focused layer. |
 | `logic/Drag.cs` | A drag's cells, laid a stamp at a time, and what the card or removal would do in each. |
 | `BuildingView.cs` | Plans and marks drawn, the tips, the buttons, the pipette, plan work. |
@@ -18,7 +18,8 @@ The plan, its menu and the hand at work (0022, 0030). Game rules stay in `sim/Bu
 | `logic/Catalogue.cs` | The menu's frame (0073): slot size, scrolled rows, hover, scrollbar. |
 | `BuildMenu.cs` | The tablet menu: modes, tabs with counts, search, cards, card in hand, hint, tooltip. |
 | `logic/WallStats.cs` | A wall's card numbers: leak, meteor resistance, share of meteors breaking it. |
-| `DigView.cs` | Digging seen (0077): cracks in three stages, a break's chips, dust and cloud. |
+| `DigView.cs` | Digging seen (0077): a fault in three stages, a break's chips, dust, cloud. |
+| `logic/BlockFault.cs` | A dug block's fault in ink (damage-looks). |
 | `PlanKey.cs` | A key in a wing: a layer's, a mode's (0110). |
 | `PlanWing.cs` | The tablet's wings for the keys: modes left, layers right. |
 | `logic/Building.En.cs` | Its player text |
@@ -85,7 +86,7 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Work's light** (0075, 0094, `BuildGlow`, `Tools.SparksOf`): sparks burst from the side facing the nearest hero,
   not the worker, so every peer sees the same; a molten spot, smoke, shimmer; the cut glows; finished, swept by light. The
   ratchet there; by a running power driver, its motor (`Ui.Driven`).
-- **Digging** (0077, 0079): a crack's stage is its share of the wall's strength; a hit's own look is the crew's (0094).
+- **Digging** (0077, 0079, damage-looks): a fault's stage is its share of the wall's strength; a hit's look is the crew's (0094).
 
 ## Deliberately not handled
 
