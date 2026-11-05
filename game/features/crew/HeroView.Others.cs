@@ -60,12 +60,14 @@ public partial class HeroView
             // in the front layer: which button its peer swings with is not sent.
             if (shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, stroke).Hits)
                 StruckBy(m, id, hero, shown.Swing.At, strikes!);
-            // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: the fan its peer sends there.
+            // Its drill's hits likewise, at its pace where the sim says it runs and it sends its bit: what its edge touches, as drawn here.
             string? running = m.Items.Running(id);
             bool drills = HeldLook.IsDrill(running) && seen.Busy is { Work: Handwork.Drill };
-            shown.Work = drills ? WorkOf(m, id, hero, Aiming.FanOf(m, hero, seen.Busy!.Value.At, running!), running!, shown.Figure) : null;
-            if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1))
-                StruckBy(m, id, hero, seen.Busy!.Value.At, running!);
+            var edged = drills ? EdgeOf(m, hero, running!, shown.Figure) : null;
+            shown.Work = drills ? WorkOf(m, id, hero, edged, running!, shown.Figure) : null;
+            if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1) && edged != null
+                && m.Items.BlockDamage(id, running!) != 0 && ToolEdges.LeadOf(m, edged) is int lead)
+                Struck(_othersGroundHits, m, lead, running!, hero, id);
             ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, shown.Swing.Phase is double phase ? (shown.Swing.At, phase) : null);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.

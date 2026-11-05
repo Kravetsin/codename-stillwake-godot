@@ -22,6 +22,14 @@ public sealed record Grab(int Piece) : Command;
 public sealed record HewWrecks(string Tool, int X, int Y, int Heading) : Command;
 
 /// <summary>
+/// A hit of a running tool (tool-edge) on the wrecks its drawn edge touches, <c>Pieces</c> by id, as the client saw them: each
+/// distinct one still a wreck in space (<see cref="DebrisModule.Wrecks"/>) loses the weapon's <c>Damage</c> once, ascending by id,
+/// the cutter's salvaging as a <see cref="HewWrecks"/> does; one gone by the tick is skipped. Neither reach nor position is checked:
+/// the client's word, among friends (0002).
+/// </summary>
+public sealed record HewPieces(string Tool, IReadOnlyList<int> Pieces) : Command;
+
+/// <summary>
 /// Reels piece <c>Piece</c> by a harpoon to (<c>ToX</c>, <c>ToY</c>), in thousandths of a cell: the point
 /// the client puts before the gun, kept on the grid. The last reel of a piece wins (0044).
 /// </summary>
@@ -100,6 +108,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         _items = items;
         Handles<Grab>(c => GrabProblem(c.From, c.Piece), Apply);
         Handles<HewWrecks>(c => HewProblemOf(c.From, Struck(c.Tool, c.X, c.Y, c.Heading), c.Tool, running: true), Apply);
+        Handles<HewPieces>(c => HewProblemOf(c.From, Listed(c.Pieces), c.Tool, running: true), Apply);
         Handles<Reel>(c => ReelProblem(c.From, c.Piece), Apply);
         Handles<Collect>(c => CollectProblem(c.From, c.Machine), Apply);
         // After derivation, like the air: the grid's size is that of this tick.
@@ -280,6 +289,20 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
     public string? HewProblem(int peer, string tool, int x, int y, int heading) =>
         HewProblemOf(peer, Struck(tool, x, y, heading), tool, running: false);
 
+    /// <summary>Why peer <paramref name="peer"/>'s <see cref="HewPieces"/> of <paramref name="tool"/> on <paramref name="pieces"/> would be refused, as <see cref="HewProblem"/> asks it.</summary>
+    public string? HewPiecesProblem(int peer, string tool, IReadOnlyList<int> pieces) =>
+        HewProblemOf(peer, Listed(pieces), tool, running: false);
+
+    /// <summary>The wrecks in space among <paramref name="ids"/>, each once, ascending by id.</summary>
+    private List<Piece> Listed(IReadOnlyList<int> ids)
+    {
+        var listed = new List<Piece>();
+        foreach (var w in Wrecks())
+            if (ids.Contains(w.Piece)) listed.Add(PieceById(w.Piece)!);
+        listed.Sort((a, b) => a.Id.CompareTo(b.Id));
+        return listed;
+    }
+
     private string? HewProblemOf(int peer, IReadOnlyList<Piece> struck, string tool, bool running)
     {
         if (_crew.HeroOf(peer) is not { } hero || !Outside(hero.Cell)) return "debris.notOutside";
@@ -339,6 +362,13 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         int hit = _held.Damage(c.From, c.Tool);
         bool cuts = Content.Weapons.Of(c.Tool) is { } weapon && Content.Weapons.Salvages(weapon);
         foreach (var piece in Struck(c.Tool, c.X, c.Y, c.Heading)) Hit(c.From, piece.Id, hit, cuts);
+    }
+
+    private void Apply(HewPieces c)
+    {
+        int hit = _held.Damage(c.From, c.Tool);
+        bool cuts = Content.Weapons.Of(c.Tool) is { } weapon && Content.Weapons.Salvages(weapon);
+        foreach (var piece in Listed(c.Pieces)) Hit(c.From, piece.Id, hit, cuts);
     }
 
     /// <summary>

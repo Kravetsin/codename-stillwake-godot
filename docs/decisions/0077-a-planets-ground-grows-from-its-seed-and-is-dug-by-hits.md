@@ -1,6 +1,6 @@
 # 0077 — A planet's ground grows from its seed and is dug by hits
 
-- Status: accepted; slices A–C built; the ground's art and its plants in 0079 (the lamp's art and the sounds later); its terraces' cliffs superseded by [veins-and-stairs](2026-10-25-veins-and-stairs.md)
+- Status: accepted; slices A–C built; the ground's art and its plants in 0079 (the lamp's art and the sounds later); its terraces' cliffs superseded by [veins-and-stairs](2026-10-25-veins-and-stairs.md); a running tool's fan superseded by [tool-edge](2026-11-05-tool-edge.md)
 - Date: 2026-10-20
 
 ## Context
