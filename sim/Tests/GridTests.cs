@@ -3,6 +3,7 @@ using FsCheck.Fluent;
 using FsCheck.Xunit;
 using Stillwake.Sim.Grid;
 using Xunit;
+using Doors = Stillwake.Content.Doors;
 using Structure = Stillwake.Content.Structure;
 
 namespace Stillwake.Sim.Tests;
@@ -40,7 +41,7 @@ public class GridTests
             #######
             """, cells: true);
         int[] Hatch() => [w.M.Grid.StructureAt(w.At(2, 2)), w.M.Grid.StructureAt(w.At(3, 2))];
-        w.Do(new SetDoor(w.At(3, 2), true)).Run();
+        w.Do(new SetDoor(w.At(3, 2), true)).Run(Doors.SwingTicks);
         Assert.Equal(new[] { Structure.HatchOpen, Structure.HatchOpen }, Hatch());
         w.Do(new SetDoor(w.At(2, 2), false)).Run();
         Assert.Equal(new[] { Structure.HatchClosed, Structure.HatchClosed }, Hatch());
@@ -314,6 +315,35 @@ public class GridTests
             return true.ToProperty();
         });
     }
+
+    /// <summary>
+    /// A toggled door takes no other toggle from anyone while it moves, its sound's length (2026-11-04-door-swing): spam and
+    /// a griefer's clicks bounce off; a toggle <see cref="Doors.SwingTicks"/> after the last one applies.
+    /// </summary>
+    [Fact]
+    public void RefusesToToggleADoorWhileItMovesFromAnyone()
+    {
+        var w = new Scenario("#D#\n#D#\n#.#", cells: true);
+        w.Do(new SetDoor(1, true) { From = 0 }).Run();
+        w.Run(Doors.SwingTicks - 2).Do(new SetDoor(4, false) { From = 1 }).Run();
+        Assert.Equal(new[] { "grid.doorBusy" }, w.Refusals.Select(r => r.Reason));
+        Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(1));
+        w.Do(new SetDoor(4, false) { From = 1 }).Run();
+        Assert.Equal((Structure.DoorClosed, Structure.DoorClosed), (w.M.Grid.StructureAt(1), w.M.Grid.StructureAt(4)));
+    }
+
+    /// <summary>A door moving leaves the one beside it free; asked to be as it already is, it refuses nothing.</summary>
+    [Fact]
+    public void KeepsEachDoorwaysMoveToItself()
+    {
+        var w = new Scenario("#D#D#\n#D#D#", cells: true);
+        w.Do(new SetDoor(1, true)).Run();
+        w.Do(new SetDoor(3, true)).Do(new SetDoor(1, true)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal((Structure.DoorOpen, Structure.DoorOpen), (w.M.Grid.StructureAt(1), w.M.Grid.StructureAt(3)));
+        Assert.Equal("grid.doorBusy", w.M.Grid.DoorProblem(1, false));
+        Assert.Null(w.M.Grid.DoorProblem(1, true));
+    }
 }
 
 /// <summary>From grid.test.ts: "toggles a client has in flight", folded by <c>AfterToggles</c> (0014).</summary>
@@ -327,6 +357,18 @@ public class GridAfterTogglesTests
         return shown;
     }
 
+    [Fact]
+    public void ShowAToggleOfAMovingDoorAsRefused()
+    {
+        var w = new Scenario("#D#.\n#D#.", cells: true);
+        w.Do(new SetDoor(1, true)).Run();
+        Command[] toggles = [new SetDoor(5, false)];
+        int[] shownStructure = Over(w.M.Grid.StructureLayer, w.M.Grid.AfterToggles(toggles));
+        foreach (var t in toggles) w.Do(t);
+        w.Run();
+        Assert.Equal(new[] { "grid.doorBusy" }, w.Refusals.Select(r => r.Reason));
+        Assert.Equal(w.M.Grid.StructureLayer.ToArray(), shownStructure);
+    }
     [Fact]
     public void ShowTheLayersAsTheirCommandsWouldLeaveThemSkippingWhatTheyWouldRefuse()
     {
@@ -350,12 +392,12 @@ public class GridAfterTogglesTests
     [Fact]
     public void FoldInOrderSoEachToggleSeesTheOnesBeforeItAndTheWorldIsLeftBe()
     {
-        var w = new Scenario("#d#\n#D#", cells: true);
+        var w = new Scenario("#d#\n#D#\n#.#\n#D#", cells: true);
         ulong hash = w.World.Hash();
         int[] live = w.M.Grid.StructureLayer.ToArray();
-        var structure = w.M.Grid.AfterToggles([new SetDoor(1, false), new SetDoor(4, true)]);
-        // A mixed doorway: the first shuts it all, the second opens it all again.
-        Assert.Equal(new[] { live[1], live[1] }, new[] { structure[1], structure[4] });
+        var structure = w.M.Grid.AfterToggles([new SetDoor(1, false), new SetDoor(4, true), new SetDoor(10, true)]);
+        // A mixed doorway: the first shuts it all; the second finds it moving and is refused. The door below is its own.
+        Assert.Equal(new[] { Structure.DoorClosed, Structure.DoorClosed, Structure.DoorOpen }, new[] { structure[1], structure[4], structure[10] });
         Assert.Equal(hash, w.World.Hash());
         Assert.Equal(live, w.M.Grid.StructureLayer.ToArray());
     }

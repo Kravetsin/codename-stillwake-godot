@@ -226,6 +226,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-heavy-helmet](2026-11-03-the-heavy-helmet.md) | The heavy helmet and richer canisters | accepted |  |
 | [the-regen-suit](2026-11-03-the-regen-suit.md) | The regen suit and the suit's mode | accepted |  |
 | [credit-counter](2026-11-04-credit-counter.md) | The credit chip stands upright and larger, and changing numbers count with a flare | accepted |  |
+| [door-swing](2026-11-04-door-swing.md) | A door takes no other toggle while it moves | accepted |  |
 | [driver-icons](2026-11-04-driver-icons.md) | Tool icons from large pictures; no square over a whole thing | accepted |  |
 | [driver-order](2026-11-04-driver-order.md) | The hull first, no station in a square, plans under the heroes | accepted |  |
 | [footprint-is-the-picture](2026-11-04-footprint-is-the-picture.md) | A bench's footprint is its whole picture | accepted |  |

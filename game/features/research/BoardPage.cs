@@ -895,7 +895,10 @@ public sealed class BoardPage : ITabletPage
         if (known) return _strip.Named(item, T("research.taken", ("n", count), ("what", name)), Style.Slate100);
         if (!_had.Contains(item)) return _strip.Unseen(item);
         int have = _read!.Count(item), enough = Understanding.Enough(item);
-        return _strip.Named(item, T("research.board.part", ("what", name), ("have", have), ("enough", enough)), have >= enough ? Bought : Style.Slate100);
+        // Enough had is a tick: the count would only climb on past it, telling nothing more.
+        return have >= enough
+            ? _strip.Named(item, T("research.board.partDone", ("what", name)), Bought)
+            : _strip.Named(item, T("research.board.part", ("what", name), ("have", have), ("enough", enough)), Style.Slate100);
     }
 
     /// <summary>A station: named while one stands; a pale picture while none does, named by the pointer only if it is known at all.</summary>

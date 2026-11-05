@@ -126,7 +126,7 @@ public class RoomsTests
             .........
             """, cells: true);
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));
-        w.Do(new SetDoor(w.At(4, 2), true)).Run();
+        w.Do(new SetDoor(w.At(4, 2), true)).Run(Doors.SwingTicks);
         Assert.Equal(new[] { (w.At(2, 2), 5) }, Summary(w));
         w.Do(new SetDoor(w.At(4, 2), false)).Run();
         Assert.Equal(new[] { (w.At(2, 2), 2), (w.At(5, 2), 2) }, Summary(w));

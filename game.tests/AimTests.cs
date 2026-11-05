@@ -81,6 +81,18 @@ public class AimTests
         Assert.Equal(new SetDoor(At(3, 1), true), Aiming.AimAt(m, 0, HeroOn(2, 1), Centre(3, 1))?.Press?.Command);
     }
 
+    /// <summary>A door still moving from another's press says so to E, as the sim would refuse it (2026-11-04-door-swing).</summary>
+    [Fact]
+    public void CarriesWhyAMovingDoorTakesNoPress()
+    {
+        var w = Drawn(Corridor);
+        w.Step(new SetDoor(At(3, 1), true) { From = 1 });
+        var door = Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1))?.Press;
+        Assert.Equal(new Use(new SetDoor(At(3, 1), false), "grid.doorBusy"), door);
+        for (int i = 0; i < Spec.Doors.SwingTicks; i++) w.Step();
+        Assert.Null(Aiming.AimAt(w.M, 0, HeroOn(2, 1), Centre(3, 1))?.Press?.Problem);
+    }
+
     [Fact]
     public void WorksTheDoorWhenAValveSharesItsCell()
     {

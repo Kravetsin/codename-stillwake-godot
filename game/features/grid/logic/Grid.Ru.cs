@@ -19,6 +19,7 @@ public static partial class Ru
         ["grid.shaftBlocked"] = "Под ней должно быть пусто до самого края",
         ["grid.noSuchLayer"] = "Нет такого слоя",
         ["grid.noDoor"] = "Здесь нет двери",
+        ["grid.doorBusy"] = "Дверь ещё движется",
         ["hazards.noWall"] = "Здесь нет стены",
         ["hazards.neverBreaks"] = "Это не ломается",
         ["hazards.flareComing"] = "Вспышка уже на подходе",

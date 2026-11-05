@@ -46,6 +46,7 @@ public static partial class Ru
         ["research.noCredits"] = "Мало кредитов",
         ["research.board.hint"] = "Нажми на любую вещь на доске: из чего она делается, где и что из неё делают",
         ["research.board.part"] = "{what} {have}/{enough}",
+        ["research.board.partDone"] = "{what} ✓",
         ["research.pile.hint"] = "Нажми на запись, чтобы положить её на доску",
         ["research.pile.unread"] = "не прочитано",
         ["research.pile.takeAll"] = "Всё на доску",

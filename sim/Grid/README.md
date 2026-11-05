@@ -16,7 +16,7 @@ The ship as cells in ship-local coordinates, layer by layer; rooms, pipes and ai
   the zone (`Layout.Zone`, 0048) is where anything may be built, the whole grid for a map that sets none.
 - **Cells:** row by row from the top-left, `cell = y * width + x`. A cell is 8 px (0104); every cell is whole, no slopes (0106).
 - **State** (`GridState`, members internal): the layers as `int[]` codes (`Structure`, `Material`, `Back`, `BackMaterial`),
-  `Zone`, `Machines` (id order), `NextMachineId`. Saved as runs (`Runs`), so empty space costs nothing. Derived, rebuilt after
+  `Zone`, `Machines` (id order), `NextMachineId`, `Swings` (doors moving). Saved as runs (`Runs`), so empty space costs nothing. Derived, rebuilt after
   a load: `Occupancy` (machine id per cell), `ById`, `ByKind`, `Version`, `Built` (the tight box of everything), `Log`.
 
 ## Layers
@@ -54,9 +54,10 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 - **Operations** (`IGridOps`): `Place(cell, placement)` (the build's code, `Structures.Placed`; a problem throws),
   `Clear(cell, layer)` (a whole machine), `SetDoorway(cell, open)` (a whole doorway as `SetDoor` sets it: Landing's
   platforms). Only in commands or construction.
-- **Command:** `SetDoor(cell, open)` — sets the whole doorway the cell is in to the state its sender saw it should take
-  (0071), each cell its `Toggle` within its group; already so, nothing changes, not even the version. Refused
-  `grid.noDoor`, and on a launch platform, which only Landing opens (power gates it).
+- **Command:** `SetDoor(cell, open)` — sets the cell's whole doorway as its sender saw it should be
+  (0071); already so, nothing changes, not even the version. Refused `grid.noDoor`, and on a launch
+  platform (Landing's); `grid.doorBusy` for `Doors.SwingTicks` after a toggle that changed it,
+  unless already as asked ([door-swing](../../docs/decisions/2026-11-04-door-swing.md)). `DoorProblem` asks.
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
   `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.notOnHull`, `grid.noPlatform` (a machine that `Lands` with the row
   under it not all launch platform), `grid.noGround` (off the ship, where only Landing places a pod, the row under it not all
@@ -96,4 +97,4 @@ through as its back wall, so digging it out leaves no second lump of ore.
 - Machines need no floor under them.
 - An engine's exhaust is checked only when placed: what is later built in its nozzle's cells or taken from them leaves it standing.
 - Door kinds with rules of their own (an airlock) would need a layer (0067).
-- The log holds the last 65,536 writes (`ChangeLog.DefaultCapacity`); a tick writing more makes readers look at everything.
+- The log holds 65,536 writes (`ChangeLog.DefaultCapacity`); a tick writing more makes readers look at everything.

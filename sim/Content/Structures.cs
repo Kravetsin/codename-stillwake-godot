@@ -174,3 +174,10 @@ public static class Structures
     /// <summary>The spec a build of <paramref name="build"/> places (<see cref="Placed"/>); null for one that places no structure.</summary>
     public static StructureSpec? ByBuild(string build) => Placed(build) is int code ? Table[code] : null;
 }
+
+/// <summary>How a door or hatch moves (2026-11-04-door-swing).</summary>
+public static class Doors
+{
+    /// <summary>Ticks a toggled doorway takes no other toggle, from anyone: the 1.2 s its sound plays.</summary>
+    public const int SwingTicks = 24;
+}

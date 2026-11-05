@@ -54,13 +54,13 @@ public class ShownGridTests
     }
 
     [Fact]
-    public void ShowsTheLastOfTwoSetsInFlightAndOneTheSimWouldRefuseNotAtAll()
+    public void ShowsTheFirstOfTwoSetsInFlightTheSecondFindingItMovingAndOneTheSimWouldRefuseNotAtAll()
     {
         var g = new Guest();
         g.Client.Send(new SetDoor(1, true));
         g.Client.Send(new SetDoor(4, false));
         g.Client.Send(new SetDoor(7, true));
-        Assert.Equal(Shut, Doorway(g.Shown, g.M.Grid));
+        Assert.Equal(Open, Doorway(g.Shown, g.M.Grid));
         Assert.Equal(Structure.Empty, g.Shown.StructureAt(g.M.Grid, 7));
     }
 

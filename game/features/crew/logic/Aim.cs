@@ -597,7 +597,7 @@ public static class Aiming
         bool? valve = shown?.ValveOpenAt(m.Pipes, cell) ?? m.Pipes.ValveAt(cell)?.Open;
         // A platform opens only with power (Landing): E on a dark one says why, as on an empty canister.
         if (Doorways.IsPlatform(structure)) return new Use(new SetPlatform(cell, Doorways.IsClosed(structure)), m.Landing.Problem(cell, Doorways.IsClosed(structure)));
-        if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), null);
+        if (Doorways.IsDoorway(structure)) return new Use(new SetDoor(cell, Doorways.IsClosed(structure)), grid.DoorProblem(cell, Doorways.IsClosed(structure)));
         if (valve is bool open) return new Use(new Sim.Pipes.SetValve(cell, !open), null);
         return null;
     }

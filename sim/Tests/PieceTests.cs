@@ -183,7 +183,7 @@ public class PieceTests
         w.Do(new SetDoor(At(6, 6), true)).Run();
         Assert.All(Box(5, 6, 2, 1), c => Assert.Equal(Structure.HatchOpen, w.M.Grid.StructureAt(c)));
         Assert.All(Box(7, 2, 2, 2), c => Assert.Equal(Structure.DoorOpen, w.M.Grid.StructureAt(c)));
-        w.Do(new SetDoor(At(1, 1), false)).Run();
+        w.Run(Doors.SwingTicks).Do(new SetDoor(At(1, 1), false)).Run();
         Assert.All(Box(1, 1, 2, 6), c => Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(c)));
         Assert.Empty(w.Refusals);
     }

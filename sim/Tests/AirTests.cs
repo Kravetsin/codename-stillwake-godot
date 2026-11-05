@@ -8,6 +8,7 @@ using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Rooms;
 using Xunit;
 using Air = Stillwake.Content.Air;
+using Doors = Stillwake.Content.Doors;
 using Materials = Stillwake.Content.Materials;
 using Structure = Stillwake.Content.Structure;
 
@@ -440,6 +441,8 @@ public class AirTests
     {
         var (w, _, door, right) = TwoRooms();
         w.Do(new SetDoor(door, true)).Run(3);
+        // The vent cut while the door moves: the air let in is laid out again round the joined room's middle.
+        w.Do(new CutPipe(At15(1, 1), w.Output(At15(1, 2)))).Run(Doors.SwingTicks - 3);
         // Past the doorway, which fills its block (0104).
         var inRight = w.Air().Aired.Where(c => c % 30 > At15(8, 0) + 1).ToList();
         Assert.NotEmpty(inRight);
@@ -462,7 +465,7 @@ public class AirTests
         w.Do(new SetDoor(door, true)).Run();
         Assert.Equal(RoomStatus.Filling, Status(w, left));
         AirUp(w, left);
-        w.Do(new SetDoor(door, false)).Run();
+        w.Run(Doors.SwingTicks).Do(new SetDoor(door, false)).Run();
         int shut = w.M.Rooms.RoomAt(right)!.Value;
         int volume = w.M.Rooms.RoomById(shut)!.Volume;
         Assert.Equal(volume, AiredIn(w, shut).Count);
