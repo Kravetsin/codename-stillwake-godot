@@ -33,7 +33,7 @@ Draws the grid's cells and machines in pixel art, a pixel of art a pixel of the 
   0111), machines over their footprints, a sprite per power socket.
 - **Heard** (0033): a door that moved, where it stands, once a doorway at its leading cell (`DoorShape.Leads`); a valve
   is the pipes' own (0109).
-- **Slid** (0075): a doorway seen to open or shut slides one panel across all its cells over `DoorSlides.Seconds` (0.54 s, to
+- **Slid** (0075): a doorway seen to open or shut slides one panel across all its cells over `DoorSlides.Seconds` (the swing, 0.55 s, to
   the stop ringing in its sound, door-swing), a door's rising into its top, a hatch's into its left end, two pixels a step, eased (`DoorLight.Ease`). Each cell draws
   the part over it (`DoorShape.Picture(hatch, index, length, shift)`), pictures made at start from the shut and open ones
   (`DoorShape.Slid`) and packed in the atlas, so a slide is tiles swapped, never a node; long doorways repeat their
