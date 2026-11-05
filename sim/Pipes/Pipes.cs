@@ -236,7 +236,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         int length = LengthOf(_grid.Width, a, b);
         if (length > Content.Piping.MaxSpan) return "pipes.tooLong";
         if (SpanAt(a, b) != null) return "pipes.twice";
-        return FluidProblem(a, b) ?? _items.ShortOf(peer, CostOf(length));
+        return FluidProblem(a, b) ?? _items.ShortOfStock(peer, CostOf(length));
     }
 
     public string? FluidProblem(int a, int b)
@@ -297,11 +297,11 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
     public string? ValveProblem(int peer, int cell, bool valve)
     {
         var there = ValveAt(cell);
-        if (!valve) return there == null ? "pipes.noValve" : there.Paid ? _items.FullFor(peer, Content.Piping.ValveCost) : null;
+        if (!valve) return there == null ? "pipes.noValve" : there.Paid ? _items.FullForStock(peer, Content.Piping.ValveCost) : null;
         if (Rules != Content.Surfaces.Ship) return "pipes.notAboard";
         if (!Piped(cell) || IsPort(cell)) return "pipes.noJoint";
         if (there != null) return "pipes.already";
-        return _items.ShortOf(peer, Content.Piping.ValveCost);
+        return _items.ShortOfStock(peer, Content.Piping.ValveCost);
     }
 
     /// <summary>What cutting <paramref name="span"/> gives back: its tubes if paid, and the valves left on no span, if paid.</summary>
@@ -319,13 +319,13 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
         _grid.MachineAt(span.A) is { } m && _grid.MachineAt(span.B)?.Id == m.Id && Content.Machines.Get(m.Kind).Fixed;
 
     private string? CutProblem(CutPipe c) =>
-        SpanAt(c.A, c.B) is not { } span ? "pipes.noPipe" : InsideFixed(span) ? "pipes.fixed" : RefundOf(span) is { Count: > 0 } refund ? _items.FullFor(c.From, refund) : null;
+        SpanAt(c.A, c.B) is not { } span ? "pipes.noPipe" : InsideFixed(span) ? "pipes.fixed" : RefundOf(span) is { Count: > 0 } refund ? _items.FullForStock(c.From, refund) : null;
 
     // Commands.
 
     private void ApplyLay(LayPipe c)
     {
-        var taken = _itemsOps.Take(c.From, CostOf(LengthOf(_grid.Width, c.A, c.B)));
+        var taken = _itemsOps.TakeStock(c.From, CostOf(LengthOf(_grid.Width, c.A, c.B)));
         State.Spans.Add(new PipeSpan(Math.Min(c.A, c.B), Math.Max(c.A, c.B), taken.Count > 0));
         State.Spans.Sort(ByEnds);
         State.Stale = true;
@@ -336,7 +336,7 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
     {
         var span = SpanAt(c.A, c.B)!;
         var refund = RefundOf(span);
-        if (refund.Count > 0) _itemsOps.Give(c.From, refund);
+        if (refund.Count > 0) _itemsOps.GiveStock(c.From, refund);
         State.Spans.Remove(span);
         State.Valves.RemoveAll(v => !Piped(v.Cell));
         State.Stale = true;
@@ -347,13 +347,13 @@ public sealed partial class PipesModule : Module<PipesState>, IPipesQueries
     {
         if (c.Valve)
         {
-            var taken = _itemsOps.Take(c.From, Content.Piping.ValveCost);
+            var taken = _itemsOps.TakeStock(c.From, Content.Piping.ValveCost);
             State.Valves.Insert(~ValveIndex(c.Cell), new Valve(c.Cell, true, taken.Count > 0));
         }
         else
         {
             int at = ValveIndex(c.Cell);
-            if (State.Valves[at].Paid) _itemsOps.Give(c.From, Content.Piping.ValveCost);
+            if (State.Valves[at].Paid) _itemsOps.GiveStock(c.From, Content.Piping.ValveCost);
             State.Valves.RemoveAt(at);
         }
         State.Stale = true;

@@ -236,7 +236,7 @@ public sealed class Ui
     public Store<Tip?> CostTip { get; } = new(null);
 
     /// <summary>
-    /// What this player carries, item by item (<c>Items.Totals</c>): read by <c>Hands</c> on a timer, as a
+    /// What this player can pay with, item by item: its own slots and every crate (<c>Items.StockTotals</c>), read by <c>Hands</c> on a timer, as a
     /// panel reads. The build menu's prices and a blueprint's cost under the pointer weigh it alike.
     /// </summary>
     public IReadOnlyList<(string Item, int Count)> Carried { get; set; } = [];

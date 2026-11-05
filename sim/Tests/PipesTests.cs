@@ -121,6 +121,25 @@ public class PipesTests
     }
 
     [Fact]
+    public void LaysASpanPaidFromACrateAndACutWithTheBagFullGivesItBackThere()
+    {
+        // The vents' map with a crate in its bottom right (craft-from-crates).
+        string crated = string.Join("\n", Vents.Split('\n').Select((row, y) => y >= 8 ? row[..12] + "KKKK" : row));
+        var w = new Scenario(crated, cells: true);
+        int crate = w.M.Grid.MachinesOf("crate").Single().Id, a = w.At(0, 0), b = w.At(5, 0);
+        int InCrate() => w.M.Items.Crate(crate).Sum(s => s?.Item == "tube" ? s.Count : 0);
+        w.FillCrate(crate, ("tube", 10));
+        w.Do(new LayPipe(a, b)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Single(w.M.Pipes.Spans);
+        Assert.Equal(10 - PipesModule.CostOf(5).Single().Count, InCrate());
+        w.GiveItems(0, ("canister", Content.Inventory.Slots * Content.Items.Get("canister").Stack));
+        w.Do(new CutPipe(a, b)).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(10, InCrate());
+    }
+
+    [Fact]
     public void RefusesEveryBadSpanAndCut()
     {
         var w = World();

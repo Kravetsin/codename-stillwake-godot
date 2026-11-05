@@ -353,7 +353,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         if (!InSpan(_grid, p.Value, q.Value)) return "power.tooLong";
         var ends = Ordered(p.Value, q.Value);
         if (State.Cables.Exists(c => c.A == ends.A && c.B == ends.B)) return "power.twice";
-        return _items.ShortOf(peer, Content.Power.CableCost);
+        return _items.ShortOfStock(peer, Content.Power.CableCost);
     }
 
     /// <summary>
@@ -452,7 +452,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     private void ApplyLay(Lay c)
     {
         var ends = Ordered(NodeAt(c.A)!.Value, NodeAt(c.B)!.Value);
-        var taken = _itemsOps.Take(c.From, Content.Power.CableCost);
+        var taken = _itemsOps.TakeStock(c.From, Content.Power.CableCost);
         State.Cables.Add(new Cable(ends.A, ends.B, taken.Count > 0));
         State.Cables.Sort(ByEnds);
     }
@@ -480,13 +480,13 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     {
         var cable = CableAt(c.A, c.B);
         if (cable == null) return "power.noCable";
-        return cable.Paid ? _items.FullFor(c.From, Content.Power.CableCost) : null;
+        return cable.Paid ? _items.FullForStock(c.From, Content.Power.CableCost) : null;
     }
 
     private void ApplyCut(Cut c)
     {
         var cable = CableAt(c.A, c.B)!;
-        if (cable.Paid) _itemsOps.Give(c.From, Content.Power.CableCost);
+        if (cable.Paid) _itemsOps.GiveStock(c.From, Content.Power.CableCost);
         State.Cables.Remove(cable);
     }
 }

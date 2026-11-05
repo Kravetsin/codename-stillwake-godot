@@ -1,6 +1,7 @@
 # A paid craft takes from every crate on the ship
 
-- Status: accepted; changes 0008's "paid from the sender's inventory" for crafts only
+- Status: accepted; changes 0008's "paid from the sender's inventory" for crafts; building, pipes and cables too since
+  [build-from-crates](2026-11-05-build-from-crates.md)
 - Date: 2026-11-05
 
 ## Context
@@ -25,7 +26,7 @@ pipes, cables and canisters, which still pay from the hand. Crafting is what the
 
 - **Crates in the station's room only:** keeps the ship's layout in play, but the user chose the whole ship.
 - **A radius around the station:** a number to tune with no rule of the game behind it.
-- **Building and pipes from the stock as well:** not asked for; plans are fed by hand and by drones (0062).
+- **Building and pipes from the stock as well:** not asked for at first; done since build-from-crates.
 
 ## Consequences
 

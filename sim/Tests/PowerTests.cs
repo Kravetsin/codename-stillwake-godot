@@ -110,6 +110,20 @@ public class PowerTests
     }
 
     [Fact]
+    public void LaysACablePaidFromACrateInTheRoom()
+    {
+        // The room with a crate on its floor (craft-from-crates).
+        string[] crated = [.. Rows[..4], "#GGVGG......KK.#", Rows[5]];
+        var w = World(rows: crated);
+        int crate = w.M.Grid.MachinesOf("crate").Single().Id;
+        w.FillCrate(crate, ("wire", 5));
+        Lay(w, Generator, Second).Run();
+        Assert.Empty(w.Refusals);
+        Assert.Equal(2, w.M.Power.Cables.Count);
+        Assert.Equal(5 - CableWire, w.M.Items.Crate(crate).Sum(s => s?.Item == "wire" ? s.Count : 0));
+    }
+
+    [Fact]
     public void CutsACableGivingBackWhatWasPaidTheGeneratorCutOffGetsNothing()
     {
         var w = World();
