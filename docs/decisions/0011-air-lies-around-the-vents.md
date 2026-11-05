@@ -1,7 +1,7 @@
 # 0011 — Air lies around the vents, and a hero breathes it while the room holds any
 
 - Status: accepted; its breathing rule superseded by [0016](0016-breathe-where-the-air-is.md); its air staying put, by
-  [air as a tank](2026-11-05-air-as-a-tank.md): a room's air is the first cells of its order
+  [air bubbles](2026-11-05-air-bubbles.md): a zone's air is the first cells of its order, as many as its sources pay for
 - Date: 2026-10-11
 
 ## Context

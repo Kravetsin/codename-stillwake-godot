@@ -150,11 +150,18 @@ public class PlanetRulesTests
         w.Run();
         int room = m.Rooms.RoomAt(Cell(43, 23))!.Value;
         Assert.NotEqual(Rooms.RoomsModule.Space, room);
-        // Put in through a save: what the atmosphere keeps of its air is found again on a load.
-        ((AtmosphereState)m.Atmosphere.Slice).Aired.AddRange(inside);
-        m = w.Reload().On(1);
-        // In its middle, where its air lasts longest as it leaks through the walls: a paying breath and four more.
-        w.Do(new Enter(Cell(43, 23))).Run(Strip.ThinAir!.Value * Content.Crew.BreathEvery);
+        w.Do(new Enter(Cell(43, 23))).Run();
+        // A paying breath and four more, its air put back through a save every few ticks: with no vent it shrinks from the
+        // far edge, the middle last (2026-11-05-air-bubbles).
+        for (int t = 0; t < Strip.ThinAir!.Value * Content.Crew.BreathEvery; t += 4)
+        {
+            var aired = ((AtmosphereState)m.Atmosphere.Slice).Aired;
+            aired.AddRange(inside.Where(c => !aired.Contains(c)));
+            aired.Sort();
+            m = w.Reload().On(1);
+            Assert.True(m.Atmosphere.AiredAt(Cell(43, 23)));
+            w.Run(4);
+        }
         Assert.Equal(Scenario.Full, m.Crew.HeroOf(0)!.Air);
     }
 

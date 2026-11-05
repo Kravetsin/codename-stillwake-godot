@@ -85,15 +85,17 @@ public class AirTests
 
     /// <summary>
     /// Whether the orders kept room by room are those found afresh from the live vents, as after a load; the live vents
-    /// fed ones; and every room's air the first cells of its order (2026-11-05-air-as-a-tank).
+    /// fed ones; and every room's air the first cells of its order (2026-11-05-air-bubbles).
     /// </summary>
     private static bool FreshOrders(Scenario w)
     {
         var live = w.Air().Live ?? [];
         var fed = w.M.Grid.Machines.Where(m => Content.Machines.Is(m.Kind, Content.MachineTrait.Vents) && w.M.Atmosphere.Fed(m.Id)).Select(m => m.Cell).ToList();
         if (!live.All(fed.Contains) || !live.SequenceEqual(fed.Where(live.Contains))) return false;
-        var roomOf = w.M.Rooms.RoomOfCells.ToArray();
-        var fresh = Order.Rooms(roomOf, w.M.Grid.Width, w.M.Rooms.All, live, new bool[roomOf.Length]);
+        // Zones found afresh, as after a load (2026-11-05-air-bubbles).
+        var zones = new Zones(w.M.Rooms, w.M.Grid);
+        var roomOf = zones.RoomOfCells.ToArray();
+        var fresh = Order.Rooms(roomOf, w.M.Grid.Width, zones.All, live, new bool[roomOf.Length]);
         var kept = w.Air().Orders;
         if (fresh.Count != kept.Count) return false;
         foreach (var (room, order) in fresh)
@@ -125,57 +127,6 @@ public class AirTests
     // Air.
 
     [Fact]
-    public void FillsARoomOutwardFromItsVentCellsPerFillABeatAUnitEach()
-    {
-        var s = SetUp(valve: true);
-        var (w, room, _) = s;
-        // The vaporizer fills its store behind the closed valve first, so the fill is not held to the unit a tick it makes.
-        w.Do(new SetValve(At(1, 2), false));
-        s.Fill(1);
-        w.Run(Air.GeneratorStore);
-        Assert.Equal(Air.GeneratorStore, w.Gas());
-        w.Do(new SetValve(At(1, 2), true)).Run();
-        int clock = w.Air().Clock;
-        int first = w.Air().Aired.Count;
-        Assert.Equal(RoomStatus.Filling, Status(w, room));
-        w.Run(10 * Air.TicksPerCell);
-        // Air.CellsPerFill cells a beat, four of the 8 px cells to the 16 px one a beat aired (0105).
-        int filled = first + Air.CellsPerFill * (w.Air().Clock / Air.TicksPerCell - clock / Air.TicksPerCell);
-        var cells = w.Air().Aired;
-        Assert.Equal(filled, cells.Count);
-        Assert.Contains(At(1, 1), cells);
-        // Every aired cell is as near the vent as any cell still empty, or nearer.
-        var empty = w.Air().Orders[room].Where(c => !cells.Contains(c)).ToList();
-        Assert.True(cells.Max(FromVent) <= empty.Min(FromVent));
-        // Each cell costs a unit of the chain, and the room pays what its aired cells leak: at most the whole room's leak.
-        Assert.InRange(w.Held(), Air.Canister - filled - AirTesting.Leaked(Leak, clock, w.Air().Clock) - 1, Air.Canister - filled);
-    }
-
-    [Fact]
-    public void IsAiredOnceEveryCellIsPaidForThenUsesOnlyItsLeak()
-    {
-        var s = SetUp(valve: true);
-        var w = s.W;
-        // The store filled first behind the closed valve, so it has what the fill and the leak draw while the room fills.
-        w.Do(new SetValve(At(1, 2), false));
-        s.Fill(1);
-        w.Run(Air.GeneratorStore);
-        w.Do(new SetValve(At(1, 2), true)).Run();
-        int clock = w.Air().Clock;
-        AirUp(w, s.Room);
-        Assert.Equal(Volume, w.Air().Aired.Count);
-        Assert.Equal(w.Air().Aired, w.M.Atmosphere.AiredCells);
-        int now = w.Air().Clock;
-        // Paid by the chain, the tank's liquid through the vaporizer's store: a cell a unit, and what the aired cells leaked.
-        int held = w.Held();
-        Assert.InRange(held, Air.Canister - Volume - AirTesting.Leaked(Leak, clock, now) - 1, Air.Canister - Volume);
-        // Aired, the whole room's leak and nothing else.
-        int part = w.Owed(s.Room);
-        w.Run(Air.TicksPerCell * 3);
-        Assert.Equal(held - AirTesting.Leaked(Leak, now, w.Air().Clock, part), w.Held());
-    }
-
-    [Fact]
     public void DrawsFromTheTanksOfANetworkOneByOneInIdOrder()
     {
         var w = SetUp().W;
@@ -192,38 +143,6 @@ public class AirTests
         Assert.Equal(Air.Canister - 4, Oxygen(w, first));
         Assert.Equal(Air.Canister, Oxygen(w, second));
         Assert.Equal(RoomStatus.Filling, Status(w, w.M.Rooms.RoomAt(At(4, 2))!.Value));
-    }
-
-    [Fact]
-    public void FillsFromTheFirstVentOfTheRoomWhoseNetworkCanPayNotOneRunDry()
-    {
-        // Two chains, each vent fed by its own vaporizer, each vaporizer by its own tank under the hull.
-        var s = SetUp(Layout.Parse(
-            [
-                "#########",
-                "#V.....V#",
-                "#GG...GG#",
-                "#GG...GG#",
-                "#########",
-                "",
-                " TT   TT",
-                " TT   TT",
-                " PPP PPP",
-            ],
-            // Each tank's liquid from its output on its right, round it and up to its vaporizer's input.
-            ["", "", "", " -    -", " -    -", " ---  ---", "   -    -", "  --   --"],
-            [((1, 8), (1, 2)), ((5, 8), (6, 2))]));
-        var w = s.W;
-        int dry = s.Tanks[0], wet = s.Tanks[1];
-        w.Pipe(At(7, 1), w.Output(At(6, 2))).Run();
-        s.Fill(1, wet);
-        w.Run(4 * Air.TicksPerCell);
-        int filled = w.Air().Aired.Count;
-        Assert.True(filled > 0);
-        Assert.True(w.Held() <= Air.Canister - filled);
-        Assert.Equal(0, Oxygen(w, dry));
-        Assert.Equal(0, Oxygen(w, w.M.Grid.MachineAt(At(1, 2))!.Id));
-        Assert.Equal(RoomStatus.Filling, Status(w, s.Room));
     }
 
     [Fact]
@@ -257,53 +176,6 @@ public class AirTests
         w.Run(Air.LeakEvery / 2);
         Assert.Equal(before - leak, w.Held());
         Assert.Equal(Volume, w.Air().Aired.Count);
-    }
-
-    [Fact]
-    public void LeaksItsOwnAirFromTheFarEdgeOnceItsVentIsShutOff()
-    {
-        // Six rows deep: its leak within the unit a tick one vaporizer makes, so it airs.
-        const int Rows = 6;
-        Assert.True((14 + 14 + 4 * Rows + 14 * 2 * Rows) * Scrap < Air.GeneratorRate);
-        var s = SetUp(Deep(Rows), valve: true);
-        var w = s.W;
-        s.Fill(1);
-        AirUp(w, s.Room, 2000);
-        int held = w.Air().Aired.Count;
-        // The valve shut, its vent is fed by nothing: the air lies round the room's middle, as much as there was.
-        w.Do(new SetValve(At(1, 2), false)).Run();
-        var order = w.Air().Orders[s.Room];
-        Assert.NotEqual(At(1, 1), order[0]);
-        Assert.True(FreshOrders(w));
-        w.Run(Minute / 4);
-        int left = w.Air().Aired.Count;
-        Assert.InRange(left, 1, held - 1);
-        // The far edge went first: what is left is the start of the order.
-        Assert.Equal(order.Take(left).Order(), w.Air().Aired);
-        Assert.Equal(RoomStatus.Vacuum, Status(w, s.Room));
-    }
-
-    [Fact]
-    public void StallsWhenTheNetworkRunsDryAndGoesOnWhenACanisterComes()
-    {
-        // A room bigger than a canister leaks more than a vaporizer makes, so it never airs: instead a breach drains the
-        // canister, liquid leaving at the vaporizer's unit a tick, until less is left than the room holds; then it is sealed.
-        var s = SetUp();
-        var w = s.W;
-        s.Fill(1);
-        w.Do(new ClearAt(At(8, 2), "structure")).Run();
-        for (int i = 0; i < Air.Canister && Oxygen(w, s.Tanks[0]) > Volume / 2; i++) w.Run();
-        Assert.Equal(Volume / 2, Oxygen(w, s.Tanks[0]));
-        w.Do(new Place(At(8, 2), Wall)).Run();
-        DryOut(w, 1000);
-        Assert.True(w.Air().Aired.Count < Volume);
-        Assert.Equal(RoomStatus.Vacuum, Status(w, s.Room));
-        w.Run(10 * Air.TicksPerCell);
-        int left = w.Air().Aired.Count;
-        s.Fill(1);
-        Assert.Equal(RoomStatus.Filling, Status(w, s.Room));
-        w.Run(10 * Air.TicksPerCell);
-        Assert.True(w.Air().Aired.Count > left);
     }
 
     [Fact]
@@ -409,75 +281,6 @@ public class AirTests
     }
 
     [Fact]
-    public void KeepsAsMuchAirWhenADoorJoinsItToAnEmptyRoomLaidOutOnTheJoinedRoom()
-    {
-        var (w, left, door, right) = TwoRooms(cut: true);
-        var held = w.Air().Aired.ToList();
-        int clock = w.Air().Clock;
-        w.Do(new SetDoor(door, true)).Run();
-        int joined = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
-        Assert.Equal(left, joined);
-        Assert.Equal(joined, w.M.Rooms.RoomAt(right));
-        // Unpiped, nothing fills: only the leak takes some. A unit either way of the leak found now.
-        int leaked = AirTesting.Leaked(Of(w, joined)!.Leak, clock, w.Air().Clock);
-        Assert.InRange(w.Air().Aired.Count, held.Count - leaked - 2, held.Count - leaked);
-        // Laid out again, the first cells of the joined room's order (2026-11-05-air-as-a-tank).
-        Assert.True(FreshOrders(w));
-        Assert.Equal(RoomStatus.Vacuum, Status(w, joined));
-    }
-
-    [Fact]
-    public void FillsTheJoinedRoomThroughTheDoorwayTheCellsNearestTheVentFirst()
-    {
-        var (w, _, door, _) = TwoRooms();
-        w.Do(new SetDoor(door, true)).Run(3);
-        Assert.Contains(door, w.Air().Aired);
-        Assert.Contains(At15(9, 2), w.Air().Aired);
-        Assert.DoesNotContain(At15(10, 3), w.Air().Aired);
-    }
-
-    [Fact]
-    public void SplitsTheAirByWhereItLayWhenTheDoorShutsEachPartLaidOutOnItsOwnOrder()
-    {
-        var (w, _, door, right) = TwoRooms();
-        w.Do(new SetDoor(door, true)).Run(3);
-        // The vent cut while the door moves: the air let in is laid out again round the joined room's middle.
-        w.Do(new CutPipe(At15(1, 1), w.Output(At15(1, 2)))).Run(Doors.SwingTicks - 3);
-        // Past the doorway, which fills its block (0104).
-        var inRight = w.Air().Aired.Where(c => c % 30 > At15(8, 0) + 1).ToList();
-        Assert.NotEmpty(inRight);
-        w.Do(new SetDoor(door, false)).Run();
-        int shut = w.M.Rooms.RoomAt(right)!.Value;
-        // As many cells as lay there, now round its middle, where its order starts: it has no vent.
-        var order = w.Air().Orders[shut];
-        Assert.Equal(At15(11, 2), order[0]);
-        int count = AiredIn(w, shut).Count;
-        // A unit of leak may have fallen due on the tick.
-        Assert.InRange(count, inRight.Count - 1, inRight.Count);
-        Assert.Equal(order.Take(count).Order(), AiredIn(w, shut));
-        Assert.True(FreshOrders(w));
-    }
-
-    [Fact]
-    public void FillsTheRestOfTheJoinedRoomShutThePartWithNoVentLeaksItsAirAway()
-    {
-        var (w, left, door, right) = TwoRooms();
-        w.Do(new SetDoor(door, true)).Run();
-        Assert.Equal(RoomStatus.Filling, Status(w, left));
-        AirUp(w, left);
-        w.Run(Doors.SwingTicks).Do(new SetDoor(door, false)).Run();
-        int shut = w.M.Rooms.RoomAt(right)!.Value;
-        int volume = w.M.Rooms.RoomById(shut)!.Volume;
-        Assert.Equal(volume, AiredIn(w, shut).Count);
-        Assert.Equal(RoomStatus.Aired, Status(w, shut));
-        AirUp(w, left);
-        // No tank pays the right room's leak: it takes the room's own air, a cell at a time.
-        w.Run(Minute / 8);
-        Assert.True(AiredIn(w, shut).Count < volume);
-        Assert.True(AiredIn(w, shut).Count > 0);
-    }
-
-    [Fact]
     public void TakesTheAirOutOfACellAWallIsBuiltOn()
     {
         var s = SetUp();
@@ -502,7 +305,7 @@ public class AirTests
         w.GiveItems(0, ("tube", 6)).Pipe(Port(w, At(1, 1)), At(3, 3)).Run();
         Assert.Equal(middle, w.Air().Orders[room][0]);
         Assert.False(w.M.Atmosphere.Fed(vent));
-        // Fed once piped to a vaporizer's output, but dry, nothing behind it: not live, so still not (2026-11-05-air-as-a-tank).
+        // Fed once piped to a vaporizer's output, but dry, nothing behind it: not live, so still not (2026-11-05-air-bubbles).
         w.Pipe(At(3, 3), w.Output(At(6, 1))).Run();
         Assert.Empty(w.Refusals);
         Assert.True(w.M.Atmosphere.Fed(vent));
@@ -806,18 +609,6 @@ public class AirTests
     }
 
     [Fact]
-    public void LeaksThroughTheBackWallBehindAnOpenDoorACellOfTheRoomNotAClosedOne()
-    {
-        var (w, left, door, right) = TwoRooms();
-        // Shut, the aired room its hull and its own cells; the door's back walls touch no air.
-        Assert.Equal((2 * 17 + 4 * 21) * Scrap, LeakAt(w, At15(4, 2)));
-        w.Do(new SetDoor(door, true)).Run();
-        AirUp(w, w.M.Rooms.RoomAt(right)!.Value, 2000);
-        // Open and aired, one room: both hulls, both rooms' cells and the doorway's four (0104).
-        Assert.Equal((2 * (17 + 13) + 4 * (21 + 15) + 4) * Scrap, LeakAt(w, At15(4, 2)));
-    }
-
-    [Fact]
     public void TellsAVentingRoomHowSoonItsVentDrainsTheNetwork()
     {
         var s = SetUp();
@@ -860,16 +651,6 @@ public class AirTests
     }
 
     [Fact]
-    public void TellsAFillingRoomHowFarItIsAndNothingOfHowLongItLasts()
-    {
-        var s = SetUp();
-        s.Fill(1);
-        var air = Of(s.W, s.Room)!;
-        Assert.Equal((RoomStatus.Filling, (int?)null, (string?)null), (air.Status, air.Lasts, air.Problem));
-        Assert.True(air.Aired < Volume);
-    }
-
-    [Fact]
     public void SaysWhyARoomStaysInVacuumNoVentAVentWithNoPipeOrPipesWithNoOxygen()
     {
         var bare = new Scenario("#####\n#...#\n#####");
@@ -886,7 +667,7 @@ public class AirTests
         Assert.Equal((RoomStatus.Vacuum, "atmosphere.dry", (int?)0), (dry.Status, dry.Problem, dry.Oxygen));
     }
 
-    // A room is a tank of air (2026-11-05-air-as-a-tank).
+    // A room is a tank of air (2026-11-05-air-bubbles).
 
     /// <summary>
     /// One room, two chains: each vent fed by its own vaporizer, each vaporizer by its own tank under the hull; the left
@@ -913,41 +694,10 @@ public class AirTests
         return (s, s.W.M.Grid.MachineAt(At(1, 2))!.Id, s.W.M.Grid.MachineAt(At(6, 2))!.Id);
     }
 
-    [Fact]
-    public void AirsNothingBesideADryVentOnlyRoundTheOneThatPays()
-    {
-        var (s, _, _) = TwoChains();
-        var w = s.W;
-        s.Fill(1, s.Tanks[1]);
-        w.Run(20 * Air.TicksPerCell);
-        var aired = w.Air().Aired;
-        Assert.NotEmpty(aired);
-        Assert.Contains(At(7, 1), aired);
-        // Every cell aired lies nearer the right vent than the left, dry one.
-        int width = w.M.Grid.Width;
-        int Steps(int a, int b) => Math.Abs(a % width - b % width) + Math.Abs(a / width - b / width);
-        Assert.All(aired, c => Assert.True(Steps(c, At(7, 1)) < Steps(c, At(1, 1))));
-    }
-
-    [Fact]
-    public void EachVentPaysItsOwnFillFromItsOwnNetwork()
-    {
-        var (s, left, right) = TwoChains();
-        var w = s.W;
-        s.Fill(1, s.Tanks[0]);
-        s.Fill(1, s.Tanks[1]);
-        w.Run(40);
-        // Each store spends on its own vent's cells as fast as its vaporizer fills it: neither is left to grow.
-        Assert.InRange(Oxygen(w, left), 0, Air.CellsPerFill);
-        Assert.InRange(Oxygen(w, right), 0, Air.CellsPerFill);
-        Assert.Contains(At(1, 1), w.Air().Aired);
-        Assert.Contains(At(7, 1), w.Air().Aired);
-    }
-
     /// <summary>
     /// One of two chains in a room runs dry, its tank taken apart and its store spent: its vent is no longer live, and the
     /// air is laid out round the other, as much of it as there was. Saved and loaded on any of those ticks, a world plays
-    /// on as the one that never stopped (2026-11-05-air-as-a-tank).
+    /// on as the one that never stopped (2026-11-05-air-bubbles).
     /// </summary>
     [Fact]
     public void LaysTheAirOutRoundTheOtherVentWhenOneChainRunsDryAndPlaysOnAlikeLoadedThen()
@@ -1027,19 +777,6 @@ public class AirTests
     }
 
     [Fact]
-    public void GrowsAsFastInABigRoomAsInASmallOneTillItMeetsTheWalls()
-    {
-        var small = SetUp();
-        var big = SetUp(Deep(40));
-        small.Fill(1);
-        big.Fill(1);
-        small.W.Run(30);
-        big.W.Run(30);
-        // The same cells near the vent, leaking the same: a cell or two apart at most, for the small room's floor.
-        Assert.InRange(big.W.Air().Aired.Count, small.W.Air().Aired.Count - 2, small.W.Air().Aired.Count + 2);
-    }
-
-    [Fact]
     public void FillsARoomTooBigForItsVaporizerTillItsAirLeaksWhatItMakesAndHoldsThere()
     {
         var s = SetUp(Deep(160));
@@ -1060,18 +797,176 @@ public class AirTests
         Assert.InRange(w.Air().Aired.Count, held - 4, held + 4);
     }
 
+    // Bubbles (2026-11-05-air-bubbles).
+
+    /// <summary><see cref="Deep"/>'s room, its back walls taken down and built again of <paramref name="back"/>, four canisters in, run till its bubble stands.</summary>
+    private static Setup Settled(string back, int rows = 40)
+    {
+        var s = SetUp(Deep(rows));
+        var w = s.W;
+        if (back != "scrap")
+        {
+            var cells = Enumerable.Range(0, w.M.Rooms.RoomOfCells.Length).Where(c => w.M.Rooms.RoomAt(c) == s.Room).ToList();
+            foreach (int cell in cells) w.Do(new ClearAt(cell, "back"));
+            w.Run();
+            foreach (int cell in cells) w.Do(new Place(cell, Placement.BackWall(back)));
+            w.Run();
+        }
+        s.Fill(4);
+        w.Run(800);
+        return s;
+    }
+
     [Fact]
-    public void KeepsAiringThroughADoorOpenedOntoAnEmptyRoomNeverLosingACell()
+    public void HoldsAsManyCellsRoundItsVentAsItsMakingPaysTheLeakOfMoreBehindGlassThanScrap()
+    {
+        var scrap = Settled("scrap");
+        var w = scrap.W;
+        int held = w.Air().Aired.Count;
+        // Each cell leaks its scrap back wall, those by the hull the hull too: a few hundred cells hold what a vaporizer makes.
+        Assert.InRange(held, Air.GeneratorRate / (2 * Scrap), Air.GeneratorRate / Scrap);
+        var air = Of(w, scrap.Room)!;
+        Assert.Equal((RoomStatus.Filling, "atmosphere.leaky"), (air.Status, air.Problem));
+        Assert.InRange(air.Leak, Air.GeneratorRate - 2 * Scrap, Air.GeneratorRate);
+        // It stays there, neither growing nor shrinking.
+        w.Run(400);
+        Assert.Equal(held, w.Air().Aired.Count);
+        // Behind glass the same vaporizer holds a whole room twice what scrap held, its scrap hull leaking the most.
+        var glass = Settled("glass", rows: 30);
+        Assert.Equal(glass.W.M.Rooms.RoomById(glass.Room)!.Volume, glass.W.Air().Aired.Count);
+        Assert.True(glass.W.Air().Aired.Count > 2 * held);
+        Assert.Equal(RoomStatus.Aired, Status(glass.W, glass.Room));
+        Assert.True(FreshOrders(w) && FreshOrders(glass.W));
+    }
+
+    [Fact]
+    public void KeepsEveryCellOfItsAirAsAnInnerDoorOpensAndShutsAndAirsNothingPastIt()
     {
         var (w, left, door, right) = TwoRooms();
-        int count = w.Air().Aired.Count;
-        w.Do(new SetDoor(door, true));
-        for (int i = 0; i < 200; i++)
+        var aired = w.Air().Aired.ToList();
+        w.Do(new SetDoor(door, true)).Run(100);
+        Assert.Equal(aired, w.Air().Aired);
+        // The room joined reads aired: the part with no vent and no air is left out, shown empty cell by cell.
+        Assert.Equal(RoomStatus.Aired, Status(w, left));
+        w.Do(new SetDoor(door, false)).Run(100);
+        Assert.Equal(aired, w.Air().Aired);
+        Assert.Equal(RoomStatus.Aired, Status(w, left));
+        Assert.Equal(RoomStatus.Vacuum, Status(w, w.M.Rooms.RoomAt(right)!.Value));
+    }
+
+    [Fact]
+    public void VentsThroughAnInnerDoorOpenedOntoABreachedRoomAWayToSpace()
+    {
+        var (w, left, door, _) = TwoRooms();
+        w.Do(new ClearAt(At15(14, 2), "structure")).Run();
+        int aired = AiredIn(w, left).Count;
+        Assert.Equal(RoomStatus.Aired, Status(w, left));
+        w.Do(new SetDoor(door, true)).Run();
+        Assert.Equal(RoomStatus.Venting, Status(w, left));
+        Assert.InRange(AiredIn(w, left).Count, 0, aired - Air.VentLoss);
+    }
+
+    [Fact]
+    public void LosesItsAirFromTheFarEdgeOnceNoLiveVentHoldsItCellsPerFillABeat()
+    {
+        var (w, left, _, _) = TwoRooms(cut: true);
+        int volume = w.M.Rooms.RoomById(left)!.Volume;
+        Assert.Equal(volume - Air.CellsPerFill, AiredIn(w, left).Count);
+        w.Run((volume - Air.CellsPerFill) / Air.CellsPerFill);
+        Assert.Empty(w.Air().Aired);
+        Assert.Equal(RoomStatus.Vacuum, Status(w, left));
+    }
+
+    [Fact]
+    public void LosesItsAirOnceItsChainRunsDryAndHoldsNoneUnpoweredThoughItsTankIsFull()
+    {
+        var s = SetUp();
+        var w = s.W;
+        s.Fill(1);
+        AirUp(w, s.Room);
+        w.Air().Tanks.Clear();
+        w.Run(Volume / Air.CellsPerFill);
+        Assert.Empty(w.Air().Aired);
+        Assert.Equal("atmosphere.dry", Of(w, s.Room)!.Problem);
+        // Liquid again, and the panel taken away: its vent is live, but makes nothing to hold a cell with.
+        s.Fill(1);
+        AirUp(w, s.Room);
+        w.Do(new ClearAt(w.M.Grid.MachinesOf("solarPanel")[0].Cell, "machine")).Run(Volume / Air.CellsPerFill);
+        Assert.Empty(w.Air().Aired);
+        Assert.True(Oxygen(w, s.Tanks[0]) > 0);
+        Assert.Equal([At(1, 1)], w.Air().Live);
+    }
+
+    /// <summary>
+    /// Two rooms deep, a door between, a vent in each, the right one piped to the left's vaporizer once the left room's
+    /// bubble stands: the vaporizer's making split over two zones, the left holds about half as many cells.
+    /// </summary>
+    [Fact]
+    public void SplitsOneVaporizersMakingEvenlyOverTheZonesItsVentsStandInAndPlaysOnAlikeLoaded()
+    {
+        string map = string.Join("\n", new[] { "###############", "#V......#....V#", "#TT.....D.....#", "#TT.....#.....#" }
+            .Concat(Enumerable.Repeat("#.......#.....#", 37)).Append("###############"));
+        var w = new Scenario(AirTesting.OneThick(AirTesting.Chained(map))).Do(new Items.SetCreative(true));
+        w.Pipe(At15(1, 1), w.Output(At15(1, 2))).Run();
+        int tank = w.M.Grid.MachinesOf("tank").Single().Id;
+        for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tank));
+        w.Run(800);
+        int left = w.M.Rooms.RoomAt(At15(4, 2))!.Value, right = w.M.Rooms.RoomAt(At15(10, 2))!.Value;
+        int alone = AiredIn(w, left).Count;
+        Assert.Empty(AiredIn(w, right));
+        w.Pipe(At15(1, 1), At15(6, 1), At15(11, 1), At15(13, 1));
+        for (int i = 0; i < 10; i++)
         {
-            w.Run();
-            Assert.True(w.Air().Aired.Count >= count);
-            count = w.Air().Aired.Count;
+            var m = new Registry();
+            var loaded = World.Load(w.World.Save(), [.. m.All, new Builder(m)]);
+            for (int t = 0; t < 40; t++)
+            {
+                loaded.Step([]);
+                w.World.Step([]);
+                Assert.Equal(w.World.Hash(), loaded.Hash());
+            }
         }
-        Assert.Contains(right, w.Air().Aired);
+        w.Run(400);
+        Assert.InRange(AiredIn(w, left).Count, alone * 4 / 10, alone * 6 / 10);
+        Assert.NotEmpty(AiredIn(w, right));
+        Assert.True(FreshOrders(w));
+    }
+
+    /// <summary>
+    /// Whatever doors open and shut, canisters come and pipes are cut, no doorway cell holds air, every zone's air is the
+    /// first cells of its order, and air grows only with a live vent (2026-11-05-air-bubbles).
+    /// </summary>
+    [Property(MaxTest = 30)]
+    public Property AirsNoDoorwayAndOnlyThePrefixOfEachZonesOrder()
+    {
+        var step = Gen.OneOf(
+            Gen.Elements(0, 1, 2).Select(op => (Op: op, Ticks: 0)),
+            Gen.Choose(1, 60).Select(t => (Op: 3, Ticks: t)));
+        var steps = from n in Gen.Choose(1, 12) from s in step.ArrayOf(n) select s;
+        return Prop.ForAll(steps.ToArbitrary(), all =>
+        {
+            var (w, _, door, _) = TwoRooms();
+            int tank = w.M.Grid.MachinesOf("tank").Single().Id, vent = At15(1, 1), output = w.Output(At15(1, 2));
+            bool open = false, piped = true;
+            foreach (var (op, ticks) in all)
+            {
+                if (op == 0) w.Do(new SetDoor(door, open = !open));
+                if (op == 1) w.Do(new LoadCanister(tank));
+                if (op == 2 && piped) w.Do(new CutPipe(vent, output));
+                if (op == 2 && !piped) w.Pipe(vent, output);
+                if (op == 2) piped = !piped;
+                for (int t = 0; t < Math.Max(ticks, 1); t++)
+                {
+                    int before = w.Air().Aired.Count;
+                    bool live = w.Air().Live?.Count > 0;
+                    w.Run();
+                    int doorway = w.Air().Aired.FirstOrDefault(c => Doorways.IsDoorway(w.M.Grid.StructureAt(c)), -1);
+                    if (doorway >= 0) return false.Label($"doorway cell {doorway} aired");
+                    if (!live && w.Air().Live?.Count == 0 && w.Air().Aired.Count > before) return false.Label("air grew with no live vent");
+                }
+                if (!FreshOrders(w)) return false.Label("the orders kept are not those found afresh");
+            }
+            return true.ToProperty();
+        });
     }
 }

@@ -62,11 +62,11 @@ public class LogisticsTests
         return w;
     }
 
-    /// <summary>Whether every room with a vent in it is aired.</summary>
-    private static bool AllAired(Scenario w)
+    /// <summary>Whether every room with a vent in it is aired, or holds all the air its vents pay for (2026-11-05-air-bubbles).</summary>
+    internal static bool AllAired(Scenario w)
     {
         var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell)).ToHashSet();
-        return w.M.Rooms.All.Where(r => vented.Contains(r.Id)).All(r => w.M.Atmosphere.StatusOf(r.Id) == Atmosphere.RoomStatus.Aired);
+        return w.M.Atmosphere.RoomsAir().Where(a => vented.Contains(a.Room)).All(a => a.Status == Atmosphere.RoomStatus.Aired || a.Problem == "atmosphere.leaky");
     }
 
     internal static Scenario TwoRooms(int drones = 2, int charge = Content.Charge.Drone) => Aired(Rooms, RoomsUnder, drones, charge: charge);
@@ -641,7 +641,8 @@ public class LogisticsTests
     }
 
     /// <summary>
-    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below.
+    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below;
+    /// a vent in each, on one run up through the deck, as a bubble passes no doorway (2026-11-05-air-bubbles).
     /// Aired with the hatch open, then shut, the crate holding all but the three chunks the furnace holds.
     /// </summary>
     private static readonly string[] Decks =
@@ -649,7 +650,7 @@ public class LogisticsTests
         "##############",
         "#............#",
         "#..........FF#",
-        "#..........FF#",
+        "#........V.FF#",
         "######o#######",
         "#............#",
         "#RR....TT....#",
@@ -659,7 +660,7 @@ public class LogisticsTests
 
     private static (Scenario W, int Hatch, int Furnace) Decked()
     {
-        var w = Aired(Decks, ["", "", "", "", "", "", "       o", "       ---"], drones: 1);
+        var w = Aired(Decks, ["", "", "", "         -", "         -", "         -", "       o -", "       ---"], drones: 1);
         int hatch = w.At(6, 4), furnace = w.M.Grid.MachinesOf("furnace").Single().Id, crate = w.M.Grid.MachinesOf("crate").Single().Id;
         w.Do(new SetDoor(hatch, false)).Run();
         w.FillCrate(crate, ("scrapChunk", Chunks - 3)).Put(0, new Stack("scrapChunk", 3), crate: furnace);
@@ -758,23 +759,6 @@ public class LogisticsTests
         Assert.Equal(2, Docked(w, w.M.Grid.MachinesOf(Tune.Bay).Single().Id));
         Assert.False(w.M.Logistics.Reached(furnace));
         Assert.True(w.M.Logistics.Reached(crate));
-    }
-
-    [Fact]
-    public void ADroneWhoseCellLosesItsAirFliesOnWhileItsRoomHoldsAny()
-    {
-        // The left room's far edge breathed away under the drone, as a door opened onto an empty room or a leak lays it
-        // out anew: the room still holds air, so it flies on and delivers (2026-11-05-air-as-a-tank).
-        var w = TwoRooms(drones: 1).FillCrate(Left, ("scrapChunk", 6)).Put(0, new Stack("scrapChunk", 1), crate: Furnace);
-        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.SingleOrDefault()?.Cargo != null, 400));
-        int cell = w.M.Logistics.Drones.Single().Cell;
-        Assert.True(Column(w, cell) < 10);
-        for (int i = 0; i < 400 && w.M.Atmosphere.AiredAt(cell); i++) w.M.Atmosphere.Breathe(cell, 1);
-        Assert.False(w.M.Atmosphere.AiredAt(cell));
-        Assert.True(w.M.Atmosphere.HoldsAir(cell));
-        Assert.True(RunUntil(w, () => w.M.Logistics.Drones.Count == 0, 400));
-        Assert.Equal((1, 7), (Docked(w, Bay), w.M.Items.HeldFor(Furnace, "scrapChunk")));
-        Assert.Empty(w.M.Items.Floor);
     }
 
     [Fact]

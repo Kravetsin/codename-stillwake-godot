@@ -305,25 +305,19 @@ public class WreckTests
     }
 
     [Fact]
-    public void CyclesTheAirlockWithoutALosingACellOfItsAir()
+    public void CyclesTheAirlockAKeepingItsAirTheClosetWithNoVentOfItsOwnAirless()
     {
         var w = AiredWreck();
         var closet = Lock;
-        // In: the inner doorway opened, the pod airs the closet too.
-        w.Do(new SetDoor(Inner, true)).Run();
-        for (int i = 0; i < 600 && AiredIn(w, closet) < closet.Length; i++) w.Run();
-        Assert.Equal(closet.Length, AiredIn(w, closet));
-        // A breath and the fire take after the air's tick, from the far edge; the pod puts it back on the next.
+        // In: the inner doorway opened; the pod's air passes no doorway (2026-11-05-air-bubbles), so the closet stays
+        // airless and A keeps its own.
+        w.Do(new SetDoor(Inner, true)).Run(600);
+        Assert.Equal(0, AiredIn(w, closet));
         Assert.InRange(AiredIn(w, A), A.Length - 2, A.Length);
         // Out: the inner closed behind, the outer opened; the closet vents, A keeps its air.
         w.Do(new SetDoor(Inner, false)).Run();
-        w.Do(new SetDoor(Outer, true)).Run(20);
+        w.Do(new SetDoor(Outer, true)).Run(60 * 20);
         Assert.Equal(0, AiredIn(w, closet));
-        // A breath and the fire take after the air's tick, from the far edge; the pod puts it back on the next.
-        Assert.InRange(AiredIn(w, A), A.Length - 2, A.Length);
-        // With the outer doorway open and the inner closed, A stays whole.
-        w.Run(60 * 20);
-        // A breath and the fire take after the air's tick, from the far edge; the pod puts it back on the next.
         Assert.InRange(AiredIn(w, A), A.Length - 2, A.Length);
     }
 
@@ -342,9 +336,14 @@ public class WreckTests
         Assert.NotEqual(RoomsModule.Space, room);
         Assert.Empty(w.M.Rooms.All.First(r => r.Id == room).Openings);
         Assert.False(w.M.Rooms.Afloat(At(30, 18)));
-        // Its floor is the deck a hero now stands on, and the pod airs it once both doors of the left lock stand open.
+        // Its floor is the deck a hero now stands on; its air comes from a vent of its own, for the pod's passes no doorway
+        // (2026-11-05-air-bubbles): one on a branch off the pod's pipe, through both doors of the left lock.
         Assert.Equal(Structure.Floor, w.M.Grid.StructureAt(At(30, 21)));
-        w.Do(new SetDoor(LeftInner, true)).Do(new SetDoor(LeftOuter, true)).Run(1200);
+        Build(w, "vent", At(26, 19));
+        int free = At(56, 20), bend = At(56, 19), a = At(45, 19), b = At(36, 19), vent = At(26, 19), refused = w.Refusals.Count;
+        w.GiveItems(0, ("tube", 60));
+        w.Do(new LayPipe(free, bend)).Do(new LayPipe(bend, a)).Do(new LayPipe(a, b)).Do(new LayPipe(b, vent)).Run(1200);
+        Assert.Equal(refused, w.Refusals.Count);
         Assert.True(w.M.Atmosphere.AiredAt(At(30, 18)));
     }
 

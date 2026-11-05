@@ -1,7 +1,7 @@
 # 0062 — Drones keep machines going
 
 - Status: accepted; supersedes [0002](0002-coop-model.md)'s line on drones as host-only physics; its cells holding air, by
-  [air as a tank](2026-11-05-air-as-a-tank.md): drones fly in any room holding air
+  [air bubbles](2026-11-05-air-bubbles.md): drones fly in any zone holding air
 - Date: 2026-10-18
 - Design: "drone logistics" (approved with its cuts, 2026-10-18), replaced by "drones v2: drones keep it going" (the
   user's decisions, 2026-10-18); mockup "Drones Keep It Going"

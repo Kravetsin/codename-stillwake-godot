@@ -33,8 +33,8 @@ public class LiquidOxygenTests
     private static int Making(Scenario w, int vaporizer) => w.Air().Making.Find(m => m.Generator == vaporizer)?.Part ?? 0;
     private static string[] Reasons(Scenario w) => w.Refusals.Select(r => r.Reason).ToArray();
 
-    /// <summary>All the oxygen there is: liquid in tanks, gas in stores, a unit in each aired cell.</summary>
-    private static long Total(Scenario w) => w.Air().Tanks.Sum(t => (long)t.Oxygen) + w.M.Atmosphere.AiredCells.Count;
+    /// <summary>All the oxygen there is: liquid in tanks, gas in stores; an aired cell holds none of it (2026-11-05-air-bubbles).</summary>
+    private static long Total(Scenario w) => w.Air().Tanks.Sum(t => (long)t.Oxygen);
 
     [Fact]
     public void AnEmptyTankLeavesAPoweredVaporizerIdleAndItsRoomInVacuumDry()
@@ -51,7 +51,7 @@ public class LiquidOxygenTests
     }
 
     [Fact]
-    public void TurnsACanisterIntoAirAUnitATickWhatTheTankLosesTheStoreAndTheRoomGain()
+    public void TurnsACanisterIntoGasAUnitATickWhatTheTankLosesTheStoreGainsLessTheLeak()
     {
         var w = Chain(Room, RoomUnder);
         int tank = Ids(w, "tank")[0], vaporizer = Ids(w, "generator")[0], vent = Ids(w, "vent")[0];
@@ -60,13 +60,13 @@ public class LiquidOxygenTests
         for (int i = 0; i < 30; i++)
         {
             int liquid = Oxygen(w, tank);
-            long gas = Oxygen(w, vaporizer) + w.M.Atmosphere.AiredCells.Count;
+            int gas = Oxygen(w, vaporizer);
             int leaked = w.RunLeaking(1);
             Assert.Equal(liquid - 1, Oxygen(w, tank));
-            // What the aired cells leaked is gone (2026-11-05-air-as-a-tank).
-            Assert.Equal(gas + 1 - leaked, Oxygen(w, vaporizer) + w.M.Atmosphere.AiredCells.Count);
-            // Every unit goes out as it is made: the room fills, never in vacuum while the store refills.
-            Assert.Equal(RoomStatus.Filling, Air(w).Status);
+            // What the aired cells leaked is paid from the store (2026-11-05-air-bubbles).
+            Assert.Equal(gas + 1 - leaked, Oxygen(w, vaporizer));
+            // The room airs round its vent, never in vacuum while the store refills.
+            Assert.NotEqual(RoomStatus.Vacuum, Air(w).Status);
             Assert.True(w.M.Atmosphere.Supplied(vent));
         }
     }

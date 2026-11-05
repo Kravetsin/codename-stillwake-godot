@@ -62,11 +62,11 @@ public class PodAirTests
     [Fact]
     public void MakesAUnitATickUpToItsStore()
     {
-        // A room just the pod's size: all it makes is in its store or its cells, or leaked through the cells it aired.
+        // A room just the pod's size: all it makes is in its store, or paid for what the cells it aired leaked (2026-11-05-air-bubbles).
         var w = new Scenario(Layout.Parse(
             ["########", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "########"], Piped));
         int leaked = w.RunLeaking(30);
-        Assert.Equal(30, Aired(w) + w.M.Atmosphere.OxygenIn(Pod(w)) + leaked);
+        Assert.Equal(30, w.M.Atmosphere.OxygenIn(Pod(w)) + leaked);
         // Full, the store reaches its top and stays.
         w.Run(2 * Air.GeneratorStore + 200);
         Assert.Equal(Air.GeneratorStore, w.M.Atmosphere.OxygenIn(Pod(w)));

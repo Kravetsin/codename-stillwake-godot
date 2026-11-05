@@ -4,9 +4,9 @@ namespace Stillwake.Content;
 /// Oxygen, in whole units, and how it moves; times in ticks, 20 to a second. A cell of air is one
 /// unit. A room is aired cell by cell, <see cref="CellsPerFill"/> cells every <see cref="TicksPerCell"/> ticks (0105). Every
 /// <see cref="LeakEvery"/> ticks, ten minutes so that a rate of a tenth of a unit a minute is whole, a
-/// room holding air loses a leak from its far edge through its aired cells (0020, 2026-11-05-air-as-a-tank): the back wall
-/// behind each and the hull cells beside it by their material's leak, a closed door's cell by <see cref="DoorLeak"/>;
-/// a fifth of what they were, so a vaporizer holds some 2000 scrap cells.
+/// zone of air holds as many cells round its vents as its sources pay the leak of (0020, 2026-11-05-air-bubbles): the back
+/// wall behind each and the hull cells beside it by their material's leak, a doorway beside it by <see cref="DoorLeak"/>;
+/// a vaporizer's <see cref="GeneratorRate"/> holds 400 cells of scrap.
 /// A room open to space loses <see cref="VentLoss"/> cells a tick, and a vent in it, or in space, drains
 /// its network by <see cref="VentDrain"/> a tick: what a vent can pass. A tank holds liquid oxygen, a canister
 /// <see cref="Canister"/> of it; a vaporizer (the generator) turns it into air at <see cref="GeneratorRate"/> units every
@@ -26,7 +26,7 @@ public static class Air
 
     public const int VentLoss = 24;
     public const int LeakEvery = 12000;
-    public const int DoorLeak = 4;
+    public const int DoorLeak = 20;
     public const int VentDrain = 8;
     public const int GeneratorRate = 12000;
     public const int GeneratorStore = 160;
