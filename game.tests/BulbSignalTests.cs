@@ -186,4 +186,43 @@ public class BulbSignalTests
         Assert.Equal(1, BulbSignal.SmokeAlpha(0.2));
         Assert.Equal(0, BulbSignal.SmokeAlpha(0.7));
     }
+
+    [Fact]
+    public void TheFindsGatheredWhileItBurnsFlyUntilTheOneThatHatchedLands()
+    {
+        var bulb = Started();
+        bulb.Read(_board, 1, open: false);
+        bulb.Step(0.9);
+        bulb.Read(_board, 3, open: false);
+        Assert.Equal(3, bulb.Carried);
+        Assert.Equal(3, bulb.Flying);
+        Assert.Null(bulb.Flight);
+        bulb.Step(bulb.BurstsAt - 0.9 + BulbSignal.FlightS / 2);
+        Assert.Equal(0.5, bulb.Flight!.Value, 6);
+        Assert.Equal(3, bulb.Flying);
+        bulb.Step(BulbSignal.FlightS / 2 + 0.01);
+        Assert.Null(bulb.Flight);
+        Assert.Equal(0, bulb.Flying);
+    }
+
+    [Fact]
+    public void AFindAfterTheBurstIsNotCarriedSoTheNumberTakesItAtOnce()
+    {
+        var bulb = Started();
+        bulb.Read(_board, 1, open: false);
+        bulb.Step(BulbSignal.Burns + 0.1);
+        bulb.Read(_board, 2, open: false);
+        Assert.Equal(1, bulb.Flying);
+    }
+
+    [Fact]
+    public void OpeningTheTabletMidFlightLandsNothingAndShowsTheRealCount()
+    {
+        var bulb = Started();
+        bulb.Read(_board, 2, open: false);
+        bulb.Step(BulbSignal.Burns + 0.2);
+        bulb.Read(_board, 2, open: true);
+        Assert.Equal(0, bulb.Flying);
+        Assert.Null(bulb.Flight);
+    }
 }

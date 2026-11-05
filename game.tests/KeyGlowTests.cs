@@ -36,4 +36,14 @@ public class KeyGlowTests
         glow.Step(KeyGlow.GoesOut, false);
         Assert.Equal(0, glow.Lit, 6);
     }
+
+    [Fact]
+    public void ItTakesTheTimesItIsGiven()
+    {
+        var glow = new KeyGlow(comesOn: 0.12, goesOut: 0.5);
+        glow.Step(0.12, true);
+        Assert.Equal(1, glow.Lit, 6);
+        glow.Step(0.25, false);
+        Assert.Equal(0.5, glow.Lit, 6);
+    }
 }

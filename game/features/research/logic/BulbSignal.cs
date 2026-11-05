@@ -33,6 +33,9 @@ public sealed class BulbSignal
     private const int ShardCount = 11, SparkCount = 4;
     private const double Fall = 170, SparkSpeed = 26;
 
+    /// <summary>How long the find that hatches at the burst takes to fly down into the research key.</summary>
+    public const double FlightS = 0.9;
+
     private object? _seen;
     private int _unread;
 
@@ -42,30 +45,41 @@ public sealed class BulbSignal
     /// <summary>When the last find while it burned came; null with none.</summary>
     public double? Later { get; private set; }
 
+    /// <summary>How many finds the one that hatches carries: every one that came before the burst.</summary>
+    public int Carried { get; private set; }
+
     /// <summary>When it bursts.</summary>
     public double BurstsAt => Later is { } later ? Math.Max(Burns, later + BurnsOn) : Burns;
+
+    /// <summary>How far the find is on its way down, 0 at the burst to 1 on the key; null before the burst and once it has landed.</summary>
+    public double? Flight => Time is { } t && t >= BurstsAt && t < BurstsAt + FlightS ? (t - BurstsAt) / FlightS : null;
+
+    /// <summary>The finds not yet on the key: carried until the one that hatched lands. The key's number is the unread less these.</summary>
+    public int Flying => Time is { } t && t < BurstsAt + FlightS ? Carried : 0;
 
     /// <summary>A read of what is new on the board: <paramref name="seen"/> is whose, so another world's starts over with nothing new.</summary>
     public void Read(object seen, int unread, bool open)
     {
-        bool more = seen == _seen && unread > _unread;
+        int more = seen == _seen ? unread - _unread : 0;
         (_seen, _unread) = (seen, unread);
-        if (open) (Time, Later) = (null, null);
-        else if (more) Find();
+        if (open) Out();
+        else if (more > 0) Find(more);
     }
 
-    private void Find()
+    private void Find(int more)
     {
-        if (Time is not { } time) (Time, Later) = (0, null);
-        else if (time < BurstsAt) Later = time;
+        if (Time is not { } time) (Time, Later, Carried) = (0, null, more);
+        else if (time < BurstsAt) (Later, Carried) = (time, Carried + more);
     }
+
+    private void Out() => (Time, Later, Carried) = (null, null, 0);
 
     /// <summary>Moves it <paramref name="seconds"/> on.</summary>
     public void Step(double seconds)
     {
         if (Time is not { } time) return;
         time += seconds;
-        if (time >= BurstsAt + Gone) (Time, Later) = (null, null);
+        if (time >= BurstsAt + Math.Max(Gone, FlightS)) Out();
         else Time = time;
     }
 
