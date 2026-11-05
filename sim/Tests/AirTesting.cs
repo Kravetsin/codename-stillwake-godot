@@ -7,20 +7,15 @@ namespace Stillwake.Sim.Tests;
 public static class AirTesting
 {
     /// <summary>
-    /// What a room leaking <paramref name="leak"/> every <c>Air.LeakEvery</c> ticks uses on the air ticks
-    /// after clock <paramref name="from"/>, up to <paramref name="to"/>: the leak spread over the period,
-    /// what is due by the end of a tick less what was by its start.
+    /// What a room leaking <paramref name="leak"/> every <c>Air.LeakEvery</c> ticks uses on the air ticks after clock
+    /// <paramref name="from"/>, up to <paramref name="to"/>, owing <paramref name="part"/> before them (<see cref="Owed"/>): whole
+    /// units of what it owes, rounded down (2026-11-05-air-bubbles).
     /// </summary>
-    public static int Leaked(int leak, int from, int to)
-    {
-        long sum = 0;
-        for (long clock = from + 1; clock <= to; clock++)
-        {
-            long beat = clock % Content.Air.LeakEvery;
-            sum += leak * (beat + 1) / Content.Air.LeakEvery - leak * beat / Content.Air.LeakEvery;
-        }
-        return (int)sum;
-    }
+    public static int Leaked(int leak, int from, int to, int part = 0) =>
+        (int)((part + (long)leak * (to - from)) / Content.Air.LeakEvery);
+
+    /// <summary>The part of a unit <paramref name="room"/> owes of its leak now: what <see cref="Leaked"/> starts from.</summary>
+    internal static int Owed(this Scenario w, int room) => w.Air().Owed.Find(o => o.Room == room)?.Part ?? 0;
 
     /// <summary>The cell of the character drawn at (<paramref name="x"/>, <paramref name="y"/>) of a map <paramref name="width"/> wide, doubled: its block's top-left (0104).</summary>
     public static int Cell(int width, int x, int y) => 2 * y * 2 * width + 2 * x;
@@ -117,6 +112,23 @@ public static class AirTesting
 
     /// <summary>The atmosphere's slice, to read what TypeScript's tests read of <c>w.sim.world.slices.atmosphere</c>.</summary>
     internal static AtmosphereState Air(this Scenario w) => (AtmosphereState)w.M.Atmosphere.Slice;
+
+    /// <summary>
+    /// Runs <paramref name="ticks"/> ticks, one at a time, and returns what the rooms holding air leaked over them: each tick,
+    /// each sealed room's leak as it stood before the tick (its aired cells', 2026-11-05-air-bubbles), its share of the period.
+    /// </summary>
+    public static int RunLeaking(this Scenario w, int ticks)
+    {
+        int leaked = 0;
+        for (int i = 0; i < ticks; i++)
+        {
+            int clock = w.Air().Clock;
+            foreach (var room in w.M.Atmosphere.RoomsAir())
+                if (room.Status != RoomStatus.Venting && room.Aired > 0) leaked += Leaked(room.Leak, clock, clock + 1, w.Owed(room.Room));
+            w.Run();
+        }
+        return leaked;
+    }
 
     /// <summary>The crew's slice, as TypeScript's tests read <c>w.sim.world.slices.crew</c>.</summary>
     internal static CrewState Crew(this Scenario w) => (CrewState)w.M.Crew.Slice;

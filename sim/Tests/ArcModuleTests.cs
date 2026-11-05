@@ -280,9 +280,8 @@ public class ArcModuleTests
         ];
         var w = new Scenario(AirTesting.Vaporized(rows, LogisticsTests.RoomsUnder), doubled: true);
         // LogisticsTests.Aired's world, on the doubled map: both rooms aired, then the bay's drones docked.
-        var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell) ?? 0).ToArray();
-        for (int i = 0; i < 2000 && !vented.All(r => w.M.Atmosphere.StatusOf(r) == Atmosphere.RoomStatus.Aired); i++) w.Run();
-        Assert.All(vented, r => Assert.Equal(Atmosphere.RoomStatus.Aired, w.M.Atmosphere.StatusOf(r)));
+        for (int i = 0; i < 2000 && !LogisticsTests.AllAired(w); i++) w.Run();
+        Assert.True(LogisticsTests.AllAired(w));
         LogisticsTests.Dock(w, w.M.Grid.MachinesOf(Spec.Logistics.Bay).Single().Id, 2).GiveItems(0, (Arc, 1), ("quartz", 2));
         int smelter = Id(w, "smelter");
         int left = w.M.Grid.MachinesOf("crate").First().Id;

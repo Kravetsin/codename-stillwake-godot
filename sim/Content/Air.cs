@@ -4,8 +4,9 @@ namespace Stillwake.Content;
 /// Oxygen, in whole units, and how it moves; times in ticks, 20 to a second. A cell of air is one
 /// unit. A room is aired cell by cell, <see cref="CellsPerFill"/> cells every <see cref="TicksPerCell"/> ticks (0105). Every
 /// <see cref="LeakEvery"/> ticks, ten minutes so that a rate of a tenth of a unit a minute is whole, a
-/// room holding air pays its vaporizers' stores a leak through what its air touches (0020): the back wall behind each
-/// of its cells and each outer hull cell by its material's leak, a closed door's cell by <see cref="DoorLeak"/>.
+/// room holds as many cells round its vents as its sources pay the leak of (0020, 2026-11-05-air-bubbles): the back
+/// wall behind each and the hull cells beside it by their material's leak, a closed door in its hull by <see cref="DoorLeak"/>;
+/// a vaporizer's <see cref="GeneratorRate"/> holds 400 cells of scrap.
 /// A room open to space loses <see cref="VentLoss"/> cells a tick, and a vent in it, or in space, drains
 /// its network by <see cref="VentDrain"/> a tick: what a vent can pass. A tank holds liquid oxygen, a canister
 /// <see cref="Canister"/> of it; a vaporizer (the generator) turns it into air at <see cref="GeneratorRate"/> units every

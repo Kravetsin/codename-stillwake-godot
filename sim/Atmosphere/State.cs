@@ -9,6 +9,13 @@ internal sealed class TankAir
     public int Oxygen { get; set; }
 }
 
+/// <summary>What a room owes of its leak, short of a unit: <see cref="Part"/> units × <c>Air.LeakEvery</c>, below <c>Air.LeakEvery</c>.</summary>
+internal sealed class LeakOwed
+{
+    public int Room { get; set; }
+    public int Part { get; set; }
+}
+
 /// <summary>
 /// A vaporizer's work toward its next unit: a unit is <c>Air.LeakEvery × 1000</c>, and a vaporizer adds
 /// <c>Air.GeneratorRate</c> × its power's satisfaction a tick while it has room and liquid behind it.
@@ -50,14 +57,22 @@ public sealed class AtmosphereState
     [JsonInclude] internal List<int> Aired { get; set; } = [];
     /// <summary>Each vaporizer's work toward its next unit, by machine id, in id order.</summary>
     [JsonInclude] internal List<GeneratorWork> Making { get; set; } = [];
-    /// <summary>Ticks the air has run: fill and leak beats are this modulo their rates.</summary>
+    /// <summary>Ticks the air has run: fill beats are this modulo their rate.</summary>
     [JsonInclude] internal int Clock { get; set; }
-    /// <summary>Derived: each room's cells in the order its air lies in, by room id; only looked up.</summary>
+    /// <summary>
+    /// The part of a unit each sealed room holding air owes of its leak, counted in units × <c>Air.LeakEvery</c> and so
+    /// under <c>Air.LeakEvery</c>; by room id, ascending; none for a room owing nothing (2026-11-05-air-bubbles).
+    /// </summary>
+    [JsonInclude] internal List<LeakOwed> Owed { get; set; } = [];
+    /// <summary>
+    /// The cells of the live vents the air grows round, in machine id order: fed, their network holding oxygen
+    /// (2026-11-05-air-bubbles). Null until the first tick lists them, as in a save from before it.
+    /// </summary>
+    [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Live { get; set; }
+    /// <summary>Derived: each room's cells in the order its air lies in, from <see cref="Live"/>, by room id; only looked up.</summary>
     [JsonIgnore] internal Dictionary<int, int[]> Orders { get; set; } = new();
     /// <summary>Derived: the rooms per cell the orders were found from.</summary>
     [JsonIgnore] internal int[] OrderedRooms { get; set; } = [];
-    /// <summary>Derived: the vents' cells, in machine id order, the orders were found from.</summary>
-    [JsonIgnore] internal List<int> OrderedVents { get; set; } = [];
     /// <summary>Derived: the grid's and the rooms' versions the orders were found at.</summary>
     [JsonIgnore] internal int OrderedGrid { get; set; }
     [JsonIgnore] internal int OrderedVersion { get; set; }

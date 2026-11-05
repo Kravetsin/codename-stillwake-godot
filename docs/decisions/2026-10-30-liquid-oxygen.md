@@ -5,6 +5,7 @@
 - Supersedes, in part, [0016](0016-breathe-where-the-air-is.md): the generator no longer makes air from power alone
 - Builds on [typed ports](2026-10-29-typed-ports.md): two oxygen fluids in the pipes
 - Partly superseded by [ports left to right](2026-11-02-ports-left-to-right.md): the tank gives on its right, `(3, 2)`
+- Partly superseded by [air bubbles](2026-11-05-air-bubbles.md): an aired cell is not a unit; its leak is upkeep drawn from the networks
 
 ## Context
 

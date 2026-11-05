@@ -137,11 +137,11 @@ public class AtmosphereTests
         Assert.Equal(RoomStatus.Vacuum, w.M.Atmosphere.StatusOf(s.Room));
         w.Do(new LoadCanister(s.Tank)).Run();
         Assert.Empty(w.Refusals);
-        // The vaporizer turned a unit of it into air on the same tick, and the fill beat aired a cell with it.
-        int paid = w.Air().Aired.Count;
-        Assert.Equal(1, paid);
+        // Its vent live, the fill beat aired its first cells; the vaporizer turned a unit to gas, and the cells owe their
+        // leak only over the period, none due yet (2026-11-05-air-bubbles).
+        Assert.Equal(Air.CellsPerFill, w.Air().Aired.Count);
         Assert.Equal(Air.Canister - 1, w.M.Atmosphere.OxygenIn(s.Tank));
-        Assert.Equal(Air.Canister - paid, w.Held());
+        Assert.Equal(Air.Canister, w.Held());
         Assert.Equal(2, Canisters(w, 0));
         Assert.Equal(RoomStatus.Filling, w.M.Atmosphere.StatusOf(s.Room));
     }
@@ -387,8 +387,6 @@ public class AtmosphereReadingTests
         ((AtmosphereState)w.M.Atmosphere.Slice).Tanks.Clear();
         w.GiveItems(0, ("canister", 1)).Run(2);
         int aired = w.M.Atmosphere.AiredCells.Count;
-        var room = w.M.Atmosphere.RoomsAir().Single(a => a.Room == w.M.Rooms.RoomAt(cell));
-        int clock = w.Air().Clock;
 
         var r = new Registry();
         var loaded = World.Load(w.World.Save(), [.. r.All, new Builder(r), new Breather(r.Atmosphere)]);
@@ -396,9 +394,10 @@ public class AtmosphereReadingTests
         w.World.Step(commands);
         loaded.Step(commands);
 
-        // The breath takes 5 cells from the far edge; the vaporizer makes a unit and the fill beat airs a cell with it; the
-        // leak, due more often over 8 px cells (0104), takes what falls due from the far edge.
-        Assert.Equal(aired - 5 + 1 - AirTesting.Leaked(room.Leak, clock, clock + 1), w.M.Atmosphere.AiredCells.Count);
+        // The breath takes no cell, paid from the chain (2026-11-05-air-bubbles); the canister makes the vent live again, so
+        // the bubble grows back round it rather than shrinking on.
+        Assert.True(w.M.Atmosphere.AiredAt(cell));
+        Assert.InRange(w.M.Atmosphere.AiredCells.Count, aired, aired + Air.CellsPerFill);
         Assert.Equal(Air.Canister - 1, w.M.Atmosphere.OxygenIn(tank));
         Assert.Equal(r.Atmosphere.AiredCells.Count, w.M.Atmosphere.AiredCells.Count);
         Assert.Equal(loaded.Hash(), w.World.Hash());

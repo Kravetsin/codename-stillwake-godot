@@ -16,16 +16,16 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0008](0008-items-inventories-and-crates.md) | Items, inventories and crates replace the shared stock | accepted |  |
 | [0009](0009-debris-around-the-ship.md) | Debris flies around the ship, each piece at its own speed | accepted | 0052 (in part) |
 | [0010](0010-back-walls.md) | Back walls close a room behind | superseded | 0020 |
-| [0011](0011-air-lies-around-the-vents.md) | Air lies around the vents, and a hero breathes it while the room holds any | accepted | 0016 (in part) |
+| [0011](0011-air-lies-around-the-vents.md) | Air lies around the vents, and a hero breathes it while the room holds any | accepted | 0016, air-bubbles (in part) |
 | [0012](0012-playtest-server.md) | A playtest server runs the dev relay on our own VPS | accepted |  |
 | [0013](0013-netcode-follows-known-practice.md) | Netcode follows known practice | accepted | 0014, 0015 (in part) |
 | [0014](0014-own-actions-show-at-once.md) | A player's own actions show at once | accepted |  |
 | [0015](0015-ticks-play-out-after-a-measured-reserve.md) | Ticks play out after a measured reserve | accepted |  |
-| [0016](0016-breathe-where-the-air-is.md) | A hero breathes where the air is, and a generator makes it | accepted |  |
+| [0016](0016-breathe-where-the-air-is.md) | A hero breathes where the air is, and a generator makes it | accepted | air-bubbles (in part) |
 | [0017](0017-power-runs-on-cables.md) | Power runs on cables laid point to point | accepted | 0110 (in part) |
 | [0018](0018-light-by-radiance-cascades.md) | Light by radiance cascades, drawn only | superseded | 0019 |
 | [0019](0019-light-by-cells-in-colour.md) | Light by cells, in colour, drawn only | accepted |  |
-| [0020](0020-walls-of-materials-front-and-back.md) | Walls of materials, front and back, and air through what it touches | accepted |  |
+| [0020](0020-walls-of-materials-front-and-back.md) | Walls of materials, front and back, and air through what it touches | accepted | air-bubbles (in part) |
 | [0021](0021-cables-by-hand-in-the-power-mode.md) | Cables by hand, in the power mode | accepted | 0022, 0030 (in part) |
 | [0022](0022-one-hand.md) | One hand | accepted | 0030, 0064 (in part) |
 | [0023](0023-a-furnace-burns-fuel.md) | A furnace burns fuel, and the wreck starts without one | accepted | 0057 (in part) |
@@ -110,7 +110,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed (in part) |
 | [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted | creatures-are-composed (in part) |
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
-| [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted |  |
+| [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
 | [0106](0106-steps-replace-slopes.md) | Steps replace slopes | accepted |  |
 | [0107](0107-left-is-front-right-is-back.md) | Left is the front, right is the back; the menu plans, the hands build | accepted | 0108, 0109, fan-of-rays (in part) |
 | [0108](0108-left-plans-right-removes.md) | In the plan menu the left button plans and the right removes; the stripper lays cables | accepted | 0107, 0109, 0110, plan-modes (in part) |
@@ -241,6 +241,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [salvage-tools](2026-11-04-salvage-tools.md) | The salvage tools | accepted |  |
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
 | [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
+| [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted |  |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks (in part) |

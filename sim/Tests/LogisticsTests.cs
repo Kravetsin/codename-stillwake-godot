@@ -62,11 +62,11 @@ public class LogisticsTests
         return w;
     }
 
-    /// <summary>Whether every room with a vent in it is aired.</summary>
-    private static bool AllAired(Scenario w)
+    /// <summary>Whether every room with a vent in it is aired, or holds all the air its vents pay for (2026-11-05-air-bubbles).</summary>
+    internal static bool AllAired(Scenario w)
     {
         var vented = w.M.Grid.MachinesOf("vent").Select(v => w.M.Rooms.RoomAt(v.Cell)).ToHashSet();
-        return w.M.Rooms.All.Where(r => vented.Contains(r.Id)).All(r => w.M.Atmosphere.StatusOf(r.Id) == Atmosphere.RoomStatus.Aired);
+        return w.M.Atmosphere.RoomsAir().Where(a => vented.Contains(a.Room)).All(a => a.Status == Atmosphere.RoomStatus.Aired || a.Problem == "atmosphere.leaky");
     }
 
     internal static Scenario TwoRooms(int drones = 2, int charge = Content.Charge.Drone) => Aired(Rooms, RoomsUnder, drones, charge: charge);
@@ -641,7 +641,8 @@ public class LogisticsTests
     }
 
     /// <summary>
-    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below.
+    /// Two rooms one over the other, a hatch in the deck between: the furnace above on the right, the bay and a crate below;
+    /// a vent in each, on one run up through the deck: shut, the hatch parts them, and a room with no vent loses its air.
     /// Aired with the hatch open, then shut, the crate holding all but the three chunks the furnace holds.
     /// </summary>
     private static readonly string[] Decks =
@@ -649,7 +650,7 @@ public class LogisticsTests
         "##############",
         "#............#",
         "#..........FF#",
-        "#..........FF#",
+        "#........V.FF#",
         "######o#######",
         "#............#",
         "#RR....TT....#",
@@ -659,7 +660,7 @@ public class LogisticsTests
 
     private static (Scenario W, int Hatch, int Furnace) Decked()
     {
-        var w = Aired(Decks, ["", "", "", "", "", "", "       o", "       ---"], drones: 1);
+        var w = Aired(Decks, ["", "", "", "         -", "         -", "         -", "       o -", "       ---"], drones: 1);
         int hatch = w.At(6, 4), furnace = w.M.Grid.MachinesOf("furnace").Single().Id, crate = w.M.Grid.MachinesOf("crate").Single().Id;
         w.Do(new SetDoor(hatch, false)).Run();
         w.FillCrate(crate, ("scrapChunk", Chunks - 3)).Put(0, new Stack("scrapChunk", 3), crate: furnace);

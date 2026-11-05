@@ -153,7 +153,7 @@ public class CrewTests
     }
 
     [Fact]
-    public void BreathesRoomAirStandingInItRefillingTheSuitPaidByTheTank()
+    public void BreathesRoomAirStandingInItRefillingTheSuitTheVentRefillingTheRoomFromTheTank()
     {
         var (w, _, room) = SetUp(3);
         w.Do(EnterAt(Outside)).Run();
@@ -162,52 +162,37 @@ public class CrewTests
         w.Do(EnterAt(At(4, 1))).Run();
         int suit = HeroOf(w)?.Air ?? 0;
         int oxygen = HandPiped.Held(w);
-        int clock = AirClock(w);
+        int clock = AirClock(w), part = w.Owed(room);
         Breaths(w, 2);
         Assert.Equal(suit + 2 * Content.Crew.Refill, HeroOf(w)?.Air);
-        // The chain pays for the breaths, from the vaporizer's store as it refills from the tank, and its leak on a leak
-        // beat; the room stays whole.
-        Assert.Equal(
-            oxygen - 2 * (1 + Content.Crew.Refill) - AirTesting.Leaked(Leak, clock, AirClock(w)),
-            HandPiped.Held(w));
+        // The breaths and the leak are drawn from the chain, never a cell (2026-11-05-air-bubbles): a unit either way of the leak.
+        int leaked = AirTesting.Leaked(Leak, clock, AirClock(w), part);
+        Assert.InRange(oxygen - 2 * (1 + Content.Crew.Refill) - HandPiped.Held(w), leaked - 1, leaked);
         Assert.Equal(84, Aired(w).Count);
         // Full, it takes only its breath.
         Breaths(w, 10);
         Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
     }
 
+    /// <summary>
+    /// Its vent's pipe cut, nothing pays: the bubble shrinks from the far edge, <c>Air.CellsPerFill</c> cells a beat, and a
+    /// hero breathes the room's air only while its cell holds some (2026-11-05-air-bubbles).
+    /// </summary>
     [Fact]
-    public void BreathesTheFarEdgeOfTheAirWhenNoTankPays()
+    public void LosesItsAirFromTheFarEdgeWhenNoTankPaysTheHeroThereOnTheSuitOnceItsCellIsEmpty()
     {
         var (w, _, room) = SetUp(1);
         AirUp(w, room);
-        // The vent's pipe cut: nothing pays, nothing fills.
-        w.Do(new Pipes.CutPipe(Vent, Output)).Run();
-        w.Do(EnterAt(At(4, 1))).Run();
-        // Counted from here: the leak of the ticks since the cut, a fifth of a cell a tick, is the room's already.
-        int clock = AirClock(w), aired = Aired(w).Count;
-        Breaths(w, 1);
-        Assert.Equal(Scenario.Full, HeroOf(w)?.Air);
-        // The corner farthest from the vent went first; the back walls leak the room's air too.
-        Assert.DoesNotContain(Far, Aired(w));
-        Assert.Equal(aired - 1 - AirTesting.Leaked(Leak, clock, AirClock(w)), Aired(w).Count);
-    }
-
-    [Fact]
-    public void BreathesRoomAirOnlyInACellHoldingItPastTheEdgeOfTheAirFromTheSuit()
-    {
-        var (w, _, room) = SetUp(1);
-        AirUp(w, room);
-        w.Do(new Pipes.CutPipe(Vent, Output)).Run();
-        // At the far end, where the air goes first.
         w.Do(EnterAt(Far)).Run();
-        for (int i = 0; i < 30 && Aired(w).Contains(Far); i++) Breaths(w, 1);
+        Breaths(w, 1);
+        int suit = HeroOf(w)!.Air;
+        w.Do(new Pipes.CutPipe(Vent, Output)).Run();
         Assert.DoesNotContain(Far, Aired(w));
-        int suit = HeroOf(w)?.Air ?? 0;
+        Assert.InRange(Aired(w).Count, 84 - Content.Air.CellsPerFill, 84 - 1);
         Breaths(w, 2);
         Assert.Equal(suit - 2, HeroOf(w)?.Air);
-        // The room still holds air nearer the vent.
-        Assert.True(Aired(w).Count > 40, $"{Aired(w).Count} aired");
+        w.Run(84 / Content.Air.CellsPerFill);
+        Assert.Empty(Aired(w));
     }
 
     [Fact]
