@@ -14,7 +14,7 @@ namespace Stillwake.Game.Features.Crew;
 public partial class ToolWork : Node2D
 {
     /// <summary>
-    /// One hero's tool this frame: from its muzzle, in the world's pixels, to where it works, the way it points, how what it touches looks hit
+    /// One hero's tool this frame: from its nozzle, where its edge begins, in the world's pixels, to where it works, the way it points, how what it touches looks hit
     /// (none while it touches nothing), and the floor its chips fall to.
     /// </summary>
     public readonly record struct Seen(int Hero, string Tool, Vector2 From, Vector2 At, Vector2 Way, HitLook? Look, double? Floor);
