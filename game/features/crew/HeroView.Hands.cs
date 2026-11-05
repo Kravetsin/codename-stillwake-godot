@@ -21,7 +21,7 @@ public partial class HeroView
     /// so a door opens with a card or a cable out; the left button held works plans with the screwdriver in
     /// hand (0107); the left button grabs only with a free hand, as it is the card's otherwise, and held
     /// or clicked swings the fire axe toward the pointer while the hand wields it (<see cref="AxeSwing"/>),
-    /// unless the click grabbed a piece, hitting what its blade sweeps through (melee-edge); the right button does nothing with a tool.
+    /// unless the click grabbed a piece, hitting what its fan of rays from the shoulder meets (tool-reach); the right button does nothing with a tool.
     /// Passed out, the hands do nothing: a press is spent, a hold works no plan and swings no axe.
     /// </summary>
     private void UseHands(Client client, Registry m, ShownGrid shown, (double X, double Y)? pointer, bool passedOut, Pose pose,
@@ -38,9 +38,9 @@ public partial class HeroView
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
         bool seated = m.Landing.SeatOf(client.Id) != null;
-        // A running tool's edge, as the figure drew it last: what it touches is what it hits (tool-edge).
+        // A running tool's hit: its fan of rays from the shoulder, the cutter's beam as drawn (tool-reach).
         var edged = drill != null && pointer != null && !seated ? EdgeOf(m, _current, drill, _figure) : null;
-        // Whatever hits or shoots aims at nothing: it hits what it is drawn touching, no outline, glow or prompt (melee-edge).
+        // Whatever hits or shoots aims at nothing: it hits what its rays meet, no outline, glow or prompt (melee-edge).
         bool armed = struck != null || gun || shooter != null || drill != null;
         var aim = pointer is { } p && !seated ? Aiming.AimAt(m, client.Id, _current, p, Predicted.Grabbing(client.InFlight), armed, shown, ShipTiles.RiseOf) : null;
         // The power driver charged in its mode works the square round the pointer while it holds plans or marks, every layer of
@@ -103,7 +103,7 @@ public partial class HeroView
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
         if (swung.Hits)
         {
-            // What the blade touches as it sweeps down, or the spear's point at full stretch (melee-edge): the cells, wrecks and
+            // What the stroke's fan of rays from the shoulder meets as it lands (tool-reach): the cells, wrecks and
             // creatures the sim would take its hits on; a creature's flinch and a wreck's chop are theirs to show (0102, DebrisView).
             var hit = StrokeOf(m, _current, _swing.At, struck!);
             var sent = ToolEdges.CommandsOf(m, client.Id, struck!, hit);
@@ -116,7 +116,7 @@ public partial class HeroView
             if (hit.Contact != null || sent.Strikes.Count > 0) _figure.Bit();
         }
         // The drill: aimed at the pointer; held on the left button it runs, aboard or at nothing too, the sim drawing
-        // its power every tick it runs (0055), and what its edge touches is hit each Pace ticks (tool-edge). Flat, it winds down. The power
+        // its power every tick it runs (0055), and what its rays meet is hit each Pace ticks (tool-reach). Flat, it winds down. The power
         // driver runs only while it works a plan, so a press at nothing draws no charge (power-driver); it is no drill.
         bool wieldsDrill = acts && drill != null && !working && Poses.HoldsIn(pose);
         _aimsDrill = wieldsDrill && pointer != null;
@@ -322,22 +322,28 @@ public partial class HeroView
     }
 
     /// <summary>
-    /// What <paramref name="tool"/> held by <paramref name="hero"/> touches with its edge as
-    /// <paramref name="figure"/> drew it last (tool-edge); none while it draws no edge.
+    /// What running <paramref name="tool"/> held by <paramref name="hero"/> touches as <paramref name="figure"/> drew it last: the
+    /// cutter's beam from its nozzle (tool-edge), any other's fan of rays from the shoulder along its barrel (tool-reach); none
+    /// while it is not up.
     /// </summary>
     private EdgeHit? EdgeOf(Registry m, Hero hero, string tool, Figure figure)
     {
         if (!figure.Visible || !figure.Aimed || figure.EdgeStart is not { } start || figure.Muzzle is not { } end) return null;
-        var edge = ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end));
-        return ToolEdges.Hits(m, edge, Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        var solid = _wreckPixels.Solid(_progress, _ui.DebrisTurns);
+        if (tool == Content.Weapons.PlasmaCutter.Item)
+            return ToolEdges.Hits(m, ToolEdges.Of(tool, hero, Thousandths(start), Thousandths(end)), Outside(m, hero), _progress, solid);
+        var hand = Aiming.HandOf(hero);
+        var barrel = figure.Barrel;
+        return ToolRays.Fan(m, hero, tool, ToolRays.HeadingOf(hero, (hand.X + barrel.X * Hero.Unit, hand.Y + barrel.Y * Hero.Unit)),
+            Outside(m, hero), _progress, solid);
     }
 
     /// <summary>
-    /// What a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> touches as its blade sweeps
-    /// down (melee-edge), the wrecks as drawn this frame.
+    /// What a stroke of <paramref name="tool"/> by <paramref name="hero"/> toward <paramref name="at"/> touches: its fan of rays from
+    /// the shoulder (tool-reach), the wrecks as drawn this frame.
     /// </summary>
     private EdgeHit StrokeOf(Registry m, Hero hero, Point at, string tool) =>
-        ToolEdges.Swept(m, Aiming.StrokeEdges(hero, at, tool), Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
+        ToolRays.Fan(m, hero, tool, ToolRays.HeadingOf(hero, (at.X, at.Y)), Outside(m, hero), _progress, _wreckPixels.Solid(_progress, _ui.DebrisTurns));
 
     /// <summary>Whether <paramref name="hero"/> is out in space, where its tools touch wrecks.</summary>
     private static bool Outside(Registry m, Hero hero) => m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) == Sim.Rooms.RoomsModule.Space;

@@ -244,10 +244,11 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [aim-on-use](2026-11-05-aim-on-use.md) | An aimed item comes up only in use | accepted |  |
 | [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
 | [air-wash](2026-11-05-air-wash.md) | The air overlay is a wash to leave on | accepted |  |
-| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted |  |
+| [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
-| [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted |  |
+| [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
-| [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted |  |
+| [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
+| [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |

@@ -1,6 +1,7 @@
 using Stillwake.Game.Features.Crew;
 using Stillwake.Sim;
 using Stillwake.Sim.Debris;
+using Stillwake.Sim.Items;
 using Xunit;
 using Spec = Stillwake.Content;
 
@@ -150,46 +151,66 @@ public class ToolEdgeTests
         ################################
         """));
 
+    /// <summary>The fan of <paramref name="tool"/> from <paramref name="hero"/>'s shoulder straight to its right (tool-reach).</summary>
+    private static EdgeHit Right(TestWorld w, Hero hero, string tool, bool outside = false, Func<Piece, double, double, bool>? solid = null) =>
+        ToolRays.Fan(w.M, hero, tool, 0, outside, 0, solid ?? Opaque);
+
     [Fact]
-    public void AStrokeStopsAtTheGroundItsBladeBitesFirstAndAHullTakesNoHitButIsStillTouched()
+    public void AFanFromTheShoulderStrikesTheWallsFaceBesideTheHeroAndNoDeeper()
     {
-        // A hero on the strip's floor three cells short of its right wall, swinging at it at its shoulder's height.
-        var hero = new Hero(28 * Unit + Unit / 2, 9 * Unit, 0, 0, false, 1);
-        var hand = Aiming.HandOf(hero);
-        var at = hand with { X = 31_500 };
+        // A hero on the strip's floor with its body against the right wall: the face beside it is struck, every ray stopping there.
         var w = Strip();
+        w.Step(new SetCreative(true));
         int width = w.M.Grid.Width;
-        var hit = ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero, at, Axe), outside: false, 0, Opaque);
-        Assert.Equal(31, hit.Ground!.Value.Cell!.Value % width);
-        Assert.Contains(hit.Ground!.Value.Cell!.Value, ToolEdges.CommandsOf(w.M, 0, Axe, hit).Cells!.Cells);
-        // The blade stops there: no sample past the first that bites is swept, so it cuts no deeper into the wall.
-        var edges = Aiming.StrokeEdges(hero, at, Axe);
-        int bites = Enumerable.Range(1, edges.Count).First(n => ToolEdges.Swept(w.M, edges.Take(n).ToList(), false, 0, Opaque).Ground != null);
-        Assert.True(bites < edges.Count);
-        Assert.Equal(ToolEdges.Swept(w.M, edges.Take(bites).ToList(), false, 0, Opaque).Cells, hit.Cells);
-        // Aboard, the hull takes no hit, but the blade still touches it, to ring and spark there (melee-edge).
-        var hull = Hull();
-        var rings = ToolEdges.Swept(hull.M, Aiming.StrokeEdges(hero, at, Axe), outside: false, 0, Opaque);
-        Assert.Equal(31, rings.Ground!.Value.Cell!.Value % width);
-        Assert.Null(ToolEdges.CommandsOf(hull.M, 0, Axe, rings).Cells);
-        // Swung at air short of the wall, nothing is touched.
-        var air = ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero with { X = 20 * Unit }, at with { X = 25_000 }, Axe), outside: false, 0, Opaque);
-        Assert.Null(air.Contact);
+        var hero = new Hero(30 * Unit + Unit / 2, 9 * Unit, 0, 0, false, 1);
+        foreach (string tool in new[] { Drill, Spec.Weapons.Grinder.Item, Axe })
+        {
+            var hit = Right(w, hero, tool);
+            var walls = hit.Cells.Where(c => w.M.Grid.WallAt(c) != null).ToList();
+            Assert.All(walls, c => Assert.Equal(31, c % width));
+            Assert.True(walls.Count >= 2, $"{tool} struck {walls.Count} cells of the face");
+            Assert.Equal(31, hit.Ground!.Value.Cell!.Value % width);
+            Assert.Equal(31, ToolEdges.LeadOf(w.M, hit)! % width);
+            Assert.NotNull(ToolEdges.CommandsOf(w.M, 0, tool, hit).Cells);
+        }
+        // The drill's middle ray strikes the cell at the shoulder's height.
+        int shoulderRow = Aiming.HandOf(hero).Y / Unit;
+        Assert.Contains(shoulderRow * width + 31, Right(w, hero, Drill).Cells);
     }
 
     [Fact]
-    public void AWheelWorksOnlyItsHalfDiscAheadOfTheHub()
+    public void AHullAboardTakesNoHitButIsStillTouchedAndAirShortOfTheWallTouchesNothing()
     {
-        var w = Strip();
-        int width = w.M.Grid.Width;
-        // A wheel of a cell's radius, its hub just right of a cell's left side and at its middle: the wall's cell up and right
-        // lies in the edge's square, but more than a radius from the hub.
-        var wheel = new Edge((30_050, 4_500), (31_050, 4_500), 1000, false, Round: true);
-        var hit = ToolEdges.Hits(w.M, wheel, outside: false, 0, Opaque);
-        Assert.Contains(4 * width + 31, hit.Cells);
-        Assert.Contains(3 * width + 30, hit.Cells);
-        Assert.DoesNotContain(3 * width + 31, hit.Cells);
-        Assert.Contains(3 * width + 31, ToolEdges.Hits(w.M, wheel with { Round = false }, outside: false, 0, Opaque).Cells);
+        var hero = new Hero(28 * Unit + Unit / 2, 9 * Unit, 0, 0, false, 1);
+        // Aboard, the hull takes no hit, but a ray still lands on it, to ring and spark there (melee-edge).
+        var hull = Hull();
+        var rings = Right(hull, hero, Axe);
+        Assert.Equal(31, rings.Ground!.Value.Cell!.Value % hull.M.Grid.Width);
+        Assert.Null(ToolEdges.CommandsOf(hull.M, 0, Axe, rings).Cells);
+        // Out of reach of the wall, the axe's rays end in air.
+        var air = Right(Strip(), hero with { X = 20 * Unit }, Axe);
+        Assert.Null(air.Contact);
+        Assert.Equal(Aiming.HandOf(hero with { X = 20 * Unit }).X + Spec.Weapons.Axe.Range, air.End.X, 1);
+    }
+
+    [Fact]
+    public void ARayStopsAtTheFirstWrecksPixelsSoAWreckBehindItIsNotHit()
+    {
+        var (w, near, far) = Wrecks();
+        var (halfW, _) = Aiming.PictureOf(near.Item);
+        // Out in space, the shoulder level with both wrecks, close enough for the drill to reach past the near one to the far one.
+        int shoulderUp = -Aiming.HandOf(new Hero(0, 0, 0, 0, false, 1)).Y;
+        var hero = new Hero(near.X - halfW - Unit, near.Y + shoulderUp, 0, 0, false, 1);
+        Assert.True(Aiming.HandOf(hero).X + Spec.Weapons.Drill.Range > far.X - halfW);
+        var hit = Right(w, hero, Drill, outside: true);
+        Assert.Equal([near], hit.Wrecks);
+        // The middle ray lands on the near wreck's side.
+        Assert.Equal(near.X - halfW, hit.End.X, ToolEdges.Step);
+        // Over its box but off its pixels, the rays pass on: the far one is met instead.
+        var bare = Right(w, hero, Drill, outside: true, (p, x, y) => p.Id == far.Id && Opaque(p, x, y));
+        Assert.Equal([far], bare.Wrecks);
+        // Aboard, no wreck is touched.
+        Assert.Empty(Right(w, hero, Drill, outside: false).Wrecks);
     }
 
     [Fact]

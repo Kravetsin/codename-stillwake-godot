@@ -26,17 +26,18 @@ public static class Weapons
     public static readonly Weapon Axe = new("fireAxe", Damage: 2, BlockDamage: 4, Pace: 10, Arc: 64, Rays: 9, Range: 4500, Effects: []);
 
     /// <summary>
-    /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its beam 8 steps (11°) wide and 6.5 cells long, 3 rays: one
-    /// or two cells, soil at a hit, stone at three, a 4×20 tunnel of it in 16 s, on the belt's batteries; with the arc module
-    /// fitted (0098), twice either for twice the draw.
+    /// The drill (0054): 1 a hit, 4 on blocks, a hit every 2 ticks, its fan an eighth of a turn wide and 8 cells from the shoulder,
+    /// 7 rays, the cone its bit's air shows (tool-reach): about the hero's height of a face, soil at a hit, stone at three, on the
+    /// belt's batteries; with the arc module fitted (0098), twice either for twice the draw.
     /// </summary>
-    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 8, Rays: 3, Range: 6500, Effects: []);
+    public static readonly Weapon Drill = new("drill", Damage: 1, BlockDamage: 4, Pace: 2, Arc: 32, Rays: 7, Range: 8000, Effects: []);
 
     /// <summary>
     /// The angle grinder (salvage tools): 3 a hit every 4 ticks, 15 a second on wrecks, half again the drill's, but 1 on blocks, 5 a
-    /// second, 6 cells out, a little short of the drill: a wreck tool, not a digger; on the belt's batteries; with the arc fitted, twice either.
+    /// second; its fan 87° wide and 6.6 cells from the shoulder, 11 rays, the half disc its air shows (tool-reach): a wreck tool, not a
+    /// digger; on the belt's batteries; with the arc fitted, twice either.
     /// </summary>
-    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 8, Rays: 3, Range: 6000, Effects: []);
+    public static readonly Weapon Grinder = new("grinder", Damage: 3, BlockDamage: 1, Pace: 4, Arc: 62, Rays: 11, Range: 6600, Effects: []);
 
     /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
     public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);

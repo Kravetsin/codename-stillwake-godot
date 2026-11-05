@@ -150,23 +150,4 @@ public class DamageLooksTests
         Assert.InRange(left, -0.5, 0.5);
         Assert.InRange(right, 40, 43.5);
     }
-
-    [Fact]
-    public void The_trail_stays_on_the_blade_swung_straight_up()
-    {
-        var trail = new SwingTrail();
-        // The edge swung through straight up and past it, where an angle would wrap from -pi to pi.
-        double[] angles = [-1.2, -1.45, -1.7, -1.95, -2.2];
-        foreach (double a in angles)
-            trail.Step(1000.0 / 60, (Math.Cos(a) * 10, Math.Sin(a) * 10), (Math.Cos(a) * 18, Math.Sin(a) * 18), striking: true, downMs: 70);
-        var ink = new Ink { Feather = 0.05f };
-        trail.Draw(ink);
-        Assert.False(ink.Empty);
-        // Every point of it lies on the circle the blade swept, out past its edge, above the shoulder.
-        foreach (var (x, y) in ink.Points)
-        {
-            Assert.InRange(Math.Sqrt(x * x + y * y), 9, 21);
-            Assert.True(y < 0);
-        }
-    }
 }

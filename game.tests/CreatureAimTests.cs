@@ -41,14 +41,14 @@ public class CreatureAimTests
 
     private static readonly Func<Sim.Debris.Piece, double, double, bool> Clear = (_, _, _) => false;
 
-    /// <summary>The creatures a stroke of <paramref name="tool"/>, the axe unless said, by <paramref name="hero"/> toward <paramref name="at"/> sweeps through (melee-edge).</summary>
+    /// <summary>The creatures a stroke of <paramref name="tool"/>, the axe unless said, by <paramref name="hero"/> toward <paramref name="at"/> crosses with its fan of rays (tool-reach).</summary>
     private static List<Creature> Swept(TestWorld w, Hero hero, Point at, string? tool = null) =>
-        [.. ToolEdges.Swept(w.M, Aiming.StrokeEdges(hero, at, tool ?? Spec.Weapons.Axe.Item), outside: false, 0, Clear).Creatures];
+        [.. ToolRays.Fan(w.M, hero, tool ?? Spec.Weapons.Axe.Item, ToolRays.HeadingOf(hero, (at.X, at.Y)), outside: false, 0, Clear).Creatures];
 
     private static List<int> Struck(TestWorld w, Hero hero, Point at, string? tool = null) => [.. Swept(w, hero, at, tool).Select(c => c.Id)];
 
     [Fact]
-    public void TheAxeStrikesALoperItsBladeMeetsOnTheGroundAndNotOneBehindTheHerosBack()
+    public void TheAxeStrikesALoperItsRaysMeetOnTheGroundAndNotOneBehindTheHerosBack()
     {
         var hero = HeroOn(6, 10);
         var shoulder = ShoulderOf(hero);
@@ -57,25 +57,25 @@ public class CreatureAimTests
         var w = With((hero.X + 1_500 + Unit, 13 * Unit));
         Assert.Equal([1], Struck(w, hero, ahead));
         Assert.Equal([new Strike(1, Spec.Weapons.Axe.Item)], Aiming.StrikesOf(w.M, 0, Swept(w, hero, ahead), Spec.Weapons.Axe.Item));
-        // Six cells off: the blade cuts air.
-        Assert.Empty(Struck(With((hero.X + 6_000, 13 * Unit)), hero, ahead));
+        // Eight cells off, its box past the axe's range.
+        Assert.Empty(Struck(With((hero.X + 8_000, 13 * Unit)), hero, ahead));
         // Wholly behind its back: never, though swung the other way it is struck.
-        var behind = With((hero.X - 1_300, 13 * Unit));
+        var behind = With((hero.X - 3_000, 13 * Unit));
         Assert.Empty(Struck(behind, hero, ahead));
         Assert.Equal([1], Struck(behind, hero with { Facing = -1 }, shoulder with { X = shoulder.X - 3_000, Y = shoulder.Y + 1_000 }));
     }
 
     [Fact]
-    public void TheSpearsPointStrikesALoperAtFullStretchAndTheSimRefusesAFlatDrill()
+    public void TheSpearStrikesALoperWithinItsRangeAndTheSimRefusesAFlatDrill()
     {
         var hero = HeroOn(6, 10);
         var at = new Point(hero.X + 4_000, 12 * Unit);
         var w = With((hero.X + 2_500 + Unit, 13 * Unit));
         string spear = Spec.Weapons.Spear.Item;
         Assert.Equal([1], Struck(w, hero, at, spear));
-        // Ten cells off its point touches nothing.
+        // Ten cells off, past its range, nothing.
         Assert.Empty(Struck(With((hero.X + 10_000, 13 * Unit)), hero, at, spear));
-        // No battery on the belt: an edge touches it, but no strike goes, as the sim would refuse it (items.flat).
+        // No battery on the belt: a ray crosses it, but no strike goes, as the sim would refuse it (items.flat).
         Assert.Empty(Aiming.StrikesOf(w.M, 0, Swept(w, hero, at, spear), Spec.Weapons.Drill.Item));
     }
 }
