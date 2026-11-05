@@ -51,7 +51,7 @@ public class ToolContactTests
     public void AGrinderAtAWallWorksOnItsFace()
     {
         // From column 26 the wall in column 31 is in the grinder's six cells.
-        var (at, touches, cell) = ContactAt(Standing(26), 40, Grinder);
+        var (at, touches, cell, _) = ContactAt(Standing(26), 40, Grinder);
         Assert.Equal(Aiming.HandOf(Standing(26)).Y / Unit * 32 + 31, cell);
         Assert.True(touches);
         Assert.Equal(31 * Unit, at.X, 6);
@@ -63,11 +63,19 @@ public class ToolContactTests
     {
         var hero = Standing(15);
         var hand = Aiming.HandOf(hero);
-        var (at, touches, cell) = ContactAt(hero, 40, Cutter);
+        var (at, touches, cell, _) = ContactAt(hero, 40, Cutter);
         Assert.Null(cell);
         Assert.False(touches);
         Assert.Equal(hand.X + Spec.Weapons.PlasmaCutter.Range, at.X, 6);
         Assert.Equal(hand.Y, at.Y, 6);
+    }
+
+    [Fact]
+    public void OnAWreckItWorksWhereThePictureBeginsInsideTheBox()
+    {
+        // The box entered at x 4, the picture solid from x 10: seen working at 10, not in the empty corner of the box.
+        Assert.Equal(6, Aiming.FirstSolid((x, _) => x >= 10, (4, 0), (1, 0), 20)!.Value, 6);
+        Assert.Null(Aiming.FirstSolid((_, _) => false, (4, 0), (1, 0), 20));
     }
 
     [Fact]
