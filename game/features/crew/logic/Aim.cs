@@ -47,9 +47,9 @@ public sealed record Fan(Hew Ground, Hewn Hewn, HewWrecks Wrecks, IReadOnlyList<
 
 /// <summary>
 /// Where a running tool is seen to work (tool-contact), in thousandths of a cell: on what it touches, the wall's or plant's
-/// <paramref name="Cell"/> or a wreck (none), or at its whole reach touching nothing.
+/// <paramref name="Cell"/>, or a <paramref name="Wreck"/> where its box is entered, or at its whole reach touching nothing.
 /// </summary>
-public readonly record struct Contact((double X, double Y) At, bool Touches, int? Cell);
+public readonly record struct Contact((double X, double Y) At, bool Touches, int? Cell, Piece? Wreck = null);
 
 /// <summary>
 /// What the hands send this frame, the crate they open if any, and the tick work was last sent on: -1 when
@@ -561,8 +561,8 @@ public static class Aiming
     {
         (double X, double Y) hand = (fan.Wrecks.X, fan.Wrecks.Y), end = ReachOf(fan.Wrecks);
         double length = Math.Max(1, Math.Sqrt((end.X - hand.X) * (end.X - hand.X) + (end.Y - hand.Y) * (end.Y - hand.Y)));
-        (double T, (double X, double Y) At, int? Cell)? best = null;
-        void Box(double left, double top, double right, double bottom, int? cell)
+        (double T, (double X, double Y) At, int? Cell, Piece? Wreck)? best = null;
+        void Box(double left, double top, double right, double bottom, int? cell, Piece? wreck = null)
         {
             (double T, (double X, double Y) At) seen;
             if (Entered((hand.X, hand.Y, end.X, end.Y), left, top, right, bottom) is double t)
@@ -573,18 +573,29 @@ public static class Aiming
                 double x = Math.Clamp(hand.X, left, right), y = Math.Clamp(hand.Y, top, bottom);
                 seen = (Math.Sqrt((x - hand.X) * (x - hand.X) + (y - hand.Y) * (y - hand.Y)) / length, (x, y));
             }
-            if (best is not var (nearest, _, _) || seen.T < nearest) best = (seen.T, seen.At, cell);
+            if (best is not var (nearest, _, _, _) || seen.T < nearest) best = (seen.T, seen.At, cell, wreck);
         }
         foreach (var p in fan.Pieces)
         {
             var (x, y) = PieceDrawn.At(p, progress);
             var (halfW, halfH) = PictureOf(p.Item);
-            Box(x - halfW, y - halfH, x + halfW, y + halfH, null);
+            Box(x - halfW, y - halfH, x + halfW, y + halfH, null, p);
         }
         int width = m.Grid.Width;
         foreach (int cell in fan.Hewn.Cells.Concat(fan.Hewn.Plants.Select(p => p.Cell)))
             Box(cell % width * Hero.Unit, cell / width * Hero.Unit, (cell % width + 1) * Hero.Unit, (cell / width + 1) * Hero.Unit, cell);
-        return best is var (_, at, touched) ? new(at, true, touched) : new(end, false, null);
+        return best is var (_, at, touched, wreck) ? new(at, true, touched, wreck) : new(end, false, null);
+    }
+
+    /// <summary>
+    /// How far from <paramref name="from"/> along <paramref name="way"/> (a unit vector) the first <paramref name="solid"/> point lies, in
+    /// steps of <paramref name="step"/>, no farther than <paramref name="most"/>: where a wreck's picture begins inside its box. None if none.
+    /// </summary>
+    public static double? FirstSolid(Func<double, double, bool> solid, (double X, double Y) from, (double X, double Y) way, double most, double step = 0.5)
+    {
+        for (double d = 0; d <= most; d += step)
+            if (solid(from.X + way.X * d, from.Y + way.Y * d)) return d;
+        return null;
     }
 
     /// <summary>The end of <paramref name="hew"/>'s middle ray, its tool's whole reach from the hand, in thousandths of a cell.</summary>

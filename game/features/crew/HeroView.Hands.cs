@@ -336,6 +336,7 @@ public partial class HeroView
         var at = new Vector2((float)(contact.At.X / Hero.Unit * Rig.Cell), (float)(contact.At.Y / Hero.Unit * Rig.Cell));
         // Thrust into what it works, the tool works at its own muzzle, never behind it.
         var hand = Pixels(Aiming.HandOf(hero));
+        if (contact.Wreck is { } wreck) at = OnPicture(wreck, hand, at);
         if (hand.DistanceTo(at) < hand.DistanceTo(from)) at = from;
         if (!contact.Touches) return new(id, tool, from, at, figure.Barrel, null, null);
         if (contact.Cell is not int cell) return new(id, tool, from, at, figure.Barrel, HitLooks.Of[Impact.Wreck], null);
@@ -343,6 +344,31 @@ public partial class HeroView
         var middle = hero.Middle;
         var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
         return new(id, tool, from, at, figure.Barrel, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
+    }
+
+    /// <summary>A wreck's pictures, read once each, to find where a picture begins inside its box.</summary>
+    private readonly Dictionary<string, Image?> _wreckPictures = new();
+
+    /// <summary>
+    /// Where the way from <paramref name="hand"/> through <paramref name="entry"/>, into <paramref name="wreck"/>'s box, first meets its
+    /// picture's own pixels: the box is the sim's, wider than the picture, and a tool seen working its edge works the empty space.
+    /// The entry itself if the way misses the picture; the picture's slight rocking left out.
+    /// </summary>
+    private Vector2 OnPicture(Piece wreck, Vector2 hand, Vector2 entry)
+    {
+        if (DebrisLooks.NameOf(wreck.Item, wreck.Id) is not { } name) return entry;
+        if (!_wreckPictures.TryGetValue(name, out var image)) _wreckPictures[name] = image = HiRes.Load(name);
+        var way = (entry - hand).Normalized();
+        if (image == null || way == Vector2.Zero) return entry;
+        var (x, y) = PieceDrawn.At(wreck, _progress);
+        var corner = new Vector2((float)(x / Hero.Unit * Rig.Cell), (float)(y / Hero.Unit * Rig.Cell)) - (Vector2)image.GetSize() / HiRes.Scale / 2;
+        bool Solid(double px, double py)
+        {
+            int ix = (int)((px - corner.X) * HiRes.Scale), iy = (int)((py - corner.Y) * HiRes.Scale);
+            return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > 0.5f;
+        }
+        float most = ((Vector2)image.GetSize() / HiRes.Scale).Length();
+        return Aiming.FirstSolid(Solid, (entry.X, entry.Y), (way.X, way.Y), most) is double d ? entry + way * (float)d : entry;
     }
 
     /// <summary>
