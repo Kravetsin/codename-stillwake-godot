@@ -44,8 +44,9 @@ public partial class SwingSmear : Node2D
         if (striking && from is { } f && to is { } t)
         {
             double head = Math.Atan2(t.Y, t.X);
-            // A new stroke starts its band afresh, whatever is left of the last.
+            // A new stroke starts its band afresh, whatever is left of the last; one going on keeps its angle continuous.
             if (!_striking) (_shown, _wind, _head) = (true, head, head);
+            else head = SwingArc.Near(_head, head);
             _head = Math.Max(_head, head);
             _tail = Math.Max(_wind, _head - Longest * Fx.Length);
             (_inner, _outer, _light) = (f.Length(), t.Length() + 0.6f, 1);

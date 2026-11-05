@@ -124,10 +124,12 @@ public partial class HeroView
         // The power driver running: its chuck turns at its work, and its motor is heard there; flat, the wrist twists it (power-driver).
         bool drives = HeldLook.Drives(running);
         _figure.Spinning = runs || drives;
-        // Loaded while its fan strikes something, a wreck or the ground, or its bit a creature. Its hits sound and look as what
-        // they hit, where they hit it (0093, 0094); the bit throws nothing of its own.
-        bool works = runs && (!Aiming.FanOf(m, _current, Aiming.PointOf(pointer!.Value), running!).IsEmpty
+        // Loaded while its fan strikes something, a wreck or the ground, or its bit a creature. Its hits sound as what they hit
+        // and crack it (0093); it is seen at work where it touches, every frame, whether a hit lands then or not (tool-contact).
+        var drilled = runs ? Aiming.FanOf(m, _current, Aiming.PointOf(pointer!.Value), running!) : null;
+        bool works = runs && (!drilled!.IsEmpty
             || Aiming.StrikesOf(m, client.Id, Aiming.TouchedCreatures(m, _current, Aiming.PointOf(pointer!.Value)), running!).Count > 0);
+        _ownWork = runs ? WorkOf(m, client.Id, _current, drilled!, running!, _figure) : null;
         HearDrill(drill, runs, works, elapsedMs);
         // The harpoon: aimed at the pointer out in space; a fresh click fires, reels or does nothing, never a hold.
         bool wieldsGun = acts && gun && Poses.HoldsIn(pose);
@@ -305,17 +307,42 @@ public partial class HeroView
         }
     }
 
-    /// <summary>The point of every running drill on this surface as last drawn, and the drill: where a wreck it bites is struck (0094).</summary>
-    private List<(float X, float Y, string Tool)> Bits(Registry m, int own)
+    /// <summary>Where every running tool on this surface touches what it works, as last drawn, and the tool: where a wreck it bites is struck (0094).</summary>
+    private List<(float X, float Y, string Tool)> Bits()
     {
         var bits = new List<(float X, float Y, string Tool)>();
-        void Add(int id, Figure figure)
-        {
-            if (figure.Visible && figure.Muzzle is { } at && m.Items.Running(id) is { } tool && HeldLook.IsDrill(tool)) bits.Add((at.X, at.Y, tool));
-        }
-        Add(own, _figure);
-        foreach (var (id, shown) in _shownOthers) Add(id, shown.Figure);
+        foreach (var work in Works())
+            bits.Add((work.At.X, work.At.Y, work.Tool));
         return bits;
+    }
+
+    /// <summary>Every running tool on this surface as last seen at work: this hero's and its friends' (tool-contact).</summary>
+    private IEnumerable<ToolWork.Seen> Works()
+    {
+        if (_ownWork is { } own) yield return own;
+        foreach (var shown in _shownOthers.Values)
+            if (shown.Work is { } work) yield return work;
+    }
+
+    /// <summary>
+    /// Peer <paramref name="id"/>'s running <paramref name="tool"/> by <paramref name="hero"/>, its <paramref name="fan"/> this frame, as
+    /// seen at work (tool-contact): from its muzzle as <paramref name="figure"/> was drawn to where the fan works (<see
+    /// cref="Aiming.ContactOf"/>), looking as what it touches looks hit, a wreck or the wall's material; none unseen.
+    /// </summary>
+    private ToolWork.Seen? WorkOf(Registry m, int id, Hero hero, Fan fan, string tool, Figure figure)
+    {
+        if (!HeldLook.IsDrill(tool) || !figure.Visible || figure.Muzzle is not { } from) return null;
+        var contact = Aiming.ContactOf(m, fan, _progress);
+        var at = new Vector2((float)(contact.At.X / Hero.Unit * Rig.Cell), (float)(contact.At.Y / Hero.Unit * Rig.Cell));
+        // Thrust into what it works, the tool works at its own muzzle, never behind it.
+        var hand = Pixels(Aiming.HandOf(hero));
+        if (hand.DistanceTo(at) < hand.DistanceTo(from)) at = from;
+        if (!contact.Touches) return new(id, tool, from, at, null, null);
+        if (contact.Cell is not int cell) return new(id, tool, from, at, HitLooks.Of[Impact.Wreck], null);
+        if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return new(id, tool, from, at, null, null);
+        var middle = hero.Middle;
+        var face = Impacts.On(m.Grid, cell, (double)middle.X / Hero.Unit, (double)middle.Y / Hero.Unit);
+        return new(id, tool, from, at, HitLooks.Of[impact], Impacts.FloorUnder(m.Grid, face) * Rig.Cell);
     }
 
     /// <summary>
@@ -336,7 +363,10 @@ public partial class HeroView
             voices.Play(hit, point, offsetDb: GroundSounds.HitDbOf(tool));
         if (Impacts.At(m.Grid, m.Building, cell) is not { } impact) return;
         double? floor = Impacts.FloorUnder(m.Grid, at) * Rig.Cell;
-        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, Impacts.ShareAt(m.Grid, m.Building, cell, tool, damage), floor);
+        double share = Impacts.ShareAt(m.Grid, m.Building, cell, tool, damage);
+        // A running tool is seen at work all along (ToolWork): only the hit that breaks the wall or fells the growth throws.
+        if (HeldLook.IsDrill(tool) && share < 1) return;
+        Stages.Of(Layers.Effects).Hits.Throw(HitLooks.Of[impact], point.X, point.Y, at.Nx, at.Ny, share, floor);
     }
 
     /// <summary>Whether <paramref name="hero"/>, awake, touches lava where the sim has it, its suit burning (0087).</summary>

@@ -200,7 +200,10 @@ public partial class DebrisView(Ui ui) : Node2D
         ShowCracks(one.Picture, piece);
         if (_own.ToolOn(piece.Id) is { } own && !HeldLook.IsDrill(own)) return;
         var bit = BitOn(at, one.Picture.Texture.GetSize() * one.Picture.Scale);
-        Felt(one, at, _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item, bit?.At, own: false);
+        string tool = _own.ToolOn(piece.Id) ?? bit?.Tool ?? Content.Weapons.Axe.Item;
+        // A running tool is seen at work all along where it touches (tool-contact): its hits only crack the wreck.
+        if (HeldLook.IsDrill(tool)) return;
+        Felt(one, at, tool, bit?.At, own: false);
     }
 
     /// <summary>

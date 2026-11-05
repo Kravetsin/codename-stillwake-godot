@@ -1,7 +1,7 @@
 # crew (client): the heroes
 
 This machine's hero and the others'. Heroes are client-authoritative (0002): the controller runs here; only
-commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Others' heroes come through the host.
+commands reach the sim. Others' heroes come through the host.
 
 ## Files
 
@@ -16,6 +16,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
 | `SwingSmear.cs` | a swing's light (0075) |
+| `logic/SwingArc.cs` | its angle kept |
 | `logic/SwingArm.cs` | the front arm swung, aimed |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | its line |
@@ -27,6 +28,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 | `logic/Tether.cs` | tether drawn, reeled |
 | `logic/DrillPace.cs` | when the drill hits (0054) |
 | `logic/RunSounds.cs` | grinder, cutter heard |
+| `ToolWork.cs` | tools at work |
 | `logic/Motor.cs` | `Run` till the sim agrees (0055) |
 | `logic/Remote.cs` | heroes sent and kept |
 | `logic/RemoteRod.cs` | another's harpoon rod (0065) |
@@ -81,7 +83,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 - **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
   floors, never a wall, door, hatch or ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
-- **Jump and walk feel** (0089): coyote time, jump buffer, a short hop letting Space go, eased apex,
+- **Jump and walk feel** (0089): coyote time, jump buffer, short hop, eased apex,
   `AirControl` aloft.
 - **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
@@ -96,7 +98,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
   and picks nothing up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
   body's middle last was in the hull (0007, 0104); the host sends `Leave` for a closed link.
-- **Dressed as worn**: helmet and body apart, later ones in own pictures; bare, hair, clothes; a helmet lamp; the
+- **Dressed as worn**: helmet and body apart; bare, hair, clothes; a helmet lamp; the
   colour on the near shin; a switched body lit by `SuitOn` and charge (`SuitGlow`); both light round (hero-lights).
 
 ## Others' heroes
@@ -121,7 +123,7 @@ commands reach the sim: E's, reports, the suit's, motors', hits', the hands'. Ot
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires as its cooldown runs out; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
-- **Drill, grinder, cutter** (0054, 0055, one-arm-holds): left held sends `Run` till the sim runs it; hits every `Pace` ticks.
+- **Drill, grinder, cutter** (0054, 0055, tool-contact): left held runs it (`Run`); hits every `Pace` ticks; seen at work where it touches (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): runs at work only; charged, a 2×2 square over plans or marks
   of a cell (`WorkedSquare`), heard (`BiteLoop`), ratchet silent. Right click toggles.
 - **Ladders and ledges** (0092): grab, centre, climb, slide, leap off; an open hatch is climbable, a closed one a floor
