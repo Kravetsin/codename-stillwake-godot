@@ -5,7 +5,7 @@
 | File | Purpose |
 | --- | --- |
 | `logic/AirField.cs` | The air as the overlay draws it, cell by cell: how much of each cell's air shows, eased toward what the sim says so … |
-| `AirLook.cs` | How the air is drawn over the rooms, behind what stands in them, a pixel of the world at a time, with the overlay … |
+| `AirLook.cs` | How the air is drawn over the rooms, behind what stands in them, with the overlay on only (air-wash): a faint cool … |
 | `logic/AirMotes.cs` | The air made visible without the overlay: sparse motes wandering in every cell holding air, blown out of a filling … |
 | `AirView.cs` | The ship's air. Without a word: every room losing oxygen into space lit red on the beat (each tank's sight glass is … |
 | `logic/Explain.cs` | What the air overlay says of a room. |
@@ -29,17 +29,15 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
 | `logic/AirField.cs` | the overlay's cells eased toward the sim's, a venting room's flow toward its nearest opening, over the rooms' box (`RoomsBox`, found again when the rooms change) | no    |
 | `logic/RoomsBox.cs` | the box of every room cell, all the overlay keeps (tested) | no    |
 | `logic/AirMotes.cs` | motes gliding in all air, swept out of a venting room; a few in the lifepod's reach | no    |
-| `AirLook.cs` | the shader, with Q: the rooms' air dithered, grey dots where there is none, the pod's ragged aura | yes   |
+| `AirLook.cs` | the shader, with Q: a faint wash where there is air, a tide line at its edge, rust streaks while a room vents (air-wash) | yes   |
 | `AirView.cs` | venting rooms lit red on the beat and their air streaming out, the motes, fresh air from filling vents; with Q the air overlay | yes   |
 | `VentLight.cs` | the breaches in light (0075): jets, condensation, shimmer, frost | yes |
 | `TankLooks.cs` | each tank's sight glass filled to its oxygen, and its light | yes   |
 | `logic/AirSays.cs` | by the pointer (`MachineTips`, out of every overlay): a tank `[canister] 9000/36000`, a vaporizer or the pod `[O₂] +1200/min` (`MakesAt`, to a tenth) (tested) | no |
 
-- The overlay draws each room's air in an ordered dither, a pixel of the world at a time, drifting like a
-  gas and lit at its front; a cell eases in and out over about 220 ms (`AirField.EaseMs`) and cells blend
-  into each other within a room. A venting room's air goes red and runs toward its nearest opening; a
-  room without air shows a sparse grid of grey dots. It lies over the back walls, behind all that stands
-  in the room. The room under the pointer is explained beside it while air is the overlay. Surveyed every 250 ms.
+- The overlay is a wash to leave on ([air-wash](../../../docs/decisions/2026-11-05-air-wash.md)): faint where there is
+  air, a tide line at its edge, nothing where there is none, rust streaks to the opening through a venting room's air. A cell eases
+  over about 220 ms (`AirField.EaseMs`); cells blend within a room. It lies over the back walls, behind all in the room. The room under the pointer is explained beside it while air is the overlay. Surveyed every 250 ms.
   Drawn under every build tab too, the Air tab's pipes and the Power tab's cables over it, which then keep the
   pointer's tip (0072).
 - The field and its texture cover only what is built and a cell of space round it (the grid's
@@ -49,9 +47,9 @@ Ported from `apps/game/src/features/atmosphere/` (G-08). Reads `sim/Atmosphere` 
   or went (the aired cells merged with the last survey's); a frame eases and writes only the cells
   still on their way. The pulse of draining rooms is laid out again only when the rooms or those
   draining change. So a big world costs what is built, and a still ship nothing.
-- With Q, the lifepod's air is a ragged aura about its reach (its 6×6 and `Crew.PodReach` round it, as
-  `ByPod` counts), wavering and thinning at its edge rather than marking it exactly, with a few motes.
-- Always, without Q: motes gliding in all air, quieter than with Q (0.1 a cell, a 16 px drawing's 0.4, 1500 at most); blown
+- With Q, the lifepod's air is the same wash about its reach (its 6×6 and `Crew.PodReach` round it, as
+  `ByPod` counts, its corners rounded), its tide line wandering rather than marking it exactly, with a few motes.
+- Always, Q or not: motes gliding in all air, quiet (0.1 a cell, a 16 px drawing's 0.4, 1500 at most); blown
   out of a filling room's vents to the edge of its air; swept out of a venting room. Each glides on a
   heading that turns a little at a time and is drawn to a fraction of a pixel, so none jitters.
 - Air streams out of each opening of a room venting while it holds air or its vents still pour some

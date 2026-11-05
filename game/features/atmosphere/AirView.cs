@@ -19,9 +19,9 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// while it holds any, in light (<see cref="AirStream"/>, <see cref="VentLight"/>, 0075), faint soft motes gliding in all air
 /// (<see cref="AirMotes"/>), swept toward a breach as wind lines, and fresh air breathed out of filling vents. A room turned to
 /// space at once vents just so too (<see cref="Decompression"/>).
-/// With Q, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
-/// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
-/// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
+/// With Q, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: a faint wash of air in
+/// the rooms, coming and going softly (<see cref="AirField"/>), rust and running out while a room vents, nothing where a room
+/// holds none, the lifepod's air round it with a few motes in it; beside the pointer, what the sim says
 /// of that room's air (<see cref="Explain"/>). The nearest stream hisses: one, however many vent.
 /// </summary>
 public partial class AirView : Node2D
@@ -33,7 +33,7 @@ public partial class AirView : Node2D
     private const double RefreshMs = 250;
     /// <summary>One pulse of a venting room, in milliseconds of real time.</summary>
     private const double PulseMs = 900;
-    /// <summary>Room motes show this much of themselves with the overlay off: there, but quiet.</summary>
+    /// <summary>Room motes show this much of themselves, the overlay on or off: there, but quiet (air-wash).</summary>
     private const float QuietMotes = 0.45f;
     private static readonly Color Mote = AsciiArt.Colour(0xcfeaff), PodMote = AsciiArt.Colour(0xc8eeff);
     private static readonly Color Pulse = AsciiArt.Colour(0xe03030);
@@ -188,14 +188,13 @@ public partial class AirView : Node2D
 
     private void PaintMotes(Sketch g)
     {
-        float quiet = Shown ? 1 : QuietMotes;
         foreach (var mote in _motes.Live)
         {
             // The pod's motes belong to its aura, drawn with the overlay only.
             if (mote.Kind == MoteKind.Pod && !Shown) continue;
             // A fine soft speck (0075), where it is to a fraction of a pixel, so a slow one glides.
             var (colour, alpha, size) = mote.Kind == MoteKind.Room
-                ? (Mote, (mote.Big ? 0.4f : 0.65f) * quiet, mote.Big ? 2.6f : 1.6f)
+                ? (Mote, (mote.Big ? 0.4f : 0.65f) * QuietMotes, mote.Big ? 2.6f : 1.6f)
                 : (PodMote, 0.55f, 1.6f);
             g.DrawTextureRect(SoftDots.Dot, new Rect2((float)mote.X - size / 2, (float)mote.Y - size / 2, size, size), false,
                 colour with { A = alpha * (float)Math.Max(0, mote.Alpha) });
