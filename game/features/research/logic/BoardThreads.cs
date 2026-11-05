@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>What a note's threads run to (docs/plans/board.md): few, so a plate's many uses do not fill the board.</summary>
+/// <summary>What a note's threads run to (docs/decisions/2026-11-05-the-board.md): few, so a plate's many uses do not fill the board.</summary>
 public static class BoardThreads
 {
     /// <summary>How many threads a note runs to the closest to done; a shape left with no thread may add one (<see cref="BoardView"/>).</summary>

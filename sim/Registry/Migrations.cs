@@ -56,7 +56,7 @@ public static class Migrations
             }
             return root;
         },
-        // 42 → 43: the tree is gone (docs/plans/board.md), its gates' deposits with it; what they opened stays granted.
+        // 42 → 43: the tree is gone (docs/decisions/2026-11-05-the-board.md), its gates' deposits with it; what they opened stays granted.
         root =>
         {
             root["slices"]!["knowledge"]!.AsObject().Remove("deposits");

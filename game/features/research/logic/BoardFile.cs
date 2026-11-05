@@ -16,7 +16,7 @@ public readonly record struct BoardSpot(double X, double Y);
 public sealed record BoardKept(Dictionary<string, BoardSpot>? Moved = null, List<string>? Seen = null, int? Orders = null, List<string>? Marked = null);
 
 /// <summary>
-/// What this machine's player keeps of a world's board, in a file of its own (docs/plans/board.md).
+/// What this machine's player keeps of a world's board, in a file of its own (docs/decisions/2026-11-05-the-board.md).
 /// It is a convenience: a lost or bad file means things go back to their slots with nothing new, a failed write that they will.
 /// </summary>
 public static class BoardFile

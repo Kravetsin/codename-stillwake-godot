@@ -217,7 +217,7 @@ hangs after its `Ticks`, the body stays on the grid, the fuzz lets sentries out 
   a step after it starts; death into scrap; the piece gone; `creatures.noPiece`. Frames show the eye's three colours and
   a lunge. The module and Debris READMEs say what changed.
 
-### C-4 — Sentries out on the derelicts, with their look
+### C-4 — Sentries out on the derelicts, with their look ✅
 
 - `OnDebris(kind → 500‰)` on the ship's kind: every derelict whose id is past a saved watermark draws once, in id
   order (`IDebrisQueries` gives the pieces past it). The derelicts already out when this lands all draw on the first
@@ -230,6 +230,8 @@ hangs after its `Ticks`, the body stays on the grid, the fuzz lets sentries out 
   (`Wreckage.Perches`, measured from the art by `PerchesTests`): pod clusters and one engine look have none, so no sentry
   (the user's word: it looked like it had nowhere to stand). Watching, it crawls along its perch. An hour hovering far out
   meets some 220 derelicts with a perch, 45% guarded (`SentryGuardTests`). The look: the user picked «Клещ», the tick.
+- Built (sounds): the user's picks from the sentry audition, cut and credited in `game/audio/CREDITS.md` (`creatures/sentry-*`):
+  alert, wind-up, unclamp, clamp, snap, punch, charge and death.
 - **Done when** a play pass at the far field meets a sentry on about every other derelict, and the user has picked
   its look and sounds.
 

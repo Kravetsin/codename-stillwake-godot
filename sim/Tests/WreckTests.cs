@@ -230,7 +230,7 @@ public class WreckTests
         Assert.Equal(1, w.M.Items.Totals(0).Single(t => t.Item == "plate").Count);
     }
 
-    /// <summary>The first credits (docs/plans/board.md): chunks sold at a trade station built in the room, the market's first slot bought.</summary>
+    /// <summary>The first credits (docs/decisions/2026-11-05-the-board.md): chunks sold at a trade station built in the room, the market's first slot bought.</summary>
     [Fact]
     public void SellsChunksAtATradeStationBuiltOfSalvageAndBuysTheFirstSlot()
     {

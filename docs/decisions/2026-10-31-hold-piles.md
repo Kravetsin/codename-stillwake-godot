@@ -1,8 +1,8 @@
 # The hold's piles
 
-- Status: accepted
+- Status: accepted; its way through blocks bought amended by [the-board](2026-11-05-the-board.md): the trade station, furnace and workbench are understood from what is caught
 - Date: 2026-10-31
-- Extends [the-scoop](2026-10-31-the-scoop.md), and changes its panel on the roof; the design is in [scoop.md](../plans/scoop.md)
+- Extends [the-scoop](2026-10-31-the-scoop.md), and changes its panel on the roof
 
 ## Context
 

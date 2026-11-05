@@ -23,7 +23,7 @@ public sealed record BoardRead(IReadOnlyList<string> Found, IReadOnlyCollection<
 public sealed record BoardPicture(IReadOnlyDictionary<string, BoardShow> Shows, IReadOnlyList<(string Note, string Shape)> Threads);
 
 /// <summary>
-/// Decides what the board shows (docs/plans/board.md). A note is what was obtained or is known. A shape shows at a thread's end. One with
+/// Decides what the board shows (docs/decisions/2026-11-05-the-board.md). A note is what was obtained or is known. A shape shows at a thread's end. One with
 /// every part noted always shows: crowded off its parts' threads, it hangs one from the part noted last; what the market opens never shows as one. A click adds nothing to the board.
 /// </summary>
 public static class BoardView

@@ -25,7 +25,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - мгновенная постройка / instant building (dev panel) → `SetInstant`, `BuildingModule.Instant`; f/dev-panel → Building
 - меню строительства / build menu → f/building `BuildMenu`, `Tools.Tabs`; cards and order from content: `MenuSlot` on machine, build and material rows, `MenuTabs` (c/`Menu.cs`, 0114) → Building
 - кромка, верхушка планшета / tablet's edge, rim → `game/shared/TabletEdge.cs`, `TabletPeek` (the keys along the foot) → UI
-- планшет / tablet → `game/shared/Tablet.cs`, `TabletLayout`, `TabletMotion` (build menu and Handbook) → UI
+- планшет / tablet → `game/shared/Tablet.cs`, `TabletLayout`, `TabletMotion` (build menu, Handbook, the board and the black market) → UI
 - кисть / brush → `game/shared/logic/Brush.cs`, `Spec.Builds.Brush` (cells a strike covers; Ctrl = one cell) → Building
 - ступенька / step → step-up in f/crew `Hero` (`StepUp`, `StepOnto`), drawn by `game/shared/logic/StepEase.cs` (0106) → Crew
 - отвёртка / screwdriver → item `screwdriver`, `c/Screwdrivers.cs`; works plans → Building
@@ -66,10 +66,13 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
-- дерево технологий / tech tree → `ResearchTablet` on the tablet (T), `Content.Research` → Research
-- строка рынка, таб, блок, заказ / market row, tab, block, order → `Content.Research.Tabs`, `TechTab`, `TechRing`, `TechNode` (`Gate`) → Research
+- доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
+- заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)
+- найдено, счёт / obtained, count → `Knowledge.Obtained` (`Tally`), `ObtainedOf`, counted in `Items` → Knowledge, Items
+- достаточно / enough → `Understanding.Enough`, `Content.Research.EnoughWorth`, `EnoughMost`; понять / understood (the rule) → `ResearchModule`'s walk, `Knowledge.Granted` → Research
+- продано / sold → `Knowledge.Sold`, `SoldOf`, counted at a capsule's launch → Knowledge, Trade
+- строка рынка, блок, заказ / market ring, block, order → `Content.Research.Tabs` (the one `blackMarket`), `TechRing`, `TechNode` (`Gate`, `Order`: what a ring wants sold) → Research
 - связи ноды / a node's ties → `TechLinks` (client)
-- взнос / deposit → `Deposit`, `Knowledge.Deposits` → Research
 - ценность, наценка / worth, markup → `Content.Market.WorthOf`, `Markup`; цена блока → `Research.Prices` → Research
 - улучшения, слоты инвентаря, пояса, терминала, баллонов / upgrades → `Content.Upgrades`, `Items.SlotOpen`, `Crew.CanisterRefill` → Items, Crew, Research
 - торговая станция / trade station → machine `tradeStation`, `TradeModule` → Trade; авто / auto trade station → `autoTradeStation`

@@ -656,7 +656,7 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientAndAJoinerInSyncSellingAndBuyingOnTheMarket()
     {
-        // Trade and the market (docs/plans/board.md): a stocked trade station earns on its beat, a joiner comes in mid-beat,
+        // Trade and the market (docs/decisions/2026-11-05-the-board.md): a stocked trade station earns on its beat, a joiner comes in mid-beat,
         // the credits and the counter in its welcome, and before its next sale the first client spends them on the first ring's blocks: without them in its welcome it refuses.
         var layout = Layout.Parse(["##########", "#$$......#", "#$$......#", "##########"]).Doubled() with { Known = Content.Research.StartKnown };
         static string Stocked(string save)
@@ -688,7 +688,7 @@ public class DesyncTests(ITestOutputHelper output)
     [Fact]
     public void KeepsEveryClientAndAJoinerInSyncAsTheRuleGrants()
     {
-        // The rule (docs/plans/board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
+        // The rule (docs/decisions/2026-11-05-the-board.md): one plate short of an iron wall until a joiner is in, whose welcome holds the count; then
         // the first client's plates reach it and everyone's walk grants on the same tick, the joiner's too.
         var layout = Layout.Parse(["##########", "#II......#", "#II......#", "#II......#", "##########"]).Doubled() with { Known = [.. Content.Research.StartKnown, "plate"] };
         static string Seeded(string save)

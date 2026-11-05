@@ -6,7 +6,7 @@ using Tree = Stillwake.Content.Research;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The black market's rings, opened by what has been sold (docs/plans/board.md).</summary>
+/// <summary>The black market's rings, opened by what has been sold (docs/decisions/2026-11-05-the-board.md).</summary>
 public class MarketOrdersTests
 {
     private static Scenario World(int credits = 0)
