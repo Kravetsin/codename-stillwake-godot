@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Date: 2026-11-02
-- Changes [the board](../plans/board.md): it is no longer endless, and the market's goods hold slots
+- Changes [the-board](2026-11-05-the-board.md): it is no longer endless, and the market's goods hold slots
 
 ## Context
 

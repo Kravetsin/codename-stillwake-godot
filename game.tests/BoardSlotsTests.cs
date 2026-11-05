@@ -7,7 +7,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Where the board's things stand (docs/plans/board.md).</summary>
+/// <summary>Where the board's things stand (docs/decisions/2026-11-05-the-board.md).</summary>
 public class BoardSlotsTests
 {
     private static readonly IReadOnlyList<string> Start = Spec.Research.StartKnown;

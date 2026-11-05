@@ -2,7 +2,7 @@ namespace Stillwake.Content;
 
 /// <summary>
 /// A node of the black market: a block opening one blueprint or upgrade, bought with credits, or the gate, an order, that opens a row of
-/// blocks by what has been sold (docs/plans/board.md).
+/// blocks by what has been sold (docs/decisions/2026-11-05-the-board.md).
 /// </summary>
 /// <param name="Id">Its name: a block's the one blueprint or craft it opens, named as <see cref="Research"/> says; a gate's own.</param>
 /// <param name="Needs">The nodes that must be done first: their ids. A block's is its ring's gate, a gate's the gate before it.</param>
@@ -23,7 +23,7 @@ public sealed record TechRing(string? Gate, IReadOnlyList<(string Item, int Coun
 public sealed record TechTab(string Id, params TechRing[] Rings);
 
 /// <summary>
-/// Knowing blueprints and crafts (docs/plans/board.md). Blueprints are named as the build menu names their cards: a wall
+/// Knowing blueprints and crafts (docs/decisions/2026-11-05-the-board.md). Blueprints are named as the build menu names their cards: a wall
 /// or a back wall by its kind and material (<c>wallIron</c>, <c>backWallScrap</c>), anything else by the grid's name for it
 /// (<c>floor</c>, <c>furnace</c>); a craft by the item it makes (<c>wire</c>). Each is understood by the rule, or bought at a
 /// node of <see cref="Tabs"/>. Cables are no blueprint and always known.
@@ -31,12 +31,12 @@ public sealed record TechTab(string Id, params TechRing[] Rings);
 public static class Research
 {
     /// <summary>
-    /// What the wreck knows from its start: nothing (docs/plans/board.md). A castaway writes down what they find, the first walls at
+    /// What the wreck knows from its start: nothing (docs/decisions/2026-11-05-the-board.md). A castaway writes down what they find, the first walls at
     /// ten chunks, and what the pod makes for nothing is understood on the first tick, having no part to wait for.
     /// </summary>
     public static readonly IReadOnlyList<string> StartKnown = [];
 
-    /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/plans/board.md).</summary>
+    /// <summary>The tab of what only credits open: what is on it stays outside the rule that grants the rest (docs/decisions/2026-11-05-the-board.md).</summary>
     public const string Market = "blackMarket";
 
     /// <summary>What a part understood must have been obtained to, in credits of its worth: a rare part takes few, a common one many.</summary>
@@ -51,7 +51,7 @@ public static class Research
     /// <summary>What credits buy, by tab: the market alone.</summary>
     public static readonly IReadOnlyList<TechTab> Tabs =
     [
-        // Open from the start, its later rows by what is sold (docs/plans/board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
+        // Open from the start, its later rows by what is sold (docs/decisions/2026-11-05-the-board.md); the solar panel once circuits sell, for its cells come from the same bench (market-decrypt).
         // The heavy helmet with the frames the jetpack is made of, the canisters' upgrade a row later (2026-11-03-the-heavy-helmet);
         // the regen suit beside the belt's third slot, the charge it runs on, eight times its worth: 12000 (2026-11-03-the-regen-suit).
         new(Market,

@@ -43,7 +43,7 @@ public interface IResearchQueries
 }
 
 /// <summary>
-/// Knowing blueprints and crafts (docs/plans/board.md): what the world knows, what the rule grants it, and the market's rings it
+/// Knowing blueprints and crafts (docs/decisions/2026-11-05-the-board.md): what the world knows, what the rule grants it, and the market's rings it
 /// buys more from. The state is the world's <c>Knowledge</c>; research holds the rules.
 /// </summary>
 public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
@@ -94,7 +94,7 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
     }
 
     /// <summary>
-    /// Grants what the rule allows (docs/plans/board.md), when a count or the grid has moved. One pass is enough: the rule reads
+    /// Grants what the rule allows (docs/decisions/2026-11-05-the-board.md), when a count or the grid has moved. One pass is enough: the rule reads
     /// counts and the grid, never what is granted, and a loaded world walks on its first tick, so it matches one that kept running.
     /// </summary>
     internal void Walk()

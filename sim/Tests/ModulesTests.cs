@@ -107,7 +107,7 @@ public class ModulesTests
     public void KeepsWhatItFollowsBetweenTicksAsAWorldLoadedEveryTickFindsIt(uint seed, bool readAir, bool walks)
     {
         var layout = BudgetTests.Reference(38, 30, shipWidth: 32, shipHeight: 24, margin: 3).Doubled();
-        // With little known and one short of the furnace's parts, the rule has something to grant mid-run (docs/plans/board.md).
+        // With little known and one short of the furnace's parts, the rule has something to grant mid-run (docs/decisions/2026-11-05-the-board.md).
         if (walks) layout = layout with { Known = Content.Research.StartKnown };
         var rng = new Rng(new RngState { S = seed });
         // The edits that grow and shrink what is built draw their own numbers: a module's fuzz drawing more never starves them.

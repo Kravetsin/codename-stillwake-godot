@@ -5,7 +5,7 @@ using Stillwake.Sim.Research;
 
 namespace Stillwake.Game.Features.Research;
 
-/// <summary>A blueprint or craft as the board sees it (docs/plans/board.md).</summary>
+/// <summary>A blueprint or craft as the board sees it (docs/decisions/2026-11-05-the-board.md).</summary>
 /// <param name="Parts">Each thing it costs, and how many of it are enough.</param>
 /// <param name="Stations">The machines that make it, for a craft; null for a blueprint.</param>
 /// <param name="Market">Whether only the market opens it: it holds a slot, but shows no thread or silhouette till bought.</param>

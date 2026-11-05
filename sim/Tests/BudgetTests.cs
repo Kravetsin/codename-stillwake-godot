@@ -366,7 +366,7 @@ public class BudgetTests(ITestOutputHelper output)
     }
 
     /// <summary>
-    /// The rule's walk (docs/plans/board.md) at its dearest: nothing known yet, every part looked up, and something counted before
+    /// The rule's walk (docs/decisions/2026-11-05-the-board.md) at its dearest: nothing known yet, every part looked up, and something counted before
     /// every pass, as a world of busy furnaces has. Timed by itself: its share is too small to tell from a whole tick's noise.
     /// </summary>
     [Fact]

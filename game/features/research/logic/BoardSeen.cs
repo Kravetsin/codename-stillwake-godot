@@ -5,7 +5,7 @@ using System.Linq;
 namespace Stillwake.Game.Features.Research;
 
 /// <summary>
-/// What is new on the board for this player (docs/plans/board.md): the notes not yet read, one at a time as they land (<see cref="BoardPile"/>), which light
+/// What is new on the board for this player (docs/decisions/2026-11-05-the-board.md): the notes not yet read, one at a time as they land (<see cref="BoardPile"/>), which light
 /// its key while it is away, what landed being marked until the player touches it ([board-thoughts](../../../../docs/decisions/2026-11-02-board-thoughts.md)); and the market's orders met, which light it until the market is chosen. With nothing
 /// kept, what was seen starts as things stand at the first read, so a new world or a late guest has nothing new.
 /// </summary>

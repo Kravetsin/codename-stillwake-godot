@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The rule (docs/plans/board.md): a thing is understood when each of its parts is enough and, for a craft, a machine that makes it stands.</summary>
+/// <summary>The rule (docs/decisions/2026-11-05-the-board.md): a thing is understood when each of its parts is enough and, for a craft, a machine that makes it stands.</summary>
 public class UnderstandingTests
 {
     private static readonly Placement Bench = new("machine", "workbench");

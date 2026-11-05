@@ -1,6 +1,6 @@
 # The first hour's pace
 
-- Status: accepted
+- Status: accepted; its gates and the rings it put the harpoon, nailer and burner in superseded by [the-board](2026-11-05-the-board.md): nothing is paid for but the market; the stream and the solar panel on the market stand
 - Date: 2026-10-31
 - Amends [photo-panel](2026-10-29-photo-panel.md): how the solar panel is known; [0068](0068-the-harpoon-before-the-jetpack.md):
   the harpoon's recipe; [0041](0041-wreckage-of-many-kinds-and-circuits.md): the stream's weights

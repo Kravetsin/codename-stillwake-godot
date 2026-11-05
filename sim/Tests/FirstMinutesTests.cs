@@ -11,7 +11,7 @@ using Slot = Stillwake.Sim.Items.Place;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>The first minutes as docs/plans/board.md tells them, on the wreck itself and by commands alone: nothing is granted, bought or given.</summary>
+/// <summary>The first minutes by the rule of docs/decisions/2026-11-05-the-board.md, on the wreck itself and by commands alone: nothing is granted, bought or given.</summary>
 public class FirstMinutesTests
 {
     private static readonly Layout Wreck = Registry.Wreck with { Meteors = false };

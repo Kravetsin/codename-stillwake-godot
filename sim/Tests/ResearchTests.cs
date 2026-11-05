@@ -11,7 +11,7 @@ using ResearchSpec = Stillwake.Content.Research;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>What is known, and the market's blocks bought with credits (docs/plans/board.md); its orders are in <see cref="MarketOrdersTests"/>.</summary>
+/// <summary>What is known, and the market's blocks bought with credits (docs/decisions/2026-11-05-the-board.md); its orders are in <see cref="MarketOrdersTests"/>.</summary>
 public class ResearchTests
 {
     private const int Width = 10;

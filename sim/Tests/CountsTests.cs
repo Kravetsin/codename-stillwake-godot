@@ -22,7 +22,7 @@ using Slot = Stillwake.Sim.Items.Place;
 
 namespace Stillwake.Sim.Tests;
 
-/// <summary>What the crew has obtained and sold, for good (docs/plans/board.md): counted where a stack is born, never when one only moves or a payment comes back.</summary>
+/// <summary>What the crew has obtained and sold, for good (docs/decisions/2026-11-05-the-board.md): counted where a stack is born, never when one only moves or a payment comes back.</summary>
 public class CountsTests
 {
     /// <summary>A room on the left, space right of it, as <c>DebrisTests</c>' map.</summary>
