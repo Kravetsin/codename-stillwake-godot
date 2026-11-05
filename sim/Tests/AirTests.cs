@@ -85,7 +85,8 @@ public class AirTests
 
     /// <summary>
     /// Whether the orders kept room by room are those found afresh from the live vents, as after a load; the live vents
-    /// fed ones; and every room's air the first cells of its order (2026-11-05-air-bubbles).
+    /// fed ones; and the air of every room with a live vent the first cells of its order (2026-11-05-air-bubbles): a room
+    /// with none keeps its air where it lay.
     /// </summary>
     private static bool FreshOrders(Scenario w)
     {
@@ -99,6 +100,7 @@ public class AirTests
         foreach (var (room, order) in fresh)
         {
             if (!kept.TryGetValue(room, out var other) || !other.SequenceEqual(order)) return false;
+            if (!live.Any(v => roomOf[v] == room)) continue;
             int aired = order.Count(w.M.Atmosphere.AiredAt);
             if (!order.Take(aired).All(w.M.Atmosphere.AiredAt)) return false;
         }
@@ -838,19 +840,34 @@ public class AirTests
     }
 
     [Fact]
-    public void SpreadsItsBubbleThroughAnOpenDoorAndLosesThePartPastItOnceShut()
+    public void SpreadsItsBubbleThroughAnOpenDoorAndLetsThePartPastItFadeWhereItLiesOnceShut()
     {
-        var (w, left, door, right) = TwoRooms();
-        int alone = AiredIn(w, left).Count;
-        // Open, the rooms are one: the bubble its vaporizer pays for covers both, the doorway too.
-        w.Do(new SetDoor(door, true)).Run(100);
-        Assert.Equal(RoomStatus.Aired, Status(w, left));
-        Assert.True(w.M.Atmosphere.AiredAt(door) && w.M.Atmosphere.AiredAt(right));
-        // Shut, the right room has no vent: its air goes from the far edge, the left keeps all of its own.
-        w.Do(new SetDoor(door, false)).Run(100);
-        Assert.False(w.M.Atmosphere.AiredAt(right) || w.M.Atmosphere.AiredAt(door));
-        Assert.Equal(alone, AiredIn(w, left).Count);
-        Assert.Equal(RoomStatus.Aired, Status(w, left));
+        // Two rooms deep, a vent in the left: open, its bubble reaches a little way past the door into the right.
+        string map = string.Join("\n", new[] { "###############", "#V......#.....#", "#TT.....D.....#", "#TT.....#.....#" }
+            .Concat(Enumerable.Repeat("#.......#.....#", 37)).Append("###############"));
+        var w = new Scenario(AirTesting.OneThick(AirTesting.Chained(map))).Do(new Items.SetCreative(true));
+        w.Pipe(At15(1, 1), w.Output(At15(1, 2))).Run();
+        int tank = w.M.Grid.MachinesOf("tank").Single().Id, door = At15(8, 2);
+        for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tank));
+        w.Do(new SetDoor(door, true)).Run(800);
+        int left = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
+        bool Past(int c) => c % 30 > 17;
+        int reached = w.Air().Aired.Count(Past);
+        Assert.InRange(reached, 1, 5 * 10 * 2 * 37);
+        // Shut, the right room has no vent: its air stays where it lay, no cell of it newly aired, and fades from the far
+        // edge; the left keeps its bubble.
+        w.Run(Content.Doors.SwingTicks);
+        w.Do(new SetDoor(door, false));
+        for (int t = 0; t < reached; t++)
+        {
+            var before = w.Air().Aired.Where(Past).ToHashSet();
+            w.Run();
+            Assert.All(w.Air().Aired.Where(Past), c => Assert.Contains(c, before));
+        }
+        Assert.DoesNotContain(w.Air().Aired, Past);
+        Assert.Empty(w.Refusals);
+        Assert.Equal("atmosphere.leaky", Of(w, left)!.Problem);
+        Assert.True(FreshOrders(w));
     }
 
     [Fact]

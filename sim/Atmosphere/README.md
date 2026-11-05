@@ -24,7 +24,7 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 ## Rules
 
 - **A bubble lives in a room** (air-bubbles): open doors pass it, closed ones stop it; a room parted by a door shut,
-  the part with no vent loses its air. A room open to space, through open doors too, vents.
+  the part with no vent keeps its air where it lay and it fades from the far edge. Open to space, through open doors too, a room vents.
 - **A room's air is the first cells of its order** (0011): its cells breadth first from its **live** vents together
   (`Live`, machine id order), else from the cell nearest the mean of its cells (rounded down, smallest on a tie).
 - **Vaporizers** (liquid-oxygen; kind `generator`, `AirSource`) turn the liquid of the tanks (`Gas`) whose output is on
@@ -42,8 +42,8 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **Tanks in a line** (tanks-in-a-line): each tank holding liquid, in id order, pours up to `Air.TankFlow` a tick into the
   tanks whose input is on its output's network, in id order, as each has room.
 - **A tick of air,** in the simulation phase, in order:
-  1. Rooms `ChangedSince` names (or all) get new orders, laid out by count; then the live
-     vents are listed and their rooms laid out. Cells in no room lose their air.
+  1. Rooms `ChangedSince` names (or all) get new orders; then the live vents are listed. Each touched room with a live
+     vent is laid out by count on its order; one with none keeps its air where it lay. Cells in no room lose their air.
   2. Tanks pour on; each vaporizer, in id order, makes its share; tanks and stores are reread.
   3. An open room loses `Air.VentLoss` cells from the far edge, and every vent in it or in space drains its network by
      `Air.VentDrain`.
@@ -79,13 +79,13 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 
 - A tank holds between nothing and its capacity; a vaporizer, its store. Only those holding any are listed. Liquid and
   gas together grow only by a canister; an aired cell holds no unit.
-- Aired cells are sorted, distinct, each in a room; every room's air is the first cells of its order,
-  and grows only with a live vent.
+- Aired cells are sorted, distinct, each in a room; the air of a room with a live vent is the first cells of its order;
+  air grows only there.
 - Orders, survey and leaks kept equal those found afresh, as after a load: a loaded world goes on alike.
 
 ## Deliberately not handled
 
-- Air does not flow or thin (air-bubbles): it jumps when a room is laid out anew, its count kept on the new order.
+- Air does not flow or thin (air-bubbles): a room with a live vent laid out anew moves its air onto its new order, count kept.
 - Power moves the bubble: a solar night shrinks it at the step rate. A network's making is split evenly over its vents.
 - An owed part under a unit is dropped when its room's cells change.
 - A vent in a venting room drains its whole network, aired rooms on it included: cut it with a valve.

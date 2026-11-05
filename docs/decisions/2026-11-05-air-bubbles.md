@@ -21,9 +21,10 @@ open door, and walling cells off gave the bubble nowhere to go.
 ## Decision
 
 - **The bubble lives in a room** (`Rooms`): open doors pass air, closed ones stop it. Opened onto an empty room, a
-  bubble grows on through the door as far as its budget goes; shut, the part past it with no vent of its own loses its air
-  from the far edge. A way to space through open doors vents the room.
-- **A room's air is a prefix of its order:** its cells breadth first from its live vents (machine id order), else from
+  bubble grows on through the door as far as its budget goes; shut, the part past it with no vent of its own keeps its air
+  where it lay, fading from its far edge: only a room with a live vent is laid out anew, so air never jumps across a room.
+  A way to space through open doors vents the room.
+- **A room's air is a prefix of its order** while it has a live vent: its cells breadth first from its live vents (machine id order), else from
   its middle.
 - **A room's budget** is what its live vents' networks make, thousandths of a unit per `Air.LeakEvery`: each network
   `Air.GeneratorRate` × each vaporizer's satisfaction (the pod in full), split evenly over the live vents in sealed

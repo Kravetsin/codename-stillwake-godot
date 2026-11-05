@@ -342,13 +342,13 @@ public sealed partial class AtmosphereModule
         return budget > 0 && count < order.Length && (long)(s.LeakIn[room.Id] + _cellLeak[order[count]]) * 1000 > budget;
     }
 
-    /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first: from its far edge.</summary>
+    /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first: from its far edge. Reads <see cref="_laidOut"/>.</summary>
     private int TakeFar(Survey s, int room, int count, Edits edits)
     {
         var order = OrderOf(room);
         int taken = 0;
-        // The air is the first cells of the order, so the last aired one stands at its count less one.
-        for (int i = Math.Min(order.Length, s.AiredIn[room]) - 1; i >= 0 && taken < count && s.AiredIn[room] > 0; i--)
+        // Laid out round a live vent, the air is the first cells of the order: the last aired one stands at its count less one.
+        for (int i = _laidOut.Contains(room) ? Math.Min(order.Length, s.AiredIn[room]) - 1 : order.Length - 1; i >= 0 && taken < count && s.AiredIn[room] > 0; i--)
         {
             int cell = order[i];
             if (!s.AiredAt[cell]) continue;
@@ -654,6 +654,7 @@ public sealed partial class AtmosphereModule
         var s = Gather();
         var edits = new Edits();
         var zones = _rooms.All;
+        FindLaidOut();
 
         foreach (var zone in zones)
         {
@@ -669,7 +670,8 @@ public sealed partial class AtmosphereModule
             foreach (var zone in zones)
             {
                 if (zone.Openings.Count > 0) continue;
-                long budget = _budget.GetValueOrDefault(zone.Id);
+                // Air not laid out round a live vent only fades: it is not the first cells of its order.
+                long budget = _laidOut.Contains(zone.Id) ? _budget.GetValueOrDefault(zone.Id) : 0;
                 for (int step = 0; step < Content.Air.CellsPerFill; step++)
                 {
                     int count = s.AiredIn[zone.Id];
@@ -770,16 +772,19 @@ public sealed partial class AtmosphereModule
     }
 
     /// <summary>
-    /// Each of <paramref name="orders"/>' rooms counts its aired cells and airs that many of the first cells of its order,
-    /// the rest emptied: its air laid out round its live vents (2026-11-05-air-bubbles). The survey moves with it if kept.
+    /// Each of <paramref name="orders"/>' rooms with a live vent counts its aired cells and airs that many of the first cells
+    /// of its order, the rest emptied: its air laid out round its live vents (2026-11-05-air-bubbles). A room with none keeps
+    /// its air where it lay, to fade from its far edge: a door shut leaves no air jumping. The survey moves with it if kept.
     /// </summary>
     private void LayOut(List<(int Room, int[] Cells)> orders)
     {
         var s = _survey;
         var removed = new List<int>();
         var added = new List<int>();
-        foreach (var (_, cells) in orders)
+        FindLaidOut();
+        foreach (var (room, cells) in orders)
         {
+            if (!_laidOut.Contains(room)) continue;
             int count = 0;
             foreach (int cell in cells) if (IsAired(s, cell)) count++;
             for (int i = 0; i < cells.Length; i++)
@@ -798,4 +803,15 @@ public sealed partial class AtmosphereModule
     }
 
     private bool IsAired(Survey? s, int cell) => s != null ? s.AiredAt[cell] : State.Aired.BinarySearch(cell) >= 0;
+
+    /// <summary>Scratch: the rooms holding a live vent (<c>Live</c>), whose air is the first cells of their order.</summary>
+    private readonly HashSet<int> _laidOut = [];
+
+    private void FindLaidOut()
+    {
+        _laidOut.Clear();
+        var roomOf = _rooms.RoomOfCells;
+        foreach (int vent in State.Live ?? [])
+            if (roomOf[vent] >= 0) _laidOut.Add(roomOf[vent]);
+    }
 }
