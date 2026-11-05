@@ -77,7 +77,8 @@ public class PodAirTests
     {
         var w = Filled(Room());
         var air = w.M.Atmosphere.RoomsAir().Single();
-        Assert.Equal(Air.GeneratorRate, air.Made);
+        // Its room alone on it: the whole of its making is the room's to hold air with.
+        Assert.Equal((Air.GeneratorRate, Air.GeneratorRate), (air.Made, air.Budget));
     }
 
     [Fact]

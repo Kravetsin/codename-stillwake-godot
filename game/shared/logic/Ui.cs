@@ -59,6 +59,10 @@ public static class ListStore
         if (now == null ? lines == null : lines != null && now.SequenceEqual(lines)) return;
         store.Set(lines);
     }
+
+    /// <summary>Plain lines, words alone.</summary>
+    public static void SetLines(this Store<IReadOnlyList<TipLine>?> store, IReadOnlyList<string>? lines) =>
+        store.SetLines(lines?.Select(line => new TipLine(line)).ToList());
 }
 
 /// <summary>What the hand holds (0022), one thing at a time.</summary>
@@ -221,8 +225,8 @@ public sealed class Ui
     /// <summary>What <see cref="OverlayOn"/> reads: set once by whoever holds the build menu's state.</summary>
     public System.Func<string?> OverlayShown { get; set; } = () => null;
 
-    /// <summary>What an overlay says of the cell under the pointer, set by that overlay while it is on.</summary>
-    public Store<IReadOnlyList<string>?> WorldTip { get; } = new(null);
+    /// <summary>What an overlay or a machine says of the cell under the pointer, the first line naming it: set by that overlay while it is on.</summary>
+    public Store<IReadOnlyList<TipLine>?> WorldTip { get; } = new(null);
 
     /// <summary>
     /// What a plan under the pointer says, set by <c>building</c>: a blueprint's while it still lacks something, what it

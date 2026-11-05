@@ -53,7 +53,7 @@ public sealed partial class Binds
         [Bind.Breathe] = "R",
         [Bind.Suit] = "V",
         [Bind.Inventory] = "Tab",
-        [Bind.Drop] = "Q",
+        [Bind.Drop] = "G",
         [Bind.Build] = "B",
         [Bind.Search] = "Slash",
         [Bind.ModeBuild] = "Z",
@@ -62,7 +62,7 @@ public sealed partial class Binds
         [Bind.Tablet] = "T",
         [Bind.Market] = "M",
         [Bind.Handbook] = "J",
-        [Bind.Air] = "O",
+        [Bind.Air] = "Q",
         [Bind.ZoomIn] = "Equal",
         [Bind.ZoomOut] = "Minus",
     });

@@ -19,7 +19,7 @@ namespace Stillwake.Game.Features.Atmosphere;
 /// while it holds any, in light (<see cref="AirStream"/>, <see cref="VentLight"/>, 0075), faint soft motes gliding in all air
 /// (<see cref="AirMotes"/>), swept toward a breach as wind lines, and fresh air breathed out of filling vents. A room turned to
 /// space at once vents just so too (<see cref="Decompression"/>).
-/// With O, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
+/// With Q, the air overlay (<see cref="AirLook"/>), in building too, under the pipes or cables of a tab: air dithered in the rooms, coming and going softly
 /// (<see cref="AirField"/>), red and running out while a room vents, grey dots where a room holds none,
 /// a ragged aura of the lifepod's air round it with motes in it; beside the pointer, what the sim says
 /// of that room's air (<see cref="Explain"/>). The nearest stream hisses: one, however many vent.
@@ -88,7 +88,7 @@ public partial class AirView : Node2D
         _pulse.Paint = g => { foreach (var (box, colour) in _losing) g.DrawRect(box, colour); };
     }
 
-    /// <summary>Whether the air overlay is drawn: wanted with O, under a build tab's own overlay too, which draws over it.</summary>
+    /// <summary>Whether the air overlay is drawn: wanted with Q, under a build tab's own overlay too, which draws over it.</summary>
     private bool Shown => _ui.AirOn.Get();
 
     /// <summary>Whether it is the overlay that speaks for the pointer: under a tab with one of its own, that one does.</summary>
@@ -358,15 +358,16 @@ public partial class AirView : Node2D
         return middles;
     }
 
-    /// <summary>Beside the pointer, what the sim says of the air of the room under it.</summary>
+    /// <summary>Beside the pointer on a bare back wall of a room, what the sim says of that room's air.</summary>
     private void Tell(Registry m, (double X, double Y)? pointer)
     {
-        IReadOnlyList<string>? lines = null;
+        IReadOnlyList<TipLine>? lines = null;
         if (pointer is { } p && p.X >= 0 && p.Y >= 0 && p.X < m.Grid.Width && p.Y < m.Grid.Height
-            && m.Rooms.RoomAt((int)p.Y * m.Grid.Width + (int)p.X) is int room && room != RoomsModule.Space
+            && (int)p.Y * m.Grid.Width + (int)p.X is var cell
+            && Explain.SpeaksOver(m.Grid.StructureAt(cell), m.Grid.MachineAt(cell) != null, m.Grid.BackAt(cell) != null, m.Building.PlansAt(cell).Count > 0)
+            && m.Rooms.RoomAt(cell) is int room && room != RoomsModule.Space
             && _byRoom.TryGetValue(room, out var air) && m.Rooms.RoomById(room) is { } r)
-            // Heroes awake in the room breathe its air: the forecast counts them.
-            lines = Explain.Of(air, r.Volume, m.Crew.Heroes.Count(h => h.Out == 0 && m.Rooms.RoomAt(h.Cell) == room));
+            lines = Explain.Of(air, r.Volume);
         _ui.WorldTip.SetLines(lines);
     }
 }

@@ -23,6 +23,7 @@ public static partial class Ru
         ["card.growsHere"] = "Растёт здесь",
         ["card.minutes"] = "{n} мин",
         ["card.draw"] = "РАСХОД",
+        ["machine.lifepod"] = "Спасательная капсула",
         ["card.reach"] = "КЛЕТОК ДАЛЬНОСТЬ",
         ["card.beam"] = "ЛУЧ {n}°",
         ["card.guard"] = "% ОТ УДАРОВ",

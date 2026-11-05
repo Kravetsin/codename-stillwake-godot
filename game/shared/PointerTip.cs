@@ -119,7 +119,7 @@ public partial class PointerTip : CanvasLayer
     private Tip? OfWorld()
     {
         if (_ui.WorldTip.Get() is { Count: > 0 } world)
-            return new Tip(world[0], world.Skip(1).Select(line => new TipLine(line)).ToList());
+            return new Tip(world[0].Text, world.Skip(1).ToList());
         return _ui.CostTip.Get();
     }
 
@@ -162,15 +162,18 @@ public partial class PointerTip : CanvasLayer
     {
         int size = line.Large ? 14 : 11, icon = line.Large ? Large : Small, gap = line.Large ? 7 : 5;
         var text = Text(line.Text, Style.Text(Style.Mono, size, Of(line.Tone)));
-        float room = Widest - 2 * PadX - (line.Icon != null ? icon + gap : 0);
+        bool pictured = line.Icon != null || line.Sign != Sign.None;
+        float room = Widest - 2 * PadX - (pictured ? icon + gap : 0);
         if (Style.Mono.GetStringSize(line.Text, fontSize: size).X > room)
         {
             text.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             text.CustomMinimumSize = new Vector2(room, 0);
         }
-        if (line.Icon == null) return text;
+        if (!pictured) return text;
         var row = Style.Gap(new HBoxContainer { MouseFilter = Control.MouseFilterEnum.Ignore }, gap);
-        var picture = Icon(ItemIcons.Icon(line.Icon, icon), icon);
+        var picture = Icon(line.Icon != null ? ItemIcons.Icon(line.Icon, icon) : Signs.Of(line.Sign, line.Tone == Tone.Bad), icon);
+        // A sign is drawn smooth at any size, as the ink signs are (Signs); an item's picture keeps its pixels.
+        if (line.Icon == null) picture.TextureFilter = CanvasItem.TextureFilterEnum.Linear;
         if (line.Faded) picture.Modulate = new Color(1, 1, 1, 0.4f);
         row.AddChild(picture);
         row.AddChild(text);
