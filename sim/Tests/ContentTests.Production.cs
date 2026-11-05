@@ -321,7 +321,7 @@ public partial class ContentTests
     /// What the wreck can come to, walking stations (0057): an item is reachable when it is salvage — what any
     /// zone's debris is or breaks into — or made at a reachable station from reachable items: crafted at a queued
     /// one that lays it out, smelted at a fed one hot enough. A station is reachable when it is built into the ship,
-    /// or its blueprint is known and its cost reachable. What the rule grants is known once its parts are had (docs/plans/board.md); what only
+    /// or its blueprint is known and its cost reachable. What the rule grants is known once its parts are had (docs/decisions/2026-11-05-the-board.md); what only
     /// the market opens is taken as bought, credits not walked, every price being earned by selling. Debris of the kinds
     /// <paramref name="never"/> is left out, as if it never drifted by, and so are a planet's items of them. Aboard only: what a
     /// planet gives is not had. What only the wreck's own machines give (<see cref="WrecksOwn"/>) is had from the start.

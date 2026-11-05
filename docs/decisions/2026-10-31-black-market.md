@@ -1,6 +1,6 @@
 # The black market
 
-- Status: accepted
+- Status: accepted; its tab of the tree with one ring amended by [the-board](2026-11-05-the-board.md): the market is all that credits buy, its later rings opened by orders; its look by [market-grid](2026-11-03-market-grid.md)
 - Date: 2026-10-31
 - Amends [photo-panel](2026-10-29-photo-panel.md): how the solar panel is known
 

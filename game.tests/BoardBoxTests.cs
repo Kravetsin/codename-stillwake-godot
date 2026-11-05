@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>The part of the board the camera keeps in bounds (docs/plans/board.md).</summary>
+/// <summary>The part of the board the camera keeps in bounds (docs/decisions/2026-11-05-the-board.md).</summary>
 public class BoardBoxTests
 {
     [Fact]

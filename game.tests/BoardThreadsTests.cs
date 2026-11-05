@@ -4,7 +4,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>What a note's threads run to, and what the board shows (docs/plans/board.md).</summary>
+/// <summary>What a note's threads run to, and what the board shows (docs/decisions/2026-11-05-the-board.md).</summary>
 public class BoardThreadsTests
 {
     private static BoardThing Use(string id, bool market = false) => new(id, [("part", 10)], null, market);

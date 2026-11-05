@@ -1,6 +1,6 @@
 # The tech tree lives on the tablet
 
-- Status: accepted
+- Status: accepted; the tablet stands, the tree on it and `Deposit` superseded by [the-board](2026-11-05-the-board.md); its tabs dropped by [market-key](2026-11-03-market-key.md)
 - Date: 2026-10-30
 - Supersedes: the tech station of [trade-and-tech](2026-10-30-trade-and-tech.md) and the window of [tech-graph](2026-10-30-tech-graph.md)
 

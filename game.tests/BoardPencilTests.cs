@@ -3,7 +3,7 @@ using Xunit;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>How far a silhouette has come (docs/plans/board.md).</summary>
+/// <summary>How far a silhouette has come (docs/decisions/2026-11-05-the-board.md).</summary>
 public class BoardPencilTests
 {
     [Fact]

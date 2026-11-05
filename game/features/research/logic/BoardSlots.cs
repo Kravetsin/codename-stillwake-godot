@@ -9,7 +9,7 @@ namespace Stillwake.Game.Features.Research;
 public sealed record BoardSlot(string Id, double X, double Y, bool Row);
 
 /// <summary>
-/// Where everything on the board stands (docs/plans/board.md), a pure function of what was found in what order, so a late guest gets the
+/// Where everything on the board stands (docs/decisions/2026-11-05-the-board.md), a pure function of what was found in what order, so a late guest gets the
 /// same board. Nothing moves on its own: a thing holds its slot before it is known, what the market opens too, and inks in where it stands. All of it within the board's edges.
 /// </summary>
 public static class BoardSlots

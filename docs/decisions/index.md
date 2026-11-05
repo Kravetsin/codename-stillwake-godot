@@ -169,19 +169,19 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [liquid-oxygen](2026-10-30-liquid-oxygen.md) | Air comes from liquid oxygen | accepted |  |
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
-| [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted |  |
+| [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted | market-key, the-board (in part) |
 | [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
-| [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | superseded | market-decrypt |
+| [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | superseded | market-decrypt, the-board |
 | [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule |
 | [trade-capsule](2026-10-30-trade-capsule.md) | Goods leave by capsule | accepted |  |
 | [black-market](2026-10-31-black-market.md) | The black market | accepted |  |
 | [ci-scope](2026-10-31-ci-scope.md) | A PR runs what its paths can break | accepted |  |
 | [ci-tests-in-release](2026-10-31-ci-tests-in-release.md) | CI runs the tests in Release | accepted |  |
-| [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted |  |
+| [first-hour-pace](2026-10-31-first-hour-pace.md) | The first hour's pace | accepted | the-board (in part) |
 | [hold-piles](2026-10-31-hold-piles.md) | The hold's piles | accepted |  |
 | [spire-guards](2026-10-31-spire-guards.md) | Spire guards | accepted |  |
 | [tablet-key](2026-10-31-tablet-key.md) | The tablet's key and the mark of a new note | superseded | hologram-keys |
-| [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted |  |
+| [the-scoop](2026-10-31-the-scoop.md) | The scoop | accepted | the-board (in part) |
 | [anime-cel-art](2026-11-01-anime-cel-art.md) | Anime cel art | the | ink-and-watercolour, ink-by-default |
 | [creatures-in-ink](2026-11-01-creatures-in-ink.md) | Creatures in ink | accepted |  |
 | [guards-in-ink](2026-11-01-guards-in-ink.md) | The guards in ink | accepted |  |
@@ -247,6 +247,8 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [damage-looks](2026-11-05-damage-looks.md) | Damage and work drawn in ink | accepted | tool-reach (in part) |
 | [hologram-keys](2026-11-05-hologram-keys.md) | The edge's keys are holograms of what can be used, and the bulb bursts at the screen's top | accepted |  |
 | [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted | tool-reach (in part) |
+| [melee-edge](2026-11-05-melee-edge.md) | A stroke hits with its swept blade | accepted |  |
+| [the-board](2026-11-05-the-board.md) | Things are learned by having them, on the scavenger's board | accepted |  |
 | [the-last-breath](2026-11-05-the-last-breath.md) | The last breath | accepted |  |
 | [tip-signs](2026-11-05-tip-signs.md) | Tips speak in signs and the bubble's numbers | accepted |  |
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
