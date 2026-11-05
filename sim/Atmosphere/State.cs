@@ -65,7 +65,7 @@ public sealed class AtmosphereState
     /// </summary>
     [JsonInclude] internal List<LeakOwed> Owed { get; set; } = [];
     /// <summary>
-    /// The cells of the live vents the air is laid out from, in machine id order: fed, their network holding oxygen
+    /// The cells of the live vents the air grows round, in machine id order: fed, their network holding oxygen
     /// (2026-11-05-air-bubbles). Null until the first tick lists them, as in a save from before it.
     /// </summary>
     [JsonInclude, JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] internal List<int>? Live { get; set; }

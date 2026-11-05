@@ -232,6 +232,7 @@ public sealed partial class AtmosphereModule
         s.AiredAt[cell] = true;
         s.AiredIn[room] += 1;
         s.LeakIn[room] += _cellLeak[cell];
+        Aired(s, cell, room);
     }
 
     /// <summary>A cell loses its air: the survey's counts for <paramref name="room"/> move with it.</summary>
@@ -240,6 +241,7 @@ public sealed partial class AtmosphereModule
         s.AiredAt[cell] = false;
         s.AiredIn[room] -= 1;
         s.LeakIn[room] -= _cellLeak[cell];
+        Emptied(s, cell, room);
     }
 
     private int[] OrderOf(int room) => State.Orders.TryGetValue(room, out var order) ? order : [];
@@ -336,22 +338,20 @@ public sealed partial class AtmosphereModule
     /// <summary>Whether room <paramref name="room"/> holds all its bubble short of its volume: its next cell's leak would pass its budget.</summary>
     private bool AtItsLimit(Survey s, Room room)
     {
-        var order = OrderOf(room.Id);
-        int count = s.AiredIn[room.Id];
+        var c = CursorOf(s, room.Id);
         long budget = _budget.GetValueOrDefault(room.Id);
-        return budget > 0 && count < order.Length && (long)(s.LeakIn[room.Id] + _cellLeak[order[count]]) * 1000 > budget;
+        return budget > 0 && c.Gap < c.Order.Length && (long)(s.LeakIn[room.Id] + _cellLeak[c.Order[c.Gap]]) * 1000 > budget;
     }
 
-    /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first: from its far edge. Reads <see cref="_laidOut"/>.</summary>
+    /// <summary>Takes up to <paramref name="count"/> cells of air from a room, the aired ones last in its order first: from its far edge.</summary>
     private int TakeFar(Survey s, int room, int count, Edits edits)
     {
-        var order = OrderOf(room);
         int taken = 0;
-        // Laid out round a live vent, the air is the first cells of the order: the last aired one stands at its count less one.
-        for (int i = _laidOut.Contains(room) ? Math.Min(order.Length, s.AiredIn[room]) - 1 : order.Length - 1; i >= 0 && taken < count && s.AiredIn[room] > 0; i--)
+        while (taken < count && s.AiredIn[room] > 0)
         {
-            int cell = order[i];
-            if (!s.AiredAt[cell]) continue;
+            var c = CursorOf(s, room);
+            if (c.Last < 0) break;
+            int cell = c.Order[c.Last];
             EmptyCell(s, cell, room);
             edits.Removed.Add(cell);
             taken++;
@@ -654,7 +654,6 @@ public sealed partial class AtmosphereModule
         var s = Gather();
         var edits = new Edits();
         var zones = _rooms.All;
-        FindLaidOut();
 
         foreach (var zone in zones)
         {
@@ -670,8 +669,7 @@ public sealed partial class AtmosphereModule
             foreach (var zone in zones)
             {
                 if (zone.Openings.Count > 0) continue;
-                // Air not laid out round a live vent only fades: it is not the first cells of its order.
-                long budget = _laidOut.Contains(zone.Id) ? _budget.GetValueOrDefault(zone.Id) : 0;
+                long budget = _budget.GetValueOrDefault(zone.Id);
                 for (int step = 0; step < Content.Air.CellsPerFill; step++)
                 {
                     int count = s.AiredIn[zone.Id];
@@ -681,11 +679,18 @@ public sealed partial class AtmosphereModule
                         TakeFar(s, zone.Id, 1, edits);
                         continue;
                     }
-                    var order = OrderOf(zone.Id);
-                    if (budget == 0 || count >= order.Length) break;
-                    // The air is the first cells of the order: the next one follows the last aired.
-                    int next = order[count];
-                    if ((long)(s.LeakIn[zone.Id] + _cellLeak[next]) * 1000 > budget) break;
+                    var c = CursorOf(s, zone.Id);
+                    if (budget == 0 || c.Gap >= c.Order.Length) break;
+                    // The nearest empty cell to the vents takes air while the budget pays its leak.
+                    int next = c.Order[c.Gap];
+                    long leak = s.LeakIn[zone.Id] + _cellLeak[next];
+                    if (leak * 1000 > budget)
+                    {
+                        // At its limit but not yet round its vents, as after a door moved: the farthest cell's air flows
+                        // to the nearest empty one, a cell a step, never jumping.
+                        if (c.Last < c.Gap || (leak - _cellLeak[c.Order[c.Last]]) * 1000 > budget) break;
+                        TakeFar(s, zone.Id, 1, edits);
+                    }
                     edits.Added.Add(next);
                     AirCell(s, next, zone.Id);
                 }
@@ -771,47 +776,63 @@ public sealed partial class AtmosphereModule
         return false;
     }
 
+
     /// <summary>
-    /// Each of <paramref name="orders"/>' rooms with a live vent counts its aired cells and airs that many of the first cells
-    /// of its order, the rest emptied: its air laid out round its live vents (2026-11-05-air-bubbles). A room with none keeps
-    /// its air where it lay, to fade from its far edge: a door shut leaves no air jumping. The survey moves with it if kept.
+    /// Derived, per room: the first cell of its order with no air (<see cref="Cursor.Gap"/>) and the last with
+    /// (<see cref="Cursor.Last"/>), where the air grows and goes (2026-11-05-air-bubbles). Kept by <see cref="AirCell"/> and
+    /// <see cref="EmptyCell"/> while they edit at a cursor; any other edit, a new order or a new survey finds it again.
     /// </summary>
-    private void LayOut(List<(int Room, int[] Cells)> orders)
+    private sealed class Cursor
     {
-        var s = _survey;
-        var removed = new List<int>();
-        var added = new List<int>();
-        FindLaidOut();
-        foreach (var (room, cells) in orders)
-        {
-            if (!_laidOut.Contains(room)) continue;
-            int count = 0;
-            foreach (int cell in cells) if (IsAired(s, cell)) count++;
-            for (int i = 0; i < cells.Length; i++)
-            {
-                bool aired = IsAired(s, cells[i]);
-                if (i < count && !aired) added.Add(cells[i]);
-                else if (i >= count && aired) removed.Add(cells[i]);
-            }
-        }
-        if (removed.Count == 0 && added.Count == 0) return;
-        EditAired(removed, added);
-        if (s == null) return;
-        var roomOf = _rooms.RoomOfCells;
-        foreach (int cell in removed) EmptyCell(s, cell, roomOf[cell]);
-        foreach (int cell in added) AirCell(s, cell, roomOf[cell]);
+        public int[] Order = [];
+        public int Gap, Last;
     }
 
-    private bool IsAired(Survey? s, int cell) => s != null ? s.AiredAt[cell] : State.Aired.BinarySearch(cell) >= 0;
+    private readonly Dictionary<int, Cursor> _cursors = new();
+    private Survey? _cursorsFor;
 
-    /// <summary>Scratch: the rooms holding a live vent (<c>Live</c>), whose air is the first cells of their order.</summary>
-    private readonly HashSet<int> _laidOut = [];
-
-    private void FindLaidOut()
+    private Cursor CursorOf(Survey s, int room)
     {
-        _laidOut.Clear();
-        var roomOf = _rooms.RoomOfCells;
-        foreach (int vent in State.Live ?? [])
-            if (roomOf[vent] >= 0) _laidOut.Add(roomOf[vent]);
+        if (!ReferenceEquals(_cursorsFor, s))
+        {
+            _cursors.Clear();
+            _cursorsFor = s;
+        }
+        var order = OrderOf(room);
+        if (_cursors.TryGetValue(room, out var c) && ReferenceEquals(c.Order, order)) return c;
+        c ??= new Cursor();
+        c.Order = order;
+        c.Gap = 0;
+        while (c.Gap < order.Length && s.AiredAt[order[c.Gap]]) c.Gap++;
+        c.Last = order.Length - 1;
+        while (c.Last >= 0 && !s.AiredAt[order[c.Last]]) c.Last--;
+        _cursors[room] = c;
+        return c;
+    }
+
+    /// <summary>A cell of <paramref name="room"/> just aired: its cursor moves on if the cell stood at its gap, else is found again.</summary>
+    private void Aired(Survey s, int cell, int room)
+    {
+        if (!ReferenceEquals(_cursorsFor, s) || !_cursors.TryGetValue(room, out var c)) return;
+        if (c.Gap >= c.Order.Length || c.Order[c.Gap] != cell)
+        {
+            _cursors.Remove(room);
+            return;
+        }
+        c.Last = Math.Max(c.Last, c.Gap);
+        while (c.Gap < c.Order.Length && s.AiredAt[c.Order[c.Gap]]) c.Gap++;
+    }
+
+    /// <summary>A cell of <paramref name="room"/> just emptied: its cursor moves back if the cell stood last, else is found again.</summary>
+    private void Emptied(Survey s, int cell, int room)
+    {
+        if (!ReferenceEquals(_cursorsFor, s) || !_cursors.TryGetValue(room, out var c)) return;
+        if (c.Last < 0 || c.Order[c.Last] != cell)
+        {
+            _cursors.Remove(room);
+            return;
+        }
+        c.Gap = Math.Min(c.Gap, c.Last);
+        while (c.Last >= 0 && !s.AiredAt[c.Order[c.Last]]) c.Last--;
     }
 }

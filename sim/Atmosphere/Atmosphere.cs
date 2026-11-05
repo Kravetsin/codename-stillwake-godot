@@ -13,7 +13,7 @@ public sealed record LoadCanister(int Tank) : Command;
 /// <summary>What any module may read of the air.</summary>
 public interface IAtmosphereQueries
 {
-    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to a vaporizer's output: only then is its room's air laid out round it.</summary>
+    /// <summary>Whether a pipe joins vent <paramref name="vent"/> to a vaporizer's output: only then does its room's air grow round it.</summary>
     bool Fed(int vent);
     /// <summary>
     /// Whether vent <paramref name="vent"/> has air to give: gas in a store feeding it, or a vaporizer feeding it powered
@@ -34,8 +34,8 @@ public interface IAtmosphereQueries
     /// <summary>Whether <paramref name="cell"/> holds air.</summary>
     bool AiredAt(int cell);
     /// <summary>
-    /// Whether the room <paramref name="cell"/> lies in holds any air: where drones fly, so a bubble shrinking or laid
-    /// out anew never drops one (2026-11-05-air-bubbles). False outside every room.
+    /// Whether the room <paramref name="cell"/> lies in holds any air: where drones fly, so a bubble shrinking or flowing
+    /// never drops one (2026-11-05-air-bubbles). False outside every room.
     /// </summary>
     bool HoldsAir(int cell);
     /// <summary>Every cell holding air, sorted: live and read-only, for drawing the whole ship's air at once.</summary>
@@ -142,16 +142,16 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
         _leaksFor = null;
         _survey = null;
         _tanksCheckedAt = null;
-        // Only orders: the air is laid out again in a tick, never here, so a loaded world holds what was saved.
+        // Only orders: the air stays where it lies and only flows in a tick, so a loaded world holds what was saved.
         Reorder(State.Live ?? []);
         State.OrderedGrid = _grid.Version;
         State.OrderedVersion = _rooms.Version;
     }
 
     /// <summary>
-    /// At the start of the simulation phase: rooms found again get new orders and their air laid out on them; then the
+    /// At the start of the simulation phase: rooms found again get new orders, their air kept where it lies; then the
     /// live vents are listed, and the rooms of those that turned get theirs (2026-11-05-air-bubbles). The first tick of
-    /// a world with none listed yet lays out every room.
+    /// a world with none listed yet orders every room.
     /// </summary>
     private void Follow()
     {
@@ -164,8 +164,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             State.Live = LiveVents(Gather(), []);
             Reorder(State.Live);
             State.OrderedVersion = _rooms.Version;
-            var all = new List<(int Room, int[] Cells)>(_rooms.All.Count);
-            foreach (var r in _rooms.All) all.Add((r.Id, OrderOf(r.Id)));
             // Air an older save holds off every room goes.
             var stranded = new List<int>();
             foreach (int c in State.Aired) if (roomOf[c] < 0) stranded.Add(c);
@@ -174,7 +172,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
                 EditAired(stranded, []);
                 _survey = null;
             }
-            LayOut(all);
             return;
         }
         if (_rooms.Version != State.OrderedVersion)
@@ -278,7 +275,7 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
 
     /// <summary>
     /// The orders of the <paramref name="changed"/> rooms (ascending ids, gone and new) found again, and
-    /// what is kept for them, and their air laid out on the new orders. Only cells those rooms held can have left every
+    /// what is kept for them; their air stays where it lies. Only cells those rooms held can have left every
     /// room, losing their air.
     /// </summary>
     private void ReorderAround(List<int> vents, List<int> changed, int was)
@@ -304,7 +301,6 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
             if (roomOf[cell] < 0 && State.Aired.BinarySearch(cell) >= 0) stranded.Add(cell);
         }
         KeepAround(changed, rooms, orders, stranded, was);
-        LayOut(orders);
     }
 
 

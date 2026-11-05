@@ -84,9 +84,8 @@ public class AirTests
     private static List<int> AiredIn(Scenario w, int room) => w.Air().Aired.Where(c => w.M.Rooms.RoomAt(c) == room).ToList();
 
     /// <summary>
-    /// Whether the orders kept room by room are those found afresh from the live vents, as after a load; the live vents
-    /// fed ones; and the air of every room with a live vent the first cells of its order (2026-11-05-air-bubbles): a room
-    /// with none keeps its air where it lay.
+    /// Whether the orders kept room by room are those found afresh from the live vents, as after a load; and the live vents
+    /// fed ones (2026-11-05-air-bubbles).
     /// </summary>
     private static bool FreshOrders(Scenario w)
     {
@@ -100,9 +99,6 @@ public class AirTests
         foreach (var (room, order) in fresh)
         {
             if (!kept.TryGetValue(room, out var other) || !other.SequenceEqual(order)) return false;
-            if (!live.Any(v => roomOf[v] == room)) continue;
-            int aired = order.Count(w.M.Atmosphere.AiredAt);
-            if (!order.Take(aired).All(w.M.Atmosphere.AiredAt)) return false;
         }
         return true;
     }
@@ -949,11 +945,54 @@ public class AirTests
     }
 
     /// <summary>
-    /// Whatever doors open and shut, canisters come and pipes are cut, only cells of rooms hold air, every room's air is the
-    /// first cells of its order, and air grows only with a live vent (2026-11-05-air-bubbles).
+    /// Runs <paramref name="ticks"/> ticks, each airing and emptying at most <see cref="Air.CellsPerFill"/> cells a room:
+    /// the air flows, never jumps (2026-11-05-air-bubbles). Null, or what broke it.
+    /// </summary>
+    private static string? Flows(Scenario w, int ticks)
+    {
+        for (int t = 0; t < ticks; t++)
+        {
+            var before = w.Air().Aired.ToHashSet();
+            int rooms = w.M.Rooms.All.Count;
+            w.Run();
+            var after = w.Air().Aired.ToHashSet();
+            int limit = Air.CellsPerFill * Math.Max(rooms, w.M.Rooms.All.Count);
+            int added = after.Count(c => !before.Contains(c));
+            // A door shut takes its cells out of every room, and their air with them: that is no flow.
+            int removed = before.Count(c => !after.Contains(c) && w.M.Rooms.RoomAt(c) is >= 0);
+            if (added > limit || removed > limit) return $"tick {t}: {added} cells aired, {removed} emptied, over {limit}";
+        }
+        return null;
+    }
+
+    [Fact]
+    public void LetsTwoBubblesMetAtADoorFlowAFewCellsABeatAsItOpensAndShutsNeverJumping()
+    {
+        string map = string.Join("\n", new[] { "###############", "#V......#....V#", "#TT.....D.....#", "#TT.....#.....#" }
+            .Concat(Enumerable.Repeat("#.......#.....#", 37)).Append("###############"));
+        var w = new Scenario(AirTesting.OneThick(AirTesting.Chained(map))).Do(new Items.SetCreative(true));
+        w.Pipe(At15(1, 1), w.Output(At15(1, 2))).Pipe(At15(1, 1), At15(6, 1), At15(11, 1), At15(13, 1)).Run();
+        int tank = w.M.Grid.MachinesOf("tank").Single().Id, door = At15(8, 2);
+        for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tank));
+        w.Run(1200);
+        int left = w.M.Rooms.RoomAt(At15(4, 2))!.Value, right = w.M.Rooms.RoomAt(At15(10, 2))!.Value;
+        Assert.NotEmpty(AiredIn(w, left));
+        Assert.NotEmpty(AiredIn(w, right));
+        // The bubbles meet at the door: it opens, and they are one room's air, flowing toward both vents.
+        w.Do(new SetDoor(door, true));
+        Assert.Null(Flows(w, 400));
+        w.Do(new SetDoor(door, false));
+        Assert.Null(Flows(w, 400));
+        Assert.True(w.M.Atmosphere.AiredAt(At15(2, 4)) && w.M.Atmosphere.AiredAt(At15(12, 2)));
+        Assert.True(FreshOrders(w));
+    }
+
+    /// <summary>
+    /// Whatever doors open and shut, canisters come and pipes are cut, only cells of rooms hold air, it flows a few cells a
+    /// beat a room, and it grows only with a live vent (2026-11-05-air-bubbles).
     /// </summary>
     [Property(MaxTest = 30)]
-    public Property AirsOnlyCellsOfRoomsAndOnlyThePrefixOfEachRoomsOrder()
+    public Property AirsOnlyCellsOfRoomsAndFlowsAFewCellsABeat()
     {
         var step = Gen.OneOf(
             Gen.Elements(0, 1, 2).Select(op => (Op: op, Ticks: 0)),
@@ -975,7 +1014,7 @@ public class AirTests
                 {
                     int before = w.Air().Aired.Count;
                     bool live = w.Air().Live?.Count > 0;
-                    w.Run();
+                    if (Flows(w, 1) is string jump) return false.Label(jump);
                     int stray = w.Air().Aired.FirstOrDefault(c => w.M.Rooms.RoomAt(c) is not >= 0, -1);
                     if (stray >= 0) return false.Label($"cell {stray}, in no room, aired");
                     if (!live && w.Air().Live?.Count == 0 && w.Air().Aired.Count > before) return false.Label("air grew with no live vent");
