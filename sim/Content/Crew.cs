@@ -4,7 +4,8 @@ namespace Stillwake.Content;
 /// A hero's breathing, in oxygen units and ticks (20 a second). Every <see cref="BreathEvery"/> ticks a
 /// hero takes a breath of one unit, from an aired room's air or else from its own air, which holds the worn
 /// helmet's <c>Tank</c>, or <see cref="Lungs"/> without one (2026-10-27-suits-are-worn); in an aired room that air also
-/// refills by up to <see cref="Refill"/> units a breath. No air left passes the hero out for <see cref="PassOut"/> ticks. Heroes wear one of
+/// refills by up to <see cref="Refill"/> units a breath. No air left starts the hero's <see cref="LastBreath"/>; run down,
+/// it passes the hero out for <see cref="PassOut"/> ticks (2026-11-05-the-last-breath). Heroes wear one of
 /// <see cref="Colours"/> suit colours, each taken by one hero at most while there are colours to go round.
 /// Running, a hero is out of breath and breathes <see cref="Exerted"/> units a breath:
 /// stamina is the air it costs. Within <see cref="PodReach"/> cells of the lifepod a hero's air takes
@@ -19,6 +20,10 @@ public static class Crew
     public const int BreathEvery = 20;
     public const int Refill = 3;
     public const int PassOut = 100;
+    /// <summary>The ticks a hero lives on once its air runs dry, ten seconds: any air back in time spares it.</summary>
+    public const int LastBreath = 200;
+    /// <summary>The ticks of a last breath a unit of lava, shock or blow cuts: the breath a unit of air is worth.</summary>
+    public const int LastBreathPerUnit = BreathEvery;
     public const int Colours = 6;
     public const int Exerted = 2;
     /// <summary>The pod's air a breath: twice a calm breath, so a hero's air fills by the pod even in vacuum, slowly; a bare one's holds.</summary>

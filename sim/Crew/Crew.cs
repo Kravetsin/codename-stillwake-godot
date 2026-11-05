@@ -96,7 +96,7 @@ public interface ICrewOps
 {
     /// <summary>
     /// Hero <paramref name="peer"/>'s air pays <paramref name="units"/> at once, as the cold and the lava take it:
-    /// a ruin's resonator zapping it (0091). Air run dry passes it out; nothing in creative mode, nor for a hero out or none.
+    /// a ruin's resonator zapping it (0091). Air run dry starts its last breath, which the rest cuts; nothing in creative mode, nor for a hero out or none.
     /// </summary>
     void Shock(int peer, int units);
 
@@ -207,6 +207,14 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 {
                     // Creative mode: the air is endless, and a hero takes no room's air.
                     hero.Air = capacity;
+                    hero.Gasp = 0;
+                    continue;
+                }
+                // The last breath (2026-11-05-the-last-breath): any air back ends it; run down, the hero passes out.
+                if (hero.Air > 0) hero.Gasp = 0;
+                else if (hero.Gasp > 0 && --hero.Gasp == 0)
+                {
+                    PassOut(hero);
                     continue;
                 }
                 if (!breath) continue;
@@ -219,6 +227,8 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int want = Math.Min(breathes + Math.Min(Content.Crew.Refill, lack), breathes + lack - pod);
                 int taken = want > 0 ? atmosphere.Breathe(hero.Cell, want) : 0;
                 int net = pod + taken - breathes;
+                // Whether air made the breath, so a hero with none of its own breathes on: room air, the pod's, the regen suit.
+                bool covered = net >= 0;
                 // Thin air (0076): what the air falls short of the breath, and the cold without a body, paid one breath in ThinAir.
                 bool beat = Rules.ThinAir is not int every || State.Clock / Content.Crew.BreathEvery % every == 0;
                 if (net < 0 && !beat) net = 0;
@@ -227,17 +237,40 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 {
                     int made = Math.Min(Content.Suit.RegenMost, -net);
                     if (_itemsOps.Drain(hero.Id, made * Content.Suit.RegenCost)) net += made;
+                    covered = net >= 0;
                 }
-                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat), Content.Cape.Warmth) + (Burns(hero.Cell) ? Content.Lava.Burn : 0);
-                hero.Air = Math.Max(0, hero.Air + net - cold);
-                if (hero.Air == 0 && (net < 0 || cold > 0)) PassOut(hero);
+                int cold = Soften(hero, ColdAt(hero.Id, hero.Cell, bare: beat), Content.Cape.Warmth);
+                int burn = Burns(hero.Cell) ? Content.Lava.Burn : 0;
+                int left = hero.Air + net - cold;
+                hero.Air = Math.Max(0, left - burn);
+                if (hero.Air > 0)
+                {
+                    hero.Gasp = 0;
+                    continue;
+                }
+                // With no air of its own, a breath air made ends the last breath; one short of it, or the cold, starts it; the
+                // lava past what the air held cuts it.
+                if (covered && cold == 0 && burn == 0) hero.Gasp = 0;
+                else if (net < 0 || cold > 0 || burn > 0) Gasps(hero, burn - Math.Max(0, left));
             }
         });
+    }
+
+    /// <summary>
+    /// A hero with no air left takes <paramref name="hit"/> units of a hit past it (2026-11-05-the-last-breath): its last
+    /// breath starts if it has not, and loses <c>Crew.LastBreathPerUnit</c> ticks a unit, passing it out once spent.
+    /// </summary>
+    private void Gasps(Hero hero, int hit)
+    {
+        if (hero.Gasp == 0) hero.Gasp = Content.Crew.LastBreath;
+        hero.Gasp = Math.Max(0, hero.Gasp - Math.Max(0, hit) * Content.Crew.LastBreathPerUnit);
+        if (hero.Gasp == 0) PassOut(hero);
     }
 
     /// <summary>Passing out is death (0061): what it carried stays where it fell, off the grid at the spawn.</summary>
     private void PassOut(Hero hero)
     {
+        hero.Gasp = 0;
         hero.Out = Content.Crew.PassOut;
         hero.Exerting = false;
         hero.Thrusting = false;
@@ -249,8 +282,10 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
     public void Shock(int peer, int units)
     {
         if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
+        // The air pays what it holds; the last breath, what it falls short by.
+        int beyond = units - hero.Air;
         hero.Air = Math.Max(0, hero.Air - units);
-        if (hero.Air == 0) PassOut(hero);
+        if (hero.Air == 0) Gasps(hero, beyond);
     }
 
     public void Blow(int peer, int units)

@@ -22,9 +22,9 @@ the sim.
 | `logic/ArmUp.cs` | when an aim is up |
 | `logic/HarpoonShot.cs` | the hand harpoon (0044) |
 | `logic/HarpoonLine.cs` | its line |
-| `logic/Prompt.cs` | what E does, or why not |
-| `logic/Seating.cs` | a hero in a drop pod |
-| `logic/FogMove.cs` | across a planet's fog (fog-edges) |
+| `logic/Prompt.cs` | what E does |
+| `logic/Seating.cs` | seats in a drop pod |
+| `logic/FogMove.cs` | across fog (fog-edges) |
 | `SeatedHeroes.cs` | behind the porthole |
 | `UsePrompt.cs` | that prompt shown |
 | `logic/Tether.cs` | tether drawn, reeled |
@@ -52,27 +52,31 @@ the sim.
 | `logic/GunHand.cs` | a gun's cooldown and shots |
 | `HeroView.Others.cs` | others' heroes |
 | `logic/CameraFollow.cs` | the camera's aim |
-| `JetPlume.cs` | a jetpack's plume (0075) |
-| `RodLight.cs` | the harpoon's light (0075) |
-| `AimOutline.cs` | what the aim outline traces |
+| `JetPlume.cs` | a jetpack's plume |
+| `RodLight.cs` | harpoon light (0075) |
+| `AimOutline.cs` | the aim's outline |
 | `ModeGlyph.cs` | the driver's mode mark |
 | `logic/DriverMode.cs` | its dots |
 | `HeroAutopilot.cs` | scripted runs |
-| `logic/Report.cs` | `Enter` reports (0050) |
+| `logic/Report.cs` | Enter reports (0050) |
 | `Frost.cs` | frost past the field (0050) |
-| `logic/Danger.cs` | what the suit gauge reads |
-| `logic/AirCues.cs` | air coming back (0081) |
+| `logic/Danger.cs` | the gauge's read |
+| `logic/AirCues.cs` | air back (0081) |
 | `logic/CanistersSeen.cs` | friends' canisters |
-| `AirSwirl.cs` | a vortex, breath, leak (0081, 0103) |
-| `SuitGauge.cs` | the suit gauge (0058, 0074, 0081) |
+| `AirSwirl.cs` | vortex, breath, leak (0081, 0103) |
+| `SuitGauge.cs` | the suit gauge (0081) |
+| `logic/Tunnel.cs` | the last breath |
+| `TunnelView.cs` | it drawn |
+| `logic/VisorFog.cs` | a low suit's fog |
+| `VisorFogView.cs` | it drawn |
 | `SuitColours.cs` | menu's suit colours |
-| `LookEditor.cs` | the look editor (looks-are-printed) |
-| `logic/Markers.cs` | markers' list and shape |
+| `LookEditor.cs` | the look editor |
+| `logic/Markers.cs` | markers |
 | `MarkerLayer.cs` | edge arrows |
-| `logic/Bodies.cs` | bodies from floor stacks (0061) |
+| `logic/Bodies.cs` | bodies (0061) |
 | `BodyView.cs` | bodies, beacons, tips (0061) |
-| `logic/Rams.cs` | a creature's ram as met here (0103) |
-| `logic/Crew.En.cs` | its player text |
+| `logic/Rams.cs` | a creature's ram (0103) |
+| `logic/Crew.En.cs` | its text |
 | `logic/Crew.Ru.cs` | Russian |
 
 ## Guarantees

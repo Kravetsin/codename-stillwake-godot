@@ -127,6 +127,9 @@ public class CrewTests
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(4, 1))).Do(new Exert(true) { From = 0 }).Run();
         Breaths(w, (Scenario.Full + 1) / Content.Crew.Exerted);
+        // Running, its last breath costs no more: it runs it down in time alone.
+        Assert.Equal((0, Content.Crew.LastBreath, true), (HeroOf(w)!.Air, HeroOf(w)!.Gasp, HeroOf(w)!.Exerting));
+        w.Run(Content.Crew.LastBreath);
         var hero = HeroOf(w)!;
         Assert.Equal((0, Content.Crew.PassOut, false), (hero.Air, hero.Out, hero.Exerting));
     }
@@ -144,6 +147,7 @@ public class CrewTests
         var (w, _, _) = SetUp();
         w.Do(EnterAt(At(7, 3))).Run();
         Breaths(w, Scenario.Full);
+        w.Run(Content.Crew.LastBreath);
         var hero = HeroOf(w)!;
         Assert.Equal((0, Content.Crew.PassOut, At(7, 3)), (hero.Air, hero.Out, hero.Cell));
         w.Run(Content.Crew.PassOut - 1);
@@ -293,6 +297,7 @@ public class CrewTests
     {
         var w = PodWorld(Beyond);
         Breaths(w, Scenario.Full);
+        w.Run(Content.Crew.LastBreath);
         Assert.Equal((0, Content.Crew.PassOut), (HeroOf(w)!.Air, HeroOf(w)!.Out));
         w.Run(Content.Crew.PassOut);
         Assert.Equal((0, Hatch, Scenario.Full, 0, 0), All(w, HeroOf(w)));

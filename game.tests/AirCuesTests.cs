@@ -6,7 +6,7 @@ using CrewSpec = Stillwake.Content.Crew;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>Air coming back is shown once (0081): a canister breathed, room air breathed again, the danger letting go, a friend's canister.</summary>
+/// <summary>Air coming back is shown once (0081): a canister breathed, room air breathed again, a friend's canister.</summary>
 public class AirCuesTests
 {
     private const double Read = 0.25;
@@ -61,23 +61,23 @@ public class AirCuesTests
     public void BreathesAgainOnceAsTheHeroComesOutOfVacuumIntoAir()
     {
         var cues = new AirCues();
-        Assert.False(cues.Read(30, Full, SuitDanger.None, false, Read).BreathesAgain);
-        Assert.False(cues.Read(29, Full, SuitDanger.None, false, Read).BreathesAgain);
-        Assert.True(cues.Read(29, Full, SuitDanger.None, true, Read).BreathesAgain);
+        Assert.False(cues.Read(30, Full, SuitDanger.None, false, Read));
+        Assert.False(cues.Read(29, Full, SuitDanger.None, false, Read));
+        Assert.True(cues.Read(29, Full, SuitDanger.None, true, Read));
         // Every breath after it refills as ever, with no wave.
-        for (int i = 0; i < 40; i++) Assert.False(cues.Read(30 + i / 4, Full, SuitDanger.None, true, Read).BreathesAgain);
+        for (int i = 0; i < 40; i++) Assert.False(cues.Read(30 + i / 4, Full, SuitDanger.None, true, Read));
     }
 
     [Fact]
     public void ShowsNothingOnTheFirstReadNorWithAFullSuitNorPassedOut()
     {
-        Assert.False(new AirCues().Read(20, Full, SuitDanger.None, true, Read).BreathesAgain);
+        Assert.False(new AirCues().Read(20, Full, SuitDanger.None, true, Read));
         var full = new AirCues();
         full.Read(Full, Full, SuitDanger.None, false, Read);
-        Assert.False(full.Read(Full, Full, SuitDanger.None, true, Read).BreathesAgain);
+        Assert.False(full.Read(Full, Full, SuitDanger.None, true, Read));
         var out_ = new AirCues();
         out_.Read(0, Full, SuitDanger.Out, false, Read);
-        Assert.False(out_.Read(0, Full, SuitDanger.Out, true, Read).BreathesAgain);
+        Assert.False(out_.Read(0, Full, SuitDanger.Out, true, Read));
     }
 
     [Fact]
@@ -89,25 +89,11 @@ public class AirCuesTests
         double spent = 0;
         // In and out each read, for less than the gap: one wave.
         for (int i = 0; spent + Read < WristLook.AgainGapS; i++, spent += Read)
-            if (cues.Read(20, Full, SuitDanger.None, i % 2 == 0, Read).BreathesAgain) waves++;
+            if (cues.Read(20, Full, SuitDanger.None, i % 2 == 0, Read)) waves++;
         Assert.Equal(1, waves);
         // Out a while past the gap, then in: again.
         cues.Read(20, Full, SuitDanger.None, false, WristLook.AgainGapS);
-        Assert.True(cues.Read(20, Full, SuitDanger.None, true, Read).BreathesAgain);
-    }
-
-    [Fact]
-    public void LetsGoOnceAsALowSuitStopsBeingInDangerButNotOnPassingOut()
-    {
-        var cues = new AirCues();
-        cues.Read(8, Full, SuitDanger.Low, false, Read);
-        Assert.True(cues.Read(28, Full, SuitDanger.None, false, Read).LetsGo);
-        Assert.False(cues.Read(28, Full, SuitDanger.None, false, Read).LetsGo);
-        var dying = new AirCues();
-        dying.Read(1, Full, SuitDanger.Low, false, Read);
-        Assert.False(dying.Read(0, Full, SuitDanger.Out, false, Read).LetsGo);
-        // Waking at the pod is no danger let go: it went through passing out.
-        Assert.False(dying.Read(Full, Full, SuitDanger.None, true, Read).LetsGo);
+        Assert.True(cues.Read(20, Full, SuitDanger.None, true, Read));
     }
 
     [Fact]

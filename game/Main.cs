@@ -228,7 +228,7 @@ public partial class Main : Node2D, ITogether
             AddChild(new Features.Landing.FlightOverlay(() => _session is Session s ? (s.Client.World.SurfaceOf(s.Client.Id), _m.Landing.FlightOf(s.Client.Id)) : null,
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
-            // suit's gauge, so the red edges and the dark of passing out cover it as they cover the rest of the HUD.
+            // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
             var energy = new EnergyBar(() => _session is Session s ? Charges.BeltOf(_m.Items.BeltCharge(s.Client.Id), Equipment.Of(Content.Charge.Belt).Count(_m.Items.SlotOpen)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
@@ -236,6 +236,7 @@ public partial class Main : Node2D, ITogether
             AddChild(gauge);
             if (_hero is { } breathing) gauge.BreathesAgain += breathing.BreathesAgain;
             AddChild(new Frost(() => _session is Session s && _hero is { Placed: true } h ? Report.Cold(_m.Crew, s.Client.Id, h.Current.BodyCell(_m.Grid.Width)) : 0));
+            AddChild(new TunnelView(() => _session is Session s && _m.Crew.HeroOf(s.Client.Id) is { } me ? (me.Gasp, me.Out) : null, () => _hero?.Shown));
             // Home and friends off the screen, pointed at from its edge, clear of the HUD's panels.
             var (panel, fabricator, building) = (_items.Panel, _fabricator, _hands.Menu);
             IEnumerable<Rect2> Hud()
