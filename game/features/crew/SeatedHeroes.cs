@@ -25,6 +25,12 @@ public partial class SeatedHeroes : Node2D
     private static readonly Vector2 SeatAt = new(16, 35);
     /// <summary>Where a wheel's rider has its feet, in pixels from the wheel picture's corner: the middle of its lowest tread.</summary>
     private static readonly Vector2 WheelFeet = new(24, 44);
+    /// <summary>
+    /// A wheel's hoop turning under its runner (<c>art/treadWheel_turn_*.png</c>, the whole wheel but its rail, a seventy-second of
+    /// a turn apart, so they loop), and how long each shows: slower than the treads would truly go, which would only flicker.
+    /// </summary>
+    private const int TurnFrames = 6;
+    private const double TurnStepMs = 80;
 
     private readonly IGridQueries _grid;
     private readonly LandingModule _landing;
@@ -33,9 +39,9 @@ public partial class SeatedHeroes : Node2D
     private readonly IItemsQueries _items;
     /// <summary>
     /// Each seat sat in: what holds the figure (a pod's porthole, or a plain node over a wheel), the figure, whose it is, and how
-    /// far its rider has run in place, in the hero's units; made again for another hero.
+    /// far its rider has run in place, in the hero's units, and a wheel's hoop and how long it has turned; made again for another hero.
     /// </summary>
-    private readonly Dictionary<int, (Node2D Holder, Figure Figure, int Peer, double Ran)> _shown = [];
+    private readonly Dictionary<int, (Node2D Holder, Figure Figure, int Peer, double Ran, Sprite2D? Hoop, double TurnedMs)> _shown = [];
 
     /// <summary>A pod still coming down, drawn by the landing feature: nobody shows in it till it stands.</summary>
     private readonly Func<int, bool> _held;
@@ -67,10 +73,13 @@ public partial class SeatedHeroes : Node2D
                     ? new Sprite2D { Texture = PixelArt.Lit("dropPod_porthole"), Centered = false, ClipChildren = ClipChildrenMode.AndDraw }
                     : new Node2D();
                 if (holder is Sprite2D porthole) Lit.Set(porthole);
+                // In a wheel the rider stands between its hoop and its rail; the tile under it shows the wheel standing.
+                var hoop = flies ? null : Picture(holder, "treadWheel_turn_0");
                 var figure = new Figure(colour, own: false) { OnPixels = flies ? SeatAt : WheelFeet };
                 holder.AddChild(figure);
+                if (!flies) Picture(holder, "treadWheel_front");
                 AddChild(holder);
-                _shown[seat.Pod] = shown = (holder, figure, seat.Peer, 0);
+                _shown[seat.Pod] = shown = (holder, figure, seat.Peer, 0, hoop, 0);
             }
             // Over the seat's picture, which rises over its footprint as a tall machine's does (0099).
             shown.Holder.Position = new Vector2(pod.Cell % _grid.Width, pod.Cell / _grid.Width - ShipTiles.RiseOf(pod.Kind)) * ShipCamera.Cell;
@@ -83,11 +92,21 @@ public partial class SeatedHeroes : Node2D
             }
             // Running in place: the stride follows a way run that only the treads take, at a run's speed.
             bool runs = _crew.HeroOf(seat.Peer) is { Exerting: true };
-            double ran = shown.Ran + (runs ? Spec.Run * delta * 1000 / Hero.StepMs : 0);
-            _shown[seat.Pod] = shown with { Ran = ran };
+            double ran = shown.Ran + (runs ? Spec.Run * delta * 1000 / Hero.StepMs : 0), turned = shown.TurnedMs + (runs ? delta * 1000 : 0);
+            _shown[seat.Pod] = shown with { Ran = ran, TurnedMs = turned };
+            shown.Hoop!.Texture = PixelArt.Picture($"treadWheel_turn_{(long)(turned / TurnStepMs) % TurnFrames}");
             shown.Figure.Show(new Hero((int)ran, 0, runs ? Spec.Run : 0, 0, false, 1), runs ? Pose.Run : Pose.Stand, 0, false, delta * 1000);
         }
         foreach (var pod in _shown.Keys.Where(p => !seated.Contains(p)).ToList()) Free(pod);
+    }
+
+    /// <summary>Picture <paramref name="name"/> laid over the wheel in <paramref name="holder"/>, lit as the machine is.</summary>
+    private static Sprite2D Picture(Node2D holder, string name)
+    {
+        var sprite = new Sprite2D { Texture = PixelArt.Picture(name), Centered = false };
+        Lit.Set(sprite);
+        holder.AddChild(sprite);
+        return sprite;
     }
 
     private void Free(int pod)

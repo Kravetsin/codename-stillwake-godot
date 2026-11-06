@@ -234,6 +234,18 @@ public sealed class HeroAutopilot
     }
 
     /// <summary>
+    /// <c>-- --wheel</c>: in the testbed, from beside the treadmill wheel, the hero gets in, runs five seconds, stands a second
+    /// and gets out, for recordings of its hoop turning.
+    /// </summary>
+    public static HeroAutopilot Wheel() => new(
+    [
+        new(Still, (_, p) => p.Steps >= 20, Beside(3, -2), Press: true),
+        Hold(new HeroInput(1, 0, false), 300),
+        Wait(60),
+        new(Still, (_, p) => p.Steps >= 20, Press: true),
+    ]);
+
+    /// <summary>
     /// <c>-- --dust</c>: in the testbed, the hero sprints one way and back, jumps running and lands, then jumps on the spot:
     /// its boots' dust and its landings (0075), for recordings.
     /// </summary>

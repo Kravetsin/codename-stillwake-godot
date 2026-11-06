@@ -197,7 +197,7 @@ public static class Machines
         new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // A drum a hero runs in (power-chain): 4 while an awake rider runs, anywhere, rested by Landing otherwise. Of the workbench's
         // parts and the furnace's scrap, the first power there is.
-        new("treadWheel", 6, 6, [], [("planks", 10), ("gear", 6), ("coil", 1), ("scrap", 8)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (44, 40), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
+        new("treadWheel", 6, 6, [], [("planks", 10), ("gear", 6), ("coil", 1), ("scrap", 8)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (45, 46), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
         // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a biofuel against the burner's 9 600. Its fuel pump is a
         // planet's part, so it is built at the planet stage.
         new("biofuelGenerator", 6, 4, [], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),

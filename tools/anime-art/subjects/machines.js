@@ -582,8 +582,8 @@ const cisternFill = (n) => (a) => {
   a.flat(band(13.6, top + .6, 14.4, 21), WATERED.glint);
 };
 
-// ---------- The power chain (power-chain ADR): the fermenter's drip column and the biofuel generator's hot-bulb engine, as
-// the user picked them. Their materials and helpers came with them from the pick page.
+// ---------- The power chain (power-chain ADR): the fermenter's drip column, the biofuel generator's hot-bulb engine, the
+// treadmill wheel's hoop on rollers, as the user picked them. Their materials and helpers came with them from the pick page.
 const OLIVE = { base: '#747c34', shade: '#4e5628', deep: '#383e20', lite: '#9ca048', spec: '#c8cc70' };
 const RUST = { base: '#8e6044', shade: '#6a4434', deep: '#4c3028', lite: '#ad7a54', spec: '#c89a70' };
 const SCRAP = { base: '#7a7468', shade: '#524c48', deep: '#3a3634', lite: '#9c9486', spec: '#c8c0b0', rim: '#9c9486' };
@@ -732,12 +732,52 @@ const biofuelGenerator = (a) => { biofuelBody(a); biofuelParts(0)(a); };
 /** The whole machine burning at crank angle <t>, the needle up and the amber lamp lit: drawn over its picture at rest, it covers it. */
 const biofuelRun = (t) => (a) => { biofuelBody(a); biofuelParts(t)(a); dial(a, 21, 21.8, 2, .9); lampOn(a, 24.6, 19.4, '#f0c460'); };
 
+// The treadmill wheel: a steel hoop lined with planks on two rollers, the right one the dynamo's shaft; a grab rail in front.
+const HOOP = [24, 23.5], HOOP_TREAD = 20.5, ROLL = 2.8, ROLL_AT = [-1, 1].map((s) => [HOOP[0] + s * Math.sin(.9) * (23.6 + ROLL), HOOP[1] + Math.cos(.9) * (23.6 + ROLL)]);
+const hoopAt = (r, t) => [HOOP[0] + Math.cos(t) * r, HOOP[1] + Math.sin(t) * r];
+const spoke = (r0, r1, t, w) => bar(...hoopAt(r0, t), ...hoopAt(r1, t), w);
+const WHEEL_PLUG = [45, 46];
+const treadWheelBack = (a) => {
+  a.shape(rr(.6, 44.8, 46.8, 2.8, .3), WOOD_DARK, { lite: band(.8, 44.8, 47.2, 45.4), lines: ['M16 45L16 47.4', 'M33 45L33 47.4'] });
+  for (const [x, y] of ROLL_AT) a.shape(poly(x - 3.4, 44.8, x + 3.4, 44.8, x + 1.8, y, x - 1.8, y), GUN, { lite: band(x - 3.2, 44.8, x + 3.2, 45.2) });
+  const [rx, ry] = ROLL_AT[1];
+  a.shape(ell(rx, ry, 3.6), SCRAP, { shade: .6, lite: ell(rx - .5, ry - .6, 2.8) });
+  for (let i = 0; i < 8; i++) { const t = (i / 8) * Math.PI * 2; a.flat(ell(rx + Math.cos(t) * 2.9, ry + Math.sin(t) * 2.9, .35), COPPER.base); }
+  socket(a, ...WHEEL_PLUG);
+};
+/** The hoop at <q>: a steel band bolted over twelve planks of lagging, a cleat on each; the two rollers it rides on, turning. */
+const treadWheelDrum = (q) => (a) => {
+  for (let i = 0; i < 12; i++) {
+    const t0 = q + (i / 12) * Math.PI * 2 + .015, t1 = q + ((i + 1) / 12) * Math.PI * 2 - .015;
+    a.shape(arcPiece(...HOOP, 21.3, 22.6, t0, t1), WOOD, { shade: .3, lines: [`M${hoopAt(21.95, t0 + .06).join(' ')}L${hoopAt(21.9, t0 + .3).join(' ')}`] });
+    a.shape(spoke(HOOP_TREAD, 21.4, (t0 + t1) / 2, 2.2), WOOD_DARK, { outer: false });
+  }
+  a.shape(ring(...HOOP, 22.5, 23.6), STEEL, { shade: .5, lite: ring(HOOP[0] - .25, HOOP[1] - .3, 23, 23.6) });
+  for (let i = 0; i < 12; i++) {
+    const t = q + (i / 12) * Math.PI * 2;
+    a.shape(spoke(21, 23.9, t, 1.1), ROPE, { outer: false, lines: [`M${hoopAt(21.8, t - .02).join(' ')}L${hoopAt(21.8, t + .02).join(' ')}`, `M${hoopAt(22.8, t - .02).join(' ')}L${hoopAt(22.8, t + .02).join(' ')}`] });
+    rivets(a, hoopAt(23.05, t + Math.PI / 12));
+  }
+  for (const [x, y] of ROLL_AT) { a.shape(ell(x, y, ROLL), RUBBER, { lite: .0001 }); wheel(a, x, y, ROLL - .6, GUN, -q * 8, 3); }
+};
+/** A grab rail in front of the rider, a pipe post off the sill with a rope-bound bar: still while the hoop turns behind. */
+const treadWheelFront = (a) => {
+  a.tube('M36.4 45L36.4 27.6Q36.4 26.4 35.2 26.4L31.4 26.4', 1.2, PIPE);
+  a.shape(rr(31.6, 25.6, 2.6, 1.6, .5), ROPE, { lite: band(31.8, 25.6, 34, 26), lines: ['M32.4 25.7L32.6 27.1', 'M33.3 25.7L33.5 27.1'] });
+  a.shape(rr(34.6, 44, 3.6, 1.6, .3), GUN, { lite: band(34.8, 44, 38, 44.4) });
+};
+/** Its turning: six steps of a twelfth of a turn, so they loop, each the whole wheel behind its rider. */
+const WHEEL_FRAMES = 6;
+const treadWheelTurn = (f) => (a) => { treadWheelBack(a); treadWheelDrum((f / WHEEL_FRAMES) * (Math.PI / 6))(a); };
+/** The wheel standing empty: its back, its hoop still, its rail. */
+const treadWheel = (a) => { treadWheelTurn(0)(a); treadWheelFront(a); };
+
 Subjects.machines = function () {
   const whole = { furnace: [32, 32, furnace], former: [32, 32, former], crusher: [32, 32, crusher], assembler: [32, 32, assembler], workbench: [32, 40, workbench], arcBench: [32, 32, arcBench],
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, burnerGenerator],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
     computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser],
-    fermenter: [32, 32, fermenter], biofuelGenerator: [48, 32, biofuelGenerator] };
+    fermenter: [32, 32, fermenter], biofuelGenerator: [48, 32, biofuelGenerator], treadWheel: [48, 48, treadWheel] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 32, (a) => { radarBase(a); dish(2)(a); }));
@@ -766,6 +806,8 @@ Subjects.machines = function () {
   out('arcBench_front', flat(32, 32, arcFront));
   for (let f = 0; f < 4; f++) out(`fermenter_work_${f}`, flat(32, 32, fermenter_work(f)));
   for (let f = 0; f < 8; f++) out(`biofuelGenerator_run_${f}`, flat(48, 32, biofuelRun((f / 8) * Math.PI * 2)));
+  for (let f = 0; f < WHEEL_FRAMES; f++) out(`treadWheel_turn_${f}`, flat(48, 48, treadWheelTurn(f)));
+  out('treadWheel_front', flat(48, 48, treadWheelFront));
 };
 window.AnimeKit = { STEEL, GUN, DARK, COPPER, PIPE, band, box, inner, cyl, rivets, hazard };
 })();
