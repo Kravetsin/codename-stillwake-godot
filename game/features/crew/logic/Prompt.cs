@@ -33,13 +33,12 @@ public static class Prompts
     public static Prompt? Of(Registry m, Aim? aim, string? held = null)
     {
         if (aim is not { InReach: true }) return null;
-        string By(string action) => held != null && I18n.En.Table.ContainsKey($"{action}.{held}") ? $"{action}.{held}" : action;
-        if (aim.Work is { Repair: not null } repair) return new Prompt(By("use.repair"), repair.Problem);
+        if (aim.Work is { Repair: not null } repair) return new Prompt(Own("use.repair", held), repair.Problem);
         if (aim.Work is { } work)
         {
             var plan = m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan);
             string action = plan?.Clear != null ? "use.takeApart" : "use.build";
-            return new Prompt(By(action), work.Problem);
+            return new Prompt(Own(action, held), work.Problem);
         }
         // A seat is boarded, a drop pod's slot opening as the hero sits: said as a seat of its kind, with why not.
         if (aim.Press is { Command: Sim.Landing.Board b } board) return new Prompt(Own("use.board", m.Grid.MachineById(b.Pod)?.Kind), board.Problem);

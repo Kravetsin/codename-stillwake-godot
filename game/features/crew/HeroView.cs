@@ -384,9 +384,9 @@ public partial class HeroView : Node2D
         bool passedOut = (known?.Out ?? 0) > 0;
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
-        InPod = seat != null;
+        InPod = Seating.InPod(m, client.Id);
         // In a treadmill wheel a move key held runs it, and the hero breathes as a runner (power-chain); in a pod it sits still.
-        bool wheel = m.Landing.SeatOf(client.Id) is int sat && m.Grid.MachineById(sat) is { } seatAt && Content.Machines.Get(seatAt.Kind).Makes != null;
+        bool wheel = Seating.InWheel(m, client.Id);
         if (!wheel) _runs = false;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);

@@ -27,13 +27,13 @@ public class TreadWheelTests
     ];
 
     /// <summary>
-    /// The burner generator's aired room with the wheel on its roof, both cabled to a lamp, and with <paramref name="heavy"/> four
-    /// lamps more, the network drawing 5.
+    /// The burner generator's aired room with the wheel on its roof, both cabled to a lamp and to <paramref name="more"/> lamps more,
+    /// the network drawing one more than that.
     /// </summary>
-    private static Layout Fired(bool heavy) => AirTesting.Vaporized(
+    private static Layout Fired(int more) => AirTesting.Vaporized(
         ["    www       ", "    www       ", "    www       ", "##############", "#BB.TT..LLLLL#", "#BB.TTV......#", "##############"],
         ["", "", "", "", "    o", "    ---"],
-        [((4, 0), (8, 4)), ((1, 4), (8, 4)), .. (heavy ? Enumerable.Range(9, 4).Select(x => ((x, 4), (8, 4))) : [])]);
+        [((4, 0), (8, 4)), ((1, 4), (8, 4)), .. Enumerable.Range(9, more).Select(x => ((x, 4), (8, 4)))]);
 
     private static readonly int Makes = Machines.Get("treadWheel").Makes!.Value;
     private static Scenario World() => new Scenario(Layout.Parse(Room, null, [((1, 2), (10, 1))]), doubled: true);
@@ -99,6 +99,36 @@ public class TreadWheelTests
         Assert.Null(w.M.Landing.SeatOf(0));
     }
 
+    /// <summary>A rider who leaves the game frees the seat, and the wheel rests from the next construction.</summary>
+    [Fact]
+    public void RestsOnceItsRiderLeavesTheGame()
+    {
+        var w = Ridden(World().Run()).Do(new Exert(true)).Run();
+        Assert.Equal(Makes, Supply(w));
+        w.Do(new Leave()).Run(2);
+        Assert.Null(w.M.Landing.SeatOf(0));
+        Assert.Equal(0, Supply(w));
+        Assert.Empty(w.Refusals);
+    }
+
+    /// <summary>
+    /// A wheel built while the world runs, where a cable from the lamp already ends, rests on the tick it stands, as one drawn on
+    /// the map does from the first.
+    /// </summary>
+    [Fact]
+    public void ABuiltWheelRestsFromTheTickItStands()
+    {
+        var w = new Scenario(Layout.Parse(Room, null, [((1, 2), (10, 1)), ((6, 2), (10, 1))]), doubled: true).Run();
+        int drawn = Wheel(w);
+        w.Do(new Building.SetInstant(true)).Do(new Building.PlacePlan(w.At(6, 2), new Grid.Placement("machine", "treadWheel"))).Run();
+        var built = w.M.Grid.MachinesOf("treadWheel").Single(m => m.Id != drawn);
+        Assert.Equal(0, w.M.Power.NetworkOf(built.Cell)!.Supply);
+        // Cabled: ridden, it makes.
+        w.Do(new Enter(w.At(9, 4))).Run().Do(new Board(built.Id)).Do(new Exert(true)).Run();
+        Assert.Equal(Makes, w.M.Power.NetworkOf(built.Cell)!.Supply);
+        Assert.Empty(w.Refusals);
+    }
+
     /// <summary>Drawn on a map it stands on a back wall, as a fire does and a panel does not, so a room it is drawn in stays shut.</summary>
     [Fact]
     public void IsDrawnOnABackWallSoItsRoomStaysShut()
@@ -117,13 +147,17 @@ public class TreadWheelTests
         Assert.False(Machines.Get("solarPanel").Anywhere);
     }
 
-    /// <summary>Its 4 counts in <c>Steady</c> as a panel's would: while it covers the network a burner stays cold, past it one lights.</summary>
+    /// <summary>
+    /// Its 4 counts in <c>Steady</c> as a panel's would: while it covers the network a burner stays cold, a draw of exactly 4
+    /// included, past it one lights.
+    /// </summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void CountsInSteadySoABurnerLightsOnlyOnceTheDrawPassesIt(bool heavy)
+    [InlineData(0, false)]
+    [InlineData(3, false)]
+    [InlineData(4, true)]
+    public void CountsInSteadySoABurnerLightsOnlyOnceTheDrawPassesIt(int more, bool heavy)
     {
-        var w = new Scenario(Fired(heavy), doubled: true).GiveItems(0, ("planks", 4));
+        var w = new Scenario(Fired(more), doubled: true).GiveItems(0, ("planks", 4));
         int burner = w.M.Grid.MachinesOf("burnerGenerator").Single().Id;
         for (int i = 0; i < 2000 && !w.M.Atmosphere.AiredAt(w.At(1, 4)); i++) w.Run();
         int wheel = Wheel(w);

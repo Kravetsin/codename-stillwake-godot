@@ -72,6 +72,8 @@ public class DropPodTests
         var held = Hero.At(Ship.Of(w.M.Grid, w.M.Rooms), seat);
         Assert.Equal((8 * Hero.Unit, 10 * Hero.Unit), (held.X, held.Y));
         Assert.Equal("[E] Leave drop pod", I18n.En.T(Prompts.SeatedIn("dropPod").Action));
+        // The pod holds its own air: seated, the hero hears as in it, and its move keys run nothing.
+        Assert.Equal((true, false), (Seating.InPod(w.M, 0), Seating.InWheel(w.M, 0)));
     }
 
     [Fact]
@@ -88,5 +90,7 @@ public class DropPodTests
         Assert.Null(w.M.Landing.SeatOf(0));
         Assert.NotNull(w.M.Landing.FlightOf(0));
         Assert.Equal(seat, Seating.SeatOf(w.M, 0));
+        // Flying, it is still in its pod, though no seat is left on this surface.
+        Assert.True(Seating.InPod(w.M, 0));
     }
 }

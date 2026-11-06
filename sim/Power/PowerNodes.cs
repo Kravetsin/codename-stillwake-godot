@@ -160,7 +160,7 @@ internal static class PowerNodes
             if (!IsPowered(s) || broken(m.Id)) continue;
             int network = networkOf[at];
             // A fire needs no stars, its module resting it while it is out; nor does a maker made to work anywhere (the wheel).
-            if (s.Makes is int makes && making(m) && (s.FuelSlot != null || s.Anywhere || UnderStars(grid, rooms, m)))
+            if (s.Makes is int makes && making(m) && (!s.NeedsStars || UnderStars(grid, rooms, m)))
             {
                 supply[network] += makes;
                 if (s.FuelSlot == null) steady[network] += makes;

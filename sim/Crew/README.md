@@ -41,7 +41,7 @@ passing out, made again at the pod.
   freed, its tool stopped, its inventory kept for its seat. Off the ship the seat goes aboard (`ISurfaces.Send`).
 - **Surfaces** (0076, `ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at the cell given or
   the spawn. A hero waking off the ship wakes aboard, its body left behind.
-- **Exertion:** `Exert(On)`, sent on a change of running by speed (not for a swim, 0047). Exerting, a
+- **Exertion:** `Exert(On)`, sent on a change of running by speed (not for a swim, 0047), or seated in a treadmill wheel of a move key held (power-chain). Exerting, a
   breath costs `Crew.Exerted` units, room air or suit alike. Passing out ends it.
 - **The jetpack** (0047): `Thrust(On)` is sent while the client's thrust differs from the sim's. Each tick before
   the breath a conscious hero thrusting with a jetpack counts a tick; every `Jetpack.TicksPerUnit` its suit pays a

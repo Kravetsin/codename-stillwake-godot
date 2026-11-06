@@ -234,7 +234,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     /// </summary>
     private static readonly (int Structure, bool Bare)[] Looks = Enumerable.Range(0, char.MaxValue + 1)
         .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind
-            && Content.Machines.Get(kind) is var spec && (spec is { Makes: not null, FuelSlot: null, Anywhere: false } || spec.Is(MachineTrait.Catches))))
+            && Content.Machines.Get(kind) is var spec && (spec.NeedsStars || spec.Is(MachineTrait.Catches))))
         .ToArray();
 
     /// <summary>

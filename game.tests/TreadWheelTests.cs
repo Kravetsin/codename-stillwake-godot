@@ -58,6 +58,8 @@ public class TreadWheelTests
         // The wheel's six cells from x 4, its six rows from y 4: the hero's middle at x 7, its feet on row 9's bottom.
         var held = Hero.At(Ship.Of(w.M.Grid, w.M.Rooms), Seating.SeatOf(w.M, 0)!.Value);
         Assert.Equal((7 * Hero.Unit, 10 * Hero.Unit), (held.X, held.Y));
+        // A wheel holds no air of its own: the rider hears what the room around it holds, and its move keys run it.
+        Assert.Equal((true, false, "treadWheel"), (Seating.InWheel(w.M, 0), Seating.InPod(w.M, 0), Seating.KindOf(w.M, 0)));
         Assert.Equal("[A/D] Run · [E] Get out", I18n.En.T(Prompts.SeatedIn("treadWheel").Action));
         Assert.Equal("use.alight", Prompts.SeatedIn("dropPod").Action);
     }

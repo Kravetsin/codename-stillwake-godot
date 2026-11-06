@@ -106,6 +106,9 @@ public sealed record MachineSpec(
 
     /// <summary>Whether it has any of <paramref name="trait"/>.</summary>
     public bool Is(MachineTrait trait) => (Traits & trait) != 0;
+
+    /// <summary>Whether it makes power only under the stars: a maker with no fire, not made to work <see cref="Anywhere"/> (a solar panel).</summary>
+    public bool NeedsStars => Makes != null && FuelSlot == null && !Anywhere;
 }
 
 /// <summary>

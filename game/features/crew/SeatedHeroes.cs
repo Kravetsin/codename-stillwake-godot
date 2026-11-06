@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Godot;
 using Stillwake.Game.Render;
-using Stillwake.Sim.Crew;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Landing;
@@ -31,10 +30,10 @@ public partial class SeatedHeroes : Node2D
     /// </summary>
     private const int TurnFrames = 6;
     private const double TurnStepMs = 80;
+    private static readonly Lazy<Texture2D[]> Turns = new(() => [.. Enumerable.Range(0, TurnFrames).Select(f => PixelArt.Picture($"treadWheel_turn_{f}"))]);
 
     private readonly IGridQueries _grid;
     private readonly LandingModule _landing;
-    private readonly ICrewQueries _crew;
     private readonly IPlayersQueries _players;
     private readonly IItemsQueries _items;
     /// <summary>
@@ -46,12 +45,11 @@ public partial class SeatedHeroes : Node2D
     /// <summary>A pod still coming down, drawn by the landing feature: nobody shows in it till it stands.</summary>
     private readonly Func<int, bool> _held;
 
-    public SeatedHeroes(IGridQueries grid, LandingModule landing, ICrewQueries crew, IPlayersQueries players, IItemsQueries items, Func<int, bool>? held = null)
+    public SeatedHeroes(IGridQueries grid, LandingModule landing, IPlayersQueries players, IItemsQueries items, Func<int, bool>? held = null)
     {
         _held = held ?? (_ => false);
         _grid = grid;
         _landing = landing;
-        _crew = crew;
         _players = players;
         _items = items;
         ZIndex = Layers.Screens;
@@ -91,10 +89,10 @@ public partial class SeatedHeroes : Node2D
                 continue;
             }
             // Running in place: the stride follows a way run that only the treads take, at a run's speed.
-            bool runs = _crew.HeroOf(seat.Peer) is { Exerting: true };
+            bool runs = _landing.Turning(seat.Pod);
             double ran = shown.Ran + (runs ? Spec.Run * delta * 1000 / Hero.StepMs : 0), turned = shown.TurnedMs + (runs ? delta * 1000 : 0);
             _shown[seat.Pod] = shown with { Ran = ran, TurnedMs = turned };
-            shown.Hoop!.Texture = PixelArt.Picture($"treadWheel_turn_{(long)(turned / TurnStepMs) % TurnFrames}");
+            shown.Hoop!.Texture = Turns.Value[(long)(turned / TurnStepMs) % TurnFrames];
             shown.Figure.Show(new Hero((int)ran, 0, runs ? Spec.Run : 0, 0, false, 1), runs ? Pose.Run : Pose.Stand, 0, false, delta * 1000);
         }
         foreach (var pod in _shown.Keys.Where(p => !seated.Contains(p)).ToList()) Free(pod);

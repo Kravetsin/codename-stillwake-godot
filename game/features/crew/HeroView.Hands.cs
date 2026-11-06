@@ -37,7 +37,7 @@ public partial class HeroView
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
         // Seated in a drop pod or a wheel, the hands work nothing: E leaves it, wherever the pointer is.
-        string? seatKind = m.Landing.SeatOf(client.Id) is int seat ? m.Grid.MachineById(seat)?.Kind ?? "" : null;
+        string? seatKind = m.Landing.SeatOf(client.Id) != null ? Seating.KindOf(m, client.Id) ?? "" : null;
         bool seated = seatKind != null;
         // A running tool's hit: its fan of rays from the shoulder, the cutter's beam as drawn (tool-reach).
         var edged = drill != null && pointer != null && !seated ? EdgeOf(m, _current, drill, _figure) : null;

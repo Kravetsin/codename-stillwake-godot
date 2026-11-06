@@ -16,4 +16,14 @@ public static class Seating
         if (m.Landing.SeatOf(peer) is not int pod || m.Grid.MachineById(pod) is not { } machine) return null;
         return LandingModule.FloorOf(machine.Kind, machine.Cell, m.Grid.Width);
     }
+
+    /// <summary>The kind of seat hero <paramref name="peer"/> sits in; null for a hero not seated, or whose seat is gone.</summary>
+    public static string? KindOf(Registry m, int peer) => m.Landing.SeatOf(peer) is int pod ? m.Grid.MachineById(pod)?.Kind : null;
+
+    /// <summary>Whether hero <paramref name="peer"/> is in a drop pod, seated or flying: the pod holds its own air, so its sound.</summary>
+    public static bool InPod(Registry m, int peer) =>
+        m.Landing.FlightOf(peer) != null || KindOf(m, peer) is { } kind && Content.Machines.Is(kind, Content.MachineTrait.Lands);
+
+    /// <summary>Whether hero <paramref name="peer"/> stands in a seat that never lands (a treadmill wheel), where a held move key runs it.</summary>
+    public static bool InWheel(Registry m, int peer) => KindOf(m, peer) is { } kind && !Content.Machines.Is(kind, Content.MachineTrait.Lands);
 }
