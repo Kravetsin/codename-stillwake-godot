@@ -34,7 +34,7 @@ belt's stores hold and whether a tool is drawing on them. It reads the sim throu
 - **Colour:** charge's green, amber and pulsing under a quarter of what the worn stores hold; everything at
   `WristLook.NoBattery` with none worn. Discharges and the current burn warm white over ember.
 - **A flat press** of an electric tool or the railgun, the belt unable to pay a tick of its draw or wearing none, blinks the
-  tab red three times, hard on and nearly off, its bolt red, its rim and halo burning, the first blink jolting it a pixel:
+  bolt red three times, hard on and nearly off, throwing red light round it past the tab's edge, the first blink jolting it a pixel:
   `crew` raises `Ui.PressFlat`, once a press ([no-charge-flash](../../../docs/decisions/2026-11-07-no-charge-flash.md)).
 - **Width:** `WristLook.EnergyWidth`, enough for "16 200", three accumulators, beside the ring.
 

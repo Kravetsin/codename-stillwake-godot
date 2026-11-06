@@ -146,7 +146,7 @@ public class EnergyTabTests
     }
 
     [Fact]
-    public void APressOfAFlatBeltBlinksTheTabRedThreeTimesJoltingItOnceThenRests()
+    public void APressOfAFlatBeltBlinksTheBoltRedThreeTimesJoltingItOnceThenRests()
     {
         var blink = new FlatBlink();
         Assert.Equal(0, blink.Red);

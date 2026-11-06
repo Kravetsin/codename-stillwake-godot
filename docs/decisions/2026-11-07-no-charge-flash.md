@@ -13,9 +13,10 @@ The tab showed it, dim, but nothing pointed there. The user asked for the charge
 - A press of the left button with an electric tool aimed (the drill, the grinder, the cutter), the power driver over the
   world, or the railgun clicking dry, while the belt cannot pay a tick of its draw or wears no battery, raises
   `Ui.PressFlat`, once a press; a grab of debris is no press of the tool.
-- The energy tab blinks red three times over two thirds of a second, hard on and nearly off: the screen washed red, the
-  number and the ring red, the red bolt, a red halo and rim added over it; the first blink jolts the tab a pixel. At full
-  brightness, a tab dim for no battery too. A press again starts it over. `FlatBlink`.
+- The bolt alone blinks red three times over two thirds of a second, hard on and nearly off, throwing red light round
+  it past the tab's edge with a hot core; the first blink jolts it a pixel. At full brightness, a tab dim for no battery
+  too. A press again starts it over. `FlatBlink`. A first cut washed the whole tab red and lit its rim: the user found the
+  frame blinking ugly and asked for the bolt alone, glowing.
 - Asked for by the user as it is, so no pick page.
 
 ## Deliberately not handled
