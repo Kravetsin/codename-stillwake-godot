@@ -118,13 +118,13 @@ public class RegenSuitTests
     [Fact]
     public void ARunningDrillPaysFirstAndTheSuitHasWhatIsLeft()
     {
-        // Sixteen on the belt at the breath: the drill's three first, then thirteen pay no unit.
+        // Fifteen on the belt at the breath, a unit's worth: the drill's one first, then fourteen pay no unit.
         var w = Regen(Beyond, batteries: [Full]).GiveItems(0, ("drill", 1));
         w.Run(Content.Crew.BreathEvery - w.Crew().Clock % Content.Crew.BreathEvery - 1);
-        w.Put(Belt, new Stack("battery", 1, 16 * S));
+        w.Put(Belt, new Stack("battery", 1, 15 * S));
         int air = HeroOf(w).Air;
         w.Do(new Run("drill", true) { From = 0 }).Run();
-        Assert.Equal(("drill", air - 1, 13 * S), (w.M.Items.Running(0), HeroOf(w).Air, Charge0(w)));
+        Assert.Equal(("drill", air - 1, 14 * S), (w.M.Items.Running(0), HeroOf(w).Air, Charge0(w)));
     }
 
     [Fact]

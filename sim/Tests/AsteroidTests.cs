@@ -230,12 +230,12 @@ public class AsteroidTests
     }
 
     [Fact]
-    public void AFullBatteryRunsTheDrillSixHundredTicksThenItsHitsAreRefusedFlat()
+    public void ABatteryRunsTheDrillTillItsChargeIsSpentThenItsHitsAreRefusedFlat()
     {
-        var w = Facing("asteroid", Full);
+        // A third of a battery, 600 ticks: a full one's 1800 outlast the helmet's air out here.
+        var w = Facing("asteroid", 600 * Draw * S);
         // Held still, so the rock stays by the hero for the battery's whole run.
         Pieces(w)[0].Speed = 0;
-        Assert.Equal(600, Full / S / Draw);
         Hits(w, 1, Drill).Run(600);
         Assert.Equal(Battery(0), w.M.Items.Inventory(0)[Belt]);
         Assert.Equal("items.flat", HewTesting.HitProblem(w, 0, 1, Drill));

@@ -1,6 +1,6 @@
 # 0053 — Charge belongs to the item; batteries and the charging station
 
-- Status: accepted; a station charging only its first slot amended by [0062](0062-drones-keep-machines-going.md): it charges every slot short of full, sharing what it draws
+- Status: accepted; a station charging only its first slot amended by [0062](0062-drones-keep-machines-going.md): it charges every slot short of full, sharing what it draws; the drill's draw of 3 amended to 1 by [lighter-tools](2026-11-06-lighter-tools.md)
 - Date: 2026-10-17
 
 ## Context
