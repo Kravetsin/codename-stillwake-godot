@@ -32,11 +32,11 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **Vaporizers** (liquid-oxygen; kind `generator`, `AirSource`) turn the liquid of the tanks (`Gas`) whose output is on
   their input's network into gas in their store, up to `Air.GeneratorStore`: with room and liquid behind, `Making` grows by
   `Air.GeneratorRate` × satisfaction, a unit each `Air.LeakEvery × 1000` taken from those tanks in id order. A source
-  with no input (the pod, 2026-10-31-the-scoop) makes gas from nothing. A vent is **fed** when a vaporizer's output is
+  with no input (the pod, 2026-10-31-the-scoop) makes gas from nothing at `Air.PodRate` (leaks-tripled). A vent is **fed** when a vaporizer's output is
   on its network; **live** when fed and its network holds oxygen: gas in a store, a vaporizer with liquid behind (power
   not asked) or the pod; **supplied** when a store feeding it holds gas or a vaporizer feeding it is powered with liquid.
-- **A room's budget**, thousandths of a unit per `Air.LeakEvery`: for each live vent's network, `Air.GeneratorRate` ×
-  each vaporizer's satisfaction on it (the pod's in full), split evenly over the live vents in sealed rooms on it,
+- **A room's budget**, thousandths of a unit per `Air.LeakEvery`: for each live vent's network, each source's rate ×
+  its satisfaction on it (the pod's in full), split evenly over the live vents in sealed rooms on it,
   rounded down; summed. **Its bubble**: aired cells whose leak × 1000 fits the budget, settling round the vents.
 - **A cell's leak**, per `Air.LeakEvery` (0020): its back wall's `Leak` and each hull cell given to it (its first
   neighbour in the room, up, left, right, down, then diagonals); a closed door in the hull, `Air.DoorLeak`. A

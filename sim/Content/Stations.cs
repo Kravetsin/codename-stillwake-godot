@@ -43,9 +43,9 @@ public static class Stations
         // Crushes rock and asteroid ore on power (economy rework): gravel, iron ore and quartz, the only way to silicon and glass.
         new("crusher", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "crush"),
         // The first powered station, a press: the bench's parts five times as fast, twice the queue, and what only it stamps:
-        // frames, motors, soil, canisters and the nozzle.
-        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "canister", "nozzle"]]),
-        // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: silicon into glass.
+        // frames, motors, soil and the nozzle.
+        new("former", Speed: 1000, QueueMost: 8, Rows: [["plate", "gear", "tube", "frame"], ["wire", "coil", "rotor", "motor"], ["soil", "nozzle"]]),
+        // Smelts as the furnace does, twice as fast on power, and hot enough for what the furnace cannot: quartz into silicon, gravel into glass.
         new("smelter", Speed: 2000, QueueMost: 0, Rows: [], Heat: 2),
         // The electronics bench: circuits and solar cells, and drones of them, at full speed on power, a queue of eight.
         new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"], ["battery", "drone", "salvageDrone", "deckDrive"], ["processor", "display", "transceiver"], ["igniter"]]),

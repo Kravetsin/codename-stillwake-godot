@@ -16,15 +16,14 @@
 | `Rules.cs` | The rules' contracts (drive, body, move) and `RuleBook`, which finds them by reflection. |
 | `Shoot.cs` | The arc's rule (the sentry's): crouched, its aim held, an arc struck at once, a recovery. |
 | `Shots.cs` | Shots: `Fire`, the flight, hits, pierces; `Shots`, `Ended`, `Hits`, `StepOf`. |
-| `Spawn.cs` | Spawning (0102): posts; round each hero, on the beat, out of view, by habitat; guards on derelicts. |
+| `Spawn.cs` | Spawning (0102, creatures-in-herds): posts; herds round each hero, out of view, by habitat; guards on derelicts. |
 | `State.cs` | The saved slice and its records: `Creature`, `Act`, `Ref`, `Note`, `Shot`, `CreaturesState`; the derived `Posture`. |
 | `Ward.cs` | The spire guards' drive: asleep, waking, waiting, its pounce, stuck; turns; calm. |
 | `Walker.cs` | The walker's rule: steering, walking, stepping, falling, leaping (0102, 0104, 0106). |
 
-Every creature, composed ([creatures-are-composed](../../docs/decisions/2026-10-26-creatures-are-composed.md)): a
+Every creature, composed (creatures-are-composed): a
 species (`Content.Creatures`) names a body, life, faction, a brain of ranked drives, moves and yields, each record served
-by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks, the warden in spires. Shots fly here (shots-are-the-sims,
-shots-pierce, shots-fall-aboard).
+by one rule here. Grazers live on planets (0102, 0103), the sentry on wrecks, the warden in spires. Shots fly here.
 
 - **Depends on:** `Grid`; `Crew` (heroes' cells; `Blow`); `Items` (queries, ops: weapons, ammo, drops, charge); `Debris`
   (queries, `Unreel`, `Hit`); `Building` (`ShotTakes`, `Hit`, `Relics`, `Posts`, `PostAt`, `FellPost`); `Rooms` (`Afloat`).
@@ -48,8 +47,9 @@ shots-pierce, shots-fall-aboard).
   edge and a planet's fog. It steps `StepUp`; at a wall it cannot step or a drop of `Drop` it tries a leap (`Lands`),
   else its drive may act (`Blocked`), else it turns.
 - **The clinger:** clamped to its wreck's top, riding its drift; off it, it flies straight through walls.
-- **Grazers:** `Graze` idles and wanders by turns, lengths drawn. `Flee` runs its ticks; cornered with a hero near it may
-  lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn while, then lunges. `Escape` runs after.
+- **Grazers:** `Graze` idles and wanders by turns, lengths drawn; past `Herd` from its kind, toward it. `Flee` runs its
+  ticks; cornered with a hero near it may lunge. `Retaliate`, struck by a hero within `Reach`, draws `Chance`, flees a drawn
+  while, then lunges. `Escape` runs after.
 - **The lunge** (0103): wind-up, then a charge along the ground at the hero nearest, never leaping, till past it, a wall or
   drop, or `Ticks`; a hero beyond its run is let be. It ends into `Escape`.
 - **The sentry:** `Guard` watches; one within `Notice` alerts it; `AlertTicks` on, one within `Strike` and it pounces,
@@ -69,7 +69,7 @@ shots-pierce, shots-fall-aboard).
   the arc's projectile's, once a hero.
 - **`Release`** (dev): `Place`.
 - **`Threatens(peer)`**: one within `ThreatReach` acts, retaliates or hunts the crew.
-- **Kept or gone** (0102): in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat, under `PerKeep` and `Max`. **Guards** (`Kind.Guards`): each
+- **Kept or gone** (0102): in a hero's keep box; out of all, gone `Linger` after; out of every hard box, at once. **Spawning:** on the beat a herd, one kind, `Spacing` apart outward, all or none (`PerKeep`, `Max`, `Apart`). **Guards** (`Kind.Guards`): each
   piece past `Watermark` with a perch draws once: sentries on half.
 
 ## Commands

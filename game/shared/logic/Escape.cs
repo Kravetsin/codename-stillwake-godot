@@ -5,9 +5,8 @@ public enum MenuPage
 {
     Closed,
     Main,
+    /// <summary>Settings, its categories the keys' among them (settings-menu): Esc goes back to the first page.</summary>
     Settings,
-    /// <summary>The keys (2026-11-04-key-binds): Esc goes back to the first page, as from Settings.</summary>
-    Controls,
 }
 
 /// <summary>What one press of Esc does.</summary>
@@ -34,7 +33,7 @@ public static class Escape
     /// <param name="busy">Whether the inventory, a crate or the Handbook is open, or the plan out.</param>
     public static EscapeDoes Of(MenuPage page, bool busy) => page switch
     {
-        MenuPage.Settings or MenuPage.Controls => EscapeDoes.Back,
+        MenuPage.Settings => EscapeDoes.Back,
         MenuPage.Main => EscapeDoes.CloseMenu,
         _ => busy ? EscapeDoes.PutAway : EscapeDoes.OpenMenu,
     };

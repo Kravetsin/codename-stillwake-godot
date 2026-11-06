@@ -15,7 +15,7 @@ public static partial class En
         ["look.none"] = "None",
         ["look.next"] = "The lifepod prints you in this look the next time it makes your hero.",
         ["look.done"] = "Done",
-        ["menu.look"] = "Look",
+        ["menu.look"] = "Edit look",
         ["crew.noSuchColour"] = "There is no such colour",
         ["crew.colourTaken"] = "Someone wears that colour",
         ["crew.noJetpack"] = "You wear no jetpack",

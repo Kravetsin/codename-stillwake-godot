@@ -43,7 +43,8 @@ A living document: what is decided about the game and what is still open. Techni
   too; known stays known. The wreck knows nothing from its start: the first walls at ten chunks. The tablet holds a board that writes
   itself: a note for each thing found, threads to pale shapes of what is closest to done, each saying what it lacks; a note picked
   shows what it takes, where it is made and what it goes into ([the-board](decisions/2026-11-05-the-board.md)).
-- **Salvage is sold:** a trade station sends what is put in it off by capsule, thirty seconds till its credits come back, however
+- **Salvage is sold:** a trade station, of plates, wire and a found circuit so it comes after the first benches
+  ([trade-station-later](decisions/2026-11-06-trade-station-later.md)), sends what is put in it off by capsule, thirty seconds till its credits come back, however
   much it carries, at prices that never fall and always pay more for what is refined; drones keep it stocked. What things are worth
   is worked out from their recipes ([trade-and-tech](decisions/2026-10-30-trade-and-tech.md)). Credits buy only on the black market,
   the tablet's other page: room, and what cannot be made. Its later rings open by orders, filled only by what is sold
@@ -79,7 +80,7 @@ A living document: what is decided about the game and what is still open. Techni
   queue the crew shares, paid when queued, made one at a time into its outputs; it makes the basic parts and the first tools
   ([the-workbench](decisions/2026-10-28-the-workbench.md)). Most builds cost parts, so the furnace feeds the workbench
   before it feeds the hull. Machines for parts the player builds are
-  powered, faster and with longer queues: the Former first, a press that alone stamps frames, motors, soil, canisters and the
+  powered, faster and with longer queues: the Former first, a press that alone stamps frames, motors, soil and the
   nozzle, and presses the parts at five times the
   pod's speed; then the electric smelter, twice the furnace's speed and hotter: what needs more heat than
   a machine has goes in, and the machine shows it is too cold, cold blue, rather than refusing it; then the
@@ -119,7 +120,7 @@ A living document: what is decided about the game and what is still open. Techni
   the far field's derelicts, which pounce at a hero near and strike one farther with an arc of static, aimed a moment
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
   the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
-- **Hunting:** a planet's grazers drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
+- **Hunting:** a planet's grazers, met in small herds of one kind, drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
   sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and of the cold. Both are a
   planet's, so nothing needed before the first landing is made of them.
@@ -144,7 +145,8 @@ A living document: what is decided about the game and what is still open. Techni
   dark but for helmet lamps, a venting room flashes red, starlight comes in through windows.
 - **Oxygen works like a power grid.** It comes as liquid: canisters are poured into tanks, and a powered
   vaporizer turns the liquid of the tanks piped to its input into air for the vents piped to its output
-  ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); only the lifepod makes its air from nothing. A room is a space
+  ([liquid-oxygen](decisions/2026-10-30-liquid-oxygen.md)); canisters are salvaged, not made
+  ([no-ice-canister](decisions/2026-11-06-no-ice-canister.md)); only the lifepod makes its air from nothing. A room is a space
   closed by walls and closed doors around it and back walls behind it, recomputed only when something is built, broken
   or a door moves. **Air is a bubble round each source** ([air bubbles](decisions/2026-11-05-air-bubbles.md)): a working
   vent holds as many cells round itself as its vaporizers' making pays the leak of, more behind good walls, fewer behind

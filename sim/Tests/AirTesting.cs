@@ -115,7 +115,8 @@ public static class AirTesting
 
     /// <summary>
     /// Runs <paramref name="ticks"/> ticks, one at a time, and returns what the rooms holding air leaked over them: each tick,
-    /// each sealed room's leak as it stood before the tick (its aired cells', 2026-11-05-air-bubbles), its share of the period.
+    /// each sealed room's leak as the tick left it (the cells it aired that tick leak in it, 2026-11-05-air-bubbles), its share
+    /// of the period, from the part it owed before.
     /// </summary>
     public static int RunLeaking(this Scenario w, int ticks)
     {
@@ -123,9 +124,10 @@ public static class AirTesting
         for (int i = 0; i < ticks; i++)
         {
             int clock = w.Air().Clock;
-            foreach (var room in w.M.Atmosphere.RoomsAir())
-                if (room.Status != RoomStatus.Venting && room.Aired > 0) leaked += Leaked(room.Leak, clock, clock + 1, w.Owed(room.Room));
+            var owed = w.M.Atmosphere.RoomsAir().ToDictionary(r => r.Room, r => w.Owed(r.Room));
             w.Run();
+            foreach (var room in w.M.Atmosphere.RoomsAir())
+                if (room.Status != RoomStatus.Venting && room.Aired > 0) leaked += Leaked(room.Leak, clock, clock + 1, owed.GetValueOrDefault(room.Room));
         }
         return leaked;
     }

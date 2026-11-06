@@ -39,7 +39,7 @@ public class BoardSlotsTests
     {
         var slots = Slots(["scrapChunk"]);
         Assert.Equal((0d, 0d), (Slot(slots, "scrapChunk").X, Slot(slots, "scrapChunk").Y));
-        foreach (string use in (string[])["furnace", "workbench", "tradeStation", "wallScrap"])
+        foreach (string use in (string[])["furnace", "workbench", "wallScrap"])
             Assert.Contains(slots, s => s.Id == use);
         Assert.DoesNotContain(slots, s => s.Id == "plate");
     }

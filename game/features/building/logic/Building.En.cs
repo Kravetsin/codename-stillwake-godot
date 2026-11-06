@@ -160,7 +160,7 @@ public static partial class En
         ["tool.workbench.about"] = "Makes the basic parts by hand, and assembles the tools, the jetpack, the drill and the cape. Needs no power.",
         ["tool.crusher.about"] = "Crushes rock and asteroid ore into gravel, iron ore and now and then quartz, on power. Draws nothing while idle.",
         ["tool.former.about"] = "Presses parts five times as fast as the workbench, on power, eight crafts in its queue, and alone stamps frames and motors. Draws nothing while idle.",
-        ["tool.smelter.about"] = "Smelts twice as fast as the furnace, on power, and hot enough for silicon: it makes glass. Draws nothing while idle.",
+        ["tool.smelter.about"] = "Smelts twice as fast as the furnace, on power, and hot enough for quartz and gravel: it makes silicon and glass. Draws nothing while idle.",
         ["tool.assembler.about"] = "Assembles circuits and solar cells of silicon, glass and wire, on power, eight crafts in its queue. Draws nothing while idle.",
         ["tool.growCapsule.about"] = "Grows a seed into biomass under its lamp in eight minutes, on power, giving back none, one or two seeds. Draws nothing while idle.",
         ["tool.fermenter.about"] = "Ferments biomass and fat into biofuel on power: the only way to biofuel. Draws nothing while idle.",

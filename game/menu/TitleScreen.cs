@@ -10,7 +10,7 @@ namespace Stillwake.Game.Menu;
 /// <summary>
 /// What the game opens on (0031), over its scene (<see cref="TitleBackdrop"/>): for a moment the scene alone with
 /// its music, then the name fading in and the choices after it, words alone at the left where the screen is darkened for
-/// them — Continue the last world played (New game on a first run), Worlds, Play together, Settings, Controls, Quit; Testbed in a
+/// them — Continue the last world played (New game on a first run), Worlds, Play together, Settings, Quit; Testbed in a
 /// debug build. Any key or click brings them at once. Worlds, Play together and Settings slide a panel out beside them,
 /// closed by choosing again. A newer version shows top right from the first moment, bright, its Update a click away; the
 /// build at the foot.
@@ -45,11 +45,10 @@ public partial class TitleScreen : CanvasLayer
     /// <param name="continueWorld">The world Continue plays, or none on a first run.</param>
     /// <param name="play">Continue: plays that world, or a new one.</param>
     /// <param name="hostWorlds">A Worlds panel for Play together's Host, hosting what it plays and makes (<see cref="TogetherPage"/>).</param>
-    /// <param name="settings">The settings kept on this machine (<see cref="SettingsRows"/>).</param>
-    /// <param name="controls">The keys, kept on this machine (<see cref="BindRows"/>).</param>
+    /// <param name="settings">The settings kept on this machine, the keys among them (<see cref="SettingsView"/>).</param>
     /// <param name="testbed">Plays the dev testbed (<c>Dev.Testbed</c>): given only in a debug build, so a release shows no choice.</param>
     public TitleScreen(Func<WorldEntry?> continueWorld, Action play, WorldsPanel worlds, ITogether together,
-        Func<Action<string>, Action<string>, WorldsPanel> hostWorlds, Control settings, Control controls, Action quit,
+        Func<Action<string>, Action<string>, WorldsPanel> hostWorlds, Control settings, Action quit,
         string version, Func<string?> updateTo, Action update, Func<string?> updating, Action? testbed = null)
     {
         (_continue, _updateTo, _updating) = (continueWorld, updateTo, updating);
@@ -71,7 +70,7 @@ public partial class TitleScreen : CanvasLayer
         column.AddChild(_name = new Label { Text = "STILLWAKE", LabelSettings = new LabelSettings { Font = spaced, FontSize = 44, FontColor = Style.Sky200, ShadowColor = new Color(0, 0, 0, 0.7f), ShadowSize = 4 } });
         column.AddChild(new Control { CustomMinimumSize = new Vector2(0, 28), MouseFilter = Control.MouseFilterEnum.Ignore });
         _continueItem = Item(column, "title.continue", play, 26);
-        var pages = new (string Key, Control Page)[] { ("title.worlds", worlds), ("title.together", Together = new TogetherPage(together, hostWorlds, () => Open(null))), ("title.settings", settings), ("title.controls", controls) };
+        var pages = new (string Key, Control Page)[] { ("title.worlds", worlds), ("title.together", Together = new TogetherPage(together, hostWorlds, () => Open(null))), ("title.settings", settings) };
         foreach (var (key, page) in pages) _pages[key] = (Item(column, key, () => Open(_open == key ? null : key), 20), page);
         Item(column, "title.quit", quit, 20);
         if (testbed != null) Item(column, "title.testbed", testbed, 14);
@@ -134,6 +133,7 @@ public partial class TitleScreen : CanvasLayer
         }
         if (key == "title.worlds") Worlds.Refresh();
         if (key == "title.together") Together.Opened();
+        if (key == "title.settings" && _pages[key].Page is SettingsView settings) settings.Reset();
     }
 
     /// <summary>Any key or click while the name and choices fade in brings them at once; Esc closes the panel open.</summary>

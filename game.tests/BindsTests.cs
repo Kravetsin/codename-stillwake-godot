@@ -138,11 +138,11 @@ public class BindsTests
         var before = Binds.Current;
         try
         {
-            string label = En.In(Language.Russian, "menu.handbook");
+            string label = En.In(Language.Russian, "use.openDoor");
             var told = Languages.Told(Language.Russian);
-            Binds.Current = Rebound(Binds.Default, Bind.Handbook, "H");
-            Assert.Equal("Справочник (H)", Languages.Retold(label, told, Language.Russian));
-            Assert.Equal("Handbook (H)", Languages.Retold(label, told, Language.English));
+            Binds.Current = Rebound(Binds.Default, Bind.Use, "F");
+            Assert.Equal("[F] Открыть дверь", Languages.Retold(label, told, Language.Russian));
+            Assert.Equal("[F] Open door", Languages.Retold(label, told, Language.English));
         }
         finally
         {

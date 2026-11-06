@@ -39,7 +39,7 @@ nothing a planet's floor does not give.
 | --- | --- | --- |
 | Hull repair after meteors | scrap, plates, gravel + iron | meteors break walls weaker than their power |
 | Fuel | planks, cloth, biofuel | burner generator, furnace, drop pod trips |
-| Air | canisters (of ice) | jetpack thrust, spacewalks, refilling the tank |
+| Air | canisters (salvaged) | jetpack thrust, spacewalks, refilling the tank |
 | Ammunition | nails (scrap) | wrecks, creatures, sentries |
 
 ### Meteors from the start
@@ -100,7 +100,7 @@ Planet and ruins:
 | Item | Stack | Sources | Sinks |
 | --- | --- | --- | --- |
 | copperOre → copper | 250 | veins; ruins | motor, nozzle, accumulator, railgun |
-| ice | 250 | ice veins, ice crystals | **canister** (Former: 3 ice) |
+| ice | 250 | ice veins, ice crystals | water (melted) |
 | mica | 250 | cave walls | accumulator, arc module, railgun |
 | magnetite | 250 | heat cracks | motor |
 | crystal | 100 | cave crystals, geodes | igniter, arc module, railgun |
@@ -109,7 +109,7 @@ Planet and ruins:
 | alloyPlate (new) | 100 | Former | nozzle, arc bench, arc module, railgun |
 | cloth | 100 | ruins | cape, **fuel** |
 | biomass → biofuel | 100 | capsules, glowcaps, creatures | **fuel**, engine tank, drop pod |
-| canister | 20 | Former, supply pods, tank clusters | **breathed**, tank |
+| canister | 20 | supply pods, tank clusters, derelicts | **breathed**, tank |
 
 ## Recipes (first pass)
 
@@ -135,7 +135,7 @@ Parts stay conversions; machines take several times more of them. A frame grows 
 | arcModule | shard, 2 coil, 2 circuit, frame | shard, 2 crystal, 2 mica, 4 coil, 4 circuit, 1 alloyPlate |
 | accumulator | shard, battery, 2 copper, circuit | shard, 2 battery, 4 copper, 4 mica, 2 circuit |
 | railgun | shard, 4 copper, 2 coil, tube, frame, 2 circuit | shard, 8 copper, 4 coil, 2 crystal, 2 alloyPlate, 3 circuit |
-| canister (new craft) | — | 3 ice, at the Former |
+| canister (craft removed, 2026-11-06-no-ice-canister) | — | — |
 | alloyPlate (new) | — | 3 alloyScrap, at the Former |
 | soil | 1 rock, 1 planks | 3 gravel, 1 planks → 2 |
 
@@ -192,7 +192,7 @@ after about five circuits from cable racks.
 ## Creatures drop what they are made of
 
 Grazers drop hide and fat besides biomass; sentries stay scrap. **Hide** goes with cloth into the cape (2 cloth,
-2 hide) and the insulated suit; **fat** burns longer than planks and smelts into biofuel at the furnace, so hunting
+2 hide) and the insulated suit; **fat** burns longer than planks and ferments into biofuel at the fermenter, so hunting
 is a fuel source. Both are a planet's, so neither goes into anything before the first landing.
 
 ## More sinks: stations and tools to come
@@ -230,7 +230,7 @@ is a fuel source. Both are a planet's, so neither goes into anything before the 
 4. Costs and craft times across the tree, checked with the calculator against about five hours solo. First pass done (the-crusher).
 5. Meteors from the start, walls kept planned. Done; weak till the first landing, scrap patched of raw chunks
    (weak-meteors-till-landing).
-6. Hide and fat (done, #256), ice canisters (done); alloy plates, concrete walls, suit and helmet tiers to come.
+6. Hide and fat (done, #256), ice canisters (done, removed again by 2026-11-06-no-ice-canister); alloy plates, concrete walls, suit and helmet tiers to come.
 
 ## Open
 

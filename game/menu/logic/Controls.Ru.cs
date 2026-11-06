@@ -4,8 +4,6 @@ public static partial class Ru
 {
     private static readonly Strings Controls = new()
     {
-        ["menu.controls"] = "Управление",
-        ["title.controls"] = "Управление",
         ["bind.hint"] = "Нажми на клавишу, затем новую · Esc: отмена",
         ["bind.press"] = "нажми клавишу…",
         ["bind.reset"] = "Сбросить всё",
