@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Energy;
 /// The energy tab at the gauge row's right end (0053, 0081, energy-ring): the belt's charge in power units ("4 300"), never
 /// seconds, counting down evenly between reads (<see cref="EnergyCount"/>); round the bolt a ring of the belt's stores
 /// (<see cref="EnergyRing"/>); the bolt beating while a tool draws and throwing discharges onto the frame
-/// (<see cref="BoltPulse"/>). Amber and pulsing while the belt runs low, dim with none worn. Read four times a second.
+/// (<see cref="BoltPulse"/>). Amber and pulsing while the belt runs low, dim with none worn; a press of a tool it cannot pay
+/// blinks its bolt red, throwing red light (<see cref="FlatBlink"/>). Read four times a second.
 /// </summary>
 public partial class EnergyBar : CanvasLayer
 {
@@ -32,6 +33,7 @@ public partial class EnergyBar : CanvasLayer
         }
         Place();
         ui.SlotScale.Subscribe(Place);
+        ui.PressedFlat += _tab.Blink.Press;
         Layer = ScreenLayers.Hud;
         AddChild(_tab);
         _tab.Visible = false;
@@ -67,6 +69,9 @@ public partial class EnergyBar : CanvasLayer
         private static readonly Rect2 BoltAt = new(9, 6, 14, 18);
         private static readonly Vector2 Centre = BoltAt.GetCenter();
         // What a discharge burns in and how its core and the light it strikes look.
+        /// <summary>The red a press of a flat belt blinks the bolt, and the hot heart of its light.</summary>
+        private static readonly Color Flat = new(1, 70 / 255f, 60 / 255f);
+        private static readonly Color FlatCore = new(1, 190 / 255f, 160 / 255f);
         private static readonly Color Ember = new(1, 140 / 255f, 45 / 255f), Hot = new(1, 190 / 255f, 90 / 255f), Current = new(1, 248 / 255f, 225 / 255f);
         private static readonly GradientTexture2D Soft = new()
         {
@@ -93,6 +98,7 @@ public partial class EnergyBar : CanvasLayer
         public EnergyCount Count { get; } = new();
         public EnergyRing Ring { get; } = new();
         public BoltPulse Pulse { get; } = new((BoltAt.Position.X, BoltAt.Position.Y, BoltAt.Size.X, BoltAt.Size.Y), Look.TabHeight, new Random());
+        public FlatBlink Blink { get; } = new();
         public bool Low { get; set; }
         public float Bright { get; set; } = 1;
 
@@ -110,6 +116,7 @@ public partial class EnergyBar : CanvasLayer
             Count.Step(delta);
             Ring.Step(delta);
             Pulse.Step(delta);
+            Blink.Step(delta);
             QueueRedraw();
             _light.QueueRedraw();
         }
@@ -167,16 +174,28 @@ public partial class EnergyBar : CanvasLayer
                 DrawTextureRect(Bolt, BoltAt, false, white);
                 if (bright < 1) DrawTextureRect(Bolt, BoltAt, false, Colors.Black with { A = (float)(1 - bright) * 0.8f * Bright });
             }
+            if (Blink.Red > 0) DrawTextureRect(Dark, BoltAt, false, Colors.White with { A = (float)Blink.Red });
             DrawSetTransform(Vector2.Zero);
         }
 
         /// <summary>Where the beat has thrown the bolt, with its current and halo.</summary>
-        private Vector2 Jolt => new(Pulse.Jolt.X, Pulse.Jolt.Y);
+        private Vector2 Jolt => new(Pulse.Jolt.X + Blink.Jolt.X, Pulse.Jolt.Y + Blink.Jolt.Y);
 
         /// <summary>What lights the tab, added over it: the bolt's halo and current, the drained arc's glint, the hop, discharges.</summary>
         private void DrawLight(Control on)
         {
             var (lit, _) = Pulse.Look();
+            if (Blink.Red > 0)
+            {
+                float red = (float)Blink.Red;
+                // The red bolt throws its light round it, past the tab's edge, a hot core at its heart.
+                on.DrawSetTransform(Jolt);
+                Glow(on, Centre, 24, Flat with { A = 0.5f * red });
+                Glow(on, Centre, 12, Flat with { A = 0.75f * red });
+                on.DrawTextureRect(Dark, BoltAt, false, Colors.White with { A = 0.8f * red });
+                Glow(on, Centre, 5, FlatCore with { A = 0.55f * red });
+                on.DrawSetTransform(Vector2.Zero);
+            }
             double kindle = Pulse.Kindle is double k ? 0.35 * (1 - k / BoltPulse.KindleS) : 0;
             float halo = lit ? (float)Math.Clamp(0.05 + 0.16 * Pulse.Beat * Pulse.Level + kindle + Pulse.Flare, 0, 0.8) : 0;
             on.DrawSetTransform(Jolt);

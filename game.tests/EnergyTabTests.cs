@@ -146,6 +146,28 @@ public class EnergyTabTests
     }
 
     [Fact]
+    public void APressOfAFlatBeltBlinksTheBoltRedThreeTimesJoltingItOnceThenRests()
+    {
+        var blink = new FlatBlink();
+        Assert.Equal(0, blink.Red);
+        blink.Press();
+        Assert.Equal(1, blink.Red);
+        int blinks = 0;
+        bool lit = true, jolted = false;
+        Run(s =>
+        {
+            blink.Step(s);
+            jolted |= blink.Jolt != (0, 0);
+            bool now = blink.Red > 0.5;
+            if (now && !lit) blinks++;
+            lit = now;
+        }, FlatBlink.Blinks * FlatBlink.BlinkS + 0.1);
+        Assert.Equal(FlatBlink.Blinks - 1, blinks);
+        Assert.True(jolted);
+        Assert.Equal((0.0, (0, 0)), (blink.Red, blink.Jolt));
+    }
+
+    [Fact]
     public void AtRestItNeverBeatsNorThrowsADischarge()
     {
         var pulse = new BoltPulse((9, 6, 14, 18), 30, new Random(2));
