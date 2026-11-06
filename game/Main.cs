@@ -359,8 +359,8 @@ public partial class Main : Node2D, ITogether
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
         AddChild(menu);
-        // The menu's tablet rises from the edge as the others do: no second tablet left lying at the foot.
-        edge.Follow(menu.Tablet);
+        // The menu's tablet rises from the edge as the others do: no second tablet left lying at the foot, and no keys over it.
+        edge.Follow(menu.Tablet, keysAway: true);
         AddChild(_updater);
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));

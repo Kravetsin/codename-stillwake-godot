@@ -14,7 +14,7 @@ their own. There was no way to set the volume.
 - **The first page is short:** Resume, Save, Settings, Save & exit to title, Save & quit (a guest: Leave to title, Quit), the
   host's code and Update over them when they apply. The Handbook, the Tablet and Controls have no line: the edge keys open the
   first two, Settings holds the keys.
-- **On the tablet.** The menu is the rugged tablet's screen (`shared/Tablet`, its own frame, plate, stylus and glass), risen from the edge along the foot as the Handbook is, the edge hidden while it is up, over the darkened world. The user picked the "tablet window" candidate of five
+- **On the tablet.** The menu is the rugged tablet's screen (`shared/Tablet`, its own frame, plate, stylus and glass), risen from the edge along the foot as the Handbook is, the edge and its keys hidden while it is up, over the darkened world. The user picked the "tablet window" candidate of five
   (Slate, Phosphor, Tablet window, Amber console, Hologram), with the game's own tablet art in place of the drawn bezel.
 - **Settings in categories,** the tablet's tabs along the top, the first lit as it opens, a row a setting below:
   Sound (Master, Effects, Music), Graphics (the screen, heat shimmer), Game (language, slot size, Open logs folder), Controls

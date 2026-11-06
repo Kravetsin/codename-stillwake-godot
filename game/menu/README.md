@@ -32,7 +32,7 @@ The title the game opens on and the game menu on Esc (0031); not in the TypeScri
   shown takes it first, Settings going back to the menu's first page and that page closing it; else
   Esc closes the inventory and its crate and the Handbook and puts the plan away (0022), all at once; only with
   nothing open or in hand does it open the menu.
-- **On the tablet** (`shared/Tablet`), risen from the edge along the foot as the Handbook is, the edge hidden while it is up. **Resume** closes it. What the tablet's
+- **On the tablet** (`shared/Tablet`), risen from the edge along the foot as the Handbook is, the edge and its keys hidden while it is up. **Resume** closes it. What the tablet's
   edge keys open (the Handbook, the tablet) has no line here.
   **Save** writes the world to its folder, the save before kept as its
   backup. **Save & exit to title** saves, leaves (a host's guests let go) and reloads the scene to the

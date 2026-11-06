@@ -29,6 +29,7 @@ public partial class TabletEdge : CanvasLayer
     private readonly Control _row = new() { MouseFilter = Control.MouseFilterEnum.Stop };
     private readonly List<Slot> _slots = [];
     private readonly List<Tablet> _tablets = [];
+    private readonly List<Tablet> _keysAway = [];
     private readonly TipSpots _tips;
     private readonly KeyGlow _near = new(comesOn: 0.12, goesOut: 0.5);
     private CreditHolo? _readout;
@@ -72,8 +73,15 @@ public partial class TabletEdge : CanvasLayer
         _tips.Add(holo, () => new Tip(T(says)) { Over = true });
     }
 
-    /// <summary>A tablet that rises from the edge: while it is up the keys ride on it.</summary>
-    public void Follow(Tablet tablet) => _tablets.Add(tablet);
+    /// <summary>
+    /// A tablet that rises from the edge: while it is up the keys ride on it, or, <paramref name="keysAway"/>, none shows at all (the game
+    /// menu's, settings-menu: its keys could not be used under it, and the row sliding over its top read as a jumble).
+    /// </summary>
+    public void Follow(Tablet tablet, bool keysAway = false)
+    {
+        _tablets.Add(tablet);
+        if (keysAway) _keysAway.Add(tablet);
+    }
 
     /// <summary>Where it lies on the screen, the rim while it shows and the keys' row: what the crew's markers keep out of.</summary>
     public Rect2 Covers
@@ -115,6 +123,7 @@ public partial class TabletEdge : CanvasLayer
         var (middle, foot) = TabletPeek.RowAt(art.Position.X, art.Position.Y, art.Size.X);
         float grown = EdgeRow.Grown(_ui.Slot), top = EdgeRow.Top(foot, EdgeKey.Side, grown);
         Lay(middle, top, art.End.X - ReadoutIn, grown, delta);
+        if (_keysAway.Exists(t => t.Shown)) HideKeys();
         var pointer = _root.GetViewport().GetMousePosition();
         _near.Step(delta, EdgeRow.Bright(pointer.Y, top, up != null && art.HasPoint(pointer)));
         foreach (var slot in _slots) slot.Key.Near = (float)_near.Lit;
@@ -167,6 +176,14 @@ public partial class TabletEdge : CanvasLayer
         _row.Position = new Vector2(left, top);
         _row.Size = new Vector2(right - left, (EdgeKey.Side + EdgeKey.NumberDown + 2) * grown);
         _laid = true;
+    }
+
+    /// <summary>Every key and the credits gone this frame, and the row's span: they come back as laid the next.</summary>
+    private void HideKeys()
+    {
+        foreach (var slot in _slots) slot.Key.Visible = false;
+        if (_readout != null) _readout.Visible = false;
+        _row.Size = Vector2.Zero;
     }
 
     // Flickering in or out, it drops out every third frame of thirty a second, as a tube catching.
