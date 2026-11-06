@@ -57,7 +57,7 @@ public sealed class SortieScenario : DevScenario
 {
     public override Layout? Map => Registry.Wreck;
 
-    public override World Seed(World world, DevSeed seed) => SortieDemo.Seed(world, seed.M, seed.Modules);
+    public override World Seed(World world, DevSeed seed) => SortieDemo.Seed(world, seed.M, seed.Modules, Args.Has("--manual"));
 
     public override Func<Registry, int>? Start => SortieDemo.StartOf;
 
@@ -81,7 +81,7 @@ public sealed class SentryScenario : DevScenario
 
     public override Layout? Map => Registry.Wreck;
 
-    public override World Seed(World world, DevSeed seed) => SortieDemo.Seed(world, seed.M, seed.Modules);
+    public override World Seed(World world, DevSeed seed) => SortieDemo.Seed(world, seed.M, seed.Modules, Args.Has("--manual"));
 
     public override Func<Registry, int>? Start => SortieDemo.StartOf;
 

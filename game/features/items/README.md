@@ -16,8 +16,9 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `logic/FloorFeel.cs` | a stack's landing |
 | `logic/OwnCatches.cs` | what own grabs and net collects gave, and where each piece was |
 | `logic/OwnGains.cs` | own new gains in each surface's `Gains`, once each |
-| `logic/HeadTally.cs` | the tally's chips and its spring anchor |
-| `PickUpFlights.cs` | a stack picked up flying home to the chest (0075) |
+| `logic/GainSpots.cs` | gains by their place |
+| `logic/GainLines.cs` | one place's lines |
+| `PickUpFlights.cs` | icons and sparks flying home (0075) |
 | `SortButton.cs` | the sort key, a wrist hardware key (0008, 0081) |
 | `StashButton.cs` | the stash key under it, the fan glyph |
 | `FavouriteStar.cs` | the kept mark, in a slot and by the pointer |
@@ -31,7 +32,7 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `EnergyBar.cs` | the energy tab at the gauge row's right end (0053, 0081) |
 | `FloorLayer.cs` | stacks on the floor |
 | `SlotFlights.cs` | a shifted stack flying to where it landed (0075) |
-| `GainTally.cs` | the tally over the head |
+| `GainSpotsView.cs` | the counts beside their places |
 | `ItemsView.cs` | the feature: pick-ups, the layers and the panel |
 | `ItemsDemo.cs` | `-- --items`: a room with a crate and a furnace |
 | `logic/Items.En.cs` | Its player text (`En`) |
@@ -88,11 +89,11 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
   squash, hop and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature
   (`Reach.Hidden`) is not drawn, nor a body's, inside it (2026-10-29-body-bag).
 - **Pick-up**: a stack the hero's body overlaps is picked up unless refused, flying home; loot nobody dropped within
-  `Floor.PickUpReach` too, pulled in; a body's all within `Floor.BodyReach`, one chip; never while passed out (0061).
-- **Own catches** (0075): a grab or net `Collect` seen in flight then gone has run; `CaughtFrom` gives each item a chip
-  and a flight from where its piece was drawn (`NetHolds`), only when new since it set off: a refused one shows nothing.
-- **The tally** (2026-11-06-head-tally): a chip per item over the head, icon and "+n", adding up; its anchor springs after
-  the head, never shaking. Digs, fellings, refunds: `ItemsModule.Gains` (`OwnGains`), each flying from its cell.
+  `Floor.PickUpReach` too, pulled in; a body's all within `Floor.BodyReach`, one line; never while passed out (0061).
+- **Own catches** (0075): a grab or net `Collect` seen in flight then gone has run; `CaughtFrom` counts each item
+  where its piece was drawn (`NetHolds`), only when new since it set off: a refused one shows nothing.
+- **The counts** (2026-11-06-gain-spots): a column of "icon +n" beside each place that gave, a gain within `GainSpots.Near`
+  of one showing going onto it; each a spark into the chest. Digs, fellings, refunds: `ItemsModule.Gains` (`OwnGains`).
 
 ## Main's hook
 
