@@ -139,6 +139,22 @@ public static class Migrations
             }
             return root;
         },
+        // 50 → 51 (2026-11-06-no-ice-canister): the canister's craft is gone, so are its queued entries and its grant; the ice
+        // paid for them goes with them, a planet's ice being all a player could have queued it of.
+        root =>
+        {
+            const string gone = "canister";
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+                foreach (var queue in slices["crafting"]?["queues"]?.AsArray() ?? [])
+                {
+                    var entries = queue!["entries"]!.AsArray();
+                    if (entries.FirstOrDefault()?["recipe"]?.GetValue<string>() == gone) queue["progress"] = 0;
+                    foreach (var entry in entries.Where(e => e!["recipe"]!.GetValue<string>() == gone).ToList()) entries.Remove(entry);
+                }
+            if (root["slices"]!["knowledge"]?["granted"] is JsonArray granted)
+                foreach (var grant in granted.Where(g => g!.GetValue<string>() == gone).ToList()) granted.Remove(grant);
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

@@ -837,9 +837,21 @@ public sealed class BoardPage : ITabletPage
     {
         string Line(string label, string what) => T("research.pile.row", ("label", T(label)), ("what", what));
         var link = TechLinks.Of(id);
-        yield return link.Takes.Count == 0
-            ? T("research.pile.found")
-            : Line("research.takes", string.Join(", ", link.Takes.Select(t => T("research.taken", ("n", t.Count), ("what", _strip.NameOf(t.Item))))));
+        switch (TechLinks.OriginOf(id))
+        {
+            case Origin.Made:
+                yield return Line("research.takes", string.Join(", ", link.Takes.Select(t => T("research.taken", ("n", t.Count), ("what", _strip.NameOf(t.Item))))));
+                break;
+            case Origin.Worked:
+                yield return Line("research.takes", string.Join(T("research.pile.or"), link.From.Select(f => _had.Contains(f) ? _strip.NameOf(f) : T("research.pile.noItem")).Distinct()));
+                break;
+            case Origin.Free:
+                yield return T("research.pile.free");
+                break;
+            case Origin.Found:
+                yield return T("research.pile.found");
+                break;
+        }
         if (link.MadeAt.Count > 0)
             yield return Line("research.madeAt", string.Join(", ", link.MadeAt.Select(s => _had.Contains(s) ? _strip.NameOf(s) : T("research.pile.noStation")).Distinct()));
         else if (TechLinks.MenuTabOf(id) != null)
@@ -877,6 +889,8 @@ public sealed class BoardPage : ITabletPage
             string heading = note || thing == null ? "research.takes" : BoardPile.Lack(thing, _read!).Parts.Count > 0 ? "research.board.needMore" : "research.board.haveEnough";
             facts.AddChild(Fact(T(heading), From, takes, 3));
         }
+        else if (link.From.Count > 0)
+            facts.AddChild(Fact(T("research.takes"), From, _strip.Pictures(link.From, TipOf, source => !_had.Contains(source)), 3));
         if (thing != null || link.MadeAt.Count > 0)
         {
             var at = Flow(10);
@@ -926,7 +940,7 @@ public sealed class BoardPage : ITabletPage
         if (_picked is not { } picked) return null;
         if (picked == id) return Picked;
         var link = TechLinks.Of(picked);
-        return link.MadeAt.Contains(id) ? MadeAt : link.Takes.Any(t => t.Item == id) ? From : link.UsedIn.Contains(id) ? UsedIn : null;
+        return link.MadeAt.Contains(id) ? MadeAt : link.Takes.Any(t => t.Item == id) || link.From.Contains(id) ? From : link.UsedIn.Contains(id) ? UsedIn : null;
     }
 
     /// <summary>Where <paramref name="id"/> stands on the board: where it was moved to, else its slot.</summary>
