@@ -260,6 +260,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
 | [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
 | [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted |  |
+| [lighter-tools](2026-11-06-lighter-tools.md) | Lighter electric tools | accepted |  |
 | [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |

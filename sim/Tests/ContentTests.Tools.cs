@@ -59,12 +59,12 @@ public partial class ContentTests
         Assert.Equal(10, Weapons.Drill.Damage * 20 / Weapons.Drill.Pace);
         Assert.Equal((40, 8), (Weapons.Drill.BlockDamage * 20 / Weapons.Drill.Pace, Weapons.Axe.BlockDamage * 20 / Weapons.Axe.Pace));
         Assert.Equal(4, Weapons.Axe.Damage * 20 / Weapons.Axe.Pace);
-        // Electric: it draws every tick it runs (0055), so a full battery runs it 600 ticks, 30 s.
+        // Electric: it draws every tick it runs (0055), so a full battery runs it 1800 ticks, 90 s (lighter-tools).
         int draw = Content.Items.Get(Weapons.Drill.Item).Draw!.Value;
-        Assert.Equal(3, draw);
-        Assert.Equal(600, Charge.Battery / Charge.Scale / draw);
-        // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 300 ticks of a battery.
-        Assert.Equal((20, 6), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
+        Assert.Equal(1, draw);
+        Assert.Equal(1800, Charge.Battery / Charge.Scale / draw);
+        // The arc module in it (0098): twice the damage, 20 a second, for twice the draw, 900 ticks of a battery.
+        Assert.Equal((20, 2), (Sim.Items.Boost.Gain(Weapons.Drill.Damage, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Damage)) * 20 / Weapons.Drill.Pace, Sim.Items.Boost.Cost(draw, Modules.Arc.Adds(Weapons.Drill.Item, Stat.Draw))));
         Assert.Null(Content.Items.Get(Weapons.Axe.Item).Draw);
         Assert.Equal(["frame", "rotor", "coil", "gear", "tube", "circuit"], Crafts.Get(Weapons.Drill.Item).Cost.Select(c => c.Item));
         Assert.DoesNotContain(Weapons.Drill.Item, Content.Research.StartKnown);
