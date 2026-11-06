@@ -130,7 +130,7 @@ public partial class ItemsView : Node2D
     /// </summary>
     private void Gain(string item, string key, Vector2 at, int nth, int count)
     {
-        _spots.Add(key, count, at.X / ShipCamera.Cell, at.Y / ShipCamera.Cell);
+        _spots.Add(key, count, at.X / ShipCamera.Cell, at.Y / ShipCamera.Cell, ShipCamera.Cell * GetViewport().GetCanvasTransform().Scale.Y);
         _flights.Spark(item, at, nth);
     }
 
