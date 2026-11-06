@@ -46,6 +46,8 @@ public partial class StationView : Node2D
         ["assembler"] = new(4, 140, Lights: [new(22, 7.5f)], Light: new("6fbf73"), Levels: [0.4f, 0.35f, 0.45f, 0.35f], Screen: true),
         // The grow lamp under its cap, a steady pink while it grows (0060).
         ["growCapsule"] = new(1, 1000, Glows: true, Lights: [new(16, 9)], Light: new(1f, 0.42f, 0.8f), Levels: [0.6f]),
+        // The fermenter's mash bubbling up its column, a drop falling from its tap, its lamp a dim green (power-chain).
+        ["fermenter"] = new(4, 300, Lights: [new(15.7f, 25.6f)], Light: new("54ba74"), Levels: [0.2f]),
     };
 
     /// <summary>How many pictures a plant grows through, a quarter of its crop each (<c>art/{kind}_plant_*.png</c>).</summary>

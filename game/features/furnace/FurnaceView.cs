@@ -10,10 +10,10 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Furnace;
 
 /// <summary>
-/// A furnace or a burner generator at work without a word (features/furnace): fire in its mouth, embers
-/// streaking up from it on curling paths and ash drifting, the air above its mouth wobbling with heat, and a
-/// generator's flywheel spinning; none of it while it is out, for want of fuel, air or room. Its panel says
-/// why, on demand. The fire is drawn unlit, for it gives light: as bright as <see cref="BlazeOf"/> says,
+/// A furnace or a generator, the burner or the biofuel one, at work without a word (features/furnace): fire in its mouth,
+/// embers streaking up from it on curling paths and ash drifting, the air above its mouth wobbling with heat, and a
+/// generator's parts turning (a flywheel; the biofuel engine's rockers and pump); none of it while it is out, for want of fuel,
+/// air or room. Its panel says why, on demand. The fire is drawn unlit, for it gives light: as bright as <see cref="BlazeOf"/> says,
 /// which breathes toward each picture's brightness (<see cref="Flames"/>); a cracking coal throws sparks
 /// with a glint (0075).
 /// </summary>
@@ -21,7 +21,7 @@ public partial class FurnaceView : Node2D
 {
     private const int Cell = ShipCamera.Cell;
     /// <summary>The machines whose fire is drawn here, as their pictures place it: each picture is its own.</summary>
-    private const string FurnaceKind = "furnace", GeneratorKind = "burnerGenerator";
+    private const string FurnaceKind = "furnace", GeneratorKind = "burnerGenerator", BiofuelKind = "biofuelGenerator";
     /// <summary>The fire's pictures, <c>art/fire_*.png</c>, shown in turn.</summary>
     private const int Frames = 3;
     /// <summary>
@@ -31,7 +31,7 @@ public partial class FurnaceView : Node2D
     public static Vector2? FireAt(string kind) => kind switch
     {
         FurnaceKind => new Vector2(14, 17),
-        GeneratorKind => new Vector2(4, 16),
+        GeneratorKind or BiofuelKind => new Vector2(4, 16),
         _ => null,
     };
     /// <summary>Where embers rise from, from the fire's top left: the top of the fire, give or take <see cref="EmbersSpread"/> either way.</summary>
@@ -53,13 +53,16 @@ public partial class FurnaceView : Node2D
     private static readonly Vector2 HazeAt = new(5, -9);
     private const float HazeSize = 26, HazeAlpha = 0.08f;
     /// <summary>
-    /// A burner generator's flywheel in its picture (<c>art/burner_wheel_*.png</c>, its pictures turned a
-    /// third of a turn between them), in pixels from its top left, and how long each picture shows: a
-    /// turn and a half a second.
+    /// What turns in a generator while it burns, by kind: its pictures (<c>art/{Pictures}_*.png</c>), where they go in pixels from
+    /// its top left, how many and how long each shows. The burner generator's flywheel, a third of a turn between pictures, a turn
+    /// and a half a second; the biofuel generator's whole engine, its flywheel, rockers and pump a turn in eight (power-chain).
     /// </summary>
-    private static readonly Vector2 WheelAt = new(17, 0);
-    private const int WheelFrames = 4;
-    private const double WheelStepMs = 55;
+    private sealed record Turning(string Pictures, Vector2 At, int Frames, double StepMs);
+    private static readonly Dictionary<string, Turning> Turns = new()
+    {
+        [GeneratorKind] = new("burner_wheel", new(17, 0), 4, 55),
+        [BiofuelKind] = new("biofuelGenerator_run", Vector2.Zero, 8, 110),
+    };
 
     private static readonly CanvasItemMaterial Unlit = new() { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded };
     private static readonly CanvasItemMaterial Added = new()
@@ -91,7 +94,6 @@ public partial class FurnaceView : Node2D
     private readonly List<int> _out = new();
     private readonly Random _random = new();
     private double _flicker, _spin;
-    private int _turn;
 
     public FurnaceView(IGridQueries grid, FurnaceModule furnace)
     {
@@ -114,11 +116,6 @@ public partial class FurnaceView : Node2D
         bool turn = _flicker >= Flames.StepMs;
         if (turn) _flicker %= Flames.StepMs;
         _spin += elapsedMs;
-        if (_spin >= WheelStepMs)
-        {
-            _turn = (_turn + (int)(_spin / WheelStepMs)) % WheelFrames;
-            _spin %= WheelStepMs;
-        }
         _burning.Clear();
         foreach (var m in _grid.Machines)
         {
@@ -140,10 +137,10 @@ public partial class FurnaceView : Node2D
             fire.Shimmer.Amplitude = ShimmerAmplitude * (0.7f + 0.3f * fire.Glow);
             fire.Haze.Position = at + HazeAt;
             fire.Haze.Modulate = new Color(1, 110 / 255f, 40 / 255f, HazeAlpha * fire.Glow * (float)Fx.Glow);
-            if (fire.Wheel != null)
+            if (fire.Wheel != null && Turns.TryGetValue(m.Kind, out var turns))
             {
-                fire.Wheel.Position = corner + WheelAt;
-                fire.Wheel.Texture = PixelArt.Picture($"burner_wheel_{(_turn + m.Id) % WheelFrames}");
+                fire.Wheel.Position = corner + turns.At;
+                fire.Wheel.Texture = PixelArt.Picture($"{turns.Pictures}_{((long)(_spin / turns.StepMs) + m.Id) % turns.Frames}");
             }
             // The machine's floor: what a cracking coal's sparks bounce off.
             float floor = corner.Y + Content.Machines.Get(m.Kind).Height * Cell;
@@ -181,9 +178,9 @@ public partial class FurnaceView : Node2D
         AddChild(sprite);
         AddChild(haze);
         var fire = new Fire(sprite, shimmer, haze) { Frame = m.Id };
-        if (m.Kind == GeneratorKind)
+        if (Turns.ContainsKey(m.Kind))
         {
-            // Over the machine's picture, lit as it is: the wheel at rest is drawn in the picture.
+            // Over the machine's picture, lit as it is: its parts at rest are drawn in the picture.
             fire.Wheel = new Sprite2D { Centered = false, ZIndex = Layers.Sockets };
             Lit.Set(fire.Wheel);
             AddChild(fire.Wheel);
@@ -223,7 +220,7 @@ public partial class FurnaceView : Node2D
     public static Vector2? LightAt(string kind) => kind switch
     {
         FurnaceKind => new Vector2(2 * Cell, 3 * Cell),
-        GeneratorKind => FireAt(kind) + new Vector2(5, 7),
+        GeneratorKind or BiofuelKind => FireAt(kind) + new Vector2(5, 7),
         _ => null,
     };
 }

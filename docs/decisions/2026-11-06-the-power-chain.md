@@ -37,6 +37,12 @@ wheel a hero runs in.
 - **Landing rests the wheel.** It owns seats, so each construction it rests every seated maker whose rider is not here, awake
   and exerting. `Exert`, the hero's running, already reaches the sim as a command; a seated hero's held move key sets it.
 
+- **Their looks are the user's picks** (in ink and watercolour, `tools/anime-art/subjects/machines.js`): the fermenter a
+  glass drip column of mash, its copper line into a condenser coil and a tap dripping into a jerrycan, bubbling under a
+  green lamp; the biofuel generator a hot-bulb engine, a firebox and pump by two finned cylinders and a holed flywheel that
+  turns while it burns; the wheel a steel hoop lined with planks on two rollers, the rider drawn between the turning hoop
+  and a grab rail in front.
+
 ## Deliberately not handled
 
 - A rider pausing lets a fire on its network light, and that fuel burns to its end.
