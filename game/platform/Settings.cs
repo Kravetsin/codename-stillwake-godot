@@ -8,7 +8,7 @@ namespace Stillwake.Game.Platform;
 
 /// <summary>
 /// This machine's player's settings, kept in Godot's user folder as the profile is (0032): the language
-/// (2026-11-02-russian-language), the slots' size (0058), whether heat shimmers (0075), how the window takes the screen and the hero's look (2026-10-28-looks-are-printed). Read once at the start; a change in the menu is written at once. A file that cannot be read
+/// (2026-11-02-russian-language), the slots' size (0058), whether heat shimmers (0075), the volumes (settings-menu), how the window takes the screen and the hero's look (2026-10-28-looks-are-printed). Read once at the start; a change in the menu is written at once. A file that cannot be read
 /// gives the defaults, one that cannot be written keeps the setting for this run alone.
 /// </summary>
 public static class Settings
@@ -129,6 +129,37 @@ public static class Settings
         int[] i = [look.Skin, look.Hair, look.HairColour, look.Face, look.Beard, look.Outfit];
         for (int k = 0; k < LookKeys.Length; k++) kept.SetValue("look", LookKeys[k], i[k]);
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the look in {File}: it holds for this run alone");
+    }
+
+    /// <summary>The step <paramref name="bus"/>'s slider was left at (settings-menu), the top one, today's mix, on a first run.</summary>
+    public static int Volume(string bus)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        return Menu.Volume.Step(kept.GetValue("sound", bus.ToLowerInvariant(), Sound.VolumeSteps).AsInt32());
+    }
+
+    /// <summary>Keeps <paramref name="bus"/>'s <paramref name="step"/> for the next run.</summary>
+    public static void KeepVolume(string bus, int step)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        kept.SetValue("sound", bus.ToLowerInvariant(), Menu.Volume.Step(step));
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the volume in {File}: it holds for this run alone");
+    }
+
+    /// <summary>Sets <paramref name="bus"/> to <paramref name="step"/>: its gain, muted at 0.</summary>
+    public static void ApplyVolume(string bus, int step)
+    {
+        int index = AudioServer.GetBusIndex(bus);
+        AudioServer.SetBusVolumeDb(index, Menu.Volume.Db(step));
+        AudioServer.SetBusMute(index, Menu.Volume.Muted(step));
+    }
+
+    /// <summary>Every slider's bus as kept, at the start before anything plays.</summary>
+    public static void ApplyVolumes()
+    {
+        foreach (var bus in Sound.Volumed) ApplyVolume(bus, Volume(bus));
     }
 
     /// <summary>Keeps <paramref name="scale"/> for the next run.</summary>

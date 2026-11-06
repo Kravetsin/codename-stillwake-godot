@@ -171,6 +171,8 @@ public partial class Main : Node2D, ITogether
         QuitAfterAWhile();
         // First of all at its layer, before every shimmer (0075).
         AddChild(Shimmer.NewScreenCopy());
+        // The volumes as kept, before the title's music begins.
+        Settings.ApplyVolumes();
         // Before everything else, so every button made after it clicks.
         var sound = new SoundView(Floats, () => _title != null, Fogged);
         AddChild(sound);
@@ -352,13 +354,13 @@ public partial class Main : Node2D, ITogether
                 keyCard.Close();
                 _hands.Plan.PutPlanAway();
             },
-            handbook: handbook.Open,
-            tree: tech.Open,
             look: () => lookEditor.Open(_look ?? Sim.Players.Look.Zero),
             suits, SaveWorld, inWorld: () => _session != null, owns: () => _role != "guest", exitToTitle: () => ExitToTitle(null), Quit, Foot, together: () => Together,
             version: Updates.Of(Build).ToString(), updateTo: () => _updater.Available?.Tag, update: _updater.Update,
             updating: () => _updater.Status);
         AddChild(menu);
+        // The menu's tablet rises from the edge as the others do: no second tablet left lying at the foot, and no keys over it.
+        edge.Follow(menu.Tablet, keysAway: true);
         AddChild(_updater);
         // Playing together, how long an action takes to happen: sent, stamped by the host, run here.
         AddChild(new VersionCorner(Updates.Of(Build).ToString(), () => _role == "alone" ? null : _session?.RoundTrip.Median));
