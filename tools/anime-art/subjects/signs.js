@@ -6,11 +6,13 @@
 const { canvas } = Anime;
 
 /** The logical sizes the game lays them out by: the pixel signs' own. */
-const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [9, 9], sign_oxygenShort: [9, 9], sign_leak: [9, 9], sign_leakShort: [9, 9],
+const SIZES = { sign_bolt: [7, 9], sign_boltNone: [7, 9], sign_unplugged: [7, 7], sign_broken: [13, 13], sign_oxygen: [11, 11], sign_oxygenShort: [11, 11], sign_leak: [9, 9], sign_leakShort: [9, 9],
   sign_mouseLeft: [13, 10], sign_mouseRight: [13, 10], sign_mouseMiddle: [13, 10], sign_mouseMiddleKey: [13, 10], sign_drag: [8, 7], sign_holdTrack: [9, 9], sign_cap: [16, 16] };
 for (let step = 1; step <= 12; step++) SIZES[`sign_hold_${step}`] = [9, 9];
 /** The bolt in the 7 by 9 picture: a heavy zigzag, top right to a point at the bottom left. */
 const BOLT = [3.6, .5, 6.5, .5, 4.7, 3.5, 6.4, 3.5, 1.0, 8.6, 2.5, 5.3, .6, 5.3];
+/** A shape moved by (dx, dy). */
+const moved = (sd, dx, dy) => (x, y) => sd(x - dx, y - dy);
 /** BOLT scaled by k round its middle, moved to (cx, cy). */
 const fit = (pts, cx, cy, k) => pts.map((v, i) => (i % 2 ? (v - 4.55) * k + cy : (v - 3.5) * k + cx));
 
@@ -93,9 +95,10 @@ const broken = () => {
 /** The tips' lit tones (tip-signs): the air's sky, and red where the line is short. */
 const SKY = { body: '#38bdf8', core: '#d4f3ff', rim: '#04121c', halo: '#165a7a' };
 const RED = { body: '#ec3f36', core: '#ffd0c4', rim: '#1c0606', halo: '#7c1a18' };
-/** O₂ in screen letters, the user's pick (o2.glyph): an O ring and a small 2 beside its foot. */
+/** O₂ in screen letters, the user's pick (o2.glyph): an O ring and a small 2 beside its foot; on 11 by 11, moved in, so its halo
+ * clears every edge (9 by 9 cut it at the left and right). */
 const oxygen = (name, tone) => glyph(name, [{
-  sd: union(ring(sdCircle(3.5, 4.1, 2.3), .55), sdCapsule(6.4, 5.7, 7.1, 5.3, .36), sdCapsule(7.1, 5.3, 7.7, 5.8, .36), sdCapsule(7.7, 5.8, 6.4, 7.9, .36), sdCapsule(6.4, 7.9, 8.0, 7.9, .36)),
+  sd: moved(union(ring(sdCircle(3.5, 4.1, 2.3), .55), sdCapsule(6.4, 5.7, 7.1, 5.3, .36), sdCapsule(7.1, 5.3, 7.7, 5.8, .36), sdCapsule(7.7, 5.8, 6.4, 7.9, .36), sdCapsule(6.4, 7.9, 8.0, 7.9, .36)), 1, .75),
   ...tone, haloA: .42, coreAt: 1.6,
 }]);
 /** A wall broken through, in the unplugged sign's grey, and an arrow out of the gap (leak.glyph). */

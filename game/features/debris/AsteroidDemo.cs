@@ -23,8 +23,8 @@ namespace Stillwake.Game.Features.Debris;
 /// </summary>
 public partial class AsteroidDemo : CanvasLayer
 {
-    /// <summary>What the belt's battery holds, in thousandths of full: 300 ticks of the drill running, 240 of them on the first rock.</summary>
-    public const int Charge = 500;
+    /// <summary>What the belt's battery holds, in thousandths of full: 300 ticks of the drill's draw of 1, 240 of them on the first rock.</summary>
+    public const int Charge = 167;
 
     /// <summary>The asteroids, by id: thousandths of a cell right of the hero's middle (left when negative), and up from its cell's top, to their middles.</summary>
     private static readonly (int Id, int Right, int Up)[] Rocks = [(1, 4_100, 600), (2, -4_100, 600)];

@@ -22,7 +22,8 @@ public partial class SuitGauge : CanvasLayer
 
     private readonly Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> _read;
     private readonly WristGauge _gauge = new(
-        ItemIcons.Icon(CrewSpec.Canister), new Rect2(8, 7, 16, 16), Look.SuitMeterLeft, Look.SuitCells,
+        // The oxygen sign the rooms' air is read by (tip-signs), as tall as the energy tab's bolt beside it.
+        Signs.Of(Sign.Oxygen), new Rect2(4, 4, 22, 22), Look.SuitMeterLeft, Look.SuitCells,
         AsciiArt.Colour(Look.Suit));
     private readonly VisorFog _fog = new();
     private readonly VisorFogView _fogView = new();

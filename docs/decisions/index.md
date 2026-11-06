@@ -257,6 +257,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |
 | [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
+| [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
 | [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
 | [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted |  |
