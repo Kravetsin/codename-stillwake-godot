@@ -24,7 +24,8 @@ spinning; none of it while it is out, for want of fuel, air or room. Drawn only:
   The fire's sound, `Sound.Fire`, loops with each fire, begun somewhere along the loop.
 - **Heat shimmer (0075):** the air from 22 px over the machine down to its mouth (26 by 42 px round the
   fire) wobbles as if seen through hot air (`render/Shimmer.cs`), 0.55 px at most at full glow, drawn under
-  the fire so the flames and embers stay still; a faint warm haze glows in it over the mouth.
+  the fire so the flames and embers stay still: every shimmer at `Layers.Shimmer`, the flames at `Layers.Fire` over
+  it, so a fire lit below another never wipes the one above; a faint warm haze glows in it over the mouth.
 - **Flywheel:** over a burning generator's picture, lit as the machine is, `art/burner_wheel_0..3.png`
   in turn every 55 ms, each a twelfth of a turn on (its three spokes repeat every third): a turn and a
   half a second, each generator a picture off by its id. Out, the wheel at rest in its picture shows.
