@@ -110,6 +110,65 @@ public class CreaturesInvariantTests
             return (broken == null).Label(broken ?? "");
         });
 
+    private const int HillsWidth = 440, HillsHeight = 48;
+
+    /// <summary>
+    /// Hills a character a cell, wide enough for a herd on either side of a hero: each column's top a step off the last now and then,
+    /// a cliff sometimes, so some herds find every place and some miss one. The tops, for heroes to stand on.
+    /// </summary>
+    private static (Layout Map, int[] Tops) Hills(int seed)
+    {
+        var rng = new Rng(new RngState { S = (uint)seed });
+        var tops = new int[HillsWidth];
+        int top = 30;
+        for (int x = 0; x < HillsWidth; x++)
+        {
+            if (rng.Below(5) == 0) top = Math.Clamp(top + (rng.Below(8) == 0 ? (int)rng.Below(17) - 8 : (int)rng.Below(5) - 2), 12, HillsHeight - 4);
+            tops[x] = top;
+        }
+        var rows = Enumerable.Range(0, HillsHeight).Select(y => new string([.. tops.Select(t => y >= t ? '#' : ' ')]));
+        return (Layout.Parse([.. rows]), tops);
+    }
+
+    /// <summary>
+    /// Herds (creatures-in-herds), over hills with a hero who moves about and strikes now and then: whatever spawns on a tick is a
+    /// herd, on the beat, of two to four of one kind, each a spacing further out than the last, and the surface never past its cap.
+    /// </summary>
+    [Property(MaxTest = 40)]
+    public Property EverySpawnIsAHerdOfOneKindSpacedOutUnderTheCap() =>
+        Prop.ForAll(Gen.Choose(0, int.MaxValue).ToArbitrary(), Gen.Choose(0, int.MaxValue).ToArbitrary(), (ground, seed) =>
+        {
+            var (map, tops) = Hills(ground);
+            var w = CreaturesTesting.Planet(map, cells: true).Breathing();
+            var rng = new Rng(new RngState { S = (uint)seed });
+            void Move()
+            {
+                int x = (int)rng.Below(HillsWidth);
+                w.HeroAt(x, tops[x] - 1);
+            }
+            Move();
+            string? broken = null;
+            int seen = 0;
+            for (int t = 0; t < 60 * Tune.Beat && broken == null; t++)
+            {
+                var all = w.M.Creatures.Creatures;
+                if (rng.Below(300) == 0) Move();
+                if (all.Count > 0 && rng.Below(20) == 0) w.Do(new Strike(all[(int)rng.Below((uint)all.Count)].Id, Content.Weapons.Axe.Item));
+                w.Run();
+                var herd = all.Where(c => c.Id > seen).ToList();
+                if (all.Count > Tune.Max) broken = $"{all.Count} creatures";
+                if (herd.Count == 0) continue;
+                seen = herd[^1].Id;
+                string kinds = string.Join(",", herd.Select(c => c.Species));
+                if (w.World.Tick % Tune.Beat != 0) broken ??= $"a herd off the beat at {w.World.Tick}";
+                if (herd.Count < Tune.HerdLeast || herd.Count > Tune.HerdMost) broken ??= $"a herd of {herd.Count}: {kinds}";
+                if (herd.Any(c => c.Species != herd[0].Species)) broken ??= $"a herd of kinds {kinds}";
+                for (int i = 1; i < herd.Count; i++)
+                    if (Math.Abs(herd[i].X - herd[i - 1].X) != Tune.Spacing * Unit) broken ??= $"a herd's members {Math.Abs(herd[i].X - herd[i - 1].X)} apart";
+            }
+            return (broken == null).Label(broken ?? "");
+        });
+
     /// <summary>
     /// Rams (0103), over the same ground: rammers let out by heroes who breathe their suits, struck often so they flee into
     /// corners, and every hero sending a hit by every charging creature most ticks, by others too: no charge hurts more than once,

@@ -243,7 +243,7 @@ public class ItemCardTests
     public void SayWhereARawItemShortComesFromAndOfferNoClick()
     {
         var plate = Crafts.Block("plate", Workbench, [("iron", 1)], creative: false);
-        Assert.Equal([new CraftRow("iron", "Iron", 1, 2, true, "smelt hull plates")], plate.Rows);
+        Assert.Equal([new CraftRow("iron", "Iron", 1, 2, true, "smelt hull plates or iron ore")], plate.Rows);
         Assert.Empty(plate.Keys);
     }
 

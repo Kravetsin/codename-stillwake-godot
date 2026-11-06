@@ -107,7 +107,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
 | [0100](0100-tech-branches.md) | Tech branches | accepted |  |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
-| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed (in part) |
+| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed, creatures-in-herds (in part) |
 | [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted | creatures-are-composed (in part) |
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
@@ -170,9 +170,9 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [magnetic-flare](2026-10-30-magnetic-flare.md) | A magnetic flare breaks machines until they are repaired | accepted | free-repair (in part) |
 | [room-upgrades](2026-10-30-room-upgrades.md) | Room is bought on the tree | accepted |  |
 | [tablet-tree](2026-10-30-tablet-tree.md) | The tech tree lives on the tablet | accepted | market-key, the-board (in part) |
-| [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted |  |
+| [tech-graph](2026-10-30-tech-graph.md) | A tech tree drawn as a graph, priced by a formula | accepted | trade-station-later (in part) |
 | [tech-rings](2026-10-30-tech-rings.md) | The tech tree is rings round a hub | superseded | market-decrypt, the-board |
-| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule |
+| [trade-and-tech](2026-10-30-trade-and-tech.md) | Trade and a tech tree | partly | tech-graph, trade-capsule, trade-station-later |
 | [trade-capsule](2026-10-30-trade-capsule.md) | Goods leave by capsule | accepted |  |
 | [black-market](2026-10-31-black-market.md) | The black market | accepted |  |
 | [ci-scope](2026-10-31-ci-scope.md) | A PR runs what its paths can break | accepted |  |
@@ -206,7 +206,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tablet-edge](2026-11-02-tablet-edge.md) | The tablet's top edge along the foot, with the keys on it | accepted | hologram-keys (in part) |
 | [tanks-in-a-line](2026-11-02-tanks-in-a-line.md) | Tanks in a line | accepted |  |
 | [tufts-in-ink](2026-11-02-tufts-in-ink.md) | Tufts in ink | accepted |  |
-| [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted |  |
+| [water-to-oxygen](2026-11-02-water-to-oxygen.md) | Water becomes liquid oxygen | accepted | no-ice-canister (in part) |
 | [builder-aim](2026-11-03-builder-aim.md) | One cell of work glows as the square does | accepted |  |
 | [cast-scrap](2026-11-03-cast-scrap.md) | Cast scrap: scrap walls of smelted scrap, rust telling them apart | accepted |  |
 | [charger-two](2026-11-03-charger-two.md) | The charger holds two batteries, drawing for each | accepted |  |
@@ -257,3 +257,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
+| [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
+| [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
+| [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
