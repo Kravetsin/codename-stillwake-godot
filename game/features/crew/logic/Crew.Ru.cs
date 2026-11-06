@@ -15,7 +15,7 @@ public static partial class Ru
         ["look.none"] = "Нет",
         ["look.next"] = "Такого тебя спасательная капсула напечатает в следующий раз.",
         ["look.done"] = "Готово",
-        ["menu.look"] = "Внешность",
+        ["menu.look"] = "Изменить облик",
         ["crew.noSuchColour"] = "Такого цвета нет",
         ["crew.colourTaken"] = "Этот цвет уже занят",
         ["crew.noJetpack"] = "На тебе нет джетпака",

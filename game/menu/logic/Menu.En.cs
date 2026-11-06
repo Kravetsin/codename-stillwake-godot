@@ -95,7 +95,14 @@ public static partial class En
         ["menu.passRefused"] = "The server did not take that password, or it is down",
         ["menu.connect"] = "Connect",
         ["menu.cancel"] = "Cancel",
-        ["menu.handbook"] = "Handbook ({key:handbook})",
-        ["menu.tree"] = "Tablet ({key:tablet})",
+        ["menu.catSound"] = "Sound",
+        ["menu.catGraphics"] = "Graphics",
+        ["menu.catGame"] = "Game",
+        ["menu.catControls"] = "Controls",
+        ["menu.catHero"] = "Hero",
+        ["menu.volMaster"] = "Master volume",
+        ["menu.volEffects"] = "Effects",
+        ["menu.volMusic"] = "Music",
+        ["menu.muted"] = "muted",
     };
 }

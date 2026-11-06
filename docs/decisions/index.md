@@ -256,3 +256,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |
+| [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |

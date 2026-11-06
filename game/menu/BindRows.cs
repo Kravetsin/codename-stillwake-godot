@@ -9,7 +9,7 @@ using static Stillwake.Game.I18n.En;
 namespace Stillwake.Game.Menu;
 
 /// <summary>
-/// The Controls page, the title's and the game menu's (2026-11-04-key-binds): a row per action, its key on a button. A click
+/// Settings' Controls (settings-menu), the title's and the game menu's (2026-11-04-key-binds): a row per action, its key on a button. A click
 /// waits for a key; Esc while waiting changes nothing; a key another action has is swapped, a reserved one refused, the line
 /// under the rows saying so. Reset all puts the defaults back. Every change goes through <see cref="Ui.Binds"/>, applied at once.
 /// </summary>
@@ -25,9 +25,8 @@ public partial class BindRows : VBoxContainer
     {
         _ui = ui;
         Style.Gap(this, 8);
-        AddChild(Line(T("menu.controls"), Style.Slate300, 14));
         AddChild(Line(T("bind.hint"), Style.Slate500, 11));
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(340, 360), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(520, 200), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         var rows = Style.Gap(new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }, 4);
         foreach (var bind in Enum.GetValues<Bind>())
         {

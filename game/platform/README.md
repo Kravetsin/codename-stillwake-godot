@@ -8,7 +8,7 @@ disk, the logs, updates.
 | File | Holds | Godot |
 | ---- | ----- | ----- |
 | `Profile.cs` | who plays on this machine: a player key made on the first run, kept (0032) | yes |
-| `Settings.cs` | the settings kept in `user://settings.cfg`: language, slots, shimmer, screen, keys, the hero's look | yes |
+| `Settings.cs` | the settings kept in `user://settings.cfg`: language, slots, shimmer, volumes, screen, keys, the hero's look | yes |
 | `Logs.cs` | Godot's own log files, and opening their folder | yes |
 | `Updater.cs` | a newer release asked of GitHub at the start, fetched and restarted into | yes |
 | `logic/Screens.cs` | how the window takes the screen, as the settings file names it | no |

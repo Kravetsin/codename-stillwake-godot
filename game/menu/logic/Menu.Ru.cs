@@ -95,7 +95,14 @@ public static partial class Ru
         ["menu.passRefused"] = "Сервер не принял пароль или лежит",
         ["menu.connect"] = "Подключиться",
         ["menu.cancel"] = "Отмена",
-        ["menu.handbook"] = "Справочник ({key:handbook})",
-        ["menu.tree"] = "Планшет ({key:tablet})",
+        ["menu.catSound"] = "Звук",
+        ["menu.catGraphics"] = "Графика",
+        ["menu.catGame"] = "Игра",
+        ["menu.catControls"] = "Управление",
+        ["menu.catHero"] = "Герой",
+        ["menu.volMaster"] = "Общая громкость",
+        ["menu.volEffects"] = "Эффекты",
+        ["menu.volMusic"] = "Музыка",
+        ["menu.muted"] = "без звука",
     };
 }
