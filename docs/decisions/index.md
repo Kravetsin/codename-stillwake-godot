@@ -267,3 +267,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [settings-menu](2026-11-06-settings-menu.md) | The Esc menu on the tablet, Settings in categories | accepted |  |
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
+| [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |

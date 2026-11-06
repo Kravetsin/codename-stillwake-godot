@@ -1,6 +1,6 @@
 # The energy tab's ring and beating bolt
 
-- Status: accepted; amends [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md)'s energy tab and the suit gauge's label, and [0053](0053-charge-belongs-to-the-item.md)'s energy bar
+- Status: accepted; amends [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md)'s energy tab and the suit gauge's label, and [0053](0053-charge-belongs-to-the-item.md)'s energy bar; its discharges amended by [air-feedback](2026-11-07-air-feedback.md)
 - Date: 2026-11-06
 
 ## Context

@@ -53,10 +53,10 @@ public static class WristLook
     public const double EdgeFadeS = 0.3;
 
     /// <summary>
-    /// A canister breathed (0047): the oxygen gauge's surge, stronger than a slow refill's light, for this long from the
-    /// click: a sky wash over the tab, a white sweep across every cell this many cells a second, and more motes rising higher.
+    /// A canister breathed (0047): how long the motes rise thick and high off the cells from the click; the tab's flood, rim
+    /// and shake are <c>GaugeWash</c>'s (air-feedback).
     /// </summary>
-    public const double SurgeS = 1.3, SurgeSweep = 26, SurgeWash = 0.14;
+    public const double SurgeS = 1.3;
 
     /// <summary>The motes rising off the cells, and how high in pixels, on a slow refill and in a canister's surge.</summary>
     public const int Motes = 4, MoteRise = 7, SurgeMotes = 12, SurgeRise = 13;

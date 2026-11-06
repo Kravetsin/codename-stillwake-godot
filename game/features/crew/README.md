@@ -64,7 +64,7 @@ the sim.
 | `logic/Danger.cs` | the gauge's read |
 | `logic/AirCues.cs` | air back (0081) |
 | `logic/CanistersSeen.cs` | friends' canisters |
-| `AirSwirl.cs` | vortex, breath, leak (0081, 0103) |
+| `AirSwirl.cs` | fling, breath, leak (0081, 0103) |
 | `SuitGauge.cs` | the suit gauge (0081) |
 | `logic/Tunnel.cs` | the last breath |
 | `TunnelView.cs` | it drawn |
