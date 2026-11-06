@@ -40,7 +40,7 @@ public partial class SortButton : WristKey
     }
 
     /// <summary>Three bars, each shorter, and an arrow down at their right: what a sort makes of a jumble; <paramref name="grow"/> wider for its glow.</summary>
-    private void Glyph(Vector2 at, Color ink, float grow)
+    protected virtual void Glyph(Vector2 at, Color ink, float grow)
     {
         float x = at.X, y = at.Y;
         DrawRect(new Rect2(x, y, 6, 2).Grow(grow), ink);

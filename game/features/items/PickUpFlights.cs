@@ -22,8 +22,10 @@ public partial class PickUpFlights : Node2D
     private const int Kept = 10;
     private static readonly (int, int, int) Ribbon = (150, 215, 255), Landed = (170, 225, 255);
 
-    private sealed class Flight(string item, Vector2 from, int nth)
+    private sealed class Flight(string item, Vector2 from, int nth, Vector2? to)
     {
+        /// <summary>Where it lands: a crate stashed into; none for the chest, wherever the hero is by then.</summary>
+        public Vector2? To { get; } = to;
         public string Item { get; } = item;
         public Vector2 From { get; } = from;
         /// <summary>Which of its catch's icons it is, 0 the first.</summary>
@@ -56,14 +58,15 @@ public partial class PickUpFlights : Node2D
 
     /// <summary>
     /// A stack of <paramref name="item"/> picked up from <paramref name="from"/>, the <paramref name="nth"/> of what one catch
-    /// gave (0 the first, and any stack off the floor): its icon sets off for the chest in its turn; none past the cap.
+    /// gave (0 the first, and any stack off the floor): its icon sets off for the chest in its turn, or for <paramref name="to"/>, a
+    /// crate stashed into (2026-11-06-quick-stash); none past the cap.
     /// </summary>
-    public void Fly(string item, Vector2 from, int nth = 0)
+    public void Fly(string item, Vector2 from, int nth = 0, Vector2? to = null)
     {
-        if (_flights.Count < Fx.MostRibbons) _flights.Add(new Flight(item, from, nth));
+        if (_flights.Count < Fx.MostRibbons) _flights.Add(new Flight(item, from, nth, to));
     }
 
-    /// <summary>Every flight <paramref name="elapsedMs"/> on toward <paramref name="chest"/>, where the hero is now; those home land.</summary>
+    /// <summary>Every flight <paramref name="elapsedMs"/> on toward <paramref name="chest"/>, where the hero is now, or its crate; those there land.</summary>
     public void Update(Vector2 chest, double elapsedMs)
     {
         for (int i = _flights.Count - 1; i >= 0; i--)
@@ -71,8 +74,9 @@ public partial class PickUpFlights : Node2D
             var f = _flights[i];
             f.Ms += elapsedMs;
             if (f.Ms < 0) continue;
+            var home = f.To ?? chest;
             double q = Math.Min(1, f.Ms / Glim.SampleMs / Frames), z = q * q;
-            f.At = f.From.Lerp(chest, (float)z) + new Vector2(0, (float)(-Rise * (1 + Higher * f.Nth) * Math.Sin(Math.PI * z)));
+            f.At = f.From.Lerp(home, (float)z) + new Vector2(0, (float)(-Rise * (1 + Higher * f.Nth) * Math.Sin(Math.PI * z)));
             if ((f.Since += elapsedMs) >= Glim.SampleMs || f.Points == 0)
             {
                 f.Since = 0;
@@ -86,11 +90,11 @@ public partial class PickUpFlights : Node2D
             if (q < 1) continue;
             if (f.Nth == 0)
             {
-                Stages.Of(Layers.Effects).Flares.Glint(chest.X, chest.Y, 6, Landed);
-                Stages.Of(Layers.Effects).Flares.Shock(chest.X, chest.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
-                Stages.Of(Layers.Effects).Flares.Flash(chest.X, chest.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
+                Stages.Of(Layers.Effects).Flares.Glint(home.X, home.Y, 6, Landed);
+                Stages.Of(Layers.Effects).Flares.Shock(home.X, home.Y, 2, 11, 12 * Glim.SampleMs, Landed, 0.35 * Fx.Glow, 0.26);
+                Stages.Of(Layers.Effects).Flares.Flash(home.X, home.Y, Ribbon, 0.3 * Fx.Glow, 4, 0.671f, 0.82);
             }
-            else Stages.Of(Layers.Effects).Flares.Glint(chest.X, chest.Y, 4, Landed);
+            else Stages.Of(Layers.Effects).Flares.Glint(home.X, home.Y, 4, Landed);
             _flights.RemoveAt(i);
         }
         _icons.QueueRedraw();

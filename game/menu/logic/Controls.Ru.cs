@@ -22,6 +22,7 @@ public static partial class Ru
         ["bind.suit"] = "Режим костюма",
         ["bind.inventory"] = "Инвентарь",
         ["bind.drop"] = "Выбросить; взять при стройке",
+        ["bind.stash"] = "Сложить в ящики рядом",
         ["bind.build"] = "Стройка",
         ["bind.search"] = "Поиск в стройке",
         ["bind.modeBuild"] = "Режим стройки",

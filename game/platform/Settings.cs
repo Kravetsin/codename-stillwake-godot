@@ -109,6 +109,23 @@ public static class Settings
         if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the keys in {File}: they hold for this run alone");
     }
 
+    /// <summary>The items marked to stay in the bag (2026-11-06-quick-stash), none on a first run.</summary>
+    public static Favourites Favourites()
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        return Shared.Favourites.Read(kept.GetValue("favourites", "items", "").AsString());
+    }
+
+    /// <summary>Keeps <paramref name="favourites"/> for the next run.</summary>
+    public static void Keep(Favourites favourites)
+    {
+        var kept = new ConfigFile();
+        kept.Load(File);
+        kept.SetValue("favourites", "items", favourites.Written());
+        if (kept.Save(File) != Error.Ok) GD.PrintErr($"[settings] cannot keep the favourites in {File}: they hold for this run alone");
+    }
+
     private static readonly string[] LookKeys = ["skin", "hair", "hairColour", "face", "beard", "outfit"];
 
     /// <summary>The look this player chose, kept from an earlier run; null before it ever chose one.</summary>

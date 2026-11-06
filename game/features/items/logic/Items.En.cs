@@ -227,6 +227,8 @@ public static partial class En
         ["items.noCrate"] = "There is no crate here",
         ["items.notCrate"] = "Only a crate is sorted",
         ["items.sort"] = "Sort",
+        ["items.stash"] = "Into nearby crates ({key:stash})",
+        ["items.stashHow"] = "Only into crates that hold it already · Alt+click: keep in the bag",
         ["items.noSlot"] = "There is no such slot",
         ["items.notEquipment"] = "That is not worn there",
         ["items.notBattery"] = "Only a battery charges here",

@@ -17,7 +17,7 @@ namespace Stillwake.Game.Features.Items;
 /// wheel and keys, stacks picked, split and put down in the inventory, shifted to the bag and back to the
 /// hotbar, dragged along the closed hotbar,
 /// the wire walked over and picked up, the furnace, a stack thrown with Q,
-/// the crate, its sort key and the bag's. It draws the pointer, which a movie does not.
+/// the crate, its sort key and the bag's, and a stash with the planks kept. It draws the pointer, which a movie does not.
 /// </summary>
 public partial class ItemsDemo : Control
 {
@@ -54,6 +54,7 @@ public partial class ItemsDemo : Control
         [
             ("scrap", 120), ("iron", 64), ("planks", 30), ("scrapChunk", 6), ("hullPlate", 3), ("canister", 2), null, null, null,
             ("scrap", 500), null, ("planks", 50), null, ("iron", 500),
+            null, null, null, null, null, null, null, null, null, null, null, ("planks", 20), null, null, null, null, ("canister", 3),
         ];
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i < carried.Length && carried[i] is var (item, count) ? Stack(item, count) : null);
@@ -73,6 +74,13 @@ public partial class ItemsDemo : Control
             ["at"] = 0,
         });
         items["nextFloorId"] = 2;
+        // Creative mode: the air is endless, so the hero breathes through the whole script.
+        items["creative"] = true;
+        // The crate holds a canister and a plank, so a stash has somewhere to put them.
+        var crate = root["slices"]!["grid"]!["machines"]!.AsArray().First(m => m!["kind"]!.GetValue<string>() == "crate")!["id"]!.GetValue<int>();
+        var crateSlots = new JsonArray();
+        for (int i = 0; i < Spec.Machines.Get("crate").Slots!.Value; i++) crateSlots.Add(i switch { 0 => Stack("canister", 1), 1 => Stack("planks", 1), _ => null });
+        items["crates"] = new JsonArray(new JsonObject { ["id"] = crate, ["slots"] = crateSlots });
         return World.Load(root.ToJsonString(), modules());
     }
 
@@ -129,6 +137,20 @@ public partial class ItemsDemo : Control
         At(8.4, () => Click(MouseButton.Left, shift: true));
         At(8.6, () => Go(new Place(Spec.Machines.Get("furnace").FuelSlot!.Value, FurnaceId())));
         At(9.2, () => Press(Key.Escape));
+        // The stash (2026-11-06-quick-stash), back by the crate: Alt shows the star by the pointer, Alt+click keeps the planks;
+        // closed, ] stashes the canisters into the crate, which holds one; the bag opened again shows the planks starred.
+        At(9.4, () => Walk(Key.A, h => Column(h) <= 6));
+        At(10.0, () => Press(Key.Tab));
+        At(10.1, () => Go(Inv(25)));
+        At(10.4, () => Hold(Key.Alt, true));
+        At(10.8, () => Click(MouseButton.Left, alt: true));
+        At(11.2, () => Hold(Key.Alt, false));
+        At(11.3, () => Press(Key.Tab));
+        At(11.5, () => Press(Key.Bracketright));
+        At(12.3, () => Press(Key.Tab));
+        At(12.4, () => Go(Inv(30)));
+        At(13.2, () => Press(Key.Tab));
+        At(13.3, () => Walk(Key.D, h => Column(h) >= 12));
         // A stack thrown with Q, the way the hero faces; then back to the crate.
         At(14.2, () => Press(Key.Key2));
         At(14.3, () => Press(Key.Q));
@@ -203,23 +225,27 @@ public partial class ItemsDemo : Control
         DrawPolyline([.. arrow, _pos], Colors.Black, 1);
     }
 
-    private void Click(MouseButton button, bool shift = false)
+    private void Click(MouseButton button, bool shift = false, bool alt = false)
     {
-        Button(button, true, shift);
-        Button(button, false, shift);
+        Button(button, true, shift, alt);
+        Button(button, false, shift, alt);
     }
 
-    private void Button(MouseButton button, bool pressed, bool shift = false) =>
+    private void Button(MouseButton button, bool pressed, bool shift = false, bool alt = false) =>
         Input.ParseInputEvent(new InputEventMouseButton
         {
             ButtonIndex = button,
             Pressed = pressed,
             ShiftPressed = shift,
+            AltPressed = alt,
             Position = _pos,
             GlobalPosition = _pos,
         });
 
     private void Wheel(MouseButton wheel) => Button(wheel, true);
+
+    private static void Hold(Key key, bool down) =>
+        Input.ParseInputEvent(new InputEventKey { Keycode = key, PhysicalKeycode = key, Pressed = down });
 
     private static void Press(Key key)
     {

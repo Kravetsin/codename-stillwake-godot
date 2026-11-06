@@ -21,6 +21,8 @@ public enum Bind
     Inventory,
     /// <summary>Drops the chosen slot's stack with a hand free; picks what is pointed at while building.</summary>
     Drop,
+    /// <summary>The bag into the crates in reach that hold its items (2026-11-06-quick-stash).</summary>
+    Stash,
     Build,
     Search,
     ModeBuild,
@@ -54,6 +56,7 @@ public sealed partial class Binds
         [Bind.Suit] = "V",
         [Bind.Inventory] = "Tab",
         [Bind.Drop] = "G",
+        [Bind.Stash] = "Bracketright",
         [Bind.Build] = "B",
         [Bind.Search] = "Slash",
         [Bind.ModeBuild] = "Z",
