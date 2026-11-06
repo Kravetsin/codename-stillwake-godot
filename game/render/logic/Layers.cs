@@ -59,41 +59,42 @@ public static class Layers
     /// <summary>Creatures (creatures, 0102): with the stacks, under the heroes and what they hold.</summary>
     public const int Creatures = FloorItems;
 
-    /// <summary>Fire in a furnace's mouth, under a hero standing before it (furnace).</summary>
-    public const int Fire = 10;
-
     /// <summary>
-    /// Heat shimmer (0075), with the fire: one copy of the screen, then every shimmer, then the flames. After the
-    /// world, before the aim's outline, the plans and every mark, which it must never copy.
+    /// Heat shimmer (0075): one copy of the screen, then every shimmer, all at this z. After the world, before the flames, the
+    /// aim's outline, the plans and every mark, which it must never copy: sharing a z, tree order would decide, and a flame
+    /// drawn before a later fire's shimmer was wiped by it.
     /// </summary>
-    public const int Shimmer = Fire;
+    public const int Shimmer = 10;
+
+    /// <summary>Fire in a furnace's mouth, its haze and embers, over every shimmer, under a hero standing before it (furnace).</summary>
+    public const int Fire = 11;
 
     // The plan (building): blueprints and their marks and bars, over the world and under the heroes, who stand before them (driver-order).
-    public const int Plans = 11, PlanMarks = 12;
+    public const int Plans = 12, PlanMarks = 13;
 
     // The crew: what E would work outlined, every tether, others' heroes, then this machine's.
-    public const int Aim = 13, Tethers = 14, OtherHeroes = 15, Hero = 16;
+    public const int Aim = 14, Tethers = 15, OtherHeroes = 16, Hero = 17;
 
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
-    public const int Drones = 17;
+    public const int Drones = 18;
 
     /// <summary>
     /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
     /// so a drill held close never hides what it bites.
     /// </summary>
-    public const int Dug = 17;
+    public const int Dug = 18;
 
     /// <summary>
     /// The tufts and chips of a planet's living edge laid before the heroes' feet (0082), thin enough that boots stand on the ground,
     /// not in it; with the cracks, which lie in the cell below.
     /// </summary>
-    public const int GroundFront = 17;
+    public const int GroundFront = 18;
 
     /// <summary>A lit lamp's glow, over what it lights (light).</summary>
-    public const int Glows = 18;
+    public const int Glows = 19;
 
     /// <summary>A venting room's pulse (atmosphere).</summary>
-    public const int Pulse = 19;
+    public const int Pulse = 20;
 
     // The plan (building): the ghost of a drag and the hands at work, over the heroes.
     public const int PlanGhost = 21, PlanHands = 22;
