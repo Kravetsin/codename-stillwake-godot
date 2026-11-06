@@ -733,8 +733,8 @@ public class CreaturesTests
     [Fact]
     public void NoHerosKeepBoxGetsMoreThanItsShareFromSpawningNorTheSurfaceMoreThanItsCap()
     {
-        // Three heroes far apart, their keep boxes apart: each fills its share and no more.
-        var w = CreaturesTesting.Planet(Wide(1200, 12)).Breathing();
+        // Three heroes far apart, their keep boxes apart: each gets a herd on either side, kept apart, and no more than its share.
+        var w = CreaturesTesting.Planet(Wide(2100, 12)).Breathing();
         for (int h = 0; h < 3; h++) w.HeroAt(100 + 200 * h, 10, peer: h);
         void Settle()
         {
@@ -746,12 +746,93 @@ public class CreaturesTests
         }
         int InKeep(int h) => w.M.Creatures.Creatures.Count(c => Math.Abs(c.X / Unit - 2 * (100 + 200 * h)) <= Tune.Keep.X);
         Settle();
-        Assert.Equal([Tune.PerKeep, Tune.PerKeep, Tune.PerKeep], Enumerable.Range(0, 3).Select(InKeep));
-        // Three more: six shares of ten would pass the cap of forty.
-        for (int h = 3; h < 6; h++) w.HeroAt(100 + 200 * h, 10, peer: h);
+        Assert.All(Enumerable.Range(0, 3), h => Assert.InRange(InKeep(h), 2 * Tune.HerdLeast, Tune.PerKeep));
+        // Seven more: ten shares of four or more would pass the cap of forty, which no herd passes, the least of them fitting.
+        for (int h = 3; h < 10; h++) w.HeroAt(100 + 200 * h, 10, peer: h);
         Settle();
-        Assert.Equal(Tune.Max, w.M.Creatures.Creatures.Count);
-        Assert.All(Enumerable.Range(0, 6), h => Assert.True(InKeep(h) <= Tune.PerKeep));
+        Assert.InRange(w.M.Creatures.Creatures.Count, Tune.Max - Tune.HerdLeast + 1, Tune.Max);
+        Assert.All(Enumerable.Range(0, 10), h => Assert.True(InKeep(h) <= Tune.PerKeep));
+    }
+
+    [Fact]
+    public void CreaturesSpawnInHerdsOfTwoToFourOfOneKindSpacedOutwardFromTheHero()
+    {
+        // The user's rule (playtest 2026-11-06): small herds of one kind. Each herd taken away as it comes, so many come.
+        var w = CreaturesTesting.Planet(Wide(400, 12)).Breathing().HeroAt(200, 10);
+        int hero = 2 * 200, herds = 0;
+        var kinds = new HashSet<string>(StringComparer.Ordinal);
+        for (int t = 0; t < 200 * Tune.Beat; t++)
+        {
+            w.Run();
+            var herd = w.M.Creatures.Creatures;
+            if (herd.Count == 0) continue;
+            herds++;
+            Assert.InRange(herd.Count, Tune.HerdLeast, Tune.HerdMost);
+            Assert.Single(herd.Select(c => c.Species).Distinct());
+            int width = Tune.Get(herd[0].Species).Body.Width;
+            var lefts = herd.Select(c => c.X / Unit - width / 2).ToList();
+            int way = lefts[0] > hero ? 1 : -1;
+            // The first just past the view by its near edge, each next one further out.
+            Assert.InRange(way > 0 ? lefts[0] - hero : hero - (lefts[0] + width - 1), Tune.RingFrom, Tune.RingTo);
+            for (int i = 1; i < lefts.Count; i++) Assert.Equal(lefts[i - 1] + way * Tune.Spacing, lefts[i]);
+            kinds.Add(herd[0].Species);
+            ((CreaturesState)w.M.Creatures.Slice).Creatures.Clear();
+        }
+        Assert.True(herds > 50, $"{herds} herds");
+        Assert.Equal(3, kinds.Count);
+    }
+
+    [Theory]
+    [InlineData(5, 0, 5)] // Five by the hero: no room for the least herd.
+    [InlineData(4, 0, 6)] // Four: room only for a herd of two, which comes.
+    [InlineData(0, 65, 2)] // One on either side where herds come: none comes within Apart of it.
+    public void AHerdComesWholeWithRoomForAllOfItAndAwayFromEveryCreature(int byHero, int ring, int after)
+    {
+        var w = CreaturesTesting.Planet(Wide(400, 12)).Breathing().HeroAt(200, 10);
+        for (int i = 0; i < byHero; i++) w.Loper(195 + 2 * i, 10).Still();
+        if (ring > 0)
+        {
+            w.Loper(200 + ring, 10).Still();
+            w.Loper(200 - ring, 10).Still();
+        }
+        w.Run(50 * Tune.Beat);
+        Assert.Equal(after, w.M.Creatures.Creatures.Count);
+    }
+
+    [Fact]
+    public void AGrazerFarFromItsKindWandersTowardItNearItOrAloneWhicheverWayItDraws()
+    {
+        // Two lopers 160 cells apart, and a tapir with none of its kind about; nothing spawns.
+        var w = CreaturesTesting.Planet(Wide(260, 8), CreaturesTesting.Lifeless).Breathing().HeroAt(130, 6);
+        var (a, b, tapir) = (w.Loper(60, 6), w.Loper(140, 6), w.Let(Tune.Tapir, 180, 6));
+        var was = new Dictionary<int, Posture>();
+        int toward = 0, nearAway = 0, tapirLeft = 0, tapirRight = 0;
+        for (int t = 0; t < 4000; t++)
+        {
+            w.Run();
+            foreach (var c in new[] { a, b, tapir })
+            {
+                bool began = c.Posture == Posture.Wander && was.GetValueOrDefault(c.Id) == Posture.Idle;
+                was[c.Id] = c.Posture;
+                if (!began) continue;
+                if (c == tapir)
+                {
+                    if (c.VX < 0) tapirLeft++;
+                    else tapirRight++;
+                    continue;
+                }
+                var kin = c == a ? b : a;
+                bool goesToward = Math.Sign(c.VX) == Math.Sign(kin.X - c.X);
+                if (Math.Abs(kin.X - c.X) > Tune.Herd * Unit)
+                {
+                    Assert.True(goesToward, $"tick {w.World.Tick}: loper {c.Id} wandered away from its kind {Math.Abs(kin.X - c.X) / Unit} cells off");
+                    toward++;
+                }
+                else if (!goesToward) nearAway++;
+            }
+        }
+        Assert.True(toward > 0 && nearAway > 0 && tapirLeft > 0 && tapirRight > 0, $"{toward} toward, {nearAway} away near, tapir {tapirLeft} left {tapirRight} right");
+        Assert.True(Math.Abs(a.X - b.X) <= 3 * Tune.Herd * Unit, $"the lopers {Math.Abs(a.X - b.X) / Unit} cells apart");
     }
 
     [Fact]
@@ -856,10 +937,12 @@ public class CreaturesTests
                 Assert.True(h.Weight > 0);
                 Assert.InRange(h.Band, 0, type.Bands.Count);
             });
-        // Spawned past every view, inside the keep box, which lies inside the hard box.
-        Assert.True(Tune.RingFrom > Tune.View.X && Tune.RingTo + Tune.All.Max(s => s.Body.Width) <= Tune.Keep.X);
+        // Spawned past every view, the farthest of a herd inside the keep box, which lies inside the hard box.
+        Assert.True(Tune.RingFrom > Tune.View.X && Tune.RingTo + (Tune.HerdMost - 1) * Tune.Spacing + Tune.All.Max(s => s.Body.Width) <= Tune.Keep.X);
         Assert.True(Tune.Keep.X < Tune.Hard.X && Tune.Keep.Y < Tune.Hard.Y && Tune.View.Y < Tune.Keep.Y);
-        Assert.True(Tune.PerKeep <= Tune.Max);
+        // A herd's members apart yet each born within the pull's reach of the next; its largest fits a hero's share, which fits the surface.
+        Assert.True(Tune.Spacing > Tune.All.Max(s => s.Body.Width) && Tune.Spacing <= Tune.Herd);
+        Assert.True(0 < Tune.HerdLeast && Tune.HerdLeast <= Tune.HerdMost && Tune.HerdMost <= Tune.PerKeep && Tune.PerKeep <= Tune.Max);
     }
 
     [Fact]

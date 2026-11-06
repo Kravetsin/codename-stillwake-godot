@@ -245,8 +245,17 @@ public static class Creatures
     /// <summary>Spawns come on this beat, the module's clock a multiple of it: every 2 s.</summary>
     public const int Beat = 40;
 
-    /// <summary>No spawn for a hero whose keep box holds this many creatures already.</summary>
-    public const int PerKeep = 10;
+    /// <summary>Wild creatures come as a herd of one kind (creatures-in-herds), this many to that many, so many columns apart.</summary>
+    public const int HerdLeast = 2, HerdMost = 4, Spacing = 6;
+
+    /// <summary>No herd comes within this many cells of a creature already there, either way: herds keep apart.</summary>
+    public const int Apart = 32;
+
+    /// <summary>A grazer more than this many columns from the nearest of its kind wanders toward it: a herd keeps together.</summary>
+    public const int Herd = 16;
+
+    /// <summary>No herd for a hero whose keep box would hold more than this many creatures with it: about two herds.</summary>
+    public const int PerKeep = 6;
 
     /// <summary>At most this many creatures on a surface.</summary>
     public const int Max = 40;
@@ -255,10 +264,10 @@ public static class Creatures
     public static readonly HalfBox View = Debris.View;
 
     /// <summary>
-    /// A spawn's column is this many columns either side of a hero's reported one, a draw between the two: just past the view, so
-    /// what spawns is never seen to appear, and inside the keep box.
+    /// A herd's first column is this many columns either side of a hero's reported one, a draw between the two, the rest going
+    /// outward: just past the view, so what spawns is never seen to appear, and the farthest inside the keep box.
     /// </summary>
-    public const int RingFrom = 124, RingTo = 152;
+    public const int RingFrom = 124, RingTo = 136;
 
     /// <summary>A creature in some hero's keep box is seen; out of every one it is gone <see cref="Linger"/> after it was last seen, and at once out of every hard box.</summary>
     public static readonly HalfBox Keep = new(160, 96), Hard = new(220, 128);

@@ -1,6 +1,6 @@
 # 0102 — Creatures live in the sim
 
-- Status: accepted; slices 1 (the sim), 2 (the client) and 3 (four kinds in the looks the user picked) built; its creature's mode and the species as one flat record superseded by [2026-10-26-creatures-are-composed](2026-10-26-creatures-are-composed.md)
+- Status: accepted; slices 1 (the sim), 2 (the client) and 3 (four kinds in the looks the user picked) built; its creature's mode and the species as one flat record superseded by [2026-10-26-creatures-are-composed](2026-10-26-creatures-are-composed.md); its spawning one at a time superseded by [2026-11-06-creatures-in-herds](2026-11-06-creatures-in-herds.md)
 - Date: 2026-10-22
 - Design: `designs/creatures.md` (the session's scratchpad), its review and the user's decisions, which override its top
 
