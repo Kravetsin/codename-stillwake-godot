@@ -1,6 +1,6 @@
 # The salvage tools
 
-- Status: accepted
+- Status: accepted; the grinder's draw of 4 and the cutter's of 2 amended to 2 and 1 by [lighter-tools](2026-11-06-lighter-tools.md)
 - Date: 2026-11-04
 
 ## Context

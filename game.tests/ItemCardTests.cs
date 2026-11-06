@@ -296,17 +296,17 @@ public class ItemCardTests
         var plain = With(true).TipOf(new Stack(drill, 1)).Card!;
         var fitted = With(true).TipOf(new Stack(drill, 1, Module: arc)).Card!;
         var stats = ToolStats.Of(new Stack(drill, 1, Module: arc));
-        // Every number is the fold's, the one the sim hits and draws by: 20 a second, 2 a hit, every 0.1 s, 6 a tick.
+        // Every number is the fold's, the one the sim hits and draws by: 20 a second, 2 a hit, every 0.1 s, 2 a tick.
         Assert.Equal(ItemCards.Number(stats.Damage * (double)World.TicksPerSecond / stats.Pace), fitted.Tiles![0].Value);
         Assert.Equal(stats.Damage.ToString(), fitted.Tiles[1].Value);
         Assert.Equal(stats.Draw, fitted.Draw);
         var up = new CardBoost("arc", true, "×2");
         Assert.Equal([new CardTile("20", "DPS", up), new CardTile("2", "DMG", up), new CardTile("8", "BLOCK", up), new CardTile("0.1s", "HIT")], fitted.Tiles);
-        Assert.Equal((6, up), (fitted.Draw, fitted.DrawBoost));
+        Assert.Equal((2, up), (fitted.Draw, fitted.DrawBoost));
         Assert.Equal([arc], fitted.Fitted);
-        // The plain drill's, unmarked: no stale draw of 3 on the fitted one, nor a mark on the plain.
+        // The plain drill's, unmarked: no stale draw of 1 on the fitted one, nor a mark on the plain.
         Assert.Equal([new CardTile("10", "DPS"), new CardTile("1", "DMG"), new CardTile("4", "BLOCK"), new CardTile("0.1s", "HIT")], plain.Tiles);
-        Assert.Equal((3, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
+        Assert.Equal((1, (CardBoost?)null), (plain.Draw, plain.DrawBoost));
         Assert.Empty(plain.Fitted);
         Assert.Null(fitted.Tech);
         Assert.NotEqual(plain, fitted);
@@ -319,19 +319,19 @@ public class ItemCardTests
     public void FoldTwoModulesStatsSummedOnceAndMarkEachNumberByHowItMoved()
     {
         string drill = Spec.Weapons.Drill.Item;
-        // Summed, then applied once: damage 1 × (1000 + 1000 + 500) / 1000 = 2.5, down to 2; draw 3 × 1750 / 1000 = 5.25, up to 6.
-        Assert.Equal(new ToolStats(2, 2, 6), ToolStats.Of(drill, [Spec.Modules.Arc, Fake]));
-        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(drill, [Fake]));
-        Assert.Equal(new ToolStats(1, 2, 3), ToolStats.Of(drill, []));
+        // Summed, then applied once: damage 1 × (1000 + 1000 + 500) / 1000 = 2.5, down to 2; draw 1 × 1750 / 1000 = 1.75, up to 2.
+        Assert.Equal(new ToolStats(2, 2, 2), ToolStats.Of(drill, [Spec.Modules.Arc, Fake]));
+        Assert.Equal(new ToolStats(1, 2, 1), ToolStats.Of(drill, [Fake]));
+        Assert.Equal(new ToolStats(1, 2, 1), ToolStats.Of(drill, []));
         // On the axe, 2 × 1500 / 1000 = 3, a gain alone: it draws nothing.
         Assert.Equal(new ToolStats(3, 10, 0), ToolStats.Of(Spec.Weapons.Axe.Item, [Fake]));
         var card = ItemCards.Fitted(ItemCards.Of(Spec.Weapons.Axe.Item), [Fake]);
         Assert.Equal([new CardTile("6", "DPS", new CardBoost("arc", true, "×1.5")), new CardTile("3", "DMG", new CardBoost("arc", true, "×1.5")), new CardTile("6", "BLOCK", new CardBoost("arc", true, "×1.5")), new CardTile("0.5s", "HIT")], card.Tiles);
         Assert.Null(card.Draw);
-        // A cost that falls is marked down.
-        var lighter = ItemCards.Fitted(ItemCards.Of(drill), [new Spec.ModuleSpec("lighter", "arc", [new(["drill"], [new Spec.Trade(Spec.Stat.Draw, -500)])])]);
-        Assert.Equal((2, new CardBoost("arc", false, "×0.7")), (lighter.Draw!.Value, lighter.DrawBoost!));
-        Assert.Equal(ItemCards.Of(drill).Tiles, lighter.Tiles);
+        // A cost that falls is marked down: the grinder's, as the drill's 1 cannot fall.
+        var lighter = ItemCards.Fitted(ItemCards.Of(Spec.Weapons.Grinder.Item), [new Spec.ModuleSpec("lighter", "arc", [new([Spec.Weapons.Grinder.Item], [new Spec.Trade(Spec.Stat.Draw, -500)])])]);
+        Assert.Equal((1, new CardBoost("arc", false, "×0.5")), (lighter.Draw!.Value, lighter.DrawBoost!));
+        Assert.Equal(ItemCards.Of(Spec.Weapons.Grinder.Item).Tiles, lighter.Tiles);
     }
 
     [Fact]

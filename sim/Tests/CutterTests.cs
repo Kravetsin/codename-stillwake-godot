@@ -144,16 +144,16 @@ public class CutterTests
     }
 
     [Fact]
-    public void TheArcGrinderDealsSixAndDrawsEight()
+    public void TheArcGrinderDealsSixAndDrawsFour()
     {
         var w = Wreck(5).Do(new SetCreative(false)).Run();
         var grinder = new Stack(Weapons.Grinder.Item, 1, Module: Stillwake.Content.Modules.Arc.Item);
         w.Put(0, grinder).Put(Belt, new Stack("battery", 1, Stillwake.Content.Charge.Battery));
-        Assert.Equal((6, 8), (w.M.Items.Damage(0, Weapons.Grinder.Item), ToolStats.Of(grinder).Draw));
+        Assert.Equal((6, 4), (w.M.Items.Damage(0, Weapons.Grinder.Item), ToolStats.Of(grinder).Draw));
         Hits(w, Weapons.Grinder.Item, 1).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(6, w.M.Debris.Pieces[0].Damage);
-        Assert.Equal(Stillwake.Content.Charge.Battery - 8 * Stillwake.Content.Charge.Scale, w.M.Items.Inventory(0)[Belt]!.Charge);
+        Assert.Equal(Stillwake.Content.Charge.Battery - 4 * Stillwake.Content.Charge.Scale, w.M.Items.Inventory(0)[Belt]!.Charge);
     }
 
     // What always holds.

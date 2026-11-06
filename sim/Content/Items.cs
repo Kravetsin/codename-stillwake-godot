@@ -208,13 +208,14 @@ public static class Items
         new("nailer", 1, Gear: true, Group: ItemGroup.Tool),
         // A gun of a sky shard (2026-10-27-the-railgun): a nail a shot and the belt's charge for it.
         new("railgun", 1, Gear: true, Group: ItemGroup.Tool),
-        // Electric: draws from the belt's batteries while it drills (0053, 0054).
-        new("drill", 1, Draw: 3, Gear: true, Group: ItemGroup.Tool),
+        // Electric: draws from the belt's batteries while it drills (0053, 0054); 1, so a battery lasts it 90 s (lighter-tools).
+        new("drill", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
         // Electric: a builder working a 2×2 square while the belt pays its draw, one cell flat (power-driver).
         new("powerDriver", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
-        // The salvage tools (salvage-tools): two electric, run as the drill is; two swung or thrust.
-        new("grinder", 1, Draw: 4, Gear: true, Group: ItemGroup.Tool),
-        new("plasmaCutter", 1, Draw: 2, Gear: true, Group: ItemGroup.Tool),
+        // The salvage tools (salvage-tools): two electric, run as the drill is; two swung or thrust. The grinder draws
+        // twice the drill, its price for three times the drill on wrecks (lighter-tools).
+        new("grinder", 1, Draw: 2, Gear: true, Group: ItemGroup.Tool),
+        new("plasmaCutter", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
         new("spear", 1, Gear: true, Group: ItemGroup.Tool),
         new("sledgehammer", 1, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
