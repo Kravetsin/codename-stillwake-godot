@@ -125,6 +125,9 @@ public partial class HeroView
         // Sent before this frame's hits, so the host applies the run first: a hit of the drill needs it.
         if (Motor.RunOf(m.Items, client.Id, running) is { } run) client.Send(run);
         bool runs = running != null && running == drill;
+        // A press of an electric tool the belt cannot pay blinks the energy tab red, so a flat belt is seen (no-charge-flash).
+        if (clicked && !grab && (_aimsDrill ? Motor.Flat(m.Items, client.Id, drill) : acts && pointer != null && Motor.Flat(m.Items, client.Id, driver?.Item)))
+            _ui.PressFlat();
         Drill(client, m, runs ? edged : null, drill);
         // The power driver running: its chuck turns at its work, and its motor is heard there; flat, the wrist twists it (power-driver).
         bool drives = HeldLook.Drives(running);

@@ -10,7 +10,8 @@ namespace Stillwake.Game.Features.Energy;
 /// The energy tab at the gauge row's right end (0053, 0081, energy-ring): the belt's charge in power units ("4 300"), never
 /// seconds, counting down evenly between reads (<see cref="EnergyCount"/>); round the bolt a ring of the belt's stores
 /// (<see cref="EnergyRing"/>); the bolt beating while a tool draws and throwing discharges onto the frame
-/// (<see cref="BoltPulse"/>). Amber and pulsing while the belt runs low, dim with none worn. Read four times a second.
+/// (<see cref="BoltPulse"/>). Amber and pulsing while the belt runs low, dim with none worn; a press of a tool it cannot pay
+/// blinks it red (<see cref="FlatBlink"/>). Read four times a second.
 /// </summary>
 public partial class EnergyBar : CanvasLayer
 {
@@ -32,6 +33,7 @@ public partial class EnergyBar : CanvasLayer
         }
         Place();
         ui.SlotScale.Subscribe(Place);
+        ui.PressedFlat += _tab.Blink.Press;
         Layer = ScreenLayers.Hud;
         AddChild(_tab);
         _tab.Visible = false;
@@ -67,6 +69,8 @@ public partial class EnergyBar : CanvasLayer
         private static readonly Rect2 BoltAt = new(9, 6, 14, 18);
         private static readonly Vector2 Centre = BoltAt.GetCenter();
         // What a discharge burns in and how its core and the light it strikes look.
+        /// <summary>The red a press of a flat belt blinks.</summary>
+        private static readonly Color Flat = new(1, 70 / 255f, 60 / 255f);
         private static readonly Color Ember = new(1, 140 / 255f, 45 / 255f), Hot = new(1, 190 / 255f, 90 / 255f), Current = new(1, 248 / 255f, 225 / 255f);
         private static readonly GradientTexture2D Soft = new()
         {
@@ -81,6 +85,7 @@ public partial class EnergyBar : CanvasLayer
         private readonly NinePatchRect _frame = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);
         private readonly Light _light = new();
         private double _clock;
+        private Vector2 _at;
 
         public Tab()
         {
@@ -93,12 +98,13 @@ public partial class EnergyBar : CanvasLayer
         public EnergyCount Count { get; } = new();
         public EnergyRing Ring { get; } = new();
         public BoltPulse Pulse { get; } = new((BoltAt.Position.X, BoltAt.Position.Y, BoltAt.Size.X, BoltAt.Size.Y), Look.TabHeight, new Random());
+        public FlatBlink Blink { get; } = new();
         public bool Low { get; set; }
         public float Bright { get; set; } = 1;
 
         public void Place(Vector2 at, int width)
         {
-            Position = at;
+            Position = _at = at;
             Size = new Vector2(width, Look.TabHeight);
             _light.Size = Size;
             WristArt.Fit(_frame, WristPieces.Gauge, Size);
@@ -110,19 +116,25 @@ public partial class EnergyBar : CanvasLayer
             Count.Step(delta);
             Ring.Step(delta);
             Pulse.Step(delta);
+            Blink.Step(delta);
+            var (jx, jy) = Blink.Jolt;
+            Position = _at + new Vector2(jx, jy);
             QueueRedraw();
             _light.QueueRedraw();
         }
 
         private Color Tone(float alpha = 1)
         {
-            float pulse = Low ? WristGauge.Pulse(_clock) : 1;
-            return AsciiArt.Colour(Low ? Look.EnergyLow : Look.Energy) with { A = alpha * pulse * Bright };
+            float pulse = Low ? WristGauge.Pulse(_clock) : 1, red = (float)Blink.Red;
+            var tone = AsciiArt.Colour(Low ? Look.EnergyLow : Look.Energy).Lerp(Flat, red);
+            // A blink burns at full, dim belt or not.
+            return tone with { A = alpha * Mathf.Lerp(pulse * Bright, 1, red) };
         }
 
         public override void _Draw()
         {
             WristArt.DrawScreen(this, Size, WristArt.Screen, glare: false);
+            if (Blink.Red > 0) DrawRect(new Rect2(Vector2.Zero, Size), Flat with { A = 0.3f * (float)Blink.Red });
             DrawRingArcs();
             DrawBolt();
             var groups = Charges.Grouped((int)Math.Round(Count.Value)).Split(Charges.Thin);
@@ -167,6 +179,7 @@ public partial class EnergyBar : CanvasLayer
                 DrawTextureRect(Bolt, BoltAt, false, white);
                 if (bright < 1) DrawTextureRect(Bolt, BoltAt, false, Colors.Black with { A = (float)(1 - bright) * 0.8f * Bright });
             }
+            if (Blink.Red > 0) DrawTextureRect(Dark, BoltAt, false, Colors.White with { A = (float)Blink.Red });
             DrawSetTransform(Vector2.Zero);
         }
 
@@ -177,6 +190,12 @@ public partial class EnergyBar : CanvasLayer
         private void DrawLight(Control on)
         {
             var (lit, _) = Pulse.Look();
+            if (Blink.Red > 0)
+            {
+                float red = (float)Blink.Red;
+                Glow(on, Centre, 16, Flat with { A = 0.85f * red });
+                on.DrawRect(new Rect2(1, 1, Size.X - 2, Size.Y - 2), Flat with { A = 0.7f * red }, false, 2);
+            }
             double kindle = Pulse.Kindle is double k ? 0.35 * (1 - k / BoltPulse.KindleS) : 0;
             float halo = lit ? (float)Math.Clamp(0.05 + 0.16 * Pulse.Beat * Pulse.Level + kindle + Pulse.Flare, 0, 0.8) : 0;
             on.DrawSetTransform(Jolt);

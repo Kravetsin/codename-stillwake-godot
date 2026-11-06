@@ -374,6 +374,14 @@ public sealed class Ui
     public void Refill() => Refilled?.Invoke();
 
     /// <summary>
+    /// This player pressed an electric tool or the railgun its belt cannot pay (no-charge-flash): <c>crew</c> says so, once a
+    /// press; the energy tab blinks red.
+    /// </summary>
+    public event Action? PressedFlat;
+
+    public void PressFlat() => PressedFlat?.Invoke();
+
+    /// <summary>
     /// The UI's click asked for (0081): an inventory action (a stack picked, put, swapped, split, sent across, dropped, a
     /// hotbar slot chosen, a sort), a canister breathed. The sound feature plays it, once a frame at most.
     /// </summary>

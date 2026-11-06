@@ -46,12 +46,14 @@ public partial class HeroView
         (int X, int Y)? muzzle = null;
         int heading = 0;
         Content.Projectile? ammo = null;
+        bool flat = false;
         if (wields && gun != null && _figure.Muzzle is { } at)
         {
             var (x, y) = Thousandths(at);
             var from = new Point((int)x, (int)y);
             heading = Aiming.HeadingOf(from, new Point(from.X + (int)(_figure.Barrel.X * Hero.Unit), from.Y + (int)(_figure.Barrel.Y * Hero.Unit)));
             string? problem = m.Creatures.FireProblem(client.Id, gun.Item, from.X, from.Y);
+            flat = problem == "items.flat";
             if (problem is null or "items.notEnough" or "items.flat")
                 (muzzle, ammo) = ((from.X, from.Y), problem == "items.flat" ? null : m.Creatures.AmmoOf(client.Id, gun));
         }
@@ -64,7 +66,11 @@ public partial class HeroView
             (fire.Tool == Content.Shots.Railgun.Item ? _railShot : _nailShot).Play();
             Puff(_figure);
         }
-        if (step.Dry) _dryClick.Play();
+        if (step.Dry)
+        {
+            _dryClick.Play();
+            if (flat) _ui.PressFlat();
+        }
         if (step.Ready && gun?.Charge == 0) _nailReady.Play();
         Charge(step);
         int tick = client.World.Tick;
