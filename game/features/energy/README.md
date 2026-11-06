@@ -26,7 +26,8 @@ belt's stores hold and whether a tool is drawing on them. It reads the sim throu
   a tick of its draw, as the sim pays; its arc is lit, a glint running back along it while drawing, the rest dim. A store
   put on fills its arc in; when draining passes to the next store a spark hops along the ring there.
 - **The bolt** beats while a tool draws, ten beats a second a power unit of its draw, a current running down it; a beat
-  throws a thin discharge onto the frame one time in twelve, the grinder's (a draw over 1) one in seven, wider and forked.
+  jolts it up to 0.7 px off its place (the grinder's 1.2 px), settling as the beat fades, so it rattles; a beat
+  throws a thin discharge onto the frame one time in four, the grinder's (a draw over 1) nearly one in two, wider and forked.
   Low, a beat now and then fails and discharges halve. Going flat it sputters out to the dark bolt; a store put on
   kindles it from its tip.
 - **Colour:** charge's green, amber and pulsing under a quarter of what the worn stores hold; everything at

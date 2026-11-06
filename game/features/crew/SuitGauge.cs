@@ -9,7 +9,8 @@ using S = Stillwake.Game.Sound;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// The suit without a word (SuitGauge.tsx, 0081): a segmented gauge under the cuff, the canister for its label. A suit
+/// The suit without a word (SuitGauge.tsx, 0081): a segmented gauge under the cuff, the oxygen sign for its label, red and
+/// pulsing while the suit runs low as the beep sounds (<see cref="Danger.Low"/>). A suit
 /// running low out of room air fogs the visor, its last lamp dimming with each breath (<see cref="VisorFog"/>; the last
 /// breath and passing out darken it in <see cref="TunnelView"/>), and beeps softly every <see cref="S.AlarmEveryS"/>,
 /// silent once passed out; out of danger the fog evaporates. Reads the sim four times a second, never every frame; the
@@ -22,9 +23,9 @@ public partial class SuitGauge : CanvasLayer
 
     private readonly Func<(int Air, int Capacity, SuitDanger Danger, bool InAir)> _read;
     private readonly WristGauge _gauge = new(
-        // The oxygen sign the rooms' air is read by (tip-signs), as tall as the energy tab's bolt beside it.
+        // The oxygen sign the rooms' air is read by (tip-signs), as tall as the energy tab's bolt beside it; red while low.
         Signs.Of(Sign.Oxygen), new Rect2(4, 4, 22, 22), Look.SuitMeterLeft, Look.SuitCells,
-        AsciiArt.Colour(Look.Suit));
+        AsciiArt.Colour(Look.Suit), Signs.Of(Sign.Oxygen, bad: true));
     private readonly VisorFog _fog = new();
     private readonly VisorFogView _fogView = new();
     private double _sinceRead = RefreshS;
@@ -75,6 +76,7 @@ public partial class SuitGauge : CanvasLayer
             else _gauge.Motion.Read((double)suit / capacity, Math.Max(WristLook.BigDrop, (CrewSpec.Exerted + CrewSpec.BareCold + 0.5) / capacity));
             _capacity = capacity;
             _fog.Read(_danger, (double)suit / capacity);
+            _gauge.Short = _danger != SuitDanger.None;
             if (again)
             {
                 _gauge.Wave();

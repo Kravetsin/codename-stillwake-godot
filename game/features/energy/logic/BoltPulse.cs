@@ -22,7 +22,7 @@ public sealed class Discharge
 
 /// <summary>
 /// The energy tab's bolt while charge flows (energy-ring, as picked): it beats with the tool, ten beats a second a power unit of
-/// draw, a current running down it; now and then a beat throws a thin discharge onto the frame, the grinder's more often and
+/// draw, a current running down it; a beat jolts it a pixel off its place, and often throws a thin discharge onto the frame, the grinder's more often and
 /// forked. When the belt goes flat it sputters out; a store put on kindles it from below. Plain C#, its randomness the client's.
 /// </summary>
 public sealed class BoltPulse
@@ -32,7 +32,9 @@ public sealed class BoltPulse
     /// <summary>How long a beat's light takes to fade, a sputter to go dark and a kindling to burn up.</summary>
     public const double BeatS = 0.07, SputterS = 0.75, KindleS = 1.2;
     /// <summary>The chance a beat throws a discharge: a draw of 1 and of more; halved while low.</summary>
-    public const double ArcChance = 0.08, HarshArcChance = 0.15;
+    public const double ArcChance = 0.25, HarshArcChance = 0.45;
+    /// <summary>How far a beat jolts the bolt off its place, in tab pixels at most: a draw of 1 and of more; it settles as the beat fades.</summary>
+    public const float JoltPx = 0.7f, HarshJoltPx = 1.2f;
 
     private readonly Random _random;
     private readonly (float X, float Y, int Side)[] _from;
@@ -41,6 +43,7 @@ public sealed class BoltPulse
     private double _beats, _speed, _reshape;
     private int _draw, _units = -1;
     private bool _low;
+    private (float X, float Y) _jolt;
 
     /// <param name="bolt">The bolt's place in the tab, its corner and size.</param>
     /// <param name="height">The tab's height: discharges strike its frame, left, top or bottom.</param>
@@ -67,6 +70,8 @@ public sealed class BoltPulse
     public bool Dead { get; private set; }
     /// <summary>The discharges on the frame now.</summary>
     public IReadOnlyList<Discharge> Arcs => _arcs;
+    /// <summary>Where a beat threw the bolt, in tab pixels; scaled by <see cref="Beat"/>, it rattles while drawing and rests at none.</summary>
+    public (float X, float Y) Jolt => ((float)(_jolt.X * Beat), (float)(_jolt.Y * Beat));
     /// <summary>What the discharges add to the bolt's halo.</summary>
     public double Flare { get; private set; }
 
@@ -90,6 +95,8 @@ public sealed class BoltPulse
             // Low, a beat now and then fails to land.
             if (_low && _random.NextDouble() < 0.3) continue;
             Beat = _draw > 1 ? 0.85 : 1;
+            float jolt = _draw > 1 ? HarshJoltPx : JoltPx;
+            _jolt = (Range(-jolt, jolt), Range(-jolt, jolt));
             double chance = (_draw > 1 ? HarshArcChance : ArcChance) * (_low ? 0.5 : 1);
             if (_random.NextDouble() < chance) Throw(_draw > 1, _low ? 0.6f : 1);
         }
@@ -147,7 +154,7 @@ public sealed class BoltPulse
         }
         _arcs.RemoveAll(a => a.Life <= 0);
         foreach (var arc in _arcs) flare = Math.Max(flare, arc.Life * arc.Strength * (arc.Harsh ? 1 : 0.6));
-        Flare = 0.14 * flare;
+        Flare = 0.22 * flare;
     }
 
     private void Shape(Discharge a)

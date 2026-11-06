@@ -599,10 +599,10 @@ public static class Sound
     /// A canister breathed into the suit (0047): air filling it, half a second of hiss rising fast and falling away, its
     /// band climbing as it fills. This player's own on the Helmet bus, in the helmet's air, so floating out in space never
     /// muffles it away (on Suit its band was all but cut there); a friend's on World where its hero is, a tool's reach.
-    /// Played at about −20 dB RMS over 100 ms, the alarm's −17, well over the bed of space; a click peaks −15 dBFS. A
+    /// Played at about −29 dB RMS over 100 ms, under the alarm's −17: at −20 it grated at the 2026-11-06 playtest. A
     /// placeholder synthesised in code until the audition's pick takes its file.
     /// </summary>
-    public static readonly Cue AirFill = new(Shots("crew/air-fill", 1), -6, Heard: ToolReach);
+    public static readonly Cue AirFill = new(Shots("crew/air-fill", 1), -15, Heard: ToolReach);
 
     /// <summary>
     /// This player's hero breathing room air again, out of thin air or vacuum (0081): one soft inhale in the helmet, under

@@ -22,6 +22,7 @@ public partial class WristGauge : Control
 
     private readonly NinePatchRect _tab = WristArt.Frame(WristPieces.Gauge, MouseFilterEnum.Ignore);
     private readonly Texture2D _icon;
+    private readonly Texture2D? _shortIcon;
     private readonly Rect2 _iconAt;
     private readonly int _meterLeft, _count;
     private readonly Color _colour;
@@ -34,9 +35,10 @@ public partial class WristGauge : Control
     /// <param name="meterLeft">Where the cells start in the tab.</param>
     /// <param name="count">How many cells.</param>
     /// <param name="colour">The colour a surge washes the tab with.</param>
-    public WristGauge(Texture2D icon, Rect2 iconAt, int meterLeft, int count, Color colour)
+    /// <param name="shortIcon">Its picture while <see cref="Short"/>: the red oxygen sign; none keeps the one picture.</param>
+    public WristGauge(Texture2D icon, Rect2 iconAt, int meterLeft, int count, Color colour, Texture2D? shortIcon = null)
     {
-        (_icon, _iconAt, _meterLeft, _count, _colour) = (icon, iconAt, meterLeft, count, colour);
+        (_icon, _iconAt, _meterLeft, _count, _colour, _shortIcon) = (icon, iconAt, meterLeft, count, colour, shortIcon);
         MouseFilter = MouseFilterEnum.Ignore;
         AddChild(_tab);
     }
@@ -46,6 +48,9 @@ public partial class WristGauge : Control
 
     /// <summary>Whether it runs low: the red lamps, pulsing.</summary>
     public bool Low { get; set; }
+
+    /// <summary>Whether what it measures runs short: its picture turns to <c>shortIcon</c>, pulsing; the lamps keep their colour.</summary>
+    public bool Short { get; set; }
 
     /// <summary>How far its last lit lamp dims, 0 to 1: a low suit's breath (<see cref="Features.Crew.VisorFog"/>).</summary>
     public float LastDim { get; set; }
@@ -121,7 +126,8 @@ public partial class WristGauge : Control
         // A canister's surge washes the tab sky, fading as it goes.
         float surge = (float)(_surge / Look.SurgeS);
         if (surge > 0) DrawRect(new Rect2(Vector2.Zero, Size), _colour with { A = (float)Look.SurgeWash * surge * surge });
-        DrawTextureRect(_icon, _iconAt, false, Colors.White with { A = Bright });
+        if (Short && _shortIcon != null) DrawTextureRect(_shortIcon, _iconAt, false, Colors.White with { A = Bright * Pulse(_clock * 2) });
+        else DrawTextureRect(_icon, _iconAt, false, Colors.White with { A = Bright });
         float pulse = Low ? Pulse(_clock) : 1, t = (float)_clock;
         int lastLit = (int)Math.Ceiling(m.Fill * _count - 1e-6) - 1;
         int sweep = m.Gain > 0 ? (int)(t * 14 % (_count + 6)) : -9;

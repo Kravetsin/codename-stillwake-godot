@@ -124,6 +124,27 @@ public class EnergyTabTests
         Assert.Equal(light, most, 6);
     }
 
+    [Theory]
+    [InlineData(1, BoltPulse.JoltPx)]
+    [InlineData(2, BoltPulse.HarshJoltPx)]
+    public void ABeatJoltsTheBoltWithinItsPixelsAndItRestsInPlace(int draw, float most)
+    {
+        var pulse = new BoltPulse((9, 6, 14, 18), 30, new Random(5));
+        pulse.Read(1800, draw, low: false);
+        float moved = 0;
+        Run(s =>
+        {
+            pulse.Step(s);
+            Assert.InRange(MathF.Abs(pulse.Jolt.X), 0, most);
+            Assert.InRange(MathF.Abs(pulse.Jolt.Y), 0, most);
+            moved = MathF.Max(moved, MathF.Abs(pulse.Jolt.X) + MathF.Abs(pulse.Jolt.Y));
+        }, 2);
+        Assert.True(moved > most / 2, $"{moved}: it rattles");
+        pulse.Read(1800, 0, low: false);
+        Run(pulse.Step, 0.5);
+        Assert.Equal((0f, 0f), pulse.Jolt);
+    }
+
     [Fact]
     public void AtRestItNeverBeatsNorThrowsADischarge()
     {

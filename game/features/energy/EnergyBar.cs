@@ -153,6 +153,7 @@ public partial class EnergyBar : CanvasLayer
         {
             var (on, bright) = Pulse.Look();
             var white = Colors.White with { A = Bright };
+            DrawSetTransform(Jolt);
             if (Pulse.Kindle is double k && k < 0.45)
             {
                 // Kindled from below: the dark bolt, lit up from its tip.
@@ -166,7 +167,11 @@ public partial class EnergyBar : CanvasLayer
                 DrawTextureRect(Bolt, BoltAt, false, white);
                 if (bright < 1) DrawTextureRect(Bolt, BoltAt, false, Colors.Black with { A = (float)(1 - bright) * 0.8f * Bright });
             }
+            DrawSetTransform(Vector2.Zero);
         }
+
+        /// <summary>Where the beat has thrown the bolt, with its current and halo.</summary>
+        private Vector2 Jolt => new(Pulse.Jolt.X, Pulse.Jolt.Y);
 
         /// <summary>What lights the tab, added over it: the bolt's halo and current, the drained arc's glint, the hop, discharges.</summary>
         private void DrawLight(Control on)
@@ -174,6 +179,7 @@ public partial class EnergyBar : CanvasLayer
             var (lit, _) = Pulse.Look();
             double kindle = Pulse.Kindle is double k ? 0.35 * (1 - k / BoltPulse.KindleS) : 0;
             float halo = lit ? (float)Math.Clamp(0.05 + 0.16 * Pulse.Beat * Pulse.Level + kindle + Pulse.Flare, 0, 0.8) : 0;
+            on.DrawSetTransform(Jolt);
             if (halo > 0) Glow(on, Centre, 12, Hot with { A = halo * Bright });
             if (lit && Pulse.Level > 0.02 && Pulse.Kindle is null)
                 for (int band = 0; band < 2; band++)
@@ -184,6 +190,7 @@ public partial class EnergyBar : CanvasLayer
                     BoltPart(on, Bolt, y - 2, y - 1, Current with { A = a * 0.4f });
                     BoltPart(on, Bolt, y + 1, y + 2, Current with { A = a * 0.4f });
                 }
+            on.DrawSetTransform(Vector2.Zero);
             DrawRingLight(on);
             foreach (var arc in Pulse.Arcs)
             {
