@@ -125,7 +125,7 @@ public partial class Main : Node2D, ITogether
         bool flies = _m.Landing.FlightOf(client.Id) != null;
         int? landed = _flewLast && !flies ? _m.Landing.SeatOf(client.Id) : null;
         _flewLast = flies;
-        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Seats).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
+        var pods = _m.Grid.MachinesWith(Content.MachineTrait.Lands).Select(p => (p.Id, _m.Landing.RiderOf(p.Id) != null)).ToList();
         _arrivals.Frame(surface, surface == 0, pods, landed, newWorld, delta);
     }
 
@@ -223,7 +223,7 @@ public partial class Main : Node2D, ITogether
             _items.Panel.Supplied = (id, item) => _m.Logistics.Supplied(id, item);
             _fabricator.Served = BadgeOf;
             // A drop pod's Descend or Return key is the landing feature's, under its slot; the white of its flight over the screen.
-            Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Seats)
+            Control? LaunchOf(int machine) => _m.Grid.MachineById(machine) is { } pod && Content.Machines.Is(pod.Kind, Content.MachineTrait.Lands)
                 ? new Features.Landing.LaunchKey(() => _session is Session s ? (_m.Landing, s.Client.Id) : null, SendNow, _hands.Ui.Tip)
                 : null;
             _items.Panel.Launch = LaunchOf;

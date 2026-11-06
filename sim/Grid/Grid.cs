@@ -229,12 +229,12 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
 
     /// <summary>
     /// What each map character means, found once rather than per cell, for a planet's map is millions of cells: its structure,
-    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire, under the stars it needs; a debris
-    /// net, hung only in space.
+    /// and whether it is drawn bare of a back wall — a solar panel, making power with no fire
+    /// and not anywhere, under the stars it needs; a debris net, hung only in space.
     /// </summary>
     private static readonly (int Structure, bool Bare)[] Looks = Enumerable.Range(0, char.MaxValue + 1)
         .Select(c => (Structures.OfChar((char)c) ?? Structure.Empty, Legend.MachineOf((char)c) is { } kind
-            && Content.Machines.Get(kind) is var spec && (spec is { Makes: not null, FuelSlot: null } || spec.Is(MachineTrait.Catches))))
+            && Content.Machines.Get(kind) is var spec && (spec.NeedsStars || spec.Is(MachineTrait.Catches))))
         .ToArray();
 
     /// <summary>

@@ -41,7 +41,7 @@ passing out, made again at the pod.
   freed, its tool stopped, its inventory kept for its seat. Off the ship the seat goes aboard (`ISurfaces.Send`).
 - **Surfaces** (0076, `ICarries`): `Depart` gives up the `Hero`, `Arrive` takes it at the cell given or
   the spawn. A hero waking off the ship wakes aboard, its body left behind.
-- **Exertion:** `Exert(On)`, sent on a change of running by speed (not for a swim, 0047). Exerting, a
+- **Exertion:** `Exert(On)`, sent on a change of running by speed (not for a swim, 0047); in a wheel, of a move key held. Then a
   breath costs `Crew.Exerted` units, room air or suit alike. Passing out ends it.
 - **The jetpack** (0047): `Thrust(On)` is sent while the client's thrust differs from the sim's. Each tick before
   the breath a conscious hero thrusting with a jetpack counts a tick; every `Jetpack.TicksPerUnit` its suit pays a
@@ -96,9 +96,9 @@ passing out, made again at the pod.
 
 ## Deliberately not handled
 
-- A `Move` or `Drop` landing while out finds the slots emptied: it moves what is left or is refused.
-- The sim trusts the client's cell (0002): cold and lava are paid up to a second late.
+- A `Move` or `Drop` landing while out finds the slots emptied: it moves what is left, or is refused.
+- The sim trusts the client's cell (0002): cold and lava are paid a second late.
 - Peer ids last a session but are saved: after a load a hero belongs to whoever connects in its slot. Heroes of
-  peers who left before a save stay, with their colours.
-- A spawn in vacuum on a map without a pod passes a hero out again and again.
+  peers gone before a save stay, colours and all.
+- A spawn in vacuum on a map without a pod passes a hero out over again.
 - The pod's air is endless: only for heroes, only by it, slowly, never to the room; full ones draw no room air.

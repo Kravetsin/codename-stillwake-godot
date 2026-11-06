@@ -48,6 +48,15 @@ public sealed class DustScenario : TestbedScenario
     public override HeroAutopilot? Script => HeroAutopilot.Dust();
 }
 
+[Dev("--wheel", "the testbed's hero getting into the treadmill wheel, running in it and getting out (HeroAutopilot.Wheel)", Order = 1)]
+public sealed class WheelScenario : TestbedScenario
+{
+    /// <summary>On the wheel's floor, two cells left of it.</summary>
+    public override Func<Registry, int>? Start => m => m.Grid.MachinesOf("treadWheel")[0].Cell + 5 * m.Grid.Width - 2;
+
+    public override HeroAutopilot? Script => HeroAutopilot.Wheel();
+}
+
 /// <summary>
 /// The testbed with every machine that makes power broken, as a flare leaves them: each shows its wrench, and every machine
 /// drawing power its red bolt, for a look at the signs over machines (the ink-signs ADR).

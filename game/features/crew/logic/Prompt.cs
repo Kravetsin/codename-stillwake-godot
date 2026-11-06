@@ -15,8 +15,15 @@ public sealed record Prompt(string Action, string? Problem);
 /// <summary>The prompt for E (apps/game/src/features/crew/prompt.ts).</summary>
 public static class Prompts
 {
-    /// <summary>What E does for a hero sitting in a drop pod, wherever the pointer is: it leaves.</summary>
-    public static readonly Prompt Seated = new("use.alight", null);
+    /// <summary>
+    /// What E does for a hero sitting in a seat of <paramref name="kind"/>, wherever the pointer is: it leaves, in the
+    /// seat's own words where it has them (use.alight.treadWheel: run, then get out).
+    /// </summary>
+    public static Prompt SeatedIn(string? kind) => new(Own("use.alight", kind), null);
+
+    /// <summary><paramref name="action"/> in <paramref name="kind"/>'s own words (<c>action.kind</c>) where it has them.</summary>
+    private static string Own(string action, string? kind) =>
+        kind != null && I18n.En.Table.ContainsKey($"{action}.{kind}") ? $"{action}.{kind}" : action;
 
     /// <summary>
     /// What E would do at <paramref name="aim"/> within reach, in words; nothing out of reach or with
@@ -26,16 +33,15 @@ public static class Prompts
     public static Prompt? Of(Registry m, Aim? aim, string? held = null)
     {
         if (aim is not { InReach: true }) return null;
-        string By(string action) => held != null && I18n.En.Table.ContainsKey($"{action}.{held}") ? $"{action}.{held}" : action;
-        if (aim.Work is { Repair: not null } repair) return new Prompt(By("use.repair"), repair.Problem);
+        if (aim.Work is { Repair: not null } repair) return new Prompt(Own("use.repair", held), repair.Problem);
         if (aim.Work is { } work)
         {
             var plan = m.Building.Plans.FirstOrDefault(p => p.Id == work.Plan);
             string action = plan?.Clear != null ? "use.takeApart" : "use.build";
-            return new Prompt(By(action), work.Problem);
+            return new Prompt(Own(action, held), work.Problem);
         }
-        // A drop pod is boarded, its slot opening as the hero sits: said as a seat, with why not.
-        if (aim.Press is { Command: Sim.Landing.Board } board) return new Prompt("use.board", board.Problem);
+        // A seat is boarded, a drop pod's slot opening as the hero sits: said as a seat of its kind, with why not.
+        if (aim.Press is { Command: Sim.Landing.Board b } board) return new Prompt(Own("use.board", m.Grid.MachineById(b.Pod)?.Kind), board.Problem);
         // Named for what it opens, by its kind's own words (use.open.<kind>, every kind that opens has them): a furnace, the lifepod's Fabricator.
         if (aim.Crate is int opens)
             return new Prompt($"use.open.{m.Grid.MachineById(opens)?.Kind ?? "crate"}", null);

@@ -2,7 +2,7 @@
 
 - Status: accepted. The fermenter and the biofuel generator built first; the treadmill wheel in a PR of its own.
 - Decided by the user (2026-11-06), after the playtest of that day, `design-author`, `design-reviewer` and `/review-plan`
-  (`docs/plans/power-chain.md` while it is built).
+  (a plan, deleted once both were built).
 - Amends [0060](0060-the-farm-a-grow-capsule-is-a-fed-station.md): biomass no longer smelts at the furnace or the smelter.
 
 The planet stage asked for more power than burner generators fed by hand give. Three machines, each a row of data on mechanics
@@ -47,5 +47,8 @@ wheel a hero runs in.
 
 - A rider pausing lets a fire on its network light, and that fuel burns to its end.
 - No stamina, no output scaled by the rider's speed; running in vacuum costs the suit a runner's breath.
+- `Exert` reaches the host a round trip late: a hero boarding at a run turns the wheel a few ticks before it stops.
+- A wheel drawn on a map counts its 4 in the rebuild after the world is made, before the first construction rests it.
+- Fat burns in a fuel slot and ferments in the fermenter; nothing prefers one use.
 - Biomass in a furnace from an older save sits there till taken out.
 - No ferment mark on the slot (the crusher's precedent: the crucible); no new sounds, reused cues until the user picks.

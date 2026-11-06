@@ -158,6 +158,12 @@ public partial class ContentTests
         }
     }
 
+    /// <summary>A seat that makes power is turned by its rider alone: it burns nothing, draws nothing and works anywhere.</summary>
+    [Fact]
+    public void ASeatThatMakesPowerBurnsAndDrawsNothingAndWorksAnywhere() =>
+        Assert.All(Machines.All.Where(m => m.Is(MachineTrait.Seats) && m.Makes != null), m =>
+            Assert.True(m is { Draws: null, FuelSlot: null, Anywhere: true, Store: null }, m.Kind));
+
     [Fact]
     public void PowerLetsASolarPanelRunAGeneratorInFull() =>
         Assert.True(Machines.Get("solarPanel").Makes >= Machines.Get("generator").Draws);

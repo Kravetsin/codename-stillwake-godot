@@ -71,10 +71,11 @@ public static class Report
     /// <summary>
     /// Whether <paramref name="hero"/> is out of breath: running aboard. In space (<paramref name="inSpace"/>)
     /// never: a swim is slow, and a jetpack's flight is paid in thrust (0047). Shift held standing still
-    /// costs nothing.
+    /// costs nothing. Seated, <paramref name="runs"/> says: true in a treadmill wheel with a move key held, which is what
+    /// turns it (power-chain), wherever it stands.
     /// </summary>
-    public static bool Exerting(Hero hero, bool inSpace) =>
-        !inSpace && !hero.Climbing && Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk;
+    public static bool Exerting(Hero hero, bool inSpace, bool? runs = null) =>
+        runs ?? (!inSpace && !hero.Climbing && Math.Abs(hero.Vx) > Stillwake.Content.Hero.Walk);
 
     /// <summary>
     /// <c>Exert</c> when the sim's hero <paramref name="id"/> breathes otherwise than <paramref name="exerting"/>
