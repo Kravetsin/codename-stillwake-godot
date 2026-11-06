@@ -4,8 +4,6 @@ public static partial class En
 {
     private static readonly Strings Controls = new()
     {
-        ["menu.controls"] = "Controls",
-        ["title.controls"] = "Controls",
         ["bind.hint"] = "Click a key, then press the new one · Esc: cancel",
         ["bind.press"] = "press a key…",
         ["bind.reset"] = "Reset all",

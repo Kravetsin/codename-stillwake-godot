@@ -194,4 +194,27 @@ public class MigrationsTests
             Assert.Throws<InvalidDataException>(() => World.Load(old, new Registry().All));
         }
     }
+
+    [Fact]
+    public void DropsAQueuedCanisterAndItsGrantSoTheFormerWorksOnWhatCameAfterIt()
+    {
+        // A format-50 Former at work on canisters of ice, plates queued after them; after the upgrade only the plates are left, begun afresh.
+        string[] rows = ["PPP         ", "            ", "############", "#MM.GG.....#", "#MM.GG.....#", "############"];
+        var w = new Scenario(Layout.Parse(rows, null, [((0, 0), (1, 3))]), doubled: true).GiveItems(0, ("iron", 40));
+        int former = w.M.Grid.MachinesOf("former").Single().Id;
+        w.Do(new Crafting.Craft(former, "plate", 2)).Run();
+        var save = JsonNode.Parse(w.World.Save())!.AsObject();
+        save["format"] = 50;
+        var queue = save["slices"]!["crafting"]!["queues"]!.AsArray().Single(q => q!["machine"]!.GetValue<int>() == former)!;
+        queue["entries"]!.AsArray().Insert(0, new JsonObject { ["id"] = 9, ["recipe"] = "canister", ["count"] = 3, ["by"] = 0 });
+        queue["progress"] = 5000;
+        save["slices"]!["knowledge"]!["granted"]!.AsArray().Insert(0, "canister");
+
+        w.Reload(Migrations.Upgrade(save.ToJsonString()));
+        Assert.Equal(["plate"], w.M.Crafting.Queue(former).Select(e => e.Recipe));
+        Assert.Equal(0, w.M.Crafting.Progress(former));
+        Assert.DoesNotContain("canister", w.M.Knowledge.GrantedIds);
+        w.Run(Content.Crafts.Get("plate").Ticks * 2 + 5);
+        Assert.Equal(2, w.M.Items.Crate(former).Sum(s => s?.Item == "plate" ? s.Count : 0));
+    }
 }

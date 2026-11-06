@@ -59,9 +59,8 @@ public static class Crafts
         new("transceiver", [("coil", 4), ("circuit", 3), ("tube", 2), ("glass", 2)], Ticks: 300),
         // Pressed at the Former only: a grow capsule's bed (0060), of the crusher's gravel.
         new("soil", [("gravel", 2), ("planks", 1)], Ticks: 60),
-        // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band.
-        // A planet's ice frozen into a canister of air at the Former: air for spacewalks that no longer waits on salvage.
-        new("canister", [("ice", 3)], Ticks: 60),
+        // At the Former only: a rotor wound with the planet's copper round magnetite from its deepest band. Canisters are
+        // salvaged, not made: an electrolyser will fill them (2026-11-06-no-ice-canister).
         new("motor", [("rotor", 1), ("copper", 4), ("magnetite", 2)], Ticks: 180),
         // At the circuit assembler: a drone, of a rotor, plates, a circuit and the battery it will run on (0062).
         new("drone", [("rotor", 2), ("plate", 3), ("circuit", 2), ("battery", 1)], Ticks: 240),

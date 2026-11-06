@@ -59,4 +59,31 @@ public class TechLinksTests
         Assert.DoesNotContain("furnace", Link("plate").MadeAt);
         Assert.DoesNotContain(Link("plate").Takes, t => t.Item == "furnace");
     }
+
+    /// <summary>
+    /// A card says "never made, only found" of what nothing makes alone: not of what is smelted or crushed, as iron ore and gravel
+    /// are, nor of what the pod makes from nothing. Every item a card calls found has no station making it.
+    /// </summary>
+    [Fact]
+    public void OnlyWhatNothingMakesIsCalledFound()
+    {
+        Assert.Equal(Origin.Found, TechLinks.OriginOf("scrapChunk"));
+        Assert.Equal(Origin.Found, TechLinks.OriginOf("canister"));
+        Assert.Equal(Origin.Worked, TechLinks.OriginOf("ironOre"));
+        Assert.Equal(["asteroidOre"], Link("ironOre").From);
+        Assert.Equal(Origin.Worked, TechLinks.OriginOf("gravel"));
+        Assert.Equal(["hullPlate", "ironOre"], Link("iron").From);
+        Assert.Equal(Origin.Worked, TechLinks.OriginOf("quartz"));
+        Assert.Contains("crusher", Link("quartz").MadeAt);
+        Assert.Contains("quartz", Link("crusher").UsedIn);
+        Assert.Equal(Origin.Free, TechLinks.OriginOf("suit"));
+        // "Made from nothing, at the lifepod": no other station makes a craft of no parts.
+        Assert.All(Crafts.All.Where(c => c.Cost.Count == 0), c => Assert.Equal(["lifepod"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(c.Item))).Select(s => s.Machine)));
+        Assert.Equal(Origin.Made, TechLinks.OriginOf("wire"));
+        foreach (var item in Content.Items.All.Where(i => TechLinks.OriginOf(i.Id) == Origin.Found))
+        {
+            Assert.Empty(Link(item.Id).MadeAt);
+            Assert.False(Crafts.TryGet(item.Id, out _), item.Id);
+        }
+    }
 }

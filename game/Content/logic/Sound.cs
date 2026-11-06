@@ -67,12 +67,22 @@ public static class Sound
     /// Effects, World (every hero's steps, machines, air, doors: silenced while floating), Suit (what this
     /// player's hero itself touches: an action's sound, its own axe's chop and drill, a wreck its hit breaks, its harpoon, its
     /// jetpack, a canister breathed; heard through the body, dulled while floating, a little louder there) and Helmet (the
-    /// suit's alarm, in the helmet's air: always clear). Settings will set Master, Effects, Ambient, UI and Music; World, Suit and Helmet are the
-    /// hearing's (0033, 0042). Ambient waits for the first ambience: the ship's hum comes from its vents
+    /// suit's alarm, in the helmet's air: always clear). The player's settings set Master, Effects and Music (<see cref="Volumed"/>); World, Suit and Helmet are the
+    /// hearing's (0033, 0042); UI carries only the click, quieted with Master. Ambient waits for the first ambience: the ship's hum comes from its vents
     /// and fires, in the world.
     /// </summary>
     public const string Master = "Master", Ui = "UI", Ambient = "Ambient", Effects = "Effects", World = "World", Suit = "Suit", Helmet = "Helmet", Music = "Music";
     public static readonly IReadOnlyList<string> Buses = [Master, Ui, Ambient, Effects, World, Suit, Helmet, Music];
+
+    /// <summary>The buses the player sets in Settings, in the order their sliders show (settings-menu).</summary>
+    public static readonly IReadOnlyList<string> Volumed = [Master, Effects, Music];
+
+    /// <summary>
+    /// A volume slider's steps: <see cref="VolumeSteps"/> is today's mix (0 dB) and the default, each step down
+    /// <see cref="VolumeStepDb"/> quieter, 0 silent. Even steps in dB sound even to the ear, unlike even steps in amplitude.
+    /// </summary>
+    public const int VolumeSteps = 10;
+    public const float VolumeStepDb = 3;
 
     /// <summary>A boot on the hollow metal deck, at each half stride walking or running.</summary>
     public static readonly Cue Step = new(Shots("crew/step", 6), -12, Heard: new(8, 36));

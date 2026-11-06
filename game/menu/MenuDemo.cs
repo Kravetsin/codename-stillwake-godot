@@ -12,7 +12,8 @@ namespace Stillwake.Game.Menu;
 /// <c>-- --menu-demo</c>: in <see cref="ItemsDemo"/>'s room, a script played through Godot's own input
 /// for recordings: the inventory opened and a hotbar slot and an inventory slot hovered, their names
 /// over every panel; Esc closing the inventory, Esc opening the menu; D held and Tab pressed behind it,
-/// which the hero ignores; a colour picked in the settings, Esc back, the world saved, Esc closing the
+/// which the hero ignores; Settings opened, its categories clicked in turn, a colour
+/// picked in Hero, Esc back, the world saved, Esc closing the
 /// menu. It draws the pointer, which a movie does not, and says where the hero stands around the menu.
 /// </summary>
 public partial class MenuDemo : CanvasLayer
@@ -48,15 +49,23 @@ public partial class MenuDemo : CanvasLayer
         At(2.9, () => Press(Key.Tab));
         At(3.0, () => _target = _menu.CenterOf("menu.settings"));
         At(3.4, Click);
-        At(3.5, () => _target = _suits.CenterOf(2));
         At(3.6, () => Hold(Key.D, false));
         At(3.6, () => Say("D let go"));
-        At(3.9, Click);
-        At(4.4, () => Press(Key.Escape));
-        At(4.6, () => _target = _menu.CenterOf("menu.save"));
-        At(4.9, Click);
-        At(5.5, () => Press(Key.Escape));
-        At(5.6, () => Say("menu closed"));
+        // Each category in turn, the hero's last, where a colour is picked.
+        double t = 3.7;
+        foreach (var category in (SettingsCategory[])[SettingsCategory.Graphics, SettingsCategory.Game, SettingsCategory.Controls, SettingsCategory.Hero])
+        {
+            At(t, () => _target = _menu.SettingsPage.CenterOf(category));
+            At(t + 0.3, Click);
+            t += 0.8;
+        }
+        At(t, () => _target = _suits.CenterOf(2));
+        At(t + 0.3, Click);
+        At(t + 0.8, () => Press(Key.Escape));
+        At(t + 1.0, () => _target = _menu.CenterOf("menu.save"));
+        At(t + 1.3, Click);
+        At(t + 1.9, () => Press(Key.Escape));
+        At(t + 2.0, () => Say("menu closed"));
     }
 
     private void At(double t, Action step) => _steps.Add((t, step));

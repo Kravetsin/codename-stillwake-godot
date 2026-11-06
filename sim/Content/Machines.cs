@@ -174,8 +174,9 @@ public static class Machines
         new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         // Where the tree is walked: resources open its tiers, credits buy its blueprints (2026-10-30-trade-and-tech). No power, no slots.
-        // Sends what is put in for the ship's credits by capsule; of raw salvage, so the first credits need nothing made.
-        new("tradeStation", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 120, Slots: 8, Has: MachineTrait.Sells, Menu: new(MenuTabs.Production, 17), Char: '$', Means: "trade station: draw its whole footprint"),
+        // Sends what is put in for the ship's credits by capsule. Of plates, wire and a found circuit, so it is understood once
+        // circuits come, not beside the furnace and the bench (2026-11-06-trade-station-later); still nothing bought.
+        new("tradeStation", 4, 4, [], [("plate", 4), ("wire", 4), ("circuit", 1)], BuildTicks: 120, Slots: 8, Has: MachineTrait.Sells, Menu: new(MenuTabs.Production, 17), Char: '$', Means: "trade station: draw its whole footprint"),
         // A trade station that needs no hand on its button, so drones can run the selling alone.
         new("autoTradeStation", 4, 4, [], [("frame", 4), ("plate", 4), ("wire", 10), ("circuit", 2)], BuildTicks: 200, Slots: 8, Has: MachineTrait.Sells | MachineTrait.AutoSends, Menu: new(MenuTabs.Production, 18), Char: 'A', Means: "auto trade station: draw its whole footprint"),
         new("crate", 4, 2, [], [("planks", 8), ("plate", 2)], BuildTicks: 40, Slots: 27, Has: MachineTrait.Container, Menu: new(MenuTabs.Storage, 10), Char: 'K', Means: "crate: draw its whole footprint"),

@@ -36,6 +36,8 @@ public static class Market
         ["spore"] = 20,
         ["biomass"] = 20,
         ["ice"] = 30,
+        // Salvaged only since its ice craft went (2026-11-06-no-ice-canister): that craft's worth kept, so what is made of it costs the same.
+        ["canister"] = 117,
         ["copperOre"] = 30,
         ["mica"] = 50,
         ["magnetite"] = 60,
