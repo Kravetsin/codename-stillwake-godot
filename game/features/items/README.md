@@ -29,7 +29,6 @@ and changes it only by sending `Move`, `Drop`, `PickUp`, `Sort`, `Stash`, `Fit` 
 | `InventoryPanel.Machine.cs` | the open machine's body by kind and its readouts |
 | `InventoryPanel.Sockets.cs` | module sockets: laid out, lent, fitted, tipped (0086) |
 | `InventoryPanel.Input.cs` | keys, clicks, drags, drops; moves sent and flown; where it lies |
-| `EnergyBar.cs` | the energy tab at the gauge row's right end (0053, 0081) |
 | `FloorLayer.cs` | stacks on the floor |
 | `SlotFlights.cs` | a shifted stack flying to where it landed (0075) |
 | `GainSpotsView.cs` | the counts beside their places |
@@ -83,7 +82,7 @@ The wrist's metal, screens, keys and gauge (0074, 0081) are `game/shared/`'s (`W
   `ToolStats` tiles, boosted numbers in the module's colour (0098); equipment its picture and one number; a battery its
   charge in power units, never time (0053).
 - **Charge** (0053): a battery slot draws a bar (amber under a quarter); an empty one its own picture. The energy tab
-  (0081) shows the belt's charge in whole power units, read four times a second.
+  (0081) is `features/energy`'s.
 - **Floor stacks** (0075, 0106): drawn unlit with a breathing rim, resting on the sim's point (`ClearBelow`), level,
   between the last two ticks, side by side when still; over machines, under heroes. Flying they spin; landing they
   squash, hop and clink (`FloorFeel`); a seed glints (2026-10-29-kill-feel). Loot still in its creature

@@ -20,7 +20,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 **Water** — Water — sim/Water · f/water: `Water.cs` WaterModule, `PourWater`, the cisterns' water and the electrolysers; `Water.En.cs`, `WaterLooks.cs`, `WaterTip.cs`; c/`Water.cs`
 
 **Items and crafting**
-- Items — sim/Items · f/items: `Items.cs` ItemsModule; `Stacks.cs`; `Floor.cs`; `Modules.cs` (machine modules, `Fit`); `ToolStats.cs`; `InventoryPanel.cs`, `Hotbar.cs`, `Click.cs`, `Equipment.cs`; c/`Items.cs`
+- Items — sim/Items · f/items: `Items.cs` ItemsModule; `Stacks.cs`; `Floor.cs`; `Modules.cs` (machine modules, `Fit`); `ToolStats.cs`; `InventoryPanel.cs`, `Hotbar.cs`, `Click.cs`, `Equipment.cs`; f/energy: `EnergyBar.cs` (the wrist's energy tab); c/`Items.cs`
 - Crafting — sim/Crafting · f/crafting: `Crafting.cs` CraftingModule (stations); `StationView.cs`, `FabricatorPanel.cs`, `BenchView.cs`; c/`Crafts.cs`, `Stations.cs`, `Machines.cs`
 - Furnace — sim/Furnace · f/furnace: `Furnace.cs` FurnaceModule; `FurnaceView.cs`, `Flames.cs`; c/`Furnace.cs`
 - Drones — sim/Logistics · f/logistics: `Logistics.cs` LogisticsModule; `Jobs.cs`; `Flight.cs`; `Salvage/Salvage.cs` (salvage drones); `LogisticsView.cs`, `Served.cs`, `Puffs.cs`, `BayInk.cs` and `SalvageInk.cs` (generated); c/`Logistics.cs`

@@ -13,8 +13,8 @@ public static class WristLook
     /// <summary>A gauge tab's screen height.</summary>
     public const int TabHeight = 30;
 
-    /// <summary>The energy tab at the column's right end: the bolt and the belt's charge, just wide enough for "5 400".</summary>
-    public const int EnergyWidth = 70;
+    /// <summary>The energy tab at the column's right end: the ring round the bolt and the belt's charge, wide enough for "16 200" (energy-ring).</summary>
+    public const int EnergyWidth = 78;
 
     /// <summary>The energy number's right margin in its tab, and its baseline.</summary>
     public const int EnergyRight = 8, EnergyBaseline = 20;
