@@ -24,10 +24,26 @@ internal sealed class GrazeDrive : DriveRule
             return true;
         }
         int way = m.Rand.Below(2) == 0 ? 1 : -1;
+        // The draw is always taken: far from its kind, it wanders toward the nearest instead (creatures-in-herds).
+        if (Kin(m, c) is int kin && Math.Abs(kin - c.X) > Spec.Herd * CreaturesModule.Unit) way = kin > c.X ? 1 : -1;
         c.Step = Wandering;
         c.DriveLeft = Spec.WanderLeast + (int)m.Rand.Below(Spec.WanderMost - Spec.WanderLeast + 1);
         c.VX = way * ((Spec.Walker)spec.Body).Walk;
         return true;
+    }
+
+    /// <summary>Where across the nearest other live creature of <paramref name="c"/>'s species is, the first in id order at a tie; null for none.</summary>
+    private static int? Kin(CreaturesModule m, Creature c)
+    {
+        int? nearest = null;
+        int best = int.MaxValue;
+        foreach (var o in m.Creatures)
+        {
+            if (o == c || o.Dead || !string.Equals(o.Species, c.Species, StringComparison.Ordinal)) continue;
+            int far = Math.Abs(o.X - c.X);
+            if (far < best) (best, nearest) = (far, o.X);
+        }
+        return nearest;
     }
 
     private static void Idle(CreaturesModule m, Creature c)

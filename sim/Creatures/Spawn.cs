@@ -58,10 +58,15 @@ public sealed partial class CreaturesModule
         return false;
     }
 
+    /// <summary>A herd's places as it is laid out, each its body's left column and bottom row: refilled each herd.</summary>
+    private readonly List<(int Left, int Row)> _herd = [];
+
     /// <summary>
-    /// Round each hero in id order with fewer than <c>Creatures.PerKeep</c> in its keep box, while the surface is under its cap: three
-    /// draws, always taken — the side, the columns out, the habitat by weight — then the first place down that column, within the
-    /// hero's keep box, where the habitat's species stands. None off the grid, without such a place, or in any hero's view.
+    /// Round each hero in id order whose keep box has room for the least herd, while the surface has (creatures-in-herds): four
+    /// draws, always taken — the side, the columns out, the habitat by weight, the herd's size — then each member <c>Creatures.Spacing</c> columns
+    /// further out than the last, at the first place down its column, within the hero's keep box, where the habitat's species stands.
+    /// The herd comes whole or not at all: not with one member off the grid, without such a place or in any hero's view, nor with
+    /// no room for all of it, nor within <c>Creatures.Apart</c> of a creature already there.
     /// </summary>
     private void Spawn()
     {
@@ -69,22 +74,53 @@ public sealed partial class CreaturesModule
         var habitats = Habitats;
         foreach (var at in _heroes)
         {
-            if (all.Count >= Spec.Max) return;
+            if (all.Count + Spec.HerdLeast > Spec.Max) return;
             int near = 0;
             foreach (var c in all)
                 if (Within(Down(c.X, Unit), Down(c.Y - 1, Unit), at, Spec.Keep)) near++;
-            if (near >= Spec.PerKeep) continue;
+            if (near + Spec.HerdLeast > Spec.PerKeep) continue;
             bool right = Random.Below(2) == 0;
             int out_ = Spec.RingFrom + (int)Random.Below(Spec.RingTo - Spec.RingFrom + 1);
             var habitat = Drawn(habitats);
+            int size = Spec.HerdLeast + (int)Random.Below(Spec.HerdMost - Spec.HerdLeast + 1);
+            if (near + size > Spec.PerKeep || all.Count + size > Spec.Max) continue;
             var spec = Spec.Get(habitat.Species);
-            // The body's left column: on the right its left edge is the ring's, on the left its right edge.
-            int left = right ? at.X + out_ : at.X - out_ - spec.Body.Width + 1;
-            if (left < 0 || left + spec.Body.Width > _grid.Width) continue;
-            if (PlaceIn(habitat, spec, left, at.Y) is not int row || Seen(left, row - spec.Body.Height + 1, spec)) continue;
-            var (x, y) = Standing(spec, left, row);
-            Add(spec, x, y);
+            if (!LaidOut(habitat, spec, at, right, out_, size)) continue;
+            foreach (var (left, row) in _herd)
+            {
+                var (x, y) = Standing(spec, left, row);
+                Add(spec, x, y);
+            }
         }
+    }
+
+    /// <summary>
+    /// Whether a herd of <paramref name="size"/> of <paramref name="spec"/> stands, its first <paramref name="out_"/> columns from the
+    /// hero at <paramref name="at"/> on its <paramref name="right"/> or left, the rest further out, no creature near: its places in
+    /// <see cref="_herd"/>.
+    /// </summary>
+    private bool LaidOut(Spec.Habitat habitat, Spec.Species spec, (int X, int Y) at, bool right, int out_, int size)
+    {
+        _herd.Clear();
+        int width = spec.Body.Width, step = right ? Spec.Spacing : -Spec.Spacing;
+        // The first body's left column: on the right its left edge is the ring's, on the left its right edge.
+        int first = right ? at.X + out_ : at.X - out_ - width + 1;
+        for (int i = 0; i < size; i++)
+        {
+            int left = first + i * step;
+            if (left < 0 || left + width > _grid.Width) return false;
+            if (PlaceIn(habitat, spec, left, at.Y) is not int row || Seen(left, row - spec.Body.Height + 1, spec)) return false;
+            _herd.Add((left, row));
+        }
+        int lo = Math.Min(_herd[0].Left, _herd[^1].Left) - Spec.Apart, hi = Math.Max(_herd[0].Left, _herd[^1].Left) + width - 1 + Spec.Apart;
+        int top = int.MaxValue, bottom = int.MinValue;
+        foreach (var (_, row) in _herd) (top, bottom) = (Math.Min(top, row - spec.Body.Height + 1 - Spec.Apart), Math.Max(bottom, row + Spec.Apart));
+        foreach (var c in State.Creatures)
+        {
+            int x = Down(c.X, Unit), y = Down(c.Y - 1, Unit);
+            if (x >= lo && x <= hi && y >= top && y <= bottom) return false;
+        }
+        return true;
     }
 
     /// <summary>A habitat drawn by weight, one draw, walking them in order.</summary>

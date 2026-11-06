@@ -107,7 +107,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
 | [0100](0100-tech-branches.md) | Tech branches | accepted |  |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
-| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed (in part) |
+| [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed, creatures-in-herds (in part) |
 | [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted | creatures-are-composed (in part) |
 | [0104](0104-the-cell-is-8-px.md) | The cell is 8 px | accepted |  |
 | [0105](0105-a-room-airs-four-cells-a-beat.md) | A room airs four cells a beat | accepted | air-bubbles (in part) |
@@ -256,5 +256,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |
+| [creatures-in-herds](2026-11-06-creatures-in-herds.md) | Wild creatures come in small herds of one kind | accepted |  |
 | [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
