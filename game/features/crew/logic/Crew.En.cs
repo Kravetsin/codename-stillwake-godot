@@ -66,6 +66,8 @@ public static partial class En
         ["use.closePlatform"] = "[{key:use}] Close platform",
         ["use.board"] = "[{key:use}] Board drop pod",
         ["use.alight"] = "[{key:use}] Leave drop pod",
+        ["use.board.treadWheel"] = "[{key:use}] Get in the treadmill wheel",
+        ["use.alight.treadWheel"] = "[{key:walkLeft}/{key:walkRight}] Run · [{key:use}] Get out",
         ["use.openValve"] = "[{key:use}] Open valve",
         ["use.closeValve"] = "[{key:use}] Close valve",
     };

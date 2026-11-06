@@ -36,8 +36,9 @@ public partial class HeroView
         var shooter = GunInHand(handFree);
         string? drill = handFree && HeldLook.IsDrill(_ui.Wielded.Get()) ? _ui.Wielded.Get() : null;
         var driver = handFree ? Content.Screwdrivers.Of(_ui.Wielded.Get()) : null;
-        // Seated in a drop pod, the hands work nothing: E leaves it, wherever the pointer is.
-        bool seated = m.Landing.SeatOf(client.Id) != null;
+        // Seated in a drop pod or a wheel, the hands work nothing: E leaves it, wherever the pointer is.
+        string? seatKind = m.Landing.SeatOf(client.Id) is int seat ? m.Grid.MachineById(seat)?.Kind ?? "" : null;
+        bool seated = seatKind != null;
         // A running tool's hit: its fan of rays from the shoulder, the cutter's beam as drawn (tool-reach).
         var edged = drill != null && pointer != null && !seated ? EdgeOf(m, _current, drill, _figure) : null;
         // Whatever hits or shoots aims at nothing: it hits what its rays meet, no outline, glow or prompt (melee-edge).
@@ -51,7 +52,7 @@ public partial class HeroView
         var square = squared?.Square;
         var targets = squared?.Targets;
         _ui.WorkedSquare = square?.Cells;
-        var prompt = passedOut ? null : seated ? Prompts.Seated : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim, driver?.Item);
+        var prompt = passedOut ? null : seated ? Prompts.SeatedIn(seatKind) : Prompts.Of(m, targets != null ? Aiming.OverSquare(aim!, targets) : aim, driver?.Item);
         // The power driver's mode by the arrow over the world: its square's dots, lit, one, or waiting for charge (mode-glyph).
         bool marked = !passedOut && !seated && pointer != null && GetViewport().GuiGetHoveredControl() == null;
         _glyph.Show(marked ? DriverMode.DotsOf(driver, _ui.DriverSquare.Get(), charged) : null,

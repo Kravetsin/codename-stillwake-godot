@@ -66,6 +66,8 @@ public static partial class Ru
         ["use.closePlatform"] = "[{key:use}] Закрыть платформу",
         ["use.board"] = "[{key:use}] Сесть в капсулу",
         ["use.alight"] = "[{key:use}] Покинуть капсулу",
+        ["use.board.treadWheel"] = "[{key:use}] Встать в колесо",
+        ["use.alight.treadWheel"] = "[{key:walkLeft}/{key:walkRight}] Бежать · [{key:use}] Выйти",
         ["use.openValve"] = "[{key:use}] Открыть клапан",
         ["use.closeValve"] = "[{key:use}] Закрыть клапан",
     };

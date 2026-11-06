@@ -82,7 +82,7 @@ public sealed class PlatformScenario : DevScenario
 
     public override void Frame(Client client, Registry m, Action<string> log)
     {
-        if (Args.Has("--platform-seat") && client.World.Tick == SeatAt && m.Grid.MachinesWith(Content.MachineTrait.Seats) is [var pod, ..])
+        if (Args.Has("--platform-seat") && client.World.Tick == SeatAt && m.Grid.MachinesWith(Content.MachineTrait.Lands) is [var pod, ..])
             client.Send(new Board(pod.Id));
         if (Args.Has("--platform-seat") && client.World.Tick == SeatAt + LeaveAfter) client.Send(new Alight());
         if (Args.Has("--descent")) Descend(client, m, log);
@@ -105,7 +105,7 @@ public sealed class PlatformScenario : DevScenario
         // Frames come faster than ticks: each tick is acted on once.
         if (tick == _readAt) return;
         _readAt = tick;
-        if (tick == SeatAt && m.Grid.MachinesWith(Content.MachineTrait.Seats) is [var pod, ..])
+        if (tick == SeatAt && m.Grid.MachinesWith(Content.MachineTrait.Lands) is [var pod, ..])
         {
             int slot = m.Items.Inventory(client.Id).ToList().FindIndex(s => s?.Item == Fuel.Item);
             client.Send(new Stillwake.Sim.Items.Move(new Stillwake.Sim.Items.Place(slot), new Stillwake.Sim.Items.Target(null, pod.Id), Fuel.Count));

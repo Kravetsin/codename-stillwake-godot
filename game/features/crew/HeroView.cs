@@ -201,6 +201,8 @@ public partial class HeroView : Node2D
     private Ship? _ship;
     /// <summary>Whether the player jumped or held a movement key in this frame's steps: a hanging hero lets go.</summary>
     private bool _letsGo;
+    /// <summary>Seated in a treadmill wheel, whether a move key was held at the last step: it runs.</summary>
+    private bool _runs;
     /// <summary>Which way the jetpack thrust in this frame's last step, a unit vector in thousandths; none while it does not (0047).</summary>
     private Point? _thrust;
     /// <summary>Each hero's jetpack plume, by peer, made the first time it shows (0075).</summary>
@@ -383,6 +385,9 @@ public partial class HeroView : Node2D
         // Sitting in a drop pod, the hero keeps to its seat, takes no orders but E's, and is drawn behind its porthole (SeatedHeroes).
         int? seat = Seating.SeatOf(m, client.Id);
         InPod = seat != null;
+        // In a treadmill wheel a move key held runs it, and the hero breathes as a runner (power-chain); in a pod it sits still.
+        bool wheel = m.Landing.SeatOf(client.Id) is int sat && m.Grid.MachineById(sat) is { } seatAt && Content.Machines.Get(seatAt.Kind).Makes != null;
+        if (!wheel) _runs = false;
         // A jetpack worn (0047): no tether, and Shift in space thrusts while the suit has air to vent.
         bool jetpack = m.Items.Equipped(client.Id, Content.Jetpack.Item);
         bool canThrust = !passedOut && jetpack && known is { Air: > 0 };
@@ -429,6 +434,7 @@ public partial class HeroView : Node2D
         {
             // Passed out, the hero takes no orders and only falls; keys pressed meanwhile are spent.
             var taken = _autopilot?.Next(_current) ?? Take();
+            if (wheel) _runs = taken.X != 0;
             // Swinging, it faces where the swing began toward, swimming too: the blade comes down there. Aiming
             // the harpoon, it faces the pointer, swimming the other way too. With no pointer, a script faces where it says.
             bool swinging = _swing.Phase != null;
@@ -471,7 +477,7 @@ public partial class HeroView : Node2D
             client.Send(report);
             _reportedAt = tick;
         }
-        bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)));
+        bool exerting = !passedOut && Report.Exerting(_current, ship.Space(_current.BodyCell(grid.Width)), seat != null ? _runs : null);
         if (!passedOut && Report.ExertOf(m.Crew, client.Id, exerting) is { } exert) client.Send(exert);
         // Off as Shift is let go, aboard, the jetpack taken off or the suit empty: the sim stops venting it.
         if (Report.ThrustOf(m.Crew, client.Id, _thrust != null) is { } thrusts) client.Send(thrusts);

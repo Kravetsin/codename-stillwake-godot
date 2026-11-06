@@ -71,7 +71,7 @@ public class DropPodTests
         // The pod's four cells from x 6, its six rows from y 4: the hero's middle at x 8, its feet on row 9's bottom.
         var held = Hero.At(Ship.Of(w.M.Grid, w.M.Rooms), seat);
         Assert.Equal((8 * Hero.Unit, 10 * Hero.Unit), (held.X, held.Y));
-        Assert.Equal("[E] Leave drop pod", I18n.En.T(Prompts.Seated.Action));
+        Assert.Equal("[E] Leave drop pod", I18n.En.T(Prompts.SeatedIn("dropPod").Action));
     }
 
     [Fact]

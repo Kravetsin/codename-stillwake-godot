@@ -99,6 +99,15 @@ public class TreadWheelTests
         Assert.Null(w.M.Landing.SeatOf(0));
     }
 
+    /// <summary>Drawn on a map it stands on a back wall, as a fire does and a panel does not, so a room it is drawn in stays shut.</summary>
+    [Fact]
+    public void IsDrawnOnABackWallSoItsRoomStaysShut()
+    {
+        var w = World().Run();
+        Assert.All(w.M.Rooms.All, r => Assert.Empty(r.Openings));
+        Assert.Equal(Stillwake.Sim.Grid.Back.Wall, w.M.Grid.BackLayer[w.M.Grid.MachineById(Wheel(w))!.Cell]);
+    }
+
     /// <summary>A solar panel in the same room makes nothing: the wheel's <c>Anywhere</c> is what lets it work indoors.</summary>
     [Fact]
     public void MakesIndoorsWhereAPanelWouldNot()
