@@ -35,7 +35,7 @@ public static class HillsDemo
     /// <summary>
     /// A character a cell, for its steps are a cell (0106), its machines drawn at their whole footprints: a panel six by two on the
     /// roof, a lamp two by two, the tank four by four up the left wall, three oxygen vaporizers in a row beside it and their vent
-    /// past them. The room leaks some 2.7 units a tick and a vaporizer makes 1 (liquid-oxygen), so three keep up, the full tank
+    /// past them. Behind glass (leaks-tripled) the room leaks some 2.7 units a tick and a vaporizer makes 1 (liquid-oxygen), so three keep up, the full tank
     /// for some ten minutes. The lamps under the ceiling are joined, so the six panels, 30, feed the twelve lamps and the three
     /// vaporizers, 24, each vaporizer cabled to a lamp.
     /// </summary>
@@ -135,6 +135,7 @@ public static class HillsDemo
             slots.Add(i < Drops.Length ? new JsonObject { ["item"] = i % 2 == 0 ? "scrap" : "planks", ["count"] = 5 } : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = Dropper, ["slots"] = slots });
         var seeded = World.Load(root.ToJsonString(), modules());
+        GlassBacks.Lay(modules());
         seeded.Step([.. Drops.Select((at, i) => (Command)new Drop(new Place(i), 5, at.Y * Width + at.X, 0) { From = Dropper })]);
         for (int i = 0; i < 60; i++) seeded.Step([]);
         return seeded;

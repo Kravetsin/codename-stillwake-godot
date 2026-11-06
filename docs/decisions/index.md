@@ -242,7 +242,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [salvage-trips](2026-11-04-salvage-trips.md) | Salvage trips | accepted |  |
 | [trade-capsule-ink](2026-11-04-trade-capsule-ink.md) | The trade capsule is a freight canister in ink | accepted |  |
 | [aim-on-use](2026-11-05-aim-on-use.md) | An aimed item comes up only in use | accepted |  |
-| [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted |  |
+| [air-bubbles](2026-11-05-air-bubbles.md) | Air is a bubble round each source | accepted | leaks-tripled (in part) |
 | [air-wash](2026-11-05-air-wash.md) | The air overlay is a wash to leave on | accepted |  |
 | [build-from-crates](2026-11-05-build-from-crates.md) | Building, pipes and cables pay from every crate on the ship | accepted |  |
 | [build-hints](2026-11-05-build-hints.md) | Build hints: a screen of key caps that changes with the hand | accepted |  |
@@ -256,3 +256,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [tool-contact](2026-11-05-tool-contact.md) | A running tool is seen at work all along | accepted | damage-looks, tool-edge (in part) |
 | [tool-edge](2026-11-05-tool-edge.md) | A running tool hits with what is drawn | accepted | tool-reach (in part) |
 | [tool-reach](2026-11-05-tool-reach.md) | A tool hits by a fan of rays from the shoulder and shows its reach in use | accepted |  |
+| [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted |  |

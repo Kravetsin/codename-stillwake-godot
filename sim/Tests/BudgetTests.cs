@@ -395,9 +395,9 @@ public class BudgetTests(ITestOutputHelper output)
     [Fact]
     public void KeepsFourBaysOfFourDronesAmongFortyMachinesUnderBudget()
     {
-        // The hall, rows 0–15, and under its hull in space its air plant (liquid-oxygen). The hall leaks some 10.6 units a tick
-        // and a vaporizer makes 1, so sixteen on one gas line up to the vents fill it as fast as a room fills, four cells a
-        // tick; four filled tanks on one liquid line under them, thirteen panels powering them.
+        // The hall, rows 0–15, and under its hull in space its air plant (liquid-oxygen). Behind glass the hall leaks less
+        // than the 16 units a tick its sixteen vaporizers make; on one gas line up to the vents they fill it as fast as a room
+        // fills, four cells a tick; four filled tanks on one liquid line under them, thirteen panels powering them.
         const int W = 72, H = 16, Below = 8, Vaporizers = 16, Panels = 13;
         var rows = Enumerable.Range(0, H + Below).Select(y => (y >= H ? new string(' ', W) : y == 0 || y == H - 1 ? new string('#', W) : "#" + new string('.', W - 2) + "#").ToCharArray()).ToArray();
         var under = Enumerable.Range(0, H + Below).Select(_ => new string(' ', W).ToCharArray()).ToArray();
@@ -447,6 +447,14 @@ public class BudgetTests(ITestOutputHelper output)
             cables.Add(((2 + 4 * j, H + 7), (2 + 4 * j, H + 1)));
         }
         var w = new Scenario(Layout.Parse([.. rows.Select(r => new string(r))], [.. under.Select(r => new string(r))], cables), doubled: true);
+        // Glass behind the hall, laid in creative: with leaks tripled (playtest 2026-11-06) scrap would leak more than sixteen make.
+        int hall = w.M.Rooms.RoomAt(w.At(1, 1))!.Value;
+        var cells = Enumerable.Range(0, w.M.Rooms.RoomOfCells.Length).Where(c => w.M.Rooms.RoomAt(c) == hall).ToList();
+        w.Do(new Items.SetCreative(true));
+        foreach (int cell in cells) w.Do(new ClearAt(cell, "back"));
+        w.Run();
+        foreach (int cell in cells) w.Do(new Place(cell, Placement.BackWall("glass")));
+        w.Do(new Items.SetCreative(false)).Run();
         Assert.True(w.M.Grid.Machines.Count >= 40);
         foreach (var bay in w.M.Grid.MachinesOf(Content.Logistics.Bay)) LogisticsTests.Dock(w, bay.Id, 4);
         var crates = w.M.Grid.MachinesOf("crate").Where(c => c.Cell == w.At(c.Cell % w.M.Grid.Width / 2, 3)).ToList();

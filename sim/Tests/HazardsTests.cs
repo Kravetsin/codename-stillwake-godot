@@ -43,7 +43,8 @@ public partial class HazardsTests
         int room = w.M.Rooms.RoomAt(w.At(4, 2)) ?? throw new InvalidOperationException("room");
         for (int i = 0; i < 1000 && w.M.Atmosphere.StatusOf(room) != RoomStatus.Aired; i++) w.Run();
         Assert.Equal(RoomStatus.Aired, w.M.Atmosphere.StatusOf(room));
-        for (int i = 0; i < 1000 && w.M.Atmosphere.OxygenIn(vaporizer) < Content.Air.GeneratorStore; i++) w.Run();
+        // The room's leak takes nearly all the vaporizer makes (leaks tripled, playtest 2026-11-06): its store fills slowly.
+        for (int i = 0; i < 20000 && w.M.Atmosphere.OxygenIn(vaporizer) < Content.Air.GeneratorStore; i++) w.Run();
         Assert.Equal(Content.Air.GeneratorStore, w.M.Atmosphere.OxygenIn(vaporizer));
         return (w, tank, room);
     }
