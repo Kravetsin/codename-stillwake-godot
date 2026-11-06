@@ -181,8 +181,8 @@ public class AirTests
         var w = s.W;
         s.Fill(3);
         AirUp(w, s.Room);
-        // The store refills once the room is aired, for the vent to have its drain to take.
-        w.Run(Air.GeneratorStore);
+        // The store refills once the room is aired, slowly as the room leaks nearly all that is made, for the vent to have its drain to take.
+        for (int i = 0; i < 20000 && w.Gas() < 3 * Air.VentDrain; i++) w.Run();
         Assert.True(w.Gas() >= 3 * Air.VentDrain);
         int before = w.Held();
         w.Do(new ClearAt(At(8, 2), "structure")).Run();
@@ -350,9 +350,9 @@ public class AirTests
         " ##################### ",
         " #V......#.....#.....# ",
         " #TT.....#.....#.....# ",
-        " #TT.....D.....D.....# ",
-        " #....#..#.....#.....# ",
-        " #.......#.....#.....# ",
+        " #TT..#..D.....D.....# ",
+        " #########.....#.....# ",
+        " #########.....#.....# ",
         " ##################### ",
         "                       ",
     ];
@@ -400,11 +400,11 @@ public class AirTests
         var (w, left) = AiredRow();
         var before = Of(w, left)!;
         int volume = w.M.Rooms.RoomById(left)!.Volume;
-        AroundA(w, new ClearAt(At23(6, 5), "structure"));
+        AroundA(w, new ClearAt(At23(6, 4), "structure"));
         // The leak is paid before the fill: a tick or two, as the store refills, for the vent to reach it.
         w.Run(5);
         Assert.Equal(volume + 1, w.M.Rooms.RoomById(left)!.Volume);
-        Assert.Contains(At23(6, 5), w.Air().Aired);
+        Assert.Contains(At23(6, 4), w.Air().Aired);
         Assert.Equal(RoomStatus.Aired, Status(w, left));
         Assert.Equal(before.Leak + Scrap, Of(w, left)!.Leak);
     }
@@ -446,7 +446,7 @@ public class AirTests
     [Property(MaxTest = 40)]
     public Property KeepsTheAirOfRoomsFoundAroundAChangeAsAWorldLoadedAfreshWould()
     {
-        int[] cells = [At23(9, 4), At23(15, 4), At23(4, 4), At23(6, 5), At23(12, 3), At23(12, 4), At23(9, 3), At23(15, 5), At23(5, 2), At23(18, 6)];
+        int[] cells = [At23(9, 4), At23(15, 4), At23(4, 4), At23(6, 4), At23(12, 3), At23(12, 4), At23(9, 3), At23(15, 5), At23(5, 2), At23(18, 6)];
         var step = from cell in Gen.Elements(cells) from ticks in Gen.Choose(1, 40) select (cell, ticks);
         var steps = from n in Gen.Choose(1, 12) from s in step.ArrayOf(n) select s;
         return Prop.ForAll(steps.ToArbitrary(), all =>
@@ -829,7 +829,7 @@ public class AirTests
         w.Run(400);
         Assert.Equal(held, w.Air().Aired.Count);
         // Behind glass the same vaporizer holds a whole room twice what scrap held, its scrap hull leaking the most.
-        var glass = Settled("glass", rows: 30);
+        var glass = Settled("glass", rows: 10);
         Assert.Equal(glass.W.M.Rooms.RoomById(glass.Room)!.Volume, glass.W.Air().Aired.Count);
         Assert.True(glass.W.Air().Aired.Count > 2 * held);
         Assert.Equal(RoomStatus.Aired, Status(glass.W, glass.Room));
@@ -839,16 +839,17 @@ public class AirTests
     [Fact]
     public void SpreadsItsBubbleThroughAnOpenDoorAndLetsThePartPastItFadeWhereItLiesOnceShut()
     {
-        // Two rooms deep, a vent in the left: open, its bubble reaches a little way past the door into the right.
-        string map = string.Join("\n", new[] { "###############", "#V......#.....#", "#TT.....D.....#", "#TT.....#.....#" }
-            .Concat(Enumerable.Repeat("#.......#.....#", 37)).Append("###############"));
+        // Two rooms deep, a vent in the narrow left: open, its bubble reaches a little way past the door into the right.
+        string map = string.Join("\n", new[] { "############", "#V...#.....#", "#TT..D.....#", "#TT..#.....#" }
+            .Concat(Enumerable.Repeat("#....#.....#", 37)).Append("############"));
+        static int At12(int x, int y) => AirTesting.Cell(12, x, y);
         var w = new Scenario(AirTesting.OneThick(AirTesting.Chained(map))).Do(new Items.SetCreative(true));
-        w.Pipe(At15(1, 1), w.Output(At15(1, 2))).Run();
-        int tank = w.M.Grid.MachinesOf("tank").Single().Id, door = At15(8, 2);
+        w.Pipe(At12(1, 1), w.Output(At12(1, 2))).Run();
+        int tank = w.M.Grid.MachinesOf("tank").Single().Id, door = At12(5, 2);
         for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tank));
         w.Do(new SetDoor(door, true)).Run(800);
-        int left = w.M.Rooms.RoomAt(At15(4, 2))!.Value;
-        bool Past(int c) => c % 30 > 17;
+        int left = w.M.Rooms.RoomAt(At12(3, 2))!.Value;
+        bool Past(int c) => c % 24 > 11;
         int reached = w.Air().Aired.Count(Past);
         Assert.InRange(reached, 1, 5 * 10 * 2 * 37);
         // Shut, the right room has no vent: its air stays where it lay, no cell of it newly aired, and fades from the far

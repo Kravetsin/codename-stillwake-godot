@@ -46,8 +46,8 @@ public class PodAirTests
         Assert.Empty(w.M.Power.Networks);
         Assert.Equal(15 * 6, Aired(w));
         Assert.Equal(1000, w.M.Atmosphere.MadeShare(Pod(w)));
-        // What the pointer tells of it: a unit a tick, no liquid needed.
-        Assert.Equal(1000, w.M.Atmosphere.MakesAt(Pod(w)));
+        // What the pointer tells of it: its rate, three units a tick, no liquid needed.
+        Assert.Equal(Air.PodRate * 1000 / Air.LeakEvery, w.M.Atmosphere.MakesAt(Pod(w)));
     }
 
     [Fact]
@@ -60,13 +60,13 @@ public class PodAirTests
     }
 
     [Fact]
-    public void MakesAUnitATickUpToItsStore()
+    public void MakesItsRateUpToItsStore()
     {
         // A room just the pod's size: all it makes is in its store, or paid for what the cells it aired leaked (2026-11-05-air-bubbles).
         var w = new Scenario(Layout.Parse(
             ["########", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "#OOOOOO#", "########"], Piped));
         int leaked = w.RunLeaking(30);
-        Assert.Equal(30, w.M.Atmosphere.OxygenIn(Pod(w)) + leaked);
+        Assert.Equal(30 * Air.PodRate / Air.LeakEvery, w.M.Atmosphere.OxygenIn(Pod(w)) + leaked);
         // Full, the store reaches its top and stays.
         w.Run(2 * Air.GeneratorStore + 200);
         Assert.Equal(Air.GeneratorStore, w.M.Atmosphere.OxygenIn(Pod(w)));
@@ -78,7 +78,7 @@ public class PodAirTests
         var w = Filled(Room());
         var air = w.M.Atmosphere.RoomsAir().Single();
         // Its room alone on it: the whole of its making is the room's to hold air with.
-        Assert.Equal((Air.GeneratorRate, Air.GeneratorRate), (air.Made, air.Budget));
+        Assert.Equal((Air.PodRate, Air.PodRate), (air.Made, air.Budget));
     }
 
     [Fact]

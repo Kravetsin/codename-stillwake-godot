@@ -25,7 +25,7 @@ public sealed partial class AtmosphereModule
         public readonly Dictionary<int, List<int>> Behind = new();
         /// <summary>Each tank with its output on a network, in id order, and the tanks whose input is on that network: what it pours into.</summary>
         public readonly List<(int Tank, List<int> Into)> Pours = [];
-        /// <summary>The satisfaction, in thousandths, of the vaporizers feeding each network, summed: 0 when none is powered.</summary>
+        /// <summary>What the air sources feeding each network make every <c>Air.LeakEvery</c> ticks at their power, in thousandths of a unit, summed: 0 when none is powered.</summary>
         public readonly Dictionary<int, int> MadeOn = new();
         /// <summary>Each vaporizer's satisfaction, in thousandths, by id: read with <see cref="MadeOn"/>.</summary>
         public readonly Dictionary<int, int> Power = new();
@@ -93,7 +93,7 @@ public sealed partial class AtmosphereModule
         {
             int satisfied = MadeShare(generator);
             s.Power[generator] = satisfied;
-            s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + satisfied;
+            s.MadeOn[network] = s.MadeOn.GetValueOrDefault(network) + satisfied * RateOf(s.Endless.Contains(generator));
         }
         s.Held.Clear();
         foreach (var t in State.Tanks) s.Held[t.Tank] = t;
@@ -393,7 +393,7 @@ public sealed partial class AtmosphereModule
             var vaporizers = new SortedSet<int>();
             foreach (int n in networks.Distinct())
             {
-                made += s.MadeOn.GetValueOrDefault(n) * Content.Air.GeneratorRate / 1000;
+                made += s.MadeOn.GetValueOrDefault(n) / 1000;
                 foreach (int v in ListAt(s.StoresOn, n)) vaporizers.Add(v);
             }
             // The liquid behind the vaporizers feeding the room, each tank counted once.
@@ -511,12 +511,15 @@ public sealed partial class AtmosphereModule
         return _dues;
     }
 
+    /// <summary>What an air source makes every <c>Air.LeakEvery</c> ticks at full power: the pod, taking no liquid in, at its own rate.</summary>
+    private static int RateOf(bool endless) => endless ? Content.Air.PodRate : Content.Air.GeneratorRate;
+
     /// <summary>How much of its rate generator <paramref name="generator"/> makes, in thousandths: as much as its power, or all of it if it draws none.</summary>
     public int MadeShare(int generator) =>
         _grid.MachineById(generator) is { } m && Content.Machines.Get(m.Kind).Draws is null or 0 ? 1000 : _power.Satisfaction(generator);
 
     /// <summary>
-    /// Each air source, in id order, after lower ids have drawn, works toward its next unit by <c>Air.GeneratorRate</c> ×
+    /// Each air source, in id order, after lower ids have drawn, works toward its next unit by its <see cref="RateOf"/> ×
     /// <see cref="MadeShare"/>, but only while its store has room and, if it takes liquid in (the vaporizer), the tanks
     /// behind it hold some; else its work stands. Each unit a vaporizer finishes takes a unit of liquid from those tanks in
     /// id order; one with no input (the piped pod) makes its air from nothing. What room or liquid leaves unmade stays.
@@ -541,7 +544,7 @@ public sealed partial class AtmosphereModule
             int room = Content.Air.GeneratorStore - (store?.Oxygen ?? 0), liquid = endless ? int.MaxValue : LiquidBehind(s, m.Id);
             if (room > 0 && liquid > 0)
             {
-                part += Content.Air.GeneratorRate * MadeShare(m.Id);
+                part += RateOf(endless) * MadeShare(m.Id);
                 int made = Math.Min(part / unit, Math.Min(room, liquid));
                 part -= made * unit;
                 if (made > 0)
@@ -611,7 +614,7 @@ public sealed partial class AtmosphereModule
         if (_grid.MachineById(source) is not { } m || !Content.Machines.Get(m.Kind).Is(MachineTrait.AirSource) || !OnAPipe(m)) return 0;
         var s = Gather();
         if (!s.Endless.Contains(source) && LiquidBehind(s, source) == 0) return 0;
-        return (int)((long)Content.Air.GeneratorRate * MadeShare(source) / Content.Air.LeakEvery);
+        return (int)((long)RateOf(s.Endless.Contains(source)) * MadeShare(source) / Content.Air.LeakEvery);
     }
 
     private bool OnAPipe(Machine m)
@@ -705,7 +708,7 @@ public sealed partial class AtmosphereModule
 
     /// <summary>
     /// Into <see cref="_budget"/>: each sealed room's budget, thousandths of a unit per <c>Air.LeakEvery</c> ticks, from its
-    /// live vents: each network makes <c>Air.GeneratorRate</c> × the satisfaction of each vaporizer feeding it (the pod in
+    /// live vents: each network makes the <see cref="RateOf"/> × the satisfaction of each source feeding it (the pod in
     /// full), split evenly over the live vents in sealed rooms on it, rounded down (2026-11-05-air-bubbles).
     /// </summary>
     private void Budgets(Survey s, IReadOnlyList<Room> zones)
@@ -724,7 +727,7 @@ public sealed partial class AtmosphereModule
             long budget = 0;
             foreach (var (_, network) in ListAt(s.FillsIn, zone.Id))
                 if (_sharers.TryGetValue(network, out int sharers) && Holds(s, network))
-                    budget += (long)s.MadeOn.GetValueOrDefault(network) * Content.Air.GeneratorRate / sharers;
+                    budget += (long)s.MadeOn.GetValueOrDefault(network) / sharers;
             if (budget > 0) _budget[zone.Id] = budget;
         }
     }

@@ -94,8 +94,8 @@ public static class Testbed
     /// room two, and the last three, over the airlock and past the stern, the charging station: 15, what it draws with the arc
     /// fitted (0100); the burner generator feeds the Former and room
     /// two's right lamp, and through it the airlock's. The grow capsule stands a cell left of the assembler, inside the
-    /// bay's zone. A vaporizer makes a unit a tick: room one leaks some 0.8 a tick, room two and its two fires some 1.4, so
-    /// room two has two. A canister in each tank airs the rooms as the world is made, then the tanks go in full, four canisters
+    /// bay's zone. A vaporizer makes a unit a tick: behind glass (leaks-tripled) room one leaks some 0.8 a tick, room two and its
+    /// two fires some 1.7, so room two has two. A canister in each tank airs the rooms as the world is made, then the tanks go in full, four canisters
     /// each: some twenty minutes of room two's air, more of room one's, and canisters in the crate for more.
     /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
     /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
@@ -187,6 +187,7 @@ public static class Testbed
     public static World Create(IReadOnlyList<Module> modules)
     {
         var aired = World.Create(1, Map, modules);
+        GlassBacks.Lay(modules);
         for (int i = 0; i < AirTicks; i++) aired.Step([]);
         var save = JsonNode.Parse(aired.Save())!;
         var machines = save["slices"]!["grid"]!["machines"]!.AsArray();

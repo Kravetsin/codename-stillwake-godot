@@ -6,7 +6,8 @@ namespace Stillwake.Content;
 /// <see cref="LeakEvery"/> ticks, ten minutes so that a rate of a tenth of a unit a minute is whole, a
 /// room holds as many cells round its vents as its sources pay the leak of (0020, 2026-11-05-air-bubbles): the back
 /// wall behind each and the hull cells beside it by their material's leak, a closed door in its hull by <see cref="DoorLeak"/>;
-/// a vaporizer's <see cref="GeneratorRate"/> holds 400 cells of scrap.
+/// the pod's <see cref="PodRate"/> holds the starting ship, a vaporizer's <see cref="GeneratorRate"/> a third of it, 133 cells of scrap
+/// (playtest 2026-11-06: leaks tripled and the pod with them, so every room built after costs air).
 /// A room open to space loses <see cref="VentLoss"/> cells a tick, and a vent in it, or in space, drains
 /// its network by <see cref="VentDrain"/> a tick: what a vent can pass. A tank holds liquid oxygen, a canister
 /// <see cref="Canister"/> of it; a vaporizer (the generator) turns it into air at <see cref="GeneratorRate"/> units every
@@ -26,9 +27,13 @@ public static class Air
 
     public const int VentLoss = 24;
     public const int LeakEvery = 12000;
-    public const int DoorLeak = 20;
+    public const int DoorLeak = 60;
     public const int VentDrain = 8;
     public const int GeneratorRate = 12000;
+
+    /// <summary>What the pod makes from nothing every <see cref="LeakEvery"/> ticks: enough for the starting ship, its airlock and its hold.</summary>
+    public const int PodRate = 36000;
+
     public const int GeneratorStore = 160;
 
     /// <summary>
