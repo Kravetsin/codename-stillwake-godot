@@ -7,7 +7,7 @@ using Machines = Stillwake.Content.Machines;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The biofuel generator (docs/plans/power-chain.md): a fuel burner of biofuel alone, making 16 a tick while it burns,
+/// The biofuel generator (the power-chain ADR): a fuel burner of biofuel alone, making 16 a tick while it burns,
 /// breathing its room's air and lighting only while its network wants a fire, as the burner generator does.
 /// </summary>
 public class BiofuelGeneratorTests

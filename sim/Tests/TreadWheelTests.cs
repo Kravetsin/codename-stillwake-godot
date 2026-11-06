@@ -10,7 +10,7 @@ using Xunit;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The treadmill wheel (docs/plans/power-chain.md): a seat that makes power, 4 a tick, anywhere, only while an awake rider
+/// The treadmill wheel (the power-chain ADR): a seat that makes power, 4 a tick, anywhere, only while an awake rider
 /// runs in it; counted with the panels in <c>Steady</c>, so while it covers its network no fire lights.
 /// </summary>
 public class TreadWheelTests

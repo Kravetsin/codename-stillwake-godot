@@ -7,7 +7,7 @@ using Slot = Stillwake.Sim.Items.Place;
 namespace Stillwake.Sim.Tests;
 
 /// <summary>
-/// The fermenter (docs/plans/power-chain.md): a fed station of the "ferment" process, on power, turning biomass and fat into
+/// The fermenter (the power-chain ADR): a fed station of the "ferment" process, on power, turning biomass and fat into
 /// biofuel one for one; the only way to biofuel, the furnace and the smelter leaving both unworked.
 /// </summary>
 public class FermenterTests
