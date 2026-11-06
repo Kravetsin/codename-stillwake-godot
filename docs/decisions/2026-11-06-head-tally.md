@@ -1,6 +1,6 @@
 # What a hero gains, counted steady over its head
 
-- Status: accepted; supersedes the pick-up popups of [0075](0075-effects-are-light-not-shapes.md)
+- Status: accepted; supersedes the pick-up popups of [0075](0075-effects-are-light-not-shapes.md); where a gain shows and how it flies superseded by [gain-spots](2026-11-06-gain-spots.md)
 - Date: 2026-11-06
 
 ## Context

@@ -52,4 +52,7 @@ public static class Fx
 
     /// <summary>The most picked-up icons flying home to the hero on their ribbons of light at once (slice 3): past it a stack shows in the tally alone.</summary>
     public const int MostRibbons = 4;
+
+    /// <summary>The most gains' sparks flying to the rim's plate at once (gain-plate): past it a gain counts at once, with no spark.</summary>
+    public const int MostSparks = 12;
 }
