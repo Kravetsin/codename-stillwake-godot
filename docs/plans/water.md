@@ -18,7 +18,7 @@ electrolyser gives `Out liquidOxygen` into tanks.
   Liquid oxygen stays in Atmosphere's tanks; the electrolyser adds to them through one Atmosphere operation. A general
   module is extracted when a third fluid has a named user.
 - **Order:** L-1 (and L-2, independent), then water in one PR.
-- **The Former's 3 ice → canister stays:** the canister is portable oxygen (jetpack, suits), the electrolyser the
+- **The Former's 3 ice → canister stayed** (removed since, [no-ice-canister](../decisions/2026-11-06-no-ice-canister.md)): the canister is portable oxygen (jetpack, suits), the electrolyser the
   base's automated path.
 - **The electrolyser is 4×6**, so its three columns read tall.
 

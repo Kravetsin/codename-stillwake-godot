@@ -153,7 +153,7 @@ public class BoardThreadsTests
         var near = new Dictionary<string, int> { ["scrapChunk"] = 9, ["hullPlate"] = 4 };
         var picture = Picture(Read(["scrapChunk", "hullPlate"], counts: near));
         Assert.Equal(["hullPlate", "scrapChunk"], Notes(picture));
-        Assert.Equal(["backWallScrap", "furnace", "tradeStation", "wallScrap", "workbench"], Shapes(picture));
+        Assert.Equal(["backWallScrap", "furnace", "wallScrap", "workbench"], Shapes(picture));
         Assert.Subset(Shapes(picture).ToHashSet(), Shapes(Picture(Read(["scrapChunk"], counts: first))).ToHashSet());
         var furnace = BoardThings.All.Single(t => t.Id == "furnace");
         Assert.True(BoardPencil.Of(furnace, i => near.GetValueOrDefault(i), _ => false) > BoardPencil.Of(furnace, i => first.GetValueOrDefault(i), _ => false));
