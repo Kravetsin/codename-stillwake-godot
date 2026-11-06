@@ -607,7 +607,7 @@ const dial = (a, x, y, r, at) => {
 };
 /** A socket where the cable meets the picture (MachineSpec.Plug), its middle at (x, y). */
 const socket = (a, x, y) => { a.shape(rr(x - 1.6, y - 1.4, 3.2, 2.8, .4), DARK, { outer: false, lite: band(x - 1.6, y - 1.4, x + 1.6, y - .9) }); a.flat(ell(x, y, .7), '#12131e'); a.flat(ell(x - .15, y - .15, .3), COPPER.lite); };
-/** A biofuel jerrycan, as the item's icon, standing with its foot at (x, foot), w across. */
+/** The fermenter's biofuel jerrycan under its tap, standing with its foot at (x, foot), w across. */
 const jerrycan = (a, x, foot, w) => {
   const h = w * 1.25, y = foot - h, k = w / 12;
   a.shape(rr(x + 8.6 * k, y - 1.2 * k, 2.2 * k, 1.6 * k, .3 * k), BRASS, { lite: band(x + 8.6 * k, y - 1.2 * k, x + 10.8 * k, y - .7 * k) });
