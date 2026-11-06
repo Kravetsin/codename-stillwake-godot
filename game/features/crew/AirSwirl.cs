@@ -6,55 +6,54 @@ using Stillwake.Game.Render;
 namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
-/// Air coming back round a hero (0081), drawn only, each peer its own. A canister breathed raises a vortex of air round the
-/// whole body (<see cref="Vortex"/>): a faint ring at the feet, then fine streaks and motes spiralling up round it from the
-/// feet to above the head, fading out there, about a second in all, steered along their helix as the hero moves. Breathing
-/// room air again puffs a few pale motes off the visor (<see cref="Puff"/>). All of it light, added over the world, so it
-/// reads in the dark of space; a faint pale light round the body while it rises.
+/// Air coming back round a hero (0081), drawn only, each peer its own. A canister breathed flings its air out of the chest
+/// (<see cref="Fling"/>, air-feedback as picked): a flash, then motes flying out to the sides and up, slowing and curling,
+/// each leaving a trail of finer motes that hangs in the dark and fades, about a second in all. Breathing room air again
+/// puffs a few pale motes off the visor (<see cref="Puff"/>). All of it light, added over the world, so it reads in space.
 /// </summary>
 public partial class AirSwirl : Node
 {
     /// <summary>The pale cyan of the air: the ring and the light round the body.</summary>
     private static readonly (int, int, int) Air = (200, 240, 255);
 
-    /// <summary>
-    /// A vortex: the body it rises round, followed at <see cref="Fx.VortexFollow"/> a second so a turn or a step never
-    /// jerks it; which way it turns; how long it has thrown, what it has thrown so far, and how many of its particles fly.
-    /// </summary>
-    private sealed class Throw(Func<(Vector2 Feet, Vector2 Up)> body, int way)
-    {
-        public readonly Func<(Vector2 Feet, Vector2 Up)> Body = body;
-        public readonly int Way = way;
-        public (Vector2 Feet, Vector2 Up) At = body();
-        public double Ms;
-        public int Streaks, Motes, Flying;
-    }
-
-    /// <summary>
-    /// One particle on its helix: how high it starts, a share of the body; where round the body; its own clock, so one
-    /// cleared with the rest on a change of world is let go all the same.
-    /// </summary>
-    private sealed class Spun(Glim glim, Throw thrown, double from, double angle)
+    /// <summary>A mote flung out: how it curls, a turn a second; when it last left a trail; its own clock, so one cleared with the rest on a change of world is let go all the same.</summary>
+    private sealed class Flung(Glim glim, double curl)
     {
         public readonly Glim Glim = glim;
-        public readonly Throw Throw = thrown;
-        public readonly double From = from, Angle = angle;
-        public double Ms;
+        public readonly double Curl = curl;
+        public double Ms, SinceTrail;
     }
 
-    private readonly List<Spun> _spun = [];
-    private readonly List<Throw> _throws = [];
-    /// <summary>Where its air spins: the hero's own layer, round its body (effects-on-their-layer).</summary>
-    private static Glims Spinning => Stages.Of(Layers.Hero).Glims;
+    private readonly List<Flung> _flung = [];
+    private readonly List<(double X, double Y, double Ms)> _flashes = [];
+    /// <summary>Where its air flies: the hero's own layer, round its body (effects-on-their-layer).</summary>
+    private static Stage Spun => Stages.Of(Layers.Hero);
+    private static Glims Spinning => Spun.Glims;
 
-    /// <summary>A canister's air rising round the body that <paramref name="body"/> gives each frame: its feet and the way up.</summary>
-    public void Vortex(Func<(Vector2 Feet, Vector2 Up)> body)
+    /// <summary>A canister's air flung out of the chest of the body <paramref name="body"/> gives: its feet and the way up.</summary>
+    public void Fling(Func<(Vector2 Feet, Vector2 Up)> body)
     {
-        var t = new Throw(body, Spinning.Between(0, 1) < 0.5 ? -1 : 1);
-        _throws.Add(t);
-        var (feet, up) = t.At;
-        var ring = feet + up * 1.5f;
-        Stages.Of(Layers.Hero).Flares.Shock(ring.X, ring.Y, 3, Fx.VortexRing, 380, Air, 0.4 * Fx.Glow, 0.3, Fx.VortexRingSquash);
+        var (feet, up) = body();
+        var right = new Vector2(-up.Y, up.X);
+        var chest = feet + up * (float)(Rig.H * Fx.FlingChest);
+        _flashes.Add((chest.X, chest.Y, 0));
+        Spun.Flares.Flash(chest.X, chest.Y, Air, 0.5 * Fx.Glow, 3, 0.5f, 0.18);
+        int count = (int)Math.Round(Fx.FlingMotes * Fx.Count);
+        for (int k = 0; k < count; k++)
+        {
+            // A few straight up, the rest to either side in turn, from a little below level to well up.
+            double a;
+            if (k < count / 6) a = -Math.PI / 2 + Spinning.Between(-0.45, 0.45);
+            else
+            {
+                double rise = Spinning.Between(-0.35, 1.15);
+                a = k % 2 == 1 ? -rise : Math.PI + rise;
+            }
+            double s = Spinning.Between(Fx.FlingSpeed.From, Fx.FlingSpeed.To);
+            var v = right * (float)(Math.Cos(a) * s) - up * (float)(Math.Sin(a) * s);
+            if (Spinning.Add(Luminous.FlingMote, chest.X + Spinning.Between(-1.5, 1.5), chest.Y + Spinning.Between(-2, 2), v.X, v.Y) is { } g)
+                _flung.Add(new Flung(g, Spinning.Between(-Fx.FlingCurl, Fx.FlingCurl)));
+        }
     }
 
     /// <summary>A breath of room air: a few pale motes drifting off the visor at <paramref name="visor"/>, mostly up.</summary>
@@ -92,69 +91,37 @@ public partial class AirSwirl : Node
     {
         double ms = delta * 1000;
         if (ms <= 0) return;
-        for (int i = _throws.Count - 1; i >= 0; i--)
+        for (int i = _flashes.Count - 1; i >= 0; i--)
         {
-            var t = _throws[i];
-            t.Ms += ms;
-            var (feet, up) = t.Body();
-            float follow = (float)(1 - Math.Exp(-delta * Fx.VortexFollow));
-            t.At = (t.At.Feet.Lerp(feet, follow), t.At.Up.Lerp(up, follow).Normalized());
-            double due = Math.Min(1, t.Ms / Fx.VortexEmitMs);
-            t.Streaks = Emit(t, Luminous.VortexStreak, t.Streaks, Fx.VortexStreaks, due);
-            t.Motes = Emit(t, Luminous.VortexMote, t.Motes, Fx.VortexMotes, due);
-            // A faint pale light round the body while the air rises, fading as it goes.
-            var middle = t.At.Feet + t.At.Up * (float)(Rig.H / 2);
-            double light = Fx.VortexLight * Math.Max(0, 1 - t.Ms / (Fx.VortexEmitMs + 500));
-            if (light > 0) Stages.Of(Layers.Hero).Flares.Hold(t, middle.X, middle.Y, Air, light, 3, 0.5f, 0.7);
-            if (due >= 1 && t.Flying == 0) _throws.RemoveAt(i);
-        }
-        // Steered before the effects layer moves them this frame: each heads for where its helix is when the frame ends.
-        for (int i = _spun.Count - 1; i >= 0; i--)
-        {
-            var s = _spun[i];
-            var g = s.Glim;
-            s.Ms += ms;
-            if (s.Ms >= g.LifeMs)
+            var (x, y, age) = _flashes[i];
+            double q = age / Fx.FlingFlashMs;
+            if (q >= 1)
             {
-                s.Throw.Flying--;
-                _spun.RemoveAt(i);
+                _flashes.RemoveAt(i);
                 continue;
             }
-            var to = On(s, s.Ms / g.LifeMs);
-            (g.Vx, g.Vy) = ((to.X - g.X) / delta, (to.Y - g.Y) / delta);
+            Spun.Flares.Bloom(x, y, 14, Air, 0.9 * (1 - q) * (1 - q) * Fx.Glow);
+            Spun.Flares.Bloom(x, y, 2, (255, 255, 255), 1 - q);
+            _flashes[i] = (x, y, age + ms);
         }
-    }
-
-    /// <summary>Throws the <paramref name="look"/>s due by <paramref name="due"/> of the throw, <paramref name="thrown"/> of <paramref name="all"/> so far.</summary>
-    private int Emit(Throw t, Luminous look, int thrown, int all, double due)
-    {
-        int want = (int)Math.Round(all * Fx.Count * due);
-        for (; thrown < want; thrown++)
+        // Turned before the effects layer moves them this frame: each curls as it slows, its look's drag slowing it.
+        for (int i = _flung.Count - 1; i >= 0; i--)
         {
-            // The first ones start at the feet, the later ones anywhere up to a third of the body: the column fills from below.
-            double from = Spinning.Between(0, Fx.VortexStartShare * (0.3 + 0.7 * due)), angle = Spinning.Between(0, Math.Tau);
-            var start = Place(t, from, angle, 0);
-            if (Spinning.Add(look, start.X, start.Y, 0, 0) is not { } g) continue;
-            _spun.Add(new Spun(g, t, from, angle));
-            t.Flying++;
+            var f = _flung[i];
+            var g = f.Glim;
+            f.Ms += ms;
+            if (f.Ms >= g.LifeMs)
+            {
+                _flung.RemoveAt(i);
+                continue;
+            }
+            double c = f.Curl * delta, cs = Math.Cos(c), sn = Math.Sin(c);
+            (g.Vx, g.Vy) = (g.Vx * cs - g.Vy * sn, g.Vx * sn + g.Vy * cs);
+            double life = 1 - f.Ms / g.LifeMs;
+            Spun.Flares.Bloom(g.X, g.Y, 3.4, Air, 0.45 * life * Fx.Glow);
+            for (f.SinceTrail += ms; f.SinceTrail >= Fx.FlingTrailMs; f.SinceTrail -= Fx.FlingTrailMs)
+                Spinning.Add(Luminous.FlingTrail, g.X + Spinning.Between(-0.4, 0.4), g.Y + Spinning.Between(-0.4, 0.4),
+                    g.Vx * 0.06 + Spinning.Between(-4, 4), g.Vy * 0.06 + Spinning.Between(-4, 4), bright: 0.5 + 0.5 * life);
         }
-        return thrown;
-    }
-
-    /// <summary>Where <paramref name="s"/> is <paramref name="q"/> of its life in: up its helix round the body as the vortex follows it.</summary>
-    private static Vector2 On(Spun s, double q) => Place(s.Throw, s.From, s.Angle, Math.Clamp(q, 0, 1));
-
-    /// <summary>
-    /// A point of the helix round <paramref name="t"/>'s body: from <paramref name="from"/> of the body's height it rises,
-    /// quickening, to above the head; it turns <see cref="Fx.VortexTurns"/> round it, narrowing a little; seen from the
-    /// side, round is across and a little up and down.
-    /// </summary>
-    private static Vector2 Place(Throw t, double from, double angle, double q)
-    {
-        double height = from * Rig.H + (Rig.H * (1 - from) + Fx.VortexAbove) * q * (0.7 + 0.3 * q);
-        double a = angle + t.Way * Fx.VortexTurns * Math.Tau * q, r = Fx.VortexRadius * (1 - 0.3 * q);
-        var (feet, up) = t.At;
-        var across = new Vector2(-up.Y, up.X);
-        return feet + up * (float)(height + Math.Sin(a) * Fx.VortexTilt) + across * (float)(Math.Cos(a) * r);
     }
 }

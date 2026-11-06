@@ -1,6 +1,6 @@
 # The last breath
 
-- Status: accepted
+- Status: accepted; the sky-blue gauge amended by [air-feedback](2026-11-07-air-feedback.md): its O2 sign reddens while low
 - Date: 2026-11-05
 - Amends [0061](0061-death-leaves-a-body.md): a suit at zero no longer passes the hero out at once, and
   [0081](0081-the-wrist-is-one-column-of-gauges-and-keys.md): a low suit fogs the visor instead of turning the screen's edges red

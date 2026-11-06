@@ -102,7 +102,7 @@ public partial class HeroView
             if (crew.HeroOf(id) is { } breathing && _canisters.Breathed(id, breathing.Air, breathing.Out))
             {
                 var figure = shown.Figure;
-                _air.Vortex(() => figure.Stance);
+                _air.Fling(() => figure.Stance);
                 _othersBreathe.PlayAt(figure.Visor);
             }
             // Its thrust is not sent: the plume blows against the way it moves, down while it is still.
@@ -139,7 +139,7 @@ public partial class HeroView
         client.Send(refill);
         _breathes.Play();
         _ui.Click();
-        _air.Vortex(() => _figure.Stance);
+        _air.Fling(() => _figure.Stance);
         _ui.Refill();
     }
 

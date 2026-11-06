@@ -32,8 +32,10 @@ public partial class AsteroidDemo : CanvasLayer
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
     /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
+    /// With <paramref name="fullBelt"/> (<c>--belt</c>, energy-ring) all three belt slots are open and worn: a battery near flat, a full one and an
+    /// accumulator half full, with the grinder and a spare battery on the hotbar.
     /// </summary>
-    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null)
+    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null, bool fullBelt = false)
     {
         var root = JsonNode.Parse(world.Save())!;
         int belt = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Charge.Belt);
@@ -47,15 +49,26 @@ public partial class AsteroidDemo : CanvasLayer
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
                 : i == Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot) ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
-                : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * Charge }
+                : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * (fullBelt ? 60 : Charge) }
+                : fullBelt && i == belt + 1 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
+                : fullBelt && i == belt + 2 ? new JsonObject { ["item"] = "accumulator", ["count"] = 1, ["charge"] = Spec.Charge.Accumulator / 2 }
+                : fullBelt && i == 2 ? new JsonObject { ["item"] = "grinder", ["count"] = 1 }
+                : fullBelt && i == 3 ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery }
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        if (fullBelt)
+        {
+            var granted = root["slices"]!["knowledge"]!["granted"]!.AsArray();
+            var ids = granted.Select(g => (string)g!).Union(["belt1", "belt2"]).Order(StringComparer.Ordinal).ToList();
+            root["slices"]!["knowledge"]!["granted"] = new JsonArray([.. ids.Select(id => (JsonNode)id)]);
+        }
         int start = FarDemo.StartOf(m), sx = start % m.Grid.Width, sy = start / m.Grid.Width;
         root["slices"]!["crew"]!["heroes"] = new JsonArray(new JsonObject
         {
             ["id"] = 0,
             ["cell"] = start,
-            ["air"] = Spec.Items.Get(Spec.Suit.Basic).Tank,
+            // The helmet holds the air (2026-10-27-suits-are-worn); the suit has no tank.
+            ["air"] = Spec.Items.Get(Spec.Helmet.Basic).Tank,
             ["out"] = 0,
             ["exerting"] = false,
             ["thrusting"] = false,

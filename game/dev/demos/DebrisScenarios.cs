@@ -42,7 +42,7 @@ public sealed class AsteroidScenario : DevScenario
 {
     public override Layout? Map => Registry.Wreck;
 
-    public override World Seed(World world, DevSeed seed) => AsteroidDemo.Seed(world, seed.M, seed.Modules, ArcDrill, Args.Value("--held"));
+    public override World Seed(World world, DevSeed seed) => AsteroidDemo.Seed(world, seed.M, seed.Modules, ArcDrill, Args.Value("--held"), Args.Has("--belt"));
 
     public override Func<Registry, int>? Start => FarDemo.StartOf;
 
