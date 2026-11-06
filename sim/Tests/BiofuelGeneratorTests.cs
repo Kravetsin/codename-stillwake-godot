@@ -13,17 +13,17 @@ namespace Stillwake.Sim.Tests;
 public class BiofuelGeneratorTests
 {
     /// <summary>
-    /// Sixteen wide: a sealed room aired by a vaporizer piped to a vent, its tank and panel under the hull (liquid-oxygen);
+    /// Twelve wide: a sealed room aired by a vaporizer piped to a vent, its tank and panel under the hull (liquid-oxygen);
     /// a biofuel generator, with <paramref name="cabled"/> cabled to a lamp.
     /// </summary>
     private static Layout Map(bool cabled = true) => AirTesting.Vaporized(
-        ["################", "#qqq.TT.....L..#", "#qqq.TTV.......#", "################"],
+        ["############", "#qqq.TT.L..#", "#qqq.TTV...#", "############"],
         ["", "     o", "     ---"],
-        cabled ? [((1, 1), (12, 1))] : []);
+        cabled ? [((1, 1), (8, 1))] : []);
 
     /// <summary>The cell of the map's character at (<paramref name="x"/>, <paramref name="y"/>): its block's top-left, doubled (0104).</summary>
-    private static int At(int x, int y) => 2 * y * 32 + 2 * x;
-    private static readonly int Generator = At(1, 1), Lamp = At(12, 1);
+    private static int At(int x, int y) => 2 * y * 24 + 2 * x;
+    private static readonly int Generator = At(1, 1), Lamp = At(8, 1);
     private static readonly int Makes = Machines.Get("biofuelGenerator").Makes!.Value;
     private static readonly int Fuel = Machines.Get("biofuelGenerator").FuelSlot!.Value;
     private static readonly int BiofuelTicks = Content.Items.Get("biofuel").BurnTicks!.Value;
@@ -118,7 +118,7 @@ public class BiofuelGeneratorTests
         Feed(w, "biofuel", 2).Run();
         Assert.Equal(Makes, Supply(w));
         // A hole through both cells of the hull's right wall: the room is space, and the fire's next breath finds none.
-        w.Do(new ClearAt(At(15, 1), "structure")).Do(new ClearAt(At(15, 1) + 1, "structure")).Run();
+        w.Do(new ClearAt(At(11, 1), "structure")).Do(new ClearAt(At(11, 1) + 1, "structure")).Run();
         w.Run(FurnaceContent.BreathEvery);
         Assert.Equal(new Smelting(false, Problem: "furnace.noAir"), w.M.Furnace.At(Id(w)));
         w.Run(100);
