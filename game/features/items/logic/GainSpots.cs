@@ -10,8 +10,12 @@ namespace Stillwake.Game.Features.Items;
 /// </summary>
 public sealed class GainSpots
 {
-    /// <summary>How near a place still showing a gain must be to go onto its column, in cells.</summary>
-    public const double Near = 4;
+    /// <summary>
+    /// How near a place still showing a gain must be to go onto its column: within <see cref="Near"/> cells, or, zoomed out, within
+    /// <see cref="WidePx"/> across and <see cref="TallPx"/> up or down on the screen, where the two columns would lie over each other:
+    /// a line is about as wide as an icon and "+00", and a row tall.
+    /// </summary>
+    public const double Near = 4, WidePx = 80, TallPx = 36;
     /// <summary>How many places show at most: a new one past them pushes the oldest off.</summary>
     public const int Most = 8;
 
@@ -28,14 +32,21 @@ public sealed class GainSpots
     /// <summary>The places showing, oldest first.</summary>
     public IReadOnlyList<Spot> Spots => _spots;
 
-    /// <summary>Adds <paramref name="count"/> of <paramref name="key"/> gained at (<paramref name="x"/>, <paramref name="y"/>), in cells.</summary>
-    public void Add(string key, int count, double x, double y)
+    /// <summary>
+    /// Adds <paramref name="count"/> of <paramref name="key"/> gained at (<paramref name="x"/>, <paramref name="y"/>), in cells, a cell
+    /// <paramref name="cellPx"/> px on the screen now.
+    /// </summary>
+    public void Add(string key, int count, double x, double y, double cellPx)
     {
         Spot? nearest = null;
-        double best = Near * Near;
+        double best = 1;
         foreach (var spot in _spots)
         {
-            double d = (spot.X - x) * (spot.X - x) + (spot.Y - y) * (spot.Y - y);
+            double dx = spot.X - x, dy = spot.Y - y;
+            // How far, as a share of reach: 1 at its edge, by cells or on the screen, whichever reaches farther.
+            double cells = (dx * dx + dy * dy) / (Near * Near);
+            double screen = Math.Pow(dx * cellPx / WidePx, 2) + Math.Pow(dy * cellPx / TallPx, 2);
+            double d = Math.Min(cells, screen);
             if (d <= best) (nearest, best) = (spot, d);
         }
         if (nearest == null)

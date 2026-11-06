@@ -22,7 +22,9 @@ hero; held to the head, it shook with it again. The user tried, in the game, two
   over, a body. Each line its item's icon in its own colours, so the eye finds it again in the inventory, and "+n", with a soft
   shadow and no outline (0075); drawn on the screen 12 px right of and above its place, so the place itself stays in sight.
 - **Near gains merge:** a gain within `GainSpots.Near` (4 cells) of a place still showing goes onto that column, so a drill
-  working along a seam keeps one growing count. Places farther apart keep their own, so each piece of a catch says what it gave.
+  working along a seam keeps one growing count. Zoomed out (the user plays near full zoom-out), within an oval 80 px across and
+  36 px up and down on the screen (`WidePx`, `TallPx`: a line's width, a row and a half), where the two columns would lie over
+  each other. Places farther apart keep their own, so each piece says what it gave.
 - **Lines keep their rows** (`GainLines`): the oldest lowest, a new item on top, a growing line staying put and flaring (a third
   larger, pale sky, about 0.9 s). A line holds 1.6 s after its last gain and fades in 0.5 s; at most 5 lines a place, 8 places.
 - **A spark into the hero:** every gain also flies from its place into the chest as a small spark, no icon, on an arc sized on
