@@ -230,12 +230,13 @@ public class ItemCardTests
     }
 
     [Fact]
-    public void QueueARecipeCarriedByAClickOrFiveWithShiftAndNothingShortInCreativeMode()
+    public void QueueARecipeCarriedByAClickOrUpToFiveWithShiftAndNothingShortInCreativeMode()
     {
-        var ready = Crafts.Block("wire", Workbench, [("scrap", 2)], creative: false);
-        Assert.Equal([new CraftRow("scrap", "Scrap", 2, 2, false)], ready.Rows);
+        var ready = Crafts.Block("wire", Workbench, [("scrap", 10)], creative: false);
+        Assert.Equal([new CraftRow("scrap", "Scrap", 10, 2, false)], ready.Rows);
         Assert.Equal([new CardKey("LMB", "craft"), new CardKey("Shift", "×5")], ready.Keys);
         Assert.Equal(ready.Keys, Crafts.Block("rotor", Workbench, [], creative: true).Keys);
+        Assert.Equal([new CardKey("LMB", "craft"), new CardKey("Shift", "×3")], Crafts.Block("wire", Workbench, [("scrap", 7)], creative: false).Keys);
         Assert.All(Crafts.Block("rotor", Workbench, [], creative: true).Rows, r => Assert.False(r.Short));
     }
 

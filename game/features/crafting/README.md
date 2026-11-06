@@ -36,7 +36,8 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
   power (0057). No status line: the screen, the queue and the outputs say it (no ADR).
 - **Recipes** (no ADR), four a row, two rows at least, in their content places: one not known is a dark silhouette
   that does nothing, its tip "???" and that analysing opens it (0024); one short for a unit is dimmed grey; in creative
-  mode all are known and ready. A click queues one, shift five, refused whole by the sim when unpaid; a click on a
+  mode all are known and ready. A click queues one, shift as many as the stock pays for, five at most (`Crafts.CountFor`; playtesters queued short
+  batches one by one); the sim refuses one unpaid whole; a click on a
   short one pulses amber, twice, the first lacking item this station makes (`Crafts.MissingCraft`). A tool's recipe
   is tinted amber, a worn item's green (`Shared.SlotLooks`). Slots are `Ui.Slot` wide, rebuilt on a size change.
 - **From the inputs** (0057): at a station with inputs (not the pod, nor the arc bench) a recipe not carried but in the
@@ -80,7 +81,6 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
 - The arcs are the same on every station: no module picture, no per-machine spot (a `ModuleLook` per machine waits for
   the user's picks). Silent: a crackle waits for its audition.
 - A craft sent shows a round trip later, not at once as moves do (0014): queueing is not a hand's motion.
-- A shift-click on a recipe ready for one but short of five is sent and refused whole; nothing pulses.
 - The pod's glow lights nothing: it is drawn, not a lamp. The hero climbing out is the glow fading, no animation.
 - A plant does not sway or grow between its four pictures.
 - A queue entry keeps its line tip rather than its item's card: a click on it cancels.
