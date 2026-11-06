@@ -41,7 +41,7 @@ public enum Doing
 /// <summary>What a queued station's panel shows, without Godot: where each recipe sits, how it looks, where a click on it goes, how far the unit at work is.</summary>
 public static class Crafts
 {
-    /// <summary>Units a shift-click queues; a plain click queues one.</summary>
+    /// <summary>The most units a shift-click queues; a plain click queues one.</summary>
     public const int Many = 5;
 
     /// <summary>The recipes' columns.</summary>
@@ -116,8 +116,14 @@ public static class Crafts
     /// <summary>Whether <paramref name="station"/> takes items in, so a craft may be fed from its inputs: the Former and the assembler, not the pod.</summary>
     public static bool HasInputs(Content.Station station) => Content.Machines.Get(station.Machine) is var spec && (spec.Inputs ?? 0) > 0 && !spec.Tunes;
 
-    /// <summary>How many units a click queues.</summary>
-    public static int CountFor(bool shift) => shift ? Many : 1;
+    /// <summary>
+    /// How many paid units a click queues: one, or with shift as many as the stock pays for, <see cref="Many"/> at most,
+    /// so a stock short of five is not refused whole; at least one, which the sim refuses when even that is unpaid.
+    /// </summary>
+    public static int CountFor(bool shift, IReadOnlyList<CostLine> lines, bool creative) =>
+        !shift ? 1
+        : creative || lines.Count == 0 ? Many
+        : Math.Clamp(lines.Min(l => l.Have / l.Need), 1, Many);
 
     /// <summary>Work a unit of <paramref name="recipe"/> takes, in thousandths of a tick at full speed: the sim's measure of progress.</summary>
     public static int WorkOf(string recipe) => Content.Crafts.Get(recipe).Ticks * 1000;
@@ -129,7 +135,7 @@ public static class Crafts
     /// <summary>
     /// What a recipe adds to its item's card: "Craft" and a unit's seconds at <paramref name="station"/>; each item of its cost
     /// against what is <paramref name="carried"/>, or what its <paramref name="inputs"/> hold when only they cover a unit,
-    /// where a short raw one comes from; and what a click does: queue it, paid or from the inputs (shift, <see cref="Many"/>),
+    /// where a short raw one comes from; and what a click does: queue it, paid or from the inputs (shift, <see cref="CountFor"/>),
     /// or go to what is missing; at a station with inputs, the right button queues it from them repeating, whatever is held.
     /// </summary>
     public static StationBlock Block(string craft, Content.Station station, IReadOnlyList<(string Item, int Count)> carried, bool creative,
@@ -148,7 +154,8 @@ public static class Crafts
         else if (look == Look.Fed) keys.Add(new(T("key.lmb"), T("card.fromInputs")));
         else if (MissingCraft(lines, creative, station) != null) keys.Add(new(T("key.lmb"), T("card.goTo")));
         if (HasInputs(station)) keys.Add(new(T("key.rmb"), T("card.repeatFromInputs")));
-        if (look != Look.Short) keys.Add(new(T("key.shift"), T("card.many", ("n", Many))));
+        int many = look == Look.Fed ? Many : CountFor(true, lines, creative);
+        if (look != Look.Short && many > 1) keys.Add(new(T("key.shift"), T("card.many", ("n", many))));
         return new StationBlock(T("time.seconds", ("n", Seconds(craft, station))), rows, keys);
     }
 

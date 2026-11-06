@@ -379,10 +379,11 @@ public partial class FabricatorPanel : CanvasLayer
             switch (LookOf(craft))
             {
                 case Look.Ready:
-                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed)));
+                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed, Crafts.Lines(craft, _carried), _creative)));
                     break;
                 case Look.Fed:
-                    Send(new Craft(pod, craft, Crafts.CountFor(press.ShiftPressed), FromInputs: true));
+                    // Paid per unit as it begins: shift queues all five, waiting for what the inputs lack.
+                    Send(new Craft(pod, craft, press.ShiftPressed ? Crafts.Many : 1, FromInputs: true));
                     break;
                 case Look.Short when Crafts.MissingCraft(Crafts.Lines(craft, _carried), _creative, station) is { } missing:
                     _pulse = (missing, 0);

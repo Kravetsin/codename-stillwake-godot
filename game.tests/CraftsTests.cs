@@ -122,10 +122,16 @@ public class CraftsTests
     }
 
     [Fact]
-    public void QueuesOneOnAClickAndFiveWithShift()
+    public void QueuesOneOnAClickAndWithShiftAsManyAsTheStockPaysForUpToFive()
     {
-        Assert.Equal(1, Crafts.CountFor(shift: false));
-        Assert.Equal(5, Crafts.CountFor(shift: true));
+        Assert.Equal(1, Crafts.CountFor(shift: false, Crafts.Lines("plate", [("iron", 20)]), creative: false));
+        Assert.Equal(5, Crafts.CountFor(shift: true, Crafts.Lines("plate", [("iron", 20)]), creative: false));
+        // Iron for three plates and a half: three, not a refusal of five.
+        Assert.Equal(3, Crafts.CountFor(shift: true, Crafts.Lines("plate", [("iron", 7)]), creative: false));
+        Assert.Equal(1, Crafts.CountFor(shift: true, Crafts.Lines("plate", [("iron", 2)]), creative: false));
+        // The scarcest item decides.
+        Assert.Equal(2, Crafts.CountFor(shift: true, Crafts.Lines("nailer", [("tube", 9), ("plate", 4), ("wire", 9)]), creative: false));
+        Assert.Equal(5, Crafts.CountFor(shift: true, Crafts.Lines("plate", []), creative: true));
     }
 
     [Fact]
@@ -152,11 +158,13 @@ public class CraftsTests
     [Fact]
     public void OffersTheRightButtonRepeatingFromTheInputsAtAStationWithInputsWhateverIsHeldButNeverAtThePod()
     {
-        CardKey Rmb = new(T("key.rmb"), T("card.repeatFromInputs")), Shift = new(T("key.shift"), T("card.many", ("n", Crafts.Many))), Craft = new(T("key.lmb"), T("card.craftIt"));
-        Assert.Equal([Craft, Rmb, Shift], Crafts.Block("plate", Former, [("iron", 2)], creative: false).Keys);
+        CardKey Rmb = new(T("key.rmb"), T("card.repeatFromInputs")), Shift = new(T("key.shift"), T("card.many", ("n", 3))), Craft = new(T("key.lmb"), T("card.craftIt"));
+        Assert.Equal([Craft, Rmb, Shift], Crafts.Block("plate", Former, [("iron", 6)], creative: false).Keys);
+        // Paid for one only, shift adds nothing: not offered.
+        Assert.Equal([Craft, Rmb], Crafts.Block("plate", Former, [("iron", 2)], creative: false).Keys);
         // Short of iron everywhere, the left button goes to nothing the Former makes; the right still queues from the inputs.
         Assert.Equal([Rmb], Crafts.Block("plate", Former, [], creative: false, inputs: []).Keys);
-        Assert.Equal([Craft, Shift], Crafts.Block("plate", Fabricator, [("iron", 2)], creative: false).Keys);
+        Assert.Equal([Craft, Shift], Crafts.Block("plate", Fabricator, [("iron", 6)], creative: false).Keys);
         Assert.True(Crafts.HasInputs(Former) && Crafts.HasInputs(Assembler) && !Crafts.HasInputs(Fabricator));
     }
 
