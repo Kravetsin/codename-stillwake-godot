@@ -20,7 +20,7 @@ public sealed record Ends(int A, int B);
 /// <param name="Capacity">What its stores hold full.</param>
 /// <param name="Flow">What goes into its stores this tick, in power-ticks; below 0, what they give out.</param>
 /// <param name="Intake">What its stores could take in this tick: each its <c>In</c>, or the room it has left if less.</param>
-/// <param name="Steady">What of its supply its makers that burn nothing make: its panels under the stars.</param>
+/// <param name="Steady">What of its supply its makers that burn nothing make: its panels under the stars, a wheel turning.</param>
 public sealed record PowerNetwork(
     int Id, IReadOnlyList<int> Nodes, int Supply, int Demand, int Satisfaction, int Stored = 0, int Capacity = 0, int Flow = 0, int Intake = 0, int Steady = 0);
 
@@ -103,8 +103,8 @@ internal static class PowerNodes
 
     /// <summary>
     /// The networks the cables join, in id order, with each user's satisfaction by machine id. Supply is
-    /// what the makers make, each only while <paramref name="making"/> says it works: one that burns fuel
-    /// anywhere, any other under the stars; demand what the users draw now, as <paramref name="draw"/> says: none
+    /// what the makers make, each only while <paramref name="making"/> says it works: one that burns fuel or is made to work
+    /// <c>Anywhere</c> wherever it stands, any other under the stars; demand what the users draw now, as <paramref name="draw"/> says: none
     /// while one rests, its modules folded in (0086). Its stores, holding what <paramref name="stored"/> says by machine
     /// id, settle the tick (<see cref="Settle"/>, 0101); satisfaction is <c>floor(1000 × served / demand)</c>, served
     /// being supply and what the stores gave, at most 1000, and 1000 with nothing drawn. Flows are each cabled store's
@@ -159,8 +159,8 @@ internal static class PowerNodes
             var s = Spec(m);
             if (!IsPowered(s) || broken(m.Id)) continue;
             int network = networkOf[at];
-            // A fire needs no stars: its module rests it while it is out.
-            if (s.Makes is int makes && making(m) && (s.FuelSlot != null || UnderStars(grid, rooms, m)))
+            // A fire needs no stars, its module resting it while it is out; nor does a maker made to work anywhere (the wheel).
+            if (s.Makes is int makes && making(m) && (s.FuelSlot != null || s.Anywhere || UnderStars(grid, rooms, m)))
             {
                 supply[network] += makes;
                 if (s.FuelSlot == null) steady[network] += makes;

@@ -31,11 +31,11 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - **A cable** (0017) joins two different nodes whose nearest cells are within `Content.Power.MaxSpan`, one cable a
   pair. It takes no cell: it runs through walls and leaks no air.
 - **Moving an end** (0021): `Move` takes every cable ending at a node, or one named, to another node; none may then
-  span farther than a cable does. Moving costs nothing.
+  span farther than a cable does; free.
 - **A network** (0017) is the nodes cables join, named by its lowest node cell. A powered machine with no cable is on
   none: it makes and gets nothing.
-- **Supply:** its makers not resting; a fuel burner (`FuelSlot`, rested by `furnace` while its fire is out, 0045)
-  anywhere, any other only under the stars: every cell in space with no back wall behind (0043).
+- **Supply:** its makers not resting (`Rest`): a fuel burner (`FuelSlot`, 0045) or an `Anywhere` one (the wheel) anywhere,
+  any other only under the stars: every cell in space with no back wall behind (0043).
 - **Demand:** each drawing user's `Draws` × (1000 + its modules' `Draw`) / 1000, rounded up (0086). A station
   (`Content.Stations`) draws whenever crafting does not rest it, whatever its slots hold (0057); any other with slots, the
   engine, only while its first holds something; a charging station only while something it holds is short of full (0053), a
@@ -44,9 +44,9 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   what stores give out. Every user on it works at that share, a resting one included.
 - **Stores** (0101): a machine with a `Store` holds up to its `Capacity` in power-ticks. `PowerNodes.Settle`, in
   derivation, from what each holds as the tick begins, stores in reading order of their cells: spare goes in, each up
-  to its `In` and room left, the rest wasted; short, each gives up to its `Out` and what it holds until the shortfall is
+  to its `In` and room left, the rest wasted; short, each gives up to its `Out` and what it holds till the shortfall is
   met. A store never takes from another. The simulation phase adds each flow to what it holds.
-- **A fire is wanted** (`Needed`, 0101) while the network draws, or its stores could take in, more than its panels make
+- **A fire is wanted** (`Needed`, 0101) while the network draws, or its stores could take in, more than its fuelless makers make
   (`Steady`); `furnace` lights a burner's next fuel only then. Other fires are not counted, so two burn together.
 - **Charging** (0053): each tick in simulation, after the networks, in machine id order, a charging station puts what it
   draws × satisfaction / 1000 in thousandths (`Content.Charge.Scale`), rounded down, evenly into the slots short of
@@ -60,13 +60,13 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 ## API
 
 - **Queries** (`IPowerQueries`): `Cables`; `Networks`; `NodeAt(cell)`; `NetworkOf(node)`; `Feeds(cell)`, a structure a cable
-  ends on with power enough: its network makes or stores some and covers its demand (a launch platform's lamp); `Satisfaction(machineId)`,
+  ends on with power enough: its network makes or stores some and covers its demand; `Satisfaction(machineId)`,
   0 off every network; `Draw(machineId)`, modules (0086) and a charger's slots in; `LayProblem(peer, a, b)` and
   `MoveProblem(from, to, cable?)` for the ghost and a dragged end; `Charges(machineId)`, filling this tick; `Store`, a
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100);
   `Broken`, `IsBroken(machineId)`.
-- **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `crafting` rests an idle station (0057), both from simulation; `furnace` a cold burner from
-  construction, so it shows this tick (0045). `Unplug(machineId)`, by `building` taking a machine apart: its cables move
+- **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `crafting` an idle station (0057), from simulation; `furnace` a cold burner
+  (0045) and `landing` a wheel no rider runs, from construction, so it shows this tick. `Unplug(machineId)`, by `building` taking a machine apart: its cables move
   to a peg at its plug's cell (`Plug` pixels, eight to a cell); `Plug(machineId)`, by `building` building a powered
   machine: cables on a peg at its plug's cell move to it (0110). A cable that would end where it starts or join a pair
   already joined stays. `Break(machineId)`, by `hazards`, a powered machine only, else it throws; `Mend(machineId)`, by
@@ -93,7 +93,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - A machine built over an anchor without its top-left there, or plug on a peg, leaves the anchor inside it (0110). One
   taken apart other than by `building` (a meteor, a dev clear) leaves its cables at its top-left, in the air.
 - A peg may stand farther than a span from a cable's other end, by the machine's size: only laying and moving check.
-- No priorities, switches or overload; a store holds nothing back and never leaks. A store taken apart loses its charge.
+- No priorities, switches or overload; a store holds nothing back, never leaks, and loses its charge taken apart.
 - A broken drone bay still sends drones (logistics reads no power), the engine's draw is read by none; a broken
   burner's lit fire burns on for nothing.
-- Networks are found anew every tick: tens of cables. A cache would have to follow slots and rests too.
+- Networks are found anew each tick (tens of cables): a cache would have to follow slots and rests.

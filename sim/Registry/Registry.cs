@@ -90,7 +90,7 @@ public sealed class Registry
         // Last, after crew, as its system reads where heroes are; saved last, so its slice is the newest.
         Creatures = new CreaturesModule(Grid, Crew, Crew, Items, Items, Debris, Debris, Building, Building, Rooms);
         // The launch platform, opened with power; new to format 30, run and saved after the rest.
-        Landing = new LandingModule(Grid, Grid, Power, Crew, Items, Items);
+        Landing = new LandingModule(Grid, Grid, Power, Power, Crew, Items, Items);
         Trade = new TradeModule(Grid, Items, Items, Knowledge);
         // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved last.
         Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);

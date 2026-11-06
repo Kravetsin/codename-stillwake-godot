@@ -22,7 +22,7 @@ public class MachineTraitsTests
     [InlineData(MachineTrait.Glow, new[] { "lamp", "arcLamp", "emergencyLamp" })]
     [InlineData(MachineTrait.Fire, new[] { "furnace", "burnerGenerator", "biofuelGenerator" })]
     [InlineData(MachineTrait.Computer, new[] { "computer" })]
-    [InlineData(MachineTrait.Seats, new[] { "dropPod" })]
+    [InlineData(MachineTrait.Seats, new[] { "treadWheel", "dropPod" })]
     [InlineData(MachineTrait.Lands, new[] { "dropPod" })]
     [InlineData(MachineTrait.Sells, new[] { "tradeStation", "autoTradeStation" })]
     [InlineData(MachineTrait.AutoSends, new[] { "autoTradeStation" })]

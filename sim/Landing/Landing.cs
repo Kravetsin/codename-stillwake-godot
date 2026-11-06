@@ -65,6 +65,7 @@ public sealed class LandingModule : Module<LandingState>, ICarries
     private readonly IGridQueries _grid;
     private readonly IGridOps _gridOps;
     private readonly IPowerQueries _power;
+    private readonly IPowerOps _powerOps;
     private readonly ICrewQueries _crew;
     private readonly IItemsQueries _items;
     private readonly IItemsOps _itemsOps;
@@ -78,11 +79,12 @@ public sealed class LandingModule : Module<LandingState>, ICarries
 
     public override string Id => "landing";
 
-    public LandingModule(IGridQueries grid, IGridOps gridOps, IPowerQueries power, ICrewQueries crew, IItemsQueries items, IItemsOps itemsOps)
+    public LandingModule(IGridQueries grid, IGridOps gridOps, IPowerQueries power, IPowerOps powerOps, ICrewQueries crew, IItemsQueries items, IItemsOps itemsOps)
     {
         _grid = grid;
         _gridOps = gridOps;
         _power = power;
+        _powerOps = powerOps;
         _crew = crew;
         _items = items;
         _itemsOps = itemsOps;
@@ -92,6 +94,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries
         Handles<Launch>(c => LaunchProblem(c.From), c => Fly(c.From));
         // The grid changes only in commands or construction: flights count down, shut their runs and end here.
         System(Phase.Construction, Count);
+        // After Building, before power's derivation: a seated maker works only under a rider running (power-chain).
+        System(Phase.Construction, Turn);
         // A pod taken apart, or its hero gone from the surface or passed out, frees its seat.
         System(Phase.Derivation, () => State.Seats.RemoveAll(s => !Holds(s)));
     }
@@ -111,7 +115,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries
     }
 
     /// <summary>
-    /// Why <paramref name="peer"/>'s hero cannot launch: in no pod (<c>landing.notSeated</c>); aboard, its pod no longer on a run
+    /// Why <paramref name="peer"/>'s hero cannot launch: in no pod, or in a seat that does not fly (a wheel: no
+    /// <see cref="MachineTrait.Lands"/>) (<c>landing.notSeated</c>); aboard, its pod no longer on a run
     /// (<c>landing.noPlatform</c>), anything solid under its run to the grid's edge (<c>landing.shaftBlocked</c>), the run without
     /// power enough (<c>landing.unpowered</c>), its slot short of <see cref="Content.Landing.DescentFuel"/> biofuel
     /// (<c>landing.noFuel</c>), or a world that cannot open a planet
@@ -121,6 +126,8 @@ public sealed class LandingModule : Module<LandingState>, ICarries
     {
         // A seat outlives its hero gone or passed out until the derivation phase: it launches nothing, its fuel unburnt.
         if (SeatOf(peer) is not int pod || _grid.MachineById(pod) is not { } m || _crew.HeroOf(peer) is not { Out: 0 }) return "landing.notSeated";
+        // A wheel seats a hero too, and stands on planets as aboard: only a pod flies.
+        if (!Content.Machines.Is(m.Kind, MachineTrait.Lands)) return "landing.notSeated";
         if (Surfaces.Here != 0) return OwnerOf(pod) == peer ? null : "landing.notYours";
         // Built over a run, it may have been taken apart since.
         if (!_grid.OnRun(m.Kind, m.Cell)) return "landing.noPlatform";
@@ -154,10 +161,29 @@ public sealed class LandingModule : Module<LandingState>, ICarries
     internal int? OwnerOf(int pod) => State.Owners.Find(o => o.Pod == pod)?.Peer;
 
     /// <summary>Where a hero sits in a drop pod standing from <paramref name="cell"/>, its top-left: the middle of its bottom row.</summary>
-    public static int FloorOf(int cell, int width)
+    public static int FloorOf(int cell, int width) => FloorOf(Pod.Kind, cell, width);
+
+    /// <summary>Where a hero sits in a machine of <paramref name="kind"/> with seats standing from <paramref name="cell"/>: the middle of its bottom row.</summary>
+    public static int FloorOf(string kind, int cell, int width)
     {
-        var spec = Content.Machines.Get(Pod.Kind);
+        var spec = Content.Machines.Get(kind);
         return (cell / width + spec.Height - 1) * width + cell % width + spec.Width / 2 - 1;
+    }
+
+    /// <summary>
+    /// Whether seated maker <paramref name="machine"/> turns: its rider's hero is on this surface, awake and running
+    /// (<c>Hero.Exerting</c>, its client's word, 0002). What rests it otherwise, and what the client turns its drum by.
+    /// </summary>
+    public bool Turning(int machine) => RiderOf(machine) is int rider && _crew.HeroOf(rider) is { Out: 0, Exerting: true };
+
+    /// <summary>
+    /// Each tick in construction, after Building and before power's derivation, every standing machine with seats that makes
+    /// power rests unless it turns (power-chain). It has no draw and no fire, so no other module rests it.
+    /// </summary>
+    private void Turn()
+    {
+        foreach (var m in _grid.MachinesWith(MachineTrait.Seats))
+            if (Content.Machines.Get(m.Kind).Makes != null) _powerOps.Rest(m.Id, !Turning(m.Id));
     }
 
     private void Sit(int pod, int peer)
