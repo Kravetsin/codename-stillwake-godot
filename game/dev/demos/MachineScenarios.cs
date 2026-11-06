@@ -32,7 +32,8 @@ public class ItemsScenario : DevScenario
 
     public override void Attach(DevContext c)
     {
-        if (c.Items == null) return;
+        // --manual: the room alone, in creative mode, for a hand to play (the stash's crate already holding a canister).
+        if (c.Items == null || Args.Has("--manual")) return;
         var pointer = new CanvasLayer { Layer = ScreenLayers.Pointer };
         pointer.AddChild(new ItemsDemo(c.Items));
         c.Add(pointer);

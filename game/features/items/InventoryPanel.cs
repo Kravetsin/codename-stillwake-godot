@@ -70,6 +70,9 @@ public partial class InventoryPanel : CanvasLayer
     private GridContainer _bag = null!;
     private GridContainer? _crateGrid;
     private SortButton _bagKey = null!;
+    private StashButton _stashKey = null!;
+    /// <summary>The star by the pointer while Alt is held in the open inventory: a click marks (2026-11-06-quick-stash).</summary>
+    private FavouriteStar _pointerStar = null!;
     private SortButton? _crateKey;
     private Button? _send;
     private SortSweep _sweep = null!;
@@ -218,6 +221,7 @@ public partial class InventoryPanel : CanvasLayer
         var grid = new WristScreen(WristPieces.Display, WristArt.Screen, 4, lit: true) { SizeFlagsHorizontal = Control.SizeFlags.ShrinkBegin };
         grid.AddChild(_bag = Grid(Enumerable.Range(Hotbar.Row, Content.Inventory.Slots - Hotbar.Row).Select(i => new Place(i))));
         grid.Mount(_bagKey = Sorter(null), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown));
+        grid.Mount(_stashKey = Stasher(), screen => new Vector2(screen.X + WristLook.SideKeyOut, WristLook.SideKeyDown + WristLook.SideKeyHeight + 4));
         shown.AddChild(_inventory = grid);
         _root.AddChild(_shown = shown);
         _shown.Visible = false;
@@ -243,6 +247,7 @@ public partial class InventoryPanel : CanvasLayer
             MouseFilter = Control.MouseFilterEnum.Ignore,
         });
         _over.AddChild(_held);
+        _over.AddChild(_pointerStar = new FavouriteStar(6.3f) { Visible = false });
     }
 
     /// <summary>Takes down everything <see cref="Build"/> and the machine's panel made, before they are built at another size.</summary>
@@ -352,6 +357,7 @@ public partial class InventoryPanel : CanvasLayer
         // A station's slot shows the ghost of what it takes (0097).
         if (place.Crate != null && _reading?.Kind is { } kind) box.GhostMark = Reading.GhostOf(kind, place.Slot);
         box.Pressed += ClickAt;
+        box.Marked += Mark;
         _tipSpots.Add(box, () => SlotTip(box));
         _slots.Add(box);
         return box;
@@ -401,6 +407,50 @@ public partial class InventoryPanel : CanvasLayer
         else if (_crateGrid != null) _sweep.Run(_crateGrid);
     }
 
+    /// <summary>The bag's stash key, under its sort key; its tip says what it does and how to keep an item out of it.</summary>
+    private StashButton Stasher()
+    {
+        var button = new StashButton(new Vector2(WristLook.SideKeyWidth, WristLook.SideKeyHeight), StashBag);
+        _tipSpots.Add(button, () => new Tip(T("items.stash"), new TipLine(T("items.stashHow"), Tone.Dim)));
+        return button;
+    }
+
+    /// <summary>
+    /// What a stash moved, as this client planned it, each part in the plan's order (2026-11-06-quick-stash): for its icons to
+    /// fly from the hero to each crate.
+    /// </summary>
+    public event Action<IReadOnlyList<Stashed>>? StashedAway;
+
+    /// <summary>
+    /// Stashes the bag into the crates in reach that hold its items, unless the hero is out or not here: the key or the button,
+    /// the inventory open or closed. A stack picked is put back first, as a sort does; nothing to stash sends nothing.
+    /// </summary>
+    private void StashBag()
+    {
+        if (_client == null || _items == null || _hero is not { Out: false } spot) return;
+        (_picked, _dragFrom) = (null, null);
+        var stash = new Stash(spot.Cell, _ui.Favourites.Get().Kept);
+        var parts = _items.StashPlan(_client.Id, stash, Reading.Moves(_client.InFlight));
+        if (parts.Count == 0)
+        {
+            Refresh();
+            return;
+        }
+        _ui.Click();
+        Send(stash);
+        if (Shown) _inventory.Blink();
+        StashedAway?.Invoke(parts);
+    }
+
+    /// <summary>An Alt+click in the open inventory: the slot's item kept in the bag when stashing, or no longer; an empty slot or a stack in hand, nothing.</summary>
+    private void Mark(Place place)
+    {
+        if (!Shown || Held != null || _reading?.At(place) is not { } stack) return;
+        _ui.Click();
+        _ui.Favourites.Set(_ui.Favourites.Get().Toggled(stack.Item));
+        Refresh();
+    }
+
     /// <summary>A stack's tip; an empty bay slot says a drone docks there, its empty fuel slot that canisters go in, an empty kept one what drones keep it full of (0062).</summary>
     private Tip? SlotTip(SlotBox box)
     {
@@ -444,6 +494,9 @@ public partial class InventoryPanel : CanvasLayer
         }
         // A stack carried is the pointer: its icon centred on it, the arrow hidden while it is.
         _held.Position = _mouse - _held.Size / 2;
+        // Its tip where the arrow's is, as the pick showed it.
+        _pointerStar.Position = _mouse + new Vector2(15.5f, 17.5f) - _pointerStar.Size / 2;
+        _pointerStar.Visible = Shown && Held == null && !_ui.MenuOpen.Get() && Input.IsPhysicalKeyPressed(Key.Alt);
         bool carrying = _held.Visible && !_ui.MenuOpen.Get();
         var mode = carrying ? Input.MouseModeEnum.Hidden : Input.MouseModeEnum.Visible;
         if (Input.MouseMode != mode) Input.MouseMode = mode;
@@ -474,6 +527,7 @@ public partial class InventoryPanel : CanvasLayer
             box.Visible = _items!.SlotOpen(p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
+            box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);
             box.Show(stack, HandFree && p.Crate == null && p.Slot == _chosen, held?.Place == p, _hovered == p,
                 stack == null || p.Crate != null ? SlotMark.None : reading.MarkOf(stack.Item),
                 Equipment.Is(p) ? Equipment.GlowOf(p, carried) : null,

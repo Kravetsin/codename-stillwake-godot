@@ -192,6 +192,11 @@ public partial class Main : Node2D, ITogether
         Binds.Current = _dev.None ? Settings.Binds() : Binds.Default;
         _hands.Ui.Binds.Set(Binds.Current);
         _hands.Ui.Binds.Subscribe(() => Rebind(_hands.Ui.Binds.Get(), keep: _dev.None));
+        if (_dev.None)
+        {
+            _hands.Ui.Favourites.Set(Settings.Favourites());
+            _hands.Ui.Favourites.Subscribe(() => Settings.Keep(_hands.Ui.Favourites.Get()));
+        }
         if (_dev.Value("--lang-flip") is { } flipAt)
             GetTree().CreateTimer(double.Parse(flipAt, System.Globalization.CultureInfo.InvariantCulture)).Timeout += () => _hands.Ui.Language.Set(Speaking == Language.Russian ? Language.English : Language.Russian);
         Shimmer.Enabled = Settings.Shimmer();

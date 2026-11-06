@@ -62,6 +62,7 @@ public interface IItemsQueries
     string? PickUpProblem(int peer, int id);
     int PickUpAmount(int peer, int id);
     Shown AfterMoves(int peer, IReadOnlyList<Command> moves);
+    IReadOnlyList<Stashed> StashPlan(int peer, Stash stash, IReadOnlyList<Command> before);
     bool Equipped(int peer, string item);
     string? WornIn(int peer, string kind);
     (int Charge, int Capacity) BeltCharge(int peer);
@@ -156,6 +157,7 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
         Handles<Move>(MoveProblem, ApplyMove);
         Handles<Run>(RunProblem, ApplyRun);
         Handles<Sort>(SortProblem, ApplySort);
+        Handles<Stash>(_ => null, ApplyStash);
         Handles<Fit>(c => FitProblem(c.From, c.Module, c.Machine), ApplyFit);
         Handles<Unfit>(UnfitProblem, ApplyUnfit);
         // After derivation: falling reads the rooms, rebuilt by then.
@@ -322,11 +324,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
 
     /// <summary>
     /// <paramref name="peer"/>'s inventory and the machines <paramref name="moves"/> touch — <see cref="Move"/>s,
-    /// <see cref="Drop"/>s and <see cref="Sort"/>s — as they would be after them, in order, each as the command would apply it and
+    /// <see cref="Drop"/>s, <see cref="Sort"/>s and <see cref="Stash"/>es — as they would be after them, in order, each as the command would apply it and
     /// skipped where it would be refused: what a client shows of its own moves before their tick runs
     /// (0013). Copies; the world is untouched.
     /// </summary>
-    public Shown AfterMoves(int peer, IReadOnlyList<Command> moves)
+    public Shown AfterMoves(int peer, IReadOnlyList<Command> moves) => Fold(peer, moves, null);
+
+    /// <summary><see cref="AfterMoves"/>, the parts of its last <see cref="Stash"/> into <paramref name="lastStash"/>.</summary>
+    private Shown Fold(int peer, IReadOnlyList<Command> moves, List<Stashed>? lastStash)
     {
         var shown = new List<(int? Crate, IReadOnlyList<Stack?> Slots)>();
         void Show(int? crate, IReadOnlyList<Stack?> slots)
@@ -358,6 +363,14 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
                     break;
                 case Sort so:
                     if (SortProblem(so) == null) Show(so.Crate, Sorted(SlotsOf(new Target(Crate: so.Crate)), so.Crate));
+                    break;
+                case Stash st:
+                    var parts = Stashes(peer, st, SlotsOf, (side, slots) => Show(side.Crate, slots));
+                    if (lastStash != null)
+                    {
+                        lastStash.Clear();
+                        lastStash.AddRange(parts);
+                    }
                     break;
                 default:
                     throw new ArgumentException($"items.afterMoves: {m.GetType().Name} is no move");

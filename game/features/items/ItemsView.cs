@@ -43,7 +43,14 @@ public partial class ItemsView : Node2D
     private const double HeadGap = 1.5;
 
     /// <param name="ui">The hand, which the hotbar frees, and the crate open.</param>
-    public ItemsView(Ui ui) => Panel = new InventoryPanel(ui);
+    public ItemsView(Ui ui)
+    {
+        Panel = new InventoryPanel(ui);
+        Panel.StashedAway += parts => _stashed = parts;
+    }
+
+    /// <summary>What a stash just sent moved, to fly from the chest to its crates on the next frame.</summary>
+    private IReadOnlyList<Stashed> _stashed = [];
 
     public override void _Ready()
     {
@@ -117,12 +124,27 @@ public partial class ItemsView : Node2D
             }
             if (fromBody > 0) _tally.Add(HeadTally.Body, fromBody);
             if (walkedOver.Count > 0) _pick.Play(spot.Floats);
+            var chest = new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell;
+            // A stash flies out of the chest, each part to its crate in the plan's order (2026-11-06-quick-stash).
+            for (int i = 0; i < _stashed.Count; i++)
+                if (CentreOf(grid, _stashed[i].Crate) is { } crate) _flights.Fly(_stashed[i].Item, chest, i, crate);
             _tally.Update(elapsedMs, spot.X / 1000.0, (spot.Y - Content.Hero.Height) / 1000.0 - HeadGap);
             _gainTally.Show(_tally);
-            _flights.Update(new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell, elapsedMs);
+            _flights.Update(chest, elapsedMs);
         }
+        _stashed = [];
         _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), client.World.Tick, progress, elapsedMs);
         Panel.Frame(client, items, grid, hero, elapsedMs);
+    }
+
+    /// <summary>The middle of machine <paramref name="id"/>'s footprint, in pixels of the world; none once it is gone.</summary>
+    private static Vector2? CentreOf(IGridQueries grid, int id)
+    {
+        if (grid.MachineById(id) is not { } m) return null;
+        var cells = grid.Footprint(m.Kind, m.Cell) ?? [m.Cell];
+        var sum = Vector2.Zero;
+        foreach (int c in cells) sum += new Vector2(c % grid.Width + 0.5f, c / grid.Width + 0.5f);
+        return sum / cells.Count * ShipCamera.Cell;
     }
 
     /// <summary>Where piece <paramref name="id"/> is drawn now, in pixels of the world; none once it is gone.</summary>

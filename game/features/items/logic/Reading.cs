@@ -139,11 +139,13 @@ public sealed record Reading(
     /// Peer <paramref name="peer"/>'s inventory and crate <paramref name="crate"/> as its commands in flight,
     /// <paramref name="inFlight"/>, will leave them.
     /// </summary>
+    /// <summary>The own commands in flight that move stacks, which <see cref="IItemsQueries.AfterMoves"/> folds (0014).</summary>
+    public static List<Command> Moves(IReadOnlyList<Command> inFlight) => [.. inFlight.Where(c => c is Move or Drop or Sort or Stash)];
+
     public static Reading Of(
         int peer, IReadOnlyList<Command> inFlight, IItemsQueries items, IGridQueries grid, int? crate)
     {
-        var moves = inFlight.Where(c => c is Move or Drop or Sort).ToList();
-        var shown = items.AfterMoves(peer, moves);
+        var shown = items.AfterMoves(peer, Moves(inFlight));
         IReadOnlyList<Stack?>? slots = null;
         string? kind = null;
         if (crate is int id)

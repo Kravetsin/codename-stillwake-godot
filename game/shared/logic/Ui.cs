@@ -290,6 +290,9 @@ public sealed class Ui
     /// <summary>Which key does each action (2026-11-04-key-binds): set from the settings file at the start and by the Controls page.</summary>
     public Store<Binds> Binds { get; } = new(Shared.Binds.Default);
 
+    /// <summary>The items kept in the bag when stashing (2026-11-06-quick-stash): set from the settings file at the start, by Alt+click.</summary>
+    public Store<Favourites> Favourites { get; } = new(Shared.Favourites.None);
+
     /// <summary>A slot's side in pixels now (<see cref="Slots.SizeOf"/>).</summary>
     public int Slot => Slots.SizeOf(SlotScale.Get());
 

@@ -50,6 +50,12 @@ public partial class SlotBox : Panel
     /// <summary>A press on this slot: the right button, shift held.</summary>
     public event Action<Place, bool, bool>? Pressed;
 
+    /// <summary>An Alt+left click: its item marked kept in the bag, or no longer (2026-11-06-quick-stash).</summary>
+    public event Action<Place>? Marked;
+
+    /// <summary>Whether its stack is of an item kept in the bag: the outline star in its top-left corner, read by <see cref="Show"/>.</summary>
+    public bool Favourite { get; set; }
+
     private readonly int _size;
     /// <summary>The icon's offset from the slot's top-left, where a shake settles.</summary>
     private int _iconAt = Slots.Inset;
@@ -86,6 +92,7 @@ public partial class SlotBox : Panel
     private readonly ColorRect _track = new() { Color = new Color("0b1220"), MouseFilter = MouseFilterEnum.Ignore, Visible = false };
     private readonly ColorRect _fill = new() { MouseFilter = MouseFilterEnum.Ignore };
     private readonly Panel _keptDot = new() { MouseFilter = MouseFilterEnum.Ignore, Visible = false, Position = new Vector2(3, 3), Size = new Vector2(6, 6) };
+    private readonly FavouriteStar _star = new(5.1f) { Visible = false };
 
     public SlotBox() : this(new Place(0), Slots.SizeOf(SlotScale.Normal)) { }
 
@@ -105,6 +112,9 @@ public partial class SlotBox : Panel
         dot.SetCornerRadiusAll(3);
         _keptDot.AddThemeStyleboxOverride("panel", dot);
         AddChild(_keptDot);
+        // Beside a hotbar slot's digit; in the corner elsewhere.
+        _star.Position = new Vector2(key != null ? 17 : 8, 8) - _star.Size / 2;
+        AddChild(_star);
         AddChild(_track);
         // The charge mockup's 3 px bar, inset along the foot: 4 px from the sides, 3 from its bottom.
         _track.SetAnchorsAndOffsetsPreset(LayoutPreset.BottomWide);
@@ -213,6 +223,7 @@ public partial class SlotBox : Panel
         _iconAt = Fit(_icon, stack == null ? null : Charges.Picture(stack.Item, stack.Charge));
         Fit(_kept, stack == null ? Kept : null);
         _keptDot.Visible = Kept != null;
+        _star.Visible = Favourite && stack != null;
         ShowCharge(stack);
         _count.Text = stack is { Count: > 1 } ? stack.Count.ToString() : "";
         Modulate = picked ? new Color(1, 1, 1, 0.4f) : glow == SlotGlow.Refuses ? new Color(1, 1, 1, Refused) : Colors.White;
@@ -273,6 +284,11 @@ public partial class SlotBox : Panel
         if (e is not InputEventMouseButton { Pressed: true } b) return;
         if (b.ButtonIndex is not (MouseButton.Left or MouseButton.Right)) return;
         AcceptEvent();
+        if (b is { ButtonIndex: MouseButton.Left, AltPressed: true })
+        {
+            Marked?.Invoke(Place);
+            return;
+        }
         Pressed?.Invoke(Place, b.ButtonIndex == MouseButton.Right, b.ShiftPressed);
     }
 }

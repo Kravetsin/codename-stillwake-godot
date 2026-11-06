@@ -22,6 +22,7 @@ public static partial class En
         ["bind.suit"] = "Suit mode",
         ["bind.inventory"] = "Inventory",
         ["bind.drop"] = "Drop; pick while building",
+        ["bind.stash"] = "Into nearby crates",
         ["bind.build"] = "Build",
         ["bind.search"] = "Search the build menu",
         ["bind.modeBuild"] = "Building mode",

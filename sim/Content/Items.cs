@@ -264,6 +264,9 @@ public static class Inventory
     /// <summary>The first row of <see cref="Slots"/>, chosen with keys 1 to 9: a sort leaves it as it is (0008).</summary>
     public const int Hotbar = 9;
 
+    /// <summary>How far a stash reaches, in cells from the hero's cell to a crate's nearest, through walls (2026-11-06-quick-stash).</summary>
+    public const int StashReach = 12;
+
     /// <summary>What every hero comes aboard with, into its first slots (0107): the screwdriver that builds. Cables and pipes are laid from the plan (plan modes).</summary>
     public static readonly IReadOnlyList<(string Item, int Count)> Kit = [(Screwdrivers.Basic.Item, 1)];
 

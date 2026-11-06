@@ -38,6 +38,7 @@ public partial class InventoryPanel
                 if (digit != _chosen) _ui.Click();
                 _chosen = digit;
             }
+            else if (key.Is(Bind.Stash)) StashBag();
             else if (key.Is(Bind.Drop))
             {
                 // A card in hand, not the chosen slot: Drop drops nothing it does not show.
