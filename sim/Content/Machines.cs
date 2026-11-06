@@ -189,6 +189,9 @@ public static class Machines
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
         // power comes before the Former.
         new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
+        // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a biofuel against the burner's 9 600. Its fuel pump is a
+        // planet's part, so it is built at the planet stage.
+        new("biofuelGenerator", 6, 4, [], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 2, Charges: true, ChargesEach: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
@@ -206,6 +209,8 @@ public static class Machines
         new("assembler", 4, 4, [], [("frame", 3), ("rotor", 2), ("glass", 4), ("coil", 2), ("wire", 10), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (4, 25), Slots: 7, Inputs: 4, Menu: new(MenuTabs.Production, 50), Char: 'Y', Means: "circuit assembler: draw its whole footprint"),
         // Grows what is planted in it on power (Stations), sealed under glass, needing no air: a seed in, biomass and seeds out. Rests idle.
         new("growCapsule", 4, 6, [], [("frame", 2), ("glass", 6), ("soil", 8), ("circuit", 2), ("wire", 4)], BuildTicks: 200, Draws: 2, Plug: (4, 42), Slots: 3, Inputs: 1, Menu: new(MenuTabs.Production, 60), Char: 'g', Means: "grow capsule: draw its whole footprint"),
+        // Ferments biomass and fat into biofuel on power (Stations), the grow capsule's tier: its input, then its output. Rests idle.
+        new("fermenter", 4, 4, [], [("frame", 2), ("glass", 4), ("tube", 4), ("plate", 4), ("circuit", 1)], BuildTicks: 200, Draws: 2, Plug: (5, 27), Slots: 2, Inputs: 1, Menu: new(MenuTabs.Production, 65), Char: 'u', Means: "fermenter: draw its whole footprint"),
         // Where heroes are made and where parts are crafted (Stations); its slots are the crafts made: paid by hand, no inputs (0057).
         // Launches the drones docked in its four slots to keep the machines in its zone going (0062), and charges them as a charging station does;
         // its fifth, the fuel slot, holds the canisters a salvage drone flies out on (salvage-drones).

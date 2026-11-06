@@ -582,11 +582,162 @@ const cisternFill = (n) => (a) => {
   a.flat(band(13.6, top + .6, 14.4, 21), WATERED.glint);
 };
 
+// ---------- The power chain (power-chain ADR): the fermenter's drip column and the biofuel generator's hot-bulb engine, as
+// the user picked them. Their materials and helpers came with them from the pick page.
+const OLIVE = { base: '#747c34', shade: '#4e5628', deep: '#383e20', lite: '#9ca048', spec: '#c8cc70' };
+const RUST = { base: '#8e6044', shade: '#6a4434', deep: '#4c3028', lite: '#ad7a54', spec: '#c89a70' };
+const SCRAP = { base: '#7a7468', shade: '#524c48', deep: '#3a3634', lite: '#9c9486', spec: '#c8c0b0', rim: '#9c9486' };
+const RUBBER = { base: '#2e2c2a', shade: '#1d1c1b', deep: '#121212', lite: '#45423e', spec: '#6a6058' };
+const ROPE = { base: '#bda06c', shade: '#826644', deep: '#5c4a34', lite: '#d6bd8c', spec: '#ecdcb4' };
+const WOOD_DARK = { ...WOOD, base: '#74503a', lite: '#946c4a' };
+const MASH = '#3d5a2a', MASH_DEEP = '#26381e', MASH_LITE = '#5c7a3a', FAT = '#b8a464', FUEL = '#c89a34', FUEL_LITE = '#e8c25c';
+/** A ring between radii r0 and r1, as one closed path (outer clockwise, inner back), for rims and hoops. */
+const ring = (cx, cy, r0, r1) => { const n = 48, o = [], i = []; for (let k = 0; k < n; k++) { const t = (k / n) * Math.PI * 2; o.push(cx + Math.cos(t) * r1, cy + Math.sin(t) * r1); i.push(cx + Math.cos(-t) * r0, cy + Math.sin(-t) * r0); } return poly(o) + poly(i); };
+/** An arc of a ring from angle t0 to t1 (radians, clockwise from +x), as one closed path: a plank of a rim. */
+const arcPiece = (cx, cy, r0, r1, t0, t1) => { const n = Math.max(4, Math.ceil(Math.abs(t1 - t0) * 12)), p = []; for (let k = 0; k <= n; k++) { const t = t0 + ((t1 - t0) * k) / n; p.push(cx + Math.cos(t) * r1, cy + Math.sin(t) * r1); } for (let k = n; k >= 0; k--) { const t = t0 + ((t1 - t0) * k) / n; p.push(cx + Math.cos(t) * r0, cy + Math.sin(t) * r0); } return poly(p); };
+/** A bar of width w from (x0, y0) to (x1, y1), as a filled quad: a plank or a spoke seen flat. */
+const bar = (x0, y0, x1, y1, w) => { const dx = x1 - x0, dy = y1 - y0, l = Math.hypot(dx, dy) || 1, nx = (-dy / l) * w / 2, ny = (dx / l) * w / 2; return poly(x0 + nx, y0 + ny, x1 + nx, y1 + ny, x1 - nx, y1 - ny, x0 - nx, y0 - ny); };
+/** A round dial: its rim, cream face, ticks and a red needle at <at> (radians from straight up, clockwise). */
+const dial = (a, x, y, r, at) => {
+  a.shape(ell(x, y, r + .5), GUN, { outer: false, lite: ell(x - .2, y - .3, r * .9) });
+  a.shape(ell(x, y, r), CREAM, { outer: false, shade: .35 });
+  for (const t of [-1.2, 0, 1.2]) a.line(`M${x + Math.sin(t) * r * .82} ${y - Math.cos(t) * r * .82}L${x + Math.sin(t) * r * .6} ${y - Math.cos(t) * r * .6}`, { w: 1.2, c: '#262a42' });
+  a.line(`M${x} ${y}L${x + Math.sin(at) * r * .78} ${y - Math.cos(at) * r * .78}`, { w: 2.2, c: '#c8503c' });
+  a.flat(ell(x, y, r * .18), '#262a42');
+};
+/** A socket where the cable meets the picture (MachineSpec.Plug), its middle at (x, y). */
+const socket = (a, x, y) => { a.shape(rr(x - 1.6, y - 1.4, 3.2, 2.8, .4), DARK, { outer: false, lite: band(x - 1.6, y - 1.4, x + 1.6, y - .9) }); a.flat(ell(x, y, .7), '#12131e'); a.flat(ell(x - .15, y - .15, .3), COPPER.lite); };
+/** The fermenter's biofuel jerrycan under its tap, standing with its foot at (x, foot), w across. */
+const jerrycan = (a, x, foot, w) => {
+  const h = w * 1.25, y = foot - h, k = w / 12;
+  a.shape(rr(x + 8.6 * k, y - 1.2 * k, 2.2 * k, 1.6 * k, .3 * k), BRASS, { lite: band(x + 8.6 * k, y - 1.2 * k, x + 10.8 * k, y - .7 * k) });
+  a.shape(`M${x + 1.2 * k} ${y + 1.2 * k}L${x + 2.6 * k} ${y}L${x + 9 * k} ${y}L${x + 11.2 * k} ${y + 1.4 * k}L${x + w} ${y + 3 * k}L${x + w} ${foot - .8 * k}L${x + w - .8 * k} ${foot}L${x + .8 * k} ${foot}L${x} ${foot - .8 * k}L${x} ${y + 2.4 * k}Z`, OLIVE, {
+    lite: band(x, y, x + 2.2 * k, foot), shade: band(x + w - 2.4 * k, y, x + w, foot), deep: band(x, foot - 1 * k, x + w, foot) });
+  a.flat(rr(x + 3.2 * k, y + .5 * k, 3.4 * k, .9 * k, .3 * k), '#2a2c1c');
+  a.line(`M${x + 2.4 * k} ${y + 3.6 * k}L${x + w - 2.4 * k} ${foot - 2.4 * k}M${x + w - 2.4 * k} ${y + 3.6 * k}L${x + 2.4 * k} ${foot - 2.4 * k}`, { w: 1.4, c: '#424820' });
+};
+/** A mouth the fire is drawn in: dark, its deep top, firebars the fire covers; the fire's top left at (x, y). As the furnace's. */
+const mouth = (a, x, y) => {
+  a.shape(band(x - .6, y - .6, x + 10.6, y + 11.6), DARK, { outer: false, deep: band(x - .6, y - .6, x + 10.6, y + .4) });
+  for (let i = 0; i < 5; i++) a.flat(band(x + .4 + i * 2, y + 1, x + 1.4 + i * 2, y + 11), '#4c2830');
+  a.flat(band(x - .6, y + 11, x + 10.6, y + 11.6), '#6a708c');
+};
+const lampOn = (a, x, y, c) => { led(a, x, y, c || '#54ba74'); a.flat(ell(x - .1, y - .1, .16), '#d8ffd8'); };
+
+// The fermenter: a tall glass column of mash, a copper line into a condenser coil, a tap dripping biofuel into a jerrycan.
+const BUBBLE = '#86a856', BUBBLE_LITE = '#c4d88a', LAMP_OFF = '#2a1e22';
+const fibres = (a, ...ls) => { for (const [x, y, l] of ls) a.line(`M${x} ${y}L${x + l} ${y - .5}`, { w: 1.3, c: MASH_LITE }); };
+/** Bubbles up the mash between rows lo and hi at each x, two to a column, a frame of 4 moving them up a quarter. */
+const rise = (a, xs, lo, hi, f) => xs.forEach((x, i) => {
+  const span = hi - lo;
+  for (let k = 0; k < 2; k++) {
+    const y = hi - ((i * 3.3 + k * span / 2 + f * span / 8) % span), r = .32 + ((i + k) % 2) * .14;
+    a.flat(ell(x + ((i + k) % 2) * .4, y, r), BUBBLE);
+    a.flat(ell(x + ((i + k) % 2) * .4 - .1, y - .1, r * .4), BUBBLE_LITE);
+  }
+});
+/** Where its cable plugs in (MachineSpec.Plug), its dial and its lamp (StationView's light). */
+const FERMENTER_PLUG = [5, 27], FERMENTER_DIAL = [15.7, 14.2], FERMENTER_LAMP = [15.7, 25.6];
+const fermenter = (a) => {
+  a.shape(rr(2.4, .6, 10.2, 2.6, .4), GUN, { lite: band(2.6, .7, 12.4, 1.2), shade: band(11.2, .6, 12.6, 3.2) });
+  a.tube('M12.4 1.9L21.4 1.9Q23 1.9 23 3.5L23 5.6', 1.1, COPPER);
+  a.shape(band(3.4, 3.2, 11.6, 25.4), GLASS, { lite: band(3.4, 3.2, 4.6, 25.4), shade: band(9.8, 3.2, 11.6, 25.4), deep: band(3.4, 3.2, 11.6, 4) });
+  a.flat(band(4, 9.4, 11, 25), MASH);
+  a.flat(band(4, 8.6, 11, 9.8), FAT);
+  a.flat(band(4, 21, 11, 25), MASH_DEEP);
+  fibres(a, [5, 13, 2], [6.6, 17.4, 2.4], [5.4, 22.4, 2]);
+  a.flat(poly(8.4, 12.4, 10.8, 10, 10.8, 11.4, 8.4, 13.8), '#7cc0d0');
+  for (const y of [5.6, 15.4, 22.8]) a.shape(band(3, y, 12, y + .9), STEEL, { outer: false, lite: band(3, y, 12, y + .35), shade: band(3, y + .6, 12, y + .9) });
+  box(a, 2, 25, 11, 3.6, STEEL, { spec: true });
+  socket(a, ...FERMENTER_PLUG);
+  a.shape(rr(18.4, 5.4, 9.4, 11.6, 1), STEEL, { lite: band(19, 5.4, 21.4, 17), spec: band(19.8, 6.2, 20.4, 15), shade: band(25.6, 5.4, 27.8, 17), deep: band(18.4, 16.2, 27.8, 17) });
+  well(a, 20.2, 7.4, 5.8, 7.6);
+  for (let i = 0; i < 4; i++) a.tube(`M20.4 ${8.4 + i * 1.8}L25.8 ${9.2 + i * 1.8}`, .8, COPPER, { bare: true });
+  rivets(a, [19.4, 6.4], [26.8, 6.4], [19.4, 16], [26.8, 16]);
+  a.tube('M25.2 16.8L25.2 18.2', .9, COPPER);
+  a.shape(ell(23.8, 17.6, .8), BRASS, { outer: false });
+  jerrycan(a, 19.6, 28.4, 7);
+  box(a, 13.4, 11.4, 4.6, 17.2, GUN);
+  dial(a, ...FERMENTER_DIAL, 1.6, -1.25);
+  inner(a, 14, 18.2, 3.4, 5.4, DARK);
+  a.flat(band(14.5, 18.8, 16.9, 22.8), '#1a5040');
+  a.line('M15 19.6L15 21.4L16.4 22', { w: 1, c: '#a8693c' });
+  led(a, ...FERMENTER_LAMP, LAMP_OFF);
+  box(a, 1, 28.4, 30, 2.2, STEEL, { spec: true });
+  feet(a, 30.6, 1.4, [3, 3.4], [25.6, 3.4]);
+};
+/** The fermenter at work, frame <f> of 4: its needle up, its lamp green, bubbles up the mash, a drop falling from the tap. */
+const fermenter_work = (f) => (a) => {
+  dial(a, ...FERMENTER_DIAL, 1.6, .85 + (f % 2) * .12);
+  lampOn(a, ...FERMENTER_LAMP);
+  rise(a, [5.4, 7.6, 9.6], 9.8, 24.6, f);
+  if (f === 0) a.flat(ell(25.2, 18.5, .35), FUEL);
+  if (f === 1) { a.flat(ell(25.2, 18.7, .5, .6), FUEL); a.flat(ell(25.1, 18.6, .2), FUEL_LITE); }
+  if (f === 2) { a.flat(ell(25.2, 19.3, .4, .7), FUEL); a.flat(ell(25.1, 19.1, .15), FUEL_LITE); }
+  if (f === 3) { a.flat(ell(24.6, 19.6, .25), FUEL_LITE); a.flat(ell(25.8, 19.5, .25), FUEL_LITE); }
+};
+
+// The biofuel generator: a firebox with its pump, a heavy crankcase with two finned cylinders and a holed flywheel.
+const rustStreak = (a, x, y, h) => { a.flat(`M${x} ${y}L${x + .6} ${y}L${x + .45} ${y + h}L${x - .05} ${y + h}Z`, RUST.base); a.flat(ell(x + .3, y + .2, .45, .35), RUST.deep); };
+/** The fire's top left in its firebox (FurnaceView.FireAt), its cylinders by their left edge, its flywheel, its plug. */
+const BIO_FIRE = [4, 16], BIO_CYL = [19.4, 29.8], BIO_FLY = [42.6, 12.6], BIO_PLUG = [45, 22];
+/** Its body, the moving parts left out: the picture at rest draws them at their rest over it. */
+const biofuelBody = (a) => {
+  cyl(a, 3.4, 1.2, 3.6, 8.8, GUN);
+  a.shape(rr(2.8, .4, 4.8, 1.4, .3), DARK, { lite: band(3, .4, 7.4, .7) });
+  rustStreak(a, 4.6, 3.6, 4.4);
+  box(a, 1, 9.6, 15.4, 20, STEEL, { spec: true });
+  inner(a, 9, 10.6, 6.2, 3.4, BRASS);
+  a.flat(rr(9.8, 11.6, 4.6, 1.2, .3), '#4c3a2c');
+  a.tube('M12.1 10.4L12.1 9.4', 1.2, GUN);
+  mouth(a, ...BIO_FIRE);
+  rivets(a, [2.2, 11], [2.2, 28.4], [15.2, 28.4]);
+  a.tube('M15.2 12.2L17.6 12.2L17.6 17.4', .8, COPPER);
+  box(a, 16.6, 17.4, 30.8, 12, GUN, { spec: true });
+  for (const x of [26.6, 35.2]) { inner(a, x, 19.2, 6.6, 5.4, { ...GUN, base: '#525a6a' }); rivets(a, [x + .8, 20], [x + 5.8, 20], [x + .8, 23.8], [x + 5.8, 23.8]); }
+  dial(a, 21, 21.8, 2, -1.1);
+  led(a, 24.6, 19.4, '#2a2420');
+  hazard(a, 17.4, 26.2, 29.2, 1.2);
+  socket(a, ...BIO_PLUG);
+  for (const x of BIO_CYL) {
+    a.shape(band(x, 6, x + 7.6, 17.6), STEEL, { lite: band(x, 6, x + 1.4, 17.6), shade: band(x + 5.8, 6, x + 7.6, 17.6) });
+    for (let i = 0; i < 6; i++) a.flat(band(x - .5, 7 + i * 1.75, x + 8.1, 7.7 + i * 1.75), i % 2 ? '#6a708c' : '#5a6078');
+    a.shape(rr(x - .6, 3.6, 8.8, 2.6, .4), DARK, { lite: band(x - .4, 3.6, x + 8, 4) });
+    a.shape(rr(x + 3.2, 2.4, 1.4, 1.4, .2), GUN, { outer: false });
+  }
+  a.shape(poly(40.4, 17.6, 44.8, 17.6, 43.6, 12, 41.6, 12), DARK, { lite: band(40.4, 17.4, 44.8, 17.8) });
+  box(a, .4, 29.2, 47.2, 1.8, DARK);
+  feet(a, 31, 1, [2, 4], [42, 4]);
+};
+/** Its moving parts at crank angle <t>: the flywheel's disc with two holes, the pushrods and rockers, the pump's plunger. */
+const biofuelParts = (t) => (a) => {
+  const [fx, fy] = BIO_FLY;
+  a.shape(ell(fx, fy, 4.8), DARK, { lite: .0001 });
+  a.shape(ell(fx, fy, 3.9), GUN, { outer: false, shade: .5 });
+  for (const k of [0, Math.PI]) a.flat(ell(fx + Math.cos(t + k) * 2.2, fy + Math.sin(t + k) * 2.2, .9), '#14151c');
+  a.flat(ell(fx, fy, 1.1), STEEL.base);
+  a.flat(ell(fx + Math.cos(t + Math.PI / 2) * 3.2, fy + Math.sin(t + Math.PI / 2) * 3.2, .5), BRASS.lite);
+  BIO_CYL.forEach((x, c) => {
+    const lift = .8 * Math.max(0, Math.sin(t + c * Math.PI)), tilt = lift * .5;
+    a.tube(`M${x + 8.2} 17.4L${x + 8.2} ${3.6 - tilt}`, .55, PIPE, { spec: false });
+    a.tube(`M${x + 1.4} ${3.1 + tilt}L${x + 8.4} ${3.1 - tilt}`, .8, STEEL);
+    a.flat(band(x + 1.1, 3.4 + tilt, x + 1.8, 4.2), '#c4ccd8');
+  });
+  const p = .6 * (1 + Math.sin(t * 2));
+  a.tube(`M12.1 9.6L12.1 ${8 - p}`, .6, STEEL, { spec: false });
+  a.flat(rr(11.3, 7.4 - p, 1.6, .9, .2), BRASS.base);
+};
+/** The generator at rest: its body, its parts still. */
+const biofuelGenerator = (a) => { biofuelBody(a); biofuelParts(0)(a); };
+/** The whole machine burning at crank angle <t>, the needle up and the amber lamp lit: drawn over its picture at rest, it covers it. */
+const biofuelRun = (t) => (a) => { biofuelBody(a); biofuelParts(t)(a); dial(a, 21, 21.8, 2, .9); lampOn(a, 24.6, 19.4, '#f0c460'); };
+
 Subjects.machines = function () {
   const whole = { furnace: [32, 32, furnace], former: [32, 32, former], crusher: [32, 32, crusher], assembler: [32, 32, assembler], workbench: [32, 40, workbench], arcBench: [32, 32, arcBench],
     vent: [16, 16, vent], crate: [32, 16, crate], cistern: [32, 32, cistern], growCapsule: [32, 48, growCapsule], charger: [16, 32, charger], burnerGenerator: [32, 32, burnerGenerator],
     autoTradeStation: [32, 32, terminal(true)], tradeStation: [32, 32, terminal(false)], lifepod: [48, 48, lifepod], generator: [32, 32, generator], tank: [32, 32, tank],
-    computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser] };
+    computer: [48, 32, computer], capacitorBank: [32, 32, capacitorBank], engine: [72, 32, engine], solarPanel: [48, 16, solarPanel], lamp: [16, 16, lamp], arcLamp: [16, 16, arcLampBody(false)], dropPod: [32, 56, dropPod], electrolyser: [32, 48, electrolyser],
+    fermenter: [32, 32, fermenter], biofuelGenerator: [48, 32, biofuelGenerator] };
   for (const [kind, [w, h, draw]] of Object.entries(whole)) out(`machine_${kind}`, bake({ w, h, draw }));
   out('machine_arcLamp_lit', flat(16, 16, arcLampBody(true)));
   out('machine_radarAntenna', flat(32, 32, (a) => { radarBase(a); dish(2)(a); }));
@@ -613,6 +764,8 @@ Subjects.machines = function () {
   out('lifepod_glass', flat(48, 48, podGlass));
   out('arcBench_alight', flat(32, 32, arcAlight));
   out('arcBench_front', flat(32, 32, arcFront));
+  for (let f = 0; f < 4; f++) out(`fermenter_work_${f}`, flat(32, 32, fermenter_work(f)));
+  for (let f = 0; f < 8; f++) out(`biofuelGenerator_run_${f}`, flat(48, 32, biofuelRun((f / 8) * Math.PI * 2)));
 };
 window.AnimeKit = { STEEL, GUN, DARK, COPPER, PIPE, band, box, inner, cyl, rivets, hazard };
 })();

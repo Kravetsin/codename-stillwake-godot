@@ -98,7 +98,8 @@ public static class Testbed
     /// two fires some 1.7, so room two has two. A canister in each tank airs the rooms as the world is made, then the tanks go in full, four canisters
     /// each: some twenty minutes of room two's air, more of room one's, and canisters in the crate for more.
     /// Under room one, through an open hatch, the engine's bay: the engine against the stern's wall, its nozzle out into space,
-    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
+    /// biofuel in its tank, cabled to the bank, and a lamp cabled to it; past the lamp, cabled on from it and unserved by drones, the fermenter,
+    /// biomass in it, and the biofuel generator, biofuel in its slot, lit while the bank takes in (power-chain); room one's top corners walled, for its one vaporizer's air to reach every cell; a debris net hung outside on the bay's right wall. Sixty cells of space past the airlock, room for a jetpack to fly. Drawn a character a 16 px cell and doubled (0104):
     /// a drawn pipe meets only even cells, so each vaporizer's air leaves its odd output through a pipe under its top-right block,
     /// and each tank's liquid its odd output on its right through a pipe under the block past it.
     /// </summary>
@@ -108,14 +109,14 @@ public static class Testbed
             "   NN",
             "   NN  PPP  PPPPPP PPPPPPPPP PPP PPP PPP PPP PPP PPP PPP",
             "  ###############################################",
-            "  #.KK...LUUUII..#..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
+            "  ##KK...LUUUII###..TTL.kk.cc.ccJ.GG.yy.L.$$#..L#",
             "  #.OOOQQ.UUUIIRRD..TT..kk.cc.ccggGG.yy...$$DZZ.D",
             "  #.OOOQQTTGGIIRRDWW.FF.MM.EE.YYggGG.yyAACBBDZZ.D",
             "  #.OOOKKTTGGVKK.DWW.FF.MM.EE.YYggGGKKVAACBBDZZ.D",
             "  #o#########################################__##",
-            "  #XXXL#n",
-            "  #XXX.#n",
-            "  ######n",
+            "  #XXXL.uuqqq#n",
+            "  #XXX..uuqqq#n",
+            "  ############n",
         ],
         [
             "",
@@ -132,7 +133,7 @@ public static class Testbed
             ((19, 2), (22, 4)), ((42, 6), (40, 4)), ((40, 4), (47, 4)), ((42, 6), (24, 6)), ((45, 2), (41, 6)),
             ((29, 2), (27, 6)), ((33, 2), (30, 6)), ((33, 2), (33, 6)), ((12, 2), (15, 5)), ((37, 2), (34, 6)), ((41, 2), (34, 4)),
             ((37, 2), (32, 4)), ((45, 2), (49, 2)), ((49, 2), (53, 2)), ((7, 2), (7, 5)), ((15, 2), (4, 2)), ((15, 2), (12, 4)),
-            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)),
+            ((7, 5), (3, 9)), ((3, 9), (6, 9)), ((45, 2), (45, 8)), ((22, 2), (24, 4)), ((25, 2), (37, 4)), ((6, 9), (8, 9)), ((10, 9), (8, 9)),
         ]).Doubled();
 
     /// <summary>Ticks run before the items go in: a vaporizer makes a unit a tick, room one's one airing its 260 cells, room two's two its 416.</summary>
@@ -225,6 +226,8 @@ public static class Testbed
             new() { ["id"] = Id("engine"), ["slots"] = Slots("engine", [Stack("biofuel", Fuelled)]) },
             new() { ["id"] = Id("dropPod"), ["slots"] = Slots("dropPod", [Stack("biofuel", PodFuel)]) },
             new() { ["id"] = Id("burnerGenerator"), ["slots"] = Slots("burnerGenerator", [Stack("planks", Items.Get("planks").Stack)]) },
+            new() { ["id"] = Id("biofuelGenerator"), ["slots"] = Slots("biofuelGenerator", [Stack("biofuel", Fuelled)]) },
+            new() { ["id"] = Id("fermenter"), ["slots"] = Slots("fermenter", [Stack("biomass", Items.Get("biomass").Stack)]) },
             new() { ["id"] = Id("smelter"), ["slots"] = Slots("smelter", [Stack(Smelting, Items.Get(Smelting).Stack)]) },
             new() { ["id"] = Id("former"), ["slots"] = Slots("former", [Stack(Pressing, Pressed)]) },
             new() { ["id"] = Id(Logistics.Bay), ["slots"] = Slots(Logistics.Bay, [.. Enumerable.Range(0, Drones).Select(_ => Drone(Logistics.Drone)), .. InBay.Select(Drone)]) },
@@ -253,7 +256,8 @@ public static class Testbed
         // twelve cells.
         int Cell(int x, int y) => y * Map.Width + x;
         world.Step([
-            new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Logistics.SetServed(At(Tools), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
+            new Sim.Logistics.SetServed(At(FarmAt), false), new Sim.Logistics.SetServed(At(Tools), false),
+            new Sim.Logistics.SetServed(Id("fermenter"), false), new Sim.Logistics.SetServed(Id("biofuelGenerator"), false), new Sim.Pipes.LayPipe(Port(CisternFrom, 1), Port(CisternTo, 0)),
             new Sim.Pipes.LayPipe(Port(CisternTo, 1), Cell(67, 11)), new Sim.Pipes.LayPipe(Cell(67, 11), Cell(74, 13)),
             new Sim.Pipes.LayPipe(Cell(77, 13), Cell(65, 13)), new Sim.Pipes.LayPipe(Cell(65, 13), Cell(55, 13)), new Sim.Pipes.LayPipe(Cell(55, 13), Cell(46, 12)),
             new Sim.Pipes.LayPipe(Cell(46, 12), Cell(38, 12)), new Sim.Pipes.LayPipe(Cell(38, 12), Cell(38, 10)), new Sim.Pipes.LayPipe(Cell(38, 10), Cell(40, 10)),

@@ -395,7 +395,7 @@ public class LogisticsTests
     public void DronesWorkCratesFedQueuedAndTradeStationsButNotBaysOrChargers()
     {
         var w = new Scenario(Layout.Parse(EveryMachine), doubled: true);
-        string[] servable = ["crate", "furnace", "former", "smelter", "assembler", "growCapsule", "burnerGenerator", "lifepod", "tradeStation"];
+        string[] servable = ["crate", "furnace", "former", "smelter", "assembler", "growCapsule", "burnerGenerator", "lifepod", "tradeStation", "fermenter", "biofuelGenerator"];
         foreach (var m in w.M.Grid.Machines.Where(m => Content.Machines.Get(m.Kind).Slots != null))
             Assert.True(servable.Contains(m.Kind) == w.M.Logistics.Servable(m.Id), m.Kind);
     }
@@ -403,11 +403,11 @@ public class LogisticsTests
     /// <summary>Every kind of machine holding items once.</summary>
     private static readonly string[] EveryMachine =
     [
-        "####################################",
-        "#...................gg.........OOO.#",
-        "#.FF.MM.EE.YY.$$.BB.gg.C....RR.OOO.#",
-        "#.FF.MM.EE.YY.$$.BB.gg.C.KK.RR.OOO.#",
-        "####################################",
+        "###########################################",
+        "#...................gg.........OOO........#",
+        "#.FF.MM.EE.YY.$$.BB.gg.C....RR.OOO.uu.qqq.#",
+        "#.FF.MM.EE.YY.$$.BB.gg.C.KK.RR.OOO.uu.qqq.#",
+        "###########################################",
     ];
 
     // Job after job.

@@ -48,14 +48,14 @@ public partial class ContentTests
     }
 
     /// <summary>
-    /// Two processes, each with a station: smelt (the furnace, the smelter) and grow (the grow capsule); an item's is
-    /// one of them. Returns are weights, none negative, some above zero, only on what is worked (0060).
+    /// Four processes, each with a station: crush (the crusher), ferment (the fermenter), grow (the grow capsule) and smelt (the
+    /// furnace, the smelter); an item's is one of them. Returns are weights, none negative, some above zero, only on what is worked (0060).
     /// </summary>
     [Fact]
     public void EveryItemsProcessHasAFedStationAndItsReturnsAreWeightsOfWhatIsWorked()
     {
         var processes = Stations.All.Where(s => s.Fed).Select(s => s.Process).Distinct().Order(StringComparer.Ordinal);
-        Assert.Equal(["crush", "grow", "smelt"], processes);
+        Assert.Equal(["crush", "ferment", "grow", "smelt"], processes);
         Assert.All(Stations.All.Where(s => !s.Fed), s => Assert.Equal("smelt", s.Process));
         foreach (var item in Content.Items.All)
         {
@@ -67,6 +67,9 @@ public partial class ContentTests
         }
         Assert.Equal(["spore", "seed"], Content.Items.All.Where(i => i.Process == "grow").Select(i => i.Id));
         Assert.Equal(["growCapsule"], Stations.All.Where(s => s.Process == "grow").Select(s => s.Machine));
+        // Biofuel only at the fermenter (power-chain): of biomass and fat.
+        Assert.Equal(["fermenter"], Stations.All.Where(s => s.Process == "ferment").Select(s => s.Machine));
+        Assert.Equal(["biomass", "fat"], Content.Items.All.Where(i => i.Process == "ferment").Select(i => i.Id));
     }
 
     // Fuel
@@ -161,7 +164,7 @@ public partial class ContentTests
     /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
     /// screwdriver (0046, 0107); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
     /// among them (2026-10-27-the-cape-is-worn); the Former those parts again, and alone frames, soil (0060), the motor of a
-    /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, the circuit
+    /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, and the fuel pump, the circuit
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
     [Fact]
@@ -169,8 +172,8 @@ public partial class ContentTests
     {
         string[] pod = [Content.Helmet.Basic, Content.Suit.Basic, Screwdrivers.Basic.Item];
         string[] parts = ["wire", "plate", "gear", "tube", "coil", "rotor"];
-        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "fuelPump", "heavyHelmet", "regenSuit", "grinder", "spear", "sledgehammer", "plasmaCutter"];
-        string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter"], arc = ["arcModule", "accumulator", "railgun"];
+        string[] tools = ["fireAxe", "harpoon", "nailer", "nail", "helmetLamp", "jetpack", "drill", "powerDriver", "cape", "heavyHelmet", "regenSuit", "grinder", "spear", "sledgehammer", "plasmaCutter"];
+        string[] electronics = ["circuit", "solarCell", "battery", "drone", "salvageDrone", "deckDrive", "processor", "display", "transceiver", "igniter", "fuelPump"], arc = ["arcModule", "accumulator", "railgun"];
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
@@ -521,7 +524,7 @@ public partial class ContentTests
 
     /// <summary>
     /// Hide and fat come off a planet's grazers alone, so nothing before the first landing is made of them: aboard neither,
-    /// nor the cape of the hide; on a planet both, and the cape. Without its hide, no cape; fat smelts into biofuel there.
+    /// nor the cape of the hide; on a planet both, and the cape. Without its hide, no cape; fat ferments into biofuel there.
     /// </summary>
     [Fact]
     public void HideAndFatComeOffAPlanetsGrazersAloneAndTheCapeNeedsTheHide()
@@ -571,7 +574,7 @@ public partial class ContentTests
     [Fact]
     public void EverythingButAPlanetsOwnOpensFromWhatSpaceGivesAloneTheDropPodAmongThem()
     {
-        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "cape", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
+        string[] planetary = ["accumulator", "arcBench", "arcLamp", "arcModule", "backWallAlloy", "backWallHide", "backWallMica", "backWallStone", "biofuelGenerator", "cape", "engine", "fuelPump", "grinder", "igniter", "motor", "nozzle", "railgun", "salvageDrone", "wallAlloy", "wallHide", "wallMica", "wallStone"];
         var (had, known) = Reachable(Stations.All);
         var recipes = Stillwake.Sim.Research.Blueprints.All.Select(b => (b.Id, b.Cost)).Concat(Crafts.All.Select(c => (Id: c.Item, c.Cost)));
         var locked = recipes.Where(r => !known.Contains(r.Id) || !r.Cost.All(c => had.Contains(c.Item))).Select(r => r.Id).Distinct().Order(StringComparer.Ordinal).ToArray();
@@ -583,17 +586,21 @@ public partial class ContentTests
 
     /// <summary>
     /// The farm walks from salvage (0060): seeds from supply pods and soil clods, soil pressed at the Former or broken
-    /// out of clods, the grow capsule bought once that is had, biomass grown in it and biofuel smelted from
-    /// that. Without the capsule, neither biomass nor biofuel; without the Former, soil only from clods; without both,
-    /// no soil and no capsule.
+    /// out of clods, the grow capsule bought once that is had, biomass grown in it and biofuel fermented from
+    /// that at the fermenter, known from space's parts alone (power-chain). Without the capsule, neither biomass nor biofuel;
+    /// without the fermenter, no biofuel, so no descent; without the Former, soil only from clods; without both, no soil and no capsule.
     /// </summary>
     [Fact]
-    public void TheFarmIsReachableSeedsFromSalvageSoilAtTheFormerBiomassInTheCapsuleBiofuelSmelted()
+    public void TheFarmIsReachableSeedsFromSalvageSoilAtTheFormerBiomassInTheCapsuleBiofuelFermented()
     {
         var (had, known) = Reachable(Stations.All);
         Assert.Contains("seed", had);
         foreach (var item in new[] { "seed", "soil", "biomass", "biofuel" }) Assert.Contains(item, had);
         Assert.Contains("growCapsule", known);
+        Assert.Contains("fermenter", known);
+        var (noFermenter, _) = Reachable([.. Stations.All.Where(s => s.Machine != "fermenter")]);
+        Assert.Contains("biomass", noFermenter);
+        Assert.DoesNotContain("biofuel", noFermenter);
         var (noCapsule, _) = Reachable([.. Stations.All.Where(s => s.Machine != "growCapsule")]);
         Assert.DoesNotContain("biomass", noCapsule);
         Assert.DoesNotContain("biofuel", noCapsule);

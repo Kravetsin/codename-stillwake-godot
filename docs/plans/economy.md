@@ -192,7 +192,7 @@ after about five circuits from cable racks.
 ## Creatures drop what they are made of
 
 Grazers drop hide and fat besides biomass; sentries stay scrap. **Hide** goes with cloth into the cape (2 cloth,
-2 hide) and the insulated suit; **fat** burns longer than planks and smelts into biofuel at the furnace, so hunting
+2 hide) and the insulated suit; **fat** burns longer than planks and ferments into biofuel at the fermenter, so hunting
 is a fuel source. Both are a planet's, so neither goes into anything before the first landing.
 
 ## More sinks: stations and tools to come

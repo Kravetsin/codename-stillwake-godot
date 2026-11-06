@@ -109,24 +109,31 @@ public class FurnaceTests
         Assert.Equal(new Smelting(true), w.M.Furnace.At(id));
     }
 
-    /// <summary>A grazer's fat (Creatures) both ways: in the input it smelts into biofuel as biomass does, in the fuel slot it burns twice a plank.</summary>
+    /// <summary>
+    /// A grazer's fat (Creatures) in the fuel slot burns twice a plank; in the input it sits unworked, lighting nothing, for it
+    /// ferments into biofuel at the fermenter only (power-chain, FermenterTests).
+    /// </summary>
     [Fact]
-    public void FatSmeltsIntoBiofuelOnAFireOfFatAndBurnsTwiceAPlank()
+    public void FatBurnsTwiceAPlankAndInTheInputLightsNothing()
     {
         var fat = ItemSpecs.Get("fat");
         Assert.Equal(2 * Plank.BurnTicks, fat.BurnTicks);
-        var (w, id) = SetUp(("fat", 3));
+        var (w, id) = SetUp(("fat", 3), ("scrapChunk", 1));
         Put(w, id, "fat", Fuel);
-        Put(w, id, "fat", 0, 2);
-        Assert.Equal(new Smelting(true, "fat", 0, fat.SmeltTicks!.Value * 1000), w.M.Furnace.At(id));
-        w.Run(2 * fat.SmeltTicks!.Value);
-        Assert.Null(w.M.Items.Crate(id)[0]);
-        Assert.Equal(new Stack("biofuel", 2), w.M.Items.Crate(id)[2]);
-        Assert.Empty(w.Refusals);
-        // One fat smelted both and burns on, out only once its own burning is done.
-        Assert.Equal(0, FuelOf(w, id));
-        w.Run(fat.BurnTicks!.Value - 2 * fat.SmeltTicks!.Value - 1);
+        Put(w, id, "fat", 0, 2).Run(20);
         Assert.Equal(new Smelting(false), w.M.Furnace.At(id));
+        Assert.Equal((2, 1), (w.M.Items.Crate(id)[0]?.Count, FuelOf(w, id)));
+        // Taken out and a chunk put in, the fat in the fuel slot lights and burns twice a plank's time.
+        int free = w.M.Items.Inventory(0).ToList().FindIndex(s => s == null);
+        w.Do(new Move(new Items.Place(0, id), new Items.Place(free), 2)).Run();
+        Put(w, id, "scrapChunk", 0);
+        Assert.True(w.M.Furnace.At(id).Burning);
+        Assert.Equal(0, FuelOf(w, id));
+        w.Run(fat.BurnTicks!.Value - 2);
+        Assert.True(w.M.Furnace.At(id).Burning);
+        w.Run(2);
+        Assert.Equal(new Smelting(false), w.M.Furnace.At(id));
+        Assert.Empty(w.Refusals);
     }
 
     [Fact]

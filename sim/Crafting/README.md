@@ -9,9 +9,9 @@
 | `State.cs` | The saved slice: `Entry`, `Smelt`, `CraftingState`. |
 
 Stations ([0057](../../docs/decisions/0057-stations-one-model-for-every-crafting-machine.md)): every crafting machine
-on one model. A **queued** station (pod, workbench, Former, circuit assembler, arc bench) makes crafts from a queue shared by the
-crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into yields by its process, "smelt" or
-"grow" (0060). Not part of `Items`: it asks `Research`, which depends on items.
+on one model. A **queued** station (pod, workbench, Former, assembler, arc bench) makes crafts from a queue shared by the
+crew (0028); a **fed** one (furnace, smelter, crusher, capsule, fermenter) turns its input into yields by process:
+smelt, crush, grow (0060), ferment (power-chain). Not part of `Items`: it asks `Research`, which needs items.
 
 - **Depends on:** `Grid` (`Machines`, `MachineById`); `Items` (queries `Crate`, `CanSmelt`, `ShortOfStock`, `FullForStock`,
   `OutputFull`, `InputsLack`, `Boost`; ops `TakeStock`, `GiveStock`, `Output`, `Smelt`, `TakeInputs`); `Research` (`Knows`);
@@ -95,10 +95,10 @@ crew (0028); a **fed** one (furnace, smelter, grow capsule) works its input into
 
 ## Deliberately not handled
 
-- A count below one: the client sends one or five.
-- A finished unit waits in the station, never dropped, so crafting needs no `crew`.
+- A count below one: the client sends 1 or 5.
+- A finished unit waits in the station, never dropped: crafting needs no `crew`.
 - A cancel refunds the canceller, not the payer: no record of who paid; `By` only marks whose order it is.
-- In creative mode a cancel gives back what was never taken. A recipe queued twice is two entries.
+- Creative: a cancel returns what was never taken. A recipe queued twice is two entries.
 - A smelt's work past the item's on its last tick is dropped.
 - Nothing stops a too-hot or wrong-process item entering a station: the player moves it (0057).
 - No skip rule: a head waiting for inputs, or endless, holds up the queue; the player cancels it (0057).
