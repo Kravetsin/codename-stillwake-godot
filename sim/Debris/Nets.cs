@@ -60,7 +60,7 @@ public sealed partial class DebrisModule
                     int given = stack.Count - left.Where(l => l.Item == stack.Item).Sum(l => l.Count);
                     if (given > 0) gave.Add((stack.Item, given));
                 }
-                // Reported as a grab is, for the collector's popups; an entry that gave nothing, not at all.
+                // Reported as a grab is, for the collector's tally; an entry that gave nothing, not at all.
                 if (gave.Count > 0) Report(entry.Id, c.From, gave);
                 if (left.Count == 0) continue;
                 entry.Stacks = [.. left.Select(l => new Stack(l.Item, l.Count))];

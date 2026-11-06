@@ -355,7 +355,7 @@ public sealed partial class DebrisModule : Module<DebrisState>, IDebrisQueries, 
         var loot = LootOf(piece.Item, Random);
         // From the roll, not from what went in: what floats off a full inventory was seen all the same.
         Record(piece, loot);
-        Report(piece.Id, c.From, _items.GiveOrDrop(c.From, loot, hero.Cell));
+        Report(piece.Id, c.From, _items.GiveOrDrop(c.From, loot, hero.Cell, noted: false));
     }
 
     private void Apply(HewWrecks c)

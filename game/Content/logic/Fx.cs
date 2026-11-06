@@ -50,6 +50,6 @@ public static class Fx
     public const int LeakStreaks = 12, LeakMotes = 10;
     public const double LeakRing = 16;
 
-    /// <summary>The most picked-up icons flying home to the hero on their ribbons of light at once (slice 3): past it a stack shows in the popup alone.</summary>
+    /// <summary>The most picked-up icons flying home to the hero on their ribbons of light at once (slice 3): past it a stack shows in the tally alone.</summary>
     public const int MostRibbons = 4;
 }

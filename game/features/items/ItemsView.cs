@@ -16,14 +16,16 @@ namespace Stillwake.Game.Features.Items;
 /// <summary>
 /// The player's items (features/items): the hotbar always, the rest and an open crate on demand
 /// (<see cref="InventoryPanel"/>); the stacks lying on the floor (<see cref="FloorLayer"/>), picked up
-/// as the hero walks over them, saying so over its head, as it says what its own catches of debris gave
-/// (<see cref="OwnCatches"/>), each flying home to its chest on a ribbon of light (<see cref="PickUpFlights"/>).
+/// as the hero walks over them, counted over its head (<see cref="HeadTally"/>), as are what its own catches of debris gave
+/// (<see cref="OwnCatches"/>) and what its digging, felling and taking apart gave (<see cref="OwnGains"/>), each flying home to its chest on a ribbon of light (<see cref="PickUpFlights"/>).
 /// A crate or a furnace is opened by the crew's E, through <see cref="Ui.OpenCrate"/>.
 /// </summary>
 public partial class ItemsView : Node2D
 {
     private readonly FloorLayer _floor = new();
-    private readonly PickUpPopups _popups = new();
+    private readonly HeadTally _tally = new();
+    private readonly GainTally _gainTally = new();
+    private readonly OwnGains _gains = new();
     private readonly PickUpFlights _flights = new();
     private readonly OwnCatches _catches = new();
     private readonly ActSound _pick = new();
@@ -37,6 +39,9 @@ public partial class ItemsView : Node2D
 
     private bool _wasOut;
 
+    /// <summary>How far over the head the tally's lowest chip stands, in cells.</summary>
+    private const double HeadGap = 1.5;
+
     /// <param name="ui">The hand, which the hotbar frees, and the crate open.</param>
     public ItemsView(Ui ui) => Panel = new InventoryPanel(ui);
 
@@ -48,7 +53,7 @@ public partial class ItemsView : Node2D
         AddChild(_flights);
         AddChild(_pick);
         var overWorld = new CanvasLayer { Layer = ScreenLayers.Hud };
-        overWorld.AddChild(_popups);
+        overWorld.AddChild(_gainTally);
         AddChild(overWorld);
         AddChild(Panel);
     }
@@ -61,7 +66,7 @@ public partial class ItemsView : Node2D
     /// drawn, for a collect's loot to fly from (<see cref="OwnCatches"/>).
     /// </summary>
     public void Frame(
-        Client client, IGridQueries grid, IRoomsQueries rooms, IItemsQueries items, DebrisModule debris,
+        Client client, IGridQueries grid, IRoomsQueries rooms, ItemsModule items, DebrisModule debris,
         Func<int, IReadOnlyList<(int Piece, (double X, double Y) At)>> netHolds, HeroSpot? hero, double progress, double drift, double elapsedMs)
     {
         (Hero, Grid) = (hero, grid);
@@ -72,14 +77,23 @@ public partial class ItemsView : Node2D
         // What the hero walks over, it picks up, saying so over its head at once; passed out, nothing.
         // What its own catches just put into the inventory, over its head too: a grab's or a net's collect's loot, drawn as it runs.
         var caught = _catches.Read(client.InFlight, piece => debris.CaughtFrom(piece, client.Id), piece => DrawnAt(debris, piece, drift), netHolds);
+        // What digging, felling and taking apart gave, as the sim noted it: read hero or not, so none piles up while it is away.
+        var gained = _gains.Read(items, items.Gains, client.Id);
         if (hero is { } spot)
         {
             // A catch's loot flies home from where the piece was, one icon after another (0075).
             for (int i = 0; i < caught.Count; i++)
             {
                 var (item, count, from) = caught[i];
-                _popups.Add(item, count);
+                _tally.Add(item, count);
                 if (from is var (fx, fy)) _flights.Fly(item, new Vector2((float)fx, (float)fy), i);
+            }
+            for (int i = 0; i < gained.Count; i++)
+            {
+                var gain = gained[i];
+                _tally.Add(gain.Item, gain.Count);
+                var cell = new Vector2(gain.Cell % grid.Width + 0.5f, gain.Cell / grid.Width + 0.5f) * ShipCamera.Cell;
+                _flights.Fly(gain.Item, cell, caught.Count + i);
             }
             IReadOnlyList<int> walkedOver = spot.Out ? [] : Reach.PickUpsOf(items, grid.Width, client.Id, spot.X, spot.Y, taking);
             // A body gives all it holds at once (2026-10-29-body-bag): one line for it all, its things streaming out of its chest.
@@ -96,14 +110,15 @@ public partial class ItemsView : Node2D
                 }
                 else
                 {
-                    _popups.Add(stack.Item, amount);
+                    _tally.Add(stack.Item, amount);
                     _flights.Fly(stack.Item, from);
                 }
                 client.Send(new PickUp(id));
             }
-            if (fromBody > 0) _popups.AddFromBody(fromBody);
+            if (fromBody > 0) _tally.Add(HeadTally.Body, fromBody);
             if (walkedOver.Count > 0) _pick.Play(spot.Floats);
-            _popups.Update(elapsedMs, spot.X, spot.Y);
+            _tally.Update(elapsedMs, spot.X / 1000.0, (spot.Y - Content.Hero.Height) / 1000.0 - HeadGap);
+            _gainTally.Show(_tally);
             _flights.Update(new Vector2(spot.X, spot.Y - Content.Hero.Height * 0.6f) / 1000 * ShipCamera.Cell, elapsedMs);
         }
         _floor.Update(grid, items, rooms, Reach.PickingUp(client.InFlight), client.World.Tick, progress, elapsedMs);

@@ -151,6 +151,9 @@ public class BuildingDeliveryTests
         Hold(w, 1, Costs.ApartTicks(Scrap.BuildTicks));
         Assert.Null(w.M.Grid.BackAt(At(1, 1)));
         Assert.Equal(ScrapPatch.Count, Count(w, ScrapPatch.Item));
+        // The refund is a gain at the cell taken apart, to be shown (2026-11-06-head-tally).
+        var gain = Assert.Single(w.M.Items.Gains);
+        Assert.Equal((0, ScrapPatch.Item, ScrapPatch.Count, At(1, 1)), (gain.Peer, gain.Item, gain.Count, gain.Cell));
         PlacePlan(w, At(1, 1), Placement.BackWall("iron"));
         Assert.Equal<(string, int)>(Iron.Cost, w.M.Building.CostOf(2)!);
         Hold(w, 2, IronWallTicks - 1);
