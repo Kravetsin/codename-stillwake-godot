@@ -109,6 +109,7 @@ public class FloraTests
         Assert.Equal(["bellTeal", "acacia"], Kinds(w));
         // The acacia's trunk, a row above its own cell.
         Assert.Equal("acacia", w.M.Building.PlantAt(w.At(5, 0))?.Kind);
+        int own = w.M.Building.PlantAt(w.At(5, 0))!.Cell;
         // A tree takes hits to its strength (0080), each on any of its cells.
         for (int hit = 0; hit < Flora.Get("acacia").Strength / Weapons.Axe.BlockDamage; hit++) w.Do(HewTesting.Dig(w, w.At(5, 0), Weapons.Axe.Item)).Run();
         Assert.Empty(w.Refusals);
@@ -118,6 +119,8 @@ public class FloraTests
         Assert.Equal("soil", w.M.Grid.WallAt(w.At(5, 2))?.Id);
         Assert.Empty(w.M.Building.Cracks);
         Assert.Equal(Flora.Get("acacia").Yields, w.M.Items.Totals(0));
+        // Noted for the feller at the plant's own cell, to be shown (2026-11-06-head-tally).
+        Assert.Equal(Flora.Get("acacia").Yields.Select(y => (0, y.Item, y.Count, own)), w.M.Items.Gains.Select(g => (g.Peer, g.Item, g.Count, g.Cell)));
     }
 
     [Fact]

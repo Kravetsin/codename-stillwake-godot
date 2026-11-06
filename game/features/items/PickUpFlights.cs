@@ -10,7 +10,7 @@ namespace Stillwake.Game.Features.Items;
 /// whole and shrinking a little, flies to the hero's chest along an arc in a fifth of a second, trailing a thin ribbon of
 /// light, and lands in a glint and a faint ring with a flash of light. What one catch gave sets off one after another, each
 /// arc a little higher, and only the first lands with a ring and a flash; at most <see cref="Fx.MostRibbons"/> fly at once,
-/// the rest shown by the popup alone. Drawn only, this player's own pick-ups. In pixels of the world.
+/// the rest shown by the tally alone. Drawn only, this player's own pick-ups. In pixels of the world.
 /// </summary>
 public partial class PickUpFlights : Node2D
 {

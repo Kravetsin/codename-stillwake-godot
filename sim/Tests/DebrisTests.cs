@@ -273,6 +273,8 @@ public class DebrisTests
         Assert.NotEmpty(got);
         Assert.All(got, s => Assert.Contains(s.Item, Gives(piece.Item)));
         if (Gives(piece.Item)[0] == piece.Item) Assert.Equal(1, Count(w, piece.Item, 2));
+        // Its catch is shown through CaughtFrom, from where the piece was: not a gain at the hero (2026-11-06-head-tally).
+        Assert.Empty(w.M.Items.Gains);
     }
 
     [Fact]

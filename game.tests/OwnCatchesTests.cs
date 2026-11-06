@@ -8,7 +8,7 @@ using Spec = Stillwake.Content;
 
 namespace Stillwake.Game.Tests;
 
-/// <summary>What this peer's own catches gave, for the popups over its hero: once each, as the grab or the net's collect runs.</summary>
+/// <summary>What this peer's own catches gave, for the tally over its hero: once each, as the grab or the net's collect runs.</summary>
 public class OwnCatchesTests
 {
     /// <summary>What the sim says each piece's catch gave, once it has run: a pod's loot, a crate's planks; 9 was refused; all of 8 floated.</summary>

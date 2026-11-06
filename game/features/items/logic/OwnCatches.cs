@@ -6,7 +6,7 @@ using Stillwake.Sim.Debris;
 namespace Stillwake.Game.Features.Items;
 
 /// <summary>
-/// What this peer's own catches just put into its inventory, for the pick-up popups over its hero and the icons flying home:
+/// What this peer's own catches just put into its inventory, for the tally over its hero and the icons flying home:
 /// a <see cref="Grab"/> of a drifting piece, or a <see cref="Collect"/> of every piece a net held (2026-11-03-debris-net), one path
 /// for both. A command seen in flight at one read and gone from it at the next has run, and the sim says what each of its pieces
 /// gave (<c>DebrisModule.CaughtFrom</c>, a new list a catch): shown when that answer is not the one seen when it set off, or

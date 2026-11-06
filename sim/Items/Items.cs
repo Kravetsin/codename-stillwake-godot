@@ -91,7 +91,8 @@ public interface IItemsOps
     void Consume(int id, int slot);
     void Output(int id, IReadOnlyList<(string Item, int Count)> cost);
     void TakeInputs(int id, IReadOnlyList<(string Item, int Count)> cost);
-    IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
+    /// <summary>Gives what fits, the rest falling at <paramref name="cell"/>; <paramref name="noted"/> false for a gain its caller shows itself (<see cref="ItemsModule.Gains"/>).</summary>
+    IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell, bool noted = true);
     IReadOnlyList<(string Item, int Count)> GiveWhatFits(int peer, IReadOnlyList<(string Item, int Count)> cost);
     void DropAt(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell);
     void Spray(IReadOnlyList<(string Item, int Count)> loot, int cell, int away);
@@ -485,14 +486,16 @@ public sealed partial class ItemsModule : Module<ItemsState>, IItemsQueries, IIt
     /// Gives <paramref name="peer"/> as much of <paramref name="cost"/> as fits; the rest falls on <paramref name="cell"/>, as if
     /// <paramref name="peer"/> dropped it. Returns what went into the inventory, by item in the order the cost first names it.
     /// </summary>
-    public IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell)
+    public IReadOnlyList<(string Item, int Count)> GiveOrDrop(int peer, IReadOnlyList<(string Item, int Count)> cost, int cell, bool noted = true)
     {
         if (Stacks.IsNothing(cost)) return [];
         Obtained(cost);
         var (slots, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
         Stacks.SetInventory(State, peer, slots);
         DropAt(peer, left, cell);
-        return Given(cost, left);
+        var given = Given(cost, left);
+        if (noted) Note(peer, given, cell);
+        return given;
     }
 
     /// <summary>
