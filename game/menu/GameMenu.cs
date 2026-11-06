@@ -114,6 +114,9 @@ public partial class GameMenu : CanvasLayer
     /// <summary>The page shown, closed or open.</summary>
     public MenuPage Page => _page;
 
+    /// <summary>The tablet it is on, which rises from the edge along the foot (<see cref="TabletEdge.Follow"/>).</summary>
+    public Tablet Tablet => _tablet;
+
     /// <summary>Settings, for scripted runs to show a category.</summary>
     public SettingsView SettingsPage => _settings;
 
