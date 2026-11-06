@@ -125,7 +125,7 @@ public class CatalogueTests
         // A back wall has cards of its own (0108).
         Assert.Contains(walls, t => t.Id == "backWallScrap");
         // By the name a player reads, not the kind's id: the oxygen generator is the vaporizer (liquid-oxygen).
-        Assert.Equal(["burnerGenerator"], Tools.Matching(Tools.All, "generator").Select(t => t.Id));
+        Assert.Equal(["burnerGenerator", "biofuelGenerator"], Tools.Matching(Tools.All, "generator").Select(t => t.Id));
         Assert.Equal(["generator"], Tools.Matching(Tools.All, "Vaporizer").Select(t => t.Id));
         Assert.Empty(Tools.Matching(Tools.All, "no such thing"));
     }

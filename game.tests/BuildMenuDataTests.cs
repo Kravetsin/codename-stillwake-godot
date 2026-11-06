@@ -18,8 +18,8 @@ public class BuildMenuDataTests
                 + "backWallMica backWallHide backWallSoil backWallStone "
                 + "backWallAlloy floor ladder door hatch",
             "air: vent tank cistern generator electrolyser",
-            "power: solarPanel burnerGenerator lamp arcLamp charger capacitorBank",
-            "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule arcBench",
+            "power: solarPanel burnerGenerator biofuelGenerator lamp arcLamp charger capacitorBank",
+            "production: furnace workbench tradeStation autoTradeStation former crusher smelter assembler growCapsule fermenter arcBench",
             "storage: crate net droneBay",
             "ship: computer radarAntenna launchPlatform dropPod engine",
         ], Tools.Tabs.Select(Ids));
@@ -41,7 +41,7 @@ public class BuildMenuDataTests
         var unlisted = new MachineSpec("unlisted", 2, 2, [], [("scrap", 1)], BuildTicks: 10);
         var tabs = Tools.TabsOf(Materials.All, Builds.All, [.. Machines.All, press, shed, unlisted]);
 
-        Assert.Equal("power: solarPanel burnerGenerator lamp arcLamp press charger capacitorBank", Ids(tabs.Single(t => t.Id == "power")));
+        Assert.Equal("power: solarPanel burnerGenerator biofuelGenerator lamp arcLamp press charger capacitorBank", Ids(tabs.Single(t => t.Id == "power")));
         Assert.Equal("storage: shed crate net droneBay", Ids(tabs.Single(t => t.Id == "storage")));
         Assert.DoesNotContain(tabs.SelectMany(t => t.Tools), t => t.Id == "unlisted");
         var card = Assert.IsType<PlaceTool>(tabs.SelectMany(t => t.Tools).Single(t => t.Id == "press"));

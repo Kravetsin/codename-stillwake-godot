@@ -12,7 +12,8 @@ namespace Stillwake.Content;
 /// <param name="Heat">How hot a fed station must be to smelt it (<see cref="Station.Heat"/>): the furnace's 1, or the electric smelter's 2.</param>
 /// <param name="Process">
 /// What a fed station does to it, matched to the station's <see cref="Station.Process"/>: "smelt" (a furnace, the
-/// electric smelter) or "grow" (a grow capsule). At a station of another process it sits in the input, never worked.
+/// electric smelter), "crush" (the crusher), "grow" (a grow capsule) or "ferment" (the fermenter). At a station of another
+/// process it sits in the input, never worked.
 /// </param>
 /// <param name="Returns">
 /// Weights of how many of itself one gives back besides its yields when worked, entry n the weight of n: a crop's
@@ -186,18 +187,18 @@ public static class Items
         // Its kin for space (salvage-drones): a battery as a drone's, and a canister's air from its bay to fly out on.
         new("salvageDrone", 1, Capacity: Charge.Drone, Group: ItemGroup.Other),
         // The farm (0060): a seed grows in a grow capsule into biomass, giving back none, one or two seeds, 0.8 on
-        // average, so the farm slowly eats seeds and supply pods refill it. Biomass smelts into biofuel.
+        // average, so the farm slowly eats seeds and supply pods refill it. Biomass ferments into biofuel, at the fermenter only (power-chain).
         new("seed", 100, Yields: [("biomass", 4)], SmeltTicks: 9600, Process: "grow", Returns: [35, 50, 15]),
         // Pressed at the Former of rock and planks: what a grow capsule is built on.
         new("soil", 999),
-        new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160),
-        // The engine's fuel, the one item its tank takes; till the engine runs, the furnace and the burner generator burn it four times
-        // as long as a plank.
+        new("biomass", 250, Yields: [("biofuel", 1)], SmeltTicks: 160, Process: "ferment"),
+        // The engine's fuel, the one item its tank takes, and the biofuel generator's; the furnace and the burner generator burn it
+        // four times as long as a plank.
         new("biofuel", 100, BurnTicks: 1600),
         // What a planet's grazers give besides biomass (Creatures): hide for the cape; fat, a fuel burning twice a plank, or
-        // smelted at the furnace into biofuel as biomass is, so hunting fuels the ship. Fed or shift-clicked in it is fuel.
+        // fermented into biofuel as biomass is, so hunting fuels the ship. In a fuel slot it burns, in the fermenter it ferments.
         new("hide", 100),
-        new("fat", 100, Yields: [("biofuel", 1)], SmeltTicks: 160, BurnTicks: 800),
+        new("fat", 100, Yields: [("biofuel", 1)], SmeltTicks: 160, BurnTicks: 800, Process: "ferment"),
         // Tools, made as parts are.
         // Every hero comes aboard with one (Inventory.Kit, 0107): it builds plans and takes marks apart.
         new("screwdriver", 1, Gear: true, Group: ItemGroup.Tool),

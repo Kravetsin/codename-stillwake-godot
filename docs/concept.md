@@ -91,8 +91,9 @@ A living document: what is decided about the game and what is still open. Techni
   a circuit and wire, grows a planted seed under its pink lamp on power in eight minutes, the plant rising through
   four pictures, into 4 biomass and none, one or two seeds, so the farm slowly eats its seeds and salvage refills
   them; a planet's spores grow the same way into 3 biomass and 1.1 spores on average, a farm that keeps itself.
-  Biomass smelts into biofuel at the furnace or the smelter, the fuel the engine will burn on the first jump
-  ([0060](decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md)).
+  Biomass ferments into biofuel at the fermenter, a powered vat of the capsule's parts and the only way to biofuel: the
+  fuel the drop pod burns going down and the engine will burn on the first jump
+  ([0060](decisions/0060-the-farm-a-grow-capsule-is-a-fed-station.md), [the-power-chain](decisions/2026-11-06-the-power-chain.md)).
 - **The engine** is the last thing built, of a planet's parts: a nozzle of the ruins' alloy and copper, a fuel pump round a
   motor of the deepest magnetite, an igniter of a crystal. It stands at the stern, its nozzle out through the hull into
   space, its tank taking biofuel alone, cabled to power; it does not fire yet, the jump to come
@@ -119,7 +120,7 @@ A living document: what is decided about the game and what is still open. Techni
   before, at once; at the bottom of each spire, two guards that fly fists first at a hero, stick where they land, and fall with
   the shard, so a hero kills them for circuits or takes the shard and leaves. Which others is open.
 - **Hunting:** a planet's grazers drop what they are made of, by their size: biomass, now and then a seed, hide and fat;
-  sentries, scrap. Fat burns twice as long as a plank, or smelts at the furnace into biofuel as biomass does, so hunting
+  sentries, scrap. Fat burns twice as long as a plank, or ferments into biofuel as biomass does, so hunting
   fuels the ship; hide goes with the ruins' cloth into the cape, which spares a fifth of blows and of the cold. Both are a
   planet's, so nothing needed before the first landing is made of them.
 - **Fighting:** the axe and the drill up close; almost at the start, the nailer, made at the Fabricator, firing a nail of
@@ -161,7 +162,9 @@ A living document: what is decided about the game and what is still open. Techni
   ([0017](decisions/0017-power-runs-on-cables.md)). The first power the player builds is the burner
   generator, of plates, gears, a rotor and wire: the furnace's fire turning a flywheel, it burns
   planks and breathes its room's air, and makes power while it burns, wherever it stands
-  ([0045](decisions/0045-a-burner-generator-shares-the-furnaces-fire.md)).
+  ([0045](decisions/0045-a-burner-generator-shares-the-furnaces-fire.md)). At the planet stage, round a planet's fuel pump,
+  the biofuel generator burns biofuel alone for well over twice the burner's power, its fuel the fermenter's
+  ([the-power-chain](decisions/2026-11-06-the-power-chain.md)).
 - **Building is cell by cell, in layers.** Structure: hull walls of different materials, floors,
   ladders, doors, airlocks. Back walls, of the same materials: behind every cell of a room, or it is
   open to space.

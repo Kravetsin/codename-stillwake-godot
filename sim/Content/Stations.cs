@@ -20,7 +20,7 @@ namespace Stillwake.Content;
 /// </param>
 /// <param name="Heat">Fed: how hot it smelts; it smelts an item whose <see cref="ItemSpec.Heat"/> is at most this. 0 for a queued station.</param>
 /// <param name="Process">
-/// Fed: what it does to what its input holds, "smelt" or "grow"; it works only an item of the same
+/// Fed: what it does to what its input holds, "smelt", "crush", "grow" or "ferment"; it works only an item of the same
 /// <see cref="ItemSpec.Process"/>, so a furnace never grows a seed and a grow capsule never smelts rock (0060).
 /// </param>
 public sealed record Station(string Machine, int Speed, int QueueMost, IReadOnlyList<IReadOnlyList<string>> Rows, int Heat = 0, string Process = "smelt")
@@ -51,6 +51,8 @@ public static class Stations
         new("assembler", Speed: 1000, QueueMost: 8, Rows: [["circuit", "solarCell"], ["battery", "drone", "salvageDrone", "deckDrive"], ["processor", "display", "transceiver"], ["igniter"]]),
         // Grows what is planted in its input, on power (0060): a seed in 9600 ticks, eight minutes, at a full share.
         new("growCapsule", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "grow"),
+        // Ferments biomass and fat into biofuel on power, the only way to biofuel (power-chain): one in 160 ticks at a full share.
+        new("fermenter", Speed: 1000, QueueMost: 0, Rows: [], Heat: 1, Process: "ferment"),
         // The arc branch's station (0099): every craft of a sky shard, the arc module, the accumulator and the railgun, paid by
         // hand, at full speed with no power, a queue of four.
         new("arcBench", Speed: 1000, QueueMost: 4, Rows: [["arcModule", "accumulator"], ["railgun"]]),

@@ -45,7 +45,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - вода, бутылка / water, bottle → item `water` (`Content.Water.Item`), melted of ice → Water
 - электролизёр / electrolyser → machine `electrolyser`: a cistern's water into a tank's liquid oxygen (2026-11-02-water-to-oxygen) → Water
 - трубы (режим) / piping (plan mode, C) → `PlanMode.Piping`, f/pipes `PipeHands` → Pipes
-- генератор / generator **≠** → `"generator"` is the oxygen vaporizer (Atmosphere); `"burnerGenerator"` burns fuel for power (Furnace, Power)
+- генератор / generator **≠** → `"generator"` is the oxygen vaporizer (Atmosphere); `"burnerGenerator"` burns fuel for power, `"biofuelGenerator"` (биотопливный генератор) biofuel alone, 16 a tick (Furnace, Power)
 - испаритель / vaporizer → machine `generator`: a tank's liquid oxygen into air on power (2026-10-30-liquid-oxygen) → Atmosphere
 - жидкий кислород / liquid oxygen → fluid `liquidOxygen`: what a tank holds and a liquid pipe carries → Atmosphere, Pipes
 - чёрный рынок / black market → tab `blackMarket` of `Content.Research.Tabs` → Research; `MarketPage` drawn in f/research
@@ -65,6 +65,7 @@ Game words → code. One line a term: Russian / English → identifiers → modu
 - плавильня / electric smelter → machine `smelter` (station in `c/Stations.cs`), f/crafting `SmelterHeat` → Crafting
 - печь / furnace → machine `furnace`, `FurnaceModule`, `Fire` → Furnace
 - побочный продукт, шанс / byproduct → `ItemSpec.Byproducts` (`LootEntry`, its `OneIn`), drawn as a fed station's smelt completes; several a smelt → `ItemSpec.SmeltTakes`, `TooFew` → Crafting
+- ферментёр / fermenter → machine `fermenter` (process `ferment`): biomass and fat into biofuel, the only way to it → Crafting
 - капсула / grow capsule → machine `growCapsule` → Crafting. Lifepod **≠**: machine `lifepod`, its station "Fabricator" (`station.lifepod`)
 - доска / the board **≠** → `BoardPage` in `ResearchTablet` on the tablet (T); `BoardSlots`, `BoardView`, `BoardPile` (client) → Research. The tech tree is gone (the-board): the board learns, the black market sells
 - заметка, силуэт, нить / note, silhouette (shape), thread → `BoardView`, `BoardThreads`, `BoardPencil` (how far a shape has come) (client)

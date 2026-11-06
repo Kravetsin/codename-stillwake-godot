@@ -24,6 +24,7 @@ public static partial class Ru
         ["station.smelter"] = "Плавильня",
         ["station.assembler"] = "Сборщик схем",
         ["station.growCapsule"] = "Капсула роста",
+        ["station.fermenter"] = "Ферментёр",
         ["station.arcBench"] = "Дуговой верстак",
         ["fabricator.recipes"] = "Рецепты",
         ["fabricator.shared"] = "общая",

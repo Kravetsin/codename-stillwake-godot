@@ -24,6 +24,7 @@ public static partial class En
         ["station.smelter"] = "Electric smelter",
         ["station.assembler"] = "Circuit assembler",
         ["station.growCapsule"] = "Grow capsule",
+        ["station.fermenter"] = "Fermenter",
         ["station.arcBench"] = "Arc bench",
         ["fabricator.recipes"] = "Recipes",
         ["fabricator.shared"] = "shared",
