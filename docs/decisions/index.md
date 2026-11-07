@@ -268,5 +268,6 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [the-power-chain](2026-11-06-the-power-chain.md) | The power chain | accepted |  |
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
+| [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted |  |

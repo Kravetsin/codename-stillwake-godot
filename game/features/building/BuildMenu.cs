@@ -38,9 +38,7 @@ public partial class BuildMenu : CanvasLayer
     /// <summary>The tablet, its screen the catalogue.</summary>
     private readonly Tablet _open = new();
     private readonly Control _tabs = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly LineEdit _search = new() { ContextMenuEnabled = false, CaretBlink = true, MouseFilter = Control.MouseFilterEnum.Stop };
-    private readonly Control _lens = new() { MouseFilter = Control.MouseFilterEnum.Ignore };
-    private readonly PanelContainer _slash;
+    private readonly SearchField _search = new(En.T("build.search"));
     private readonly Control _grid = new() { ClipContents = true, MouseFilter = Control.MouseFilterEnum.Pass };
     private readonly Label _none = Tablet.Text(En.T("build.none"), Render.Style.Slate500);
     private readonly (Panel Track, Panel Thumb) _bar = Tablet.ScrollBar();
@@ -138,19 +136,8 @@ public partial class BuildMenu : CanvasLayer
         hand.Mode.Subscribe(Lit);
         Lit();
 
-        SearchField();
-        _slash = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        var keyBox = Render.Style.Box(Colors.Transparent, Render.Style.Slate700, radius: 3);
-        (keyBox.ContentMarginLeft, keyBox.ContentMarginRight) = (4, 4);
-        _slash.AddThemeStyleboxOverride("panel", keyBox);
-        _slash.AddChild(Tablet.Text("/", Render.Style.Slate500, Tablet.HintSize));
-        _lens.Draw += () =>
-        {
-            _lens.DrawArc(new Vector2(12, 11), 4, 0, Mathf.Tau, 16, Render.Style.Slate500, 1.5f, true);
-            _lens.DrawLine(new Vector2(15, 14), new Vector2(18, 17), Render.Style.Slate500, 1.5f, true);
-        };
-        _search.AddChild(_lens);
-        _search.AddChild(_slash);
+        _search.TextChanged += _ => _top = 0;
+        _search.TextSubmitted += _ => _search.ReleaseFocus();
 
         _none.Position = new Vector2(4, 10);
         _grid.AddChild(_none);
@@ -168,28 +155,6 @@ public partial class BuildMenu : CanvasLayer
         ui.SlotScale.Subscribe(LayOut);
         hand.Selected.Subscribe(() => _reveal = true);
         hand.Tab.Subscribe(() => _top = 0);
-    }
-
-    private void SearchField()
-    {
-        _search.PlaceholderText = En.T("build.search");
-        _search.AddThemeFontOverride("font", Mono);
-        _search.AddThemeFontSizeOverride("font_size", FontSize);
-        _search.AddThemeColorOverride("font_color", Render.Style.Slate100);
-        _search.AddThemeColorOverride("font_placeholder_color", Render.Style.Slate500);
-        _search.AddThemeColorOverride("caret_color", Render.Style.Slate100);
-        StyleBoxFlat Field(Color border)
-        {
-            var box = Render.Style.Box(Render.Style.Slate950, border);
-            (box.ContentMarginLeft, box.ContentMarginRight, box.ContentMarginTop, box.ContentMarginBottom) = (24, 8, 0, 0);
-            return box;
-        }
-        _search.AddThemeStyleboxOverride("normal", Field(Render.Style.Slate700));
-        var focus = Field(Sky500);
-        focus.DrawCenter = false;
-        _search.AddThemeStyleboxOverride("focus", focus);
-        _search.TextChanged += _ => _top = 0;
-        _search.TextSubmitted += _ => _search.ReleaseFocus();
     }
 
     /// <summary>Every part placed for the slot size now: the panel's size changes with it and nothing else.</summary>
@@ -520,11 +485,7 @@ public partial class BuildMenu : CanvasLayer
             x += box.CustomMinimumSize.X + 4;
         }
         float left = Catalogue.Pad + x;
-        _search.Position = new Vector2(left, Catalogue.Pad);
-        _search.Size = new Vector2(_at.Width - Catalogue.Pad - left, Catalogue.TabHeight);
-        _lens.Size = new Vector2(24, Catalogue.TabHeight);
-        _slash.Position = new Vector2(_search.Size.X - 22, 4);
-        _slash.Size = new Vector2(16, Catalogue.TabHeight - 8);
+        _search.Lay(new Vector2(left, Catalogue.Pad), _at.Width - Catalogue.Pad - left, Catalogue.TabHeight);
     }
 
     /// <summary>Everything painted as it now is: the tabs, the cards shown, the scrollbar and the line under them.</summary>
@@ -536,7 +497,6 @@ public partial class BuildMenu : CanvasLayer
             bool on = query == "" && id == shownTab?.Id;
             Tablet.PaintTab(box, on, id == _hoveredTab);
         }
-        _slash.Visible = _search.Text == "" && !_search.HasFocus();
         for (int slot = 0; slot < _cards.Count; slot++)
         {
             var (box, picture, count) = _cards[slot];
