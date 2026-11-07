@@ -33,6 +33,8 @@ public static class Lit
             // Drawn in wall cells, it takes the stars' light from wall cells; all else from the open ones.
             uniform bool blocks = false;
             uniform vec3 ambient = vec3(0.0);
+            // The daylight of the moment on a planet (Daylight.Sky): what the stars' light, baked at the sky's whole, is multiplied by.
+            uniform vec3 sky = vec3(1.0);
             // How much a normal map shades: 0 flat, 1 as a face turned toward the light 45 degrees up.
             uniform float relief = 0.7;
             // The most the glowing particles' spots add in a colour, past whatever else lights it.
@@ -110,7 +112,7 @@ public static class Lit
                         weight += w;
                     }
                 }
-                vec3 star = weight > 0.0 ? sum / weight : own.rgb;
+                vec3 star = (weight > 0.0 ? sum / weight : own.rgb) * sky;
                 vec2 texel = (world - lightmap_at) / lightmap_texel;
                 vec3 lamps = mapped(lightmap, texel), spots = mapped(spotmap, texel);
                 // Where the lamps' light comes from: up its slope, a cell each side. Where it hardly
@@ -187,6 +189,20 @@ public static class Lit
         foreach (var (_, material) in Made) material.SetShaderParameter("ambient", _ambient);
     }
 
+    private static Vector3 _sky = Vector3.One;
+
+    /// <summary>
+    /// The daylight of the moment on a planet (<see cref="Daylight.Sky"/>, 2026-11-07-night-chills): what the light through the
+    /// open sky is multiplied by, its starlight baked at the sky's whole; 1 aboard. Lamps, fires and glows are untouched.
+    /// </summary>
+    public static void Sky((float R, float G, float B) sky)
+    {
+        var now = new Vector3(sky.R, sky.G, sky.B);
+        if (now == _sky) return;
+        _sky = now;
+        foreach (var (_, material) in Made) material.SetShaderParameter("sky", _sky);
+    }
+
     private static ShaderMaterial MaterialOf(float share, bool shines)
     {
         if (Made.TryGetValue((share, shines), out var kept)) return kept;
@@ -194,6 +210,7 @@ public static class Lit
         kept.SetShaderParameter("share", share);
         kept.SetShaderParameter("blocks", share < 1f);
         kept.SetShaderParameter("ambient", _ambient);
+        kept.SetShaderParameter("sky", _sky);
         kept.SetShaderParameter("spot_most", Light.ParticleMost);
         kept.SetShaderParameter("ore_shine", shines ? Light.OreShine : 0f);
         if (_starlight is { } stars) ShowStars(kept, stars);

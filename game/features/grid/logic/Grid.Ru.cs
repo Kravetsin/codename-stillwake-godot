@@ -24,5 +24,6 @@ public static partial class Ru
         ["hazards.neverBreaks"] = "Это не ломается",
         ["hazards.flareComing"] = "Вспышка уже на подходе",
         ["hazards.badTicks"] = "Вспышка бьёт не раньше чем через тик",
+        ["sky.noDay"] = "Здесь не бывает дня",
     };
 }

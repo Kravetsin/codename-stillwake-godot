@@ -129,6 +129,7 @@ public static class PlanetTypes
         Gravity = 700,
         ThinAir = 5,
         Sky = new Surfaces.Light(1000, 970, 900),
+        Cycle = Content.Sky.First,
         Debris = false,
         Builds = ["wall", "floor", "ladder", "door", "hatch"],
         ToolsBreak = true,

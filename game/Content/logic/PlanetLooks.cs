@@ -16,7 +16,18 @@ public static class PlanetLooks
     /// surface's middle over <c>TintOver</c> rows, so the land under the sky keeps its own colours. <c>Fog</c>: the colour of the fog
     /// at its sides (fog-edges), the haze of its far land.
     /// </summary>
-    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog);
+    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog)
+    {
+        /// <summary>
+        /// Its dusk and night (2026-11-07-night-chills), as <see cref="Daylight"/> fades through them: what the light through the
+        /// open sky is multiplied by, and what the backdrop and the fog at its sides are. By default the user's pick for the
+        /// first planet, "ochre and slate": an ochre dusk into a cold blue-grey night.
+        /// </summary>
+        public (float R, float G, float B) DuskSky { get; init; } = (0.88f, 0.64f, 0.4f);
+        public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.105f, 0.14f);
+        public (float R, float G, float B) DuskBackdrop { get; init; } = (0.9f, 0.66f, 0.44f);
+        public (float R, float G, float B) NightBackdrop { get; init; } = (0.16f, 0.19f, 0.26f);
+    }
 
     /// <summary>The pictures a backdrop set holds, <c>art/{Backdrop}/{name}.png</c>: the layers <c>Render.PlanetSky</c> draws.</summary>
     public static readonly IReadOnlyList<string> BackdropPictures = ["sky", "giant", "clouds", "sun", "far", "ridge", "hills"];

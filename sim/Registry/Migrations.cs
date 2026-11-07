@@ -185,6 +185,23 @@ public static class Migrations
             }
             return root;
         },
+        // 53 → 54 (2026-11-07-night-chills): the sky, a module added right after the grid; a planet in an older save wakes at the
+        // start of its day. Loading reads slices in the modules' order, so each slices object is rebuilt with it in its place.
+        root =>
+        {
+            foreach (var slices in new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)))
+            {
+                var obj = slices.AsObject();
+                var kept = obj.ToList();
+                obj.Clear();
+                foreach (var (name, slice) in kept)
+                {
+                    obj[name] = slice;
+                    if (name == "grid") obj["sky"] = new JsonObject { ["time"] = 0 };
+                }
+            }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>
