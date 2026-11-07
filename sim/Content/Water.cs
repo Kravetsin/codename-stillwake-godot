@@ -9,8 +9,8 @@ public static class Water
     /// <summary>The item: a glass bottle of it, one an ice melted.</summary>
     public const string Item = "water";
 
-    /// <summary>What a bottle pours: half a canister, a placeholder until a playtest says otherwise.</summary>
-    public const int Bottle = Air.Canister / 2;
+    /// <summary>What a bottle pours: one and a half canisters, so ice outweighs what is salvaged (scarce-oxygen).</summary>
+    public const int Bottle = 4500;
 
     /// <summary>How many bottles a cistern holds.</summary>
     public const int CisternBottles = 8;

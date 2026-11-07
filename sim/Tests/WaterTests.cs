@@ -97,9 +97,10 @@ public class WaterTests
     [Fact]
     public void StallsWithItsWorkKeptWhenTheTanksAreFullOrThePowerGoes()
     {
-        var w = Piped().GiveItems(0, ("canister", 4));
+        int full = Content.Air.TankCapacity / Content.Air.Canister;
+        var w = Piped().GiveItems(0, ("canister", full));
         int cistern = Id(w, "cistern"), electrolyser = Id(w, "electrolyser"), tank = Id(w, "tank");
-        for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tank));
+        for (int i = 0; i < full; i++) w.Do(new LoadCanister(tank));
         w.Do(new PourWater(cistern)).Run(20);
         Assert.Equal(Content.Air.TankCapacity, w.M.Atmosphere.OxygenIn(tank));
         Assert.Equal(WaterContent.Bottle, w.M.Water.WaterIn(cistern));

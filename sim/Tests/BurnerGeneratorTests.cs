@@ -1,4 +1,5 @@
 using Stillwake.Sim.Furnace;
+using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
 using Xunit;
 using FurnaceContent = Stillwake.Content.Furnace;
@@ -115,14 +116,27 @@ public class BurnerGeneratorTests
     {
         var w = SetUp();
         var cold = SetUp();
-        // The room aired whole and the vaporizer's store stocked, so every breath is paid from the chain (liquid-oxygen).
-        foreach (var x in new[] { w, cold }) x.Run(200);
+        // The room aired whole and the vaporizer's store stocked, so every breath is paid from the chain (liquid-oxygen). Glass
+        // behind it: a room whose leak takes all its vaporizer makes forgives the breaths its store lacks (scarce-oxygen).
+        foreach (var x in new[] { w, cold }) Glassed(x).Run(200);
         Assert.Equal(ChainOxygen(cold), ChainOxygen(w));
         Feed(w, 1);
         cold.Run();
         w.Run(4 * FurnaceContent.BreathEvery - 1);
         cold.Run(4 * FurnaceContent.BreathEvery - 1);
         Assert.Equal(4 * FurnaceContent.Breath, ChainOxygen(cold) - ChainOxygen(w));
+    }
+
+    /// <summary>The room with glass back walls, laid in creative: it leaks less than its vaporizer makes.</summary>
+    private static Scenario Glassed(Scenario w)
+    {
+        int room = w.M.Rooms.RoomAt(Generator)!.Value;
+        var cells = Enumerable.Range(0, w.M.Rooms.RoomOfCells.Length).Where(c => w.M.Rooms.RoomAt(c) == room).ToList();
+        w.Do(new SetCreative(true));
+        foreach (int cell in cells) w.Do(new ClearAt(cell, "back"));
+        w.Run();
+        foreach (int cell in cells) w.Do(new Place(cell, Placement.BackWall("glass")));
+        return w.Do(new SetCreative(false)).Run();
     }
 
     /// <summary>The oxygen the chain holds: the tank's liquid and the vaporizer's gas (liquid-oxygen).</summary>

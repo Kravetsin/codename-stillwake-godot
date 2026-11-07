@@ -6,8 +6,8 @@ namespace Stillwake.Content;
 /// <see cref="LeakEvery"/> ticks, ten minutes so that a rate of a tenth of a unit a minute is whole, a
 /// room holds as many cells round its vents as its sources pay the leak of (0020, 2026-11-05-air-bubbles): the back
 /// wall behind each and the hull cells beside it by their material's leak, a closed door in its hull by <see cref="DoorLeak"/>;
-/// the pod's <see cref="PodRate"/> holds the starting ship, a vaporizer's <see cref="GeneratorRate"/> a third of it, 133 cells of scrap
-/// (playtest 2026-11-06: leaks tripled and the pod with them, so every room built after costs air).
+/// the pod's <see cref="PodRate"/> holds the starting room alone, a vaporizer's <see cref="GeneratorRate"/> as much, 133 cells of scrap
+/// (scarce-oxygen: the lock, the hold and every room built after need a vaporizer and canisters).
 /// A room open to space loses <see cref="VentLoss"/> cells a tick, and a vent in it, or in space, drains
 /// its network by <see cref="VentDrain"/> a tick: what a vent can pass. A tank holds liquid oxygen, a canister
 /// <see cref="Canister"/> of it; a vaporizer (the generator) turns it into air at <see cref="GeneratorRate"/> units every
@@ -19,7 +19,7 @@ namespace Stillwake.Content;
 public static class Air
 {
     public const int TankCapacity = 36000;
-    public const int Canister = 9000;
+    public const int Canister = 3000;
     public const int TicksPerCell = 1;
 
     /// <summary>The cells a filling room airs on each fill beat, four of the 8 px cells to the 16 px cell it aired before (0105).</summary>
@@ -31,14 +31,14 @@ public static class Air
     public const int VentDrain = 8;
     public const int GeneratorRate = 12000;
 
-    /// <summary>What the pod makes from nothing every <see cref="LeakEvery"/> ticks: enough for the starting ship, its airlock and its hold.</summary>
-    public const int PodRate = 36000;
+    /// <summary>What the pod makes from nothing every <see cref="LeakEvery"/> ticks: room A of the starting ship, whose leak is 11520, and no more (scarce-oxygen).</summary>
+    public const int PodRate = 12000;
 
     public const int GeneratorStore = 160;
 
     /// <summary>
     /// What a tank passes a tick to the tanks piped from its output to their inputs (tanks-in-a-line): a canister moves on
-    /// in some 22 seconds, so a line fills its last tank while the player watches.
+    /// in some 8 seconds, so a line fills its last tank while the player watches.
     /// </summary>
     public const int TankFlow = 20;
 }

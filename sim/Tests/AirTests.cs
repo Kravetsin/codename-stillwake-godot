@@ -161,7 +161,8 @@ public class AirTests
         w.Run();
         foreach (int cell in left) w.Do(new Place(cell, Placement.Wall("iron")));
         w.Run();
-        s.Fill(2);
+        // Half a tank: more than the period leaks.
+        s.Fill(Air.TankCapacity / Air.Canister / 2);
         AirUp(w, s.Room);
         int before = w.Held();
         int leak = (Hull - 2 * 4 + Volume) * Scrap + 2 * 3 * Iron + 2 * Air.DoorLeak;
@@ -781,7 +782,7 @@ public class AirTests
         int volume = w.M.Rooms.RoomById(s.Room)!.Volume;
         // The whole room leaks more than twice what one vaporizer makes.
         Assert.InRange(volume * Scrap, 2 * Air.GeneratorRate, int.MaxValue);
-        s.Fill(4);
+        s.Fill(Air.TankCapacity / Air.Canister);
         // The last cells come slower and slower, as each leaks a share of what is made: a dozen thousand ticks to settle.
         w.Run(2 * Air.LeakEvery);
         int held = w.Air().Aired.Count;

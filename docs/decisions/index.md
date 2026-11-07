@@ -260,7 +260,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [energy-ring](2026-11-06-energy-ring.md) | The energy tab's ring and beating bolt | accepted |  |
 | [gain-spots](2026-11-06-gain-spots.md) | What a hero gains, counted beside where it came from | accepted |  |
 | [head-tally](2026-11-06-head-tally.md) | What a hero gains, counted steady over its head | accepted | gain-spots (in part) |
-| [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted |  |
+| [leaks-tripled](2026-11-06-leaks-tripled.md) | Leaks tripled, the pod with them | accepted | scarce-oxygen (in part) |
 | [lighter-tools](2026-11-06-lighter-tools.md) | Lighter electric tools | accepted |  |
 | [no-ice-canister](2026-11-06-no-ice-canister.md) | Canisters are salvaged, not frozen of ice | accepted |  |
 | [quick-stash](2026-11-06-quick-stash.md) | The bag stashed into nearby crates with one key | accepted |  |
@@ -269,3 +269,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [trade-station-later](2026-11-06-trade-station-later.md) | The trade station comes with circuits | accepted |  |
 | [air-feedback](2026-11-07-air-feedback.md) | Air and power answer the player loudly | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
+| [scarce-oxygen](2026-11-07-scarce-oxygen.md) | Scarce oxygen | accepted |  |

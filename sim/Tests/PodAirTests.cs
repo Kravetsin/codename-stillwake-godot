@@ -122,8 +122,10 @@ public class PodAirTests
         ];
         string[] under = ["", "", "", "", "", "            -", "      -------"];
         var w = new Scenario(Layout.Parse(rows, under)).Run(1200);
-        // Both rooms, every cell.
-        Assert.Equal(8 * 6 + 9 * 6, Aired(w));
+        // Both rooms hold air, the pod's split between their vents: too little for every cell of both (scarce-oxygen).
+        int right = w.M.Atmosphere.AiredCells.Count(c => c % Width > 9);
+        Assert.InRange(right, 1, 9 * 6 - 1);
+        Assert.InRange(Aired(w) - right, 1, 8 * 6);
     }
 
     [Fact]

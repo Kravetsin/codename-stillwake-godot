@@ -32,7 +32,7 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **Vaporizers** (liquid-oxygen; kind `generator`, `AirSource`) turn the liquid of the tanks (`Gas`) whose output is on
   their input's network into gas in their store, up to `Air.GeneratorStore`: with room and liquid behind, `Making` grows by
   `Air.GeneratorRate` × satisfaction, a unit each `Air.LeakEvery × 1000` taken from those tanks in id order. A source
-  with no input (the pod, 2026-10-31-the-scoop) makes gas from nothing at `Air.PodRate` (leaks-tripled). A vent is **fed** when a vaporizer's output is
+  with no input (the pod, 2026-10-31-the-scoop) makes gas from nothing at `Air.PodRate`, enough for room A alone (scarce-oxygen). A vent is **fed** when a vaporizer's output is
   on its network; **live** when fed and its network holds oxygen: gas in a store, a vaporizer with liquid behind (power
   not asked) or the pod; **supplied** when a store feeding it holds gas or a vaporizer feeding it is powered with liquid.
 - **A room's budget**, thousandths of a unit per `Air.LeakEvery`: for each live vent's network, each source's rate ×

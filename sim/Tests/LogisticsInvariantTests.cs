@@ -1,6 +1,7 @@
 using FsCheck;
 using FsCheck.Fluent;
 using FsCheck.Xunit;
+using Stillwake.Sim.Atmosphere;
 using Stillwake.Sim.Crafting;
 using Stillwake.Sim.Grid;
 using Stillwake.Sim.Items;
@@ -163,6 +164,9 @@ public class LogisticsInvariantTests
                 for (int y = 3; y <= 5; y++)
                     if (y != gap) rows[y][x] = '#';
             var w = LogisticsTests.Aired([.. rows.Select(r => new string(r))], PressingUnder, 0, [((0, 0), (14, 4))]);
+            // Two more canisters, so the rooms keep their air past the run's end (scarce-oxygen).
+            int tank = w.M.Grid.MachinesOf("tank").Single().Id;
+            w.GiveItems(0, ("canister", 2)).Do(new LoadCanister(tank)).Do(new LoadCanister(tank));
             // The vaporizer's store stocked first, so an opened door's cells fill CellsPerFill a tick, as the tank filled them, not one (liquid-oxygen).
             w.Run(Content.Air.GeneratorStore);
             int bay = w.M.Grid.MachinesOf(Tune.Bay).Single().Id, former = w.M.Grid.MachinesOf("former").Single().Id;

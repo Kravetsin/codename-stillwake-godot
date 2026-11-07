@@ -24,7 +24,7 @@ public class TankLineTests
     ];
 
     private static Scenario World() =>
-        new Scenario(Layout.Parse(Line, null, [((16, 5), (18, 0))]), doubled: false).GiveItems(0, ("canister", 8), ("tube", 30));
+        new Scenario(Layout.Parse(Line, null, [((16, 5), (18, 0))]), doubled: false).GiveItems(0, ("canister", Air.TankCapacity / Air.Canister + 1), ("tube", 30));
 
     private static Scenario Piped()
     {
@@ -52,9 +52,10 @@ public class TankLineTests
     {
         var w = Piped();
         int[] tanks = Tanks(w);
-        for (int i = 0; i < 4; i++) w.Do(new LoadCanister(tanks[0]));
-        w.Do(new LoadCanister(tanks[1])).Run(5 * Air.Canister / Air.TankFlow);
-        Assert.Equal([0, 5 * Air.Canister - Air.TankCapacity, Air.TankCapacity], Held(w));
+        int full = Air.TankCapacity / Air.Canister;
+        for (int i = 0; i < full; i++) w.Do(new LoadCanister(tanks[0]));
+        w.Do(new LoadCanister(tanks[1])).Run((full + 1) * Air.Canister / Air.TankFlow);
+        Assert.Equal([0, (full + 1) * Air.Canister - Air.TankCapacity, Air.TankCapacity], Held(w));
     }
 
     [Fact]
