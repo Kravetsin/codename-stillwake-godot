@@ -86,8 +86,6 @@ public static partial class Ru
         ["item.sledgehammer"] = "Кувалда",
         ["item.pickaxe"] = "Кирка",
         ["item.plasmaCutter"] = "Плазменный резак",
-        ["effect.salvage"] = "Чистый разрез",
-        ["effect.salvage.about"] = "Разрезанный им обломок может дать в полтора раза больше",
         ["item.jetpack"] = "Кислородный джетпак",
         ["item.helmetLamp"] = "Фонарик на шлем",
         ["item.scanner"] = "Сканер",

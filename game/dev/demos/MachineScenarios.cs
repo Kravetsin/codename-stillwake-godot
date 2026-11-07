@@ -191,7 +191,7 @@ public sealed class BulbScenario : DevScenario
     public override void Attach(DevContext c) => c.Add(new BulbDemo(c.M, Args.Given("--bulb")));
 }
 
-[Dev("--tool-cards", "the axe's, the drill's plain and fitted, the nailer's, the railgun's and the nail's cards side by side, every tool in a slot under them (ToolCardsDemo)")]
+[Dev("--tool-cards", "every hand tool's card, the drill's fitted too, the nailer's and the railgun's, every tool in a slot under them (ToolCardsDemo)")]
 public sealed class ToolCardsScenario : DevScenario
 {
     public override void Attach(DevContext c) => c.Add(new ToolCardsDemo());

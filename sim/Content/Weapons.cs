@@ -42,8 +42,8 @@ public static class Weapons
     /// <summary>The spear (salvage tools): 3 a thrust every 12 ticks, 5 a second, a little over the axe's, 6 cells out; the arc doubles it for no power.</summary>
     public static readonly Weapon Spear = new("spear", Damage: 3, BlockDamage: 2, Pace: 12, Arc: 8, Rays: 3, Range: 6000, Effects: []);
 
-    /// <summary>The chip that marks a weapon whose cuts give more loot (salvage tools): its card's, and Debris's test of it.</summary>
-    public static readonly HitEffect Salvage = new("salvage", "b49aff", "221a3a");
+    /// <summary>What marks a weapon whose cuts give more loot (salvage tools): its card's row, and Debris's test of it.</summary>
+    public static readonly HitEffect Salvage = new("salvage");
 
     /// <summary>
     /// The plasma cutter (salvage tools): 1 a hit every 4 ticks, 5 a second, nothing on blocks; a wreck it took its hit points
@@ -69,10 +69,10 @@ public static class Weapons
 
     public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer, Pickaxe];
 
-    /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
     /// <summary>What a cut wreck's loot comes to when its bonus is won, in thousandths of each line, rounded down: half again.</summary>
     public const int CutBonus = 1500;
 
+    /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
     public static bool Salvages(Weapon weapon) => weapon.Effects.Contains(Salvage);
 
     /// <summary>The weapon that is <paramref name="item"/>, or null for an item that deals no damage.</summary>
@@ -85,8 +85,6 @@ public static class Weapons
 }
 
 /// <summary>
-/// Something a weapon's hit does besides its damage, named in the client's words <c>effect.&lt;Id&gt;</c> and
-/// told in <c>effect.&lt;Id&gt;.about</c>; its card's chip is <paramref name="Colour"/> on
-/// <paramref name="Ground"/>, "rrggbb" (the card mockup's fire was ff7a2e on 3a1a0c, its ice 6fd3ff on 0c2a3a).
+/// Something a weapon's hit does besides its damage: a row of its card in the client, the cutter's loot (2026-11-07-tool-card-rows).
 /// </summary>
-public sealed record HitEffect(string Id, string Colour, string Ground);
+public sealed record HitEffect(string Id);
