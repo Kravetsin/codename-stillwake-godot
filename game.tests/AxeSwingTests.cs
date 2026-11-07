@@ -118,7 +118,9 @@ public class AxeSwingTests
         Assert.Null(swing.Phase);
         Assert.False(swing.Advance(Frame, false).Hits);
         Assert.Null(swing.Phase);
-        // Wanted again, a new swing begins from the top.
+        // Put away and taken back, it still rests out its own pace; wanted after it, a new swing begins from the top.
+        Assert.False(swing.Advance(Frame, true).Begun);
+        swing.Advance(AxeSwing.Ms, false);
         Assert.True(swing.Advance(Frame, true).Begun);
         Assert.Equal((2, 0.0), (swing.Count, swing.Phase));
     }
@@ -133,6 +135,94 @@ public class AxeSwingTests
         // A swing begins and ends on the line to the wreck, so one held runs on into the next unbroken.
         Assert.Equal(0, AxeSwing.Lift(0), 9);
         Assert.Equal(0, AxeSwing.Lift(1), 9);
+    }
+
+    [Theory]
+    [InlineData(-90)]
+    [InlineData(-60)]
+    [InlineData(-30)]
+    [InlineData(0)]
+    [InlineData(45)]
+    [InlineData(90)]
+    public void ASwingAimedAnywhereAheadKeepsTheArmWithinTheShoulderAndStillMeetsItsLine(int degrees)
+    {
+        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer) })
+        {
+            double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), highest = double.MinValue, lowest = double.MaxValue;
+            for (double phase = 0; phase <= 1; phase += 0.002)
+            {
+                double upper = AxeSwing.ArmAt(AxeSwing.AngleAt(line, phase, stroke.Half)).Upper;
+                (highest, lowest) = (Math.Max(highest, upper), Math.Min(lowest, upper));
+            }
+            Assert.True(highest <= AxeSwing.Overhead + 1e-9, $"{degrees}°: raised to {highest * 180 / Math.PI:F0}°");
+            Assert.True(lowest >= -AxeSwing.Behind - 1e-9, $"{degrees}°: brought through to {lowest * 180 / Math.PI:F0}°");
+            // Raised less, it is still raised, and its blade crosses the line when the hit goes.
+            Assert.True(highest > AxeSwing.ArmAt(line).Upper + 0.5);
+            Assert.Equal(line, AxeSwing.AngleAt(line, AxeSwing.HitAt, stroke.Half), 9);
+        }
+    }
+
+    [Theory]
+    [InlineData(-30)]
+    [InlineData(0)]
+    [InlineData(30)]
+    public void ASwingAimedAheadSweepsItsWeaponsWholeFanTheHammersWiderThanTheAxes(int degrees)
+    {
+        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer) })
+        {
+            double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), back = 0, through = 0;
+            for (double phase = 0; phase <= 1; phase += 0.002)
+            {
+                double turn = AxeSwing.AngleAt(line, phase, stroke.Half) - line;
+                (back, through) = (Math.Min(back, turn), Math.Max(through, turn));
+            }
+            Assert.True(back <= -stroke.Half && through >= stroke.Half - 0.02, $"{look.Picture} at {degrees}°: {back:F2}..{through:F2}");
+        }
+        Assert.True(Strokes.Hammer.Half > Strokes.Axe.Half);
+    }
+
+    [Fact]
+    public void TheWholeSwingStillFallsAtItsOwnSpeedAndAimedPlainlyIsTheAxesOld()
+    {
+        // The default shape is the swing as it always was: down at one speed across the line, through 0.3 by the downstroke's end.
+        Assert.Equal(AxeSwing.Through, AxeSwing.Lift(AxeSwing.WindShare + AxeSwing.StrikeShare), 9);
+        // A longer follow-through carries on at that speed, not faster.
+        var wide = (AxeSwing.Raised, 1.2);
+        double dt = 0.001, after = AxeSwing.Lift(AxeSwing.HitAt + dt, wide) / dt;
+        Assert.Equal(AxeSwing.DownSpeed, after, 3);
+    }
+
+    [Fact]
+    public void ASwingBegunOnTheRunEasesFromTheArmCarriedNotFromWhereItWouldRest()
+    {
+        var arm = new SwingArm();
+        var rest = new Bend(0.1, 0.3);
+        arm.Next(rest, null, Frame);
+        var carried = Rig.Carried(0);
+        arm.Drew(carried);
+        var first = arm.Next(rest, (0.0, 0.0), Frame);
+        // The first frame of the swing is the arm as it was drawn trailing, not a jump to the swing or the rest.
+        Assert.Equal(carried.Upper, first.Upper, 1);
+    }
+
+    [Fact]
+    public void EachToolKeepsItsOwnPaceSoTheAxeSwingsAtOnceAfterTheHammersBlowAndTheHammerStillWaitsItsOwn()
+    {
+        var swing = new AxeSwing();
+        Assert.True(swing.Advance(Frame, true, default, Strokes.Hammer).Begun);
+        double ms = Frame;
+        while (!swing.Advance(Frame, false, default, Strokes.Hammer).Hits) ms += Frame;
+        // The blow has landed; the hammer rests out its three seconds. The axe taken now swings the next frame.
+        Assert.True(swing.Advance(Frame, true, default, Strokes.Axe).Begun);
+        ms += 2 * Frame;
+        Assert.Same(Strokes.Axe, swing.Stroke);
+        // The axe swung out and the hammer taken back before its own pace is out: it waits, as it would have.
+        while (swing.Phase != null) { swing.Advance(Frame, false, default, Strokes.Axe); ms += Frame; }
+        Assert.True(ms < Strokes.Hammer.PaceMs);
+        Assert.False(swing.Advance(Frame, true, default, Strokes.Hammer).Begun);
+        ms += Frame;
+        while (ms < Strokes.Hammer.PaceMs - Frame) { Assert.False(swing.Advance(Frame, true, default, Strokes.Hammer).Begun); ms += Frame; }
+        Assert.True(swing.Advance(2 * Frame, true, default, Strokes.Hammer).Begun);
     }
 
     [Fact]
@@ -250,7 +340,7 @@ public class AxeSwingTests
         for (double t = 0; t < ms; t += frame)
         {
             bool begun = swing.Advance(frame, wanted(t), toward(t)).Begun;
-            (double, double)? swung = swing.Phase is double phase ? (Math.Atan2(swing.At.Y, swing.At.X) + lead + AxeSwing.Lift(phase), phase) : null;
+            (double, double)? swung = swing.Phase is double phase ? (AxeSwing.AngleAt(Math.Atan2(swing.At.Y, swing.At.X) + lead, phase, Strokes.Axe.Half), phase) : null;
             drawn.Add(new(arm.Next(Resting, swung, frame), swing.Phase, swung is var (angle, _) ? AxeSwing.ArmAt(angle) : null, begun));
         }
         return drawn;

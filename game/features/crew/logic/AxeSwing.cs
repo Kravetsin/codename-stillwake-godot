@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace Stillwake.Game.Features.Crew;
 
@@ -59,6 +60,9 @@ public struct AxeSwing
 
     private double? _ms;
     private bool _struck, _whooshed;
+    /// <summary>Real time run, in ms, and when each stroke last began by it: every tool keeps its own pace, none another's.</summary>
+    private double _clock;
+    private Dictionary<Stroke, double>? _begunAt;
     /// <summary>The stroke playing: the axe's, or the tool's it began with (<see cref="Strokes"/>).</summary>
     private Stroke? _stroke;
 
@@ -87,9 +91,12 @@ public struct AxeSwing
     public SwingStep Advance(double elapsedMs, bool wanted, Point at = default, Stroke? stroke = null)
     {
         bool begun = false, hits = false, whooshes = false;
+        _clock += elapsedMs;
         double ms;
+        // A stroke of another tool than the one playing ends it: its pace is its own, the next tool's waits for none of it.
+        if (_ms != null && stroke != null && stroke != _stroke) _ms = null;
         if (_ms is double playing) ms = playing + Math.Min(elapsedMs, MostPerFrameMs);
-        else if (wanted) (ms, begun) = (0, Begin(at, stroke));
+        else if (wanted && Ready(stroke ?? Strokes.Axe)) (ms, begun) = (0, Begin(at, stroke));
         else return default;
         var now = Stroke;
         if (!_whooshed && ms >= now.WhooshMs) whooshes = _whooshed = true;
@@ -103,7 +110,7 @@ public struct AxeSwing
             }
             // Held, the next begins where this one's pace ended, so the rhythm keeps the tool's pace exactly.
             ms -= now.PaceMs;
-            begun = Begin(at, stroke);
+            begun = Begin(at, stroke, ms);
         }
         _ms = ms;
         return new(begun, hits, whooshes);
@@ -125,9 +132,13 @@ public struct AxeSwing
     /// <summary>Ends a swing at once, unstruck: the axe put away, the hand taken, the hero out.</summary>
     public void Stop() => _ms = null;
 
-    private bool Begin(Point at, Stroke? stroke)
+    /// <summary>Whether <paramref name="stroke"/>'s tool has rested out its pace since its own last stroke began, whatever was swung since.</summary>
+    public readonly bool Ready(Stroke stroke) => _begunAt?.GetValueOrDefault(stroke, double.NegativeInfinity) is not double at || _clock - at >= stroke.PaceMs;
+
+    private bool Begin(Point at, Stroke? stroke, double agoMs = 0)
     {
         _stroke = stroke ?? Strokes.Axe;
+        (_begunAt ??= [])[_stroke] = _clock - agoMs;
         Count++;
         At = at;
         _struck = _whooshed = false;
@@ -163,14 +174,55 @@ public struct AxeSwing
     }
 
     /// <summary>
-    /// The axe's turn from the line to its point at <paramref name="phase"/> of a swing, back (negative)
-    /// or through (positive): eased up, brought down hard, eased back to the line, still at either end, so
-    /// a swing leaves the arm at rest and the next held begins from it unbroken.
+    /// The farthest back over the head a swing raises the straight arm, in radians from hanging (<see cref="Bend.Upper"/>): a
+    /// little past straight up, as far as a shoulder goes. A swing aimed high is raised less, so it never twists behind the back.
     /// </summary>
-    public static double Lift(double phase)
+    public const double Overhead = 3.6;
+
+    /// <summary>The farthest behind hanging a swing brings the straight arm through, in radians: a swing aimed low goes on less.</summary>
+    public const double Behind = 1.0;
+
+    /// <summary>The least a swing is raised, and brought through, however it is aimed, in radians.</summary>
+    public const double LeastRaised = 0.5, LeastThrough = 0.1;
+
+    /// <summary>How fast the arm comes down, in radians a share of the swing: its whole turn over the downstroke.</summary>
+    public const double DownSpeed = (Raised + Through) / StrikeShare;
+
+    /// <summary>
+    /// How far a swing along <paramref name="line"/>, radians from straight ahead of the shoulder, down positive, is raised and
+    /// brought through for a fan <paramref name="half"/> radians either side: through the whole fan, at least <see cref="Through"/>,
+    /// raised <see cref="Raised"/>, each cut short so the arm passes neither <see cref="Overhead"/> nor <see cref="Behind"/>.
+    /// </summary>
+    public static (double Raised, double Through) ShapeFor(double line, double half)
     {
-        if (phase < WindShare) return -Raised * (1 - Math.Cos(phase / WindShare * Math.PI)) / 2;
-        if (phase < WindShare + StrikeShare) return -Raised + (Raised + Through) * ((phase - WindShare) / StrikeShare);
-        return Through * (1 + Math.Cos((phase - WindShare - StrikeShare) / (1 - WindShare - StrikeShare) * Math.PI)) / 2;
+        double level = Math.PI / 2 - line;
+        return (Math.Clamp(Overhead - level, LeastRaised, Raised), Math.Clamp(level + Behind, LeastThrough, Math.Max(Through, half)));
+    }
+
+    /// <summary>The arm's angle from straight ahead at <paramref name="phase"/> of a swing along <paramref name="line"/> over a fan <paramref name="half"/> either side (<see cref="ArmAt"/>).</summary>
+    public static double AngleAt(double line, double phase, double half) => line + Lift(phase, ShapeFor(line, half));
+
+    /// <summary>
+    /// The share of a swing shaped <paramref name="shape"/> at which the falling blade is <paramref name="turn"/> radians from its
+    /// line, back (negative) or through (positive): held to the downstroke and the follow-through.
+    /// </summary>
+    public static double ShareAt(double turn, (double Raised, double Through) shape) => turn < 0
+        ? WindShare + (HitAt - WindShare) * Math.Max(0, 1 + turn / shape.Raised)
+        : HitAt + Math.Min(turn, shape.Through) / DownSpeed;
+
+    /// <summary>
+    /// The turn from the line to its point at <paramref name="phase"/> of a swing shaped <paramref name="shape"/> (the axe's whole by
+    /// default), back (negative) or through (positive): eased up, brought down hard across the line at <see cref="HitAt"/> however it
+    /// is shaped, carried on through at <see cref="DownSpeed"/>, eased back to the line, still at either end, so a swing leaves the
+    /// arm at rest and the next held begins from it unbroken.
+    /// </summary>
+    public static double Lift(double phase, (double Raised, double Through)? shape = null)
+    {
+        var (raised, through) = shape ?? (Raised, Through);
+        double over = HitAt + through / DownSpeed;
+        if (phase < WindShare) return -raised * (1 - Math.Cos(phase / WindShare * Math.PI)) / 2;
+        if (phase < HitAt) return -raised * (1 - (phase - WindShare) / (HitAt - WindShare));
+        if (phase < over) return through * (phase - HitAt) / (over - HitAt);
+        return through * (1 + Math.Cos((phase - over) / (1 - over) * Math.PI)) / 2;
     }
 }

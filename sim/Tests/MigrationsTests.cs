@@ -166,6 +166,24 @@ public class MigrationsTests
     }
 
     [Fact]
+    public void StandsARadarAntennaBuiltOrPlannedAsATallMastOnTheRoofItStoodOn()
+    {
+        // Format-51 antennas four cells tall at row 6, a planned one at row 16, a crate left where it was; on a surface too.
+        static JsonObject Slices() => JsonNode.Parse(
+            """
+            {"grid":{"width":10,"machines":[{"id":1,"kind":"radarAntenna","cell":62},{"id":2,"kind":"crate","cell":66}]},
+             "building":{"plans":[{"id":1,"cell":162,"place":{"layer":"machine","kind":"radarAntenna"}},{"id":2,"cell":170,"place":{"layer":"machine","kind":"crate"}},{"id":3,"cell":166,"clear":"machine"}]}}
+            """)!.AsObject();
+        var old = new JsonObject { ["slices"] = Slices(), ["surfaces"] = new JsonArray(new JsonObject { ["slices"] = Slices() }) };
+        var upgraded = Migrations.Steps[51 - Migrations.Oldest](old);
+        foreach (var slices in new[] { upgraded["slices"]!, upgraded["surfaces"]![0]!["slices"]! })
+        {
+            Assert.Equal([42, 66], slices["grid"]!["machines"]!.AsArray().Select(m => m!["cell"]!.GetValue<int>()));
+            Assert.Equal([142, 170, 166], slices["building"]!["plans"]!.AsArray().Select(p => p!["cell"]!.GetValue<int>()));
+        }
+    }
+
+    [Fact]
     public void RefusesAFieldThisBuildDoesNotKnowAndReadsOneMissingAsItsDefaultSoAnAddedFieldNeedsNoBump()
     {
         var newer = JsonNode.Parse(Played())!.AsObject();

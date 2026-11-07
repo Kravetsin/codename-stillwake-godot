@@ -11,17 +11,17 @@ namespace Stillwake.Game.Features.Crew;
 
 /// <summary>
 /// A tool's hit as a fan of rays from the shoulder (tool-reach): each ray of the weapon's fan (<c>Arc</c>, <c>Rays</c>, <c>Range</c>)
-/// walked over the grid as the sim walks one (<see cref="Rays"/>), stopping at its first cell that stops a body, or sooner at the
-/// first wreck whose drawn pixels it crosses; it strikes the cells it walked and every creature it crosses before it stops.
+/// walked over the grid as the sim walks one (<see cref="Rays"/>), stopping at its first cell that stops a body; it strikes the cells
+/// it walked and every wreck whose drawn pixels and every creature it crosses before it stops: a wreck shields none behind it.
 /// </summary>
 public static class ToolRays
 {
     /// <summary>
     /// What <paramref name="tool"/>'s fan from <paramref name="hero"/>'s shoulder toward <paramref name="heading"/> touches on
     /// <paramref name="m"/>: the cells each ray walks, its stopping one included; while the hero is <paramref name="outside"/>, the
-    /// wrecks whose pictures <paramref name="solid"/> says are opaque where a ray first crosses them, as drawn <paramref name="progress"/>
-    /// of the way to their next tick, one a ray; the creatures crossed. The rays are walked from the middle out, so the first ground
-    /// touch is the middle ray's and the end is where the middle ray stops.
+    /// wrecks whose pictures <paramref name="solid"/> says are opaque where a ray crosses them, as drawn <paramref name="progress"/>
+    /// of the way to their next tick, each touched where a ray first meets it; the creatures crossed. The rays are walked from the
+    /// middle out, so the first ground touch is the middle ray's, and the end is where the middle ray first meets a wreck or stops.
     /// </summary>
     public static EdgeHit Fan(Registry m, Hero hero, string tool, int heading, bool outside, double progress, Func<Piece, double, double, bool> solid)
     {
@@ -61,24 +61,23 @@ public static class ToolRays
             });
             double length = Math.Sqrt(ux * ux + uy * uy) * weapon.Range;
             double reach = stopped != null ? walked[^1].Enter : length;
-            // Along what the grid lets it walk, the first wreck's pixel stops it sooner.
-            Piece? bit = null;
+            // Along what the grid lets it walk, every wreck whose pixels it crosses, touched where it first meets each.
+            (double X, double Y)? met = null;
             if (wrecks.Count > 0)
-                for (double s = 0; s <= reach && bit == null; s += ToolEdges.Step)
+                for (double s = 0; s <= reach; s += ToolEdges.Step)
                 {
                     double px = from.X + ux * s, py = from.Y + uy * s;
                     foreach (var w in wrecks)
-                        if ((px - w.X) * (px - w.X) + (py - w.Y) * (py - w.Y) <= w.Reach2 && solid(w.Piece, px, py))
+                        if (!struck.Contains(w.Piece) && (px - w.X) * (px - w.X) + (py - w.Y) * (py - w.Y) <= w.Reach2 && solid(w.Piece, px, py))
                         {
-                            bit = w.Piece;
-                            reach = s;
-                            break;
+                            struck.Add(w.Piece);
+                            touches.Add(new((px, py), null, w.Piece));
+                            met ??= (px, py);
                         }
                 }
             var (endX, endY) = (from.X + ux * reach, from.Y + uy * reach);
             foreach (var (cell, enter) in walked)
             {
-                if (bit != null && enter > reach) break;
                 if (!cells.Contains(cell)) cells.Add(cell);
                 if (!grounded && (cell == stopped || m.Building.PlantAt(cell) != null))
                 {
@@ -87,17 +86,12 @@ public static class ToolRays
                     grounded = true;
                 }
             }
-            if (bit != null && !struck.Contains(bit))
-            {
-                struck.Add(bit);
-                touches.Add(new((endX, endY), null, bit));
-            }
             foreach (var c in m.Creatures.Creatures)
             {
                 var (left, top, right, bottom) = Aiming.BoxOf(c);
                 if (!touched.Contains(c) && Aiming.Entered((from.X, from.Y, endX, endY), left, top, right, bottom) != null) touched.Add(c);
             }
-            end ??= (endX, endY);
+            end ??= met ?? (endX, endY);
         }
         return new EdgeHit(cells, struck, touched, touches, end ?? (from.X, from.Y));
     }

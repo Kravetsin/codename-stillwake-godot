@@ -54,29 +54,48 @@ public class DamageLooksTests
         Assert.True(Inked(ink) > 1);
     }
 
+    private static bool Round(double x, double y) => x * x + y * y <= 20 * 20;
+
     [Fact]
-    public void A_wrecks_cracks_grow_out_of_each_blow_as_it_loses_hit_points()
+    public void A_wrecks_crack_network_runs_on_with_the_share_lost_reads_early_and_covers_it_by_the_break()
     {
-        List<Blow> blows = [new(0, 0, 0)];
-        var little = new Ink();
-        WreckCracks.Draw(little, blows, 0.05, 3);
-        var much = new Ink();
-        WreckCracks.Draw(much, blows, 0.6, 3);
-        var (l, t, r, b) = Bounds(little);
-        var (L, T, R, B) = Bounds(much);
-        Assert.True((R - L) * (B - T) > 4 * (r - l) * (b - t), "the cracks run farther as more is lost");
-        Assert.True(R - L <= 2 * (DamageLooks.DentLongest + 1));
+        List<Blow> blows = [new(-18, 0, 0)];
+        var net = WreckCracks.Network(blows[0], Round, 3);
+        // Laid out once, by its seed: the same wreck cracks the same way.
+        Assert.Equal(net.Lines.Count, WreckCracks.Network(blows[0], Round, 3).Lines.Count);
+        double Spread(double share)
+        {
+            var ink = new Ink();
+            WreckCracks.Draw(ink, blows, net, share, 3);
+            var (l, t, r, b) = Bounds(ink);
+            return (r - l) * (b - t);
+        }
+        // A twentieth lost (ten axe swings on a 200-hit-point asteroid) already runs well past the dent.
+        Assert.True(Spread(0.05) > 10 * Spread(0), "the cracks read within the first blows");
+        Assert.True(Spread(0.5) > 2 * Spread(0.05), "and run on as more is lost");
+        // By the break it has run its whole length over the picture.
+        Assert.True(WreckCracks.Reach(net, DamageLooks.NetFull) >= net.Far - 1e-9);
+        Assert.True(Spread(0.95) > 0.6 * 40 * 40, "it covers most of the wreck");
     }
 
     [Fact]
-    public void A_blow_beside_an_earlier_one_deepens_it_and_a_wreck_shows_its_most()
+    public void A_wrecks_cracks_stay_on_its_picture_but_for_a_ragged_edge()
+    {
+        var net = WreckCracks.Network(new(-18, 0, 0), Round, 7);
+        foreach (var line in net.Lines)
+            foreach (var (x, y) in line.Points)
+                Assert.True(x * x + y * y <= 24 * 24, $"({x:F1}, {y:F1}) runs off the wreck");
+    }
+
+    [Fact]
+    public void A_blow_beside_an_earlier_one_deepens_it_and_every_other_gets_its_own_dent()
     {
         List<Blow> blows = [];
         WreckCracks.Land(blows, 0, 0, 0);
         WreckCracks.Land(blows, 1, 1, 0.1);
-        Assert.Single(blows);
+        Assert.Equal(2, Assert.Single(blows).Hits);
         for (int i = 1; i < 20; i++) WreckCracks.Land(blows, i * 4, 0, 0.1);
-        Assert.Equal(DamageLooks.MostBlows, blows.Count);
+        Assert.Equal(20, blows.Count);
     }
 
     [Fact]

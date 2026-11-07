@@ -981,7 +981,7 @@ public partial class Figure : Node2D
                 swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
             }
             // How far past the line to its point the arm swings for the blade, not the hand, to meet it (0040).
-            else swung = (Math.Atan2(dy, dx) + AxeSwing.Lead(item!) + AxeSwing.Lift(drawn), drawn);
+            else swung = (AxeSwing.AngleAt(Math.Atan2(dy, dx) + AxeSwing.Lead(item!), drawn, stroke.Half), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -1007,6 +1007,7 @@ public partial class Figure : Node2D
         // The spring only round a run and a while after it: a landing or a pose's own swing moves the arm as it is.
         if (carried && _sinceCarryMs < HeroMotion.Carry.SpringAfterMs) frontArm = frontArm with { Upper = _armSpring.Follow(frontArm.Upper, elapsedMs) };
         else _armSpring.Hold(frontArm.Upper);
+        _swingArm.Drew(frontArm);
         var backArm = shown.BackArm;
         _frontArm.Bend(frontArm);
         _backArm.Bend(backArm);
@@ -1099,15 +1100,16 @@ public partial class Figure : Node2D
         if (chopping && _chop is { At: var cutAt, Phase: var cutPhase } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
             bool jab = stroke!.Kind == StrokeKind.Thrust;
-            double half = Math.PI * weapon.Arc / Stillwake.Content.Headings.Turn, span = AxeSwing.Raised + AxeSwing.Through;
-            double start = jab ? stroke.HitShare : AxeSwing.WindShare + AxeSwing.StrikeShare * (AxeSwing.Raised - half) / span;
+            var (aimX, aimY) = FromShoulder(cutAt);
+            double half = Strokes.HalfOf(weapon);
+            var shape = AxeSwing.ShapeFor(Math.Atan2(aimY, aimX) + AxeSwing.Lead(item!), half);
+            double start = jab ? stroke.HitShare : AxeSwing.ShareAt(-half, shape);
             if (_cutPhase < start && cutPhase >= start)
             {
-                var (dx, dy) = FromShoulder(cutAt);
                 var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : AxeSwing.StrikeShare * 2 * half / span * stroke.Ms;
-                _air.Strike(jab, Math.Atan2(dy, dx), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
+                double sweep = jab ? WorkLooks.ThrustSweepMs : (AxeSwing.ShareAt(half, shape) - start) * stroke.Ms;
+                _air.Strike(jab, Math.Atan2(aimY, aimX), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
                     WorkLooks.CutFadeOf(Wields));
             }
             _cutPhase = cutPhase;

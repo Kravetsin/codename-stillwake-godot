@@ -203,9 +203,9 @@ public static class Machines
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
         // power comes before the Former.
         new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
-        // A drum a hero runs in (power-chain): 4 while an awake rider runs, anywhere, rested by Landing otherwise. Of the workbench's
-        // parts and the furnace's scrap, the first power there is.
-        new("treadWheel", 6, 6, [], [("planks", 10), ("gear", 6), ("coil", 1), ("scrap", 8)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (45, 46), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
+        // A drum a hero runs in (power-chain): 4 while an awake rider runs, anywhere, rested by Landing otherwise. Mostly planks,
+        // a gear and a coil: the first power there is, at a quarter of the burner's iron and scrap, paid for in a hero's time.
+        new("treadWheel", 6, 6, [], [("planks", 6), ("gear", 1), ("coil", 1)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (45, 46), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
         // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a biofuel against the burner's 9 600. Its fuel pump is a
         // planet's part, so it is built at the planet stage.
         new("biofuelGenerator", 6, 4, [], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
@@ -247,7 +247,7 @@ public static class Machines
         new("arcBench", 4, 4, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
         // The ship's computer and the radar antenna on its roof (the radar its program): of what space gives, the last built before a planet.
         new("computer", 6, 4, [], [("frame", 4), ("plate", 12), ("processor", 3), ("display", 2), ("coil", 6), ("wire", 20)], BuildTicks: 240, Draws: 2, Plug: (43, 11), Has: MachineTrait.Computer, Menu: new(MenuTabs.Ship, 10), Char: 'U', Means: "ship's computer: draw its whole footprint"),
-        new("radarAntenna", 4, 4, [], [("frame", 3), ("plate", 8), ("tube", 4), ("rotor", 2), ("gear", 6), ("transceiver", 2), ("solarCell", 2)], BuildTicks: 200, Draws: 1, Plug: (13, 26), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint"),
+        new("radarAntenna", 4, 6, [], [("frame", 3), ("plate", 8), ("tube", 4), ("rotor", 2), ("gear", 6), ("transceiver", 2), ("solarCell", 2)], BuildTicks: 200, Draws: 1, Plug: (13, 42), Menu: new(MenuTabs.Ship, 20), Char: 'N', Means: "radar antenna: draw its whole footprint, a mast with a dish atop (radar-mast)"),
         // The engine (2026-10-25-the-engine-through-the-hull): the last thing built, of a planet's parts; its nozzle out through
         // the stern's wall, its tank of biofuel, its pumps and igniter kept ready on power. It does not run yet: the jump is to come.
         new("engine", 6, 4, [], [("nozzle", 1), ("fuelPump", 1), ("igniter", 1), ("frame", 4), ("plate", 12), ("motor", 1)], BuildTicks: 240, Draws: 2, Plug: (39, 12), Slots: 1, Takes: "biofuel", Exhaust: 3, Menu: new(MenuTabs.Ship, 110), Char: 'X', Means: "engine: draw its whole footprint, a hull wall on its left with space past it"),

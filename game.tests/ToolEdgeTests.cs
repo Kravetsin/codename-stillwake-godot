@@ -194,7 +194,7 @@ public class ToolEdgeTests
     }
 
     [Fact]
-    public void ARayStopsAtTheFirstWrecksPixelsSoAWreckBehindItIsNotHit()
+    public void ARayHitsEveryWreckItCrossesSoOneLyingOnOrBehindAnotherIsHitToo()
     {
         var (w, near, far) = Wrecks();
         var (halfW, _) = Aiming.PictureOf(near.Item);
@@ -203,10 +203,11 @@ public class ToolEdgeTests
         var hero = new Hero(near.X - halfW - Unit, near.Y + shoulderUp, 0, 0, false, 1);
         Assert.True(Aiming.HandOf(hero).X + Spec.Weapons.Drill.Range > far.X - halfW);
         var hit = Right(w, hero, Drill, outside: true);
-        Assert.Equal([near], hit.Wrecks);
-        // The middle ray lands on the near wreck's side.
+        Assert.Equal([near, far], hit.Wrecks);
+        // Each is touched where a ray first meets it; the middle ray's end is where it meets the near one's side.
+        Assert.Equal(2, hit.Touches.Count(t => t.Wreck != null));
         Assert.Equal(near.X - halfW, hit.End.X, ToolEdges.Step);
-        // Over its box but off its pixels, the rays pass on: the far one is met instead.
+        // Over its box but off its pixels, the rays pass it untouched: only the far one is met.
         var bare = Right(w, hero, Drill, outside: true, (p, x, y) => p.Id == far.Id && Opaque(p, x, y));
         Assert.Equal([far], bare.Wrecks);
         // Aboard, no wreck is touched.
