@@ -272,6 +272,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [battery-workbench](2026-11-07-battery-workbench.md) | The workbench makes batteries | accepted |  |
 | [board-search-related](2026-11-07-board-search-related.md) | The board's search finds what is tied | accepted |  |
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
+| [cave-hostiles](2026-11-07-cave-hostiles.md) | Cave hostiles | accepted |  |
 | [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
 | [crusher-takes-arc](2026-11-07-crusher-takes-arc.md) | The crusher takes the arc module | accepted |  |

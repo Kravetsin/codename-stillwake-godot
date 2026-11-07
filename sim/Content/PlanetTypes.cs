@@ -155,13 +155,16 @@ public static class PlanetTypes
         LodeWave = 96,
         LodeOver = 42000,
         LodeMost = 1000,
-        // Neutral creatures only on the first planet (the user's word), spawned by habitat (the user's rule, 2026-10-22): the
-        // loper, the tapir and the sixleg on the open ground. Nothing yet in the caves: their kinds come later.
+        // Spawned by habitat (the user's rule, 2026-10-22), each hero's herd of its own depth band: the neutral loper, tapir and
+        // sixleg on the open ground; hostile lurkers below (cave-hostiles): the capback in the teal garden, the geode snail in the
+        // amber deep. The cold band and the core wait for their kinds.
         Creatures =
         [
             new(Content.Creatures.Loper.Id, Content.Creatures.Place.Surface, 3),
             new(Content.Creatures.Tapir.Id, Content.Creatures.Place.Surface, 2),
             new(Content.Creatures.Sixleg.Id, Content.Creatures.Place.Surface, 2),
+            new(Content.Creatures.Capback.Id, Content.Creatures.Place.Band, 1, Band: 1),
+            new(Content.Creatures.GeodeSnail.Id, Content.Creatures.Place.Band, 1, Band: 2),
         ],
     };
 
