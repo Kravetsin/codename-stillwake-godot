@@ -11,6 +11,7 @@ using Stillwake.Sim.Hazards;
 using Stillwake.Sim.Items;
 using Stillwake.Sim.Knowledge;
 using Stillwake.Sim.Landing;
+using Stillwake.Sim.Liquids;
 using Stillwake.Sim.Logistics;
 using Stillwake.Sim.Pipes;
 using Stillwake.Sim.Players;
@@ -53,6 +54,7 @@ public sealed class Registry
     public CreaturesModule Creatures { get; }
     public TradeModule Trade { get; }
     public WaterModule Water { get; }
+    public LiquidsModule Liquids { get; }
 
     /// <summary>The rules of the kind of surface this registry runs (0076): what the client draws and allows by.</summary>
     public Surfaces.Kind Rules => Grid.Rules;
@@ -77,6 +79,8 @@ public sealed class Registry
         Power = new PowerModule(Grid, Rooms, Items, Items);
         Research = new ResearchModule(Grid, Items, Knowledge, Knowledge);
         Crafting = new CraftingModule(Grid, Items, Items, Research, Power, Power);
+        // Liquids: water in the cells, after building digs and builds, before what will read it; new to format 54.
+        Liquids = new LiquidsModule(Grid);
         Pipes = new PipesModule(Grid, Items, Items);
         Atmosphere = new AtmosphereModule(Grid, Items, Items, Rooms, Pipes, Power);
         Crew = new CrewModule(Atmosphere, Atmosphere, Grid, Items, Items, Players, Players, Knowledge);
@@ -94,7 +98,7 @@ public sealed class Registry
         Trade = new TradeModule(Grid, Items, Items, Knowledge);
         // Water: cisterns and electrolysers, after the air, whose tanks it fills; new to format 45, run and saved last.
         Water = new WaterModule(Grid, Items, Items, Pipes, Power, Atmosphere, Atmosphere);
-        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water];
+        Module[] surface = [Grid, Rooms, Items, Power, Research, Crafting, Building, Liquids, Pipes, Atmosphere, Crew, Hazards, Debris, Furnace, Logistics, Creatures, Landing, Trade, Water];
         All = new Set(this, ship == null ? [Players, Knowledge, .. surface] : surface);
     }
 

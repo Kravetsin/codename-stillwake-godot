@@ -35,6 +35,8 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Planets and terrain** — sim/Core `Terrain.cs`, `Surface.cs`; sim/Grid `Grown.cs`; sim/Building `Digging.cs`, `Flora.cs` · f/flora: `FloraView.cs`, `CaveView.cs`; f/grid `Grass.cs`, `LavaView.cs`; the fog at a planet's sides: f/fog `FogView.cs`, game/shared `FogEdges.cs`, `FogShare.cs`, f/crew `FogMove.cs`, gc/`FogLooks.cs`; c/`PlanetTypes.cs`, `Ground.cs`, `Flora.cs`, `Veins.cs`, `Lava.cs`; r/`GroundArt.cs`, `PlanetSky.cs`
 
+**Liquids** — sim/Liquids: `Liquids.cs` LiquidsModule (water in a surface's cells); `Flow.cs` (the flow, awake chunks); `Saved.cs`; c/`Liquids.cs`; drawn in a map by `Layout.WithLiquids`, `Legend.LiquidOf`
+
 **Ruins** — sim/Building `Flora.cs` (`Relic`, ruin pieces as plants) · f/ruins: `HomesView.cs`, `SpiresView.cs`, `RelicSparks.cs`; c/`Ruins.cs`; gc/`HomesLooks.cs`, `RelicLooks.cs`
 
 **Debris and wrecks**

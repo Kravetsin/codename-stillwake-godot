@@ -185,7 +185,30 @@ public static class Migrations
             }
             return root;
         },
+        // 53 → 54 (docs/plans/liquids.md): a module added, its slice where it runs, after building, on the ship and every
+        // surface: no clock run, no cell changed; a planet grows its lakes again from its seed as it loads.
+        root =>
+        {
+            root["slices"] = Inserted54(root["slices"]!.AsObject());
+            foreach (var surface in (root["surfaces"]?.AsArray() ?? []))
+                surface!["slices"] = Inserted54(surface["slices"]!.AsObject());
+            return root;
+        },
     ];
+
+    /// <summary>The slices with liquids' empty one after building's, where its module runs: a save holds them in that order.</summary>
+    private static JsonObject Inserted54(JsonObject slices)
+    {
+        var all = slices.ToList();
+        slices.Clear();
+        var inserted = new JsonObject();
+        foreach (var (id, slice) in all)
+        {
+            inserted[id] = slice;
+            if (id == "building") inserted["liquids"] = new JsonObject { ["clock"] = 0, ["cells"] = new JsonArray() };
+        }
+        return inserted;
+    }
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>
     private static JsonArray SpansOf46(JsonNode grid, JsonArray old)

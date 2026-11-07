@@ -195,7 +195,7 @@ while in water. Unit tests in `game.tests`: into water from a jump, sinking, swi
 round a standing hero, water to the ceiling. Numbers in `sim/Content/Hero.cs`.
 
 ### L-5 — Sounds
-The picked sounds cut, levelled and credited (`game/audio/CREDITS.md`); cues in `game/Content/Sound.cs`: a splash when a
+The picked sounds cut, levelled and credited (`game/audio/CREDITS.md`); cues in `game/Content/logic/Sound.cs`: a splash when a
 hero goes in water or out (from the step's in-water flag, at most one per `SplashGap` 0.4 s, so bobbing at the surface
 does not chatter), a stroke every `StrokeEvery` while swimming and moving, one pouring loop at `FallNear(hero, 24)`, its
 volume by distance.

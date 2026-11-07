@@ -1,0 +1,351 @@
+using FsCheck;
+using FsCheck.Fluent;
+using FsCheck.Xunit;
+using Stillwake.Sim.Grid;
+using Xunit;
+using L = Stillwake.Content.Liquids;
+
+namespace Stillwake.Sim.Tests;
+
+/// <summary>Liquid in the cells (docs/plans/liquids.md): maps read a character a cell, their water drawn beside them.</summary>
+public class LiquidsTests
+{
+    /// <summary>A world on <paramref name="map"/>, a character a cell, with the water of <paramref name="water"/> (<c>Legend.LiquidOf</c>).</summary>
+    private static Scenario Wet(string map, string water, Box? zone = null) =>
+        new(Layout.Parse(map).WithLiquids(water) with { Zone = zone });
+
+    private static int Total(Scenario w)
+    {
+        int total = 0;
+        foreach (byte b in w.M.Liquids.Layer) total += L.AmountOf(b);
+        return total;
+    }
+
+    private static int Amount(Scenario w, int x, int y) => w.M.Liquids.AmountAt(y * w.Layout.Width + x);
+
+    /// <summary>The amounts along row <paramref name="y"/> from <paramref name="from"/> to <paramref name="to"/>.</summary>
+    private static int[] Row(Scenario w, int y, int from, int to) => [.. Enumerable.Range(from, to - from + 1).Select(x => Amount(w, x, y))];
+
+    [Fact]
+    public void FallsToTheFloorAndSpreadsTillNeighboursDifferByOneAtMost()
+    {
+        var w = Wet("""
+            #########
+            #.......#
+            #.......#
+            #.......#
+            #########
+            """, """
+            .........
+            ....w....
+            .........
+            .........
+            .........
+            """).Run(60);
+        Assert.Equal(8, Total(w));
+        Assert.Equal(0, Row(w, 1, 1, 7).Sum() + Row(w, 2, 1, 7).Sum());
+        var floor = Row(w, 3, 1, 7);
+        Assert.Equal(8, floor.Sum());
+        for (int x = 1; x < floor.Length; x++) Assert.InRange(Math.Abs(floor[x] - floor[x - 1]), 0, 1);
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void FallsFourCellsATickThroughAnEmptyShaft()
+    {
+        var w = Wet("""
+            ###
+            #.#
+            #.#
+            #.#
+            #.#
+            #.#
+            #.#
+            #.#
+            #.#
+            #.#
+            ###
+            """, """
+            ...
+            .w.
+            """).Run();
+        Assert.Equal(L.Full, Amount(w, 1, 1 + L.Fall));
+        Assert.Equal(L.Full, Total(w));
+    }
+
+    [Fact]
+    public void APoolDugIntoPoursOutAndItsLevelSinks()
+    {
+        var w = Wet("""
+            ##########
+            #....#...#
+            #....#...#
+            #....#...#
+            ##########
+            """, """
+            ..........
+            .wwww.....
+            .wwww.....
+            .wwww.....
+            ..........
+            """);
+        int before = Total(w);
+        w.Do(new ClearAt(3 * 10 + 5, "structure")).Run(300);
+        Assert.Equal(before, Total(w));
+        Assert.True(Row(w, 3, 6, 8).Sum() > 0, "the water came through the hole");
+        Assert.True(Row(w, 1, 1, 4).Sum() < 4 * L.Full, "the pool's top row sank");
+    }
+
+    [Fact]
+    public void TwoBasinsJoinedAlongTheirSideEndWithin1UnitOfEachOther()
+    {
+        var w = Wet("""
+            ##########
+            #....#...#
+            #....#...#
+            #....#...#
+            ##########
+            """, """
+            ..........
+            .wwww.....
+            .wwww.....
+            .wwww.....
+            ..........
+            """);
+        for (int y = 1; y <= 3; y++) w.Do(new ClearAt(y * 10 + 5, "structure"));
+        w.Run(600);
+        var surface = Row(w, 2, 1, 8);
+        Assert.Equal(96, Total(w));
+        for (int x = 1; x < surface.Length; x++) Assert.InRange(Math.Abs(surface[x] - surface[x - 1]), 0, 1);
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void WaterNeverRisesInAUTube()
+    {
+        var w = Wet("""
+            #####
+            #.#.#
+            #.#.#
+            #.#.#
+            #...#
+            #####
+            """, """
+            .....
+            .w...
+            .w...
+            .w...
+            .w...
+            """).Run(200);
+        Assert.Equal(32, Total(w));
+        Assert.Equal(0, Amount(w, 3, 1) + Amount(w, 3, 2) + Amount(w, 3, 3));
+        // At rest a pool may keep a unit between neighbours: 8, 7, 6 under the column still holding the rest.
+        Assert.InRange(Row(w, 4, 1, 3).Sum(), 21, 24);
+    }
+
+    [Fact]
+    public void PassesLaddersFloorsAndGratesButNotWalls()
+    {
+        var w = Wet("""
+            #####
+            #...#
+            #H=%#
+            #...#
+            #####
+            """, """
+            .....
+            .www.
+            """).Run(40);
+        Assert.Equal(24, Row(w, 3, 1, 3).Sum());
+        Assert.Equal(0, Row(w, 1, 1, 3).Sum());
+    }
+
+    [Fact]
+    public void AClosedDoorHoldsTheWaterAndOpenedLetsItOn()
+    {
+        // Drawn at 16 px and doubled, as doors are pieces two cells wide.
+        var layout = Layout.Parse("""
+            ######
+            #..D.#
+            ######
+            """).WithLiquids("""
+            ......
+            .ww...
+            """);
+        var w = new Scenario(layout, doubled: true).Run(100);
+        int door = w.At(3, 1), past = w.At(4, 1) + w.Layout.Width;
+        Assert.Equal(0, w.M.Liquids.AmountAt(past));
+        w.Do(new SetDoor(door, true)).Run(200);
+        Assert.True(w.M.Liquids.AmountAt(past) > 0, "the water went on through the open door");
+        Assert.Equal(4 * L.Full * 2, Total(w));
+    }
+
+    [Fact]
+    public void AWallBuiltIntoWaterEmptiesOnlyItsOwnCell()
+    {
+        var w = Wet("""
+            #####
+            #...#
+            #####
+            """, """
+            .....
+            .www.
+            """);
+        w.Do(new Place(1 * 5 + 2, Placement.Wall())).Run();
+        Assert.Equal(0, Amount(w, 2, 1));
+        Assert.Equal(2 * L.Full, Total(w));
+    }
+
+    [Fact]
+    public void WaterPastTheZoneIsGone()
+    {
+        var w = Wet("""
+            ########
+            #......#
+            ########
+            """, """
+            ........
+            .ww.....
+            """, zone: new Box(0, 0, 3, 2)).Run(200);
+        Assert.True(Total(w) < 2 * L.Full, "what spread past column 3 went");
+        Assert.Equal(0, Row(w, 1, 4, 6).Sum());
+    }
+
+    [Fact]
+    public void ADrawnMapsWaterInAWallIsDryOnceTheWorldIsMade()
+    {
+        var w = Wet("""
+            ###
+            #.#
+            ###
+            """, """
+            .w.
+            .w.
+            """);
+        Assert.Equal(0, Amount(w, 1, 0));
+        Assert.Equal(L.Full, Amount(w, 1, 1));
+    }
+
+    [Fact]
+    public void ASurfaceWithNoLiquidHoldsNoLayerAndWakesNothing()
+    {
+        var w = new Scenario("""
+            #####
+            #...#
+            #####
+            """).Run(5);
+        Assert.True(w.M.Liquids.Layer.IsEmpty);
+        Assert.Equal(0, w.M.Liquids.AwakeChunks);
+    }
+
+    [Fact]
+    public void AGridChangeTooBigForTheLogStillEmptiesTheCellsWallsFill()
+    {
+        // More walls in a tick than the grid's log holds: the liquid looks at every cell again.
+        const int size = 260;
+        var rows = Enumerable.Range(0, size).Select(y => y == 0 || y == size - 1 ? new string('#', size) : "#" + new string('.', size - 2) + "#");
+        var water = new[] { new string('.', size), "." + new string('w', size - 2) + "." };
+        var w = new Scenario(Layout.Parse([.. rows]).WithLiquids(string.Join("\n", water)));
+        for (int y = 1; y < size - 1; y++)
+            for (int x = 1; x < size - 1; x++)
+                if (y != 1 || x % 2 == 0) w.Do(new Place(y * size + x, Placement.Wall()));
+        Assert.Null(w.Run().M.Grid.ChangedSince(0));
+        Assert.Equal(0, Amount(w, 2, 1));
+        Assert.Equal(L.Full, Amount(w, 1, 1));
+    }
+
+    [Fact]
+    public void ASaveLoadedMidFlowRunsOnAsTheWorldKeptRunning()
+    {
+        var map = """
+            ##########
+            #....#...#
+            #....#...#
+            #....#...#
+            ##########
+            """;
+        var water = """
+            ..........
+            .wwww.....
+            .w3w1.....
+            .wwww.....
+            """;
+        var kept = Wet(map, water).Do(new ClearAt(2 * 10 + 5, "structure")).Run(7);
+        var loaded = Wet(map, water).Do(new ClearAt(2 * 10 + 5, "structure")).Run(7).Reload();
+        for (int t = 0; t < 40; t++)
+        {
+            kept.Run();
+            loaded.Run();
+            Assert.Equal(kept.World.Hash(), loaded.World.Hash());
+        }
+    }
+
+    /// <summary>A closed box of walls with walls and water scattered inside: every rule of the flow meets every other.</summary>
+    private static Gen<(string Map, string Water)> Boxes =>
+        from width in Gen.Choose(6, 40)
+        from height in Gen.Choose(4, 24)
+        from cells in Gen.Choose(0, 99).ArrayOf(width * height)
+        select Drawn(width, height, cells);
+
+    private static (string, string) Drawn(int width, int height, int[] roll)
+    {
+        var map = new System.Text.StringBuilder();
+        var water = new System.Text.StringBuilder();
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int r = roll[y * width + x];
+                bool edge = x == 0 || y == 0 || x == width - 1 || y == height - 1;
+                map.Append(edge || r < 20 ? '#' : r < 24 ? '=' : '.');
+                water.Append(!edge && r >= 50 ? (char)('1' + (r - 50) % 8) : '.');
+            }
+            map.Append('\n');
+            water.Append('\n');
+        }
+        return (map.ToString(), water.ToString());
+    }
+
+    [Property(MaxTest = 60)]
+    public Property KeepsEveryUnitInAClosedBoxAndComesToRest()
+    {
+        return Prop.ForAll(Boxes.ToArbitrary(), drawn =>
+        {
+            var w = Wet(drawn.Map, drawn.Water);
+            int total = Total(w);
+            for (int t = 0; t < 3000 && w.M.Liquids.AwakeChunks > 0; t++)
+            {
+                w.Run();
+                if (Total(w) != total) return false.Label($"total {Total(w)}, not {total}, at tick {t}");
+                if (!w.M.Liquids.AwakeWhereItCanMove()) return false.Label($"a chunk that can move asleep at tick {t}");
+                for (int cell = 0; cell < w.Layout.Width * w.Layout.Height; cell++)
+                {
+                    int a = w.M.Liquids.AmountAt(cell);
+                    if (a < 0 || a > L.Full) return false.Label($"{a} in cell {cell}");
+                    if (a > 0 && w.M.Grid.Blocks(cell)) return false.Label($"liquid in the wall at {cell}");
+                }
+            }
+            if (w.M.Liquids.AwakeChunks > 0) return false.Label("still moving after 3,000 ticks");
+            var layer = w.M.Liquids.Layer.ToArray();
+            w.Run(20);
+            return w.M.Liquids.Layer.SequenceEqual(layer).Label("still once at rest");
+        });
+    }
+
+    [Property(MaxTest = 30)]
+    public Property ASaveLoadedAtAnyTickRunsOnAsTheWorldKeptRunning()
+    {
+        return Prop.ForAll(Boxes.ToArbitrary(), Gen.Choose(0, 60).ToArbitrary(), (drawn, at) =>
+        {
+            var kept = Wet(drawn.Map, drawn.Water).Run(at);
+            var loaded = Wet(drawn.Map, drawn.Water).Run(at).Reload();
+            for (int t = 0; t < 30; t++)
+            {
+                kept.Run();
+                loaded.Run();
+                if (kept.World.Hash() != loaded.World.Hash()) return false.Label($"apart {t} ticks after the load");
+            }
+            return true.ToProperty();
+        });
+    }
+}

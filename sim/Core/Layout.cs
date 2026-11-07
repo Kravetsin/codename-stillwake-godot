@@ -33,6 +33,12 @@ public sealed record Layout(
     public IReadOnlyList<(int Cell, string Kind)>? Flora { get; init; }
 
     /// <summary>
+    /// The liquid in each cell (docs/plans/liquids.md), a byte a cell as <c>Content.Liquids</c> packs it; null for none. Grown
+    /// with a planet's ground (its lakes), or drawn beside a test's map (<see cref="WithLiquids(string)"/>).
+    /// </summary>
+    public IReadOnlyList<byte>? Liquids { get; init; }
+
+    /// <summary>
     /// The kind of surface the ship's own grid is played under (<c>Content.Surfaces</c>), by its id: the ship's, but for a test
     /// or dev world drawn as a planet's ground, played under its rules.
     /// </summary>
@@ -87,7 +93,15 @@ public sealed record Layout(
             Cables = Cables?.Select(c => (Moved(c.A), Moved(c.B))).ToArray(),
             Zone = WorldZone,
             Materials = materials,
+            Liquids = MovedLiquids(Liquids),
         };
+        byte[]? MovedLiquids(IReadOnlyList<byte>? cells)
+        {
+            if (cells == null) return null;
+            var moved = new byte[width * height];
+            for (int cell = 0; cell < cells.Count; cell++) moved[Moved(cell)] = cells[cell];
+            return moved;
+        }
     }
 
     /// <summary>
@@ -133,6 +147,21 @@ public sealed record Layout(
                 codes[y * Width + x] = Content.Materials.Get(id ?? Content.Materials.DefaultHull).Code;
             }
         return this with { Materials = codes };
+    }
+
+    /// <summary>
+    /// This map with the liquid of its cells drawn beside it, the same size, in <c>Legend.LiquidOf</c>'s characters and trimmed
+    /// as <see cref="Parse(string)"/> trims a map: how a test draws water.
+    /// </summary>
+    public Layout WithLiquids(string map)
+    {
+        var rows = Trimmed(map);
+        var cells = new byte[Width * Height];
+        for (int y = 0; y < Math.Min(rows.Length, Height); y++)
+            for (int x = 0; x < Math.Min(rows[y].Length, Width); x++)
+                cells[y * Width + x] = Legend.LiquidOf(rows[y][x])
+                    ?? throw new FormatException($"Liquid map cell ({x}, {y}): '{rows[y][x]}' is not in the legend.");
+        return this with { Liquids = cells };
     }
 
     /// <summary>
@@ -205,10 +234,21 @@ public sealed record Layout(
                 materials[at] = materials[at + 1] = materials[at + w] = materials[at + w + 1] = Materials[cell];
             }
         }
+        byte[]? liquids = null;
+        if (Liquids != null)
+        {
+            liquids = new byte[w * h];
+            for (int cell = 0; cell < Liquids.Count; cell++)
+            {
+                int at = Moved(cell);
+                liquids[at] = liquids[at + 1] = liquids[at + w] = liquids[at + w + 1] = Liquids[cell];
+            }
+        }
         return this with
         {
             Width = w,
             Height = h,
+            Liquids = liquids,
             Rows = [.. rows.Select(r => new string(r))],
             Under = under?.Select(r => new string(r)).ToArray(),
             Cables = Cables?.Select(c => (Moved(c.A), Moved(c.B))).ToArray(),
