@@ -367,6 +367,8 @@ public partial class Figure : Node2D
     private (double X, double Y) FromShoulder(Vector2 aim, int facing)
     {
         if (aim == Vector2.Zero) return (1, 0);
+        // Never shown, the body has no place yet: the offset as it is, faced.
+        if (_shown == null) return (aim.X * facing, aim.Y);
         var local = _frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift));
         return (local.X, local.Y + Rig.Shoulder);
     }
@@ -1039,14 +1041,17 @@ public partial class Figure : Node2D
         {
             // Toward its aim from where the hero is now, from the shoulder: the motion chosen at the press, played along it till
             // the blade, not the hand, crosses the line to it (0040, swing-motions).
-            var (dx, dy) = FromShoulder(aimed, hero.Facing);
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase, stroke) : phase;
+            double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
             elbow = play.ElbowAt(drawn);
             // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
-            if (play.Motion.Kind == StrokeKind.Thrust) swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
-            else swung = (play.AngleAt(Math.Atan2(dy, dx), drawn), drawn);
+            if (play.Motion.Kind == MotionKind.Thrust)
+            {
+                var (dx, dy) = FromShoulder(aimed, hero.Facing);
+                swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
+            }
+            else swung = (play.AngleAt(AimAngleOf(aimed, hero.Facing), drawn), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -1164,8 +1169,7 @@ public partial class Figure : Node2D
         // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
         if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
-            bool jab = cutPlay.Motion.Kind == StrokeKind.Thrust;
-            var (aimX, aimY) = FromShoulder(cutAim, hero.Facing);
+            bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
             double half = Strokes.HalfOf(weapon);
             double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
             if (_cutPhase < start && cutPhase >= start)
@@ -1173,7 +1177,7 @@ public partial class Figure : Node2D
                 var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
                 double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
-                _air.Strike(jab, Math.Atan2(aimY, aimX), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
+                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
                     WorkLooks.CutFadeOf(Wields));
             }
             _cutPhase = cutPhase;

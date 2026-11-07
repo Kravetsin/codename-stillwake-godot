@@ -2,9 +2,6 @@ using System;
 
 namespace Stillwake.Game.Features.Crew;
 
-/// <summary>How a melee tool's stroke moves the arm: swung over in an arc, as the axe (0040), or thrust straight at the point, as the spear.</summary>
-public enum StrokeKind { Swing, Thrust }
-
 /// <summary>
 /// One melee tool's strokes (salvage-tools), in real time: each plays through <paramref name="Ms"/>, striking at
 /// <paramref name="HitShare"/> of it, and the next may begin <paramref name="PaceMs"/> after it began, its weapon's pace, so a
@@ -15,14 +12,8 @@ public enum StrokeKind { Swing, Thrust }
 public sealed record Stroke(
     SectorMotions Motions, HeldLook Look, double Ms, double PaceMs, double HitShare, double PeakS = Stillwake.Game.Sound.SwingPeakS, double Half = 0)
 {
-    /// <summary>How it moves the arm, swung or thrust, as its motions do.</summary>
-    public StrokeKind Kind => Motions.Straight.Kind;
-
     /// <summary>When in a stroke playing <paramref name="motion"/> its whoosh begins: its loudest moment (<see cref="PeakS"/> in) at the motion's.</summary>
     public double WhooshMsOf(SwingMotion motion) => Math.Max(0, (motion.WhooshShare ?? HitShare) * Ms - PeakS * 1000);
-
-    /// <summary>When in a stroke aimed straight ahead its whoosh begins.</summary>
-    public double WhooshMs => WhooshMsOf(Motions.Straight);
 }
 
 /// <summary>Every tool struck with by hand, by its item: the axe, the sledgehammer, the spear and the pickaxe.</summary>
@@ -52,13 +43,13 @@ public static class Strokes
     public const double HammerBlowMs = 800;
 
     /// <summary>
-    /// The spear's, the user's pick «Короткий укол» (jab): <see cref="JabMs"/>, the elbow cocked and straightened, the hit at 215 ms;
+    /// The spear's, the user's pick «Короткий укол» (jab): <see cref="JabMs"/>, the elbow cocked and straightened, the hit at <see cref="JabHitMs"/>;
     /// played its whole pace, the arm held aimed at rest after the jab, so a held thrust never drops the spear between.
     /// </summary>
-    public static readonly Stroke Spear = new(SectorMotions.All(Jab.Motion), HeldLook.Spear, PaceMs(Content.Weapons.Spear), PaceMs(Content.Weapons.Spear), 215 / PaceMs(Content.Weapons.Spear), Stillwake.Game.Sound.SpearThrustPeakS);
+    public static readonly Stroke Spear = new(SectorMotions.All(Jab.Motion), HeldLook.Spear, PaceMs(Content.Weapons.Spear), PaceMs(Content.Weapons.Spear), JabHitMs / PaceMs(Content.Weapons.Spear), Stillwake.Game.Sound.SpearThrustPeakS);
 
-    /// <summary>How long the jab itself takes, out and back.</summary>
-    public const double JabMs = 450;
+    /// <summary>The jab's times, in ms: the elbow cocked by <c>JabCockMs</c>, snapped straight to the hit by <c>JabHitMs</c>, held straight to <c>JabHoldMs</c>, back at rest by <c>JabMs</c>.</summary>
+    public const double JabCockMs = 150, JabHitMs = 215, JabHoldMs = 265, JabMs = 450;
 
     /// <summary>The strokes <paramref name="item"/> makes in the hand; none for a tool that is not struck with.</summary>
     public static Stroke? Of(string? item) =>
@@ -67,15 +58,15 @@ public static class Strokes
 
     /// <summary>
     /// The jab's elbow at <paramref name="phase"/> of a thrust, in radians bent (the pick's keys): from its rest bend cocked further
-    /// back to <see cref="Cocked"/> by 150 ms, snapped straight by 215 ms, held to 265 ms, eased back to rest by <see cref="JabMs"/>.
+    /// back to <see cref="Cocked"/> by <see cref="JabCockMs"/>, snapped straight by <see cref="JabHitMs"/>, held to <see cref="JabHoldMs"/>, eased back to rest by <see cref="JabMs"/>.
     /// </summary>
     public static double ElbowAt(double phase)
     {
         double ms = phase * Spear.Ms;
-        if (ms < 150) return Mix(RestElbow, Cocked, Smooth(ms / 150));
-        if (ms < 215) return Mix(Cocked, 0, Math.Pow((ms - 150) / 65, 2));
-        if (ms < 265) return 0;
-        return ms < JabMs ? Mix(0, RestElbow, Smooth((ms - 265) / (JabMs - 265))) : RestElbow;
+        if (ms < JabCockMs) return Mix(RestElbow, Cocked, Smooth(ms / JabCockMs));
+        if (ms < JabHitMs) return Mix(Cocked, 0, Math.Pow((ms - JabCockMs) / (JabHitMs - JabCockMs), 2));
+        if (ms < JabHoldMs) return 0;
+        return ms < JabMs ? Mix(0, RestElbow, Smooth((ms - JabHoldMs) / (JabMs - JabHoldMs))) : RestElbow;
     }
 
     /// <summary>The spear's elbow between thrusts, as it is held (<see cref="HeldLook.Spear"/>), in radians bent.</summary>

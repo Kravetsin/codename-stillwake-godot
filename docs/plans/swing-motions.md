@@ -30,15 +30,17 @@ no longer twists. Step 2 adds new motions, one pick each.
   lifted and faced, `Figure.FromShoulder`), radians from straight ahead, **down positive**. The front half is −π/2 to π/2.
 - **Fan:** the weapon's hit spread, `Stroke.Half` either side of the aim (unchanged). Not to be confused with `HalfSector`.
 
-### Motions (`game/Content/logic/SwingMotions.cs`, client content)
+### Motions (data in `game/Content/logic/SwingMotions.cs`; played in `game/features/crew/logic/MotionPlay.cs`)
 
-- **`Motion`** holds:
-  - a `Kind`, either Swing or Thrust;
+- **`SwingMotion`** holds:
+  - a `Kind` (`MotionKind`), either Swing or Thrust;
   - its keys;
   - the share its whoosh peaks at.
 
   The strike's share is not on the motion: `Stroke.HitShare` stays the one source. A test checks that every Swing row's strike
   key sits at its stroke's `HitShare`.
+- **`MotionPlay`** is a motion as one stroke plays it, chosen at the press and kept: its sector, motion, keys (the overhand's
+  built then), the item's `Lead`, and a fixed motion's sampled shares. The stroke's kind is its chosen motion's `Kind`.
 - **A key** is `(Share, Shoulder, Elbow, Ease)`:
   - `Shoulder` is a turn in radians **relative to the aim line**, down positive.
   - The arm is drawn at `ArmAt(aim + Lead(item) + Shoulder, Elbow)`, as today's `AngleAt` is `line + Lift`.
@@ -50,13 +52,14 @@ no longer twists. Step 2 adds new motions, one pick each.
 - **Every motion begins and ends at rest:** its first and last keys have `Shoulder` 0, the strike's elbow, at shares 0 and 1. A
   held next stroke, whatever its sector, then begins unbroken (`SwingArm` eases any hand-over, as today). A test checks every
   weapon row.
-- **The overhand** is today's swing. Its keys are built at the press from `ShapeFor(aim + Lead, Stroke.Half)` (raised, through):
+- **The overhand** (`Overhand`, beside `MotionPlay`, with the limits `Overhead`/`Behind`) is today's swing. Its keys are
+  built at the press from `ShapeFor(aim + Lead, Stroke.Half)` (raised, through):
   `(0, 0, e, —)`, `(WindShare, −raised, e, Sine)`, `(HitAt, 0, e, Linear)`, `(HitAt + through / DownSpeed, through, e, Linear)`,
   `(1, 0, e, Sine)`, where `e` is the item's `HeldLook.Elbow` (0 for the axe).
   - Played, these keys give `Lift` exactly.
   - It is the one motion whose keys are shaped by its aim, so the port is exact at every aim. Motions drawn later have fixed keys
     and are turned whole.
-- **The jab** is the spear's stroke, Kind Thrust, with no shoulder keys:
+- **The jab** (`Jab`) is the spear's stroke, Kind Thrust, with no shoulder keys:
   - Each frame its shoulder is solved so the shaft's line runs through the aim point, as today (`HarpoonShot.ArmFor`).
   - Its elbow is today's own curve `Strokes.ElbowAt`, kept as the motion's elbow function (smoothstep and a square), not keys.
 - **The air cut's sweep** asks the motion for `ShareAt(turn)`, the share at which the edge's middle is `turn` from the aim line:
@@ -82,12 +85,13 @@ no longer twists. Step 2 adds new motions, one pick each.
 
 ### Weapons (`Strokes.cs`)
 
-- `Stroke` gains `Motions`, one motion for each sector:
+- `Stroke` gains `Motions`, one motion for each sector, and `Look`, the `HeldLook` it is drawn with; it has no `Kind`:
   - axe, pickaxe and sledgehammer name the overhand in all four;
   - the spear names the jab in all four.
 - Pace, length, `HitShare` and `PeakS` stay on `Stroke` as they are, the hammer's slowed swing included.
-- `Stroke.WhooshMs` reads the motion's whoosh share instead of `AxeSwing.WindShare`/`StrikeShare`.
-- `AxeSwing.WhooshMs`, which is the axe's alone, goes; its readers use `Strokes.Axe.WhooshMs`.
+- `Stroke.WhooshMsOf(motion)` reads the motion's whoosh share instead of `AxeSwing.WindShare`/`StrikeShare`.
+- `AxeSwing.WhooshMs`, which is the axe's alone, goes; its readers use `Strokes.Axe.WhooshMsOf(Overhand.Motion)`.
+- The jab's times are named: `JabCockMs`, `JabHitMs`, `JabHoldMs`, `JabMs`.
 - `SwingArm.BlendMs` becomes the constant 175 ms. That is today's value, the axe's wind-up (0.35 × 500 ms), now named apart from
   `AxeSwing`.
 
@@ -95,8 +99,10 @@ no longer twists. Step 2 adds new motions, one pick each.
 
 - **The offset.** `AxeSwing.Begin` takes the hero's place, `Hero.X`/`Hero.Y` in thousandths of a cell. It keeps the offset
   `Aim = point − place` and the world point `At`, which is still what `Busy.At` sends.
-- **Every `Begin` takes a fresh offset,** including the held repeat inside `Advance`. So `Advance(elapsedMs, wanted, at, stroke)`
-  gains `place`, the hero now.
+- **Every `Begin` takes a fresh offset,** including the held repeat inside `Advance`. So `Advance` gains `place`, the
+  hero now, and `angle`: `Advance(elapsedMs, wanted, at, place, stroke, angle)`, `Follow(elapsedMs, sent, place, stroke, angle)`.
+- **The aim angle** comes from the figure, `Figure.AimAngleOf(offset, facing)`, faced as the stroke will face it; none, the
+  offset's own. It is worked out only when a stroke may begin: the own hero's button wanted, a friend's chop heard.
 - **Drawing.** Each frame the arm aims at the hero's place now plus `Aim`, which is what `Figure.Chop` receives from
   `HeroView.ShowHands`.
 - **Hitting.** At the strike, the fan is cast from the hero then toward the same offset (`StrokeOf` in `HeroView.Hands`,
@@ -104,10 +110,10 @@ no longer twists. Step 2 adds new motions, one pick each.
 - **A zero offset** (the pointer on the hero's own place) aims straight ahead the way the hero faces.
 - **Others' heroes.** `Busy.At` keeps its meaning on the wire: the world point at the press.
   - The body of another's hero is drawn 150 ms behind (`Remote.BehindMs`), while its swings are swung as heard, so the offset is
-    taken from **the hero sent in the same packet as the swing**.
-  - `HeroView`'s `_heardChops` keeps, beside the last chop, the `Hero` of the packet in which that swing number first came.
-  - `AxeSwing.Follow(elapsedMs, sent, place, stroke)` begins with `Aim = sent.At − place`. This is exact to the sender's own
-    offset, up to the 50 ms between its packets.
+    taken from **the hero sent in the first packet that brought the swing's number**.
+  - `Busy.Hear` keeps, beside the last chop, the place of the packet in which that swing number first came (`HeardChop`).
+  - `AxeSwing.Follow(elapsedMs, sent, place, stroke, angle)` begins with `Aim = sent.At − place`. This is exact to the
+    sender's own offset, up to the 50 ms between its packets.
 - **A replay's facing.** While another's hero swings, its figure faces the side of the offset's x, as the own hero faces by
   `_swingFace`. Its aim then lies in the front half however its delayed body was turned.
 
@@ -120,9 +126,9 @@ no longer twists. Step 2 adds new motions, one pick each.
   they pass the offset and the hero's place, not the world point.
 - **`HarpoonShot`**: keeps `ArmAt`/`EdgeAt`; nothing else of `AxeSwing`'s shape.
 - **Code that moves:**
-  - `AxeSwing.Lift`, `ShapeFor`, `ShareAt` and `AngleAt` move into the overhand.
-  - `AxeSwing` keeps the clock (`Advance`, `Follow`, `Phase`, `Count`, `Shown`), the stroke's sector, motion and offset,
-    `ArmAt`, `EdgeAt`, `Lead`, and the limits `Overhead`/`Behind`.
+  - `AxeSwing.Lift`, `ShapeFor`, `ShareAt`, `AngleAt` and the limits `Overhead`/`Behind` move into the overhand.
+  - `AxeSwing` keeps the clock (`Advance`, `Follow`, `Phase`, `Count`, `Shown`), the stroke's `Play` and offset,
+    `ArmAt`, `EdgeAt`, `Lead`.
 
 ## Tests (`game.tests`)
 
@@ -135,7 +141,7 @@ no longer twists. Step 2 adds new motions, one pick each.
   - Before the move, a copy of today's `Lift`/`ShapeFor`/`AngleAt`/`ShareAt` goes into the test as the reference.
   - After the move, for each weapon, at aims every 5° over the front half and phases every 1/100, the arm angle and `ShareAt`
     equal the reference.
-  - The jab's elbow equals `ElbowAt` every 5 ms.
+  - The jab's elbow equals a copy of today's `ElbowAt` every 5 ms.
   - Changing one key makes the test fail, shown once.
 - **Rows:** every weapon row's motions begin and end at rest, and every Swing row's strike key sits at its `HitShare`.
 - **Sectors** (FsCheck `[Property]`), for any angle, back half included:
@@ -149,7 +155,7 @@ no longer twists. Step 2 adds new motions, one pick each.
 - **Rewritten:**
   - The `AxeSwingTests` that read `At` as a vector from the shoulder (`Atan2(At.Y, At.X)`) or feed world points read `Aim`, with
     the hero's place given.
-  - `StrokesTests` reads `WhooshMs` from the row.
+  - `StrokesTests` reads `WhooshMsOf` from the row's motion.
   - `RemoteTests` and `AimTests` stay as they are.
 
 ## Step 2: new motions, one pick each
@@ -168,8 +174,9 @@ Then it becomes a row of keys.
 - **A new ADR `2026-11-07-swing-motions`:** motions apart from weapons, sectors, the aim travelling with the hero. It supersedes
   0039 in part: the stroke's aim is kept against the hero's place, not the world. 0039 gets the line "superseded in part by …".
   0075's arm stop stays.
-- **`game/features/crew/README.md`:** the "Struck tools" line of "The hands", and the Files table (`SwingMotions.cs`).
-- **`docs/glossary.md`:** «движение удара» → `Motion`, «сектор удара» → `Sectors`.
+- **`game/features/crew/README.md`:** the "Struck tools" line of "The hands", and the Files table
+  (`MotionPlay.cs`; `SwingMotions.cs` sits in `game/Content/logic`).
+- **`docs/glossary.md`:** «движение удара» → `SwingMotion`, «сектор удара» → `Sectors`.
 - **`docs/map.md`:** if the guard asks.
 
 ## Deliberately not handled
@@ -188,5 +195,5 @@ Then it becomes a row of keys.
 - The full suite is green.
 - `dotnet format --verify-no-changes` is clean.
 - The docs guard is green.
-- In a dev room the user plays, the three swings and the jab look as before.
+- In the `--melee` dev room the user plays, the three swings and the jab look as before.
 - A hero pushed off mid-swing keeps aiming at the same point relative to itself.

@@ -19,21 +19,20 @@ public readonly record struct SwingStep(bool Begun, bool Hits, bool Whooshes = f
 /// </summary>
 public struct AxeSwing
 {
-    /// <summary>A swing's length: <c>Weapons.Axe.Pace</c> of the world's ticks, as real time.</summary>
-    public static readonly double Ms = Content.Weapons.Axe.Pace * 1000.0 / Sim.World.TicksPerSecond;
+    /// <summary>How long a swing that bit something is drawn held at the strike: three frames of weight at 60 Hz (0075).</summary>
+    public const double StopMs = 3 * 1000.0 / FrameHz;
 
-    /// <summary>How long a swing that bit something is drawn held at the strike: three 60 Hz frames of weight (0075).</summary>
-    public const double StopMs = 3 * 1000.0 / 60;
+    /// <summary>The frame rate the stop on contact is counted in frames of.</summary>
+    private const double FrameHz = 60;
 
     /// <summary>
     /// The share of a stroke that bit something to draw at <paramref name="phase"/> (0075): its own up to the strike,
     /// held there for <see cref="StopMs"/>, then the rest of it hurried to end with the stroke, so the arm stops on
-    /// contact while the stroke's clock, and every hit it times, runs on untouched. Of <paramref name="stroke"/>, the axe's by default.
+    /// contact while the stroke's clock, and every hit it times, runs on untouched.
     /// </summary>
-    public static double Shown(double phase, Stroke? stroke = null)
+    public static double Shown(double phase, Stroke stroke)
     {
-        var of = stroke ?? Strokes.Axe;
-        double hit = of.HitShare, stop = StopMs / of.Ms;
+        double hit = stroke.HitShare, stop = StopMs / stroke.Ms;
         if (phase <= hit) return phase;
         if (phase <= hit + stop) return hit;
         return hit + (phase - hit - stop) * (1 - hit) / (1 - hit - stop);
@@ -92,7 +91,7 @@ public struct AxeSwing
         _clock += elapsedMs;
         double ms;
         // A stroke of another tool than the one playing ends it: its pace is its own, the next tool's waits for none of it.
-        if (_ms != null && stroke != null && stroke != _stroke) _ms = null;
+        if (_ms != null && stroke != null && !ReferenceEquals(stroke, _stroke)) _ms = null;
         if (_ms is double playing) ms = playing + Math.Min(elapsedMs, MostPerFrameMs);
         else if (wanted && Ready(stroke ?? Strokes.Axe)) (ms, begun) = (0, Begin(at, place, stroke, angle));
         else return default;
@@ -136,13 +135,19 @@ public struct AxeSwing
     private bool Begin(Point at, Point place, Stroke? stroke, double? angle, double agoMs = 0)
     {
         _stroke = stroke ?? Strokes.Axe;
-        (_begunAt ??= [])[_stroke] = _clock - agoMs;
+        (_begunAt ??= new(ReferenceEqualityComparer.Instance))[_stroke] = _clock - agoMs;
         Count++;
-        (At, Aim) = (at, new Point(at.X - place.X, at.Y - place.Y));
+        (At, Aim) = (at, OffsetOf(at, place));
         Play = MotionPlay.Of(_stroke, angle ?? AngleOf(Aim));
         _struck = _whooshed = false;
         return true;
     }
+
+    /// <summary><paramref name="at"/> from <paramref name="from"/>, in thousandths of a cell.</summary>
+    public static Point OffsetOf(Point at, Point from) => new(at.X - from.X, at.Y - from.Y);
+
+    /// <summary>Where <paramref name="hero"/> stands, its feet, in thousandths of a cell: what a stroke's aim is kept from.</summary>
+    public static Point PlaceOf(Hero hero) => new(hero.X, hero.Y);
 
     /// <summary>The angle of <paramref name="aim"/> itself, radians from straight ahead, down positive; none, straight ahead.</summary>
     public static double AngleOf(Point aim) => aim == default ? 0 : Math.Atan2(aim.Y, aim.X);
@@ -188,13 +193,4 @@ public struct AxeSwing
         var (from, to) = EdgeAt(look, 0);
         return -Math.Atan2((from.Y + to.Y) / 2, (from.X + to.X) / 2);
     }
-
-    /// <summary>
-    /// The farthest back over the head a swing raises the straight arm, in radians from hanging (<see cref="Bend.Upper"/>): a
-    /// little past straight up, as far as a shoulder goes. A swing aimed high is raised less, so it never twists behind the back.
-    /// </summary>
-    public const double Overhead = 3.6;
-
-    /// <summary>The farthest behind hanging a swing brings the straight arm through, in radians: a swing aimed low goes on less.</summary>
-    public const double Behind = 1.0;
 }

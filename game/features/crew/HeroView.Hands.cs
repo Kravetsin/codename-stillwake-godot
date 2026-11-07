@@ -98,15 +98,15 @@ public partial class HeroView
         bool swings = acts && stroke != null && !working && Poses.HoldsIn(pose);
         if (!swings) _swing.Stop();
         bool wanted = swings && pointer != null && !grabbed && !_grabHeld && (_mouse.Buttons.HoldsLeft || clicked);
-        // Aimed from the hero as an offset it carries along, its motion picked by the angle the figure, faced to strike, sees.
+        // Aimed from the hero as an offset it carries along, its motion picked at the press by the angle the figure, faced to
+        // strike, sees: asked only while a stroke is wanted.
         var swingAt = pointer is { } aimed ? Aiming.PointOf(aimed) : default;
-        var swingFrom = new Point(_current.X, _current.Y);
-        int face = Poses.FaceOf(pointer, _current) ?? _current.Facing;
-        double? angle = pointer != null ? _figure.AimAngleOf(Pixels(new Point(swingAt.X - swingFrom.X, swingAt.Y - swingFrom.Y)), face) : null;
-        var swung = _swing.Advance(elapsedMs, wanted, swingAt, swingFrom, stroke, angle);
+        var place = AxeSwing.PlaceOf(_current);
+        double? angle = wanted ? AimAngle(_figure, AxeSwing.OffsetOf(swingAt, place), _current) : null;
+        var swung = _swing.Advance(elapsedMs, wanted, swingAt, place, stroke, angle);
         if (swung.Begun)
         {
-            _swingFace = face;
+            _swingFace = AxeSwing.FaceOf(_swing.Aim, _current);
             _current = _current with { Facing = _swingFace };
         }
         if (swung.Whooshes && S.SwingOf(struck) is var whoosh) (whoosh == S.HammerSwing ? _hammerSwing : whoosh == S.SpearThrust ? _spearThrust : _swingSound).Play();
@@ -153,7 +153,7 @@ public partial class HeroView
         _aimsGun = (wieldsGun || wieldsShooter) && pointer != null;
         // An aimed item comes up while used and a moment after, else it hangs (aim-on-use): held, clicked, running, its rod out or
         // thrust. A click waits till the arm is up, so a shot leaves along the aim, never the hanging barrel.
-        bool held = _mouse.Buttons.HoldsLeft && !_grabHeld, thrusts = swings && stroke?.Kind == StrokeKind.Thrust;
+        bool held = _mouse.Buttons.HoldsLeft && !_grabHeld, thrusts = swings && ReferenceEquals(_swing.Stroke, stroke) && _swing.Play?.Motion.Kind == MotionKind.Thrust;
         bool fresh = clicked && !grabbed || _clickWaits;
         bool used = (_aimsGun || _aimsDrill) && (held || fresh || runs || gun && _harpoon.Rod != Rod.Seated) || thrusts && (wanted || _swing.Phase != null);
         _armUp = _arm.Step(used, elapsedMs) && (_aimsGun || _aimsDrill || thrusts);
@@ -427,6 +427,12 @@ public partial class HeroView
         else if (!_thrustSound.Playing && _thrustLoop.Playing) _thrustLoop.Stop();
         _thrustLoop.VolumeDb = S.Thrust.VolumeDb + _thrustSound.GainDb;
     }
+
+    /// <summary>
+    /// The aim angle of a stroke aimed <paramref name="aim"/> from <paramref name="hero"/>, as <paramref name="figure"/>, faced to
+    /// strike it (<see cref="AxeSwing.FaceOf"/>), sees it: what picks the stroke's motion at the press (swing-motions).
+    /// </summary>
+    private static double AimAngle(Figure figure, Point aim, Hero hero) => figure.AimAngleOf(Pixels(aim), AxeSwing.FaceOf(aim, hero));
 
     /// <summary>
     /// A figure's hands as <paramref name="wields"/> and <paramref name="busy"/> say, the stroke playing aimed

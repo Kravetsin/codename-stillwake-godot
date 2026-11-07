@@ -53,15 +53,15 @@ public partial class HeroView
             var (helmet, body) = Suits.WornBy(m.Items, id);
             shown.Figure.Wear(Suits.Of(m.Players, id), helmet, body, m.Players.LookOf(id));
             shown.Figure.Suit = SuitGlow.Of(crew, m.Items, id, _client.World.Tick);
-            var (strikes, chop, sentFrom) = _heardChops.GetValueOrDefault(id);
+            var (strikes, heard) = _heardChops.GetValueOrDefault(id);
+            var chop = heard.Last;
             var stroke = Strokes.Of(strikes);
             if (stroke == null) shown.Swing.Stop();
             // Aimed from the hero as it was sent with the swing, its body drawn behind; the figure faced to strike sees its sector.
-            var offset = chop is { At: var sentAt } ? new Point(sentAt.X - sentFrom.X, sentAt.Y - sentFrom.Y) : default;
-            double? angle = chop != null ? shown.Figure.AimAngleOf(Pixels(offset), AxeSwing.FaceOf(offset, hero)) : null;
+            double? angle = stroke != null && chop is { At: var sentAt } ? AimAngle(shown.Figure, AxeSwing.OffsetOf(sentAt, heard.From), hero) : null;
             // Its blade heard and seen where it bites the ground as it is played here, as its own peer strikes it (0093, tool-reach),
             // in the front layer: which button its peer swings with is not sent.
-            bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, sentFrom, stroke, angle).Hits;
+            bool hits = shown.Swing.Follow(elapsedMs, stroke != null ? chop : null, heard.From, stroke, angle).Hits;
             // Swinging, it faces the side its stroke is aimed at, however its delayed body was turned.
             if (shown.Swing.Phase != null) hero = hero with { Facing = AxeSwing.FaceOf(shown.Swing.Aim, hero) };
             if (hits) StruckBy(m, id, hero, shown.Swing.Toward(hero), strikes!);
@@ -73,7 +73,9 @@ public partial class HeroView
             if (shown.Drill.Due(_client.World.Tick, drills, Content.Weapons.Of(running)?.Pace ?? 1) && edged != null
                 && m.Items.BlockDamage(id, running!) != 0 && ToolEdges.LeadOf(m, edged) is int lead)
                 Struck(_othersGroundHits, m, lead, running!, hero, id);
-            ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, shown.Swing);
+            // Its stroke shown only while the body drawn, 150 ms behind, holds the tool it was heard swinging.
+            var drawnSwing = ReferenceEquals(Strokes.Of(seen.Wields), shown.Swing.Stroke) ? shown.Swing : default;
+            ShowHands(shown.Figure, seen.Wields, FittedOf(m, id, seen.Wields), seen.Busy, drawnSwing);
             // A friend's drill running points where it drills, its harpoon where its rod flies or sticks, else
             // either hangs; the drill spins while the sim says it runs.
             var rodAim = shown.Rod.AimAt(seen.Rod, PieceDrawnAt);

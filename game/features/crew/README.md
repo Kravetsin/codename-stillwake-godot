@@ -15,6 +15,7 @@ the sim.
 | `logic/Aim.cs` | reach, aim, what hands send |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
+| `logic/MotionPlay.cs` | its motion |
 | `ReachAir.cs` | a tool's reach shown |
 | `logic/AirCuts.cs` | its dust and brush |
 | `logic/SwingArc.cs` | its angle kept |
@@ -42,7 +43,7 @@ the sim.
 | `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
-| `SuitKeys.cs` | V on the tablet's edge |
+| `SuitKeys.cs` | V on the tablet's edge, dim if refused |
 | `Figure.cs` | the rig, lit, dressed (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
@@ -87,19 +88,18 @@ the sim.
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089); out of the hull, tethered.
 - Doors are walked as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
-- **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
-  floors, never a wall, door, hatch or ladder; jump wins over down.
+- **Holes and floors:** the body falls into a hole it fits. Down drops through floors, never a wall, door, hatch or
+  ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
 - **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl` aloft.
 - **The figure answers its motion** (0090, hero-gait), as sent.
 - **Rammed** (0103) **or crossed by an arc** (`Rams.Crosses`, once): `HitBy`/`Bolted` sent, thrown, keys masked a while.
 - **Surfaces** (0076): `Ship.Of` rules: nothing floats on a planet, gravity the kind's `Fall`; fog glides, `FogMove`
   across a seam (fog-edges).
-- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends.
+- **Camera:** leads, eases, snaps. **Markers** (0061): home, own newest body, friends heard.
 - **Jetpack and swim** (0047): afloat the hero swims, tethered, through floors; a jetpack, untied, Shift thrusts,
   `Thrust` sent while unlike the sim's.
-- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it; V's
-  key on the tablet's edge, dim if refused.
+- **A canister** (0047, 0081): right click or R sends `Refill`, V `SuitMode` (regen-suit), if the sim takes it.
 - **The crew module:** made at `Spawn`; passed out it takes no orders, lies at the sim's cell, picks nothing
   up (0061). `Enter` goes when the sim's room or field side differs, every `Crew.ReportEvery`
   ticks off its cell, each tick while threatened; none while out (0050). The tether is tied where the
@@ -112,7 +112,7 @@ the sim.
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
   by item id and `Busy` kind (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
-  on this surface (0076). A friend's tool strikes per number heard, from the hero sent with it; its rod plays out by `RemoteRod`
+  on this surface (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
   (0065); its drill or power driver runs as the sim says (0055).
 
 ## The hands
@@ -125,8 +125,8 @@ the sim.
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
   wrecks it crosses; ground met rings, sparks.
-- **Struck tools** (0038, swing-motions): the row's motion for the aim's sector (gc/`SwingMotions.cs`), picked at the
-  press, its aim an offset the hero carries; hits as the blade crosses it.
+- **Struck tools** (0038, salvage-tools, the-pickaxe, swing-motions): each at its pace and sector's motion, hitting as the
+  blade crosses an aim the hero carries: moved in the wind-up, it strikes from where it is.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
