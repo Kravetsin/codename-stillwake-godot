@@ -286,3 +286,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
+| [tool-card-rows](2026-11-07-tool-card-rows.md) | A tool's card lists its numbers as rows with icons | accepted |  |
