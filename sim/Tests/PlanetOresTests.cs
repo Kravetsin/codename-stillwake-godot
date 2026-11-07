@@ -100,7 +100,14 @@ public class PlanetOresTests(ITestOutputHelper output)
             for (int band = 0; band < targets.Length; band++)
                 Assert.True(Math.Abs(shares[band] - targets[band]) <= 0.3 * targets[band], $"{material} band {band}: {shares[band]:F3} % for {targets[band]} %");
         }
+        // Going down pays: iron, pockets alone, richer in every band under the first.
+        var iron = m.Ore[Iron];
+        for (int band = 1; band < iron.Length; band++)
+            Assert.True(iron[band] * m.Rock[0] > iron[0] * m.Rock[band], $"iron no richer in band {band} than in band 0");
     }
+
+    /// <summary>The largest pocket band 0 holds over the seeds, a few specks joined (measured: copper's 26, iron's 52).</summary>
+    private const int LargestNearTheSurface = 60;
 
     [Fact]
     public void PocketsNearTheSurfaceAreSpecksAndDeeperOnesBigger()
@@ -118,6 +125,7 @@ public class PlanetOresTests(ITestOutputHelper output)
         foreach (int code in (int[])[Copper, Iron])
         {
             var sizes = m.Band0[code];
+            Assert.True(sizes.Max() <= LargestNearTheSurface, $"{Materials.ByCode(code)!.Id}: a band 0 pocket of {sizes.Max()} cells");
             Assert.True(sizes.Count(s => s > 6) * 100 <= sizes.Count * 5, $"{Materials.ByCode(code)!.Id}: {sizes.Count(s => s > 6)} of {sizes.Count} band 0 pockets over 6 cells");
             Assert.True(sizes.Average() < 2.5, $"{Materials.ByCode(code)!.Id}: band 0 pockets of {sizes.Average():F2} cells on average");
         }
@@ -152,9 +160,39 @@ public class PlanetOresTests(ITestOutputHelper output)
             }
         }
         Assert.Empty(short_);
-        // Open faces are few so near the surface (a band 0 share of about 0.2 %): some seeds show one or none, the seeds on average 3.
+        // Open faces are few so near the surface (a band 0 share of about 0.2 %): a seed may show none (measured: one of 16 for each
+        // ore), most show some, the seeds 3 or more on average.
         foreach (int code in (int[])[Copper, Iron])
+        {
+            Assert.True(opened[code].Count(n => n >= 1) >= 12, $"{Materials.ByCode(code)!.Id}: open near the spawn on {opened[code].Count(n => n >= 1)} seeds of {Seeds}");
             Assert.True(opened[code].Average() >= 3, $"{Materials.ByCode(code)!.Id}: {opened[code].Average():F1} cells open near the spawn a seed");
+        }
+    }
+
+    [Fact]
+    public void AMarkOfNoneGrowsNoOreInItsBandAndTheEarlierOreTakesACellBothReach()
+    {
+        static Vein Ore(string material, params int[] marks) => new(material, 40, 24, [0, 0, 0, 0], new(6, 4, marks));
+        var small = PlanetTypes.Small;
+        var both = small with { Veins = [Ore("copperVein", 0, 50000, 50000, 50000), Ore("ironVein", 50000, 50000, 50000, 50000)] };
+        var copperAlone = small with { Veins = [both.Veins[0], both.Veins[1] with { Pockets = null }] };
+        var ironAlone = small with { Veins = [Ore("copperVein", 0, 0, 0, 0), both.Veins[1]] };
+        int shared = 0;
+        foreach (uint seed in new uint[] { 1, 2, 3 })
+        {
+            var (l, c, i) = (Terrain.Generate(both, seed), Terrain.Generate(copperAlone, seed), Terrain.Generate(ironAlone, seed));
+            for (int cell = 0; cell < l.Width * l.Height; cell++)
+            {
+                int code = l.Materials![cell];
+                if (code == Copper) Assert.NotEqual(0, Terrain.BandOf(small, cell / l.Width));
+                if (c.Materials![cell] != Copper) continue;
+                // Copper's wherever it would be alone, iron's or not.
+                Assert.Equal(Copper, code);
+                if (i.Materials![cell] == Iron) shared++;
+            }
+            Assert.Contains(Iron, l.Materials!);
+        }
+        Assert.True(shared > 0, "no cell both ores reach");
     }
 
 }
@@ -182,12 +220,14 @@ public class PlanetOresInvariantTests
             if (Flora.Get(kind) is { On: Flora.Anchor.Rock } rock)
                 for (int dx = 0; dx < rock.Across; dx++)
                     for (int i = 0, at = cell + dx; i < rock.Tall; i++, at += w) footprint[at] = true;
+        int changed = 0;
         for (int cell = 0; cell < footprint.Length; cell++)
         {
             int was = off.Materials![cell], now = on.Materials![cell];
             if (was == now) continue;
             Assert.True(was == Stone && !footprint[cell] && on.At(cell) == '#' && (now == Copper || now == Iron), $"seed {seed}: cell {cell} {was} -> {now}");
+            changed++;
         }
-        return true;
+        return changed > 0;
     });
 }

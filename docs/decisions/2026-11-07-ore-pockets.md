@@ -16,12 +16,16 @@ small deposits near the top, richer deeper, iron besides copper, and an occasion
 - **Pockets.** An ore's `Vein` row may carry `Pockets(Wave, Tall, Marks)`: the ore's own noise, on a salt of its own
   (`PocketSalt + i`), and a mark per depth band; a cell is in a pocket where the noise reaches the band's mark (0: none).
   `Terrain.PaintPockets` paints them after the caves' growths, only into plain stone that is no lode vein and no
-  growth's, ores in list order. Lode veins, growths and the ground's shape are as they were.
-- **Richer deeper.** Band 0 holds rare specks of 1–3 cells (copper about 0.18 % of its stone, iron 0.24 %); deeper,
-  copper's lode veins carry it (1.5–2.6 %) and iron's pockets grow (0.4–0.7 %). A test pins the shares per band over 16
-  seeds and at least 10 cells of each within 600 columns and 60 rows of the spawn.
-- **Iron.** `ironVein` (code 16) gives the existing `ironOre`, smelted 1:1 at the furnace. Pockets only, no lode veins
-  yet. Its look is the user's pick of four drawn candidates: kidney ore, dark red-grey bubbles with a hard highlight
+  growth's, ores in list order. Lode veins, growths and the ground's shape are as they were. The salts follow each
+  ore's place in the list, so a vein inserted before an existing one would move that one's pockets on old planets:
+  new ores are appended only, and a type may list no more veins than the salts keep apart (`Terrain.MostVeins`).
+- **Richer deeper.** Band 0 holds rare specks, mostly 1–3 cells, 95 % at most 6 and none over 60 where neighbouring
+  specks join (copper about 0.18 % of its stone, iron 0.24 %); deeper, copper's lode veins carry it (1.5–2.6 %) and
+  iron's pockets grow (0.4–0.7 %). Copper's pockets are rarer below band 0 than in it, because its lode veins already
+  carry it there. A test pins the shares per band over 16 seeds and at least 10 cells of each within 600 columns and
+  60 rows of the spawn.
+- **Iron.** `ironVein` (code 16) gives the existing `ironOre`, smelted 1:1 at the furnace; Strength 10, a little softer
+  than copper's 12. Pockets only, no lode veins yet. Its look is the user's pick of four drawn candidates: kidney ore, dark red-grey bubbles with a hard highlight
   (`tools/anime-art/subjects/caves.js`).
 - **Glint.** One open vein face in three (`CaveLooks.VeinGlintEvery`), picked by the planet's seed and the cell,
   glints in a helmet's beam in the vein's fleck colour, as mica does; the rest stay dark, so a glint means ore.

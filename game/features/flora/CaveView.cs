@@ -150,6 +150,7 @@ public partial class CaveView : Node2D, ILightSource
         {
             foreach (int chunk in _shown.Keys.ToList()) Redraw(chunk);
             _bare.Clear();
+            _range = default;
             return;
         }
         int w = _grid.Width;
@@ -338,29 +339,13 @@ public partial class CaveView : Node2D, ILightSource
 
     /// <summary>
     /// A point a pixel inside an open face of the stone block <paramref name="across"/> by <paramref name="tall"/> cells at
-    /// <paramref name="cell"/>, by <paramref name="hash"/>; null for none open.
+    /// <paramref name="cell"/>, by <paramref name="hash"/> (<see cref="VeinGlints.FacePoint"/>); null for none open.
     /// </summary>
     private Vector2? FacePoint(int cell, int across, int tall, uint hash)
     {
-        int w = _grid.Width, x = cell % w, y = cell / w;
-        var open = FacesOpen(cell, across, tall);
-        Span<int> faces = stackalloc int[4];
-        int n = 0;
-        if ((open & Planting.Faces.Up) != 0) faces[n++] = 0;
-        if ((open & Planting.Faces.Down) != 0) faces[n++] = 1;
-        if ((open & Planting.Faces.Left) != 0) faces[n++] = 2;
-        if ((open & Planting.Faces.Right) != 0) faces[n++] = 3;
-        if (n == 0) return null;
-        // Along a face, two pixels from either end: a growth's block 16 pixels, a vein's cell 8.
-        int face = faces[(int)(hash % (uint)n)], length = (face < 2 ? across : tall) * Cell;
-        int along = 2 + (int)(hash / 4 % (uint)(length - 4)), inward = 1 + (int)(hash / 64 % 2);
-        return face switch
-        {
-            0 => new Vector2(x * Cell + along, y * Cell + inward),
-            1 => new Vector2(x * Cell + along, (y + tall) * Cell - 1 - inward),
-            2 => new Vector2(x * Cell + inward, y * Cell + along),
-            _ => new Vector2((x + across) * Cell - 1 - inward, y * Cell + along),
-        } + new Vector2(0.5f, 0.5f);
+        int w = _grid.Width;
+        return VeinGlints.FacePoint(cell % w, cell / w, across, tall, FacesOpen(cell, across, tall), hash, Cell) is { } p
+            ? new Vector2(p.X, p.Y) : null;
     }
 
     /// <summary>The lights of the chunks near the view, the nearest its middle first, at most <see cref="CaveLooks.MostLights"/>.</summary>

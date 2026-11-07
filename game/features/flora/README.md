@@ -58,7 +58,8 @@ warm amber and red near the bottom.
 - **Glints:** mica, crystals and geodes sparkle where a helmet's beam falls on them with nothing between,
   as bright as the beam there. Mica draws nothing else. An ore's vein cell (any `Material.In`) glints on an open face
   in its `GroundLooks` fleck, but only one cell in `CaveLooks.VeinGlintEvery`, picked by the planet's seed and the cell
-  (`VeinGlints`), so dark rock stays dark and a glint means ore; a 1–5-cell pocket may show none. Found as a chunk is drawn,
+  (`VeinGlints`), so dark rock stays dark and a glint means ore; a pocket near the surface (mostly 1–3 cells, 95 % at most 6, none
+  over 60) may show none. Found as a chunk is drawn,
   never a frame at a time; a chunk with veins and no growth is drawn for its glints alone.
 - **Drift** (0075): spores up from glowcaps; drips from one stalactite in `DripShare`, landing on the first solid
   cell under its tip within `DripRows` and splashing (`Planting.DripFloor`), none with no open cell under it; faint

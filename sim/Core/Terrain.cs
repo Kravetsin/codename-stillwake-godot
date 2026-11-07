@@ -22,6 +22,9 @@ public static class Terrain
     /// <summary>Each ore's pockets hashed apart, one from here for each of <c>Veins</c>, clear of the veins' own two each.</summary>
     private const uint PocketSalt = 100;
 
+    /// <summary>The most veins a type may list: their two salts each from <c>Veins</c> on stay under <see cref="PocketSalt"/>.</summary>
+    internal const int MostVeins = (int)(PocketSalt - Veins) / 2;
+
     public static Layout Generate(PlanetType t, uint seed) => Generate(t, seed, out _, out _, out _);
 
     /// <param name="hall">Each cell a great hall opened, where the caves' growth is densest (0080): for tests.</param>
