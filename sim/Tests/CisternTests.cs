@@ -13,7 +13,7 @@ public class CisternTests
 {
     /// <summary>
     /// A cell a character: the vent's port (0, 0); cistern A's input (6, 2), output (9, 2); cistern B's input (14, 2), output
-    /// (17, 2); the tank's liquid oxygen output (3, 6); open cells for planned machines below.
+    /// (17, 2); the tank's liquid oxygen output (3, 6); open cells for planned machines below, a floor under them.
     /// </summary>
     private const string Water = """
         VV....cccc....cccc..
@@ -24,6 +24,7 @@ public class CisternTests
         TTTT................
         TTTT................
         TTTT................
+        ====================
         """;
 
     private static readonly Placement Cistern = new("machine", "cistern");

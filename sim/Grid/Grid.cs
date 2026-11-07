@@ -104,6 +104,8 @@ public interface IGridQueries
     bool BlocksLight(int cell);
     /// <summary>Whether <paramref name="cell"/> is stood on or stopped at: it blocks or supports; past the grid, it is.</summary>
     bool Solid(int cell);
+    /// <summary>Whether a standing machine may stand on <paramref name="cell"/> (<see cref="Structures.Footing"/>); past the grid, not.</summary>
+    bool Footing(int cell);
     /// <summary>What the wall at <paramref name="cell"/> is made of; null for no wall, or off the grid.</summary>
     Material? WallAt(int cell);
     /// <summary>What the back wall behind <paramref name="cell"/> is made of; null for none, or off the grid.</summary>
@@ -430,6 +432,7 @@ public sealed partial class GridModule : Module<GridState>, IGridQueries, IGridO
     public bool Seals(int cell) => Has(cell, Trait.Seals);
     public bool BlocksLight(int cell) => Has(cell, Trait.BlocksLight);
     public bool Solid(int cell) => !InBounds(cell) || Structures.Solid(State.Structure[cell]);
+    public bool Footing(int cell) => InBounds(cell) && Structures.Footing(State.Structure[cell]);
 
     private bool Has(int cell, Trait trait) => InBounds(cell) && Structures.Is(State.Structure[cell], trait);
 

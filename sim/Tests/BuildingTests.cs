@@ -93,8 +93,8 @@ public class BuildingTests
     public void AsksTheGridFirstSoItsReasonWinsOverAClashWithAPlan()
     {
         var w = new Scenario(Open)
-            .Do(new PlacePlan(At(2, 1), Tank))
-            .Do(new PlacePlan(At(1, 0), Tank))
+            .Do(new PlacePlan(At(1, 2), Tank))
+            .Do(new PlacePlan(At(0, 2), Tank))
             .Run();
         Assert.Equal(["grid.blocked"], Reasons(w));
     }
@@ -117,10 +117,10 @@ public class BuildingTests
     public void TreatsAPlannedMachineAsFillingItsWholeFootprint()
     {
         var w = new Scenario(Open)
-            .Do(new PlacePlan(At(2, 1), Tank))
+            .Do(new PlacePlan(At(2, 2), Tank))
             .Do(new PlacePlan(At(3, 2), Tank))
             .Do(new PlacePlan(At(3, 2), Wall))
-            .Do(new PlacePlan(At(4, 1), Tank))
+            .Do(new PlacePlan(At(4, 2), Tank))
             .Run();
         Assert.Equal(["building.planned", "building.planned"], Reasons(w));
         Assert.Equal([1], Ids(w.M.Building.PlansAt(At(3, 2))));
@@ -140,7 +140,7 @@ public class BuildingTests
         var w = new Scenario(Open)
             .Do(new Items.SetCreative(true))
             .Do(new PlacePlan(At(1, 1), floor))
-            .Do(new PlacePlan(At(3, 1), Tank))
+            .Do(new PlacePlan(At(3, 2), Tank))
             .Run()
             .Do(new Place(At(1, 1), new Placement("machine", "lamp")))
             .Do(new Place(At(4, 2), Wall))
@@ -156,11 +156,11 @@ public class BuildingTests
     {
         // The hero carries nothing and creative mode is off: an instant build takes nothing.
         var w = new Scenario(Open).Do(new SetInstant(true)).Run().Reload();
-        w.Do(new PlacePlan(At(1, 1), Wall)).Do(new PlacePlan(At(3, 1), Tank)).Run();
+        w.Do(new PlacePlan(At(1, 1), Wall)).Do(new PlacePlan(At(3, 2), Tank)).Run();
         Assert.Empty(w.Refusals);
         Assert.Empty(w.M.Building.Plans);
         Assert.Equal("iron", w.M.Grid.WallAt(At(1, 1))?.Id);
-        Assert.Equal("tank", w.M.Grid.MachineAt(At(3, 1))?.Kind);
+        Assert.Equal("tank", w.M.Grid.MachineAt(At(3, 2))?.Kind);
         // Its rules stand: a slot taken is refused as ever. Switched off, blueprints are plans again, their ids untouched.
         w.Do(new PlacePlan(At(1, 1), Wall)).Do(new SetInstant(false)).Run();
         w.Do(new PlacePlan(At(5, 1), Wall)).Run();

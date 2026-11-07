@@ -40,8 +40,8 @@ once. A machine needs every footprint cell free of structure and machines; a bac
   `ChangedSince(version)` — the cells and `GridLayers` that differ since then, ascending, or null when the log no longer
   reaches back (the reader then looks at everything, 0051); the layers live and read-only (`StructureLayer`, `MaterialLayer`,
   `BackLayer`, `BackMaterialLayer`); `StructureAt`, `WallAt` / `BackAt` (the `Material`, null for none), `GrownBack` (0084).
-- **Traits per cell:** `Blocks`, `Supports`, `Climbable`, `Seals`, `BlocksLight`, and `Solid` (blocks or supports); past
-  the grid everything blocks and is solid, nothing else. Code-only callers read `Structures.Is(code, trait)`.
+- **Traits per cell:** `Blocks`, `Supports`, `Climbable`, `Seals`, `BlocksLight`, `Solid` (blocks or supports), `Footing`
+  (solid, no doorway; machines-stand); past the grid all block and are solid, nothing else. Code reads `Structures.Is(code, trait)`.
 - **Machines:** `MachineAt`, `MachineById`, `Machines`, `MachinesWith(trait)` (one `MachineTrait`, id order: what a system walks, 0113), `MachinesOf(kind)` (id order: one kind's own rule, the analyzer's), `PortsOf(machine)` (0109), `PortAt(cell)` (its way and fluid, typed-ports).
 - **Pieces:** `Footprint(kind, cell)` — what a machine or piece would cover from that top-left, null when it does not fit;
   `PieceOf(cell)` — the cells taken apart with it: its build's piece, columns paired from its row's run of the same (a
@@ -61,7 +61,7 @@ once. A machine needs every footprint cell free of structure and machines; a bac
 - **Refusals:** `grid.outOfBounds`, `grid.outsideZone`, `grid.occupied`, `grid.machineInTheWay`, `grid.blocked`,
   `grid.noSuchMaterial`, `grid.noSuchMachine`, `grid.noExhaust`, `grid.notOnHull`, `grid.noPlatform` (a machine that `Lands` with the row
   under it not all launch platform), `grid.noGround` (off the ship, where only Landing places a pod, the row under it not all
-  solid), `grid.underPlatform` (a structure or machine in a launch platform's shaft: under it, to the grid's edge),
+  solid), `grid.underPlatform` (in a launch platform's shaft, under it to the grid's edge),
   `grid.shaftBlocked` (a platform over a shaft not empty). `Taken(cell)`, `ClearBelow(cell)`: the shaft's test; `OnRun`.
 
 ## Maps

@@ -155,6 +155,11 @@ public enum MachineTrait
     /// against a hull wall (<c>grid.notOnHull</c>), and meteors aim past it: the debris net.
     /// </summary>
     Catches = 16384,
+    /// <summary>
+    /// Hung on a wall or a ceiling, so built with nothing under it: lamps and vents. Every other machine a player builds stands on a
+    /// wall, a floor or a grate (<c>building.noFloor</c>, 2026-11-07-machines-stand).
+    /// </summary>
+    Hangs = 32768,
 }
 
 /// <summary>
@@ -176,11 +181,11 @@ public static class Machines
         new("electrolyser", 4, 6, [new(0, 5, Way.In, Fluids.Water), new(3, 5, Way.Out, Fluids.LiquidOxygen)], [("glass", 6), ("plate", 4), ("tube", 4), ("circuit", 2)], BuildTicks: 200, Draws: 5, Plug: (16, 41), Has: MachineTrait.Electrolyses, Menu: new(MenuTabs.Air, 35), Char: 'y', Means: "electrolyser: draw its whole footprint"),
         // Of the one photosensitive panel nothing makes: its blueprint is the black market's, for many credits (black-market).
         new("solarPanel", 6, 2, [], [("frame", 2), ("solarCell", 6), ("wire", 4), ("circuit", 1), ("photoPanel", 1)], BuildTicks: 160, Makes: 5, Plug: (24, 14), Menu: new(MenuTabs.Power, 10), Char: 'P', Means: "solar panel: draw its whole footprint"),
-        new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
-        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
+        new("vent", 2, 2, [new(0, 0, Way.In, Fluids.Air)], [("plate", 2), ("tube", 2)], BuildTicks: 60, Has: MachineTrait.Vents | MachineTrait.Hangs, Menu: new(MenuTabs.Air, 10), Char: 'V', Means: "vent"),
+        new("lamp", 2, 2, [], [("wire", 2), ("scrap", 2)], BuildTicks: 60, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow | MachineTrait.Hangs, Menu: new(MenuTabs.Power, 30), Char: 'L', Means: "lamp"),
         // A lamp of the arc makers' homes hung aboard (0091): its blueprint opens once an arc lamp is analysed; brighter and
         // colder than the starter lamp, for the same power.
-        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
+        new("arcLamp", 2, 2, [], [("arcLamp", 1)], BuildTicks: 40, Draws: 1, Plug: (11, 1), Has: MachineTrait.Glow | MachineTrait.Hangs, Menu: new(MenuTabs.Power, 40), Char: 'J', Means: "arc lamp: one of the arc makers' hung aboard (0091)"),
         // Analyses what is put in its slot, opening what is made of it (ADRs 0024, 0027).
         // Where the tree is walked: resources open its tiers, credits buy its blueprints (2026-10-30-trade-and-tech). No power, no slots.
         // Sends what is put in for the ship's credits by capsule. Of plates, wire and a found circuit, so it is understood once
@@ -236,7 +241,7 @@ public static class Machines
         new("pileCargo", 3, 3, [], [("planks", 4), ("hullPlate", 2), ("scrapChunk", 1), ("photoPanel", 1)], BuildTicks: 160, Strength: 20, Char: 'e', Means: "pile of cargo: draw its whole footprint"),
         new("pileBits", 2, 2, [], [("scrapChunk", 3), ("hullPlate", 2), ("planks", 2)], BuildTicks: 140, Strength: 12, Char: 'f', Means: "pile of odds and ends: draw its whole footprint"),
         // What shows the hold before anything makes power: the last crew's battery lamps, needing none (the-scoop).
-        new("emergencyLamp", 2, 2, [], [("scrapChunk", 1)], BuildTicks: 40, Has: MachineTrait.Glow, Char: 'i', Means: "emergency lamp: draw its whole footprint"),
+        new("emergencyLamp", 2, 2, [], [("scrapChunk", 1)], BuildTicks: 40, Has: MachineTrait.Glow | MachineTrait.Hangs, Char: 'i', Means: "emergency lamp: draw its whole footprint"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
         // crafts; unpowered, its shard is its power. A shard in its cost, so analysing one opens it with the arc module (0027).
         new("arcBench", 4, 4, [], [("arcShard", 1), ("frame", 2), ("plate", 4), ("motor", 1)], BuildTicks: 160, Slots: 3, Inputs: 1, Tunes: true, Menu: new(MenuTabs.Production, 70), Char: 'W', Means: "arc bench: draw its whole footprint (0099)"),
@@ -260,4 +265,11 @@ public static class Machines
 
     /// <summary>Whether a machine of <paramref name="kind"/> has any of <paramref name="trait"/>; false for a kind that is none.</summary>
     public static bool Is(string kind, MachineTrait trait) => ByKind.TryGetValue(kind, out var spec) && spec.Is(trait);
+
+    /// <summary>
+    /// Whether a machine of <paramref name="kind"/> stands on what is under it (2026-11-07-machines-stand): all but the hung ones, the
+    /// debris net on its hull and the drop pod on its launch platform, which have rules of their own.
+    /// </summary>
+    public static bool Stands(string kind) =>
+        ByKind.ContainsKey(kind) && !Is(kind, MachineTrait.Hangs | MachineTrait.Catches | MachineTrait.Lands);
 }

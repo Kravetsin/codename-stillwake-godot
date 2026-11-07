@@ -23,6 +23,16 @@ public class PowerDriverAimTests
         new string('#', Width),
     ]));
 
+    /// <summary>The hall with a floor at (5-8, 7), where a tank planned at (5, 3) stands (machines-stand).</summary>
+    private static TestWorld Deck() => new(Layout.Parse(
+    [
+        new string('#', Width),
+        .. Enumerable.Repeat("#" + new string('.', Width - 2) + "#", 6),
+        "#....====......#",
+        "#" + new string('.', Width - 2) + "#",
+        new string('#', Width),
+    ]));
+
     /// <summary>A hero whose body is centred on the middle of cell (x, y).</summary>
     private static Hero CellHero(int x, int y) => new(x * Unit + Unit / 2, y * Unit + Unit / 2 + Hero.MiddleUp, 0, 0, false, 1);
 
@@ -104,7 +114,7 @@ public class PowerDriverAimTests
     public void ItTakesOnePlanALayerACellTheOldestThatCanBeWorkedElseTheOldestToShowWhy()
     {
         // A tank planned for a hero carrying nothing, and the back wall behind its corner marked: one cell, two layers.
-        var w = Hall();
+        var w = Deck();
         w.Step(new PlacePlan(C(5, 3), new Placement("machine", "tank")), new Deconstruct(C(5, 3), "back"));
         var targets = TargetsAt(w, 5, 3.5);
         Assert.Equal([new WorkAim(1, "items.notEnough"), new WorkAim(2, null)], targets);
@@ -115,7 +125,7 @@ public class PowerDriverAimTests
     [Fact]
     public void OverAStationItAimsAtTheWholeOfItAsTheScrewdriverDoesNoSquare()
     {
-        var w = Hall().Step(new SetCreative(true));
+        var w = Deck().Step(new SetCreative(true));
         w.Step(new PlacePlan(C(5, 3), new Placement("machine", "tank")), new PlacePlan(C(9, 4), Scrap));
         var hero = CellHero(2, 8);
         var tank = new WorkAim(w.M.Building.PlansAt(C(5, 3))[0].Id, null);
@@ -133,7 +143,7 @@ public class PowerDriverAimTests
     public void AHoledBackWallBehindAStationPlannedBeforeIsPatchedFirstAndTheSquareNeverTakesTheStation()
     {
         // A tank planned, then a meteor's hole behind it: its back wall gone and planned again, younger than the tank.
-        var w = Hall().Step(new SetCreative(true));
+        var w = Deck().Step(new SetCreative(true));
         w.Step(new PlacePlan(C(5, 3), new Placement("machine", "tank")));
         int tank = w.M.Building.PlansAt(C(6, 4)).Single().Id;
         w.Step(new Deconstruct(C(6, 4), "back"));
@@ -156,7 +166,7 @@ public class PowerDriverAimTests
     [Fact]
     public void AMachineUnderSeveralCellsOfTheSquareIsWorkedOnce()
     {
-        var w = Hall().Step(new SetCreative(true));
+        var w = Deck().Step(new SetCreative(true));
         w.Step(new PlacePlan(C(5, 3), new Placement("machine", "tank")));
         var footprint = w.M.Grid.Footprint("tank", C(5, 3))!;
         Assert.True(footprint.Count > 1);
