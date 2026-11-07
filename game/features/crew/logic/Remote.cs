@@ -40,7 +40,25 @@ public readonly record struct Busy(Handwork Work, Point At, int Swings = 0)
     /// at its point (0038, 0039).
     /// </summary>
     public static Busy? Chopping(Busy? last, Busy? now) => now is { Work: Handwork.Chop } ? now : last;
+
+    /// <summary>
+    /// The chop to follow another's hero by once <paramref name="seen"/> is heard (<see cref="Chopping"/>), with where that hero
+    /// was in the packet that first brought its swing number (swing-motions): its swings are swung as heard while its body is
+    /// drawn behind, so a swing's aim is taken from the hero sent with it.
+    /// </summary>
+    public static HeardChop Hear(HeardChop heard, Seen seen)
+    {
+        var last = Chopping(heard.Last, seen.Busy);
+        bool fresh = last != null && last?.Swings != heard.Last?.Swings;
+        return new(last, fresh ? AxeSwing.PlaceOf(seen.Hero) : heard.From);
+    }
 }
+
+/// <summary>
+/// The last chop heard from another's hero (<see cref="Busy.Chopping"/>) and <paramref name="From"/>, where that hero was in the
+/// packet that first brought its swing number: what its swing is aimed from (<see cref="Busy.Hear"/>, swing-motions).
+/// </summary>
+public readonly record struct HeardChop(Busy? Last, Point From);
 
 /// <summary>A hero as sent (<c>SentHero</c> of remote.ts): stamped with the time of the controller step it stands at, on its own clock.</summary>
 public readonly record struct SentHero(Seen Seen, double? At = null)

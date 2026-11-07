@@ -15,6 +15,7 @@ the sim.
 | `logic/Aim.cs` | reach, aim, what hands send |
 | `logic/AxeSwing.cs` | a stroke's clock (0038-0040, 0075) |
 | `logic/Strokes.cs` | each tool's stroke |
+| `logic/MotionPlay.cs` | its motion |
 | `ReachAir.cs` | a tool's reach shown |
 | `logic/AirCuts.cs` | its dust and brush |
 | `logic/SwingArc.cs` | its angle kept |
@@ -42,7 +43,7 @@ the sim.
 | `logic/RodFlourish.cs` | when its lights play |
 | `logic/Suits.cs` | suit colours, what is worn |
 | `logic/SuitGlow.cs` | a body's lights |
-| `SuitKeys.cs` | V on the tablet's edge |
+| `SuitKeys.cs` | V on the tablet's edge, dim if refused |
 | `Figure.cs` | the rig, lit, dressed (0075, 0090) |
 | `logic/Cape.cs` | a worn cape's cloth |
 | `logic/Spring.cs` | a held arm's swing |
@@ -87,8 +88,8 @@ the sim.
   stays within `Hero.Tether` of its anchor. A door shut on the hero pushes it a `Hero.PushStep` to the
   nearest fit, carrying no speed (0089); out of the hull, tethered.
 - Doors are walked as this peer shows them (0014); a press sends `SetDoor`/`SetValve` (0071), `SetPlatform`.
-- **Holes and floors:** the body falls into a hole it fits; a step-deep one is walked down (0106). Down drops through
-  floors, never a wall, door, hatch or ladder; jump wins over down.
+- **Holes and floors:** the body falls into a hole it fits. Down drops through floors, never a wall, door, hatch or
+  ladder; jump wins over down.
 - **Steps** (0106): a walk steps a cell up or down where it fits; two up stop it, drawn eased.
 - **Jump feel** (0089): coyote time, buffer, short hop, eased apex, `AirControl`.
 - **The figure answers its motion** (0090, hero-gait), as sent.
@@ -111,7 +112,7 @@ the sim.
 - Sent (`SentHero`) every 50 ms while it changes, each second still, at once on a rod's change (0002, 0065); hands
   by item id and `Busy` kind (0037).
 - Drawn 150 ms behind (0013), walking 100 ms past the last, hidden after 3 silent s; only those
-  on this surface (0076). A friend's struck tool strikes per number heard (0038); its rod plays out by `RemoteRod`
+  on this surface (0076). A friend's tool strikes per number heard (0038), from the hero sent with it; its rod plays out by `RemoteRod`
   (0065); its drill or power driver runs as the sim says (0055).
 
 ## The hands
@@ -123,9 +124,9 @@ the sim.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
-  wrecks it crosses; the ground met rings, sparks.
-- **Struck tools** (0038, salvage-tools, the-pickaxe): axe, hammer, spear, pick, each at its pace; a swing hits as its blade
-  crosses the aim, its fan a shoulder's sweep (`ShapeFor`).
+  wrecks it crosses; ground met rings, sparks.
+- **Struck tools** (0038, salvage-tools, the-pickaxe, swing-motions): each swung by its
+  sector's motion, hitting as the blade crosses an aim kept against the hero.
 - **Harpoon, grapple** (0044, grapple-climbs): reel pieces, pull to walls; hung, refire; Space/RMB let go.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.
@@ -133,9 +134,9 @@ the sim.
   (`ToolEdges`), sparking where it touches (`ToolWork`).
 - **The power driver** (driver-at-work, driver-order): charged, a 2×2 square over plans or marks
   (`WorkedSquare`), heard (`BiteLoop`). Right click toggles; mode by the arrow (mode-glyph).
-- **Seated** (`Seating.Held`): no tool works; E leaves.
+- **Seated** (`Seating.Held`): no tool; E leaves.
 - **Ladders and ledges** (0092): grab, climb, slide, leap off; an open hatch is climbable, a closed one a floor
-  (0112). A jump a foot short is mantled.
+  (0112). A jump a foot short mantles.
 
 ## Deliberately not handled
 

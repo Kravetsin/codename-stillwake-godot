@@ -44,7 +44,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0036](0036-upright-in-space.md) | Upright in space | accepted | 0037, hero-gait (in part) |
 | [0037](0037-others-see-the-hands.md) | Others see the hands | accepted | 0038 (in part) |
 | [0038](0038-one-swing-one-hit.md) | One swing, one hit | accepted | 0039 (in part) |
-| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge (in part) |
+| [0039](0039-melee-by-contact.md) | Melee by contact | accepted | 0040, fan-of-rays, melee-edge, swing-motions (in part) |
 | [0040](0040-a-melee-weapon-is-held-by-its-handle.md) | A melee weapon is held by its handle | accepted | fan-of-rays (in part) |
 | [0041](0041-wreckage-of-many-kinds-and-circuits.md) | Wreckage of many kinds, and circuits | accepted |  |
 | [0042](0042-what-is-heard-in-space.md) | What is heard in space | accepted | 0059 (in part) |
@@ -286,6 +286,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
+| [swing-motions](2026-11-07-swing-motions.md) | Swing motions | accepted |  |
 | [tether-haul](2026-11-07-tether-haul.md) | Hauling in along the tether | accepted |  |
 | [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |

@@ -200,8 +200,13 @@ public partial class Figure : Node2D
 
     /// <summary>The charge's own light on the held stage, held while it charges, the brighter the fuller (2026-10-27-the-railgun).</summary>
     private static readonly (int R, int G, int B) ChargeLight = (95, 216, 255);
-    /// <summary>Chopping wreckage (0034): the wreck swung at, and how far through its swing the axe is (<see cref="AxeSwing"/>).</summary>
-    private (Vector2 At, double Phase)? _chop;
+    /// <summary>
+    /// A stroke playing (<see cref="AxeSwing"/>, swing-motions): where it is aimed from the feet, in pixels of the world's axes,
+    /// how far through it is, and the motion it plays.
+    /// </summary>
+    private (Vector2 Aim, double Phase, MotionPlay Play)? _chop;
+    /// <summary>How far the feet are stepped up or down as the figure was last drawn, in pixels (<see cref="StepEase"/>).</summary>
+    private double _stepLift;
     /// <summary>The front arm straight through a swing and eased into and out of it (0040).</summary>
     private SwingArm _swingArm;
     /// <summary>How far into carrying its item trailing on a run the figure is, 0 to 1; and the spring its arm swings on (<see cref="HeroMotion.Carry"/>).</summary>
@@ -356,10 +361,33 @@ public partial class Figure : Node2D
     public void Work(Vector2? at) => _workAt = at;
 
     /// <summary>
-    /// Has the hero swing the axe it wields at the wreck at <paramref name="swing"/>'s point, in pixels of
-    /// the world, as far through the swing as its phase says; null between swings.
+    /// A point <paramref name="aim"/> pixels from the feet, in the world's axes, from the front shoulder in the arms' own frame,
+    /// the body as last drawn but faced <paramref name="facing"/>; straight ahead for none (swing-motions).
     /// </summary>
-    public void Chop((Vector2 At, double Phase)? swing) => _chop = swing;
+    private (double X, double Y) FromShoulder(Vector2 aim, int facing)
+    {
+        if (aim == Vector2.Zero) return (1, 0);
+        // Never shown, the body has no place yet: the offset as it is, faced.
+        if (_shown == null) return (aim.X * facing, aim.Y);
+        var local = _frame.Transform.AffineInverse() * (_body.Transform.AffineInverse() * new Vector2(aim.X * facing, aim.Y - (float)_stepLift));
+        return (local.X, local.Y + Rig.Shoulder);
+    }
+
+    /// <summary>
+    /// The aim angle of a stroke aimed <paramref name="aim"/> pixels from the feet, the figure faced <paramref name="facing"/> to
+    /// strike it: radians from straight ahead of the shoulder, down positive, as last drawn. Its sector picks the motion (<see cref="Sectors"/>).
+    /// </summary>
+    public double AimAngleOf(Vector2 aim, int facing)
+    {
+        var (dx, dy) = FromShoulder(aim, facing);
+        return Math.Atan2(dy, dx);
+    }
+
+    /// <summary>
+    /// Has the hero play the stroke of the tool it wields aimed <paramref name="swing"/>'s offset from its feet, in pixels of the
+    /// world's axes, as far through as its phase says, the motion it plays; null between strokes.
+    /// </summary>
+    public void Chop((Vector2 Aim, double Phase, MotionPlay Play)? swing) => _chop = swing;
 
     /// <summary>The swing playing bit something: its arm is drawn stopped on contact for a moment (0075), the sim untouched.</summary>
     public void Bit() => _bit = true;
@@ -901,7 +929,7 @@ public partial class Figure : Node2D
         // Where the feet are, in pixels of the world.
         double feetX = (double)hero.X / Hero.Unit * Rig.Cell, feetY = (double)hero.Y / Hero.Unit * Rig.Cell;
         bool walking = pose is Pose.Stand or Pose.Walk or Pose.Run, walked = _wasPose is Pose.Stand or Pose.Walk or Pose.Run;
-        double lift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
+        double lift = _stepLift = _steps.Offset(feetX, feetY, walking && walked, elapsedMs);
         var cues = _motion.Step(hero, pose, elapsedMs);
         if (cues.Jumped) Boots(GroundSounds.JumpOf(Footing));
         if (cues.Landed is int fall)
@@ -1008,23 +1036,22 @@ public partial class Figure : Node2D
             frontArm = Rig.Reach(new Vec(Math.Cos(work) * reach + ux * TwistLift * rise, Math.Sin(work) * reach + uy * TwistLift * rise), Rig.Arm, 1);
         }
         (double Angle, double Phase)? swung = null;
-        double elbow = item?.Elbow ?? 0;
-        if (chopping && _chop is { At: var wreck, Phase: var phase })
+        double elbow = item?.Elbow ?? 0, wrist = 0;
+        if (chopping && _chop is { Aim: var aimed, Phase: var phase, Play: var play })
         {
-            // Toward the point, from the shoulder: raised back over it, then brought down till the blade,
-            // not the hand, crosses the line to it (0040).
-            var (dx, dy) = FromShoulder(wreck);
+            // Toward its aim from where the hero is now, from the shoulder: the motion chosen at the press, played along it till
+            // the blade, not the hand, crosses the line to it (0040, swing-motions).
             if (phase < _lastPhase) _bit = false;
             _lastPhase = phase;
-            double drawn = _bit ? AxeSwing.Shown(phase, stroke) : phase;
-            if (stroke!.Kind == StrokeKind.Thrust)
+            double drawn = _bit ? AxeSwing.Shown(phase, stroke!) : phase;
+            (elbow, wrist) = (play.ElbowAt(drawn), play.WristAt(drawn));
+            // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
+            if (play.Motion.Kind == MotionKind.Thrust)
             {
-                // The spear: aimed as a gun is, the shaft's line through the point, the elbow cocked and straightened (the jab).
-                elbow = Strokes.ElbowAt(drawn);
+                var (dx, dy) = FromShoulder(aimed, hero.Facing);
                 swung = (HarpoonShot.ArmFor(item! with { Elbow = elbow }, dx, dy), drawn);
             }
-            // How far past the line to its point the arm swings for the blade, not the hand, to meet it (0040).
-            else swung = (AxeSwing.AngleAt(Math.Atan2(dy, dx) + AxeSwing.Lead(item!), drawn, stroke.Half), drawn);
+            else swung = (play.AngleAt(AimAngleOf(aimed, hero.Facing), drawn), drawn);
         }
         else if (aiming && Aim is { } target && item != null)
         {
@@ -1124,7 +1151,7 @@ public partial class Figure : Node2D
             }
             _held.Position = new Vector2((float)fist.X, (float)(-Rig.Shoulder + fist.Y));
             // Carried trailing on a run, the hand turns the item along itself (Rig.Carried).
-            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item) + item.Hold * carry);
+            _held.Rotation = (float)(Rig.HeldTurn(frontArm, item, wrist) + item.Hold * carry);
             if (item.Aimed)
             {
                 Vector2 At((double X, double Y) p) => _held.ToGlobal(new Vector2((float)p.X, (float)p.Y) + _held.Offset);
@@ -1140,19 +1167,17 @@ public partial class Figure : Node2D
             }
         }
         // The air the tool works shows its reach while it is used (tool-reach): a stroke's cut, a running drill's or grinder's zone.
-        if (chopping && _chop is { At: var cutAt, Phase: var cutPhase } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
+        if (chopping && _chop is { Aim: var cutAim, Phase: var cutPhase, Play: var cutPlay } && Stillwake.Content.Weapons.Of(Wields) is { } weapon)
         {
-            bool jab = stroke!.Kind == StrokeKind.Thrust;
-            var (aimX, aimY) = FromShoulder(cutAt);
+            bool jab = cutPlay.Motion.Kind == MotionKind.Thrust;
             double half = Strokes.HalfOf(weapon);
-            var shape = AxeSwing.ShapeFor(Math.Atan2(aimY, aimX) + AxeSwing.Lead(item!), half);
-            double start = jab ? stroke.HitShare : AxeSwing.ShareAt(-half, shape);
+            double start = jab ? stroke!.HitShare : cutPlay.ShareAt(-half);
             if (_cutPhase < start && cutPhase >= start)
             {
-                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo);
+                var edge = Rig.HeldAt(frontArm, item!, item!.EdgeTo, wrist);
                 double reach = Math.Sqrt(edge.X * edge.X + edge.Y * edge.Y);
-                double sweep = jab ? WorkLooks.ThrustSweepMs : (AxeSwing.ShareAt(half, shape) - start) * stroke.Ms;
-                _air.Strike(jab, Math.Atan2(aimY, aimX), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
+                double sweep = jab ? WorkLooks.ThrustSweepMs : (cutPlay.ShareAt(half) - start) * stroke!.Ms;
+                _air.Strike(jab, AimAngleOf(cutAim, hero.Facing), half, weapon.Range * Rig.Cell / Hero.Unit, jab ? reach : reach - 4, sweep,
                     WorkLooks.CutFadeOf(Wields));
             }
             _cutPhase = cutPhase;
