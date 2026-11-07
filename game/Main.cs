@@ -237,7 +237,7 @@ public partial class Main : Node2D, ITogether
                 () => (_session as Session)?.Progress ?? 0, () => _camera.CurrentZoom));
             // The belt's energy beside the suit's, whatever is held, so the gauge row never changes width (0081). Before the
             // suit's gauge, so the red edges cover it as they cover the rest of the HUD.
-            var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), _m.Items.SlotOpen, _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
+            var energy = new EnergyBar(() => _session is Session s ? EnergyRead.Of(_m.Items.Inventory(s.Client.Id), _m.Items.BeltCharge(s.Client.Id), p => _m.Items.SlotOpen(s.Client.Id, p), _m.Items.Running(s.Client.Id)) : null, _hands.Ui);
             AddChild(energy);
             // Its own layer, above the world: read from whatever registry the session runs now.
             var gauge = new SuitGauge(() => _session is Session s ? Danger.Read(_m.Crew, _m.Atmosphere, s.Client.Id) : (1, 1, SuitDanger.None, true), _hands.Ui);

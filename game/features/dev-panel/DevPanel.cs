@@ -157,7 +157,7 @@ public partial class DevPanel : CanvasLayer
     {
         if (_session() is not Session s) return;
         // Read now, not from the last reading: two quick clicks must switch it back.
-        s.Client.Send(new SetCreative(!_modules().Items.Creative));
+        s.Client.Send(new SetCreative(!_modules().Items.Creative(s.Client.Id)));
     }
 
     private void ToggleInstant()
@@ -234,7 +234,7 @@ public partial class DevPanel : CanvasLayer
     {
         if (_session() is not Session s) return;
         // Read now: creative switched on a moment ago may not be in the last reading.
-        if (!_modules().Items.Creative)
+        if (!_modules().Items.Creative(s.Client.Id))
         {
             _pickerNote.Text = "Creative mode is off: switch it on first.";
             return;
@@ -348,7 +348,7 @@ public partial class DevPanel : CanvasLayer
         }
         ShowReadings(lines);
         _speed.Text = s.Speed == 1 ? "×4" : "×1";
-        bool creative = m.Items.Creative;
+        bool creative = m.Items.Creative(client.Id);
         Style.Paint(_creative, creative ? Style.Amber700 : Style.Slate700, creative ? Amber600 : Style.Slate600);
         bool instant = m.Building.Instant;
         Style.Paint(_instant, instant ? Style.Amber700 : Style.Slate700, instant ? Amber600 : Style.Slate600);

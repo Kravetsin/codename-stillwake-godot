@@ -47,7 +47,7 @@ public class CisternTests
         var w = Piped();
         w.Do(new LayPipe(w.At(9, 2), w.At(0, 0))).Do(new LayPipe(w.At(3, 6), w.At(6, 2))).Do(new LayPipe(w.At(9, 2), w.At(14, 2))).Run();
         Assert.Equal(["pipes.mixedFluid", "pipes.mixedFluid"], Reasons(w));
-        Assert.Equal([new PipeSpan(w.At(9, 2), w.At(14, 2), false)], w.M.Pipes.Spans);
+        Assert.Equal([new PipeSpan(w.At(9, 2), w.At(14, 2), true)], w.M.Pipes.Spans);
         Assert.Equal(Content.Fluids.Water, w.M.Pipes.FluidAt(w.At(9, 2)));
         // A joint on the water line takes water only.
         w.Do(new LayPipe(w.At(17, 2), w.At(17, 6))).Do(new LayPipe(w.At(17, 6), w.At(9, 6))).Do(new LayPipe(w.At(9, 6), w.At(3, 6))).Run();

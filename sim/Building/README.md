@@ -26,7 +26,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 ## Rules
 
 - **Blueprint checks, in order:** `building.fixed` (the lifepod, 0028); `building.needsAxe` (a pile, marked); `building.notHere`
-  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but in creative, 0024; bedrock and machines with no card always, 0077); the
+  (`Surfaces.Kind.Builds`, 0076); `building.unknown` (unknown but to a creative sender, 0024; bedrock and machines with no card always, 0077); the
   grid's `PlacementProblem` keys; plans' shaft keys too; `building.planned`; ports (`SeatProblem`, `pipes.*`). Structure
   and machines share a solid slot, a back wall has its own. A machine covers its footprint; a ladder's or door segment's
   2×2, a hatch's 2×1 (0104, 0111). Placing costs nothing. Soil and stone walls are blueprints too (0084).
@@ -41,7 +41,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
   falling at it (`GiveOrDrop`, 0008); a piece's cost goes per piece, each item rounded down.
 - **Paid a part at a time** (0063): N parts for N cost items, part k starting at tick `BuildTicks * k / N`, rounded
   down. The tick that starts an unpaid part takes from the sender's stock (own slots, then crates) the first item in cost
-  order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; creative mode takes nothing.
+  order still lacking, else is refused `items.notEnough`. Within a paid part anyone works; a creative worker pays from nothing.
 - **Repair** (free-repair): a tick of work as `Work` is, taking nothing; the last `Mend`s. A broken machine taken apart
   refunds its whole cost.
 - **Instant** (`SetInstant`, dev): a blueprint built as placed, free; new surfaces keep it.
@@ -80,7 +80,7 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 ## Invariants
 
 - No two plans share a slot of a cell; no two marks share a thing. Plan ids only grow.
-- `Delivered` never exceeds the cost; but in creative mode, with k of N parts paid, `Progress <= BuildTicks * k / N`.
+- `Delivered` never exceeds the cost; with k of N parts paid, `Progress <= BuildTicks * k / N`.
   Progress stays below its ticks: the tick that reaches them completes it.
 - A crack lies only on something that breaks, damage above 0 and below its strength, one a cell and layer, by cell.
   A wall broken gives what it is made of, once.
@@ -95,4 +95,4 @@ Also digging, what grows (0077, 0079, 0080), the ruins' pieces (0085, 0091, 0096
 - A blueprint finished on its hero's cell holds the hero.
 - Taking apart needs no knowledge (0024).
 - A part-built blueprint is nothing in the grid till its last tick (0063).
-- Creative turned off past what was paid: each later tick pays an item.
+- An old save's plan past what was paid: each later tick pays an item.

@@ -187,7 +187,7 @@ public static class Drag
     /// Removing cancels plans in its layer if the drag begins on one, a mark included, and marks what is built in its
     /// layer otherwise (0110): the focused layer only, whatever else is under where it began.
     /// </summary>
-    public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building)
+    public static List<Verdict> Judge(Act act, IReadOnlyList<int> cells, BuildingModule building, int peer)
     {
         // A machine spans several cells of a line, yet takes one mark and is cancelled once.
         var cancelled = new HashSet<int>();
@@ -200,7 +200,7 @@ public static class Drag
             {
                 case PlaceTool place:
                     {
-                        string? problem = building.Problem(cell, place.Placement);
+                        string? problem = building.Problem(cell, place.Placement, peer);
                         verdicts.Add(new Verdict(cell, problem, problem != null ? [] : [new PlacePlan(cell, place.Placement)]));
                         break;
                     }

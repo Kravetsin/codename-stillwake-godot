@@ -120,11 +120,11 @@ public sealed partial class BuildingModule
         return null;
     }
 
-    private string? PlaceProblem(int cell, Placement place)
+    private string? PlaceProblem(int cell, Placement place, int peer)
     {
         if (place.Layer == "machine" && IsFixed(place.Kind)) return "building.fixed";
         if (!Rules.Allows(place.Kind)) return "building.notHere";
-        if (Unbuilt(place) || !_research.Knows(place)) return "building.unknown";
+        if (Unbuilt(place) || !_research.Knows(peer, place)) return "building.unknown";
         var gridProblem = _grid.PlacementProblem(cell, place);
         if (gridProblem != null) return gridProblem;
         if (PlannedShaftProblem(cell, place) is { } shaft) return shaft;
@@ -144,11 +144,11 @@ public sealed partial class BuildingModule
         ((place.Kind is "wall" or "backWall" && Materials.TryGet(place.Material ?? "", out _)) || (place.Layer == "machine" && Machines.TryGet(place.Kind, out _))) && !Research.Blueprints.Has(place);
 
     /// <summary>
-    /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing in creative
-    /// mode, where it is built as it is, nor for a mark.
+    /// What blueprint <paramref name="plan"/> still lacks of its cost, in the cost's order; nothing for a mark. A creative
+    /// worker pays its parts as anyone does, from nothing, so whoever works on after it owes only the parts after.
     /// </summary>
     private Cost LackOf(Plan plan) =>
-        plan.Place is { } place && !_items.Creative ? Costs.Lacking(Costs.BuildOf(place).Cost, plan.Delivered) : [];
+        plan.Place is { } place ? Costs.Lacking(Costs.BuildOf(place).Cost, plan.Delivered) : [];
 
     /// <summary>
     /// The parts of the work on a blueprint for <paramref name="place"/> begun by the tick at <paramref name="progress"/>,
@@ -166,17 +166,19 @@ public sealed partial class BuildingModule
 
     /// <summary>
     /// Whether the next tick of work on <paramref name="plan"/> begins a part not paid for yet, so its worker
-    /// pays an item first; never in creative mode, nor for a mark.
+    /// pays an item first; never for a mark.
     /// </summary>
     private bool Owes(Plan plan) =>
-        plan.Place is { } place && !_items.Creative && PaidInto(plan) < PartsAt(place, plan.Progress).Begun;
+        plan.Place is { } place && PaidInto(plan) < PartsAt(place, plan.Progress).Begun;
 
     /// <summary>
     /// What peer <paramref name="peer"/> pays for the part of <paramref name="plan"/> that begins next: the first
-    /// item in the cost's order that the plan still lacks and its stock holds (build-from-crates); null with none.
+    /// item in the cost's order that the plan still lacks and its stock holds (build-from-crates), or a creative peer's first
+    /// lacking from nothing; null with none.
     /// </summary>
     private string? PaymentOf(Plan plan, int peer)
     {
+        if (_items.Creative(peer)) return LackOf(plan) is [var (first, _), ..] ? first : null;
         var carried = _items.StockTotals(peer);
         foreach (var (item, _) in LackOf(plan))
             if (carried.Any(c => c.Item == item && c.Count > 0)) return item;

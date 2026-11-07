@@ -68,6 +68,9 @@ public partial class BuildingView : Node2D
     private string _drawn = "", _outlined = "", _takingKey = "";
     private List<Rect2> _machines = [];
     private int _width;
+
+    /// <summary>This player's peer, set each frame: what it may place is what it knows, all of it in its creative mode.</summary>
+    private int _peer;
     /// <summary>The drag under way: what it does, whether the right button began it, the point it began at, in cells, and the card it began with.</summary>
     private (Act Act, bool Right, (double X, double Y) From, Tool? Card)? _drag;
 
@@ -103,6 +106,7 @@ public partial class BuildingView : Node2D
     public void Frame(Client client, Registry m, IReadOnlyList<ButtonEvent> left, IReadOnlyList<ButtonEvent> right, bool holdsRight,
         (double X, double Y)? pointer)
     {
+        _peer = client.Id;
         var grid = m.Grid;
         var building = m.Building;
         int width = _width = grid.Width, height = grid.Height;
@@ -122,7 +126,7 @@ public partial class BuildingView : Node2D
         void Send(Act act, (double X, double Y) from, (double X, double Y) to)
         {
             var planned = new List<int>();
-            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building))
+            foreach (var verdict in Drag.Judge(act, Drag.StrokeOf(width, height, act, from, to), building, _peer))
                 foreach (var c in verdict.Commands)
                 {
                     client.Send(c);
@@ -153,7 +157,7 @@ public partial class BuildingView : Node2D
         {
             _hand.PickWanted = false;
             if (pointer is { } at && Drag.OnGrid(width, height, at)
-                && Tools.CardAt(CellAt(Over(at)), grid, building, m.Research) is { } card)
+                && Tools.CardAt(CellAt(Over(at)), grid, building, m.Research, _peer) is { } card)
             {
                 _hand.Tab.Set(Tools.TabOf(card));
                 _hand.Selected.Set(card);
@@ -493,7 +497,7 @@ public partial class BuildingView : Node2D
         if (cell is not int c || !_hand.PlanOut.Get() || !_hand.Builds) return Over.Nothing;
         var layers = Tools.RemovalIn(_hand.Focus.Get()).Layers;
         if (building.PlansAt(c).Any(p => layers.Contains(p.Place?.Layer ?? p.Clear!))) return Over.Plan;
-        return Tools.CardAt(c, grid, building, research) != null ? Over.Built : Over.Nothing;
+        return Tools.CardAt(c, grid, building, research, _peer) != null ? Over.Built : Over.Nothing;
     }
 
     /// <summary>Every launch platform cell built or planned, scanned again only when the grid or the plans change.</summary>
@@ -546,7 +550,7 @@ public partial class BuildingView : Node2D
         // Before a press, what the button held would do: the card's, the focused layer's removal while the right is held (0110).
         Act? act = _drag?.Act ?? hovered;
         if (act == null || pointer is not { } p || (_drag == null && !onGrid)) return;
-        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building);
+        var verdicts = Drag.Judge(act, Drag.StrokeOf(width, height, act, _drag?.From ?? p, p), building, _peer);
         if (act is PlaceTool place)
         {
             // The ghost joins the rest of its drag, what is planned and what is built, as a plan would.

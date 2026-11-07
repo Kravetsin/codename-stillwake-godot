@@ -524,7 +524,7 @@ public partial class InventoryPanel : CanvasLayer
         {
             var p = box.Place;
             // A slot waiting on an upgrade is not there yet (2026-10-30-room-upgrades).
-            box.Visible = _items!.SlotOpen(p);
+            box.Visible = _items!.SlotOpen(_client!.Id, p);
             var stack = reading.At(p);
             box.Kept = p.Crate != null ? Kept?.Invoke(p) : null;
             box.Favourite = p.Crate == null && stack != null && _ui.Favourites.Get().Has(stack.Item);

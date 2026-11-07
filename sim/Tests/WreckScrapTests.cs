@@ -60,8 +60,8 @@ public class WreckScrapTests
         var w = new Scenario(World);
         w.Do(new SetCreative(true)).Run();
         int free = w.M.Crew.Spawn - 2 * World.Width - 8;
-        Assert.Equal("building.unknown", w.M.Building.Problem(free, Placement.Wall("wreckScrap")));
-        Assert.Equal("building.unknown", w.M.Building.Problem(free, Placement.BackWall("wreckScrap")));
+        Assert.Equal("building.unknown", w.M.Building.Problem(free, Placement.Wall("wreckScrap"), 0));
+        Assert.Equal("building.unknown", w.M.Building.Problem(free, Placement.BackWall("wreckScrap"), 0));
     }
 
     [Fact]

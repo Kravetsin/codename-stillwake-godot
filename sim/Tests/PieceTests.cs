@@ -73,13 +73,13 @@ public class PieceTests
     public void APieceIsRefusedWhereAnyOfItsCellsIsTakenOrOffTheGrid()
     {
         var w = Stocked();
-        Assert.Equal("grid.occupied", w.M.Building.Problem(At(10, 2), Ladder));
-        Assert.Equal("grid.occupied", w.M.Building.Problem(At(10, 4), Door));
-        Assert.Equal("grid.outOfBounds", w.M.Building.Problem(At(11, 9), Ladder));
-        Assert.Null(w.M.Building.Problem(At(1, 1), Door));
+        Assert.Equal("grid.occupied", w.M.Building.Problem(At(10, 2), Ladder, 0));
+        Assert.Equal("grid.occupied", w.M.Building.Problem(At(10, 4), Door, 0));
+        Assert.Equal("grid.outOfBounds", w.M.Building.Problem(At(11, 9), Ladder, 0));
+        Assert.Null(w.M.Building.Problem(At(1, 1), Door, 0));
         w.Do(new PlacePlan(At(1, 1), Door)).Run();
         // The piece claims its cells: a ladder over its lower right cell is planned there already.
-        Assert.Equal("building.planned", w.M.Building.Problem(At(2, 2), Ladder));
+        Assert.Equal("building.planned", w.M.Building.Problem(At(2, 2), Ladder, 0));
     }
 
     [Fact]
@@ -145,8 +145,8 @@ public class PieceTests
     {
         var w = Stocked();
         w.Do(new Place(At(5, 4), HatchSegment)).Run();
-        Assert.Null(w.M.Building.Problem(At(5, 5), Ladder));
-        Assert.Null(w.M.Building.Problem(At(5, 2), Ladder));
+        Assert.Null(w.M.Building.Problem(At(5, 5), Ladder, 0));
+        Assert.Null(w.M.Building.Problem(At(5, 2), Ladder, 0));
         w.Do(new PlacePlan(At(5, 5), Ladder)).Run();
         Assert.Empty(w.Refusals);
         Assert.Single(w.M.Building.Plans);

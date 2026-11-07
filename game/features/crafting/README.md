@@ -35,8 +35,8 @@ assembler|lifepod|furnace>` opens a machine for a recording; `--arc` plays the a
   bolt and draw with its modules (`Draw`), lit while it works and dark otherwise, the draw still shown (tip-signs), and its screen, dark without
   power (0057). No status line: the screen, the queue and the outputs say it (no ADR).
 - **Recipes** (no ADR), four a row, two rows at least, in their content places: one not known is a dark silhouette
-  that does nothing, its tip "???" and that analysing opens it (0024); one short for a unit is dimmed grey; in creative
-  mode all are known and ready. A click queues one, shift as many as the stock pays for, five at most (`Crafts.CountFor`; playtesters queued short
+  that does nothing, its tip "???" and that analysing opens it (0024); one short for a unit is dimmed grey; in this
+  player's creative mode all are known and ready. A click queues one, shift as many as the stock pays for, five at most (`Crafts.CountFor`; playtesters queued short
   batches one by one); the sim refuses one unpaid whole; a click on a
   short one pulses amber, twice, the first lacking item this station makes (`Crafts.MissingCraft`). A tool's recipe
   is tinted amber, a worn item's green (`Shared.SlotLooks`). Slots are `Ui.Slot` wide, rebuilt on a size change.

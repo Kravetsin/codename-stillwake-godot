@@ -91,13 +91,16 @@ public class MagneticFlareTests
     {
         var w = World(meteors: true, known: []);
         Assert.Null(UntilComing(w, Starting.EveryMax + 10));
-        // Creative mode knows the generator: armed, the next tick draws a flare, then the warning comes at its end.
+        // A creative peer knows the generator, but the world does not: still unarmed (2026-11-07-creative-per-player).
         w.Do(new SetCreative(true)).Run();
+        Assert.Null(UntilComing(w, Starting.EveryMax + 10));
+        // Known: armed, the next tick draws a flare, then the warning comes at its end.
+        w.M.Knowledge.Grant(MagneticFlares.ArmedBy);
+        w.Run();
         int until = UntilComing(w, Starting.EveryMax) ?? throw new InvalidOperationException("no flare");
         Assert.InRange(until, Starting.EveryMin - Starting.Warning, Starting.EveryMax - Starting.Warning);
         Assert.Equal(Starting.Warning, w.M.Hazards.FlareLeft);
-        // Disarmed during the warning: the flare drawn strikes all the same.
-        w.Do(new SetCreative(false)).Run(Starting.Warning);
+        w.Run(Starting.Warning);
         Assert.False(w.M.Hazards.FlareComing);
         Assert.NotEmpty(w.M.Power.Broken);
     }

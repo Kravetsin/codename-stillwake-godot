@@ -316,29 +316,25 @@ public class BuildingDeliveryTests
     }
 
     [Fact]
-    public void BlueprintsAreWorkedInCreativeModeAsTheyAreAnOlderOneTooTakingNothing()
+    public void ACreativePeerPaysThePartsItWorksFromNothingAndAnotherWorkingOnOwesOnlyTheRest()
     {
-        var w = new Scenario(Open);
-        w.GiveItems(5, ("plate", 1));
-        w.GiveItems(7, ("plate", 9), ("gear", 9));
-        PlacePlan(w, At(1, 1), Door);
-        Press(w, 1, 5);
-        w.Do(new SetCreative(true)).Run();
-        // A vent of several parts, as an iron wall was before a wall cell cost one plate (0104).
+        // A vent of several parts, an item of its cost a part (0063); peer 5 creative, peer 7 carrying the whole cost.
         var vent = Machines.Get("vent");
         int ventTicks = vent.BuildTicks, parts = Costs.PartsOf(vent.Cost);
+        var w = new Scenario(Open).GiveItems(7, [.. vent.Cost]);
+        w.Do(new SetCreative(true) { From = 5 }).Run();
         PlacePlan(w, At(3, 1), new Placement("machine", "vent"));
-        Assert.Empty(w.M.Building.Lacking(2));
-        Hold(w, 1, Builds.Get("door").BuildTicks - 1, 7);
-        Hold(w, 2, ventTicks / 2, 7);
-        // Drawn as far built as its work has gone, nothing paid.
-        Assert.Equal((Enumerable.Range(0, parts).Count(k => Begins(vent, k) < ventTicks / 2), parts), w.M.Building.Parts(2));
-        Assert.Empty(Delivered(PlanOf(w, 2)));
-        Hold(w, 2, ventTicks - ventTicks / 2, 7);
+        Assert.Equal(parts, w.M.Building.Lacking(1).Sum(l => l.Count));
+        Hold(w, 1, ventTicks / 2, 5);
+        // What peer 5 began is paid, from nothing: drawn as far built, and the plan lacks no more of it.
+        int begun = Enumerable.Range(0, parts).Count(k => Begins(vent, k) < ventTicks / 2);
+        Assert.Equal((begun, parts), w.M.Building.Parts(1));
+        Assert.Equal(begun, Delivered(PlanOf(w, 1)).Sum(d => d.Item2));
+        Assert.Equal(parts - begun, w.M.Building.Lacking(1).Sum(l => l.Count));
+        Hold(w, 1, ventTicks - ventTicks / 2, 7);
         Assert.Empty(w.Refusals);
-        Assert.Equal(Structure.DoorClosed, w.M.Grid.StructureAt(At(1, 1)));
         Assert.Equal("vent", w.M.Grid.MachineAt(At(3, 1))?.Kind);
-        Assert.Equal((9, 9), (Count(w, "plate", 7), Count(w, "gear", 7)));
+        Assert.Equal(begun, w.M.Items.Inventory(7).Sum(s => s?.Count ?? 0));
     }
 
     // Taking apart.
