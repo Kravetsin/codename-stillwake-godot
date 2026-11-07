@@ -153,5 +153,5 @@ public static class Light
     /// How bright a vein's ore shines in the lamps' light (2026-11-07-ore-pockets), past whole, as metal catches it: its pixels gain the
     /// lamps' and spots' light times this, their brightness and their <c>GroundLooks</c> fleck. Starlight and daylight give none.
     /// </summary>
-    public const float OreShine = 3f;
+    public const float OreShine = 6f;
 }
