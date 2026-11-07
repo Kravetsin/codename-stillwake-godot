@@ -531,6 +531,7 @@ public partial class HeroView : Node2D
         _figure.Suit = SuitGlow.Of(m.Crew, m.Items, client.Id, client.World.Tick);
         _figure.Jetpack = jetpack;
         _figure.HeadLamp = m.Items.Equipped(client.Id, Content.HelmetLamp.Item);
+        _figure.Scanner = m.Items.Equipped(client.Id, Content.Helmet.Scanner);
         _figure.WearsCape = m.Items.Equipped(client.Id, Content.Cape.Item);
         _figure.FloorRoom = FloorRoom(m.Grid, drawn);
         _figure.Footing = FootingOf(m, drawn, _figure.Footing);
@@ -639,7 +640,8 @@ public partial class HeroView : Node2D
     }
 
     /// <summary>The world point under the pointer, in cells, or the autopilot's while it points; none off the window, under the menu, the computer's window or the tree.</summary>
-    private (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.TreeOpen.Get() ? null : _mouse.Pointer());
+    /// <summary>Where this player points, in cells: the autopilot's, else the mouse's; none while a menu, a computer or the tree is open.</summary>
+    public (double X, double Y)? Pointer() => _autopilot?.PointerFor(_current) ?? (_ui.MenuOpen.Get() || _ui.OpenComputer.Get() != null || _ui.TreeOpen.Get() ? null : _mouse.Pointer());
 
     public override void _UnhandledInput(InputEvent e)
     {

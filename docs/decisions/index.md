@@ -274,3 +274,4 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [no-charge-flash](2026-11-07-no-charge-flash.md) | A flat press blinks the energy tab red | accepted |  |
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
+| [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |

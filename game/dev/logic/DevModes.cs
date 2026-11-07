@@ -85,6 +85,7 @@ public static class DevModes
         new("--axe", DevShape.Flag, "with --ground=hit-…, the axe instead of the drill (0094)"),
         new("--held", DevShape.Equals, "with --asteroid, that item on the first slot instead of the drill (salvage-tools)"),
         new("--belt", DevShape.Flag, "with --asteroid, all three belt slots open and worn, the grinder and a spare battery on the hotbar (energy-ring)"),
+        new("--scanner", DevShape.Flag, "with --asteroid, the scanner on the helmet and a big asteroid and an engine block beside the hero (the-scanner)"),
         new("--take-at", DevShape.Next, "with --ground at a spire, the second its nearest relic is struck from (0096)"),
         new("--ground-offset", DevShape.Next, "with --ground, the hero stood N columns right of its mode's spot"),
         new("--sprint", DevShape.Next, "with --ground=sprint --autopilot, cells run; 300 by default"),

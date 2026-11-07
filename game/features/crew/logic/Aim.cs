@@ -65,16 +65,9 @@ public static class Aiming
         return dx * dx + dy * dy <= (long)Spec.Hero.Reach * Spec.Hero.Reach;
     }
 
-    /// <summary>
-    /// Half a wreck's picture each way, in thousandths of a cell, and a little more, as it rocks; none for
-    /// a piece caught by hand.
-    /// </summary>
-    private static (int HalfW, int HalfH)? HalfOf(string item) =>
-        DebrisLooks.Wrecks.TryGetValue(item, out var size)
-            ? (size.W * Hero.Unit / (2 * PixelsPerCell) + WreckMargin, size.H * Hero.Unit / (2 * PixelsPerCell) + WreckMargin)
-            : null;
+    private static (int HalfW, int HalfH)? HalfOf(string item) => WreckAim.HalfOf(item);
 
-    private const int PixelsPerCell = Camera.Cell, WreckMargin = 500;
+    private const int WreckMargin = WreckAim.Margin;
 
     /// <summary>Half a small piece's picture each way, in thousandths of a cell: they are a cell or a little more across.</summary>
     private const int SmallHalf = 1000;
@@ -427,9 +420,8 @@ public static class Aiming
     private static Piece? PieceNear(Registry m, Hero hero, (double X, double Y) point, IReadOnlySet<int>? passOver)
     {
         if (m.Rooms.RoomAt(hero.BodyCell(m.Grid.Width)) != RoomsModule.Space) return null;
+        if (WreckAim.Under(m.Debris.Pieces, point) is { } wreck) return wreck;
         double px = point.X * DebrisModule.Unit, py = point.Y * DebrisModule.Unit;
-        foreach (var p in m.Debris.Pieces)
-            if (HalfOf(p.Item) is var (halfW, halfH) && Math.Abs(p.X - px) <= halfW && Math.Abs(p.Y - py) <= halfH) return p;
         Piece? nearest = null;
         double best = (double)Spec.Debris.AimRadius * Spec.Debris.AimRadius;
         foreach (var p in m.Debris.Pieces)

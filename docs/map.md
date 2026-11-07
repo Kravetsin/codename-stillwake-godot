@@ -39,6 +39,7 @@ Below, `f/x` = `game/features/x`, `r/` = `game/render`, `gc/` = `game/Content` (
 
 **Debris and wrecks**
 - Debris — sim/Debris · f/debris: `Debris.cs` DebrisModule, `Hit`; `Drift.cs` (zones, spawns); `Nets.cs` (the debris net: `Collect`, `NetEntry`); `DebrisView.cs`, `BreakView.cs`, `Finds.cs`; c/`Debris.cs`, `Wreck.cs`, `Wreckage.cs`
+- Scanner — f/scanner: `Scan.cs` (`Readout`: a wreck's hit points left under the pointer), `Phosphor.cs` (the picked readout's digits), `ScannerView.cs`; game/shared `WreckAim.cs` (the box a wreck is pointed at by), `ScannerInk.cs` (generated: the crest on each helmet); c/`Suit.cs` `Helmet.Scanner`
 - Hazards — sim/Hazards · f/hazards: `Hazards.cs` HazardsModule (the shower falling, `Incoming`), `MeteorHit`; `Flares.cs` (magnetic flares, `FlareNow`); `MeteorView.cs`; c/`Meteors.cs`, c/`MagneticFlares.cs`
 - Landing — sim/Landing: `Landing.cs` LandingModule, `SetPlatform` (the launch platform opened with power), `Board`, `Alight` (the drop pod's seats), `Launch` (its descent and return, `Flights`, `Owners`); `Content.Landing`; client game/features/landing: `PodSeats.cs`, `LaunchKey.cs` (Descend / Return), `FlightOverlay.cs` (the white-out); the seated hero: f/crew `SeatedHeroes.cs`
 

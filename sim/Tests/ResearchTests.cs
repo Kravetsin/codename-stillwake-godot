@@ -80,6 +80,21 @@ public class ResearchTests
         Assert.Equal(100_000 - 5000, w.M.Research.Credits);
     }
 
+    /// <summary>The scanner (2026-11-07-the-scanner): three times its worth rounded, 1500, on the second order's row, before the jetpack's far wrecks.</summary>
+    [Fact]
+    public void TheScannerIsSoldOnTheSecondOrdersRowAndBoughtIsCraftable()
+    {
+        Assert.Equal(Node("powerDriver").Ring, Node("scanner").Ring);
+        Assert.Equal(1500, Prices.Of(Node("scanner")));
+        var w = SetUp(credits: 100_000);
+        Assert.Equal("research.locked", w.M.Research.BuyProblem(Node("scanner")));
+        foreach (var (item, count) in ResearchSpec.Nodes.Where(n => n.Gate && n.Ring <= Node("scanner").Ring).SelectMany(n => n.Order)) w.M.Knowledge.Sell(item, count);
+        w.Do(new BuyBlock("scanner")).Run();
+        Assert.Empty(w.Refusals);
+        Assert.True(w.M.Research.Knows("scanner"));
+        Assert.Equal(100_000 - Prices.Of(Node("scanner")), w.M.Research.Credits);
+    }
+
     [Fact]
     public void WhatABlockOpensIsPlannedOnceBought()
     {

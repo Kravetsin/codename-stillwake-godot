@@ -75,6 +75,13 @@ public partial class Figure : Node2D
     private readonly Node2D _frontHip, _backHip;
     private readonly Node2D _body, _helmet;
     private readonly Sprite2D _headLamp, _lens;
+    /// <summary>The scanner in the lamp's mount (2026-11-07-the-scanner), and its glass's dot lit, drawn again unlit over it.</summary>
+    private readonly Sprite2D _scanner, _scannerDot;
+    /// <summary>The scanner's dots on the helmet worn, lit one at a time down its glass.</summary>
+    private readonly Texture2D?[] _scannerDots = new Texture2D?[3];
+    /// <summary>How long each dot stays lit, and the dark beat after the last, in ms.</summary>
+    private const double ScannerDotMs = 220;
+    private bool _scannerWorn;
     /// <summary>The parts shown by what is worn: the air pack with the body; the helmet's shell and glass, else the hair and beard.</summary>
     private readonly Sprite2D _pack, _shell, _visor, _hair, _beard, _headPart, _facePart;
     /// <summary>The head and face again, added unlit under the helmet's glass while its lamp is on: the face lit by its spill.</summary>
@@ -276,6 +283,10 @@ public partial class Figure : Node2D
         _lens = new Sprite2D { Texture = _lensPicture, Position = _headLamp.Offset + HeadLampArt.Lens, Material = new CanvasItemMaterial { LightMode = CanvasItemMaterial.LightModeEnum.Unshaded } };
         _headLamp.AddChild(_lens);
         _helmet.AddChild(_headLamp);
+        _scanner = new Sprite2D { Centered = false, Visible = false };
+        Lit.Set(_scanner);
+        _scanner.AddChild(_scannerDot = new Sprite2D { Centered = false, Material = Unshaded });
+        _helmet.AddChild(_scanner);
         _plan = Part("sheet");
         _plan.Visible = false;
         // The planner's screen glows: drawn unlit over it, so it shows in the dark.
@@ -426,6 +437,31 @@ public partial class Figure : Node2D
             _lampWorn = value;
             _headLamp.Visible = _faceLight.Visible = _lampWorn && _helmetWorn != null;
         }
+    }
+
+    /// <summary>Whether the hero wears the scanner (2026-11-07-the-scanner): along the helmet's crown, in the lamp's mount; only on a helmet.</summary>
+    public bool Scanner
+    {
+        get => _scanner.Visible;
+        set
+        {
+            if (value == _scannerWorn) return;
+            _scannerWorn = value;
+            ShowScanner();
+        }
+    }
+
+    /// <summary>The scanner's pictures for the helmet worn, at its mount: each helmet's hugs its dome.</summary>
+    private void ShowScanner()
+    {
+        _scanner.Visible = _scannerWorn && _helmetWorn != null;
+        if (!_scanner.Visible) return;
+        bool heavy = _helmetWorn == Stillwake.Content.Helmet.Heavy;
+        string name = heavy ? "hero_heavyHelmet_scanner" : "hero_scanner";
+        var (x, y) = heavy ? ScannerInk.OnHeavy : ScannerInk.On;
+        _scanner.Texture = PixelArt.Picture(name);
+        _scanner.Offset = _scannerDot.Offset = new Vector2((float)x - ScannerInk.Margin, (float)y - ScannerInk.Margin) - Joints["helmet"];
+        for (int i = 0; i < _scannerDots.Length; i++) _scannerDots[i] = PixelArt.Picture($"{name}_lit_{i}");
     }
 
     /// <summary>The helmet lamp's lens as drawn, in pixels of the world: where its light shines from, turning with the head.</summary>
@@ -659,6 +695,7 @@ public partial class Figure : Node2D
         _beard.Visible = helmet == null && HeroLooks.Wrap(look.Beard, HeroLooks.Beards + 1) > 0;
         (_headLit.Texture, _faceLit.Texture) = (_headPart.Texture, _facePart.Texture);
         HeadLamp = _lampWorn;
+        ShowScanner();
     }
 
     /// <summary>
@@ -842,6 +879,12 @@ public partial class Figure : Node2D
     public void Show(Hero hero, Pose pose, double look, bool holdsPlan, double elapsedMs)
     {
         _timeMs += elapsedMs;
+        if (_scanner.Visible)
+        {
+            int lit = (int)(_timeMs / ScannerDotMs) % (_scannerDots.Length + 1);
+            _scannerDot.Visible = lit < _scannerDots.Length;
+            if (_scannerDot.Visible) _scannerDot.Texture = _scannerDots[lit];
+        }
         ShowSuit();
         // Walking backwards, away from where it faces, the stride runs backwards too. On the ground only the
         // way along counts, so a stair keeps the stride of the flat; on a ladder only the way up or down.

@@ -48,11 +48,11 @@ public static class Testbed
     public static bool InFarmCrate(string item) => Farm.Contains(item) || Crushed.Contains(item) || Planet.Contains(item) || Unmade.Contains(item) || Spare.Contains(item);
 
     /// <summary>
-    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), an empty accumulator
+    /// What the supply crate by the door holds besides its supplies, the first crate being full: the helmet lamp (0077), the scanner (2026-11-07-the-scanner), an empty accumulator
     /// (0099), a part of each of the computer's (<see cref="ComputerParts"/>), a launch platform's deck drive and the engine's parts
     /// (<see cref="EngineParts"/>), the nailer and its nails, the full crate having no slot left. A drill with the arc fitted lies there too (0098); a plain one is on the arc bench, to be fitted there (0099).
     /// </summary>
-    public static IEnumerable<string> InSupply => [HelmetLamp.Item, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
+    public static IEnumerable<string> InSupply => [HelmetLamp.Item, Helmet.Scanner, "accumulator", .. ComputerParts, "deckDrive", .. EngineParts, Shots.Nailer.Item, Shots.Railgun.Item, Shots.Nail.Id];
 
     /// <summary>
     /// What the tools crate on the lifepod holds, the others being full: the salvage tools (salvage-tools), and an arc
