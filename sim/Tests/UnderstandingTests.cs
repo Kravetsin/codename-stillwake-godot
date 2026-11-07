@@ -106,6 +106,7 @@ public class UnderstandingTests
     [Theory]
     [InlineData("solarPanel")]
     [InlineData("heavyHelmet")]
+    [InlineData("scanner")]
     [InlineData("regenSuit")]
     public void WhatOnlyTheMarketOpensIsNeverGrantedByCounts(string id)
     {

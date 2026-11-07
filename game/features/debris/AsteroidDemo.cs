@@ -29,17 +29,22 @@ public partial class AsteroidDemo : CanvasLayer
     /// <summary>The asteroids, by id: thousandths of a cell right of the hero's middle (left when negative), and up from its cell's top, to their middles.</summary>
     private static readonly (int Id, int Right, int Up)[] Rocks = [(1, 4_100, 600), (2, -4_100, 600)];
 
+    /// <summary>With <c>--scanner</c>, a big asteroid on the right and an engine block on the left, far enough to clear the hero (the-scanner).</summary>
+    private static readonly (int Id, int Right, int Up)[] Wrecks = [(1, 7_000, 600), (2, -7_000, 600)];
+
     /// <summary>
     /// <paramref name="world"/>, read through <paramref name="m"/>: peer 0 out at <see cref="FarDemo.StartOf"/> with the
     /// drill (<paramref name="module"/> fitted into it with <c>--arc-drill</c>, 0098; <paramref name="held"/> in its place with <c>--held</c>), the axe, canisters, a jetpack and a battery, and the two asteroids beside it, put in through its save.
     /// With <paramref name="fullBelt"/> (<c>--belt</c>, energy-ring) all three belt slots are open and worn: a battery near flat, a full one and an
-    /// accumulator half full, with the grinder and a spare battery on the hotbar.
+    /// accumulator half full, with the grinder and a spare battery on the hotbar. With <paramref name="scanner"/> (<c>--scanner</c>) the scanner is on the helmet
+    /// and the rocks are <see cref="Wrecks"/>.
     /// </summary>
-    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null, bool fullBelt = false)
+    public static World Seed(World world, Registry m, Func<IReadOnlyList<Module>> modules, string? module = null, string? held = null, bool fullBelt = false, bool scanner = false)
     {
         var root = JsonNode.Parse(world.Save())!;
         int belt = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Charge.Belt);
         int back = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf("back");
+        int mount = Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Helmet.Mount);
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == 0 ? held != null ? new JsonObject { ["item"] = held, ["count"] = 1 }
@@ -47,6 +52,7 @@ public partial class AsteroidDemo : CanvasLayer
                 : i == 1 ? new JsonObject { ["item"] = Spec.Weapons.Axe.Item, ["count"] = 1 }
                 : i == 9 ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 5 }
                 : i == back ? new JsonObject { ["item"] = Spec.Jetpack.Item, ["count"] = 1 }
+                : scanner && i == mount ? new JsonObject { ["item"] = Spec.Helmet.Scanner, ["count"] = 1 }
                 : i == Spec.Inventory.Slots + Spec.Inventory.Equipment.ToList().IndexOf(Spec.Suit.Slot) ? new JsonObject { ["item"] = Spec.Suit.Basic, ["count"] = 1 }
                 : i == Spec.Inventory.Slots ? new JsonObject { ["item"] = Spec.Helmet.Basic, ["count"] = 1 }
                 : i == belt ? new JsonObject { ["item"] = "battery", ["count"] = 1, ["charge"] = Spec.Charge.Battery / 1000 * (fullBelt ? 60 : Charge) }
@@ -77,14 +83,14 @@ public partial class AsteroidDemo : CanvasLayer
         var debris = root["slices"]!["debris"]!;
         var list = debris["pieces"]!.AsArray();
         int next = (int)debris["nextId"]!;
-        foreach (var (id, right, up) in Rocks)
+        foreach (var (id, right, up) in scanner ? Wrecks : Rocks)
         {
             int x = sx * 1000 + 500 + right;
             list.Add(new JsonObject
             {
                 ["id"] = next++,
                 ["zone"] = Spec.Debris.Asteroids.Id,
-                ["item"] = "asteroid",
+                ["item"] = scanner ? (id == 1 ? "asteroidLarge" : "engineBlock") : "asteroid",
                 ["x"] = x,
                 ["y"] = sy * 1000 - up,
                 // Still, so the script's hands stay on them through a recording.
