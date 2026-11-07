@@ -97,14 +97,18 @@ public static class HiRes
         return made;
     }
 
-    /// <summary><paramref name="texture"/> reporting <paramref name="size"/>, its own filter overriding the pixel art's nearest of the nodes drawing it.</summary>
-    public static CanvasTexture Sampled(ImageTexture texture, Vector2I size, Texture2D? normal = null)
+    /// <summary>
+    /// <paramref name="texture"/> reporting <paramref name="size"/>, its own filter overriding the pixel art's nearest of the nodes drawing it;
+    /// with its <paramref name="normal"/> map and its <paramref name="specular"/> one, where ore shines (<c>render/Lit.cs</c>).
+    /// </summary>
+    public static CanvasTexture Sampled(ImageTexture texture, Vector2I size, Texture2D? normal = null, Texture2D? specular = null)
     {
         texture.SetSizeOverride(size);
         return new CanvasTexture
         {
             DiffuseTexture = texture,
             NormalTexture = normal,
+            SpecularTexture = specular,
             TextureFilter = CanvasItem.TextureFilterEnum.LinearWithMipmaps,
         };
     }

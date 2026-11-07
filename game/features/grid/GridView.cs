@@ -67,7 +67,7 @@ public partial class GridView : Node2D
             Material = ShadowTiles.Multiply,
         };
         AddChild(_shade);
-        _walls = Layer(Layers.Walls, L.WallIn);
+        _walls = Layer(Layers.Walls, L.WallIn, shines: true);
         // A planet's pebbles and roots over its ground, under its edges: added after the walls, before them (0082).
         _details = Layer(Layers.Walls, L.WallIn);
         _edges = Layer(Layers.Edges, L.WallIn);
@@ -92,11 +92,11 @@ public partial class GridView : Node2D
         foreach (var layer in (CanvasItem[])[_fixtures, _doors, _machines, _sockets]) layer.Modulate = new Color(1, 1, 1, alpha.Front);
     }
 
-    private TileMapLayer Layer(int z, float share = 1)
+    private TileMapLayer Layer(int z, float share = 1, bool shines = false)
     {
         // Cells have no bodies or paths, but Godot would still walk every cell for them each time a layer is built.
         var layer = new TileMapLayer { TileSet = _tiles.Set, ZIndex = z, CollisionEnabled = false, NavigationEnabled = false };
-        Lit.Set(layer, share);
+        Lit.Set(layer, share, shines);
         AddChild(layer);
         return layer;
     }
