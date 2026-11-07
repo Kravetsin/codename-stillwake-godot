@@ -203,9 +203,9 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
                 int capacity = CapacityOf(hero.Id);
                 hero.Air = Math.Min(hero.Air, capacity);
                 Thrusts(hero);
-                if (_items.Creative)
+                if (_items.Creative(hero.Id))
                 {
-                    // Creative mode: the air is endless, and a hero takes no room's air.
+                    // A creative peer's air is endless, and its hero takes no room's air.
                     hero.Air = capacity;
                     hero.Gasp = 0;
                     continue;
@@ -281,7 +281,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Shock(int peer, int units)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
         // The air pays what it holds; the last breath, what it falls short by.
         int beyond = units - hero.Air;
         hero.Air = Math.Max(0, hero.Air - units);
@@ -290,7 +290,7 @@ public sealed partial class CrewModule : Module<CrewState>, ICrewQueries, ICrewO
 
     public void Blow(int peer, int units)
     {
-        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative || units <= 0) return;
+        if (HeroOf(peer) is not { Out: 0 } hero || _items.Creative(peer) || units <= 0) return;
         Shock(peer, Soften(hero, units, Content.Cape.Guard));
     }
 

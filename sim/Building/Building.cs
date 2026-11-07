@@ -112,7 +112,7 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
         _crew = crew;
         _crewOps = crewOps;
         _pipes = pipes;
-        Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement), ApplyPlacePlan);
+        Handles<PlacePlan>(c => PlaceProblem(c.Cell, c.Placement, c.From), ApplyPlacePlan);
         Handles<Deconstruct>(c => MarkProblem(c.Cell, c.Layer), ApplyDeconstruct);
         Handles<CancelPlan>(c => State.Plans.Exists(p => p.Id == c.Id) ? null : "building.noPlan", ApplyCancelPlan);
         Handles<Work>(c => WorkProblemOf(c.Plan, c.From), ApplyWork);
@@ -153,8 +153,8 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// </summary>
     public (string Layer, int Cell)? ClearAt(int cell, IReadOnlyList<string>? layers = null) => NextToClear(cell, layers);
 
-    /// <summary>Why a blueprint for <paramref name="placement"/> at <paramref name="cell"/> would be refused: what a ghost shows before the command is sent.</summary>
-    public string? Problem(int cell, Placement placement) => PlaceProblem(cell, placement);
+    /// <summary>Why a blueprint for <paramref name="placement"/> at <paramref name="cell"/> would be refused, placed by <paramref name="peer"/>: what a ghost shows before the command is sent.</summary>
+    public string? Problem(int cell, Placement placement, int peer) => PlaceProblem(cell, placement, peer);
 
     /// <summary>Why a mark on <paramref name="layer"/> of <paramref name="cell"/> would be refused: what a removal ghost shows.</summary>
     public string? Problem(int cell, string layer) => MarkProblem(cell, layer);
@@ -162,12 +162,12 @@ public sealed partial class BuildingModule : Module<BuildingState>, IBuildingQue
     /// <summary>Why peer <paramref name="peer"/>'s work on plan <paramref name="id"/> would be refused: what the client shows first.</summary>
     public string? WorkProblem(int id, int peer) => WorkProblemOf(id, peer);
 
-    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan, nor in creative mode.</summary>
+    /// <summary>What blueprint <paramref name="id"/> still lacks of its cost, paid an item a part as it is worked: none for a mark or no plan.</summary>
     public Cost Lacking(int id) => State.Plans.Find(p => p.Id == id) is { } plan ? LackOf(plan) : [];
 
     /// <summary>
     /// How many parts of blueprint <paramref name="id"/> are put in, of all its parts, one an item of its cost: those
-    /// paid for, or in creative mode those its work has begun. Null for a mark or no plan.
+    /// paid for, or those its work has begun if more (a plan worked in a save from before creative mode was a peer's). Null for a mark or no plan.
     /// </summary>
     public (int In, int Of)? Parts(int id)
     {

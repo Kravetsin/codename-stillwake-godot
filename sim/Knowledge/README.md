@@ -31,4 +31,4 @@ registry and shared by every surface's, saved second in the ship's `slices`. Rec
 - `Granted` only grows, holds each id once, sorted.
 - `Credits` never go negative.
 - `Obtained` holds each item once, its counts above zero and only growing; `Sold` likewise, sorted.
-- Whatever lies in a slot or on the floor has a count or is known from the start (`CountsTests`), creative mode aside.
+- Whatever lies in a slot or on the floor has a count or is known from the start (`CountsTests`), a creative peer's spawns aside.

@@ -118,8 +118,15 @@ public static class CreaturesTesting
     /// <summary>How long a species flees once struck.</summary>
     public static int FleeTicks(this Spec.Creatures.Species s) => s.Brain.OfType<Spec.Creatures.Flee>().Single().Ticks;
 
-    /// <summary>Creative mode: every hero's suit endless, so heroes out in a long run never pass out and wake elsewhere.</summary>
-    public static Scenario Breathing(this Scenario w) => w.Do(new Items.SetCreative(true));
+    /// <summary>Creative mode for peers 0 to <see cref="Peers"/>: every hero's suit endless, so heroes out in a long run never pass out and wake elsewhere.</summary>
+    public static Scenario Breathing(this Scenario w)
+    {
+        for (int peer = 0; peer < Peers; peer++) w.Do(new Items.SetCreative(true) { From = peer });
+        return w;
+    }
+
+    /// <summary>The peers these tests give heroes, at most.</summary>
+    private const int Peers = 10;
 
     /// <summary>Hero <paramref name="peer"/> reported at the feet of the map's character at (<paramref name="x"/>, <paramref name="y"/>), level with a creature standing there.</summary>
     public static Scenario HeroAt(this Scenario w, int x, int y, int peer = 0) => w.Do(new Enter(w.Feet(x, y)) { From = peer });

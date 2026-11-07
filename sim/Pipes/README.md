@@ -31,7 +31,7 @@ plan, piping, valves on joints, and the networks they join, along which air flow
   two cells take one span at most. Its length is the square root of the cells' squared distance, an integer, rounded up
   (`LengthOf`: 3 by 4 is 5, 1 by 1 is 2). It costs one `Content.Piping.Item` (a tube) per started
   `CellsPerItem` (4) cells, taken from the sender's stock (crates too) as it is laid, given back to it as it is cut;
-  in creative mode it costs nothing and gives nothing back (`Paid`). It takes no cell: it passes through walls and seals nothing.
+  a creative sender pays from nothing, so it is `Paid` and gives its tubes back to whoever takes it up. It takes no cell: it passes through walls and seals nothing.
 - **A valve** is a joint that opens and closes (`MakeValve(cell, true)`, `Content.Piping.ValveCost`, open as made;
   `MakeValve(cell, false)` turns it back, refunded). Only a joint becomes one, never a port. `SetValve(cell, open)` says
   the state its sender saw it should take (0071): one already so is left alone. Its last span cut, a valve goes with it,

@@ -294,12 +294,12 @@ public class ChargeTests
     }
 
     [Fact]
-    public void DrainsNothingInCreativeModeAndStillWorks()
+    public void DrainsNothingFromACreativePeerAndStillWorksAndAnotherAsEver()
     {
         var w = new Scenario(Layout.Empty).Put(Belt, Charged(10));
         w.Do(new SetCreative(true)).Run();
         Assert.True(w.M.Items.Drain(0, 3));
-        Assert.True(w.M.Items.Drain(1, 3));
+        Assert.False(w.M.Items.Drain(1, 3));
         Assert.Equal(Charged(10), w.M.Items.Inventory(0)[Belt]);
     }
 

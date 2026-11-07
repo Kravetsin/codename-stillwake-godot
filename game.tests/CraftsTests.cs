@@ -27,7 +27,7 @@ public class CraftsTests
     private static TestWorld Start() => new(Layout.Parse(Room).Doubled() with { Known = ["fireAxe"] });
 
     private static Look LookOf(TestWorld w, string craft) =>
-        Crafts.LookOf(w.M.Research.Knows(craft), Crafts.Lines(craft, w.M.Items.Totals(0)), w.M.Items.Creative);
+        Crafts.LookOf(w.M.Research.Knows(0, craft), Crafts.Lines(craft, w.M.Items.Totals(0)), w.M.Items.Creative(0));
 
     [Fact]
     public void LaysEveryRecipeInItsFixedPlaceFourARowTwoRowsAtLeast()

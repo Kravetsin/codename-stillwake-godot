@@ -105,7 +105,7 @@ public class TestbedTests
     public void IsReadyTheMomentItOpens()
     {
         var m = Built.Value;
-        Assert.True(m.Items.Creative);
+        Assert.True(m.Items.Creative(0));
         Assert.True(m.Furnace.At(IdOf(m, "furnace")).Burning);
         Assert.True(m.Furnace.At(IdOf(m, "burnerGenerator")).Burning);
         var airlock = m.Rooms.RoomAt(Testbed.Map.Width * 12 + 92);

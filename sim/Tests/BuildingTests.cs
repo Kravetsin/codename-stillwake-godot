@@ -185,7 +185,7 @@ public class BuildingTests
             """;
         int middle = 9 * 18 + 8;
         var w = new Scenario(tall).Do(new Crew.Enter(middle)).Do(new SetInstant(true)).Run();
-        string?[] Down(int column) => Enumerable.Range(5, 7).Select(row => w.M.Building.Problem(row * 18 + column, Wall)).ToArray();
+        string?[] Down(int column) => Enumerable.Range(5, 7).Select(row => w.M.Building.Problem(row * 18 + column, Wall, 0)).ToArray();
         string?[] body = [null, .. Enumerable.Repeat("building.heroInside", 6)];
         Assert.Equal(body, Down(8));
         Assert.Equal(body, Down(7));
@@ -198,14 +198,14 @@ public class BuildingTests
     {
         int hero = At(3, 1) + 18;
         var w = new Scenario(Open).Do(new Crew.Enter(hero)).Do(new SetInstant(true)).Run();
-        Assert.Equal("building.heroInside", w.M.Building.Problem(hero + 18, Wall));
+        Assert.Equal("building.heroInside", w.M.Building.Problem(hero + 18, Wall, 0));
         w.Do(new PlacePlan(hero + 18, Wall)).Do(new PlacePlan(hero + 2, Wall)).Run();
         Assert.Equal(["building.heroInside"], Reasons(w));
         Assert.Null(w.M.Grid.WallAt(hero + 18));
         Assert.Equal("iron", w.M.Grid.WallAt(hero + 2)?.Id);
         // Planned, a wall on a hero is no problem until its last tick.
         w.Do(new SetInstant(false)).Run();
-        Assert.Null(w.M.Building.Problem(hero, Wall));
+        Assert.Null(w.M.Building.Problem(hero, Wall, 0));
     }
 
     [Fact]
@@ -228,10 +228,10 @@ public class BuildingTests
     public void AnswersAGhostWithTheReasonTheCommandWouldGet()
     {
         var w = new Scenario(Open);
-        Assert.Null(w.M.Building.Problem(At(1, 1), Wall));
+        Assert.Null(w.M.Building.Problem(At(1, 1), Wall, 0));
         w.Do(new PlacePlan(At(1, 1), Wall)).Run();
-        Assert.Equal("building.planned", w.M.Building.Problem(At(1, 1), Wall));
-        Assert.Equal("grid.occupied", w.M.Building.Problem(At(0, 0), Wall));
+        Assert.Equal("building.planned", w.M.Building.Problem(At(1, 1), Wall, 0));
+        Assert.Equal("grid.occupied", w.M.Building.Problem(At(0, 0), Wall, 0));
         Assert.Equal("building.nothingThere", w.M.Building.Problem(At(1, 2), "structure"));
     }
 

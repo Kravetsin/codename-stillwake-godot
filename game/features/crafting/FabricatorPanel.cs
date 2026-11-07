@@ -247,7 +247,7 @@ public partial class FabricatorPanel : CanvasLayer
         if (Open is not var (pod, station) || _client == null || _crafting == null || _research == null || _items == null) return;
         int peer = _client.Id;
         _carried = _items.StockTotals(peer);
-        _creative = _items.Creative;
+        _creative = _items.Creative(peer);
         var queue = _crafting.Queue(pod);
         int progress = _crafting.Progress(pod);
         // The outputs as this peer's own takes in flight leave them, so a stack goes on the click (0014).
@@ -274,7 +274,7 @@ public partial class FabricatorPanel : CanvasLayer
     }
 
     private Look LookOf(string craft) =>
-        Crafts.LookOf(_research!.Knows(craft), Crafts.Lines(craft, _carried), _creative, _fed is { } fed ? Crafts.Lines(craft, fed) : null);
+        Crafts.LookOf(_research!.Knows(_client!.Id, craft), Crafts.Lines(craft, _carried), _creative, _fed is { } fed ? Crafts.Lines(craft, fed) : null);
 
     private void Send(Sim.Command command)
     {
@@ -404,7 +404,7 @@ public partial class FabricatorPanel : CanvasLayer
     /// <summary>A recipe's tip: its item's card with the craft block (<see cref="Crafts.Block"/>); a closed one, what opens it.</summary>
     private Tip TipOf(string craft, Content.Station station)
     {
-        if (_research?.Knows(craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
+        if (_client == null || _research?.Knows(_client.Id, craft) != true) return new Tip("???", new TipLine(T("crafts.notOpened"), Tone.Unknown));
         return CardTip(craft, Crafts.Block(craft, station, _carried, _creative, _fed));
     }
 
