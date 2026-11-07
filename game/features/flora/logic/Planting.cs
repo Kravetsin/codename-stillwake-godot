@@ -81,17 +81,47 @@ public static class Planting
     /// <summary>How far a piece of moss's picture reaches past its block on every side, and its whole size round a block of 16.</summary>
     private const int PieceOver = 4, PieceSize = 24;
 
+    /// <summary>How an end of a moss face goes on: into the next block's moss, out past its block into the open, or into a wall.</summary>
+    public enum End
+    {
+        Joins,
+        Open,
+        Wall,
+    }
+
     /// <summary>
-    /// What of a moss picture shows along <paramref name="face"/>: cut at its block's edge where a run of it goes on
-    /// <paramref name="before"/> or <paramref name="after"/> it, its torn end kept where the run stops (2026-11-01-moss-in-ink);
-    /// only along its <paramref name="first"/> and <paramref name="second"/> cell where the face is open beside them, so on a
-    /// stair's step it ends at the corner rather than over the stone beside it.
+    /// Which part of a moss picture is drawn where along <paramref name="face"/>, in its picture's pixels: cut at its block's edge
+    /// where its run <see cref="End.Joins"/> the next block's (2026-11-01-moss-in-ink); elsewhere its tapered end kept, reaching
+    /// past the block into the open or squeezed in to stop at a wall. Along only its <paramref name="first"/> and
+    /// <paramref name="second"/> cell where the face is open beside them, the whole band squeezed in, so on a stair's step it
+    /// tapers into the corner rather than lying over the stone beside it or ending in a straight cut.
     /// </summary>
-    public static (int X, int Y, int W, int H) Piece(Faces face, bool before, bool after, bool first = true, bool second = true)
+    public static ((int X, int Y, int W, int H) From, (int X, int Y, int W, int H) To) Piece(Faces face, End start, End end, bool first = true, bool second = true)
     {
         const int middle = PieceSize / 2;
-        int from = !first ? middle : before ? PieceOver : 0, to = !second ? middle : after ? PieceSize - PieceOver : PieceSize;
-        return face is Faces.Up or Faces.Down ? (from, 0, to - from, PieceSize) : (0, from, PieceSize, to - from);
+        int from = first && start == End.Joins ? PieceOver : 0, to = second && end == End.Joins ? PieceSize - PieceOver : PieceSize;
+        int at = !first ? middle : start == End.Open ? 0 : PieceOver, till = !second ? middle : end == End.Open ? PieceSize : PieceSize - PieceOver;
+        return face is Faces.Up or Faces.Down
+            ? ((from, 0, to - from, PieceSize), (at, 0, till - at, PieceSize))
+            : ((0, from, PieceSize, to - from), (0, at, PieceSize, till - at));
+    }
+
+    /// <summary>
+    /// Where <paramref name="face"/> of the 2 × 2 block at <paramref name="cell"/>, in a grid <paramref name="width"/> wide, is
+    /// <paramref name="open"/>: beside its first cell along it (the left or top one) and its second, and just past its start and
+    /// its end on its open side, where a stone cell means the face meets a wall and moss reaching past that end would lie on it.
+    /// </summary>
+    public static (bool First, bool Second, bool Start, bool End) Along(Faces face, int cell, int width, Func<int, bool> open)
+    {
+        int x = cell % width, w = width;
+        bool At(int dx, int dy) => x + dx >= 0 && x + dx < w && open(cell + dy * w + dx);
+        return face switch
+        {
+            Faces.Up => (At(0, -1), At(1, -1), At(-1, -1), At(2, -1)),
+            Faces.Down => (At(0, 2), At(1, 2), At(-1, 2), At(2, 2)),
+            Faces.Left => (At(-1, 0), At(-1, 1), At(-1, -1), At(-1, 2)),
+            _ => (At(2, 0), At(2, 1), At(2, -1), At(2, 2)),
+        };
     }
 
     /// <summary>

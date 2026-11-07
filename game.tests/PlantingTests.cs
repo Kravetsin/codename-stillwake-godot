@@ -60,22 +60,46 @@ public class PlantingTests
     [Fact]
     public void APieceIsCutAtItsBlocksEdgeWhereARunGoesOnAndKeepsItsEndsWhereItStops()
     {
-        Assert.Equal((0, 0, 24, 24), Planting.Piece(Faces.Up, before: false, after: false));
-        Assert.Equal((4, 0, 20, 24), Planting.Piece(Faces.Up, before: true, after: false));
-        Assert.Equal((0, 0, 20, 24), Planting.Piece(Faces.Down, before: false, after: true));
-        Assert.Equal((4, 0, 16, 24), Planting.Piece(Faces.Down, before: true, after: true));
-        Assert.Equal((0, 4, 24, 20), Planting.Piece(Faces.Left, before: true, after: false));
-        Assert.Equal((0, 4, 24, 16), Planting.Piece(Faces.Right, before: true, after: true));
+        var (open, joins) = (Planting.End.Open, Planting.End.Joins);
+        Assert.Equal(((0, 0, 24, 24), (0, 0, 24, 24)), Planting.Piece(Faces.Up, open, open));
+        Assert.Equal(((4, 0, 20, 24), (4, 0, 20, 24)), Planting.Piece(Faces.Up, joins, open));
+        Assert.Equal(((0, 0, 20, 24), (0, 0, 20, 24)), Planting.Piece(Faces.Down, open, joins));
+        Assert.Equal(((4, 0, 16, 24), (4, 0, 16, 24)), Planting.Piece(Faces.Down, joins, joins));
+        Assert.Equal(((0, 4, 24, 20), (0, 4, 24, 20)), Planting.Piece(Faces.Left, joins, open));
+        Assert.Equal(((0, 4, 24, 16), (0, 4, 24, 16)), Planting.Piece(Faces.Right, joins, joins));
     }
 
     [Fact]
-    public void APieceOnAFaceOpenAlongOneOfItsCellsEndsAtThatCellNotOverTheStoneBesideIt()
+    public void APieceStoppingAtAWallOrAlongOneOfItsCellsKeepsItsTaperedEndSqueezedInNotOverTheStone()
     {
+        var (open, joins, wall) = (Planting.End.Open, Planting.End.Joins, Planting.End.Wall);
+        // Into a wall at its block's end: its whole band, its end within the block.
+        Assert.Equal(((0, 0, 24, 24), (0, 0, 20, 24)), Planting.Piece(Faces.Up, open, wall));
         // A stair's step: the block's right face open beside its top cell only, then its bottom cell only.
-        Assert.Equal((0, 0, 24, 12), Planting.Piece(Faces.Right, before: false, after: false, first: true, second: false));
-        Assert.Equal((0, 12, 24, 12), Planting.Piece(Faces.Right, before: false, after: false, first: false, second: true));
-        Assert.Equal((4, 0, 8, 24), Planting.Piece(Faces.Up, before: true, after: true, first: true, second: false));
-        Assert.Equal((12, 0, 8, 24), Planting.Piece(Faces.Down, before: true, after: true, first: false, second: true));
+        Assert.Equal(((0, 0, 24, 24), (0, 0, 24, 12)), Planting.Piece(Faces.Right, open, open, first: true, second: false));
+        Assert.Equal(((0, 0, 24, 24), (0, 12, 24, 12)), Planting.Piece(Faces.Right, open, open, first: false, second: true));
+        // Joining the run before it over its first cell, tapering into the step's riser over its second.
+        Assert.Equal(((4, 0, 20, 24), (4, 0, 8, 24)), Planting.Piece(Faces.Up, joins, joins, first: true, second: false));
+    }
+
+    [Fact]
+    public void AFaceOnAStairsStepIsOpenAlongItsCellOverTheStepAndMeetsTheRiserPastIt()
+    {
+        // Stone '#' stepping down to the left; moss at (2, 1), its block (2..3, 1..2): the step's top over its left cell only.
+        string[] map =
+        [
+            "...##",
+            "..###",
+            ".####",
+            "#####",
+        ];
+        const int width = 5;
+        bool Open(int c) => c >= 0 && c < width * map.Length && map[c / width][c % width] == '.';
+        int moss = 1 * width + 2;
+        Assert.Equal((true, false, true, false), Planting.Along(Faces.Up, moss, width, Open));
+        // Its left face open beside its top cell only, the step's floor under that.
+        Assert.Equal((true, false, true, false), Planting.Along(Faces.Left, moss, width, Open));
+        Assert.Equal((false, false, false, false), Planting.Along(Faces.Right, moss, width, Open));
     }
 
     /// <summary>A column 1 wide: open, open, open, then walls from row 3.</summary>
