@@ -29,7 +29,7 @@ public partial class DigView : Node2D
 
     /// <summary>A pile cracks and bursts as the metal it is, at its own hit points.</summary>
     private Material? PileMaterial(int cell) =>
-        _grid.MachineAt(cell) is { } machine && Stillwake.Content.Machines.Get(machine.Kind).Hp is int hp
+        Piles.At(_grid, cell) is var (_, hp)
             ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
@@ -63,6 +63,7 @@ public partial class DigView : Node2D
             if (_drawn.TryGetValue(key, out var was) && was.Damage == crack.Damage) continue;
             if (MaterialAt(crack.Cell, crack.Back) is not { } material) continue;
             _drawn[key] = (crack.Damage, material);
+            if (!crack.Back) ShowPile(crack.Cell, crack.Damage);
             changed = true;
         }
         _gone.Clear();
@@ -73,6 +74,7 @@ public partial class DigView : Node2D
             // Gone with its wall: broken out. A crack gone with the wall still there was swept: nothing to show.
             if (MaterialAt(key.Cell, key.Back) == null) Break(key.Cell, _drawn[key].Material);
             _drawn.Remove(key);
+            if (!key.Back) DropPile(key.Cell);
             changed = true;
         }
         if (changed) QueueRedraw();
@@ -93,12 +95,63 @@ public partial class DigView : Node2D
         _ink.Feather = _pixel;
         foreach (var ((cell, back), (damage, material)) in _drawn)
         {
+            if (!back && _piles.ContainsKey(cell)) continue;
             int stage = System.Math.Clamp(damage * Stages / System.Math.Max(1, material.Strength), 0, Stages - 1);
             var tones = material.Natural ? DamageLooks.Stone : DamageLooks.Scrap;
-            foreach (int at in _grid.MachineAt(cell) is { } pile ? _grid.Footprint(pile.Kind, pile.Cell) ?? [cell] : [cell])
-                BlockFault.Draw(_ink, stage, BlockFault.SeedOf(at, back), tones, at % w * Cell, at / w * Cell);
+            BlockFault.Draw(_ink, stage, BlockFault.SeedOf(cell, back), tones, cell % w * Cell, cell / w * Cell);
         }
         _canvas.Draw(this, _ink);
+    }
+
+    /// <summary>A pile's cracks: its picture, only clipping, and a wreck's crack network over it, laid out once by its cell.</summary>
+    private sealed record PileInk(Sprite2D Clip, WreckInk Ink, List<Blow> Blows, CrackNet Net);
+
+    /// <summary>The cracked piles, by their cell (2026-11-07-pile-crack-net).</summary>
+    private readonly Dictionary<int, PileInk> _piles = new();
+
+    /// <summary>
+    /// The pile at <paramref name="cell"/> cracked <paramref name="damage"/> deep, as a wreck cracks: one network over its picture out
+    /// of a spot of its middle, run as far as the share of its hit points lost; true if a pile is there.
+    /// </summary>
+    private bool ShowPile(int cell, int damage)
+    {
+        if (Piles.At(_grid, cell) is not var (pile, hp)) return false;
+        if (!_piles.TryGetValue(pile.Cell, out var shown))
+        {
+            string name = $"machine_{pile.Kind}";
+            var texture = PixelArt.Picture(name);
+            var size = texture.GetSize() / HiRes.Scale;
+            // Its picture lies from its cell's corner, as the ship's tiles lay it; the network is laid out in world pixels from its middle.
+            var clip = new Sprite2D
+            {
+                Texture = texture,
+                Centered = false,
+                Scale = Vector2.One / HiRes.Scale,
+                ClipChildren = ClipChildrenMode.Only,
+                Position = new Vector2(pile.Cell % _grid.Width * Cell, pile.Cell / _grid.Width * Cell),
+            };
+            Lit.Set(clip, Stillwake.Game.Light.WallIn);
+            var ink = new WreckInk { Position = texture.GetSize() / 2, Scale = Vector2.One * HiRes.Scale };
+            clip.AddChild(ink);
+            AddChild(clip);
+            var image = HiRes.Load(name)!;
+            bool Solid(double x, double y)
+            {
+                int ix = (int)System.Math.Floor((x + size.X / 2) * HiRes.Scale), iy = (int)System.Math.Floor((y + size.Y / 2) * HiRes.Scale);
+                return ix >= 0 && iy >= 0 && ix < image.GetWidth() && iy < image.GetHeight() && image.GetPixel(ix, iy).A > DamageLooks.Opaque;
+            }
+            var blows = new List<Blow> { WreckCracks.Unseen(pile.Cell, size.X, size.Y) };
+            shown = _piles[pile.Cell] = new PileInk(clip, ink, blows, WreckCracks.Network(blows[0], Solid, pile.Cell));
+        }
+        shown.Ink.Show(shown.Blows, shown.Net, (double)damage / hp, pile.Cell);
+        return true;
+    }
+
+    /// <summary>The pile cracked at <paramref name="cell"/> no longer drawn: broken, or its crack swept.</summary>
+    private void DropPile(int cell)
+    {
+        if (!_piles.Remove(cell, out var shown)) return;
+        shown.Clip.QueueFree();
     }
 
     /// <summary><paramref name="cell"/> broken out: a cloud of its dust where it stood, and chips falling.</summary>

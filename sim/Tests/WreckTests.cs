@@ -241,11 +241,11 @@ public class WreckTests
         w.Do(new Move(new Slot(SlotOf(w, "scrapChunk")), new Target(Crate: trade), chunks)).Run();
         w.Do(new Stillwake.Sim.Trade.SendCapsule(trade)).Run(Stillwake.Content.Market.CapsuleFlight);
         Assert.Equal(chunks * chunk, w.M.Research.Credits);
-        Assert.False(w.M.Items.SlotOpen(new Slot(Stillwake.Content.Inventory.Start)));
+        Assert.False(w.M.Items.SlotOpen(0, new Slot(Stillwake.Content.Inventory.Start)));
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Empty(w.Refusals);
         Assert.Equal(chunks * chunk - price, w.M.Research.Credits);
-        Assert.True(w.M.Items.SlotOpen(new Slot(Stillwake.Content.Inventory.Start)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Stillwake.Content.Inventory.Start)));
     }
 
     [Fact]

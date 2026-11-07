@@ -34,14 +34,14 @@ public class UpgradesTests
     {
         var w = World().GiveItems(0, ("wire", 1));
         Assert.Equal(9 + 2 * 9, Inventory.Start);
-        Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Start - 1)));
-        Assert.False(w.M.Items.SlotOpen(new Slot(Inventory.Start)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Inventory.Start - 1)));
+        Assert.False(w.M.Items.SlotOpen(0, new Slot(Inventory.Start)));
         w.Do(new Move(new Slot(0), new Target(Inventory.Start), 1)).Run();
         Assert.Equal(new[] { "items.noSlot" }, Reasons(w));
         Assert.Equal("wire", w.M.Items.Inventory(0)[0]?.Item);
         Grant(w, "bag1");
-        Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Start)));
-        Assert.False(w.M.Items.SlotOpen(new Slot(Inventory.Start + 1)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Inventory.Start)));
+        Assert.False(w.M.Items.SlotOpen(0, new Slot(Inventory.Start + 1)));
         w.Do(new Move(new Slot(0), new Target(Inventory.Start), 1)).Run();
         Assert.Equal("wire", w.M.Items.Inventory(0)[Inventory.Start]?.Item);
     }
@@ -67,8 +67,8 @@ public class UpgradesTests
         w.Do(new Move(new Slot(bag), new Target(Belt), 1)).Run();
         Assert.Equal("battery", w.M.Items.Inventory(0)[Belt]?.Item);
         Grant(w, "belt1");
-        Assert.True(w.M.Items.SlotOpen(new Slot(Belt + 1)));
-        Assert.False(w.M.Items.SlotOpen(new Slot(Belt + 2)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Belt + 1)));
+        Assert.False(w.M.Items.SlotOpen(0, new Slot(Belt + 2)));
     }
 
     [Fact]
@@ -77,25 +77,28 @@ public class UpgradesTests
         var w = World().GiveItems(0, ("wire", 3));
         int id = Station(w);
         int bag = w.M.Items.Inventory(0).ToList().FindIndex(s => s?.Item == "wire");
-        Assert.True(w.M.Items.SlotOpen(new Slot(1, id)));
-        Assert.False(w.M.Items.SlotOpen(new Slot(2, id)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(1, id)));
+        Assert.False(w.M.Items.SlotOpen(0, new Slot(2, id)));
         w.Do(new Move(new Slot(bag), new Target(2, id), 1)).Run();
         Assert.Equal(new[] { "items.noSlot" }, Reasons(w));
         w.Do(new Move(new Slot(bag), new Target(1, id), 1)).Run();
         Assert.Equal("wire", w.M.Items.Crate(id)[1]?.Item);
         Grant(w, "tradeSlots1");
-        Assert.True(w.M.Items.SlotOpen(new Slot(2, id)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(2, id)));
         w.Do(new Move(new Slot(bag), new Target(2, id), 1)).Run();
         Assert.Equal("wire", w.M.Items.Crate(id)[2]?.Item);
     }
 
     [Fact]
-    public void CreativeModeOpensEverything()
+    public void CreativeModeOpensEverySlotOfItsPeerAloneAndNoMachines()
     {
         var w = World().Do(new SetCreative(true)).Run();
-        Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Slots - 1)));
-        Assert.True(w.M.Items.SlotOpen(new Slot(Belt + 2)));
-        Assert.True(w.M.Items.SlotOpen(new Slot(7, Station(w))));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Inventory.Slots - 1)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Belt + 2)));
+        Assert.False(w.M.Items.SlotOpen(1, new Slot(Inventory.Slots - 1)));
+        Assert.False(w.M.Items.SlotOpen(1, new Slot(Belt + 2)));
+        // A trade station's slots are the machine's, opened by upgrades only.
+        Assert.False(w.M.Items.SlotOpen(0, new Slot(7, Station(w))));
     }
 
     [Fact]
@@ -108,7 +111,7 @@ public class UpgradesTests
         w.M.Knowledge.Earn(Prices.Of(node));
         w.Do(new BuyBlock("bag1")).Run();
         Assert.Equal(0, w.M.Research.Credits);
-        Assert.True(w.M.Items.SlotOpen(new Slot(Inventory.Start)));
+        Assert.True(w.M.Items.SlotOpen(0, new Slot(Inventory.Start)));
         Assert.True(w.M.Research.Done(node));
     }
 

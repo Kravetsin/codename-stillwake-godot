@@ -13,7 +13,7 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
 `Content/Research.cs`. A blueprint not known cannot be planned (`building.unknown`), a craft not known not queued
 (`crafting.unknown`).
 
-- **Depends on:** `Grid` (`MachinesOf`, `Version`, for the rule), `Items` (`Creative`), `Knowledge` (what is known, the credits and the counts).
+- **Depends on:** `Grid` (`MachinesOf`, `Version`, for the rule), `Items` (`Creative(peer)`), `Knowledge` (what is known, the credits and the counts).
 - **State** (`ResearchState`): empty; all of it is the world's `Knowledge`, so a surface shares it.
 
 ## Rules
@@ -24,7 +24,7 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
   `Knowledge.SoldOf` meets what it orders and its own ring is reached, with no command. Sales count from the world's start, so a later ring may open at once; without the reach an
   order met early would open a ring past a shut one.
 - What is known at the start is the map's `Layout.Known` (the wreck's `Content.Research.StartKnown`, empty); a map with none knows
-  everything. In creative mode everything is known and every node done.
+  everything. A creative peer knows everything and sees every node done (`Knows(peer, …)`, `Done(peer, node)`); the world does not, so nothing it arms (magnetic flares) changes.
 - **The rule** ([the-board](../../docs/decisions/2026-11-05-the-board.md)): a blueprint or craft is understood, and granted, once every part's count
   (`Knowledge.Obtained`) is at `Understanding.Enough` and, for a craft, a machine that makes it stands on some surface. `Walk`, in
   the derivation phase, checks when a count or that surface's grid has moved, and on a load's first tick. What only the market
@@ -44,8 +44,8 @@ Knowing blueprints and crafts ([the-board](../../docs/decisions/2026-11-05-the-b
 
 ## API
 
-- **Queries** (`IResearchQueries`): `Knows(placement)`, `Knows(id)`; `Recipes()`, every blueprint then every craft as
-  `Recipe(Id, Placement, Cost, Known)`, creative mode aside; `Credits`; `Done(node)`; `Reached(node)`; `BuyProblem(block)`.
+- **Queries** (`IResearchQueries`): `Knows(placement)`, `Knows(id)`, the world's; `Knows(peer, …)`, a peer's; `Recipes()`, every blueprint then every craft as
+  `Recipe(Id, Placement, Cost, Known)`, creative mode aside; `Credits`; `Done(node)`, `Done(peer, node)`; `Reached(node)`; `BuyProblem(block)`.
 - **Commands:** `BuyBlock(Block)`, the block named by what it opens. `Fuzz` draws it at any node, refused ones too.
 
 ## Invariants

@@ -171,6 +171,20 @@ public static class Migrations
             }
             return root;
         },
+        // 52 → 53 (2026-11-07-creative-per-player): creative mode is each peer's; a world in creative mode keeps it for every peer
+        // that has an inventory on any surface.
+        root =>
+        {
+            var all = new[] { root["slices"]! }.Concat((root["surfaces"]?.AsArray() ?? []).Select(s => s!["slices"]!)).ToList();
+            var peers = all.SelectMany(s => s["items"]!["inventories"]!.AsArray().Select(h => h!["id"]!.GetValue<int>())).Distinct().Order().ToList();
+            foreach (var slices in all)
+            {
+                if (slices["items"]!["creative"] is JsonArray) continue;
+                bool on = slices["items"]!["creative"]?.GetValue<bool>() == true;
+                slices["items"]!["creative"] = new JsonArray([.. (on ? peers : []).Select(p => (JsonNode)p)]);
+            }
+            return root;
+        },
     ];
 
     /// <summary><paramref name="old"/> with each end at a moved port's old cell at its new one, in order, a span made twice or made a point gone.</summary>

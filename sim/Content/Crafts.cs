@@ -52,6 +52,8 @@ public static class Crafts
         new("grinder", [("motor", 1), ("plate", 2), ("gear", 2), ("coil", 1), ("circuit", 2)], Ticks: 240),
         new("spear", [("tube", 2), ("plate", 2), ("wire", 2)], Ticks: 120),
         new("sledgehammer", [("plate", 4), ("tube", 1), ("planks", 1)], Ticks: 120),
+        // The drill's fallback underground (the-pickaxe): two plates for its spike, cut from a rib, and a tube for its haft, all of the first wrecks.
+        new("pickaxe", [("plate", 2), ("tube", 1)], Ticks: 90),
         new("plasmaCutter", [("canister", 1), ("coil", 2), ("circuit", 2), ("tube", 2), ("plate", 1)], Ticks: 240),
         // Electronics, at the circuit assembler: of silicon and wire, and with glass, a solar cell.
         new("circuit", [("silicon", 1), ("wire", 3)], Ticks: 120),

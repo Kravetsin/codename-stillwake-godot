@@ -21,20 +21,22 @@ public static class Phosphor
     /// <summary>How wide <paramref name="text"/> is in world pixels: 3 a character, one between.</summary>
     public static int Width(string text) => text.Length * 4 - 1;
 
-    /// <summary>The box reading <paramref name="left"/> and <paramref name="max"/> (with its slash) over (<paramref name="x"/>, <paramref name="y"/>).</summary>
-    public static (int X, int Y, int W, int H) Box(int x, int y, string left, string max)
+    /// <summary>The room the value left takes beside <paramref name="max"/> (with its slash): the maximum's digits, so a falling value never narrows the box.</summary>
+    public static int LeftWidth(string max) => Width(max) - 4;
+
+    /// <summary>
+    /// Screen pixels a readout pixel takes at <paramref name="zoom"/>: whole, at least one, so every digit keeps its shape as the
+    /// camera eases; a world pixel at a fractional zoom grows and shrinks by a screen pixel as it moves.
+    /// </summary>
+    public static int Scale(double zoom) => Math.Max(1, (int)Math.Round(zoom, MidpointRounding.AwayFromZero));
+
+    /// <summary>The box reading up to <paramref name="max"/> (with its slash) over (<paramref name="x"/>, <paramref name="y"/>); the value left lies right-aligned in <see cref="LeftWidth"/>.</summary>
+    public static (int X, int Y, int W, int H) Box(int x, int y, string max)
     {
-        int w = Width(left) + Width(max) + 1 + 2 * Inset;
+        int w = LeftWidth(max) + Width(max) + 1 + 2 * Inset;
         return (x - (int)Math.Round(w / 2.0, MidpointRounding.AwayFromZero), y - Above - Height, w, Height);
     }
 
     /// <summary>Whether <paramref name="c"/>'s pixel at (<paramref name="col"/>, <paramref name="row"/>) of its 3 by 5 is lit; anything but a digit is the slash.</summary>
     public static bool Lit(char c, int col, int row) => (c is >= '0' and <= '9' ? Digits[c - '0'] : Slash)[row * 3 + col] == '1';
-
-    /// <summary>A repeatable 0..1 for <paramref name="i"/>: the grain and the flicker.</summary>
-    public static double Noise(double i)
-    {
-        double s = Math.Sin(i * 127.1 + 311.7) * 43758.5453;
-        return s - Math.Floor(s);
-    }
 }

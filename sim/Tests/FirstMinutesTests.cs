@@ -41,7 +41,7 @@ public class FirstMinutesTests
     {
         var placement = new Placement("machine", kind);
         int room = w.M.Rooms.RoomAt(w.M.Crew.Spawn)!.Value;
-        int cell = Enumerable.Range(0, w.M.Grid.Width * w.M.Grid.Height).First(c => w.M.Rooms.RoomAt(c) == room && w.M.Building.Problem(c, placement) == null);
+        int cell = Enumerable.Range(0, w.M.Grid.Width * w.M.Grid.Height).First(c => w.M.Rooms.RoomAt(c) == room && w.M.Building.Problem(c, placement, 0) == null);
         w.Do(new PlacePlan(cell, placement)).Run();
         int plan = w.M.Building.Plans.Single().Id;
         Machine? Built() => w.M.Grid.Machines.FirstOrDefault(m => m.Kind == kind);

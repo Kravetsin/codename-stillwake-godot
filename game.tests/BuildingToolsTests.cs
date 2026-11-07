@@ -330,7 +330,7 @@ public class BuildingToolsTests
         // open cells behind walls; a cable along the top, from the hull's corner at 0 to 11.
         string[] rows = ["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"];
         var w = new TestWorld(Layout.Parse(rows, null, [((0, 0), (11, 0))]));
-        string? Pick(int cell) => What(Tools.CardAt(cell, w.M.Grid, w.M.Building, w.M.Research));
+        string? Pick(int cell) => What(Tools.CardAt(cell, w.M.Grid, w.M.Building, w.M.Research, 0));
         Assert.Equal($"wall:{w.M.Grid.WallAt(0)!.Id}", Pick(0));
         Assert.Equal("tank", Pick(14));
         // A back wall's card is its own (0108).
@@ -347,13 +347,13 @@ public class BuildingToolsTests
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .....#", "#TTTT......#", "#TTTT......#", "#TTTT......#", "############"])
             with
         { Known = ["tradeStation", "wallScrap"] });
-        var known = Tools.All.Where(each => Tools.Known(each, w.M.Research)).Select(What).ToList();
+        var known = Tools.All.Where(each => Tools.Known(each, w.M.Research, 0)).Select(What).ToList();
         Assert.Contains("tradeStation", known);
         Assert.DoesNotContain("furnace", known);
         Assert.DoesNotContain("crate", known);
-        Assert.False(Tools.Known(Card("tank"), w.M.Research));
-        Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research));
-        Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research)));
+        Assert.False(Tools.Known(Card("tank"), w.M.Research, 0));
+        Assert.Null(Tools.CardAt(14, w.M.Grid, w.M.Building, w.M.Research, 0));
+        Assert.Equal("wall:scrap", What(Tools.CardAt(0, w.M.Grid, w.M.Building, w.M.Research, 0)));
     }
 
     [Fact]
@@ -391,7 +391,7 @@ public class BuildingToolsTests
         var w = new TestWorld(Layout.Parse(["############", "#TTTT .HH..#", "#TTTT..HH..#", "#TTTT......#", "#TTTT......#", "############"]));
         Sim.Command[] Judged(Focus focus, int from, int to) =>
             [.. Drag.Judge(Tools.RemovalIn(focus), Drag.CellsOf(12, Tools.RemovalIn(focus), new(from % 12, from / 12), new(to % 12, to / 12)),
-                w.M.Building).SelectMany(v => v.Commands)];
+                w.M.Building, 0).SelectMany(v => v.Commands)];
         // Begun on the wall at 0, the front takes the walls, the tank and the ladder in the rectangle, each piece once, never a back wall.
         var front = Judged(Focus.Front, 0, 33).Cast<Deconstruct>().ToList();
         Assert.Contains(new Deconstruct(0, "structure"), front);
@@ -430,7 +430,7 @@ public class BuildingToolsTests
         plan.Pick(Card("wall:scrap"));
         plan.Pick(Card("backWall:scrap"));
         Sim.Command[] Right() =>
-            [.. Drag.Judge(Tools.ActOf(plan.Selected.Get(), true, plan.Focus.Get())!, [0], w.M.Building).SelectMany(v => v.Commands)];
+            [.. Drag.Judge(Tools.ActOf(plan.Selected.Get(), true, plan.Focus.Get())!, [0], w.M.Building, 0).SelectMany(v => v.Commands)];
         Assert.DoesNotContain(new Deconstruct(0, "structure"), Right());
         plan.ToggleFocus();
         Assert.Equal((Focus.Front, "wall:scrap"), (plan.Focus.Get(), What(plan.Selected.Get())));

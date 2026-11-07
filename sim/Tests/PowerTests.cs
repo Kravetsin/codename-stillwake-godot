@@ -137,16 +137,18 @@ public class PowerTests
     }
 
     [Fact]
-    public void RefusesACutWhoseRefundDoesNotFitAndGivesNothingBackForOneLaidForFree()
+    public void RefusesACutWhoseRefundDoesNotFitAndGivesTheWireOfOneACreativePeerLaidToWhoeverCutsIt()
     {
         var w = World().GiveItems(1, ("wire", Content.Inventory.Slots * Content.Items.Get("wire").Stack));
         w.Do(new Cut(Panel, Generator) { From = 1 }).Run();
         Assert.Equal(new[] { "items.full" }, Reasons(w));
-        w.Do(new Items.SetCreative(true)).Run();
+        // Laid by a creative peer, it is paid as any (2026-11-07-creative-per-player): another cutting it gets the wire.
+        w.Do(new Items.SetCreative(true) { From = 2 }).Run();
         Lay(w, Generator, At(0, 3), peer: 2).Run();
-        Assert.Contains((At(0, 3), Generator, false), CablesOf(w));
-        w.Do(new Cut(Generator, At(0, 3)) { From = 2 }).Run();
+        Assert.Contains((At(0, 3), Generator, true), CablesOf(w));
         Assert.Equal(0, Wire(w, 2));
+        w.Do(new Cut(Generator, At(0, 3)) { From = 3 }).Run();
+        Assert.Equal(Content.Power.CableCost.Single(c => c.Item == "wire").Count, Wire(w, 3));
     }
 
     [Fact]
@@ -341,7 +343,7 @@ public class PowerTests
     {
         var w = Laid(S, At(5, 5), At(11, 5)).Do(new Move(S, At(8, 5))).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(new[] { (At(5, 5), At(8, 5), false), (At(8, 5), At(11, 5), false) }, CablesOf(w));
+        Assert.Equal(new[] { (At(5, 5), At(8, 5), true), (At(8, 5), At(11, 5), true) }, CablesOf(w));
     }
 
     [Fact]
@@ -349,7 +351,7 @@ public class PowerTests
     {
         var w = Laid(Generator, S, At(12, 3)).Do(new Move(Generator, At(4, 3), new Ends(Generator, S))).Run();
         Assert.Empty(w.Refusals);
-        Assert.Equal(new[] { (Generator, At(12, 3), false), (At(4, 3), S, false) }, CablesOf(w));
+        Assert.Equal(new[] { (Generator, At(12, 3), true), (At(4, 3), S, true) }, CablesOf(w));
     }
 
     [Fact]

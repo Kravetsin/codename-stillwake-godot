@@ -17,8 +17,8 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
 - **Depends on:** `Grid`, through `IGridQueries` (reads walls, what is built) and `IGridOps` (clears them); `Power`
   (`IsBroken`, `NetworkOf`; `Break`); `Research` (`Knows`, to arm the flares); `Items` (`LayDown`, a broken net's cost):
   the one place that knows a meteor, not a screwdriver, took the net, and Items runs before it.
-- **State** (`HazardsState`, all saved, each written only when set): `Calm`, a world whose map asked for no hazards
-  (`Layout.Meteors` false: tests, dev worlds); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
+- **State** (`HazardsState`, all saved, each written only when set): `Calm`, no meteors nor flares drawn: a world whose map
+  asked for no hazards (`Layout.Meteors` false: tests, dev worlds), or one calmed from the dev panel (`SetCalm`); `NextIn`, ticks till the next is seen coming, 0 before one is drawn;
   `Incoming`, the meteor seen coming (`Meteor(Cell, Power, Left)`); `FlareIn`, ticks till the flare drawn strikes, 0 for none.
 
 ## Rules
@@ -54,6 +54,9 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   `Rng.Below(left)` and taken out, and `Break`s them. None: nothing drawn.
 - `FlareNow(ticks)` (dev) sets `FlareIn`, replacing a flare drawn and not yet coming, in any world; a place with no
   `Flares` strikes with `StartingSpace`'s.
+- `SetCalm(on)` (dev) sets `Calm` and drops the meteor seen coming, the flare drawn (its warning too) and both countdowns, on or
+  off: calmed, nothing falls or strikes; stirred, they start over as in a new world, the first meteor at the shower's `First`,
+  a flare drawn on that tick. `FlareNow` still works while calm.
 
 ## API
 
@@ -61,10 +64,10 @@ here unchanged. Magnetic flares break machines ([magnetic-flare](../../docs/deci
   a blast's charge and bound; `FlareRules`; `FlareComing` and `FlareLeft`, the warning and its ticks left.
 - **Commands:** `MeteorHit(cell)` — refused with `hazards.noWall` unless `cell` holds a wall, and `hazards.neverBreaks` for one that
   never breaks (bedrock, lava) or out of the grid's zone (a planet's fog). `FlareNow(ticks)` — `hazards.badTicks` below 1,
-  `hazards.flareComing` during a warning.
+  `hazards.flareComing` during a warning. `SetCalm(on)`, never refused. Query `Calm`.
 - **Fuzz:** a hit one turn in 64, mostly at a standing wall, else at any cell or one off the grid. It
   reads the grid's walls when it draws, where the TypeScript generator, which cannot see the grid,
-  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64; `MagneticFlareTests` loads a world struck and repaired every tick.
+  aims at the wreck's walls as drawn. `FlareNow(1)` one turn in 64, `SetCalm` either way as often; `MagneticFlareTests` loads a world struck and repaired every tick.
 
 ## Invariants
 

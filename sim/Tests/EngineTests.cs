@@ -33,7 +33,7 @@ public class EngineTests
     {
         var w = new Scenario(Layout.Parse(Room), doubled: true);
         Assert.Null(Problem(w, w.At(2, 2)));
-        Assert.Null(w.M.Building.Problem(w.At(2, 2), Engine));
+        Assert.Null(w.M.Building.Problem(w.At(2, 2), Engine, 0));
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public class EngineTests
         var w = new Scenario(Layout.Parse(Room), doubled: true);
         // A cell off the wall, its nozzle in the room.
         Assert.Equal("grid.noExhaust", Problem(w, w.At(2, 2) + 1));
-        Assert.Equal("grid.noExhaust", w.M.Building.Problem(w.At(2, 2) + 1, Engine));
+        Assert.Equal("grid.noExhaust", w.M.Building.Problem(w.At(2, 2) + 1, Engine, 0));
         // Outside against the right wall: the room past it, not space.
         Assert.Equal("grid.noExhaust", Problem(w, w.At(9, 2)));
         // Out in space, no wall at all.

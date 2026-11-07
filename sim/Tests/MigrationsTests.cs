@@ -76,7 +76,7 @@ public class MigrationsTests
 
         var m = new Registry();
         World.Load(Migrations.Upgrade(old.ToJsonString()), m.All);
-        Assert.True(m.Items.SlotOpen(new Items.Place(Content.Inventory.Start)));
+        Assert.True(m.Items.SlotOpen(0, new Items.Place(Content.Inventory.Start)));
     }
 
     [Fact]

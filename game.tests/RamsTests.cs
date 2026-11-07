@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Stillwake.Game.Features.Creatures;
 using Stillwake.Game.Features.Crew;
+using Stillwake.Game.Shared;
 using Stillwake.Sim;
 using Stillwake.Sim.Creatures;
 using Xunit;

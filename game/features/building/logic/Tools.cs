@@ -207,7 +207,7 @@ public static class Tools
     public static readonly IReadOnlyList<string> FrontLayers = ["machine", "structure"];
 
     /// <summary>Whether <paramref name="tool"/> is a card the world knows (0024): its blueprint.</summary>
-    public static bool Known(Tool tool, IResearchQueries research) => tool is not PlaceTool p || research.Knows(p.Placement);
+    public static bool Known(Tool tool, IResearchQueries research, int peer) => tool is not PlaceTool p || research.Knows(peer, p.Placement);
 
     /// <summary>Whether <paramref name="tool"/> builds what the kind of surface it is on allows (0076).</summary>
     public static bool Allowed(Tool tool, Surfaces.Kind rules) => tool is not PlaceTool p || rules.Allows(p.Placement.Kind);
@@ -287,12 +287,12 @@ public static class Tools
     /// The pipette's card for <paramref name="cell"/>: the card that places what is there, planned or built, in
     /// <see cref="Layers"/>, if its blueprint is known.
     /// </summary>
-    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research)
+    public static Tool? CardAt(int cell, IGridQueries grid, BuildingModule building, IResearchQueries research, int peer)
     {
         if (PlacementAt(cell, Layers, grid, building) is not { } placed) return null;
         bool Places(Placement p) => p.Layer == placed.Layer && p.Kind == placed.Kind && p.Material == placed.Material;
         var card = All.OfType<PlaceTool>().FirstOrDefault(each => Places(each.Placement));
         // What is not known, or not built here, is not picked: it could not be planned.
-        return card != null && Known(card, research) && Allowed(card, building.Rules) ? card : null;
+        return card != null && Known(card, research, peer) && Allowed(card, building.Rules) ? card : null;
     }
 }

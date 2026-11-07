@@ -58,7 +58,16 @@ public static class Weapons
     /// </summary>
     public static readonly Weapon Sledgehammer = new("sledgehammer", Damage: 12, BlockDamage: 6, Pace: 60, Arc: 96, Rays: 13, Range: 5500, Effects: []);
 
-    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer];
+    /// <summary>
+    /// The pickaxe (the-pickaxe): the drill's fallback underground, needing no charge. 6 on blocks a blow every 6 ticks, 20 a second, half
+    /// the drill's 40 and two and a half times the axe's 8: stone and ore at the second blow, 0.6 s, where the drill takes 0.3 s and
+    /// the axe 1.5 s; never at the first, so a wall still cracks first. 1 a blow on wrecks, under the axe. Its fan 48 steps (three
+    /// sixteenths of a turn) wide, 9 rays, 4.5 cells from the shoulder, the axe's: wider than the drill's and close by, so its cut runs
+    /// along its point's path (pick-reach).
+    /// </summary>
+    public static readonly Weapon Pickaxe = new("pickaxe", Damage: 1, BlockDamage: 6, Pace: 6, Arc: 48, Rays: 9, Range: 4500, Effects: []);
+
+    public static readonly IReadOnlyList<Weapon> All = [Axe, Drill, Grinder, Spear, PlasmaCutter, Sledgehammer, Pickaxe];
 
     /// <summary>Whether <paramref name="weapon"/>'s cuts give a wreck more loot: it carries <see cref="Salvage"/>.</summary>
     /// <summary>What a cut wreck's loot comes to when its bonus is won, in thousandths of each line, rounded down: half again.</summary>

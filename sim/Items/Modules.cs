@@ -166,7 +166,7 @@ public sealed partial class ItemsModule
         else if (FittedIndex(c.Machine, c.Module) < 0) return "items.notFitted";
         var slots = Inventory(c.From);
         if (c.Slot is not int slot) return FullFor(c.From, [(c.Module, 1)]);
-        if (slot < 0 || slot >= Own) return "items.noSlot";
+        if (slot < 0 || slot >= Own(c.From)) return "items.noSlot";
         return slots[slot] == null ? null : "items.full";
     }
 

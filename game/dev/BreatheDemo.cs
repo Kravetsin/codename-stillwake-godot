@@ -32,7 +32,7 @@ public partial class BreatheDemo : Control
     {
         var root = JsonNode.Parse(world.Save())!;
         var items = root["slices"]!["items"]!;
-        items["creative"] = false;
+        items["creative"] = new JsonArray();
         var slots = new JsonArray();
         for (int i = 0; i < Spec.Inventory.Total; i++)
             slots.Add(i == CanisterSlot ? new JsonObject { ["item"] = Spec.Crew.Canister, ["count"] = 3 }

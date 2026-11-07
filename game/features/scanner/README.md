@@ -9,8 +9,8 @@ the item only as gear; the readout is the client's, read from the debris module'
 | File | Holds |
 | --- | --- |
 | `logic/Scan.cs` | `Readout` (a point, a value left, a maximum); `Scan.Of`, `OfPile`: the wreck or pile under the pointer and its hit points left |
-| `logic/Phosphor.cs` | the picked readout's 3 by 5 digits, its box over the point, its grain's noise |
-| `ScannerView.cs` | the readout over the wreck's top edge: dark glass, its digits added with scanlines, grain; in and out as the pointer comes and goes |
+| `logic/Phosphor.cs` | the picked readout's 3 by 5 digits, its box over the point with room for the maximum's digits, its whole screen pixels |
+| `ScannerView.cs` | the readout over the wreck's top edge: dark glass, its digits added, its own scanlines; in and out as the pointer comes and goes |
 
 ## Rules
 
@@ -22,8 +22,8 @@ the item only as gear; the readout is the client's, read from the debris module'
   menu, a computer or the tree open).
 - **`left / max`**: the kind's `Wreckage.HpOf` less the piece's `Damage`, never below 0; at the middle of the wreck's
   picture's top edge where it is drawn this frame (`PieceDrawn`), so it drifts with it.
-- **Phosphor**, as picked: green digits on dark glass, the value flaring white as it falls, flickering on. On a layer that follows
-  the camera, in world pixels as the page drew it, unlit by the world's lights.
+- **Phosphor**, as picked, steadied (2026-11-07-steady-scanner): green digits on dark glass, the value flaring white as it falls,
+  no flicker or grain. On a layer that follows the camera, unlit by its lights, each pixel whole screen pixels (`Phosphor.Scale`).
 - **Worn**, the crest along the helmet's crown, its dots running down its glass: `crew`'s `Figure` draws it from
   `tools/anime-art/subjects/scanner.js`'s pictures, placed by the generated `game/shared/logic/ScannerInk.cs`. Others see it too.
 

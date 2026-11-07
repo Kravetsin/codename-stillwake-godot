@@ -95,8 +95,8 @@ public sealed class ItemsState
     [JsonInclude] internal List<Held> Inventories { get; set; } = [];
     /// <summary>The machines holding something, by machine id, in id order; an empty one has no entry.</summary>
     [JsonInclude] internal List<Held> Crates { get; set; } = [];
-    /// <summary>Creative mode: nothing is ever taken. A world setting, saved with the world.</summary>
-    [JsonInclude] internal bool Creative { get; set; }
+    /// <summary>The peers in creative mode, ascending: each pays as if it had the items, and nothing is taken from it.</summary>
+    [JsonInclude] internal List<int> Creative { get; set; } = [];
     /// <summary>Stacks on the floor, in id order.</summary>
     [JsonInclude] internal List<FloorStack> Floor { get; set; } = [];
     [JsonInclude] internal int NextFloorId { get; set; } = 1;
