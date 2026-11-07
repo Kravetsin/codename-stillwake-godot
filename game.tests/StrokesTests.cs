@@ -23,11 +23,12 @@ public class StrokesTests
     }
 
     [Fact]
-    public void OnlyTheAxeTheSledgehammerAndTheSpearAreStruckWith()
+    public void OnlyTheAxeTheSledgehammerTheSpearAndThePickaxeAreStruckWith()
     {
         Assert.Same(Strokes.Axe, Strokes.Of(Spec.Weapons.Axe.Item));
         Assert.Same(Strokes.Hammer, Strokes.Of(Spec.Weapons.Sledgehammer.Item));
         Assert.Same(Strokes.Spear, Strokes.Of(Spec.Weapons.Spear.Item));
+        Assert.Same(Strokes.Pick, Strokes.Of(Spec.Weapons.Pickaxe.Item));
         Assert.All(new[] { Spec.Weapons.Drill, Spec.Weapons.Grinder, Spec.Weapons.PlasmaCutter }, w => Assert.Null(Strokes.Of(w.Item)));
         Assert.Null(Strokes.Of(null));
     }
@@ -37,6 +38,17 @@ public class StrokesTests
     {
         Assert.Equal((AxeSwing.Ms, AxeSwing.Ms, AxeSwing.HitAt), (Strokes.Axe.Ms, Strokes.Axe.PaceMs, Strokes.Axe.HitShare));
         Assert.Equal(AxeSwing.WhooshMs, Strokes.Axe.WhooshMs, 9);
+    }
+
+    [Fact]
+    public void HeldThePickaxeSwingsAsTheAxeAtItsOwnQuickerPaceABlowEveryThreeTenthsOfASecond()
+    {
+        var (hits, _) = Held(Strokes.Pick, 3000);
+        Assert.Equal(10, hits.Count);
+        Assert.InRange(hits[1] - hits[0], 300 - Frame, 300 + Frame);
+        Assert.Equal((StrokeKind.Swing, AxeSwing.HitAt), (Strokes.Pick.Kind, Strokes.Pick.HitShare));
+        Assert.Equal(Strokes.Pick.Ms, Strokes.Pick.PaceMs);
+        Assert.True(Strokes.Pick.PaceMs < Strokes.Axe.PaceMs);
     }
 
     [Fact]

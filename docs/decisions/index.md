@@ -279,4 +279,5 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [pile-hits-felt](2026-11-07-pile-hits-felt.md) | A hit on a pile is seen and heard | accepted |  |
 | [radar-mast](2026-11-07-radar-mast.md) | The radar antenna is a guyed mast | accepted |  |
 | [steady-scanner](2026-11-07-steady-scanner.md) | A steady scanner readout | accepted |  |
+| [the-pickaxe](2026-11-07-the-pickaxe.md) | The pickaxe | accepted |  |
 | [the-scanner](2026-11-07-the-scanner.md) | The scanner reads a wreck's hit points | accepted |  |
