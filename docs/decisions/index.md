@@ -105,7 +105,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [0097](0097-station-marks-are-glowing-line-icons.md) | Station marks are glowing line icons | accepted |  |
 | [0098](0098-the-tool-bench-modules-in-tools.md) | The tool bench: modules in tools | accepted |  |
 | [0099](0099-the-arc-bench.md) | The arc bench: a vise that fits tools, the arc branch's station | accepted |  |
-| [0100](0100-tech-branches.md) | Tech branches | accepted |  |
+| [0100](0100-tech-branches.md) | Tech branches | accepted | crusher-takes-arc (in part) |
 | [0101](0101-a-network-stores-its-spare-power.md) | A network stores its spare power | accepted |  |
 | [0102](0102-creatures-live-in-the-sim.md) | Creatures live in the sim | accepted | creatures-are-composed, creatures-in-herds (in part) |
 | [0103](0103-a-ram-costs-the-suit-air.md) | A ram costs the suit air | accepted | creatures-are-composed (in part) |
@@ -273,6 +273,7 @@ stale. Read an ADR only when a README, plan or this list points you to it. A new
 | [board-search](2026-11-07-board-search.md) | The board has its own search | accepted |  |
 | [cracks-to-end](2026-11-07-cracks-to-end.md) | A wreck's cracks run on until they cover it at the break | accepted |  |
 | [creative-per-player](2026-11-07-creative-per-player.md) | Creative mode is each player's | accepted |  |
+| [crusher-takes-arc](2026-11-07-crusher-takes-arc.md) | The crusher takes the arc module | accepted |  |
 | [grapple-climbs](2026-11-07-grapple-climbs.md) | The grapple climbs | accepted |  |
 | [hits-pass-wrecks](2026-11-07-hits-pass-wrecks.md) | A tool's rays pass through wrecks and hit all they cross | accepted |  |
 | [machine-holograms](2026-11-07-machine-holograms.md) | Machine windows are station holograms | accepted |  |
