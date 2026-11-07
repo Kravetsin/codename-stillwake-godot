@@ -27,10 +27,10 @@ public partial class DigView : Node2D
 
     private Material? MaterialAt(int cell, bool back) => back ? _grid.BackAt(cell) : _grid.WallAt(cell) ?? PileMaterial(cell);
 
-    /// <summary>A pile cracks and bursts as the metal it is, at its own strength.</summary>
+    /// <summary>A pile cracks and bursts as the metal it is, at its own hit points.</summary>
     private Material? PileMaterial(int cell) =>
-        _grid.MachineAt(cell) is { } machine && Stillwake.Content.Machines.Get(machine.Kind).Strength is int strength
-            ? Stillwake.Content.Materials.Get("alloy") with { Strength = strength } : null;
+        _grid.MachineAt(cell) is { } machine && Stillwake.Content.Machines.Get(machine.Kind).Hp is int hp
+            ? Stillwake.Content.Materials.Get("alloy") with { Strength = hp } : null;
 
     /// <summary>The stages of cracks, three (0079).</summary>
     private const int Stages = 3;

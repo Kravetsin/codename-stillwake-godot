@@ -64,8 +64,9 @@ namespace Stillwake.Content;
 /// What it is to the systems that ask (0113), a flag a trait; never <see cref="MachineTrait.Fire"/>, which its
 /// <paramref name="FuelSlot"/> implies.
 /// </param>
-/// <param name="Strength">
-/// Broken by tools at this much block damage, anywhere, giving its cost; never marked (the-scoop): a pile. Null for one only a mark takes apart.
+/// <param name="Hp">
+/// Its hit points: broken by tools anywhere, each hit taking the weapon's damage as a wreck's do, giving its cost; never marked
+/// (the-scoop, 2026-11-07-pile-hit-points): a pile. Null for one only a mark takes apart.
 /// </param>
 /// <param name="Menu">Its card in the build menu (0114), and with it a blueprint; none for one never built (the lifepod, the piles).</param>
 /// <param name="Char">Its character in an ASCII map (<see cref="Legend"/>): drawn over its whole footprint, a character a 16 px cell; null for none.</param>
@@ -93,7 +94,7 @@ public sealed record MachineSpec(
     (int Slot, string Item)? SlotTakes = null,
     int? Exhaust = null,
     MachineTrait Has = MachineTrait.None,
-    int? Strength = null,
+    int? Hp = null,
     MenuSlot? Menu = null,
     char? Char = null,
     string? Means = null)
@@ -235,11 +236,11 @@ public static class Machines
         // With a pipe on its port a first generator, needing no power: a fire needs air, and this room always has it (the-scoop).
         new("lifepod", 6, 6, [new(5, 5, Way.Out, Fluids.Air)], [], BuildTicks: 0, Slots: 3, Inputs: 0, Fixed: true, Has: MachineTrait.AirSource | MachineTrait.Vents, Char: 'O', Means: "lifepod: draw its whole footprint; heroes are made at its hatch"),
         // The last crew's piles in the hold (the-scoop): never built, an axe breaks one and its cost is what it holds, a first reward for
-        // making the axe. The cargo holds a world's one photosensitive panel. An axe takes 4 a hit, two hits a second.
-        new("pileHull", 4, 4, [], [("scrapChunk", 6), ("hullPlate", 3)], BuildTicks: 180, Strength: 24, Char: 'a', Means: "pile of hull plates: draw its whole footprint"),
-        new("pileScrap", 3, 3, [], [("scrapChunk", 6), ("hullPlate", 1)], BuildTicks: 140, Strength: 20, Char: 'b', Means: "pile of scrap: draw its whole footprint"),
-        new("pileCargo", 3, 3, [], [("planks", 4), ("hullPlate", 2), ("scrapChunk", 1), ("photoPanel", 1)], BuildTicks: 160, Strength: 20, Char: 'e', Means: "pile of cargo: draw its whole footprint"),
-        new("pileBits", 2, 2, [], [("scrapChunk", 3), ("hullPlate", 2), ("planks", 2)], BuildTicks: 140, Strength: 12, Char: 'f', Means: "pile of odds and ends: draw its whole footprint"),
+        // making the axe. The cargo holds a world's one photosensitive panel. An axe takes 2 a hit, two hits a second; the sledgehammer's 12 breaks any.
+        new("pileHull", 4, 4, [], [("scrapChunk", 6), ("hullPlate", 3)], BuildTicks: 180, Hp: 12, Char: 'a', Means: "pile of hull plates: draw its whole footprint"),
+        new("pileScrap", 3, 3, [], [("scrapChunk", 6), ("hullPlate", 1)], BuildTicks: 140, Hp: 10, Char: 'b', Means: "pile of scrap: draw its whole footprint"),
+        new("pileCargo", 3, 3, [], [("planks", 4), ("hullPlate", 2), ("scrapChunk", 1), ("photoPanel", 1)], BuildTicks: 160, Hp: 10, Char: 'e', Means: "pile of cargo: draw its whole footprint"),
+        new("pileBits", 2, 2, [], [("scrapChunk", 3), ("hullPlate", 2), ("planks", 2)], BuildTicks: 140, Hp: 6, Char: 'f', Means: "pile of odds and ends: draw its whole footprint"),
         // What shows the hold before anything makes power: the last crew's battery lamps, needing none (the-scoop).
         new("emergencyLamp", 2, 2, [], [("scrapChunk", 1)], BuildTicks: 40, Has: MachineTrait.Glow | MachineTrait.Hangs, Char: 'i', Means: "emergency lamp: draw its whole footprint"),
         // The arc bench (0099): a ship's bench with a vise, a sky shard set in its jaw. Its tool slot, then two outputs of its arc
