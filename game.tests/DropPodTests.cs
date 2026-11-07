@@ -77,6 +77,18 @@ public class DropPodTests
     }
 
     [Fact]
+    public void TiesTheHandsOfASeatedHeroTillItLeaves()
+    {
+        var (w, pod) = World();
+        Assert.False(Seating.Held(w.M, 0));
+        w.Step(new Board(pod));
+        // Seated on the ground, before its launch or after its landing, it swings, drills and shoots nothing.
+        Assert.True(Seating.Held(w.M, 0));
+        w.Step(new Alight());
+        Assert.False(Seating.Held(w.M, 0));
+    }
+
+    [Fact]
     public void HoldsAHeroFlyingWhereItsPodStoodTheFloorItHasNoSeatOn()
     {
         // The same room under a panel in space, cabled to its run.
@@ -92,5 +104,6 @@ public class DropPodTests
         Assert.Equal(seat, Seating.SeatOf(w.M, 0));
         // Flying, it is still in its pod, though no seat is left on this surface.
         Assert.True(Seating.InPod(w.M, 0));
+        Assert.True(Seating.Held(w.M, 0));
     }
 }
