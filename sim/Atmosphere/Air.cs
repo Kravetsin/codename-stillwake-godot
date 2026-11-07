@@ -145,6 +145,15 @@ public sealed partial class AtmosphereModule
                     foreach (int tank in ListAt(tanksOn, network)) AddTo(s.Behind, m.Id, tank);
             }
         }
+        // A fire's liquid input draws the tanks on its network as a vaporizer's does: a blown fire (industrial-oxygen).
+        foreach (var m in _grid.MachinesWith(MachineTrait.Fire))
+        {
+            var cells = _grid.PortsOf(m);
+            var ports = Content.Machines.Get(m.Kind).Ports;
+            for (int i = 0; i < cells.Count; i++)
+                if (ports[i].Way == Way.In && _pipes.NetworkAt(cells[i]) is int network)
+                    foreach (int tank in ListAt(tanksOn, network)) AddTo(s.Behind, m.Id, tank);
+        }
         foreach (var (cell, network) in s.Vents)
             if (_rooms.RoomAt(cell) is int place)
             {

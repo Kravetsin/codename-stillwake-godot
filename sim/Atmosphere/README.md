@@ -61,21 +61,20 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
   at the tick's end.
 - **Canisters:** a tank holds up to `Air.TankCapacity` of liquid; `LoadCanister` takes a canister from the sender (free
   in creative) and adds `Air.Canister`, refused if the tank would spill. A tank taken apart takes its oxygen with it.
-- **The survey** — vents, fills, stores, tanks, aired cells and their leak, by room and network — is kept between
-  ticks, redone for changed rooms (all, once the pipes' `Version` moved); what is held is reread after a canister, a
-  tank taken apart or the tick's start. Machines are walked by trait (0113), ports in spec order.
-- **`Aired` is edited in place** for up to 32 cells changed, else merged into a new list.
+- **The survey** (vents, stores, the tanks behind each vaporizer and fire, aired cells, leaks) is kept between ticks,
+  redone for changed rooms (all, once the pipes' `Version` moved); what is held, reread after any change to it.
+  Machines are walked by trait (0113), ports in spec order.
 
 ## API
 
 - **Queries** (`IAtmosphereQueries`): `OxygenIn(tank)`; `MakesAt(source)` — a vaporizer's or the pod's rate while its store has
-  room, thousandths of a unit a tick; `CanisterProblem(tank, peer)`; `Fed(vent)`; `Supplied(vent)`;
+  room, thousandths of a unit a tick; `CanisterProblem(tank, peer)`; `LiquidFor(machine)` — behind its liquid input; `Fed(vent)`; `Supplied(vent)`;
   `StatusOf(room)`; `AiredAt(cell)`; `HoldsAir(cell)` — its room holds any (where drones fly); `AiredCells` — sorted,
   live; `RoomsAir()` — each room's `RoomAir` for the overlay (`State.cs`), its `Budget` its share of the making, with why a room falls short
   (`atmosphere.noVent`, `.notPiped`, `.dry`, `.unpowered`; `.leaky` when a bubble stops short of its room, `.burning` by fires' reserves); on a timer.
 - **Operations** (`IAtmosphereOps`): `Breathe(cell, amount)` — `amount` for a hero's head or a fire in `cell` if it
   holds air, drawn from its room's networks, else none (crew, furnace). `Fill(tank, amount)` — liquid, up to capacity.
-  `Reserve(cell)` — a fire burning there, each construction phase.
+  `Reserve(cell)` — a fire burning there, each construction phase. `BurnLiquid(machine, amount)` — a blown fire's breath.
 - **Commands:** `LoadCanister(Tank)`, refused with `atmosphere.noTank` (a vaporizer too), `atmosphere.tankFull`
   or `items.notEnough`.
 - **Fuzz:** mostly a canister into a tank the grid has, else into ids 0–5, mostly no tank.

@@ -8,5 +8,6 @@ public static partial class Ru
         ["furnace.noFuel"] = "Нет топлива: горят доски",
         ["furnace.noAir"] = "Огню нет воздуха",
         ["furnace.unneeded"] = "Его энергия никому не нужна",
+        ["furnace.blown"] = "Дутьё жидким кислородом: в полтора раза быстрее, воздух комнаты не нужен",
     };
 }

@@ -29,6 +29,9 @@ public interface IAtmosphereQueries
     int MakesAt(int source);
     /// <summary>Why peer <paramref name="peer"/>'s canister would not go into machine <paramref name="tank"/>: what the client shows first.</summary>
     string? CanisterProblem(int tank, int peer);
+
+    /// <summary>The liquid oxygen in the tanks whose output is on the network of machine <paramref name="machine"/>'s liquid input: what a blown fire takes from.</summary>
+    int LiquidFor(int machine);
     /// <summary>Room <paramref name="room"/>'s state (TypeScript's <c>roomStatus</c>); vacuum for no room. One survey a call: for every room, read <see cref="RoomsAir"/>.</summary>
     RoomStatus StatusOf(int room);
     /// <summary>Whether <paramref name="cell"/> holds air.</summary>
@@ -65,6 +68,12 @@ public interface IAtmosphereOps
     /// (industrial-oxygen); called in the construction phase, cleared at its start.
     /// </summary>
     void Reserve(int cell);
+
+    /// <summary>
+    /// Takes <paramref name="amount"/> of liquid from the tanks behind machine <paramref name="machine"/>'s liquid input, in tank id
+    /// order, if they hold that much; returns whether it did, taking none otherwise (a blown fire, industrial-oxygen).
+    /// </summary>
+    bool BurnLiquid(int machine, int amount);
 }
 
 /// <summary>
@@ -370,4 +379,24 @@ public sealed partial class AtmosphereModule : Module<AtmosphereState>, IAtmosph
     }
 
     public void Reserve(int cell) => _reserves.Add(cell);
+
+    public int LiquidFor(int machine) => LiquidBehind(Gather(), machine);
+
+    public bool BurnLiquid(int machine, int amount)
+    {
+        var s = Gather();
+        if (LiquidBehind(s, machine) < amount) return false;
+        int left = amount;
+        foreach (int tank in ListAt(s.Behind, machine))
+        {
+            if (left == 0) break;
+            if (!s.Held.TryGetValue(tank, out var held)) continue;
+            int taken = Math.Min(held.Oxygen, left);
+            held.Oxygen -= taken;
+            left -= taken;
+        }
+        _readFor = null;
+        DropEmptyTanks();
+        return true;
+    }
 }

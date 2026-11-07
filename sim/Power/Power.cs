@@ -25,6 +25,11 @@ public sealed class PowerState
     [JsonInclude] internal List<Cable> Cables { get; set; } = [];
     /// <summary>The machines told to rest by the module they work for, by id, sorted: they draw and make nothing.</summary>
     [JsonInclude] internal List<int> Resting { get; set; } = [];
+    /// <summary>The makers told to make more by the module they work for, by id, sorted: a blown fire's generators.</summary>
+    [JsonIgnore] internal List<int> Blown { get; set; } = [];
+    /// <summary>Blown as saved: none written while none is, so a world with no blown fire saves as before them.</summary>
+    [JsonInclude, JsonPropertyName("blown"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    internal List<int>? SavedBlown { get => Blown.Count > 0 ? Blown : null; set => Blown = value ?? []; }
     /// <summary>What each store holds, by machine id, sorted; only those holding something (0101).</summary>
     [JsonInclude] internal List<StoreCharge> Stores { get; set; } = [];
     /// <summary>The machines a magnetic flare broke, by id, sorted: they make, draw and store nothing till repaired.</summary>
@@ -102,6 +107,12 @@ public interface IPowerOps
     void Rest(int machineId, bool resting);
 
     /// <summary>
+    /// Tells maker <paramref name="machineId"/> to make <c>Furnace.Blown</c> / <c>Furnace.BlownOf</c> of its rate from the next
+    /// derivation on, or its rate again: a blown fire's generator (industrial-oxygen).
+    /// </summary>
+    void Blow(int machineId, bool blown);
+
+    /// <summary>
     /// Machine <paramref name="machineId"/> is about to be taken apart (0110): every cable plugged into it stays, its end a peg
     /// at the cell its plug is in.
     /// </summary>
@@ -133,7 +144,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
     /// <summary>Made once, so the tick's derivation allocates no delegates.</summary>
     private readonly Predicate<int> _standing;
     private readonly Func<Machine, int> _draw;
-    private readonly Func<Machine, bool> _making;
+    private readonly Func<Machine, int> _making;
     private readonly Func<int, int> _stored;
     private readonly Predicate<StoreCharge> _storeStanding;
     private readonly Func<int, bool> _broken;
@@ -148,7 +159,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         _itemsOps = itemsOps;
         _standing = id => _grid.MachineById(id) != null;
         _draw = m => Drawing(m) ? DrawOf(m) * Times(m) : 0;
-        _making = m => !IsResting(m.Id);
+        _making = m => IsResting(m.Id) ? 0 : IsBlown(m.Id) ? Content.Furnace.Blown * 1000 / Content.Furnace.BlownOf : 1000;
         _stored = StoredIn;
         _storeStanding = s => _grid.MachineById(s.Machine) != null;
         _broken = IsBroken;
@@ -163,6 +174,7 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         {
             // A machine taken apart rests no more: nothing else tells it to work again. A store taken apart loses what it held.
             if (!State.Resting.TrueForAll(_standing)) State.Resting = State.Resting.FindAll(_standing);
+            if (!State.Blown.TrueForAll(_standing)) State.Blown = State.Blown.FindAll(_standing);
             if (!State.Stores.TrueForAll(_storeStanding)) State.Stores = State.Stores.FindAll(_storeStanding);
             if (!State.Broken.TrueForAll(_standing)) State.Broken = State.Broken.FindAll(_standing);
             Rebuild();
@@ -305,6 +317,8 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
 
     private bool IsResting(int machineId) => State.Resting.BinarySearch(machineId) >= 0;
 
+    private bool IsBlown(int machineId) => State.Blown.BinarySearch(machineId) >= 0;
+
     public bool IsBroken(int machineId) => State.Broken.BinarySearch(machineId) >= 0;
 
     /// <summary>What <paramref name="m"/> draws while it draws, its modules folded in, rounded up (0086).</summary>
@@ -398,6 +412,14 @@ public sealed partial class PowerModule : Module<PowerState>, IPowerQueries, IPo
         if ((at >= 0) == resting) return;
         if (resting) State.Resting.Insert(~at, machineId);
         else State.Resting.RemoveAt(at);
+    }
+
+    public void Blow(int machineId, bool blown)
+    {
+        int at = State.Blown.BinarySearch(machineId);
+        if ((at >= 0) == blown) return;
+        if (blown) State.Blown.Insert(~at, machineId);
+        else State.Blown.RemoveAt(at);
     }
 
     public void Unplug(int machineId)

@@ -274,8 +274,9 @@ public partial class InventoryPanel
         _fire.AddThemeStyleboxOverride("panel", _tooCold != null ? Cold : burning ? FireOn : FireOut);
         if (_progress != null) _progress.Value = at is { Item: not null, Work: > 0 } ? (double)at.Progress / at.Work : 0;
         _frame?.Light(burning);
-        _problem.Text = at?.Problem is { } problem ? T(problem, ("n", Takes(at.Item))) : "";
-        _problem.Visible = at?.Problem != null && _tooCold == null;
+        // A fire blown by liquid oxygen says so where a problem would (industrial-oxygen).
+        _problem.Text = at?.Problem is { } problem ? T(problem, ("n", Takes(at.Item))) : at is { Burning: true, Blown: true } ? T("furnace.blown") : "";
+        _problem.Visible = (at?.Problem != null || at is { Burning: true, Blown: true }) && _tooCold == null;
     }
 
     /// <summary>How many of <paramref name="item"/> one smelt takes, what "crafting.tooFew" names; 1 for nothing.</summary>

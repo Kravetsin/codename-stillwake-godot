@@ -14,7 +14,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
 - **Depends on:** `Grid` (machines and what is built, to find nodes); `Rooms` (whether a panel stands in space);
   `Items` (`IItemsQueries`, `IItemsOps`: a cable's cost, what a charging station holds, modules' draw).
 - **State** (`PowerState`, saved): `Cables`, each as its two node cells, the lower first, and whether it was paid,
-  ordered by its ends; `Resting`, machine ids told to rest, sorted; `Stores`, `StoreCharge(Machine, Energy)` in
+  ordered by its ends; `Resting` and `Blown`, ids told to rest or blow, sorted; `Stores`, `StoreCharge(Machine, Energy)` in
   power-ticks by machine id, only those holding something (0101); `Broken`, machine ids a flare broke, sorted, written
   only when some are (magnetic-flare). A battery's charge is the item's, saved by `Items`.
 - **Derived**, found from the cables every tick in derivation: `Networks` in id order (nodes, supply, demand,
@@ -34,7 +34,7 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   span farther than a cable does; free.
 - **A network** (0017) is the nodes cables join, named by its lowest node cell. A powered machine with no cable is on
   none: it makes and gets nothing.
-- **Supply:** its makers not resting (`Rest`): a fuel burner (`FuelSlot`, 0045) or an `Anywhere` one (the wheel) anywhere,
+- **Supply:** its makers not resting (`Rest`), a blown one × 1.5 (`Blow`): a fuel burner (`FuelSlot`, 0045) or an `Anywhere` one (the wheel) anywhere,
   any other only under the stars: every cell in space with no back wall behind (0043).
 - **Demand:** each drawing user's `Draws` × (1000 + its modules' `Draw`) / 1000, rounded up (0086). A station
   (`Content.Stations`) draws whenever crafting does not rest it, whatever its slots hold (0057); any other with slots, the
@@ -66,8 +66,8 @@ network can give (0017); cables move by hand (0021); stores keep what is spare (
   `StoreLevel(Energy, Capacity, Flow)` or null; `Needed`; `ChargeRate`, scaled, 0 while charging nothing (0100);
   `Broken`, `IsBroken(machineId)`.
 - **Operations** (`IPowerOps`): `Rest(machineId, resting)`, from the next derivation: `crafting` an idle station (0057), from simulation; `furnace` a cold burner
-  (0045) and `landing` a wheel no rider runs, from construction, so it shows this tick. `Unplug(machineId)`, by `building` taking a machine apart: its cables move
-  to a peg at its plug's cell (`Plug` pixels, eight to a cell); `Plug(machineId)`, by `building` building a powered
+  (0045) and `landing` a wheel no rider runs, from construction; `Blow(machineId, blown)`, `furnace`. `Unplug(machineId)`, by `building` taking a machine apart: its cables move
+  to a peg at its plug's cell; `Plug(machineId)`, by `building` building a powered
   machine: cables on a peg at its plug's cell move to it (0110). A cable that would end where it starts or join a pair
   already joined stays. `Break(machineId)`, by `hazards`, a powered machine only, else it throws; `Mend(machineId)`, by
   `building` once repaired.

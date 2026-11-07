@@ -67,6 +67,25 @@ public class BurnerGeneratorTests
         Assert.Equal(0, Supply(w));
     }
 
+    /// <summary>
+    /// Blown by a pipe from its liquid input to a joint of the tank's pipe to the vaporizer, it makes Blown / BlownOf its power
+    /// and a plank lasts as much longer (industrial-oxygen).
+    /// </summary>
+    [Fact]
+    public void BlownMakesOneAndAHalfAndAPlankLastsOneAndAHalf()
+    {
+        var w = SetUp().GiveItems(0, ("tube", 10)).Pipe(At(1, 2), At(1, 4), At(4, 4)).Run();
+        Assert.Empty(w.Refusals);
+        Feed(w, 1).Run();
+        Assert.True(w.M.Furnace.At(IdAt(w, Generator)).Blown);
+        int blown = PlankTicks * FurnaceContent.Blown / FurnaceContent.BlownOf;
+        Assert.Equal(Makes * FurnaceContent.Blown / FurnaceContent.BlownOf, Supply(w));
+        w.Run(blown - 4);
+        Assert.Equal(Makes * FurnaceContent.Blown / FurnaceContent.BlownOf, Supply(w));
+        w.Run(10);
+        Assert.False(w.M.Furnace.At(IdAt(w, Generator)).Burning);
+    }
+
     [Fact]
     public void MakesNothingWithAnEmptySlotAndSaysItHasNoFuel()
     {

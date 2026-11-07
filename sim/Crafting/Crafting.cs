@@ -64,8 +64,11 @@ public interface ICraftingQueries
 /// <summary>How a module that depends on the crafting may change it.</summary>
 public interface ICraftingOps
 {
-    /// <summary>Fed station <paramref name="machine"/>'s fire burns this tick: told before crafting works, forgotten after.</summary>
-    void Heat(int machine);
+    /// <summary>
+    /// Fed station <paramref name="machine"/>'s fire burns this tick, working at <paramref name="share"/> thousandths of its speed
+    /// (more while blown, industrial-oxygen): told before crafting works, forgotten after.
+    /// </summary>
+    void Heat(int machine, int share);
 }
 
 /// <summary>
@@ -157,7 +160,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
 
     // Operations.
 
-    public void Heat(int machine) => State.Heated.Add(machine);
+    public void Heat(int machine, int share) => State.Heated[machine] = share;
 
     // Commands.
 
@@ -377,7 +380,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     {
         var spec = Content.Machines.Get(m.Kind);
         int share = spec.Draws != null ? _power.Satisfaction(m.Id)
-            : spec.FuelSlot != null ? (State.Heated.Contains(m.Id) ? 1000 : 0)
+            : spec.FuelSlot != null ? State.Heated.GetValueOrDefault(m.Id)
             : 1000;
         // Both are never negative, so integer division is the floor.
         return station.Speed * share / 1000;

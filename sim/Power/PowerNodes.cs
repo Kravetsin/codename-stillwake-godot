@@ -103,7 +103,7 @@ internal static class PowerNodes
 
     /// <summary>
     /// The networks the cables join, in id order, with each user's satisfaction by machine id. Supply is
-    /// what the makers make, each only while <paramref name="making"/> says it works: one that burns fuel or is made to work
+    /// what the makers make, each at the thousandths of its rate <paramref name="making"/> says, none while it rests: one that burns fuel or is made to work
     /// <c>Anywhere</c> wherever it stands, any other under the stars; demand what the users draw now, as <paramref name="draw"/> says: none
     /// while one rests, its modules folded in (0086). Its stores, holding what <paramref name="stored"/> says by machine
     /// id, settle the tick (<see cref="Settle"/>, 0101); satisfaction is <c>floor(1000 × served / demand)</c>, served
@@ -112,7 +112,7 @@ internal static class PowerNodes
     /// <paramref name="broken"/> one stays a node and makes, draws and stores nothing, its satisfaction left out.
     /// </summary>
     public static (List<PowerNetwork> Networks, Dictionary<int, int> Satisfaction, List<(int Machine, int Flow)> Flows) Find(
-        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, int> draw, Func<Machine, bool> making,
+        IGridQueries grid, IRoomsQueries rooms, IReadOnlyList<Cable> cables, Func<Machine, int> draw, Func<Machine, int> making,
         Func<int, int> stored, Func<int, bool> broken)
     {
         var ends = new List<int>(cables.Count * 2);
@@ -160,8 +160,10 @@ internal static class PowerNodes
             if (!IsPowered(s) || broken(m.Id)) continue;
             int network = networkOf[at];
             // A fire needs no stars, its module resting it while it is out; nor does a maker made to work anywhere (the wheel).
-            if (s.Makes is int makes && making(m) && (!s.NeedsStars || UnderStars(grid, rooms, m)))
+            if (s.Makes is int rate && making(m) is int share and > 0 && (!s.NeedsStars || UnderStars(grid, rooms, m)))
             {
+                // Both are never negative, so integer division is the floor.
+                int makes = rate * share / 1000;
                 supply[network] += makes;
                 if (s.FuelSlot == null) steady[network] += makes;
             }

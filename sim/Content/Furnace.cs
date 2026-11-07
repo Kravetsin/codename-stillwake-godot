@@ -16,4 +16,17 @@ public static class Furnace
     /// time, so its room's air pulls back while it burns (industrial-oxygen).
     /// </summary>
     public const int Reserve = Breath * Air.LeakEvery / BreathEvery;
+
+    /// <summary>
+    /// What a blown fire, fed liquid oxygen through its port, takes from its tanks each breath instead of room air
+    /// (industrial-oxygen).
+    /// </summary>
+    public const int BlownBreath = 5;
+
+    /// <summary>
+    /// A blown fire works <see cref="Blown"/> / <see cref="BlownOf"/> as hard: a furnace smelts that much faster, a generator
+    /// makes that much more and its fuel lasts that much longer, each rounded down.
+    /// </summary>
+    public const int Blown = 3;
+    public const int BlownOf = 2;
 }

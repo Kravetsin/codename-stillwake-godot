@@ -195,16 +195,16 @@ public static class Machines
         // The first bench (Stations), of raw salvage as the furnace is: no power, paid by hand, its three slots what it made.
         new("workbench", 4, 5, [], [("scrapChunk", 4), ("hullPlate", 2), ("planks", 4)], BuildTicks: 120, Slots: 3, Inputs: 0, Menu: new(MenuTabs.Production, 15), Char: 'I', Means: "workbench: draw its whole footprint, three characters tall on a 16 px map (its top cells open)"),
         // Its input, its fuel, then three outputs.
-        new("furnace", 4, 4, [], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
+        new("furnace", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("scrapChunk", 4), ("hullPlate", 2)], BuildTicks: 200, Slots: 5, Inputs: 2, FuelSlot: 1, Menu: new(MenuTabs.Production, 10), Char: 'F', Means: "furnace: draw its whole footprint"),
         // The furnace's fire turning a dynamo: power while it burns, from its one slot of fuel. Of the workbench's parts, so
         // power comes before the Former.
-        new("burnerGenerator", 4, 4, [], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
+        new("burnerGenerator", 4, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("plate", 4), ("rotor", 2), ("coil", 2), ("scrap", 10)], BuildTicks: 200, Makes: 6, Plug: (23, 25), Slots: 1, FuelSlot: 0, Menu: new(MenuTabs.Power, 20), Char: 'B', Means: "burner generator: draw its whole footprint"),
         // A drum a hero runs in (power-chain): 4 while an awake rider runs, anywhere, rested by Landing otherwise. Of the workbench's
         // parts and the furnace's scrap, the first power there is.
         new("treadWheel", 6, 6, [], [("planks", 10), ("gear", 6), ("coil", 1), ("scrap", 8)], BuildTicks: 160, Makes: 4, Anywhere: true, Plug: (45, 46), Has: MachineTrait.Seats, Menu: new(MenuTabs.Power, 15), Char: 'w', Means: "treadmill wheel: draw its whole footprint"),
         // A heavier burner of biofuel alone (power-chain): 16 a tick, 25 600 a biofuel against the burner's 9 600. Its fuel pump is a
         // planet's part, so it is built at the planet stage.
-        new("biofuelGenerator", 6, 4, [], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
+        new("biofuelGenerator", 6, 4, [new(0, 2, Way.In, Fluids.LiquidOxygen)], [("fuelPump", 1), ("frame", 3), ("plate", 8), ("coil", 4), ("tube", 4)], BuildTicks: 240, Makes: 16, Plug: (45, 22), Slots: 1, FuelSlot: 0, Takes: "biofuel", Menu: new(MenuTabs.Power, 25), Char: 'q', Means: "biofuel generator: draw its whole footprint"),
         // Fills a battery with what it draws: 3 a tick fills 1800 in 600 ticks at full power.
         new("charger", 2, 4, [], [("frame", 1), ("coil", 2), ("wire", 6), ("circuit", 2)], BuildTicks: 120, Draws: 3, Plug: (8, 10), Slots: 2, Charges: true, ChargesEach: true, Menu: new(MenuTabs.Power, 50), Char: 'C', Means: "charging station: draw its whole footprint"),
         // Keeps what its network makes and nothing draws, and gives it back when the network draws more than it makes (0101):
