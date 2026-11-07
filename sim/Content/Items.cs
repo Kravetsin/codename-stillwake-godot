@@ -218,6 +218,8 @@ public static class Items
         new("plasmaCutter", 1, Draw: 1, Gear: true, Group: ItemGroup.Tool),
         new("spear", 1, Gear: true, Group: ItemGroup.Tool),
         new("sledgehammer", 1, Gear: true, Group: ItemGroup.Tool),
+        // Swung as the axe, for stone once the drill is flat (the-pickaxe).
+        new("pickaxe", 1, Gear: true, Group: ItemGroup.Tool),
         // Equipment, worn in a slot of its kind (Inventory.Equipment).
         new("jetpack", 1, Equip: "back", Gear: true, Group: ItemGroup.Wearable),
         // A soft warm light round the head (0077): free, drawing no power.

@@ -146,7 +146,7 @@ public class AxeSwingTests
     [InlineData(90)]
     public void ASwingAimedAnywhereAheadKeepsTheArmWithinTheShoulderAndStillMeetsItsLine(int degrees)
     {
-        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer) })
+        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer), (HeldLook.Pickaxe, Strokes.Pick) })
         {
             double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), highest = double.MinValue, lowest = double.MaxValue;
             for (double phase = 0; phase <= 1; phase += 0.002)
@@ -168,7 +168,7 @@ public class AxeSwingTests
     [InlineData(30)]
     public void ASwingAimedAheadSweepsItsWeaponsWholeFanTheHammersWiderThanTheAxes(int degrees)
     {
-        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer) })
+        foreach (var (look, stroke) in new[] { (HeldLook.FireAxe, Strokes.Axe), (HeldLook.Sledgehammer, Strokes.Hammer), (HeldLook.Pickaxe, Strokes.Pick) })
         {
             double line = degrees * Math.PI / 180 + AxeSwing.Lead(look), back = 0, through = 0;
             for (double phase = 0; phase <= 1; phase += 0.002)

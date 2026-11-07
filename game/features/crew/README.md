@@ -124,9 +124,9 @@ the sim.
 - **One aim** (`Aiming.AimAt`): a plan (back walls first), machine (its rise, 0099), tank, door or valve (E), a wreck under the
   pointer, else the nearest small piece. Outlined green or red, `UsePrompt` says why; plan in hand, E idle. Armed, small pieces.
 - **Hits are rays from the shoulder** (tool-reach, hits-pass-wrecks): the fan (`ToolRays`), each to a wall, hitting all
-  wrecks it crosses; the ground met rings, sparks; reach shown.
-- **Struck tools** (0038, salvage-tools): axe, hammer, spear, each its own pace; a swing hits as its blade crosses the aim,
-  its fan a shoulder's sweep (`ShapeFor`).
+  wrecks it crosses; the ground met rings, sparks.
+- **Struck tools** (0038, salvage-tools, the-pickaxe): axe, hammer, spear, pick, each at its pace; a swing hits as its blade
+  crosses the aim, its fan a shoulder's sweep (`ShapeFor`).
 - **The harpoon** (0044): a click fires; stuck in a piece the next sends `Reel`, in structure it pulls the hero.
 - **A gun** (hold-to-fire): left held fires each cooldown; with `Charge` it charges then, fires let go
   full; flat, clicks dry, sends nothing. Afloat it kicks back (`Recoil`); a guest flies it.

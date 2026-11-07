@@ -343,6 +343,33 @@ const sledgehammer = (a) => {
   screw(a, 19.8, 8, .45);
 };
 
+// The pickaxe «Шип из шпангоута» (the-pickaxe): a length of a ship's rib in old primer, its lightening hole kept, torch-cut into a spike
+// and welded to a pipe haft gripped in rubber; the spike's point down, what meets the stone.
+const PRIMER = { base: '#7a5546', shade: '#563b34', deep: '#3c2a2a', lite: '#97705c', spec: '#c09a84' };
+const WELD = { base: '#8c919c', shade: '#5c6070', deep: '#3a3e50', lite: '#b4bac4' };
+const SPIKE_FACE = '#c6ccd4';
+/** A bead of weld: small blobs along a seam. */
+const bead = (pts, rx = .55, ry = .45) => pts.map(([x, y]) => ell(x, y, rx, ry)).join('');
+const WEB = 'M25.6 3.8L26.8 3.4L27.6 3.9L28.8 3.3L30 3.7L31.4 3.4L31.6 8.6L30.6 12L28.7 17.7L27.8 13.8L26.2 11.4L25.8 10.6Z';
+const ribSpike = (a) => {
+  a.tube('M1.2 9L26.4 9', 2.4, PIPE);
+  a.shape(rr(.3, 7.4, 1.6, 3.2, .4), GUN, { lite: band(.4, 7.5, 1.8, 8), shade: band(.4, 10, 1.8, 10.6) });
+  a.shape(rr(2.4, 7.5, 7.4, 3, .9), RUBBER, { lite: band(2.8, 7.6, 9.4, 8.1), shade: band(2.6, 9.8, 9.6, 10.5), lines: ['M4.4 7.6L4.4 10.4', 'M6.6 7.6L6.6 10.4'] });
+  a.shape(rr(9.4, 7.3, .9, 3.4, .2), STEEL, { lite: band(9.4, 7.3, 10.3, 7.9), shade: band(9.4, 10, 10.3, 10.7) });
+  a.shape(rr(16.4, 7.4, 2, 3.2, .3), GUN, { lite: band(16.5, 7.5, 18.3, 8), shade: band(16.5, 10, 18.3, 10.6) });
+  rust(a, 18.2, 8.8, .5, band(18.4, 7.8, 21, 10.2));
+  a.shape(WEB, PRIMER, {
+    lite: band(25.4, 3, 32, 4.6), shade: 'M30.4 3.6L31.6 3.4L31.6 8.6L30.6 12L28.7 17.7L29.6 12L30.5 8.6Z', deep: 'M28.7 17.7L27.8 13.8L26.2 11.4L27 11.6L28.4 14Z',
+    lines: ['M30.4 3.8L30.5 8.6L29.6 12', 'M26.4 11L27.6 13.2'],
+  });
+  a.cut(ell(28.2, 6.6, 1.1, 1));
+  a.line(ell(28.2, 6.6, 1.15, 1.05), { w: 1.3 });
+  a.flat(poly(28.7, 17.7, 28.1, 15.4, 29.4, 15.2), SPIKE_FACE, { clip: WEB });
+  rust(a, 27, 7.4, .55, WEB);
+  a.shape(bead([[26, 7.6], [26.1, 8.3], [26, 9], [26.1, 9.7], [26, 10.4]]), WELD, { outer: false, shade: band(25.4, 9.4, 26.8, 11) });
+  a.line('M29.2 3.5L29.5 4.3', { w: .9 });
+};
+
 Subjects.zfittings = function () {
   out('pipe_run', bake({ w: 24, h: 8, tile: true, draw: pipeRun }));
   for (let n = 0; n < 16; n++) out(`pipe_${n}`, pipe(n));
@@ -378,6 +405,7 @@ Subjects.zfittings = function () {
     ['hero_plasmaCutter', 32, 12, [cutter({ on: false }), cutterFront({ on: false })]],
     ['hero_spear', 48, 10, [spear]],
     ['hero_sledgehammer', 32, 16, [sledgehammer]],
+    ['hero_pickaxe', 34, 18, [ribSpike]],
   ];
   for (const [name, w, h, draws] of salvage) {
     out(name, layered(w, h, draws));

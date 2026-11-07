@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Nodes;
 using Stillwake.Game.Features.Crew;
 using Stillwake.Net;
 using Stillwake.Sim;
@@ -97,4 +98,36 @@ public sealed class RailgunScenario : DevScenario
     }
 
     public override void Frame(Client client, Registry m, Action<string> log) => _demo?.Frame(client, m);
+}
+
+/// <summary>
+/// The pickaxe (the-pickaxe) to try by hand beside the drill and the axe: the hero beamed into a cave under the spawn, the pickaxe in the first
+/// slot, the drill on a full battery in the second, the axe in the third, the helmet lamp worn.
+/// </summary>
+[Dev("--pickaxe", "a planet's cave with the pickaxe, the drill on a full battery and the axe in slots 1 to 3, to dig stone by hand (the-pickaxe)")]
+public sealed class PickaxeScenario : DevScenario
+{
+    private bool _beamed;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(GroundDemo.Seed(world, seed.Modules).Save())!;
+        var slots = root["slices"]!["items"]!["inventories"]![0]!["slots"]!.AsArray();
+        string[] tools = [Content.Weapons.Pickaxe.Item, Content.Weapons.Drill.Item, Content.Weapons.Axe.Item];
+        for (int i = 0; i < tools.Length; i++) slots[i] = new JsonObject { ["item"] = tools[i], ["count"] = 1 };
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        if (_beamed || client.World.Surfaces.Count < 2) return;
+        _beamed = true;
+        int planet = client.World.Surfaces.Count - 1;
+        var ground = Registry.On(client.World, planet);
+        int? cave = GroundDemo.CaveUnder(ground);
+        client.Send(cave is int at ? new Transfer(planet, at) : new Transfer(planet));
+        log($"pickaxe: beamed down to {(cave is int c ? $"({c % ground.Grid.Width}, {c / ground.Grid.Width})" : "the spawn")}");
+    }
 }

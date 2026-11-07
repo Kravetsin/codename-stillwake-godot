@@ -19,7 +19,7 @@ public sealed record Stroke(StrokeKind Kind, double Ms, double PaceMs, double Hi
         : Math.Max(0, HitShare * Ms - PeakS * 1000);
 }
 
-/// <summary>Every tool struck with by hand, by its item: the axe, the sledgehammer and the spear.</summary>
+/// <summary>Every tool struck with by hand, by its item: the axe, the sledgehammer, the spear and the pickaxe.</summary>
 public static class Strokes
 {
     private static double PaceMs(Content.Weapon weapon) => weapon.Pace * 1000.0 / Sim.World.TicksPerSecond;
@@ -36,6 +36,9 @@ public static class Strokes
     /// </summary>
     public static readonly Stroke Hammer = new(StrokeKind.Swing, HammerBlowMs / AxeSwing.HitAt, PaceMs(Content.Weapons.Sledgehammer), AxeSwing.HitAt, Stillwake.Game.Sound.HammerSwingPeakS, HalfOf(Content.Weapons.Sledgehammer));
 
+    /// <summary>The pickaxe's (the-pickaxe): the axe's swing played over its own pace, quicker, a blow every 0.3 s.</summary>
+    public static readonly Stroke Pick = new(StrokeKind.Swing, PaceMs(Content.Weapons.Pickaxe), PaceMs(Content.Weapons.Pickaxe), AxeSwing.HitAt, Half: HalfOf(Content.Weapons.Pickaxe));
+
     /// <summary>How long the sledgehammer's swing takes to its blow: a heavy wind-up, slower than the axe's whole swing.</summary>
     public const double HammerBlowMs = 800;
 
@@ -50,7 +53,8 @@ public static class Strokes
 
     /// <summary>The strokes <paramref name="item"/> makes in the hand; none for a tool that is not struck with.</summary>
     public static Stroke? Of(string? item) =>
-        item == Content.Weapons.Axe.Item ? Axe : item == Content.Weapons.Sledgehammer.Item ? Hammer : item == Content.Weapons.Spear.Item ? Spear : null;
+        item == Content.Weapons.Axe.Item ? Axe : item == Content.Weapons.Sledgehammer.Item ? Hammer : item == Content.Weapons.Spear.Item ? Spear
+        : item == Content.Weapons.Pickaxe.Item ? Pick : null;
 
     /// <summary>
     /// The jab's elbow at <paramref name="phase"/> of a thrust, in radians bent (the pick's keys): from its rest bend cocked further
