@@ -164,7 +164,7 @@ public sealed partial class CraftingModule : Module<CraftingState>, ICraftingQue
     private string? CraftProblem(Craft c)
     {
         if (StationOf(c.Machine) is not { } station) return "crafting.noStation";
-        if (!Content.Crafts.TryGet(c.Recipe, out var craft) || !_research.Knows(c.Recipe)) return "crafting.unknown";
+        if (!Content.Crafts.TryGet(c.Recipe, out var craft) || !_research.Knows(c.From, c.Recipe)) return "crafting.unknown";
         if (!Makes(station, c.Recipe)) return "crafting.notHere";
         if (Queue(c.Machine).Count >= station.QueueMost) return "crafting.full";
         if (c.Endless && !c.FromInputs) return "crafting.paid";

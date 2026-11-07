@@ -98,7 +98,7 @@ public class NetTests
     {
         var w = new Scenario(Map(net: false));
         Assert.Null(w.M.Grid.PlacementProblem(At(6, 2), Net));
-        Assert.Null(w.M.Building.Problem(At(6, 2), Net));
+        Assert.Null(w.M.Building.Problem(At(6, 2), Net, 0));
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class NetTests
         var w = new Scenario(Map(net: false));
         // Rows 4 to 9: the last has no wall on its left.
         Assert.Equal("grid.notOnHull", w.M.Grid.PlacementProblem(At(6, 4), Net));
-        Assert.Equal("grid.notOnHull", w.M.Building.Problem(At(6, 4), Net));
+        Assert.Equal("grid.notOnHull", w.M.Building.Problem(At(6, 4), Net, 0));
         // Left of the room, its wall on the right; and inside it, against the left wall, where back walls stand.
         Assert.Equal("grid.notOnHull", w.M.Grid.PlacementProblem(At(0, 2), Net));
         Assert.Equal("grid.notOnHull", w.M.Grid.PlacementProblem(At(3, 2), Net));

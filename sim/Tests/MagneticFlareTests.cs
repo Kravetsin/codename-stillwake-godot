@@ -91,13 +91,16 @@ public class MagneticFlareTests
     {
         var w = World(meteors: true, known: []);
         Assert.Null(UntilComing(w, Starting.EveryMax + 10));
-        // Creative mode knows the generator: armed, the next tick draws a flare, then the warning comes at its end.
+        // A creative peer knows the generator, but the world does not: still unarmed (2026-11-07-creative-per-player).
         w.Do(new SetCreative(true)).Run();
+        Assert.Null(UntilComing(w, Starting.EveryMax + 10));
+        // Known: armed, the next tick draws a flare, then the warning comes at its end.
+        w.M.Knowledge.Grant(MagneticFlares.ArmedBy);
+        w.Run();
         int until = UntilComing(w, Starting.EveryMax) ?? throw new InvalidOperationException("no flare");
         Assert.InRange(until, Starting.EveryMin - Starting.Warning, Starting.EveryMax - Starting.Warning);
         Assert.Equal(Starting.Warning, w.M.Hazards.FlareLeft);
-        // Disarmed during the warning: the flare drawn strikes all the same.
-        w.Do(new SetCreative(false)).Run(Starting.Warning);
+        w.Run(Starting.Warning);
         Assert.False(w.M.Hazards.FlareComing);
         Assert.NotEmpty(w.M.Power.Broken);
     }
@@ -123,6 +126,23 @@ public class MagneticFlareTests
         Assert.NotEmpty(w.M.Power.Broken);
         // A calm world draws no next one.
         Assert.Null(UntilComing(w, Starting.EveryMax + 10));
+    }
+
+    [Fact]
+    public void NoneWhileCalmedFromTheDevPanelNotEvenOneComingThenDrawnAgainOnceStirred()
+    {
+        var w = World(meteors: true).Do(new FlareNow(Starting.Warning)).Run();
+        Assert.True(w.M.Hazards.FlareComing);
+        // Calmed during the warning: the flare is dropped and none other is drawn.
+        w.Do(new SetCalm(true)).Run();
+        Assert.False(w.M.Hazards.FlareComing);
+        Assert.Equal(0, FlareIn(w));
+        Assert.Null(UntilComing(w, Starting.EveryMax + 10));
+        Assert.Empty(w.M.Power.Broken);
+        // Stirred: the next is drawn on the command's tick, a whole interval on.
+        w.Do(new SetCalm(false)).Run();
+        Assert.InRange(FlareIn(w), Starting.EveryMin, Starting.EveryMax);
+        Assert.Empty(w.Refusals);
     }
 
     [Fact]

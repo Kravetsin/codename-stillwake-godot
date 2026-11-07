@@ -75,7 +75,7 @@ public partial class ItemsDemo : Control
         });
         items["nextFloorId"] = 2;
         // Creative mode: the air is endless, so the hero breathes through the whole script.
-        items["creative"] = true;
+        items["creative"] = new JsonArray(0);
         // The crate holds a canister and a plank, so a stash has somewhere to put them.
         var crate = root["slices"]!["grid"]!["machines"]!.AsArray().First(m => m!["kind"]!.GetValue<string>() == "crate")!["id"]!.GetValue<int>();
         var crateSlots = new JsonArray();

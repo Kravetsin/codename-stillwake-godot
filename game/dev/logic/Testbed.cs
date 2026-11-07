@@ -9,8 +9,8 @@ namespace Stillwake.Game.Dev;
 
 /// <summary>
 /// A ready ship for checking things by eye (<c>-- --testbed</c>, or the title's Testbed button in a debug
-/// build): every machine once, two rooms aired, an airlock out to space, every user powered, creative
-/// mode on, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
+/// build): every machine once, two rooms aired, an airlock out to space, every user powered, the host
+/// in creative mode, a crate with a full stack of every item but the farm's and a charged battery, the furnace and the burner
 /// generator lit, a battery charging beside a full one, the Former pressing plates endlessly from the iron in its
 /// inputs, the electric smelter smelting quartz, the circuit assembler making circuits, a grow capsule growing seeds beside a crate of
 /// the farm's items, seeds, what the crusher takes and gives, planks, and what a planet's caves give; and drones (0062): two in a powered bay in room one beside a supply crate of
@@ -210,7 +210,7 @@ public static class Testbed
         foreach (var tank in save["slices"]!["atmosphere"]!["tanks"]!.AsArray())
             if (machines.Any(m => (int)m!["id"]! == (int)tank!["tank"]! && (string?)m["kind"] == "tank")) tank!["oxygen"] = Air.TankCapacity;
         var items = save["slices"]!["items"]!;
-        items["creative"] = true;
+        items["creative"] = new JsonArray(0);
         var held = new List<JsonObject>
         {
             new() { ["id"] = At(Full), ["slots"] = Slots("crate", [.. Carried.Where(i => !InFarmCrate(i.Id) && !InSupply.Contains(i.Id) && !InTools.Contains(i.Id) && !InBay.Contains(i.Id)).Select(i => Stack(i.Id, i.Stack)), Battery(1000)]) },

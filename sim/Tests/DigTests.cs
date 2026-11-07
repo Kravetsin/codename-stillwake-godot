@@ -167,9 +167,9 @@ public class DigTests
         var w = Aboard(known: []).GiveItems(0, ("soil", 1));
         int cell = At(3, 1);
         var soilWall = Placement.Wall("soil");
-        Assert.Equal("building.unknown", w.M.Building.Problem(cell, soilWall));
+        Assert.Equal("building.unknown", w.M.Building.Problem(cell, soilWall, 0));
         w.M.Knowledge.Grant("wallSoil");
-        Assert.Null(w.M.Building.Problem(cell, soilWall));
+        Assert.Null(w.M.Building.Problem(cell, soilWall, 0));
         w.Do(new PlacePlan(cell, soilWall)).Run();
         int plan = w.M.Building.Plans.Single().Id;
         for (int i = 0; i < Soil.BuildTicks; i++) w.Do(new Work(plan)).Run();
@@ -186,15 +186,15 @@ public class DigTests
     [Fact]
     public void NoBlueprintBuildsBedrockFrontOrBackNotEvenInCreativeModeAndAPlanetNoBackWallAtAll()
     {
-        Assert.Equal("building.notHere", World().M.Building.Problem(At(3, 1), Placement.BackWall("stone")));
+        Assert.Equal("building.notHere", World().M.Building.Problem(At(3, 1), Placement.BackWall("stone"), 0));
         var w = Aboard();
         w.Do(new SetCreative(true)).Run();
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock")));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.Wall("bedrock"), 0));
         w.Do(new ClearAt(At(3, 1), "back")).Run();
-        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.BackWall("bedrock")));
-        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("soil")));
-        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("iron")));
-        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.Wall("stone")));
+        Assert.Equal("building.unknown", w.M.Building.Problem(At(3, 1), Placement.BackWall("bedrock"), 0));
+        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("soil"), 0));
+        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.BackWall("iron"), 0));
+        Assert.Null(w.M.Building.Problem(At(3, 1), Placement.Wall("stone"), 0));
     }
 
     [Fact]

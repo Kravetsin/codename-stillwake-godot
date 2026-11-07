@@ -59,7 +59,7 @@ Oxygen: liquid in tanks, turned into gas by vaporizers (liquid-oxygen), and the 
 - **Draws** take only from the stores of the vaporizers feeding the network, in id order; emptied ones leave `Tanks`
   at the tick's end.
 - **Canisters:** a tank holds up to `Air.TankCapacity` of liquid; `LoadCanister` takes a canister from the sender (free
-  in creative) and adds `Air.Canister`, refused if the tank would spill. A tank taken apart takes its oxygen with it.
+  for a creative sender) and adds `Air.Canister`, refused if the tank would spill. A tank taken apart takes its oxygen with it.
 - **The survey** — vents, fills, stores, tanks, aired cells and their leak, by room and network — is kept between
   ticks, redone for changed rooms (all, once the pipes' `Version` moved); what is held is reread after a canister, a
   tank taken apart or the tick's start. Machines are walked by trait (0113), ports in spec order.

@@ -25,16 +25,22 @@ public sealed class ResearchState;
 /// <summary>What any module may read of the research.</summary>
 public interface IResearchQueries
 {
-    /// <summary>Whether <paramref name="placement"/>'s blueprint is known: every one in creative mode.</summary>
+    /// <summary>Whether the world knows <paramref name="placement"/>'s blueprint, whoever is in creative mode.</summary>
     bool Knows(Placement placement);
-    /// <summary>Whether the blueprint or craft <paramref name="id"/> is known: every one in creative mode.</summary>
+    /// <summary>Whether the world knows the blueprint or craft <paramref name="id"/>, whoever is in creative mode.</summary>
     bool Knows(string id);
+    /// <summary>Whether <paramref name="peer"/> may use <paramref name="placement"/>'s blueprint: known, or every one in its creative mode.</summary>
+    bool Knows(int peer, Placement placement);
+    /// <summary>Whether <paramref name="peer"/> may use the blueprint or craft <paramref name="id"/>: known, or every one in its creative mode.</summary>
+    bool Knows(int peer, string id);
     /// <summary>Every blueprint, then every craft, as the world knows it now; creative mode aside.</summary>
     IReadOnlyList<Recipe> Recipes();
     /// <summary>The ship's credits.</summary>
     int Credits { get; }
-    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's order sold and its ring reached; every one in creative mode.</summary>
+    /// <summary>Whether <paramref name="node"/> is done: a block bought, all it opens known; a gate's order sold and its ring reached.</summary>
     bool Done(TechNode node);
+    /// <summary>Whether <paramref name="node"/> is done as <paramref name="peer"/> sees it: every one in its creative mode.</summary>
+    bool Done(int peer, TechNode node);
     /// <summary>Whether all <paramref name="node"/> needs are done.</summary>
     bool Reached(TechNode node);
 
@@ -121,15 +127,20 @@ public sealed class ResearchModule : Module<ResearchState>, IResearchQueries
 
     public bool Knows(Placement placement) => Knows(Research.Blueprints.Of(placement));
 
-    public bool Knows(string id) => _items.Creative || _knowledge.Granted(id);
+    public bool Knows(string id) => _knowledge.Granted(id);
+
+    public bool Knows(int peer, Placement placement) => _items.Creative(peer) || Knows(placement);
+
+    public bool Knows(int peer, string id) => _items.Creative(peer) || Knows(id);
 
     public IReadOnlyList<Recipe> Recipes() => Every.Select(e => new Recipe(e.Id, e.Placement, e.Cost, _knowledge.Granted(e.Id))).ToList();
 
     public int Credits => _knowledge.Credits;
 
+    public bool Done(int peer, TechNode node) => _items.Creative(peer) || Done(node);
+
     public bool Done(TechNode node)
     {
-        if (_items.Creative) return true;
         if (!node.Gate) return _knowledge.Granted(node.Id);
         // Sales count from the world's start, so without its ring reached an order met early would open a ring past a shut one.
         if (!Reached(node)) return false;

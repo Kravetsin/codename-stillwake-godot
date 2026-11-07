@@ -1,6 +1,6 @@
 # The scanner reads a wreck's hit points
 
-- Status: accepted
+- Status: accepted, amended by [steady-scanner](2026-11-07-steady-scanner.md)
 - Date: 2026-11-07
 
 ## Context

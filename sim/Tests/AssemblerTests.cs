@@ -139,7 +139,7 @@ public class AssemblerTests
         w.Do(new Craft(assembler, "circuit", 1) { From = 1 }).Run();
         Assert.Equal(3, w.Refusals.Count);
         Assert.Single(w.M.Crafting.Queue(assembler));
-        for (int i = 0; i < 8; i++) w.Do(new SetCreative(true)).Do(new Craft(assembler, "solarCell", 1) { From = i % 2 });
+        for (int i = 0; i < 8; i++) w.Do(new SetCreative(true) { From = i % 2 }).Do(new Craft(assembler, "solarCell", 1) { From = i % 2 });
         w.Run();
         Assert.Equal("crafting.full", w.Refusals[^1].Reason);
         Assert.Equal(8, w.M.Crafting.Queue(assembler).Count);

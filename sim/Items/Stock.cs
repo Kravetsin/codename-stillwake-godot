@@ -25,7 +25,7 @@ public sealed partial class ItemsModule
         var needs = new List<(string Item, int Count)>();
         foreach (var (item, amount) in Stacks.Entries(cost)) Add(needs, item, amount);
         foreach (var (item, amount) in needs)
-            if (CountIn(totals, item) < amount) return State.Creative ? null : "items.notEnough";
+            if (CountIn(totals, item) < amount) return Creative(peer) ? null : "items.notEnough";
         return null;
     }
 
@@ -35,14 +35,15 @@ public sealed partial class ItemsModule
 
     /// <summary>
     /// Takes <paramref name="cost"/> from <paramref name="peer"/>'s stock, its own slots as <see cref="Take"/> does, then each
-    /// crate by id, and returns what it took: all of it, or nothing in creative mode. Check <see cref="ShortOfStock"/> first.
+    /// crate by id, and returns what it took: all of it, a creative peer's taken from nothing as <see cref="Take"/> does. Check <see cref="ShortOfStock"/> first.
     /// </summary>
     public IReadOnlyList<(string Item, int Count)> TakeStock(int peer, IReadOnlyList<(string Item, int Count)> cost)
     {
-        if (Stacks.IsNothing(cost) || State.Creative) return [];
+        if (Stacks.IsNothing(cost)) return [];
+        if (Creative(peer)) return [.. cost];
         var left = new List<(string Item, int Count)>(Stacks.Entries(cost));
         var inventory = Inventory(peer);
-        if (TakenPart(inventory, left, Own) is { } slots) Stacks.SetInventory(State, peer, slots);
+        if (TakenPart(inventory, left, Own(peer)) is { } slots) Stacks.SetInventory(State, peer, slots);
         foreach (var crate in _grid.MachinesWith(MachineTrait.Container))
         {
             if (Stacks.IsNothing(left)) break;
@@ -69,7 +70,7 @@ public sealed partial class ItemsModule
     /// </summary>
     private (Stack?[] Inventory, List<(int Id, Stack?[] Slots)> Crates)? Spread(int peer, IReadOnlyList<(string Item, int Count)> cost)
     {
-        var (inventory, left) = Stacks.PlacedSome(Inventory(peer), cost, Own);
+        var (inventory, left) = Stacks.PlacedSome(Inventory(peer), cost, Own(peer));
         var crates = new List<(int Id, Stack?[] Slots)>();
         foreach (var crate in _grid.MachinesWith(MachineTrait.Container))
         {

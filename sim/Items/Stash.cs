@@ -39,7 +39,7 @@ public sealed partial class ItemsModule
         var crates = CratesNear(stash.Cell);
         if (crates.Count == 0) return parts;
         var bag = new Target();
-        for (int slot = Content.Inventory.Hotbar; slot < Own; slot++)
+        for (int slot = Content.Inventory.Hotbar; slot < Own(peer); slot++)
         {
             foreach (int crate in crates)
             {
@@ -48,7 +48,7 @@ public sealed partial class ItemsModule
                 if (!Holds(slotsOf(into), stack.Item)) continue;
                 var src = new Place(slot);
                 if (MoveSides(slotsOf, src, into, out var from, out var to, out bool same) != null) continue;
-                if (Moved(from, to, same, src, into, stack.Count, out var after, out var filled) != null) continue;
+                if (Moved(peer, from, to, same, src, into, stack.Count, out var after, out var filled) != null) continue;
                 set(bag, after);
                 set(into, filled);
                 parts.Add(new Stashed(slot, crate, stack.Item, stack.Count - (after[slot]?.Count ?? 0)));

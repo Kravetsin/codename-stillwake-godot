@@ -17,7 +17,7 @@ electrolyser, which splits it into the liquid oxygen of the tanks on its output.
 
 ## Rules
 
-- **Pouring.** `PourWater(Cistern)` takes a bottle (`Water.Item`) from the sender (free in creative) and adds `Water.Bottle`.
+- **Pouring.** `PourWater(Cistern)` takes a bottle (`Water.Item`) from the sender (free for a creative sender) and adds `Water.Bottle`.
   Refused, nothing changed: `water.noCistern` (not a machine with `MachineTrait.HoldsWater`), `water.full` (it would spill
   over `Water.CisternCapacity`), `items.notEnough`. Two pours on one tick apply in stamped order.
 - **Cisterns in a line** (tanks-in-a-line), first in the simulation phase: each cistern holding water, in id order, pours up

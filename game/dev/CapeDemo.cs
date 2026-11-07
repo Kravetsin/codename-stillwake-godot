@@ -40,7 +40,7 @@ public partial class CapeDemo : Node
         if (m.Crew.HeroOf(client.Id) == null || m.Items.Equipped(client.Id, Spec.Cape.Item)) return;
         int held = m.Items.Inventory(client.Id).ToList().FindIndex(s => s?.Item == Spec.Cape.Item);
         if (held >= 0) client.Send(new Move(new Place(held), new Target(CapeSlot), 1));
-        else if (!m.Items.Creative) client.Send(new SetCreative(true));
+        else if (!m.Items.Creative(client.Id)) client.Send(new SetCreative(true));
         else client.Send(new Spawn(Spec.Cape.Item, 1));
     }
 }

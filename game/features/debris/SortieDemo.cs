@@ -60,7 +60,7 @@ public partial class SortieDemo : CanvasLayer
                 : null);
         root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
         // Played by hand, creative: the air and the batteries never cut a check short.
-        root["slices"]!["items"]!["creative"] = creative;
+        root["slices"]!["items"]!["creative"] = creative ? new JsonArray(0) : new JsonArray();
         int start = StartOf(m), sx = start % m.Grid.Width, sy = start / m.Grid.Width;
         root["slices"]!["crew"]!["heroes"] = new JsonArray(new JsonObject
         {

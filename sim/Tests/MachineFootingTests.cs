@@ -56,7 +56,7 @@ public class MachineFootingTests
     {
         var w = new Scenario(Decks, cells: true);
         foreach (var kind in new[] { "lamp", "vent" })
-            Assert.Null(w.M.Building.Problem(w.At(2, 2), new Placement("machine", kind)));
+            Assert.Null(w.M.Building.Problem(w.At(2, 2), new Placement("machine", kind), 0));
         // Hung by an arc lamp's or the last crew's own; neither has a blueprint here.
         Assert.False(Machines.Stands("arcLamp") || Machines.Stands("emergencyLamp"));
     }
