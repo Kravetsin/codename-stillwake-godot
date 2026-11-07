@@ -163,7 +163,7 @@ public partial class ContentTests
     /// <summary>
     /// Every craft is made at some queued station (0057): the pod gives what a castaway is given, the suit and the
     /// screwdriver (0046, 0107); the workbench the basic parts and what is assembled, the jetpack, the drill and the cape
-    /// among them (2026-10-27-the-cape-is-worn); the Former those parts again, and alone frames, soil (0060), the motor of a
+    /// among them (2026-10-27-the-cape-is-worn), and the battery, which the assembler makes too (battery-workbench); the Former those parts again, and alone frames, soil (0060), the motor of a
     /// planet's copper and the nozzle; the electronics, circuits, solar cells and the deck drive, and the fuel pump, the circuit
     /// assembler alone; the arc crafts the arc bench (0099, 2026-10-27-the-railgun).
     /// </summary>
@@ -177,7 +177,7 @@ public partial class ContentTests
         string[] formed = ["frame", "motor", "soil", "nozzle"];
         Assert.Empty(Crafts.All.Select(c => c.Item).Except([.. pod, .. parts, .. tools, .. formed, .. electronics, .. arc]));
         Assert.Equal(pod, Stations.Get("lifepod").Rows.SelectMany(r => r));
-        Assert.Equal(parts.Concat(tools).Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
+        Assert.Equal(parts.Concat(tools).Append("battery").Order(StringComparer.Ordinal), Stations.Get("workbench").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.Equal(parts.Concat(formed).Order(StringComparer.Ordinal), Stations.Get("former").Rows.SelectMany(r => r).Order(StringComparer.Ordinal));
         Assert.All(tools, item => Assert.Equal(["workbench"], Stations.All.Where(s => s.Rows.Any(r => r.Contains(item))).Select(s => s.Machine)));
         Assert.Equal(arc, Stations.Get("arcBench").Rows.SelectMany(r => r));
