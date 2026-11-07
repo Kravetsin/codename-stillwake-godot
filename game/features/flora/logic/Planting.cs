@@ -83,12 +83,15 @@ public static class Planting
 
     /// <summary>
     /// What of a moss picture shows along <paramref name="face"/>: cut at its block's edge where a run of it goes on
-    /// <paramref name="before"/> or <paramref name="after"/> it, its torn end kept where the run stops (2026-11-01-moss-in-ink).
+    /// <paramref name="before"/> or <paramref name="after"/> it, its torn end kept where the run stops (2026-11-01-moss-in-ink);
+    /// only along its <paramref name="first"/> and <paramref name="second"/> cell where the face is open beside them, so on a
+    /// stair's step it ends at the corner rather than over the stone beside it.
     /// </summary>
-    public static (int X, int Y, int W, int H) Piece(Faces face, bool before, bool after)
+    public static (int X, int Y, int W, int H) Piece(Faces face, bool before, bool after, bool first = true, bool second = true)
     {
-        int from = before ? PieceOver : 0, length = (after ? PieceSize - PieceOver : PieceSize) - from;
-        return face is Faces.Up or Faces.Down ? (from, 0, length, PieceSize) : (0, from, PieceSize, length);
+        const int middle = PieceSize / 2;
+        int from = !first ? middle : before ? PieceOver : 0, to = !second ? middle : after ? PieceSize - PieceOver : PieceSize;
+        return face is Faces.Up or Faces.Down ? (from, 0, to - from, PieceSize) : (0, from, PieceSize, to - from);
     }
 
     /// <summary>

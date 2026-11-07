@@ -255,9 +255,10 @@ public partial class CaveView : Node2D, ILightSource
                 void Face(Planting.Faces face, string name, int before, int after)
                 {
                     if ((open & face) == 0) return;
-                    bool Runs(int n) => _moss.Contains(n) && (FacesOpen(n, across, tall) & face) != 0;
-                    // Its pieces join at their blocks' edges, drawn to meet there.
-                    var (px, py, pw, ph) = Planting.Piece(face, Runs(own + before), Runs(own + after));
+                    var (first, second) = Beside(own, face);
+                    bool Runs(int n, bool last) => _moss.Contains(n) && (last ? Beside(n, face).Second : Beside(n, face).First);
+                    // Its pieces join at their blocks' edges, drawn to meet there; along only the cells the face is open beside.
+                    var (px, py, pw, ph) = Planting.Piece(face, first && Runs(own + before, true), second && Runs(own + after, false), first, second);
                     pictures.Add((name, corner, new Rect2I(px, py, pw, ph), face == Planting.Faces.Up));
                 }
                 Face(Planting.Faces.Up, $"caves/{tone}_top_{v}", -across, across);
@@ -313,6 +314,23 @@ public partial class CaveView : Node2D, ILightSource
 
     /// <summary>Whether <paramref name="cell"/> is open: nothing built or grown there.</summary>
     private bool Open(int cell) => cell >= 0 && cell < _grid.Width * _grid.Height && _grid.StructureAt(cell) == Structure.Empty;
+
+    /// <summary>
+    /// Whether <paramref name="face"/> of the 2 × 2 block at <paramref name="cell"/> is open beside its first cell along it (the
+    /// left or top one) and beside its second.
+    /// </summary>
+    private (bool First, bool Second) Beside(int cell, Planting.Faces face)
+    {
+        int w = _grid.Width, x = cell % w;
+        bool At(int c, int column) => column >= 0 && column < w && Open(c);
+        return face switch
+        {
+            Planting.Faces.Up => (At(cell - w, x), At(cell - w + 1, x + 1)),
+            Planting.Faces.Down => (At(cell + 2 * w, x), At(cell + 2 * w + 1, x + 1)),
+            Planting.Faces.Left => (At(cell - 1, x - 1), At(cell + w - 1, x - 1)),
+            _ => (At(cell + 2, x + 2), At(cell + w + 2, x + 2)),
+        };
+    }
 
     /// <summary>
     /// The faces open of the block <paramref name="across"/> by <paramref name="tall"/> cells down and right of

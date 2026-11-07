@@ -68,6 +68,16 @@ public class PlantingTests
         Assert.Equal((0, 4, 24, 16), Planting.Piece(Faces.Right, before: true, after: true));
     }
 
+    [Fact]
+    public void APieceOnAFaceOpenAlongOneOfItsCellsEndsAtThatCellNotOverTheStoneBesideIt()
+    {
+        // A stair's step: the block's right face open beside its top cell only, then its bottom cell only.
+        Assert.Equal((0, 0, 24, 12), Planting.Piece(Faces.Right, before: false, after: false, first: true, second: false));
+        Assert.Equal((0, 12, 24, 12), Planting.Piece(Faces.Right, before: false, after: false, first: false, second: true));
+        Assert.Equal((4, 0, 8, 24), Planting.Piece(Faces.Up, before: true, after: true, first: true, second: false));
+        Assert.Equal((12, 0, 8, 24), Planting.Piece(Faces.Down, before: true, after: true, first: false, second: true));
+    }
+
     /// <summary>A column 1 wide: open, open, open, then walls from row 3.</summary>
     private static double? Drip(double y) =>
         Planting.DripFloor(c => c < 3 ? Structure.Empty : Structure.Wall, 1, 5, Cell, Cell / 4.0, y, 20);
