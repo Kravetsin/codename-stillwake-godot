@@ -81,6 +81,9 @@ public static class Layers
     /// <summary>Drones flying with what they carry, over the heroes they pass (logistics, 0062).</summary>
     public const int Drones = 18;
 
+    /// <summary>Water in a planet's cells (liquids): over the heroes, so one in it is seen through it.</summary>
+    public const int Water = 18;
+
     /// <summary>
     /// The ground a hero digs at (0077): its cracks and the aim's outline round it, over every hero and the tool in its hands,
     /// so a drill held close never hides what it bites.

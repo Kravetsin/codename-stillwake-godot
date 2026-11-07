@@ -69,6 +69,8 @@ public static class SurfaceViews
         new(c => new StationView(c.M.Grid, c.M.Crafting, c.M.Items), Fades: true),
         new(c => new BenchView(c.M.Grid, c.M.Items), Fades: true),
         new(Drones),
+        // Water in the cells (docs/plans/liquids.md): over the heroes swimming in it, by its z.
+        new(c => new Features.Liquids.LiquidsView(c.M.Grid, c.M.Liquids)),
         // Every peer's shots but this player's own, which its hero's hands draw ahead of the sim's (shots-are-the-sims).
         new(c => new Features.Creatures.ShotsView(c.M, c.Progress, c.Peer, c.Tick, c.Hosts)),
         // Meteors seen coming and striking the hull, where its place has them (2026-10-28-hull-meteors).

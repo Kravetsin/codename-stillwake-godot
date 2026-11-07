@@ -24,7 +24,7 @@ effect, so a release build has none of this folder and no `*Demo.cs` anywhere.
 | `PilesScenario.cs` | `--piles`: the hold with an axe in hand, a sledgehammer, the scanner worn; `--autopilot` breaks the piles. |
 | `CapsuleScenario.cs` | The wreck with its trade station's capsule just gone or about to come home (--capsule) |
 | `FlareScenario.cs` | `--flare`: the new game's wreck with a magnetic flare's warning begun at once; `=repair` a lamp half repaired |
-| `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes`, `--pickaxe`, `--ore-shine` (`=off` without the lamp) |
+| `PlanetScenarios.cs` | `--planet`, `--strip` (with `--beam-back`), `--creatures` and its modifiers, `--nailer`, `--railgun`, `--hitboxes`, `--pickaxe`, `--ore-shine` (`=off` without the lamp), `--lake` |
 | `TabletHands.cs` | A script's hands on the research tablet: `--tree`, `--board` |
 | `CreatureHands.cs` | `--creatures`'s hands: the hero hunting the creatures with the axe, then the drill |
 | `ClimbScenario.cs` | `--climb`: the first planet, the hero at the bottom of its deepest chasm, grappling gun in hand, the harpoon beside, creative (grapple-climbs) |

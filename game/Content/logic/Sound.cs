@@ -413,6 +413,18 @@ public static class Sound
     /// </summary>
     public static readonly Cue CaveDrip = new(Shots("flora/cave-drip", 2), -9, Pitch: 0.08f, Heard: new(8, 32));
     public const double CaveDripLeastS = 0.5, CaveDripMostS = 2.2;
+
+    /// <summary>
+    /// Water (liquids, the user's picks): a splash as a hero goes in and as it comes out, at most one every <see cref="SplashGapS"/>
+    /// so bobbing at the surface does not chatter; a stroke every <see cref="StrokeEveryS"/> while it swims and moves; and one
+    /// pouring loop at the stream nearest the view's middle within <see cref="PourReach"/> cells.
+    /// </summary>
+    public static readonly Cue SplashIn = new(Shots("crew/splash-in", 1), -8, Pitch: 0.08f, Heard: new(8, 36));
+    public static readonly Cue SplashOut = new(Shots("crew/splash-out", 1), -8, Pitch: 0.08f, Heard: new(8, 36));
+    public static readonly Cue SwimStroke = new(Shots("crew/swim-stroke", 1), -14, Pitch: 0.1f, Heard: new(8, 32));
+    public static readonly Cue WaterPour = Looped("grid/water-pour", -6, new(6, 24));
+    public const double SplashGapS = 0.4, StrokeEveryS = 0.55;
+    public const int PourReach = 24;
     public const float CaveDripLowDb = -10;
 
     /// <summary>
@@ -667,7 +679,7 @@ public static class Sound
     public static readonly IReadOnlyList<Cue> All = [Title, Space, Step, Land, Jump, Alarm, Screwdriver, PowerDriverBite, PowerDriverLoop, PowerDriverOff, Hiss, Click, Clink, VentHum, DoorOpen, DoorClose, Valve, Act, ActInSpace, Fire, Swing, Chop, Break, Shot, Drum, Ready, NailShot, DryClick, NailHit, NailReady, RailCharge, RailReady, RailShot, ArcStruck, ArcHit, AirFill, Inhale, Thrust, ChargerHum, ChargeFull, DrillWhir, FormerStroke, FormerMotor, SmelterHum, SmelterCrackle, DroneWhir, DroneDock, DroneGrab, SalvageThrust, MusicBox, Zap,
         StepGrass, StepSoil, StepStone, StepAlloy, LandSoft, LandHard, LandAlloy, HitSoil, HitStone, BreakSoil, BreakStone,
         ChopWood, TreeFall, Bush, Grass, Crystal, Glowcap, WoodBreak, ClothTear, GlassBreak, MetalBreak, CeramicBreak, LavaBed,
-        LavaBubble, LavaBurn, CaveDrip, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
+        LavaBubble, LavaBurn, CaveDrip, SplashIn, SplashOut, SwimStroke, WaterPour, CreatureDeath, .. Ticks.Values.SelectMany(t => new[] { t.Alert, t.WindUp, t.Unclamp, t.Clamp, t.Snap, t.Death }), .. Istukans.Values.SelectMany(g => new[] { g.Wake, g.Alert, g.WindUp, g.Pounce, g.Killed, g.ShutDown }), .. RamHits.Values, .. Pod];
     // StepMoss and BushSoft play StepGrass's and Bush's files quieter: the sound board has those.
 
     /// <summary>The suit's alarm beeps this often, in seconds, while it runs low out of air.</summary>

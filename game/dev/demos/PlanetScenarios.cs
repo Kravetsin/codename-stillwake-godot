@@ -208,3 +208,81 @@ public sealed class OreShineScenario : DevScenario
         return best is var (at, c, i, _) ? (at, c, i) : null;
     }
 }
+
+/// <summary>
+/// A grown lake to swim in and dig open (docs/plans/liquids.md): the first planet, the hero beamed onto the floor beside the lake
+/// nearest the middle, the pickaxe and the drill in hand's reach, the helmet lamp on, creative so the air never runs out.
+/// </summary>
+[Dev("--lake", "the first planet's lake nearest the middle, the hero on its bank with the pickaxe, the drill and the lamp, creative (liquids)")]
+public sealed class LakeScenario : DevScenario
+{
+    private bool _beamed, _creative;
+    private int _planet;
+
+    public override World Seed(World world, DevSeed seed)
+    {
+        var root = JsonNode.Parse(world.Save())!;
+        var slots = new JsonArray();
+        int Worn(string slot) => Content.Inventory.Slots + Content.Inventory.Equipment.ToList().IndexOf(slot);
+        string[] tools = [Content.Weapons.Pickaxe.Item, Content.Weapons.Drill.Item];
+        for (int i = 0; i < Content.Inventory.Total; i++)
+            slots.Add(i < tools.Length ? new JsonObject { ["item"] = tools[i], ["count"] = 1 }
+                : i == Worn(Content.Helmet.Slot) ? new JsonObject { ["item"] = Content.Helmet.Basic, ["count"] = 1 }
+                : i == Worn(Content.Helmet.Mount) ? new JsonObject { ["item"] = Content.HelmetLamp.Item, ["count"] = 1 }
+                : null);
+        root["slices"]!["items"]!["inventories"] = new JsonArray(new JsonObject { ["id"] = 0, ["slots"] = slots });
+        return World.Load(root.ToJsonString(), seed.Modules());
+    }
+
+    public override void Started(Client client) => client.Send(new OpenSurface(Content.PlanetTypes.First.Id));
+
+    public override void Frame(Client client, Registry m, Action<string> log)
+    {
+        var world = client.World;
+        if (_beamed && !_creative && world.SurfaceOf(client.Id) == _planet)
+        {
+            _creative = true;
+            client.Send(new Sim.Items.SetCreative(true));
+        }
+        if (_beamed || world.Surfaces.Count < 2) return;
+        _beamed = true;
+        _planet = world.Surfaces.Count - 1;
+        var ground = Registry.On(world, _planet);
+        if (Bank(ground) is not int at)
+        {
+            client.Send(new Transfer(_planet));
+            log("lake: no lake with a bank found; beamed to the spawn");
+            return;
+        }
+        client.Send(new Transfer(_planet, at));
+        log($"lake: beamed to ({at % ground.Grid.Width}, {at / ground.Grid.Width})");
+    }
+
+    /// <summary>
+    /// A dry floor cell with room for the hero over it beside the surface of the lake nearest the middle's column, within 16 columns
+    /// of the surface's end and a few rows of it; null for none.
+    /// </summary>
+    private static int? Bank(Registry m)
+    {
+        var grid = m.Grid;
+        var layer = m.Liquids.Layer.ToArray();
+        if (layer.Length == 0) return null;
+        int w = grid.Width, h = grid.Height;
+        bool Open(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && grid.StructureAt(y * w + x) == Content.Structure.Empty;
+        bool Wet(int x, int y) => x >= 0 && y >= 0 && x < w && y < h && m.Liquids.AmountAt(y * w + x) > 0;
+        var surfaces = Enumerable.Range(0, layer.Length).Where(c => layer[c] != 0 && !Wet(c % w, c / w - 1) && Open(c % w, c / w - 1));
+        foreach (int top in surfaces.OrderBy(c => Math.Abs(c % w - w / 2)).Take(64))
+        {
+            int x0 = top % w, y0 = top / w;
+            foreach (int way in (int[])[-1, 1])
+            {
+                int end = x0;
+                while (Wet(end + way, y0)) end += way;
+                for (int x = end + way; Math.Abs(x - end) <= 16; x += way)
+                    for (int y = y0 - 6; y <= y0; y++)
+                        if (Open(x, y) && !Wet(x, y) && !Open(x, y + 1) && Enumerable.Range(1, 6).All(k => Open(x, y - k))) return y * w + x;
+            }
+        }
+        return null;
+    }
+}
