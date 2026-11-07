@@ -128,6 +128,8 @@ public partial class DigView : Node2D
                 Centered = false,
                 ClipChildren = ClipChildrenMode.Only,
                 Position = new Vector2(pile.Cell % _grid.Width * Cell, pile.Cell / _grid.Width * Cell),
+                ZIndex = Layers.PileCracks,
+                ZAsRelative = false,
             };
             // Lit itself: a clipping picture under the light's material clips nothing.
             var ink = new WreckInk { Position = size / 2, UseParentMaterial = false };

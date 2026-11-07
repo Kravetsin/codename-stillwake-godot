@@ -32,6 +32,9 @@ public static class Layers
 
     public const int Walls = 0, Edges = 1, Fixtures = 2, Doors = 3, Machines = 4, Sockets = 5;
 
+    /// <summary>A pile's cracks (pile-crack-net): over its picture, behind the heroes who climb it, unlike a wall's (<see cref="Dug"/>).</summary>
+    public const int PileCracks = Sockets;
+
     /// <summary>A planet's lava (grid): glowing over its own tiles and their edges, after the caves' tint, which leaves it its colour.</summary>
     public const int Lava = Fixtures;
 
