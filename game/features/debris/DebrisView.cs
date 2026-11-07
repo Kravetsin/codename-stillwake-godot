@@ -6,6 +6,7 @@ using Stillwake.Game.Render;
 using Stillwake.Game.Shared;
 using Stillwake.Net;
 using Stillwake.Sim.Debris;
+using Blow = Stillwake.Game.Shared.Blow;
 using S = Stillwake.Game.Sound;
 using Wreckage = Stillwake.Content.Wreckage;
 
