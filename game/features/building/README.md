@@ -42,9 +42,9 @@ Shared: `game/shared/` (`Ui`, `Hands`, `PointerTip`, `Tablet`, `TabletMotion`, `
 - **Left plans, right removes in the focused layer** (0108, 0110, `Tools.ActOf`): the plan has a focus, the front
   (everything solid: walls, machines, doors, hatches, ladders, floors) or the back walls. A card picked sets its own
   (`FocusOf`); the middle button or a layer's `PlanKey` turns it, each layer keeping its card in hand. Menu and search show the
-  focused layer's cards. The right button, with a card or none, marks or cancels in the focused layer
-  only (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else marks everything of
-  that layer built there, each piece or machine once. The other layer is drawn at 35% (`AlphasOf`). Away from the ship
+  focused layer's cards. A card in hand, the right (or Esc) lets it go (right-lets-go); with none it marks or
+  cancels in the focused layer (`RemovalIn`): begun on a plan of that layer it cancels its plans in the rectangle, else
+  marks all of that layer built there, each piece once. The other layer at 35% (`AlphasOf`). Off the ship
   (`PlanHand.Aboard`) nothing fades, no see-through (`SeesThrough`). No removal card; no grid drawn.
 - **The plan's modes** (plan-modes, `PlanHand.Mode`): building, wiring, piping, by Z X C or the left wing's keys; kept
   while the plan is away. Wiring and piping show their cards alone, no search, layers or pipette (`CardsOf`); the card picked

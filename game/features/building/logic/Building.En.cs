@@ -67,6 +67,7 @@ public static partial class En
         ["hint.fill"] = "fill an area",
         ["hint.row"] = "lay a row",
         ["hint.takeDown"] = "take down",
+        ["hint.letGo"] = "put back",
         ["hint.toBack"] = "back walls",
         ["hint.toFront"] = "front",
         ["hint.close"] = "close",

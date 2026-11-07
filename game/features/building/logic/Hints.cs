@@ -58,7 +58,8 @@ public static class Hints
                     if (DragSays(card) is { } drag) lines.Add(Line(drag, Mouse.LeftDrag));
                 }
                 else lines.Add(Line("hint.pick", Mouse.Left));
-                lines.Add(Line("hint.takeDown", Mouse.RightDrag));
+                // With a card in hand the right lets it go; with none it takes down (right-lets-go).
+                lines.Add(now.Held != null ? Line("hint.letGo", Mouse.Right) : Line("hint.takeDown", Mouse.RightDrag));
                 if (now.Held == null && now.Layers)
                     lines.Add(Line(now.Focus == Focus.Front ? "hint.toBack" : "hint.toFront", Mouse.Middle));
                 break;
@@ -67,10 +68,13 @@ public static class Hints
         return lines;
     }
 
-    /// <summary>The line beside the pointer for what it is over, building; none over nothing it acts on, nor wiring or piping.</summary>
-    public static KeyHint? PointerOf(PlanMode mode, Over over) => (mode, over) switch
+    /// <summary>
+    /// The line beside the pointer for what it is over, building; none over nothing it acts on, nor wiring or piping. A plan
+    /// is cancelled by the right only with no card in hand: <paramref name="holding"/> one, the right lets it go instead.
+    /// </summary>
+    public static KeyHint? PointerOf(PlanMode mode, Over over, bool holding) => (mode, over) switch
     {
-        (PlanMode.Build, Over.Plan) => Line("hint.cancel", Mouse.Right),
+        (PlanMode.Build, Over.Plan) when !holding => Line("hint.cancel", Mouse.Right),
         (PlanMode.Build, Over.Built) => Line("hint.same", new KeyPress(Bind.Drop)),
         _ => null,
     };
