@@ -150,9 +150,8 @@ public class TradeTests
         var (w, id) = SetUp();
         w.FillCrate(id, ("wire", 4));
         w.Do(new SendCapsule(id)).Run();
+        // Instant: it comes apart on the tick it is marked.
         w.Do(new Stillwake.Sim.Building.SetInstant(true)).Do(new Stillwake.Sim.Building.Deconstruct(At(1, 1), "machine")).Run();
-        int plan = w.M.Building.Plans.Single().Id;
-        while (w.M.Building.Plans.Count > 0) w.Do(new Stillwake.Sim.Building.Work(plan)).Run();
         Assert.Null(w.M.Grid.MachineById(id));
         w.Run(Market.CapsuleFlight);
         Assert.Equal(4 * Market.PriceOf("wire"), w.M.Research.Credits);
