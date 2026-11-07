@@ -28,7 +28,9 @@ public partial class MachineHolo : Node2D
 
     private readonly HoloMotion _motion = new();
     private readonly TextureRect _emitter = ScreenGlow.Of(Colors.White with { A = HoloLook.EmitterAlpha }, 0);
-    private readonly StyleBoxFlat _ground = new() { ShadowSize = HoloLook.GlowSize };
+    private readonly StyleBoxFlat _ground = new();
+    // A shadow would show through the translucent ground: the glow is a border outside it, fading out from its edge.
+    private readonly StyleBoxFlat _glow = Glow();
     private readonly Vector2[] _quad = new Vector2[4];
     private readonly Color[] _colours = new Color[4];
     private Rect2 _window, _box;
@@ -107,7 +109,8 @@ public partial class MachineHolo : Node2D
         _light = new Color(tint.Light);
         _ground.BgColor = new Color(tint.Ground) with { A = HoloLook.GroundAlpha };
         _ground.BorderColor = _light with { A = HoloLook.Edge };
-        _ground.ShadowColor = _light with { A = HoloLook.Glow };
+        _glow.BgColor = _light with { A = HoloLook.Glow };
+        _glow.BorderColor = _light with { A = 0 };
     }
 
     public override void _Draw()
@@ -124,6 +127,7 @@ public partial class MachineHolo : Node2D
     {
         float x0 = MathF.Round(grown.X), y0 = MathF.Round(grown.Y);
         float x1 = Math.Max(x0 + 1, MathF.Round(grown.Right)), y1 = Math.Max(y0 + 1, MathF.Round(grown.Bottom));
+        DrawStyleBox(_glow, new Rect2(x0, y0, x1 - x0, y1 - y0));
         DrawStyleBox(_ground, new Rect2(x0, y0, x1 - x0, y1 - y0));
         var near = _light with { A = HoloLook.NearEdge };
         switch (touch.Edge)
@@ -192,6 +196,14 @@ public partial class MachineHolo : Node2D
         (_quad[0], _quad[1], _quad[2], _quad[3]) = (a, b, c, d);
         (_colours[0], _colours[1], _colours[2], _colours[3]) = (ca, cb, cc, cd);
         DrawPolygon(_quad, _colours);
+    }
+
+    private static StyleBoxFlat Glow()
+    {
+        var glow = new StyleBoxFlat { DrawCenter = false, BorderBlend = true };
+        glow.SetBorderWidthAll(HoloLook.GlowSize);
+        glow.SetExpandMarginAll(HoloLook.GlowSize);
+        return glow;
     }
 
     private static HoloRect Of(Rect2 r) => new(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y);
