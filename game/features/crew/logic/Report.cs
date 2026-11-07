@@ -57,15 +57,16 @@ public static class Report
     /// How hard the cold bites hero <paramref name="peer"/> at <paramref name="cell"/>, the body's own, from 0 inside the
     /// field to 1 at the world's edge: the crew's <c>EdgeCost</c> over <c>Field.EdgeCost</c>, eased out (2s − s²) so the
     /// frost shows a little past the line and is heavy well before the edge (0050), lighter by what a cape spares (<c>Warmth</c>,
-    /// 2026-10-27-the-cape-is-worn); at least <see cref="BareFrost"/> while the sim says it is cold beyond the edge's, bare.
+    /// 2026-10-27-the-cape-is-worn); at least <see cref="BareFrost"/> while the sim says it is cold beyond the edge's: bare, or the
+    /// night's chill under the open sky (2026-11-07-night-chills).
     /// What the frost on the screen is drawn at.
     /// </summary>
     public static float Cold(ICrewQueries crew, int peer, int cell)
     {
         float felt = 1 - crew.Warmth(peer) / 1000f;
         float share = Math.Clamp(crew.EdgeCost(cell) * felt / Stillwake.Content.Field.EdgeCost, 0f, 1f);
-        bool bare = crew.HeroOf(peer) is { } hero && crew.Cold(peer) > crew.EdgeCost(hero.Cell);
-        return Math.Max(share * (2 - share), bare ? BareFrost : 0);
+        bool beyondEdge = crew.HeroOf(peer) is { } hero && crew.Cold(peer) > crew.EdgeCost(hero.Cell);
+        return Math.Max(share * (2 - share), beyondEdge ? BareFrost : 0);
     }
 
     /// <summary>

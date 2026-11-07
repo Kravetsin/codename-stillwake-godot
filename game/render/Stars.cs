@@ -92,6 +92,12 @@ public partial class Stars : CanvasLayer
 
     private float? _ground;
 
+    /// <summary>The daylight of the moment on a planet (<see cref="Daylight.Backdrop"/>, 2026-11-07-night-chills): every layer of its sky multiplied by it.</summary>
+    public (float R, float G, float B) Tint
+    {
+        set { if (_day != null) _day.Modulate = new Color(value.R, value.G, value.B); }
+    }
+
     /// <summary>The world's time, in seconds of ticks, that the far wrecks and the dust have drifted by: every peer's alike.</summary>
     public double Seconds { get; set; }
 

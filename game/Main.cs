@@ -558,6 +558,7 @@ public partial class Main : Node2D, ITogether
         _heroes += heard.Count;
         DevTick(client, before);
         ShowWorld();
+        ShowDaylight();
         SeeArrivals(client, delta);
         _frameLog?.Mark("sim");
         if (client.World.Tick != before) SyncLight();
@@ -618,6 +619,23 @@ public partial class Main : Node2D, ITogether
         var fade = Features.Building.Tools.AlphasOf(_hands.Plan.Shown);
         _grid?.Fade(fade);
         foreach (var view in _faded) view.Modulate = new Color(1, 1, 1, fade.Front);
+    }
+
+    /// <summary>
+    /// The planet's hour as light (2026-11-07-night-chills): the light through its open sky, its backdrop and the fog at its sides
+    /// at <see cref="Daylight"/>'s colours of the moment; whole aboard.
+    /// </summary>
+    private void ShowDaylight()
+    {
+        (float R, float G, float B) sky = (1f, 1f, 1f), tint = sky;
+        if (_m.Rules.Cycle is { } cycle && PlanetLooks.Of.TryGetValue(_m.Rules.Id, out var look))
+        {
+            int time = _m.Sky.Now.Time;
+            (sky, tint) = (Daylight.Sky(look, time, cycle), Daylight.Backdrop(look, time, cycle));
+        }
+        Lit.Sky(sky);
+        _stars.Tint = tint;
+        if (View<Features.Fog.FogView>() is { } fog) fog.Tint = tint;
     }
 
     /// <summary>The surface's view of type <typeparamref name="T"/>; none where this surface has none (lava aboard).</summary>

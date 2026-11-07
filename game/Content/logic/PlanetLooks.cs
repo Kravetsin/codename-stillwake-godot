@@ -16,7 +16,17 @@ public static class PlanetLooks
     /// surface's middle over <c>TintOver</c> rows, so the land under the sky keeps its own colours. <c>Fog</c>: the colour of the fog
     /// at its sides (fog-edges), the haze of its far land.
     /// </summary>
-    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog);
+    public sealed record Look(string Backdrop, IReadOnlyList<(float R, float G, float B)> Tint, int TintFrom, int TintOver, (float R, float G, float B) Fog)
+    {
+        /// <summary>
+        /// Its dusk and night (2026-11-07-night-chills), as <see cref="Daylight"/> fades through them: what the light through the
+        /// open sky is multiplied by, and what the backdrop and the fog at its sides are.
+        /// </summary>
+        public (float R, float G, float B) DuskSky { get; init; } = (0.7f, 0.5f, 0.4f);
+        public (float R, float G, float B) NightSky { get; init; } = (0.09f, 0.1f, 0.14f);
+        public (float R, float G, float B) DuskBackdrop { get; init; } = (0.75f, 0.55f, 0.45f);
+        public (float R, float G, float B) NightBackdrop { get; init; } = (0.12f, 0.14f, 0.2f);
+    }
 
     /// <summary>The pictures a backdrop set holds, <c>art/{Backdrop}/{name}.png</c>: the layers <c>Render.PlanetSky</c> draws.</summary>
     public static readonly IReadOnlyList<string> BackdropPictures = ["sky", "giant", "clouds", "sun", "far", "ridge", "hills"];

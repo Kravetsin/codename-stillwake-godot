@@ -89,6 +89,9 @@ public partial class DevPanel : CanvasLayer
         buttons.AddChild(Style.Button("flare", () => Send(new Sim.Hazards.FlareNow(_modules().Hazards.FlareRules.Warning))));
         // Read at the click, as creative is: two quick clicks must switch it back.
         buttons.AddChild(_calm = Style.Button("calm", () => Send(new SetCalm(!_modules().Hazards.Calm))));
+        // The planet's hour (2026-11-07-night-chills): dusk starting, night a minute on; or the day's start. Refused aboard.
+        buttons.AddChild(Style.Button("dusk", () => Send(new Sim.Sky.SetTime(_modules().Rules.Cycle is { } day ? day.Length - day.Night - Daylight.Dusk : 0))));
+        buttons.AddChild(Style.Button("day", () => Send(new Sim.Sky.SetTime(0))));
         column.AddChild(buttons);
         // Surfaces (0076): a planet (0077) or the test strip opened, and this hero beamed between the last opened and the ship.
         var surfaces = Style.Gap(new HBoxContainer(), 8);
