@@ -275,6 +275,21 @@ public class RemoteTests
     }
 
     [Fact]
+    public void AimTheirSwingFromWhereTheyWereInThePacketThatFirstBroughtItsNumber()
+    {
+        var first = Busy.Hear(default, new Seen(HeroAt(1_000), Busy: new Busy(Handwork.Chop, Wreck, 1)));
+        Assert.Equal(new HeardChop(new Busy(Handwork.Chop, Wreck, 1), new Point(1_000, 0)), first);
+        // The same number again, or idle hands: the hero moved on, the swing keeps its place.
+        var same = Busy.Hear(first, new Seen(HeroAt(1_400), Busy: new Busy(Handwork.Chop, Wreck, 1)));
+        Assert.Equal(first, same);
+        var idle = Busy.Hear(same, new Seen(HeroAt(1_800)));
+        Assert.Equal(first, idle);
+        // A new number: from the hero that brought it.
+        var next = Busy.Hear(idle, new Seen(HeroAt(2_200), Busy: new Busy(Handwork.Chop, Wreck, 2)));
+        Assert.Equal(new Point(2_200, 0), next.From);
+    }
+
+    [Fact]
     public void GoThroughTheWireWieldingWithIdleHands()
     {
         var sent = new SentHero(new Seen(HeroAt(1), Wields: "fireAxe"), 50);
@@ -372,7 +387,7 @@ public class RemoteTests
         Assert.Equal(Ahead, swing.At);
         // The next heard while it plays: this one keeps its point, the next swings toward its own.
         Hear(new Busy(Handwork.Chop, Above, 2));
-        swing.Follow(AxeSwing.Ms / 2, heard);
+        swing.Follow(Strokes.Axe.Ms / 2, heard);
         Assert.Equal(Ahead, swing.At);
         Hear(new Busy(Handwork.Work, Below));
         for (int i = 0; i < 100 && !swing.Follow(Frame, heard).Begun; i++) { }

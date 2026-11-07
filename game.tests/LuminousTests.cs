@@ -193,16 +193,16 @@ public class LuminousTests
     [Fact]
     public void ASwingThatBitIsDrawnStoppedOnContactAndCatchesUpByItsEnd()
     {
-        double stop = AxeSwing.StopMs / AxeSwing.Ms;
-        Assert.Equal(0.2, AxeSwing.Shown(0.2), 9);
-        Assert.Equal(AxeSwing.HitAt, AxeSwing.Shown(AxeSwing.HitAt + stop / 2), 9);
-        Assert.Equal(AxeSwing.HitAt, AxeSwing.Shown(AxeSwing.HitAt + stop), 9);
-        Assert.Equal(1, AxeSwing.Shown(1), 9);
+        double stop = AxeSwing.StopMs / Strokes.Axe.Ms;
+        Assert.Equal(0.2, AxeSwing.Shown(0.2, Strokes.Axe), 9);
+        Assert.Equal(Overhand.HitAt, AxeSwing.Shown(Overhand.HitAt + stop / 2, Strokes.Axe), 9);
+        Assert.Equal(Overhand.HitAt, AxeSwing.Shown(Overhand.HitAt + stop, Strokes.Axe), 9);
+        Assert.Equal(1, AxeSwing.Shown(1, Strokes.Axe), 9);
         // Never backwards, never a jump.
         double last = 0;
         for (double p = 0; p <= 1; p += 0.001)
         {
-            double shown = AxeSwing.Shown(p);
+            double shown = AxeSwing.Shown(p, Strokes.Axe);
             Assert.True(shown >= last - 1e-12);
             Assert.True(shown - last < 0.01);
             last = shown;
