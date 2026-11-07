@@ -25,6 +25,7 @@ public partial class ScannerView : CanvasLayer
     public ScannerView()
     {
         Layer = ScreenLayers.Hud;
+        Visible = false;
         FollowViewportEnabled = true;
         _light.Material = new ShaderMaterial { Shader = GD.Load<Shader>("res://shared/holo.gdshader") };
         _base.Draw += DrawBase;
@@ -70,6 +71,7 @@ public partial class ScannerView : CanvasLayer
 
     private void DrawBase()
     {
+        if (_shown == null) return;
         var (x, y, w, h) = Box(out _);
         double level = _level * Flicker;
         _base.DrawRect(new Rect2(x, y, w, h), Of(Glass, 0.84 * Math.Min(1, level * 1.5)));
@@ -78,6 +80,7 @@ public partial class ScannerView : CanvasLayer
 
     private void DrawLight()
     {
+        if (_shown == null) return;
         var (x, y, w, h) = Box(out int pointX);
         double heat = Heat, level = _level * Flicker * (1 + 0.4 * heat);
         Text(_left, x + Phosphor.Inset, y + Phosphor.Inset, Of(Green.Lerp(Flare, (float)(0.6 * heat)), level));
@@ -90,6 +93,7 @@ public partial class ScannerView : CanvasLayer
 
     private void DrawOver()
     {
+        if (_shown == null) return;
         var (x, y, w, h) = Box(out _);
         Specks(_over, x, y, w, h, 0, Of(Grain, 0.55 * Math.Min(1, _level * 1.5)));
     }
